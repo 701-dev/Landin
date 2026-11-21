@@ -1,0 +1,29 @@
+--  D1651: a loop is a statement.  A search loop that gave its result
+--  through `break with` is rewritten into a local written before each
+--  plain `break`, and a `complete` block that gave one literal gives it
+--  to the declaration instead.
+first_even: (values: []i32) -> (found: i32) =
+    mut index: usize = 0
+    found = loop do
+        break with -1 when index == lenof values
+        break with values[index] when values[index] % 2 == 0
+        inc index
+    end loop
+end first_even
+
+position: (rows: [2][3]i32, wanted: i32) -> (at: usize) =
+    place: usize = scan: for row, r in rows do
+        for value, c in row do
+            break scan with r * 3 + c when value == wanted
+        end for
+    complete
+        break with 6
+    end scan
+    at = place
+end position
+
+public main: () -> (code: i32) =
+    values: [3]i32 = [1, 4, 5]
+    rows: [2][3]i32 = [[1, 2, 3], [4, 5, 6]]
+    code = first_even(values[0..<3]) + i32(position(rows, 5))
+end main

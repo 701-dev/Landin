@@ -1,9 +1,10 @@
 before_loop: (flag: bool) -> (r: i32) =
     r = 0
     while flag do
-    complete
-        r = 1
     end while
+    begin
+        r = 1
+    end
 end before_loop
 
 condition_effect: () -> (r: i32) =
@@ -17,8 +18,9 @@ bound_effect: () -> (r: i32) =
 end bound_effect
 
 loop_value: () -> (r: [2]i32) =
-    r = loop do
-        break with [1, 2]
+    loop do
+        r = [1, 2]
+        break
     end loop
 end loop_value
 
@@ -31,10 +33,11 @@ end body_return
 
 completion_return: (flag: bool) -> (r: i32) =
     while flag do
-    complete
+    end while
+    begin
         r = 1
         return
-    end while
+    end
 end completion_return
 
 consume: (sink p: ptr i32) -> none =
@@ -46,8 +49,9 @@ restored: (flag: bool) -> none =
     mut p: ptr i32 = addr v
     consume(p)
     while flag do
-    complete
-        p = addr v
     end while
+    begin
+        p = addr v
+    end
     _ = p
 end restored

@@ -3908,6 +3908,19 @@ STATED_IN_PROSE = {
 }
 
 
+#  Negative fixtures the parser refuses under a code a later stage raises
+#  too, so `codes:` alone cannot say which stage refused them.  D1867 gives
+#  the parser L0332, the checker's code for a missing value, for a loop
+#  written where a value belongs and a `break` given one; the grammar
+#  derives neither, so these are held to not deriving, while the checker's
+#  L0332 fixtures stay held to deriving.
+REFUSED_BY_PARSER_UNDER_A_SHARED_CODE = {
+    "loop-value-search-rewritten": "D1867",
+    "loop-value-in-every-value-context": "D1867",
+    "r720-labelled-block-break-value": "D1867",
+}
+
+
 def fixed_results(meta):
     """The files a fixture's `fixed:` names as results of its fixes."""
     named = re.search(r"^fixed: (.+)$",
@@ -3936,6 +3949,16 @@ def frontend_codes():
     by_name = {row["name"]: row["code"] for row in rows}
 
     out = {by_name[name] for name in parsed}
+    #  A code a later stage raises as well says nothing about the stage by
+    #  itself; REFUSED_BY_PARSER_UNDER_A_SHARED_CODE names the fixtures the
+    #  parser refuses under one.
+    later = set()
+    for package in ("Checking", "Resolution", "Modules"):
+        named = reported_through(package)
+        if named is None:
+            return set()
+        later |= named
+    out -= {by_name[name] for name in later}
     path = ("compiler/ada/src/diagnostics/landin-diagnostics-lexical.adb")
     full = os.path.join(ROOT, path)
     if not os.path.exists(full):
@@ -4191,6 +4214,9 @@ def check_grammar_corpus(full_run):
                         must_derive = True
             if kind == "negative" and name in STATED_IN_PROSE:
                 must_derive = True
+            if (kind == "negative"
+                    and name in REFUSED_BY_PARSER_UNDER_A_SHARED_CODE):
+                must_derive = False
             #  A fixture `refine` accepts, its codes all warnings, is legal
             #  source whichever stage warns: a scanner's warning (L0628)
             #  refuses nothing, so the grammar derives the program.
@@ -4254,6 +4280,11 @@ def check_grammar_corpus(full_run):
             out.append(("check.py", 1,
                         "STATED_IN_PROSE names negative/%s, which is not a"
                         " fixture" % name))
+    for name in sorted(REFUSED_BY_PARSER_UNDER_A_SHARED_CODE):
+        if not os.path.isdir(os.path.join(fixtures, "negative", name)):
+            out.append(("check.py", 1,
+                        "REFUSED_BY_PARSER_UNDER_A_SHARED_CODE names"
+                        " negative/%s, which is not a fixture" % name))
 
     #  Repository-owned library and example modules are source programs too.
     #  Rooted runtime fixtures execute them, while this independent side

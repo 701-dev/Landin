@@ -52,9 +52,10 @@ public main: () -> (code: i32) =
     mut completed: bool = false
     for scalar in empty do
         _ = scalar
-    complete
-        completed = true
     end for
+    begin
+        completed = true
+    end
 
     if utf8_sources == 1 and utf16_sources == 1
       and cstring_sources == 1 and cleanups == 7

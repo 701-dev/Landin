@@ -68,8 +68,9 @@ matched: (a: refusal, cell: ptr mut u32) -> (r: result from cell) =
 end matched
 
 looked: (cell: ptr mut u32) -> (r: result from cell) =
-    r = loop do
-        break with cell
+    loop do
+        r = cell
+        break
     end loop
 end looked
 

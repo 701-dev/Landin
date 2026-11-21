@@ -1558,8 +1558,7 @@ with a written type. The binding's value is the condition, so it must be a
 ```
 
 - The name exists only in the body that its condition guards. It does not
-  exist in a later `elsif`, in the `else`, in a loop's `complete`, or after
-  the construct.
+  exist in a later `elsif`, in the `else`, or after the construct.
 - The initializer runs before the name exists, so it cannot refer to the
   name it initializes.
 - A `while` runs the initializer again before every iteration.
@@ -1719,8 +1718,8 @@ These must write their set out:
 - Function types, anonymous functions, concept entries ([1260]) and
   anything exported to C, because their complete signature is their type.
 
-`try for item in source do ... end for` passes on a failure from any
-traversal step ([1150]). The enclosing function must declare or infer the
+A traversal whose steps can fail is a `while` whose body takes each item
+with `try` ([1150]). The enclosing function must declare or infer the
 atoms, and its caller handles them with the ordinary `else` on that call.
 
 Exact rules: spec [1980].
@@ -2047,10 +2046,19 @@ straight to the next test.
   first NUL, which is not an item. Text from C is validated as [0600]
   says.
 
-`try for` walks a source whose steps can fail ([1320]'s
-`fallible_iterable`, or a plain `iterable`). A failure leaves the loop
-through the function's error set ([0960]). It runs `defer` and `undo` on the
-way and skips `complete`. `break` and `continue` work as usual.
+`for` walks only sources whose steps cannot fail. A traversal whose steps
+can fail is a `while` that takes each item with `try`:
+
+```landin
+    while has_more(source) do
+        line := try next_line(source)
+        consume(line)
+    end while
+```
+
+A failure leaves the loop through the function's error set ([0960]) and
+runs `defer` and `undo` on the way. A call's `else` ([1030]) handles the
+failure inside the loop instead. `break` and `continue` work as usual.
 
 ### [1160] Writing through a loop binding
 
@@ -2079,20 +2087,28 @@ be written.
   element follows the same rule. Writing through an inner slice follows
   that slice's own `mut`.
 
-### [1170] When a loop runs out: `complete`
+### [1170] When a loop runs out
 
-A `complete` block runs when the loop ends because its source or condition
-ran out. It does not run when a `break` left the loop.
+A loop is a statement. Every way out of it reaches the statement after
+it: a `while` whose test became false, a `for` whose source ran out, and
+each `break`. Nothing runs only because the loop ran out. Code that should
+is written after the loop, behind a flag that the loop's breaks clear.
 
 ```landin
+    mut ran_out: bool = true
     for item in items do
-        break when item == 42
-    complete
-        out = -1
+        if item == 42 then
+            ran_out = false
+            break
+        end if
     end for
+    if ran_out then
+        out = -1
+    end if
 ```
 
-`loop do` has no natural end, so it takes no `complete`.
+A function of its own needs no flag. It returns from inside the loop, so
+whatever follows the loop runs only when the loop ran out ([1190]).
 
 ### [1180] Labels
 
@@ -2120,34 +2136,48 @@ running their cleanups on the way out.
     end search
 ```
 
-A bare block has no next iteration and yields no value. So `continue` can
-target only a loop, and only a loop can produce a value through
-`break with`.
+A bare block has no next iteration, so `continue` can target only a loop.
 
-### [1190] A loop with a value: `break with`
+### [1190] A loop that searches
 
-`break with value` leaves the loop and makes the value the loop's result.
-A search becomes an expression instead of a mutable variable and a flag.
+A loop has no value. A search writes what it finds to a mutable local and
+leaves with a plain `break`.
 
 ```landin
-    found := for item in items do
-        break with item when item > 40
-    complete
-        break with 0
+    mut found: i32 = 0
+    for item in items do
+        if item > 40 then
+            found = item
+            break
+        end if
     end for
     out += found
 ```
 
-`with` is required because a bare name after `break` could be either a
-label or a value.
+`found` starts as the answer for a loop that runs out, so no flag is
+needed.
 
-- Every `break` of a loop used as a value carries `with`, and all of them
-  yield the same type.
-- A loop that can run out needs a `complete` that supplies the value.
-  `loop do` needs none, having no other way out.
-- A loop whose value is unwanted is discarded explicitly ([1020]):
-  `_ = loop do break with 1 end loop`. A statement loop uses plain `break`
-  and cannot silently drop a `with` value.
+A search that is a function of its own writes the named result and
+returns.
+
+```landin
+first_above: (items: []i32, limit: i32) -> (found: i32) =
+    for item in items do
+        if item > limit then
+            found = item
+            return
+        end if
+    end for
+    found = 0
+end first_above
+```
+
+- `break` takes a label or nothing, never a value.
+- A loop cannot be the right-hand side of an assignment, an initializer or
+  an argument.
+- Earlier versions of Landin had loops with values. The compiler refuses
+  those forms and names the replacement, and `refine fix` rewrites the
+  ones that have a mechanical one.
 
 ### [1210] Pattern matching: `match`
 
@@ -4039,10 +4069,10 @@ end fallible_iterable
 ```
 
 `errors` is an atom set, and all four entries declare exactly that set;
-a provider may declare an error it never raises. Such a source is walked
-with `try for` ([0960]). `try for` needs one unambiguous conformance and
-prefers `fallible_iterable` when both exist; plain `for` only ever uses
-`iterable`.
+a provider may declare an error it never raises. A program may declare
+this concept, but no loop walks it implicitly: plain `for` only ever uses
+`iterable`. Such a source is walked with a `while` that calls its entries
+with `try` ([1150]).
 
 ### [1330] Integer ranges are not values
 
@@ -5972,6 +6002,13 @@ what it refused.
   an operation costs is a library's business, and no language
   guarantee should rest on how clever an optimiser happens to be
   [1270].
+- loops with a value, and a loop form for steps that fail. `break with
+  value` made a loop an expression, a `complete` block ran when the
+  loop ran out, and `try for` walked a source whose steps could
+  fail. All three were removed. Only the fixtures that pinned them
+  used them; a mutable local and a plain `break`, or a function
+  that returns, says the same, and so does a `while` over tried
+  steps [1170] [1190] [1150].
 - a concept for ranges. Integer range traversal now uses bounds in a
   `for` header, and left-exclusive forms went with the concept [0360].
 - a second type with the shape of a fixed array and different

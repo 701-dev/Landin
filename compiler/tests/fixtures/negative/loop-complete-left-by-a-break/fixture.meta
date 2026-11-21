@@ -1,0 +1,9 @@
+class: negative
+summary: a loop's complete block that a break skips is refused with the flag that replaces it named, and no fix, because the block would run on that exit too
+program: program.ldn
+codes: L0696
+constructs: 1140, 1170, 1180
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/loop-complete-left-by-a-break/program.ldn
+status: 1

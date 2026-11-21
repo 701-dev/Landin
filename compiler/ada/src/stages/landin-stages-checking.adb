@@ -2736,7 +2736,6 @@ package body Landin.Stages.Checking is
         (Actual  : Type_Descriptor;
          Of_Tree : Syn.Tree;
          Source  : Syn.Node_Id;
-         Fallible : Boolean := False;
          Quiet_Missing : Boolean := False)
          return Landin.Checking.Conformance_Id;
       procedure Check_Aggregate_Zeroed
@@ -10953,9 +10952,9 @@ package body Landin.Stages.Checking is
               and then Landin.Checking.Nominal_Of
                 (Types.all, Of_Tree, Written)
                   /= Landin.Checking.No_Nominal_Type;
-            --  D125/D158: a local control expression fills the written
-            --  caller-owned shape directly.  Loops use the same carrier as
-            --  branches and bare blocks; no aggregate pseudo-value exists.
+            --  D125: a local control expression fills the written
+            --  caller-owned shape directly; no aggregate pseudo-value
+            --  exists.
             Is_Array_Control_Init : constant Boolean :=
               Held = Ty.Fixed_Array
               and then Is_Local_Binding (Of_Tree, Node)
@@ -23020,7 +23019,6 @@ package body Landin.Stages.Checking is
         (Actual  : Type_Descriptor;
          Of_Tree : Syn.Tree;
          Source  : Syn.Node_Id;
-         Fallible : Boolean := False;
          Quiet_Missing : Boolean := False)
          return Landin.Checking.Conformance_Id
       is
@@ -23094,18 +23092,11 @@ package body Landin.Stages.Checking is
             Item : constant Type_Descriptor := Descriptor_For
               (Landin.Checking.Nth_Conformance_Input
                  (Types.all, Row, 2));
-            Error_Type : constant Type_Descriptor :=
-              (if Fallible then Descriptor_For
-                 (Landin.Checking.Nth_Conformance_Input
-                    (Types.all, Row, 3))
-               else (Kind => Ty.No_Value, others => <>));
+            --  D1652: every provider is infallible.
             Error_Form : constant Landin.Checking.Error_Set_Form :=
-              (if Fallible and then Error_Type.Kind = Ty.Atom_Value
-               then Landin.Checking.Concrete
-               else Landin.Checking.Infallible);
+              Landin.Checking.Infallible;
             Errors : constant Landin.Checking.Atom_Set_Id :=
-              (if Error_Form = Landin.Checking.Concrete
-               then Error_Type.Atoms else Landin.Checking.No_Atom_Set);
+              Landin.Checking.No_Atom_Set;
             Site : constant Landin.Provenance.Origin :=
               Syn.Origin (Of_Tree, Source);
             Source_Reference : constant Landin.Checking.Reference_Id :=
@@ -23165,9 +23156,6 @@ package body Landin.Stages.Checking is
                 [First_Signature, At_End_Signature,
                  Item_Signature, Next_Signature];
          begin
-            if Fallible and then Error_Type.Kind /= Ty.Atom_Value then
-               return False;
-            end if;
             for Position in Expected'Range loop
                declare
                   Got : constant Landin.Checking.Signature_Id :=
@@ -23201,7 +23189,7 @@ package body Landin.Stages.Checking is
                   if Landin.Checking.Conformance_Concept
                        (Types.all, Candidate) = Concept
                     and then Landin.Checking.Conformance_Input_Count
-                      (Types.all, Candidate) = (if Fallible then 3 else 2)
+                      (Types.all, Candidate) = 2
                     and then Type_Descriptors_Agree
                       (Descriptor_For
                          (Landin.Checking.Conformance_Target
@@ -23235,8 +23223,7 @@ package body Landin.Stages.Checking is
                        Res.Node_Of (Meanings.all, Declaration);
                   begin
                      if Spelled (Syn.Name (Concept_Tree.all, Concept_Node))
-                          = (if Fallible then "fallible_iterable"
-                             else "iterable")
+                          = "iterable"
                      then
                         Concept_Matches := Concept_Matches + 1;
                         Concept := Candidate;
@@ -23272,14 +23259,14 @@ package body Landin.Stages.Checking is
               Res.Node_Of (Meanings.all, Declaration);
             Names_Agree : Boolean :=
               Syn.Concept_Formal_Count (Concept_Tree.all, Concept_Node)
-                = (if Fallible then 4 else 3)
+                = 3
               and then Syn.Concept_Entry_Count
                 (Concept_Tree.all, Concept_Node) = 4
               and then Syn.Concept_Parent_Count
                 (Concept_Tree.all, Concept_Node) = 0;
          begin
             if Names_Agree then
-               for Position in 1 .. (if Fallible then 4 else 3) loop
+               for Position in 1 .. 3 loop
                   declare
                      Formal : constant Syn.Node_Id :=
                        Syn.Nth_Concept_Formal
@@ -23397,7 +23384,7 @@ package body Landin.Stages.Checking is
                                   (Meanings.all, Concept_Declaration);
                            begin
                               for Input_Position in
-                                2 .. (if Fallible then 4 else 3)
+                                2 .. 3
                               loop
                                  declare
                                     Formal : constant Syn.Node_Id :=
@@ -23458,7 +23445,7 @@ package body Landin.Stages.Checking is
 
                            if Valid
                              and then Landin.Checking.Actual_Count (Inputs)
-                               = (if Fallible then 3 else 2)
+                               = 2
                            then
                               declare
                                  Accepted : constant Boolean :=
@@ -23500,12 +23487,8 @@ package body Landin.Stages.Checking is
             Report
               ("this iterable evidence does not implement [1320]'s exact"
                & " call contract",
-               (if Fallible then
-                  "fallible_iterable: each provider takes a read-only"
-                  & " source pointer and declares its exact shared error set"
-                else
-                  "D180: providers are infallible calls taking a read-only"
-                  & " source pointer, with one Cur and Item identity"));
+               "D180: providers are infallible calls taking a read-only"
+               & " source pointer, with one Cur and Item identity");
             return Landin.Checking.No_Conformance;
          end if;
 
@@ -42401,11 +42384,10 @@ package body Landin.Stages.Checking is
          --  Where an atom first entered a routine's required set, so an
          --  atom outside its declared set is named with the `fail` or the
          --  call that raises it.  An atom a `fail` names directly is keyed
-         --  by the atom; one that arrives through a callee, a recovered
-         --  error binding or a traversal's providers is keyed by that
-         --  callee's signature, whose effects hold it.
-         type Raise_Kind is (Raised_By_Fail, Raised_By_Call,
-                             Raised_By_Traversal);
+         --  by the atom; one that arrives through a callee or a recovered
+         --  error binding is keyed by that callee's signature, whose
+         --  effects hold it.
+         type Raise_Kind is (Raised_By_Fail, Raised_By_Call);
          type Raise_Site is record
             Source : Landin.Source.Source_Id := Landin.Source.No_Source;
             Node : Syn.Node_Id := Syn.No_Node;
@@ -43346,10 +43328,7 @@ package body Landin.Stages.Checking is
                                     when Raised_By_Fail =>
                                        "this `fail` raises " & Named,
                                     when Raised_By_Call =>
-                                       "this call can fail with " & Named,
-                                    when Raised_By_Traversal =>
-                                       "this traversal's providers can"
-                                       & " fail with " & Named)),
+                                       "this call can fail with " & Named)),
                            Into    => Found);
                      end;
                   end loop;

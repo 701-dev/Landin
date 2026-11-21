@@ -10,7 +10,8 @@ bad: (cell: ptr u32, choose: bool) -> (result: maybe_pointer from cell) =
         choose
     end do
         return
-    complete
-        result = candidate
     end while
+    begin
+        result = candidate
+    end
 end bad

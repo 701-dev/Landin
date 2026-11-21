@@ -512,7 +512,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R19.50 — Loops are statements.**
+**Next roadmap item: R19.60 — One spelling for each declaration (planned).**
 
 ## Questions, bugs and ideas
 

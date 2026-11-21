@@ -5925,20 +5925,6 @@ package body Landin.Tests.Driver_Suite is
             "L0300", 1, Executable);
          Check
            ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = loop do break with 3 end loop end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = loop do if flag then break with 3 else break "
-            & "with 7 end if end loop end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = while flag do break with 7 complete break "
-            & "with 3 end while end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
             & "value: level = level(begin 3 end) end f",
             "L0300", 1, Executable);
          Check
@@ -6059,14 +6045,6 @@ package body Landin.Tests.Driver_Suite is
             & "size: size_i32) f: () -> none = item: i32 = 1 erased: any "
             & "widget = any(addr item) end f",
             "L0342", 1, Executable);
-         Check
-           ("f: (flag: bool) -> none = while flag do mark: i32 = 1 "
-            & "continue complete _ = mark end while end f" & ASCII.LF,
-            "L0201", 1, Executable);
-         Check
-           ("f: () -> none = loop do break complete mark: i32 = 1 "
-            & "end loop end f" & ASCII.LF,
-            "L0110", 1, Executable);
          Check
            ("f: (flag: bool) -> none = completion: while flag do "
             & "callback := () -> none = break completion end break "
@@ -6514,9 +6492,6 @@ package body Landin.Tests.Driver_Suite is
             & " | empty end kind end choice "
             & "x: choice = (kind: pair(value: ptr u8))",
             "L0334", 1, Executable);
-         Check
-           ("f: () -> none = loop do complete end loop end f",
-            "L0110", 1, Executable);
          Check
            ("f: () -> none = loop do continue with 1 end loop end f",
             "L0110", 1, Executable);

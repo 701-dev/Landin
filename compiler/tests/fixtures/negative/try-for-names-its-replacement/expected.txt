@@ -1,0 +1,6 @@
+error[L0696]: there is no `try for`
+  --> ../tests/fixtures/negative/try-for-names-its-replacement/main.ldn:30:5
+   |
+30 |     try for item in value do
+   |     ^^^^^^^
+  = note: D1652: a traversal whose steps can fail is a `while` whose body takes each item with `try` or a call's `else`, as in `while not (try at_end(s, c)) do`

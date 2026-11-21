@@ -1,5 +1,0 @@
-public main: () -> (code: i32) =
-    code = while false do
-        break with 1
-    end while
-end main

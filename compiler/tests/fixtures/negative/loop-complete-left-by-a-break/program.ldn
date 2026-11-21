@@ -1,0 +1,17 @@
+--  D1651: a loop has no `complete` block.  A `break` leaves this loop
+--  without running the block, so moving the block after the loop would
+--  run it on that exit too; the refusal names the flag that replaces it
+--  and offers no fix.
+count_to: (limit: i32) -> (r: i32) =
+    r = 0
+    while r < 10 do
+        break when r == limit
+        inc r
+    complete
+        r = -1
+    end while
+end count_to
+
+public main: () -> (code: i32) =
+    code = count_to(4)
+end main

@@ -1945,7 +1945,7 @@ package Landin.Checking is
                  and then Landin.Syntax.Contains (Of_Tree, Node);
 
    --  D180: a `for` over a struct or `any C` retains the selected iterable
-   --  conformance; `try for` may retain fallible_iterable instead.  The four
+   --  conformance.  The four
    --  entry positions remain the concept declaration's order; this fact
    --  names the table, not one particular call through it.
    function Traversal_Evidence_Of

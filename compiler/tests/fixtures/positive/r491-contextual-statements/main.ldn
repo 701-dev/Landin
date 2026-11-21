@@ -12,9 +12,10 @@ assign_loop: (v: selected) -> none =
     end match
     while false do
         loop_value[0] = 4
-    complete
-        loop_value[0] = 5
     end while
+    begin
+        loop_value[0] = 5
+    end
 end assign_loop
 
 declare_while: () -> none =
@@ -29,9 +30,10 @@ assign_while: (v: selected) -> none =
     end match
     while false do
         while_value[0] = 4
-    complete
-        while_value[0] = 5
     end while
+    begin
+        while_value[0] = 5
+    end
 end assign_while
 
 declare_for: () -> none =
@@ -46,9 +48,10 @@ assign_for: (v: selected) -> none =
     end match
     while false do
         for_value[0] = 4
-    complete
-        for_value[0] = 5
     end while
+    begin
+        for_value[0] = 5
+    end
 end assign_for
 
 declare_break: () -> none =
@@ -63,9 +66,10 @@ assign_break: (v: selected) -> none =
     end match
     while false do
         break_value[0] = 4
-    complete
-        break_value[0] = 5
     end while
+    begin
+        break_value[0] = 5
+    end
 end assign_break
 
 declare_continue: () -> none =
@@ -80,9 +84,10 @@ assign_continue: (v: selected) -> none =
     end match
     while false do
         continue_value[0] = 4
-    complete
-        continue_value[0] = 5
     end while
+    begin
+        continue_value[0] = 5
+    end
 end assign_continue
 
 declare_defer: () -> none =
@@ -97,9 +102,10 @@ assign_defer: (v: selected) -> none =
     end match
     while false do
         defer_value[0] = 4
-    complete
-        defer_value[0] = 5
     end while
+    begin
+        defer_value[0] = 5
+    end
 end assign_defer
 
 declare_undo: () -> none =
@@ -114,9 +120,10 @@ assign_undo: (v: selected) -> none =
     end match
     while false do
         undo_value[0] = 4
-    complete
-        undo_value[0] = 5
     end while
+    begin
+        undo_value[0] = 5
+    end
 end assign_undo
 
 declare_match: () -> none =
@@ -131,9 +138,10 @@ assign_match: (v: selected) -> none =
     end match
     while false do
         match_value[0] = 4
-    complete
-        match_value[0] = 5
     end while
+    begin
+        match_value[0] = 5
+    end
 end assign_match
 
 declare_begin: () -> none =
@@ -148,9 +156,10 @@ assign_begin: (v: selected) -> none =
     end match
     while false do
         begin_value[0] = 4
-    complete
-        begin_value[0] = 5
     end while
+    begin
+        begin_value[0] = 5
+    end
 end assign_begin
 
 declare_complete: () -> none =
@@ -165,9 +174,10 @@ assign_complete: (v: selected) -> none =
     end match
     while false do
         complete_value[0] = 4
-    complete
-        complete_value[0] = 5
     end while
+    begin
+        complete_value[0] = 5
+    end
 end assign_complete
 
 declare_unchecked: () -> none =
@@ -182,9 +192,10 @@ assign_unchecked: (v: selected) -> none =
     end match
     while false do
         unchecked_value[0] = 4
-    complete
-        unchecked_value[0] = 5
     end while
+    begin
+        unchecked_value[0] = 5
+    end
 end assign_unchecked
 
 declare_arena: () -> none =
@@ -199,7 +210,8 @@ assign_arena: (v: selected) -> none =
     end match
     while false do
         arena[0] = 4
-    complete
-        arena[0] = 5
     end while
+    begin
+        arena[0] = 5
+    end
 end assign_arena

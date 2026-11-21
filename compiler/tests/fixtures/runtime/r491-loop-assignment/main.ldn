@@ -4,9 +4,10 @@
 --  for a named return and a local alike.
 while_completion: (flag: bool) -> (r: i32) =
     while flag do
-    complete
-        r = 1
     end while
+    begin
+        r = 1
+    end
 end while_completion
 
 break_assignment: () -> (r: i32) =
@@ -18,16 +19,18 @@ end break_assignment
 
 for_completion: () -> (r: i32) =
     for i in 0..<1 do
-    complete
-        r = 3
     end for
+    begin
+        r = 3
+    end
 end for_completion
 
 array_completion: (flag: bool) -> (r: [2]i32) =
     while flag do
-    complete
-        r = [4, 5]
     end while
+    begin
+        r = [4, 5]
+    end
 end array_completion
 
 waited: (limit: i32) -> (r: i32) =
@@ -51,14 +54,18 @@ local_after: (n: i32) -> (r: i32) =
 end local_after
 
 every_break: (n: i32) -> (r: i32) =
-    for i in 0..<n do
+    mut i: i32 = 0
+    loop do
+        if i == n then
+            r = 7
+            break
+        end if
         if i == 2 then
             r = 20
             break
         end if
-    complete
-        r = 7
-    end for
+        inc i
+    end loop
 end every_break
 
 public main: () -> (code: i32) =

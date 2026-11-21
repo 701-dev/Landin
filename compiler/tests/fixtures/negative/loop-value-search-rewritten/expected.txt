@@ -1,0 +1,22 @@
+error[L0332]: a loop is a statement and gives no value
+  --> ../tests/fixtures/negative/loop-value-search-rewritten/program.ldn:7:13
+  |
+7 |     found = loop do
+  |             ^^^^
+  --> ../tests/fixtures/negative/loop-value-search-rewritten/program.ldn:8:15
+  |
+8 |         break with -1 when index == lenof values
+  |               ^^^^ a value given here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own
+  = help: write the loop as a statement that assigns `found` before each plain `break`
+error[L0332]: a loop is a statement and gives no value
+  --> ../tests/fixtures/negative/loop-value-search-rewritten/program.ldn:15:20
+   |
+15 |     place: usize = scan: for row, r in rows do
+   |                    ^^^^^^^^^
+  --> ../tests/fixtures/negative/loop-value-search-rewritten/program.ldn:17:24
+   |
+17 |             break scan with r * 3 + c when value == wanted
+   |                        ^^^^ a value given here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own
+  = help: write the loop as a statement that assigns `place` before each plain `break`

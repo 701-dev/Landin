@@ -71,16 +71,18 @@ public main: () -> (code: i32) =
         end for
     end outer
 
-    selected: i32 = for value in numbers do
-        break with value when value > 5
-    complete
-        break with -1
+    mut selected: i32 = -1
+    for value in numbers do
+        if value > 5 then
+            selected = value
+            break
+        end if
     end for
 
-    emptied: i32 = for value in numbers[2..<2] do
-        break with value
-    complete
-        break with 17
+    mut emptied: i32 = 17
+    for value in numbers[2..<2] do
+        emptied = value
+        break
     end for
 
     if sum_slice(module_words[1..<4]) == 90

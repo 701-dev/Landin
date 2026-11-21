@@ -30,13 +30,17 @@ public main: () -> (code: i32) =
         row[2] = 24
     end outer
 
-    picked: [3]i32 = for row in rows do
+    mut picked: [3]i32 = first
+    mut exhausted: bool = true
+    for row in rows do
         inc picked_runs
-        break with row
-    complete
-        inc picked_completes
-        break with first
+        picked = row
+        exhausted = false
+        break
     end for
+    if exhausted then
+        inc picked_completes
+    end if
 
     mut spans: [2][]mut i32
     spans[0] = first[0..<3]
@@ -50,10 +54,10 @@ public main: () -> (code: i32) =
         end for
     end for
 
-    chosen: []mut i32 = for span in spans do
-        break with span
-    complete
-        break with first[0..<0]
+    mut chosen: []mut i32 = first[0..<0]
+    for span in spans do
+        chosen = span
+        break
     end for
     chosen[1] = chosen[1] + 10
 

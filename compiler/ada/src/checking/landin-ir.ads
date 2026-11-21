@@ -25,15 +25,13 @@ with Landin.Packed;
 --  and therefore a tree cannot test, while the verifier exists to reject
 --  malformed IR.
 --
---  No phi and no block parameter.  [1080] permits `if`, `match`, bare
---  blocks and loops in expression positions, so their results do cross
---  control-flow merges.  Under D125, reachable fallthrough arms of `if`
---  and `match`, and the final expression of a bare block, write storage
---  owned by the consumer: a scalar or function join slot, or a shared
---  aggregate destination.  Under D158, each taken `break with` writes
---  its target loop's join slot (or fills its aggregate destination),
---  runs cleanup, and jumps to the post-loop block.  The continuation
---  loads a scalar or uses the filled destination.  [1840] still keeps
+--  No phi and no block parameter.  [1080] permits `if`, `match` and bare
+--  blocks in expression positions, so their results do cross
+--  control-flow merges; a loop is a statement (D1651).  Under D125,
+--  reachable fallthrough arms of `if` and `match`, and the final
+--  expression of a bare block, write storage owned by the consumer: a
+--  scalar or function join slot, or a shared aggregate destination.  The
+--  continuation loads a scalar or uses the filled destination.  [1840] still keeps
 --  names declared inside an arm out of other arms and the continuation;
 --  names declared outside it are slots too.  Across all these edges,
 --  including loop back edges, slot contents carry information while IR

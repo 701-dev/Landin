@@ -1,10 +1,10 @@
-error[L0332]: this break gives a value to a labelled bare block
-  --> ../tests/fixtures/negative/r720-labelled-block-break-value/program.ldn:5:26
+error[L0332]: a `break` gives no value, and a labelled bare block takes none
+  --> ../tests/fixtures/negative/r720-labelled-block-break-value/program.ldn:5:21
   |
 5 |         break outer with 1
-  |                          ^
+  |                     ^^^^^^
   --> ../tests/fixtures/negative/r720-labelled-block-break-value/program.ldn:4:5
   |
 4 |     outer: begin
-  |     ^^^^^^^^^^^^ this block produces no value
-  = note: [1180]/[1190]: a labelled bare block is a statement; only a loop used as an expression takes `break with`
+  |     ^^^^^ the block it leaves
+  = note: D1651: write the value to a mutable local or the named result before a plain `break`

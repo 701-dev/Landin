@@ -60,9 +60,9 @@ rejects frame backing, because the allocations it hands out carry no origin
 and would hide that frame lifetime.
 
 **Errors** are atoms in a dedicated register, declared per function
-after `!`, with `fail`, `try` and an `else` clause on the call. A
-`try for` propagates a streaming iterator's declared per-step failure;
-the caller can handle it with that same call `else`. No
+after `!`, with `fail`, `try` and an `else` clause on the call. Since
+D1652 a traversal whose steps can fail is a `while` over tried steps;
+the caller can handle a step's failure with that same call `else`. No
 exceptions, no unwinding, no catchable panics. And only half of what
 goes wrong belongs in that channel: the test is whether it can be
 determined from what you already hold. A syntax mistake is in the bytes
@@ -266,7 +266,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R19.50 — Loops are statements.**
+**Next roadmap item: R19.60 — One spelling for each declaration (planned).**
 
 ## Versions
 

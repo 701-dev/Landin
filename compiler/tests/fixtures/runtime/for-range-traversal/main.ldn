@@ -24,9 +24,10 @@ public main: () -> (code: i32) =
     mut completed: i32 = 0
     for item in 4..<4 do
         completed = item
-    complete
-        completed = 7
     end for
+    begin
+        completed = 7
+    end
 
     mut reached: i32 = 0
     outer: for x in 0..<4 do
@@ -37,16 +38,18 @@ public main: () -> (code: i32) =
         end for
     end outer
 
-    selected: i32 = for item in 0..<4 do
-        break with 9 when item == 2
-    complete
-        break with 1
+    mut selected: i32 = 1
+    for item in 0..<4 do
+        if item == 2 then
+            selected = 9
+            break
+        end if
     end for
 
-    exhausted: i32 = for item in 0..<0 do
-        break with item
-    complete
-        break with 8
+    mut exhausted: i32 = 8
+    for item in 0..<0 do
+        exhausted = item
+        break
     end for
 
     first: u8 = 254

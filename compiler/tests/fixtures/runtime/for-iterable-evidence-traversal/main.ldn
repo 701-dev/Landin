@@ -187,12 +187,12 @@ public main: () -> (code: i32) =
 
     concrete: pair = (count: 2)
     erased: any sequence = any(addr concrete)
-    chosen: any marker = for item in counted(erased) do
+    mut chosen: any marker = any(addr fallback)
+    for item in counted(erased) do
         defer cleaned()
         continue when item.code() == 17
-        break with item
-    complete
-        break with any(addr fallback)
+        chosen = item
+        break
     end for
 
     numbers: cell(i32) = (value: 4, count: 2)
@@ -201,9 +201,10 @@ public main: () -> (code: i32) =
     for item in numbers do
         defer cleaned()
         generic_sum += item
-    complete
-        generic_complete = true
     end for
+    begin
+        generic_complete = true
+    end
 
     if bag_sources == 1 and bag_firsts == 1
       and bag_tests == 3 and bag_items == 3 and bag_nexts == 2

@@ -78,8 +78,7 @@ publication and recovery rule.
 ### Blocks
 
 A block is indented four spaces from the line its construct begins on, and
-the `end` that closes it, and any `else`, `elsif` or `complete` that divides
-it, stands on that line's indentation. A construct that opens and closes on
+the `end` that closes it, and any `else` or `elsif` that divides it, stands on that line's indentation. A construct that opens and closes on
 one line stays on it, which is how a guarded trap is written (D436).
 
 ```landin

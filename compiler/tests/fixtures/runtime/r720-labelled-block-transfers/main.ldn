@@ -56,9 +56,10 @@ leaves_loop: () -> (result: i32) =
             inc i
             defer mark(2)
             break found when i == 3
-        complete
-            mark(9)
         end while
+        begin
+            mark(9)
+        end
         mark(8)
     end found
     result = trace * 10 + i

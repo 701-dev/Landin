@@ -69,11 +69,15 @@ break_value: (cell: ptr u32, choose: bool)
     local: u32 = 42
     mut candidate: maybe_pointer = cell
     result = cell
-    value: i32 = loop do
-        break with begin
-            candidate = addr local
-            0
-        end when choose
+    mut value: i32
+    loop do
+        if choose then
+            value = begin
+                candidate = addr local
+                0
+            end
+            break
+        end if
         result = candidate
         return
     end loop

@@ -378,8 +378,8 @@ package body Landin.Tests.Checking_Suite is
         & "outer: while flag do continue outer when flag "
         & "for i in 0..<2 do break outer when flag "
         & "continue when flag break end for break when flag "
-        & "complete break end outer "
-        & "while flag do continue complete break end while end f" & LF;
+        & "end outer "
+        & "while flag do continue end while end f" & LF;
       Total : Natural;
 
       procedure Compile (Fail_At : Natural);
@@ -9629,10 +9629,12 @@ package body Landin.Tests.Checking_Suite is
       Check_Source
         ("cached value loop establishes recovery target", Prefix
          & "f: () -> none =" & LF
-         & "value := loop do" & LF
+         & "mut value: i32" & LF
+         & "loop do" & LF
          & "mut input: i32 = 1" & LF
-         & "break with (fallible(input) else (problem)" & LF
-         & "_ = problem continue end)" & LF
+         & "value = fallible(input) else (problem)" & LF
+         & "_ = problem continue end" & LF
+         & "break" & LF
          & "end loop" & LF
          & "observe(value) end f" & LF, Accepted => True);
       Check_Source
@@ -14463,115 +14465,6 @@ package body Landin.Tests.Checking_Suite is
       end;
    end Call_Matches_Belong_To_Routine_Views;
 
-   procedure Loop_Results_Require_A_Consumer
-     (Item : in out Landin.Testing.Context);
-
-   procedure Loop_Results_Require_A_Consumer
-     (Item : in out Landin.Testing.Context)
-   is
-      procedure Check (Label, Text : String; Codes : String := "");
-
-      procedure Check (Label, Text : String; Codes : String := "") is
-         Work : Landin.Stages.Compilation :=
-           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
-         Order : Landin.Stages.Pipeline;
-         Src : constant Landin.Source.Source_Id :=
-           Landin.Stages.Add_Source (Work, "loop-discard.ldn", Text);
-         Ran : Natural;
-         Got : US.Unbounded_String;
-         pragma Unreferenced (Src);
-      begin
-         Landin.Stages.Append (Order, Frontend'Access);
-         Landin.Stages.Append (Order, Configurer'Access);
-         Landin.Stages.Append (Order, Names'Access);
-         Landin.Stages.Append (Order, Checker'Access);
-         Ran := Landin.Stages.Run (Order, Work);
-         declare
-            Reports : constant Landin.Diagnostics.Diagnostic_List :=
-              Landin.Stages.Report (Work);
-         begin
-            for Position in 1 .. Landin.Diagnostics.Count (Reports) loop
-               if Position > 1 then
-                  US.Append (Got, " ");
-               end if;
-               US.Append
-                 (Got, Landin.Diagnostics.Code
-                    (Landin.Diagnostics.Get (Reports, Position)));
-            end loop;
-         end;
-         Landin.Testing.Check_Equal
-           (Item, Ran, 4, Label & " reaches checking");
-         Landin.Testing.Check
-           (Item, Landin.Stages.Failed (Work) = (Codes /= "")
-              and then US.To_String (Got) = Codes,
-            Label & " retains the exact result verdict: "
-            & US.To_String (Got));
-         if Codes /= "" then
-            Landin.Testing.Check
-              (Item, Ada.Strings.Fixed.Index
-                 (Landin.Stages.Rendered_Report (Work),
-                  "this break gives a value to a statement loop") > 0
-               and then Ada.Strings.Fixed.Index
-                 (Landin.Stages.Rendered_Report (Work),
-                  "discard a loop result explicitly") > 0,
-               Label & " explains the missing result consumer");
-         end if;
-      end Check;
-   begin
-      Check
-        ("statement loop",
-         "f: () -> none = loop do break with 1 end loop end f" & LF, "L0332");
-      Check
-        ("guarded statement loop",
-         "f: (flag: bool) -> none = loop do break with 1 when flag "
-         & "break end loop end f" & LF, "L0332");
-      Check
-        ("statement while",
-         "f: (flag: bool) -> none = while flag do break with 1 end "
-         & "while end f" & LF, "L0332");
-      Check
-        ("statement completion",
-         "f: (flag: bool) -> none = while flag do complete break with "
-         & "1 end while end f" & LF, "L0332");
-      Check
-        ("statement range",
-         "f: () -> none = for i in 0..<2 do break with i end for end f"
-         & LF, "L0332");
-      Check
-        ("labelled statement target",
-         "f: () -> none = outer: loop do loop do break outer with 1 "
-         & "end loop end outer end f" & LF, "L0332");
-      Check
-        ("plain loop",
-         "f: () -> none = loop do break end loop end f" & LF);
-      Check
-        ("explicit discard",
-         "f: () -> none = _ = loop do break with 1 end loop end f" & LF);
-      Check
-        ("conditional discard",
-         "f: (flag: bool) -> none = _ = while flag do break with 1 "
-         & "complete break with 2 end while end f" & LF);
-      Check
-        ("range discard",
-         "f: () -> none = _ = for i in 0..<2 do break with i complete "
-         & "break with 2 end for end f" & LF);
-      Check
-        ("labelled value target",
-         "f: () -> (r: i32) = r = outer: loop do loop do break outer "
-         & "with 1 end loop end outer end f" & LF);
-      Check
-        ("nearest statement target",
-         "f: () -> (r: i32) = r = loop do loop do break with 1 end "
-         & "loop break with 2 end loop end f" & LF, "L0332");
-      Check
-        ("nested discarded value",
-         "f: () -> none = loop do _ = loop do break with 1 end loop "
-         & "break end loop end f" & LF);
-      Check
-        ("aggregate discard",
-         "f: () -> none = _ = loop do break with [1, 2] end loop end f" & LF);
-   end Loop_Results_Require_A_Consumer;
-
    procedure Loops_Join_The_Assignments_Of_Their_Exits
      (Item : in out Landin.Testing.Context);
 
@@ -14620,38 +14513,34 @@ package body Landin.Tests.Checking_Suite is
       --  D430: an assignment on every edge that leaves a loop holds after
       --  it, which D156/D157's ceiling once refused for each of these.
       Check
-        ("while completion",
-         "f: (flag: bool) -> (r: i32) = while flag do complete r = 1 "
-         & "end while end f" & LF);
+        ("every break assigns",
+         "f: (flag: bool) -> (r: i32) = loop do if flag then r = 1 "
+         & "break end if r = 2 break end loop end f" & LF);
       Check
         ("unconditional break",
          "f: () -> (r: i32) = loop do r = 1 break end loop end f" & LF);
       Check
-        ("range completion",
-         "f: () -> (r: i32) = for i in 0..<1 do complete r = 1 end "
-         & "for end f" & LF);
-      Check
-        ("array completion",
-         "f: (flag: bool) -> (r: [2]i32) = while flag do complete r = "
-         & "[1, 2] end while end f" & LF);
+        ("array break",
+         "f: () -> (r: [2]i32) = loop do r = [1, 2] break end loop "
+         & "end f" & LF);
       Check
         ("sparse element",
-         "f: (flag: bool) -> none = mut a: [2]i32 while flag do "
-         & "complete a[0] = 1 end while _ = a[0] end f" & LF);
+         "f: () -> none = mut a: [2]i32 loop do a[0] = 1 break end "
+         & "loop _ = a[0] end f" & LF);
       Check
         ("whole array",
-         "f: (flag: bool) -> none = mut a: [2]i32 while flag do "
-         & "complete a = [1, 2] end while _ = a[0] end f" & LF);
+         "f: () -> none = mut a: [2]i32 loop do a = [1, 2] break end "
+         & "loop _ = a[0] end f" & LF);
       Check
         ("nested field",
          "child: type = struct x: i32 end child box: type = struct c: "
-         & "child end box f: (flag: bool) -> none = mut b: box while "
-         & "flag do complete b.c.x = 1 end while _ = b.c.x end f" & LF);
+         & "child end box f: () -> none = mut b: box loop do b.c.x = "
+         & "1 break end loop _ = b.c.x end f" & LF);
       Check
         ("array field",
-         "box: type = struct a: [2]i32 end box f: (flag: bool) -> "
-         & "none = mut b: box while flag do complete b.a = [1, 2] end "
-         & "while _ = b.a[0] end f" & LF);
+         "box: type = struct a: [2]i32 end box f: () -> none = mut b: "
+         & "box loop do b.a = [1, 2] break end loop _ = b.a[0] end f"
+         & LF);
       Check
         ("break before the assignment",
          "f: (flag: bool) -> (r: i32) = loop do break when flag r = 1 "
@@ -14662,8 +14551,8 @@ package body Landin.Tests.Checking_Suite is
          & "while end f" & LF, "L0302");
       Check
         ("incoming result",
-         "f: (flag: bool) -> (r: i32) = r = 0 while flag do complete "
-         & "r = 1 end while end f" & LF);
+         "f: (flag: bool) -> (r: i32) = r = 0 while flag do r = 1 end "
+         & "while end f" & LF);
       Check
         ("condition effect",
          "f: () -> (r: i32) = while begin r = 1 false end do end "
@@ -14673,15 +14562,8 @@ package body Landin.Tests.Checking_Suite is
          "f: () -> (r: i32) = for i in begin r = 1 0 end..<1 do end "
          & "for end f" & LF);
       Check
-        ("loop value",
-         "f: () -> (r: i32) = r = loop do break with 1 end loop end f" & LF);
-      Check
         ("body return",
          "f: () -> (r: i32) = loop do r = 1 return end loop end f" & LF);
-      Check
-        ("completion return",
-         "f: (flag: bool) -> (r: i32) = while flag do complete r = 1 "
-         & "return end while end f" & LF);
       Check
         ("consumed exit",
          "g: (sink p: ptr i32) -> none = _ = p end g f: (flag: bool) "
@@ -14690,8 +14572,8 @@ package body Landin.Tests.Checking_Suite is
       Check
         ("restored exit",
          "g: (sink p: ptr i32) -> none = _ = p end g f: (flag: bool) "
-         & "-> none = v: i32 = 1 mut p: ptr i32 = addr v g(p) while "
-         & "flag do complete p = addr v end while _ = p end f" & LF);
+         & "-> none = v: i32 = 1 mut p: ptr i32 = addr v g(p) loop "
+         & "do p = addr v break end loop _ = p end f" & LF);
    end Loops_Join_The_Assignments_Of_Their_Exits;
 
    procedure Sinks_Commit_At_Call_Entry
@@ -16502,9 +16384,6 @@ package body Landin.Tests.Checking_Suite is
       Landin.Testing.Register
         (Into, "checking", "static entries have one declaration",
          Static_Entries_Have_One_Declaration'Access);
-      Landin.Testing.Register
-        (Into, "checking", "loop results require a consumer",
-         Loop_Results_Require_A_Consumer'Access);
       Landin.Testing.Register
         (Into, "checking", "loops join the assignments of their exits",
          Loops_Join_The_Assignments_Of_Their_Exits'Access);

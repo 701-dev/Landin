@@ -1,0 +1,15 @@
+--  D1651: a loop has no `complete` block.  Where no `break` leaves the
+--  loop, the block runs exactly when the loop ends, and the fix runs it
+--  after the loop as a bare block.
+doubled: () -> (r: i32) =
+    r = 0
+    while r < 3 do
+        inc r
+    complete
+        r = r * 2
+    end while
+end doubled
+
+public main: () -> (code: i32) =
+    code = doubled()
+end main

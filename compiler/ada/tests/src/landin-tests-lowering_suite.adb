@@ -11068,86 +11068,15 @@ package body Landin.Tests.Lowering_Suite is
          & "end if live := marker() end f" & LF,
          1);
       Check_Source
-        ("while completion returns",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = mut n: i32 = 0 while n < 2 do inc n "
-         & "complete return end while dead := marker() end f" & LF);
-      Check_Source
-        ("range completion returns",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = for n in 0 ..< 2 do v: i32 = n complete "
-         & "return end for dead := marker() end f" & LF);
-      Check_Source
-        ("array completion returns",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (a: [2]i32) -> none = for n in a do v: i32 = n complete "
-         & "return end for dead := marker() end f" & LF);
-      Check_Source
-        ("completion falls through",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = mut n: i32 = 0 while n < 2 do inc n "
-         & "complete v := n end while live := marker() end f" & LF,
-         1);
-      Check_Source
-        ("completion partly returns",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (flag: bool) -> none = mut n: i32 = 0 while n < 2 do inc "
-         & "n complete if flag then return end if end while live := "
-         & "marker() end f" & LF,
-         1);
-      Check_Source
-        ("break bypasses returning completion",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (flag: bool) -> none = mut n: i32 = 0 while n < 2 do inc "
-         & "n break when flag complete return end while live := "
-         & "marker() end f" & LF,
-         1);
-      Check_Source
-        ("nested break reaches outer exit",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = mut n: i32 = 0 outer: while n < 2 do inc n "
-         & "loop do break outer end loop complete return end outer live "
-         & ":= marker() end f" & LF,
-         1);
-      Check_Source
-        ("completion breaks to exit",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (flag: bool) -> none = while flag do return complete "
-         & "break end while live := marker() end f" & LF,
-         1);
-      Check_Source
         ("unreachable break creates no exit",
          "marker: () -> (r: usize) = r = 1 end marker" & LF
          & "f: () -> none = loop do return break end loop dead := "
          & "marker() end f" & LF);
       Check_Source
-        ("break value returns",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = v: i32 = loop do break with if begin return "
-         & "end then 1 else 2 end if end loop dead := marker() end f" & LF);
-      Check_Source
-        ("loop value reaches exit",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = v: i32 = loop do break with 1 end loop live "
-         & ":= marker() end f" & LF,
-         1);
-      Check_Source
-        ("completion continues",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (flag: bool) -> none = while flag do return complete "
-         & "continue end while dead := marker() end f" & LF);
-      Check_Source
         ("break condition returns",
          "marker: () -> (r: usize) = r = 1 end marker" & LF
          & "f: () -> none = loop do break when begin return end end "
          & "loop dead := marker() end f" & LF);
-      Check_Source
-        ("completion fails",
-         "bad: atom" & LF
-         & "problem: type = bad" & LF
-         & "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: (flag: bool) -> none ! problem = while flag do return "
-         & "complete fail bad end while dead := marker() end f" & LF);
       Check_Source
         ("break runs cleanup",
          "clean: () -> none = end clean" & LF
@@ -11207,11 +11136,6 @@ package body Landin.Tests.Lowering_Suite is
          Check_Target (Landin.Targets.Synthetic_32);
       end Check_Source;
    begin
-      Check_Source
-        ("range local before returning completion",
-         "marker: () -> (r: usize) = r = 1 end marker" & LF
-         & "f: () -> none = for n in 0 ..< 2 do v := n complete return "
-         & "end for dead := marker() end f" & LF);
       Check_Source
         ("typed range local",
          "marker: () -> (r: usize) = r = 1 end marker" & LF
@@ -11389,29 +11313,6 @@ package body Landin.Tests.Lowering_Suite is
          & "3) r = d.left + d.right end f" & LF,
          2);
       Check_Source
-        ("loop result assignment",
-         "make: (a: i32, b: i32) -> (left: i32, right: i32) = left = "
-         & "a right = b end make" & LF
-         & "f: () -> (r: i32) = mut d := make(1, 2) d = loop do break "
-         & "with make(3, 4) end loop r = d.left + d.right end f" & LF,
-         2);
-      Check_Source
-        ("while result assignment",
-         "make: (a: i32, b: i32) -> (left: i32, right: i32) = left = "
-         & "a right = b end make" & LF
-         & "f: (flag: bool) -> (r: i32) = mut d := make(1, 2) d = while "
-         & "flag do break with make(3, 4) complete break with make(5, "
-         & "6) end while r = d.left + d.right end f" & LF,
-         3);
-      Check_Source
-        ("range result assignment",
-         "make: (a: i32, b: i32) -> (left: i32, right: i32) = left = "
-         & "a right = b end make" & LF
-         & "f: (flag: bool) -> (r: i32) = mut d := make(1, 2) d = for n "
-         & "in 0 ..< 2 do break with make(3, 4) when flag complete "
-         & "break with make(5, 6) end for r = d.left + d.right end f" & LF,
-         3);
-      Check_Source
         ("try result assignment",
          "bad: atom" & LF
          & "problem: type = bad" & LF
@@ -11421,60 +11322,12 @@ package body Landin.Tests.Lowering_Suite is
          & "try make(b: 4, a: 3) r = d.left + d.right end f" & LF,
          2);
       Check_Source
-        ("indexed loop assignment",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (inout a: [2]pair, index: usize) -> (r: i32) = a[index] "
-         & "= loop do break with pair(left: 3, right: 4) end loop r = "
-         & "a[index].left + a[index].right end f" & LF);
-      Check_Source
-        ("pointer loop assignment",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (a: ptr mut pair) -> (r: i32) = a.val = loop do break "
-         & "with pair(left: 3, right: 4) end loop r = a.val.left + "
-         & "a.val.right end f" & LF);
-      Check_Source
-        ("inout loop assignment",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (inout a: pair) -> (r: i32) = a = loop do break with "
-         & "pair(left: 3, right: 4) end loop r = a.left + a.right end f" & LF);
-      Check_Source
-        ("indexed while assignment",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (inout a: [2]pair, index: usize, flag: bool) -> (r: i32) "
-         & "= a[index] = while flag do break with pair(left: 3, right: "
-         & "4) complete break with pair(left: 5, right: 6) end while r "
-         & "= a[index].left + a[index].right end f" & LF);
-      Check_Source
-        ("indexed range assignment",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (inout a: [2]pair, index: usize, flag: bool) -> (r: i32) "
-         & "= a[index] = for n in 0 ..< 2 do break with pair(left: 3, "
-         & "right: 4) when flag complete break with pair(left: 5, "
-         & "right: 6) end for r = a[index].left + a[index].right end f" & LF);
-      Check_Source
         ("indexed if assignment",
          "pair: type = struct left: i32 right: i32 end pair" & LF
          & "f: (inout a: [2]pair, index: usize, flag: bool) -> (r: i32) "
          & "= a[index] = if flag then pair(left: 3, right: 4) else "
          & "pair(left: 5, right: 6) end if r = a[index].left + "
          & "a[index].right end f" & LF);
-      Check_Source
-        ("indexed destination captured once",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "mut cursor: usize = 0" & LF
-         & "next: () -> (r: usize) = r = cursor end next" & LF
-         & "make_pair: () -> (r: pair) = cursor = 1 r = pair(left: 3, "
-         & "right: 4) end make_pair" & LF
-         & "f: (inout a: [2]pair) -> (r: i32) = a[next()] = loop do "
-         & "break with make_pair() end loop r = a[0].left end f" & LF,
-         2);
-      Check_Source
-        ("returning loop skips destination copy",
-         "pair: type = struct left: i32 right: i32 end pair" & LF
-         & "f: (inout a: [2]pair, index: usize) -> (r: i32) = r = 9 "
-         & "a[index] = loop do break with if begin return end then "
-         & "pair(left: 3, right: 4) else pair(left: 5, right: 6) end if "
-         & "end loop r = 0 end f" & LF);
    end Stored_Control_Values_Keep_Their_Shapes;
 
    procedure Anonymous_Results_Keep_Pointer_Carriers
@@ -12210,11 +12063,6 @@ package body Landin.Tests.Lowering_Suite is
          & "completion: i32 = 1 _ = completion end break end while end "
          & "f" & LF);
       Check_Source
-        ("outer completion restored",
-         "f: () -> none = while false do callback := () -> none ="
-         & " end break when true complete value: i32 = 1 _ = value "
-         & "end while end f" & LF);
-      Check_Source
         ("anonymous return in loop",
          "f: () -> none = while true do callback := (value: i32) "
          & "-> (r: i32) = value end _ = callback(1) break end while"
@@ -12910,22 +12758,6 @@ package body Landin.Tests.Lowering_Suite is
       end Check_Source;
    begin
       Check_Source
-        ("while break",
-         "f: (flag: bool) -> none = while flag do break complete "
-         & "mark: i32 = 1 end while end f" & LF);
-      Check_Source
-        ("while continue",
-         "f: (flag: bool) -> none = while flag do continue "
-         & "complete mark: i32 = 1 end while end f" & LF);
-      Check_Source
-        ("for break",
-         "f: () -> none = for value in 0 ..< 2 do break complete "
-         & "mark: i32 = 1 end for end f" & LF);
-      Check_Source
-        ("for continue",
-         "f: () -> none = for value in 0 ..< 2 do continue "
-         & "complete mark: i32 = 1 end for end f" & LF);
-      Check_Source
         ("matching completion label",
          "f: (flag: bool) -> none = completion: while flag do break "
          & "completion end completion end f" & LF);
@@ -12941,16 +12773,6 @@ package body Landin.Tests.Lowering_Suite is
         ("completion assignment",
          "f: (flag: bool) -> none = mut completion: i32 = 0 while "
          & "flag do completion += 1 break end while end f" & LF);
-      Check_Source
-        ("separate binding scopes",
-         "f: (flag: bool) -> none = while flag do mark: i32 = 1 "
-         & "continue complete mark: i32 = 2 end while end f" & LF);
-      Check_Source
-        ("anonymous completion",
-         "f: (flag: bool) -> none = completion: while flag do "
-         & "callback := (value: bool) -> none = while value do "
-         & "continue complete mark: i32 = 1 end while end break "
-         & "completion end completion end f" & LF);
    end Completion_Blocks_Keep_Their_Scopes;
 
    procedure Erased_Tables_Validate_Their_Closure
@@ -13126,25 +12948,6 @@ package body Landin.Tests.Lowering_Suite is
          & "= value end f",
          1);
       Check_Source
-        ("dynamic break",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = loop do break with input end loop r "
-         & "= value end f",
-         1);
-      Check_Source
-        ("nested break belongs elsewhere",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = loop do local: u8 = loop do break "
-         & "with 3 end loop break with input end loop r = value end f",
-         1);
-      Check_Source
-        ("anonymous break belongs elsewhere",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = loop do callback := () -> (r: u8) = "
-         & "loop do break with 3 end loop end break with input end loop "
-         & "r = value end f",
-         1);
-      Check_Source
         ("arithmetic remains dynamic",
          "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
          & "(r: u8) = value: level = begin 3 + 0 end r = value end f",
@@ -13159,12 +12962,6 @@ package body Landin.Tests.Lowering_Suite is
          "level: type = u8 range 5 .. 10 f: () -> (r: u8) = r = 1 "
          & "value: level = begin return end end f",
          0);
-      Check_Source
-        ("dynamic complete",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = while flag do break with input "
-         & "complete break with 7 end while r = value end f",
-         1);
       Check_Source
         ("implicit dynamic result",
          "level: type = u8 range 5 .. 10 f: (input: u8) -> (r: level) "

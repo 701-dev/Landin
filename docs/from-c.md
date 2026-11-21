@@ -83,9 +83,8 @@ index_of: (items: []u32, wanted: u32) -> (index: usize) ! not_present =
             index = position
             return
         end if
-    complete
-        fail not_present
     end for
+    fail not_present
 end index_of
 ```
 
@@ -94,8 +93,9 @@ end index_of
 forget to test. The caller writes `try`, a fallback such as `else 0`, or a
 handler; ignoring the failure is an error.
 
-In `index_of` the failure comes from the `for` loop's `complete` block,
-which runs only when the loop ran out without a `break` or `return` [1170].
+In `index_of` the failure comes after the `for` loop. A match returns from
+inside the loop, so the code after it runs only when the loop ran out
+[1170].
 
 ### Slices, not a pointer and a length
 

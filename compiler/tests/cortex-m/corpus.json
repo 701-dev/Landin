@@ -2680,6 +2680,9 @@
       "mode": "refuse",
       "reason": "runtime/failure-words gives every phrase on Cortex-M0."
     },
+    "runtime/fallible-traversal-by-while": {
+      "mode": "execute"
+    },
     "runtime/fibre-join-first-failure": {
       "mode": "execute"
     },
@@ -2836,9 +2839,6 @@
       "mode": "execute"
     },
     "runtime/for-collection-traversal": {
-      "mode": "execute"
-    },
-    "runtime/for-fallible-iteration": {
       "mode": "execute"
     },
     "runtime/for-finished-in-outer-loop": {
@@ -3409,13 +3409,7 @@
     "runtime/local-struct-zeroed-reads-zero": {
       "mode": "execute"
     },
-    "runtime/loop-any-values": {
-      "mode": "execute"
-    },
     "runtime/loop-control-flow": {
-      "mode": "execute"
-    },
-    "runtime/loop-values": {
       "mode": "execute"
     },
     "runtime/map-firmware-seed": {

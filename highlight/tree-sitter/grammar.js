@@ -49,12 +49,12 @@ module.exports = grammar({
 
   reserved: {
     global: $ => [
-      'addr', 'alignof', 'and', 'any', 'atom', 'begin', 'break', 'complete',
+      'addr', 'alignof', 'and', 'any', 'atom', 'begin', 'break',
       'continue', 'dec', 'defer', 'do', 'else', 'elsif', 'end', 'escaping',
       'extern', 'fail', 'false', 'fixed', 'for', 'from', 'if', 'import',
       'in', 'inc', 'inout', 'loop', 'match', 'mut', 'none', 'not', 'or',
       'ptr', 'public', 'return', 'sink', 'sizeof', 'struct', 'then', 'true',
-      'try', 'type', 'unchecked', 'undo', 'uninit', 'when', 'while', 'with', 'zeroed',
+      'try', 'type', 'unchecked', 'undo', 'uninit', 'when', 'while', 'zeroed',
     ],
   },
 
@@ -92,7 +92,6 @@ module.exports = grammar({
     [$.array_type, $.array_literal],
     [$.indexed_expression, $.declaration_reference, $.measurement_expression, $.of_keyword],
     [$.field, $.parameter],
-    [$.identifier_list, $.loop_statement, $.while_statement, $.for_statement],
     [$.routine_formals],
     [$.parameters],
     [$.labeled_arguments, $.arguments],
@@ -115,11 +114,11 @@ module.exports = grammar({
     [$._type, $.indexed_expression],
     [$.identifier_list, $.type_declaration, $.concept_declaration, $.function_declaration],
     [$.identifier_list, $.function_declaration],
-    [$.identifier_list, $.loop_statement, $.while_statement, $.for_statement, $.field_value],
+    [$.identifier_list, $.field_value],
     [$.identifier_list, $.loop_statement, $.while_statement, $.for_statement, $.labeled_block],
     [$.identifier_list, $.type_formal],
     [$.identifier_list, $.destructured_field],
-    [$.identifier_list, $.loop_statement, $.while_statement, $.for_statement, $.destructured_field, $.field_value],
+    [$.identifier_list, $.destructured_field, $.field_value],
     [$.identifier_list, $.variant_part],
     // `at` after a field's type: its offset, or the next field's name.
     [$.field],
@@ -531,7 +530,8 @@ module.exports = grammar({
     )),
 
     // The loops, [1130]-[1190]. D225 reserves their control words
-    // globally, including in every ordinary identifier position.
+    // globally, including in every ordinary identifier position. A loop
+    // is a statement (D1651).
     loop_statement: $ => choice(
       seq('loop', 'do', optional($.block), 'end', 'loop'),
       seq(field('label', endName($)), ':', 'loop', 'do', optional($.block),
@@ -539,19 +539,14 @@ module.exports = grammar({
     ),
     while_statement: $ => choice(
       seq('while', field('condition', $._condition), 'do', optional($.block),
-          optional(seq('complete', optional(field('completion', $.block)))),
           'end', 'while'),
       seq(field('label', endName($)), ':', 'while', field('condition', $._condition),
           'do', optional($.block),
-          optional(seq('complete', optional(field('completion', $.block)))),
           'end', field('end_label', endName($))),
     ),
     for_statement: $ => choice(
-      seq(optional('try'), 'for', $._traversal, 'do', optional($.block),
-          optional(seq('complete', optional(field('completion', $.block)))),
-          'end', 'for'),
-      seq(field('label', endName($)), ':', optional('try'), 'for', $._traversal, 'do', optional($.block),
-          optional(seq('complete', optional(field('completion', $.block)))),
+      seq('for', $._traversal, 'do', optional($.block), 'end', 'for'),
+      seq(field('label', endName($)), ':', 'for', $._traversal, 'do', optional($.block),
           'end', field('end_label', endName($))),
     ),
     _traversal: $ => seq(
@@ -562,7 +557,6 @@ module.exports = grammar({
     break_statement: $ => prec.right(seq(
       'break',
       optional(field('label', endName($))),
-      optional(seq('with', field('value', $._expression))),
       optional(seq('when', field('condition', $._expression))),
     )),
     continue_statement: $ => prec.right(seq(
@@ -660,9 +654,6 @@ module.exports = grammar({
       $.if_expression,
       $.match_expression,
       $.bare_block,
-      $.loop_statement,
-      $.while_statement,
-      $.for_statement,
       $.literal,
       $.array_literal,
       $.array_repetition,

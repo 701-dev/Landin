@@ -567,9 +567,10 @@ after: -9 -4 0 1 7 7 9 42
 Binary search from [Rosetta Code](https://rosettacode.org/wiki/Binary_search)
 returns a variant [0680]: `found` with an index, or `missing`.
 
-The loop itself is the result: `break with` leaves it with a value [1190],
-and `complete` gives the value when it runs out [1170]. `main` takes the
-answer apart with `match` [1210].
+`search` is a function of its own, so it returns from inside the loop when
+it finds the value [1190]. The statement after the loop runs only when the
+loop ran out, and sets `missing` [1170]. `main` takes the answer apart with
+`match` [1210].
 
 Fixture source: `compiler/tests/fixtures/runtime/example-binary-search/main.ldn`.
 
@@ -590,18 +591,19 @@ end answer
 search: (values: []i32, needle: i32) -> (result: answer) =
     mut left: usize = 0
     mut right: usize = lenof values
-    result = while left < right do
+    while left < right do
         middle: usize = left + (right - left) / 2
-        break with answer(kind: found(index: middle))
-            when values[middle] == needle
+        if values[middle] == needle then
+            result = answer(kind: found(index: middle))
+            return
+        end if
         if values[middle] < needle then
             left = middle + 1
         else
             right = middle
         end if
-    complete
-        break with answer(kind: missing)
     end while
+    result = answer(kind: missing)
 end search
 
 public main: () -> (code: i32) =

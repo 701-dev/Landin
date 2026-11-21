@@ -1,0 +1,6 @@
+error[L0696]: a loop has no `complete` block
+  --> ../tests/fixtures/negative/loop-complete-left-by-a-break/program.ldn:10:5
+   |
+10 |     complete
+   |     ^^^^^^^^
+  = note: D1651: every exit of a loop reaches the statement after it; run the block after the loop, behind a flag its `break`s clear where it has any

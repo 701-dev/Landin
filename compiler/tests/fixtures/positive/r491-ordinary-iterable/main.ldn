@@ -21,12 +21,11 @@ sum: (source: bag) -> (total: u32) =
 end sum
 
 pick: (source: bag) -> (result: u32) =
-    selected := for element in source do
-        break with element
-    complete
-        break with u32(0)
+    result = u32(0)
+    for element in source do
+        result = element
+        break
     end for
-    result = selected
 end pick
 
 problem: atom

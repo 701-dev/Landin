@@ -1,0 +1,9 @@
+class: negative
+summary: try for is refused by name, and the note names the while loop over tried steps that replaces it
+program: main.ldn
+codes: L0696
+constructs: 0940, 0960, 1150, 1320
+targets: linux-x86-64, darwin-arm64, synthetic-32, freebsd-x86-64
+expect: expected.txt
+args: ../tests/fixtures/negative/try-for-names-its-replacement/main.ldn
+status: 1

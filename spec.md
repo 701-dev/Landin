@@ -174,13 +174,13 @@ identifier  ::= lower (lower | digit | "_")*
 lower       ::= "a" ... "z"
 digit       ::= "0" ... "9"
 keyword     ::= "addr" | "alignof" | "and" | "any" | "atom" | "begin"
-              | "break" | "complete" | "continue" | "dec" | "defer" | "do"
-              | "else" | "elsif" | "end" | "escaping" | "extern" | "fail"
-              | "false" | "fixed" | "for" | "from" | "if" | "import" | "in"
-              | "inc" | "inout" | "loop" | "match" | "mut" | "none" | "not"
-              | "or" | "ptr" | "public" | "return" | "sink" | "sizeof"
-              | "struct" | "then" | "true" | "try" | "type" | "unchecked"
-              | "undo" | "uninit" | "when" | "while" | "with" | "zeroed"
+              | "break" | "continue" | "dec" | "defer" | "do" | "else"
+              | "elsif" | "end" | "escaping" | "extern" | "fail" | "false"
+              | "fixed" | "for" | "from" | "if" | "import" | "in" | "inc"
+              | "inout" | "loop" | "match" | "mut" | "none" | "not" | "or"
+              | "ptr" | "public" | "return" | "sink" | "sizeof" | "struct"
+              | "then" | "true" | "try" | "type" | "unchecked" | "undo"
+              | "uninit" | "when" | "while" | "zeroed"
 
 ```
 
@@ -631,17 +631,17 @@ the point after its target loop and `continue` transfers to that loop's next
 condition test (or next unconditional iteration). Without a label they target
 the nearest loop; with one they target the nearest enclosing loop, or labelled
 bare block, carrying that ordinary name. A labelled loop or block closes with
-its label. A block is left only by a plain `break`: `continue` naming one and
-`break with` targeting one are refused (D234). Their optional `when`
-condition is evaluated once and must be `bool`; its false edge continues with
-the following statement. Both transfers leave every lexical block between the
-statement and the loop edge, so [1100]'s `defer` runs and [1110]'s `undo` does
-not. A conditional loop's optional `complete` block runs only when its
-condition becomes false; a `break` skips it. After a loop, a name is
-definitely assigned when it is assigned on every edge that leaves the loop:
-a `while`'s false test and a `for`'s exhaustion, through `complete` when there
-is one, and every `break` (D430).
-`break with` and value-producing loops are D158's extension. D159 enables the
+its label. A block is left only by `break`: `continue` naming one is refused
+(D234). A loop is a statement and gives no value, and a `break` carries none
+(D1651): a loop written where a value belongs, a `break with`, and a
+`complete` block are refused, each with the replacement named. Their optional
+`when` condition is evaluated once and must be `bool`; its false edge
+continues with the following statement. Both transfers leave every lexical
+block between the statement and the loop edge, so [1100]'s `defer` runs and
+[1110]'s `undo` does not. Every exit of a loop reaches the statement after it.
+After a loop, a name is definitely assigned when it is assigned on every edge
+that leaves the loop: a `while`'s false test, a `for`'s exhaustion, and every
+`break` (D430). D159 enables the
 integer-range form of `for`: both bounds are evaluated once, from left to
 right, and have one integer type. `a..<b` visits the ascending values for
 which the element is less than `b`; `a..b` also visits `b`. Either form is
@@ -656,8 +656,7 @@ beginning at zero. The element is writable over `[]mut T` and over a fixed
 array held in a place the body could assign; over `[]T` and over any other
 array it is read-only [1160]. A body that writes the storage by index observes
 the write through the element, and the reverse. Elements that are themselves
-fixed arrays or slices retain their complete shape under D178, including when
-copied out through a loop value. An `any C` element retains its erased identity
+fixed arrays or slices retain their complete shape under D178. An `any C` element retains its erased identity
 and evidence under D179. A source that would need [1320]'s iterable evidence
 is enabled by D180 when its type is a struct or `any C` and exactly one
 conformance to the unambiguous concept named `iterable` supplies `Cur`, `Item`, and
@@ -667,12 +666,9 @@ test calls `at_end`; a false result calls `item` before entering the body.
 Fallthrough and `continue` run applicable cleanup and then call `next`; a
 `break` runs applicable cleanup and skips `next`. The optional immutable
 `usize` index begins at zero and advances with each `next` call.
-`try for` additionally admits the exact `fallible_iterable` concept with
-associated `Cur`, `Item`, and atom error set. Its four providers declare that
-same error set. A failed provider runs active failure cleanup and propagates
-its atom; it neither enters `complete` nor calls a later provider. When both
-conformances exist, `try for` selects `fallible_iterable`; ordinary `for`
-continues to select only `iterable`.
+A `for` selects only `iterable`. A traversal whose steps can fail is a `while`
+whose body takes each step with `try` or a call's `else`; `try for` is refused
+with that replacement named (D1652).
 
 The cursor keeps its complete type identity between calls. The element is an
 immutable copy of the exact `Item` result, not an alias into the source, and
@@ -744,24 +740,21 @@ defer       ::= "defer" call
 undo        ::= "undo" call
 return      ::= "return" ("when" expression)?
 fail        ::= "fail" expression ("when" expression)?
-break       ::= "break" identifier? ("with" expression)?
-                ("when" expression)?
+break       ::= "break" identifier? ("when" expression)?
 continue    ::= "continue" identifier? ("when" expression)?
 loop        ::= "loop" "do" block "end" "loop"
               | identifier ":" "loop" "do" block "end" identifier
 condition   ::= expression | condition_declaration
 condition_declaration ::= "mut"? identifier ":=" expression
                         | "mut"? identifier ":" declared_type "=" expression
-while       ::= "while" condition "do" block
-                ("complete" block)? "end" "while"
+while       ::= "while" condition "do" block "end" "while"
               | identifier ":" "while" condition "do" block
-                ("complete" block)? "end" identifier
-for         ::= "try"? "for" identifier ("," identifier)? "in" expression
-                ((".." | "..<") expression)? "do" block
-                ("complete" block)? "end" "for"
-              | identifier ":" "try"? "for" identifier ("," identifier)?
+                "end" identifier
+for         ::= "for" identifier ("," identifier)? "in" expression
+                ((".." | "..<") expression)? "do" block "end" "for"
+              | identifier ":" "for" identifier ("," identifier)?
                 "in" expression ((".." | "..<") expression)? "do" block
-                ("complete" block)? "end" identifier
+                "end" identifier
 try         ::= "try" (call | labeled_application)
 if          ::= "if" condition "then" block
                 ("elsif" condition "then" block)*
@@ -844,18 +837,12 @@ close an enclosing `then` or `elsif` arm: there it divides the `if`, which is
 the one reading `if c then a() else b() end if` can have, and parentheses
 around the recovered call, `(f() else 0)`, recover it in the arm. A refusal
 that meets either reading names this rule and that route.
-An `if`, exhaustive `match`, bare `begin` block, `loop`, `while`, or `for` is
-also a primary. A loop is value-producing when its targeted `break` edges carry
-`with` values. Every break edge then carries one value of the joined type; a
-finite conditional loop also needs `complete` to leave through such an edge.
-Scalar values use the join's ordinary slot. Fixed arrays, structs, slices and
-`any` fill the caller-owned destination directly before cleanup runs.
-For the other controls, their
+An `if`, exhaustive `match` or bare `begin` block is also a primary; a loop
+is not (D1651). Their
 conditions or subject run first, then exactly the selected block runs in source
 order. In a value context the final expression of every edge that can fall
 through supplies the answer; an edge that returns supplies none. D124 gives the
-complete edge and type rule, and D125 gives its storage representation. D158
-extends the same caller-owned representation to loop values.
+complete edge and type rule, and D125 gives its storage representation.
 `lenof` [0370] measures the primary a name begins: the name, a field or
 element path through it, a slice of one, or a call's result, recovered or
 not. A fixed array's length is its type's, so a name or path that names one
@@ -875,7 +862,7 @@ primary     ::= literal | array_literal | array_repetition | struct_literal
               | empty_slice | labeled_application | anonymous_function
               | indexed | call | address | pointer_conversion
               | any_construction | measurement | try
-              | if | match | bare_block | loop | while | for
+              | if | match | bare_block
               | "(" expression ")"
 array_literal ::= "[" expression ("," expression)* "]"
 array_repetition ::= "[" integer "of" expression "]"
@@ -987,7 +974,7 @@ an inner scope means nothing until the inner ones are named.
 | concept declaration | D142's complete ordered type-formal list. It encloses the declaring file's imports and is visible in every direct constraint, parent name and entry signature. Entry parameter and result labels describe signature positions and declare nothing in this scope. |
 | conformance declaration | D142's optional complete type/fixed binder. It encloses the declaring file's imports and is visible in every binder constraint, the target type, every labelled input or function RHS and the routine a `through` names (D1363). The conformance itself declares no module name. |
 | signature | a declared routine's type/fixed formals, runtime parameters and named returns [1800]. Every binder is collected before any signature type or direct concept constraint is resolved, so its source order has no visibility meaning. Named returns are places the body assigns [0930]; all three binder kinds share one namespace, but type/fixed formals are compile-time-only and have no storage. A declared function's signature encloses its file-import scope; a no-capture anonymous signature does the same rather than enclosing the expression's local scope. A written function type opens no scope and its labels declare nothing. |
-| body | what a function runs; one for each arm of an `if` and its `else`; one for each loop body and `complete`; one for each `match` arm; one for every bare `begin` block; and one for a call-site recovery [1810] [1030]. A statement run plus its optional final expression is a block and a block is what scopes [1090], so a name declared in one is not visible in a sibling or after the block closes. D185's initialized condition binding shares the scope of the one `if`, `elsif`, or `while` body it guards; its initializer is resolved in the enclosing scope, and it is absent from later conditions, sibling arms, `else`, `complete`, and following statements. Match payload bindings and a recovery error name live only in their block. |
+| body | what a function runs; one for each arm of an `if` and its `else`; one for each loop body; one for each `match` arm; one for every bare `begin` block; and one for a call-site recovery [1810] [1030]. A statement run plus its optional final expression is a block and a block is what scopes [1090], so a name declared in one is not visible in a sibling or after the block closes. D185's initialized condition binding shares the scope of the one `if`, `elsif`, or `while` body it guards; its initializer is resolved in the enclosing scope, and it is absent from later conditions, sibling arms, `else`, and following statements. Match payload bindings and a recovery error name live only in their block. |
 
 [1800]'s direct final expression opens no additional scope inside its function
 body, because an expression declares nothing.
@@ -1603,9 +1590,6 @@ type may be thrown away, including a value nobody computed
 for the purpose: '_ = 1 + 2' is a discard of an i32 by
 [0200], because a rule about wasted work is a rule about
 people and this one is about types.
-A `break with` must target a loop used as an expression [1190]. A statement
-loop has no result consumer; write `_ = loop ...` to discard its result, or
-use a plain `break` when no result is intended.
 What may not is a call of a function returning none [1920]. Discarding is for
 a result, and that call has none. The converse holds as well: a call that
 does hand a result back is not a statement on its own, so the only
@@ -2802,6 +2786,9 @@ copy derived from prototype 3, `negative/r491-local-self-reference`,
 `negative/condition-declaration-body-shadowing`.
 
 ### D225 — Control words are reserved everywhere
+
+**`complete` and `with` withdrawn by D1651.** Both left the keyword production
+with the forms that used them, and are ordinary names; the rest stands.
 
 **The discrepancy:** [1760] reserved `if`, `then` and `end`, while other
 already enabled control forms still used identifier tokens. An earlier review repair first fixed
@@ -14735,6 +14722,9 @@ function into a binding.
 
 ### D382 — An atom outside the error set is named with the `fail` or call that raises it
 
+**Amended by D1652.** There is no `try for`, so no traversal raises an atom;
+the `fail` and call labels stand.
+
 **The discrepancy:** [0940] puts every failing path in the function's `!`
 set, and L0329 refused a body that broke it with "this body can fail with an
 atom outside its declared error set", pointing twice at the signature. It
@@ -14759,9 +14749,8 @@ label at the `fail`, which hides the signature a reader may mean to widen;
 and naming every path the atom reaches the body through, which the first
 already shows how to find.
 
-**Pinned by** `negative/error-outside-set-names-its-raise`,
-`negative/fail-outside-declared-set` and
-`negative/for-fallible-undeclared-error`.
+**Pinned by** `negative/error-outside-set-names-its-raise` and
+`negative/fail-outside-declared-set`.
 
 ### D1200 — Every atom outside the error set is named, as the file writes it
 
@@ -15296,7 +15285,7 @@ classified failure boundary before the repository gate can pass.
 | `results.destructure` | static | 0990 | L0200, L0302, L0308 or L0331 | `negative/result-destructure-needs-multiple`, `runtime/r230-composition` |
 | `functions.anonymous` | static | 1010 | L0201 for capture; complete signature checks otherwise apply | `negative/anonymous-function-captures-local`, `runtime/inferred-function-values` |
 | `control.flow` | static | 1050, 1060, 1070, 1080, 1090 | L0200 or L0201 at a condition-binding scope boundary; L0301, L0302 or L0332 at every condition, reachable join and exit | `negative/condition-declaration-body-shadowing`, `negative/condition-declaration-not-bool`, `negative/condition-declaration-out-of-scope`, `negative/if-expression-missing-else`, `runtime/condition-declarations`, `runtime/control-expression-edges-keep-source-order` |
-| `control.loops` | static | 1090, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1320, 1330 | L0301 for a non-bool condition, mismatched range, non-traversable source, missing/ambiguous/non-exact iterable evidence or an untried fallible traversal, incomplete/inconsistent value exit, or a value given to a labelled bare block's break; L0303 for a write to a read-only storage element or copied iterable item; a taken transfer runs active defers and targets its named loop or labelled block edge, or the nearest loop, while natural completion alone enters `complete` | `negative/loop-condition-not-bool`, `negative/loop-value-missing-break-value`, `negative/loop-value-missing-completion`, `negative/loop-value-type-mismatch`, `negative/for-range-needs-integer`, `negative/for-range-endpoints-disagree`, `negative/for-source-not-traversable`, `negative/for-collection-element-read-only`, `negative/for-array-element-read-only`, `negative/for-any-element-read-only`, `negative/for-iterable-ambiguous-evidence`, `negative/for-iterable-item-read-only`, `negative/for-iterable-missing-conformance`, `negative/text-traversal-item-is-read-only`, `runtime/loop-control-flow`, `runtime/loop-values`, `runtime/for-range-traversal`, `runtime/for-collection-traversal`, `runtime/for-aggregate-element-traversal`, `runtime/for-any-element-traversal`, `runtime/for-iterable-evidence-traversal`, `runtime/hosted-text-traversal`, `runtime/r480-recovery-loop-transfer`, `runtime/r480-loop-fresh-view`, `runtime/r720-labelled-block-transfers`, `negative/r720-labelled-block-break-value`, `runtime/r491-loop-assignment`, `negative/loop-exit-skips-assignment` |
+| `control.loops` | static | 1090, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1320, 1330 | L0301 for a non-bool condition, mismatched range, non-traversable source, or missing/ambiguous/non-exact iterable evidence; L0332 for a loop where a value belongs or a `break` given a value, and L0696 for a `complete` block or `try for`; L0303 for a write to a read-only storage element or copied iterable item; a taken transfer runs active defers and targets its named loop or labelled block edge, or the nearest loop, and every exit reaches the statement after the loop | `negative/loop-condition-not-bool`, `negative/loop-value-search-rewritten`, `negative/loop-value-in-every-value-context`, `negative/loop-complete-runs-after`, `negative/loop-complete-left-by-a-break`, `negative/try-for-names-its-replacement`, `negative/for-range-needs-integer`, `negative/for-range-endpoints-disagree`, `negative/for-source-not-traversable`, `negative/for-collection-element-read-only`, `negative/for-array-element-read-only`, `negative/for-any-element-read-only`, `negative/for-iterable-ambiguous-evidence`, `negative/for-iterable-item-read-only`, `negative/for-iterable-missing-conformance`, `negative/text-traversal-item-is-read-only`, `runtime/loop-control-flow`, `runtime/fallible-traversal-by-while`, `runtime/for-range-traversal`, `runtime/for-collection-traversal`, `runtime/for-aggregate-element-traversal`, `runtime/for-any-element-traversal`, `runtime/for-iterable-evidence-traversal`, `runtime/hosted-text-traversal`, `runtime/r480-recovery-loop-transfer`, `runtime/r480-loop-fresh-view`, `runtime/r720-labelled-block-transfers`, `negative/r720-labelled-block-break-value`, `runtime/r491-loop-assignment`, `negative/loop-exit-skips-assignment` |
 | `cleanup.defer` | static | 1100 | the registered call is checked at every ordinary and successful-return edge | `negative/defer-read-not-assigned-on-return`, `runtime/defer-cleanups-follow-control-edges` |
 | `cleanup.undo` | static | 1110, 1200 | the registered call is checked at every propagated-failure edge | `negative/undo-read-not-assigned-on-failure`, `runtime/undo-cleanups-follow-failure-edges` |
 | `generics.substitution` | static | 1220, 1280, 1290, 1300, 1310, 1350, 1490, 1500, 1520, 1540, 1650, 1660, 1700 | L0300, L0301, L0306, L0307, L0313, L0318 or L0340; a concrete `ptr T` field retains the exact referent and permission descriptor | `negative/generic-routine-undeduced-formal`, `negative/generic-reference-field-permission-distinct`, `runtime/generic-explicit-static`, `runtime/generic-reference-fields`, `runtime/generic-structural-deduction`, `runtime/core-vec-pointer-storage`, `runtime/r480-generic-nested-recovery`, `runtime/r480-concrete-error-deduction`, `runtime/r490-generic-inferred-recovery`, `runtime/r490-generic-recovery-frontier`, `runtime/r490-generic-union-alias`, `runtime/r490-generic-erased-recovery-views`, `negative/r490-generic-recovery-conflict`, `negative/r490-recovery-expanding-generic` |
@@ -15402,6 +15391,9 @@ and verifier seams, and the `control.loops` guarantee row.
 
 ### D157 — Loop labels and completion select explicit existing edges
 
+**Completion superseded by D1651.** Labels and their targets stand; a loop
+has no completion block, and the second paragraph below is history.
+
 **The tour said** that [1180] gives loops ordinary-name labels and lets
 `break` and `continue` name one, while [1170] runs `complete` only when a loop
 finishes without `break`. It did not state how an implementation should retain
@@ -15435,6 +15427,9 @@ and the `control.loops` guarantee row.
 
 ### D158 — Loop values reuse the caller-owned control join
 
+**Superseded by D1651.** A loop is a statement and gives no value; the
+reasoning below is history.
+
 **The tour said** that [1190]'s `break with` makes a loop an expression, that
 every break from such a loop yields the same type, and that a finite loop's
 `complete` path supplies its exhaustion value. It did not state where that
@@ -15467,12 +15462,13 @@ an inner loop's destination outward implicitly. Each either duplicates the
 existing CFG/storage model, changes source evaluation order, or loses the
 explicit labelled target. All were declined.
 
-**Pinned by** `negative/loop-value-missing-break-value`,
-`negative/loop-value-missing-completion`, `negative/loop-value-type-mismatch`,
-`runtime/loop-values`, `runtime/loop-any-values`, and the `control.loops`
-guarantee row.
+**Pinned by** no fixture since D1651, which withdrew the five that pinned it
+with the loop value.
 
 ### D159 — Integer range traversal is retained bounds over ordinary CFG
+
+**Completion and values superseded by D1651.** The bounds, index and
+inclusive end stand; exhaustion reaches the statement after the loop.
 
 **The tour said** that [1150] traverses `a..<b` and `a..b`, optionally binds
 an index, and shares [1170]--[1190]'s completion, labels and values. It did not
@@ -15664,6 +15660,10 @@ row.
 
 ### D180 — Struct and erased sources traverse through exact iterable evidence
 
+**Fallible traversal superseded by D1652.** The `iterable` contract stands;
+the amendment for `try for` and `fallible_iterable` below is history, and
+a traversal whose steps can fail is a `while` over tried steps.
+
 **The tour said** that traversal uses [1320]'s `iterable` concept [1150],
 that its `item` result makes a non-storage element binding a copy [1160], and
 that evidence tables follow concept declaration order [1310]. D160--D179 had
@@ -15737,9 +15737,7 @@ aliasing, contradict [1160], move effects across a loop edge, or confuse
 unrelated representations. All were declined.
 
 **Pinned by** `runtime/for-iterable-evidence-traversal`,
-`runtime/for-fallible-iteration`,
 `negative/for-fallible-requires-try`,
-`negative/for-fallible-undeclared-error`,
 `negative/for-iterable-ambiguous-evidence`,
 `negative/for-iterable-item-read-only`,
 `negative/for-iterable-missing-conformance`, retained range and collection
@@ -15903,6 +15901,10 @@ records, and the `unchecked.region` guarantee row.
 
 ### D234 — A labelled bare block is left by a break that names it
 
+**Value refusal superseded by D1651.** The block and its other refusals
+stand; `with` after any `break` is refused by the parser as L0332, and no
+loop it crosses has a `complete` to skip.
+
 **The tour said** that labels use the ordinary name form on loops and bare
 blocks only, and that `break` and `continue` take one [1180]; [1090] showed
 only the unlabelled block. D157 retained loop labels on loop syntax and on each
@@ -15960,6 +15962,10 @@ would change what every existing `break` inside a labelled block means.
 
 ### D430 — An assignment on every edge that leaves a loop holds after it
 
+**Amended by D1651.** The join stands without the edge through `complete`:
+the edges that leave a loop are its false test or exhaustion and its
+`break`s.
+
 **The tour said** at [1910] that a name must be assigned on every path before
 it is read, and at [1130] and [1170] that `break` leaves a loop and `complete`
 runs when a conditional loop runs out. D156 and D157 kept only entry and
@@ -15997,7 +16003,7 @@ pinned the ceiling, turned) and `negative/loop-exit-skips-assignment`.
 
 **The alternatives:** keeping both, as the inherited rule that non-use is evidence, not automatic removal, kept D234's labelled blocks; and removing labels with them, since with no loop value a label only breaks outward, which a helper's `return` does. The maintainer kept labels and declined both.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/loop-value-search-rewritten`, whose fix writes a search loop's result to a mutable local before each plain `break` and moves a literal `complete` value to the declaration; `negative/loop-complete-runs-after` and `negative/loop-complete-left-by-a-break`, the `complete` block moved after a loop no `break` leaves and refused without a fix where one does; `negative/loop-value-in-every-value-context` and `negative/r720-labelled-block-break-value`, the loop and the `break` refused where a value belongs; the parser case `removed loop words are names`; and, unchanged, `runtime/loop-control-flow`, `positive/r720-labelled-bare-blocks` and `runtime/r720-labelled-block-transfers`. The forms are refused as D1867 says and rewritten as D1868 says.
 
 ### D1652 — A fallible traversal is a `while` over `try next`: `try for` leaves
 
@@ -16007,7 +16013,27 @@ pinned the ceiling, turned) and `negative/loop-exit-skips-assignment`.
 
 **The alternatives:** keeping `try for` beside `for`, a second loop form for one kind of step; and removing the whole traversal protocol now, which waits on whether the library's containers iterate. Both were declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/try-for-names-its-replacement`, the refusal naming the `while` that replaces it, and `runtime/fallible-traversal-by-while`, which walks the sources the removed fixture walked with `while` and `try`, with the cleanups and failures it had. Of the six decisions named above, D180 and D382 cited `try for` and are amended; the other four matched only the words "entry for". The rewrite takes each provider by name, which only the author knows, so the refusal carries no fix (D1868).
+
+### D1867 — The parser refuses a removed loop form by the shape it was written in
+
+**The discrepancy:** D1651 and D1652 remove `break with`, `complete` and `try for`, and take `with` and `complete` out of [1760]'s keywords, while D1847 asks for a refusal that names the replacement and carries the rewrite. Once the words are names, a program written in the removed forms would otherwise meet a label it never declared, a statement made of a name, or a loop where an expression was required, none of which says what to write.
+
+**Chosen:** the parser reads each removed form by its shape and refuses it there, so the language server, the report and `refine fix` see one refusal. `with` after `break`, or after `break label`, followed on its line by something that begins an expression is the removed value: a label is followed only by `when` or by nothing, so `break with` alone still names a loop labelled `with`. `complete` alone on its line inside a loop body is the removed block; `complete = true`, `complete(x)` and a `complete:` label are the name. A loop written where a value belongs is read whole and refused once, as L0332 against the loop, and the `break with`s that gave it its value are part of that one report (D263's rule of one report a construct). A `break with` whose loop or labelled block is a statement is L0332 on its own. A `complete` block and `try for` are L0696, the code for a form the language removed, whose note names the replacement; later removals take it as well. A refused loop is a hole in the tree, so nothing after the parser checks a form the language no longer has, and the checker and lowering lost their paths for loop values, completion blocks and fallible traversal. An unconditional loop's `complete`, which the parser refused before, is refused the same way.
+
+**The alternatives:** keeping `with` and `complete` reserved so the forms stay unambiguous, which D1651 declined; refusing in the checker, which has types to spell a declaration but would keep the removed forms in the tree every later stage walks; and one code for every removal, `break with` included, which D1651 gave to L0332.
+
+**Pinned by** the parser case `removed loop words are names` and D1651's and D1652's fixtures.
+
+### D1868 — A removed loop form is rewritten where the rewrite keeps the program's meaning
+
+**The discrepancy:** D1847 makes a removed form's rewrite its refusal's exact fix where the rewrite is mechanical, and D1651 names the search loop's replacement without saying when writing it is mechanical.
+
+**Chosen:** a loop is rewritten when it is the whole value of `name: T = loop` or of `name = loop` assigning a name, every `break` that leaves it gives a value, each such `break` begins its line, and the loop never names `name`. The declaration becomes `mut name: T` before the loop, or the assignment loses its target; each `break with v` becomes `name = v` and a plain `break`, and a `break with v when c` becomes `if c then name = v break end if`, its value's continuation lines indented with it, which evaluates `c` and then `v` as before. A conditional loop is rewritten only when its `complete` block is exactly `break with` and a literal, which gives the literal to the declaration: a literal reads nothing and does nothing, so evaluating it earlier changes nothing. An inferred `name := loop` names no type to declare and is not rewritten. A statement loop's `complete` block becomes a bare block after the loop's closer when no `break` leaves the loop and nothing in the block leaves it: then every exit that is not a `return` or `fail` is exhaustion, which is when the block ran, and the bare block keeps its scope. A `break` that names an enclosing loop or block skips both the old block and the new one. `try for` is not rewritten: its replacement calls the providers by name. The rewrites need the source's bytes, which the syntax stage hands the parser.
+
+**The alternatives:** hoisting any `complete` value, which moves a call or a read before the loop; a flag for every `complete` block, which is mechanical but writes a name the author did not choose into every loop; and a likely fix for the rest, which `refine fix` would not apply and the refusal's note already describes.
+
+**Pinned by** `negative/loop-value-search-rewritten` and `negative/loop-complete-runs-after`, whose recorded fixes compile with an empty report, and `negative/loop-complete-left-by-a-break`, which has none.
 
 ### D1653 — The simplification keeps the forms it left out, and two wait on the library review
 
@@ -22918,9 +22944,8 @@ failure, a hosted entry contract of its own that [1970] does not have; and
 naming L0502 in the note, which explains why the first suggestion failed
 rather than what to write.
 
-**Pinned by** `negative/hosted-main-failure-has-no-error-set`,
-`negative/erased-typed-call-unhandled` and
-`negative/for-fallible-undeclared-error`, whose `main` the two notes now
+**Pinned by** `negative/hosted-main-failure-has-no-error-set` and
+`negative/erased-typed-call-unhandled`, whose `main` the two notes now
 answer.
 
 ### D873 — An assignment after `defer` or `undo` is named as one

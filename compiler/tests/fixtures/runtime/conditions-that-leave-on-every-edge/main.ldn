@@ -47,9 +47,10 @@ while_complete_leaves: (c: bool) -> (r: u32) =
     r = 7
     while (if c then return else return end if) do
         r = 1
-    complete
-        r = 3
     end while
+    begin
+        r = 3
+    end
     r = r + 2
 end while_complete_leaves
 

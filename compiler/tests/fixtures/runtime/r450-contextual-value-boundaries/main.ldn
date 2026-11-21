@@ -94,7 +94,9 @@ end field_assignment_branch
 
 loop_argument_return: () -> (code: i32) =
     code = 42
-    consume_empty((loop do return end loop))
+    loop do
+        consume_empty((begin return end))
+    end loop
     code = 1
 end loop_argument_return
 

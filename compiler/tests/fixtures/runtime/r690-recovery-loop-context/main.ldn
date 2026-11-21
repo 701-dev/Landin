@@ -26,13 +26,15 @@ public main: () -> (code: i32) =
         observed += value
     end loop
     mut attempts: i32 = 1
-    final := loop do
+    mut final: i32
+    loop do
         defer cleanup(cleanups)
         inc attempts
-        break with (select(attempts) else (problem)
+        final = select(attempts) else (problem)
             _ = problem
             continue
-        end)
+        end
+        break
     end loop
     observed += final
     code = if observed == 10 and cleanups == 7 then 42 else 1 end if

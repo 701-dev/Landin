@@ -177,7 +177,7 @@ with every named refusal and the wording of its [1830] note.
 | `[1150]` | executed | all | none | none | matrix evidence |
 | `[1160]` | executed | all | none | none | matrix evidence |
 | `[1170]` | executed | all | none | none | matrix evidence |
-| `[1180]` | executed | all | none | none | Loop labels and D234's bare-block labels are matrix evidence on all three targets; `continue` naming a block and `break with` targeting one are refused. No derived program or `core` uses a label, `break with` or `complete`, so whether they earn their place is a Language evolution watch in the register; the construct stays implemented. |
+| `[1180]` | executed | all | none | none | Loop labels and D234's bare-block labels are matrix evidence on all three targets; `continue` naming a block is refused, and so is a `break` given a value (D1651). |
 | `[1190]` | executed | all | none | none | matrix evidence |
 | `[1200]` | executed | all | none | none | matrix evidence |
 | `[1210]` | executed | all | none | none | matrix evidence |

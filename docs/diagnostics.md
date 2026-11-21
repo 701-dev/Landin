@@ -1316,15 +1316,13 @@ end bad
 
 A failure does not follow the declared error contract [0940] [0960] [1030].
 `fail` carries exactly one atom of the function's declared error set. A body
-that can fail with an atom outside it is told which atom, and the `fail`, the
-call or the `try for` it first came through is labelled (D382). A call
+that can fail with an atom outside it is told which atom, and the `fail` or
+the call it first came through is labelled (D382). A call
 to a failing function handles the outcome with `else` or propagates it with
 `try`, and neither form applies to a call that cannot fail. A public or
 first-class signature writes a concrete error set instead of `! ...`. Add the
 atom to the error set, handle or propagate the call, or remove the handling
-from an infallible call. The implicit provider calls in `try for` also
-propagate their declared errors: the enclosing routine must declare or infer
-those atoms, and its caller may recover them through ordinary call `else`.
+from an infallible call.
 
 In an `if` arm, `else value` after a call is read as the `if`'s own `else`
 [1820], so the call is left unrecovered: write `(f() else 0)`, or bind the
@@ -1782,11 +1780,9 @@ conformance. Each provider takes a read-only, non-escaping `ptr T` to the
 retained source, with the exact cursor, item, permission and origin contract
 at [1320]; migrate a by-value source parameter to that pointer contract.
 
-If the source supplies `fallible_iterable`, use `try for` and declare or infer
-its provider errors in the enclosing routine. That conformance has one exact
-shared atom error set across all four providers. Ordinary `for` only selects
-infallible `iterable`; `try for` prefers `fallible_iterable` when both exist
-and may use ordinary `iterable` when there is no fallible conformance.
+A `for` selects only an infallible `iterable`. A source whose steps can fail
+is walked by a `while` whose body takes each step with `try` or a call's
+`else` (D1652).
 
 ```landin
 public main: () -> (code: i32) =
@@ -3202,11 +3198,12 @@ own name, `refine-NAME`. The status is 1.
 The program uses a form the language removed (D1847). The report names the
 form that replaces it. Where the rewrite is mechanical it carries it as an
 exact fix, which the language server offers and `refine fix` applies;
-otherwise the note says what to write. A loop's `complete` block is gone
-(D1651): every exit of a loop reaches the statement after it, so run the block
+otherwise the note says what to write. A loop's `complete` block [1170] is
+gone (D1651): every exit of a loop reaches the statement after it, so run the block
 after the loop, behind a flag its `break`s clear where it has any. When no
 `break` leaves the loop, the fix closes the loop before `complete` and runs
-the block after it, between `begin` and `end`. `try for` is gone (D1652): a
+the block after it, between `begin` and `end`. `try for` [1320] is gone
+(D1652): a
 traversal whose steps can fail is a `while` whose body takes each item with
 `try`, or with a call's `else`, which says where a failure goes.
 

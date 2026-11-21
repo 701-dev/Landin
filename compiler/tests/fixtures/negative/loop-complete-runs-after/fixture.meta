@@ -1,0 +1,10 @@
+class: negative
+summary: a loop's complete block is refused, and where no break leaves the loop the fix runs the block after it as a bare block
+program: program.ldn
+codes: L0696
+fixed: program.fixed
+constructs: 1090, 1140, 1170
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/loop-complete-runs-after/program.ldn
+status: 1

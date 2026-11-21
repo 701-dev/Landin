@@ -1,40 +1,40 @@
-error[L0332]: this value-producing loop can finish without a value
+error[L0332]: a loop is a statement and gives no value
   --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:15:30
    |
 15 |     g: () -> (result: i32) = for item in items do
-   |                              ^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:15:42
+   |                              ^^^
+  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:16:9
    |
-15 |     g: () -> (result: i32) = for item in items do
-   |                                          ^^^^^ the loop ends with no value when this is exhausted
-  = note: [1190]: `complete` must leave through `break with` when a finite loop is an expression
-error[L0332]: this value-producing loop can finish without a value
+16 |     end for
+   |         ^^^ the loop ends here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own
+error[L0332]: a loop is a statement and gives no value
   --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:20:13
    |
 20 |     found = for item in items do
-   |             ^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:20:25
+   |             ^^^
+  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:21:9
    |
-20 |     found = for item in items do
-   |                         ^^^^^ the loop ends with no value when this is exhausted
-  = note: [1190]: `complete` must leave through `break with` when a finite loop is an expression
-error[L0332]: this value-producing loop can finish without a value
+21 |     end for
+   |         ^^^ the loop ends here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own
+error[L0332]: a loop is a statement and gives no value
   --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:25:13
    |
 25 |     h: op = while c do
-   |             ^^^^^^^^^^
-  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:25:19
+   |             ^^^^^
+  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:26:9
    |
-25 |     h: op = while c do
-   |                   ^ the loop ends with no value when this is false
-  = note: [1190]: `complete` must leave through `break with` when a finite loop is an expression
-error[L0332]: this value-producing loop can finish without a value
+26 |     end while
+   |         ^^^^^ the loop ends here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own
+error[L0332]: a loop is a statement and gives no value
   --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:30:15
    |
 30 |     g: pair = for item in items do
-   |               ^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:30:27
+   |               ^^^
+  --> ../tests/fixtures/negative/loop-value-in-every-value-context/program.ldn:31:9
    |
-30 |     g: pair = for item in items do
-   |                           ^^^^^ the loop ends with no value when this is exhausted
-  = note: [1190]: `complete` must leave through `break with` when a finite loop is an expression
+31 |     end for
+   |         ^^^ the loop ends here
+  = note: D1651: write the result to a mutable local or the named result and leave with a plain `break`, or return it from a function of its own

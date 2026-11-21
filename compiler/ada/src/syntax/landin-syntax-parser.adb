@@ -10297,6 +10297,16 @@ package body Landin.Syntax.Parser is
                                   & Bytes (Each.Guard_First, Each.Guard_Last)
                                   & " then" & ASCII.LF & Here_Indent
                                   & "    " & Spelled & " = ");
+                           --  The value moves into the `if`, and so do the
+                           --  lines it continues onto.
+                           for Position in
+                             Each.Value_First + 1 .. Each.Value_Last
+                           loop
+                              if Begins_Line (Tok.Token_Index (Position)) then
+                                 Write (Line_Begins (Position),
+                                        Line_Begins (Position), "    ");
+                              end if;
+                           end loop;
                            Write (Span_Of (Each.Value_Last).Last,
                                   Span_Of (Each.Guard_Last).Last,
                                   ASCII.LF & Here_Indent & "    " & Leave
@@ -11877,7 +11887,13 @@ package body Landin.Syntax.Parser is
                         end if;
 
                         Advance;
-                        if Pre.Begins_Expression (Peek) then
+                        --  D1867: a loop begins no expression, and one
+                        --  written as an operand is read whole so that it
+                        --  is refused once, as a loop where a value belongs.
+                        if Pre.Begins_Expression (Peek)
+                          or else Peek in Tok.Kw_Loop | Tok.Kw_While
+                                        | Tok.Kw_For
+                        then
                            Right := Parse_Expression (Pre.Level'Succ (Rank));
                         else
                            --  Keep a closer in hand for its owning construct.

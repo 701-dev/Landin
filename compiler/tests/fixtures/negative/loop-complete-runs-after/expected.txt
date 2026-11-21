@@ -1,0 +1,7 @@
+error[L0696]: a loop has no `complete` block
+  --> ../tests/fixtures/negative/loop-complete-runs-after/program.ldn:8:5
+  |
+8 |     complete
+  |     ^^^^^^^^
+  = note: D1651: every exit of a loop reaches the statement after it; run the block after the loop, behind a flag its `break`s clear where it has any
+  = help: close the loop before `complete` and run its block after it, between `begin` and `end`

@@ -13,13 +13,13 @@
 
 (defconst landin-mode-keywords
   '("addr" "align" "alignof" "and" "any" "as" "at" "atom" "begin"
-    "big" "break" "caller" "complete" "concept" "continue" "dec"
+    "big" "break" "caller" "concept" "continue" "dec"
     "defer" "distinct" "do" "else" "elsif" "end" "escaping" "extern"
     "fail" "fixed" "for" "from" "if" "import" "in" "inc" "inout" "into" "is"
     "layout" "lenof" "link" "little" "loop" "match" "mut" "not" "of" "offsetof"
     "option" "or" "ptr" "public" "range" "register" "return" "set" "sink"
     "sizeof" "soa" "struct" "then" "try" "type" "unchecked" "undo" "uninit"
-    "variant" "volatile" "when" "while" "with"))
+    "variant" "volatile" "when" "while"))
 
 (defconst landin-mode-types
   '("bool" "cstring" "f16" "f32" "f64" "i8" "i16" "i32" "i64" "i128"
@@ -162,13 +162,13 @@ Scan from a known code position so comment quotes cannot open a raw string."
                  '((type_declaration name: (identifier) @font-lock-type-face)
                    (concept_declaration name: (identifier) @font-lock-type-face))
                  :language 'landin :feature 'keyword
-                 '(["addr" "alignof" "any" "as" "atom" "begin" "break" "complete"
+                 '(["addr" "alignof" "any" "as" "atom" "begin" "break"
                     "concept" "continue" "dec" "defer" "do" "else" "elsif" "end"
                     "escaping" "extern" "fail" "fixed" "for" "from" "held" "if"
                     "import" "in" "inc" "inout" "into" "is" "loop" "match" "mut"
                     "none" "option" "ptr" "public" "return" "sink" "sizeof" "struct"
                     "then" "through" "try" "type" "unchecked" "undo" "variant"
-                    "when" "while" "with"]
+                    "when" "while"]
                    @font-lock-keyword-face
                    (measurement_expression operator: (identifier) @font-lock-keyword-face
                                            (:match "\\`\\(?:len\\|offset\\)of\\'" @font-lock-keyword-face))

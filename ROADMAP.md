@@ -1422,7 +1422,7 @@ the library and the prototypes' live text that wrote the form.
 
 ### R19.50 — Loops are statements
 
-Status: active
+Status: complete
 Depends on: R19.10, R19.40
 
 SC-01 and SC-05: `break with` and `complete` leave (D1651), and so does
@@ -1435,6 +1435,23 @@ replacement; `refine fix` rewriting a `break with` search loop into a
 mutable local and a plain `break` where the rewrite is mechanical; the
 labelled-loop and labelled-block fixtures unchanged and passing; the
 complete gate on the item's commit.
+Done: the parser refuses each removed form by the shape it was written in,
+`with` and `complete` being names now (D1867): a loop where a value belongs
+is one L0332 against the loop, a `break with` to a statement loop or block
+is L0332, and a `complete` block or `try for` is L0696, a new code for a
+removed form whose note names the replacement. A search loop that is the
+value of `name: T = loop` or `name = loop` is rewritten by an exact fix into
+a mutable local written before each plain `break`, a literal `complete`
+value moving to the declaration, and a `complete` block no `break` skips
+becomes a bare block after its loop (D1868); `refine fix` rewrote 17 of
+the 25 corpus programs that kept a form, three of them in part, and the
+rest, inferred `:=` loops, non-literal `complete` values and `try for`,
+were rewritten by hand. The checker and
+lowering lost their loop-value, completion and fallible-traversal paths, and
+nine fixtures that pinned them went or became refusals. D157, D158, D159,
+D180, D225, D234, D382 and D430 are marked superseded or amended; D1652's
+list of six citing decisions held four that matched only "entry for".
+`SR-1558` was filed for `refine fix` applying unrelated warning fixes.
 
 ### R19.60 — One spelling for each declaration
 

@@ -12,8 +12,6 @@ public main: () -> (code: i32) =
         continue when i == 3
         total = total + i
         break when i == 6
-    complete
-        mark(9)
     end while
 
     mut j: i32 = 0
@@ -33,16 +31,15 @@ public main: () -> (code: i32) =
             break outer_loop when outer == 2
             break
         end loop
-    complete
-        mark(9)
     end outer_loop
 
     mut finished: i32 = 0
     while finished < 2 do
         inc finished
-    complete
-        mark(3)
     end while
+    begin
+        mark(3)
+    end
 
     if i == 6 and total == 18 and j == 2 and outer == 2
       and finished == 2 and trace == 12123

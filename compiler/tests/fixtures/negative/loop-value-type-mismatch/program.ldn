@@ -1,5 +1,0 @@
-public main: () -> (code: i32) =
-    code = loop do
-        break with true
-    end loop
-end main

@@ -1,13 +1,5 @@
 stream_failed: atom
 
-fallible_iterable: type = concept
-    (t: type, cur: type, item_type: type, errors: type)
-    first: (s: ptr t) -> (c: cur) ! errors
-    at_end: (s: ptr t, c: cur) -> (yes: bool) ! errors
-    item: (s: ptr t, c: cur) -> (v: item_type) ! errors
-    next: (s: ptr t, c: cur) -> (c2: cur) ! errors
-end fallible_iterable
-
 iterable: type = concept (t: type, cur: type, item_type: type)
     first: (s: ptr t) -> (c: cur)
     at_end: (s: ptr t, c: cur) -> (yes: bool)
@@ -38,10 +30,6 @@ next: (s: ptr stream, c: usize) -> (c2: usize) ! stream_failed =
     fail stream_failed when s.val.mode == 4 and c == 0
     c2 = c + 1
 end next
-
-stream is fallible_iterable
-    (cur: usize, item_type: i32, errors: stream_failed,
-     first: first, at_end: at_end, item: item, next: next)
 
 -- The same source exposes a deliberately different infallible sequence.
 plain_first: (s: ptr stream) -> (c: usize) = c = 0 end plain_first
@@ -81,11 +69,6 @@ cell_next: (t: type, s: ptr cell(t), c: usize)
            -> (c2: usize) ! stream_failed =
     c2 = c + 1
 end cell_next
-
-(t: type) cell(t) is fallible_iterable
-    (cur: usize, item_type: t, errors: stream_failed,
-     first: cell_first, at_end: cell_at_end,
-     item: cell_item, next: cell_next)
 
 reader: type = concept (t: type)
     read: (self: ptr t) -> (value: i32)
@@ -136,11 +119,6 @@ erased_next: (s: ptr any reader, c: usize)
     c2 = c + 1
 end erased_next
 
-any reader is fallible_iterable
-    (cur: usize, item_type: i32, errors: stream_failed,
-     first: erased_first, at_end: erased_at_end,
-     item: erased_item, next: erased_next)
-
 mut cleanups: i32 = 0
 mut completions: i32 = 0
 mut failure_cleanups: i32 = 0
@@ -159,49 +137,63 @@ end mark_failure
 
 mark_body_failure: () -> none = inc body_failures end mark_body_failure
 
+--  D1652: a traversal whose steps can fail is a `while`, each step a
+--  `try`.  The body is a block of its own, so its `undo` runs only for
+--  a failure inside it, and a step that fails runs only the cleanups of
+--  the iterations that finished.
 walk: (mode: i32) -> (sum: i32) ! stream_failed =
     sum = 0
     cleanup_trace = 0
     undo mark_failure()
     source: stream = (mode: mode)
-    try for value in source do
-        undo mark_body_failure()
-        defer mark()
-        sum += value
-    complete
-        inc completions
-    end for
+    mut c: usize = try first(addr source)
+    while not (try at_end(addr source, c)) do
+        value: i32 = try item(addr source, c)
+        begin
+            undo mark_body_failure()
+            defer mark()
+            sum += value
+        end
+        c = try next(addr source, c)
+    end while
+    inc completions
 end walk
 
 walk_inferred: (mode: i32) -> (sum: i32) ! ... =
     source: stream = (mode: mode)
     sum = 0
-    scan: try for value in source do
-        sum += value
-    end scan
+    mut c: usize = try first(addr source)
+    while not (try at_end(addr source, c)) do
+        sum += try item(addr source, c)
+        c = try next(addr source, c)
+    end while
 end walk_inferred
 
 find_first: () -> (value: i32) ! stream_failed =
     source: stream = (mode: 0)
-    value = try for item in source do
-        break with item
-    complete
-        break with -1
-    end for
+    c: usize = try first(addr source)
+    value = -1
+    if not (try at_end(addr source, c)) then
+        value = try item(addr source, c)
+    end if
 end find_first
 
 walk_cell: (source: cell(i32)) -> (sum: i32) ! stream_failed =
     sum = 0
-    try for value in source do
-        sum += value
-    end for
+    mut c: usize = try cell_first(addr source)
+    while not (try cell_at_end(addr source, c)) do
+        sum += try cell_item(addr source, c)
+        c = try cell_next(addr source, c)
+    end while
 end walk_cell
 
 walk_erased: (source: any reader) -> (sum: i32) ! stream_failed =
     sum = 0
-    try for value in source do
-        sum += value
-    end for
+    mut c: usize = try erased_first(addr source)
+    while not (try erased_at_end(addr source, c)) do
+        sum += try erased_item(addr source, c)
+        c = try erased_next(addr source, c)
+    end while
 end walk_erased
 
 walk_plain: (source: stream) -> (sum: i32) =
@@ -213,7 +205,7 @@ end walk_plain
 
 walk_fallback: (source: badge) -> (sum: i32) =
     sum = 0
-    try for value in source do
+    for value in source do
         sum += value
     end for
 end walk_fallback

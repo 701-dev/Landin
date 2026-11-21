@@ -57,14 +57,14 @@ public main: () -> (code: i32) =
 
     mut slice_sum: i32 = 0
     mut slice_indices: usize = 0
-    chosen: any marker = for item, index in counted(items[0..<2]) do
+    mut chosen: any marker = any(addr fallback)
+    for item, index in counted(items[0..<2]) do
         defer cleaned()
         slice_sum += item.code()
         slice_indices = slice_indices + index
         continue when index == 0
-        break with item
-    complete
-        break with any(addr fallback)
+        chosen = item
+        break
     end for
 
     if source_calls == 1 and cleanups == 4

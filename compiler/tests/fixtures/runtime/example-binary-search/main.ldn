@@ -14,18 +14,19 @@ end answer
 search: (values: []i32, needle: i32) -> (result: answer) =
     mut left: usize = 0
     mut right: usize = lenof values
-    result = while left < right do
+    while left < right do
         middle: usize = left + (right - left) / 2
-        break with answer(kind: found(index: middle))
-            when values[middle] == needle
+        if values[middle] == needle then
+            result = answer(kind: found(index: middle))
+            return
+        end if
         if values[middle] < needle then
             left = middle + 1
         else
             right = middle
         end if
-    complete
-        break with answer(kind: missing)
     end while
+    result = answer(kind: missing)
 end search
 
 public main: () -> (code: i32) =

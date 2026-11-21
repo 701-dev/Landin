@@ -1,0 +1,10 @@
+class: negative
+summary: a loop written as a value is refused once, and a search loop's refusal rewrites it into a mutable local written before each plain break, a complete block's literal moving to the declaration
+program: program.ldn
+codes: L0332, L0332
+fixed: program.fixed
+constructs: 1130, 1150, 1180, 1190
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/loop-value-search-rewritten/program.ldn
+status: 1

@@ -134,7 +134,8 @@ package Landin.Syntax.Precedence is
 
    --  `primary ::= literal | array_literal | indexed | call | measurement
    --               | if | match | bare_block | "(" expression ")"`, plus
-   --  `unary`'s prefix operators. Control openers are reserved by D225.
+   --  `unary`'s prefix operators. Control openers are reserved by D225, and
+   --  a loop is a statement (D1651).
    function Begins_Expression (Of_Kind : Landin.Tokens.Token_Kind)
      return Boolean
      is (Landin.Tokens.Is_Literal (Of_Kind)
@@ -148,9 +149,6 @@ package Landin.Syntax.Precedence is
                             | Landin.Tokens.Kw_If
                             | Landin.Tokens.Kw_Begin
                             | Landin.Tokens.Kw_Match
-                            | Landin.Tokens.Kw_Loop
-                            | Landin.Tokens.Kw_While
-                            | Landin.Tokens.Kw_For
                             | Landin.Tokens.Kw_Try
                             | Landin.Tokens.Kw_Sizeof
                             | Landin.Tokens.Kw_Alignof

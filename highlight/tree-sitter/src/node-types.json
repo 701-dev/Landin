@@ -695,16 +695,6 @@
             "named": true
           }
         ]
-      },
-      "value": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
       }
     }
   },
@@ -1584,16 +1574,6 @@
     "type": "for_statement",
     "named": true,
     "fields": {
-      "completion": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "block",
-            "named": true
-          }
-        ]
-      },
       "element": {
         "multiple": false,
         "required": true,
@@ -3279,10 +3259,6 @@
           "named": true
         },
         {
-          "type": "for_statement",
-          "named": true
-        },
-        {
           "type": "if_expression",
           "named": true
         },
@@ -3296,10 +3272,6 @@
         },
         {
           "type": "literal",
-          "named": true
-        },
-        {
-          "type": "loop_statement",
           "named": true
         },
         {
@@ -3320,10 +3292,6 @@
         },
         {
           "type": "try_expression",
-          "named": true
-        },
-        {
-          "type": "while_statement",
           "named": true
         },
         {
@@ -3428,16 +3396,6 @@
     "type": "while_statement",
     "named": true,
     "fields": {
-      "completion": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "block",
-            "named": true
-          }
-        ]
-      },
       "condition": {
         "multiple": false,
         "required": true,
@@ -3756,10 +3714,6 @@
     "named": false
   },
   {
-    "type": "complete",
-    "named": false
-  },
-  {
     "type": "concept",
     "named": false
   },
@@ -4045,10 +3999,6 @@
   },
   {
     "type": "while",
-    "named": false
-  },
-  {
-    "type": "with",
     "named": false
   },
   {

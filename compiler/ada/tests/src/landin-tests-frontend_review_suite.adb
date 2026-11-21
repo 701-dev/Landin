@@ -247,7 +247,7 @@ package body Landin.Tests.Frontend_Review_Suite is
       for Floating in Boolean loop
          for Left_Control in Boolean loop
             for Contextual in Boolean loop
-               for Form in 1 .. 6 loop
+               for Form in 1 .. 4 loop
                   for Empty in Boolean loop
                      declare
                         Work : Landin.Stages.Compilation :=
@@ -263,15 +263,10 @@ package body Landin.Tests.Frontend_Review_Suite is
                                 & Literal & " end if)",
                               when 3 => "(match choice left: " & Literal
                                 & " right: " & Literal & " end match)",
-                              when 4 => "(begin (if stop then (match choice"
-                                & " left: " & Literal & " right: " & Literal
-                                & " end match) else " & Literal
-                                & " end if) end)",
-                              when 5 => "(loop do break with " & Literal
-                                & " end loop)",
-                              when others => "(while stop do break with "
-                                & Literal & " complete break with " & Literal
-                                & " end while)");
+                              when others => "(begin (if stop then (match"
+                                & " choice left: " & Literal & " right: "
+                                & Literal & " end match) else " & Literal
+                                & " end if) end)");
                         Shape : constant String :=
                           (if Empty then "[0]" else "[1]") & Kind;
                      begin
@@ -341,7 +336,7 @@ package body Landin.Tests.Frontend_Review_Suite is
    begin
       for Shape_Mode in 1 .. 6 loop
          for Boundary in 1 .. 7 loop
-            for Flow in 1 .. 5 loop
+            for Flow in 1 .. 4 loop
                declare
                   Work : Landin.Stages.Compilation :=
                     Landin.Stages.Create (Landin.Targets.Linux_X86_64);
@@ -359,8 +354,7 @@ package body Landin.Tests.Frontend_Review_Suite is
                           & " + -(-(begin return end))",
                         when 2 => "-(-(-(if stop then return else a end if)))",
                         when 3 => "-(-(-(begin end)))",
-                        when 4 => "(begin return end)",
-                        when others => "(loop do return end loop)");
+                        when others => "(begin return end)");
                   Statement : constant String :=
                     (case Boundary is
                         when 1 => "b: box = (value: " & Expression & ")",

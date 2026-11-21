@@ -54,9 +54,10 @@ complete_empty: (cell: ptr u32, choose: bool)
         choose
     end do
         return
-    complete
-        result = candidate
     end while
+    begin
+        result = candidate
+    end
 end complete_empty
 
 nested_return: (cell: ptr u32, choose: bool)

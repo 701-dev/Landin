@@ -84,9 +84,13 @@ end loop_empty
 
 loop_value: (cell: ptr u32, choose: bool)
             -> (result: maybe_pointer from cell) =
-    result = loop do
-        break with absent when choose
-        break with absent
+    loop do
+        if choose then
+            result = absent
+            break
+        end if
+        result = absent
+        break
     end loop
 end loop_value
 

@@ -4318,18 +4318,20 @@ package body Landin.Tests.Parser_Suite is
             Name & " starts an assignment in a match arm");
          Read_And_Parse
            ("f: () -> none = mut " & Name & ": i32 = 0 "
-            & "while false do " & Name & " = 1 complete "
-            & Name & " = 2 end while end f",
+            & "while false do " & Name & " = 1 end while end f",
             Codes, Total, Nodes, Held);
          Landin.Testing.Check
            (Item, Total = 0 and then Held and then Nodes > 0,
-            Name & " remains an assignment in loop and completion bodies");
+            Name & " remains an assignment in a loop body");
       end Check;
    begin
       Check ("arena");
       Check ("range");
       Check ("caller");
       Check ("of");
+      --  D1651: the words of the removed loop forms are names.
+      Check ("complete");
+      Check ("with");
    end Contextual_Names_Start_Ordinary_Statements;
 
    procedure Control_Words_Are_Reserved
@@ -4388,7 +4390,6 @@ package body Landin.Tests.Parser_Suite is
    begin
       Check ("begin");
       Check ("break");
-      Check ("complete");
       Check ("continue");
       Check ("defer");
       Check ("do");
@@ -4398,7 +4399,6 @@ package body Landin.Tests.Parser_Suite is
       Check ("unchecked");
       Check ("undo");
       Check ("while");
-      Check ("with");
       Reject ("bare begin assignment", "begin = 10");
       Reject ("local begin assignment",
          "f: () -> none = begin = 10 end f");
