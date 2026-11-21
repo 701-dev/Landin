@@ -9,6 +9,8 @@
 --  fix that can be applied.  Every pass reads the sources through an
 --  overlay holding the bytes the passes before it wrote, so nothing
 --  reaches a file until the last pass, and with Check_Only nothing does.
+--  A file is held as it is, and checked again, before the first fix is
+--  applied to it, so a fix always meets the bytes its check read.
 --
 --  A Likely fix is never applied: it is a guess at what was meant, which
 --  an editor offers and a person accepts.  Of two exact fixes whose edits
@@ -21,8 +23,8 @@ with Landin.Platform;
 
 private package Landin.Commands.Fixing is
 
-   --  More passes than any program needs: each pass applies at least one
-   --  fix, and a fix only mends.  Reaching it means two fixes undo each
+   --  More passes than any program needs: each counted pass applies at least
+   --  one fix, and a fix only mends.  Reaching it means two fixes undo each
    --  other, a defect in the stages that offered them, which is reported
    --  rather than looped on.
    Pass_Limit : constant := 64;

@@ -20794,7 +20794,9 @@ check offers, until a check offers no exact fix that applies, because a
 stage that refuses stops the stages after it and their fixes appear only
 once the refusal is mended. Every pass reads the sources through an
 overlay of the bytes the passes before it made, so nothing reaches a file
-until the last pass. Then each changed source is written in place as
+until the last pass; a source is held in the overlay as it is, and
+checked again, before the first fix is applied to it, so each fix meets
+the bytes its check read. Then each changed source is written in place as
 `refine fmt` writes one (D358), once its bytes are read again and found to
 be those the first pass read; a source changed meanwhile is left as it is
 and named with L0005, and so is one the request read as a consumed
@@ -20809,7 +20811,8 @@ are the last check's, what is left once the fixes are in. With `--check`
 nothing is written, the report and status are the first check's, and a
 fix that would be applied makes the status 1. A program whose passes still
 apply fixes after 64 of them has two fixes undoing each other, a defect,
-and is reported with nothing written. An edit may name any source the
+and is reported with nothing written, as is a check of fixed bytes that
+fails as a defect. An edit may name any source the
 program read, a library module's too, since the library is rewritten with
 the language; an installed library that cannot be written is named as
 any unwritable source is.

@@ -45,11 +45,13 @@ package body Landin.Commands.Fixing is
    is
       Held     : Landin.Platform.Overlays.Overlay (Host'Access);
       Original : Text_Maps.Map;
-      Changed  : Text_Maps.Map;
+      Current  : Text_Maps.Map;
       Applied  : US.Unbounded_String;
       First    : Landin.Driver.Outcome;
       Result   : Landin.Driver.Outcome;
       Settled  : Boolean := False;
+      Writable : Boolean := True;
+      Passes   : Natural := 0;
       Problems : D.Diagnostic_List;
 
       procedure Refuse (Message : String; Note : String := "");
@@ -67,12 +69,17 @@ package body Landin.Commands.Fixing is
          Problems.Append (Item);
       end Refuse;
 
-      --  The edits this pass applies, chosen from Result's report; False
-      --  when it offers none that can be applied.
-      function Apply_Pass return Boolean;
-      function Apply_Pass return Boolean is
+      --  What one pass did with the fixes Result's report offers.
+      --  Pinned: a file a fix edits was not yet held, so it is held now as
+      --  it is and checked again before any fix is applied to its bytes,
+      --  because the bytes read now may not be those the check read.
+      type Pass_Outcome is (Nothing_Applies, Pinned, Fixed, Unreadable);
+
+      function Apply_Pass return Pass_Outcome;
+      function Apply_Pass return Pass_Outcome is
          Chosen : Edit_Maps.Map;
          Lines  : US.Unbounded_String;
+         Pinning : Boolean := False;
 
          function Path (Source : Landin.Source.Source_Id) return String is
            (if Source /= Landin.Source.No_Source
@@ -90,7 +97,8 @@ package body Landin.Commands.Fixing is
                      Usable : Boolean := True;
                   begin
                      --  Every edit names a source the check read, and none
-                     --  clashes with an edit this pass applies already.
+                     --  clashes with another of the fix's or with an edit
+                     --  this pass applies already.
                      for Number in 1 .. D.Edit_Count (Fix) loop
                         declare
                            One  : constant D.Edit := D.Nth_Edit (Fix, Number);
@@ -98,15 +106,24 @@ package body Landin.Commands.Fixing is
                         begin
                            if Name = "" then
                               Usable := False;
-                           elsif Chosen.Contains (Name) then
-                              for Other of Chosen (Name) loop
-                                 if A.Clash (Other, One) then
+                           else
+                              if Chosen.Contains (Name) then
+                                 for Other of Chosen (Name) loop
+                                    if A.Clash (Other, One) then
+                                       Usable := False;
+                                    end if;
+                                 end loop;
+                              end if;
+                              for Earlier in 1 .. Number - 1 loop
+                                 if D.Source_Of (D.Nth_Edit (Fix, Earlier))
+                                      = D.Source_Of (One)
+                                   and then A.Clash
+                                     (D.Nth_Edit (Fix, Earlier), One)
+                                 then
                                     Usable := False;
                                  end if;
                               end loop;
                            end if;
-                           --  Two edits of the fix itself never clash: a
-                           --  fix's edits may touch and not overlap.
                         end;
                      end loop;
                      if Usable then
@@ -146,50 +163,71 @@ package body Landin.Commands.Fixing is
             end;
          end loop;
          if Chosen.Is_Empty then
-            return False;
+            return Nothing_Applies;
          end if;
+
+         --  Every file a fix edits is held before one is edited, so each
+         --  fix is applied to the bytes its check read.
          for Cursor in Chosen.Iterate loop
             declare
                Name    : constant String := Edit_Maps.Key (Cursor);
                Content : US.Unbounded_String;
                Read    : Landin.Platform.Read_Status;
             begin
-               Held.Read_File (Name, Content, Read);
-               if Read /= Landin.Platform.Read_Ok then
-                  --  The check read it a moment ago; a file that has gone
-                  --  since is left alone, and the fix with it.
-                  return False;
-               end if;
-               if not Original.Contains (Name) then
+               if not Current.Contains (Name) then
+                  Host.Read_File (Name, Content, Read);
+                  if Read /= Landin.Platform.Read_Ok then
+                     Refuse ("cannot fix " & Name & ": it could not be read"
+                       & " again after it was checked");
+                     return Unreadable;
+                  end if;
+                  Current.Insert (Name, US.To_String (Content));
                   Original.Insert (Name, US.To_String (Content));
+                  Held.Hold (Name, US.To_String (Content));
+                  Pinning := True;
                end if;
-               declare
-                  Fixed : constant String :=
-                    A.Applied (US.To_String (Content), Chosen (Cursor));
-               begin
-                  Held.Hold (Name, Fixed);
-                  Changed.Include (Name, Fixed);
-               end;
+            end;
+         end loop;
+         if Pinning then
+            return Pinned;
+         end if;
+
+         for Cursor in Chosen.Iterate loop
+            declare
+               Name  : constant String := Edit_Maps.Key (Cursor);
+               Fixed : constant String :=
+                 A.Applied (Current (Name), Chosen (Cursor));
+            begin
+               Held.Hold (Name, Fixed);
+               Current.Replace (Name, Fixed);
             end;
          end loop;
          US.Append (Applied, Lines);
-         return True;
+         return Fixed;
       end Apply_Pass;
+
+      --  Whether any held file's bytes differ from those first held.
+      function Any_Change return Boolean is
+        (for some Cursor in Current.Iterate =>
+           Text_Maps.Element (Cursor) /= Original (Text_Maps.Key (Cursor)));
 
       --  Each changed file written, unless it changed underneath.
       procedure Write_Back;
       procedure Write_Back is
       begin
-         for Cursor in Changed.Iterate loop
+         for Cursor in Current.Iterate loop
             declare
                Name    : constant String := Text_Maps.Key (Cursor);
                Content : US.Unbounded_String;
-               Lease   : Landin.Platform.Update_Handle;
+               Lease   : Landin.Platform.Update_Handle :=
+                 Landin.Platform.No_Update;
                Read    : Landin.Platform.Read_Status;
                Written : Landin.Platform.Write_Status;
                Reason  : US.Unbounded_String;
             begin
-               if (for some Path of Protected_Inputs => Path = Name) then
+               if Text_Maps.Element (Cursor) = Original (Name) then
+                  null;
+               elsif (for some Path of Protected_Inputs => Path = Name) then
                   Refuse ("cannot rewrite consumed response input " & Name
                     & "; choose another source");
                else
@@ -228,23 +266,35 @@ package body Landin.Commands.Fixing is
       end Write_Back;
 
    begin
-      for Pass in 1 .. Pass_Limit loop
+      loop
          Result := Landin.Driver.Execute
            (Arguments, Held, Tools, Meter, Built_For,
             Warnings => Warnings,
             Protected_Inputs => Protected_Inputs,
             Protected_Identities => Protected_Identities);
-         if Pass = 1 then
+         if Passes = 0 and then Current.Is_Empty then
             First := Result;
          end if;
-         --  A request the driver refuses, or a defect, fixes nothing.
+         --  A request the driver refuses fixes nothing, and a defect in a
+         --  check of fixed bytes leaves every file as it was.
          if Result.Status in Landin.Driver.Status_Misuse
                            | Landin.Driver.Status_Defect
-           or else not Apply_Pass
          then
+            Writable := Passes = 0;
             Settled := True;
             exit;
          end if;
+         case Apply_Pass is
+            when Nothing_Applies | Unreadable =>
+               Settled := True;
+               exit;
+            when Pinned =>
+               --  Each pin holds a file not held before, so pins end.
+               null;
+            when Fixed =>
+               Passes := Passes + 1;
+               exit when Passes = Pass_Limit;
+         end case;
       end loop;
 
       if not Settled then
@@ -253,16 +303,19 @@ package body Landin.Commands.Fixing is
            & " other, and nothing was written",
            "this is a compiler defect; the fixes applied are listed, and"
            & " refine check shows the ones left");
-         Changed.Clear;
+         Writable := False;
       end if;
 
       if Check_Only then
          Result := First;
-         if not Changed.Is_Empty and then Result.Status = 0 then
+         if Any_Change and then Result.Status = 0 then
             Result.Status := Landin.Driver.Status_Reported;
          end if;
-      else
+      elsif Writable then
          Write_Back;
+      elsif Any_Change then
+         Refuse ("a check of the fixed sources failed, so refine fix wrote"
+           & " nothing");
       end if;
       US.Insert (Result.Output, 1, US.To_String (Applied));
       if D.Count (Problems) > 0 then
