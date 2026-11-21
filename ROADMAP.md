@@ -2565,6 +2565,10 @@ Every route in the installing documentation and exercised by the gate or,
 where only a release can, by the release workflow; the release recipe
 written in `docs/process.md` with each route's step.
 
+Not claimed: five of the README's six routes are exercised, but the
+Homebrew formula is checked only by hand after a release, in the tap the
+maintainer keeps; Q-142 asks whether that suffices.
+
 ## Successor families
 
 The first roadmap named six families as destinations for what it did not do,
