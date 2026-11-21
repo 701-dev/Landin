@@ -238,7 +238,7 @@ also says where a program's compile time goes among its sources, and gives
 the build and depth reports one name for each frame quantity. A measured code-quality cost attributable to
 assembly's fixed memory effect is recorded against `SR-09` before any narrower
 effect is proposed. Its ranked list answers the activations of SR-231,
-`SR-387`, SR-596, SR-869 and `SR-1023`, and measures x86-64's two-instruction
+`SR-387`, `SR-596`, SR-869 and `SR-1023`, and measures x86-64's two-instruction
 reach of a thread instance. This takes on `SR-996` and `SR-275`, and carries the
 fresh-copy requirement. The instruction count under emulation is the
 per-routine cost report `SR-1267` asked for.
@@ -280,7 +280,7 @@ cycles, and up to 1.085 in an A/A wall run, so a pair past its tolerance is
 timed again. `compiler/tests/measure/findings.md` is the ranked list:
 arm64's allocator unused at `size`, RV64's far jumps, Cortex-M's homes
 addressed through r6, then allocation. `SR-09` and `SR-1267` are settled;
-SR-596, SR-869, SR-231, `SR-996`, `SR-577`, SR-583 and `SR-1268` are R16.20's;
+`SR-596`, SR-869, SR-231, `SR-996`, `SR-577`, `SR-583` and `SR-1268` are R16.20's;
 `SR-275`, `SR-387` and `SR-1023` are restated with their figures, and `SR-1302`
 records the Xtensa reference's boot layout. Findings fixed on the way: the
 stack report names its frame quantities as the build report does (D1380),
@@ -395,8 +395,8 @@ r6 first: at armv6-m speed-auto 35.2% of the firmware set's instructions are
 stack loads and stores and 30.5% form their addresses, and the Thumb-2
 levels select Thumb-1. First the homes are addressed from `sp` directly,
 then values are allocated through r0 to r7, then at the Thumb-2 levels the
-high registers and Thumb-2's forms. This takes on SR-581, SR-582, SR-583
-and `SR-584` at the Thumb-2 levels; SR-596's float selection in VFP
+high registers and Thumb-2's forms. This takes on `SR-581`, `SR-582`, `SR-583`
+and `SR-584` at the Thumb-2 levels; `SR-596`'s float selection in VFP
 registers, measured on `runtime/firmware-mandelbrot` with the AN500
 description; SR-869's short `u64` routines on armv6-m; SR-231's atom `match`
 arms; `SR-996`'s counterpart against 32 KiB; `SR-577`'s float saves beside an
@@ -416,7 +416,7 @@ reads sets that branch's flags (D1566); and at `size` and `speed` it holds
 slots and values in r4-r7, r3 and r1 where its first emission writes none of
 them over their intervals, over `Landin.Backend.Placement`'s usage, checking
 the second emission against the plan (D1567). A kept comparison at the
-Thumb-2 levels is an IT block (D1568, part of SR-582); code labels are
+Thumb-2 levels is an IT block (D1568, part of `SR-582`); code labels are
 assembler-local (D1569, `SR-586`), held by the firmware lane's
 `unused-import` case, which the starting compiler fails; a routine saves
 only the run of d8-d15 its blocks declare (D1570, `SR-577`); and a far
@@ -434,7 +434,7 @@ The programs and corpus lanes, the unit suites and the fixtures pass, the
 build modes agree and the scaling bound holds. The candidate passed its
 [gate](https://github.com/JanHaan/Landin/actions/runs/44578956148) and
 [boards](https://github.com/JanHaan/Landin/actions/runs/44584549572). R16.27
-takes what is left: SR-581, SR-582's CBZ, SR-583, SR-596, SR-869 and SR-231,
+takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, SR-869 and SR-231,
 each with today's figures. Findings fixed on the way: the devices lane's
 cached consumer read a register's address only from literal words; and
 `runtime/directory-memory`, which now fits the reference at every profile,
@@ -537,7 +537,7 @@ SR-1422 the nine registers x86-64 offers, SR-1423 the assembly block's
 rule, SR-1424 float constants made in each block, SR-1425 a loop's two
 jumps, SR-1426 the order D339 copies in, and R551-12 keeps the bounds
 check a loop's end does not name and the calls of `core/atomic`'s cells;
-SR-1427, SR-1428 and `SR-1429` record what the work met, and SR-1430 the
+SR-1427, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
 STM32H753's binary-search, 9.7% slower at size where the RP2040 and
 RP2350 run every configuration faster. Findings fixed on
 the way: the public exposure above, and a dead shift kept as if it could
@@ -644,16 +644,16 @@ counterpart case is made from its hosted fixture.
 
 ### R16.27 — Cortex-M's remaining selection
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 R16.22 left where its allocation found them the Cortex-M values it does not
 hold, eight-byte integers and the floats a unit computes, and the Thumb-2
 levels' own registers and forms: SipHash and mandelbrot still spend about
 two fifths of their instructions on homes, and r8, r10 and r12 hold nothing.
-This takes on SR-581's high registers, SR-582's CBZ and CBNZ, SR-583's
-bitfield instructions, SR-596's float selection in VFP registers, SR-869's
-short `u64` routines on armv6-m and SR-231's atom `match` arms, and SR-1430, the STM32H753's binary-search and merge-sort running
+This takes on `SR-581`'s high registers, `SR-582`'s CBZ and CBNZ, `SR-583`'s
+bitfield instructions, `SR-596`'s float selection in VFP registers, SR-869's
+short `u64` routines on armv6-m and SR-231's atom `match` arms, and `SR-1430`, the STM32H753's binary-search and merge-sort running
 more cycles after R16.24 while the M33 ran them faster: the cause found and
 the configurations no slower than R16.22's figures, or the cause recorded
 with its measurement.
@@ -661,6 +661,42 @@ with its measurement.
 Exit evidence: each cost taken measured lower than its R16.10 baseline and
 R16.22's figures, the cycles on the boards no slower, with unchanged
 behavior, ABI and debugger evidence.
+
+Done: with a float unit Cortex-M holds floats in d0-d15 (D1771), which
+takes `SR-596`: on the AN500 description the firmware mandelbrot at
+speed executes 649,506 instructions under QEMU against 4,117,064, and on
+the STM32H753 runs in 1,775,748 cycles against 9,119,914. The Thumb-2
+levels' speed holds values in r12, r8 and r10 (D1772, `SR-581`), a test
+against zero is CBZ or CBNZ (D1768, `SR-582`) and a packed field UBFX and
+BFI (D1773, `SR-583`). At every level a word constant is made where it is
+read, as an immediate where the operation has one (D1767), a frame part
+and a slot are read and written in place (D1769), integer conversions
+within a word take one comparison (D1770) and moves that change nothing
+go (D1774). Over the firmware set the executed instructions fall to 0.851
+of the base at armv7-m speed and 0.857 at size, 0.897 and 0.863 at
+armv6-m, and `.text` 7.5-9.0% and 5.6-6.1%. On the boards every `size`
+and `speed` configuration is faster, the RP2040's by 0.918 and 0.894 at
+the geometric mean, the RP2350's 0.847 and 0.844, and the STM32H753's
+binary-search 2,067 cycles at speed and 2,496 at size, merge-sort 6,440,
+all below R16.22's figures. `SR-1430`'s cause was found on that board:
+from uncached AXI SRAM the M7 times a home's load by its distance from
+the store before it, so `none`'s mandelbrot ran 15.6% slower with its
+float homes read straight from sp and 2.2% faster than the base with the
+two address instructions between them that D1771 keeps at `none`;
+`SR-1430` is taken. That spacing leaves binary-search and SipHash at
+`none` on the STM32H753 4.9% and 0.9% slower, recorded as SR-1508. `SR-869`'s
+`divisor` is 924 bytes and `frame_bits` 210, still the eight-byte pairs,
+and `SR-231`'s `failure.words` 1,132 bytes; both are kept with these
+figures, and `compiler/tests/measure/findings.md` lists what is left with
+what each measured. The RP2040, RP2350 (Arm) and STM32H753 records were
+made again on the rig. Found on the way and fixed: a leaf saving d8-d15
+had no restore, which no routine needed before. SR-1505-SR-1507 record
+the friction met: no command builds and counts one Cortex-M fixture,
+`measure.py size`'s unexplained `--environment`, and a silent fallback
+of the recorded-writes allocation. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/44925345364) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44928110636),
+timing included.
 
 ### The continuous items
 

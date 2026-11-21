@@ -220,6 +220,90 @@ package body Landin.Tests.Cortex_Suite is
          end;
       end loop;
    end Scalar_Spill_Homes;
+   --  D1767-D1774: the remaining Thumb-2 selection.  At the Thumb-2
+   --  levels a loop's constants are immediates, a comparison with zero
+   --  and its branch one CBZ or CBNZ, a packed field UBFX and BFI, a
+   --  shift by a constant one instruction, a constant divisor needs no
+   --  test and speed holds r12; armv6-m keeps Thumb-1's forms with the
+   --  same immediates.
+   procedure Thumb2_Selection (Item : in out Landin.Testing.Context);
+   procedure Thumb2_Selection (Item : in out Landin.Testing.Context) is
+      LF_Text : constant String := [1 => Character'Val (10)];
+      Program : constant String :=
+        "image: type = layout(packed) struct" & LF_Text
+        & "    flag: bool at 0" & LF_Text
+        & "    level: u8 at 4..11" & LF_Text
+        & "end image" & LF_Text
+        & "public main: () -> (code: i32) =" & LF_Text
+        & "    mut x: image = zeroed" & LF_Text
+        & "    mut i: u32 = 0" & LF_Text
+        & "    mut sum: u32 = 0" & LF_Text
+        & "    while i < 100 do" & LF_Text
+        & "        x.level = u8(i % 200)" & LF_Text
+        & "        sum = sum + u32(x.level) + (i << 3)" & LF_Text
+        & "        if sum == 0 then" & LF_Text
+        & "            sum = 7" & LF_Text
+        & "        end if" & LF_Text
+        & "        i = i + 1" & LF_Text
+        & "    end while" & LF_Text
+        & "    code = i32(sum % 100)" & LF_Text
+        & "end main" & LF_Text;
+
+      function Emitted (Level : String) return String;
+      function Emitted (Level : String) return String is
+         Host : Landin.Testing.Fakes.Fake_Filesystem;
+         Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+         Args : Landin.Platform.Path_List;
+      begin
+         Host.Add_File ("p.ldn", Program);
+         Args.Append ("--target=cortex-m0");
+         Args.Append ("--level=" & Level);
+         Args.Append ("--optimize=speed");
+         Args.Append ("--emit=asm");
+         Args.Append ("-o");
+         Args.Append ("p.s");
+         Args.Append ("p.ldn");
+         declare
+            Result : constant Landin.Driver.Outcome :=
+              Landin.Driver.Execute (Args, Host, Tools);
+         begin
+            Landin.Testing.Check_Equal
+              (Item, Result.Status, Landin.Driver.Status_Success,
+               U.To_String (Result.Report));
+         end;
+         return Host.Written ("p.s");
+      end Emitted;
+
+      Wide : constant String := Emitted ("armv7-m");
+      Narrow : constant String := Emitted ("armv6-m");
+      HT : constant Character := Character'Val (9);
+   begin
+      Landin.Testing.Check
+        (Item, Contains (Wide, HT & "cmp r3, #100")
+           and then Contains (Narrow, ", #100" & LF_Text)
+           and then Contains (Wide, ", #3" & LF_Text),
+         "D1767: the loop's bound and shift count are immediates");
+      Landin.Testing.Check
+        (Item, Contains (Wide, HT & "udiv ")
+           and then not Contains (Wide, HT & "mov r4, r2" & LF_Text),
+         "D1767: a constant divisor is not tested for zero");
+      Landin.Testing.Check
+        (Item, Contains (Wide, HT & "cbz r")
+           and then not Contains (Narrow, "cbz")
+           and then not Contains (Narrow, "cbnz"),
+         "D1768: Thumb-2 compares with zero and branches in one CBZ");
+      Landin.Testing.Check
+        (Item, Contains (Wide, HT & "ubfx ")
+           and then Contains (Wide, HT & "bfi ")
+           and then not Contains (Narrow, "ubfx")
+           and then not Contains (Narrow, "bfi "),
+         "D1773: Thumb-2 extracts and inserts the field with UBFX and BFI");
+      Landin.Testing.Check
+        (Item, Contains (Wide, "r12")
+           and then not Contains (Narrow, ", r12" & LF_Text),
+         "D1772: speed holds a value in r12 at Thumb-2 only");
+   end Thumb2_Selection;
+
    procedure Outgoing_Calls (Item : in out Landin.Testing.Context);
 
    procedure Outgoing_Calls (Item : in out Landin.Testing.Context) is
@@ -300,7 +384,9 @@ package body Landin.Tests.Cortex_Suite is
                Branch & " reserves no outgoing homes");
             Landin.Testing.Check
               (Item, Ada.Strings.Fixed.Index (Text, HT & "mov " & Last & ", ")
-                 > 0,
+                 > 0
+                 or else Ada.Strings.Fixed.Index
+                   (Text, HT & "movs " & Last & ", #") > 0,
                Branch & " moves its last argument into " & Last);
          end Check_Direct;
 
@@ -339,7 +425,9 @@ package body Landin.Tests.Cortex_Suite is
          Check_Staged ("bl f5", "bl ret", 8);
          Landin.Testing.Check
            (Item, Ada.Strings.Fixed.Index
-              (Site ("bl f5", "bl ret"), "ldr r0, [sp, #8]") > 0,
+              (Site ("bl f5", "bl ret"), "ldr r0, [sp, #8]") > 0
+              or else Ada.Strings.Fixed.Index
+                (Site ("bl f5", "bl ret"), HT & "mov r0, r") > 0,
             "hidden result address is loaded into r0 above the area");
          Check_Direct ("bl ret", "blx r4", "r1");
          Landin.Testing.Check
@@ -1401,10 +1489,10 @@ package body Landin.Tests.Cortex_Suite is
                                  begin
                                     Landin.Testing.Check
                                       (Item, Ada.Strings.Fixed.Index
-                                        (First_Body, "push {r4, r6}" & LF)
+                                        (First_Body, "push {r6}" & LF)
                                         > 0
                                         and then Ada.Strings.Fixed.Index
-                                          (Second_Body, "push {r4, r6}"
+                                          (Second_Body, "push {r6}"
                                            & LF) > 0
                                         and then Ada.Strings.Fixed.Index
                                           (Second_Body, "push {r5") = 0,
@@ -1424,8 +1512,8 @@ package body Landin.Tests.Cortex_Suite is
                                and then Ada.Strings.Fixed.Index
                                  (Text, ".cfi_offset lr") = 0
                                and then Ada.Strings.Fixed.Index
-                                 (Report, """save_bytes"":8") > 0,
-                              "leaf unwind and report use eight save bytes");
+                                 (Report, """save_bytes"":4") > 0,
+                              "leaf unwind and report use four save bytes");
                         when 2 =>
                            Landin.Testing.Check
                              (Item, Ada.Strings.Fixed.Index
@@ -3947,13 +4035,13 @@ package body Landin.Tests.Cortex_Suite is
              (Hard, HT & ".eabi_attribute Tag_ABI_VFP_args, 1" & LF),
          "the unit and the VFP variant's attributes are declared");
       Landin.Testing.Check
-        (Item, Contains (Hard, "vmul.f32 s0, s0, s1")
-           and then Contains (Hard, "vdiv.f64 d0, d0, d1")
-           and then Contains (Hard, "vadd.f64 d0, d0, d1")
-           and then Contains (Hard, "vsub.f64 d0, d0, d1")
-           and then Contains (Hard, "vneg.f32 s0, s0")
+        (Item, Contains (Hard, "vmul.f32 s")
+           and then Contains (Hard, "vdiv.f64 d")
+           and then Contains (Hard, "vadd.f64 d")
+           and then Contains (Hard, "vsub.f64 d")
+           and then Contains (Hard, "vneg.f32 s")
            and then Contains (Hard, "vcvt.f64.f32 d1, s0")
-           and then Contains (Hard, "vcmpe.f64 d0, d1")
+           and then Contains (Hard, "vcmpe.f64 d")
            and then Contains (Hard, "vmrs APSR_nzcv, fpscr")
            and then Contains (Hard, "vcvt.s32.f64 s0, d0")
            and then Contains (Hard, "vcvt.u32.f64 s0, d0")
@@ -3966,10 +4054,12 @@ package body Landin.Tests.Cortex_Suite is
          "floats are computed in VFP instructions and no helper");
       Landin.Testing.Check
         (Item, Mix_At > 0
-           and then Contains (Hard (Mix_At .. Hard'Last), "vstr s0, [r6]")
-           and then Contains (Hard (Mix_At .. Hard'Last), "vstr d1, [r6]")
-           and then Contains (Hard (Mix_At .. Hard'Last), "vstr s1, [r6]")
-           and then Contains (Hard, "vldr s1, [r6]" & LF & HT & "bl mix"),
+           --  D1771: held in VFP registers from the entry on.
+           and then Contains (Hard (Mix_At .. Hard'Last), ", s0" & LF)
+           and then Contains (Hard (Mix_At .. Hard'Last), ", d1" & LF)
+           and then Contains (Hard (Mix_At .. Hard'Last), ", s1" & LF)
+           and then Contains (Hard, "vldr s1, [sp, #12]" & LF & HT
+                              & "bl mix"),
          "D616: a, b and c arrive in s0, d1 and the back-filled s1, and"
          & " the call loads them there");
       --  D1570: a framed routine keeps the run of d8-d15 its blocks
@@ -4113,8 +4203,11 @@ package body Landin.Tests.Cortex_Suite is
       Landin.Testing.Check
         (Item, Contains (Hard, "vldr s0, [r2, #0]" & LF & HT
                                & "vldr s1, [r2, #4]")
-           and then Contains (Hard, "vldr d1, [r6]")
-           and then Contains (Hard, "vldr s4, [r6]" & LF & HT & "bl scale"),
+           and then Contains (Hard, "vldr d1, [")
+           and then Contains (Hard, "vldr s4, [")
+           and then Ada.Strings.Fixed.Index
+             (Hard, "vldr s4, [") < Ada.Strings.Fixed.Index (Hard, "bl scale")
+           and then Contains (Hard, "]" & LF & HT & "bl scale"),
          "with the unit the record's members go in s0-s1, the double in"
          & " d1 and the single in s4");
       Landin.Testing.Check
@@ -5334,6 +5427,9 @@ package body Landin.Tests.Cortex_Suite is
       Landin.Testing.Register
         (Into, "cortex ABI", "a float variant link refusal names the flags",
          Float_Variant_Refusal'Access);
+      Landin.Testing.Register
+        (Into, "cortex ABI", "Thumb-2 selection forms",
+         Thumb2_Selection'Access);
    end Register;
 
 end Landin.Tests.Cortex_Suite;
