@@ -511,7 +511,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R19.30 — One write order for an aggregate assignment.**
+**Next roadmap item: R19.40 — The migration aid (planned).**
 
 ## Questions, bugs and ideas
 

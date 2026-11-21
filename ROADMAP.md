@@ -1332,13 +1332,25 @@ general places, and the fold's order after R19.30. The fold is size L.
 
 ### R19.30 — One write order for an aggregate assignment
 
-Status: active
+Status: complete
 Depends on: R19.10
 
 SC-26, a behaviour fix as much as a simplification. D29 writes a literal
 into its destination element by element; D209 keeps array operands whole
 before writing. One rule for both, with in-place writing where no overlap
 is shown. Taken unless R19.10 leaves it out.
+Done: D1827. An array literal, mixed repetition or struct construction
+assigned to a place reads the place as it was before the assignment and
+changes it only once complete, as D209's operators do; the write orders
+of D29, D37, D52, D53, D64, D65 and D72 are superseded. Lowering writes
+in place unless the value names the destination, holds an exit, or, by
+how the destination is reached, calls or reads through a pointer, slice
+or inout parameter; then it builds a temporary and copies it once. Every
+recorded positive program, the library included, lowers as before, so
+`hosted/events/events.ldn:158`, the library's one site, takes no copy.
+Eight runtime fixtures pin the new order, two renamed to
+`reads-old-value`, and a ninth the alias cases. SR-1538 and SR-1539 were
+filed for refusals met on the way.
 
 ### R19.40 — The migration aid
 
