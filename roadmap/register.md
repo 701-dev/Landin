@@ -74,6 +74,7 @@ Open:
 | Question | Default until answered | What waits on the answer |
 | --- | --- | --- |
 | [Q-117 — Is naming glibc's source package enough, or does a release publish glibc's source too?](questions/Q-117.md) | the notice as it is, naming Ubuntu's source package; no glibc source asset is published. | nothing in R23.50, which completes on the default; option 2 or 3 is a change to the release workflow and the notice before the first release that publishes a static archive. |
+| [Q-142 — Does the R23 gate hold while Homebrew is checked only by hand after a release?](questions/Q-142.md) | the R23 gate stays unclaimed; nothing else changes. | the claim of the R23 gate, and with it nothing in the serial lane, which R19 to R22 hold. |
 
 Answered:
 
