@@ -6,12 +6,12 @@
  "level": "rv32imac",
  "entries": {
   "rv32imac/none-all/binary-search": {
-   "cycles": 4569,
+   "cycles": 4185,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d600ada362d1fd41b25ba53ccd5f987147bdb93169f350d76ceb4ec54120e25",
+   "image": "9f52345c7b76d89632d90cf4c5285f030404c12af25766f0241e04b75f09ad95",
    "runs": 3
   },
   "rv32imac/none-all/cmp-siphash-vectors": {
@@ -62,12 +62,12 @@
    "runs": 3
   },
   "rv32imac/none-auto/binary-search": {
-   "cycles": 4569,
+   "cycles": 4185,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d600ada362d1fd41b25ba53ccd5f987147bdb93169f350d76ceb4ec54120e25",
+   "image": "9f52345c7b76d89632d90cf4c5285f030404c12af25766f0241e04b75f09ad95",
    "runs": 3
   },
   "rv32imac/none-auto/cmp-siphash-vectors": {
@@ -118,12 +118,12 @@
    "runs": 3
   },
   "rv32imac/none-off/binary-search": {
-   "cycles": 4569,
+   "cycles": 4185,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d600ada362d1fd41b25ba53ccd5f987147bdb93169f350d76ceb4ec54120e25",
+   "image": "9f52345c7b76d89632d90cf4c5285f030404c12af25766f0241e04b75f09ad95",
    "runs": 3
   },
   "rv32imac/none-off/cmp-siphash-vectors": {
@@ -174,12 +174,12 @@
    "runs": 3
   },
   "rv32imac/size-all/binary-search": {
-   "cycles": 2884,
+   "cycles": 2506,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "7f5686361821aa08cdd1ffbce7871a93641d4e16d6ff3a1b5146d436ed15b204",
+   "image": "5838039eb4cb3ca2e792ebb79b93e64d52453b88974c68c8092aa684d9c313f8",
    "runs": 3
   },
   "rv32imac/size-all/cmp-siphash-vectors": {
@@ -230,12 +230,12 @@
    "runs": 3
   },
   "rv32imac/size-auto/binary-search": {
-   "cycles": 2884,
+   "cycles": 2506,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "7f5686361821aa08cdd1ffbce7871a93641d4e16d6ff3a1b5146d436ed15b204",
+   "image": "5838039eb4cb3ca2e792ebb79b93e64d52453b88974c68c8092aa684d9c313f8",
    "runs": 3
   },
   "rv32imac/size-auto/cmp-siphash-vectors": {
@@ -286,12 +286,12 @@
    "runs": 3
   },
   "rv32imac/size-off/binary-search": {
-   "cycles": 2884,
+   "cycles": 2506,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "7f5686361821aa08cdd1ffbce7871a93641d4e16d6ff3a1b5146d436ed15b204",
+   "image": "5838039eb4cb3ca2e792ebb79b93e64d52453b88974c68c8092aa684d9c313f8",
    "runs": 3
   },
   "rv32imac/size-off/cmp-siphash-vectors": {
@@ -342,12 +342,12 @@
    "runs": 3
   },
   "rv32imac/speed-all/binary-search": {
-   "cycles": 2748,
+   "cycles": 2370,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "2c1eb745b734a9e48c4e41b3d47048f173f549487311920e12240460d3df0185",
+   "image": "4fbaf8d94bfb7c2047742f0211f4f5ec976d57dbe07b770f1023b18f0b9a949f",
    "runs": 3
   },
   "rv32imac/speed-all/cmp-siphash-vectors": {
@@ -398,12 +398,12 @@
    "runs": 3
   },
   "rv32imac/speed-auto/binary-search": {
-   "cycles": 2748,
+   "cycles": 2370,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "2c1eb745b734a9e48c4e41b3d47048f173f549487311920e12240460d3df0185",
+   "image": "4fbaf8d94bfb7c2047742f0211f4f5ec976d57dbe07b770f1023b18f0b9a949f",
    "runs": 3
   },
   "rv32imac/speed-auto/cmp-siphash-vectors": {
@@ -454,12 +454,12 @@
    "runs": 3
   },
   "rv32imac/speed-off/binary-search": {
-   "cycles": 2748,
+   "cycles": 2370,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "2c1eb745b734a9e48c4e41b3d47048f173f549487311920e12240460d3df0185",
+   "image": "4fbaf8d94bfb7c2047742f0211f4f5ec976d57dbe07b770f1023b18f0b9a949f",
    "runs": 3
   },
   "rv32imac/speed-off/cmp-siphash-vectors": {

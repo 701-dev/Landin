@@ -6,12 +6,12 @@
  "level": "armv7e-m",
  "entries": {
   "armv7e-m/none-all/binary-search": {
-   "cycles": 6592,
+   "cycles": 5455,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "b1b44a40b38bfba707d45fca78aedc3d9c6b4b4033b68e2785a4981c4ba66b03",
+   "image": "79cb71b1b37336d6d39741e0640db5f94dfa610453a227ff26394a84393f9ab9",
    "runs": 3
   },
   "armv7e-m/none-all/cmp-siphash-vectors": {
@@ -62,12 +62,12 @@
    "runs": 3
   },
   "armv7e-m/none-auto/binary-search": {
-   "cycles": 6592,
+   "cycles": 5455,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "b1b44a40b38bfba707d45fca78aedc3d9c6b4b4033b68e2785a4981c4ba66b03",
+   "image": "79cb71b1b37336d6d39741e0640db5f94dfa610453a227ff26394a84393f9ab9",
    "runs": 3
   },
   "armv7e-m/none-auto/cmp-siphash-vectors": {
@@ -118,12 +118,12 @@
    "runs": 3
   },
   "armv7e-m/none-off/binary-search": {
-   "cycles": 6592,
+   "cycles": 5455,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "b1b44a40b38bfba707d45fca78aedc3d9c6b4b4033b68e2785a4981c4ba66b03",
+   "image": "79cb71b1b37336d6d39741e0640db5f94dfa610453a227ff26394a84393f9ab9",
    "runs": 3
   },
   "armv7e-m/none-off/cmp-siphash-vectors": {
@@ -174,12 +174,12 @@
    "runs": 3
   },
   "armv7e-m/size-all/binary-search": {
-   "cycles": 2496,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "36c55be69f89e0fe0bcbdf2dac6e6041f7b52f4e107263f910049b6acc6e5dfe",
+   "image": "00b4e279d553a807fd7bdd9bbc59b9cf4c954bdc6f1b4be7a9e6a2a25a750f5a",
    "runs": 3
   },
   "armv7e-m/size-all/cmp-siphash-vectors": {
@@ -230,12 +230,12 @@
    "runs": 3
   },
   "armv7e-m/size-auto/binary-search": {
-   "cycles": 2496,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "36c55be69f89e0fe0bcbdf2dac6e6041f7b52f4e107263f910049b6acc6e5dfe",
+   "image": "00b4e279d553a807fd7bdd9bbc59b9cf4c954bdc6f1b4be7a9e6a2a25a750f5a",
    "runs": 3
   },
   "armv7e-m/size-auto/cmp-siphash-vectors": {
@@ -286,12 +286,12 @@
    "runs": 3
   },
   "armv7e-m/size-off/binary-search": {
-   "cycles": 2496,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "36c55be69f89e0fe0bcbdf2dac6e6041f7b52f4e107263f910049b6acc6e5dfe",
+   "image": "00b4e279d553a807fd7bdd9bbc59b9cf4c954bdc6f1b4be7a9e6a2a25a750f5a",
    "runs": 3
   },
   "armv7e-m/size-off/cmp-siphash-vectors": {
@@ -342,12 +342,12 @@
    "runs": 3
   },
   "armv7e-m/speed-all/binary-search": {
-   "cycles": 2067,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "a5af9bc6feebf9e5c1ab9c497cb1afef637cff978901df777a76545dd1ad0de1",
+   "image": "e1385451c55c2e339369934b9f6262d4d3e3f4a877367f9dbd9e06dace8c95a3",
    "runs": 3
   },
   "armv7e-m/speed-all/cmp-siphash-vectors": {
@@ -398,12 +398,12 @@
    "runs": 3
   },
   "armv7e-m/speed-auto/binary-search": {
-   "cycles": 2067,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "a5af9bc6feebf9e5c1ab9c497cb1afef637cff978901df777a76545dd1ad0de1",
+   "image": "e1385451c55c2e339369934b9f6262d4d3e3f4a877367f9dbd9e06dace8c95a3",
    "runs": 3
   },
   "armv7e-m/speed-auto/cmp-siphash-vectors": {
@@ -454,12 +454,12 @@
    "runs": 3
   },
   "armv7e-m/speed-off/binary-search": {
-   "cycles": 2067,
+   "cycles": 1737,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
    "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "image": "a5af9bc6feebf9e5c1ab9c497cb1afef637cff978901df777a76545dd1ad0de1",
+   "image": "e1385451c55c2e339369934b9f6262d4d3e3f4a877367f9dbd9e06dace8c95a3",
    "runs": 3
   },
   "armv7e-m/speed-off/cmp-siphash-vectors": {

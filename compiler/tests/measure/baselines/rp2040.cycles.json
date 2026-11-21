@@ -6,12 +6,12 @@
  "level": "armv6-m",
  "entries": {
   "armv6-m/none-all/binary-search": {
-   "cycles": 432,
+   "cycles": 399,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "12cb296a98114a9a686f1e05053ae0e12331dbe4224deba38d155254959796b3",
+   "image": "2a2b8c601489e0c5578543a155f137949e45bd0dbb9cd8d86e4387149e26aedf",
    "runs": 3
   },
   "armv6-m/none-all/cmp-siphash-vectors": {
@@ -62,12 +62,12 @@
    "runs": 3
   },
   "armv6-m/none-auto/binary-search": {
-   "cycles": 432,
+   "cycles": 399,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "12cb296a98114a9a686f1e05053ae0e12331dbe4224deba38d155254959796b3",
+   "image": "2a2b8c601489e0c5578543a155f137949e45bd0dbb9cd8d86e4387149e26aedf",
    "runs": 3
   },
   "armv6-m/none-auto/cmp-siphash-vectors": {
@@ -118,12 +118,12 @@
    "runs": 3
   },
   "armv6-m/none-off/binary-search": {
-   "cycles": 432,
+   "cycles": 399,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "12cb296a98114a9a686f1e05053ae0e12331dbe4224deba38d155254959796b3",
+   "image": "2a2b8c601489e0c5578543a155f137949e45bd0dbb9cd8d86e4387149e26aedf",
    "runs": 3
   },
   "armv6-m/none-off/cmp-siphash-vectors": {
@@ -174,12 +174,12 @@
    "runs": 3
   },
   "armv6-m/size-all/binary-search": {
-   "cycles": 173,
+   "cycles": 141,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "c999375aa4912350e5ae36e10627aadd68df700111c6fa2903ff43015a6a2ebd",
+   "image": "2159aec963d16250877554e4da32a9754c271ac6583f8fd5b0b1eb42008b3e0f",
    "runs": 3
   },
   "armv6-m/size-all/cmp-siphash-vectors": {
@@ -230,12 +230,12 @@
    "runs": 3
   },
   "armv6-m/size-auto/binary-search": {
-   "cycles": 173,
+   "cycles": 141,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "c999375aa4912350e5ae36e10627aadd68df700111c6fa2903ff43015a6a2ebd",
+   "image": "2159aec963d16250877554e4da32a9754c271ac6583f8fd5b0b1eb42008b3e0f",
    "runs": 3
   },
   "armv6-m/size-auto/cmp-siphash-vectors": {
@@ -286,12 +286,12 @@
    "runs": 3
   },
   "armv6-m/size-off/binary-search": {
-   "cycles": 173,
+   "cycles": 141,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "c999375aa4912350e5ae36e10627aadd68df700111c6fa2903ff43015a6a2ebd",
+   "image": "2159aec963d16250877554e4da32a9754c271ac6583f8fd5b0b1eb42008b3e0f",
    "runs": 3
   },
   "armv6-m/size-off/cmp-siphash-vectors": {
@@ -342,12 +342,12 @@
    "runs": 3
   },
   "armv6-m/speed-all/binary-search": {
-   "cycles": 175,
+   "cycles": 142,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "44d57a73f94b8669c6c85c69f2b62e0e69c5b3ec73579ff4653809362cb9d989",
+   "image": "451c74847921ab15ce91a163148a8a00ba7aeb794a1f8ac94ec869cf032d307b",
    "runs": 3
   },
   "armv6-m/speed-all/cmp-siphash-vectors": {
@@ -398,12 +398,12 @@
    "runs": 3
   },
   "armv6-m/speed-auto/binary-search": {
-   "cycles": 175,
+   "cycles": 142,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "44d57a73f94b8669c6c85c69f2b62e0e69c5b3ec73579ff4653809362cb9d989",
+   "image": "451c74847921ab15ce91a163148a8a00ba7aeb794a1f8ac94ec869cf032d307b",
    "runs": 3
   },
   "armv6-m/speed-auto/cmp-siphash-vectors": {
@@ -454,12 +454,12 @@
    "runs": 3
   },
   "armv6-m/speed-off/binary-search": {
-   "cycles": 175,
+   "cycles": 142,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "44d57a73f94b8669c6c85c69f2b62e0e69c5b3ec73579ff4653809362cb9d989",
+   "image": "451c74847921ab15ce91a163148a8a00ba7aeb794a1f8ac94ec869cf032d307b",
    "runs": 3
   },
   "armv6-m/speed-off/cmp-siphash-vectors": {

@@ -6,12 +6,12 @@
  "level": "rv32imc",
  "entries": {
   "rv32imc/none-all/binary-search": {
-   "cycles": 4526,
+   "cycles": 4115,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "55537e881865e2b95e445443dfa5a07c3a13fe0fad0621cd4b115821b9b95950",
+   "image": "e42f4b8ef9afdfc72316e8f4d583dcfadc464a13d6019b33fa91c9e337b10921",
    "runs": 3
   },
   "rv32imc/none-all/cmp-siphash-vectors": {
@@ -56,12 +56,12 @@
    "runs": 3
   },
   "rv32imc/none-auto/binary-search": {
-   "cycles": 4526,
+   "cycles": 4115,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "55537e881865e2b95e445443dfa5a07c3a13fe0fad0621cd4b115821b9b95950",
+   "image": "e42f4b8ef9afdfc72316e8f4d583dcfadc464a13d6019b33fa91c9e337b10921",
    "runs": 3
   },
   "rv32imc/none-auto/cmp-siphash-vectors": {
@@ -106,12 +106,12 @@
    "runs": 3
   },
   "rv32imc/none-off/binary-search": {
-   "cycles": 4526,
+   "cycles": 4115,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "55537e881865e2b95e445443dfa5a07c3a13fe0fad0621cd4b115821b9b95950",
+   "image": "e42f4b8ef9afdfc72316e8f4d583dcfadc464a13d6019b33fa91c9e337b10921",
    "runs": 3
   },
   "rv32imc/none-off/cmp-siphash-vectors": {
@@ -156,12 +156,12 @@
    "runs": 3
   },
   "rv32imc/size-all/binary-search": {
-   "cycles": 2462,
+   "cycles": 2096,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "6933b9fc3d3c994f179098eddaf1173ede91a6f18cb77859a1267bff7ea36b4e",
+   "image": "bbc78ec2c9265b91f874665908a1a1fc0f853e74f62405591596ef76d46dab8a",
    "runs": 3
   },
   "rv32imc/size-all/cmp-siphash-vectors": {
@@ -206,12 +206,12 @@
    "runs": 3
   },
   "rv32imc/size-auto/binary-search": {
-   "cycles": 2462,
+   "cycles": 2096,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "6933b9fc3d3c994f179098eddaf1173ede91a6f18cb77859a1267bff7ea36b4e",
+   "image": "bbc78ec2c9265b91f874665908a1a1fc0f853e74f62405591596ef76d46dab8a",
    "runs": 3
   },
   "rv32imc/size-auto/cmp-siphash-vectors": {
@@ -256,12 +256,12 @@
    "runs": 3
   },
   "rv32imc/size-off/binary-search": {
-   "cycles": 2462,
+   "cycles": 2096,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "6933b9fc3d3c994f179098eddaf1173ede91a6f18cb77859a1267bff7ea36b4e",
+   "image": "bbc78ec2c9265b91f874665908a1a1fc0f853e74f62405591596ef76d46dab8a",
    "runs": 3
   },
   "rv32imc/size-off/cmp-siphash-vectors": {
@@ -306,12 +306,12 @@
    "runs": 3
   },
   "rv32imc/speed-all/binary-search": {
-   "cycles": 2350,
+   "cycles": 1984,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5e0dcf3007525f5a602ba6d1c3afb81c537d878f412c2ee2af1a8f12bf3a02b4",
+   "image": "d61ec0f096ac3a97af6badcc1b167099005dcced6faa0d3e28fe7a745ad41ccf",
    "runs": 3
   },
   "rv32imc/speed-all/cmp-siphash-vectors": {
@@ -356,12 +356,12 @@
    "runs": 3
   },
   "rv32imc/speed-auto/binary-search": {
-   "cycles": 2350,
+   "cycles": 1984,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5e0dcf3007525f5a602ba6d1c3afb81c537d878f412c2ee2af1a8f12bf3a02b4",
+   "image": "d61ec0f096ac3a97af6badcc1b167099005dcced6faa0d3e28fe7a745ad41ccf",
    "runs": 3
   },
   "rv32imc/speed-auto/cmp-siphash-vectors": {
@@ -406,12 +406,12 @@
    "runs": 3
   },
   "rv32imc/speed-off/binary-search": {
-   "cycles": 2350,
+   "cycles": 1984,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5e0dcf3007525f5a602ba6d1c3afb81c537d878f412c2ee2af1a8f12bf3a02b4",
+   "image": "d61ec0f096ac3a97af6badcc1b167099005dcced6faa0d3e28fe7a745ad41ccf",
    "runs": 3
   },
   "rv32imc/speed-off/cmp-siphash-vectors": {

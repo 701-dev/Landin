@@ -6,12 +6,12 @@
  "level": "xtensa-esp32s3",
  "entries": {
   "xtensa-esp32s3/none-all/binary-search": {
-   "cycles": 2624,
+   "cycles": 2343,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c94dd2237aa0e525ebe7d0c5614a2e6095c9e702c461dd3f391cbb31a8d685c",
+   "image": "93ce84904056eb660bcf1a1aaf07ca98f5e11713bd28d464dfed62b6762ea9ae",
    "runs": 3
   },
   "xtensa-esp32s3/none-all/cmp-siphash-vectors": {
@@ -62,12 +62,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/none-auto/binary-search": {
-   "cycles": 2624,
+   "cycles": 2343,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c94dd2237aa0e525ebe7d0c5614a2e6095c9e702c461dd3f391cbb31a8d685c",
+   "image": "93ce84904056eb660bcf1a1aaf07ca98f5e11713bd28d464dfed62b6762ea9ae",
    "runs": 3
   },
   "xtensa-esp32s3/none-auto/cmp-siphash-vectors": {
@@ -118,12 +118,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/none-off/binary-search": {
-   "cycles": 2624,
+   "cycles": 2343,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c94dd2237aa0e525ebe7d0c5614a2e6095c9e702c461dd3f391cbb31a8d685c",
+   "image": "93ce84904056eb660bcf1a1aaf07ca98f5e11713bd28d464dfed62b6762ea9ae",
    "runs": 3
   },
   "xtensa-esp32s3/none-off/cmp-siphash-vectors": {
@@ -174,12 +174,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-all/binary-search": {
-   "cycles": 2306,
+   "cycles": 2014,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4a7652a9ad18aba05f71caf95d53c0688c09818f7292d78a73146a18585f5a9f",
+   "image": "9c3d95301d4e246bf0218dfff2ffcbdfa799bec570ab34ba170d7079bb664863",
    "runs": 3
   },
   "xtensa-esp32s3/size-all/cmp-siphash-vectors": {
@@ -230,12 +230,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-auto/binary-search": {
-   "cycles": 2306,
+   "cycles": 2014,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4a7652a9ad18aba05f71caf95d53c0688c09818f7292d78a73146a18585f5a9f",
+   "image": "9c3d95301d4e246bf0218dfff2ffcbdfa799bec570ab34ba170d7079bb664863",
    "runs": 3
   },
   "xtensa-esp32s3/size-auto/cmp-siphash-vectors": {
@@ -286,12 +286,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-off/binary-search": {
-   "cycles": 2306,
+   "cycles": 2014,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4a7652a9ad18aba05f71caf95d53c0688c09818f7292d78a73146a18585f5a9f",
+   "image": "9c3d95301d4e246bf0218dfff2ffcbdfa799bec570ab34ba170d7079bb664863",
    "runs": 3
   },
   "xtensa-esp32s3/size-off/cmp-siphash-vectors": {
@@ -342,12 +342,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/binary-search": {
-   "cycles": 2336,
+   "cycles": 1948,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "8827dc50ba72f1644f9aae95375a6d33da5c1ab91404b79acafb3aeda3463c62",
+   "image": "e098d8b785a4cf2d85e411e0a6a165d96d6234aae655a71cd26d8d3e1ca787c5",
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/cmp-siphash-vectors": {
@@ -398,12 +398,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/binary-search": {
-   "cycles": 2336,
+   "cycles": 1948,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "8827dc50ba72f1644f9aae95375a6d33da5c1ab91404b79acafb3aeda3463c62",
+   "image": "e098d8b785a4cf2d85e411e0a6a165d96d6234aae655a71cd26d8d3e1ca787c5",
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/cmp-siphash-vectors": {
@@ -454,12 +454,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/binary-search": {
-   "cycles": 2336,
+   "cycles": 1948,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "8827dc50ba72f1644f9aae95375a6d33da5c1ab91404b79acafb3aeda3463c62",
+   "image": "e098d8b785a4cf2d85e411e0a6a165d96d6234aae655a71cd26d8d3e1ca787c5",
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/cmp-siphash-vectors": {
