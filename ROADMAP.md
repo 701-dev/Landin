@@ -2291,7 +2291,7 @@ what outlives the item.
 
 ### R23.50 — A static Linux archive
 
-Status: active
+Status: complete
 Depends on: R23.10, R23.30, R23.40
 
 The release workflow publishes a Linux `refine` linked statically against
@@ -2314,6 +2314,32 @@ the release test program passed by the static build on both
 architectures; the install script choosing it on Alpine in its control;
 the archive in the installing documentation; the release recipe's step for
 it in `docs/process.md`.
+
+Done: a Linux release build links `refine`, its split commands and the
+test program with `-static-pie` (D1787): `scripts/env.sh` chooses the
+link and `landin_common.gpr` applies it, so every release lane tests what
+a release publishes, and the static archive replaces the glibc ones under
+their names, as Q-116 answered. A static link that warns is refused, and
+`scripts/package.sh` packages one with `LICENSE-GLIBC` and `NOTICE-GLIBC`
+from the host's `libc6-dev` (D1788); whether naming Ubuntu's source
+package meets the LGPL is asked as Q-117. `install.sh` no longer refuses
+a host by its loader but an archive whose `refine` does not start there
+(D1789). `scripts/static_check.py`, in `release` and
+`arm64-release-checks` and in the release workflow before approval, runs
+the packaged compiler alone in an empty root and, on Alpine 3.24.4,
+installs it with `install.sh`, runs the first program and links all 19
+`link: libc` runtime fixtures against musl, 31 checks passing on both
+architectures (D1790); `arm64-release` passed the whole release test
+program with the static build natively, 1279 cases. The user image keeps
+Debian's `gcc`, which it needs to link, and takes the static archive
+unchanged. Met on the way and fixed: glibc's static start kills an
+executable naming a run path, which the gate's release lanes built
+without `-R`, so `build.sh` adds it; the reuse check then refused the
+`-R`; the dynamic archives' undocumented floor of glibc 2.38, from one
+symbol, now in the README; `SR-1517`, `package.sh` refusing another
+architecture's executable first; and `SR-1515`, the static build being
+the release mode `test.sh` runs. Gate run 44929155991 and boards run
+44931267455 on the merged tree 8d4f8da5e.
 
 ### R23 gate
 Every route in the installing documentation and exercised by the gate or,
