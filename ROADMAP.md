@@ -1443,14 +1443,15 @@ halves of `Check_Array_Field` and `Check_Fixed_Array_Payload`,
 `Admit_Array_Field` goes, because array fields become general places.
 Lowering's three inline sites collapse into `Write_Shaped_Value`, after
 R19.30 has settled its write order. A counted repetition and `lenof` of
-a literal take any element shape, and the module-scope inference does
-too if Q-122 says so. Comments, notes and fixture summaries are
+a literal take any element shape, and so does an inferred module array,
+a literal or a counted repetition (D26, D35), as the maintainer's answer
+to Q-122 chose. Comments, notes and fixture summaries are
 re-pointed to the surviving rules. This takes on SR-1288.
 
 Exit evidence: no fixture pinning a surviving rule of D24 to D109
 changed in meaning; diagnostic changes from L0304 to L0301 listed in the
-commit; positive fixtures for a repetition and a `lenof` of a non-scalar
-element; the build-modes comparison and the manifest over lowering's
+commit; positive fixtures for a repetition, a `lenof` and an inferred
+module array of a non-scalar element; the build-modes comparison and the manifest over lowering's
 collapse; the complete gate on the item's commit.
 
 ### R19 gate

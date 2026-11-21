@@ -48,7 +48,7 @@ marks it as such.
 |---|---|---|
 | D24 | live | static images |
 | D25 | partly live | inferred shape; its list of positions "outside this slice" is superseded by D241 |
-| D26 | partly live | static images; its scalar element is the boundary Q-122 asks about |
+| D26 | partly live | static images; its scalar element is lifted (Q-122, answered: lift) |
 | D27 | superseded | D241; the absent zero image is D10's |
 | D28 | superseded | D241; its one-clear rule moves to D32 |
 | D29 | partly live | the contextual literal assignment; its write order is superseded by D1827 and its boundary list by D241 |
@@ -57,7 +57,7 @@ marks it as such.
 | D32 | partly live | write order, compact operations |
 | D33 | partly live | inferred shape; its scalar element is lifted by D1664 |
 | D34 | partly live | static images (repeated encoding) |
-| D35 | superseded | D33 and D34; its scalar element is Q-122's |
+| D35 | superseded | D33 and D34; its scalar element is lifted (Q-122, answered: lift) |
 | D36 | partly live | write order (prefix, then one fill) |
 | D37 | partly live | D36's rule on assignment; its write order is superseded by D1827 |
 | D38 | partly live | static images (hybrid encoding) |
@@ -136,7 +136,7 @@ the scheme D118/D119 replaced).
 | checking, `Synthesise`'s array-field and child refusals, 27307-27328 and 27353-27375 (missed) | refuse a whole array field or child by its own message | the generic mismatch | ~45 → 0 |
 | checking, `lenof [..]`, 26352-26443 | a scalar element (D31) with two messages of its own | `Infer_Value`'s first-element rule | ~90 → ~15 |
 | checking, counted repetition in `Infer_Value`, 39020-39145 | infers only a scalar element (D33) | lifted | ~30 changed |
-| checking, `Infer_Literal_Shape`, 38839-38842 (missed) | a module literal infers only a scalar element (D26) | Q-122's | ~10 |
+| checking, `Infer_Literal_Shape`, 38839-38842 (missed) | a module literal infers only a scalar element (D26) | lifted, as Q-122's answer chose | ~10 |
 | lowering, `Lower_Binding_Statement`'s array arm, 14672-14790 | literal, mixed, repetition and `zeroed` stored inline | the existing final `Write_Array_Value` call | ~120 → 0 |
 | lowering, `Lower_Binding_Statement`'s aggregate arm, 14843-14855, and `Lower_Assignment_Statement`'s field arm, 15699-15708 (missed) | `zeroed` cleared inline | `Write_Shaped_Value`'s `zeroed` branch, which emits the same clear | ~22 → 0 |
 
@@ -185,14 +185,15 @@ clear for `zeroed`. Two differences remain:
    "this selects a whole array field" becomes the generic mismatch. This is
    the riskiest step, so it is the last checker step, with its own fixture
    run.
-3. **Two scalar-element boundaries are lifted, a third is asked.** A counted
+3. **Three scalar-element boundaries are lifted.** A counted
    repetition and `lenof` of a literal take any element shape (D1664). Then
    `negative/r720-counted-repetition-scalar-element` and the `ptr` and
    struct lines of `negative/r491-inferred-repetition-refusals` are
    accepted, and become positive fixtures. The latter keeps its L0331 and
    L0301 lines. The same boundary at module scope, D26 and D35, is outside
-   D1664's words, so the maintainer decides it as Q-122. Until answered it
-   is kept as a recorded boundary.
+   D1664's words, so the maintainer decided it as Q-122 and chose to lift
+   it on 2026-11-21: `negative/r720-inferred-module-array-scalar-element`
+   becomes a positive fixture too.
 4. **Fixtures that name a superseded decision.** 257 fixtures name a
    decision of D24 to D109 in `fixture.meta`, about 150 of them only
    superseded ones. They keep pinning the general rule, so none is removed.
@@ -230,7 +231,7 @@ sites touch:
 4. Fold `Check_Array_Field`'s and `Check_Fixed_Array_Payload`'s runtime
    halves.
 5. Make array fields general places, removing `Admit_Array_Field`.
-6. Lift the two boundaries, and Q-122's if the answer is to lift it. Turn
+6. Lift the three boundaries, Q-122's among them. Turn
    the refusing fixtures positive and add a runtime fixture for a
    repetition and a `lenof` of a struct element.
 7. Collapse lowering's three inline sites, with the build-modes
