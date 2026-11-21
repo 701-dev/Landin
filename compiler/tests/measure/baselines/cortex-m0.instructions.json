@@ -3,7 +3,7 @@
  "target": "cortex-m0",
  "entries": {
   "armv6-m/none-all/binary-search": {
-   "instructions": 2822
+   "instructions": 2550
   },
   "armv6-m/none-all/cmp-siphash-vectors": {
    "instructions": 843247
@@ -21,7 +21,7 @@
    "instructions": 21126
   },
   "armv6-m/none-auto/binary-search": {
-   "instructions": 2822
+   "instructions": 2550
   },
   "armv6-m/none-auto/cmp-siphash-vectors": {
    "instructions": 843256
@@ -39,7 +39,7 @@
    "instructions": 21126
   },
   "armv6-m/none-off/binary-search": {
-   "instructions": 2822
+   "instructions": 2550
   },
   "armv6-m/none-off/cmp-siphash-vectors": {
    "instructions": 843256
@@ -57,7 +57,7 @@
    "instructions": 21126
   },
   "armv6-m/size-all/binary-search": {
-   "instructions": 1357
+   "instructions": 1085
   },
   "armv6-m/size-all/cmp-siphash-vectors": {
    "instructions": 508244
@@ -75,7 +75,7 @@
    "instructions": 9482
   },
   "armv6-m/size-auto/binary-search": {
-   "instructions": 1357
+   "instructions": 1085
   },
   "armv6-m/size-auto/cmp-siphash-vectors": {
    "instructions": 508250
@@ -93,7 +93,7 @@
    "instructions": 9482
   },
   "armv6-m/size-off/binary-search": {
-   "instructions": 1357
+   "instructions": 1085
   },
   "armv6-m/size-off/cmp-siphash-vectors": {
    "instructions": 508250
@@ -111,7 +111,7 @@
    "instructions": 9482
   },
   "armv6-m/speed-all/binary-search": {
-   "instructions": 1381
+   "instructions": 1109
   },
   "armv6-m/speed-all/cmp-siphash-vectors": {
    "instructions": 508611
@@ -129,7 +129,7 @@
    "instructions": 7924
   },
   "armv6-m/speed-auto/binary-search": {
-   "instructions": 1381
+   "instructions": 1109
   },
   "armv6-m/speed-auto/cmp-siphash-vectors": {
    "instructions": 508611
@@ -147,7 +147,7 @@
    "instructions": 7924
   },
   "armv6-m/speed-off/binary-search": {
-   "instructions": 1381
+   "instructions": 1109
   },
   "armv6-m/speed-off/cmp-siphash-vectors": {
    "instructions": 508617
@@ -165,7 +165,7 @@
    "instructions": 7924
   },
   "armv7-m/none-all/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv7-m/none-all/cmp-siphash-vectors": {
    "instructions": 837098
@@ -183,7 +183,7 @@
    "instructions": 20156
   },
   "armv7-m/none-auto/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv7-m/none-auto/cmp-siphash-vectors": {
    "instructions": 837107
@@ -201,7 +201,7 @@
    "instructions": 20156
   },
   "armv7-m/none-off/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv7-m/none-off/cmp-siphash-vectors": {
    "instructions": 837107
@@ -219,7 +219,7 @@
    "instructions": 20156
   },
   "armv7-m/size-all/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv7-m/size-all/cmp-siphash-vectors": {
    "instructions": 499641
@@ -237,7 +237,7 @@
    "instructions": 8873
   },
   "armv7-m/size-auto/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv7-m/size-auto/cmp-siphash-vectors": {
    "instructions": 499642
@@ -255,7 +255,7 @@
    "instructions": 8873
   },
   "armv7-m/size-off/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv7-m/size-off/cmp-siphash-vectors": {
    "instructions": 499642
@@ -273,7 +273,7 @@
    "instructions": 8873
   },
   "armv7-m/speed-all/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv7-m/speed-all/cmp-siphash-vectors": {
    "instructions": 493727
@@ -291,7 +291,7 @@
    "instructions": 6411
   },
   "armv7-m/speed-auto/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv7-m/speed-auto/cmp-siphash-vectors": {
    "instructions": 493727
@@ -309,7 +309,7 @@
    "instructions": 6411
   },
   "armv7-m/speed-off/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv7-m/speed-off/cmp-siphash-vectors": {
    "instructions": 493728
@@ -327,7 +327,7 @@
    "instructions": 6411
   },
   "armv7e-m+fpv5-d16/none-all/binary-search": {
-   "instructions": 2844
+   "instructions": 2572
   },
   "armv7e-m+fpv5-d16/none-all/cmp-siphash-vectors": {
    "instructions": 837150
@@ -345,7 +345,7 @@
    "instructions": 20208
   },
   "armv7e-m+fpv5-d16/none-auto/binary-search": {
-   "instructions": 2844
+   "instructions": 2572
   },
   "armv7e-m+fpv5-d16/none-auto/cmp-siphash-vectors": {
    "instructions": 837159
@@ -363,7 +363,7 @@
    "instructions": 20208
   },
   "armv7e-m+fpv5-d16/none-off/binary-search": {
-   "instructions": 2844
+   "instructions": 2572
   },
   "armv7e-m+fpv5-d16/none-off/cmp-siphash-vectors": {
    "instructions": 837159
@@ -381,7 +381,7 @@
    "instructions": 20208
   },
   "armv7e-m+fpv5-d16/size-all/binary-search": {
-   "instructions": 1397
+   "instructions": 1125
   },
   "armv7e-m+fpv5-d16/size-all/cmp-siphash-vectors": {
    "instructions": 499693
@@ -399,7 +399,7 @@
    "instructions": 8925
   },
   "armv7e-m+fpv5-d16/size-auto/binary-search": {
-   "instructions": 1397
+   "instructions": 1125
   },
   "armv7e-m+fpv5-d16/size-auto/cmp-siphash-vectors": {
    "instructions": 499694
@@ -417,7 +417,7 @@
    "instructions": 8925
   },
   "armv7e-m+fpv5-d16/size-off/binary-search": {
-   "instructions": 1397
+   "instructions": 1125
   },
   "armv7e-m+fpv5-d16/size-off/cmp-siphash-vectors": {
    "instructions": 499694
@@ -435,7 +435,7 @@
    "instructions": 8925
   },
   "armv7e-m+fpv5-d16/speed-all/binary-search": {
-   "instructions": 1357
+   "instructions": 1100
   },
   "armv7e-m+fpv5-d16/speed-all/cmp-siphash-vectors": {
    "instructions": 493779
@@ -453,7 +453,7 @@
    "instructions": 6463
   },
   "armv7e-m+fpv5-d16/speed-auto/binary-search": {
-   "instructions": 1357
+   "instructions": 1100
   },
   "armv7e-m+fpv5-d16/speed-auto/cmp-siphash-vectors": {
    "instructions": 493779
@@ -471,7 +471,7 @@
    "instructions": 6463
   },
   "armv7e-m+fpv5-d16/speed-off/binary-search": {
-   "instructions": 1357
+   "instructions": 1100
   },
   "armv7e-m+fpv5-d16/speed-off/cmp-siphash-vectors": {
    "instructions": 493780
@@ -489,7 +489,7 @@
    "instructions": 6463
   },
   "armv8-m.main/none-all/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv8-m.main/none-all/cmp-siphash-vectors": {
    "instructions": 837098
@@ -507,7 +507,7 @@
    "instructions": 20156
   },
   "armv8-m.main/none-auto/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv8-m.main/none-auto/cmp-siphash-vectors": {
    "instructions": 837107
@@ -525,7 +525,7 @@
    "instructions": 20156
   },
   "armv8-m.main/none-off/binary-search": {
-   "instructions": 2792
+   "instructions": 2520
   },
   "armv8-m.main/none-off/cmp-siphash-vectors": {
    "instructions": 837107
@@ -543,7 +543,7 @@
    "instructions": 20156
   },
   "armv8-m.main/size-all/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv8-m.main/size-all/cmp-siphash-vectors": {
    "instructions": 499641
@@ -561,7 +561,7 @@
    "instructions": 8873
   },
   "armv8-m.main/size-auto/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
    "instructions": 499642
@@ -579,7 +579,7 @@
    "instructions": 8873
   },
   "armv8-m.main/size-off/binary-search": {
-   "instructions": 1345
+   "instructions": 1073
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
    "instructions": 499642
@@ -597,7 +597,7 @@
    "instructions": 8873
   },
   "armv8-m.main/speed-all/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
    "instructions": 493727
@@ -615,7 +615,7 @@
    "instructions": 6411
   },
   "armv8-m.main/speed-auto/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
    "instructions": 493727
@@ -633,7 +633,7 @@
    "instructions": 6411
   },
   "armv8-m.main/speed-off/binary-search": {
-   "instructions": 1305
+   "instructions": 1048
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
    "instructions": 493728

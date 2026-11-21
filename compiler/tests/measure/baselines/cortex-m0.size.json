@@ -5,7 +5,7 @@
   "armv6-m/none-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1540,
+    ".text": 1528,
     ".bss": 4
    }
   },
@@ -50,7 +50,7 @@
   "armv6-m/none-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1540,
+    ".text": 1528,
     ".bss": 4
    }
   },
@@ -95,7 +95,7 @@
   "armv6-m/none-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1540,
+    ".text": 1528,
     ".bss": 4
    }
   },
@@ -140,7 +140,7 @@
   "armv6-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 928,
+    ".text": 920,
     ".bss": 4
    }
   },
@@ -184,7 +184,7 @@
   "armv6-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 928,
+    ".text": 920,
     ".bss": 4
    }
   },
@@ -228,7 +228,7 @@
   "armv6-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 928,
+    ".text": 920,
     ".bss": 4
    }
   },
@@ -272,7 +272,7 @@
   "armv6-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 960,
     ".bss": 4
    }
   },
@@ -316,7 +316,7 @@
   "armv6-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 960,
     ".bss": 4
    }
   },
@@ -360,7 +360,7 @@
   "armv6-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 960,
     ".bss": 4
    }
   },
@@ -404,7 +404,7 @@
   "armv7-m/none-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -449,7 +449,7 @@
   "armv7-m/none-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -494,7 +494,7 @@
   "armv7-m/none-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -539,7 +539,7 @@
   "armv7-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -582,7 +582,7 @@
   "armv7-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -625,7 +625,7 @@
   "armv7-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -668,7 +668,7 @@
   "armv7-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -711,7 +711,7 @@
   "armv7-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -754,7 +754,7 @@
   "armv7-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -797,7 +797,7 @@
   "armv7e-m/none-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -842,7 +842,7 @@
   "armv7e-m/none-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -887,7 +887,7 @@
   "armv7e-m/none-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -932,7 +932,7 @@
   "armv7e-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -975,7 +975,7 @@
   "armv7e-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -1018,7 +1018,7 @@
   "armv7e-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -1061,7 +1061,7 @@
   "armv7e-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -1104,7 +1104,7 @@
   "armv7e-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -1147,7 +1147,7 @@
   "armv7e-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -1190,7 +1190,7 @@
   "armv8-m.main/none-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -1235,7 +1235,7 @@
   "armv8-m.main/none-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -1280,7 +1280,7 @@
   "armv8-m.main/none-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1480,
+    ".text": 1468,
     ".bss": 4
    }
   },
@@ -1325,7 +1325,7 @@
   "armv8-m.main/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -1368,7 +1368,7 @@
   "armv8-m.main/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -1411,7 +1411,7 @@
   "armv8-m.main/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 872,
+    ".text": 864,
     ".bss": 4
    }
   },
@@ -1454,7 +1454,7 @@
   "armv8-m.main/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -1497,7 +1497,7 @@
   "armv8-m.main/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },
@@ -1540,7 +1540,7 @@
   "armv8-m.main/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 940,
+    ".text": 932,
     ".bss": 4
    }
   },

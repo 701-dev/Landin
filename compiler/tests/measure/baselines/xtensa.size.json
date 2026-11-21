@@ -6,7 +6,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4496,
+    ".text": 4508,
     ".bss": 436
    }
   },
@@ -58,7 +58,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4496,
+    ".text": 4508,
     ".bss": 436
    }
   },
@@ -110,7 +110,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4496,
+    ".text": 4508,
     ".bss": 436
    }
   },
@@ -162,7 +162,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4336,
+    ".text": 4352,
     ".bss": 436
    }
   },
@@ -212,7 +212,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4336,
+    ".text": 4352,
     ".bss": 436
    }
   },
@@ -262,7 +262,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4336,
+    ".text": 4352,
     ".bss": 436
    }
   },
@@ -312,7 +312,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4392,
+    ".text": 4404,
     ".bss": 436
    }
   },
@@ -362,7 +362,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4392,
+    ".text": 4404,
     ".bss": 436
    }
   },
@@ -412,7 +412,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 4392,
+    ".text": 4404,
     ".bss": 436
    }
   },
@@ -462,7 +462,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6180,
+    ".text": 6192,
     ".bss": 436
    }
   },
@@ -514,7 +514,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6180,
+    ".text": 6192,
     ".bss": 436
    }
   },
@@ -566,7 +566,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6180,
+    ".text": 6192,
     ".bss": 436
    }
   },
@@ -618,7 +618,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6020,
+    ".text": 6036,
     ".bss": 436
    }
   },
@@ -668,7 +668,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6020,
+    ".text": 6036,
     ".bss": 436
    }
   },
@@ -718,7 +718,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6020,
+    ".text": 6036,
     ".bss": 436
    }
   },
@@ -768,7 +768,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6076,
+    ".text": 6088,
     ".bss": 436
    }
   },
@@ -818,7 +818,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6076,
+    ".text": 6088,
     ".bss": 436
    }
   },
@@ -868,7 +868,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6076,
+    ".text": 6088,
     ".bss": 436
    }
   },
