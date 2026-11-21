@@ -59,7 +59,6 @@ package body Landin.Syntax.Parser is
         | Tok.Kw_If | Tok.Kw_Elsif | Tok.Kw_Begin | Tok.Kw_Match
         | Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For | Tok.Kw_Break
         | Tok.Kw_Continue | Tok.Kw_Defer | Tok.Kw_Undo | Tok.Kw_Unchecked
-        | Tok.Kw_Complete
         | Tok.Kw_Else | Tok.Kw_End | Tok.Kw_Public
         | Tok.End_Of_Input => True,
       others => False];
@@ -171,6 +170,45 @@ package body Landin.Syntax.Parser is
      return Boolean
      is (Landin.Source.Names."=" (Left, Right));
 
+   --  D1651: a `break with v`, which the language no longer has, kept as
+   --  the tokens it was written in so that the one refusal of the loop it
+   --  left can rewrite it.  Token positions are absolute; Guard_First is
+   --  zero when no `when` was written.
+   type Value_Break is record
+      Target      : Natural := 0;
+      Opens       : Natural := 0;
+      Value_First : Natural := 0;
+      Value_Last  : Natural := 0;
+      Guard_First : Natural := 0;
+      Guard_Last  : Natural := 0;
+      Label       : Landin.Source.Names.Name_Id :=
+        Landin.Source.Names.No_Name;
+   end record;
+
+   package Value_Break_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Value_Break);
+
+   package Edit_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Landin.Diagnostics.Edit,
+      "="          => Landin.Diagnostics."=");
+
+   --  The loop the parser closed last, as its refusals need it: where it
+   --  opens and closes, the `break`s that left it, and its `complete`
+   --  clause, whose literal is Complete_Value when the clause is exactly
+   --  `break with literal` (a sign and a number being two tokens).
+   type Loop_Shape is record
+      Opens          : Natural := 0;
+      Word           : Natural := 0;
+      Closes         : Natural := 0;
+      Unconditional  : Boolean := False;
+      Breaks         : Natural := 0;
+      Values         : Value_Break_Vectors.Vector;
+      Complete_At    : Natural := 0;
+      Value_First    : Natural := 0;
+      Value_Last     : Natural := 0;
+   end record;
+
    --  Where each name is written after `end`, in token order.
    package Closing_Names is new Ada.Containers.Hashed_Maps
      (Key_Type        => Landin.Source.Names.Name_Id,
@@ -270,7 +308,8 @@ package body Landin.Syntax.Parser is
       Report     : in out Landin.Diagnostics.Diagnostic_List;
       By_Grammar : Boolean;
       Start      : Landin.Tokens.Token_Index;
-      Facts      : in out Grammar_Facts) return Tree
+      Facts      : in out Grammar_Facts;
+      Text       : access constant Landin.Source.Snapshot := null) return Tree
      with Post => Landin.Tokens.Source_Of (From) = Source_Of (Read'Result);
 
    --  D1074: a program the grammar derives is read by the grammar, and
@@ -279,15 +318,16 @@ package body Landin.Syntax.Parser is
    function Parse
      (From   : Landin.Tokens.Token_Stream;
       Names  : in out Landin.Source.Names.Table;
-      Report : in out Landin.Diagnostics.Diagnostic_List) return Tree is
+      Report : in out Landin.Diagnostics.Diagnostic_List;
+      Text   : access constant Landin.Source.Snapshot := null) return Tree is
       Facts : Grammar_Facts;
    begin
       return Read (From, Names, Report, By_Grammar => True,
-                   Start => 1, Facts => Facts);
+                   Start => 1, Facts => Facts, Text => Text);
    exception
       when Refused_By_Grammar =>
          return Read (From, Names, Report, By_Grammar => False,
-                      Start => 1, Facts => Facts);
+                      Start => 1, Facts => Facts, Text => Text);
    end Parse;
 
    function Read
@@ -296,7 +336,9 @@ package body Landin.Syntax.Parser is
       Report     : in out Landin.Diagnostics.Diagnostic_List;
       By_Grammar : Boolean;
       Start      : Landin.Tokens.Token_Index;
-      Facts      : in out Grammar_Facts) return Tree is
+      Facts      : in out Grammar_Facts;
+      Text       : access constant Landin.Source.Snapshot := null)
+      return Tree is
    begin
       return Result : Tree do
          declare
@@ -414,6 +456,32 @@ package body Landin.Syntax.Parser is
                 [others => Landin.Source.Names.No_Name];
             Target_Is_Block : array (1 .. Nesting_Limit) of Boolean :=
               [others => False];
+            --  D1651: a loop written where a value belongs is still read,
+            --  so that its one refusal can carry the rewrite into a
+            --  statement.  Its entry is Valued, and each `break with` that
+            --  selects it is kept in Value_Breaks.  Breaks counts every
+            --  `break` an entry takes, and Complete_Exits every transfer
+            --  out of its `complete` block, which decide whether a removed
+            --  form's rewrite is mechanical.
+            Target_Valued : array (1 .. Nesting_Limit) of Boolean :=
+              [others => False];
+            Target_Opened : array (1 .. Nesting_Limit)
+              of Landin.Source.Span := [others => Landin.Source.Empty_Span];
+            Target_Breaks : array (1 .. Nesting_Limit) of Natural :=
+              [others => 0];
+            Target_In_Complete : array (1 .. Nesting_Limit) of Boolean :=
+              [others => False];
+            Target_Complete_Exits : array (1 .. Nesting_Limit) of Natural :=
+              [others => 0];
+            Value_Breaks : Value_Break_Vectors.Vector;
+            Last_Loop : Loop_Shape;
+            --  A declaration or an assignment about to read its value
+            --  names the token the value begins at.  A loop that begins
+            --  there leaves its refusal here, for the declaration to make
+            --  with the rewrite only it can write.
+            Value_Begins : Natural := 0;
+            Pending_Loop : Loop_Shape;
+            Pending_Node : Node_Id := No_Node;
             --  A labelled RHS keeps direct positional applications neutral:
             --  their own arguments may recursively be type-only syntax.
             --  Outside that one parse, positional Call uses the unchanged
@@ -455,6 +523,15 @@ package body Landin.Syntax.Parser is
 
             Variant_Id : constant Landin.Source.Names.Name_Id :=
               Landin.Source.Names.Intern (Names, "variant");
+
+            --  D1651: `with` and `complete` are ordinary names, and only
+            --  the shapes the removed forms took are read as those forms,
+            --  so that the refusal can name what replaces them.
+            With_Id : constant Landin.Source.Names.Name_Id :=
+              Landin.Source.Names.Intern (Names, "with");
+
+            Complete_Id : constant Landin.Source.Names.Name_Id :=
+              Landin.Source.Names.Intern (Names, "complete");
 
             --  D212's withdrawn [0820] block shape: `arena` is an
             --  ordinary name everywhere else, and the block is recognised
@@ -589,6 +666,8 @@ package body Landin.Syntax.Parser is
             function Point return Landin.Source.Span;
             function After_Previous return Landin.Source.Span;
             function Begins_Line (At_Index : Tok.Token_Index) return Boolean;
+            function Complete_Here return Boolean;
+            function With_Here return Boolean;
             function Opens_Destructuring return Boolean;
             procedure Note_Line_Fact
               (Node : Node_Id;
@@ -779,13 +858,25 @@ package body Landin.Syntax.Parser is
               (Context : Frame;
                Starts  : Landin.Source.Span := Landin.Source.Empty_Span;
                Label   : Landin.Source.Names.Name_Id :=
-                 Landin.Source.Names.No_Name) return Node_Id;
+                 Landin.Source.Names.No_Name;
+               Valued  : Boolean := False) return Node_Id;
             function Parse_For
               (Context : Frame;
                Starts  : Landin.Source.Span := Landin.Source.Empty_Span;
                Label   : Landin.Source.Names.Name_Id :=
                  Landin.Source.Names.No_Name;
-               Tried   : Boolean := False) return Node_Id;
+               Tried   : Boolean := False;
+               Valued  : Boolean := False) return Node_Id;
+            function Bytes (First, Final : Natural) return String;
+            function Valued_Loop
+              (Parsed : Node_Id; Deferred : Boolean) return Node_Id;
+            procedure Settle_Pending_Loop
+              (Value   : Node_Id;
+               Head    : Natural := 0;
+               Named   : Landin.Source.Names.Name_Id :=
+                 Landin.Source.Names.No_Name;
+               Before  : String := "";
+               Assigns : Boolean := False);
             function Transfer_Target
               (Named : Landin.Source.Names.Name_Id) return Natural;
             function Parse_Loop_Transfer return Node_Id;
@@ -1360,6 +1451,10 @@ package body Landin.Syntax.Parser is
 
             function Here return Landin.Source.Span
               is (Tok.Where (From, Index));
+
+            --  The position of the token in hand, for a routine that has a
+            --  local named Index.
+            function Token_Here return Natural is (Natural (Index));
 
             function Point return Landin.Source.Span
               is (First => Here.First, Last => Here.First);
@@ -2662,7 +2757,8 @@ package body Landin.Syntax.Parser is
                --  A closer or divider already in hand is where the broken
                --  statement ends; it belongs to the construct around it.
                if Peek in Tok.Kw_End | Tok.Kw_Else | Tok.Kw_Elsif
-                         | Tok.Kw_Complete | Tok.End_Of_Input
+                         | Tok.End_Of_Input
+                 or else Complete_Here
                then
                   return;
                end if;
@@ -2694,6 +2790,29 @@ package body Landin.Syntax.Parser is
             --  Whether the token in hand is the first on its line.
             function Here_Begins_Line return Boolean
               is (Begins_Line (Index));
+
+            --  D1651: the removed `complete` clause, read by its shape:
+            --  the name alone on its line.  Anything else written with it,
+            --  `complete = true` or `complete(x)`, is the name.
+            function Complete_Here return Boolean
+              is (Peek = Tok.Identifier
+                  and then Named_Here = Complete_Id
+                  and then Begins_Line (Index)
+                  and then (Ahead (1) = Tok.End_Of_Input
+                            or else Begins_Line (Index + 1)));
+
+            --  D1651: the removed `with` of a `break`, read by its shape:
+            --  the name with a value after it on its line.  A label is
+            --  followed by nothing or by `when`, so `break with` alone, or
+            --  `break with when c`, still names a loop labelled `with`.
+            function With_Here return Boolean
+              is (Peek = Tok.Identifier
+                  and then Named_Here = With_Id
+                  and then not Begins_Line (Index)
+                  and then Ahead (1) /= Tok.Kw_When
+                  and then Ahead (1) /= Tok.End_Of_Input
+                  and then Pre.Begins_Expression (Ahead (1))
+                  and then not Begins_Line (Index + 1));
 
             --  [1750]: a `(` that begins a line, and whose `)` is followed
             --  by `:=`, begins a destructuring binding.  Read as a call of
@@ -2813,7 +2932,7 @@ package body Landin.Syntax.Parser is
                   if Opened = 0 then
                      exit when Begins_Line (Index);
                      exit when Peek in Tok.Kw_End | Tok.Kw_Else
-                                     | Tok.Kw_Elsif | Tok.Kw_Complete;
+                                     | Tok.Kw_Elsif;
                   end if;
                   if Peek in Tok.Kw_Begin | Tok.Kw_Do | Tok.Kw_Then
                     | Tok.Kw_Match
@@ -3142,8 +3261,10 @@ package body Landin.Syntax.Parser is
                   when Tok.Kw_Else | Tok.Kw_Elsif =>
                      return Open.Kind = Any_Closer
                        or else (Open.Kind = If_Closer and then Open.Arm);
-                  when Tok.Kw_Complete =>
-                     return Open.Kind = Any_Closer or else Open.Completes;
+                  when Tok.Identifier =>
+                     return Complete_Here
+                       and then (Open.Kind = Any_Closer
+                                 or else Open.Completes);
                   when Tok.Kw_End =>
                      case Open.Kind is
                         when Any_Closer | End_Closer =>
@@ -3441,8 +3562,6 @@ package body Landin.Syntax.Parser is
                     (case Word is
                        when Tok.Kw_End =>
                          "this `end` closes nothing that is open here",
-                       when Tok.Kw_Complete =>
-                         "`complete` divides no loop that is open here",
                        when others =>
                          "`" & Tok.Spelling (Word)
                          & "` continues no branch that is open here"),
@@ -3451,9 +3570,6 @@ package body Landin.Syntax.Parser is
                        when Tok.Kw_End =>
                          "[1810]: each `end` closes the construct it"
                          & " names, and the innermost open one first",
-                       when Tok.Kw_Complete =>
-                         "[1170]: `complete` follows the body of a"
-                         & " `while` or `for` loop",
                        when others =>
                          "[1810]: `elsif` and `else` divide an `if`"
                          & " between its `then` and its `end if`"));
@@ -4544,7 +4660,6 @@ package body Landin.Syntax.Parser is
             procedure Take_Word is
             begin
                if Peek not in Tok.Kw_End | Tok.Kw_Else | Tok.Kw_Elsif
-                            | Tok.Kw_Complete
                then
                   Taken_Words (Peek) := True;
                end if;
@@ -4582,7 +4697,6 @@ package body Landin.Syntax.Parser is
                --  the line ended, and the closer is left for its owner.
                if Body_Level > 0
                  and then Peek in Tok.Kw_End | Tok.Kw_Else | Tok.Kw_Elsif
-                                | Tok.Kw_Complete
                  and then Begins_Line (Index)
                  and then Index > 1
                then
@@ -7286,6 +7400,7 @@ package body Landin.Syntax.Parser is
             is
                Start : constant Landin.Source.Span :=
                  (if Exported then Public_At else Here);
+               Head      : constant Natural := Token_Here;
                Mutable   : Boolean := False;
                Named     : Landin.Source.Names.Name_Id;
                At_Name   : Landin.Source.Span;
@@ -7360,7 +7475,9 @@ package body Landin.Syntax.Parser is
 
                if Peek = Tok.Colon_Equal then
                   Advance;
+                  Value_Begins := Token_Here;
                   Value := Parse_Expression;
+                  Settle_Pending_Loop (Value);
                elsif Mutable and then Peek = Tok.Equal and then Later.Is_Empty
                  and then Named /= Landin.Source.Names.No_Name
                  and then Pre.Begins_Expression (Ahead (1))
@@ -7412,8 +7529,25 @@ package body Landin.Syntax.Parser is
                         Resync_Declaration;
                      end if;
                   elsif Peek = Tok.Equal then
-                     Advance;
-                     Value := Parse_Expression;
+                     declare
+                        Typed : constant Natural := Token_Here - 1;
+                     begin
+                        Advance;
+                        Value_Begins := Token_Here;
+                        Value := Parse_Expression;
+                        --  D1651: `name: T = loop`, the one shape whose
+                        --  rewrite is mechanical, spells its type.
+                        if Body_Level > 0 and then not Exported
+                          and then Later.Is_Empty and then Text /= null
+                        then
+                           Settle_Pending_Loop
+                             (Value, Head, Named,
+                              (if Mutable then "" else "mut ")
+                              & Bytes (Head, Typed));
+                        else
+                           Settle_Pending_Loop (Value);
+                        end if;
+                     end;
                   elsif Peek = Tok.Colon_Equal then
                      Complain
                        (Item    => Syn.Token_Expected,
@@ -8222,97 +8356,6 @@ package body Landin.Syntax.Parser is
             function Control_Offers_Value
               (Control : Node_Id) return Boolean
             is
-               function Loop_Block_Offers_Value
-                 (Block  : Node_Id;
-                  Target : Landin.Source.Names.Name_Id;
-                  Nested : Boolean := False) return Boolean;
-
-               function Loop_Block_Offers_Value
-                 (Block  : Node_Id;
-                  Target : Landin.Source.Names.Name_Id;
-                  Nested : Boolean := False) return Boolean
-               is
-                  function Statement_Offers_Value
-                    (Statement : Node_Id) return Boolean;
-
-                  function Statement_Offers_Value
-                    (Statement : Node_Id) return Boolean
-                  is
-                  begin
-                     case Kind (Result, Statement) is
-                        when Break_Statement =>
-                           return Transfer_Value (Result, Statement) /= No_Node
-                             and then
-                               (if Name (Result, Statement) =
-                                     Landin.Source.Names.No_Name
-                                then not Nested
-                                else Name (Result, Statement) = Target);
-                        when Loop_Statement | While_Statement
-                           | For_Statement =>
-                           if Target = Landin.Source.Names.No_Name
-                             or else Name (Result, Statement) = Target
-                           then
-                              return False;
-                           end if;
-                           return Loop_Block_Offers_Value
-                             (Loop_Body (Result, Statement), Target, True)
-                             or else
-                               (Complete_Body (Result, Statement) /= No_Node
-                                and then Loop_Block_Offers_Value
-                                  (Complete_Body (Result, Statement),
-                                   Target, True));
-                        when If_Statement =>
-                           for Index in 1 .. Arm_Count (Result, Statement) loop
-                              if Loop_Block_Offers_Value
-                                (Body_Of
-                                   (Result,
-                                    Nth_Arm (Result, Statement, Index)),
-                                 Target, Nested)
-                              then
-                                 return True;
-                              end if;
-                           end loop;
-                           return Else_Body (Result, Statement) /= No_Node
-                             and then Loop_Block_Offers_Value
-                               (Else_Body (Result, Statement), Target, Nested);
-                        when Match_Statement =>
-                           for Index in 1 .. Match_Arm_Count
-                             (Result, Statement)
-                           loop
-                              if Loop_Block_Offers_Value
-                                (Body_Of
-                                   (Result, Nth_Match_Arm
-                                      (Result, Statement, Index)),
-                                 Target, Nested)
-                              then
-                                 return True;
-                              end if;
-                           end loop;
-                           return False;
-                        when Bare_Block =>
-                           --  A block carrying the loop's label takes
-                           --  every `break` naming it [1180].
-                           if Target /= Landin.Source.Names.No_Name
-                             and then Name (Result, Statement) = Target
-                           then
-                              return False;
-                           end if;
-                           return Loop_Block_Offers_Value
-                             (Body_Of (Result, Statement), Target, Nested);
-                        when others =>
-                           return False;
-                     end case;
-                  end Statement_Offers_Value;
-               begin
-                  for Index in 1 .. Statement_Count (Result, Block) loop
-                     if Statement_Offers_Value
-                       (Nth_Statement (Result, Block, Index))
-                     then
-                        return True;
-                     end if;
-                  end loop;
-                  return False;
-               end Loop_Block_Offers_Value;
             begin
                case Kind (Result, Control) is
                   when If_Statement =>
@@ -8354,15 +8397,6 @@ package body Landin.Syntax.Parser is
                      return Block_Value
                        (Result, Body_Of (Result, Control)) /= No_Node;
 
-                  when Loop_Statement | While_Statement | For_Statement =>
-                     return Loop_Block_Offers_Value
-                       (Loop_Body (Result, Control), Name (Result, Control))
-                       or else
-                         (Complete_Body (Result, Control) /= No_Node
-                          and then Loop_Block_Offers_Value
-                            (Complete_Body (Result, Control),
-                             Name (Result, Control)));
-
                   when others =>
                      return False;
                end case;
@@ -8377,17 +8411,25 @@ package body Landin.Syntax.Parser is
                      return Parse_Block (Context, Allow_Value => True);
                   end if;
 
+                  --  D1651: a loop is a statement, so a body it begins is a
+                  --  block of statements.
+                  if Peek in Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
+                    or else (Peek = Tok.Kw_Try and then Ahead (1) = Tok.Kw_For)
+                    or else
+                      (Peek = Tok.Identifier and then Ahead (1) = Tok.Colon
+                       and then
+                         (Ahead (2) in Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
+                          or else (Ahead (2) = Tok.Kw_Try
+                                   and then Ahead (3) = Tok.Kw_For)))
+                  then
+                     return Parse_Block (Context, Allow_Value => True);
+                  end if;
+
                   --  Control forms overlap statements and expressions.  A
                   --  sole one is [1800]'s expression body; when another
                   --  statement follows, it seeds the ordinary statement
                   --  block just as the call-shaped ambiguity below does.
-                  if Peek in Tok.Kw_If | Tok.Kw_Match | Tok.Kw_Begin
-                             | Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
-                    or else
-                      (Peek = Tok.Identifier and then Ahead (1) = Tok.Colon
-                       and then Ahead (2)
-                         in Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For)
-                  then
+                  if Peek in Tok.Kw_If | Tok.Kw_Match | Tok.Kw_Begin then
                      declare
                         Control : constant Node_Id := Parse_Expression;
                      begin
@@ -8397,8 +8439,7 @@ package body Landin.Syntax.Parser is
                            return Control;
                         elsif Kind (Result, Control)
                                 in If_Statement | Match_Statement
-                                   | Bare_Block | Loop_Statement
-                                   | While_Statement | For_Statement
+                                   | Bare_Block
                         then
                            return Parse_Block
                              (Context, Seed => Control, Allow_Value => True);
@@ -8978,8 +9019,7 @@ package body Landin.Syntax.Parser is
                  is (Peek in Tok.End_Of_Input | Tok.Kw_End
                                  | Tok.Kw_Elsif | Tok.Kw_Else
                      or else
-                       (Complete_Closes_Block
-                        and then Peek = Tok.Kw_Complete));
+                       (Complete_Closes_Block and then Complete_Here));
 
                --  A name beginning a declaration or assignment is not the
                --  final expression [1080].  Every other expression first
@@ -9002,6 +9042,8 @@ package body Landin.Syntax.Parser is
                              | Tok.Kw_Public | Tok.Kw_Defer | Tok.Kw_Undo
                              | Tok.Kw_Break | Tok.Kw_Continue
                              | Tok.Kw_Unchecked
+                             | Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
+                    or else (Peek = Tok.Kw_Try and then Ahead (1) = Tok.Kw_For)
                   then
                      return True;
                   end if;
@@ -9010,13 +9052,14 @@ package body Landin.Syntax.Parser is
                      return False;
                   end if;
 
+                  --  D1651: a labelled loop is a statement.
                   if Ahead (1) = Tok.Colon
                     and then
                       (Ahead (2) in Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
                        or else (Ahead (2) = Tok.Kw_Try
                          and then Ahead (3) = Tok.Kw_For))
                   then
-                     return False;
+                     return True;
                   end if;
 
                   return Opens_Arena_Block
@@ -9071,7 +9114,7 @@ package body Landin.Syntax.Parser is
                     --  a construct takes is the rest of the refused one.
                     and then not (Statement_Reported
                                   and then Peek in Tok.Kw_Then | Tok.Kw_Do
-                                    | Tok.Kw_Complete | Tok.Right_Paren
+                                    | Tok.Right_Paren
                                     | Tok.Right_Bracket)
                   then
                      Statement_Reported := False;
@@ -9414,17 +9457,27 @@ package body Landin.Syntax.Parser is
                      return Parse_If (Context);
 
                   when Tok.Kw_Try =>
-                     --  [1810]: a `try` statement is `try` and its call, or
-                     --  a tried `for`.  An operator after the call makes a
-                     --  value of it, and a value is no statement here any
-                     --  more than after a plain call; kept unreported, it
-                     --  was a statement no later stage knew.
+                     --  D1652: `try for` is read as the loop it was, to
+                     --  be refused by name.
+                     if Ahead (1) = Tok.Kw_For then
+                        declare
+                           At_Try : constant Landin.Source.Span := Here;
+                        begin
+                           Advance;
+                           return Parse_For
+                             (Context, Starts => At_Try, Tried => True);
+                        end;
+                     end if;
+                     --  [1810]: a `try` statement is `try` and its call.
+                     --  An operator after the call makes a value of it,
+                     --  and a value is no statement here any more than
+                     --  after a plain call; kept unreported, it was a
+                     --  statement no later stage knew.
                      declare
                         Tried : constant Node_Id := Parse_Expression;
                      begin
                         if Kind (Result, Tried)
-                             not in Try_Expression | For_Statement
-                                    | Error_Expression
+                             not in Try_Expression | Error_Expression
                           and then not Statement_Reported
                         then
                            Complain
@@ -9764,6 +9817,7 @@ package body Landin.Syntax.Parser is
                      elsif After_Selectors in Tok.Equal | Tok.Compound_Assign
                      then
                         declare
+                           Head   : constant Natural := Token_Here;
                            Target : constant Node_Id := Parse_Place;
                            At_Op  : Landin.Source.Span;
                            Operation : Tok.Assignment_Operator;
@@ -9781,8 +9835,29 @@ package body Landin.Syntax.Parser is
                            At_Op := Here;
                            Operation := Tok.Assignment_Operation
                              (Tok.Token_At (From, Index));
-                           Advance;
-                           Value := Parse_Expression;
+                           declare
+                              Op_At : constant Natural := Token_Here;
+                           begin
+                              Advance;
+                              Value_Begins := Token_Here;
+                              Value := Parse_Expression;
+                              --  D1651: `name = loop`, assigning a name,
+                              --  has a mechanical rewrite.
+                              if Tok."=" (Operation, Tok.Plain_Assignment)
+                                and then Kind (Result, Target)
+                                  = Name_Reference
+                                and then Op_At = Head + 1
+                                and then Text /= null
+                              then
+                                 Settle_Pending_Loop
+                                   (Value, Head, Name (Result, Target),
+                                    Landin.Source.Names.Spelling
+                                      (Names, Name (Result, Target)),
+                                    Assigns => True);
+                              else
+                                 Settle_Pending_Loop (Value);
+                              end if;
+                           end;
 
                            return Add
                              (Of_Kind  => Assignment,
@@ -9901,6 +9976,403 @@ package body Landin.Syntax.Parser is
                end case;
             end Parse_Statement;
 
+            --  D1651's bookkeeping.  A loop or labelled block being read
+            --  is the innermost transfer target until Close_Target.
+            procedure Open_Target
+              (Label  : Landin.Source.Names.Name_Id;
+               Block  : Boolean;
+               Valued : Boolean;
+               Opened : Landin.Source.Span);
+
+            procedure Open_Target
+              (Label  : Landin.Source.Names.Name_Id;
+               Block  : Boolean;
+               Valued : Boolean;
+               Opened : Landin.Source.Span) is
+            begin
+               Target_Depth := Target_Depth + 1;
+               Target_Labels (Target_Depth) := Label;
+               Target_Is_Block (Target_Depth) := Block;
+               Target_Valued (Target_Depth) := Valued;
+               Target_Opened (Target_Depth) := Opened;
+               Target_Breaks (Target_Depth) := 0;
+               Target_In_Complete (Target_Depth) := False;
+               Target_Complete_Exits (Target_Depth) := 0;
+            end Open_Target;
+
+            --  The innermost target closes, and the `break with`s that
+            --  selected it move into Shape.
+            procedure Close_Target (Shape : in out Loop_Shape);
+
+            procedure Close_Target (Shape : in out Loop_Shape) is
+               Position : Positive := 1;
+            begin
+               Shape.Breaks := Target_Breaks (Target_Depth);
+               while Position <= Natural (Value_Breaks.Length) loop
+                  if Value_Breaks (Position).Target = Target_Depth then
+                     Shape.Values.Append (Value_Breaks (Position));
+                     Value_Breaks.Delete (Position);
+                  else
+                     Position := Position + 1;
+                  end if;
+               end loop;
+               Target_Labels (Target_Depth) := Landin.Source.Names.No_Name;
+               Target_Is_Block (Target_Depth) := False;
+               Target_Valued (Target_Depth) := False;
+               Target_In_Complete (Target_Depth) := False;
+               Target_Depth := Target_Depth - 1;
+            end Close_Target;
+
+            function Kind_Of (Position : Natural) return Tok.Token_Kind
+              is (if Position in 1 .. Natural (Last)
+                  then Tok.Kind (From, Tok.Token_Index (Position))
+                  else Tok.End_Of_Input);
+
+            function Span_Of (Position : Natural) return Landin.Source.Span
+              is (Tok.Where (From, Tok.Token_Index (Position)));
+
+            --  The bytes from the first token to the last, as written.
+            function Bytes (First, Final : Natural) return String
+              is (Landin.Source.Slice
+                    (Text.all, (Span_Of (First).First, Span_Of (Final).Last)));
+
+            --  Where the line of a token that begins one begins.
+            function Line_Begins (Position : Natural)
+              return Landin.Source.Byte_Offset
+              is (Span_Of (Position).First
+                  - Landin.Source.Byte_Offset
+                      (Natural'Max
+                         (0, Indent_Of (Tok.Token_Index (Position)))));
+
+            function Blanks (Count : Natural) return String
+              is [1 .. Count => ' '];
+
+            --  A `complete` clause that is exactly `break with literal`
+            --  before the loop's `end`: its literal, a sign and a number
+            --  being two tokens, which D1651's rewrite gives the local
+            --  before the loop.  A literal reads nothing and does nothing,
+            --  so it may be evaluated earlier.
+            procedure Note_Complete_Value (Shape : in out Loop_Shape);
+
+            procedure Note_Complete_Value (Shape : in out Loop_Shape) is
+               Step  : Natural := Shape.Complete_At + 1;
+               First : Natural;
+            begin
+               if Kind_Of (Step) /= Tok.Kw_Break
+                 or else Kind_Of (Step + 1) /= Tok.Identifier
+                 or else Tok.Name (Tok.Token_At (From, Tok.Token_Index
+                                     (Step + 1))) /= With_Id
+               then
+                  return;
+               end if;
+               Step := Step + 2;
+               First := Step;
+               if Kind_Of (Step) = Tok.Minus
+                 and then Kind_Of (Step + 1)
+                   in Tok.Integer_Literal | Tok.Float_Literal
+                    | Tok.Hex_Float_Literal
+               then
+                  Step := Step + 1;
+               end if;
+               if Kind_Of (Step)
+                    in Tok.Integer_Literal | Tok.Float_Literal
+                     | Tok.Hex_Float_Literal | Tok.Character_Literal
+                     | Tok.Text_Literal | Tok.Kw_True | Tok.Kw_False
+                 and then Kind_Of (Step + 1) = Tok.Kw_End
+               then
+                  Shape.Value_First := First;
+                  Shape.Value_Last := Step;
+               end if;
+            end Note_Complete_Value;
+
+            --  D1651: a statement loop's `complete` block, refused.  When
+            --  no `break` leaves the loop and nothing leaves the block, the
+            --  block runs exactly when the loop ends, and the fix moves it
+            --  after the loop's closer as a bare block.
+            procedure Refuse_Complete
+              (Shape   : Loop_Shape;
+               Exits   : Natural;
+               Closing : String);
+
+            procedure Refuse_Complete
+              (Shape   : Loop_Shape;
+               Exits   : Natural;
+               Closing : String)
+            is
+               Mechanical : constant Boolean :=
+                 not Shape.Unconditional
+                 and then Shape.Breaks = 0
+                 and then Exits = 0
+                 and then Begins_Line (Tok.Token_Index (Shape.Complete_At))
+                 and then Kind_Of (Shape.Closes - 1) = Tok.Kw_End
+                 and then Begins_Line (Tok.Token_Index (Shape.Closes - 1));
+            begin
+               Complain
+                 (Item    => Syn.Removed_Form,
+                  Where   => Span_Of (Shape.Complete_At),
+                  Message => "a loop has no `complete` block",
+                  Note    => "D1651: every exit of a loop reaches the"
+                             & " statement after it; run the block after"
+                             & " the loop, behind a flag its `break`s"
+                             & " clear where it has any",
+                  Fixes   =>
+                    (if Mechanical
+                     then [1 => Landin.Diagnostics.Fixes.Complete_After
+                                  (Origin_Of,
+                                   Span_Of (Shape.Complete_At),
+                                   Join (Span_Of (Shape.Closes - 1),
+                                         Span_Of (Shape.Closes)),
+                                   Closing,
+                                   Blanks (Line_Indent
+                                     (Tok.Token_Index (Shape.Opens))))]
+                     else Landin.Diagnostics.No_Fixes));
+            end Refuse_Complete;
+
+            --  D1652: `try for`, refused.  How a traversal takes each item
+            --  is the protocol's, so the rewrite is the author's.
+            procedure Refuse_Try_For (Shape : Loop_Shape);
+
+            procedure Refuse_Try_For (Shape : Loop_Shape) is
+            begin
+               Complain
+                 (Item    => Syn.Removed_Form,
+                  Where   => Join (Span_Of (Shape.Word - 1),
+                                   Span_Of (Shape.Word)),
+                  Message => "there is no `try for`",
+                  Note    => "D1652: a traversal whose steps can fail is a"
+                             & " `while` whose body takes each item with"
+                             & " `try` or a call's `else`, as in `while not"
+                             & " (try at_end(s, c)) do`");
+            end Refuse_Try_For;
+
+            --  D1651: a loop written where a value belongs, refused once
+            --  for every `break with` that gave it one.
+            procedure Refuse_Valued_Loop
+              (Shape : Loop_Shape;
+               Fixes : Landin.Diagnostics.Fix_List);
+
+            procedure Refuse_Valued_Loop
+              (Shape : Loop_Shape;
+               Fixes : Landin.Diagnostics.Fix_List)
+            is
+            begin
+               Complain
+                 (Item    => Syn.Control_Value,
+                  Where   => Join (Span_Of (Shape.Opens),
+                                   Span_Of (Shape.Word)),
+                  Message => "a loop is a statement and gives no value",
+                  Note    => "D1651: write the result to a mutable local or"
+                             & " the named result and leave with a plain"
+                             & " `break`, or return it from a function of"
+                             & " its own",
+                  Related =>
+                    (if Shape.Values.Is_Empty
+                     then Span_Of (Shape.Closes)
+                     else Span_Of (Shape.Values.First_Element.Value_First
+                                   - 1)),
+                  Because =>
+                    (if Shape.Values.Is_Empty then "the loop ends here"
+                     else "a value given here"),
+                  Fixes   => Fixes);
+            end Refuse_Valued_Loop;
+
+            --  D1651's rewrite of Shape, the value of the declaration or
+            --  assignment whose first token is Head.  Before is what the
+            --  declaration becomes, `mut name: T`, or for an assignment the
+            --  name it assigned.  None when the rewrite is not mechanical:
+            --  a break that gives no value, or one not first on its line,
+            --  a `complete` block that is not one literal, or a loop that
+            --  names the local, which declaring it earlier would capture.
+            function Valued_Loop_Fix
+              (Shape   : Loop_Shape;
+               Head    : Natural;
+               Named   : Landin.Source.Names.Name_Id;
+               Before  : String;
+               Assigns : Boolean) return Landin.Diagnostics.Fix_List;
+
+            function Valued_Loop_Fix
+              (Shape   : Loop_Shape;
+               Head    : Natural;
+               Named   : Landin.Source.Names.Name_Id;
+               Before  : String;
+               Assigns : Boolean) return Landin.Diagnostics.Fix_List
+            is
+               Hoisted : constant Boolean := Shape.Complete_At /= 0;
+               Spelled : constant String :=
+                 Landin.Source.Names.Spelling (Names, Named);
+               Indent  : constant String :=
+                 Blanks (Line_Indent (Tok.Token_Index (Head)));
+               Edits   : Edit_Vectors.Vector;
+
+               procedure Write
+                 (First, Final : Landin.Source.Byte_Offset; Bytes : String);
+
+               procedure Write
+                 (First, Final : Landin.Source.Byte_Offset; Bytes : String)
+               is
+               begin
+                  Edits.Append
+                    (Landin.Diagnostics.Make_Edit
+                       (Origin_Of, (First, Final), Bytes));
+               end Write;
+            begin
+               if Text = null
+                 or else Named = Landin.Source.Names.No_Name
+                 or else Shape.Values.Is_Empty
+                 or else not Begins_Line (Tok.Token_Index (Head))
+                 or else Shape.Breaks /= Natural (Shape.Values.Length)
+               then
+                  return Landin.Diagnostics.No_Fixes;
+               end if;
+               if Hoisted then
+                  if Shape.Unconditional
+                    or else Shape.Value_First = 0
+                    or else not Begins_Line
+                      (Tok.Token_Index (Shape.Complete_At))
+                    or else Shape.Value_Last + 1 /= Shape.Closes - 1
+                    or else not Begins_Line
+                      (Tok.Token_Index (Shape.Closes - 1))
+                  then
+                     return Landin.Diagnostics.No_Fixes;
+                  end if;
+               elsif not Shape.Unconditional then
+                  return Landin.Diagnostics.No_Fixes;
+               end if;
+               for Each of Shape.Values loop
+                  if Hoisted and then Each.Opens > Shape.Complete_At then
+                     if Each.Opens /= Shape.Complete_At + 1 then
+                        return Landin.Diagnostics.No_Fixes;
+                     end if;
+                  elsif not Begins_Line (Tok.Token_Index (Each.Opens)) then
+                     return Landin.Diagnostics.No_Fixes;
+                  end if;
+               end loop;
+               for Position in Shape.Opens .. Shape.Closes loop
+                  if Kind_Of (Position) = Tok.Identifier
+                    and then Tok.Name (Tok.Token_At
+                                         (From, Tok.Token_Index (Position)))
+                             = Named
+                  then
+                     return Landin.Diagnostics.No_Fixes;
+                  end if;
+               end loop;
+
+               declare
+                  Given : constant String :=
+                    (if Hoisted
+                     then " = " & Bytes (Shape.Value_First, Shape.Value_Last)
+                     else "");
+               begin
+                  Write (Span_Of (Head).First, Span_Of (Shape.Opens).First,
+                         (if not Assigns
+                          then Before & Given & ASCII.LF & Indent
+                          elsif Hoisted
+                          then Before & Given & ASCII.LF & Indent
+                          else ""));
+               end;
+
+               for Each of Shape.Values loop
+                  if not Hoisted or else Each.Opens < Shape.Complete_At then
+                     declare
+                        Here_Indent : constant String :=
+                          Blanks (Line_Indent (Tok.Token_Index (Each.Opens)));
+                        Leave : constant String :=
+                          "break"
+                          & (if Each.Label = Landin.Source.Names.No_Name
+                             then ""
+                             else " " & Landin.Source.Names.Spelling
+                                          (Names, Each.Label));
+                     begin
+                        if Each.Guard_First = 0 then
+                           Write (Span_Of (Each.Opens).First,
+                                  Span_Of (Each.Value_First).First,
+                                  Spelled & " = ");
+                           Write (Span_Of (Each.Value_Last).Last,
+                                  Span_Of (Each.Value_Last).Last,
+                                  ASCII.LF & Here_Indent & Leave);
+                        else
+                           Write (Span_Of (Each.Opens).First,
+                                  Span_Of (Each.Value_First).First,
+                                  "if "
+                                  & Bytes (Each.Guard_First, Each.Guard_Last)
+                                  & " then" & ASCII.LF & Here_Indent
+                                  & "    " & Spelled & " = ");
+                           Write (Span_Of (Each.Value_Last).Last,
+                                  Span_Of (Each.Guard_Last).Last,
+                                  ASCII.LF & Here_Indent & "    " & Leave
+                                  & ASCII.LF & Here_Indent & "end if");
+                        end if;
+                     end;
+                  end if;
+               end loop;
+
+               if Hoisted then
+                  Write (Line_Begins (Shape.Complete_At),
+                         Line_Begins (Shape.Closes - 1), "");
+               end if;
+
+               declare
+                  Listed : Landin.Diagnostics.Edit_List
+                    (1 .. Natural (Edits.Length));
+               begin
+                  for Position in Listed'Range loop
+                     Listed (Position) := Edits (Position);
+                  end loop;
+                  return [1 => Landin.Diagnostics.Fixes.Loop_Statement
+                                 (Spelled, Listed)];
+               end;
+            end Valued_Loop_Fix;
+
+            function Valued_Loop
+              (Parsed : Node_Id; Deferred : Boolean) return Node_Id
+            is
+               Shape : constant Loop_Shape := Last_Loop;
+            begin
+               if Shape.Opens = 0 then
+                  return Parsed;
+               end if;
+               declare
+                  Hole : constant Node_Id := Add
+                    (Error_Expression, Span_Of (Shape.Opens),
+                     Join (Span_Of (Shape.Opens), Span_Of (Shape.Closes)));
+               begin
+                  if Deferred then
+                     if Pending_Node /= No_Node then
+                        Refuse_Valued_Loop
+                          (Pending_Loop, Landin.Diagnostics.No_Fixes);
+                     end if;
+                     Pending_Loop := Shape;
+                     Pending_Node := Hole;
+                  else
+                     Refuse_Valued_Loop (Shape, Landin.Diagnostics.No_Fixes);
+                  end if;
+                  return Hole;
+               end;
+            end Valued_Loop;
+
+            procedure Settle_Pending_Loop
+              (Value   : Node_Id;
+               Head    : Natural := 0;
+               Named   : Landin.Source.Names.Name_Id :=
+                 Landin.Source.Names.No_Name;
+               Before  : String := "";
+               Assigns : Boolean := False)
+            is
+               Waiting : constant Node_Id := Pending_Node;
+               Shape   : constant Loop_Shape := Pending_Loop;
+            begin
+               Value_Begins := 0;
+               if Waiting = No_Node then
+                  return;
+               end if;
+               Pending_Node := No_Node;
+               Refuse_Valued_Loop
+                 (Shape,
+                  (if Value = Waiting and then Head /= 0
+                   then Valued_Loop_Fix (Shape, Head, Named, Before, Assigns)
+                   else Landin.Diagnostics.No_Fixes));
+            end Settle_Pending_Loop;
+
             --  loop_statement ::= "loop" "do" block "end" "loop"
             --  while_statement ::= "while" condition "do" block
             --                       "end" "while"                [1130/1140]
@@ -9908,10 +10380,13 @@ package body Landin.Syntax.Parser is
               (Context : Frame;
                Starts  : Landin.Source.Span := Landin.Source.Empty_Span;
                Label   : Landin.Source.Names.Name_Id :=
-                 Landin.Source.Names.No_Name) return Node_Id
+                 Landin.Source.Names.No_Name;
+               Valued  : Boolean := False) return Node_Id
             is
                Opened : constant Landin.Source.Span :=
                  (if Starts = Landin.Source.Empty_Span then Here else Starts);
+               Shape : Loop_Shape;
+               Exits : Natural;
                Is_While : constant Boolean :=
                  Peek = Tok.Kw_While;
                Own : constant Closer :=
@@ -9932,6 +10407,7 @@ package body Landin.Syntax.Parser is
                Saved_Complete : constant Boolean := Complete_Closes_Block;
                Saved_Else : constant Boolean := Else_Closes_Arm;
             begin
+               Last_Loop := (others => <>);
                if Too_Deep (Opened) then
                   Advance;
                   Resync_Statement;
@@ -9939,6 +10415,11 @@ package body Landin.Syntax.Parser is
                     (Error_Statement, Opened, Join (Opened, After_Previous));
                end if;
 
+               Shape.Word := Natural (Index);
+               Shape.Opens :=
+                 (if Label /= Landin.Source.Names.No_Name
+                  then Shape.Word - 2 else Shape.Word);
+               Shape.Unconditional := not Is_While;
                Depth := Depth + 1;
                Else_Closes_Arm := False;
                Advance;
@@ -9969,31 +10450,26 @@ package body Landin.Syntax.Parser is
                   Resume_After (Tok.Kw_Do);
                end if;
 
-               Target_Depth := Target_Depth + 1;
-               Target_Labels (Target_Depth) := Label;
-               Target_Is_Block (Target_Depth) := False;
+               Open_Target (Label, False, Valued, Opened);
                Complete_Closes_Block := True;
                Push (Own);
                Runs := Parse_Block (Context);
                Complete_Closes_Block := Saved_Complete;
 
-               if Peek = Tok.Kw_Complete
-               then
-                  if not Is_While then
-                     Complain
-                       (Item    => Syn.Stray_Token,
-                        Where   => Here,
-                        Message => "an unconditional loop cannot complete",
-                        Note    => "[1170]: `complete` is the edge where a"
-                          & " finite loop runs out");
-                  end if;
+               --  D1651: the removed clause is read so that its refusal
+               --  stands on it and the loop's closer is still found.
+               if Complete_Here then
+                  Shape.Complete_At := Token_Here;
                   Advance;
+                  Target_In_Complete (Target_Depth) := True;
                   Completed := Parse_Block (Context);
+                  Note_Complete_Value (Shape);
                end if;
+               pragma Unreferenced (Completed);
                Pop;
 
-               Target_Labels (Target_Depth) := Landin.Source.Names.No_Name;
-               Target_Depth := Target_Depth - 1;
+               Exits := Target_Complete_Exits (Target_Depth);
+               Close_Target (Shape);
 
                Closed := Close_Construct
                  (Own        => Own,
@@ -10058,20 +10534,32 @@ package body Landin.Syntax.Parser is
                end if;
                Else_Closes_Arm := Saved_Else;
                Depth := Depth - 1;
+               Shape.Closes := Token_Here - 1;
+               Last_Loop := Shape;
+
+               if not Valued and then Shape.Complete_At /= 0 then
+                  Refuse_Complete
+                    (Shape, Exits,
+                     (if Label /= Landin.Source.Names.No_Name
+                      then Landin.Source.Names.Spelling (Names, Label)
+                      elsif Is_While then "while" else "loop"));
+                  return Add
+                    (Error_Statement, Opened, Join (Opened, After_Previous));
+               end if;
 
                if Is_While then
                   return Add
                     (Of_Kind  => While_Statement,
                      At_Token => Opened,
                      Extent   => Join (Opened, After_Previous),
-                     Children => [Test, Runs, Completed],
+                     Children => [Test, Runs],
                      Named    => Label);
                else
                   return Add
                     (Of_Kind  => Loop_Statement,
                      At_Token => Opened,
                      Extent   => Join (Opened, After_Previous),
-                     Children => [Runs, Completed],
+                     Children => [1 => Runs],
                      Named    => Label);
                end if;
             end Parse_Loop;
@@ -10085,10 +10573,13 @@ package body Landin.Syntax.Parser is
                Starts  : Landin.Source.Span := Landin.Source.Empty_Span;
                Label   : Landin.Source.Names.Name_Id :=
                  Landin.Source.Names.No_Name;
-               Tried   : Boolean := False) return Node_Id
+               Tried   : Boolean := False;
+               Valued  : Boolean := False) return Node_Id
             is
                Opened : constant Landin.Source.Span :=
                  (if Starts = Landin.Source.Empty_Span then Here else Starts);
+               Shape : Loop_Shape;
+               Exits : Natural;
                Opened_Indent : constant Natural := Line_Indent (Index);
                Opened_Token : constant Natural := Natural (Index);
                Element : Node_Id;
@@ -10161,6 +10652,7 @@ package body Landin.Syntax.Parser is
                      Named    => Named);
                end Parse_Traversal_Binding;
             begin
+               Last_Loop := (others => <>);
                if Too_Deep (Opened) then
                   Advance;
                   Resync_Statement;
@@ -10168,6 +10660,11 @@ package body Landin.Syntax.Parser is
                     (Error_Statement, Opened, Join (Opened, After_Previous));
                end if;
 
+               Shape.Word := Opened_Token;
+               Shape.Opens :=
+                 Shape.Word
+                 - (if Label /= Landin.Source.Names.No_Name then 2 else 0)
+                 - (if Tried then 1 else 0);
                Depth := Depth + 1;
                Else_Closes_Arm := False;
                Advance;
@@ -10212,23 +10709,24 @@ package body Landin.Syntax.Parser is
                   Resume_After (Tok.Kw_Do);
                end if;
 
-               Target_Depth := Target_Depth + 1;
-               Target_Labels (Target_Depth) := Label;
-               Target_Is_Block (Target_Depth) := False;
+               Open_Target (Label, False, Valued, Opened);
                Complete_Closes_Block := True;
                Push (Own);
                Runs := Parse_Block (Context);
                Complete_Closes_Block := Saved_Complete;
 
-               if Peek = Tok.Kw_Complete
-               then
+               if Complete_Here then
+                  Shape.Complete_At := Token_Here;
                   Advance;
+                  Target_In_Complete (Target_Depth) := True;
                   Completed := Parse_Block (Context);
+                  Note_Complete_Value (Shape);
                end if;
+               pragma Unreferenced (Completed);
                Pop;
 
-               Target_Labels (Target_Depth) := Landin.Source.Names.No_Name;
-               Target_Depth := Target_Depth - 1;
+               Exits := Target_Complete_Exits (Target_Depth);
+               Close_Target (Shape);
 
                Closed := Close_Construct
                  (Own        => Own,
@@ -10273,16 +10771,34 @@ package body Landin.Syntax.Parser is
                end if;
                Else_Closes_Arm := Saved_Else;
                Depth := Depth - 1;
+               Shape.Closes := Token_Here - 1;
+               Last_Loop := Shape;
+
+               if Tried then
+                  Refuse_Try_For (Shape);
+                  if not Valued then
+                     return Add
+                       (Error_Statement, Opened,
+                        Join (Opened, After_Previous));
+                  end if;
+               elsif not Valued and then Shape.Complete_At /= 0 then
+                  Refuse_Complete
+                    (Shape, Exits,
+                     (if Label /= Landin.Source.Names.No_Name
+                      then Landin.Source.Names.Spelling (Names, Label)
+                      else "for"));
+                  return Add
+                    (Error_Statement, Opened, Join (Opened, After_Previous));
+               end if;
 
                return Add
                  (Of_Kind  => For_Statement,
                   At_Token => Opened,
                   Extent   => Join (Opened, After_Previous),
                   Children =>
-                    [Lower, Upper, Element, Index, Runs, Completed],
+                    [Lower, Upper, Element, Index, Runs],
                   Named    => Label,
-                  Fills    => Inclusive,
-                  Propagates => Tried);
+                  Fills    => Inclusive);
             end Parse_For;
 
             --  The entry a transfer selects in this code address, or zero.
@@ -10303,20 +10819,22 @@ package body Landin.Syntax.Parser is
                return 0;
             end Transfer_Target;
 
-            --  transfer ::= "break" identifier? ("with" expression)?
-            --               ("when" expression)?
+            --  transfer ::= "break" identifier? ("when" expression)?
             --             | "continue" identifier? ("when" expression)?
             --
             --  A labelled `break` may leave a labelled bare block [1180];
-            --  `continue` has no next iteration there.  A `break with`
-            --  that names a block parses and is refused by checking,
-            --  where every other misplaced loop value is refused.
+            --  `continue` has no next iteration there.  D1651 removed the
+            --  value a `break with` gave; the form is still read, so that
+            --  the loop it left is refused once with the rewrite, or the
+            --  break is refused where its target takes no value.
             function Parse_Loop_Transfer return Node_Id is
                Starts : constant Landin.Source.Span := Here;
+               Opens : constant Natural := Token_Here;
                Is_Break : constant Boolean :=
                  Peek = Tok.Kw_Break;
                Guard : Node_Id := No_Node;
                Value : Node_Id := No_Node;
+               Given : Value_Break;
                Target : Landin.Source.Names.Name_Id :=
                  Landin.Source.Names.No_Name;
                Selected : Natural;
@@ -10327,26 +10845,32 @@ package body Landin.Syntax.Parser is
                --  for a name that names no enclosing loop or block, so a
                --  program the parser accepts reads as it did.
                if Peek = Tok.Identifier
+                 and then not With_Here
                  and then (not Begins_Line (Index)
                            or else Transfer_Target (Named_Here) /= 0)
                then
                   Target := Named_Here;
                   Advance;
                end if;
-               if Peek = Tok.Kw_With then
+               if With_Here then
                   if not Is_Break then
                      Complain
                        (Item    => Syn.Stray_Token,
                         Where   => Here,
                         Message => "`continue` cannot carry a value",
-                        Note    => "[1190]: only `break` uses `with`");
+                        Note    => "[1180]: `continue` names at most the"
+                                   & " loop it continues");
                   end if;
                   Advance;
+                  Given.Value_First := Token_Here;
                   Value := Parse_Expression;
+                  Given.Value_Last := Token_Here - 1;
                end if;
                if Peek = Tok.Kw_When then
                   Advance;
+                  Given.Guard_First := Token_Here;
                   Guard := Parse_Expression;
+                  Given.Guard_Last := Token_Here - 1;
                end if;
 
                Selected := Transfer_Target (Target);
@@ -10389,15 +10913,52 @@ package body Landin.Syntax.Parser is
                     (Error_Statement, Starts, Join (Starts, After_Previous));
                end if;
 
+               if Is_Break then
+                  Target_Breaks (Selected) := Target_Breaks (Selected) + 1;
+               end if;
+               if Target_In_Complete (Selected) then
+                  Target_Complete_Exits (Selected) :=
+                    Target_Complete_Exits (Selected) + 1;
+               end if;
+
+               if Is_Break and then Value /= No_Node then
+                  if Target_Valued (Selected) then
+                     Given.Target := Selected;
+                     Given.Opens := Opens;
+                     Given.Label := Target;
+                     Value_Breaks.Append (Given);
+                  else
+                     Complain
+                       (Item    => Syn.Control_Value,
+                        Where   => Join (Span_Of (Given.Value_First - 1),
+                                         Span_Of (Given.Value_Last)),
+                        Message =>
+                          (if Target_Is_Block (Selected)
+                           then "a `break` gives no value, and a labelled"
+                                & " bare block takes none"
+                           else "a `break` gives no value, and a loop is a"
+                                & " statement"),
+                        Note    => "D1651: write the value to a mutable"
+                                   & " local or the named result before a"
+                                   & " plain `break`",
+                        Related => Target_Opened (Selected),
+                        Because =>
+                          (if Target_Is_Block (Selected)
+                           then "the block it leaves" else "the loop it"
+                           & " leaves"));
+                     return Add
+                       (Error_Statement, Starts,
+                        Join (Starts, After_Previous));
+                  end if;
+               end if;
+
                return Add
                  (Of_Kind  =>
                     (if Is_Break then Break_Statement
                      else Continue_Statement),
                   At_Token => Starts,
                   Extent   => Join (Starts, After_Previous),
-                  Children =>
-                    (if Is_Break then Slot_List'[Value, Guard]
-                     else Slot_List'[1 => Guard]),
+                  Children => [1 => Guard],
                   Named    => Target);
             end Parse_Loop_Transfer;
 
@@ -10598,9 +11159,7 @@ package body Landin.Syntax.Parser is
                Else_Closes_Arm := False;
                Advance;
                if Labelled then
-                  Target_Depth := Target_Depth + 1;
-                  Target_Labels (Target_Depth) := Label;
-                  Target_Is_Block (Target_Depth) := True;
+                  Open_Target (Label, True, False, At_Begin);
                end if;
                Push ((Kind   => (if Labelled then Label_Closer
                                  else Bare_Closer),
@@ -10611,9 +11170,11 @@ package body Landin.Syntax.Parser is
                Runs := Parse_Block (Context, Allow_Value => True);
                Pop;
                if Labelled then
-                  Target_Labels (Target_Depth) := Landin.Source.Names.No_Name;
-                  Target_Is_Block (Target_Depth) := False;
-                  Target_Depth := Target_Depth - 1;
+                  declare
+                     Left : Loop_Shape;
+                  begin
+                     Close_Target (Left);
+                  end;
                end if;
                Else_Closes_Arm := Saved_Else;
                Depth := Depth - 1;
@@ -11128,10 +11689,18 @@ package body Landin.Syntax.Parser is
                                   | Tok.Kw_Defer | Tok.Kw_Undo
                                   | Tok.Kw_Break | Tok.Kw_Continue
                                   | Tok.Kw_Unchecked
+                                  | Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
+                          or else
+                            (Peek = Tok.Kw_Try and then Ahead (1) = Tok.Kw_For)
                           or else
                             (Peek = Tok.Identifier
                              and then
                                (Opens_Arena_Block
+                                or else
+                                  (Ahead (1) = Tok.Colon
+                                   and then Ahead (2)
+                                     in Tok.Kw_Loop | Tok.Kw_While
+                                       | Tok.Kw_For | Tok.Kw_Try)
                                 or else
                                   (not
                                      (Ahead (1) = Tok.Colon
@@ -11449,10 +12018,15 @@ package body Landin.Syntax.Parser is
                   if Ahead (1) = Tok.Kw_For then
                      declare
                         At_Try : constant Landin.Source.Span := Here;
+                        Deferred : constant Boolean :=
+                          Value_Begins = Token_Here;
                      begin
                         Advance;
-                        return Parse_For
-                          (Active_Frame, Starts => At_Try, Tried => True);
+                        return Valued_Loop
+                          (Parse_For
+                             (Active_Frame, Starts => At_Try, Tried => True,
+                              Valued => True),
+                           Deferred);
                      end;
                   end if;
                   declare
@@ -11607,6 +12181,8 @@ package body Landin.Syntax.Parser is
                     or else (Ahead (2) = Tok.Kw_Try
                       and then Ahead (3) = Tok.Kw_For))
                then
+                  --  D1651: a loop where a value belongs is read whole and
+                  --  refused once, with the rewrite into a statement.
                   declare
                      Label : constant Landin.Source.Names.Name_Id :=
                        Named_Here;
@@ -11615,6 +12191,8 @@ package body Landin.Syntax.Parser is
                        Ahead (2) in Tok.Kw_For | Tok.Kw_Try;
                      Tried : constant Boolean :=
                        Ahead (2) = Tok.Kw_Try;
+                     Deferred : constant Boolean :=
+                       Value_Begins = Token_Here;
                   begin
                      Advance;
                      Advance;
@@ -11622,21 +12200,34 @@ package body Landin.Syntax.Parser is
                         Advance;
                      end if;
                      if Is_For then
-                        return Parse_For
-                          (Active_Frame, Starts => Label_At, Label => Label,
-                           Tried => Tried);
+                        return Valued_Loop
+                          (Parse_For
+                             (Active_Frame, Starts => Label_At,
+                              Label => Label, Tried => Tried, Valued => True),
+                           Deferred);
                      else
-                        return Parse_Loop
-                          (Active_Frame, Starts => Label_At, Label => Label);
+                        return Valued_Loop
+                          (Parse_Loop
+                             (Active_Frame, Starts => Label_At,
+                              Label => Label, Valued => True),
+                           Deferred);
                      end if;
                   end;
                elsif Peek in Tok.Kw_Loop | Tok.Kw_While | Tok.Kw_For
                then
-                  if Peek = Tok.Kw_For then
-                     return Parse_For (Active_Frame);
-                  else
-                     return Parse_Loop (Active_Frame);
-                  end if;
+                  declare
+                     Deferred : constant Boolean := Value_Begins = Token_Here;
+                  begin
+                     if Peek = Tok.Kw_For then
+                        return Valued_Loop
+                          (Parse_For (Active_Frame, Valued => True),
+                           Deferred);
+                     else
+                        return Valued_Loop
+                          (Parse_Loop (Active_Frame, Valued => True),
+                           Deferred);
+                     end if;
+                  end;
                end if;
 
                --  [0520]'s literal is one or more expressions in source

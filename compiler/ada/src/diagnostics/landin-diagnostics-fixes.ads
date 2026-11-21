@@ -187,6 +187,36 @@ package Landin.Diagnostics.Fixes is
       Name   : String) return Fix
      with Pre => Landin.Source.Length (Where) > 0;
 
+   --  D1651: a loop written as the value of a declaration or of an
+   --  assignment to a name becomes a statement after it.  The parser
+   --  assembles Edits: the declaration loses its value and is declared
+   --  `mut`, or the assignment loses its target; each `break with v` that
+   --  left the loop becomes `name = v` and a plain `break`, behind an `if`
+   --  where it had a `when`; and a `complete` block that gave a literal
+   --  gives it to the declaration instead.  Exact: the local is written on
+   --  exactly the edges that gave the loop its value, with the value those
+   --  edges gave, and nothing else in the loop names it.
+   function Loop_Statement
+     (Name  : String;
+      Edits : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
+   --  D1651: a statement loop's `complete` block becomes a bare block
+   --  after the loop.  The `complete` word at Word becomes the loop's
+   --  closer, `end ` and Closing, then a line of Indent and `begin`; the
+   --  loop's own closer at Closer becomes `end`.  Exact: no `break` leaves
+   --  the loop, so its every exit that is not a `return` or `fail` is the
+   --  exhaustion the block ran on, and the block's own scope is kept.
+   function Complete_After
+     (Source  : Landin.Source.Source_Id;
+      Word    : Landin.Source.Span;
+      Closer  : Landin.Source.Span;
+      Closing : String;
+      Indent  : String) return Fix
+     with Pre => Landin.Source.Length (Word) > 0
+                 and then Landin.Source.Length (Closer) > 0
+                 and then Word.Last <= Closer.First;
+
    --  One Respell per name the ranking kept, nearest first; none when it
    --  kept none.
    function Respellings

@@ -1021,11 +1021,6 @@ package Landin.Syntax is
                              | Break_Statement | Continue_Statement
                              | While_Statement;
 
-   --  [1190]'s value carried by `break with`; No_Node for a valueless break.
-   function Transfer_Value (Of_Tree : Tree; Id : Node_Id) return Node_Id
-     with Pre => Contains (Of_Tree, Id)
-                 and then Kind (Of_Tree, Id) = Break_Statement;
-
    --  A loop's body.  It is a Block and therefore owns the same lexical
    --  cleanup and scope rules as a branch body.
    function Loop_Body (Of_Tree : Tree; Id : Node_Id) return Node_Id
@@ -1035,14 +1030,6 @@ package Landin.Syntax is
                                 | For_Statement,
           Post => Contains (Of_Tree, Loop_Body'Result)
                   and then Kind (Of_Tree, Loop_Body'Result) = Block;
-
-   --  [1170]'s block on the natural-completion edge.  No_Node when no
-   --  `complete` clause was written.
-   function Complete_Body (Of_Tree : Tree; Id : Node_Id) return Node_Id
-     with Pre => Contains (Of_Tree, Id)
-                 and then Kind (Of_Tree, Id)
-                            in Loop_Statement | While_Statement
-                               | For_Statement;
 
    function Traversal_Lower (Of_Tree : Tree; Id : Node_Id) return Node_Id
      with Pre  => Contains (Of_Tree, Id)
@@ -1064,12 +1051,6 @@ package Landin.Syntax is
                  and then Kind (Of_Tree, Id) = For_Statement;
 
    function Traversal_Is_Inclusive
-     (Of_Tree : Tree; Id : Node_Id) return Boolean
-     with Pre => Contains (Of_Tree, Id)
-                 and then Kind (Of_Tree, Id) = For_Statement;
-
-   --  `try for` propagates failures from its traversal providers.
-   function Traversal_Propagates
      (Of_Tree : Tree; Id : Node_Id) return Boolean
      with Pre => Contains (Of_Tree, Id)
                  and then Kind (Of_Tree, Id) = For_Statement;

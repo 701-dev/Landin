@@ -48,8 +48,7 @@ package body Landin.Testing.Census is
    --  or counts only roughly, each labelled with the paragraph defining it.
    type Construct is
      (Array_Operator, Array_Updating_Assignment, Self_Reading_Aggregate,
-      Break_With_Value, Complete_Block, Labelled_Statement,
-      Anonymous_Function, Try_For, Selected_Import,
+      Labelled_Statement, Anonymous_Function, Selected_Import,
       Uncounted_Repetition, Mixed_Repetition, Struct_Fill_Zeroed,
       Struct_Fill_Other, Range_Subtype, Inclusive_For, Inclusive_Slice,
       Hexadecimal_Float);
@@ -62,11 +61,8 @@ package body Landin.Testing.Census is
            "[0590] updating assignment of an array",
          when Self_Reading_Aggregate =>
            "[0520] aggregate assigned to a place it reads",
-         when Break_With_Value => "[1190] break with",
-         when Complete_Block => "[1170] complete",
          when Labelled_Statement => "[1180] labelled loop or block",
          when Anonymous_Function => "[1010] anonymous function",
-         when Try_For => "[1320] try for",
          when Selected_Import => "[1440] import m (names)",
          when Uncounted_Repetition => "[0560] [of v]",
          when Mixed_Repetition => "[0560] [e1, ..., of v]",
@@ -81,7 +77,7 @@ package body Landin.Testing.Census is
    --  whose uses are what a removal rewrites; the corpus only counts.
    Listed : constant array (Construct) of Boolean :=
      [Array_Operator | Array_Updating_Assignment | Self_Reading_Aggregate
-        | Break_With_Value | Complete_Block | Labelled_Statement
+        | Labelled_Statement
         | Hexadecimal_Float => True,
       others => False];
 
@@ -343,12 +339,6 @@ package body Landin.Testing.Census is
                               end;
                            end if;
                         end;
-                     when Syntax.Break_Statement =>
-                        if Syntax.Transfer_Value (Tree, Node)
-                          /= Syntax.No_Node
-                        then
-                           Note (Break_With_Value, Node);
-                        end if;
                      when Syntax.Loop_Statement | Syntax.While_Statement
                         | Syntax.For_Statement | Syntax.Bare_Block =>
                         if Syntax.Name (Tree, Node)
@@ -356,16 +346,7 @@ package body Landin.Testing.Census is
                         then
                            Note (Labelled_Statement, Node);
                         end if;
-                        if Kind /= Syntax.Bare_Block
-                          and then Syntax.Complete_Body (Tree, Node)
-                            /= Syntax.No_Node
-                        then
-                           Note (Complete_Block, Node);
-                        end if;
                         if Kind = Syntax.For_Statement then
-                           if Syntax.Traversal_Propagates (Tree, Node) then
-                              Note (Try_For, Node);
-                           end if;
                            if Syntax.Traversal_Upper (Tree, Node)
                                /= Syntax.No_Node
                              and then Syntax.Traversal_Is_Inclusive

@@ -73,12 +73,12 @@ package Landin.Tokens is
       Compound_Assign,
       --  The words [1760] reserves.
       Kw_Addr, Kw_Alignof, Kw_And, Kw_Any, Kw_Atom, Kw_Begin, Kw_Break,
-      Kw_Complete, Kw_Continue, Kw_Dec, Kw_Defer, Kw_Do, Kw_Else, Kw_Elsif,
+      Kw_Continue, Kw_Dec, Kw_Defer, Kw_Do, Kw_Else, Kw_Elsif,
       Kw_End, Kw_Escaping, Kw_Extern, Kw_Fail, Kw_False, Kw_Fixed, Kw_For,
       Kw_From, Kw_If, Kw_Import, Kw_In, Kw_Inc, Kw_Inout, Kw_Loop,
       Kw_Match, Kw_Mut, Kw_None, Kw_Not, Kw_Or, Kw_Ptr, Kw_Public,
       Kw_Return, Kw_Sink, Kw_Sizeof, Kw_Struct, Kw_Then, Kw_True, Kw_Try,
-      Kw_Type, Kw_Unchecked, Kw_Undo, Kw_Uninit, Kw_When, Kw_While, Kw_With,
+      Kw_Type, Kw_Unchecked, Kw_Undo, Kw_Uninit, Kw_When, Kw_While,
       Kw_Zeroed,
       --  The signs the kernel productions spell.
       Ampersand, Bar, Caret, Colon, Colon_Equal, Comma, Dot, Equal,

@@ -107,6 +107,9 @@ package Landin.Diagnostics is
    function Span_Of     (Item : Edit) return Landin.Source.Span;
    function Replacement (Item : Edit) return String;
 
+   --  The edits of one rewrite a stage assembled, in source order.
+   type Edit_List is array (Positive range <>) of Edit;
+
    --  Exact: the rule decides the replacement and applying it keeps what
    --  the program means, so a tool may apply it unasked.  Likely: a guess
    --  at what was meant, such as the declared name nearest a misspelling,
@@ -132,7 +135,9 @@ package Landin.Diagnostics is
       Landin_Form,     --  another language's spelling becomes Landin's
       Ignore_Failure,  --  a value no call result needs becomes `none`
       Hold_Exit,       --  an exit after a call's `else` gets a block
-      Unbind_Error);   --  `else (e)` its block never reads: `else begin`
+      Unbind_Error,    --  `else (e)` its block never reads: `else begin`
+      Loop_Statement,  --  D1651: a loop's value becomes a local's writes
+      Complete_After); --  D1651: a `complete` block follows its loop
 
    type Fix is private;
 

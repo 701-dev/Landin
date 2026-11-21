@@ -1088,20 +1088,26 @@ package body Landin.Diagnostics.Explanations is
                & "he result explicitly, use a call that returns one, or bi"
                & "nd the result names the signature declares.",
             when Catalogue.Control_Value =>
-               "A `break` must carry a value exactly when its target nee"
-               & "ds one [1180] [1190]; every value-producing fallthrough "
-               & "must supply one (D124). Every `break` out of a loop used"
-               & " as an expression carries `with`. A finite expression lo"
-               & "op leaves through `break with` when it completes. Every "
-               & "fallthrough path of a value-producing `if` or block prod"
-               & "uces a value; an early return need not. A labelled bare "
-               & "block and a statement loop take no value. Add `with` and"
-               & " a value to a break from an expression loop. Remove `wit"
-               & "h` from a break to a statement loop or labelled bare blo"
-               & "ck. Supply a value on each fallthrough path, or use the "
-               & "construct as a statement. A value-producing construct mi"
-               & "ssing its value on several paths is reported once, again"
-               & "st the construct (D263).",
+               "A loop is a statement and gives no value, and a `break` "
+               & "carries none (D1651); every value-producing fallthrough "
+               & "of an `if`, a `match` or a block supplies one (D124). A "
+               & "loop written where a value belongs is reported once, aga"
+               & "inst the loop. Write its result to a mutable local, or t"
+               & "o the named result, and leave with a plain `break`; or m"
+               & "ove the loop into a function of its own that `return`s t"
+               & "he result. Where the loop is the value of `name: T = ..."
+               & "` or of `name = ...`, every `break` that leaves it gives"
+               & " a value and each begins its line, the report carries th"
+               & "at rewrite as an exact fix, which `refine fix` applies: "
+               & "`name` is declared `mut` before the loop, each `break wi"
+               & "th v` becomes `name = v` and a plain `break`, and a `com"
+               & "plete` block that gave one literal gives it to the decla"
+               & "ration instead. A `break with` that leaves a statement l"
+               & "oop or a labelled bare block is reported on its own. Eve"
+               & "ry fallthrough path of a value-producing `if` or block p"
+               & "roduces a value; an early return need not. A construct m"
+               & "issing its value on several paths is reported once, agai"
+               & "nst the construct (D263).",
             when Catalogue.Match_Arm_Form =>
                "A `match` arm does not fit its subject [1210]. A subject"
                & " is an atom set, a variant part or a pointer union. Each"
@@ -2201,7 +2207,22 @@ package body Landin.Diagnostics.Explanations is
                & "seconds with one JSON object in the format `landin-comma"
                & "nd-1` that names it and claims no `L` prefix. Update or "
                & "remove it, or run it by its own name, `refine-NAME`. The"
-               & " status is 1.");
+               & " status is 1.",
+            when Catalogue.Removed_Form =>
+               "The program uses a form the language removed (D1847). Th"
+               & "e report names the form that replaces it. Where the rewr"
+               & "ite is mechanical it carries it as an exact fix, which t"
+               & "he language server offers and `refine fix` applies; othe"
+               & "rwise the note says what to write. A loop's `complete` b"
+               & "lock is gone (D1651): every exit of a loop reaches the s"
+               & "tatement after it, so run the block after the loop, behi"
+               & "nd a flag its `break`s clear where it has any. When no `"
+               & "break` leaves the loop, the fix closes the loop before `"
+               & "complete` and runs the block after it, between `begin` a"
+               & "nd `end`. `try for` is gone (D1652): a traversal whose s"
+               & "teps can fail is a `while` whose body takes each item wi"
+               & "th `try`, or with a call's `else`, which says where a fa"
+               & "ilure goes.");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is
@@ -2621,17 +2642,22 @@ package body Landin.Diagnostics.Explanations is
                & "end f"
                & LF,
             when Catalogue.Control_Value =>
-               "public main: () -> (code: i32) ="
+               "first_even: (values: []i32) -> (found: i32) ="
                & LF
-               & "    code = loop do"
+               & "    mut index: usize = 0"
                & LF
-               & "        break when true"
+               & "    found = loop do"
                & LF
-               & "        break with 1"
+               & "        break with -1 when index == lenof values"
+               & LF
+               & "        break with values[index] when values[index] % 2 "
+               & "== 0"
+               & LF
+               & "        inc index"
                & LF
                & "    end loop"
                & LF
-               & "end main"
+               & "end first_even"
                & LF,
             when Catalogue.Match_Arm_Form =>
                "f: (n: u32) -> none ="
@@ -3353,7 +3379,24 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.External_Command_Missing =>
                "",
             when Catalogue.External_Command_Incompatible =>
-               "");
+               "",
+            when Catalogue.Removed_Form =>
+               "public main: () -> (code: i32) ="
+               & LF
+               & "    code = 0"
+               & LF
+               & "    while code < 3 do"
+               & LF
+               & "        inc code"
+               & LF
+               & "    complete"
+               & LF
+               & "        code = code * 2"
+               & LF
+               & "    end while"
+               & LF
+               & "end main"
+               & LF);
 
    function Fixture (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is
@@ -4221,6 +4264,8 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.External_Command_Missing =>
                "",
             when Catalogue.External_Command_Incompatible =>
+               "",
+            when Catalogue.Removed_Form =>
                "");
 
 end Landin.Diagnostics.Explanations;

@@ -1196,8 +1196,7 @@ package body Landin.Syntax.Repairs is
          return Position > Bytes'Last
            or else Starts_With (Position, Bytes'Last, "end")
            or else Starts_With (Position, Bytes'Last, "else")
-           or else Starts_With (Position, Bytes'Last, "elsif")
-           or else Starts_With (Position, Bytes'Last, "complete");
+           or else Starts_With (Position, Bytes'Last, "elsif");
       end Ends_Block;
 
       --  The token of the line the report's primary span begins at, or 0.
@@ -1319,8 +1318,7 @@ package body Landin.Syntax.Repairs is
               and then
                 (Starts_With (First_Word, Line_Last, "end")
                  or else Starts_With (First_Word, Line_Last, "else")
-                 or else Starts_With (First_Word, Line_Last, "elsif")
-                 or else Starts_With (First_Word, Line_Last, "complete"))
+                 or else Starts_With (First_Word, Line_Last, "elsif"))
             then
                Line_Last := Text_Above (Bytes, Line_First);
                Line_First :=
@@ -1381,7 +1379,7 @@ package body Landin.Syntax.Repairs is
            and then Continues (Line_First)
            and then Line_First > 2
            and then Pieces (1).Kind not in Tok.Kw_End | Tok.Kw_Else
-             | Tok.Kw_Elsif | Tok.Kw_Complete | Tok.Right_Paren
+             | Tok.Kw_Elsif | Tok.Right_Paren
              | Tok.Right_Bracket | Tok.Comma
            and then
              (Parses (Bytes (Line_First .. Line_Last), False, Value)
@@ -1492,7 +1490,7 @@ package body Landin.Syntax.Repairs is
          elsif not Clean or else Pieces.Is_Empty
            or else Natural (Pieces.Length) > Token_Limit
            or else Pieces (1).Kind in Tok.Kw_End | Tok.Kw_Else
-             | Tok.Kw_Elsif | Tok.Kw_Complete | Tok.Right_Paren
+             | Tok.Kw_Elsif | Tok.Right_Paren
              | Tok.Right_Bracket | Tok.Comma
            or else (In_A_Match (Line_First)
                     and then Natural (Pieces.Length) > 1

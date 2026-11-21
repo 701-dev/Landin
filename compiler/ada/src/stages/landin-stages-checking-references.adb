@@ -3294,10 +3294,7 @@ package body Landin.Stages.Checking.References is
                   Result.Falls := Guarded;
 
                when Syn.Break_Statement =>
-                  if Reads_In (Syn.Condition_Of (Of_Tree, Node), Since)
-                    or else Reads_In
-                      (Syn.Transfer_Value (Of_Tree, Node), Since)
-                  then
+                  if Reads_In (Syn.Condition_Of (Of_Tree, Node), Since) then
                      return Reading;
                   end if;
                   Result.Breaks := True;
@@ -3408,10 +3405,7 @@ package body Landin.Stages.Checking.References is
                   --  A nested loop's transfers are its own.  It is taken
                   --  to leave normally, and a replacement inside it earns
                   --  no credit: both only over-report.
-                  if Reads_Around (Node)
-                    or else Scan_Statements
-                      (Syn.Complete_Body (Of_Tree, Node), 1, 0).Reads
-                  then
+                  if Reads_Around (Node) then
                      return Reading;
                   end if;
 
@@ -3577,11 +3571,7 @@ package body Landin.Stages.Checking.References is
                         --  D1084: the next iteration walks the source.
                         return True;
                      end if;
-                     if Reads_Around (Frame.Of_Loop)
-                       or else Scan_Statements
-                         (Syn.Complete_Body (Of_Tree, Frame.Of_Loop),
-                          1, 0).Reads
-                     then
+                     if Reads_Around (Frame.Of_Loop) then
                         return True;
                      end if;
                   end if;
@@ -6281,36 +6271,10 @@ package body Landin.Stages.Checking.References is
                   end if;
 
                   --  Exhaustion keeps the final test's effects, not the
-                  --  pre-test head.  Completion and break edges join only
-                  --  when they actually reach the loop's continuation.
+                  --  pre-test head.  Break edges join only when they
+                  --  actually reach the loop's continuation.
                   Origins := Exhausted_State;
                   Falls_Through := Can_Exhaust;
-                  if Can_Exhaust
-                    and then Syn.Complete_Body (Tree, Node) /= Syn.No_Node
-                  then
-                     declare
-                        Completion : aliased Loop_Frame;
-                     begin
-                        Push (Completion'Unchecked_Access, Tree, Node);
-                        Process_Block
-                          (Tree, Syn.Complete_Body (Tree, Node), Fell);
-                        Checkpoint (Traversed);
-                        Loop_Stack.Delete_Last;
-                        Join (Frame.Value, Completion.Value);
-                        if Completion.Exits then
-                           if Frame.Exits then
-                              Join_Table
-                                (Frame.Exit_State.Data,
-                                 Completion.Exit_State.Data);
-                           else
-                              Transfer_States.Move
-                                (Frame.Exit_State, Completion.Exit_State);
-                              Frame.Exits := True;
-                           end if;
-                        end if;
-                        Release (Completion);
-                     end;
-                  end if;
                   if Frame.Exits then
                      if Falls_Through then
                         Join_Table (Origins, Frame.Exit_State.Data);
@@ -6352,13 +6316,8 @@ package body Landin.Stages.Checking.References is
                            declare
                               Target : constant Positive :=
                                 Transfer_Loop (Tree, Node);
-                              Value : Origin_Fact := No_Value_Edge;
+                              Value : constant Origin_Fact := No_Value_Edge;
                            begin
-                              if Syn.Kind (Tree, Node) = Syn.Break_Statement
-                              then
-                                 Value := Fact_Of
-                                   (Tree, Syn.Transfer_Value (Tree, Node));
-                              end if;
                               Run_Cleanups
                                 (Tree, Loop_Stack (Target).Cleanup_Base + 1,
                                  Landin.Cleanup.Structured_Transfer);

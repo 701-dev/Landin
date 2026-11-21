@@ -580,36 +580,6 @@ package body Landin.Stages.Checking.Flow is
          Report_Error : Boolean := True)
          return Boolean;
 
-      --  A `while` loop's condition, or a `for` loop's traversal from its
-      --  first bound to its last: what ends the loop when it runs out.
-      function Loop_Head
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id; Is_For : Boolean)
-         return Landin.Provenance.Origin;
-
-      function Loop_Head
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id; Is_For : Boolean)
-         return Landin.Provenance.Origin
-      is
-      begin
-         if not Is_For then
-            return Syn.Origin (Of_Tree, Syn.Condition_Of (Of_Tree, Node));
-         end if;
-         declare
-            Lower : constant Syn.Node_Id :=
-              Syn.Traversal_Lower (Of_Tree, Node);
-            Upper : constant Syn.Node_Id :=
-              Syn.Traversal_Upper (Of_Tree, Node);
-         begin
-            return
-              (Source => Syn.Source_Of (Of_Tree),
-               Where  =>
-                 (First => Syn.Where (Of_Tree, Lower).First,
-                  Last  => Syn.Where
-                    (Of_Tree,
-                     (if Upper = Syn.No_Node then Lower else Upper)).Last));
-         end;
-      end Loop_Head;
-
       procedure Flow_Expression
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -2360,7 +2330,6 @@ package body Landin.Stages.Checking.Flow is
                   Is_For : constant Boolean :=
                     Syn.Kind (Of_Tree, Node) = Syn.For_Statement;
                   Returned : Boolean := False;
-                  Completion_Falls_Through : Boolean := False;
 
                   procedure Mark_Iteration
                     (Binding : Syn.Node_Id; Into : in out Assigned_Set);
@@ -2622,39 +2591,6 @@ package body Landin.Stages.Checking.Flow is
                      if Is_While or else Is_For then
                         Exit_State := Tested;
                         Exits := True;
-                        if Syn.Complete_Body (Of_Tree, Node) /= Syn.No_Node
-                        then
-                           --  `complete` runs on the exhausted edge and may
-                           --  itself leave through `break with`: those are
-                           --  exits of this loop too.
-                           declare
-                              Complete_Edges : Edge_Facts;
-                              Completion : Loop_Cleanup_Entry;
-                           begin
-                              Loop_Cleanup_Stack.Append
-                                (Loop_Cleanup_Entry'
-                                   (Label        => Syn.Name (Of_Tree, Node),
-                                    Cleanup_Base =>
-                                      Natural (Cleanup_Stack.Length),
-                                    others       => <>));
-                              Flow_Block
-                                (Of_Tree, Syn.Complete_Body (Of_Tree, Node),
-                                 Result, Syn.Origin (Of_Tree, Node),
-                                 Exit_State, Complete_Edges);
-                              Completion := Loop_Cleanup_Stack.Last_Element;
-                              Loop_Cleanup_Stack.Delete_Last;
-                              Returned := Returned or Complete_Edges.Returns;
-                              Completion_Falls_Through :=
-                                Complete_Edges.Falls_Through;
-                              Exits := Complete_Edges.Falls_Through;
-                              if Completion.Exits then
-                                 Merge
-                                   (Exit_State, First => not Exits,
-                                    Branch => Completion.Exit_State);
-                                 Exits := True;
-                              end if;
-                           end;
-                        end if;
                      end if;
                      if Frame.Exits then
                         Merge
@@ -2663,54 +2599,12 @@ package body Landin.Stages.Checking.Flow is
                         Exits := True;
                      end if;
 
-                     if Needs_Value and then (Is_While or else Is_For)
-                       and then
-                         (Syn.Complete_Body (Of_Tree, Node) = Syn.No_Node
-                          or else Completion_Falls_Through)
-                     then
-                        --  The label says where the value was left out: a
-                        --  `complete` that falls through for the loop it
-                        --  completes, and with none the condition or the
-                        --  traversal whose end leaves without one.  Naming
-                        --  the loop at its own span would only repeat the
-                        --  report.
-                        Bad.Report
-                          (Item    => Bad.Control_Value,
-                           Source  => Syn.Source_Of (Of_Tree),
-                           Where   => Syn.Where
-                             (Of_Tree,
-                              (if Syn.Complete_Body (Of_Tree, Node)
-                                    = Syn.No_Node
-                               then Node
-                               else Syn.Complete_Body (Of_Tree, Node))),
-                           Message => "this value-producing loop can finish"
-                             & " without a value",
-                           Note    => "[1190]: `complete` must leave through"
-                             & " `break with` when a finite loop is an"
-                             & " expression",
-                           Related =>
-                             (if Syn.Complete_Body (Of_Tree, Node)
-                                   /= Syn.No_Node
-                              then Syn.Origin (Of_Tree, Node)
-                              else Loop_Head (Of_Tree, Node, Is_For)),
-                           Because =>
-                             (if Syn.Complete_Body (Of_Tree, Node)
-                                   /= Syn.No_Node
-                              then "this value-producing loop"
-                              elsif Is_For
-                              then "the loop ends with no value when this"
-                                   & " is exhausted"
-                              else "the loop ends with no value when this"
-                                   & " is false"),
-                           Into    => Sink.all);
-                     end if;
-
                      if Exits then
                         --  [1810], D430: the state after the loop is the
                         --  join of the edges that actually leave it, each
                         --  taken from the converged head, so an assignment
-                        --  made on every exit, before a `break` or in
-                        --  `complete`, holds after the loop.
+                        --  made on every exit, before a `break` or on the
+                        --  exhausting edge, holds after the loop.
                         State := Exit_State;
                      end if;
                      Edges := (Falls_Through => Exits, Returns => Returned);
@@ -3847,7 +3741,8 @@ package body Landin.Stages.Checking.Flow is
                         declare
                            Transfer_State : Assigned_Set := State;
                            Cleanup_Edges : Edge_Facts;
-                           Value_Edges : Edge_Facts := Fallthrough_Edge;
+                           Value_Edges : constant Edge_Facts :=
+                             Fallthrough_Edge;
                            Guarded : constant Boolean :=
                              Syn.Condition_Of (Of_Tree, Item) /= Syn.No_Node;
                            Target : constant Positive :=
@@ -3855,17 +3750,6 @@ package body Landin.Stages.Checking.Flow is
                            First : constant Natural :=
                              Loop_Cleanup_Stack (Target).Cleanup_Base + 1;
                         begin
-                           if Syn.Kind (Of_Tree, Item) = Syn.Break_Statement
-                             and then Syn.Transfer_Value (Of_Tree, Item)
-                               /= Syn.No_Node
-                           then
-                              Flow_Expression
-                                (Of_Tree, Syn.Transfer_Value (Of_Tree, Item),
-                                 Result, Transfer_State, Value_Edges);
-                              Step.Returns := Step.Returns
-                                or Value_Edges.Returns;
-                           end if;
-
                            if Value_Edges.Falls_Through then
                               Flow_Cleanups
                                 (Of_Tree, First, Cleanup.Structured_Transfer,

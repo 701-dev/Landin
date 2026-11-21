@@ -3848,17 +3848,20 @@ package body Landin.Tests.Parser_Suite is
          "L0010", "variant,separate,beta");
    end Struct_Closers_Preserve_Declarations;
 
-   procedure Transfers_Preserve_Completion_Boundaries
+   --  D1651: `complete` and `with` are names.  The removed clause is
+   --  read only as the name alone on its line inside a loop, and the
+   --  removed `break with` only as the name with a value after it.
+   procedure Removed_Loop_Words_Are_Names
      (Item : in out Landin.Testing.Context);
 
-   procedure Transfers_Preserve_Completion_Boundaries
+   procedure Removed_Loop_Words_Are_Names
      (Item : in out Landin.Testing.Context)
    is
-      procedure Check
-        (Label, Text : String; Completions, Named_Transfers : Natural);
+      LF : constant Character := ASCII.LF;
 
-      procedure Check
-        (Label, Text : String; Completions, Named_Transfers : Natural)
+      procedure Check (Label, Text, Codes : String; Named_Transfers : Natural);
+
+      procedure Check (Label, Text, Codes : String; Named_Transfers : Natural)
       is
          Sources : Landin.Source.Sets.Source_Set;
          Names : Landin.Source.Names.Table;
@@ -3866,28 +3869,18 @@ package body Landin.Tests.Parser_Suite is
          Found : Landin.Diagnostics.Diagnostic_List;
          Id : constant Landin.Source.Source_Id :=
            Sources.Add ("complete.ldn", Text & ASCII.LF);
-         Completed, Targeted : Natural := 0;
+         Targeted : Natural := 0;
+         Actual_Codes : Unbounded.Unbounded_String;
       begin
          Landin.Tokens.Lexer.Lex (Sources.Get (Id), Names, Stream);
          declare
             Parsed : constant Landin.Syntax.Tree :=
               Landin.Syntax.Parser.Parse (Stream, Names, Found);
          begin
-            Landin.Testing.Check_Equal
-              (Item, Landin.Diagnostics.Count (Found), 0,
-               Label & " preserves the intended contextual complete");
             for Node in Landin.Syntax.Node_Id'(1)
               .. Landin.Syntax.Last_Node (Parsed)
             loop
                if Landin.Syntax.Kind (Parsed, Node)
-                 in Landin.Syntax.Loop_Statement
-                    | Landin.Syntax.While_Statement
-                    | Landin.Syntax.For_Statement
-                 and then Landin.Syntax.Complete_Body (Parsed, Node)
-                   /= Landin.Syntax.No_Node
-               then
-                  Completed := Completed + 1;
-               elsif Landin.Syntax.Kind (Parsed, Node)
                  in Landin.Syntax.Break_Statement
                     | Landin.Syntax.Continue_Statement
                  and then Landin.Syntax.Name (Parsed, Node)
@@ -3896,58 +3889,70 @@ package body Landin.Tests.Parser_Suite is
                   Targeted := Targeted + 1;
                end if;
             end loop;
-            Landin.Testing.Check_Equal
-              (Item, Completed, Completions,
-               Label & " retains each loop's distinct completion block");
-            Landin.Testing.Check_Equal
-              (Item, Targeted, Named_Transfers,
-               Label & " names only actual enclosing loop targets");
          end;
+         for Position in 1 .. Landin.Diagnostics.Count (Found) loop
+            if Position > 1 then
+               Unbounded.Append (Actual_Codes, ",");
+            end if;
+            Unbounded.Append
+              (Actual_Codes, Landin.Diagnostics.Code
+                 (Landin.Diagnostics.Get (Found, Position)));
+         end loop;
+         Landin.Testing.Check_Equal
+           (Item, Unbounded.To_String (Actual_Codes), Codes,
+            Label & " reports only the intended refusal");
+         Landin.Testing.Check_Equal
+           (Item, Targeted, Named_Transfers,
+            Label & " names only actual enclosing loop targets");
       end Check;
    begin
-      Check ("while break",
-         "f: (flag: bool) -> none = while flag do break complete "
-         & "mark: i32 = 1 end while end f",
-         1, 0);
-      Check ("while continue",
-         "f: (flag: bool) -> none = while flag do continue "
-         & "complete mark: i32 = 1 end while end f",
-         1, 0);
-      Check ("for break",
-         "f: () -> none = for value in 0 ..< 2 do break complete "
-         & "mark: i32 = 1 end for end f",
-         1, 0);
-      Check ("for continue",
-         "f: () -> none = for value in 0 ..< 2 do continue "
-         & "complete mark: i32 = 1 end for end f",
-         1, 0);
-      Check ("matching completion label",
-         "f: (flag: bool) -> none = completion: while flag do break "
-         & "completion end completion end f",
-         0, 1);
-      Check ("nested completion label",
-         "f: (flag: bool) -> none = while flag do completion: loop "
-         & "do break completion end completion break end while end f",
-         0, 1);
-      Check ("completion binding",
-         "f: (flag: bool) -> none = while flag do completion: i32 = "
-         & "1 break end while end f",
-         0, 0);
-      Check ("completion assignment",
-         "f: (flag: bool) -> none = mut completion: i32 = 0 while "
-         & "flag do completion += 1 break end while end f",
-         0, 0);
-      Check ("separate binding scopes",
-         "f: (flag: bool) -> none = while flag do mark: i32 = 1 "
-         & "continue complete mark: i32 = 2 end while end f",
-         1, 0);
-      Check ("anonymous completion",
-         "f: (flag: bool) -> none = completion: while flag do "
-         & "callback := (value: bool) -> none = while value do "
-         & "continue complete mark: i32 = 1 end while end break "
-         & "completion end completion end f",
-         1, 1);
-   end Transfers_Preserve_Completion_Boundaries;
+      Check ("complete as a binding",
+         "f: (flag: bool) -> none =" & LF
+         & "    while flag do" & LF
+         & "        complete: i32 = 1" & LF
+         & "        break" & LF
+         & "    end while" & LF
+         & "end f",
+         "", 0);
+      Check ("complete as a label",
+         "f: (flag: bool) -> none =" & LF
+         & "    complete: while flag do" & LF
+         & "        break complete" & LF
+         & "    end complete" & LF
+         & "end f",
+         "", 1);
+      Check ("with as a label",
+         "f: (flag: bool) -> none =" & LF
+         & "    with: while flag do" & LF
+         & "        break with when flag" & LF
+         & "        break with" & LF
+         & "    end with" & LF
+         & "end f",
+         "", 2);
+      Check ("the removed clause",
+         "f: (flag: bool) -> none =" & LF
+         & "    while flag do" & LF
+         & "        break" & LF
+         & "    complete" & LF
+         & "        mark: i32 = 1" & LF
+         & "    end while" & LF
+         & "end f",
+         "L0696", 0);
+      Check ("the removed value",
+         "f: (flag: bool) -> none =" & LF
+         & "    while flag do" & LF
+         & "        break with 1" & LF
+         & "    end while" & LF
+         & "end f",
+         "L0332", 0);
+      Check ("a loop as a value",
+         "f: () -> (r: i32) =" & LF
+         & "    r = loop do" & LF
+         & "        break with 1" & LF
+         & "    end loop" & LF
+         & "end f",
+         "L0332", 0);
+   end Removed_Loop_Words_Are_Names;
 
    --  Exact boundary cases, each under two KiB; no overflow probing.
    procedure Calls_Respect_The_Nesting_Limit
@@ -6072,8 +6077,8 @@ package body Landin.Tests.Parser_Suite is
         (Into, "parser", "the repair search is bounded by routine",
          The_Repair_Search_Is_Bounded_By_Routine'Access);
       Landin.Testing.Register
-        (Into, "parser", "transfers preserve completion boundaries",
-         Transfers_Preserve_Completion_Boundaries'Access);
+        (Into, "parser", "removed loop words are names",
+         Removed_Loop_Words_Are_Names'Access);
       Landin.Testing.Register
         (Into, "parser", "struct closers preserve declarations",
          Struct_Closers_Preserve_Declarations'Access);

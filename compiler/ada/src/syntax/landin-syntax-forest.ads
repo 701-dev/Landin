@@ -62,7 +62,8 @@ package Landin.Syntax.Forest is
      (Into   : in out Table;
       From   : Landin.Tokens.Token_Stream;
       Names  : in out Landin.Source.Names.Table;
-      Report : in out Landin.Diagnostics.Diagnostic_List)
+      Report : in out Landin.Diagnostics.Diagnostic_List;
+      Text   : access constant Landin.Source.Snapshot := null)
      with Pre  => Landin.Tokens.Source_Of (From)
                   = Landin.Source.Source_Id (Count (Into) + 1),
           Post => Count (Into) = Count (Into)'Old + 1

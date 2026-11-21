@@ -241,6 +241,42 @@ package body Landin.Diagnostics.Fixes is
       return Result;
    end Unbind_Error;
 
+   function Loop_Statement
+     (Name  : String;
+      Edits : Edit_List) return Fix
+   is
+      Result : Fix := Make_Fix
+        (Loop_Statement, Exact,
+         "write the loop as a statement that assigns `" & Name
+         & "` before each plain `break`");
+   begin
+      for Each of Edits loop
+         Add_Edit (Result, Each);
+      end loop;
+      return Result;
+   end Loop_Statement;
+
+   function Complete_After
+     (Source  : Landin.Source.Source_Id;
+      Word    : Landin.Source.Span;
+      Closer  : Landin.Source.Span;
+      Closing : String;
+      Indent  : String) return Fix
+   is
+      Result : Fix := Make_Fix
+        (Complete_After, Exact,
+         "close the loop before `complete` and run its block after it,"
+         & " between `begin` and `end`");
+   begin
+      Add_Edit
+        (Result,
+         Make_Edit
+           (Source, Word,
+            "end " & Closing & ASCII.LF & Indent & "begin"));
+      Add_Edit (Result, Make_Edit (Source, Closer, "end"));
+      return Result;
+   end Complete_After;
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;

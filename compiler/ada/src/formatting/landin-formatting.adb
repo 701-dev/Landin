@@ -618,7 +618,7 @@ package body Landin.Formatting is
 
          --  What closes or divides a construct stands where it began.
          if Kind (H) in Tok.Kw_End | Tok.Kw_Else | Tok.Kw_Elsif
-                      | Tok.Kw_Complete | Tok.Kw_Then | Tok.Kw_Do
+                      | Tok.Kw_Then | Tok.Kw_Do
            and then Is_Construct (Node_Kind (Held))
            and then not (Node_Kind (Held) = Syn.Recovery_Clause
                          and then First (Held) = H)

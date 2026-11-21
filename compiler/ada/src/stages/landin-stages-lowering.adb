@@ -11836,14 +11836,10 @@ package body Landin.Stages.Lowering is
          Jumping : constant Boolean :=
            Is_While
            and then Jumps (Of_Tree, Syn.Condition_Of (Of_Tree, Node));
-         Has_Complete : constant Boolean :=
-           (Is_While or else Is_For)
-           and then Syn.Complete_Body (Of_Tree, Node) /= Syn.No_Node;
          Head : IR.Block_Id := IR.No_Block;
          Head_Rests : IR.Block_Id := IR.No_Block;
          Body_Block : IR.Block_Id := IR.No_Block;
          Exit_Block : IR.Block_Id := IR.No_Block;
-         Complete_Block : IR.Block_Id := IR.No_Block;
          Natural_Exit : IR.Block_Id := IR.No_Block;
          Step_Block : IR.Block_Id := IR.No_Block;
          Entry_Block : IR.Block_Id := IR.No_Block;
@@ -11859,15 +11855,10 @@ package body Landin.Stages.Lowering is
                  (Of_Tree, Syn.Condition_Of (Of_Tree, Node), Scope);
             end if;
             Body_Block := Fresh (Of_Tree, Runs, Inside);
-            if (Is_While or else Is_For) and then not Has_Complete then
+            if Is_While or else Is_For then
                Exit_Block := Fresh (Of_Tree, Node, Scope);
             end if;
-            if Has_Complete then
-               Complete_Block := Fresh
-                 (Of_Tree, Syn.Complete_Body (Of_Tree, Node), Scope);
-            end if;
-            Natural_Exit :=
-              (if Has_Complete then Complete_Block else Exit_Block);
+            Natural_Exit := Exit_Block;
             if Is_For then
                Step_Block := Fresh (Of_Tree, Node, Inside);
                Entry_Block := Fresh (Of_Tree, Node, Scope);
@@ -12125,10 +12116,6 @@ package body Landin.Stages.Lowering is
                IR.Add_Argument (Unit.all, Filling, Made, Cursor_Argument);
             end if;
             if Failure_Slot /= IR.No_Slot then
-               if not Syn.Traversal_Propagates (Of_Tree, Node) then
-                  raise Landin.Compiler_Defect with
-                    "a failing traversal reached lowering without try";
-               end if;
                if Success_Slot /= IR.No_Slot then
                   IR.Emit_Store
                     (Unit.all, Filling, Success_Slot, Made, Site);
@@ -13388,23 +13375,6 @@ package body Landin.Stages.Lowering is
          end if;
 
          IR.Set_Loop_Depth (Unit.all, Filling, Enclosing_Depth);
-         if Has_Complete then
-            declare
-               Complete_Node : constant Syn.Node_Id :=
-                 Syn.Complete_Body (Of_Tree, Node);
-               Complete_Scope : constant Res.Scope_Id :=
-                 Res.Scope_At (Meanings.all, Of_Tree, Complete_Node);
-            begin
-               Open (Complete_Block);
-               Lower_Statements
-                 (Of_Tree, Complete_Node, Complete_Scope, Result);
-               if Current /= IR.No_Block then
-                  Close_With_Jump
-                    (Loop_Exit (Positive (Loop_Stack.Length)), Site);
-               end if;
-            end;
-         end if;
-
          Exit_Block := Loop_Stack.Last_Element.Exit_Block;
          Loop_Stack.Delete_Last;
 
@@ -13426,26 +13396,6 @@ package body Landin.Stages.Lowering is
 
          procedure Transfer is
          begin
-            if Syn.Kind (Of_Tree, Node) = Syn.Break_Statement
-              and then Syn.Transfer_Value (Of_Tree, Node) /= Syn.No_Node
-            then
-               declare
-                  Destination_Path : IR.Path_Step_Array
-                    (1 .. Natural (Frame.Value_Destination_Path.Length));
-               begin
-                  for Index in Destination_Path'Range loop
-                     Destination_Path (Index) :=
-                       Frame.Value_Destination_Path (Index);
-                  end loop;
-                  Lower_Statements
-                    (Of_Tree, Syn.No_Node, Scope, Active_Result,
-                     Destination => Frame.Value_Destination,
-                     Destination_Field => Frame.Value_Destination_Field,
-                     Destination_Path => Destination_Path,
-                     Direct_Value => Syn.Transfer_Value (Of_Tree, Node));
-               end;
-            end if;
-
             Emit_Cleanups
               (Of_Tree, Frame.Cleanup_Base + 1,
                Cleanup.Structured_Transfer);

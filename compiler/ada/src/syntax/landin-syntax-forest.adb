@@ -23,14 +23,15 @@ package body Landin.Syntax.Forest is
      (Into   : in out Table;
       From   : Landin.Tokens.Token_Stream;
       Names  : in out Landin.Source.Names.Table;
-      Report : in out Landin.Diagnostics.Diagnostic_List)
+      Report : in out Landin.Diagnostics.Diagnostic_List;
+      Text   : access constant Landin.Source.Snapshot := null)
    is
    begin
       --  The one allocator in the frontend.  The value is a function call
       --  because a limited object can be built nowhere else; the forest
       --  frees it, see the header.
       Into.Owned.Items.Append
-        (new Tree'(Landin.Syntax.Parser.Parse (From, Names, Report)));
+        (new Tree'(Landin.Syntax.Parser.Parse (From, Names, Report, Text)));
    end Add;
 
    procedure Transfer_Next (From : in out Table; Into : in out Table) is

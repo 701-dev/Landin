@@ -157,7 +157,8 @@ package body Landin.Stages.Syntax is
 
                      --  One tree and space row per source, in source order.
                      Landin.Syntax.Forest.Add
-                       (Trees.all, Stream, Names.all, Found);
+                       (Trees.all, Stream, Names.all, Found,
+                        Source (Context, Id).Element);
                      --  D261: a refused statement is reported as the
                      --  smallest change that makes it parse.
                      if Landin.Diagnostics.Has_Errors (Found) then

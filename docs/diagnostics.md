@@ -1400,25 +1400,31 @@ end f
 
 ### L0332
 
-A `break` must carry a value exactly when its target needs one [1180] [1190];
-every value-producing fallthrough must supply one (D124). Every `break` out
-of a loop used as an expression carries `with`. A finite expression loop
-leaves through `break with` when it completes. Every fallthrough path of a
-value-producing `if` or block produces a value; an early return need not.
-A labelled bare block and a statement loop take no value. Add `with` and a
-value to a break from an expression loop. Remove `with` from a break to a
-statement loop or labelled bare block. Supply a value on each fallthrough
-path, or use the construct as a statement. A value-producing construct
-missing its value on several paths is reported once, against the construct
-(D263).
+A loop is a statement and gives no value, and a `break` carries none (D1651);
+every value-producing fallthrough of an `if`, a `match` or a block supplies
+one (D124). A loop written where a value belongs is reported once, against
+the loop. Write its result to a mutable local, or to the named result, and
+leave with a plain `break`; or move the loop into a function of its own that
+`return`s the result. Where the loop is the value of `name: T = ...` or of
+`name = ...`, every `break` that leaves it gives a value and each begins its
+line, the report carries that rewrite as an exact fix, which `refine fix`
+applies: `name` is declared `mut` before the loop, each `break with v` becomes
+`name = v` and a plain `break`, and a `complete` block that gave one literal
+gives it to the declaration instead. A `break with` that leaves a statement
+loop or a labelled bare block is reported on its own. Every fallthrough path
+of a value-producing `if` or block produces a value; an early return need
+not. A construct missing its value on several paths is reported once,
+against the construct (D263).
 
 ```landin
-public main: () -> (code: i32) =
-    code = loop do
-        break when true
-        break with 1
+first_even: (values: []i32) -> (found: i32) =
+    mut index: usize = 0
+    found = loop do
+        break with -1 when index == lenof values
+        break with values[index] when values[index] % 2 == 0
+        inc index
     end loop
-end main
+end first_even
 ```
 
 ### L0333
@@ -3190,3 +3196,27 @@ checkout. A contributed command, one found on `PATH`, must answer within
 ten seconds with one JSON object in the format `landin-command-1` that
 names it and claims no `L` prefix. Update or remove it, or run it by its
 own name, `refine-NAME`. The status is 1.
+
+### L0696
+
+The program uses a form the language removed (D1847). The report names the
+form that replaces it. Where the rewrite is mechanical it carries it as an
+exact fix, which the language server offers and `refine fix` applies;
+otherwise the note says what to write. A loop's `complete` block is gone
+(D1651): every exit of a loop reaches the statement after it, so run the block
+after the loop, behind a flag its `break`s clear where it has any. When no
+`break` leaves the loop, the fix closes the loop before `complete` and runs
+the block after it, between `begin` and `end`. `try for` is gone (D1652): a
+traversal whose steps can fail is a `while` whose body takes each item with
+`try`, or with a call's `else`, which says where a failure goes.
+
+```landin
+public main: () -> (code: i32) =
+    code = 0
+    while code < 3 do
+        inc code
+    complete
+        code = code * 2
+    end while
+end main
+```

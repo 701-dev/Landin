@@ -54,10 +54,15 @@ package Landin.Syntax.Parser is
    --  one exception is a word with a capital (D528): its note depends on
    --  whether it names a C function without a link symbol, which only the
    --  parse knows, so its one report is appended to Report from here.
+   --
+   --  Text is the snapshot From was scanned from.  A refusal whose fix
+   --  copies source bytes, D1651's rewrite of a loop's value, offers that
+   --  fix only when it is given.
    function Parse
      (From   : Landin.Tokens.Token_Stream;
       Names  : in out Landin.Source.Names.Table;
-      Report : in out Landin.Diagnostics.Diagnostic_List) return Tree
+      Report : in out Landin.Diagnostics.Diagnostic_List;
+      Text   : access constant Landin.Source.Snapshot := null) return Tree
      with Post => Landin.Tokens.Source_Of (From) = Source_Of (Parse'Result);
 
 end Landin.Syntax.Parser;

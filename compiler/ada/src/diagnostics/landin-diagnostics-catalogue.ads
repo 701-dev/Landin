@@ -332,7 +332,11 @@ package Landin.Diagnostics.Catalogue is
       Site_Unresolved,
       --  D1384, D1387: an external command refine cannot run.
       External_Command_Missing,
-      External_Command_Incompatible);
+      External_Command_Incompatible,
+      --  D1847: a form the language removed, refused by the stage that
+      --  reads it with its replacement named, and the rewrite as an exact
+      --  fix where the rewrite is mechanical.
+      Removed_Form);
 
    --  Live, or kept so its number is never reused. A code is retired when
    --  the rule it names stops existing: `No_Frontend` retired when the
@@ -939,10 +943,9 @@ package Landin.Diagnostics.Catalogue is
         (Code => "L0332", Level => Error, State => Live,
          Source => True, Bytes => True,
          Least => 1, Most => 1, Notes => 1, Route => False,
-         Fixes => No_Fix, Shown_By => Negative_Fixture,
-         Rule => +("[1180]/[1190]/D124: a break carries a value exactly when"
-                   & " its target needs one; value-producing fallthroughs"
-                   & " supply one")),
+         Fixes => May_Fix, Shown_By => Negative_Fixture,
+         Rule => +("D1651/D124: a loop is a statement and a break carries"
+                   & " no value; value-producing fallthroughs supply one")),
       Match_Arm_Form =>
         (Code => "L0333", Level => Error, State => Live,
          Source => True, Bytes => True,
@@ -1506,7 +1509,14 @@ package Landin.Diagnostics.Catalogue is
          Least => 0, Most => 0, Notes => 0, Route => False,
          Fixes => No_Fix, Shown_By => Invocation,
          Rule => +("D1387: an external command whose description refine"
-                   & " cannot accept"))];
+                   & " cannot accept")),
+      Removed_Form =>
+        (Code => "L0696", Level => Error, State => Live,
+         Source => True, Bytes => True,
+         Least => 0, Most => 0, Notes => 1, Route => False,
+         Fixes => May_Fix, Shown_By => Negative_Fixture,
+         Rule => +("D1847: the language removed this form, and the"
+                   & " refusal names the one that replaces it"))];
 
    ------------------------------------------------------------------
    --  The columns, read out of the table
