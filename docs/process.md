@@ -809,8 +809,7 @@ python3 check.py prototype-2-parser.md
 # The options and every suite name, without a build or Python.
 ./scripts/dev-test.sh --help
 
-# Count the constructs a language audit weighs over the checked corpus,
-# library and examples (--help says more).  About eight minutes.
+# Count the constructs a language audit weighs; about eight minutes.
 ./scripts/dev-test.sh --census
 
 # An experiment in a build tree of its own, which nix develop leaves alone.

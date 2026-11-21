@@ -1293,9 +1293,10 @@ class CodeRules(unittest.TestCase):
         self.assertEqual(checker.check_code(["end absent"], 100)[0][0], 101)
 
 
+#  The whole compiler source, because which stage raises a code is read
+#  from every package that reports one (D1867 shares L0332).
 GRAMMAR = ["spec.md", "compiler/tests/fixtures",
-           "compiler/tests/lexical.tokens",
-           "compiler/ada/src/syntax", "compiler/ada/src/diagnostics"]
+           "compiler/tests/lexical.tokens", "compiler/ada/src"]
 
 
 class GrammarCorpus(unittest.TestCase):
