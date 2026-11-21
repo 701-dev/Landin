@@ -12,6 +12,7 @@
 #  LANDIN_BUILD_VARIANT  a build tree of its own for an experiment: the tag
 #                        becomes TAG.VARIANT, which `nix develop` does not
 #                        override as it does the tag
+#  LANDIN_LINK           static (a Linux release's default) or dynamic
 #  LANDIN_BUILD_INCREMENTAL  yes only through the developer wrappers
 #  LANDIN_BUILD_REUSE        yes only for a verified same-run CI build artifact
 
@@ -32,6 +33,29 @@ case "$LANDIN_BUILD_MODE" in
         ;;
 esac
 export LANDIN_BUILD_MODE
+
+#  A Linux release links glibc into its executables, so the archive runs on
+#  a host with any C library or none (compiler/ada/landin_common.gpr); a
+#  debug build and every Darwin build link the host's C library.  The
+#  default is what the gate tests.  LANDIN_LINK=dynamic builds a Linux
+#  release against the host's glibc instead, as the release workflow does
+#  for the dynamic archive it publishes beside the static one; static is
+#  refused where it is not the default.  The manifest records the link, so
+#  a tree built one way is rebuilt the other.
+Default_Link=dynamic
+if [ "$LANDIN_BUILD_MODE" = release ] && [ "$(uname -s)" = Linux ]; then
+    Default_Link=static
+fi
+case "${LANDIN_LINK:-$Default_Link}" in
+    "$Default_Link" | dynamic) LANDIN_LINK="${LANDIN_LINK:-$Default_Link}" ;;
+    *)
+        echo "landin: LANDIN_LINK is static for a Linux release build and" \
+             "may be dynamic; got '$LANDIN_LINK'" >&2
+        exit 2
+        ;;
+esac
+unset Default_Link
+export LANDIN_LINK
 
 #  One checkout, more than one host: the macOS loop and the linux/amd64
 #  container build the same directory.  The tag keeps their object files

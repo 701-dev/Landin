@@ -888,6 +888,18 @@ python3 scripts/container_image.py check contributor landin-contributor
 
 # The release workflow with nothing to publish, on a pushed ref.
 gh workflow run release.yml --repo 701-dev/Landin --ref BRANCH -f rehearse=true
+
+# A Linux release build is static, glibc linked into each executable
+# (compiler/ada/TOOLCHAIN.md), and its tests run as any build's do.  Packaged
+# on Debian or Ubuntu, whose libc6-dev names the glibc for the archive's
+# notice, it runs where no glibc is: alone in an empty root and on Alpine,
+# with install.sh and the --link=libc fixtures (scripts/static_check.py;
+# bubblewrap, and the network for Alpine's packages).
+LANDIN_BUILD_MODE=release ./scripts/test.sh
+./scripts/package.sh compiler/ada/build/linux-amd64/release/bin/refine landin.tar.gz
+(. environments/pins.sh && landin_fetch_alpine /tmp/alpine x86_64-linux)
+python3 scripts/static_check.py --archive landin.tar.gz \
+  --alpine /tmp/alpine/alpine-3.24.4 --work /tmp/static
 ```
 
 ## The mechanical gate
@@ -1479,6 +1491,27 @@ comments of `.github/workflows/release.yml` and of `flake.nix` beside
    release is announced. The scripts job holds the script's names to the
    text of `release.yml` (`scripts/tests/test_install_script.py`); this
    step holds them to what the release published.
+
+   Then each Linux archive as published, on a Linux host of its
+   architecture: it must be the static one, holding `NOTICE-GLIBC` and
+   `LICENSE-GLIBC`, and run where no glibc is (D1787, D1790):
+
+   ```sh
+   gh release download vX.Y.Z --repo 701-dev/Landin --pattern 'landin-X.Y.Z-x86_64-linux.tar.gz'
+   tar -xzOf landin-X.Y.Z-x86_64-linux.tar.gz NOTICE-GLIBC
+   (. environments/pins.sh && landin_fetch_alpine /tmp/alpine x86_64-linux)
+   python3 scripts/static_check.py --archive landin-X.Y.Z-x86_64-linux.tar.gz \
+     --alpine /tmp/alpine/alpine-3.24.4 --work /tmp/static-X.Y.Z
+   ```
+
+   The notice names the glibc the archive holds, from the runner's
+   `libc6-dev`. The dynamic archive beside each, `-dynamic`, must install
+   and start on a host with glibc 2.38 or later (D1791):
+   `install.sh` with `--variant dynamic --dir /tmp/landin-X.Y.Z-dynamic`,
+   piped as above, then that `bin/refine version`. The
+   release workflow ran the same
+   check on each archive before the approval, and the gate's release jobs
+   on every software run.
 7. **Move the flake.** On a branch from `main`, one commit moves
    `flake.nix`'s `releaseVersion` to X.Y.Z and its `releaseHashes` to the
    sums in the published `.sha256` files, which the publishing job's log

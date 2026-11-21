@@ -27,6 +27,12 @@
 #                       other DIR that is not empty is refused.
 #    --platform NAME    install the archive for NAME rather than for this
 #                       host: x86_64-linux, aarch64-linux or aarch64-darwin
+#    --variant NAME     on Linux, static or dynamic; static when not given.
+#                       The static archive's refine has glibc linked into
+#                       it and runs on any Linux.  The dynamic one uses the
+#                       system's glibc, which must be 2.38 or later.
+#                       Releases of 0.2.11 and earlier have the dynamic
+#                       one alone, under the static one's name.
 #    --list             print the archive and checksum names the release
 #                       publishes for every platform, and install nothing
 #    --help             print this text
@@ -51,8 +57,8 @@ usage() {
 
 other_routes() {
     cat >&2 <<EOF
-install.sh: the release archives serve Linux x86-64 and arm64 with glibc,
-install.sh: and macOS on Apple Silicon.  Elsewhere, install Landin
+install.sh: the release archives serve Linux on x86-64 and arm64, and
+install.sh: macOS on Apple Silicon.  Elsewhere, install Landin
 install.sh: with nix:     nix profile install github:$repository
 install.sh: or build it from source, as the README's "From source" says:
 install.sh:   https://github.com/$repository#from-source
@@ -62,7 +68,9 @@ EOF
 version=
 dir=
 platform=
+variant=
 list=no
+native=no
 while [ "$#" -gt 0 ]; do
     case $1 in
         --version) [ "$#" -ge 2 ] || refuse "--version needs a version, such as 0.2.11"
@@ -74,6 +82,9 @@ while [ "$#" -gt 0 ]; do
         --platform) [ "$#" -ge 2 ] || refuse "--platform needs one of: $platforms"
                     platform=$2; shift 2 ;;
         --platform=*) platform=${1#--platform=}; shift ;;
+        --variant) [ "$#" -ge 2 ] || refuse "--variant needs static or dynamic"
+                   variant=$2; shift 2 ;;
+        --variant=*) variant=${1#--variant=}; shift ;;
         --list) list=yes; shift ;;
         --help|-h)
             if [ -f "$0" ] && grep -q '^#  Options:' "$0" 2>/dev/null; then
@@ -100,9 +111,8 @@ host_platform() {
         aarch64|arm64) machine=aarch64 ;;
     esac
     case "$system/$machine" in
-        Linux/x86_64) loader=/lib64/ld-linux-x86-64.so.2 ;;
-        Linux/aarch64) loader=/lib/ld-linux-aarch64.so.1 ;;
-        Darwin/aarch64) echo aarch64-darwin; return 0 ;;
+        Linux/x86_64|Linux/aarch64) echo "$machine-linux" ;;
+        Darwin/aarch64) echo aarch64-darwin ;;
         Darwin/x86_64)
             say "no release archive serves macOS on an Intel processor" >&2
             other_routes; exit 1 ;;
@@ -110,19 +120,6 @@ host_platform() {
             say "no release archive serves $system on $reported" >&2
             other_routes; exit 1 ;;
     esac
-    #  A Linux archive's refine is linked against glibc and asks for the
-    #  system's standard loader.  NixOS provides a stub at that path that
-    #  only says it cannot run the program, and a musl system has none.
-    if [ -e /etc/NIXOS ]; then
-        say "the Linux archive's refine needs glibc's loader at $loader, which NixOS does not provide" >&2
-        other_routes; exit 1
-    fi
-    if [ ! -e "$loader" ]; then
-        say "the Linux archive's refine needs glibc's loader at $loader, and this system has none" >&2
-        say "(a musl distribution such as Alpine has a loader of its own)" >&2
-        other_routes; exit 1
-    fi
-    echo "$machine-linux"
 }
 
 if [ -n "$platform" ]; then
@@ -132,6 +129,7 @@ if [ -n "$platform" ]; then
     esac
 elif [ "$list" = no ]; then
     platform=$(host_platform)
+    native=yes
 fi
 
 #  The newest release: $releases/latest redirects to .../tag/vVERSION.
@@ -148,15 +146,32 @@ case $version in
     ''|*[!0-9.]*|.*|*.|*..*) refuse "$version is not a release version, such as 0.2.11" ;;
 esac
 
+case $variant in
+    ''|static|dynamic) ;;
+    *) refuse "--variant is static or dynamic, not $variant" ;;
+esac
+case "$platform/$variant" in
+    *-darwin/?*) refuse "--variant chooses between the Linux archives; macOS has one" ;;
+esac
+
+#  The names the release workflow publishes: on Linux the static archive
+#  under the platform's name and the dynamic one with -dynamic after it.
 if [ "$list" = yes ]; then
     for one in $platforms; do
-        echo "landin-$version-$one.tar.gz"
-        echo "landin-$version-$one.tar.gz.sha256"
+        for suffix in '' -dynamic; do
+            case "$one/$suffix" in *-darwin/-dynamic) continue ;; esac
+            echo "landin-$version-$one$suffix.tar.gz"
+            echo "landin-$version-$one$suffix.tar.gz.sha256"
+        done
     done
     exit 0
 fi
 
-archive="landin-$version-$platform.tar.gz"
+suffix=
+if [ "$variant" = dynamic ]; then
+    suffix=-dynamic
+fi
+archive="landin-$version-$platform$suffix.tar.gz"
 url="$releases/download/v$version/$archive"
 
 if [ -z "$dir" ]; then
@@ -196,7 +211,7 @@ trap 'exit 1' HUP INT TERM
 say "downloading Landin $version for $platform"
 say "  $url"
 curl -fSL --progress-bar -o "$work/$archive" "$url" \
-    || refuse "could not download $url; is $version a release? $releases lists them"
+    || refuse "could not download $url; is $version a release${suffix:+ with a dynamic archive}? $releases lists them"
 curl -fsSL -o "$work/$archive.sha256" "$url.sha256" \
     || refuse "could not download $url.sha256"
 
@@ -218,6 +233,29 @@ tar -xzf "$work/$archive" -C "$work/prefix" \
     || refuse "could not unpack $archive; nothing was installed"
 [ -x "$work/prefix/bin/refine" ] && [ -d "$work/prefix/lib/landin" ] \
     || refuse "$archive holds no bin/refine and lib/landin; nothing was installed"
+
+#  A Linux archive's refine has glibc linked into it and starts on any
+#  Linux, musl and NixOS ones among them.  The archives of 0.2.11 and
+#  earlier did not: they ask for glibc 2.38 or later and its loader at the
+#  standard path.  An archive for this host whose refine does not start
+#  here is refused rather than installed.
+if [ "$native" = yes ]; then
+    if ! started=$("$work/prefix/bin/refine" version 2>&1); then
+        say "refine $version from $archive does not start on this host; nothing was installed." >&2
+        printf '%s\n' "$started" | sed -n '1,3s/^/install.sh:   /p' >&2
+        case $platform in
+            *-linux)
+                if [ "$variant" = dynamic ]; then
+                    say "The dynamic Linux archive needs glibc 2.38 or later and its loader;" >&2
+                    say "the static one, without --variant, starts on any Linux." >&2
+                else
+                    say "The Linux archives of 0.2.11 and earlier need glibc 2.38 or later and its loader;" >&2
+                    say "a later release's archive starts on any Linux." >&2
+                fi ;;
+        esac
+        other_routes; exit 1
+    fi
+fi
 
 #  The new install is complete before the old one is moved aside, so an
 #  interrupted run leaves one or the other.

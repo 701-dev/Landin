@@ -54,7 +54,7 @@ Use 0.2.9 or later: [the first program](#your-first-program) needs
 
 ### With the install script
 
-On Linux x86-64 or arm64 with glibc, or on a Mac with Apple Silicon:
+On Linux x86-64 or arm64, or on a Mac with Apple Silicon:
 
 ```sh
 curl -fsSL https://www.701.dev/install.sh | sh
@@ -62,7 +62,8 @@ curl -fsSL https://www.701.dev/install.sh | sh
 
 It downloads the newest release's archive for your platform, the one
 [From a release](#from-a-release) describes, checks it against the
-`.sha256` published beside it and unpacks it into `~/.landin`. It edits
+`.sha256` published beside it and unpacks it into `~/.landin`. On Linux
+that is the static archive unless you ask for the other one. It edits
 none of your files and needs no root: it prints the line that puts
 `~/.landin/bin` on your `PATH`, which you add to your shell's startup
 file. Run it again to replace that install with the newest release.
@@ -74,12 +75,33 @@ of your choosing:
 curl -fsSL https://www.701.dev/install.sh | sh -s -- --version 0.2.11 --dir ~/opt/landin
 ```
 
+From the release after 0.2.11 a release has two archives for each Linux
+architecture, and `--variant static` or `--variant dynamic` chooses
+between them. Without the option you get the static one, which starts on
+any Linux. The dynamic one uses your system's glibc and needs glibc 2.38
+or later:
+
+```sh
+curl -fsSL https://www.701.dev/install.sh | sh -s -- --variant dynamic
+```
+
+The option is for Linux only. On a Mac the script refuses it, because
+macOS has one archive. `--list` names the archives a release has, both
+Linux ones among them.
+
 `--help` lists the options. The script is
 [`install.sh`](install.sh) in this repository, served unchanged; read it
 before you run it if you like. It refuses a host no archive serves,
-NixOS, musl distributions, Intel Macs, FreeBSD and Windows among them,
-and names nix and the source build instead. With the GitHub CLI installed
-it also prints the commands that check the archive's attestation, as
+Intel Macs, FreeBSD, Windows and other CPU architectures among them. It
+also refuses an archive whose `refine` does not start on your host, after
+downloading and checking it. That is what the dynamic archive, and every
+archive of 0.2.11 and earlier, does on NixOS, on musl distributions and
+with a glibc older than 2.38. In both cases it says so, installs nothing,
+and names nix and the source build instead. For `--variant dynamic` it
+also says that the dynamic archive needs glibc 2.38 and that the static
+one starts on any Linux.
+With the GitHub CLI installed it also prints the commands that check the
+archive's attestation, as
 [From a release](#from-a-release) describes. To remove the install,
 delete `~/.landin`.
 
@@ -96,7 +118,8 @@ brew install janhaan/tap/landin
 The formula moves to a new release within a day of its publication.
 
 This installs the release archive for your platform, the one
-[From a release](#from-a-release) describes. Its `bin/refine`,
+[From a release](#from-a-release) describes; on Linux, from the release
+after 0.2.11, that is the static one. Its `bin/refine`,
 `libexec/landin` and `lib/landin` stay together in Homebrew's own
 directory for the package, and Homebrew puts `refine` on your `PATH`.
 
@@ -116,15 +139,44 @@ The archive for your platform on
 under `lib/landin`, with no top-level directory. Unpack it into a directory of its own and put its `bin` on your
 `PATH`.
 
-A Linux archive's `refine` is linked against glibc and asks for the
-system's standard loader, `/lib64/ld-linux-x86-64.so.2` on x86-64 and
-`/lib/ld-linux-aarch64.so.1` on arm64. On NixOS or a musl distribution,
-install with nix or build from source.
+From the release after 0.2.11, a release publishes two archives for each
+Linux architecture, x86-64 and arm64. macOS has one archive, as before.
+
+The static archive has the platform's name:
+`landin-VERSION-x86_64-linux.tar.gz` and
+`landin-VERSION-aarch64-linux.tar.gz`. Its `refine` and the commands it
+runs have glibc linked in. It asks for no loader and no shared library,
+so it runs on any Linux: musl distributions such as Alpine, NixOS, and
+distributions whose glibc is older.
+
+The dynamic archive is beside it:
+`landin-VERSION-x86_64-linux-dynamic.tar.gz` and
+`landin-VERSION-aarch64-linux-dynamic.tar.gz`. Its `refine` uses the
+system's glibc, so it takes the system's glibc fixes. It needs glibc 2.38
+or later and its standard loader, `/lib64/ld-linux-x86-64.so.2` on x86-64
+and `/lib/ld-linux-aarch64.so.1` on arm64. It does not start on Debian 12
+(glibc 2.36), Ubuntu 22.04 (2.35) or RHEL 9 (2.34), nor on NixOS or a
+musl distribution.
+
+0.2.11 and earlier have one Linux archive for each architecture, and
+those stay published. It has the platform's name but is a dynamic one,
+linked against the glibc of Ubuntu 24.04, with the same needs as the
+dynamic archive above. Where it does not start, install with nix or build
+from source.
+
+The static archive holds two more files at its top level, which the
+dynamic one does not have.
+`LICENSE-GLIBC` is the copyright file of the Debian or Ubuntu `libc6-dev`
+package whose `libc.a` was linked in, with glibc's licence, the LGPL,
+version 2.1 or later. `NOTICE-GLIBC` names that glibc by its package
+version and distribution, says where its source is, and says how to
+relink `refine` with a modified glibc from Landin's public source.
 
 Beside each archive is `landin-VERSION-PLATFORM.tar.gz.sha256`, one line
 in `sha256sum`'s own format: `SUM  landin-VERSION-PLATFORM.tar.gz`.
-Download it into the same directory as the archive and check the archive
-against it:
+For a dynamic archive, `PLATFORM` here and below ends in `-dynamic`, as
+in `x86_64-linux-dynamic`. Download it into the same directory as the
+archive and check the archive against it:
 
 ```sh
 sha256sum -c landin-VERSION-PLATFORM.tar.gz.sha256        # Linux
@@ -148,8 +200,9 @@ account `JanHaan` to the organisation `701-dev`, and their attestations
 name the old owner: for those, write `JanHaan` for `701-dev` in both
 options.
 
-The archive leaves the compiler's debug information out and publishes it
-beside it as `landin-VERSION-PLATFORM-debug.tar.gz`. You need that file
+Each archive leaves the compiler's debug information out and publishes
+it beside it as `landin-VERSION-PLATFORM-debug.tar.gz`, which for a
+dynamic archive ends in `-dynamic-debug.tar.gz`. You need that file
 only to read a crash of the compiler itself.
 
 ### In a container
@@ -161,8 +214,8 @@ name the version. Each tag holds Linux amd64 and arm64, and Docker or
 Podman picks the one for your host. Images start with the first release
 after 0.2.11; 0.2.11 and earlier have none.
 
-The image is Debian 13 with the release archive for its platform unpacked
-in `/usr/local`: `refine` in `/usr/local/bin`, its commands in
+The image is Debian 13 with the static release archive for its platform
+unpacked in `/usr/local`: `refine` in `/usr/local/bin`, its commands in
 `/usr/local/libexec/landin` and the library in `/usr/local/lib/landin`. It
 also holds Debian's `gcc` and `libc6-dev`, which `refine` links with.
 
@@ -235,7 +288,8 @@ nix --extra-experimental-features 'nix-command flakes' \
 
 It works on Linux x86-64, Linux arm64 and macOS arm64. It fetches the
 latest release archive, about 17 MB, and compiles nothing, so it takes
-seconds.
+seconds. On Linux, from the release after 0.2.11, that is the static
+archive.
 
 You can leave the `--extra-experimental-features` option out once
 `experimental-features = nix-command flakes` is in `~/.config/nix/nix.conf`.
@@ -295,6 +349,26 @@ the build tag that keeps each host's objects apart.
 
 That is the debug build, which keeps the compiler's own internal checks
 on. `LANDIN_BUILD_MODE=release` builds the faster release one beside it.
+On Linux the release build links statically and needs glibc's static
+library, `libc.a`: `libc6-dev` has it on Debian and Ubuntu, and on Fedora
+you install `glibc-static`. The debug build does not need it.
+
+A static `refine` linked against musl and the jemalloc allocator has been
+built once, as a test, and the project does not build or publish one. It
+was built on Alpine 3.24, for x86-64 only, with Alpine's GNAT 15.2 and a
+GPRbuild 26.0.0 built from its sources. The pinned GNAT 16.1 has no musl
+build. Run with jemalloc's thread cache off (`MALLOC_CONF=tcache:false`),
+it passed the whole test program, 1279 of 1279 cases. On the scaling
+corpus it compiled about 6 % slower than the static glibc build. arm64
+was not built.
+
+Making one needs source changes that are not in this repository, so you
+would have to make them yourself: two musl portability fixes in the C
+adapters, about twenty workarounds for GNAT 15.2, the jemalloc link and
+its heap figure, and accepting a musl host triple as Linux. Without the
+last, a `refine` built for musl refuses every compile that does not pass
+`--target=linux-x86-64`. The static glibc archive is the supported way to
+run `refine` on a musl distribution.
 
 This `refine` reads the clone's library, so put its directory on your
 `PATH` rather than copying it elsewhere.
@@ -311,12 +385,16 @@ them is enough:
   takes;
 - `x86_64-linux-gnu-gcc`, on Debian and Ubuntu;
 - `x86_64-redhat-linux-gcc`, on Fedora;
-- `gcc`, which `nix-shell -p gcc` provides on NixOS.
+- `gcc`, which `nix-shell -p gcc` provides on NixOS and `apk add gcc`
+  on Alpine.
 
 On an arm64 machine the names are `aarch64-linux-gnu-gcc`,
 `aarch64-redhat-linux-gcc`, `aarch64-unknown-linux-gnu-gcc` and `gcc`, in
 that order. `--toolchain=NAME` names a driver yourself, and then `refine`
 tries that one alone.
+
+On Alpine, a program that links the C library, with `--link=libc`, also
+needs the `musl-dev` package.
 
 Without one, `refine` names each driver it looked for, in the same order,
 and says what to install. Checking, formatting, the

@@ -108,6 +108,21 @@ for Argument do
     esac
 done
 
+#  A static link has no run path, GPRbuild's -R: glibc's start of a static
+#  position-independent executable asserts that it names none, and kills
+#  the program before main when it does.  The manifest records it with the
+#  caller's switches, so a tree linked with a run path is linked again.
+#  The caller's own switches, before that, are what a reused build is
+#  held to below.
+Asked_Switches="$*"
+if [ "${LANDIN_LINK:-dynamic}" = static ]; then
+    Asked=no
+    for Argument do
+        if [ "$Argument" = -R ]; then Asked=yes; fi
+    done
+    if [ "$Asked" = no ]; then set -- "$@" -R; fi
+fi
+
 #  The switches that can change what GPRbuild produces, for the manifest:
 #  all of the caller's but those that only say how much to print and how
 #  many jobs to run.  The exec directory build.sh adds changes only where
@@ -172,6 +187,7 @@ landin_manifest() {
     Configuration_Identity="$(python3 "$LANDIN_ROOT/scripts/build_config.py" \
         "$Configuration")" || return
     printf 'mode %s tag %s\n' "$LANDIN_BUILD_MODE" "$LANDIN_BUILD_TAG"
+    printf 'link %s\n' "${LANDIN_LINK:-dynamic}"
     printf 'switches %s\n' "$Switches"
     printf 'gnat %s\n' "$Gnat_First"
     printf 'gprbuild %s\n' "$Gpr_First"
@@ -190,7 +206,7 @@ EOF
 }
 
 landin_fixed() {
-    grep -E '^(mode|switches|gnat|gprbuild|toolchain|project) ' <<EOF
+    grep -E '^(mode|link|switches|gnat|gprbuild|toolchain|project) ' <<EOF
 $1
 EOF
 }
@@ -274,7 +290,7 @@ esac
 #  for a full build, the test executable's separate successful-build stamp.
 #  Compiler-only consumers need only refine and its source manifest.
 if [ "$Reuse" = "yes" ]; then
-    if [ "$#" -ne 1 ] || [ "$1" != "-q" ]; then
+    if [ "$Asked_Switches" != "-q" ]; then
         echo "landin: LANDIN_BUILD_REUSE requires build.sh -q" >&2
         exit 2
     fi

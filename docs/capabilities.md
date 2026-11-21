@@ -237,10 +237,24 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   `lib/landin`, each attested by the release workflow; Homebrew's
   `janhaan/tap/landin`, the flake's default package and the one-line
   `install.sh` the site serves install it, the flake's `nix run` runs it,
-  and its `refine` package builds from source. The script picks the
-  host's archive, refuses one whose `.sha256` differs and a host no archive
-  serves, and the gate runs it on all three hosts against its own packaged
-  compiler served as a release would be. The
+  and its `refine` package builds from source. From the release after
+  0.2.11, a release publishes two archives for each Linux architecture
+  (D1791). The static one has the platform's name: its `refine` and its
+  commands are linked statically with glibc (D1787) and run on any Linux,
+  musl distributions and NixOS included, and it carries `LICENSE-GLIBC`
+  and `NOTICE-GLIBC` (D1788). The dynamic one adds `-dynamic` to that
+  name, uses the system's glibc and needs glibc 2.38 and its loader, as
+  the one Linux archive of 0.2.11 and earlier does. Homebrew, the flake
+  and the container image take the static one. A static `refine` linked
+  against musl and jemalloc was tested once and is not published; the
+  README's [From source](../README.md#from-source) says what it took. The
+  script picks the host's archive, on Linux the static one unless
+  `--variant dynamic` asks for the other, refuses one whose `.sha256`
+  differs, a host no archive serves and, rather than refusing hosts by
+  their loader, an archive whose `refine` does not start on the host
+  (D1789). The gate runs it on all three hosts against its own packaged
+  compiler served as a release would be, and runs the packaged static
+  compiler in an empty root and on Alpine (D1790). The
   [README's installing section](../README.md#installing) gives each route.
 - From the release after 0.2.11, a release also publishes two container
   images, each one tag of the version alone holding Linux amd64 and arm64

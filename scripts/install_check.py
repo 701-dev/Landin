@@ -15,8 +15,13 @@ them.  `install.sh`, pointed there by `LANDIN_RELEASES`, then
   HOME, whose `refine run` runs the first program and prints its output;
 - installs the named version into a directory given with `--dir`, and
   replaces it when run again;
+- on Linux, installs the dynamic archive `--variant dynamic` names,
+  served here as the same archive under the dynamic one's name;
 - refuses a damaged archive, saying the checksum differs, and installs
   nothing;
+- refuses an archive whose refine does not start on the host, as one of
+  0.2.11 or earlier does not on a Linux without glibc 2.38 and its
+  loader, saying so and installing nothing;
 - refuses a host no archive serves, a FreeBSD and a Linux RISC-V that a
   `uname` earlier on PATH reports, naming the routes that do serve them;
 - refuses a version the releases do not have.
@@ -35,6 +40,7 @@ every archive the release publishes must be one `install.sh` names, as
 
 import argparse
 import hashlib
+import io
 import http.server
 import json
 import os
@@ -45,6 +51,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import threading
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -52,7 +59,27 @@ SCRIPT = ROOT / "install.sh"
 FIRST_PROGRAM = ROOT / "compiler/tests/fixtures/runtime/first-program"
 DAMAGED = "0.0.1"
 MISSING = "0.0.2"
+UNSTARTABLE = "0.0.3"
 SERVED = "0.0.0"
+
+
+def unstartable_archive():
+    """An archive laid out as a release's whose refine fails to start, as
+    the kernel's refusal of a missing loader does: exit status 127."""
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        for name in ("bin", "lib", "lib/landin"):
+            member = tarfile.TarInfo(name)
+            member.type = tarfile.DIRTYPE
+            member.mode = 0o755
+            archive.addfile(member)
+        body = (b"#!/bin/sh\necho 'refine: cannot execute: required file"
+                b" not found' >&2\nexit 127\n")
+        member = tarfile.TarInfo("bin/refine")
+        member.size = len(body)
+        member.mode = 0o755
+        archive.addfile(member, io.BytesIO(body))
+    return buffer.getvalue()
 
 
 def host_platform():
@@ -65,10 +92,11 @@ def host_platform():
     return "%s-%s" % (machine, system)
 
 
-def publish(root, version, platform, data, digest=None):
-    """Put DATA where a release of VERSION serves PLATFORM's archive, with
-    a .sha256 of DIGEST, or of DATA itself."""
-    name = "landin-%s-%s.tar.gz" % (version, platform)
+def publish(root, version, platform, data, digest=None, suffix=""):
+    """Put DATA where a release of VERSION serves PLATFORM's archive, or
+    its archive with SUFFIX after the platform, with a .sha256 of DIGEST,
+    or of DATA itself."""
+    name = "landin-%s-%s%s.tar.gz" % (version, platform, suffix)
     where = root / "releases" / "download" / ("v" + version)
     where.mkdir(parents=True, exist_ok=True)
     (where / name).write_bytes(data)
@@ -192,6 +220,9 @@ def run_checks(archive, work, version, platform=None, path=None):
     damaged[len(damaged) // 2] ^= 0xFF
     publish(served, DAMAGED, named, bytes(damaged),
             hashlib.sha256(data).hexdigest())
+    publish(served, UNSTARTABLE, named, unstartable_archive())
+    if named.endswith("-linux"):
+        publish(served, version, named, data, suffix="-dynamic")
     server = serve(served, version)
     path = path or os.environ.get("PATH", "/usr/bin:/bin")
     checks = Checks(work, "http://127.0.0.1:%d/releases"
@@ -224,6 +255,16 @@ def run_checks(archive, work, version, platform=None, path=None):
                 == ["landin"]):
             checks.ok(what)
 
+        if named.endswith("-linux"):
+            dynamic = work / "dynamic"
+            what = "the dynamic archive --variant dynamic names"
+            ran = checks.install(*chosen, "--variant", "dynamic", "--dir",
+                                 str(dynamic))
+            if (checks.expect(what, ran, 0, "-dynamic.tar.gz",
+                              "installed refine %s in %s" % (version, dynamic))
+                    and checks.first_program(dynamic, what)):
+                checks.ok(what)
+
         stranger = work / "stranger"
         stranger.mkdir()
         (stranger / "notes.txt").write_text("mine\n")
@@ -245,6 +286,20 @@ def run_checks(archive, work, version, platform=None, path=None):
                 and not any(p.name.startswith(".landin-install")
                             for p in work.iterdir())):
             checks.ok(what)
+
+        #  Only for the host's own archive: with --platform the script
+        #  installs what it is asked for, which need not start here.
+        if platform is None:
+            unstartable = work / "unstartable"
+            what = "an archive whose refine does not start here"
+            ran = checks.install("--version", UNSTARTABLE, "--dir",
+                                 str(unstartable))
+            if (checks.expect(what, ran, 1, "does not start on this host",
+                              "nothing was installed",
+                              "required file not found",
+                              "nix profile install")
+                    and not unstartable.exists()):
+                checks.ok(what)
 
         what = "a version the releases do not have"
         ran = checks.install(*chosen, "--version", MISSING, "--dir",
@@ -282,8 +337,8 @@ def published_check(tag):
     failures = ["install.sh names %s, which v%s does not publish"
                 % (name, version) for name in listed if name not in assets]
     archives = {name for name in assets
-                if re.fullmatch(r"landin-[0-9.]+-[a-z0-9_]+-[a-z]+\.tar\.gz",
-                                name)}
+                if re.fullmatch(r"landin-[0-9.]+-[a-z0-9_]+-[a-z]+"
+                                r"(-dynamic)?\.tar\.gz", name)}
     failures += ["v%s publishes %s, which install.sh does not name"
                  % (version, name) for name in sorted(archives - set(listed))]
     return len(listed), failures

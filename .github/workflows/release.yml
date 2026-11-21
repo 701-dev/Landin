@@ -1,6 +1,9 @@
 #  Publish `refine` for the platforms the pins carry a checksum for.
 #
 #  Linux x86-64, Linux arm64 and macOS arm64, each built on its own host.
+#  Each Linux host publishes two archives: the static one, glibc linked in,
+#  under the platform's name, and the dynamic one beside it as
+#  landin-VERSION-PLATFORM-dynamic.tar.gz (D1791).
 #  A consuming project should not have to build a compiler to use one, and
 #  should not have to fetch a 383 MB toolchain to get a 20 MB program. The
 #  flake's source build stays what it is; this is the fast path beside it.
@@ -159,11 +162,12 @@ jobs:
           "$HOME/landin-toolchain/gnat-$LANDIN_GNAT_VERSION/bin/gnat" --version | head -1
 
       #  Release mode: a consumer wants the compiler, not its assertions.
-      #  -R is GPRbuild's "no run path": without it the Linux binary carried
-      #  an RPATH into the runner's build and toolchain trees, and RPATH is
-      #  searched before the system directories, so an installed refine
-      #  would look for libc beside wherever it was unpacked.  It needs
-      #  none: only the C library and the loader are NEEDED.
+      #  On Linux it links glibc in statically (D1787), so the archive runs
+      #  on any Linux, musl and NixOS ones and a glibc older than the
+      #  runner's among them.  -R is GPRbuild's "no run path", which
+      #  build.sh adds to a static link itself: glibc's static start kills
+      #  an executable that names one.  On Darwin it keeps an installed
+      #  refine from looking beside wherever the runner built it.
       - name: Build refine
         env:
           LANDIN_BUILD_MODE: release
@@ -237,6 +241,15 @@ jobs:
               echo "refine carries a run path" >&2
               exit 1
             fi
+            #  Static: no program interpreter and no shared library, a
+            #  tag older than D1787 excepted, whose build was dynamic.
+            if grep -q 'LANDIN_LINK' scripts/env.sh; then
+              if readelf -lW "$binary" | grep -q INTERP \
+                || readelf -d "$binary" | grep -q NEEDED; then
+                echo "refine is not linked statically" >&2
+                exit 1
+              fi
+            fi
           fi
 
       - name: Package it
@@ -267,6 +280,23 @@ jobs:
               "$unpacked/bin/refine" "$name" --describe > /dev/null
             done
           fi
+          #  The Linux archive where no glibc is: alone in an empty root, and
+          #  installed by install.sh on the pinned Alpine, running the first
+          #  program and the --link=libc fixtures against musl (D1790), as
+          #  the gate's release jobs run it on the same build.
+          if [ "$RUNNER_OS" = Linux ] && [ -f scripts/static_check.py ]; then
+            ./scripts/ci_packages.sh bubblewrap
+            if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+              sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+            fi
+            (
+              . ./environments/pins.sh
+              landin_fetch_alpine "$RUNNER_TEMP/alpine" '${{ matrix.platform }}'
+              python3 scripts/static_check.py --archive "$asset" \
+                --alpine "$RUNNER_TEMP/alpine/alpine-$LANDIN_ALPINE_VERSION" \
+                --work "$RUNNER_TEMP/static"
+            )
+          fi
           for file in "$asset" "$debug"; do
             sum=$(shasum -a 256 "$file" | cut -d' ' -f1)
             printf '%s  %s\n' "$sum" "$file" > "$file.sha256"
@@ -286,6 +316,75 @@ jobs:
             ${{ steps.package.outputs.asset }}.sha256
             ${{ steps.package.outputs.debug }}
             ${{ steps.package.outputs.debug }}.sha256
+
+      #  The dynamic Linux archive beside the static one (D1791): the same
+      #  tree linked against the runner's glibc, in a build tree of its own,
+      #  so a user who wants the system's glibc and its fixes has it.  It
+      #  needs glibc 2.38 or later and its loader.  A tag older than the
+      #  static archive builds no second one.
+      - name: Build, check and package the dynamic Linux archive
+        if: runner.os == 'Linux'
+        id: dynamic
+        env:
+          LANDIN_BUILD_MODE: release
+          LANDIN_BUILD_VARIANT: dynamic
+          LANDIN_LINK: dynamic
+          TAG: ${{ inputs.tag || github.ref_name }}
+          REHEARSE: ${{ inputs.rehearse }}
+        run: |
+          set -eu
+          if ! grep -q 'LANDIN_LINK' scripts/env.sh; then
+            exit 0
+          fi
+          ./scripts/build.sh -j4 -R --compiler-only
+          version=$(sed -n 's/^\*\*Status: version \([0-9][0-9.]*\)\..*/\1/p' README.md | head -1)
+          binary="compiler/ada/build/${{ matrix.build }}.dynamic/release/bin/refine"
+          named="refine $version"
+          if [ "$REHEARSE" = true ]; then
+            named="refine dev ($(git rev-parse HEAD | cut -c1-8))"
+          fi
+          test "$("$binary" version | sed -n 1p)" = "$named"
+          readelf -lW "$binary" | grep -q INTERP
+          if readelf -d "$binary" | grep -qE 'RPATH|RUNPATH'; then
+            echo "the dynamic refine carries a run path" >&2
+            exit 1
+          fi
+          for target in linux-x86-64 linux-arm64 darwin-arm64; do
+            "$binary" compile --target="$target" --emit=asm -o "$RUNNER_TEMP/smoke.s" \
+              compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn
+            grep -q main "$RUNNER_TEMP/smoke.s"
+          done
+          python3 compiler/tests/test_default_target.py --refine "$binary"
+          asset="landin-$version-${{ matrix.platform }}-dynamic.tar.gz"
+          debug="landin-$version-${{ matrix.platform }}-dynamic-debug.tar.gz"
+          ./scripts/package.sh --debug "$debug" "$binary" "$asset"
+          unpacked="$RUNNER_TEMP/unpacked-dynamic"
+          rm -rf "$unpacked"
+          mkdir -p "$unpacked"
+          tar -xzf "$asset" -C "$unpacked"
+          test ! -e "$unpacked/NOTICE-GLIBC"
+          "$unpacked/bin/refine" version
+          for name in $(python3 scripts/build_identity.py --root . --split-commands | cut -d' ' -f1); do
+            "$unpacked/bin/refine" "$name" --help > /dev/null
+          done
+          for file in "$asset" "$debug"; do
+            sum=$(shasum -a 256 "$file" | cut -d' ' -f1)
+            printf '%s  %s\n' "$sum" "$file" > "$file.sha256"
+            ls -l "$file"
+            cat "$file.sha256"
+          done
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+          echo "debug=$debug" >> "$GITHUB_OUTPUT"
+
+      - if: steps.dynamic.outputs.asset != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: archive-${{ matrix.platform }}-dynamic
+          path: |
+            ${{ steps.dynamic.outputs.asset }}
+            ${{ steps.dynamic.outputs.asset }}.sha256
+            ${{ steps.dynamic.outputs.debug }}
+            ${{ steps.dynamic.outputs.debug }}.sha256
 
   #  The user image of each Linux archive, built from the archive alone on
   #  its own platform's runner and checked there as a reader would use it;
