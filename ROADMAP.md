@@ -1354,7 +1354,7 @@ filed for refusals met on the way.
 
 ### R19.40 — The migration aid
 
-Status: planned
+Status: active
 Depends on: R19.10
 
 A `refine fix` rewrite for every accepted change that is mechanical, and a
