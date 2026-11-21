@@ -3886,6 +3886,331 @@ package body Landin.Stages.Lowering is
          end case;
       end Shaped_Temporary;
 
+      --  D1827 (SC-26): an aggregate value assigned to a place is formed
+      --  as if before the place changes, and is written there directly
+      --  only where nothing shows that its evaluation can observe the
+      --  place.  This answers whether a written array literal, mixed
+      --  repetition or struct construction may be built in its
+      --  destination.  Any other value keeps its own rule: a name is
+      --  copied, `[n of v]` evaluates its one expression before the
+      --  fill, D209 retains its operands, and a call or control value
+      --  is built apart already.
+      --
+      --  What may reach the destination depends on how it is reached.  A
+      --  local binding or named return whose address its routine never
+      --  takes is reached only by its own name: a frame address cannot
+      --  outlive the frame in other storage, a named result is its own
+      --  slot until an exit commits it (D116), and a parameter taken by
+      --  value is the callee's own copy (D95).  Module storage, and a
+      --  local or named return whose address is taken, are reached as well
+      --  by a call and by a read through a pointer, slice or inout
+      --  parameter.  Any other destination, one reached through a
+      --  reference among them, may also be the storage of any other module
+      --  binding, or local or named return whose address is taken.  The
+      --  value is built apart when it holds such a read, its own root's
+      --  name outside an `addr` that selects without computing, a name
+      --  aliasing storage that may be the destination, or an exit that
+      --  would leave it part written.
+      function Writes_In_Place
+        (Of_Tree : Syn.Tree; Place, Value : Syn.Node_Id) return Boolean;
+
+      function Writes_In_Place
+        (Of_Tree : Syn.Tree; Place, Value : Syn.Node_Id) return Boolean
+      is
+         type Reach is (By_Name, Shared, Unknown);
+
+         function Is_Bound_Root (Node : Syn.Node_Id) return Boolean is
+           (Syn.Kind (Of_Tree, Node)
+              in Syn.Name_Reference | Syn.Member_Selection
+            and then Res.Verdict_Of (Meanings.all, Of_Tree, Node)
+              = Res.Bound);
+
+         function Root_Of (Node : Syn.Node_Id) return Syn.Node_Id;
+
+         function Root_Of (Node : Syn.Node_Id) return Syn.Node_Id is
+            Where : Syn.Node_Id := Node;
+         begin
+            while Syn.Kind (Of_Tree, Where)
+                in Syn.Member_Selection | Syn.Element_Index
+              and then not Is_Bound_Root (Where)
+            loop
+               Where := Syn.Target_Of (Of_Tree, Where);
+            end loop;
+            return Where;
+         end Root_Of;
+
+         function Same_Root (Left, Right : IR.Storage) return Boolean is
+           (Left.Kind = IR.Runtime_Address
+            or else Right.Kind = IR.Runtime_Address
+            or else (Left.Kind = Right.Kind
+                     and then (case Left.Kind is
+                        when IR.Frame_Slot => Left.Slot = Right.Slot,
+                        when IR.Module_Datum => Left.Datum = Right.Datum,
+                        when IR.Runtime_Address => True)));
+
+         --  Whether the routine declaring a local takes its address,
+         --  which lets a pointer reach it.  Its uses follow it in
+         --  post-order up to the routine that encloses it.
+         function Address_Taken (Local : Res.Declaration_Id) return Boolean;
+
+         function Address_Taken (Local : Res.Declaration_Id) return Boolean
+         is
+            Their_Tree : constant not null access constant Syn.Tree :=
+              Tree_For (Res.Source_Of (Meanings.all, Local));
+            Declared_At : constant Syn.Node_Id :=
+              Res.Node_Of (Meanings.all, Local);
+            Declared_Span : constant Landin.Source.Span :=
+              Syn.Where (Their_Tree.all, Declared_At);
+         begin
+            for Node in Declared_At .. Syn.Last_Node (Their_Tree.all) loop
+               case Syn.Kind (Their_Tree.all, Node) is
+                  when Syn.Function_Declaration | Syn.Anonymous_Function =>
+                     exit when Landin.Source.Contains
+                       (Syn.Where (Their_Tree.all, Node), Declared_Span);
+                  when Syn.Address_Of =>
+                     declare
+                        Taken : Syn.Node_Id :=
+                          Syn.Operand_Of (Their_Tree.all, Node);
+                     begin
+                        while Syn.Kind (Their_Tree.all, Taken)
+                            in Syn.Member_Selection | Syn.Element_Index
+                                 | Syn.Inclusive_Slice
+                                 | Syn.Half_Open_Slice
+                        loop
+                           Taken := Syn.Target_Of (Their_Tree.all, Taken);
+                        end loop;
+                        if Syn.Kind (Their_Tree.all, Taken)
+                             = Syn.Name_Reference
+                          and then Res.Verdict_Of
+                            (Meanings.all, Their_Tree.all, Taken) = Res.Bound
+                          and then Res.Bound_To
+                            (Meanings.all, Their_Tree.all, Taken) = Local
+                        then
+                           return True;
+                        end if;
+                     end;
+                  when others =>
+                     null;
+               end case;
+            end loop;
+            return False;
+         end Address_Taken;
+
+         Root : constant Syn.Node_Id := Root_Of (Place);
+         Destination : constant Res.Declaration_Id :=
+           (if Is_Bound_Root (Root)
+            then Res.Bound_To (Meanings.all, Of_Tree, Root)
+            else Res.No_Declaration);
+
+         Known : Boolean := False;
+         Reached_As : Reach := Unknown;
+
+         --  How the destination can be reached, asked only of a value
+         --  that holds a read it could matter to.
+         function Reached return Reach;
+
+         function Reached return Reach is
+         begin
+            if not Known then
+               Known := True;
+               if Destination = Res.No_Declaration
+                 or else Has_Reference_Storage (Of_Tree, Place)
+                 or else Aliases (Declared (Destination)).Active
+               then
+                  Reached_As := Unknown;
+               else
+                  case Res.Sort_Of (Meanings.all, Destination) is
+                     when Res.Module_Binding =>
+                        Reached_As := Shared;
+                     when Res.Local_Binding | Res.Named_Return =>
+                        Reached_As :=
+                          (if Address_Taken (Destination) then Shared
+                           else By_Name);
+                     when others =>
+                        Reached_As := Unknown;
+                  end case;
+               end if;
+            end if;
+            return Reached_As;
+         end Reached;
+
+         --  Whether a name other than the destination's may name its
+         --  storage.
+         function May_Share (Means : Res.Declaration_Id) return Boolean;
+
+         function May_Share (Means : Res.Declaration_Id) return Boolean is
+         begin
+            case Res.Sort_Of (Meanings.all, Means) is
+               when Res.Module_Binding =>
+                  return Reached = Unknown;
+               when Res.Local_Binding | Res.Named_Return =>
+                  return Reached = Unknown and then Address_Taken (Means);
+               when others =>
+                  return False;
+            end case;
+         end May_Share;
+
+         --  Whether a place's selections pass through a pointer or a
+         --  slice, so that forming its address reads stored contents.  An
+         --  inout parameter's own address is in its frame slot.
+         function Dereferences (Taken : Syn.Node_Id) return Boolean;
+
+         function Dereferences (Taken : Syn.Node_Id) return Boolean is
+            Where : Syn.Node_Id := Taken;
+         begin
+            while Syn.Kind (Of_Tree, Where)
+                in Syn.Member_Selection | Syn.Element_Index
+              and then not Is_Bound_Root (Where)
+            loop
+               if Syn.Kind (Of_Tree, Where) = Syn.Element_Index
+                 and then Type_At (Of_Tree, Syn.Target_Of (Of_Tree, Where))
+                   = Ty.Slice_Value
+               then
+                  return True;
+               elsif Syn.Kind (Of_Tree, Where) = Syn.Member_Selection
+                 and then Landin.Checking.Field_Index
+                   (Types.all, Of_Tree, Where) = 0
+                 and then Type_At (Of_Tree, Syn.Target_Of (Of_Tree, Where))
+                   = Ty.Pointer_Value
+               then
+                  return True;
+               end if;
+               Where := Syn.Target_Of (Of_Tree, Where);
+            end loop;
+            return False;
+         end Dereferences;
+
+         --  Whether a call runs code: a conversion to a type, written or
+         --  named, and a construction run none.
+         function Runs_Code (Call : Syn.Node_Id) return Boolean;
+
+         function Runs_Code (Call : Syn.Node_Id) return Boolean is
+            Callee : constant Syn.Node_Id := Syn.Callee_Of (Of_Tree, Call);
+         begin
+            return Conversion_Scalar (Of_Tree, Call) not in Ty.Scalar_Name
+              and then not Is_Struct_Construction (Of_Tree, Call)
+              and then not Is_Case_Construction (Of_Tree, Call)
+              and then not Is_Code_Conversion (Of_Tree, Call)
+              and then not Is_Written_Head (Of_Tree, Callee)
+              and then not
+                (Syn.Kind (Of_Tree, Callee)
+                   in Syn.Name_Reference | Syn.Member_Selection
+                 and then Res.Verdict_Of (Meanings.all, Of_Tree, Callee)
+                   = Res.Bound
+                 and then Res.Sort_Of
+                   (Meanings.all, Res.Bound_To (Meanings.all, Of_Tree, Callee))
+                     = Res.Module_Type);
+         end Runs_Code;
+
+         Literal : constant Boolean :=
+           Syn.Kind (Of_Tree, Value)
+             in Syn.Array_Literal | Syn.Mixed_Array_Repetition
+           or else Is_Struct_Construction (Of_Tree, Value);
+         Outer : constant Landin.Source.Span := Syn.Where (Of_Tree, Value);
+         Node : Syn.Node_Id := Value;
+         Skipping : Boolean := False;
+         Skipped : Landin.Source.Span;
+      begin
+         if not Literal then
+            return True;
+         end if;
+
+         --  A node's descendants are the nodes just before it in
+         --  post-order, each inside its extent, so an ancestor is met
+         --  before what it contains.
+         loop
+            declare
+               Here : constant Landin.Source.Span :=
+                 Syn.Where (Of_Tree, Node);
+            begin
+               exit when Node /= Value
+                 and then not Landin.Source.Contains (Outer, Here);
+               if Skipping and then Landin.Source.Contains (Skipped, Here)
+               then
+                  null;
+               else
+                  Skipping := False;
+                  case Syn.Kind (Of_Tree, Node) is
+                     when Syn.Address_Of =>
+                        --  The address of a place selected without an
+                        --  index or a pointer reads none of its contents.
+                        declare
+                           Taken : constant Syn.Node_Id :=
+                             Syn.Operand_Of (Of_Tree, Node);
+                        begin
+                           if Syn.Kind (Of_Tree, Taken)
+                                in Syn.Name_Reference
+                                   | Syn.Member_Selection
+                             and then not Has_Computed_Index
+                               (Of_Tree, Taken)
+                             and then not Dereferences (Taken)
+                           then
+                              Skipping := True;
+                              Skipped := Syn.Where (Of_Tree, Taken);
+                           end if;
+                        end;
+                     when Syn.Name_Reference | Syn.Member_Selection
+                        | Syn.Element_Index =>
+                        if Is_Bound_Root (Node) then
+                           declare
+                              Means : constant Res.Declaration_Id :=
+                                Res.Bound_To (Meanings.all, Of_Tree, Node);
+                           begin
+                              if Destination = Res.No_Declaration
+                                or else Means = Destination
+                              then
+                                 return False;
+                              elsif Aliases (Declared (Means)).Active then
+                                 if Aliases (Declared (Destination)).Active
+                                   or else Same_Root
+                                     (Aliases (Declared (Means)).Source,
+                                      Storage_For (Of_Tree, Root))
+                                 then
+                                    return False;
+                                 end if;
+                              elsif Type_At (Of_Tree, Node)
+                                      in Ty.Aggregate | Ty.Fixed_Array
+                                and then May_Share (Means)
+                              then
+                                 --  Only an aggregate or an array holds
+                                 --  another's storage within its own.
+                                 return False;
+                              end if;
+                           end;
+                        end if;
+                        if Has_Reference_Storage (Of_Tree, Node)
+                          and then Reached /= By_Name
+                        then
+                           return False;
+                        end if;
+                     when Syn.Call =>
+                        if Runs_Code (Node) and then Reached /= By_Name
+                        then
+                           return False;
+                        end if;
+                     when Syn.Labeled_Application =>
+                        if not Is_Struct_Construction (Of_Tree, Node)
+                          and then not Is_Case_Construction (Of_Tree, Node)
+                          and then Reached /= By_Name
+                        then
+                           return False;
+                        end if;
+                     when Syn.Try_Expression | Syn.Recovery_Clause
+                        | Syn.Break_Statement | Syn.Continue_Statement
+                        | Syn.Return_Statement | Syn.Fail_Statement =>
+                        --  The value would be left part written.
+                        return False;
+                     when others =>
+                        null;
+                  end case;
+               end if;
+            end;
+            exit when Node = 1;
+            Node := Node - 1;
+         end loop;
+         return True;
+      end Writes_In_Place;
+
       function Child_Place
         (Parent : Stored_Place; Field : Positive; Which : Natural := 0)
          return Stored_Place;
@@ -14908,6 +15233,37 @@ package body Landin.Stages.Lowering is
                procedure Lower_Assignment_Statement;
 
                procedure Lower_Assignment_Statement is
+                  --  D1827: a literal that may observe its destination is
+                  --  formed in a temporary of the destination's shape and
+                  --  copied there once it is complete.
+                  procedure Write_Assigned
+                    (Place, Value : Syn.Node_Id;
+                     Shape        : IR.Field_Shape;
+                     Into         : Stored_Place);
+
+                  procedure Write_Assigned
+                    (Place, Value : Syn.Node_Id;
+                     Shape        : IR.Field_Shape;
+                     Into         : Stored_Place) is
+                  begin
+                     if Writes_In_Place (Of_Tree, Place, Value) then
+                        Write_Shaped_Value
+                          (Of_Tree, Value, Scope, Shape, Into);
+                     else
+                        declare
+                           Built : constant Stored_Place :=
+                             Stored_At
+                               ((Kind => IR.Frame_Slot,
+                                 Slot => Shaped_Temporary (Shape, Site)));
+                        begin
+                           Write_Shaped_Value
+                             (Of_Tree, Value, Scope, Shape, Built);
+                           if Current /= IR.No_Block then
+                              Copy_Shaped_Storage (Built, Into, Shape, Site);
+                           end if;
+                        end;
+                     end if;
+                  end Write_Assigned;
                begin
                   --  [0390]/[0410]: form the destination address and read
                   --  its old scalar value before the right-hand side.
@@ -15689,13 +16045,13 @@ package body Landin.Stages.Lowering is
                               end;
                            end if;
                         elsif Is_Struct_Construction (Of_Tree, From) then
-                           Write_Struct_Literal
-                             (From,
-                              Landin.Checking.Nominal_Of
-                                (Types.all, Of_Tree, Place),
-                              Destination,
-                              Base  => Parent_Field,
-                              Steps => Parent_Steps);
+                           Write_Assigned
+                             (Place, From,
+                              Neutral_Body
+                                (Landin.Checking.Nominal_Of
+                                   (Types.all, Of_Tree, Place)),
+                              Stored_At
+                                (Destination, Parent_Field, Parent_Steps));
                         elsif Syn.Kind (Of_Tree, From) = Syn.Zeroed_Literal
                         then
                            --  D58 clears a direct aggregate and D91 clears
@@ -15770,8 +16126,11 @@ package body Landin.Stages.Lowering is
                                           end if;
                                        end;
                                     else
-                                       Write_Array_Value
-                                         (Value, Into, Field => 0);
+                                       Write_Assigned
+                                         (Place, Value,
+                                          Neutral_Value_Shape
+                                            (Of_Tree, Value),
+                                          Stored_At (Into));
                                     end if;
                                  end;
                               end if;
@@ -15852,9 +16211,11 @@ package body Landin.Stages.Lowering is
                                  --  D49--D53/D65 and D90 share one
                                  --  field-qualified lowering rule for each
                                  --  contextual array value.
-                                 Write_Array_Value
-                                   (Value, Destination, Field,
-                                    Path => Child_Steps);
+                                 Write_Assigned
+                                   (Place, Value,
+                                    Neutral_Value_Shape (Of_Tree, Value),
+                                    Stored_At
+                                      (Destination, Field, Child_Steps));
                               end if;
                            end;
                         end if;

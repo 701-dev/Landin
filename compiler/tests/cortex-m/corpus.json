@@ -1338,6 +1338,9 @@
     "runtime/add-exits-with-its-sum": {
       "mode": "execute"
     },
+    "runtime/aggregate-assignment-reads-old-value-through-aliases": {
+      "mode": "execute"
+    },
     "runtime/aggregate-results-across-branches": {
       "mode": "execute"
     },
@@ -1457,7 +1460,7 @@
     "runtime/array-lent-to-slice": {
       "mode": "execute"
     },
-    "runtime/array-literal-assignment-is-source-ordered": {
+    "runtime/array-literal-assignment-reads-old-value": {
       "mode": "execute"
     },
     "runtime/array-of-structs": {
@@ -3463,7 +3466,7 @@
     "runtime/minimum-remainder-minus-one-is-zero": {
       "mode": "execute"
     },
-    "runtime/mixed-array-repetition-assignment-is-source-ordered": {
+    "runtime/mixed-array-repetition-assignment-reads-old-value": {
       "mode": "execute"
     },
     "runtime/mixed-array-repetition-is-source-ordered": {

@@ -23,12 +23,12 @@ public main: () -> (code: i32) =
     local.tail = 702
     local.row = [local.row[1], local.row[0], local.row[0] + local.row[1]]
 
-    if state.tag == 7 and state.row[0] == 20 and state.row[1] == 20
-      and state.row[2] == 40
+    if state.tag == 7 and state.row[0] == 20 and state.row[1] == 10
+      and state.row[2] == 30
       and state.sibling[0] == 90 and state.sibling[1] == 91
       and state.tail == 701
-      and local.tag == 8 and local.row[0] == 21 and local.row[1] == 21
-      and local.row[2] == 42
+      and local.tag == 8 and local.row[0] == 21 and local.row[1] == 11
+      and local.row[2] == 32
       and local.sibling[0] == 92 and local.sibling[1] == 93
       and local.tail == 702
     then

@@ -91,7 +91,7 @@ public main: () -> (code: i32) =
       and cases_ok and static_ok and recovered.second == 6
       and recovered.third == 6 and refs.first.val == 17
       and refs.second.val == 17 and functions.first(5) == 6
-      and functions.second(8) == 9 and state.second == 11
-      and state.third == 11
+      and functions.second(8) == 9 and state.second == 1
+      and state.third == 1
            then 42 else 1 end if
 end main

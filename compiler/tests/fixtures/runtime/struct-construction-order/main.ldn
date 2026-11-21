@@ -9,7 +9,7 @@ copy: point = origin
 public main: () -> (code: i32) =
     mut here: point = point(x: 1, y: 2)
     here = point(x: here.y, y: here.x)
-    if here.x == 2 and here.y == 2
+    if here.x == 2 and here.y == 1
       and origin.x == 10 and origin.y == 20
       and copy.x == 10 and copy.y == 20
     then

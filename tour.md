@@ -2310,11 +2310,17 @@ next = [grid[0], grid[1], grid[2], grid[3]]
 ```
 
 **Assigning a literal.** Assigning a literal to an existing array, as
-`next = [...]` does, fills the array in place, in written order. Each
-element is evaluated and stored before the next one starts, and no hidden
-temporary copy is made. Two things follow: a later element sees an earlier
-write, and a failure part-way leaves the written prefix changed. The
-repeated forms of [0560] fill in the same order.
+`next = [...]` does, evaluates the elements in written order, and each one
+reads the array as it was before the assignment: `row = [row[1], row[0]]`
+swaps two elements. The array changes only once the whole value is formed,
+so an element that fails, or leaves through an `else`, leaves it as it was.
+The repeated forms of [0560] and struct literals [0710] follow the same
+rule. When nothing in the literal can observe the destination, the compiler
+writes straight into it. When something can, because the literal reads the
+destination, reads through a pointer or calls something that could reach
+it, the value is built in a temporary the size of the destination and
+copied once. That copy is a visible cost, in the frame, like the copies
+whole-array arithmetic makes ([0590]).
 
 **The length.** The length must be a constant the compiler works out without
 running anything. You may write:

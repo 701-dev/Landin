@@ -5700,6 +5700,11 @@ assignment and evaluation decision. Both were declined.
 
 ### D29 — Array literal assignment forms the value in its destination
 
+**Write order superseded by D1827.** The contextual literal assignment and
+its definite-assignment rule stand. Its elements no longer see earlier
+writes of the same statement, and a failure leaves the array unchanged; the
+reasoning below is retained as history.
+
 **The tour said** that assignment copies an array [0520], that an assignment
 evaluates its destination place before its value [0410], and that aggregate
 parts initialize in written order. D20 admitted only a direct storage name as
@@ -5754,7 +5759,78 @@ array in every frame and a second full traversal. It was declined.
 `negative/array-literal-assignment-length-mismatch`,
 `negative/array-literal-assignment-element-mismatch`,
 `negative/array-literal-assignment-reads-incoming-state`, and
-`runtime/array-literal-assignment-is-source-ordered` on Linux x86-64.
+`runtime/array-literal-assignment-reads-old-value` on Linux x86-64.
+
+### D1827 — An assigned aggregate is formed as if before its destination changes
+
+**The tour said** at [0410] that an assignment evaluates its destination
+before its value, at [0520] that assigning a literal to an existing array
+fills it in place in written order, so that a later element sees an earlier
+write, and at [0590] that whole-array arithmetic copies by value. D29 and
+the decisions that extended it (D37, D52, D53, D64, D65) wrote each element
+or field as it was evaluated, while D209 retained every array operand before
+the first write. `row = [row[1], row[0]]` therefore did not swap, and
+`row = -row` and `row = [row[1], row[0]] + zero` did different things to one
+array.
+
+**Chosen:** one rule for every aggregate value assigned to a place. The
+destination is reached first, as [0410] says. The value is then evaluated in
+its own written order, labels and elements left to right and a fill after
+them, and every read in it sees the destination as it was before the
+assignment. The destination changes only when the value is complete: a
+failure that leaves the value, an `else` that breaks out of a loop, a
+`return` or a propagated error, leaves the destination as it was. A trap
+does not return, and what a panic handler finds in the destination is not
+specified.
+
+The rule holds for a written array literal, a mixed repetition and a struct
+construction assigned to an existing place, whatever selects the place.
+`[n of v]` evaluates its one expression before it writes, a name is copied,
+a call or control value is formed in its own storage, and D209 retains its
+operands, so each of them already meets it. A binding's initializer writes
+storage that no expression can yet read.
+
+**How it costs nothing where nothing overlaps:** lowering still writes each
+element into the destination as it is evaluated when nothing shows that the
+value can observe the destination; otherwise it builds the value in a
+temporary of the destination's shape and copies it once. Overlap is shown by
+a name of the destination's root in the value, except inside an `addr` that
+selects without an index or a pointer; by a match or destructuring alias that
+may hold the destination's storage; by an exit or `try` inside the value;
+and, by how the destination is reached, by further reads. A local binding
+or a named return whose address its routine never takes is reached only by
+its name: a frame address cannot be kept in storage that outlives the frame
+([0770]), a named result is its own slot until an exit commits it (D116),
+and a parameter taken by value is the callee's own copy (D95). Module
+storage, and a local or named return whose address is taken, are reached as
+well by a call and by a read through a pointer, a slice or an inout
+parameter. Any other destination, one reached through a pointer or an inout
+parameter among them, may also be any other module binding, or any local or
+named return whose address is taken, of aggregate or array type. A
+construction or a conversion to a type is not a call. The temporary is
+visible in the frame and its copy is one compact operation, as D209's
+snapshots are.
+
+**The alternatives:** D29's immediate writes, which make a literal that
+reads its destination mean something no reader expects and differ from
+D209's operators; a temporary for every assigned aggregate, which costs a
+frame-sized copy where nothing can overlap; and refusing a literal that
+reads its destination, which refuses the swap the rule exists for and still
+needs an answer for reads through pointers. All were declined. The
+maintainer took SC-26 as its own change on 2026-11-21 (D1653).
+
+**Pinned by** `runtime/array-literal-assignment-reads-old-value`,
+`runtime/mixed-array-repetition-assignment-reads-old-value`,
+`runtime/struct-array-field-literal-assignment-order`,
+`runtime/struct-array-field-repetition-assignment-order`,
+`runtime/struct-literal-order-and-fill`, `runtime/struct-construction-order`,
+`runtime/struct-literal-array-field-order`, `runtime/r490-generic-field-fill`,
+the lowering case `self-reading literals form apart`, and
+`runtime/aggregate-assignment-reads-old-value-through-aliases`, whose
+program swaps through a pointer, an inout parameter aliasing a module
+binding, a by-value argument that is also the inout destination, and a
+struct, and
+leaves a loop from an element's `else`.
 
 ### D30 — Zeroed assignment clears one complete array place
 
@@ -6144,6 +6220,10 @@ public-seam cases; `positive/local-array-mixed-repetition`;
 
 ### D37 — A mixed prefix may assign a mutable fixed array
 
+**Write order superseded by D1827.** The admission, its prefix bound and
+its definite-assignment rule stand; the prefix and the repeated expression
+read the array as it was before the assignment.
+
 **The tour said** that assignment reaches its destination before evaluating its
 right-hand side [0410], that a mutable binding may be assigned [1900], and that
 mixed repetition evaluates and stores its prefix before evaluating one repeated
@@ -6200,7 +6280,7 @@ fill transient rather than the destination operation. It was declined.
 `negative/array-mixed-repetition-assignment-prefix-too-long`,
 `negative/array-mixed-repetition-assignment-reads-incoming-state`, the retained
 initializer, inferred, nested and general-value refusal fixtures; and
-`runtime/mixed-array-repetition-assignment-is-source-ordered` on Linux x86-64.
+`runtime/mixed-array-repetition-assignment-reads-old-value` on Linux x86-64.
 
 ### D38 — A typed module mixed repetition has a compact hybrid image
 
@@ -7088,7 +7168,7 @@ including overflow traps, wrapping, division failures and IEEE values. An
 assignment evaluates its destination first and cannot overwrite an operand
 snapshot. Compound arithmetic assignment evaluates its place once, retains the
 old array value, then evaluates the right operand and applies the same rule.
-This does not change [0520]'s direct formation of a written array literal.
+D1827 gives an assigned array literal the same by-value meaning.
 Known-operand refusals still apply where the scalar rule requires them.
 Retaining an operand's value does not require copying it when its storage
 remains stable through the other operand's evaluation and the scalar loop.
@@ -8778,6 +8858,9 @@ dump; and `runtime/local-array-initializers-from-fields` on Linux x86-64.
 
 ### D52 — An array literal may be assigned to a fixed-array field
 
+**Write order superseded by D1827.** The field admission stands; a later
+element no longer observes an earlier write to the field.
+
 **The tour said** that assignment reaches its destination before its value
 [0410], that an array has its complete value [0520], that aggregate parts are
 initialized in written order, that a struct has its declared fields [0670], and
@@ -8906,6 +8989,10 @@ field in the same position are already lent.
 `negative/array-field-inout-beside-its-view`.
 
 ### D53 — Repetition may assign a fixed-array field compactly
+
+**Write order superseded by D1827.** The compact fill stands; a mixed
+prefix and its repeated expression read the field as it was before the
+assignment.
 
 **The tour said** that full repetition evaluates one scalar pattern [0560],
 that mixed repetition evaluates and stores its prefix before evaluating the
@@ -9620,6 +9707,10 @@ form.
 
 ### D64 — A labelled struct literal writes contextual local storage
 
+**Write order superseded by D1827.** Labels are still evaluated in written
+order and the fill after them, but an assigned literal's expressions read
+the struct as it was before the assignment.
+
 **The tour said** that an ordinary struct image names fields in parentheses
 [0710], that their written order determines evaluation [0410], and that a
 trailing `of` supplies fields not written individually [0720]. D63 first gave
@@ -9710,6 +9801,10 @@ token and IR records; and `runtime/struct-literal-order-and-fill` on Linux
 x86-64.
 
 ### D65 — A label is its field's contextual destination
+
+**Write order superseded by D1827.** Each label is still its field's
+contextual destination; a later label no longer observes an earlier
+labelled write of the same assignment.
 
 **The tour said** that a struct literal takes its type from context [0710],
 that each written label supplies one field value and a trailing `of` supplies
@@ -10228,6 +10323,10 @@ token and IR records; and
 x86-64.
 
 ### D72 — Construction names the ordinary struct a labelled literal builds
+
+**Write order superseded by D1827.** The construction syntax stands; an
+assigned construction's field expressions read the struct as it was before
+the assignment.
 
 **The tour said** that construction applies a type to labelled fields [0700],
 that two ordinary structs have one type only when one declaration wrote both

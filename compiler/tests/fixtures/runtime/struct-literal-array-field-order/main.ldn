@@ -14,6 +14,8 @@ next: (base: usize) -> (value: usize) =
 end next
 
 public main: () -> (code: i32) =
+    state.tag = 5
+    state.row = [7, 8, 9]
     state =
         (tag: 10,
          row: [next(state.tag), of next(state.row[0])],
@@ -29,10 +31,10 @@ public main: () -> (code: i32) =
 
     if calls == 2
       and state.tag == 10 and not state.ready
-      and state.row[0] == 11
-      and state.row[1] == 13 and state.row[2] == 13
-      and state.copy[0] == 11
-      and state.copy[1] == 13 and state.copy[2] == 13
+      and state.row[0] == 6
+      and state.row[1] == 9 and state.row[2] == 9
+      and state.copy[0] == 7
+      and state.copy[1] == 8 and state.copy[2] == 9
       and local.row[0] == 1 and local.row[2] == 3
       and local.copy[0] == 0 and local.copy[2] == 0
       and local.tag == 0 and not local.ready

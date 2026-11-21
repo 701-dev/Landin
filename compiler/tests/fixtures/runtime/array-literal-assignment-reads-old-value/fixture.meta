@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: array literal assignment evaluates and writes elements in source order
+summary: array literal assignment evaluates its elements in source order against the array as it was before the assignment
 constructs: 0040, 0080, 0190, 0340, 0350, 0410, 0520, 1760, 1770, 1810, 1900
 program: main.ldn
 status: 42

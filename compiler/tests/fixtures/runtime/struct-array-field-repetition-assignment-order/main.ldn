@@ -31,13 +31,13 @@ public main: () -> (code: i32) =
 
     if calls == 7
       and state.tag == 7
-      and state.row[0] == 13 and state.row[1] == 16
-      and state.row[2] == 16 and state.row[3] == 16
+      and state.row[0] == 13 and state.row[1] == 14
+      and state.row[2] == 14 and state.row[3] == 14
       and state.sibling[0] == 90 and state.sibling[1] == 91
       and state.tail == 701
       and local.tag == 8
-      and local.row[0] == 29 and local.row[1] == 35
-      and local.row[2] == 42 and local.row[3] == 42
+      and local.row[0] == 29 and local.row[1] == 30
+      and local.row[2] == 31 and local.row[3] == 31
       and local.sibling[0] == 92 and local.sibling[1] == 93
       and local.tail == 702
     then

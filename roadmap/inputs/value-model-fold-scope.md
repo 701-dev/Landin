@@ -23,7 +23,7 @@ belongs to one of them, or to none and is superseded (section 2).
 
 | Rule | Decisions that hold it | What it still decides |
 |---|---|---|
-| Write order | D29, D32, D36, D37 | each element is stored as it is evaluated; a repeated value is evaluated once; a mixed prefix is stored before its suffix; a failure leaves the prefix written |
+| Write order | D1827 (D29, D37 superseded in it); D32, D36 | an assigned value is formed as if before its destination changes, written in place where nothing shows it can observe the destination; a repeated value is evaluated once; a mixed prefix is evaluated before its suffix |
 | Compact whole-array operations | D32, D36 (D28 and D30 stated it first) | a whole clear, fill or copy is one operation, never one per element. D28 and D30 are superseded, so R19.90 states this in D32's surviving text |
 | Static images | D24, D26, D34, D38, D66, D67, D68, D81 | the [1940]-known fold, one image per binding, the repeated and hybrid encodings, field images, the selected-case image |
 | Inferred shape | D25, D33 | the first element, or the repeated value, gives the element type, an untyped integer defaulting to `i32`; later elements must match; the extent fits `usize` |
@@ -51,7 +51,7 @@ marks it as such.
 | D26 | partly live | static images; its scalar element is the boundary Q-122 asks about |
 | D27 | superseded | D241; the absent zero image is D10's |
 | D28 | superseded | D241; its one-clear rule moves to D32 |
-| D29 | live | write order; its boundary list is superseded by D241 |
+| D29 | partly live | the contextual literal assignment; its write order is superseded by D1827 and its boundary list by D241 |
 | D30 | superseded | D241; its one-clear rule moves to D32 |
 | D31 | live | `lenof` of a literal; its scalar-element sentence is lifted by D1664 |
 | D32 | partly live | write order, compact operations |
@@ -59,7 +59,7 @@ marks it as such.
 | D34 | partly live | static images (repeated encoding) |
 | D35 | superseded | D33 and D34; its scalar element is Q-122's |
 | D36 | partly live | write order (prefix, then one fill) |
-| D37 | partly live | write order; D36's rule on assignment |
+| D37 | partly live | D36's rule on assignment; its write order is superseded by D1827 |
 | D38 | partly live | static images (hybrid encoding) |
 | D39-D41, D43 | superseded | D241 |
 | D42 | superseded | D241, with D118 for the path |
@@ -207,10 +207,12 @@ clear for `zeroed`. Two differences remain:
 
 ## 5. Order of the work
 
-R19.30 rewrites the aggregate assignment's write order in
-`Write_Shaped_Value` and the assignment arm. A binding writes a fresh slot,
-where no overlap can arise, so R19.30 leaves the binding's inline loops
-alone. Those loops are a second copy of D29's order. R19.90 runs after
+R19.30 rewrote the aggregate assignment's write order in the assignment
+arm: `Writes_In_Place` decides whether the value may be built in its
+destination, and `Write_Assigned` otherwise builds it in a temporary and
+copies it, both around an unchanged `Write_Shaped_Value`. A binding writes
+a fresh slot, where no overlap can arise, so R19.30 left the binding's
+inline loops alone. Those loops are a second copy of D29's order. R19.90 runs after
 R19.30 in the serial order. It then collapses the binding into the general
 writer that R19.30 has settled, and R19.30's in-place writing without
 overlap is what a fresh slot gets. Neither item rewrites the other's code

@@ -655,7 +655,11 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   writable matched value (D1085), and a loop may replace a variant beside
   the match that reads its payload (D1112). A whole array parameter or
   named array return is assigned to an array field (D1180), and a whole
-  array field is passed as an `inout` array argument (D1201).
+  array field is passed as an `inout` array argument (D1201). An array
+  literal, mixed repetition or struct construction assigned to a place reads
+  the place as it was before the assignment, so `row = [row[1], row[0]]`
+  swaps; it is built in a temporary only where it could observe the place
+  (D1827).
 - **Module values.** Module arrays hold variant-bearing struct images, a
   module array or an array field of a module struct takes a call's array
   result, and a module struct may hold an array field before a slice

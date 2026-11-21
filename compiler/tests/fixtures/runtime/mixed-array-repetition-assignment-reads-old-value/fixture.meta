@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: mixed-repetition assignment stores prefixes in order and evaluates each suffix once
+summary: mixed-repetition assignment evaluates its prefix and then its suffix once, each reading the array as it was before the assignment
 constructs: 0040, 0080, 0190, 0340, 0350, 0410, 0520, 0560, 1760, 1770, 1810, 1900
 program: main.ldn
 status: 42

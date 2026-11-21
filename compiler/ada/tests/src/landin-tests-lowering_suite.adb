@@ -9889,6 +9889,76 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Callback_Slices_And_Inout_Keep_Metadata;
 
+   procedure Self_Reading_Literals_Form_Apart
+     (Item : in out Landin.Testing.Context);
+
+   --  D1827: a literal that reads its destination is formed in a frame
+   --  temporary and copied once; one that cannot observe it is written
+   --  in place with no copy.
+   procedure Self_Reading_Literals_Form_Apart
+     (Item : in out Landin.Testing.Context)
+   is
+      use type IR.Storage_Kind;
+
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      Ran : Natural;
+   begin
+      Lower
+        (Work,
+         "mut row: [2]u32" & LF
+         & "swap: () -> none =" & LF
+         & "    row = [row[1], row[0]]" & LF & "end swap" & LF
+         & "plain: () -> none =" & LF
+         & "    row = [1, 2]" & LF & "end plain" & LF,
+         Ran);
+      Landin.Testing.Check_Equal
+        (Item, Ran, 5, "self-reading literals reach lowering");
+      if Landin.Stages.Failed (Work) then
+         return;
+      end if;
+      declare
+         Unit : IR.Unit renames Landin.Stages.Code (Work).all;
+         Row : constant IR.Item_Id := Named_Item (Work, "row");
+
+         function Copies_Into_Row (Routine : String) return Natural;
+
+         function Copies_Into_Row (Routine : String) return Natural is
+            Fill : constant IR.Item_Id := Named_Item (Work, Routine);
+            Total : Natural := 0;
+         begin
+            for Position in 1 .. IR.Value_Count (Unit, Fill) loop
+               declare
+                  Value : constant IR.Value_Id := IR.Value_Id (Position);
+               begin
+                  if IR.Op_Of (Unit, Fill, Value) = IR.Copy_Array then
+                     declare
+                        Into : constant IR.Storage :=
+                          IR.Destination_Of (Unit, Fill, Value);
+                     begin
+                        if Into.Kind = IR.Module_Datum
+                          and then Into.Datum = Row
+                        then
+                           Total := Total + 1;
+                        end if;
+                     end;
+                  end if;
+               end;
+            end loop;
+            return Total;
+         end Copies_Into_Row;
+      begin
+         Landin.Testing.Check_Equal
+           (Item, Copies_Into_Row ("swap"), 1,
+            "a literal reading its destination is copied in once");
+         Landin.Testing.Check_Equal
+           (Item, Copies_Into_Row ("plain"), 0,
+            "a literal that cannot observe its destination is written"
+            & " in place");
+         Check_Terminators (Item, Unit, "self-reading literals");
+      end;
+   end Self_Reading_Literals_Form_Apart;
+
    procedure Recursive_Constructors_Commit_Before_Filling
      (Item : in out Landin.Testing.Context);
 
@@ -9907,8 +9977,9 @@ package body Landin.Tests.Lowering_Suite is
          & "    first: i32" & LF & "    rows: [2][2]u16" & LF
          & "    second: i32" & LF & "    ready: bool" & LF & "end part" & LF
          & "mut state: [1]part" & LF
+         & "mut seed: [1]part" & LF
          & "fill: () -> none =" & LF
-         & "    state = [part(second: state[0].first + 1," & LF
+         & "    state = [part(second: seed[0].first + 1," & LF
          & "        first: 10, of zeroed)]" & LF & "end fill" & LF,
          Ran);
       Landin.Testing.Check_Equal
@@ -9920,6 +9991,7 @@ package body Landin.Tests.Lowering_Suite is
          Unit : IR.Unit renames Landin.Stages.Code (Work).all;
          Fill : constant IR.Item_Id := Named_Item (Work, "fill");
          State : constant IR.Item_Id := Named_Item (Work, "state");
+         Seed : constant IR.Item_Id := Named_Item (Work, "seed");
          Writes : Natural := 0;
          Read_Old : Boolean := False;
       begin
@@ -9986,7 +10058,7 @@ package body Landin.Tests.Lowering_Suite is
                                 and then not IR.Reaches_A_Slot
                                   (Unit, Fill, Original)
                                 and then IR.Datum_Of (Unit, Fill, Original)
-                                  = State
+                                  = Seed
                                 and then IR.Field_Of (Unit, Fill, Original) = 1
                                 and then IR.Path_Of (Unit, Fill, Original)
                                   = Below (1)
@@ -10003,7 +10075,7 @@ package body Landin.Tests.Lowering_Suite is
                                 and then Stored < Value;
                               Landin.Testing.Check
                                 (Item, Read_Old,
-                                 "second reads old first, adds one, then"
+                                 "second reads seed's first, adds one, then"
                                  & " writes");
                            end;
                         when 2 =>
@@ -14260,6 +14332,9 @@ package body Landin.Tests.Lowering_Suite is
       Landin.Testing.Register
         (Into, "lowering", "recursive constructor source order before fill",
          Recursive_Constructors_Commit_Before_Filling'Access);
+      Landin.Testing.Register
+        (Into, "lowering", "self-reading literals form apart",
+         Self_Reading_Literals_Form_Apart'Access);
       Landin.Testing.Register
         (Into, "lowering", "UTF8 indexes in recursive contextual storage",
          Utf8_Indexes_Stay_Expressions_In_Recursive_Storage'Access);
