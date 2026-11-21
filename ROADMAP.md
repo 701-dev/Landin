@@ -1354,13 +1354,26 @@ filed for refusals met on the way.
 
 ### R19.40 — The migration aid
 
-Status: active
+Status: complete
 Depends on: R19.10
 
 A `refine fix` rewrite for every accepted change that is mechanical, and a
 refusal naming the replacement for every removed form. It grows with each
 group item, which lands its rewrite with it. The same command applies the
-exact fix a diagnostic carries, which SR-1242 asks for.
+exact fix a diagnostic carries, which `SR-1242` asks for.
+Done: `refine fix` checks a program as `check` does, applies every exact
+fix its report carries and checks again until none is left, through an
+overlay, so a fix a refusal hid is applied once the refusal is mended and
+nothing is written until the last pass; `--check` writes nothing and fails
+when a fix would apply, and a likely fix is never applied (D1847). A
+removed form's rewrite is its refusal's exact fix, written once in the
+stage that refuses it, so each group item's rewrite reaches the report,
+the language server and this command together, and a group item adds a
+refusal with its fix rather than an entry in a table of this command's.
+The routine that applies edits moved from the test harness into
+`Landin.Diagnostics.Applying`, and an insertion at the offset a
+replacement starts at is now applied before it rather than into it. It
+settles `SR-1242`, whose row is deleted.
 
 ### Groups accepted in R19.10
 One item per group, each depending on R19.10 and on R19.40; the fold's

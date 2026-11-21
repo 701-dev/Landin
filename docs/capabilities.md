@@ -385,6 +385,18 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   writes, `fmt` parses its own output and refuses, as a defect, a layout
   that no longer parses. The library
   roots, the examples and the tour's examples are kept in that layout.
+- `refine fix program.ldn ...` checks a program as `check` does and
+  applies every exact fix its report carries, checking again until none is
+  left, so a fix a refusal hid is applied once the refusal is mended; it
+  writes each changed source in place as `fmt` does, lists each fix applied
+  on standard output, and reports what is left. A likely fix, a guess such
+  as the nearest name to a misspelling, is never applied. `--check` writes
+  nothing and fails when a fix would be applied (D1847). Exact fixes today
+  mend a closer that names the wrong function, an unread `mut`, an unused
+  literal local and an `else` binding its block never reads, among others.
+  A form the language removes is refused naming its replacement, and where
+  the rewrite is mechanical the refusal carries it as its exact fix, which
+  this command applies.
 - `refine svd --policy=POLICY.json --out-dir=DIR DEVICE.svd` reads a
   vendor's CMSIS-SVD file and a reviewed selection policy, requires the SVD
   to be the file the policy names by SHA-256, and writes a register module

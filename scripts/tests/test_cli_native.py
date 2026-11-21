@@ -387,6 +387,42 @@ class NativeCLI(unittest.TestCase):
         self.assertEqual(source.stat().st_ino, inode)
         self.run_cli('fmt', '--check', 'loose.ldn')
 
+    def test_fix_applies_exact_fixes_in_place(self):
+        # D1847 as a user meets it: --check lists the fixes and writes
+        # nothing; the plain command applies the closer's fix, then the
+        # `mut` fix the parser's refusal hid, into the same file, and a
+        # rooted program's imported module is fixed beside its entry.
+        broken = ('public f: () -> (result: i32) =\n'
+                  'mut value: i32 = 1\nresult = value\nend g\n')
+        fixed = ('public f: () -> (result: i32) =\n'
+                 'value: i32 = 1\nresult = value\nend f\n')
+        source = self.root / 'broken.ldn'
+        source.write_text(broken)
+        checked = self.run_cli('fix', '--check', 'broken.ldn', status=1)
+        self.assertEqual(checked.stdout.splitlines(),
+                         ['broken.ldn:4:5: L0109: close it with `end f`',
+                          'broken.ldn:2:1: L0326: declare `value` without `mut`'])
+        self.assertIn('error[L0109]', checked.stderr)
+        self.assertEqual(source.read_text(), broken)
+        inode = source.stat().st_ino
+        run = self.run_cli('fix', 'broken.ldn')
+        self.assertEqual(run.stdout, checked.stdout)
+        self.assertEqual(run.stderr, '')
+        self.assertEqual(source.read_text(), fixed)
+        self.assertEqual(source.stat().st_ino, inode)
+        self.assertEqual(self.run_cli('fix', 'broken.ldn').stdout, '')
+        app = self.root / 'app'
+        (app / 'util').mkdir(parents=True)
+        (app / 'main.ldn').write_text(
+            'import util\npublic main: () -> (code: i32) =\n'
+            '    code = util.one()\nend main\n')
+        (app / 'util' / 'util.ldn').write_text(
+            'public one: () -> (result: i32) =\n'
+            '    mut value: i32 = 1\n    result = value\nend one\n')
+        run = self.run_cli('fix', '--root', 'app', 'app/main.ldn')
+        self.assertIn('L0326', run.stdout)
+        self.assertNotIn('mut', (app / 'util' / 'util.ldn').read_text())
+
     def test_fmt_takes_a_directory(self):
         # D385: a directory is the .ldn files under it, a dot-named
         # directory left out, and one holding no source is refused.

@@ -3216,8 +3216,9 @@ fix is offered only when the replaced bytes are the parenthesised name and
 spaces or tabs on one line, so it never removes a comment or a line end;
 otherwise the warning stands alone. It reaches every consumer of a fix:
 the human report's `help`, the JSON report's `exact` fix and the language
-server's preferred quick fix. There is no `refine fix` command, and `refine
-fmt` applies no fix, since D252's layout changes no token.
+server's preferred quick fix, and since D1847 `refine fix`, which applies
+every exact fix; `refine fmt` applies no fix, since D252's layout changes no
+token.
 
 **The alternatives:** writing `else value` for a one-value block, a second
 edit whose result an `if` arm can reread as the `if`'s own `else`; a
@@ -20775,6 +20776,66 @@ a caller then has to split again.
 requirement on every source it formats that the reported lines rebuild the
 formatted text line for line, and `scripts/tests/test_cli_native.py`'s
 `refine fmt` case.
+
+### D1847 — `refine fix` applies every exact fix, and a removed form's rewrite is its refusal's
+
+**The discrepancy:** an `Exact` fix is one a tool may apply unasked, and no
+command applied one: `refine fmt` changes no token, and the JSON report's
+exact fixes reached a file only through an editor's language server. The
+language's simplification removes forms and promises a rewrite for every
+removal that is mechanical and a refusal naming the replacement for every
+one, and a second place to describe each rewrite would be a
+second place for it to be wrong.
+
+**Chosen:** `refine fix` takes `check`'s operands and options, checks the
+program as `check` does, and applies each diagnostic's first exact fix to
+the bytes the check read. It checks the result again and applies what that
+check offers, until a check offers no exact fix that applies, because a
+stage that refuses stops the stages after it and their fixes appear only
+once the refusal is mended. Every pass reads the sources through an
+overlay of the bytes the passes before it made, so nothing reaches a file
+until the last pass. Then each changed source is written in place as
+`refine fmt` writes one (D358), once its bytes are read again and found to
+be those the first pass read; a source changed meanwhile is left as it is
+and named with L0005, and so is one the request read as a consumed
+response file. A `Likely` fix is never applied: it is a guess at what was
+meant, which an editor offers and a person takes. Of two exact fixes whose
+edits overlap, or that both insert at one offset, the first in the report
+is applied and the second is left to the next pass, which offers it again
+if the program still needs it. Standard output lists each fix applied, one
+line each, `PATH:LINE:COLUMN: CODE: ` and the fix's sentence, at its
+diagnostic's place in the bytes that pass read; the report and the status
+are the last check's, what is left once the fixes are in. With `--check`
+nothing is written, the report and status are the first check's, and a
+fix that would be applied makes the status 1. A program whose passes still
+apply fixes after 64 of them has two fixes undoing each other, a defect,
+and is reported with nothing written. An edit may name any source the
+program read, a library module's too, since the library is rewritten with
+the language; an installed library that cannot be written is named as
+any unwritable source is.
+
+A removed form's refusal names its replacement, and where the rewrite is
+mechanical it carries the rewrite as one exact fix, whose edits may reach
+every place in the program the rewrite changes. So the human report's
+`help`, the JSON report, the language server's quick fix and `refine fix`
+apply one rewrite, written once, in the stage that refuses the form; a
+rewrite that needs a choice the source does not make is a likely fix or a
+note, and `refine fix` leaves it to the reader.
+
+**The alternatives:** a migration table of its own, keyed by the language
+version a program was written for, which describes each rewrite a second
+time and leaves the editor's refusal with nothing to apply; applying
+likely fixes behind an option, which writes a guess unasked; writing after
+every pass, which leaves a program half fixed when a later pass stops; and
+editing only the sources named as operands, which a rooted program's
+imported modules are not.
+
+**Pinned by** the commands case `fix applies exact fixes`, which applies a
+closer's exact fix and then the `mut` fix the parser's refusal had hidden,
+lists both, leaves a likely respelling unapplied and writes nothing under
+`--check`; the fixes case `fixes apply from the end`, which holds the one
+routine that applies edits, shared with the harness; and every fixture's
+pinned fix, which that routine applies.
 
 ### D360 — A parenthesized operand begins at its parenthesis
 

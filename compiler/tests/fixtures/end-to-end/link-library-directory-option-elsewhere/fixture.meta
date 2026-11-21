@@ -1,5 +1,5 @@
 class: end-to-end
-summary: -L is an option of check, compile and run, and fmt refuses it
+summary: -L is an option of check, compile, run and fix, and fmt refuses it
 program: main.ldn
 constructs: 1590
 targets: linux-x86-64

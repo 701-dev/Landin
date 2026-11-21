@@ -1,9 +1,9 @@
---  Applying a report's fixes, which only a test does.
+--  Applying a report's fixes, chosen as a fixture's case chooses them.
 --
---  The compiler builds fixes and never applies one: an editor or a person
---  does that.  The harness applies them to prove that each is what it
---  claims, so the one routine that does it lives on the test side, where no
---  stage can come to depend on it.
+--  The harness applies a diagnostic's first fix, or the alternative a case
+--  selects, to prove that each is what it claims; the edits themselves are
+--  applied by Landin.Diagnostics.Applying, as `refine fix` applies its exact
+--  ones (D1847).
 
 with Landin.Diagnostics;
 with Landin.Source;

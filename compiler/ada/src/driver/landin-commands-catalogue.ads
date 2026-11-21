@@ -4,7 +4,7 @@ with Ada.Strings.Unbounded;
 package Landin.Commands.Catalogue is
 
    type Action is
-     (Overview, Check, Compile, Run, Format, Explain, Server,
+     (Overview, Check, Compile, Run, Format, Fix, Explain, Server,
       Version, Targets, Completion, Help);
 
    function Name (Command : Action) return String;

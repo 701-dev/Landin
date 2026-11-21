@@ -11,6 +11,7 @@ package body Landin.Commands.Catalogue is
          when Overview => "", when Check => "check",
          when Compile => "compile", when Run => "run",
          when Format => "fmt",
+         when Fix => "fix",
          when Explain => "explain",
          when Server => "lsp",
          when Version => "version", when Targets => "targets",
@@ -26,6 +27,8 @@ package body Landin.Commands.Catalogue is
            "Compile a whole program to a temporary executable and run it",
          when Format =>
            "Format source files, or a directory's, in the one Landin layout",
+         when Fix =>
+           "Apply the exact fixes a check reports to a program's sources",
          when Explain =>
            "Explain diagnostic codes, and the rules and decisions notes cite",
          when Server => "Serve the language server protocol over stdio",
@@ -122,7 +125,7 @@ package body Landin.Commands.Catalogue is
          when Depfile =>
            "Write Make-format dependencies after successful emission",
          when Format_Check =>
-           "Report every line out of the layout; write nothing",
+           "Report what would change; write nothing",
          when Format_Stdout =>
            "Print the one source in the layout; write nothing",
          when Explain_Full =>
@@ -175,6 +178,12 @@ package body Landin.Commands.Catalogue is
                            | Dry_Run | Depfile)
             or else Flag in Warnings .. Deny,
           when Format => Flag in Format_Check | Format_Stdout,
+          --  D1847: check's, and fmt's --check, which writes nothing.
+          when Fix => Flag in Target | Level | Root | Library
+            | Library_Directory | Build_Option | Build_Mode | Optimize
+            | Specialize | Link
+            | Firmware_Entry | Firmware_Layout
+            | Warnings | Warn | Allow | Deny | Format_Check,
           --  D1240: where the citations file is, as a compilation's.
           when Explain => Flag in Explain_Full | Library,
           when Server => Flag = Stdio,
@@ -425,7 +434,7 @@ package body Landin.Commands.Catalogue is
       Text : US.Unbounded_String;
       Operands : constant String :=
         (case Command is
-            when Check | Compile => " [options] source.ldn ...",
+            when Check | Compile | Fix => " [options] source.ldn ...",
             when Run => " [options] source.ldn ... [-- ARGUMENT ...]",
             when Format => " [options] source.ldn|DIR ...",
             when Explain => " [options] [CODE|[NNNN]|DNNN ...]",
@@ -565,6 +574,16 @@ package body Landin.Commands.Catalogue is
               & LF & "refine fmt --stdout source.ldn prints one source in the"
               & LF & "layout, and an editor can format through refine lsp."
               & LF);
+         when Fix =>
+            US.Append (Text, LF
+              & "The sources form one program, as for check. Each"
+              & LF & "diagnostic's exact fix is applied, and the program is"
+              & LF & "checked again until no exact fix is left; a likely"
+              & LF & "fix, a guess at what was meant, is never applied."
+              & LF & "Each fix applied is listed on standard output, and the"
+              & LF & "report is what is left. With --check no file is"
+              & LF & "written and the status is 1 if a fix would be applied."
+              & LF & "Example: refine fix program.ldn" & LF);
          when Completion =>
             US.Append (Text, LF
               & "To enable completion in the current shell:" & LF

@@ -1,10 +1,9 @@
 with Ada.Containers.Indefinite_Vectors;
-with Ada.Strings.Unbounded;
+with Landin.Diagnostics.Applying;
 
 package body Landin.Testing.Fixes is
 
    package Diag renames Landin.Diagnostics;
-   package Unbounded renames Ada.Strings.Unbounded;
 
    use type Landin.Source.Byte_Offset;
    use type Landin.Source.Source_Id;
@@ -81,45 +80,19 @@ package body Landin.Testing.Fixes is
    is
       Ordered : constant Edit_Vectors.Vector := Collected
         (Found, Source, Choice_Diagnostic, Choice_Fix);
-      Result  : Unbounded.Unbounded_String :=
-        Unbounded.To_Unbounded_String (Text);
+      Applying : Landin.Diagnostics.Applying.Edit_Lists.Vector;
    begin
       Clashed := False;
-
-      --  Adjacent edits in byte order may touch and may not overlap; two
-      --  insertions at one offset have no order and clash as well.
-      for Index in 2 .. Natural (Ordered.Length) loop
-         declare
-            Before : constant Landin.Source.Span :=
-              Diag.Span_Of (Ordered.Element (Index - 1));
-            After  : constant Landin.Source.Span :=
-              Diag.Span_Of (Ordered.Element (Index));
-         begin
-            if After.First < Before.Last
-              or else (After.First = Before.First
-                       and then Landin.Source.Length (Before) = 0
-                       and then Landin.Source.Length (After) = 0)
-            then
+      for One of Ordered loop
+         for Other of Applying loop
+            if Landin.Diagnostics.Applying.Clash (Other, One) then
                Clashed := True;
                return Text;
             end if;
-         end;
+         end loop;
+         Landin.Diagnostics.Applying.Insert_Ordered (Applying, One);
       end loop;
-
-      for Index in reverse 1 .. Natural (Ordered.Length) loop
-         declare
-            One   : constant Diag.Edit := Ordered.Element (Index);
-            Where : constant Landin.Source.Span := Diag.Span_Of (One);
-         begin
-            Unbounded.Replace_Slice
-              (Result,
-               Low  => Natural (Where.First) + 1,
-               High => Natural (Where.Last),
-               By   => Diag.Replacement (One));
-         end;
-      end loop;
-
-      return Unbounded.To_String (Result);
+      return Landin.Diagnostics.Applying.Applied (Text, Applying);
    end Applied;
 
 end Landin.Testing.Fixes;

@@ -1230,6 +1230,107 @@ package body Landin.Tests.Commands_Suite is
         & "result = sum end total", 1);
    end JSON_Fixes;
 
+   --  D1847: `refine fix` applies every exact fix and checks again, so a
+   --  fix a refusal hid is applied once the refusal is mended; a likely
+   --  fix is reported and never applied; `--check` writes nothing and says
+   --  by its status that a fix would be applied.  Every file is the fake
+   --  filesystem's.
+   procedure Fix_Applies_Exact_Fixes
+     (Item : in out Landin.Testing.Context);
+
+   procedure Fix_Applies_Exact_Fixes
+     (Item : in out Landin.Testing.Context)
+   is
+      Host  : Landin.Testing.Fakes.Fake_Filesystem;
+      Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+      Meter : Landin.Platform.Unmetered;
+      LF : constant Character := ASCII.LF;
+      Broken : constant String :=
+        "public f: () -> (result: i32) =" & LF
+        & "mut value: i32 = 1" & LF
+        & "result = value" & LF
+        & "end g" & LF;
+      Fixed : constant String :=
+        "public f: () -> (result: i32) =" & LF
+        & "value: i32 = 1" & LF
+        & "result = value" & LF
+        & "end f" & LF;
+      Guess : constant String :=
+        "count: (value: u32) -> (result: u32) = value + 1 end count" & LF
+        & "public total: () -> (result: u32) = result = cuont(value: 1)"
+        & " end total" & LF;
+      Result : Landin.Driver.Outcome;
+      Writes : Natural;
+   begin
+      Host.Add_File ("broken.ldn", Broken);
+      Writes := Host.Write_Count;
+      Result := Landin.Commands.Execute
+        (["fix", "--check", "broken.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Reported,
+         "fix --check fails when a fix would be applied");
+      Landin.Testing.Check_Equal
+        (Item, Host.Write_Count, Writes, "fix --check writes nothing");
+      Landin.Testing.Check
+        (Item, Contains (US.To_String (Result.Report), "L0109"),
+         "fix --check reports the program as it is");
+      Landin.Testing.Check
+        (Item, Contains (US.To_String (Result.Output), "L0326"),
+         "fix --check lists the fix a later pass would apply");
+
+      Result := Landin.Commands.Execute
+        (["fix", "broken.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Success,
+         "fix leaves a program with nothing to report");
+      Landin.Testing.Check_Equal
+        (Item, Host.Written ("broken.ldn"), Fixed,
+         "the closer's fix and then the binding's, hidden until it was"
+         & " applied, are written");
+      Landin.Testing.Check_Equal
+        (Item, US.To_String (Result.Output),
+         "broken.ldn:4:5: L0109: close it with `end f`" & LF
+         & "broken.ldn:2:1: L0326: declare `value` without `mut`" & LF,
+         "each fix applied is one line, in the order applied");
+      Landin.Testing.Check_Equal
+        (Item, US.To_String (Result.Report), "",
+         "the report is the fixed program's");
+
+      Writes := Host.Write_Count;
+      Result := Landin.Commands.Execute
+        (["fix", "--check", "broken.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Success,
+         "fix --check passes once there is nothing to fix");
+      Result := Landin.Commands.Execute
+        (["fix", "broken.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Host.Write_Count, Writes,
+         "fix writes nothing to a program with no fix");
+
+      Host.Add_File ("guess.ldn", Guess);
+      Writes := Host.Write_Count;
+      Result := Landin.Commands.Execute
+        (["fix", "guess.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Reported,
+         "a refusal whose only fix is likely is left to the reader");
+      Landin.Testing.Check
+        (Item, Contains (US.To_String (Result.Report), "count"),
+         "the likely fix is still offered in the report");
+      Landin.Testing.Check_Equal
+        (Item, US.To_String (Result.Output), "",
+         "and is not applied");
+      Landin.Testing.Check_Equal
+        (Item, Host.Write_Count, Writes, "nothing is written for it");
+
+      Result := Landin.Commands.Execute
+        (["check", "--check", "guess.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Misuse,
+         "--check is fmt's and fix's, not check's");
+   end Fix_Applies_Exact_Fixes;
+
    procedure Warning_Controls (Item : in out Landin.Testing.Context);
    procedure Warning_Controls (Item : in out Landin.Testing.Context) is
       Host : Landin.Testing.Fakes.Fake_Filesystem;
@@ -1376,18 +1477,18 @@ package body Landin.Tests.Commands_Suite is
    begin
       Host.Raise_On_Read;
       Refused (["--root=lib", "compile", "a.ldn"],
-               "--root=lib is an option of check, compile and run, and"
+               "--root=lib is an option of check, compile, run and fix, and"
                & " follows its command: refine compile --root=lib ...");
       Refused (["--library", "/opt/lib", "compile", "a.ldn"],
                "--library=/opt/lib is an option of check, compile, run,"
-               & " explain and version, and follows its command: refine"
+               & " fix, explain and version, and follows its command: refine"
                & " compile --library=/opt/lib ...");
       Refused (["--emit=asm", "check", "a.ldn"],
                "--emit=asm is an option of compile, not of check, and"
                & " follows its command: refine compile --emit=asm ...");
       Refused (["--target=linux-x86-64", "--version"],
-               "--target=linux-x86-64 is an option of check, compile and"
-               & " run, not of version");
+               "--target=linux-x86-64 is an option of check, compile,"
+               & " run and fix, not of version");
       --  D1463: with no command, the request is named again after the
       --  command of the option `check` does not take.
       Refused (["-o", "x.s", "main.ldn"],
@@ -1397,7 +1498,7 @@ package body Landin.Tests.Commands_Suite is
                "name the command first: refine compile --library=/opt/lib"
                & " --depfile=d main.ldn");
       Refused (["--root=lib"],
-               "--root=lib is an option of check, compile and run, and"
+               "--root=lib is an option of check, compile, run and fix, and"
                & " follows its command: refine check --root=lib ...");
       Landin.Testing.Check_Equal
         (Item, Host.Write_Count, 0, "misuse writes nothing");
@@ -2646,6 +2747,9 @@ package body Landin.Tests.Commands_Suite is
         (Into, "commands", "warning controls", Warning_Controls'Access);
       Landin.Testing.Register
         (Into, "commands", "JSON fixes preserve structure", JSON_Fixes'Access);
+      Landin.Testing.Register
+        (Into, "commands", "fix applies exact fixes",
+         Fix_Applies_Exact_Fixes'Access);
       Landin.Testing.Register (Into, "commands", "help and queries",
                               Help_And_Queries'Access);
       Landin.Testing.Register

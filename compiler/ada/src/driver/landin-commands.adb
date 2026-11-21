@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Landin.Commands.Catalogue;
 with Landin.Commands.External;
+with Landin.Commands.Fixing;
 with Landin.Commands.Tracing;
 with Landin.Diagnostics;
 with Landin.Diagnostics.Catalogue;
@@ -72,6 +73,8 @@ package body Landin.Commands is
       Style : Presentation.Style := Presentation.Human;
       Structured : Boolean := False;
       Dry_Run : Boolean := False;
+      --  D1847: fix's --check, which the driver's check never sees.
+      Fix_Check : Boolean := False;
       Depfile : US.Unbounded_String;
       Policy : WP.Policy := WP.Defaults;
       Forwarded : Landin.Platform.Path_List;
@@ -337,6 +340,12 @@ package body Landin.Commands is
                               then Presentation.Short else Presentation.Human);
                         when C.JSON => Result.Structured := True;
                         when C.Dry_Run => Result.Dry_Run := True;
+                        when C.Format_Check =>
+                           if Result.Command = C.Fix then
+                              Result.Fix_Check := True;
+                           else
+                              Result.Forwarded.Append (C.Name (Flag));
+                           end if;
                         when C.Depfile => Result.Depfile := Value;
                         when C.Warnings =>
                            if C.Valid_Value (Flag, US.To_String (Value)) then
@@ -1316,7 +1325,8 @@ package body Landin.Commands is
                   Result.Trace := Transcript & Result.Trace;
                   Finish_Run;
                end if;
-            when C.Check | C.Compile | C.Format | C.Explain | C.Server =>
+            when C.Check | C.Compile | C.Format | C.Fix | C.Explain
+               | C.Server =>
                if Asked.Command = C.Compile then
                   declare
                      Has_Emit : Boolean := False;
@@ -1342,7 +1352,12 @@ package body Landin.Commands is
                       elsif Text in "fmt" | "explain" | "lsp"
                       then "./" else "") & Text);
                end loop;
-               if Asked.Verbosity >= 2 then
+               if Asked.Command = C.Fix then
+                  Result := Fixing.Execute
+                    (Forwarded, Host, Tools, Meter, Built_For, Asked.Policy,
+                     Asked.Consumed_Response_Files,
+                     Asked.Consumed_Response_Identities, Asked.Fix_Check);
+               elsif Asked.Verbosity >= 2 then
                   declare
                      Wrapped : Tracing.Runner
                        (Tools'Access, Transcript'Access);
@@ -1386,7 +1401,7 @@ package body Landin.Commands is
                   for Text of Asked.Forwarded loop
                      US.Append (Transcript, "  " & J.Quoted (Text) & LF);
                   end loop;
-                  if Asked.Command in C.Check | C.Compile then
+                  if Asked.Command in C.Check | C.Compile | C.Fix then
                      Append_Sources_Read;
                   end if;
                end if;

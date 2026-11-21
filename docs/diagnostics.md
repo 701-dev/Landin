@@ -61,7 +61,8 @@ the same report.
 
 A code whose diagnostic offers a fix says so. A fix is shown as a `help` line
 and handed to an editor as an edit; a likely fix is a guess, an exact one is
-what the rule itself requires.
+what the rule itself requires. `refine fix` applies every exact fix to the
+program's sources and leaves the likely ones to the reader (D1847).
 
 A report made while a generic routine's body is checked for one of its
 instances carries one note more, after the notes its section describes:
