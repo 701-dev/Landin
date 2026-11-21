@@ -1422,7 +1422,7 @@ the library and the prototypes' live text that wrote the form.
 
 ### R19.50 — Loops are statements
 
-Status: planned
+Status: active
 Depends on: R19.10, R19.40
 
 SC-01 and SC-05: `break with` and `complete` leave (D1651), and so does
