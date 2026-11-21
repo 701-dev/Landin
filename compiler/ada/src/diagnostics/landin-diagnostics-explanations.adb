@@ -1017,17 +1017,13 @@ package body Landin.Diagnostics.Explanations is
                & "940] [0960] [1030]. `fail` carries exactly one atom of t"
                & "he function's declared error set. A body that can fail w"
                & "ith an atom outside it is told which atom, and the `fail"
-               & "`, the call or the `try for` it first came through is la"
-               & "belled (D382). A call to a failing function handles the "
-               & "outcome with `else` or propagates it with `try`, and nei"
-               & "ther form applies to a call that cannot fail. A public o"
-               & "r first-class signature writes a concrete error set inst"
-               & "ead of `! ...`. Add the atom to the error set, handle or"
-               & " propagate the call, or remove the handling from an infa"
-               & "llible call. The implicit provider calls in `try for` al"
-               & "so propagate their declared errors: the enclosing routin"
-               & "e must declare or infer those atoms, and its caller may "
-               & "recover them through ordinary call `else`."
+               & "` or the call it first came through is labelled (D382). "
+               & "A call to a failing function handles the outcome with `e"
+               & "lse` or propagates it with `try`, and neither form appli"
+               & "es to a call that cannot fail. A public or first-class s"
+               & "ignature writes a concrete error set instead of `! ...`."
+               & " Add the atom to the error set, handle or propagate the "
+               & "call, or remove the handling from an infallible call."
                & LF
                & LF
                & "In an `if` arm, `else value` after a call is read as the"
@@ -1412,13 +1408,9 @@ package body Landin.Diagnostics.Explanations is
                & "rameter to that pointer contract."
                & LF
                & LF
-               & "If the source supplies `fallible_iterable`, use `try for"
-               & "` and declare or infer its provider errors in the enclos"
-               & "ing routine. That conformance has one exact shared atom "
-               & "error set across all four providers. Ordinary `for` only"
-               & " selects infallible `iterable`; `try for` prefers `falli"
-               & "ble_iterable` when both exist and may use ordinary `iter"
-               & "able` when there is no fallible conformance.",
+               & "A `for` selects only an infallible `iterable`. A source "
+               & "whose steps can fail is walked by a `while` whose body t"
+               & "akes each step with `try` or a call's `else` (D1652).",
             when Catalogue.Invalid_Description_Directive =>
                "A device description's directive has arguments that are "
                & "not the forms its row in D542 says: the wrong number of "
@@ -2214,15 +2206,15 @@ package body Landin.Diagnostics.Explanations is
                & "ite is mechanical it carries it as an exact fix, which t"
                & "he language server offers and `refine fix` applies; othe"
                & "rwise the note says what to write. A loop's `complete` b"
-               & "lock is gone (D1651): every exit of a loop reaches the s"
-               & "tatement after it, so run the block after the loop, behi"
-               & "nd a flag its `break`s clear where it has any. When no `"
-               & "break` leaves the loop, the fix closes the loop before `"
-               & "complete` and runs the block after it, between `begin` a"
-               & "nd `end`. `try for` is gone (D1652): a traversal whose s"
-               & "teps can fail is a `while` whose body takes each item wi"
-               & "th `try`, or with a call's `else`, which says where a fa"
-               & "ilure goes.");
+               & "lock [1170] is gone (D1651): every exit of a loop reache"
+               & "s the statement after it, so run the block after the loo"
+               & "p, behind a flag its `break`s clear where it has any. Wh"
+               & "en no `break` leaves the loop, the fix closes the loop b"
+               & "efore `complete` and runs the block after it, between `b"
+               & "egin` and `end`. `try for` [1320] is gone (D1652): a tra"
+               & "versal whose steps can fail is a `while` whose body take"
+               & "s each item with `try`, or with a call's `else`, which s"
+               & "ays where a failure goes.");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is

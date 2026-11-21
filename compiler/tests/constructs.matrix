@@ -138,9 +138,9 @@
 1140 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Repeating while a condition holds: `while`
 1150 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Walking a range or a collection: `for`
 1160 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Writing through a loop binding
-1170 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | When a loop runs out: `complete`
+1170 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | When a loop runs out
 1180 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Labels
-1190 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A loop with a value: `break with`
+1190 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A loop that searches
 1200 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Cleaning up several acquisitions
 1210 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Pattern matching: `match`
 1220 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Writing into a matched payload

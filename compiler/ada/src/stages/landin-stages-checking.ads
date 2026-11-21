@@ -53,7 +53,7 @@ package Landin.Stages.Checking is
    --  Optional bounded test seam, owned by one checker instance. No CLI or
    --  global failure state; ordinary compilations leave Probe null.
    type Transfer_Point is
-     (Allocating, Allocated, Growing, Published, Traversed, Moved, Released);
+     (Allocating, Allocated, Growing, Published, Traversed, Released);
    type Transfer_Counts is array (Transfer_Point) of Natural;
    type Transfer_Probe is record
       Fail_At     : Natural := 0;

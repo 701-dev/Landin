@@ -4276,11 +4276,11 @@ package body Landin.Tests.Parser_Suite is
          end;
       end Check;
    begin
-      for Offers_Value in Boolean loop
-         Check ("loop", "loop", Offers_Value);
-         Check ("while flag", "while", Offers_Value);
-         Check ("for index in 0 ..< 2", "for", Offers_Value);
-      end loop;
+      --  D1651: a loop is a statement, so an arm's loop is always in the
+      --  arm's statement run; one given a value is refused (D1867).
+      Check ("loop", "loop", False);
+      Check ("while flag", "while", False);
+      Check ("for index in 0 ..< 2", "for", False);
    end Match_Arms_Classify_All_Loop_Kinds;
 
    procedure Contextual_Names_Start_Ordinary_Statements

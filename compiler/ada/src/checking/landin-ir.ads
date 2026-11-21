@@ -31,8 +31,9 @@ with Landin.Packed;
 --  reachable fallthrough arms of `if` and `match`, and the final
 --  expression of a bare block, write storage owned by the consumer: a
 --  scalar or function join slot, or a shared aggregate destination.  The
---  continuation loads a scalar or uses the filled destination.  [1840] still keeps
---  names declared inside an arm out of other arms and the continuation;
+--  continuation loads a scalar or uses the filled destination.  [1840]
+--  still keeps names declared inside an arm out of other arms and the
+--  continuation;
 --  names declared outside it are slots too.  Across all these edges,
 --  including loop back edges, slot contents carry information while IR
 --  values remain block-local.  No phi or block parameter is needed.

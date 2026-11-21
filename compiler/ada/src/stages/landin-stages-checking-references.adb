@@ -1542,7 +1542,6 @@ package body Landin.Stages.Checking.References is
          end record;
          overriding procedure Finalize (Value : in out Owner);
          procedure Save (Value : in out Owner; Initial : Table_Access);
-         procedure Move (Into : in out Owner; From : in out Owner);
       end Transfer_States;
 
       package body Transfer_States is
@@ -1571,18 +1570,6 @@ package body Landin.Stages.Checking.References is
             end if;
             Checkpoint (Allocated);
          end Save;
-
-         procedure Move (Into : in out Owner; From : in out Owner) is
-         begin
-            --  Both assignments are non-allocating. No throwing operation
-            --  may intervene while the borrowed address has two copies.
-            if Into.Data /= null or else From.Data = null then
-               raise Landin.Compiler_Defect with "invalid loop state move";
-            end if;
-            Into.Data := From.Data;
-            From.Data := null;
-            Checkpoint (Moved);
-         end Move;
       end Transfer_States;
 
       --  Frames have lexical, noncopyable owners. The vector borrows their

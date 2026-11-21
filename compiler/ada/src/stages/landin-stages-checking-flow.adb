@@ -3741,8 +3741,6 @@ package body Landin.Stages.Checking.Flow is
                         declare
                            Transfer_State : Assigned_Set := State;
                            Cleanup_Edges : Edge_Facts;
-                           Value_Edges : constant Edge_Facts :=
-                             Fallthrough_Edge;
                            Guarded : constant Boolean :=
                              Syn.Condition_Of (Of_Tree, Item) /= Syn.No_Node;
                            Target : constant Positive :=
@@ -3750,36 +3748,34 @@ package body Landin.Stages.Checking.Flow is
                            First : constant Natural :=
                              Loop_Cleanup_Stack (Target).Cleanup_Base + 1;
                         begin
-                           if Value_Edges.Falls_Through then
-                              Flow_Cleanups
-                                (Of_Tree, First, Cleanup.Structured_Transfer,
-                                 Result, Transfer_State, Cleanup_Edges);
-                              Step.Returns := Step.Returns
-                                or Cleanup_Edges.Returns;
-                              if Cleanup_Edges.Falls_Through then
-                                 declare
-                                    Frame : Loop_Cleanup_Entry :=
-                                      Loop_Cleanup_Stack (Target);
-                                 begin
-                                    if Syn.Kind (Of_Tree, Item)
-                                      = Syn.Break_Statement
-                                    then
-                                       Merge
-                                         (Frame.Exit_State,
-                                          First  => not Frame.Exits,
-                                          Branch => Transfer_State);
-                                       Frame.Exits := True;
-                                    else
-                                       Merge
-                                         (Frame.Back_State,
-                                          First  => not Frame.Continues,
-                                          Branch => Transfer_State);
-                                       Frame.Continues := True;
-                                    end if;
-                                    Loop_Cleanup_Stack.Replace_Element
-                                      (Target, Frame);
-                                 end;
-                              end if;
+                           Flow_Cleanups
+                             (Of_Tree, First, Cleanup.Structured_Transfer,
+                              Result, Transfer_State, Cleanup_Edges);
+                           Step.Returns := Step.Returns
+                             or Cleanup_Edges.Returns;
+                           if Cleanup_Edges.Falls_Through then
+                              declare
+                                 Frame : Loop_Cleanup_Entry :=
+                                   Loop_Cleanup_Stack (Target);
+                              begin
+                                 if Syn.Kind (Of_Tree, Item)
+                                   = Syn.Break_Statement
+                                 then
+                                    Merge
+                                      (Frame.Exit_State,
+                                       First  => not Frame.Exits,
+                                       Branch => Transfer_State);
+                                    Frame.Exits := True;
+                                 else
+                                    Merge
+                                      (Frame.Back_State,
+                                       First  => not Frame.Continues,
+                                       Branch => Transfer_State);
+                                    Frame.Continues := True;
+                                 end if;
+                                 Loop_Cleanup_Stack.Replace_Element
+                                   (Target, Frame);
+                              end;
                            end if;
                            Step.Falls_Through := Guarded;
                         end;
