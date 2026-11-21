@@ -34,7 +34,7 @@ DECISION = HELPERS + section("Previous=''\n", "\n#  Only quiet output and a job 
 BASE = ["source 1 compiler/ada/src/main.adb", "source 2 compiler/ada/src/host.c",
         "source 3 compiler/ada/src/host.h", "project 4 compiler/ada/lib.gpr",
         "project 5 compiler/ada/landin.adc", "identity 6 0123abc clean",
-        "mode debug tag test", "switches ",
+        "mode debug tag test", "link dynamic", "switches ",
         "gnat pinned", "gprbuild pinned", "toolchain configuration selected",
         'toolchain c-driver {"path": "/tools/selected-cc", "sha256": "123"}',
         'toolchain gprbuild {"path": "/tools/builder", "sha256": "456"}']
@@ -333,7 +333,8 @@ class ManifestFailures(unittest.TestCase):
                      "source compiler/ada/src/main.adb",
                      "source compiler/ada/tests/src/test.adb"])
                 self.assertTrue(rows[-1].startswith("identity "))
-                expected = rows + ["mode debug tag test", "switches -R",
+                expected = rows + ["mode debug tag test", "link dynamic",
+                                   "switches -R",
                                    "gnat pinned banner",
                                    "gprbuild pinned banner",
                                    "toolchain configuration selected"]

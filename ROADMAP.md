@@ -2334,8 +2334,9 @@ The release workflow publishes a Linux `refine` linked statically against
 glibc with `-static-pie`, for x86-64 and arm64, as R23.40 found it builds
 with the pinned toolchain and no source change
 (`roadmap/inputs/static-linux-refine.md`); a musl build is not attempted,
-since no published GNAT targets musl. The static archive replaces the glibc
-archives under their names, as Q-116 answered.
+since no published GNAT targets musl. The static archive takes the glibc
+archives' names and the dynamic one is published beside it, as Q-118
+answered, reopening Q-116.
 The install script takes it on a musl or NixOS host, and the user image
 takes it where it makes the image simpler. The archive carries glibc's
 licence and names the glibc it holds, and the build is refused when a
@@ -2354,8 +2355,11 @@ it in `docs/process.md`.
 Done: a Linux release build links `refine`, its split commands and the
 test program with `-static-pie` (D1787): `scripts/env.sh` chooses the
 link and `landin_common.gpr` applies it, so every release lane tests what
-a release publishes, and the static archive replaces the glibc ones under
-their names, as Q-116 answered. A static link that warns is refused, and
+a release publishes. A release publishes it under the platform's name and
+the dynamic archive beside it as `-dynamic`, built again in the release
+workflow alone, and `install.sh --variant static|dynamic` chooses, static
+by default (D1791, Q-118, which reopened Q-116). A static link that warns
+is refused, and
 `scripts/package.sh` packages one with `LICENSE-GLIBC` and `NOTICE-GLIBC`
 from the host's `libc6-dev` (D1788); whether naming Ubuntu's source
 package meets the LGPL is asked as Q-117. `install.sh` no longer refuses
@@ -2368,14 +2372,18 @@ installs it with `install.sh`, runs the first program and links all 19
 architectures (D1790); `arm64-release` passed the whole release test
 program with the static build natively, 1279 cases. The user image keeps
 Debian's `gcc`, which it needs to link, and takes the static archive
-unchanged. Met on the way and fixed: glibc's static start kills an
+unchanged. The README records the musl and jemalloc build the spike
+tested, which the project neither builds nor publishes, and what making
+one needs; `SR-1518` holds the host-target refusal it met. Met on the way
+and fixed: glibc's static start kills an
 executable naming a run path, which the gate's release lanes built
 without `-R`, so `build.sh` adds it; the reuse check then refused the
 `-R`; the dynamic archives' undocumented floor of glibc 2.38, from one
 symbol, now in the README; `SR-1517`, `package.sh` refusing another
 architecture's executable first; and `SR-1515`, the static build being
-the release mode `test.sh` runs. Gate run 44929155991 and boards run
-44931267455 on the merged tree 8d4f8da5e.
+the release mode `test.sh` runs; and `package.sh` writing gzip under any
+suffix, now refused. Gate run 44938836967 and boards run
+44940836127 on the merged tree ba87d9fad.
 
 ### R23 gate
 Every route in the installing documentation and exercised by the gate or,

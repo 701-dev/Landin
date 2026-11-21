@@ -1496,7 +1496,11 @@ comments of `.github/workflows/release.yml` and of `flake.nix` beside
    ```
 
    The notice names the glibc the archive holds, from the runner's
-   `libc6-dev`. The release workflow ran the same
+   `libc6-dev`. The dynamic archive beside each, `-dynamic`, must install
+   and start on a host with glibc 2.38 or later (D1791):
+   `install.sh` with `--variant dynamic --dir /tmp/landin-X.Y.Z-dynamic`,
+   piped as above, then that `bin/refine version`. The
+   release workflow ran the same
    check on each archive before the approval, and the gate's release jobs
    on every software run.
 7. **Move the flake.** On a branch from `main`, one commit moves

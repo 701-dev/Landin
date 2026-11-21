@@ -27,6 +27,12 @@
 #                       other DIR that is not empty is refused.
 #    --platform NAME    install the archive for NAME rather than for this
 #                       host: x86_64-linux, aarch64-linux or aarch64-darwin
+#    --variant NAME     on Linux, static or dynamic; static when not given.
+#                       The static archive's refine has glibc linked into
+#                       it and runs on any Linux.  The dynamic one uses the
+#                       system's glibc, which must be 2.38 or later.
+#                       Releases of 0.2.11 and earlier have the dynamic
+#                       one alone, under the static one's name.
 #    --list             print the archive and checksum names the release
 #                       publishes for every platform, and install nothing
 #    --help             print this text
@@ -62,6 +68,7 @@ EOF
 version=
 dir=
 platform=
+variant=
 list=no
 native=no
 while [ "$#" -gt 0 ]; do
@@ -75,6 +82,9 @@ while [ "$#" -gt 0 ]; do
         --platform) [ "$#" -ge 2 ] || refuse "--platform needs one of: $platforms"
                     platform=$2; shift 2 ;;
         --platform=*) platform=${1#--platform=}; shift ;;
+        --variant) [ "$#" -ge 2 ] || refuse "--variant needs static or dynamic"
+                   variant=$2; shift 2 ;;
+        --variant=*) variant=${1#--variant=}; shift ;;
         --list) list=yes; shift ;;
         --help|-h)
             if [ -f "$0" ] && grep -q '^#  Options:' "$0" 2>/dev/null; then
@@ -136,15 +146,32 @@ case $version in
     ''|*[!0-9.]*|.*|*.|*..*) refuse "$version is not a release version, such as 0.2.11" ;;
 esac
 
+case $variant in
+    ''|static|dynamic) ;;
+    *) refuse "--variant is static or dynamic, not $variant" ;;
+esac
+case "$platform/$variant" in
+    *-darwin/?*) refuse "--variant chooses between the Linux archives; macOS has one" ;;
+esac
+
+#  The names the release workflow publishes: on Linux the static archive
+#  under the platform's name and the dynamic one with -dynamic after it.
 if [ "$list" = yes ]; then
     for one in $platforms; do
-        echo "landin-$version-$one.tar.gz"
-        echo "landin-$version-$one.tar.gz.sha256"
+        for suffix in '' -dynamic; do
+            case "$one/$suffix" in *-darwin/-dynamic) continue ;; esac
+            echo "landin-$version-$one$suffix.tar.gz"
+            echo "landin-$version-$one$suffix.tar.gz.sha256"
+        done
     done
     exit 0
 fi
 
-archive="landin-$version-$platform.tar.gz"
+suffix=
+if [ "$variant" = dynamic ]; then
+    suffix=-dynamic
+fi
+archive="landin-$version-$platform$suffix.tar.gz"
 url="$releases/download/v$version/$archive"
 
 if [ -z "$dir" ]; then
@@ -184,7 +211,7 @@ trap 'exit 1' HUP INT TERM
 say "downloading Landin $version for $platform"
 say "  $url"
 curl -fSL --progress-bar -o "$work/$archive" "$url" \
-    || refuse "could not download $url; is $version a release? $releases lists them"
+    || refuse "could not download $url; is $version a release${suffix:+ with a dynamic archive}? $releases lists them"
 curl -fsSL -o "$work/$archive.sha256" "$url.sha256" \
     || refuse "could not download $url.sha256"
 
@@ -218,8 +245,13 @@ if [ "$native" = yes ]; then
         printf '%s\n' "$started" | sed -n '1,3s/^/install.sh:   /p' >&2
         case $platform in
             *-linux)
-                say "The Linux archives of 0.2.11 and earlier need glibc 2.38 or later and its loader;" >&2
-                say "a later release's archive starts on any Linux." >&2 ;;
+                if [ "$variant" = dynamic ]; then
+                    say "The dynamic Linux archive needs glibc 2.38 or later and its loader;" >&2
+                    say "the static one, without --variant, starts on any Linux." >&2
+                else
+                    say "The Linux archives of 0.2.11 and earlier need glibc 2.38 or later and its loader;" >&2
+                    say "a later release's archive starts on any Linux." >&2
+                fi ;;
         esac
         other_routes; exit 1
     fi

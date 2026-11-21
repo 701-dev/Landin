@@ -47,12 +47,48 @@ class Link(unittest.TestCase):
         static = common.split('when "static" =>', 1)[1].split("end case", 1)[0]
         self.assertIn('"-static-pie"', static)
         self.assertIn('"-Wl,--fatal-warnings"', static)
-        environment = (ROOT / "scripts/env.sh").read_text()
-        self.assertIn('if [ "$LANDIN_BUILD_MODE" = release ] && '
-                      '[ "$(uname -s)" = Linux ]; then\n    LANDIN_LINK=static',
-                      environment)
         build = (ROOT / "scripts/build.sh").read_text()
         self.assertIn('if [ "${LANDIN_LINK:-dynamic}" = static ]; then', build)
+
+    def link(self, system, mode, asked=None):
+        """What env.sh chooses on SYSTEM in MODE when the caller ASKED for
+        a link, or the refusal."""
+        with TemporaryDirectory() as scratch:
+            tree = Path(scratch)
+            (tree / "scripts").mkdir()
+            shutil.copy(ROOT / "scripts/env.sh", tree / "scripts/env.sh")
+            probe = tree / "scripts/probe.sh"
+            probe.write_text('. "$(dirname -- "$0")/env.sh"\n'
+                             'echo "$LANDIN_LINK"\n')
+            fake = tree / "bin"
+            fake.mkdir()
+            uname = fake / "uname"
+            uname.write_text("#!/bin/sh\ncase $1 in -s) echo %s ;;"
+                             " *) echo x86_64 ;; esac\n" % system)
+            uname.chmod(0o755)
+            env = {"PATH": "%s:%s" % (fake, os.environ["PATH"]),
+                   "LANDIN_BUILD_MODE": mode}
+            if asked:
+                env["LANDIN_LINK"] = asked
+            return subprocess.run(["sh", str(probe)], env=env,
+                                  capture_output=True, text=True)
+
+    def test_env_sh_chooses_static_for_a_linux_release_alone(self):
+        for system, mode, asked, chosen in (
+                ("Linux", "release", None, "static"),
+                ("Linux", "release", "dynamic", "dynamic"),
+                ("Linux", "debug", None, "dynamic"),
+                ("Darwin", "release", None, "dynamic")):
+            ran = self.link(system, mode, asked)
+            self.assertEqual((ran.returncode, ran.stdout.strip()),
+                             (0, chosen), (system, mode, asked, ran.stderr))
+        for system, mode, asked in (("Darwin", "release", "static"),
+                                    ("Linux", "debug", "static"),
+                                    ("Linux", "release", "shared")):
+            ran = self.link(system, mode, asked)
+            self.assertEqual(ran.returncode, 2, (system, mode, asked))
+            self.assertIn("LANDIN_LINK is static for a Linux release",
+                          ran.stderr)
 
     def test_every_executable_project_takes_the_link(self):
         for project in sorted((ROOT / "compiler/ada").glob("*.gpr")):
@@ -169,6 +205,16 @@ class Package(unittest.TestCase):
                           % (other, platform.machine()), ran.stderr)
             self.assertIn("devShells.%s-linux.default" % other, ran.stderr)
             self.assertFalse((directory / "landin.tar.gz").exists())
+
+
+class Names(unittest.TestCase):
+    def test_an_asset_not_named_tar_gz_is_refused(self):
+        for argv in (["refine", "landin.tar.xz"],
+                     ["--debug", "debug.zip", "refine", "landin.tar.gz"]):
+            ran = subprocess.run([str(ROOT / "scripts/package.sh")] + argv,
+                                 capture_output=True, text=True)
+            self.assertEqual(ran.returncode, 2, argv)
+            self.assertIn("does not end in .tar.gz", ran.stderr)
 
 
 class Check(unittest.TestCase):

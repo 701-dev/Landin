@@ -15,6 +15,8 @@ them.  `install.sh`, pointed there by `LANDIN_RELEASES`, then
   HOME, whose `refine run` runs the first program and prints its output;
 - installs the named version into a directory given with `--dir`, and
   replaces it when run again;
+- on Linux, installs the dynamic archive `--variant dynamic` names,
+  served here as the same archive under the dynamic one's name;
 - refuses a damaged archive, saying the checksum differs, and installs
   nothing;
 - refuses an archive whose refine does not start on the host, as one of
@@ -90,10 +92,11 @@ def host_platform():
     return "%s-%s" % (machine, system)
 
 
-def publish(root, version, platform, data, digest=None):
-    """Put DATA where a release of VERSION serves PLATFORM's archive, with
-    a .sha256 of DIGEST, or of DATA itself."""
-    name = "landin-%s-%s.tar.gz" % (version, platform)
+def publish(root, version, platform, data, digest=None, suffix=""):
+    """Put DATA where a release of VERSION serves PLATFORM's archive, or
+    its archive with SUFFIX after the platform, with a .sha256 of DIGEST,
+    or of DATA itself."""
+    name = "landin-%s-%s%s.tar.gz" % (version, platform, suffix)
     where = root / "releases" / "download" / ("v" + version)
     where.mkdir(parents=True, exist_ok=True)
     (where / name).write_bytes(data)
@@ -218,6 +221,8 @@ def run_checks(archive, work, version, platform=None, path=None):
     publish(served, DAMAGED, named, bytes(damaged),
             hashlib.sha256(data).hexdigest())
     publish(served, UNSTARTABLE, named, unstartable_archive())
+    if named.endswith("-linux"):
+        publish(served, version, named, data, suffix="-dynamic")
     server = serve(served, version)
     path = path or os.environ.get("PATH", "/usr/bin:/bin")
     checks = Checks(work, "http://127.0.0.1:%d/releases"
@@ -249,6 +254,16 @@ def run_checks(archive, work, version, platform=None, path=None):
                 and sorted(p.name for p in target.parent.iterdir())
                 == ["landin"]):
             checks.ok(what)
+
+        if named.endswith("-linux"):
+            dynamic = work / "dynamic"
+            what = "the dynamic archive --variant dynamic names"
+            ran = checks.install(*chosen, "--variant", "dynamic", "--dir",
+                                 str(dynamic))
+            if (checks.expect(what, ran, 0, "-dynamic.tar.gz",
+                              "installed refine %s in %s" % (version, dynamic))
+                    and checks.first_program(dynamic, what)):
+                checks.ok(what)
 
         stranger = work / "stranger"
         stranger.mkdir()
@@ -322,8 +337,8 @@ def published_check(tag):
     failures = ["install.sh names %s, which v%s does not publish"
                 % (name, version) for name in listed if name not in assets]
     archives = {name for name in assets
-                if re.fullmatch(r"landin-[0-9.]+-[a-z0-9_]+-[a-z]+\.tar\.gz",
-                                name)}
+                if re.fullmatch(r"landin-[0-9.]+-[a-z0-9_]+-[a-z]+"
+                                r"(-dynamic)?\.tar\.gz", name)}
     failures += ["v%s publishes %s, which install.sh does not name"
                  % (version, name) for name in sorted(archives - set(listed))]
     return len(listed), failures

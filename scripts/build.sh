@@ -187,6 +187,7 @@ landin_manifest() {
     Configuration_Identity="$(python3 "$LANDIN_ROOT/scripts/build_config.py" \
         "$Configuration")" || return
     printf 'mode %s tag %s\n' "$LANDIN_BUILD_MODE" "$LANDIN_BUILD_TAG"
+    printf 'link %s\n' "${LANDIN_LINK:-dynamic}"
     printf 'switches %s\n' "$Switches"
     printf 'gnat %s\n' "$Gnat_First"
     printf 'gprbuild %s\n' "$Gpr_First"
@@ -205,7 +206,7 @@ EOF
 }
 
 landin_fixed() {
-    grep -E '^(mode|switches|gnat|gprbuild|toolchain|project) ' <<EOF
+    grep -E '^(mode|link|switches|gnat|gprbuild|toolchain|project) ' <<EOF
 $1
 EOF
 }

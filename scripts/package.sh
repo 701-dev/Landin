@@ -61,6 +61,19 @@ binary=$1
 asset=$2
 root=$(cd "$(dirname "$0")/.." && pwd)
 
+#  Each archive is a gzip-compressed tar, so its name says so: one named
+#  .tar.xz or .zip would hold gzip under a name that misleads its reader.
+for named in "$asset" ${debug_asset:+"$debug_asset"}; do
+    case $named in
+        *.tar.gz) ;;
+        *)
+            echo "package: $named does not end in .tar.gz; package.sh" \
+                "writes a gzip-compressed tar, so name it NAME.tar.gz" >&2
+            exit 2
+            ;;
+    esac
+done
+
 test -x "$binary" || { echo "package: $binary is not an executable" >&2; exit 1; }
 
 #  The split commands, by the one list, and each one's built executable.

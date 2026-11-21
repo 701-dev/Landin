@@ -41047,10 +41047,12 @@ hosts refused; `scripts/tests/test_install_script.py` runs the same cases
 against a stand-in archive and holds the script's names to
 `release.yml`'s.
 
-**Amended by D1789:** the script no longer refuses a Linux host by its
-loader. The Linux archives carry a static `refine` from the release after
-0.2.11, and the script instead runs the `refine` it unpacked for the host
-and refuses an archive whose `refine` does not start there.
+**Amended by D1789 and D1791:** the script no longer refuses a Linux host
+by its loader. From the release after 0.2.11 the Linux archive it takes by
+default carries a static `refine`, and the script instead runs the
+`refine` it unpacked for the host and refuses an archive whose `refine`
+does not start there; `--variant dynamic` takes the dynamic archive
+beside it.
 
 ### D1787 — A Linux release links glibc into its executables, as static position-independent ones
 
@@ -41185,6 +41187,51 @@ linked into it rather than the packaged `refine`.
 fixtures passing on x86-64 when it was written;
 `scripts/tests/test_static_archive.py` holds the fixture selection and
 the ELF reading it relies on.
+
+### D1791 — A release publishes the static and the dynamic Linux archive, and the installer chooses by `--variant`
+
+**The tour said** nothing. With the static archive (D1787) a release could
+offer one Linux archive per architecture or two. The static one starts on
+every Linux; the dynamic one, built on Ubuntu 24.04, needs glibc 2.38 or
+later and its loader, and takes the system's glibc and its fixes.
+
+**Chosen:** both, as the maintainer decided. Each Linux build job
+of the release workflow publishes the static archive under the platform's
+name, `landin-VERSION-PLATFORM.tar.gz`, and builds the same tree again in
+a build tree of its own with `LANDIN_LINK=dynamic`, published as
+`landin-VERSION-PLATFORM-dynamic.tar.gz` with its own debug archive and
+`.sha256`. `scripts/env.sh` takes `LANDIN_LINK=dynamic` from a caller for
+a Linux release and refuses `static` anywhere else, and the build manifest
+records the link, so a tree is rebuilt when it changes. `install.sh
+--variant static|dynamic` chooses on Linux, static when not given, and
+refuses the option on macOS, which has one archive; `--list` names both.
+Homebrew, the flake's `refine-bin` and the user image take the platform's
+name, so the static archive. The gate builds and tests the static build
+alone: the dynamic one is the same objects' sources linked against the
+runner's glibc, which the gate tested until the static archive, and the
+release workflow checks it before the approval: a program interpreter and
+no run path, the version, assembly for each hosted target, the default
+target, and each split command from the unpacked archive. It costs one
+more release build per Linux job, about eight minutes, and nothing per
+gate.
+
+**The alternatives:** the static archive alone, the maintainer's first
+answer;
+the dynamic archive under the platform's name and the static one beside
+it, which would keep sending the consumers that take the plain name an
+archive that does not start on NixOS, musl or an older glibc; dynamic as
+the installer's default, which the maintainer did not choose and which
+fails on more hosts; an option spelled `--link`, which `refine` already
+uses for how a program is linked; and relinking the static build's
+objects into the dynamic one, which `build.sh`'s manifest and GPRbuild's
+time stamps do not support without a clean build.
+
+**Pinned by** `scripts/install_check.py`'s case `the dynamic archive
+--variant dynamic names`, run by the gate on each Linux host and by
+`scripts/tests/test_install_script.py`, which also holds the script's
+names, both archives of each Linux platform, to `release.yml`'s;
+`scripts/tests/test_static_archive.py` holds `env.sh`'s choice and its
+refusals; `scripts/tests/test_build_inventory.py` the manifest's link row.
 
 ### D571 — A round's yield calls nothing beneath it but its sweep, its idler and its switch
 

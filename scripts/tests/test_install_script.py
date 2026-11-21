@@ -54,11 +54,12 @@ class Installs(unittest.TestCase):
             #  As the host's own archive where a release serves the host,
             #  so the script also runs the refine it unpacked; elsewhere
             #  as Linux x86-64's, which it installs without running.
+            #  The dynamic archive's case runs for a Linux one alone.
             try:
-                install_check.host_platform()
-                platform, cases = None, 9
+                named = install_check.host_platform()
+                platform, cases = None, 9 + named.endswith("-linux")
             except SystemExit:
-                platform, cases = "x86_64-linux", 8
+                platform, cases = "x86_64-linux", 9
             passed, failures = install_check.run_checks(
                 archive, Path(scratch) / "work", "0.0.0",
                 platform=platform)
@@ -74,20 +75,28 @@ class Names(unittest.TestCase):
         self.assertEqual(len(platforms), 3)
         self.assertIn('asset="landin-$version-${{ matrix.platform }}.tar.gz"',
                       workflow)
+        self.assertIn('asset="landin-$version-${{ matrix.platform }}'
+                      '-dynamic.tar.gz"', workflow)
         self.assertIn('> "$file.sha256"', workflow)
         listed = subprocess.run(
             ["sh", str(install_check.SCRIPT), "--list", "--version", "1.2.3"],
             capture_output=True, text=True, check=True).stdout.split()
+        #  Each Linux platform's dynamic archive beside its static one.
         self.assertEqual(listed, [
             name for one in platforms
-            for name in ("landin-1.2.3-%s.tar.gz" % one,
-                         "landin-1.2.3-%s.tar.gz.sha256" % one)])
+            for suffix in ([""] + ["-dynamic"] * one.endswith("-linux"))
+            for name in ("landin-1.2.3-%s%s.tar.gz" % (one, suffix),
+                         "landin-1.2.3-%s%s.tar.gz.sha256" % (one, suffix))])
 
     def test_options_it_refuses(self):
         for argv, said in ((["--platform", "x86_64-freebsd"],
                             "no release archive is named for"),
                            (["--version", "1.x", "--list"],
                             "is not a release version"),
+                           (["--variant", "shared", "--list"],
+                            "--variant is static or dynamic"),
+                           (["--platform", "aarch64-darwin", "--variant",
+                             "dynamic", "--list"], "macOS has one"),
                            (["--frobnicate"], "unknown option")):
             ran = subprocess.run(["sh", str(install_check.SCRIPT)] + argv,
                                  capture_output=True, text=True,
