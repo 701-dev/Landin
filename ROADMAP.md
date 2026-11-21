@@ -1332,7 +1332,7 @@ general places, and the fold's order after R19.30. The fold is size L.
 
 ### R19.30 — One write order for an aggregate assignment
 
-Status: planned
+Status: active
 Depends on: R19.10
 
 SC-26, a behaviour fix as much as a simplification. D29 writes a literal
