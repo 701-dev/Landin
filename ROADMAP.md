@@ -2382,8 +2382,9 @@ without `-R`, so `build.sh` adds it; the reuse check then refused the
 symbol, now in the README; `SR-1517`, `package.sh` refusing another
 architecture's executable first; and `SR-1515`, the static build being
 the release mode `test.sh` runs; and `package.sh` writing gzip under any
-suffix, now refused. Gate run 44938836967 and boards run
-44940836127 on the merged tree ba87d9fad.
+suffix, now refused. Gate run 44944750687 and boards run 44947292024 on
+65efe1ccb, and release rehearsal 44944776550, which built and checked both
+archives of each Linux architecture.
 
 ### R23 gate
 Every route in the installing documentation and exercised by the gate or,
