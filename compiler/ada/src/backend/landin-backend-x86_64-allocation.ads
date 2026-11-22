@@ -1,11 +1,11 @@
 --  Deterministic physical locations for the verified block-local value model
 --  and for slots over their live intervals.  Five otherwise-unused SysV
---  callee-save GP registers, four caller-saved ones and, at speed, eight
+--  callee-save GP registers, six caller-saved ones and, at speed, eight
 --  XMM registers are allocated.  SysV saves no XMM register across a call,
 --  so no XMM interval spans one, and no caller-saved location's interval
 --  holds an operation that writes its register.  A small routine takes no
 --  callee-saved register, whose save would cost more than it saves.
---  Scratch, argument and failure registers remain owned by selection.
+--  The accumulator, %rcx and %rdx remain selection's scratch everywhere.
 with Ada.Containers.Vectors;
 with Landin.Optimization;
 
@@ -14,15 +14,17 @@ package Landin.Backend.X86_64.Allocation is
    subtype Width is Landin.Targets.Scalar_Size
      range Landin.Targets.Byte_1 .. Landin.Targets.Byte_8;
    type Register_Id is (No_Register, RBX, R12, R13, R14, R15, RSI, RDI,
-                        R8, R9);
-   subtype General_Register is Register_Id range RBX .. R9;
+                        R8, R9, R10, R11);
+   subtype General_Register is Register_Id range RBX .. R11;
    subtype Saved_Register is Register_Id range RBX .. R15;
    --  The caller-saved registers selection writes only in the operations
    --  Touches names: a value or slot may hold one only where none of those
    --  lies in its interval.  %rax, %rcx and %rdx are its accumulator and
-   --  scratch, %r11 stages stores, probes the stack and holds C transport,
-   --  and %r10 carries a failure's code, so none of those is offered.
-   subtype Caller_Saved is Register_Id range RSI .. R9;
+   --  scratch everywhere, so none of those is offered.  D2088: %r10, which
+   --  carries a failure's code out of a call and a leave, and %r11, which
+   --  probes the stack, holds C transport and masks a packed part, are
+   --  offered as %rsi to %r9 are.
+   subtype Caller_Saved is Register_Id range RSI .. R11;
    type SSE_Register is (XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14,
                          XMM15);
    type Location_Kind is (Absent, Stack, GP, SSE);
@@ -108,15 +110,25 @@ package Landin.Backend.X86_64.Allocation is
       Item : Landin.IR.Item_Id;
       Value : Landin.IR.Value_Id) return Boolean;
 
+   --  D2088: whether Value loads or stores a packed field or element,
+   --  which selection reaches through %r10 and masks through %r11.  Its
+   --  shape is the one selection reaches, which selection checks.
+   function Packed_Part
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Value : Landin.IR.Value_Id) return Boolean;
+
    --  Whether selection writes Register in emitting Value other than as
    --  Value's own location.  Calls, copies, clears and fills, selecting a
    --  variant, assembly and a leave copying an aggregate result or
    --  marshalling a C one use the argument registers; a conversion's
    --  float decoding and an atom table search in a packed field or
    --  element, which may be any field or element access carrying a u32,
-   --  also use %r8 and %r9.  An interval includes its last use,
-   --  so a call's own operands are never in them either: the call fills
-   --  its argument registers in order.
+   --  also use %r8 and %r9.  D2088: a packed field or element and
+   --  preparing a stack use %r10 and %r11 as well, and a leave from a
+   --  routine that may fail, and a fail, write %r10.  An interval
+   --  includes its last use, so a call's own operands are never in them
+   --  either: the call fills its argument registers in order.
    function Touches
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;

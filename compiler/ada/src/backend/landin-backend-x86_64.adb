@@ -2406,14 +2406,18 @@ package body Landin.Backend.X86_64 is
             end if;
          end Carry;
 
-         --  %r11 at one width: the scratch a store stages a value from
+         --  %rdx at one width: the scratch a store stages a value from
          --  memory through when the accumulator is part of its address.
+         --  No address an element or indirect store writes through names
+         --  it: its base is %rbp, %rcx or an allocated register, and its
+         --  index the accumulator or an allocated register.  D2088: it
+         --  was %r11, which the allocator now offers.
          function Staging (Size : Held_Size) return String
            is (case Size is
-                  when Landin.Targets.Byte_1 => "%r11b",
-                  when Landin.Targets.Byte_2 => "%r11w",
-                  when Landin.Targets.Byte_4 => "%r11d",
-                  when Landin.Targets.Byte_8 => "%r11");
+                  when Landin.Targets.Byte_1 => "%dl",
+                  when Landin.Targets.Byte_2 => "%dx",
+                  when Landin.Targets.Byte_4 => "%edx",
+                  when Landin.Targets.Byte_8 => "%rdx");
 
          --  A store to a memory operand that may name the accumulator,
          --  which size and speed address elements with.
@@ -2845,8 +2849,11 @@ package body Landin.Backend.X86_64 is
          end Emit_C_Result;
 
          --  Linux stack growth touches at most 4096 bytes apart.  R11 is
-         --  scratch at each reservation boundary; argument banks, R10 failure
-         --  state and allocated callee-saves remain live and untouched.
+         --  scratch at each reservation boundary: the frame's, before the
+         --  entry moves any parameter, a C entry's and a call's, which
+         --  the allocator treats as writing it (D2088).  Argument banks,
+         --  R10 failure state and allocated callee-saves remain live and
+         --  untouched.
          procedure Check_Limit (Bytes : Landin.Targets.Byte_Count) is
          begin
             if Bytes = 0 then
@@ -3754,6 +3761,21 @@ package body Landin.Backend.X86_64 is
                   Emit (Float_Move (Single, "%xmm0", Into));
                end if;
             end Float_Binary;
+
+            --  D2088: the allocator offers %r10 and %r11 only where no
+            --  packed access, as Allocation.Packed_Part sees one, lies in
+            --  a location's interval; one it missed would write over it.
+            procedure Check_Packed;
+
+            procedure Check_Packed is
+            begin
+               if Optimized
+                 and then not Allocation.Packed_Part (Of_Unit, Item, Value)
+               then
+                  raise Landin.Compiler_Defect with
+                    "a packed access the allocator did not see";
+               end if;
+            end Check_Packed;
 
             procedure Packed_Atom
               (Set_Id : Landin.IR.Atom_Set_Id; Encode : Boolean);
@@ -5634,6 +5656,7 @@ package body Landin.Backend.X86_64 is
                            Mask : constant Landin.Packed.Image :=
                              Landin.Packed.Mask (Shape.Packing.Bits);
                         begin
+                           Check_Packed;
                            Storage_Address
                              (Place, Field, "%r10", Nested => Nested);
                            Emit ("movq " & Value_Operand (Index)
@@ -5785,6 +5808,7 @@ package body Landin.Backend.X86_64 is
                            Shift : constant String := Trimmed
                              (Natural'Image (Shape.Packing.First));
                         begin
+                           Check_Packed;
                            Storage_Address
                              (Place, Natural (Which), "%rcx",
                               Nested => Nested);
