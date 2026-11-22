@@ -303,6 +303,91 @@ class LoggedCommands(unittest.TestCase):
         self.assertEqual(again.returncode, 0)
         self.assertIn("already finished", again.stdout)
 
+    def logged(self, word):
+        """The first log line starting with WORD, once the run has said it."""
+        deadline = time.monotonic() + HANG
+        log = self.output / "command.log"
+        while True:
+            if log.exists():
+                for line in log.read_text().splitlines():
+                    if line.startswith(word):
+                        return line
+            self.assertLess(time.monotonic(), deadline)
+            time.sleep(0.01)
+
+    def assert_gone(self, pid):
+        #  Reparented to init once its group leader is gone, and reaped there.
+        deadline = time.monotonic() + HANG
+        while True:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return
+            self.assertLess(time.monotonic(), deadline, "pid %d still runs" % pid)
+            time.sleep(0.05)
+
+    def stop_run(self):
+        return subprocess.run([sys.executable, str(SCRIPT), "--stop", str(self.output)],
+                              capture_output=True, text=True, timeout=2 * HANG)
+
+    def test_stop_ends_a_program_the_command_left_behind(self):
+        #  An emulator a test started survived the stop of its run,
+        #  holding the build lock it inherited.
+        straggler = ("import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                     "print('ignoring', flush=True); time.sleep(600)")
+        command = ("import subprocess, sys, time\n"
+                   "child = subprocess.Popen([sys.executable, '-c', %r],"
+                   " stdout=subprocess.PIPE, text=True)\n"
+                   "child.stdout.readline()\n"
+                   "print('straggler', child.pid, flush=True)\n"
+                   "time.sleep(600)\n" % straggler)
+        launched = self.detached("--limit", str(HANG), "--grace", "1", "--",
+                                 sys.executable, "-c", command)
+        self.assertEqual(launched.returncode, 0, launched.stderr)
+        pid = int(self.logged("straggler").split()[1])
+        self.addCleanup(lambda: subprocess.run(["kill", "-9", str(pid)],
+                                               capture_output=True))
+        stopped = self.stop_run()
+        self.assertEqual(stopped.returncode, 0, stopped.stdout + stopped.stderr)
+        self.assertEqual(self.result()["interrupted_by"], signal.SIGTERM)
+        self.assertTrue(self.result()["group_killed"])
+        self.assert_gone(pid)
+
+    def test_a_command_ignoring_the_stop_is_killed_after_its_grace(self):
+        launched = self.detached(
+            "--limit", str(HANG), "--grace", "1", "--", sys.executable, "-c",
+            "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+            "print('ready', flush=True); time.sleep(600)")
+        self.assertEqual(launched.returncode, 0, launched.stderr)
+        self.logged("ready")
+        stopped = self.stop_run()
+        self.assertEqual(stopped.returncode, 0, stopped.stdout + stopped.stderr)
+        self.assertEqual(self.result()["returncode"], -signal.SIGKILL)
+        self.assertTrue(self.result()["group_killed"])
+
+    def test_a_group_that_ends_on_the_signal_is_not_killed(self):
+        launched = self.detached(
+            "--limit", str(HANG), "--", sys.executable, "-c",
+            "import subprocess, sys, time\n"
+            "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(600)'])\n"
+            "print('ready', flush=True); time.sleep(600)\n")
+        self.assertEqual(launched.returncode, 0, launched.stderr)
+        self.logged("ready")
+        started = time.monotonic()
+        self.assertEqual(self.stop_run().returncode, 0)
+        self.assertFalse(self.result()["group_killed"])
+        #  Nothing waited out the ten-second grace.
+        self.assertLess(time.monotonic() - started, 9)
+
+    def test_grace_must_be_positive(self):
+        refused = subprocess.run(
+            [sys.executable, str(SCRIPT), "--output", str(self.output), "--grace", "0",
+             "--", sys.executable, "-c", "pass"],
+            capture_output=True, text=True, timeout=HANG)
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("--grace needs a positive", refused.stderr)
+        self.assertFalse(self.output.exists())
+
     def test_detaching_needs_a_limit_and_a_new_directory(self):
         refused = self.detached("--", sys.executable, "-c", "pass")
         self.assertEqual(refused.returncode, 2)

@@ -3,6 +3,7 @@
 
     python3 scripts/run_logged.py --output NEW_DIRECTORY -- COMMAND [ARG ...]
     python3 scripts/run_logged.py --output NEW_DIRECTORY --detach --limit SECONDS -- COMMAND [ARG ...]
+    python3 scripts/run_logged.py --output NEW_DIRECTORY [--grace SECONDS] -- COMMAND [ARG ...]
     python3 scripts/run_logged.py --wait DIRECTORY [--timeout SECONDS]
     python3 scripts/run_logged.py --stop DIRECTORY
 
@@ -12,6 +13,14 @@ it: an interruption, a termination, a hangup and a quit all reach the
 command, which runs in a session of its own and would otherwise outlive a
 wrapper whose terminal or harness went away, holding its build lock with no
 result ever written.
+
+The signal goes to the command's whole process group, and ending the run
+ends the group: whatever is still in it SECONDS after the signal (`--grace`,
+10 by default), the command or a program it started, such as an emulator
+running a hung test, is killed, and the result is written only once the
+group is empty.  `result.json`'s `group_killed` says whether that was
+needed.  A program that left the group, by starting a session of its own,
+is not reached.
 It does not select tests, enter an environment, or supply acceptance evidence.
 
 `--wait` is the blocking wait for an agent that receives no notification, a
@@ -36,7 +45,8 @@ it from the old session or a new one.  Because nothing ends it by accident,
 it must be told when to give up: `--limit SECONDS` is required, the wrapper
 ends the command when it passes, as an interruption would, and
 `result.json` says `limit_reached`.  `--stop DIRECTORY` ends a run early,
-the same way, and returns once its result is written.
+the same way, its whole process group included, and returns once its
+result is written.
 
 124 and 125 are therefore `--wait`'s own, and a finished run never answers
 with either.  They are also what `timeout` exits with when it stops its
@@ -73,6 +83,20 @@ FINISHED_AS_WAIT_STATUS = 1
 #  Set for the detached copy of the wrapper: the descriptor it tells its
 #  launcher on that the run began.
 DETACHED = "LANDIN_RUN_LOGGED_DETACHED"
+#  Seconds an ended run's process group has between the signal that ends it
+#  and SIGKILL.
+DEFAULT_GRACE = 10
+
+
+def group_alive(group):
+    """Whether any process is still in process group GROUP."""
+    try:
+        os.killpg(group, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 def alive(pid):
@@ -211,14 +235,17 @@ def stop(output, parser):
         print("already finished: %s" % output)
         return 0
     try:
-        pid = json.loads((output / "running.json").read_text())["pid"]
+        running = json.loads((output / "running.json").read_text())
+        pid = running["pid"]
     except (OSError, ValueError, KeyError):
         parser.error("%s holds no run_logged.py run" % output)
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
         pass
-    status = wait(output, 60, parser)
+    #  The wrapper writes the result once the group is empty, which a
+    #  straggler can put off for the run's whole grace.
+    status = wait(output, 60 + running.get("grace", DEFAULT_GRACE), parser)
     return 0 if status == 128 + signal.SIGTERM else status
 
 
@@ -237,6 +264,10 @@ def main(argv=None):
                              " the caller, and return at once; needs --limit")
     parser.add_argument("--limit", type=float, metavar="SECONDS",
                         help="end the command after SECONDS; required with --detach")
+    parser.add_argument("--grace", type=float, default=DEFAULT_GRACE, metavar="SECONDS",
+                        help="with --output: seconds the command's process group has to"
+                             " exit after the signal that ends the run, before it is"
+                             " killed (default %d)" % DEFAULT_GRACE)
     parser.add_argument("--timeout", type=float, default=DEFAULT_WAIT,
                         help="seconds --wait blocks before exiting 124 (default %d,"
                              " under a subagent's five-minute prompt cache)" % DEFAULT_WAIT)
@@ -254,6 +285,8 @@ def main(argv=None):
                      " that hangs")
     if args.limit is not None and args.limit <= 0:
         parser.error("--limit needs a positive number of seconds")
+    if args.grace <= 0:
+        parser.error("--grace needs a positive number of seconds")
     command = args.command
     if command[:1] == ["--"]:
         command = command[1:]
@@ -282,32 +315,52 @@ def main(argv=None):
     interrupted = None
     child = None
     limit_reached = False
+    group_killed = False
+    #  When the signal that ends the run was forwarded, for its grace.
+    ending_since = None
+
+    def kill_group():
+        nonlocal group_killed
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+            group_killed = True
+        except ProcessLookupError:
+            pass
 
     def forward(number, _frame):
-        nonlocal interrupted
+        nonlocal interrupted, ending_since
         interrupted = number
         if child is not None:
             try:
                 os.killpg(child.pid, number)
             except ProcessLookupError:
                 pass
+            if ending_since is None:
+                ending_since = time.monotonic()
+                #  A command that ignores the signal is killed when its
+                #  grace passes; the alarm is free, a limit having passed or
+                #  no longer mattering.
+                signal.setitimer(signal.ITIMER_REAL, args.grace)
 
-    def past_limit(_number, _frame):
+    def on_alarm(_number, _frame):
         nonlocal limit_reached
+        if ending_since is not None:
+            kill_group()
+            return
         limit_reached = True
         forward(signal.SIGTERM, None)
 
     previous = {number: signal.signal(number, forward)
                 for number in (signal.SIGINT, signal.SIGTERM,
                                signal.SIGHUP, signal.SIGQUIT)}
+    previous[signal.SIGALRM] = signal.signal(signal.SIGALRM, on_alarm)
     if args.limit is not None:
-        previous[signal.SIGALRM] = signal.signal(signal.SIGALRM, past_limit)
         signal.setitimer(signal.ITIMER_REAL, args.limit)
     # Written whole, as the result is: a waiter reading a file that is
     # still being written would see no run, or half of one.
     starting = output / "running.json.tmp"
     starting.write_text(json.dumps(
-        {"pid": os.getpid(), "started_at": result["started_at"],
+        {"pid": os.getpid(), "started_at": result["started_at"], "grace": args.grace,
          "command": command, "log": str(log)}) + "\n")
     starting.replace(output / "running.json")
     started_detached()
@@ -322,6 +375,20 @@ def main(argv=None):
                 if interrupted is not None:
                     forward(interrupted, None)
                 returncode = child.wait()
+                #  An ended run ends its group: a program the command started
+                #  can outlive it, holding what it inherited, a build lock
+                #  among them.  The leader is reaped, so the group id is not
+                #  reused while a member remains.
+                if ending_since is not None:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    deadline = ending_since + args.grace
+                    while group_alive(child.pid) and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    if group_alive(child.pid):
+                        kill_group()
+                        killed_by = time.monotonic() + 5
+                        while group_alive(child.pid) and time.monotonic() < killed_by:
+                            time.sleep(0.05)
             except OSError as error:
                 returncode = 127 if isinstance(error, FileNotFoundError) else 126
                 result["launch_error"] = str(error)
@@ -338,6 +405,7 @@ def main(argv=None):
         finished_at=timestamp(), elapsed_seconds=time.monotonic() - started,
         returncode=returncode, exit_status=exit_status,
         interrupted_by=interrupted, limit_reached=limit_reached,
+        group_killed=group_killed,
         detached=args.detach,
         user_cpu_seconds=after.ru_utime - before.ru_utime,
         system_cpu_seconds=after.ru_stime - before.ru_stime,
