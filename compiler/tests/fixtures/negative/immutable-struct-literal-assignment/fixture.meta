@@ -1,5 +1,5 @@
 class: negative
-summary: D64/D65 keep root mutability first for a whole struct literal assignment including an array label
+summary: [1900] keeps root mutability first for a whole struct literal assignment including an array label
 constructs: 0080, 0520, 0670, 0710, 1810, 1900
 program: program.ldn
 codes: L0303

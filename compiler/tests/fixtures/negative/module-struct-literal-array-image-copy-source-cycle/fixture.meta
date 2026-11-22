@@ -1,5 +1,5 @@
 class: negative
-summary: D69 follows a direct module array source chain without adding a second report to its existing image cycle
+summary: D24's image chain follows a direct module array source into a field without adding a second report to its existing cycle
 constructs: 0520, 0670, 0710, 0750, 1740, 1810, 1940
 program: program.ldn
 codes: L0305

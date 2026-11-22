@@ -1,5 +1,5 @@
 class: negative
-summary: D48 keeps local element facts separate for two array fields of one struct
+summary: [1910] keeps local element facts separate for two array fields of one struct
 constructs: 0520, 0670, 0750, 1810, 1820, 1910
 program: program.ldn
 codes: L0302

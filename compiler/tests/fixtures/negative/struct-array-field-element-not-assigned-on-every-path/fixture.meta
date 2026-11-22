@@ -1,5 +1,5 @@
 class: negative
-summary: D48 intersects a local array-field element fact across branch paths
+summary: [1910] intersects a local array-field element fact across branch paths
 constructs: 0080, 0430, 0520, 0670, 0750, 1810, 1910
 program: program.ldn
 codes: L0302

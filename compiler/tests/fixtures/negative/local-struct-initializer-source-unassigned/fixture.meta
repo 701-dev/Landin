@@ -1,5 +1,5 @@
 class: negative
-summary: D55 reads every scalar and fixed-array field of a local initializer source
+summary: [1910] reads every scalar and fixed-array field of a local initializer's struct source
 constructs: 0040, 0080, 0410, 0520, 0670, 0710, 0750, 1810, 1910
 program: program.ldn
 codes: L0302, L0302

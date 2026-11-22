@@ -1,5 +1,5 @@
 class: negative
-summary: D71 reports one static-image cycle when the first struct selects the second struct's array field
+summary: D24's image chain reports one static-image cycle when the first struct selects the second struct's array field
 constructs: 0520, 0670, 0710, 0750, 1740, 1810, 1820, 1940
 program: program.ldn
 codes: L0305

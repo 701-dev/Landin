@@ -1,5 +1,5 @@
 class: negative
-summary: D69 adds no second report when the direct module array source already has an invalid image
+summary: D66's field image adds no second report when the direct module array source already has an invalid image
 constructs: 0190, 0520, 0670, 0710, 0750, 1740, 1810, 1940
 program: program.ldn
 codes: L0301

@@ -1,5 +1,5 @@
 class: negative
-summary: D64 refuses the second spelling of one field in a struct literal
+summary: [0710] refuses the second spelling of one field in a struct literal
 constructs: 0670, 0710, 0750, 1810
 program: program.ldn
 codes: L0309

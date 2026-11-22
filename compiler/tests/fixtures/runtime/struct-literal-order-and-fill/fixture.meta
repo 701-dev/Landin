@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: D64 evaluates named struct fields in source order against the struct as it was before the assignment and fills omitted fields with zero
+summary: D1827 evaluates named struct fields in source order against the struct as it was before the assignment and fills omitted fields with zero
 constructs: 0080, 0190, 0410, 0520, 0540, 0670, 0710, 0720, 0750, 1810, 1900, 1910
 program: main.ldn
 status: 42

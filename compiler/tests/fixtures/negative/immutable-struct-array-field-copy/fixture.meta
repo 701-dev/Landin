@@ -1,5 +1,5 @@
 class: negative
-summary: D50 lets an immutable destination own the report before an unassigned field source
+summary: [1900] lets an immutable destination own the report before an unassigned field source
 constructs: 0520, 0670, 0750, 1740, 1820
 program: program.ldn
 codes: L0303

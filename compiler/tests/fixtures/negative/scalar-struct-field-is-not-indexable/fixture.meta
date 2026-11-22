@@ -1,5 +1,5 @@
 class: negative
-summary: D48 refuses indexing a scalar field without an assignment cascade
+summary: indexing a scalar field is refused without an assignment cascade (D118)
 constructs: 0520, 0670, 0750, 1810, 1820
 program: program.ldn
 codes: L0301

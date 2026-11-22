@@ -1,5 +1,5 @@
 class: negative
-summary: D70 adds no second report when the containing struct image was already refused
+summary: D24's image chain adds no second report when the containing struct image was already refused
 constructs: 0190, 0520, 0670, 0710, 0750, 1740, 1810, 1820, 1940
 program: program.ldn
 codes: L0301

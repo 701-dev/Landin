@@ -1,5 +1,5 @@
 class: negative
-summary: D70 requires a selected module struct array field to have the typed destination's exact D17 shape
+summary: a module array taking a selected struct field's image needs the typed destination's exact D17 shape (D241)
 constructs: 0520, 0670, 0710, 0750, 1740, 1810, 1820
 program: program.ldn
 codes: L0301, L0301

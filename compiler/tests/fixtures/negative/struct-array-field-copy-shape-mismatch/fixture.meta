@@ -1,5 +1,5 @@
 class: negative
-summary: D50 requires both array-field copy endpoints to have one D17 identity
+summary: D241 requires both array-field copy endpoints to have one D17 identity
 constructs: 0520, 0670, 0750, 1740, 1820
 program: program.ldn
 codes: L0301

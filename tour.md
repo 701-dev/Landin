@@ -727,7 +727,7 @@ The fine print:
 - `lenof` measures a name, a field or element reached through it, or what
   a call returns.
 - A call whose result is measured runs. The elements of a measured literal,
-  like the `roll_die()` calls above, are checked to have one scalar type
+  like the `roll_die()` calls above, are checked to have one type
   but not evaluated.
 - An array that a name or path reaches is not read, because its type holds
   its length.
@@ -2471,7 +2471,7 @@ There are three forms. They differ in where the length comes from:
 
 | form | where the length comes from |
 |---|---|
-| `[n of v]` | the count `n`; it can also infer a local or module binding's type |
+| `[n of v]` | the count `n`; it can also give a local or module binding its type, whatever `v`'s type |
 | `[of v]` | the destination's written type |
 | `[e1, ..., ek, of v]` | the destination's written type, with `1 <= k < N` |
 
@@ -2499,8 +2499,8 @@ Fine print:
   fixed-array argument of the same length, which it fills. It cannot be
   inferred, nested or returned. At module level every element must be a
   compile-time known scalar [1460].
-- An inferred `[n of v]` takes `v`'s scalar type, and an untyped integer
-  becomes `i32`. Its size must fit the target's `usize`.
+- An inferred `[n of v]` takes `v`'s type, of any kind, and an untyped
+  integer becomes `i32`. Its size must fit the target's `usize`.
 - Refused: `row := [of 0]`, which has no length to give, and a zero count or
   a zero-length destination.
 - `of` is a contextual word: if `of` names a binding, `[of, other, of]` and

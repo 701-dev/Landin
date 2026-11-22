@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: D58 clears complete local and module ordinary-struct storage
+summary: D32 clears complete local and module ordinary-struct storage in one operation
 constructs: 0040, 0060, 0080, 0190, 0410, 0520, 0540, 0670, 0710, 0750, 1810, 1900
 program: main.ldn
 status: 42

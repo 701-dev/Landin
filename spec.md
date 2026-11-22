@@ -5503,6 +5503,8 @@ the first two alternatives remain declined.
 
 ### D25 — A nonempty local literal infers one fixed-array shape
 
+**Partly superseded.** Its inferred shape stands: the first element gives the element type, an untyped integer defaulting to `i32`, every later element must have that type, and the extent must fit `usize`. That element type is any shape, not only a scalar (D241). Its sentence "repetition keeps [0560]'s scalar element and the module form keeps D26's" is superseded by D1664 and D1947, and the positions its second paragraph leaves "outside this slice" by D241; what follows is history.
+
 **The tour said** that a binding written with `:=` takes the type of its value
 [0050], that an integer literal takes the type of its context [0190] and uses
 the default integer when there is none [0200], that an array's size is part of
@@ -5547,6 +5549,8 @@ fold. All three were declined.
 `runtime/local-array-literal-infers-and-initializes` on Linux x86-64.
 
 ### D26 — An inferred module literal has the same static image boundary
+
+**Partly superseded.** Its static-image rule stands: an inferred module literal takes D25's shape, and its elements form one [1940]-known source-order image, each binding of a name chain holding storage of its own. Its scalar element is lifted by D1947: the first element gives the element type whatever its shape, and [1940] still decides which elements form an image. The forms its third paragraph "does not admit" are superseded by D241; what follows is history.
 
 **The tour said** that `:=` takes the type of its value [0050], that the length
 may be inferred from an array literal [0530], and that every module value is
@@ -5595,6 +5599,8 @@ declined.
 
 ### D27 — An explicitly typed module array may spell its zero image
 
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed module array among them, and a module array given `zeroed` keeps D10's absent image in `.bss`; what follows is history.
+
 **The tour said** that `zeroed` denotes all-bits-zero when that image is valid
 for its context [0540], that a fixed array is zeroable exactly when its element
 is [0520], and that every module value is known when the compiler reads it
@@ -5637,6 +5643,8 @@ Both were declined.
 `runtime/module-array-zeroed-reads-zero` on Linux x86-64.
 
 ### D28 — A local zero image is one runtime storage operation
+
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed local array among them, and the one-operation clear this decision first required is now stated by D32; what follows is history.
 
 **The tour said** that `zeroed` denotes all-bits-zero when that image is valid
 for its context [0540], that a fixed array is zeroable exactly when its element
@@ -5688,10 +5696,7 @@ assignment and evaluation decision. Both were declined.
 
 ### D29 — Array literal assignment forms the value in its destination
 
-**Write order superseded by D1827.** The contextual literal assignment and
-its definite-assignment rule stand. Its elements no longer see earlier
-writes of the same statement, and a failure leaves the array unchanged; the
-reasoning below is retained as history.
+**Partly superseded.** The contextual literal assignment and its definite-assignment rule stand: the destination gives the literal its length and element type, every read is checked against the state arriving at the statement, and the array is assigned as a whole when the statement completes. Its write order is superseded by D1827: an element no longer sees an earlier write of the same statement, and a failure leaves the array unchanged. Its limit to "direct local or module storage names" and the positions where literals "remain refused" are superseded by D241; what follows is history.
 
 **The tour said** that assignment copies an array [0520], that an assignment
 evaluates its destination place before its value [0410], and that aggregate
@@ -5822,6 +5827,8 @@ leaves a loop from an element's `else`.
 
 ### D30 — Zeroed assignment clears one complete array place
 
+**Superseded by D241.** `zeroed` may be assigned to every place whose type has a zero image, and the one-operation clear this decision first required is now stated by D32; what follows is history.
+
 **The tour said** that `zeroed` is the all-bits-zero image supplied by a context
 [0540], that assignment evaluates its destination before its value [0410], and
 that array assignment copies a complete value [0520]. D27 and D28 admitted that
@@ -5879,6 +5886,8 @@ the focused lowering and target-width backend cases for both storage kinds.
 
 ### D31 — `lenof` counts a literal without forming it
 
+**Scalar element lifted by D1664.** A measured literal is still checked, not formed, and nothing in it is evaluated, but its first element gives the element type whatever its shape, as an inferred literal's does; the sentences below that require a scalar element are superseded.
+
 **The tour said** that a literal's `lenof` is compile-time [0370]. D14 first
 implemented only a direct name, because a general expression operand would have
 made array values, calls, selections and slices one undivided decision. D25 later
@@ -5935,6 +5944,8 @@ without being read.
 also keeps an ordinary array named `lenof` indexable.
 
 ### D32 — Full-array repetition evaluates one scalar once
+
+**Partly superseded.** Two rules stand. A repeated value is evaluated exactly once, before the fill. A whole clear, fill or copy of an array is one operation, never one per element, whatever the array's extent: D28 and D30 stated this first, and since both are superseded this decision holds it. Its limit of repetition to "an explicitly typed local initializer or an existing mutable array place", its scalar element and the forms that "remain refused" are superseded by D241 and D1664; what follows is history.
 
 **The tour said** that repetition writes `[N of value]`, or `[of value]` when a
 context supplies the length [0560], that expressions run left to right [0410],
@@ -5997,6 +6008,8 @@ program contains. It was declined.
 
 ### D33 — A counted local repetition supplies its inferred shape
 
+**Partly superseded.** Its inferred shape stands: the count gives the length and the repeated value the element type, an untyped integer defaulting to `i32`, and the extent must fit `usize`; a zero count stays refused. Its scalar element is lifted by D1664: the repeated value gives the element type whatever its shape. The forms its third paragraph leaves "outside this slice" are superseded by D241 and D1947, except D241's recorded boundaries; what follows is history.
+
 **The tour said** that a literal may supply an omitted array length [0530] and
 that repetition writes a count before `of` when no surrounding type supplies one
 [0560]. It did not say whether the same count can supply the complete type of an
@@ -6041,6 +6054,8 @@ declined.
 `runtime/array-repetition-evaluates-once` on Linux x86-64.
 
 ### D34 — A written nonzero array shape admits either repetition spelling
+
+**Partly superseded.** Its repeated encoding stands: a written nonzero shape takes either repetition spelling, a module repetition folds to one compact pattern, a zero pattern is the absent image in `.bss`, and a zero contextual length is refused. The initializers and positions its fifth paragraph says "remain refused" are superseded by D241, and its inferred module form is D33's shape with this image; what follows is history.
 
 **The tour said** that `[N of expression]` may omit `N` when the type supplies
 its length [0560], and introduced repetition as a static pattern that lives in
@@ -6103,6 +6118,8 @@ scalar directive keeps both compact source and all pattern bits.
 
 ### D35 — A counted module repetition may infer its nonzero array shape
 
+**Superseded by D33 and D34.** An inferred module repetition takes D33's inferred shape, with an element of any shape (D1947), and D34's compact image; what follows is history.
+
 **The tour said** that a counted repetition may supply an inferred local's
 length and scalar element type [0560]. D33 implemented that local form, while
 D34 supplied the compact static image only when module state wrote its array
@@ -6149,6 +6166,8 @@ already represents the result. It was declined.
 `runtime/array-repetition-evaluates-once` on Linux x86-64.
 
 ### D36 — A typed local may mix a literal prefix with one repeated suffix
+
+**Partly superseded.** Its rule stands: a typed destination may take a literal prefix and one repeated suffix when the prefix leaves a nonempty suffix, the prefix is evaluated before the suffix, the repeated value once, and the suffix is one fill. The contexts its fifth paragraph says "This slice admits no" are superseded by D241, except D241's recorded boundaries; what follows is history.
 
 **The tour said** that repetition may follow values already written between the
 brackets [0560], that expressions run left to right [0410], and that a local
@@ -6208,9 +6227,7 @@ public-seam cases; `positive/local-array-mixed-repetition`;
 
 ### D37 — A mixed prefix may assign a mutable fixed array
 
-**Write order superseded by D1827.** The admission, its prefix bound and
-its definite-assignment rule stand; the prefix and the repeated expression
-read the array as it was before the assignment.
+**Partly superseded.** D36's mixed form on assignment, its prefix bound and its definite-assignment rule stand. Its write order is superseded by D1827: the prefix and the repeated value read the array as it was before the assignment. Its limit to "a direct local or module array storage name" and the contexts that "remain refused" are superseded by D241; what follows is history.
 
 **The tour said** that assignment reaches its destination before evaluating its
 right-hand side [0410], that a mutable binding may be assigned [1900], and that
@@ -6271,6 +6288,8 @@ initializer, inferred, nested and general-value refusal fixtures; and
 `runtime/mixed-array-repetition-assignment-reads-old-value` on Linux x86-64.
 
 ### D38 — A typed module mixed repetition has a compact hybrid image
+
+**Partly superseded.** Its hybrid encoding stands: a typed module mixed repetition is its finite folded prefix and one suffix pattern, never expanded, and stays a written `.data` image when its suffix is zero. The mixed forms it says "remain refused" are superseded by D241, except D241's recorded boundaries; what follows is history.
 
 **The tour said** that repetition is for static patterns in flash [0560], that a
 module value must be known when the compiler reads it [1940], and that a mixed
@@ -6389,6 +6408,8 @@ record among them at six bytes of memory per image byte.
 
 ### D39 — A written module scalar gives `zeroed` its context
 
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed module scalar among them; what follows is history.
+
 **The tour said** that `zeroed` denotes the all-bits-zero image of the type its
 context supplies [0540], and [1940] requires a module initializer to be known
 when the compiler reads it. It did not say whether a scalar declaration could
@@ -6428,6 +6449,8 @@ D27, D28 and D30. It was declined.
 
 ### D40 — A written local scalar gives `zeroed` its context
 
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed local scalar among them; what follows is history.
+
 **The tour said** that `zeroed` denotes the all-bits-zero image of the type its
 context supplies [0540], and that an initialized local has its value before a
 later statement reads it [0110]. It did not say whether a local scalar
@@ -6464,6 +6487,8 @@ declined.
 `runtime/local-scalar-zeroed-reads-zero` on Linux x86-64.
 
 ### D41 — A mutable scalar assignment destination gives `zeroed` its context
+
+**Superseded by D241.** `zeroed` may be assigned to every place whose type has a zero image, a mutable scalar among them; what follows is history.
 
 **The tour said** that assignment reaches its destination before evaluating its
 right-hand side [0410], that only a mutable binding may be assigned [1900], and
@@ -6509,6 +6534,8 @@ a contextual form appear to be a general expression. It was declined.
 `runtime/scalar-zeroed-assignment-clears-values` on Linux x86-64.
 
 ### D42 — A scalar subobject assignment destination gives `zeroed` its context
+
+**Superseded by D241, with D118 for the path.** `zeroed` may be assigned to every place whose type has a zero image, a scalar field or element at the end of any path among them; what follows is history.
 
 **The tour said** that assignment reaches its destination before evaluating its
 right-hand side [0410], that selection reaches a struct field or fixed-array
@@ -6569,6 +6596,8 @@ semantics this assignment must preserve. It was declined.
 `runtime/scalar-subobject-zeroed-computed-index-traps` on Linux x86-64.
 
 ### D43 — A scalar named return gives complete `zeroed` assignment its context
+
+**Superseded by D241.** `zeroed` may be assigned to every place whose type has a zero image, a scalar named return among them; what follows is history.
 
 **The tour said** that a named return is a writable place [1800], that `return`
 carries the value previously assigned there [1810], that every return path must
@@ -8435,6 +8464,8 @@ cases; `positive/measurement-of-struct-array-fields`;
 
 ### D46 — An array-field struct may be zeroed module state
 
+**Superseded by D241.** A struct with array fields is module state like any other type, and an omitted initializer gives it D10's zero image; what follows is history.
+
 **The tour said** that an array is a value whose size is part of its type
 [0520], that all-zero is a valid image for an aggregate of zero-image parts
 [0540], that a struct has its declared fields [0670], that those fields keep
@@ -8506,6 +8537,8 @@ the recorded IR dump; and
 
 ### D47 — An array-field struct may be declaration-only local storage
 
+**Superseded by D241.** A struct with array fields is declared without an initializer like any other local, and [1910] decides when it may be read; what follows is history.
+
 **The tour said** that a declaration-only binding must be assigned before it
 is used [0080], that an array is a value whose length is part of its type
 [0520], that a struct has its declared fields [0670], and that those fields
@@ -8572,6 +8605,8 @@ cases; `positive/struct-array-field-local-storage`;
 and `runtime/struct-array-field-local-scalar-siblings` on Linux x86-64.
 
 ### D48 — An element of a fixed-array field is a place
+
+**Superseded by D118 and D119 for the path, and D241.** An element of an array field is a place and a value at the end of any path, with the index rules every element has; what follows is history.
 
 **The tour said** that an array element is a place [0520], that a computed
 index traps before an address is formed [0580], that a struct has its declared
@@ -8653,6 +8688,8 @@ target-neutral IR that has none. All were declined.
 
 ### D49 — `zeroed` clears one fixed-array field
 
+**Superseded by D241.** An array field is a place like any other array, so `zeroed` clears it as one operation (D32); what follows is history.
+
 **The tour said** that assignment reaches its destination before its value
 [0410], that an array's complete value may be all-bits-zero [0520], that
 `zeroed` takes its type from context [0540], that a struct has its declared
@@ -8719,6 +8756,8 @@ use it. All were declined.
 `runtime/struct-array-field-local-scalar-siblings` on Linux x86-64.
 
 ### D50 — A fixed-array field is a whole-copy endpoint
+
+**Superseded by D241.** An array field is a place and a value like any other array, so it is either end of a copy; what follows is history.
 
 **The tour said** that assignment reaches its destination before its value
 [0410], that assigning an array copies its complete value [0520], that a struct
@@ -8800,6 +8839,8 @@ rule independently.
 
 ### D51 — A fixed-array field initializes a local array
 
+**Superseded by D241.** An array field is a value like any other array, so it initializes a typed or inferred local; what follows is history.
+
 **The tour said** that a binding may carry a value [0040], an inferred binding
 takes that value's type [0050], the value is read before the new name exists
 [0110], and assigning an array copies its complete value [0520]. D21 admitted
@@ -8865,8 +8906,7 @@ dump; and `runtime/local-array-initializers-from-fields` on Linux x86-64.
 
 ### D52 — An array literal may be assigned to a fixed-array field
 
-**Write order superseded by D1827.** The field admission stands; a later
-element no longer observes an earlier write to the field.
+**Superseded by D241, and its write order by D1827.** An array field is a place like any other array, so it takes an array literal as any array does, formed as if before the field changes; what follows is history.
 
 **The tour said** that assignment reaches its destination before its value
 [0410], that an array has its complete value [0520], that aggregate parts are
@@ -8997,9 +9037,7 @@ field in the same position are already lent.
 
 ### D53 — Repetition may assign a fixed-array field compactly
 
-**Write order superseded by D1827.** The compact fill stands; a mixed
-prefix and its repeated expression read the field as it was before the
-assignment.
+**Superseded by D241, and its write order by D1827.** An array field takes full and mixed repetition as any array place does: one fill (D32), after a prefix that reads the field as it was before the assignment; what follows is history.
 
 **The tour said** that full repetition evaluates one scalar pattern [0560],
 that mixed repetition evaluates and stores its prefix before evaluating the
@@ -9083,6 +9121,8 @@ x86-64.
 
 ### D54 — An array-bearing struct is copied field by field
 
+**Superseded by D241.** A struct with array fields is copied whole like any other struct; what follows is history.
+
 **The tour said** that assignment reaches its destination before its value
 [0410], that assigning an array copies its complete value [0520], that a struct
 has its declared fields [0670], that named structs have nominal identity
@@ -9164,6 +9204,8 @@ declined.
 
 ### D55 — A typed local struct may snapshot directly named storage
 
+**Superseded by D241.** A typed local struct takes every value of its type, a storage name among them; what follows is history.
+
 **The tour said** that a local binding may carry an initializer [1810], that
 assignment reaches its destination before its value [0410], that assigning an
 array copies its complete value [0520], that named structs have nominal
@@ -9240,6 +9282,8 @@ inferred module static image chains.
 
 ### D56 — A local struct is inferred from directly named storage
 
+**Superseded by D241.** An inferred local takes the type of every struct value it is given, a storage name among them; what follows is history.
+
 **The tour said** that an inferred local binding takes its value's type [0050],
 that the new name is not in scope in its own initializer [0110], that named
 structs have nominal identity [0710], and that fields keep declaration order
@@ -9308,6 +9352,8 @@ Linux x86-64.
 
 ### D57 — A typed local struct is initialized to its zero image
 
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed local struct among them; what follows is history.
+
 **The tour said** that `zeroed` is the all-bits-zero image of its contextual
 type and writes that complete image as one value [0540], that a local binding
 may carry an initializer [1810], and that struct fields retain declaration
@@ -9358,6 +9404,8 @@ image and place rules. All were declined.
 and `runtime/local-struct-zeroed-reads-zero` on Linux x86-64.
 
 ### D58 — A struct place is assigned its zero image
+
+**Superseded by D241.** `zeroed` may be assigned to every place whose type has a zero image, a struct place among them; what follows is history.
 
 **The tour said** that assignment reaches its destination before evaluating
 its value [0410], that `zeroed` is the complete all-bits-zero image of its
@@ -9414,6 +9462,8 @@ and `runtime/struct-zeroed-assignment-clears-storage` on Linux x86-64.
 
 ### D59 — A typed module struct has an explicit static zero image
 
+**Superseded by D241.** `zeroed` takes its type from every destination [1880] lists, a typed module struct among them, and a module struct given `zeroed` keeps D10's absent image; what follows is history.
+
 **The tour said** that `zeroed` is the complete all-bits-zero image of its
 contextual type [0540], that module declarations may carry values [1740], and
 that nothing runs before the entry point [1460]. D10 already gives a
@@ -9463,6 +9513,8 @@ the recorded IR dump; and `runtime/module-struct-zeroed-image-is-static` on
 Linux x86-64.
 
 ### D60 — A typed module struct copies a static image from a storage name
+
+**Superseded by D24 and D66.** A typed module struct initialized from a storage name takes that binding's static image through D24's name chain, into storage of its own, and D66's field image is what the chain carries; what follows is history.
 
 **The tour said** that a binding may write its type and initializer together
 [0040], that module declarations form one order-independent scope [1740], that
@@ -9529,6 +9581,8 @@ the recorded IR dump; and
 `runtime/module-struct-initializers-copy-images` on Linux x86-64.
 
 ### D61 — A module struct is inferred from directly named storage
+
+**Superseded by D24 and D66.** An inferred module struct initialized from a storage name takes that binding's type and static image through D24's name chain, into storage of its own, and D66's field image is what the chain carries; what follows is history.
 
 **The tour said** that an inferred binding takes the type of its value [0050],
 that module declarations form one order-independent scope [1740], and that
@@ -9599,6 +9653,8 @@ cause. All were declined.
 
 ### D62 — `zeroed` reaches a fixed-array field element
 
+**Superseded by D241 and D118, as D42 is.** `zeroed` may be assigned to every place whose type has a zero image, an element of an array field at the end of any path among them; what follows is history.
+
 **The tour said** that assignment reaches its destination before its value
 [0410], that selection and indexing reach a scalar subobject [0520], that only
 writable places may be assigned [1900], and that `zeroed` takes the all-bits-zero
@@ -9652,6 +9708,8 @@ IR dump; and
 x86-64.
 
 ### D63 — Ordinary-struct literal spellings are refused by name
+
+**Superseded by D64 and D72: the refused spellings were enabled.** A labelled struct literal is enabled syntax, now governed by D241, and call-shaped construction is D72's; only the all-`of` form stays outside the grammar. What follows is history.
 
 **The tour said** that an ordinary struct may be written as a parenthesized
 field image [0710] and showed call-shaped construction with named fields
@@ -9714,9 +9772,7 @@ form.
 
 ### D64 — A labelled struct literal writes contextual local storage
 
-**Write order superseded by D1827.** Labels are still evaluated in written
-order and the fill after them, but an assigned literal's expressions read
-the struct as it was before the assignment.
+**Superseded by D72 and D241, and its write order by D1827.** A labelled struct literal takes its type from every destination that gives one, its labels evaluated in written order and the `of` fill after them, as if before the destination changes; construction is D72's; what follows is history.
 
 **The tour said** that an ordinary struct image names fields in parentheses
 [0710], that their written order determines evaluation [0410], and that a
@@ -9809,9 +9865,7 @@ x86-64.
 
 ### D65 — A label is its field's contextual destination
 
-**Write order superseded by D1827.** Each label is still its field's
-contextual destination; a later label no longer observes an earlier
-labelled write of the same assignment.
+**Superseded by D241, and its write order by D1827.** Each label is its field's contextual destination, as every place is, and takes every value that field's type takes; what follows is history.
 
 **The tour said** that a struct literal takes its type from context [0710],
 that each written label supplies one field value and a trailing `of` supplies
@@ -9891,6 +9945,8 @@ representation; and the last duplicates whole `zeroed`. All were declined.
 IR records; and `runtime/struct-literal-array-field-order` on Linux x86-64.
 
 ### D66 — A typed module struct literal is a static field image
+
+**Partly superseded.** Its static field image stands: a typed module struct literal is one target-neutral fold per field, each [1940]-known and held by its field's type, laid out by the backend, and an all-zero literal is still a written `.data` image. Its sentences "Each explicitly named field in this first static carrier must be scalar" and "A fixed-array field named explicitly is L0304 in this slice" are superseded by D67, D68 and D24's chain, and the forms that "remain refused in this decision" by D72 and D241; what follows is history.
 
 **The tour said** that a module binding may carry a value [0040], that an
 ordinary struct image names its fields [0710], that the remaining fields may be
@@ -9979,6 +10035,8 @@ IR records; and `runtime/module-struct-literal-image-is-loaded` on Linux x86-64.
 
 ### D67 — A labelled fixed-array module field has a finite or zero image
 
+**Partly superseded.** Its finite and zero field images and their verified descriptor carrier stand. Its fifth paragraph, which keeps repetition, a direct name and a selected field "L0304 as labelled module images", is superseded by D68 and, for a name or a selected field, D24's chain, and the forms it leaves "outside this slice" by D241; what follows is history.
+
 **The tour said** that an ordinary struct image names its fields [0710], that
 an array literal names its elements [0410], and that nothing runs before the
 entry point [1460]. D24 established finite target-neutral module array images,
@@ -10066,6 +10124,8 @@ Linux x86-64.
 
 ### D68 — A repeated module struct field image stays compact
 
+**Partly superseded.** Its compact repeated and hybrid field images stand: a full repetition stays one pattern, a zero one is absent, and a hybrid keeps its prefix and one suffix pattern. Its fifth paragraph, which keeps a direct array name or selected field "L0304 as a labelled module image in this slice" and the forms that "remain refused here", is superseded by D24's chain and D241; what follows is history.
+
 **The tour said** that a full repetition writes one value into every array
 position [0560], that a mixed repetition writes its prefix before repeating
 one final value [0410], and that nothing runs before the entry point [1460].
@@ -10144,6 +10204,8 @@ the generated token and IR records; and
 
 ### D69 — A module array image may fill a labelled fixed-array field
 
+**Superseded by D24's chain and D66's image.** A labelled array field of a module struct takes a module array's static image as a module array binding does; what follows is history.
+
 **The tour said** that a module initializer is an image present before the
 entry point [1460], that a fixed array's value is its element sequence [0520],
 and that struct fields have declaration-order layout while labelled values may
@@ -10198,6 +10260,8 @@ and `runtime/module-struct-literal-array-image-copy-is-independent` on Linux
 x86-64.
 
 ### D70 — A module array takes a selected field's static image
+
+**Superseded by D241 and D24's chain.** A module array takes a selected field's static image as it takes a name's; what follows is history.
 
 **The tour said** that a binding may name or infer its type [0040], [0050],
 that a fixed array's value is its element sequence [0520], and that nothing
@@ -10261,6 +10325,8 @@ and IR records; and
 `runtime/module-array-from-struct-field-is-independent` on Linux x86-64.
 
 ### D71 — A labelled fixed-array field takes a selected field's static image
+
+**Superseded by D66, D67 and D24's chain.** A labelled array field of a module struct takes another struct's selected field image as it takes a name's; what follows is history.
 
 **The tour said** that a module initializer is an image present before the
 entry point [1460], that a fixed array's value is its element sequence [0520],
@@ -10434,6 +10500,8 @@ construction does not depend on.
 
 ### D73 — A contextual variant part is refused once as a whole
 
+**Superseded by D74: the refused syntax was enabled.** A variant part is declared syntax with D74's layout. What follows is history.
+
 **Amended by D1657.** The inline `(...)` struct body it names is refused; a struct type is declared with `struct ... end`, and the rule below holds for that body.
 
 **The tour said** that an ordinary struct may contain one contextual
@@ -10593,6 +10661,8 @@ target-layout records; the backend seam against both target descriptions; and
 **Pinned by** `negative/inline-struct-is-a-struct-block`, plain and packed, whose fix writes the block. D73, D74 and D189 are marked amended; [1795] loses the inline body and with it the `->` lookahead, and so does the tree-sitter grammar.
 
 ### D75 — A variant-bearing struct has storage and one zero image
+
+**Partly superseded.** Its layout rule stands: the tag value zero selects the first case in source order, so a variant-bearing struct's zero image is all zero bytes, and such a struct is module or local storage like any other. Its sentences "These are the only new value contexts", the forms that "remained refused at this increment" and "may have no written static image in this slice" are superseded by D81 and D241; a variant part still has no value of its own (D241). What follows is history.
 
 **The tour said** that [0540]'s `zeroed` writes the all-bits-zero image of a
 type and that a struct contains its variant part [0680]. D74 fixed that part's
@@ -10844,6 +10914,8 @@ Linux x86-64.
 
 ### D79 — A case construction may infer its fresh local storage
 
+**Superseded by D241, with D76 for the order.** An inferred local takes the type of a case construction as it does any value, the case selected before its payload is evaluated; what follows is history.
+
 **The tour said** that [0050] infers a binding from its initializer and that
 [0700]'s construction names the nominal type being constructed. D72 applied
 that rule to ordinary structs, while D76 kept a variant-bearing construction
@@ -10885,6 +10957,8 @@ accidental asymmetry.
 `runtime/variant-case-construction-runs-in-source-order` on Linux x86-64.
 
 ### D80 — A whole variant-bearing struct copies between runtime storage
+
+**Superseded by D241.** A variant-bearing struct is copied whole like any other struct; what follows is history.
 
 **The tour said** that [0520] assigns values and [0710] makes an ordinary
 struct nominal. D54 copied a scalar/array-bearing struct field by field, while
@@ -10939,6 +11013,8 @@ D94--D116 later close the internal argument and result contexts.
 `runtime/variant-whole-copy-is-distinct` on Linux x86-64.
 
 ### D81 — A module variant construction is a static selected-case image
+
+**Partly superseded.** Its selected-case image stands: a module construction selects its case as a static image, the tag written as `case - 1` and the inactive payload tail zero, and a name chain copies it into storage of its own. Its sentences "A fixed-array payload still accepts only `zeroed`" and "only the absent zero form is produced in this slice" are superseded: a payload array takes every image a module struct's array field takes (D67, D68). Its "General aggregate values, arguments and returns remained refused" is superseded by D94-D109 and D241; what follows is history.
 
 **The tour said** that a module binding may carry a value [0040], that nothing
 runs before the entry point [1460], and that a variant value selects one case
@@ -11006,6 +11082,8 @@ value without inspecting target layout.
 
 ### D82 — A static selected case carries finite and repeated array payloads
 
+**Superseded by D67 and D68.** A selected case's array payload takes the finite, zero, repeated and hybrid images a module struct's array field takes; what follows is history.
+
 **The tour said** that a case payload is labelled like a construction [0700]
 and that array literals and repetitions describe complete fixed arrays
 [0530], [0560]. D81 reserved the selected case's fixed-array payload descriptor
@@ -11056,6 +11134,8 @@ IR records; and
 `runtime/variant-module-array-payload-image-selects-case` on Linux x86-64.
 
 ### D83 — A static array payload copies a module array image
+
+**Superseded by D24's chain and D81.** A selected case's array payload copies a module array's or a selected field's static image as any module image does; what follows is history.
 
 **The tour said** that a module value is present before the entry point [1460]
 and that an array assignment copies a complete array [0520]. D21, D69--D71
@@ -11108,6 +11188,8 @@ token and IR records; and
 `runtime/variant-module-array-payload-image-copy-is-distinct` on Linux x86-64.
 
 ### D84 — A runtime case construction writes fixed-array payloads
+
+**Superseded by D241, with D76 for the order.** A fixed-array payload takes every value an array field takes, as D241 records, after its case is selected; what follows is history.
 
 **The tour said** that a labelled case construction writes its payload
 [0690]--[0700], while array literals, repetitions and copies write a complete
@@ -11330,6 +11412,8 @@ and IR records; and
 
 ### D87 — A depth-one nested ordinary struct has storage and a zero image
 
+**Superseded by D118 and D119 for depth, and D241 for the forms.** A struct field of struct type has storage and a zero image at any depth, and `zeroed` clears the whole parent as one operation; what follows is history.
+
 **The tour said** that a binding may hold a named struct [0670], that every
 field remains in written order at its natural alignment [0750], and that
 `zeroed` supplies the complete all-bits-zero image of its contextual type
@@ -11377,6 +11461,8 @@ x86-64.
 
 ### D88 — A scalar leaf may be selected through one ordinary child
 
+**Superseded by D118 and D119 for depth, and D241.** A scalar field is a value and a place at the end of any path; what follows is history.
+
 **The tour said** that member selection is left to right and may chain as
 `a.b.c` [0420] [1820], while D87 deliberately allocated a depth-one ordinary
 child without making any path through it a value or place.
@@ -11416,6 +11502,8 @@ implements the chain the tour already writes while retaining those boundaries.
 `runtime/nested-struct-scalar-fields` on Linux x86-64.
 
 ### D89 — A fixed-array element may be selected through one ordinary child
+
+**Superseded by D118 and D119 for depth, and D241.** An element of an array field is a value and a place at the end of any path; what follows is history.
 
 **The specification said** that indexing takes what a selection named,
 explicitly including `a.b[i]` [1820], and D87 gives a depth-one child a neutral
@@ -11459,6 +11547,8 @@ records; and `runtime/nested-struct-array-elements` on Linux x86-64.
 
 ### D90 — A nested fixed-array leaf has contextual assignment forms
 
+**Superseded by D118 and D119 for depth, and D241.** A nested array field takes every form any array place takes, and is a value like any other array; what follows is history.
+
 **The tour said** that an array value may be copied, filled and initialized
 [0520] [0540], while D49--D53 deliberately implement those forms directly in
 existing storage. D89 reached scalar elements through one ordinary child but
@@ -11498,6 +11588,8 @@ endpoint identities also avoids flattening either nominal child.
 records; and `runtime/nested-struct-array-values` on Linux x86-64.
 
 ### D91 — One ordinary child has contextual aggregate assignment forms
+
+**Superseded by D118 and D119 for depth, and D241.** A nested struct field takes every form any struct place takes, and is a value like any other struct; what follows is history.
 
 **The tour said** that a whole ordinary struct may be zeroed, constructed and
 copied [0540] [0710], while D87 gave a parent one recursively laid-out ordinary
@@ -11539,6 +11631,8 @@ records; and `runtime/nested-struct-child-values` on Linux x86-64.
 
 ### D92 — A typed local may copy from a nested aggregate leaf
 
+**Superseded by D118 and D119 for depth, and D241.** A typed local copies a nested field at any depth as it copies any value of its type; what follows is history.
+
 **The tour said** that a local initializer may copy an array or ordinary struct
 from existing storage [0520] [0710]. D51/D55 implemented direct storage and a
 direct array field, while D90/D91 made depth-one array and ordinary-child paths
@@ -11572,6 +11666,8 @@ source path.
 IR records; and `runtime/nested-struct-child-values` on Linux x86-64.
 
 ### D93 — A local may infer its aggregate identity from nested storage
+
+**Superseded by D118 and D119 for depth, and D241.** An inferred local takes the type of a nested field at any depth, module ones included; what follows is history.
 
 **The tour said** that `:=` gives a local the type of its initializer [0080].
 D92 required an explicit local type even though a depth-one child already
@@ -12150,8 +12246,9 @@ Implemented, where the normative text already says the form is language:
   function, atom set, struct or array as much as a scalar — and every later
   element must match it. An inferred local may likewise copy a whole array or
   struct parameter or named return, which the typed form already could.
-  Counted repetition keeps [0560]'s scalar element, module images keep D26's
-  and an `any` element still needs a written array type.
+  Counted repetition kept [0560]'s scalar element and module images D26's
+  until D1664 and D1947 lifted both; an `any` element still needs a written
+  array type.
 - Variant payload arrays. A fixed-array payload field takes every expression
   an ordinary struct's array field takes — an element, a call, `try`, array
   arithmetic, a control expression, a deeper field, a parameter, `.val` or a
@@ -12180,8 +12277,8 @@ literal needs a named type from its destination [0670]. An array literal takes
 its shape from an array destination or an inferred binding, and an uncounted
 repetition its length from an array destination, so a count-less inferred
 initializer is refused [0560]. Mixed repetition needs an explicitly typed
-destination, repetition a nonzero length or count, and a counted repetition
-infers only a scalar element. A variant part is a member of its struct with no
+destination, and repetition a nonzero length or count. A counted repetition
+inferred only a scalar element until D1664 lifted it. A variant part is a member of its struct with no
 value of its own, written with a case rather than copied [0680]; a variant
 case is written where its part is the destination [0690]. A match alias of an
 array is not copied (D85). A construction is a value, not a statement. A module
@@ -12231,7 +12328,20 @@ a note that promises nobody's work.
 
 **The alternatives:** marking each superseded boundary without touching the checker, which leaves the duplicated checking for every later value-form change to edit twice; and leaving both as they are, where a superseded boundary reads as a live rule. Both were declined.
 
-**Pinned by** nothing that runs yet: the change that folds them keeps every fixture that pins D24 to D109's surviving rules and adds a positive fixture for a repetition and a `lenof` of a non-scalar element.
+**Pinned by** `positive/r720-counted-repetition-element`,
+`positive/r491-inferred-repetition-elements` and
+`runtime/r1990-repetition-and-lenof-of-structs`; the fold keeps every
+fixture that pins D24 to D109's surviving rules.
+
+### D1947 — An inferred module array takes any element shape
+
+**The tour said** at [0530] that a literal may supply an omitted array length, at [0560] that a counted repetition may too, and at [1940] that a module value is known when the compiler reads it. D26 and D35 gave an inferred module array D25's and D33's shape but only from a scalar element, and D1664, which lifted the scalar element of a local repetition and of `lenof`, did not reach module scope. `points := [first, second]`, with `first` and `second` module structs, was refused, while `points: [2]point = [first, second]` formed the same static image.
+
+**Chosen:** at module scope as at local scope, the first element of an inferred literal, or the repeated value of a counted repetition, gives the array's element type whatever its shape, and every later element must have that type. [1940]'s known-value rule still decides which elements form an image, so a module array whose elements cannot be folded is refused for that reason and not for its element's shape. The maintainer chose this on 2026-11-21, answering the question the fold's reading raised.
+
+**The alternative:** keeping the scalar element at module scope as a recorded boundary, which leaves one shape inferred at one scope and not the other when the typed form already forms the image; it was declined as the kind of special case D1664 removes.
+
+**Pinned by** `positive/r720-inferred-module-array-element`.
 
 ### D405 — One match arm names several cases, and none of them binds
 
@@ -13341,6 +13451,8 @@ avoids both changes without introducing a source pointer.
 
 ### D96 — Contextual nested storage may be an aggregate argument
 
+**Partly superseded.** Its carrier stands: an aggregate argument's storage path is carried as field identities, never an offset, and placed by the backend for the target. Its limit to "a depth-one ordinary child" and its sentence "Deeper paths, construction and other general aggregate expressions remain refused" are superseded by D118, D119 and D241; what follows is history.
+
 **The tour said** that calls evaluate argument expressions left to right
 [0410]. D90/D91 made `parent.child.array` and `parent.child` complete
 contextual storage sources, while D94/D95 initially accepted only a direct
@@ -13471,6 +13583,8 @@ records; and `runtime/array-arguments-cross-calls` on Linux x86-64.
 
 ### D100 — A scalar-field struct literal may fill an argument temporary
 
+**Superseded by D98, D99 and D72.** A struct literal or construction fills an argument temporary as an array value does, D72 naming its type; what follows is history.
+
 **The tour said** that labelled struct construction evaluates fields in source
 order [0410], omitted fields may use `of zeroed` [0700], and ordinary structs
 are nominal [0710]. D97 supplied a zero carrier for an entirely zero aggregate,
@@ -13502,6 +13616,8 @@ records; and `runtime/struct-arguments-cross-calls` on Linux x86-64.
 
 ### D101 — Struct literal arguments may contain fixed-array fields
 
+**Superseded by D98, D99 and D72.** A struct literal argument's array fields take every form any array field takes, in the argument temporary; what follows is history.
+
 **The tour said** that a labelled array field receives the same contextual
 array forms as standalone fixed-array storage [0520] [0700]. D100 restricted
 argument construction to scalar fields even though its caller temporary already
@@ -13532,6 +13648,8 @@ argument slices rather than being flattened here.
 IR records; and `runtime/struct-arguments-cross-calls` on Linux x86-64.
 
 ### D102 — Variant-bearing struct storage may cross an argument boundary
+
+**Partly superseded.** Its definite-assignment rule stands: a variant-bearing struct crosses a call only with its variant part assigned, a case selected. Its sentence "provided it contains no ordinary-child field" is superseded by D104 and D119, and "Struct-literal argument construction with a variant label remains a separate slice" by D241; what follows is history.
 
 **The tour said** that an unfolded variant is part of its enclosing struct's
 storage [0680] and matching inspects the selected case [1210]. D74--D85 carry
@@ -13566,6 +13684,8 @@ records; and `runtime/variant-struct-arguments` on Linux x86-64.
 
 ### D103 — Struct literal arguments may select variant cases
 
+**Superseded by D76, D98 and D99.** A struct literal argument selects its case before its payload is evaluated, in the argument temporary; what follows is history.
+
 **The tour said** that a variant label selects one case and evaluates its
 payload labels in source order [0690] [0700]. D102 carried existing
 variant-bearing storage through calls but left direct argument construction
@@ -13596,6 +13716,8 @@ layout and make equivalent named storage use a different convention.
 IR records; and `runtime/variant-struct-arguments` on Linux x86-64.
 
 ### D104 — A depth-one nested struct may cross an argument boundary
+
+**Partly superseded.** Its definite-assignment rule stands: a struct with a nested struct field crosses a call only when every field, the nested one whole, is assigned; one assigned nested leaf is not enough. Its limit to "one depth-one ordinary child" and its sentence "Direct outer struct-literal construction with an ordinary-child label remains separate" are superseded by D119 and D241; what follows is history.
 
 **The tour said** that an ordinary child retains its nominal boundary [0710]
 and D86--D93 represent one such child by parent and child field identities.
@@ -13628,6 +13750,8 @@ opaque one-position transport remains sufficient.
 records; and `runtime/nested-storage-arguments` on Linux x86-64.
 
 ### D105 — Struct literal arguments may construct an ordinary child
+
+**Superseded by D98, D99 and D72.** A struct literal argument's nested struct field takes every form any struct field takes, in the argument temporary; what follows is history.
 
 **The tour said** that a labelled struct literal evaluates fields in source
 order [0410] while an ordinary child's identity remains nominal [0710]. D104

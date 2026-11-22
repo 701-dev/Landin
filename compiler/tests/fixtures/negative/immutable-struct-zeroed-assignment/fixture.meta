@@ -1,5 +1,5 @@
 class: negative
-summary: D58 keeps immutable module and local struct roots unwritable
+summary: [1900] keeps immutable module and local struct roots unwritable under `zeroed`
 constructs: 0040, 0080, 0520, 0540, 0670, 0710, 0750, 1810, 1900
 program: program.ldn
 codes: L0303, L0303
