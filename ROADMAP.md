@@ -346,7 +346,7 @@ their values in registers over `Landin.IR.Liveness`, as D1403 has each
 backend place its own, and with them RV32's 64-bit values, copied through a
 scratch home pair before every store to their own home. Its placement is the
 first written since D1403: where it agrees with arm64's it is shared rather
-than written again, which answers R551-16's activation for the backends'
+than written again, which answers `R551-16`'s activation for the backends'
 shared code, and the row stays open for the stage closures. RV32 changes the
 firmware images of three boards, whose records are made again.
 
@@ -363,7 +363,7 @@ only where nothing writes them over their intervals, with arm64's placement,
 and the second emission is checked against the plan, keeping the first if
 any write meets a held register. RV32 holds eight-byte values in register
 pairs, and held operands are read in place. The usage both allocators read
-is `Landin.Backend.Placement`, which answered R551-16's activation for the
+is `Landin.Backend.Placement`, which answered `R551-16`'s activation for the
 backends' shared code; arm64's output is byte-identical. Over the seven
 hosted workloads RV64's `.text` falls 15.8% at `size` and 19.4% at `speed`,
 and under QEMU speed-auto executes 0.55 of mandelbrot's instructions, 0.67
@@ -533,7 +533,7 @@ a float element, field, pointee or datum straight into one (D1625): at
 size-auto mandelbrot executes 0.435 of its instructions and fasta and
 binary-trees 0.92, and fasta 0.968 at speed-auto. Compiling the hosted set
 at speed takes no longer. What stays is filed with its measurement:
-SR-1422 the nine registers x86-64 offers, SR-1423 the assembly block's
+SR-1422 the nine registers x86-64 offers, `SR-1423` the assembly block's
 rule, SR-1424 float constants made in each block, SR-1425 a loop's two
 jumps, SR-1426 the order D339 copies in, and R551-12 keeps the bounds
 check a loop's end does not name and the calls of `core/atomic`'s cells;
@@ -684,7 +684,7 @@ the store before it, so `none`'s mandelbrot ran 15.6% slower with its
 float homes read straight from sp and 2.2% faster than the base with the
 two address instructions between them that D1771 keeps at `none`;
 `SR-1430` is taken. That spacing leaves binary-search and SipHash at
-`none` on the STM32H753 4.9% and 0.9% slower, recorded as SR-1508. `SR-869`'s
+`none` on the STM32H753 4.9% and 0.9% slower, recorded as `SR-1508`. `SR-869`'s
 `divisor` is 924 bytes and `frame_bits` 210, still the eight-byte pairs,
 and `SR-231`'s `failure.words` 1,132 bytes; both are kept with these
 figures, and `compiler/tests/measure/findings.md` lists what is left with
@@ -697,6 +697,40 @@ of the recorded-writes allocation. The candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/44925345364) and
 [boards](https://github.com/701-dev/Landin/actions/runs/44928110636),
 timing included.
+
+### R16.28 — x86-64's code from R16.24's list
+
+Status: planned
+Depends on: R16.10
+
+What R16.24 measured on x86-64 and left: SR-1422's nine allocatable
+registers, SR-1424's float constants made again in every block, SR-1425's
+two jumps a loop iteration and the unreachable `jmp` after a branch,
+SR-1426's D339 copying no routine that received a copy, and SR-1427's
+build report that does not say which calls `--optimize speed` copied and
+why the rest stayed calls.
+Exit evidence: each cost taken measured lower than its R16.10 and R16.24
+figures, no other combination over its own, and the build report naming
+the copies.
+
+### R16.29 — The small targets' remaining code
+
+Status: planned
+Depends on: R16.10
+
+What the Cortex-M, RISC-V and Xtensa items left: SR-231's atom `match`
+re-testing its subject at every arm, SR-869's short `u64` routines on
+armv6-m, SR-1433's Xtensa frame still reserving the logical-word bank,
+SR-1468's `slt` then `bnez` where one `blt` would do, R551-12's bounds
+checks and `core/atomic`'s cell calls, and SR-1578's lost backend case for
+a Cortex-M `Range_Check` with a bound at one edge; with the tools those
+items lacked, SR-1505's command that builds one Cortex-M fixture at a
+chosen level and description and counts it, and SR-1507's report of a
+routine that kept its first emission.
+Exit evidence: each cost taken measured lower than its R16.10 baseline and
+the last item's figures, the cycles on the boards no slower, the backend
+case restored, and the two tools documented where the measurement recipe
+is.
 
 ### The continuous items
 
@@ -1842,6 +1876,42 @@ one promotion: every renamed or moved name refused with its replacement,
 and rewritten by R19.40's `refine fix` where the rewrite is mechanical.
 Exit evidence: the library, the corpus, the examples and the documents
 rewritten; `docs/library.md` regenerated.
+
+### R20.61 — Refusals that say what to write
+
+Status: planned
+Depends on: R20.60
+
+The refusals R20.60's renaming meets next, each made to say what to write
+instead: SR-1406's five refusals met writing refine-build and the three
+since, SR-733's alias spelled by its structure and L0696 at an alias
+application, SR-1538's `-> none` named by neither refusal a newcomer meets,
+and SR-1609's union of atom sets, which Q-183 answered: no new form, but
+[1210] says a union is split by naming one side's atoms and `_ (rest):`,
+and L0333's note at an arm naming a set and L0301's at a wider atom
+subject say so. SR-1558's `refine fix` gains a selection of the codes
+whose fixes it applies.
+Exit evidence: a negative fixture for each refusal pinning its new note,
+`docs/diagnostics.md` and the tour sentence agreeing with them, and
+`refine fix` applying one code's fixes alone in a native case.
+
+### R20.62 — Tools that know a window
+
+Status: planned
+Depends on: R20.10
+
+The process tools a window's items worked around, mended before R20's
+promotion meets them: SR-1445's `item.py`, which starts, pushes, promotes
+and finishes against main only; SR-1548's row ages counted across a
+window's merge and a `Kept:` line in a merge's resolution; SR-1455's
+mirror failure judged as the push's; SR-1415's and SR-1446's row
+deletion, questions and decision numbers outside an item; SR-1466's
+`run_logged.py --stop` leaving a child holding the build lock; SR-1467's
+boards README and ssh options; and SR-1639's `agent_env.sh` cache holding
+the caller's environment.
+Exit evidence: each script's tests pinning the change, `docs/process.md`
+and the landin-change skill saying the window's steps, and R20's
+promotion refused for no row its merge alone aged.
 
 ### R20 gate
 R20's breaking window: the list reached main in one promotion, so main
