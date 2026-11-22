@@ -1,3 +1,6 @@
-north, south: atom
-box: type (t: type) = (value: t)
+north: atom
+south: atom
+box: type (t: type) = struct
+    value: t
+end box
 f: () -> none = a: box(north) = (value: south) end f

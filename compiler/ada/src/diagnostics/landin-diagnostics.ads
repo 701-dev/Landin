@@ -137,7 +137,12 @@ package Landin.Diagnostics is
       Hold_Exit,       --  an exit after a call's `else` gets a block
       Unbind_Error,    --  `else (e)` its block never reads: `else begin`
       Loop_Statement,  --  D1651: a loop's value becomes a local's writes
-      Complete_After); --  D1651: a `complete` block follows its loop
+      Complete_After,  --  D1651: a `complete` block follows its loop
+      Unwrite_In,      --  D1655: a written `in` on a parameter leaves
+      One_Name_Each,   --  D1656: a shared declaration, one line a name
+      Struct_Block,    --  D1657: an inline struct becomes `struct … end`
+      Name_Function,   --  D1654: an anonymous function is declared
+      Import_Whole);   --  D1658: selected names become `m.name`
 
    type Fix is private;
 

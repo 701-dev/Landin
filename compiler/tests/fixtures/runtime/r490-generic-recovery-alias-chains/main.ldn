@@ -1,4 +1,5 @@
-problem, denied: atom
+problem: atom
+denied: atom
 leaf: (which: bool) -> none ! ... =
     fail problem when which
     fail denied

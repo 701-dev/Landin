@@ -1,0 +1,10 @@
+--  D1657: a struct type is declared with `struct` and `end`; the inline
+--  field list is a parameter, result or payload list's form.
+point: type = (x: i32, y: i32)
+flags: type = layout(packed, u8) (low: u4 at 0..3, high: u4 at 4..7)
+
+public main: () -> (code: i32) =
+    p: point = (x: 40, y: 2)
+    f: flags = (low: 1, high: 0)
+    code = p.x + p.y + i32(f.low) - 1
+end main

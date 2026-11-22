@@ -1,1 +1,4 @@
-point: type = (x: i32, y: i32)
+point: type = struct
+    x: i32
+    y: i32
+end point

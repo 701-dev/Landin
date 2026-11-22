@@ -790,6 +790,16 @@ package body Landin.Syntax.Parser is
               (Named   : Landin.Source.Names.Name_Id;
                At_Name : Landin.Source.Span;
                Compact : Boolean := False) return Node_Id;
+            procedure Refuse_Shared_Run
+              (Written_Head  : Natural;
+               First_Name    : Landin.Source.Names.Name_Id;
+               At_First      : Landin.Source.Span;
+               Later         : Later_Name_Vectors.Vector;
+               Colon         : Natural;
+               Typed         : Natural;
+               Value_First   : Natural := 0;
+               Value_Last    : Natural := 0;
+               What          : String := "a declaration names one thing");
             function Parse_Binding
               (Exported  : Boolean;
                Public_At : Landin.Source.Span;
@@ -868,6 +878,9 @@ package body Landin.Syntax.Parser is
                Tried   : Boolean := False;
                Valued  : Boolean := False) return Node_Id;
             function Bytes (First, Final : Natural) return String;
+            function Blanks (Count : Natural) return String;
+            function Kind_Of (Position : Natural) return Tok.Token_Kind;
+            function Span_Of (Position : Natural) return Landin.Source.Span;
             function Valued_Loop
               (Parsed : Node_Id; Deferred : Boolean) return Node_Id;
             procedure Settle_Pending_Loop
@@ -3002,6 +3015,114 @@ package body Landin.Syntax.Parser is
                end loop;
                return Natural (Indent_Of (Position));
             end Line_Indent;
+
+            --  Where a new declaration goes before the one at At_Index:
+            --  the start of its line, moved up over the comment lines
+            --  written directly above it, so a comment keeps leading the
+            --  declaration it was written for.
+            function Leading_Comments_Start (At_Index : Tok.Token_Index)
+              return Landin.Source.Byte_Offset;
+
+            function Leading_Comments_Start (At_Index : Tok.Token_Index)
+              return Landin.Source.Byte_Offset
+            is
+               Pieces : constant Tok.Space_Range :=
+                 Tok.Leading (From, At_Index);
+               Start  : Landin.Source.Byte_Offset :=
+                 Tok.Where (From, At_Index).First;
+               Step   : Natural := Pieces.Last;
+
+               function Kind_At_Piece (Position : Natural)
+                 return Tok.Space_Kind
+                 is (Tok.Kind (Tok.Nth_Space (From, Position)));
+               function Where_Piece (Position : Natural)
+                 return Landin.Source.Span
+                 is (Tok.Where (Tok.Nth_Space (From, Position)));
+            begin
+               --  The declaration's own indentation.
+               if Step >= Pieces.First
+                 and then Kind_At_Piece (Step) = Tok.Blanks
+               then
+                  Start := Where_Piece (Step).First;
+                  Step := Step - 1;
+               end if;
+               loop
+                  --  A line end, then a comment alone on the line above.
+                  exit when Step < Pieces.First
+                    or else Kind_At_Piece (Step) /= Tok.Line_End
+                    or else Step - 1 < Pieces.First
+                    or else Kind_At_Piece (Step - 1)
+                      not in Tok.Line_Comment | Tok.Doc_Comment;
+                  declare
+                     Comment : Natural := Step - 1;
+                     Line    : Landin.Source.Byte_Offset :=
+                       Where_Piece (Comment).First;
+                  begin
+                     if Comment - 1 >= Pieces.First
+                       and then Kind_At_Piece (Comment - 1) = Tok.Blanks
+                     then
+                        Comment := Comment - 1;
+                        Line := Where_Piece (Comment).First;
+                     end if;
+                     exit when Comment - 1 >= Pieces.First
+                       and then Kind_At_Piece (Comment - 1) /= Tok.Line_End;
+                     exit when Comment - 1 < Pieces.First
+                       and then At_Index > 1;
+                     Start := Line;
+                     Step := Comment - 1;
+                  end;
+               end loop;
+               return Start;
+            end Leading_Comments_Start;
+
+            --  Text moved from a line indented Base to a declaration's
+            --  own place: Base blanks come off the start of each line
+            --  after the first, where it has them.
+            function Reindented (Text : String; Base : Natural)
+              return String;
+
+            function Reindented (Text : String; Base : Natural)
+              return String
+            is
+               Result : Unbounded.Unbounded_String;
+               Step   : Natural := Text'First;
+            begin
+               while Step <= Text'Last loop
+                  Unbounded.Append (Result, Text (Step));
+                  if Text (Step) = ASCII.LF then
+                     declare
+                        Taken : Natural := 0;
+                     begin
+                        while Taken < Base
+                          and then Step + 1 + Taken <= Text'Last
+                          and then Text (Step + 1 + Taken) = ' '
+                        loop
+                           Taken := Taken + 1;
+                        end loop;
+                        Step := Step + Taken;
+                     end;
+                  end if;
+                  Step := Step + 1;
+               end loop;
+               return Unbounded.To_String (Result);
+            end Reindented;
+
+            --  Whether any name token of the file is spelled Spelling.
+            function Spelled_In_File (Spelling : String) return Boolean;
+
+            function Spelled_In_File (Spelling : String) return Boolean is
+            begin
+               for Position in 1 .. Last loop
+                  if Tok.Kind (From, Position) = Tok.Identifier
+                    and then Landin.Source.Names.Spelling
+                      (Names, Tok.Name (Tok.Token_At (From, Position)))
+                      = Spelling
+                  then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            end Spelled_In_File;
 
             --  Whether no line ends between two tokens.
             function On_One_Line (Left, Right : Tok.Token_Index)
@@ -5270,12 +5391,60 @@ package body Landin.Syntax.Parser is
                Starts : Landin.Source.Span) return Node_Id
             is
                Arguments : Slot_Vectors.Vector;
+
+               --  D1663: whether the argument in hand is written as an
+               --  expression rather than a type.  A type never begins
+               --  with a sign, `sizeof` or `alignof`, never names the
+               --  `compiler` facts, and never holds an operator outside
+               --  its brackets; a lone name stays a type reference, which
+               --  checking reads as the fixed formal or module integer it
+               --  names when that is what it is.
+               function Argument_Is_Expression return Boolean;
+
+               function Argument_Is_Expression return Boolean is
+                  Step : Tok.Token_Index := Index;
+               begin
+                  if Peek in Tok.Minus | Tok.Kw_Sizeof | Tok.Kw_Alignof then
+                     return True;
+                  elsif Peek = Tok.Identifier
+                    and then Named_Here = Compiler_Id
+                    and then Ahead (1) = Tok.Dot
+                  then
+                     return True;
+                  elsif Peek not in Tok.Identifier | Tok.Integer_Literal
+                  then
+                     return False;
+                  end if;
+                  Prepare_Lookahead;
+                  while Step < Last loop
+                     case Tok.Kind (From, Step) is
+                        when Tok.Comma | Tok.Right_Paren
+                           | Tok.Right_Bracket | Tok.End_Of_Input =>
+                           return False;
+                        when Tok.Plus | Tok.Minus | Tok.Star | Tok.Slash
+                           | Tok.Percent =>
+                           return True;
+                        when Tok.Left_Paren | Tok.Left_Bracket =>
+                           exit when Lookahead (Step).Closing = 0;
+                           Step := Tok.Token_Index
+                             (Lookahead (Step).Closing);
+                        when others =>
+                           null;
+                     end case;
+                     Step := Step + 1;
+                  end loop;
+                  return False;
+               end Argument_Is_Expression;
             begin
                pragma Assert (Peek = Tok.Left_Paren);
                Advance;
 
                loop
-                  if Peek = Tok.Integer_Literal then
+                  if Argument_Is_Expression then
+                     --  D1663: a fixed actual folds as an array length
+                     --  does, so it is the expression a length is.
+                     Arguments.Append (Parse_Expression);
+                  elsif Peek = Tok.Integer_Literal then
                      declare
                         Item : constant Tok.Token :=
                           Tok.Token_At (From, Index);
@@ -5949,10 +6118,13 @@ package body Landin.Syntax.Parser is
             is
                Start : constant Landin.Source.Span :=
                  (if Exported then Public_At else Here);
+               Head    : constant Natural := Token_Here;
                Named   : Landin.Source.Names.Name_Id;
                At_Name : constant Landin.Source.Span :=
                  Parse_Declared_Name (Named);
                More : Slot_Vectors.Vector;
+               Later : Later_Name_Vectors.Vector;
+               Colon : Natural := 0;
             begin
                while Peek = Tok.Comma loop
                   Advance;
@@ -5961,6 +6133,8 @@ package body Landin.Syntax.Parser is
                      At_Next : constant Landin.Source.Span :=
                        Parse_Declared_Name (Next_Name);
                   begin
+                     Later.Append
+                       (Later_Name'(Named => Next_Name, At_Name => At_Next));
                      More.Append
                        (Add (Of_Kind  => Atom_Declaration,
                              At_Token => At_Next,
@@ -5970,8 +6144,20 @@ package body Landin.Syntax.Parser is
                end loop;
 
                --  The lookahead in Parse_Declaration established both.
+               Colon := Token_Here;
                Advance;
                Advance;
+               --  D1656: an atom list is a declaration of several names.
+               if not Later.Is_Empty then
+                  Refuse_Shared_Run
+                    (Written_Head => Head,
+                     First_Name   => Named,
+                     At_First     => At_Name,
+                     Later        => Later,
+                     Colon        => Colon,
+                     Typed        => Token_Here - 1,
+                     What         => "an atom declaration names one atom");
+               end if;
                return Add
                  (Of_Kind  => Atom_Declaration,
                   At_Token => At_Name,
@@ -6104,6 +6290,138 @@ package body Landin.Syntax.Parser is
                end if;
             end Parse_Type_Formals;
 
+            --  D1657: `t: type = (a: T, b: U)`, from the `(` at Opens to
+            --  its `)` at Closes, refused.  The fix writes the block form,
+            --  a field a line, each field's bytes as written.  A field run
+            --  that shares one type, `a, b: T`, stays one line, which the
+            --  next check splits (D1656).  A comment inside the parentheses
+            --  would be lost, so a list holding one is left to its author.
+            procedure Refuse_Inline_Struct
+              (Opens, Closes : Tok.Token_Index;
+               Named         : Landin.Source.Names.Name_Id);
+
+            procedure Refuse_Inline_Struct
+              (Opens, Closes : Tok.Token_Index;
+               Named         : Landin.Source.Names.Name_Id)
+            is
+               Mechanical : Boolean :=
+                 Text /= null
+                 and then Closes > Opens + 1
+                 and then Tok.Kind (From, Opens) = Tok.Left_Paren
+                 and then Tok.Kind (From, Closes) = Tok.Right_Paren
+                 and then Named /= Landin.Source.Names.No_Name;
+               Indent  : constant String :=
+                 Blanks (Line_Indent (Opens));
+               --  `layout(packed)(a: T)` keeps its word apart from `)`.
+               Written : Unbounded.Unbounded_String :=
+                 Unbounded.To_Unbounded_String
+                   ((if Opens > 1
+                       and then Tok.Where (From, Opens - 1).Last
+                         = Tok.Where (From, Opens).First
+                     then " " else "") & "struct");
+               Run     : Unbounded.Unbounded_String;
+               First   : Tok.Token_Index := Opens + 1;
+               Depth   : Natural := 0;
+               Colon   : Boolean := False;
+            begin
+               if Mechanical then
+                  for Position in Opens + 1 .. Closes loop
+                     declare
+                        Pieces : constant Tok.Space_Range :=
+                          Tok.Leading (From, Position);
+                     begin
+                        for Piece in Pieces.First .. Pieces.Last loop
+                           if Tok.Kind (Tok.Nth_Space (From, Piece))
+                             not in Tok.Blanks | Tok.Line_End
+                           then
+                              Mechanical := False;
+                           end if;
+                        end loop;
+                     end;
+                     case Tok.Kind (From, Position) is
+                        when Tok.Left_Paren | Tok.Left_Bracket =>
+                           Depth := Depth + 1;
+                        when Tok.Right_Paren | Tok.Right_Bracket =>
+                           if Position = Closes then
+                              null;
+                           elsif Depth > 0 then
+                              Depth := Depth - 1;
+                           end if;
+                        when Tok.Colon =>
+                           if Depth = 0 then
+                              Colon := True;
+                           end if;
+                        when others =>
+                           null;
+                     end case;
+                     if Depth = 0
+                       and then (Position = Closes
+                                 or else Tok.Kind (From, Position)
+                                   = Tok.Comma)
+                     then
+                        if Position = First then
+                           Mechanical := False;
+                           exit;
+                        end if;
+                        Unbounded.Append
+                          (Run, Bytes (Natural (First),
+                                       Natural (Position) - 1));
+                        if Colon then
+                           Unbounded.Append
+                             (Written,
+                              ASCII.LF & Indent & "    "
+                              & Unbounded.To_String (Run));
+                           Run := Unbounded.Null_Unbounded_String;
+                        elsif Position = Closes then
+                           Mechanical := False;
+                        else
+                           Unbounded.Append (Run, ", ");
+                        end if;
+                        Colon := False;
+                        First := Position + 1;
+                     end if;
+                  end loop;
+               end if;
+               Complain
+                 (Item    => Syn.Removed_Form,
+                  Where   => Tok.Where (From, Opens),
+                  Message => "a struct type is declared with `struct` and"
+                             & " `end`",
+                  Note    => "D1657: the parenthesised field list is a"
+                             & " parameter, result or payload list; a"
+                             & " struct type is `struct`, a field a line,"
+                             & " and `end`",
+                  Fixes   =>
+                    (if Mechanical
+                     then [1 => Landin.Diagnostics.Fixes.Struct_Block
+                                  ([1 => Landin.Diagnostics.Make_Edit
+                                     (Origin_Of,
+                                      Join (Tok.Where (From, Opens),
+                                            Tok.Where (From, Closes)),
+                                      Unbounded.To_String (Written)
+                                      & ASCII.LF & Indent & "end "
+                                      & Landin.Source.Names.Spelling
+                                          (Names, Named))])]
+                     else Landin.Diagnostics.No_Fixes));
+            end Refuse_Inline_Struct;
+
+            --  [0670]'s removed inline body, read as before and refused.
+            function Parse_Inline_Struct
+              (Named   : Landin.Source.Names.Name_Id;
+               At_Name : Landin.Source.Span) return Node_Id;
+
+            function Parse_Inline_Struct
+              (Named   : Landin.Source.Names.Name_Id;
+               At_Name : Landin.Source.Span) return Node_Id
+            is
+               Opens  : constant Tok.Token_Index := Index;
+               Parsed : constant Node_Id :=
+                 Parse_Struct_Body (Named, At_Name, Compact => True);
+            begin
+               Refuse_Inline_Struct (Opens, Index - 1, Named);
+               return Parsed;
+            end Parse_Inline_Struct;
+
             --  `identifier ":" "type" "=" type` [1795].  The name is
             --  parsed the way every declared name is, so [1760]'s two
             --  narrowings hold for a type name unchanged.
@@ -6182,9 +6500,10 @@ package body Landin.Syntax.Parser is
                           or else (Peek = Tok.Left_Paren
                             and then not Starts_Signature)
                         then
-                           Aliased_Type := Parse_Struct_Body
-                             (Named, At_Name,
-                              Compact => Peek = Tok.Left_Paren);
+                           Aliased_Type :=
+                             (if Peek = Tok.Left_Paren
+                              then Parse_Inline_Struct (Named, At_Name)
+                              else Parse_Struct_Body (Named, At_Name));
                            Result.Items (Positive (Aliased_Type)).Layout :=
                              Policy;
                            Result.Items (Positive (Aliased_Type)).Width :=
@@ -6254,8 +6573,7 @@ package body Landin.Syntax.Parser is
                   elsif Peek = Tok.Left_Paren
                     and then not Starts_Signature
                   then
-                     Aliased_Type := Parse_Struct_Body
-                       (Named, At_Name, Compact => True);
+                     Aliased_Type := Parse_Inline_Struct (Named, At_Name);
                   elsif Peek = Tok.Identifier
                     and then Named_Here = Distinct_Id
                     and then (Ahead (1) in Tok.Kw_Ptr | Tok.Left_Bracket
@@ -7164,14 +7482,19 @@ package body Landin.Syntax.Parser is
                           and then Ahead (1) = Tok.Colon)
                loop
                   declare
+                     Field_Head  : constant Natural := Token_Here;
                      Field_Named : Landin.Source.Names.Name_Id;
                      At_Field    : constant Landin.Source.Span :=
                        Parse_Declared_Name (Field_Named);
                      Later       : Later_Name_Vectors.Vector;
                      Of_Type     : Node_Id := No_Node;
                      Is_Variant_Part : Boolean := False;
+                     Field_Colon : Natural := 0;
                   begin
                      Parse_Later_Names (Later);
+                     if Peek = Tok.Colon then
+                        Field_Colon := Token_Here;
+                     end if;
                      if Expect
                           (Wanted  => Tok.Colon,
                            Message => "a field names its type after `:`",
@@ -7252,6 +7575,16 @@ package body Landin.Syntax.Parser is
                                  Advance;
                                  Parts.Append (Parse_Expression);
                               end if;
+                           end if;
+                           if not Compact and then not Later.Is_Empty then
+                              Refuse_Shared_Run
+                                (Written_Head => Field_Head,
+                                 First_Name => Field_Named,
+                                 At_First   => At_Field,
+                                 Later      => Later,
+                                 Colon      => Field_Colon,
+                                 Typed      => Token_Here - 1,
+                                 What       => "a field names one thing");
                            end if;
                            declare
                               Extent : constant Landin.Source.Span :=
@@ -7382,6 +7715,154 @@ package body Landin.Syntax.Parser is
                   Children => To_List (Fields));
             end Parse_Struct_Body;
 
+            --  D1656: a declaration of several names, refused at the
+            --  names after the first.  Head is its first token, `public`
+            --  or `mut` included; Colon the `:` after the names; Typed the
+            --  last token of the type and any `at` suffix; Value_First and
+            --  Value_Last the value's tokens, zero where it has none.  The
+            --  fix writes one declaration a line, each with the prefix,
+            --  type and suffix as written.  The value is the first name's;
+            --  each later name starts as a copy of it, so a later one is
+            --  given the first name, or, in a module, where a value is an
+            --  image computed once anyway, or where the value is one
+            --  literal or name, the value again.
+            procedure Refuse_Shared_Run
+              (Written_Head  : Natural;
+               First_Name    : Landin.Source.Names.Name_Id;
+               At_First      : Landin.Source.Span;
+               Later         : Later_Name_Vectors.Vector;
+               Colon         : Natural;
+               Typed         : Natural;
+               Value_First   : Natural := 0;
+               Value_Last    : Natural := 0;
+               What          : String := "a declaration names one thing")
+            is
+               --  The declaration's first token: `public` and a
+               --  `link(...)` prefix written before Written_Head belong
+               --  to it.
+               function Declaration_Head return Natural;
+
+               function Declaration_Head return Natural is
+                  Step : Natural := Written_Head;
+               begin
+                  while Step > 1
+                    and then not Begins_Line (Tok.Token_Index (Step))
+                  loop
+                     if Kind_Of (Step - 1) = Tok.Kw_Public then
+                        Step := Step - 1;
+                     elsif Kind_Of (Step - 1) = Tok.Right_Paren then
+                        declare
+                           Back  : Natural := Step - 1;
+                           Depth : Natural := 0;
+                        begin
+                           loop
+                              if Kind_Of (Back) = Tok.Right_Paren then
+                                 Depth := Depth + 1;
+                              elsif Kind_Of (Back) = Tok.Left_Paren then
+                                 Depth := Depth - 1;
+                              end if;
+                              exit when Depth = 0 or else Back = 1;
+                              Back := Back - 1;
+                           end loop;
+                           exit when Depth /= 0 or else Back < 2
+                             or else Kind_Of (Back - 1) /= Tok.Identifier
+                             or else Landin.Source.Names.Spelling
+                               (Names, Tok.Name (Tok.Token_At
+                                  (From, Tok.Token_Index (Back - 1))))
+                               /= "link";
+                           Step := Back - 1;
+                        end;
+                     else
+                        exit;
+                     end if;
+                  end loop;
+                  return Step;
+               end Declaration_Head;
+
+               Head       : constant Natural :=
+                 (if Written_Head = 0 then 0 else Declaration_Head);
+               Final      : constant Natural :=
+                 (if Value_Last /= 0 then Value_Last else Typed);
+               Mechanical : constant Boolean :=
+                 Text /= null
+                 and then Head > 0 and then Colon > Head
+                 and then Typed >= Colon
+                 and then Kind_Of (Colon) = Tok.Colon
+                 and then First_Name /= Landin.Source.Names.No_Name
+                 and then Begins_Line (Tok.Token_Index (Head))
+                 and then (Final >= Natural (Last)
+                           or else Begins_Line
+                             (Tok.Token_Index (Final + 1))
+                           or else Kind_Of (Final + 1) = Tok.End_Of_Input);
+               Where : constant Landin.Source.Span :=
+                 Join (Later.First_Element.At_Name,
+                       Later.Last_Element.At_Name);
+            begin
+               if not Mechanical then
+                  Complain
+                    (Item    => Syn.Removed_Form,
+                     Where   => Where,
+                     Message => What & ": declare each name on its own"
+                                & " line",
+                     Note    => "D1656: one name per declaration; a"
+                                & " parameter, result or payload list"
+                                & " keeps its own form");
+                  return;
+               end if;
+               declare
+                  Indent : constant String :=
+                    Blanks (Line_Indent (Tok.Token_Index (Head)));
+                  Prefix : constant String :=
+                    Landin.Source.Slice
+                      (Text.all, (Span_Of (Head).First, At_First.First));
+                  Spelled_Type : constant String :=
+                    Landin.Source.Slice
+                      (Text.all,
+                       (Span_Of (Colon).First, Span_Of (Typed).Last));
+                  First_Spelling : constant String :=
+                    Landin.Source.Names.Spelling (Names, First_Name);
+                  Simple : constant Boolean :=
+                    Value_First /= 0
+                    and then (Value_First = Value_Last
+                              or else (Value_Last = Value_First + 1
+                                       and then Kind_Of (Value_First)
+                                         = Tok.Minus));
+                  Again : constant String :=
+                    (if Value_First = 0 then ""
+                     elsif Body_Level = 0 or else Simple
+                     then " = " & Bytes (Value_First, Value_Last)
+                     else " = " & First_Spelling);
+                  Written : Unbounded.Unbounded_String :=
+                    Unbounded.To_Unbounded_String
+                      (Prefix & First_Spelling & Spelled_Type
+                       & (if Value_First = 0 then ""
+                          else " = " & Bytes (Value_First, Value_Last)));
+               begin
+                  for Each of Later loop
+                     Unbounded.Append
+                       (Written,
+                        ASCII.LF & Indent & Prefix
+                        & Landin.Source.Names.Spelling (Names, Each.Named)
+                        & Spelled_Type & Again);
+                  end loop;
+                  Complain
+                    (Item    => Syn.Removed_Form,
+                     Where   => Where,
+                     Message => What & ": declare each name on its own"
+                                & " line",
+                     Note    => "D1656: one name per declaration; a"
+                                & " parameter, result or payload list"
+                                & " keeps its own form",
+                     Fixes   =>
+                       [1 => Landin.Diagnostics.Fixes.One_Name_Each
+                               ([1 => Landin.Diagnostics.Make_Edit
+                                  (Origin_Of,
+                                   (First => Span_Of (Head).First,
+                                    Last  => Span_Of (Final).Last),
+                                   Unbounded.To_String (Written))])]);
+               end;
+            end Refuse_Shared_Run;
+
             --  binding ::= "mut"? identifiers ":" type ("=" expression)?
             --             | "mut"? identifier ":=" expression   [1790]
             --
@@ -7407,6 +7888,11 @@ package body Landin.Syntax.Parser is
                Later     : Later_Name_Vectors.Vector;
                Type_Node : Node_Id := No_Node;
                Value     : Node_Id := No_Node;
+               --  D1656's rewrite reads where the parts were written.
+               Colon_At  : Natural := 0;
+               Typed_At  : Natural := 0;
+               Value_At  : Natural := 0;
+               Value_End : Natural := 0;
             begin
                if Peek = Tok.Kw_Mut then
                   Mutable := True;
@@ -7473,6 +7959,9 @@ package body Landin.Syntax.Parser is
                   Parse_Later_Names (Later);
                end if;
 
+               if Peek = Tok.Colon then
+                  Colon_At := Token_Here;
+               end if;
                if Peek = Tok.Colon_Equal then
                   Advance;
                   Value_Begins := Token_Here;
@@ -7521,6 +8010,7 @@ package body Landin.Syntax.Parser is
                         Because => "declared here")
                then
                   Type_Node := Parse_Declared_Type (False, At_Name);
+                  Typed_At := Token_Here - 1;
 
                   if Type_Refused then
                      if Body_Level > 0 then
@@ -7534,7 +8024,9 @@ package body Landin.Syntax.Parser is
                      begin
                         Advance;
                         Value_Begins := Token_Here;
+                        Value_At := Token_Here;
                         Value := Parse_Expression;
+                        Value_End := Token_Here - 1;
                         --  D1651: `name: T = loop`, the one shape whose
                         --  rewrite is mechanical, spells its type.
                         if Body_Level > 0 and then not Exported
@@ -7577,6 +8069,19 @@ package body Landin.Syntax.Parser is
                begin
                   if Later.Is_Empty then
                      return First;
+                  end if;
+
+                  if Shareable and then not Type_Refused then
+                     Refuse_Shared_Run
+                       (Written_Head => Head,
+                        First_Name  => Named,
+                        At_First    => At_Name,
+                        Later       => Later,
+                        Colon       => Colon_At,
+                        Typed       => Typed_At,
+                        Value_First => Value_At,
+                        Value_Last  => Value_End,
+                        What        => "a binding names one thing");
                   end if;
 
                   Shared_Run.Clear;
@@ -7811,6 +8316,30 @@ package body Landin.Syntax.Parser is
                Later       : Later_Name_Vectors.Vector;
                Type_Node   : Node_Id := No_Node;
                Constraint  : Node_Id := No_Node;
+
+               --  D1655: the `in` in hand, refused; the fix removes it and
+               --  the blanks after it on its line.
+               procedure Refuse_Written_In;
+
+               procedure Refuse_Written_In is
+                  Word : constant Landin.Source.Span := Here;
+                  Gone : constant Landin.Source.Span :=
+                    (if Natural (Index) < Natural (Last)
+                       and then not Begins_Line (Index + 1)
+                     then (First => Word.First,
+                           Last  => Tok.Where (From, Index + 1).First)
+                     else Word);
+               begin
+                  Complain
+                    (Item    => Syn.Removed_Form,
+                     Where   => Word,
+                     Message => "`in` is not written on a parameter",
+                     Note    => "D1655: a parameter without `inout` or"
+                                & " `sink` is read-only",
+                     Fixes   =>
+                       [1 => Landin.Diagnostics.Fixes.Unwrite_In
+                               (Origin_Of, Gone)]);
+               end Refuse_Written_In;
             begin
                if Fixed then
                   if not Allow_Static then
@@ -7846,7 +8375,9 @@ package body Landin.Syntax.Parser is
                   if not Caller then
                      case Peek is
                         when Tok.Kw_In =>
-                           Convention := Explicit_In;
+                           --  D1655: a written `in` is refused, and the
+                           --  parameter read as the read-only one it is.
+                           Refuse_Written_In;
                            Advance;
                         when Tok.Kw_Inout =>
                            Convention := Inout_Convention;
@@ -7922,6 +8453,16 @@ package body Landin.Syntax.Parser is
                  and then Named /= Landin.Source.Names.No_Name
                  and then Index > 1
                  and then Tok.Kind (From, Index - 1) = Tok.Colon
+                 and then Peek = Tok.Kw_In
+                 and then not (Ahead (1) = Tok.Identifier
+                               and then Named_Ahead (1) = Out_Id)
+               then
+                  Refuse_Written_In;
+                  Advance;
+               elsif not Caller and then Convention = Implicit_In
+                 and then Named /= Landin.Source.Names.No_Name
+                 and then Index > 1
+                 and then Tok.Kind (From, Index - 1) = Tok.Colon
                  and then Peek in Tok.Kw_In | Tok.Kw_Inout | Tok.Kw_Sink
                then
                   declare
@@ -7982,7 +8523,7 @@ package body Landin.Syntax.Parser is
                        (case Written is
                            when Tok.Kw_Inout => Inout_Convention,
                            when Tok.Kw_Sink => Sink_Convention,
-                           when others => Explicit_In);
+                           when others => Implicit_In);
                      Advance;
                      if Ada_Form then
                         Advance;
@@ -8868,12 +9409,89 @@ package body Landin.Syntax.Parser is
                end;
             end Parse_Function;
 
+            --  D1654: an anonymous function, from its `(` at Opens to the
+            --  `end` before the token in hand, refused.  It captured
+            --  nothing (D123), so the fix declares it, named for the
+            --  declaration that holds it, before that declaration, and
+            --  writes the name where it was.
+            procedure Refuse_Anonymous_Function
+              (Opens : Tok.Token_Index; Closed : Boolean);
+
+            procedure Refuse_Anonymous_Function
+              (Opens : Tok.Token_Index; Closed : Boolean)
+            is
+               Closes  : constant Tok.Token_Index := Index - 1;
+               Holder  : Tok.Token_Index := Program_Declaration;
+               Fixes   : Landin.Diagnostics.Fix_List (1 .. 1);
+               Offered : Boolean := False;
+            begin
+               if Tok.Kind (From, Holder) = Tok.Kw_Public then
+                  Holder := Holder + 1;
+               end if;
+               if Closed and then Text /= null
+                 and then Opens > Program_Declaration
+                 and then Begins_Line (Program_Declaration)
+                 and then Tok.Kind (From, Holder) = Tok.Identifier
+               then
+                  declare
+                     Stem : constant String :=
+                       Landin.Source.Names.Spelling
+                         (Names, Tok.Name (Tok.Token_At (From, Holder)))
+                       & "_function";
+                     function Candidate (Count : Positive) return String
+                       is (if Count = 1 then Stem
+                           else Stem & "_" & Ada.Strings.Fixed.Trim
+                                  (Positive'Image (Count),
+                                   Ada.Strings.Both));
+                     Count : Positive := 1;
+                  begin
+                     while Spelled_In_File (Candidate (Count)) loop
+                        Count := Count + 1;
+                     end loop;
+                     declare
+                        Name   : constant String := Candidate (Count);
+                        Before : constant Landin.Source.Byte_Offset :=
+                          Leading_Comments_Start (Program_Declaration);
+                        Whole  : constant Landin.Source.Span :=
+                          Join (Tok.Where (From, Opens),
+                                Tok.Where (From, Closes));
+                     begin
+                        Fixes (1) := Landin.Diagnostics.Fixes.Name_Function
+                          (Name,
+                           [Landin.Diagnostics.Make_Edit
+                              (Origin_Of, (First => Before, Last => Before),
+                               Name & ": "
+                               & Reindented
+                                   (Landin.Source.Slice (Text.all, Whole),
+                                    Line_Indent (Opens))
+                               & " " & Name & ASCII.LF & ASCII.LF),
+                            Landin.Diagnostics.Make_Edit
+                              (Origin_Of, Whole, Name)]);
+                        Offered := True;
+                     end;
+                  end;
+               end if;
+               Complain
+                 (Item    => Syn.Removed_Form,
+                  Where   => Tok.Where (From, Opens),
+                  Message => "a function is declared by name",
+                  Note    => "D1654: there are no anonymous functions;"
+                             & " declare the function and pass its name,"
+                             & " which means the same, since an anonymous"
+                             & " function captured nothing",
+                  Fixes   =>
+                    (if Offered then Fixes
+                     else Landin.Diagnostics.No_Fixes));
+            end Refuse_Anonymous_Function;
+
             --  anonymous_function ::= signature `=` body `end`   [1010]
             --
             --  The arrow after the balanced opening list distinguishes this
             --  from a parenthesized expression and a labelled struct literal.
             function Parse_Anonymous_Function return Node_Id is
                Start        : constant Landin.Source.Span := Here;
+               Opens        : constant Tok.Token_Index := Index;
+               Closed       : Boolean := False;
                Params       : Slot_Vectors.Vector;
                Returns_Node : Node_Id := No_Node;
                Returns_At   : Landin.Source.Span :=
@@ -8970,6 +9588,7 @@ package body Landin.Syntax.Parser is
 
                if Peek = Tok.Kw_End and then not At_Wall then
                   Advance;
+                  Closed := True;
                else
                   Complain
                     (Item    => Syn.Unclosed_Construct,
@@ -8986,6 +9605,7 @@ package body Landin.Syntax.Parser is
                Complete_Closes_Block := Saved_Complete;
                Else_Closes_Arm := Saved_Else;
                Depth := Depth - 1;
+               Refuse_Anonymous_Function (Opens, Closed);
                declare
                   Head : constant Slot_List (1 .. 3) :=
                     [Returns_Node, Errors_Node, Body_Node];

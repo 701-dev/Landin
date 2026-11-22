@@ -1,4 +1,5 @@
-red, blue: atom
+red: atom
+blue: atom
 colors: type = red | blue
 missing: atom
 problems: type = missing

@@ -1,5 +1,8 @@
-read, write: atom
-box: type (item: type) = (held: item)
+read: atom
+write: atom
+box: type (item: type) = struct
+    held: item
+end box
 
 opened: (value: box(read | write)) -> (held: read | write) =
     held = value.held

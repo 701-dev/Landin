@@ -1,5 +1,9 @@
 problem: atom
-triple: type = (first: i32, second: i32, third: i32)
+triple: type = struct
+    first: i32
+    second: i32
+    third: i32
+end triple
 leaf: () -> (result: i32) ! ... = fail problem end leaf
 observe: (t: type, value: t) -> none = _ = value end observe
 public main: () -> (code: i32) =

@@ -1,4 +1,7 @@
-holder: type = (count: u32, bytes: []u8)
+holder: type = struct
+    count: u32
+    bytes: []u8
+end holder
 
 counted: (value: holder) -> (count: u32) =
     count = value.count

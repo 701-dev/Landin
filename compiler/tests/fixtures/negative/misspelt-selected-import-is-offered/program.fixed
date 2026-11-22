@@ -1,3 +1,0 @@
-import lib (answer)
-
-f: () -> (value: i32) = answer end f

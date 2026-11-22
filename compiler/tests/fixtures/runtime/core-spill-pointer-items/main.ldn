@@ -9,7 +9,8 @@ node: type = struct
 end node
 
 level: type = low | high
-low, high: atom
+low: atom
+high: atom
 
 reading: type = struct
     at: level

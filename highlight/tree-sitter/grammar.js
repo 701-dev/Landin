@@ -91,7 +91,6 @@ module.exports = grammar({
     [$.slice_type, $.empty_slice],
     [$.array_type, $.array_literal],
     [$.indexed_expression, $.declaration_reference, $.measurement_expression, $.of_keyword],
-    [$.field, $.parameter],
     [$.routine_formals],
     [$.parameters],
     [$.labeled_arguments, $.arguments],
@@ -119,7 +118,6 @@ module.exports = grammar({
     [$.identifier_list, $.type_formal],
     [$.identifier_list, $.destructured_field],
     [$.identifier_list, $.destructured_field, $.field_value],
-    [$.identifier_list, $.variant_part],
     // `at` after a field's type: its offset, or the next field's name.
     [$.field],
     // `link(` begins a link attribute or calls something named `link`; the
@@ -139,10 +137,8 @@ module.exports = grammar({
 
     import_declaration: $ => seq(
       'import', $.import_path,
-      optional(choice(
-        seq('as', field('alias', $.identifier)),
-        seq('(', $.identifier_list, ')'),
-      )),
+      // D1658: a module is imported whole; `as` renames it.
+      optional(seq('as', field('alias', $.identifier))),
     ),
     import_path: $ => seq($.identifier, repeat(seq('/', $.identifier))),
 
@@ -222,6 +218,8 @@ module.exports = grammar({
       'end', 'if',
     ),
 
+    // D1656, D1887: an atom declaration names one atom; the compiler refuses
+    // a list, which is kept here for the reason a binding keeps it.
     atom_declaration: $ => seq(field('name', $.identifier_list), ':', 'atom'),
     identifier_list: $ => seq($._declaration_name, repeat(seq(',', $.identifier))),
     // At a declaration start the lexer may also admit contextual import or
@@ -238,7 +236,9 @@ module.exports = grammar({
       alias('held', $.identifier),
     ),
 
-    // D233: several names may share one binding, with one written type.
+    // D1656: a binding names one thing; the compiler refuses a list with
+    // its fix.  The list is kept here, where it leaves a name before `:`
+    // undecided between a binding and a function until the next token.
     binding: $ => seq(optional($.link_symbol), choice(
       seq(
         optional('mut'),
@@ -280,7 +280,8 @@ module.exports = grammar({
       commaSep1(field('argument', $.type_argument)),
       ')',
     ),
-    type_argument: $ => choice($._type, $.integer_literal),
+    // D1663, D1889: a fixed actual is any expression an array length folds.
+    type_argument: $ => choice($._type, $._expression),
     scalar_type: _ => choice(
       'u8', 'u16', 'u32', 'u64',
       'i8', 'i16', 'i32', 'i64',
@@ -371,14 +372,10 @@ module.exports = grammar({
     )),
     encoded_member: $ => seq($.declaration_reference, '=', $.exclusion_expression),
 
-    // [1795]: the parenthesized inline field list and the `struct ... end`
-    // block are the same declaration body.
+    // [1795], D1657: a struct type is `struct`, its members and `end`.
     struct_body: $ => seq(
       optional($.c_layout),
-      choice(
-        seq('struct', repeat1(choice($.field, $.variant_part)), 'end', optional($._declaration_name)),
-        seq('(', commaSep1($.field), ')'),
-      ),
+      'struct', repeat1(choice($.field, $.variant_part)), 'end', optional($._declaration_name),
     ),
     // Keep the existing node name for editor-query compatibility; the
     // contextual policy also admits explicit packed carrier storage.
@@ -391,15 +388,16 @@ module.exports = grammar({
       optional(seq(',', choice($.scalar_type, alias('packed', $.identifier)))),
       ')',
     ),
-    // D233: several field names may share one type, `at` position included.
+    // D1656, D1887: a field names one thing.
     field: $ => seq(
-      field('name', choice($.identifier_list, alias($._at_field_names, $.identifier_list))),
+      field('name', choice($._declaration_name, alias('at', $.identifier))),
       ':', field('type', $._declared_type),
       optional(seq('at', $._expression,
                    optional(seq('..', $._expression))))),
-    // A field may be named `at`.  After another field's type the lexer
-    // offers the offset clause's word, and the `:` or `,` after it decides.
-    _at_field_names: $ => seq(alias('at', $.identifier), repeat(seq(',', $.identifier))),
+    // A payload list keeps several names of one type (D1656).
+    payload_field: $ => seq(
+      field('name', $.identifier_list),
+      ':', field('type', $._declared_type)),
     variant_part: $ => seq(
       field('name', $._declaration_name), ':', 'variant',
       $.variant_case, repeat(seq('|', $.variant_case)),
@@ -407,7 +405,7 @@ module.exports = grammar({
     ),
     variant_case: $ => seq(
       field('name', $._declaration_name),
-      optional(seq(':', '(', commaSep1($.field), ')')),
+      optional(seq(':', '(', commaSep1($.payload_field), ')')),
     ),
 
     function_declaration: $ => seq(
@@ -417,9 +415,6 @@ module.exports = grammar({
       optional(field('body', $.block)),
       'end', optional(field('end_name', endName($))),
     ),
-    anonymous_function: $ => prec.dynamic(1, seq(
-      $.signature, '=', optional(field('body', $.block)), 'end',
-    )),
     signature: $ => seq(
       '(', optional($.parameters), ')', $.arrow, $.returns, optional($.errors),
     ),
@@ -467,7 +462,7 @@ module.exports = grammar({
       ),
     ),
     _into_names: $ => seq(alias('into', $.identifier), repeat(seq(',', $.identifier))),
-    parameter_convention: _ => choice('in', 'inout', 'sink'),
+    parameter_convention: _ => choice('inout', 'sink'),
     returns: $ => choice(
       seq('(', optional(commaSep1($.named_return)), ')'),
       'none',
@@ -660,7 +655,6 @@ module.exports = grammar({
       $.struct_literal,
       $.empty_slice,
       $.labeled_application,
-      $.anonymous_function,
       $.call_expression,
       $.written_conversion,
       $.indexed_expression,

@@ -1,4 +1,7 @@
-north, south, east, west: atom
+north: atom
+south: atom
+east: atom
+west: atom
 vertical: type = north | south
 horizontal: type = east | west
 overlap: type = south | east

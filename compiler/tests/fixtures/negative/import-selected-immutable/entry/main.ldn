@@ -1,2 +1,0 @@
-import lib (answer)
-f: () -> none = answer = 2 end f

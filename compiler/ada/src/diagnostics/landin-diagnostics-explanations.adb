@@ -2214,7 +2214,31 @@ package body Landin.Diagnostics.Explanations is
                & "egin` and `end`. `try for` [1320] is gone (D1652): a tra"
                & "versal whose steps can fail is a `while` whose body take"
                & "s each item with `try`, or with a call's `else`, which s"
-               & "ays where a failure goes.");
+               & "ays where a failure goes."
+               & LF
+               & LF
+               & "An anonymous function [1010] is gone (D1654): the fix de"
+               & "clares the function before the declaration that held it,"
+               & " named after its holder with `_function` (numbered where"
+               & " that name is taken), and passes it by name, which means"
+               & " the same because an anonymous function captured nothing"
+               & ". A written `in` on a parameter [0900] is gone (D1655): "
+               & "a parameter without `inout` or `sink` is read-only, so t"
+               & "he fix removes the word; an assembly operand keeps its `"
+               & "in`. Several names in one binding, field or atom declara"
+               & "tion, `a, b: T = v` [0100], are gone (D1656): the fix wr"
+               & "ites a declaration a line, each with the prefix, type an"
+               & "d suffix. The value is computed once, as the first name'"
+               & "s, and a later local starts as a copy of it, `b: T = a`;"
+               & " a parameter, result or payload list keeps `a, b: T`. Th"
+               & "e inline struct declaration `t: type = (a: T, b: U)` [06"
+               & "70] is gone (D1657): the fix writes `struct`, a field a "
+               & "line, and `end t`. Selected imports, `import m (a, b)` ["
+               & "1440], are gone (D1658): the fix writes `import m` and t"
+               & "urns each use of a selected name into `m.a`, under the `"
+               & "as` name where the import has one. It is offered only wh"
+               & "ere `m` names nothing else in the file; elsewhere make t"
+               & "he same change by hand.");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is
@@ -2475,7 +2499,9 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.Variant_Case_Named_Twice =>
                "",
             when Catalogue.Variant_Case_Not_Matched =>
-               "north, south: atom"
+               "north: atom"
+               & LF
+               & "south: atom"
                & LF
                & "compass: type = north | south"
                & LF
@@ -2607,7 +2633,9 @@ package body Landin.Diagnostics.Explanations is
                & "end bad"
                & LF,
             when Catalogue.Error_Contract_Violated =>
-               "missing, denied: atom"
+               "missing: atom"
+               & LF
+               & "denied: atom"
                & LF
                & "f: () -> none ! missing ="
                & LF

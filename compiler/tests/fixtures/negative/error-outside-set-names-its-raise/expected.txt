@@ -1,20 +1,20 @@
 error[L0329]: this body can fail with `denied`, which is outside its declared error set
-  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:7:1
+  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:8:1
   |
-7 | recovered: () -> none ! missing =
+8 | recovered: () -> none ! missing =
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:9:9
-  |
-9 |         fail problem
-  |         ^^^^^^^^^^^^ this `fail` raises `denied`
+  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:10:9
+   |
+10 |         fail problem
+   |         ^^^^^^^^^^^^ this `fail` raises `denied`
   = note: [0940]: every failing path belongs to the function's `!` set; add `denied` to it, or recover the failure where it is raised
 error[L0329]: this body can fail with `denied`, which is outside its declared error set
-  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:13:1
+  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:14:1
    |
-13 | tried: () -> none ! missing =
+14 | tried: () -> none ! missing =
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:14:5
+  --> ../tests/fixtures/negative/error-outside-set-names-its-raise/program.ldn:15:5
    |
-14 |     try risky()
+15 |     try risky()
    |     ^^^^^^^^^^^ this call can fail with `denied`
   = note: [0940]: every failing path belongs to the function's `!` set; add `denied` to it, or recover the failure where it is raised

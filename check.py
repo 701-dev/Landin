@@ -3905,6 +3905,9 @@ STATED_IN_PROSE = {
     "parenthesised-name-after-a-call-else-is-its-recovery": "[1820]",
     "recovery-value-before-more-of-an-if-arm": "[1820]",
     "line-leading-bracket-continues-as-an-index": "[1750]",
+    #  D1889: a type argument may be an expression, which derives `a | b`
+    #  as an alternation; [1790] refuses a union there in prose.
+    "atom-union-as-a-type-argument-needs-a-name": "[1790]",
 }
 
 
@@ -3918,6 +3921,17 @@ REFUSED_BY_PARSER_UNDER_A_SHARED_CODE = {
     "loop-value-search-rewritten": "D1867",
     "loop-value-in-every-value-context": "D1867",
     "r720-labelled-block-break-value": "D1867",
+    #  D1847's L0696 is raised by the parser for every removed form but the
+    #  selected import, which resolution refuses once the selected names'
+    #  uses are bound (D1888); none of these programs is derivable.
+    "loop-complete-left-by-a-break": "D1888",
+    "loop-complete-runs-after": "D1888",
+    "try-for-names-its-replacement": "D1888",
+    "anonymous-function-is-declared-by-name": "D1888",
+    "parameter-in-is-not-written": "D1888",
+    "one-name-per-declaration": "D1888",
+    "inline-struct-is-a-struct-block": "D1888",
+    "selected-import-is-imported-whole": "D1888",
 }
 
 

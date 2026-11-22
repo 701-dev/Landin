@@ -1,10 +1,10 @@
 error[L0329]: this body can fail with `denied`, which is outside its declared error set
-  --> ../tests/fixtures/negative/fail-outside-declared-set/program.ldn:3:1
+  --> ../tests/fixtures/negative/fail-outside-declared-set/program.ldn:4:1
   |
-3 | f: () -> none ! missing =
+4 | f: () -> none ! missing =
   | ^^^^^^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/fail-outside-declared-set/program.ldn:4:5
+  --> ../tests/fixtures/negative/fail-outside-declared-set/program.ldn:5:5
   |
-4 |     fail denied
+5 |     fail denied
   |     ^^^^^^^^^^^ this `fail` raises `denied`
   = note: [0940]: every failing path belongs to the function's `!` set; add `denied` to it, or recover the failure where it is raised

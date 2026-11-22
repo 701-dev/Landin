@@ -1,4 +1,6 @@
-first, second, third: atom
+first: atom
+second: atom
+third: atom
 joined: type (left: type, right: type) = left | right
 observe: (t: type, left: t, right: t) -> none =
     _ = left

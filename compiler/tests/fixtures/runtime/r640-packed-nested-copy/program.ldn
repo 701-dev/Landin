@@ -11,7 +11,7 @@ holder: type = struct
     tail: u32
 end holder
 mut static: holder = (prefix: 5, image: zeroed, tail: 19)
-copy: (in source: holder) -> (value: holder) =
+copy: (source: holder) -> (value: holder) =
     value = source
 end copy
 public main: () -> (code: i32) =

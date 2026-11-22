@@ -602,8 +602,8 @@ package body Landin.Tests.Resolution_Suite is
          & " (view: []item from second, first)" & LF
          & "project: (t: type, first: ptr t, second: []t) ->"
          & " (view: []t from second, first) = second end project" & LF
-         & "stored := (only: ptr item) ->"
-         & " (view: ptr item from only) = only end" & LF);
+         & "stored: (only: ptr item) ->"
+         & " (view: ptr item from only) = only end stored" & LF);
       Landin.Stages.Append (Order, Frontend'Access);
       Landin.Stages.Append (Order, Configurer'Access);
       Landin.Stages.Append (Order, Names'Access);
@@ -631,9 +631,7 @@ package body Landin.Tests.Resolution_Suite is
          Project_Return : constant Landin.Syntax.Node_Id :=
            Landin.Syntax.Nth_Return (Of_Tree.all, Project, 1);
          Stored : constant Landin.Syntax.Node_Id :=
-           Landin.Syntax.Value_Of
-             (Of_Tree.all,
-              Landin.Syntax.Nth_Declaration (Of_Tree.all, 4));
+           Landin.Syntax.Nth_Declaration (Of_Tree.all, 4);
          Stored_Return : constant Landin.Syntax.Node_Id :=
            Landin.Syntax.Nth_Return (Of_Tree.all, Stored, 1);
       begin
@@ -665,7 +663,7 @@ package body Landin.Tests.Resolution_Suite is
               (Meanings.all, Of_Tree.all,
                Landin.Syntax.Nth_Return_Source
                  (Of_Tree.all, Stored_Return, 1)),
-            1, "an anonymous signature uses the same position table");
+            1, "a plain function's signature uses the same position table");
       end;
    end Return_Sources_Retain_Parameter_Positions;
 
@@ -820,7 +818,8 @@ package body Landin.Tests.Resolution_Suite is
          & "public marked: type = concept (item: type)" & LF
          & "end marked" & LF
          & "i32 is marked ()" & LF
-         & "public absent, denied: atom" & LF
+         & "public absent: atom" & LF
+         & "public denied: atom" & LF
          & "public problems: type = absent | denied" & LF
          & "public choice: type = struct" & LF
          & "    kind: variant" & LF
@@ -848,29 +847,31 @@ package body Landin.Tests.Resolution_Suite is
          & "private_value: i32 = 7" & LF);
       Host.Add_File
         ("entry/main.ldn",
+         --  D1658: every imported declaration is written with the
+         --  module's name; each position below keeps the identity a
+         --  selected import used to bind unqualified.
          "import lib as qualified" & LF
-         & "import lib (number, cell, marked, absent, problems,"
-         & " choice, empty, full," & LF
-         & "            counter, answer, identity, work)" & LF
          & "as: i32 = 0" & LF
          & "qualified: i32 = 2" & LF
          & "answer: i32 = 99" & LF
-         & "forward: (item: type is marked, value: item) ->"
+         & "forward: (item: type is qualified.marked, value: item) ->"
          & " (result: item) =" & LF
-         & "    result = identity(value)" & LF
+         & "    result = qualified.identity(value)" & LF
          & "end forward" & LF
-         & "fallible: (value: number) -> (result: number) ! problems =" & LF
-         & "    result = try work(value)" & LF
+         & "fallible: (value: qualified.number) ->"
+         & " (result: qualified.number) ! qualified.problems =" & LF
+         & "    result = try qualified.work(value)" & LF
          & "end fallible" & LF
          & "shadow: (answer: i32) -> (result: i32) = answer end shadow" & LF
          & "public main: () -> (code: i32) =" & LF
-         & "    original: cell(number) = (value: forward(answer))" & LF
-         & "    selected: choice = choice(kind: full(value:"
-         & " original.value))" & LF
-         & "    counter = counter + 1" & LF
+         & "    original: qualified.cell(qualified.number) ="
+         & " (value: forward(qualified.answer))" & LF
+         & "    selected: qualified.choice = qualified.choice(kind:"
+         & " qualified.full(value: original.value))" & LF
+         & "    qualified.counter = qualified.counter + 1" & LF
          & "    caught := fallible(-1) else (problem)" & LF
          & "        match problem" & LF
-         & "            absent: 0" & LF
+         & "            qualified.absent: 0" & LF
          & "            _: 1" & LF
          & "        end match" & LF
          & "    end" & LF
@@ -880,8 +881,9 @@ package body Landin.Tests.Resolution_Suite is
          & "        code = 1" & LF
          & "    else" & LF
          & "        code = match selected.kind" & LF
-         & "            empty: 0" & LF
-         & "            full: original.value + counter" & LF
+         & "            qualified.empty: 0" & LF
+         & "            qualified.full: original.value + qualified.counter"
+         & LF
          & "        end match" & LF
          & "    end if" & LF
          & "end main" & LF);
@@ -900,7 +902,7 @@ package body Landin.Tests.Resolution_Suite is
       begin
          Landin.Testing.Check_Equal
            (Item, Result.Status, Landin.Driver.Status_Success,
-            "all selected declaration positions emit: "
+            "all qualified declaration positions emit: "
             & Ada.Strings.Unbounded.To_String (Result.Report));
          Landin.Testing.Check_Equal
            (Item, Tools.Run_Count, 0, "emission invokes no host tool");
@@ -980,36 +982,45 @@ package body Landin.Tests.Resolution_Suite is
              "namespace `lib` needs a member selection");
       Check ("import lib" & LF
              & "f: (lib: i32) -> (v: i32) = lib end f", "");
-      Check ("import lib (answer, answer)", "L0200");
-      Check ("import lib as answer" & LF & "import lib (answer)", "L0200");
-      Check ("import lib (answer)" & LF & "import lib as answer", "L0200");
-      Check ("import lib (answer)", "",
+      --  D1658: a module is imported whole, so the collisions and scopes
+      --  a selected name had are now the import binding's own.
+      Check ("import lib" & LF & "import lib", "L0200");
+      Check ("import lib as answer" & LF & "import other as answer",
+             "L0200");
+      Check ("import other as lib" & LF & "import lib", "L0200");
+      Check ("import lib" & LF
+             & "f: () -> (v: i32) = lib.answer end f", "",
              Library => "import lib as self" & LF
                         & "public answer: i32 = 42");
-      Check ("import lib (borrowed)", "L0201",
-             Library => "import other (borrowed)" & LF
+      Check ("import lib" & LF
+             & "f: () -> (v: i32) = lib.borrowed end f", "L0201",
+             Library => "import other" & LF
                         & "public answer: i32 = 42");
-      Check ("import lib (missing)", "L0201");
-      Check ("import lib (answer)", "L0202", Library => "answer: i32 = 2");
-      Check ("import lib (answer)", "L0201",
-             Sibling => "f: () -> (v: i32) = answer end f");
+      Check ("import lib" & LF
+             & "f: () -> (v: i32) = lib.missing end f", "L0201");
+      Check ("import lib" & LF
+             & "f: () -> (v: i32) = lib.answer end f", "L0202",
+             Library => "answer: i32 = 2");
+      Check ("import lib", "L0201",
+             Sibling => "f: () -> (v: i32) = lib.answer end f");
       Check ("import lib as renamed", "L0201",
              Sibling => "f: () -> (v: i32) = renamed.answer end f");
       Check ("import lib (answer)" & LF
-             & "f: () -> (v: i32) = lib.answer end f", "L0201");
+             & "f: () -> (v: i32) = lib.answer end f",
+             "a module is imported whole");
       Check ("import lib as renamed" & LF
              & "f: () -> (v: i32) = lib.answer end f", "L0201");
-      Check ("import lib (answer)" & LF
-             & "f: () -> none = answer = 1 end f", "L0303");
+      Check ("import lib" & LF
+             & "f: () -> none = lib.answer = 1 end f", "L0303");
       Check ("import lib as compiler", "L0203");
-      Check ("import lib (compiler)", "L0203");
       Check ("compiler: i32 = 2", "L0203");
       Check ("f: (assembler: i32) -> none = _ = assembler end f", "L0203");
       Check ("f: () -> none = linker: i32 = 2 _ = linker end f", "L0203");
       Check ("f: (compiler: type) -> none = end f", "L0203");
       Check ("x: type = struct compiler: i32 end x", "");
       Check ("option answer: i32 = 1" & LF & "answer: i32 = 2", "L0200");
-      Check ("import lib (answer)" & LF & "option answer: i32 = 1", "L0200");
+      Check ("import lib as answer" & LF & "option answer: i32 = 1",
+             "L0200");
       Check ("option answer: i32 = 1" & LF
              & "f: () -> (v: i32) = answer end f", "configuration-only");
       Check ("option answer: i32 = 1" & LF
@@ -1132,8 +1143,9 @@ package body Landin.Tests.Resolution_Suite is
             & "public read: () -> (r: i32) = r = token.value end read",
             Override);
          Check
-           ("import helper (token)" & LF
-            & "public read: () -> (r: i32) = r = token end read", Override);
+           ("import helper" & LF
+            & "public read: () -> (r: i32) = r = helper.token end read",
+            Override);
       end loop;
       declare
          Host : Landin.Testing.Fakes.Fake_Filesystem;
@@ -1190,10 +1202,12 @@ package body Landin.Tests.Resolution_Suite is
             loop
                Host.Add_File
                  (Source,
-                  (if Imports then "import lib (answer)"
+                  (if Imports then "import lib as answer"
                    else "answer: i32 = 2") & LF
                   & (if Source = "entry/main.ldn" then "f" else "g")
-                  & ": () -> (r: i32) = r = answer + answer end "
+                  & ": () -> (r: i32) = r = "
+                  & (if Imports then "answer.answer + answer.answer"
+                     else "answer + answer") & " end "
                   & (if Source = "entry/main.ldn" then "f" else "g") & LF);
             end loop;
             declare
@@ -1237,8 +1251,9 @@ package body Landin.Tests.Resolution_Suite is
                & "f: () -> (r: i32) = r = lib.answer + lib.answer end f"
                & LF);
             Host.Add_File
-              ("entry/sibling.ldn", "import lib (answer)" & LF
-               & "g: () -> (r: i32) = r = answer + answer end g" & LF
+              ("entry/sibling.ldn", "import lib as other" & LF
+               & "g: () -> (r: i32) = r = other.answer + other.answer end g"
+               & LF
                & (if Independent_Mistake
                   then "option flag: bool = true" & LF
                     & "h: () -> (r: bool) = r = flag end h" & LF
@@ -1252,7 +1267,7 @@ package body Landin.Tests.Resolution_Suite is
                Landin.Testing.Check_Equal
                  (Item, Landin.Diagnostics.Count (Result.Found),
                   (if Independent_Mistake then 2 else 1),
-                  "qualified and selected uses do not repeat the cause;"
+                  "qualified and renamed uses do not repeat the cause;"
                   & " an independent configuration-only misuse remains");
             end;
          end;

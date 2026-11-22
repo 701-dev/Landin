@@ -34,8 +34,10 @@ end maybe
 stored: handler = plus_two
 mut global: box = (handler: plus_one, tail: 3)
 alias: box = global
+anonymous_function: (x: i32) -> (r: i32) = x + 3 end anonymous_function
+
 anonymous: box =
-    (handler: (x: i32) -> (r: i32) = x + 3 end, tail: 1)
+    (handler: anonymous_function, tail: 1)
 mut selected: choice = (which: active(handler: stored, bias: 4))
 fallible_state: fallible_box = (handler: maybe)
 

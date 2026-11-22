@@ -668,7 +668,7 @@ package Landin.Syntax is
    --  [0900]'s convention.  Explicit `in` is retained apart from the
    --  omitted default so this syntax table does not erase source spelling.
    type Parameter_Convention is
-     (Implicit_In, Explicit_In, Inout_Convention, Sink_Convention);
+     (Implicit_In, Inout_Convention, Sink_Convention);
 
    --  A match binding's is D433's: `inout`, `sink` or the implicit `in`.
    function Convention_Of (Of_Tree : Tree; Id : Node_Id)

@@ -19,8 +19,7 @@ end new
       (identifier)
       (struct_body
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (array_type
             (logical_or_expression
               (logical_and_expression
@@ -36,8 +35,7 @@ end new
                                   (integer_literal))))))))))))
             (scalar_type)))
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (scalar_type))
         (identifier))))
   (public_declaration

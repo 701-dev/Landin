@@ -1,5 +1,8 @@
 problem: atom
-record: type = (first: problem, second: problem)
+record: type = struct
+    first: problem
+    second: problem
+end record
 f: () -> none =
     value: record = (first: problem, of zeroed)
 end f

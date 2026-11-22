@@ -1,4 +1,11 @@
-one, two, three, four, five, six, seven, eight: atom
+one: atom
+two: atom
+three: atom
+four: atom
+five: atom
+six: atom
+seven: atom
+eight: atom
 all_atoms: type = one | two | three | four | five | six | seven | eight
 
 mut module_choice: all_atoms = one

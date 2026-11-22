@@ -1,3 +1,4 @@
-north, south: atom
+north: atom
+south: atom
 vertical: type = north | south
 f: () -> none = a: [1]north = [north] b: [1]vertical = a end f

@@ -1,0 +1,8 @@
+--  D1658: a module is imported whole.  The fix drops the selection and
+--  names each member it selected through the module, `shapes.side`.
+import shapes (side, square)
+
+public main: () -> (code: i32) =
+    s: square = (edge: side)
+    code = s.edge * 2
+end main

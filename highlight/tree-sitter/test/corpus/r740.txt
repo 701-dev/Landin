@@ -69,7 +69,18 @@ row: type = identity([3]u16)
         function: (declaration_reference
           (identifier))
         argument: (type_argument
-          (scalar_type)))))
+          (logical_or_expression
+            (logical_and_expression
+              (comparison_expression
+                (alternation_expression
+                  (exclusion_expression
+                    (conjunction_expression
+                      (shift_expression
+                        (sum_expression
+                          (product_expression
+                            (unary_expression
+                              (indexed_expression
+                                (scalar_type))))))))))))))))
   (public_declaration
     (type_declaration
       name: (identifier)
@@ -96,7 +107,8 @@ row: type = identity([3]u16)
 Parameterized atom union and union alias
 ==================
 
-first, second: atom
+first: atom
+second: atom
 joined: type (left: type, right: type) = left | right
 optional: type (t: type) = first | ptr t
 combo: type = joined(first, second)
@@ -107,7 +119,10 @@ combo: type = joined(first, second)
   (public_declaration
     (atom_declaration
       name: (identifier_list
-        (identifier)
+        (identifier))))
+  (public_declaration
+    (atom_declaration
+      name: (identifier_list
         (identifier))))
   (public_declaration
     (type_declaration
@@ -141,18 +156,44 @@ combo: type = joined(first, second)
         function: (declaration_reference
           (identifier))
         argument: (type_argument
-          (declaration_reference
-            (identifier)))
+          (logical_or_expression
+            (logical_and_expression
+              (comparison_expression
+                (alternation_expression
+                  (exclusion_expression
+                    (conjunction_expression
+                      (shift_expression
+                        (sum_expression
+                          (product_expression
+                            (unary_expression
+                              (indexed_expression
+                                (identifier)))))))))))))
         argument: (type_argument
-          (declaration_reference
-            (identifier)))))))
+          (logical_or_expression
+            (logical_and_expression
+              (comparison_expression
+                (alternation_expression
+                  (exclusion_expression
+                    (conjunction_expression
+                      (shift_expression
+                        (sum_expression
+                          (product_expression
+                            (unary_expression
+                              (indexed_expression
+                                (identifier)))))))))))))))))
 
 ==================
 Inline struct declaration, with and without layout
 ==================
 
-point: type = (x: i32, y: i32)
-compact: type = layout(optimal) (small: u8, wide: u64)
+point: type = struct
+    x: i32
+    y: i32
+end point
+compact: type = layout(optimal) struct
+    small: u8
+    wide: u64
+end compact
 
 ---
 
@@ -162,13 +203,12 @@ compact: type = layout(optimal) (small: u8, wide: u64)
       name: (identifier)
       (struct_body
         (field
-          name: (identifier_list
-            (identifier))
+          name: (identifier)
           type: (scalar_type))
         (field
-          name: (identifier_list
-            (identifier))
-          type: (scalar_type)))))
+          name: (identifier)
+          type: (scalar_type))
+        (identifier))))
   (public_declaration
     (type_declaration
       name: (identifier)
@@ -177,13 +217,12 @@ compact: type = layout(optimal) (small: u8, wide: u64)
           attribute: (identifier)
           convention: (identifier))
         (field
-          name: (identifier_list
-            (identifier))
+          name: (identifier)
           type: (scalar_type))
         (field
-          name: (identifier_list
-            (identifier))
-          type: (scalar_type))))))
+          name: (identifier)
+          type: (scalar_type))
+        (identifier)))))
 
 ==================
 Noreturn return form
@@ -220,11 +259,14 @@ callback: type = () -> noreturn
 Shared declaration names in binding, field, parameter and named return
 ==================
 
-mut first, second: i32 = 1
+mut first: i32 = 1
+mut second: i32 = 1
 site: type = struct
-    file_id, line, column: u32
+    file_id: u32
+    line: u32
+    column: u32
 end site
-total: (in a, b: i32, c: u8) -> (sum: i32) =
+total: (a, b: i32, c: u8) -> (sum: i32) =
     sum = a + b + i32(c)
 end total
 split: (source: []u8) -> (head, tail: []u8 from source) =
@@ -238,7 +280,23 @@ end split
   (public_declaration
     (binding
       name: (identifier_list
-        (identifier)
+        (identifier))
+      type: (scalar_type)
+      value: (logical_or_expression
+        (logical_and_expression
+          (comparison_expression
+            (alternation_expression
+              (exclusion_expression
+                (conjunction_expression
+                  (shift_expression
+                    (sum_expression
+                      (product_expression
+                        (unary_expression
+                          (literal
+                            (integer_literal))))))))))))))
+  (public_declaration
+    (binding
+      name: (identifier_list
         (identifier))
       type: (scalar_type)
       value: (logical_or_expression
@@ -258,10 +316,13 @@ end split
       name: (identifier)
       (struct_body
         (field
-          name: (identifier_list
-            (identifier)
-            (identifier)
-            (identifier))
+          name: (identifier)
+          type: (scalar_type))
+        (field
+          name: (identifier)
+          type: (scalar_type))
+        (field
+          name: (identifier)
           type: (scalar_type))
         (identifier))))
   (public_declaration
@@ -270,7 +331,6 @@ end split
       (declared_signature
         (routine_formals
           (parameter
-            (parameter_convention)
             name: (identifier_list
               (identifier)
               (identifier))

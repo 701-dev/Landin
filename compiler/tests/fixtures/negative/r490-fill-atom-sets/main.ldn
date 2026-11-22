@@ -1,4 +1,5 @@
-north, south: atom
+north: atom
+south: atom
 vertical: type = north | south
 record: type = struct
     first: i32

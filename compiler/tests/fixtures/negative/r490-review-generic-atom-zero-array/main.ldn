@@ -1,4 +1,5 @@
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
 stored: [2]problems
 public main: () -> (code: i32) =

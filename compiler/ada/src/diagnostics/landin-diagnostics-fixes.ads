@@ -217,6 +217,44 @@ package Landin.Diagnostics.Fixes is
                  and then Landin.Source.Length (Closer) > 0
                  and then Word.Last <= Closer.First;
 
+   --  D1655: the written `in` at Word and the blanks after it, Where,
+   --  removed.  Exact: a parameter without a convention is read-only,
+   --  which is what `in` said.
+   function Unwrite_In
+     (Source : Landin.Source.Source_Id;
+      Where  : Landin.Source.Span) return Fix
+     with Pre => Landin.Source.Length (Where) > 0;
+
+   --  D1656: a declaration of several names becomes one declaration a
+   --  name, each on its own line with the prefix, type and suffix written
+   --  again.  Exact: the parser assembles Edits so a value is computed
+   --  once, as the first name's, and each later name starts as a copy.
+   function One_Name_Each (Edits : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
+   --  D1657: `t: type = (a: T, b: U)` becomes the block form, a field a
+   --  line.  Exact: both spellings declare the same struct.
+   function Struct_Block (Edits : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
+   --  D1654: an anonymous function becomes a function declared before
+   --  the declaration that holds it, named Name, and the expression
+   --  becomes that name.  Exact: an anonymous function captures nothing,
+   --  and Name is spelled nowhere else in the file.
+   function Name_Function
+     (Name  : String;
+      Edits : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
+   --  D1658: `import m (a, b)` becomes `import m`, and each use of a
+   --  selected name becomes `m.a`, the module's name or its `as` name.
+   --  Exact: the selected name and the qualified one name the same
+   --  member, and nothing else in the file is spelled `m`.
+   function Import_Whole
+     (Module : String;
+      Edits  : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
    --  One Respell per name the ranking kept, nearest first; none when it
    --  kept none.
    function Respellings

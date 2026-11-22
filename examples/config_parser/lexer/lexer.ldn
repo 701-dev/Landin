@@ -6,8 +6,16 @@ import core/text
 
 --  The token tag is an atom set, and a debugger shows it by its atom's
 --  name (D423), as the debugger sessions read it.
-public identifier, number, string, left_brace, right_brace, equals: atom
-public newline, end_of_input, bad_character, unterminated_string: atom
+public identifier: atom
+public number: atom
+public string: atom
+public left_brace: atom
+public right_brace: atom
+public equals: atom
+public newline: atom
+public end_of_input: atom
+public bad_character: atom
+public unterminated_string: atom
 public kind: type = identifier | number | string | left_brace | right_brace
     | equals | newline | end_of_input | bad_character
     | unterminated_string

@@ -1,4 +1,5 @@
-read, write: atom
+read: atom
+write: atom
 pick: (t: type) -> (n: usize) = n = sizeof t end pick
 f: () -> (n: usize) =
     n = pick(t: read | write)

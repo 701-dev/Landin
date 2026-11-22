@@ -1,4 +1,6 @@
-red, amber, green: atom
+red: atom
+amber: atom
+green: atom
 
 signal: type = red | amber | green
 

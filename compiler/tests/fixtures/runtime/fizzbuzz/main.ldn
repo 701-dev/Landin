@@ -4,7 +4,10 @@ import core/io
 import core/text
 import hosted/blocking
 
-fizz, buzz, fizz_buzz, number: atom
+fizz: atom
+buzz: atom
+fizz_buzz: atom
+number: atom
 fizzbuzz_kind: type = fizz | buzz | fizz_buzz | number
 
 counts: type = struct

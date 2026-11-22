@@ -3,15 +3,19 @@ factory: type = (candidate: unary) -> (result: unary)
 
 identity: (value: i32) -> (result: i32) = value end identity
 
+static_callback_function: (value: i32) -> (result: i32) = identity(value) + 1 end static_callback_function
+
 static_callback :=
-    (value: i32) -> (result: i32) = identity(value) + 1 end
+    static_callback_function
 inferred_static := identity
 static_alias: unary = static_callback
 
 return_it: (candidate: unary) -> (result: unary) = candidate end return_it
 
+use_function: (value: i32) -> (result: i32) = value * 2 end use_function
+
 use: () -> (result: i32) =
-    local: unary = (value: i32) -> (result: i32) = value * 2 end
+    local: unary = use_function
     returned := return_it(local)
     result = static_alias(returned(inferred_static(3)))
 end use

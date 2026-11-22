@@ -1,4 +1,5 @@
-problem, denied: atom
+problem: atom
+denied: atom
 mut calls: i32 = 0
 
 observe: (t: type, value: t) -> none =

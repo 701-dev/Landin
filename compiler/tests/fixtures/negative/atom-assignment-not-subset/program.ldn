@@ -1,4 +1,5 @@
-a, b: atom
+a: atom
+b: atom
 only_a: type = a
 both: type = a | b
 

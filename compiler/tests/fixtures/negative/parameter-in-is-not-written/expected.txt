@@ -1,0 +1,7 @@
+error[L0696]: `in` is not written on a parameter
+  --> ../tests/fixtures/negative/parameter-in-is-not-written/program.ldn:3:9
+  |
+3 | twice: (in value: i32, inout total: i32) -> none =
+  |         ^^
+  = note: D1655: a parameter without `inout` or `sink` is read-only
+  = help: remove `in`: a parameter without a convention is read-only

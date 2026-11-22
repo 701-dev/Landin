@@ -1,4 +1,5 @@
-problem, denied: atom
+problem: atom
+denied: atom
 problems: type = problem | denied
 only_problem: type = problem
 only_denied: type = denied

@@ -213,32 +213,6 @@
     }
   },
   {
-    "type": "anonymous_function",
-    "named": true,
-    "fields": {
-      "body": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "block",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "signature",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "any_construction",
     "named": true,
     "fields": {},
@@ -1487,7 +1461,7 @@
         "required": true,
         "types": [
           {
-            "type": "identifier_list",
+            "type": "identifier",
             "named": true
           }
         ]
@@ -1820,13 +1794,9 @@
       }
     },
     "children": {
-      "multiple": true,
+      "multiple": false,
       "required": true,
       "types": [
-        {
-          "type": "identifier_list",
-          "named": true
-        },
         {
           "type": "import_path",
           "named": true
@@ -2549,6 +2519,36 @@
     }
   },
   {
+    "type": "payload_field",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier_list",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_type",
+            "named": true
+          },
+          {
+            "type": "atom_union",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "place",
     "named": true,
     "fields": {},
@@ -3084,11 +3084,11 @@
       "required": true,
       "types": [
         {
-          "type": "_type",
+          "type": "_expression",
           "named": true
         },
         {
-          "type": "integer_literal",
+          "type": "_type",
           "named": true
         }
       ]
@@ -3231,10 +3231,6 @@
           "named": true
         },
         {
-          "type": "anonymous_function",
-          "named": true
-        },
-        {
           "type": "any_construction",
           "named": true
         },
@@ -3356,7 +3352,7 @@
       "required": false,
       "types": [
         {
-          "type": "field",
+          "type": "payload_field",
           "named": true
         }
       ]

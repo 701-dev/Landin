@@ -1,0 +1,10 @@
+class: negative
+summary: an inline struct declaration, plain or packed, is refused naming the struct block, and the fix writes the block a field a line
+program: program.ldn
+codes: L0696, L0696
+fixed: program.fixed
+constructs: 0670, 0730, 1795
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/inline-struct-is-a-struct-block/program.ldn
+status: 1

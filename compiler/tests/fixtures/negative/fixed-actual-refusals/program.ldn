@@ -1,0 +1,16 @@
+--  D1663: a fixed actual is refused where an array length is: a call runs
+--  a routine, a comparison is a bool, and `&` needs an operand width.
+buf: type(fixed n: usize) = struct
+    bytes: [n]u8
+end buf
+
+count: () -> (r: usize) =
+    r = 2
+end count
+
+public main: () -> (code: i32) =
+    a: buf(count() + 1) = (bytes: [3 of 0])
+    b: buf(1 + (2 == 2)) = (bytes: [2 of 0])
+    c: buf(2 + (3 & 1)) = (bytes: [3 of 0])
+    code = i32(lenof a.bytes + lenof b.bytes + lenof c.bytes)
+end main

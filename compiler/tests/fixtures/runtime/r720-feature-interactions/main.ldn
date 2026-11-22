@@ -7,7 +7,8 @@ denied: atom
 maybe: type = none_found | denied | ptr mut u32
 
 pair: type = struct
-    left, right: maybe
+    left: maybe
+    right: maybe
 end pair
 
 classify: (m: maybe) -> (code: i32) =
@@ -20,7 +21,8 @@ end classify
 
 public main: () -> (code: i32) =
     mut cell: u32 = 40
-    mut first, second: maybe = none_found
+    first: maybe = none_found
+    mut second: maybe = none_found
     second = addr cell
     refused: maybe = denied
     row := [first, second, refused]

@@ -1,6 +1,10 @@
 problem: atom
-record: type = (value: problem)
-nested: type = (values: [0]problem)
+record: type = struct
+    value: problem
+end record
+nested: type = struct
+    values: [0]problem
+end nested
 choice: type = struct
     kind: variant
         payload: (value: problem) | empty

@@ -3,7 +3,9 @@ leaf: () -> none ! ... = fail problem end leaf
 display: type = concept (t: type)
     code: (self: ptr t) -> (value: i32)
 end display
-box: type (t: type) = (value: t)
+box: type (t: type) = struct
+    value: t
+end box
 box_code: (t: type, self: ptr box(t)) -> (value: i32) = value = 42 end box_code
 (t: type) box(t) is display (code: box_code)
 wrap: (t: type, value: t) -> (result: box(t)) = result = (value: value) end wrap

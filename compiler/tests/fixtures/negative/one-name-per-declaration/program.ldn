@@ -1,0 +1,24 @@
+--  D1656: a declaration names one thing.  The fix writes a line a name,
+--  each with the prefix, type and suffix again; a value is the first
+--  name's, and a later local starts as a copy of the first.
+north, south: atom
+public low, high: u8 = 3
+
+pair: type = struct
+    left, right: i32
+end pair
+
+seed: () -> (r: i32) =
+    r = 20
+end seed
+
+public main: () -> (code: i32) =
+    a, b: i32 = seed()
+    p: pair = (left: a, right: b)
+    way: north | south = north
+    code = p.left + p.right + i32(low) - i32(high)
+    if way == north then
+        inc code
+        inc code
+    end if
+end main

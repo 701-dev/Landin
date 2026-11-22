@@ -1,8 +1,12 @@
-north, south, east, west: atom
+north: atom
+south: atom
+east: atom
+west: atom
 compass: type = north | south | east | west
 reordered: type = west | east | south | north
 
-missing, denied: atom
+missing: atom
+denied: atom
 problems: type = missing | denied
 operation: type = (value: i32) -> (result: i32) ! problems
 

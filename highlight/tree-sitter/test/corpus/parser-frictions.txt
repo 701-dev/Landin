@@ -209,7 +209,10 @@ end f
 An atom union written in place
 ==================
 
-holder: type = (mode: read | write, held: absent | ptr u32)
+holder: type = struct
+    mode: read | write
+    held: absent | ptr u32
+end holder
 
 f: (mode: read | write) -> (r: east | west) =
     local: read | write = mode
@@ -224,21 +227,20 @@ end f
       (identifier)
       (struct_body
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (atom_union
             (declaration_reference
               (identifier))
             (declaration_reference
               (identifier))))
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (atom_union
             (declaration_reference
               (identifier))
             (pointer_type
-              (scalar_type)))))))
+              (scalar_type))))
+        (identifier))))
   (public_declaration
     (function_declaration
       (identifier)

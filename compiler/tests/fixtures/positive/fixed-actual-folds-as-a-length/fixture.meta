@@ -1,0 +1,5 @@
+class: positive
+summary: a type application's fixed actual folds a compiler fact, sizeof of a scalar, a module integer and arithmetic on one, as an array length does
+program: program.ldn
+constructs: 0520, 1290, 1350, 1790
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

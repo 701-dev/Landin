@@ -1,0 +1,14 @@
+--  D1654: there are no anonymous functions.  One captured nothing, so the
+--  fix declares it before the declaration that held it and passes it by
+--  its name.
+apply: (f: (x: i32) -> (r: i32), v: i32) -> (r: i32) =
+    r = f(v)
+end apply
+
+main_function: (x: i32) -> (r: i32) =
+    r = x * 2
+end main_function
+
+public main: () -> (code: i32) =
+    code = apply(main_function, 21)
+end main

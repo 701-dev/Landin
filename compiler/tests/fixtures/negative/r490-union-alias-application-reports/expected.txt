@@ -23,9 +23,9 @@ error[L0338]: this union member is not an atom type
   |
 6 | imported: type = unions.joined(i32)
   |                  ^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:2:41
+  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:3:41
   |
-2 | public joined: type (t: type) = first | t
+3 | public joined: type (t: type) = first | t
   |                                         ^ the template union member
   = note: [0640]: an atom union contains only atom identities, and D189 admits one pointer type beside them
 error[L0338]: this union member is not an atom type
@@ -33,9 +33,9 @@ error[L0338]: this union member is not an atom type
   |
 7 | imported_other: type = unions.joined(bool)
   |                        ^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:2:41
+  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:3:41
   |
-2 | public joined: type (t: type) = first | t
+3 | public joined: type (t: type) = first | t
   |                                         ^ the template union member
   = note: [0640]: an atom union contains only atom identities, and D189 admits one pointer type beside them
 error[L0338]: a union holds at most one pointer type
@@ -43,8 +43,8 @@ error[L0338]: a union holds at most one pointer type
   |
 8 | two_pointers: type = unions.with_pointer(ptr i32)
   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:3:51
+  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:4:51
   |
-3 | public with_pointer: type (t: type) = first | t | ptr u8
+4 | public with_pointer: type (t: type) = first | t | ptr u8
   |                                                   ^^^^^^ the template pointer member
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type

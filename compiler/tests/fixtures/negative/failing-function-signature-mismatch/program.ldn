@@ -1,4 +1,5 @@
-missing, denied: atom
+missing: atom
+denied: atom
 missing_set: type = missing
 denied_set: type = denied
 

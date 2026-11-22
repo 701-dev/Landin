@@ -22,15 +22,17 @@ apply: (candidate: unary, value: i32) -> (result: i32) =
     result = candidate(value)
 end apply
 
+main_function: (value: i32) -> (result: i32) =
+    value
+end main_function
+
 public main: () -> (code: i32) =
     selected := choose(true)
     mut stored: unary = begin
         if false then
             increment
         else
-            (value: i32) -> (result: i32) =
-                value
-            end
+            main_function
         end if
     end
 

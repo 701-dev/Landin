@@ -4,7 +4,8 @@ import core/arena
 import core/mem
 import core/vec
 
-offline, jammed: atom
+offline: atom
+jammed: atom
 
 sensor: type = concept (t: type)
     read: (self: ptr mut t) -> (value: i32) ! offline | jammed

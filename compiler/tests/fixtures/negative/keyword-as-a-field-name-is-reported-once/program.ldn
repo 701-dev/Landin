@@ -3,7 +3,10 @@ reading: type = struct
     count: u32
 end reading
 
-window: type = (from: u32, count: u32)
+window: type = struct
+    from: u32
+    count: u32
+end window
 
 start: () -> (at: u32) =
     r := reading(from: 2, count: 1)

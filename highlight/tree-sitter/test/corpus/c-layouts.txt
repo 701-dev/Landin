@@ -21,12 +21,10 @@ at : usize = offsetof wire.id
           (identifier)
           (identifier))
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (scalar_type))
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (scalar_type))
         (identifier))))
   (public_declaration

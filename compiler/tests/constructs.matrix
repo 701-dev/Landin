@@ -122,7 +122,7 @@
 0980 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Calling: positional, then named
 0990 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Using a multiple result
 1000 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Functions are values
-1010 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Anonymous functions
+1010 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A callback is a named function
 1020 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Throwing a result away
 1030 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Handling a failure: `else`
 1040 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Passing the call site: `caller`
@@ -165,7 +165,7 @@
 1410 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A module is a directory
 1420 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Importing a module by its path
 1430 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Renaming an import
-1440 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Importing selected names
+1440 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A module is imported whole
 1450 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Imports belong to one file
 1460 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Module-level values are known at compile time
 1470 | tour | - | - | - | - | - | - | - | - | - | transferred | none | none | Companion tool and ecosystem | Packages and versions

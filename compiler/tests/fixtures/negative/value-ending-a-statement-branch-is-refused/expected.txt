@@ -1,40 +1,40 @@
 error[L0331]: this value ends a branch nothing takes a value from, so it would be dropped
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:10:27
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:11:27
    |
-10 |         r = twice(1) else 7
+11 |         r = twice(1) else 7
    |                           ^
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:9:5
-  |
-9 |     if c then
-  |     ^^^^^^^^^ used as a statement
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:10:5
+   |
+10 |     if c then
+   |     ^^^^^^^^^ used as a statement
   = note: [1020]: write the branch as a statement, discarding a value with `_ =`; where a call's recovery was meant, write `(f() else value)` or bind the error with `else (problem)` [1820]
 error[L0331]: this value ends a branch nothing takes a value from, so it would be dropped
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:15:9
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:16:9
    |
-15 |         twice(k)
+16 |         twice(k)
    |         ^^^^^^^^
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:12:5
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:13:5
    |
-12 |     if k == 1 then
+13 |     if k == 1 then
    |     ^^^^^^^^^^^^^^ used as a statement
   = note: [1020]: write the branch as a statement, discarding a value with `_ =`; where a call's recovery was meant, write `(f() else value)` or bind the error with `else (problem)` [1820]
 error[L0331]: this value ends a branch nothing takes a value from, so it would be dropped
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:19:13
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:20:13
    |
-19 |         no: 3
+20 |         no: 3
    |             ^
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:17:5
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:18:5
    |
-17 |     match a
+18 |     match a
    |     ^^^^^^^ used as a statement
   = note: [1020]: write the branch as a statement, discarding a value with `_ =`; where a call's recovery was meant, write `(f() else value)` or bind the error with `else (problem)` [1820]
 error[L0331]: this value ends a branch nothing takes a value from, so it would be dropped
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:23:9
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:24:9
    |
-23 |         k
+24 |         k
    |         ^
-  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:21:5
+  --> ../tests/fixtures/negative/value-ending-a-statement-branch-is-refused/program.ldn:22:5
    |
-21 |     begin
+22 |     begin
    |     ^^^^^ used as a statement
   = note: [1020]: write the branch as a statement, discarding a value with `_ =`; where a call's recovery was meant, write `(f() else value)` or bind the error with `else (problem)` [1820]

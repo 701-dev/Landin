@@ -1,0 +1,10 @@
+class: negative
+summary: a written in on a parameter is refused naming the read-only default, and the fix removes it
+program: program.ldn
+codes: L0696
+fixed: program.fixed
+constructs: 0900, 1800
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/parameter-in-is-not-written/program.ldn
+status: 1

@@ -1042,7 +1042,8 @@ each missing case. For an atom set or pointer union, name the missing cases
 or put a `_:` arm last to cover them.
 
 ```landin
-north, south: atom
+north: atom
+south: atom
 compass: type = north | south
 
 f: (direction: compass) -> (value: i32) =
@@ -1334,7 +1335,8 @@ unhandled call there: handle the failure with `else`, or move the work into
 a routine whose set holds it and handle that call's failure in `main` (D872).
 
 ```landin
-missing, denied: atom
+missing: atom
+denied: atom
 f: () -> none ! missing =
     fail denied
 end f
@@ -3206,6 +3208,23 @@ the block after it, between `begin` and `end`. `try for` [1320] is gone
 (D1652): a
 traversal whose steps can fail is a `while` whose body takes each item with
 `try`, or with a call's `else`, which says where a failure goes.
+
+An anonymous function [1010] is gone (D1654): the fix declares the function
+before the declaration that held it, named after its holder with `_function`
+(numbered where that name is taken), and passes it by name, which means the
+same because an anonymous function captured nothing. A written `in` on a
+parameter [0900] is gone (D1655): a parameter without `inout` or `sink` is
+read-only, so the fix removes the word; an assembly operand keeps its `in`.
+Several names in one binding, field or atom declaration, `a, b: T = v`
+[0100], are gone (D1656): the fix writes a declaration a line, each with the
+prefix, type and suffix. The value is computed once, as the first name's,
+and a later local starts as a copy of it, `b: T = a`; a parameter, result or
+payload list keeps `a, b: T`. The inline struct declaration `t: type = (a:
+T, b: U)` [0670] is gone (D1657): the fix writes `struct`, a field a line,
+and `end t`. Selected imports, `import m (a, b)` [1440], are gone (D1658):
+the fix writes `import m` and turns each use of a selected name into `m.a`,
+under the `as` name where the import has one. It is offered only where `m`
+names nothing else in the file; elsewhere make the same change by hand.
 
 ```landin
 public main: () -> (code: i32) =

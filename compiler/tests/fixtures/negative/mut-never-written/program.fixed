@@ -15,7 +15,8 @@ count_to: (target: u32) -> (reached: u32) =
     mut seen: u32 = 0
     step: u32 = 1
     limit: u32 = target
-    left, right: u32 = 2
+    left: u32 = 2
+    right: u32 = 2
     while cursor < limit do
         total += step
         inc cursor

@@ -1215,9 +1215,7 @@ package body Landin.Stages.Checking is
          Written : constant Syn.Parameter_Convention :=
            Syn.Convention_Of (Of_Tree, Node);
       begin
-         return
-           (if Written = Syn.Explicit_In
-            then Syn.Implicit_In else Written);
+         return Written;
       end Semantic_Convention;
 
       --  A requirement that is not a real type is checked and says
@@ -1442,7 +1440,7 @@ package body Landin.Stages.Checking is
       begin
          if Part.Constraint /= Landin.Checking.No_Constraint
            or else Part.Caller
-           or else Part.Convention not in Syn.Implicit_In | Syn.Explicit_In
+           or else Part.Convention /= Syn.Implicit_In
          then
             return False;
          end if;
@@ -3969,6 +3967,10 @@ package body Landin.Stages.Checking is
          end if;
       end Validate_Caller_Parameter;
 
+      --  D1663: a fixed actual is any expression an array length folds,
+      --  with the same refusals (D136, D438, D1321, D1340); a type
+      --  argument written as a bare name may have been read as a type
+      --  reference, and one bound to a fixed formal is that formal.
       function Fixed_Argument
         (Of_Tree : Syn.Tree;
          Written : Syn.Node_Id;
@@ -3976,39 +3978,11 @@ package body Landin.Stages.Checking is
          Valid   : out Boolean;
          Known   : out Boolean) return Ty.Magnitude
       is
+         Value : Ty.Folded;
       begin
          Valid := False;
          Known := False;
-         if Syn.Kind (Of_Tree, Written) = Syn.Integer_Literal then
-            declare
-               Snap : Landin.Source.Snapshot renames
-                 Source (Context, Syn.Source_Of (Of_Tree));
-               Text : constant String := Landin.Source.Slice
-                 (Snap, Syn.Digit_Span (Of_Tree, Written));
-               Value : Ty.Magnitude;
-               Overflowed : Boolean;
-            begin
-               Ty.Evaluate (Text, Syn.Base (Of_Tree, Written), Value,
-                            Overflowed);
-               if Overflowed then
-                  Bad.Report
-                    (Item    => Bad.Literal_Out_Of_Range,
-                     Source  => Syn.Source_Of (Of_Tree),
-                     Where   => Syn.Where (Of_Tree, Written),
-                     Message => "this fixed argument is too large",
-                     Note    => "[1350]: a fixed argument is a compile-time"
-                                & " integer",
-                     Into    => Found);
-                  return 0;
-               end if;
-               Valid := True;
-               Known := True;
-               return Value;
-            end;
-         end if;
-
-         if Syn.Kind (Of_Tree, Written)
-              in Syn.Name_Reference | Syn.Type_Reference
+         if Syn.Kind (Of_Tree, Written) = Syn.Type_Reference
            and then Res.Verdict_Of (Meanings.all, Of_Tree, Written) = Res.Bound
          then
             declare
@@ -4028,10 +4002,40 @@ package body Landin.Stages.Checking is
             end;
          end if;
 
-         Report_Application
-           (Of_Tree, Written,
-            "this fixed argument is not an integer literal or fixed formal");
-         return 0;
+         --  A type written where an integer belongs is that mistake, not
+         --  an expression outside the fold.
+         if Syn.Kind (Of_Tree, Written)
+              in Syn.Type_Name | Syn.Pointer_Type | Syn.Array_Type
+               | Syn.Slice_Type | Syn.Function_Type | Syn.Any_Type
+               | Syn.Type_Application
+           or else (Syn.Kind (Of_Tree, Written) = Syn.Type_Reference
+                    and then (Res.Verdict_Of (Meanings.all, Of_Tree, Written)
+                                /= Res.Bound
+                              or else Res.Sort_Of
+                                (Meanings.all,
+                                 Res.Bound_To (Meanings.all, Of_Tree, Written))
+                                not in Res.Fixed_Parameter
+                                     | Res.Module_Binding))
+         then
+            Report_Application
+              (Of_Tree, Written,
+               "this fixed argument is a type, not an integer");
+            return 0;
+         end if;
+         Value := Fixed_Bound
+           (Of_Tree, Written, Actuals, Landin.Provenance.No_Origin,
+            Valid, Known);
+         if not Valid or else not Known then
+            return 0;
+         elsif Value < 0 then
+            Valid := False;
+            Known := False;
+            Report_Application
+              (Of_Tree, Written,
+               "this fixed argument folds to a negative integer");
+            return 0;
+         end if;
+         return Ty.Magnitude (Value);
       end Fixed_Argument;
 
       procedure Report_Fixed_Bound_Range
@@ -4549,6 +4553,7 @@ package body Landin.Stages.Checking is
          --  D438: an immutable module integer, here or named through its
          --  module, counts as the image it folds to.
          if Of_Kind in Syn.Name_Reference | Syn.Member_Selection
+                     | Syn.Type_Reference
            and then Res.Verdict_Of (Meanings.all, Of_Tree, Written) = Res.Bound
            and then Res.Sort_Of
              (Meanings.all, Res.Bound_To (Meanings.all, Of_Tree, Written))
@@ -16796,7 +16801,7 @@ package body Landin.Stages.Checking is
                   else Raw_Argument);
             begin
                case Parameter.Convention is
-                  when Syn.Implicit_In | Syn.Explicit_In =>
+                  when Syn.Implicit_In =>
                      null;
                   when Syn.Inout_Convention =>
                      if Syn.Kind (Of_Tree, Argument)
@@ -16948,7 +16953,7 @@ package body Landin.Stages.Checking is
                     --  an `inout` or `sink` place keeps its exact type.
                     or else (Wants = Ty.Aggregate
                       and then Parameter.Convention
-                        in Syn.Implicit_In | Syn.Explicit_In
+                        = Syn.Implicit_In
                       and then Landin.Checking.Holds
                         (Types.all, Parameter.Nominal)
                       and then Landin.Checking.Is_Pointer_Union
@@ -17036,7 +17041,7 @@ package body Landin.Stages.Checking is
                   end;
                elsif Wants = Ty.Slice_Value
                  and then Parameter.Convention
-                   in Syn.Implicit_In | Syn.Explicit_In
+                   = Syn.Implicit_In
                  and then Lends_An_Array (Of_Tree, Argument)
                then
                   Check_Lent_Array
@@ -23669,7 +23674,7 @@ package body Landin.Stages.Checking is
                     Landin.Checking.Infallible)
                  and then Landin.Checking.Nth_Signature_Parameter
                    (Types.all, Signature, 1).Convention
-                     in Syn.Implicit_In | Syn.Explicit_In
+                     = Syn.Implicit_In
                  and then Type_Descriptors_Agree
                    (Part_Descriptor
                       (Landin.Checking.Nth_Signature_Parameter
@@ -24130,7 +24135,6 @@ package body Landin.Stages.Checking is
                     else "")
                  & (case Part.Convention is
                       when Syn.Implicit_In => "",
-                      when Syn.Explicit_In => "in ",
                       when Syn.Inout_Convention => "inout ",
                       when Syn.Sink_Convention => "sink ")
                  & (if Part.Name = Landin.Source.Names.No_Name then ""
@@ -28123,7 +28127,7 @@ package body Landin.Stages.Checking is
                                    and then Part.Nominal =
                                      LC.No_Nominal_Type
                                    and then Part.Convention in
-                                     Syn.Implicit_In | Syn.Explicit_In
+                                     Syn.Implicit_In
                                    and then not Part.Caller
                                    and then Part.Constraint =
                                      LC.No_Constraint

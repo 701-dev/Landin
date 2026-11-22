@@ -4,9 +4,10 @@ Declarations
 
 import core/io
 import net/http as h
-import core/sort (sort, ordered)
+import core/sort
 
-ready, stopped : atom
+ready: atom
+stopped: atom
 public count : u32 = 1
 pair : type = struct
   left : u32
@@ -32,14 +33,14 @@ end add
   (import_declaration
     (import_path
       (identifier)
-      (identifier))
-    (identifier_list
-      (identifier)
       (identifier)))
   (public_declaration
     (atom_declaration
       name: (identifier_list
-        (identifier)
+        (identifier))))
+  (public_declaration
+    (atom_declaration
+      name: (identifier_list
         (identifier))))
   (public_declaration
     (binding
@@ -63,12 +64,10 @@ end add
       name: (identifier)
       (struct_body
         (field
-          name: (identifier_list
-            (identifier))
+          name: (identifier)
           type: (scalar_type))
         (field
-          name: (identifier_list
-            (identifier))
+          name: (identifier)
           type: (scalar_type))
         (identifier))))
   (public_declaration
@@ -294,8 +293,7 @@ symbol : i32 = 0
           (identifier)
           (identifier))
         (field
-          (identifier_list
-            (identifier))
+          (identifier)
           (scalar_type))
         (identifier))))
   (public_declaration
@@ -592,7 +590,8 @@ boot_stage : i32 = 0
 Link attributes may stand before public
 ==================
 
-link(thread) public mut first, second: i64
+link(thread) public mut first: i64
+link(thread) public mut second: i64
 link(symbol: "main") public main: () -> (code: i32) =
 end main
 
@@ -605,7 +604,14 @@ end main
       (identifier))
     (binding
       (identifier_list
-        (identifier)
+        (identifier))
+      (scalar_type)))
+  (public_declaration
+    (link_symbol
+      (identifier)
+      (identifier))
+    (binding
+      (identifier_list
         (identifier))
       (scalar_type)))
   (public_declaration

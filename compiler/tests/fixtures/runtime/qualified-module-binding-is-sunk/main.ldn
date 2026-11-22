@@ -1,5 +1,4 @@
 import store
-import store (state)
 
 consume: (sink value: u32) -> (got: u32) =
     got = value
@@ -15,7 +14,7 @@ public main: () -> (code: i32) =
     code = 1
     whole := consume(store.state)
     -- Assigned under one spelling, the place is live under the other.
-    state = 9
+    store.state = 9
     again := consume(store.state)
     store.state = 30
     field := consume(store.both.b)

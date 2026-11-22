@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: a shared declaration evaluates its value once for the first name, copies it into independent later names, and distributes type, fields, conventions and `from`
+summary: a value written for several names, a line a name since D1656, is computed once for the first and copied into independent later names (D1888), while parameter lists still distribute their type, conventions and `from`
 # `mut first, second: i32` was once a refused shared declaration, and is now module
 # state whose two names hold zero and change independently.
 constructs: 0060, 0100, 0670, 0680, 0790, 0900, 1790, 1795, 1800

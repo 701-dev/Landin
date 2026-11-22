@@ -1,7 +1,10 @@
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
 callback: type = (value: i32) -> (result: i32)
-holder: type = (handler: callback)
+holder: type = struct
+    handler: callback
+end holder
 wrapped: type = distinct i32
 atoms: [0]problems
 callbacks: [0]holder

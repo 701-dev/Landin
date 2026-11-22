@@ -1,10 +1,13 @@
-problem, denied: atom
+problem: atom
+denied: atom
 leaf: () -> none ! ... = fail problem end leaf
 deny: () -> none ! ... = fail denied end deny
 display: type = concept (t: type)
     code: (self: ptr t) -> (value: i32)
 end display
-box: type (t: type) = (value: i32)
+box: type (t: type) = struct
+    value: i32
+end box
 box_code: (t: type, self: ptr box(t)) -> (value: i32) =
     value = self.val.value
 end box_code

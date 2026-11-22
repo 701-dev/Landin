@@ -1,0 +1,102 @@
+public red: u8
+public green: u8
+public blue: u8
+mut first: i32 = 1
+mut second: i32 = 1
+limit: u32 = 3 + 4
+ceiling: u32 = 3 + 4
+
+site: type = struct
+    file_id: u32
+    line: u32
+    column: u32
+end site
+
+pair: type = struct
+    x: i32
+    y: i32
+    tag: u8
+end
+spare: u16
+extra: u16
+
+inline: type = struct
+    left: u16
+    right: u16
+    flag: bool
+end inline
+
+shape: type = struct
+    kind: variant
+        dot |
+        box: (width, height: i32)
+    end kind
+end shape
+
+callback: type = (x, y: i32) -> (low, high: i32)
+
+ordered: type = concept (t: type)
+    between: (low, high: t) -> (inside, outside: bool)
+end ordered
+
+swap: (inout a, b: i32) -> none =
+    held := a
+    a = b
+    b = held
+end swap
+
+total: (a, b: i32, c: u8) -> (sum: i32) =
+    sum = a + b + i32(c)
+end total
+
+split: (source: []u8) -> (head, tail: []u8 from source) =
+    head = source[0..<1]
+    tail = source[1..<2]
+end split
+
+observe: (caller here, there: site) -> (lines: u32) =
+    lines = here.line + there.line
+end observe
+
+ends: (s: callback) -> (low, high: i32) =
+    (low: low_end, high: high_end) := s(1, 2)
+    low = low_end
+    high = high_end
+end ends
+
+rank: (x, y: i32) -> (low, high: i32) =
+    low = x
+    high = y
+end
+mut after: i32
+mut closing: i32
+
+value_first: () -> (sum: i32) =
+    left: i32 = 2
+    right: i32 = 2
+    sum = left + right
+end value_first
+
+area: (s: shape) -> (r: i32) =
+    r = 0
+    match s.kind
+        dot: mut once: i32 = 1
+        box(width, height): r = width * height
+    end match
+end area
+
+main_function: (u, v: i32) -> (w: i32) = w = u + v end main_function
+
+public main: () -> (code: i32) =
+    mut a: i32 = total(1, 2, 3)
+    mut b: i32 = a
+    swap(a, b)
+    mut xs: [2]u8 = [1, 2]
+    mut ys: [2]u8 = xs
+    (head: h, tail: t) := split(xs[0..<2])
+    ys[0] = h[0] + t[0]
+    add := main_function
+    (low: l, high: g) := ends(rank)
+    code = add(a, b) + l + g + i32(observe() - observe())
+    code = code + value_first() + first + second + i32(limit + ceiling)
+end main

@@ -277,6 +277,62 @@ package body Landin.Diagnostics.Fixes is
       return Result;
    end Complete_After;
 
+   function Unwrite_In
+     (Source : Landin.Source.Source_Id;
+      Where  : Landin.Source.Span) return Fix
+   is
+      Result : Fix := Make_Fix
+        (Unwrite_In, Exact,
+         "remove `in`: a parameter without a convention is read-only");
+   begin
+      Add_Edit (Result, Make_Edit (Source, Where, ""));
+      return Result;
+   end Unwrite_In;
+
+   function With_Edits
+     (Kind    : Repair;
+      Message : String;
+      Edits   : Edit_List) return Fix;
+
+   function With_Edits
+     (Kind    : Repair;
+      Message : String;
+      Edits   : Edit_List) return Fix
+   is
+      Result : Fix := Make_Fix (Kind, Exact, Message);
+   begin
+      for Each of Edits loop
+         Add_Edit (Result, Each);
+      end loop;
+      return Result;
+   end With_Edits;
+
+   function One_Name_Each (Edits : Edit_List) return Fix
+     is (With_Edits
+           (One_Name_Each, "declare each name on its own line", Edits));
+
+   function Struct_Block (Edits : Edit_List) return Fix
+     is (With_Edits
+           (Struct_Block, "declare the struct with `struct` and `end`",
+            Edits));
+
+   function Name_Function
+     (Name  : String;
+      Edits : Edit_List) return Fix
+     is (With_Edits
+           (Name_Function,
+            "declare the function as `" & Name & "` and pass it by name",
+            Edits));
+
+   function Import_Whole
+     (Module : String;
+      Edits  : Edit_List) return Fix
+     is (With_Edits
+           (Import_Whole,
+            "import the module whole and name each member `" & Module
+            & ".name`",
+            Edits));
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;

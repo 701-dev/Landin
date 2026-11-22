@@ -1,6 +1,4 @@
 import platform/c
-import platform/c (c_bool, c_double, c_float, c_long, c_longlong, c_ptrdiff,
-                   c_size, c_ulong, c_ulonglong)
 
 public main: () -> (code: i32) =
     --  D256: under the standard AAPCS64 plain char, and so c_char, is an
@@ -12,15 +10,15 @@ public main: () -> (code: i32) =
     unsigned_short: c.c_ushort = 456
     integer: c.c_int = -789
     unsigned_integer: c.c_uint = 987
-    long_value: c.c_long = c_long(integer)
-    unsigned_long: c.c_ulong = c_ulong(unsigned_integer)
-    long_long: c.c_longlong = c_longlong(long_value)
-    unsigned_long_long: c.c_ulonglong = c_ulonglong(unsigned_long)
-    size: c.c_size = c_size(24)
-    difference: c.c_ptrdiff = c_ptrdiff(-24)
-    single: c.c_float = c_float(3)
-    double: c.c_double = c_double(single)
-    truth: c.c_bool = c_bool(1)
+    long_value: c.c_long = c.c_long(integer)
+    unsigned_long: c.c_ulong = c.c_ulong(unsigned_integer)
+    long_long: c.c_longlong = c.c_longlong(long_value)
+    unsigned_long_long: c.c_ulonglong = c.c_ulonglong(unsigned_long)
+    size: c.c_size = c.c_size(24)
+    difference: c.c_ptrdiff = c.c_ptrdiff(-24)
+    single: c.c_float = c.c_float(3)
+    double: c.c_double = c.c_double(single)
+    truth: c.c_bool = c.c_bool(1)
 
     --  Alias identity permits these ordinary assignments without adapters.
     ordinary_character: u8 = character

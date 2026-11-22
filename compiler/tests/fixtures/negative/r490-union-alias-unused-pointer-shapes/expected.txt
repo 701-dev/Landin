@@ -1,20 +1,20 @@
 error[L0338]: a union holds at most one pointer type
-  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:5:44
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:6:44
   |
-5 | two_ptrs: type (t: type) = first | ptr t | ptr u8
+6 | two_ptrs: type (t: type) = first | ptr t | ptr u8
   |                                            ^^^^^^
-  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:5:36
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:6:36
   |
-5 | two_ptrs: type (t: type) = first | ptr t | ptr u8
+6 | two_ptrs: type (t: type) = first | ptr t | ptr u8
   |                                    ^^^^^ the pointer member already given
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type
 error[L0338]: a union holds at most one pointer type
-  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:7:51
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:8:51
   |
-7 | nested_two: type (t: type) = first | pointer(t) | ptr u8
+8 | nested_two: type (t: type) = first | pointer(t) | ptr u8
   |                                                   ^^^^^^
-  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:7:38
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:8:38
   |
-7 | nested_two: type (t: type) = first | pointer(t) | ptr u8
+8 | nested_two: type (t: type) = first | pointer(t) | ptr u8
   |                                      ^^^^^^^^^^ the pointer member already given
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type

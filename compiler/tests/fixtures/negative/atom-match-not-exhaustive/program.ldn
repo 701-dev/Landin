@@ -1,4 +1,5 @@
-north, south: atom
+north: atom
+south: atom
 compass: type = north | south
 
 f: (direction: compass) -> (value: i32) =

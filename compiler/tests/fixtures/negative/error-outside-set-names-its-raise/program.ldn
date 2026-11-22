@@ -1,4 +1,5 @@
-missing, denied: atom
+missing: atom
+denied: atom
 
 risky: () -> none ! denied =
     fail denied

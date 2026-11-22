@@ -7,7 +7,7 @@ image: type = layout(packed) struct
     mode: mode at 2..4
     flags: [3]bool at 5..7
 end image
-identity: (in value: image) -> (copy: image) =
+identity: (value: image) -> (copy: image) =
     copy = value
 end identity
 classify: (value: mode) -> (code: u8) =

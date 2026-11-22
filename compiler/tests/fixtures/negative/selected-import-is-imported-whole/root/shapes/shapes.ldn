@@ -1,0 +1,4 @@
+public side: i32 = 21
+public square: type = struct
+    edge: i32
+end square

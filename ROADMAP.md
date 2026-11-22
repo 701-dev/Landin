@@ -1455,7 +1455,7 @@ list of six citing decisions held four that matched only "entry for".
 
 ### R19.60 — One spelling for each declaration
 
-Status: active
+Status: complete
 Depends on: R19.10, R19.40
 
 SC-03, SC-04, SC-08, SC-09 and SC-22: anonymous functions (D1654), a
@@ -1470,6 +1470,20 @@ mechanical; [1795]'s `->` lookahead gone from the grammar and the
 tree-sitter grammar; a positive fixture applying a type to
 `compiler.word_size` and to `sizeof` of a scalar; the complete gate on the
 item's commit.
+Done: anonymous functions, a written `in`, several names in one binding,
+field or atom declaration, the inline struct declaration and selected
+imports are refused as L0696, each naming its replacement and carrying its
+rewrite as an exact fix (D1654-D1658): the parser refuses the first four,
+and resolution the selected import once its uses are bound, so the fix
+qualifies each of them. D1887 counts atom lists and struct fields among
+the declarations that name one thing, D1888 fixes the rewrites' details
+and D1889 how a type argument is told from a fixed actual, which now folds
+what an array length folds (D1663). [1795] and the tree-sitter grammar lost
+the inline body and the `->` lookahead it needed. `refine fix --allow all`
+migrated the corpus, and an L0696-only script the negative fixtures, whose
+own refusals a full `refine fix` would have mended (SR-1558); seventeen
+fixtures that pinned only a removed form left with it. SR-1568 is filed for
+the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
 

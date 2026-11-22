@@ -1,0 +1,9 @@
+class: negative
+summary: a fixed actual is refused for a call, a bool and a width-dependent operator, as an array length is
+program: program.ldn
+codes: L0305, L0338, L0305
+constructs: 0520, 1290, 1350
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/fixed-actual-refusals/program.ldn
+status: 1

@@ -1,8 +1,23 @@
 callback: type = (value: i32) -> (result: i32)
-callbacks: type = (label: i32, first: callback, second: callback)
-rows: type = (label: i32, first: [2]i32, second: [2]i32)
-pair: type = (left: i32, right: i32)
-nested: type = (label: i32, first: pair, second: pair)
+callbacks: type = struct
+    label: i32
+    first: callback
+    second: callback
+end callbacks
+rows: type = struct
+    label: i32
+    first: [2]i32
+    second: [2]i32
+end rows
+pair: type = struct
+    left: i32
+    right: i32
+end pair
+nested: type = struct
+    label: i32
+    first: pair
+    second: pair
+end nested
 functions: callbacks = (label: 0, of increment)
 arrays: rows = (label: 0, of [10, 11])
 objects: nested = (label: 0, of (left: 10, right: 11))

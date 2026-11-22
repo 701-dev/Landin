@@ -71,6 +71,11 @@ mixed: (value: i32) -> (code: i32, values: [2]i32, record: pair, records: [2]pai
     callback = double
 end mixed
 
+main_function: (a: i32, b: i32) -> (quot: i32, rem: i32) =
+    quot = a / b
+    rem = a % b
+end main_function
+
 public main: () -> (code: i32) =
     direct := divide(20, 6)
     mut replaced := divide(1, 1)
@@ -91,10 +96,7 @@ public main: () -> (code: i32) =
 
     through := apply(divide, 17, 5)
     anonymous_function: division =
-        (a: i32, b: i32) -> (quot: i32, rem: i32) =
-            quot = a / b
-            rem = a % b
-        end
+        main_function
     anonymous := anonymous_function(18, 5)
 
     all := mixed(30)

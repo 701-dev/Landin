@@ -1,8 +1,0 @@
-class: negative
-summary: D201 import selected alias collision is refused at the source binding or use
-expect: expected.txt
-args: --root=../tests/fixtures/negative/import-selected-alias-collision/root ../tests/fixtures/negative/import-selected-alias-collision/entry
-codes: L0200
-status: 1
-constructs: 1430, 1440, 1450, 1850
-targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

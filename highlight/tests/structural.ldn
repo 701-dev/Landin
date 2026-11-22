@@ -2,7 +2,8 @@
     --( nested block comment )--
 )--
 
-ready, stopped: atom
+ready: atom
+stopped: atom
 
 pair: type = struct
     left: i32
@@ -58,7 +59,7 @@ end through
 
 -- D1369: the result is what its source holds; `held` is the word only before
 -- a name, and remains an ordinary name everywhere else.
-first: (in value: items, held: items) -> (result: item from held value, spare: item from held) =
+first: (value: items, held: items) -> (result: item from held value, spare: item from held) =
     result = value
 end first
 

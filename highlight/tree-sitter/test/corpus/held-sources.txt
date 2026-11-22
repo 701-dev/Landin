@@ -2,7 +2,7 @@
 A result is what its source holds
 ==================
 
-get: (in value: list, at: usize) -> (result: item from held value) =
+get: (value: list, at: usize) -> (result: item from held value) =
     result = value
 end get
 pair: (a: list, b: list) -> (r: item from a, held b) =
@@ -18,7 +18,6 @@ end pair
       (declared_signature
         (routine_formals
           (parameter
-            (parameter_convention)
             (identifier_list
               (identifier))
             (declaration_reference

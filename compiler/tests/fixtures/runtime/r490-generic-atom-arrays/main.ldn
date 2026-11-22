@@ -1,4 +1,5 @@
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
 errors: type = [2]problems
 twice: type (t: type) = [2]t

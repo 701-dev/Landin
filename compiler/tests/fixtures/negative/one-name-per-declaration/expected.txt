@@ -1,0 +1,28 @@
+error[L0696]: an atom declaration names one atom: declare each name on its own line
+  --> ../tests/fixtures/negative/one-name-per-declaration/program.ldn:4:8
+  |
+4 | north, south: atom
+  |        ^^^^^
+  = note: D1656: one name per declaration; a parameter, result or payload list keeps its own form
+  = help: declare each name on its own line
+error[L0696]: a binding names one thing: declare each name on its own line
+  --> ../tests/fixtures/negative/one-name-per-declaration/program.ldn:5:13
+  |
+5 | public low, high: u8 = 3
+  |             ^^^^
+  = note: D1656: one name per declaration; a parameter, result or payload list keeps its own form
+  = help: declare each name on its own line
+error[L0696]: a field names one thing: declare each name on its own line
+  --> ../tests/fixtures/negative/one-name-per-declaration/program.ldn:8:11
+  |
+8 |     left, right: i32
+  |           ^^^^^
+  = note: D1656: one name per declaration; a parameter, result or payload list keeps its own form
+  = help: declare each name on its own line
+error[L0696]: a binding names one thing: declare each name on its own line
+  --> ../tests/fixtures/negative/one-name-per-declaration/program.ldn:16:8
+   |
+16 |     a, b: i32 = seed()
+   |        ^
+  = note: D1656: one name per declaration; a parameter, result or payload list keeps its own form
+  = help: declare each name on its own line

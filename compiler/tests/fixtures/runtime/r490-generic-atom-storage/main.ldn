@@ -1,7 +1,10 @@
 north: atom
 south: atom
 problems: type = north | south
-pair: type (t: type) = (first: t, second: t)
+pair: type (t: type) = struct
+    first: t
+    second: t
+end pair
 choice: type (t: type) = struct
     kind: variant
         empty | values: (first: t, second: t)

@@ -7,9 +7,11 @@ apply: (f: unary, n: u8) -> (r: u8) =
     r = f(n)
 end apply
 
+main_function: (value: u8) -> (result: u8) = value + 1 end main_function
+
 public main: () -> (code: i32) =
     unchecked begin
-        bump: unary = (value: u8) -> (result: u8) = value + 1 end
+        bump: unary = main_function
         _ = apply(bump, 255)
     end unchecked
     code = 42

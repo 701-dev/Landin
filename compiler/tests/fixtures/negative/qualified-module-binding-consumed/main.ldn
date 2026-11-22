@@ -2,7 +2,6 @@
 --  under one spelling is consumed under the other, and what [0910] refuses
 --  of a path it refuses of a qualified one.
 import store
-import store (state, both)
 
 consume: (sink value: u32) -> (got: u32) =
     got = value
@@ -10,12 +9,12 @@ end consume
 
 public main: () -> (code: i32) =
     a := consume(store.state)
-    b := state -- error: consumed as `store.state`
-    state = 1
-    c := consume(state)
+    b := store.state -- error: consumed as `store.state`
+    store.state = 1
+    c := consume(store.state)
     d := store.state -- error: consumed as `state`
     e := consume(store.both.b)
-    f := both.b -- error: consumed as `store.both.b`
+    f := store.both.b -- error: consumed as `store.both.b`
     g := store.both.a
     mut index: usize = 2
     k := consume(store.cells[index]) -- error: a computed index

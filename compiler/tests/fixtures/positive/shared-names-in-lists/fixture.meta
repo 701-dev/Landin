@@ -1,0 +1,6 @@
+class: positive
+summary: shared names stay in parameter, function-type, concept and payload lists and in named returns with `from`, while bindings and fields name one thing each (D1656)
+constructs: 0100, 0670, 0680, 0790, 0900, 1040, 1790, 1795, 1800
+program: main.ldn
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+codes: L0326

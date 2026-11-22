@@ -5908,8 +5908,8 @@ package body Landin.Tests.Driver_Suite is
             & "= if flag then 3 else 7 end if end f",
             "L0300", 1, Executable);
          Check
-           ("level: type = u8 range 5 .. 10 f: () -> none = callback := "
-            & "() -> (r: level) = 3 end end f",
+           ("level: type = u8 range 5 .. 10 cb: () -> (r: level) = 3 end "
+            & "cb f: () -> none = callback := cb end f",
             "L0300", 1, Executable);
          Check
            ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
@@ -5940,8 +5940,8 @@ package body Landin.Tests.Driver_Suite is
             & "= end take f: () -> none = take(begin 3 end) end f",
             "L0300", 1, Executable);
          Check
-           ("level: type = u8 range 5 .. 10 a, b: atom choice: type = a | "
-            & "b f: (flag: choice) "
+           ("level: type = u8 range 5 .. 10 a: atom b: atom choice: type "
+            & "= a | b f: (flag: choice) "
             & "-> none = value: level = match flag a: 3 b: 7 end match end "
             & "f",
             "L0300", 1, Executable);
@@ -6046,8 +6046,9 @@ package body Landin.Tests.Driver_Suite is
             & "widget = any(addr item) end f",
             "L0342", 1, Executable);
          Check
-           ("f: (flag: bool) -> none = completion: while flag do "
-            & "callback := () -> none = break completion end break "
+           ("cb: () -> none = break completion end cb "
+            & "f: (flag: bool) -> none = completion: while flag do "
+            & "callback := cb break "
             & "completion end completion end f" & ASCII.LF,
             "L0110", 1, Executable);
          --  D241: a value, a scalar callee or a scalar written where a type or
@@ -6066,12 +6067,12 @@ package body Landin.Tests.Driver_Suite is
            ("t: type = i32 f: (x: t) -> (t: i32) = t = 1 end f" & ASCII.LF,
             "L0338", 1, Executable);
          Check
-           ("t: type = i32 f: () -> none = callback := (x: t, t: i32) "
-            & "-> none = end end f" & ASCII.LF,
+           ("t: type = i32 cb: (x: t, t: i32) -> none = end cb "
+            & "f: () -> none = callback := cb end f" & ASCII.LF,
             "L0338", 1, Executable);
          Check
-           ("t: type = i32 f: () -> none = callback := (t: i32, x: t) "
-            & "-> none = end end f" & ASCII.LF,
+           ("t: type = i32 cb: (t: i32, x: t) -> none = end cb "
+            & "f: () -> none = callback := cb end f" & ASCII.LF,
             "L0338", 1, Executable);
          Check
            ("f: () -> (r: i32) = nums: [2]i32 = [1, 2] nums[0](x: 1) "
@@ -6105,9 +6106,11 @@ package body Landin.Tests.Driver_Suite is
          Check
            ("s: type = struct a: u8 a: u32 end s" & ASCII.LF,
             "L0309", 1, Executable);
+         --  D1657: the inline struct form is refused before its fields
+         --  are checked, and that refusal has no effects either.
          Check
            ("s: type = (a: u8, a: u32)" & ASCII.LF,
-            "L0309", 1, Executable);
+            "L0696", 1, Executable);
          Check
            ("s: type = struct kind: u8 kind: variant case end kind end "
             & "s" & ASCII.LF,
@@ -6173,32 +6176,32 @@ package body Landin.Tests.Driver_Suite is
             & "g: () -> none = end g" & ASCII.LF,
             "L0103", 1, Executable);
          Check
-           ("f: () -> none = while true do callback := (value: "
-            & "i32) -> none = break when value == 9 end break end "
+           ("cb: (value: i32) -> none = break when value == 9 end cb "
+            & "f: () -> none = while true do callback := cb break end "
             & "while end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
-           ("f: () -> none = while true do callback := (value: "
-            & "i32) -> none = continue when value == 9 end break end"
+           ("cb: (value: i32) -> none = continue when value == 9 end cb "
+            & "f: () -> none = while true do callback := cb break end"
             & " while end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
-           ("f: () -> none = outer: loop do callback := () -> none"
-            & " = break outer end break outer end outer end f" & ASCII.LF,
+           ("cb: () -> none = break outer end cb f: () -> none = outer: "
+            & "loop do callback := cb break outer end outer end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
-           ("f: () -> none = outer: loop do callback := () -> none"
-            & " = continue outer end break outer end outer end f" & ASCII.LF,
+           ("cb: () -> none = continue outer end cb f: () -> none = outer: "
+            & "loop do callback := cb break outer end outer end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
-           ("f: () -> none = outer: loop do callback := () -> none"
-            & " = inner: loop do break outer end inner end break "
+           ("cb: () -> none = inner: loop do break outer end inner end cb "
+            & "f: () -> none = outer: loop do callback := cb break "
             & "outer end outer end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
-           ("f: () -> none = callback := () -> none = loop do "
-            & "nested := () -> none = break end break end loop end "
-            & "end f" & ASCII.LF,
+           ("nested_cb: () -> none = break end nested_cb "
+            & "cb: () -> none = loop do nested := nested_cb break end loop "
+            & "end cb f: () -> none = callback := cb end f" & ASCII.LF,
             "L0110", 1, Executable);
          Check
            ("unary: type = struct t: missing end unary" & ASCII.LF
@@ -7022,10 +7025,11 @@ package body Landin.Tests.Driver_Suite is
         ("f: () -> none = outer: begin break other end outer end f" & LF,
          "L0110",
          "`break` has no matching enclosing loop or labelled bare block");
-      --  [1010]: an anonymous function is its own control scope.
+      --  [1010]: a function is its own control scope, so a labelled block
+      --  where it is bound does not enclose its body.
       Refused
-        ("f: () -> none = outer: begin callback := () -> none = break "
-         & "outer end end outer end f" & LF,
+        ("cb: () -> none = break outer end cb f: () -> none = outer: "
+         & "begin callback := cb end outer end f" & LF,
          "L0110",
          "`break` has no matching enclosing loop or labelled bare block");
       Same_Recovery

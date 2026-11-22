@@ -244,32 +244,43 @@ Exact rules: spec [1975].
 
 ### [0100] Several names in one declaration
 
-Several names may share one declaration, as fields in a struct already do.
+A declaration introduces one name. A binding, a struct field and an atom
+each take a line of their own:
 
 ```landin
-public red, green, blue: u8
-north, south, east, west: atom
+public red: u8
+public green: u8
+public blue: u8
+
+mut low_mark: u32 = 10
+mut high_mark: u32 = 10
 ```
 
-The shared form means the same as one declaration per name, written in
-the same order. Each name gets its own storage, and each gets everything
-written around the list: `mut`, `public`, a parameter convention, `at` or
-`from`. So in a parameter list, `inout low, high: i32` makes both
-parameters `inout`.
+Several names may share one type in three places only: a parameter list, a
+list of named results and a variant's payload list.
 
 ```landin
-mut low_mark, high_mark: u32 = 10 -- two variables, both start at 10
+clamp: (value: i32, low, high: i32) -> (clamped: i32, below, above: bool) =
+    below = value < low
+    above = value > high
+    clamped = value
+    if below then clamped = low end if
+    if above then clamped = high end if
+end clamp
 ```
+
+The shared form means the same as one entry per name, written in the same
+order. Each name gets what is written before the list, so
+`inout low, high: i32` makes both parameters `inout`.
 
 The fine print:
 
-- A shared value is computed once, for the first name, and the other names
-  start as copies of it: `mut low, high: u32 = next_seed()` calls
-  `next_seed` once.
-- The shared form needs a written type, because `low, high := bounds()`
-  reads as taking apart a multiple result ([0990]).
-- These take one name each: type declarations, functions, type and fixed
-  formals, variant parts and condition bindings.
+- `a, b: u32 = 10` is refused in a binding, a struct field and an atom
+  declaration: write a line for each name.
+- `low, high := bounds()` is not a shared declaration. It takes apart a
+  multiple result ([0990]).
+- These take one name each as well: type declarations, functions, type and
+  fixed formals, variant parts and condition bindings.
 
 ### [0110] The name is always on the left
 
@@ -940,11 +951,13 @@ pointer type says that ([0450]).
 
 | convention | what it promises |
 | --- | --- |
-| `in` | I will not change the value. The default, unmarked. |
+| nothing written | I will not change the value: the parameter is read-only. |
 | `inout` | I may replace it, and the change comes back to the caller. The argument must be mutable. |
 | `sink` | I consume it. The place the caller named is dead afterwards ([0910]). |
 
-There is no `out` convention: outputs are named results.
+The read-only convention has no word. Writing `in` on a parameter is
+refused: leave it off. There is no `out` convention either: outputs are
+named results.
 
 In this example, `[]u8` is a slice of bytes, a view of someone else's bytes
 ([0570]):
@@ -958,7 +971,7 @@ end process
 
 Because a convention is about the argument itself, a function that writes
 device registers through a pointer, but never re-points it, takes the
-pointer as `in`. The `mut` lives in the pointer type ([0430]).
+pointer read-only. The `mut` lives in the pointer type ([0430]).
 
 `escaping` is a separate word that can go with any of the three conventions.
 It says that the function may keep what a pointer, slice or `any` refers to
@@ -1106,8 +1119,7 @@ Two function types agree by their parameter and result types, in order:
   written `extern(c) (parameters) -> returns`, and a Landin function never
   matches it.
 
-A module binding set to a named or anonymous function is a fixed code
-address. A mutable binding may later take any function with the same
+A module binding set to a declared function is a fixed code address. A mutable binding may later take any function with the same
 complete signature. A `ptr` to a function type points at a cell that holds
 the address, not at the code.
 
@@ -1126,23 +1138,46 @@ keeps its full signature through every copy, assignment, variant payload and
 array. Whether the field may be replaced depends on the binding that holds
 the struct. The callee is evaluated before the arguments.
 
-### [1010] Anonymous functions
+### [1010] A callback is a named function
 
-An anonymous function is a signature and body without a name. It captures
-nothing: inside, it sees module declarations and its own parameters, results
-and locals, but none of the enclosing function's.
+There are no anonymous functions. A function value is always a declared
+function, passed by its name. Declare the callback beside the code that
+uses it:
 
 ```landin
-less_i32 := (a: i32, b: i32) -> (yes: bool) = a < b end
+less_i32: (a: i32, b: i32) -> (yes: bool) = a < b end less_i32
+
+pick: (a: i32, b: i32, before: (a: i32, b: i32) -> (yes: bool))
+      -> (first: i32) =
+    first = b
+    if before(a, b) then first = a end if
+end pick
+
+smaller: (a: i32, b: i32) -> (first: i32) = pick(a, b, less_i32) end smaller
 ```
 
-Writing an anonymous function makes a fixed code address; it does not run
-the body. State travels as an explicit parameter, as in the callback at
-[1000].
+Naming a function makes a value of its address; it does not run the body.
 
-A bound anonymous function is a value. `less_i32(1, 2)` calls it, and you
-can pass it wherever its function type is expected. It cannot supply a
-concept's entry ([1240]).
+A function captures nothing: inside, it sees module declarations and its
+own parameters, results and locals, and nothing of the function that
+passes it. State travels as an explicit argument:
+
+```landin
+add_to: (total: ptr mut u32, b: u8) -> none =
+    total.val += u32(b) -- `.val` is what a pointer points at ([0430])
+end add_to
+
+each_byte: (bytes: []u8, total: ptr mut u32,
+            visit: (total: ptr mut u32, b: u8) -> none) -> none =
+    for b in bytes do
+        visit(total, b)
+    end for
+end each_byte
+```
+
+`each_byte(bytes, addr sum, add_to)` adds every byte to `sum`. To keep the
+function and its state together, store both in a struct, as the callback
+at [1000] does.
 
 ## TYPES YOU DECLARE
 
@@ -1176,10 +1211,15 @@ ordered, and it does not convert to or from an integer.
 
 ### [0640] Enumerations are unions of atoms
 
-An enumeration is a union of atoms. The atoms `north`, `south`, `east` and
-`west` were declared at [0100].
+An enumeration is a union of atoms. Declare the atoms, one a line
+([0100]), then the union.
 
 ```landin
+north: atom
+south: atom
+east: atom
+west: atom
+
 compass: type = north | south | east | west
 ```
 
@@ -1275,21 +1315,27 @@ passing it to another `percent` place needs no second check.
 
 ### [0670] Structs
 
-A struct is written either as a block or inline in parentheses. The two
-forms mean the same thing. The inline form is also how parameter lists,
-return lists and payloads are written.
+A struct type is declared as a block: `struct`, a field a line, and `end`
+with the type's name.
 
 ```landin
-size2: type = (w: u32, h: u32)
+size2: type = struct
+    w: u32
+    h: u32
+end size2
 ```
 
-A struct is nominal in either form: two separately declared structs with the
-same fields are different types. An alias keeps the original identity.
+A struct is nominal: two separately declared structs with the same fields
+are different types. An alias keeps the original identity.
 
 The fine print:
 
-- Either form may take type and fixed parameters, and `layout` ([0750])
-  applies to either. The parameters are compile-time names: they add no
+- There is no one-line spelling: `size2: type = (w: u32, h: u32)` is
+  refused. Parentheses with named entries write parameter lists, result
+  lists and payloads, which are not type declarations.
+- Each field takes its own line and one name ([0100]).
+- A struct may take type and fixed parameters, and `layout` ([0750])
+  goes before `struct`. The parameters are compile-time names: they add no
   field and no hidden runtime argument.
 - Each fully applied instance of a parameterized struct is its own type. The
   declaration and all its arguments identify it, even an argument the fields
@@ -1715,7 +1761,7 @@ These must write their set out:
 
 - Anything public, because a public signature is a promise, and a change
   three modules down must not rewrite it silently.
-- Function types, anonymous functions, concept entries ([1260]) and
+- Function types, concept entries ([1260]) and
   anything exported to C, because their complete signature is their type.
 
 A traversal whose steps can fail is a `while` whose body takes each item
@@ -2228,8 +2274,8 @@ end area_and_corners
 
 ### [1220] Writing into a matched payload
 
-A pattern binding takes a parameter convention ([0900]). It is `in` by
-default; `inout` writes into the payload that was matched.
+A pattern binding takes a parameter convention ([0900]). It is read-only
+unless marked; `inout` writes into the payload that was matched.
 
 ```landin
 store: type = struct
@@ -2786,23 +2832,19 @@ import net/http as h
 This binds `h` only, not `http`. `as` is a contextual word, so outside an
 import it is an ordinary identifier.
 
-### [1440] Importing selected names
+### [1440] A module is imported whole
 
-A parenthesized list brings named declarations into scope directly. There is
-no wildcard.
+An import binds the module's namespace and nothing else. There is no list
+of selected names and no wildcard: `import net/http (get, post)` is
+refused. Import the module and name its members through it.
 
 ```landin
-import net/http (get, post)
+import net/http -- then http.get, http.post
 ```
 
-This binds `get` and `post` and not the `http` namespace. The rules for the
-list:
-
-- Every selected name must exist and be public, even if the file never uses
-  it.
-- Each name keeps its original declaration's identity, type and mutability.
-- The list is not empty and has no trailing comma or renaming.
-- A selection cannot be combined with an alias.
+So every name from another module shows its module where it is used. When
+the qualifier is long, or two imports collide, rename the module with `as`
+([1430]) and write `h.get`.
 
 ### [1450] Imports belong to one file
 
@@ -2812,17 +2854,16 @@ Each file has its own imports, so every file reads on its own.
 - One file's imports are not visible in its siblings and are never
   re-exported.
 - Binding one name twice in a file's imports is an error, whether it is the
-  same import twice or a selection colliding with an alias.
+  same import twice or an alias colliding with another import.
 
 Shadowing goes like this:
 
 - A parameter or local may shadow an import.
 - A namespace import shadows a same-named module declaration only for
   qualified lookup; the module's unqualified value stays visible.
-- A selected name shadows the module declaration in both.
 
-The compiler reports selecting a private member differently from selecting
-one that does not exist, and the report points at the private declaration.
+The compiler reports naming a private member differently from naming one
+that does not exist, and the report points at the private declaration.
 
 ### [1460] Module-level values are known at compile time
 
@@ -2847,7 +2888,7 @@ the same way, named through that module: `limit: u32 = sizes.page * 4`,
 found, not whether it is known.
 
 **Functions in a struct.** A module struct may hold a function. The field
-names a declared function, or an anonymous one that captures nothing. What
+names a declared function ([1010]). What
 is stored is the function's address; nothing is called. There is no all-zero
 function address [0540], so such a struct must be written out in full.
 
@@ -3015,10 +3056,10 @@ read-only reference never becomes a writable one.
 
 ### [0450] Permission is shallow
 
-Read-only applies to one level only. An immutable binding, or an `in`
-parameter, protects the value it holds, not what that value points at. A
-list handed over as `in` still has writable elements if its storage is
-writable.
+Read-only applies to one level only. An immutable binding, or a
+read-only parameter, protects the value it holds, not what that value
+points at. A list handed over read-only still has writable elements if its
+storage is writable.
 
 Protecting deeper would mean knowing which references a value owns and which
 it borrows, and Landin does not track ownership ([0910]). When you want to
@@ -3362,7 +3403,7 @@ holds it.
 
 Only `inout` and `sink` trigger the check, since they are the two ways a
 call can change the storage itself. While the view lives, you may still
-read the local, pass it `in` or pass it by pointer.
+read the local, pass it read-only or pass it by pointer.
 
 A view needs no name to be in use. The slice a `for` walks is in use until
 the loop is done, so the loop's body does not pass what it walks `inout`
@@ -3671,8 +3712,8 @@ i32 is ordered (less: less_than_i32)
 
 Each label is an entry of the concept. Each supplying function must have
 exactly the entry's signature with `t` replaced by `i32`, and it must be
-a declared function: [1010]'s `less_i32`, a binding that holds an
-anonymous function, cannot supply an entry.
+a declared function, named directly: a binding that holds a function
+value cannot supply an entry.
 
 There is no implicit conformance. A type with a matching `less` is still
 not `ordered` until a line like this one says so.
@@ -3904,9 +3945,13 @@ end cleared
 ```
 
 Applications are positional and complete: `key_value(u32, utf8)`, never
-`key_value(u32)`. A `fixed` argument is an integer literal, or a `fixed`
-parameter passed on by another generic declaration, and it must fit its
-declared type. Whether an argument type may go where the body puts it,
+`key_value(u32)`. A `fixed` argument is anything an array length may be
+([0520]): an integer literal, a `fixed` parameter passed on by another
+generic declaration, a compiler fact, `sizeof` or `alignof` of a built-in
+scalar type, an immutable module integer, or `+`, `-`, `*`, `/` and `%`
+over those. So `cleared(u8, compiler.word_size)` and
+`cleared(u8, 2 * sizeof u32)` are types, as `[compiler.word_size]u8` is.
+The argument must fit its declared type. Whether an argument type may go where the body puts it,
 as a field or an array element, is checked after substitution.
 
 An alias may be generic too, including a union of atom sets. An alias
@@ -4121,7 +4166,7 @@ The same `record_reading` runs with `heap.new()` as `memory`, or with an
 arena over a buffer on the stack ([0820]).
 
 The list is changed, so it is passed `inout`. The allocator is passed as
-a handle: a small copyable value, passed `in`, that refers to its
+a handle: a small copyable value, passed read-only, that refers to its
 provider's state. The handle's lifetime is checked once, where the handle
 is made from that state, and using it does not borrow that state. So
 several containers can allocate through one handle, and a region can
@@ -4790,7 +4835,7 @@ a callback.
 
 Limits:
 
-- A C signature is not generic, takes only `in` parameters and returns at
+- A C signature is not generic, takes only read-only parameters and returns at
   most one value.
 - Landin's declared failures do not cross. Recover inside the body and
   return the status or value the C interface promises.
@@ -5244,8 +5289,11 @@ internal: atom
 external: atom
 pll: atom
 
-active_low, active_high: atom
-by_1, by_2: atom
+active_low: atom
+active_high: atom
+
+by_1: atom
+by_2: atom
 ```
 
 **A selection** is a union that gives each atom its encoding. The encoding
@@ -5312,7 +5360,10 @@ two-bit pin settings into one word. The element width times the count must
 equal the range, and element zero takes the low bits.
 
 ```landin
-pin_input, pin_output, pin_alternate, pin_analog: atom
+pin_input: atom
+pin_output: atom
+pin_alternate: atom
+pin_analog: atom
 
 pin_mode: type = (pin_input = 0 | pin_output = 1 | pin_alternate = 2 | pin_analog = 3)
 

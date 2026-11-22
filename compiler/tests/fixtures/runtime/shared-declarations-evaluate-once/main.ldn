@@ -1,13 +1,22 @@
-mut first, second: i32
-public red, green, blue: u8
-mut low, high: u16 = 0x1234
+mut first: i32
+mut second: i32
+public red: u8
+public green: u8
+public blue: u8
+mut low: u16 = 0x1234
+mut high: u16 = 0x1234
 
 mixed: type = struct
-    lo, hi: u8
+    lo: u8
+    hi: u8
     wide: u16
 end mixed
 
-inline: type = (left, right: u16, flag: bool)
+inline: type = struct
+    left: u16
+    right: u16
+    flag: bool
+end inline
 
 shape: type = struct
     kind: variant
@@ -63,7 +72,8 @@ end area
 
 public main: () -> (code: i32) =
     code = 1
-    mut a, b: i32 = bump()
+    mut a: i32 = bump()
+    b: i32 = a
     if calls <> 1 or a <> 10 or b <> 10 then
         return
     end if
@@ -74,7 +84,8 @@ public main: () -> (code: i32) =
     end if
 
     code = 3
-    mut xs, ys: [3]u8 = [1, 2, 3]
+    mut xs: [3]u8 = [1, 2, 3]
+    ys: [3]u8 = xs
     xs[0] = 9
     if xs[0] <> 9 or ys[0] <> 1 or ys[2] <> 3 then
         return
@@ -110,7 +121,8 @@ public main: () -> (code: i32) =
     end if
 
     code = 9
-    mut x, y: i32 = 1
+    mut x: i32 = 1
+    mut y: i32 = 1
     y = 2
     swap(x, y)
     if x <> 2 or y <> 1 then
@@ -124,7 +136,8 @@ public main: () -> (code: i32) =
     end if
 
     code = 11
-    mut s, t: i32 = 20
+    mut s: i32 = 20
+    mut t: i32 = 20
     t = 22
     (one: p, other: o) := both(addr s, addr t, false)
     p.val = p.val + 1

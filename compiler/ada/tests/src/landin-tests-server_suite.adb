@@ -2233,7 +2233,8 @@ package body Landin.Tests.Server_Suite is
         & "g: () -> (z: u8) =" & LF
         & "    z = f (2)" & LF
         & "end g" & LF
-        & "missing, denied: atom" & LF
+        & "missing: atom" & LF
+        & "denied: atom" & LF
         & "problems: type = missing | denied" & LF
         & "fallible: (x: u8) -> (y: u8) ! problems =" & LF
         & "    fail missing when x == 0" & LF

@@ -859,7 +859,8 @@ import core/mem
 import core/vec
 import hosted/blocking
 
-offline, jammed: atom
+offline: atom
+jammed: atom
 
 sensor: type = concept (t: type)
     read: (self: ptr mut t) -> (value: i32) ! offline | jammed

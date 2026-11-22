@@ -7347,23 +7347,29 @@ package body Landin.Tests.Lowering_Suite is
            (Item, Ran = 5 and then not Landin.Stages.Failed (Work), What);
          Check_Terminators
            (Item, Landin.Stages.Code (Work).all,
-            "generic and anonymous routines have complete control flow");
+            "generic and bound routines have complete control flow");
       end Check;
    begin
+      --  D1654: the no-capture routine a generic body used to write inline
+      --  is a declared function the body binds; each instance binds the
+      --  same independent routine.
       Check
-        ("wrap: (t: type, v: t) -> (r: t) =" & LF
-         & "    idf: (x: t) -> (y: t) = (x: i32) -> (y: i32) =" & LF
-         & "        y = x" & LF
-         & "    end" & LF
+        ("idf_body: (x: i32) -> (y: i32) =" & LF
+         & "    y = x" & LF
+         & "end idf_body" & LF
+         & "wrap: (t: type, v: t) -> (r: t) =" & LF
+         & "    idf: (x: t) -> (y: t) = idf_body" & LF
          & "    r = v" & LF
          & "end wrap" & LF
          & "public main: () -> (code: i32) =" & LF
          & "    code = wrap(1)" & LF
          & "end main" & LF,
-         "a concrete no-capture routine inside a generic body is accepted");
+         "a concrete no-capture routine bound inside a generic body is"
+         & " accepted");
       Check
-        ("wrap: (t: type, v: t) -> (r: t) =" & LF
-         & "    idf := (x: i32) -> (y: i32) = y = x end" & LF
+        ("idf_body: (x: i32) -> (y: i32) = y = x end idf_body" & LF
+         & "wrap: (t: type, v: t) -> (r: t) =" & LF
+         & "    idf := idf_body" & LF
          & "    _ = idf(7)" & LF
          & "    r = v" & LF
          & "end wrap" & LF
@@ -7371,13 +7377,15 @@ package body Landin.Tests.Lowering_Suite is
          & "    code = wrap(1)" & LF
          & "    checked: bool = wrap(true)" & LF
          & "end main" & LF,
-         "two generic instances share an independent anonymous body");
+         "two generic instances share an independent declared body");
       Check
-        ("wrap: (t: type, v: t) -> (r: t) =" & LF
-         & "    idf := (x: i32) -> (y: i32) =" & LF
-         & "        inner := (a: i32) -> (b: i32) = b = a end" & LF
-         & "        y = inner(x)" & LF
-         & "    end" & LF
+        ("inner_body: (a: i32) -> (b: i32) = b = a end inner_body" & LF
+         & "idf_body: (x: i32) -> (y: i32) =" & LF
+         & "    inner := inner_body" & LF
+         & "    y = inner(x)" & LF
+         & "end idf_body" & LF
+         & "wrap: (t: type, v: t) -> (r: t) =" & LF
+         & "    idf := idf_body" & LF
          & "    _ = idf(7)" & LF
          & "    r = v" & LF
          & "end wrap" & LF
@@ -9269,7 +9277,8 @@ package body Landin.Tests.Lowering_Suite is
          & "extern(c) c_first: (value: i32) -> (result: i32)" & LF
          & "extern(c) c_second: (value: i32) -> (result: i32)" & LF
          & "native_handler: type = () -> (result: i32)" & LF
-         & "anonymous: native_handler = () -> (result: i32) = 7 end" & LF
+         & "native_seven: () -> (result: i32) = 7 end native_seven" & LF
+         & "native: native_handler = native_seven" & LF
          & "choice: type = struct" & LF
          & "    kind: variant empty | full: (value: u16) end kind" & LF
          & "end choice" & LF
@@ -9322,8 +9331,9 @@ package body Landin.Tests.Lowering_Suite is
            (Item, IR.Function_Target (Unit, Named_Item (Work, "direct"))
             = First
             and then IR.Function_Target
-              (Unit, Named_Item (Work, "anonymous")) /= IR.No_Item,
-            "direct names and anonymous callback data keep their targets");
+              (Unit, Named_Item (Work, "native"))
+                = Named_Item (Work, "native_seven"),
+            "direct names and native callback data keep their targets");
          for Id of Copies loop
             Landin.Testing.Check
               (Item, IR.Has_Recursive_Array_Image (Unit, Id)
@@ -11341,14 +11351,12 @@ package body Landin.Tests.Lowering_Suite is
       procedure Check_Source
         (Label, Text : String;
          Carrier : Landin.Types.Type_Kind := Landin.Types.Usize;
-         Pointer_Result : Boolean := True;
-         Anonymous : Boolean := True);
+         Pointer_Result : Boolean := True);
 
       procedure Check_Source
         (Label, Text : String;
          Carrier : Landin.Types.Type_Kind := Landin.Types.Usize;
-         Pointer_Result : Boolean := True;
-         Anonymous : Boolean := True)
+         Pointer_Result : Boolean := True)
       is
          procedure Check_Target (Facts : Landin.Targets.Target_Facts);
 
@@ -11356,7 +11364,6 @@ package body Landin.Tests.Lowering_Suite is
             Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
             Ran : Natural;
             Routine : IR.Item_Id := IR.No_Item;
-            Count : Natural := 0;
          begin
             Lower (Work, Text, Ran);
             Landin.Testing.Check
@@ -11368,26 +11375,10 @@ package body Landin.Tests.Lowering_Suite is
             declare
                Unit : IR.Unit renames Landin.Stages.Code (Work).all;
             begin
-               if Anonymous then
-                  for Position in 1 .. IR.Item_Count (Unit) loop
-                     declare
-                        Candidate : constant IR.Item_Id :=
-                          IR.Item_Id (Position);
-                     begin
-                        if IR.Kind_Of (Unit, Candidate) = IR.Routine
-                          and then IR.Declares (Unit, Candidate)
-                            = Landin.Resolution.No_Declaration
-                        then
-                           Count := Count + 1;
-                           Routine := Candidate;
-                        end if;
-                     end;
-                  end loop;
-                  Landin.Testing.Check
-                    (Item, Count = 1, Label & " has one anonymous body");
-               else
-                  Routine := Named_Item (Work, "callback");
-               end if;
+               Routine := Named_Item (Work, "callback");
+               Landin.Testing.Check
+                 (Item, Routine /= IR.No_Item,
+                  Label & " lowers its declared function");
                if Routine = IR.No_Item then
                   return;
                end if;
@@ -11424,63 +11415,72 @@ package body Landin.Tests.Lowering_Suite is
          Check_Target (Landin.Targets.Synthetic_32);
       end Check_Source;
    begin
+      --  D1654: a function's result carrier is its declaration's, whether
+      --  its body is an expression or assigns the result, and calling it
+      --  through a function value of the handler type keeps the referent.
       Check_Source
         ("scalar pointer",
          "handler: type = (value: ptr i32) -> (r: ptr i32 from value)" & LF
-         & "callback: handler = (value: ptr i32) -> (r: ptr i32 from "
-         & "value) = value end" & LF
+         & "callback: (value: ptr i32) -> (r: ptr i32 from "
+         & "value) = value end callback" & LF
+         & "held: handler = callback" & LF
          & "f: (value: ptr i32) -> (r: ptr i32 from value) = r = "
-         & "callback(value) end f" & LF);
+         & "held(value) end f" & LF);
       Check_Source
         ("mutable pointer",
          "handler: type = (value: ptr mut i32) -> (r: ptr mut i32 "
          & "from value)" & LF
-         & "callback: handler = (value: ptr mut i32) -> (r: ptr mut i32 "
-         & "from value) = value end" & LF
+         & "callback: (value: ptr mut i32) -> (r: ptr mut i32 "
+         & "from value) = value end callback" & LF
+         & "held: handler = callback" & LF
          & "f: (value: ptr mut i32) -> (r: ptr mut i32 from value) = r "
-         & "= callback(value) end f" & LF);
+         & "= held(value) end f" & LF);
       Check_Source
         ("array pointer",
          "handler: type = (value: ptr [2]u8) -> (r: ptr [2]u8 from "
          & "value)" & LF
-         & "callback: handler = (value: ptr [2]u8) -> (r: ptr [2]u8 "
-         & "from value) = value end" & LF
+         & "callback: (value: ptr [2]u8) -> (r: ptr [2]u8 "
+         & "from value) = value end callback" & LF
+         & "held: handler = callback" & LF
          & "f: (value: ptr [2]u8) -> (r: ptr [2]u8 from value) = r = "
-         & "callback(value) end f" & LF);
+         & "held(value) end f" & LF);
       Check_Source
         ("nominal pointer",
          "pair: type = struct value: i32 end pair" & LF
          & "handler: type = (value: ptr pair) -> (r: ptr pair from "
          & "value)" & LF
-         & "callback: handler = (value: ptr pair) -> (r: ptr pair from "
-         & "value) = value end" & LF
+         & "callback: (value: ptr pair) -> (r: ptr pair from "
+         & "value) = value end callback" & LF
+         & "held: handler = callback" & LF
          & "f: (value: ptr pair) -> (r: ptr pair from value) = r = "
-         & "callback(value) end f" & LF);
+         & "held(value) end f" & LF);
       Check_Source
         ("cstring pointer",
          "handler: type = (value: cstring) -> (r: cstring from value)" & LF
-         & "callback: handler = (value: cstring) -> (r: cstring from "
-         & "value) = value end" & LF
+         & "callback: (value: cstring) -> (r: cstring from "
+         & "value) = value end callback" & LF
+         & "held: handler = callback" & LF
          & "f: (value: cstring) -> (r: cstring from value) = r = "
-         & "callback(value) end f" & LF);
+         & "held(value) end f" & LF);
       Check_Source
-        ("local anonymous pointer",
+        ("local function value pointer",
          "handler: type = (value: ptr i32) -> (r: ptr i32 from value)" & LF
-         & "f: (value: ptr i32) -> (r: ptr i32 from value) = callback: "
-         & "handler = (value: ptr i32) -> (r: ptr i32 from value) = "
-         & "value end r = callback(value) end f" & LF);
+         & "callback: (value: ptr i32) -> (r: ptr i32 from value) = "
+         & "value end callback" & LF
+         & "f: (value: ptr i32) -> (r: ptr i32 from value) = held: "
+         & "handler = callback r = held(value) end f" & LF);
       Check_Source
         ("named pointer control",
          "callback: (value: ptr i32) -> (r: ptr i32 from value) = r = "
          & "value end callback" & LF
          & "f: (value: ptr i32) -> (r: ptr i32 from value) = r = "
-         & "callback(value) end f" & LF,
-         Anonymous => False);
+         & "callback(value) end f" & LF);
       Check_Source
-        ("anonymous scalar control",
+        ("expression-bodied scalar control",
          "handler: type = (value: i32) -> (r: i32)" & LF
-         & "callback: handler = (value: i32) -> (r: i32) = value end" & LF
-         & "f: (value: i32) -> (r: i32) = r = callback(value) end f" & LF,
+         & "callback: (value: i32) -> (r: i32) = value end callback" & LF
+         & "held: handler = callback" & LF
+         & "f: (value: i32) -> (r: i32) = r = held(value) end f" & LF,
          Carrier => Landin.Types.I32, Pointer_Result => False);
    end Anonymous_Results_Keep_Pointer_Carriers;
 
@@ -12042,31 +12042,37 @@ package body Landin.Tests.Lowering_Suite is
          Check_Target (Landin.Targets.Synthetic_32);
       end Check_Source;
    begin
+      --  D1654: the function that used to be written inline is declared
+      --  and bound inside the caller's loop; its loops, labels and locals
+      --  are its own, and the caller's stay the caller's.
       Check_Source
         ("own unlabelled loop",
-         "f: () -> none = while true do callback := () -> none = "
-         & "loop do break end loop end break end while end f" & LF);
+         "cb: () -> none = loop do break end loop end cb "
+         & "f: () -> none = while true do callback := cb "
+         & "break end while end f" & LF);
       Check_Source
         ("own labelled loop",
-         "f: () -> none = outer: loop do callback := () -> none ="
-         & " inner: loop do continue inner when false break inner "
-         & "end inner end break outer end outer end f" & LF);
+         "cb: () -> none = inner: loop do continue inner when false "
+         & "break inner end inner end cb "
+         & "f: () -> none = outer: loop do callback := cb"
+         & " break outer end outer end f" & LF);
       Check_Source
         ("nested own loops",
-         "f: () -> none = outer: loop do callback := () -> none ="
-         & " inner: loop do nested := () -> none = loop do break "
-         & "end loop end break inner end inner end break outer end "
+         "deepest: () -> none = loop do break end loop end deepest "
+         & "cb: () -> none = inner: loop do nested := deepest "
+         & "break inner end inner end cb "
+         & "f: () -> none = outer: loop do callback := cb break outer end "
          & "outer end f" & LF);
       Check_Source
-        ("completion binding belongs to anonymous body",
-         "f: () -> none = while true do callback := () -> none = "
-         & "completion: i32 = 1 _ = completion end break end while end "
-         & "f" & LF);
+        ("completion binding belongs to the declared body",
+         "cb: () -> none = completion: i32 = 1 _ = completion end cb "
+         & "f: () -> none = while true do callback := cb "
+         & "break end while end f" & LF);
       Check_Source
-        ("anonymous return in loop",
-         "f: () -> none = while true do callback := (value: i32) "
-         & "-> (r: i32) = value end _ = callback(1) break end while"
-         & " end f" & LF);
+        ("function value return in loop",
+         "cb: (value: i32) -> (r: i32) = value end cb "
+         & "f: () -> none = while true do callback := cb "
+         & "_ = callback(1) break end while end f" & LF);
    end Anonymous_Functions_Own_Their_Loops;
 
    procedure Bare_Function_Ends_Keep_Module_Identities
@@ -12184,19 +12190,19 @@ package body Landin.Tests.Lowering_Suite is
          "variant: type = i32" & LF
          & "x: type = struct x: variant end x" & LF
          & "size: usize = sizeof x" & LF
-         & "f: (in value: x) -> (r: i32) = value.x end f" & LF);
+         & "f: (value: x) -> (r: i32) = value.x end f" & LF);
       Check_Source
         ("later scalar alias",
          "x: type = struct x: variant end x" & LF
          & "variant: type = i32" & LF
          & "size: usize = sizeof x" & LF
-         & "f: (in value: x) -> (r: i32) = value.x end f" & LF);
+         & "f: (value: x) -> (r: i32) = value.x end f" & LF);
       Check_Source
         ("aggregate user type",
          "variant: type = struct inner: i32 end variant" & LF
          & "x: type = struct x: variant end x" & LF
          & "size: usize = sizeof x" & LF
-         & "f: (in value: x) -> (r: i32) = value.x.inner end f" & LF,
+         & "f: (value: x) -> (r: i32) = value.x.inner end f" & LF,
          Nested => True);
    end Contextual_Variant_Fields_Keep_Their_Shape;
 
@@ -12214,9 +12220,12 @@ package body Landin.Tests.Lowering_Suite is
         & "index: (a: i32) -> (r: usize) ! missing = fail missing "
         & "when a < 0 r = usize(a) end index" & LF
         & "identity: (a: i32) -> (r: i32) = a end identity" & LF;
-      procedure Check_Source (Label, Body_Text, Callee : String);
+      procedure Check_Source
+        (Label, Body_Text, Callee : String; Before : String := "");
 
-      procedure Check_Source (Label, Body_Text, Callee : String) is
+      procedure Check_Source
+        (Label, Body_Text, Callee : String; Before : String := "")
+      is
          procedure Check_Target
            (Facts : Landin.Targets.Target_Facts; Nested : Boolean);
 
@@ -12227,7 +12236,7 @@ package body Landin.Tests.Lowering_Suite is
             Ran : Natural;
          begin
             Lower
-              (Work, Prefix & "f: (a: i32) -> (r: i32) = r = 0 "
+              (Work, Prefix & Before & "f: (a: i32) -> (r: i32) = r = 0 "
                & (if Nested then "if true then " else "") & Body_Text
                & (if Nested then " end if" else "") & " end f" & LF, Ran);
             Landin.Testing.Check
@@ -12301,11 +12310,14 @@ package body Landin.Tests.Lowering_Suite is
         ("call-argument",
          "r = identity(leaf(a) else 0)" & LF,
          "leaf");
+      --  D1654: the recovering body is a declared function the caller
+      --  binds and calls through the binding.
       Check_Source
-        ("anonymous",
-         "callback := () -> (value: i32) = leaf(1) else 0 end r = "
-         & "callback()" & LF,
-         "leaf");
+        ("bound function",
+         "callback := recovering r = callback()" & LF,
+         "leaf",
+         Before => "recovering: () -> (value: i32) = leaf(1) else 0 end "
+         & "recovering" & LF);
       Check_Source
         ("match",
          "r = match missing missing: leaf(a) else 0 end match" & LF,
@@ -12559,9 +12571,12 @@ package body Landin.Tests.Lowering_Suite is
       Check_Source
         ("ordinary",
          "s: type = struct left: u8 right: u32 end s", 2);
+      --  D1657: the inline form this case once held is refused; a field
+      --  per line is the form it became.
       Check_Source
-        ("compact",
-         "s: type = (left: u8, right: u32)", 2);
+        ("one field per line",
+         "s: type = struct" & LF & "    left: u8" & LF & "    right: u32"
+         & LF & "end s", 2);
       Check_Source
         ("nested labels",
          "inner: type = struct value: u8 end inner s: type = struct "
@@ -12711,11 +12726,15 @@ package body Landin.Tests.Lowering_Suite is
          "t: type = i32" & LF
          & "callback: type = (value: t, t: i32) -> (r: t)" & LF
          & "size: usize = sizeof callback" & LF);
+      --  D1654: the signature is a declared function's, resolved at
+      --  module scope, so a caller's local of the same name never hides
+      --  the type it names.
       Check_Source
-        ("anonymous module scope",
+        ("declared module scope",
          "t: type = i32" & LF
-         & "f: () -> (r: i32) = t: i32 = 0 callback := (value: t) -> "
-         & "(r: t) = value end callback(1) end f" & LF);
+         & "cb: (value: t) -> (r: t) = value end cb" & LF
+         & "f: () -> (r: i32) = t: i32 = 0 callback := cb "
+         & "r = callback(t) end f" & LF);
       Check_Source
         ("later fixed formal",
          "f: (values: [n]u8, fixed n: usize) -> (r: usize) = lenof "
@@ -12990,7 +13009,7 @@ package body Landin.Tests.Lowering_Suite is
      (Item : in out Landin.Testing.Context)
    is
       Common : constant String :=
-        "north, south: atom problems: type = north | south ";
+        "north: atom south: atom problems: type = north | south ";
 
       procedure Check_Source
         (Label, Text : String; Expected_Fills, Source_Atoms : Natural);
@@ -13166,8 +13185,8 @@ package body Landin.Tests.Lowering_Suite is
                     & (if Form = Generic_Copy then
                          "identity: (t: type, value: t) -> (result: t) = "
                          & "result = value end identity" & LF else "")
-                    & "run: (" & (if Writable then "inout" else "in")
-                    & " value: choice) -> (result: i32) =" & LF
+                    & "run: (" & (if Writable then "inout " else "")
+                    & "value: choice) -> (result: i32) =" & LF
                     & "match value.kind leaf: result = 0 spot("
                     & (if Writable then "inout " else "")
                     & "at): begin "

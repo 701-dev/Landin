@@ -1,7 +1,8 @@
 row: type = [2]i32
 box: type = struct values: row end box
 nested: type = struct inner: box end nested
-north, south: atom
+north: atom
+south: atom
 problem: type = north | south
 handler: type = () -> (result: i32)
 references: type = struct

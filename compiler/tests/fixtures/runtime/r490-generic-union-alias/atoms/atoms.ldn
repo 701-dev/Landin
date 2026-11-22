@@ -1,1 +1,4 @@
-public first, second, third, missing: atom
+public first: atom
+public second: atom
+public third: atom
+public missing: atom

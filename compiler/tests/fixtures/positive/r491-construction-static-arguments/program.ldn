@@ -15,8 +15,10 @@ f: () -> none =
     local_case: choice = (kind: pair(first: 40, of 2))
 end f
 callback_box: type = struct run: () -> (result: i32) end callback_box
-callback_image: callback_box = (run: () -> (result: i32) =
+callback_image_function: () -> (result: i32) =
     local: i32 = 42
     view := addr local
     result = view.val
-end)
+end callback_image_function
+
+callback_image: callback_box = (run: callback_image_function)

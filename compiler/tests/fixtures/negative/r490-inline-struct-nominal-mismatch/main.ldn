@@ -1,4 +1,8 @@
-first: type = (value: i32)
-second: type = (value: i32)
+first: type = struct
+    value: i32
+end first
+second: type = struct
+    value: i32
+end second
 value: first = (value: 42)
 wrong: second = value

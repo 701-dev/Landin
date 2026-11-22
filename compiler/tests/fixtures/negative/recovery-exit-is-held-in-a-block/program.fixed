@@ -1,6 +1,7 @@
 --  D870: an exit written as a call's `else` value is refused with the
 --  block that holds it, and the fix writes that block around the exit.
-missing, refused: atom
+missing: atom
+refused: atom
 
 lookup: (key: u32) -> (value: u32) ! missing =
     fail missing when key == 0

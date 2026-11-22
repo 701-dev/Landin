@@ -49,6 +49,8 @@ fallible: () -> (r: i32) ! unavailable = 42 end fallible
 fallible_none: () -> none ! unavailable = end fallible_none
 tried: () -> (r: i32) ! unavailable = noop() try fallible() end tried
 tried_none: () -> (r: i32) ! unavailable = r = 42 try fallible_none() end tried_none
+main_function: () -> (r: i32) = noop() 42 end main_function
+
 public main: () -> (code: i32) =
     code = 1
     mut local: i32 = 42
@@ -56,7 +58,7 @@ public main: () -> (code: i32) =
     record: box = make_box()
     (first, second) := many()
     callable := callback()
-    anonymous := () -> (r: i32) = noop() 42 end
+    anonymous := main_function
     answer := tried() else (error) _ = error 0 end
     no_answer := tried_none() else (error) _ = error 0 end
     if prefix() <> 42 or parenthesis() <> 42 or called() <> 42 then return end if

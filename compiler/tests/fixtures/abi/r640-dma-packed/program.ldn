@@ -21,7 +21,7 @@ open: (escaping buf: []mut u8) -> (value: rx from buf) =
     value = rx(buf: buf)
 end open
 
-read: (in receiver: rx) -> (value: u32) =
+read: (receiver: rx) -> (value: u32) =
     mut image: status = zeroed
     raw: ptr mut u32 = ptr(usize(addr image))
     raw.val = completed()

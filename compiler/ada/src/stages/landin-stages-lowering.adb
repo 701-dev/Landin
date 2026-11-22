@@ -1389,7 +1389,7 @@ package body Landin.Stages.Lowering is
                   else IR.No_Signature),
                Convention =>
                  (case Part.Convention is
-                     when Syn.Implicit_In | Syn.Explicit_In => IR.In_Value,
+                     when Syn.Implicit_In => IR.In_Value,
                      when Syn.Inout_Convention => IR.Inout_Place,
                      when Syn.Sink_Convention => IR.Sink_Value),
                --  D445: a parameter kept in another's storage outlives

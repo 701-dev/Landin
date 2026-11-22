@@ -1,0 +1,18 @@
+--  D1663: a fixed actual folds as an array length does: a compiler fact,
+--  `sizeof` of a scalar, a module integer and arithmetic on one.
+import compiler
+
+buf: type (fixed n: usize) = struct
+    bytes: [n]u8
+end buf
+
+words: usize = 2
+
+public main: () -> (code: i32) =
+    a: buf(compiler.word_size) = (bytes: [of 1])
+    b: buf(sizeof u32) = (bytes: [4 of 2])
+    c: buf(words * 2 + 1) = (bytes: [5 of 3])
+    d: buf(words) = (bytes: [2 of 4])
+    w: [compiler.word_size]u8 = a.bytes
+    code = i32(lenof w + lenof b.bytes + lenof c.bytes + lenof d.bytes)
+end main

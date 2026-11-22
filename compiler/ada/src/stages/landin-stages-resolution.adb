@@ -24,6 +24,8 @@ package body Landin.Stages.Resolution is
    package Unbounded renames Ada.Strings.Unbounded;
    package Modules_Report renames Landin.Diagnostics.Modules;
    package Names renames Landin.Diagnostics.Resolution;
+   package Edit_Vectors is new Ada.Containers.Vectors
+     (Positive, Landin.Diagnostics.Edit, Landin.Diagnostics."=");
    package Res renames Landin.Resolution;
    package Syn renames Landin.Syntax;
 
@@ -2675,6 +2677,240 @@ package body Landin.Stages.Resolution is
                 (Resolve_Declaration);
          begin
             Walk (Activity.all, Of_Tree.all);
+         end;
+      end loop;
+
+      --  D1658: a selected import, refused once its uses are bound.  The
+      --  fix imports the module whole and writes each use of a selected
+      --  name as `m.name`, `m` the module's last segment or its `as`
+      --  name.  It is offered only where that `m` names nothing else the
+      --  file declares or imports, so every qualified use means the
+      --  member the selected one meant.
+      for Index in 1 .. Source_Count (Context) loop
+         declare
+            Source_Id : constant Landin.Source.Source_Id :=
+              Nth_Source (Context, Index);
+            Of_Tree : constant not null access constant Syn.Tree :=
+              Landin.Syntax.Forest.Tree_Of (Trees.all, Source_Id);
+
+            --  The node an import's module is named by in a use.
+            function Qualifier_Node (Import : Syn.Node_Id)
+              return Syn.Node_Id
+              is (if Syn.Import_Alias_Of (Of_Tree.all, Import) /= Syn.No_Node
+                  then Syn.Import_Alias_Of (Of_Tree.all, Import)
+                  else Syn.Nth_Import_Segment
+                    (Of_Tree.all, Import,
+                     Syn.Import_Segment_Count (Of_Tree.all, Import)));
+
+            --  Whether Name is free to qualify with: no other import of
+            --  the file is named by it and nothing the file declares is.
+            --  Already_Whole: the file also imports the same module whole
+            --  under that name, so the selected import only goes.
+            type Freedom is (Taken, Free_Name, Already_Whole);
+
+            function Free (Name : Landin.Source.Names.Name_Id;
+                           Import : Syn.Node_Id) return Freedom;
+
+            function Free (Name : Landin.Source.Names.Name_Id;
+                           Import : Syn.Node_Id) return Freedom is
+               Answer : Freedom := Free_Name;
+            begin
+               if Name = Landin.Source.Names.No_Name then
+                  return Taken;
+               end if;
+               for Which in 1 .. Syn.Import_Count (Of_Tree.all) loop
+                  declare
+                     Other : constant Syn.Node_Id :=
+                       Syn.Nth_Import (Of_Tree.all, Which);
+                  begin
+                     if Other /= Import then
+                        if Syn.Name (Of_Tree.all, Qualifier_Node (Other))
+                          = Name
+                        then
+                           if Syn.Import_Selection_Count (Of_Tree.all, Other)
+                               = 0
+                             and then Landin.Modules.Imported_Module
+                               (Graph.all, Source_Id, Other)
+                               = Landin.Modules.Imported_Module
+                                   (Graph.all, Source_Id, Import)
+                             and then Landin.Modules.Imported_Module
+                               (Graph.all, Source_Id, Import)
+                               /= Landin.Modules.No_Module
+                           then
+                              Answer := Already_Whole;
+                           else
+                              return Taken;
+                           end if;
+                        end if;
+                        for Selected in
+                          1 .. Syn.Import_Selection_Count (Of_Tree.all, Other)
+                        loop
+                           if Syn.Name
+                             (Of_Tree.all,
+                              Syn.Nth_Import_Selection
+                                (Of_Tree.all, Other, Selected)) = Name
+                           then
+                              return Taken;
+                           end if;
+                        end loop;
+                     end if;
+                  end;
+               end loop;
+               for Selected in
+                 1 .. Syn.Import_Selection_Count (Of_Tree.all, Import)
+               loop
+                  if Syn.Name
+                    (Of_Tree.all,
+                     Syn.Nth_Import_Selection
+                       (Of_Tree.all, Import, Selected)) = Name
+                  then
+                     return Taken;
+                  end if;
+               end loop;
+               for Node in 1 .. Syn.Node_Id (Syn.Node_Count (Of_Tree.all))
+               loop
+                  if Res.Declares (Syn.Kind (Of_Tree.all, Node))
+                    and then Syn.Name (Of_Tree.all, Node) = Name
+                  then
+                     return Taken;
+                  end if;
+               end loop;
+               return Answer;
+            end Free;
+         begin
+            for Which in 1 .. Syn.Import_Count (Of_Tree.all) loop
+               declare
+                  Import : constant Syn.Node_Id :=
+                    Syn.Nth_Import (Of_Tree.all, Which);
+                  Count : constant Natural :=
+                    Syn.Import_Selection_Count (Of_Tree.all, Import);
+               begin
+                  if Count > 0 then
+                     declare
+                        Qualifier : constant Syn.Node_Id :=
+                          Qualifier_Node (Import);
+                        Module_Name : constant Landin.Source.Names.Name_Id :=
+                          Syn.Name (Of_Tree.all, Qualifier);
+                        Target : constant Landin.Modules.Module_Id :=
+                          Landin.Modules.Imported_Module
+                            (Graph.all, Source_Id, Import);
+                        Edits : Edit_Vectors.Vector;
+                        Freed : constant Freedom :=
+                          Free (Module_Name, Import);
+                        Mechanical : constant Boolean := Freed /= Taken;
+                        Text : Landin.Source.Snapshot renames
+                          Source (Context, Source_Id).Element.all;
+                     begin
+                        if Freed = Already_Whole then
+                           --  The whole import stays; this line goes.
+                           declare
+                              Whole : constant Landin.Source.Span :=
+                                Syn.Where (Of_Tree.all, Import);
+                              First_Line : constant Landin.Source.Span :=
+                                Landin.Source.Line_Span
+                                  (Text, Landin.Source.Position_Of
+                                     (Text, Whole.First).Line);
+                              Last_Line : constant Landin.Source.Span :=
+                                Landin.Source.Line_Span
+                                  (Text, Landin.Source.Position_Of
+                                     (Text,
+                                      Landin.Source."-" (Whole.Last, 1))
+                                     .Line);
+                           begin
+                              Edits.Append
+                                (Landin.Diagnostics.Make_Edit
+                                   (Source_Id,
+                                    (First => First_Line.First,
+                                     Last  => Last_Line.Last),
+                                    ""));
+                           end;
+                        elsif Freed = Free_Name then
+                           Edits.Append
+                             (Landin.Diagnostics.Make_Edit
+                                (Source_Id,
+                                 (First => Syn.Where
+                                    (Of_Tree.all, Qualifier).Last,
+                                  Last  => Syn.Where
+                                    (Of_Tree.all, Import).Last),
+                                 ""));
+                        end if;
+                        for Node in
+                          1 .. Syn.Node_Id (Syn.Node_Count (Of_Tree.all))
+                        loop
+                           exit when not Mechanical;
+                           if Syn.Kind (Of_Tree.all, Node)
+                               in Syn.Name_Reference | Syn.Type_Reference
+                                | Syn.Concept_Reference
+                             and then Res.Verdict_Of
+                               (Meanings.all, Of_Tree.all, Node) = Res.Bound
+                           then
+                              declare
+                                 Meant : constant Res.Declaration_Id :=
+                                   Res.Bound_To
+                                     (Meanings.all, Of_Tree.all, Node);
+                              begin
+                                 for Selected in 1 .. Count loop
+                                    declare
+                                       One : constant Syn.Node_Id :=
+                                         Syn.Nth_Import_Selection
+                                           (Of_Tree.all, Import, Selected);
+                                       Named : constant
+                                         Landin.Source.Names.Name_Id :=
+                                           Syn.Name (Of_Tree.all, One);
+                                    begin
+                                       if Named = Syn.Name (Of_Tree.all, Node)
+                                         and then Target
+                                           /= Landin.Modules.No_Module
+                                         and then Res.Visible_Public_In_Module
+                                           (Meanings.all, Target, Named)
+                                           = Meant
+                                       then
+                                          Edits.Append
+                                            (Landin.Diagnostics.Make_Edit
+                                               (Source_Id,
+                                                Syn.Anchor
+                                                  (Of_Tree.all, Node),
+                                                Spelled (Module_Name) & "."
+                                                & Spelled (Named)));
+                                       end if;
+                                    end;
+                                 end loop;
+                              end;
+                           end if;
+                        end loop;
+                        declare
+                           List : Landin.Diagnostics.Edit_List
+                             (1 .. Natural (Edits.Length));
+                        begin
+                           for Each in List'Range loop
+                              List (Each) := Edits (Each);
+                           end loop;
+                           Names.Report
+                             (Item    => Names.Removed_Form,
+                              Source  => Source_Id,
+                              Where   => Syn.Where
+                                (Of_Tree.all,
+                                 Syn.Nth_Import_Selection
+                                   (Of_Tree.all, Import, 1)),
+                              Message => "a module is imported whole",
+                              Note    => "D1658: there are no selected"
+                                         & " names; import the module and"
+                                         & " name each member `"
+                                         & Spelled (Module_Name)
+                                         & ".name`",
+                              Fixes   =>
+                                (if Mechanical
+                                 then [1 => Landin.Diagnostics.Fixes
+                                              .Import_Whole
+                                                (Spelled (Module_Name),
+                                                 List)]
+                                 else Landin.Diagnostics.No_Fixes),
+                              Into    => Found);
+                        end;
+                     end;
+                  end if;
+               end;
+            end loop;
          end;
       end loop;
 

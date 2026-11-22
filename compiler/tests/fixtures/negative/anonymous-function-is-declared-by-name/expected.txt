@@ -1,0 +1,7 @@
+error[L0696]: a function is declared by name
+  --> ../tests/fixtures/negative/anonymous-function-is-declared-by-name/program.ldn:9:18
+  |
+9 |     code = apply((x: i32) -> (r: i32) =
+  |                  ^
+  = note: D1654: there are no anonymous functions; declare the function and pass its name, which means the same, since an anonymous function captured nothing
+  = help: declare the function as `main_function` and pass it by name

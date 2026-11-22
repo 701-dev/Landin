@@ -2,8 +2,6 @@
 (function_declaration body: (block) @function.inside)
 (extern_declaration) @function.around
 (extern_declaration body: (block) @function.inside)
-(anonymous_function) @function.around
-(anonymous_function body: (block) @function.inside)
 
 [
   (struct_body)

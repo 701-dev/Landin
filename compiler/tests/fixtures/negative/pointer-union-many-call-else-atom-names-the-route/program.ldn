@@ -2,7 +2,8 @@
 --  atoms and the pointer through an atom `else` (D235); the refusal names
 --  the union and the one-atom union a recovery fills, which widens into it.
 unavailable: atom
-absent, denied: atom
+absent: atom
+denied: atom
 maybe_cell: type = absent | denied | ptr mut u32
 
 obtain: (cell: ptr mut u32, reject: bool)

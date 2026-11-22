@@ -2,7 +2,11 @@
 --  atom union in place, and it is the same structural set a declared alias
 --  of that union names, so values pass between the two in both directions.
 --  D189's pointer union and a variant's payload field write it the same way.
-north, south, east, west, absent: atom
+north: atom
+south: atom
+east: atom
+west: atom
+absent: atom
 compass: type = north | south | east | west
 
 facing: (way: north | south) -> (turned: east | west) =

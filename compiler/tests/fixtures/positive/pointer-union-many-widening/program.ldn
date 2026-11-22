@@ -12,7 +12,10 @@ bigger: type = result | closed
 refusal: type = none_found | denied
 maybe_cell: type = none_found | ptr mut u32
 
-holder: type = (tag: u32, slot: result)
+holder: type = struct
+    tag: u32
+    slot: result
+end holder
 
 shape: type = struct
     kind: variant
@@ -21,7 +24,9 @@ shape: type = struct
     end kind
 end shape
 
-box: type (t: type) = (item: t)
+box: type (t: type) = struct
+    item: t
+end box
 
 module_result: result = denied
 module_bigger: bigger = module_result

@@ -6,7 +6,8 @@ wrapped_handler: type = distinct handler
 hidden_callback: wrapped_handler = wrapped_handler(first)
 visible_callback: handler = handler(hidden_callback)
 
-north, south: atom
+north: atom
+south: atom
 problem: type = north | south
 row: type = [2]problem
 holder: type = struct values: row end holder

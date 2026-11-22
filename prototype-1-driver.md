@@ -372,7 +372,7 @@ those conditions. The complete derived driver owns their executable controls.
 ---
 
 ```landin
-public available: (in r: rx) -> (n: usize) =
+public available: (r: rx) -> (n: usize) =
     remaining := usize(r.stream.val.count)
     compiler.device_barrier()
     tail := lenof r.buf - remaining

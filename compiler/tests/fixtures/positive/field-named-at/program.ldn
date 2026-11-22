@@ -4,7 +4,8 @@ endpoint: type = struct
 end endpoint
 span: type = struct
     first: u8
-    at, until: u16
+    at: u16
+    until: u16
 end span
 control: type = layout(packed, u32) struct
     mode: u4 at 0..3

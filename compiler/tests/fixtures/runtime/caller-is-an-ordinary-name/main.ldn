@@ -9,7 +9,7 @@ note: (caller: i32, caller where: site) -> (echoed: i32) =
     echoed = caller
 end note
 
-twice: (in caller: i32) -> (doubled: i32) =
+twice: (caller: i32) -> (doubled: i32) =
     doubled = caller + caller
 end twice
 

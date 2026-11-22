@@ -4,7 +4,8 @@
 --  closer deeper than its header before a routine closed at the margin, a
 --  closer ending its line under an indented signature, and a bare block's
 --  `end` with `if`, `match` or `unchecked` beginning the next statement.
-small, large: atom
+small: atom
+large: atom
 size: type = small | large
 
 deeper: () -> (r: i32) =

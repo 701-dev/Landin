@@ -1,4 +1,5 @@
-missing, denied: atom
+missing: atom
+denied: atom
 problems: type = missing | denied
 
 pair: type = struct

@@ -1,0 +1,14 @@
+error[L0696]: a struct type is declared with `struct` and `end`
+  --> ../tests/fixtures/negative/inline-struct-is-a-struct-block/program.ldn:3:15
+  |
+3 | point: type = (x: i32, y: i32)
+  |               ^
+  = note: D1657: the parenthesised field list is a parameter, result or payload list; a struct type is `struct`, a field a line, and `end`
+  = help: declare the struct with `struct` and `end`
+error[L0696]: a struct type is declared with `struct` and `end`
+  --> ../tests/fixtures/negative/inline-struct-is-a-struct-block/program.ldn:4:34
+  |
+4 | flags: type = layout(packed, u8) (low: u4 at 0..3, high: u4 at 4..7)
+  |                                  ^
+  = note: D1657: the parenthesised field list is a parameter, result or payload list; a struct type is `struct`, a field a line, and `end`
+  = help: declare the struct with `struct` and `end`

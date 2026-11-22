@@ -93,8 +93,7 @@ where the module is written, never inside a body.
 
 ```landin-grammar
 program     ::= import_declaration* declaration*
-import_declaration ::= "import" import_path
-                       ("as" identifier | "(" identifiers ")")?
+import_declaration ::= "import" import_path ("as" identifier)?
 import_path ::= identifier ("/" identifier)*
 declaration ::= "public"? (atom_declaration | binding | function
                             | external_function | machine_function | linked_binding
@@ -111,7 +110,7 @@ tool_namespace ::= "compiler" | "assembler" | "linker"
 fixed_conditional ::= "fixed" "if" expression "then" declaration*
                       ("elsif" expression "then" declaration*)*
                       ("else" declaration*)? "end" "if"
-atom_declaration ::= identifiers ":" "atom"
+atom_declaration ::= identifier ":" "atom"
 identifiers ::= identifier ("," identifier)*
 
 ```
@@ -288,9 +287,9 @@ line_comment  ::= "--" (any byte except line_end)*
 A binding names one thing, and says how much it may change.
 The full form, the inferred form and the mutable form are [0040],
 [0050] and [0060]; a binding with no value must be assigned before
-it is read [0080]. [0100]'s shared form writes several bindings, fields,
-parameters or named returns as one declaration, each name still one thing
-(D233). The kernel's types are the thirteen scalar names, atom sets, fixed arrays,
+it is read [0080]. A binding, a field and an atom declaration name one
+thing each (D1656); [0100]'s shared form is left to parameter, named-return
+and payload lists, which write several names of one type. The kernel's types are the thirteen scalar names, atom sets, fixed arrays,
 pointers, slices, D145's `any C`, function types with their complete declared
 error sets, and what [1795] declares from them: aliases, named ordinary structs and D74's named
 variant-bearing structs. `mut` in a pointer or slice type records permission to
@@ -327,7 +326,11 @@ of it. D136 folds the bound expression from integer literals, fixed formals,
 unary `-`, and the target-independent binary arithmetic `+`, `-`, `*`, `/`
 and `%`; D438 adds immutable module integers, D1321 compiler facts and
 `sizeof` of a scalar type, and D1340 `alignof` of a scalar type, each at the
-selected target's value.
+selected target's value. A type application's fixed actual folds the same
+expressions with the same refusals (D1663), so `buf(compiler.word_size)` is a
+type as `[compiler.word_size]u8` is; an argument written as a lone name is
+read as a type reference, and checking takes it as the fixed formal or module
+integer it names when that is what it names.
 The element is a type like any other. A parameterized alias or nominal struct
 is a type position through its fully applied positional application. D135
 substitutes an alias during checking; D137 interns a struct application by its
@@ -348,7 +351,7 @@ a labelled argument read `a | b` as [1820]'s alternation, and a union there
 is refused the same way.
 
 ```landin-grammar
-binding       ::= "mut"? identifiers ":" declared_type ("=" expression)?
+binding       ::= "mut"? identifier ":" declared_type ("=" expression)?
                 | "mut"? identifier ":=" expression
 declared_type ::= type | atom_union
 type          ::= function_type | array_type | pointer_type | slice_type
@@ -362,7 +365,7 @@ slice_type    ::= "[" "]" "mut"? type
 any_type      ::= "any" concept_reference
 type_application ::= declaration_reference "(" type_argument
                      ("," type_argument)* ")"
-type_argument ::= type | integer
+type_argument ::= type | expression
 scalar_name   ::= "u8" | "u16" | "u32" | "u64"
                 | "i8" | "i16" | "i32" | "i64"
                 | "usize" | "isize" | "f32" | "f64" | "bool"
@@ -378,11 +381,10 @@ A type declaration without a body or `distinct` names an existing type.
 D15 reads the second as deciding the first: without that word a
 declaration gives an existing type another name and the two are
 one type everywhere. A struct body [0670] has no existing type
-to alias and introduces the nominal type [0710]. Its parenthesized inline
-field list and its `struct ... end` block are the same declaration body.
-The inline body closes at `)` and needs at least one named field; it does not
-turn arbitrary nested type positions into anonymous structural identities.
-A following `->` instead identifies the ordinary function-signature type.
+to alias and introduces the nominal type [0710]. It is written `struct`, a
+field a line, and `end` (D1657): a parenthesised field list is a parameter,
+result or payload list, never a type declaration, so `(` after `type =` begins
+a function type and nothing has to look past its `)` to tell the two apart.
 Without formals its identity
 is this declaration's empty-actual instance. With formals, D137 makes each
 fully applied normalized actual tuple a distinct instance of this declaration;
@@ -449,14 +451,15 @@ packed_unsigned  ::= "u1" | "u2" | "u3" | "u4" | "u5" | "u6" | "u7" | "u8"
                    | "u57" | "u58" | "u59" | "u60" | "u61" | "u62" | "u63" | "u64"
 struct_body      ::= ("layout" "(" ("c" ("," "packed")? | "optimal"
                      | "packed" ("," ("u8" | "u16" | "u32" | "u64"))?) ")")?
-                     ("struct" member+ "end" identifier?
-                     | "(" field ("," field)* ")")
+                     "struct" member+ "end" identifier?
 member           ::= field | variant_part
-field            ::= identifiers ":" declared_type
+field            ::= identifier ":" declared_type
                      ("at" expression (".." expression)?)?
 variant_part     ::= identifier ":" "variant" variant_case
                    ("|" variant_case)* "end" identifier
-variant_case     ::= identifier (":" "(" field ("," field)* ")")?
+variant_case     ::= identifier (":" "(" payload_field
+                     ("," payload_field)* ")")?
+payload_field    ::= identifiers ":" declared_type
 
 ```
 
@@ -477,9 +480,8 @@ p` names the parameter whose storage may keep this one (D445); `into` is a
 contextual word [1760] does not reserve, a target only when a second name
 follows it, so a parameter may still be called `into`. Its name is associated
 with a runtime parameter position as a `from` name is, and the parameter it
-names may stand earlier or later in the list (D455). An omitted
-convention and explicit `in` have the same language meaning but remain distinct
-syntax facts. Each `from` name is retained in written order and associated with
+names may stand earlier or later in the list (D455). A parameter without a
+convention is read-only, and `in` is never written (D1655). Each `from` name is retained in written order and associated with
 the correspondingly labelled runtime parameter position. A name written `held
 p` says the result is what `p` holds rather than a view of it (D1369); `held`
 is contextual in the same way, the word only when a second name follows it. For every returning
@@ -500,10 +502,8 @@ optional [1610]. A function type
 reuses the nongeneric `signature` production but has no body. Its labels are
 type description only and do not declare parameters or named returns.
 
-An anonymous function [1010] writes that same signature and body without a
-module name. It captures no enclosing local, parameter or named return: its
-signature and body are a separate routine whose outer scope is the module.
-Forming it produces a static code address and does not execute its body.
+A function value names a declared function; there is no anonymous one
+(D1654).
 A body is one block. Its statements run in source order and an optional final
 expression fills the one named return or the complete anonymous aggregate of a
 multiple return list. A final `if` or `match` whose every answer is a call
@@ -540,7 +540,6 @@ link_attribute     ::= ("symbol" | "section" | "region") ":" text
 c_signature        ::= "(" (parameters ("," "...")?)? ")" "->" returns errors?
 c_declared_signature ::= "(" (routine_formals ("," "...")?)? ")"
                          "->" returns errors?
-anonymous_function ::= signature "=" body "end"
 signature          ::= "(" parameters? ")" "->" returns errors?
 declared_signature ::= "(" routine_formals? ")" "->" returns errors?
 routine_formals    ::= routine_formal ("," routine_formal)*
@@ -551,7 +550,7 @@ parameters         ::= parameter ("," parameter)*
 parameter          ::= "caller" identifiers ":" declared_type
                      | ("escaping" ("into" identifier)?)? parameter_convention?
                        identifiers ":" declared_type
-parameter_convention ::= "in" | "inout" | "sink"
+parameter_convention ::= "inout" | "sink"
 returns     ::= "(" named_return ("," named_return)* ")" | "none" | "noreturn"
 named_return ::= identifiers ":" declared_type
                  ("from" return_source ("," return_source)*)?
@@ -859,7 +858,7 @@ decides what binds, never what runs first.
 
 ```landin-grammar
 primary     ::= literal | array_literal | array_repetition | struct_literal
-              | empty_slice | labeled_application | anonymous_function
+              | empty_slice | labeled_application
               | indexed | call | address | pointer_conversion
               | any_construction | measurement | try
               | if | match | bare_block
@@ -944,8 +943,8 @@ three things, and never names the work that decided it (D246).
   successor. D237's u128, i128 and f16 name their transfer to Language
   evolution.
 
-[1430]'s import alias and [1440]'s selected import forms are enabled; D201
-states their binding and visibility rules.
+[1430]'s import alias is enabled; D201 states its binding and visibility
+rules. [1440]'s selected import is refused, naming the whole import (D1658).
 
 ## THE RULES THE TOUR LEFT UNSAID
 
@@ -969,11 +968,11 @@ an inner scope means nothing until the inner ones are named.
 | program | every module reachable from the entry directory after [1420]'s ordered-root selection. This is the outer identity and the one whole-program conformance register; it is not a source namespace. |
 | configuration | D202's global options and implicit tool namespaces, used by the closed configuration fold before ordinary resolution. It has no runtime declarations or storage. |
 | module | every direct `.ldn` file in one directory [1410]. Its named declarations are shared by those files regardless of order, module-internal by default and public only when written so. Active `linker.library` directives retain source order (D202). |
-| file imports | the final segment of a plain import, the written alias, or the public declarations named by a selected import in this file's prelude [1420]-[1450]. A namespace binding is not a declaration or value; a selected binding retains the imported declaration's identity. This scope encloses the module scope for lookups performed from that file. |
+| file imports | the final segment of a plain import or the written alias in this file's prelude [1420]-[1450]. A namespace binding is not a declaration or value. This scope encloses the module scope for lookups performed from that file. |
 | type declaration | D135's complete ordered formal list. The scope encloses the declaring file's imports and is visible in every fixed formal's declared type, direct concept constraint and in the alias or struct body, regardless of formal order. It closes with that declaration: its names do not enter the module or another type declaration. A type declaration without formals opens no scope. |
 | concept declaration | D142's complete ordered type-formal list. It encloses the declaring file's imports and is visible in every direct constraint, parent name and entry signature. Entry parameter and result labels describe signature positions and declare nothing in this scope. |
 | conformance declaration | D142's optional complete type/fixed binder. It encloses the declaring file's imports and is visible in every binder constraint, the target type, every labelled input or function RHS and the routine a `through` names (D1363). The conformance itself declares no module name. |
-| signature | a declared routine's type/fixed formals, runtime parameters and named returns [1800]. Every binder is collected before any signature type or direct concept constraint is resolved, so its source order has no visibility meaning. Named returns are places the body assigns [0930]; all three binder kinds share one namespace, but type/fixed formals are compile-time-only and have no storage. A declared function's signature encloses its file-import scope; a no-capture anonymous signature does the same rather than enclosing the expression's local scope. A written function type opens no scope and its labels declare nothing. |
+| signature | a declared routine's type/fixed formals, runtime parameters and named returns [1800]. Every binder is collected before any signature type or direct concept constraint is resolved, so its source order has no visibility meaning. Named returns are places the body assigns [0930]; all three binder kinds share one namespace, but type/fixed formals are compile-time-only and have no storage. A declared function's signature encloses its file-import scope. A written function type opens no scope and its labels declare nothing. |
 | body | what a function runs; one for each arm of an `if` and its `else`; one for each loop body; one for each `match` arm; one for every bare `begin` block; and one for a call-site recovery [1810] [1030]. A statement run plus its optional final expression is a block and a block is what scopes [1090], so a name declared in one is not visible in a sibling or after the block closes. D185's initialized condition binding shares the scope of the one `if`, `elsif`, or `while` body it guards; its initializer is resolved in the enclosing scope, and it is absent from later conditions, sibling arms, `else`, and following statements. Match payload bindings and a recovery error name live only in their block. |
 
 [1800]'s direct final expression opens no additional scope inside its function
@@ -1023,10 +1022,7 @@ is and the declaration that was meant is not there to point at.
 An imported namespace whose selected member exists but is not public is a
 different error: the use is refused as inaccessible and the private declaration
 is related evidence. A namespace used without selecting a member names no
-runtime or type value and is likewise refused. A name a selected import [1440]
-wrote and the import refused is not a misspelling either: the import is where
-the mistake is and where the one report goes, and a later use of that name adds
-none (D242). The program is refused by the import.
+runtime or type value and is likewise refused.
 
 ### [2000] What a doc comment is about
 
@@ -2822,6 +2818,8 @@ and cleanup contracts; reservation adds no execution or aliasing rule.
 
 ### D233 — A shared declaration is one declaration per name, with one initializer evaluation
 
+**Superseded by D1656 for bindings, fields and atoms.** Each names one thing; a parameter, named-return or payload list keeps the shared form, with the written prefix and type applying to each name as below.
+
 **The tour said** that several names may share one declaration, the same form
 field lists already use [0100], and showed `public red, green, blue: u8`
 beside an atom list. Atom lists were enabled; shared bindings, fields,
@@ -2867,10 +2865,13 @@ would then hold two conventions in one list, while [0100]'s field-list reading
 gives every name the whole prefix. Admitting `a, b := e` with a copied inferred
 type was declined for the destructuring reading.
 
-**Pinned by** `positive/shared-declarations-every-position`,
-`runtime/shared-declarations-evaluate-once`, `negative/r491-shared-declaration`,
-`negative/shared-type-names-nothing`, `negative/shared-packed-fields-overlap`
-and `negative/shared-link-symbol-duplicates`.
+**Pinned by** `positive/shared-names-in-lists`,
+`runtime/shared-declarations-evaluate-once`, `negative/r491-shared-declaration`
+and `negative/shared-type-names-nothing`.
+
+`negative/shared-packed-fields-overlap` and
+`negative/shared-link-symbol-duplicates` pinned shared fields and bindings,
+and left with them (D1656).
 
 ### D1656 — One name per declaration: `a, b: T = v` leaves
 
@@ -2880,7 +2881,17 @@ and `negative/shared-link-symbol-duplicates`.
 
 **The alternatives:** keeping it for atom lists in examples, three lines that read as well written out. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/one-name-per-declaration`, whose fix writes a line a name for an atom list, a module and a local binding and a struct field (D1887, D1888), and `positive/shared-names-in-lists`, the lists that keep the form. D233 is marked superseded for what leaves.
+
+### D1887 — An atom list and a struct block's fields name one thing each
+
+**The tour said** at [0100] that several names may share one declaration "as fields in a struct already do", with `north, south, east, west: atom` among its examples. D1656 named bindings and kept parameter, result and payload lists, and did not say which of the two a struct block's field line or an atom list is.
+
+**Chosen:** both leave with the bindings. A struct block's field line and an atom declaration are declarations, a name a line like every other, and only the three lists D1656 keeps write `a, b: T`; the declined alternative it records was keeping the form for atom lists. The refusal and its fix are the binding's.
+
+**The alternatives:** keeping shared field lines and atom lists, which leaves the form in two places D1656's reasoning covers. Declined.
+
+**Pinned by** `negative/one-name-per-declaration`.
 
 ### D246 — A refusal by name says what the form is, not which work decided it
 
@@ -4623,6 +4634,8 @@ Addresses, the absent pointer, and the operations that read storage
 the language does not otherwise describe.
 
 ### D189 — A one-atom pointer union is a pointer whose empty case is zero
+
+**Amended by D1657.** Its examples' inline struct bodies are written with `struct ... end`; the pointer union stands.
 
 D235 later gives two or more atoms beside a pointer a two-cell union and
 retires `Reference_Union_Extent`'s two-atom arm; the one-atom representation
@@ -7261,6 +7274,8 @@ Cortex-M0 included, `negative/fixed-array-bound-module-value` and the checker
 case `invalid parameterized templates are checked when unused`.
 
 ### D1321 — An array length reads a compiler fact and `sizeof` of a scalar
+
+**Amended by D1663.** What an array length folds, a type application's fixed actual folds too.
 
 **The tour said** at [0520] that a length is a constant the compiler works
 out without running anything, and at [1500] that `compiler.word_size` is a
@@ -10415,6 +10430,8 @@ construction does not depend on.
 
 ### D73 — A contextual variant part is refused once as a whole
 
+**Amended by D1657.** The inline `(...)` struct body it names is refused; a struct type is declared with `struct ... end`, and the rule below holds for that body.
+
 **The tour said** that an ordinary struct may contain one contextual
 `name: variant` part [0680], whose cases may be bare atoms or carry labelled
 payload fields [0690]. The enabled grammar [1795] still describes only an
@@ -10468,6 +10485,8 @@ sweep. D74 migrates the parser refusal into enabled declaration syntax and
 replaces its former negative fixture with layout and boundary evidence.
 
 ### D74 — A variant declaration has one unfolded measurable layout
+
+**Amended by D1657.** The inline `(...)` struct body it names is refused; a struct type is declared with `struct ... end`, and the layout below is that body's.
 
 **The tour said** that an ordinary struct may contain a contextual variant
 part [0680] and that each case is an atom and may carry a labelled payload
@@ -10567,7 +10586,7 @@ target-layout records; the backend seam against both target descriptions; and
 
 **The alternatives:** keeping both spellings, which is two ways to declare one thing and a grammar ambiguity. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/inline-struct-is-a-struct-block`, plain and packed, whose fix writes the block. D73, D74 and D189 are marked amended; [1795] loses the inline body and with it the `->` lookahead, and so does the tree-sitter grammar.
 
 ### D75 — A variant-bearing struct has storage and one zero image
 
@@ -12304,6 +12323,8 @@ storage a call consumes.
 
 ### D140 — `escaping` precedes an explicit parameter convention
 
+**Amended by D1655.** `in` is never written: `escaping` precedes `inout` or `sink`, and a parameter without either is read-only.
+
 **The tour said** that `in`, `inout` and `sink` are conventions written before
 a parameter name [0900], that `escaping` is orthogonal to all three [0780]
 [0900], and that attributes are prefix words [0760]. It did not say how the
@@ -12332,7 +12353,7 @@ the resolution case `return sources retain parameter positions`.
 
 **The alternatives:** keeping the word as optional emphasis, two spellings of one meaning. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/parameter-in-is-not-written`, whose fix removes the word. D140 is marked amended. Assembly operands keep their `in`, which says which way a register carries a value.
 
 ### D149 — `inout` exclusivity is checked only for a provably identical place
 
@@ -14034,6 +14055,8 @@ inferred-function-value runtime cases on Linux x86-64.
 
 ### D123 — Infallible function values use one recursive carrier rule
 
+**Anonymous functions withdrawn by D1654.** A function value names a declared function; the carrier rule stands, and what it says of anonymous routines is history.
+
 **The tour said** that a function is an ordinary code-address value [0870]
 [1000], that callbacks carry state explicitly because anonymous functions do
 not capture [1010], and that parameters and named results carry ordinary values
@@ -14081,12 +14104,15 @@ recursive checking and IR descriptors; function parameter/result slots, static
 function datum targets, calls and verifier malformed cases; deterministic
 anonymous routine items and x86-64 local symbols; the generated lexical and IR
 records through `positive/infallible-function-values`; the negative fixtures
-`anonymous-function-captures-local`, `function-parameter-signature-mismatch`,
+`function-parameter-signature-mismatch`,
 `function-result-signature-mismatch`, `function-result-unassigned`,
 `module-function-replacement-signature-mismatch`,
 `module-function-without-image` and `module-function-image-cycle`; and
 `runtime/infallible-function-values` on
 Linux x86-64.
+
+`negative/anonymous-function-captures-local` pinned the no-capture rule and
+left with anonymous functions (D1654).
 
 ### D1654 — A function is declared by name: anonymous functions leave
 
@@ -14096,7 +14122,17 @@ Linux x86-64.
 
 **The alternatives:** keeping them for short callbacks, which a named declaration beside the call already serves. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/anonymous-function-is-declared-by-name`, whose fix declares the function before the declaration that held it and passes its name (D1888). D123, D187 and D464 are marked amended; [1795]'s and [1820]'s productions lose the form, and so does the tree-sitter grammar.
+
+### D1888 — The removed declarations' rewrites
+
+**The discrepancy:** D1847 makes each removed form's rewrite its refusal's exact fix, and D1654, D1656 and D1658 each leave the rewrite's details open: the name a hoisted function takes, how one evaluation of a shared value survives a line a name, and when `m.name` means what the selected name meant.
+
+**Chosen:** an anonymous function becomes a module function named for the declaration that held it, `holder_function`, numbered `holder_function_2` and on while the spelling is a name anywhere in the file, written before that declaration and above the comments that lead it, its lines moved out by the indentation it had. A shared declaration becomes a line a name with the written prefix, `public`, `mut` and `link(...)` included, type and suffix; the value stays the first name's, and a later local starts as `= first`, while a module value, an image computed once anyway, or a value that is one literal or name is written again. A selected import becomes the whole import and each reference bound to a selected member becomes `m.name`, `m` its last segment or `as` name, offered only where `m` names nothing else the file declares or imports; where the file already imports the module whole under that name, the selected import's lines go. A rewrite that would lose a comment, or one whose declaration does not have its lines to itself, is no fix, and the refusal says what to write.
+
+**The alternatives:** a hoisted name from the binding or argument that held the function, which is often the local the hoist would shadow; and repeating every shared value, which runs a call once a name. Both were declined.
+
+**Pinned by** the five removed forms' negative fixtures and their recorded fixes.
 
 ### D128 — Multiple named returns form one anonymous structural aggregate
 
@@ -15283,7 +15319,7 @@ classified failure boundary before the repository gate can pass.
 | `consume.copy-before` | static | 0860, 0910, 1720 | a value copied before the sink remains independently usable | `runtime/copy-before-sink-remains-live` |
 | `errors.control` | static | 0940, 0960, 0970 | L0329 for an undeclared or unhandled outcome | `negative/unhandled-declared-error`, `runtime/declared-errors-direct-and-inferred`, `runtime/r490-generic-recovery-frontier`, `runtime/r490-generic-recovery-alias-chains`, `negative/r490-generic-error-key-cycle` |
 | `results.destructure` | static | 0990 | L0200, L0302, L0308 or L0331 | `negative/result-destructure-needs-multiple`, `runtime/r230-composition` |
-| `functions.anonymous` | static | 1010 | L0201 for capture; complete signature checks otherwise apply | `negative/anonymous-function-captures-local`, `runtime/inferred-function-values` |
+| `functions.anonymous` | static | 1010 | L0696 refuses an anonymous function and names the declared one that replaces it (D1654) | `negative/anonymous-function-is-declared-by-name`, `runtime/inferred-function-values` |
 | `control.flow` | static | 1050, 1060, 1070, 1080, 1090 | L0200 or L0201 at a condition-binding scope boundary; L0301, L0302 or L0332 at every condition, reachable join and exit | `negative/condition-declaration-body-shadowing`, `negative/condition-declaration-not-bool`, `negative/condition-declaration-out-of-scope`, `negative/if-expression-missing-else`, `runtime/condition-declarations`, `runtime/control-expression-edges-keep-source-order` |
 | `control.loops` | static | 1090, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1320, 1330 | L0301 for a non-bool condition, mismatched range, non-traversable source, or missing/ambiguous/non-exact iterable evidence; L0332 for a loop where a value belongs or a `break` given a value, and L0696 for a `complete` block or `try for`; L0303 for a write to a read-only storage element or copied iterable item; a taken transfer runs active defers and targets its named loop or labelled block edge, or the nearest loop, and every exit reaches the statement after the loop | `negative/loop-condition-not-bool`, `negative/loop-value-search-rewritten`, `negative/loop-value-in-every-value-context`, `negative/loop-complete-runs-after`, `negative/loop-complete-left-by-a-break`, `negative/try-for-names-its-replacement`, `negative/for-range-needs-integer`, `negative/for-range-endpoints-disagree`, `negative/for-source-not-traversable`, `negative/for-collection-element-read-only`, `negative/for-array-element-read-only`, `negative/for-any-element-read-only`, `negative/for-iterable-ambiguous-evidence`, `negative/for-iterable-item-read-only`, `negative/for-iterable-missing-conformance`, `negative/text-traversal-item-is-read-only`, `runtime/loop-control-flow`, `runtime/fallible-traversal-by-while`, `runtime/for-range-traversal`, `runtime/for-collection-traversal`, `runtime/for-aggregate-element-traversal`, `runtime/for-any-element-traversal`, `runtime/for-iterable-evidence-traversal`, `runtime/hosted-text-traversal`, `runtime/r480-recovery-loop-transfer`, `runtime/r480-loop-fresh-view`, `runtime/r720-labelled-block-transfers`, `negative/r720-labelled-block-break-value`, `runtime/r491-loop-assignment`, `negative/loop-exit-skips-assignment` |
 | `cleanup.defer` | static | 1100 | the registered call is checked at every ordinary and successful-return edge | `negative/defer-read-not-assigned-on-return`, `runtime/defer-cleanups-follow-control-edges` |
@@ -15293,7 +15329,7 @@ classified failure boundary before the repository gate can pass.
 | `any.construction` | static | 1370, 1380 | L0314, L0318 or L0342 | `negative/any-source-not-pointer`, `negative/any-readonly-source-for-mutable-entry` |
 | `any.dispatch` | static | 1390 | malformed table positions cannot be produced by accepted source; verifier failure is a compiler defect | `negative/any-entry-not-object-safe`, `runtime/any-heterogeneous-dispatch` |
 | `modules.availability` | static | 1480, 1660 | L0015 names an unavailable hosted or scoped platform import before resolution; project-first overrides cannot bypass target availability | the driver case `source namespaces enforce target availability`; `runtime/library-shared-mem`, `runtime/library-shared-io`, `runtime/library-shared-map`, `runtime/library-shared-tree` |
-| `modules.visibility` | static | 1410, 1420, 1430, 1440, 1450, 1480 | L0006 or L0007 for an unresolved root; L0200 for duplicate import bindings, L0201 for missing selected names, L0202 for private members or representations and L0203 for reserved tool names | `negative/module-not-found`, `negative/imported-private-name`, `negative/core-mem-private-representation`, `negative/core-text-private-position`, `runtime/core-mem-raw-storage`, `negative/import-selected-private`, `negative/import-selected-missing`, `negative/import-selected-duplicate`, `runtime/import-alias-selected-identities`, `runtime/import-contextual-as` |
+| `modules.visibility` | static | 1410, 1420, 1430, 1440, 1450, 1480 | L0006 or L0007 for an unresolved root; L0200 for duplicate import bindings, L0202 for private members or representations, L0203 for reserved tool names and L0696 for a selected import (D1658) | `negative/module-not-found`, `negative/imported-private-name`, `negative/core-mem-private-representation`, `negative/core-text-private-position`, `runtime/core-mem-raw-storage`, `negative/selected-import-is-imported-whole`, `runtime/import-alias-selected-identities`, `runtime/import-contextual-as` |
 | `entry.point` | static | 1650, 1970 | L0502 before executable emission | `runtime/constant-return-exits-with-its-code`, `negative/r440-native-renamed-entry` |
 | `module.images` | static | 0180, 0340, 0350, 0410, 1460, 1890, 1930, 1940 | L0300, L0304 or L0305; module-known bool `not`, `and` and `or` fold left to right into scalar and aggregate images, short-circuit `and`/`or`, and execute no initializer CFG | `negative/module-value-from-a-call`, `runtime/module-known-short-circuit-bools`, `runtime/recursive-module-images-are-laid-out-and-distinct` |
 | `unchecked.region` | outside | 0290, 0300, 0310, 0320, 0430, 0470, 0570, 0580, 0700, 1100, 1110, 1120, 1950, 1960 | non-guarantee: inside [1120]'s region the compiler emits no integer overflow edge for `+`, `-`, `*` and unary `-`, no element-index or slice-range edge, and no destination-range edge for an integer-to-integer or pointer-to-integer conversion; the results are [0320]'s wrapping value, [0430]'s pointer non-guarantee at the computed address, and the low-order bits of the source; every static refusal, every division, shift, bool and float conversion edge and every text boundary edge stays, and a [1100] `defer` or [1110] `undo` call keeps the edges of the place its registration is written rather than those of the exit that runs it | `positive/unchecked-regions`, `positive/unchecked-marks-only-the-edges-it-removes`, `runtime/unchecked-arithmetic-wraps`, `runtime/unchecked-integer-conversion-truncates`, `runtime/unchecked-slice-index-passes-the-length`, `runtime/checks-return-after-the-region`, `runtime/unchecked-does-not-cross-a-call`, `runtime/unchecked-does-not-reach-an-anonymous-body`, `runtime/unchecked-keeps-the-divisor-check`, `runtime/unchecked-keeps-the-shift-check`, `runtime/unchecked-keeps-text-boundary-traps`, `runtime/unchecked-keeps-bool-conversion-traps`, `runtime/unchecked-keeps-float-conversion-traps`, `runtime/unchecked-pointer-conversion-truncates`, `runtime/unchecked-does-not-reach-an-outer-cleanup`, `runtime/unchecked-reaches-a-cleanup-written-inside`, `negative/unchecked-keeps-a-known-index`, `negative/unchecked-keeps-permissions`, `negative/unchecked-keeps-definite-assignment`, `negative/unchecked-region-end-name-mismatch` |
@@ -15793,6 +15829,8 @@ visible in its initializer would reverse [0110]. All were declined.
 
 ### D187 — An unchecked region removes only the edges with one meaning everywhere
 
+**Amended by D1654.** There are no anonymous bodies for a region to stop at; the region's rules stand for declared functions.
+
 **The tour said** that [1120]'s checks may be switched off for a region,
 visibly, and [1720] said the region was not implemented first because what an
 optimiser may then assume should wait for a compiler that can be measured. It
@@ -16102,6 +16140,8 @@ call deduces, and the erased pair behind `any`.
 
 ### D135 — Parameterized type declarations collect their formals before their bodies
 
+**Amended by D1663.** A fixed actual is any expression an array length folds, not only an integer literal or a forwarded fixed formal.
+
 **The tour said** that type and fixed parameters are compile-time [1290], that
 a type takes them through its own declaration rather than a function [1350],
 and that `fixed` marks compile-time knowledge [1490]. It did not settle the
@@ -16215,7 +16255,17 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **The alternatives:** keeping D135 as it stood, two rules for one kind of value. Declined.
 
-**Pinned by** nothing that runs yet: the change that lands the rule adds a positive fixture applying a type to `compiler.word_size` and `sizeof` of a scalar, and a negative one for each refusal an array length gives.
+**Pinned by** `positive/fixed-actual-folds-as-a-length`, which applies a type to `compiler.word_size`, `sizeof` of a scalar, a module integer and arithmetic on one, and `negative/fixed-actual-refusals`, which gives a call, a bool and a width-dependent operator the refusals an array length gives them. D135 and D1321 are marked amended. How a type argument is told from a fixed one is D1889.
+
+### D1889 — A type argument written as an expression is a fixed actual
+
+**The discrepancy:** the parser read a type application's arguments as types or integer literals, so `buf(sizeof u32)` and `buf(n * 2)` did not parse whatever D1663 allowed, and `compiler.word_size` read as a qualified type name, which configuration never records as a fact.
+
+**Chosen:** an argument that begins with `-`, `sizeof`, `alignof` or `compiler.`, or holds `+ - * / %` outside its brackets, is parsed as an expression; any other is a type, and a lone name read so is checked as the fixed formal or module integer it names when it names one. Configuration records a fact written in a type argument as it records one in an array length.
+
+**The alternatives:** parsing every argument as an expression and reinterpreting types, which would make `ptr t` and `[n]t` expressions. Declined.
+
+**Pinned by** `positive/fixed-actual-folds-as-a-length`.
 
 ### D137 — A parameterized struct application is one canonical nominal instance
 
@@ -17782,6 +17832,8 @@ that only a selected generic instance receives an item.
 
 ### D150 — The reached module graph has one deterministic identity order
 
+**Amended by D1658.** There are no selected imports; the identity order stands for plain and aliased imports.
+
 **The tour said** that a module is one directory [1410], an import searches
 ordered roots and binds its final segment [1420], imports are per file [1450],
 and the compiler receives roots rather than acquiring packages [1480]. It did
@@ -17856,6 +17908,8 @@ and the parser, resolution, driver and hosted-entry cases.
 
 ### D201 — Import suffixes bind file-local names without new identities
 
+**Selected imports withdrawn by D1658.** The alias rules stand; what follows about selected names is history.
+
 **The tour said** at [1430] that an alias resolves namespace collisions,
 [1440] that an import may select names without a wildcard, and [1450] that
 imports belong to one file. It did not settle whether either suffix also
@@ -17892,16 +17946,18 @@ member renaming, trailing commas and wildcards would add syntax the tour does
 not promise. All were declined.
 
 **Pinned by** `runtime/import-alias-selected-identities`,
-`runtime/import-contextual-as`, `negative/import-selected-private`,
-`negative/import-selected-missing`, `negative/import-selected-duplicate`,
-`negative/import-selected-immutable`,
+`runtime/import-contextual-as`,
+`negative/import-alias-original-unbound`, `negative/import-alias-reserved`,
+`negative/import-option-collision`, and the parser/resolution import cases.
+
+`negative/import-selected-private`, `negative/import-selected-missing`,
+`negative/import-selected-duplicate`, `negative/import-selected-immutable`,
 `negative/import-selected-private-representation`,
 `negative/import-selected-reserved`,
 `negative/import-selected-namespace-unbound`,
-`negative/import-alias-selected-collision`,
-`negative/import-selected-alias-collision`,
-`negative/import-alias-original-unbound`, `negative/import-alias-reserved`,
-`negative/import-option-collision`, and the parser/resolution import cases.
+`negative/import-alias-selected-collision` and
+`negative/import-selected-alias-collision` pinned selected names and left
+with them (D1658).
 
 ### D202 — Hosted tool configuration is fixed before ordinary resolution
 
@@ -18102,6 +18158,8 @@ driver's `invalid options are refused`.
 
 ### D242 — A refused import answers for its name
 
+**Amended by D1658.** There are no selected imports; a refused plain or aliased import still answers for its name.
+
 **The tour said** that a file may import selected public members of a module
 [1440] and that a file's import scope gives one name to one thing [1450], and
 [1860] says a name that names nothing is refused because it is a misspelling.
@@ -18131,12 +18189,14 @@ duplicate-import rule is about the scope and not about this name's fate;
 `Has_Import` therefore keeps its meaning and only the misspelling report is
 withheld.
 
-**Pinned by** `negative/r740-refused-private-import-adds-no-cascade`,
-`negative/r740-missing-import-adds-no-cascade`,
-`negative/import-selected-private`, `negative/import-selected-missing`,
-`negative/imported-private-name`,
-`negative/import-selected-namespace-unbound` and
+**Pinned by** `negative/imported-private-name` and
 `runtime/import-alias-selected-identities`.
+
+`negative/r740-refused-private-import-adds-no-cascade`,
+`negative/r740-missing-import-adds-no-cascade`,
+`negative/import-selected-private`, `negative/import-selected-missing` and
+`negative/import-selected-namespace-unbound` pinned refused selected names
+and left with them (D1658).
 
 ### D1658 — A module is imported whole: `import m (a, b)` leaves
 
@@ -18146,7 +18206,7 @@ withheld.
 
 **The alternatives:** keeping selected names, which makes a name's module invisible where it is used and shares its refusals with every other import. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/selected-import-is-imported-whole`, whose fix imports the module and qualifies each use (D1888). D150, D191, D201 and D242 are marked amended, and the fixtures that pinned selected names' own refusals are gone with them.
 
 ### D247 — A routine and a struct each hold at most 16,384 of what they declare
 
@@ -32744,6 +32804,8 @@ derivation register, and the complete rooted fixture path.
 
 ### D191 — The region and the derivation cut are core's; the arena block is refused by name
 
+**Amended by D1658.** There are no selected imports; the rest stands.
+
 D196 carries this increment's unresolved arena questions forward; D212 now
 settles them by withdrawing both builtin forms. The original rationale below
 records why the compiler first added the named refusals.
@@ -39182,6 +39244,8 @@ the blocking host as a `fibre.scheduler`; and
 
 ### D464 — The spellings `core/fibre` changed from prototype 5's sketch
 
+**Amended by D1654.** Its anonymous functions are declared functions passed by name; the spellings stand.
+
 **The tour said** nothing. Prototype 5's `core/fibre` was the design record and
 said every spelling in it might change when the switch was written.
 
@@ -40916,8 +40980,11 @@ placeholder too many, on every hosted target;
 fits as one write, a longer value as the bytes before it, the value and
 the rest, a mismatch as no write and a failed write as `io_failed`, on
 Cortex-M0 too at every optimized profile; and `negative/core-io-println-is-write-format`,
-`negative/core-io-printf-is-write-format`, under an alias, and
-`negative/core-io-selected-puts-is-write-format`, whose notes show the call.
+and `negative/core-io-printf-is-write-format`, under an alias, whose notes
+show the call.
+
+`negative/core-io-selected-puts-is-write-format` pinned the note under a
+selected import and left with it (D1658).
 
 ### D1123 — A builder's offsets count what `format_onto` has handed on
 

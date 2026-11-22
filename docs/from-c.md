@@ -602,19 +602,20 @@ the next read gives the line after it.
 ```
 
 ```landin
-import core/text (host_over, host_string)
+import core/text
 
 --- Where the tool reads its settings.
-public config_path: () -> (path: host_string) =
-    path = host_over("/etc/tool.conf")
+public config_path: () -> (path: text.host_string) =
+    path = text.host_over("/etc/tool.conf")
 end config_path
 ```
 
 There are no header files. A module is a directory, and every file in it
 sees the others. `public` is what another module may name [1410].
 
-A plain `import core/io` binds `io`. `as` renames it [1430], and a list in
-parentheses, `(get, post)`, selects names [1440].
+A plain `import core/text` binds `text`, and its members are named through
+it, `text.host_over`. `as` renames it [1430]; a module is always imported
+whole [1440].
 
 A compilation never reads a C header. `refine bindings` asks Clang for one
 and writes Landin declarations from it [1580].
@@ -676,7 +677,9 @@ switch (light) { case RED: return 30; case AMBER: return 3; default: return 0; }
 ```
 
 ```landin
-red, amber, green: atom
+red: atom
+amber: atom
+green: atom
 
 signal: type = red | amber | green
 

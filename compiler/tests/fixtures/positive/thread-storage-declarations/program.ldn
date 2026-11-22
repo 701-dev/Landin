@@ -8,7 +8,8 @@ point: type = struct
 end point
 
 link(thread) mut counter: u32
-link(thread) mut first, second: i64
+link(thread) mut first: i64
+link(thread) mut second: i64
 link(thread) public mut place: point
 link(thread) mut recent: [16]u8
 link(thread) mut ready: bool

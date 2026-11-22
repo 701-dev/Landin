@@ -1,6 +1,9 @@
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
-holder: type = (value: problems)
+holder: type = struct
+    value: problems
+end holder
 stored: holder = zeroed
 public main: () -> (code: i32) =
  code = if stored.value <> north and stored.value <> south then 42 else 1 end if

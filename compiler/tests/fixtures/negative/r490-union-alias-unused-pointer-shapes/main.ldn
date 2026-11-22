@@ -1,4 +1,5 @@
-first, second: atom
+first: atom
+second: atom
 pointer: type (t: type) = ptr t
 optional: type (t: type) = first | ptr t
 atoms: type (t: type) = first | second | t

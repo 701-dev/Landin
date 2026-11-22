@@ -1,8 +1,0 @@
-class: negative
-summary: D201 import selected missing is refused at the source binding or use
-expect: expected.txt
-args: --root=../tests/fixtures/negative/import-selected-missing/root ../tests/fixtures/negative/import-selected-missing/entry
-codes: L0201
-status: 1
-constructs: 1440, 1450
-targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

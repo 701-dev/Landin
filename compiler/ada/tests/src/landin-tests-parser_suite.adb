@@ -2519,7 +2519,7 @@ package body Landin.Tests.Parser_Suite is
           ("references.ldn",
            "item: type = u8" & ASCII.LF
            & "callback: type = (escaping inout owner: ptr mut item,"
-           & " in source: []item, sink consumed: ptr item) ->"
+           & " source: []item, sink consumed: ptr item) ->"
            & " (view: []mut item from owner, source)" & ASCII.LF
            & "project: (t: type, fixed n: usize,"
            & " escaping inout owner: ptr mut t, source: []t) ->"
@@ -2527,7 +2527,7 @@ package body Landin.Tests.Parser_Suite is
            & "    view = source" & ASCII.LF
            & "end project" & ASCII.LF
            & "pointer_list: type = holder(ptr mut item, []item)" & ASCII.LF
-           & "locate: (in value: item) -> (p: ptr item from value) ="
+           & "locate: (value: item) -> (p: ptr item from value) ="
            & ASCII.LF
            & "    p = addr value.field.val" & ASCII.LF
            & "end locate" & ASCII.LF
@@ -2590,7 +2590,7 @@ package body Landin.Tests.Parser_Suite is
             and then Landin.Syntax.Convention_Of (Parsed, Owner)
               = Landin.Syntax.Inout_Convention
             and then Landin.Syntax.Convention_Of (Parsed, Source)
-              = Landin.Syntax.Explicit_In
+              = Landin.Syntax.Implicit_In
             and then Landin.Syntax.Convention_Of (Parsed, Consumed)
               = Landin.Syntax.Sink_Convention,
             "pointer permission and all written parameter modifiers remain");
@@ -3570,8 +3570,8 @@ package body Landin.Tests.Parser_Suite is
         ("single atom",
          "ready: atom");
       Check
-        ("several atoms",
-         "ready, done: atom");
+        ("two atoms",
+         "ready: atom" & ASCII.LF & "done: atom");
       Check
         ("option declaration",
          "option count: u32 = 2");
@@ -3839,9 +3839,11 @@ package body Landin.Tests.Parser_Suite is
       Check ("wrong closer at end",
          "alpha: type = struct x: u32 end wrong",
          "L0109", "alpha");
-      Check ("compact control",
+      --  D1657: the inline struct form is refused, and the refusal keeps
+      --  the declaration after it.
+      Check ("refused compact form",
          "alpha: type = (x: u32) beta: () -> (r: u32) = 1 end beta",
-         "", "alpha,beta");
+         "L0696", "alpha,beta");
       Check ("refused field before a later declaration",
          "variant: type = u8 separate: type = struct kind: variant "
          & "next: (x: i32) end separate beta: () -> (r: u32) = 1 end beta",
@@ -4570,30 +4572,67 @@ package body Landin.Tests.Parser_Suite is
    is
       package Syntax renames Landin.Syntax;
 
+      --  D1656/D1887: a binding, a local and a field name one thing each;
+      --  writing several is refused with the rewrite, and nothing else.
+      procedure Refused (Label, Text, Codes : String);
+
+      procedure Refused (Label, Text, Codes : String) is
+         Sources : Landin.Source.Sets.Source_Set;
+         Names : Landin.Source.Names.Table;
+         Stream : Landin.Tokens.Token_Stream;
+         Found : Landin.Diagnostics.Diagnostic_List;
+         Id : constant Landin.Source.Source_Id :=
+           Sources.Add ("shared-refused.ldn", Text & ASCII.LF);
+         Actual : Unbounded.Unbounded_String;
+      begin
+         Landin.Tokens.Lexer.Lex (Sources.Get (Id), Names, Stream);
+         Landin.Diagnostics.Lexical.Report (Stream, Found);
+         declare
+            Parsed : constant Syntax.Tree :=
+              Syntax.Parser.Parse (Stream, Names, Found);
+            pragma Unreferenced (Parsed);
+         begin
+            null;
+         end;
+         for Position in 1 .. Landin.Diagnostics.Count (Found) loop
+            if Position > 1 then
+               Unbounded.Append (Actual, ",");
+            end if;
+            Unbounded.Append
+              (Actual, Landin.Diagnostics.Code
+                 (Landin.Diagnostics.Get (Found, Position)));
+         end loop;
+         Landin.Testing.Check_Equal
+           (Item, Unbounded.To_String (Actual), Codes,
+            Label & " is refused as a removed form");
+      end Refused;
+
       Sources : Landin.Source.Sets.Source_Set;
       Names : Landin.Source.Names.Table;
       Stream : Landin.Tokens.Token_Stream;
       Reports : Landin.Diagnostics.Diagnostic_List;
       Id : constant Landin.Source.Source_Id := Sources.Add
         ("shared.ldn",
-         "public mut red, green: u8 = 3" & ASCII.LF
-         & "link(section: "".data"") tint, shade: u32" & ASCII.LF
-         & "holder: type = struct a, b: u8 at 0..3 end holder" & ASCII.LF
-         & "f: (inout x, y: i32, z: ptr u8) -> (p: ptr u8 from z, m,"
+         "f: (inout x, y: i32, z: ptr u8) -> (p: ptr u8 from z, m,"
          & " n: ptr u8 from z) =" & ASCII.LF
-         & "    mut u, v: i32 = 1" & ASCII.LF
-         & "    w, t: i32" & ASCII.LF
          & "end f");
    begin
+      Refused ("a shared module binding", "public mut red, green: u8 = 3",
+               "L0696");
+      Refused ("a shared linked binding",
+               "link(section: "".data"") tint, shade: u32", "L0696");
+      Refused ("a shared field",
+               "holder: type = struct a, b: u8 at 0..3 end holder", "L0696");
+      Refused ("shared locals",
+               "f: () -> none =" & ASCII.LF
+               & "    mut u, v: i32 = 1" & ASCII.LF
+               & "    w, t: i32" & ASCII.LF
+               & "end f", "L0696,L0696");
       Landin.Tokens.Lexer.Lex (Sources.Get (Id), Names, Stream);
       Landin.Diagnostics.Lexical.Report (Stream, Reports);
       declare
          Parsed : constant Syntax.Tree :=
            Syntax.Parser.Parse (Stream, Names, Reports);
-
-         function Named (Node : Syntax.Node_Id) return String
-           is (Landin.Source.Names.Spelling
-                 (Names, Syntax.Name (Parsed, Node)));
 
          --  The later name shares the earlier one's written type node.
          procedure Shared_After
@@ -4617,78 +4656,19 @@ package body Landin.Tests.Parser_Suite is
       begin
          Landin.Testing.Check_Equal
            (Item, Landin.Diagnostics.Count (Reports), 0,
-            "shared declarations parse without a report");
+            "shared parameter and return names parse without a report");
          Landin.Testing.Check_Equal
-           (Item, Syntax.Declaration_Count (Parsed), 6,
-            "each shared module binding is one declaration per name");
-         if Syntax.Declaration_Count (Parsed) /= 6
+           (Item, Syntax.Declaration_Count (Parsed), 1,
+            "the routine is one declaration");
+         if Syntax.Declaration_Count (Parsed) /= 1
            or else Landin.Diagnostics.Count (Reports) /= 0
          then
             return;
          end if;
 
          declare
-            Red   : constant Syntax.Node_Id :=
-              Syntax.Nth_Declaration (Parsed, 1);
-            Green : constant Syntax.Node_Id :=
-              Syntax.Nth_Declaration (Parsed, 2);
-            Tint  : constant Syntax.Node_Id :=
-              Syntax.Nth_Declaration (Parsed, 3);
-            Shade : constant Syntax.Node_Id :=
-              Syntax.Nth_Declaration (Parsed, 4);
-         begin
-            Landin.Testing.Check
-              (Item, Named (Red) = "red" and then Named (Green) = "green",
-               "shared module bindings keep their written order");
-            Shared_After (Red, Green, "module binding");
-            Landin.Testing.Check
-              (Item, Syntax.Is_Public (Parsed, Green)
-                 and then Syntax.Is_Mutable (Parsed, Green),
-               "the later name carries `public` and `mut`");
-            Landin.Testing.Check
-              (Item, Syntax.Kind (Parsed, Syntax.Value_Of (Parsed, Red))
-                 = Syntax.Integer_Literal,
-               "the first name is initialized by the written value");
-            Landin.Testing.Check
-              (Item, Syntax.Kind (Parsed, Syntax.Value_Of (Parsed, Green))
-                 = Syntax.Name_Reference
-                 and then Named (Syntax.Value_Of (Parsed, Green)) = "red",
-               "a later name is initialized from the first name");
-            Shared_After (Tint, Shade, "linked binding");
-            Landin.Testing.Check
-              (Item, Syntax.Attributes (Parsed, Shade).Present
-                 and then Syntax.Value_Of (Parsed, Shade) = Syntax.No_Node,
-               "the later name carries the link prefix and no value");
-         end;
-
-         declare
-            Holder : constant Syntax.Node_Id :=
-              Syntax.Declared_Type
-                (Parsed, Syntax.Nth_Declaration (Parsed, 5));
-         begin
-            Landin.Testing.Check_Equal
-              (Item, Syntax.Field_Count (Parsed, Holder), 2,
-               "shared field names are one field each");
-            if Syntax.Field_Count (Parsed, Holder) = 2 then
-               Shared_After
-                 (Syntax.Nth_Field (Parsed, Holder, 1),
-                  Syntax.Nth_Field (Parsed, Holder, 2), "field");
-               Landin.Testing.Check
-                 (Item, Syntax.Bit_First
-                    (Parsed, Syntax.Nth_Field (Parsed, Holder, 2))
-                    = Syntax.Bit_First
-                        (Parsed, Syntax.Nth_Field (Parsed, Holder, 1))
-                    and then Syntax.Bit_First
-                      (Parsed, Syntax.Nth_Field (Parsed, Holder, 1))
-                      /= Syntax.No_Node,
-                  "a later field shares the written `at` bounds");
-            end if;
-         end;
-
-         declare
             Routine : constant Syntax.Node_Id :=
-              Syntax.Nth_Declaration (Parsed, 6);
-            Runs : constant Syntax.Node_Id := Syntax.Body_Of (Parsed, Routine);
+              Syntax.Nth_Declaration (Parsed, 1);
          begin
             Landin.Testing.Check_Equal
               (Item, Syntax.Parameter_Count (Parsed, Routine), 3,
@@ -4729,29 +4709,6 @@ package body Landin.Tests.Parser_Suite is
                       = Syntax.Nth_Return_Source
                           (Parsed, Syntax.Nth_Return (Parsed, Routine, 2), 1),
                   "a later return shares the written `from` sources");
-            end if;
-
-            Landin.Testing.Check_Equal
-              (Item, Syntax.Statement_Count (Parsed, Runs), 4,
-               "shared locals are one statement per name");
-            if Syntax.Statement_Count (Parsed, Runs) = 4 then
-               Shared_After
-                 (Syntax.Nth_Statement (Parsed, Runs, 1),
-                  Syntax.Nth_Statement (Parsed, Runs, 2), "local binding");
-               Landin.Testing.Check
-                 (Item, Named (Syntax.Value_Of
-                    (Parsed, Syntax.Nth_Statement (Parsed, Runs, 2)))
-                    = "u",
-                  "a later local is initialized from the first name");
-               Shared_After
-                 (Syntax.Nth_Statement (Parsed, Runs, 3),
-                  Syntax.Nth_Statement (Parsed, Runs, 4),
-                  "uninitialized local");
-               Landin.Testing.Check
-                 (Item, Syntax.Value_Of
-                    (Parsed, Syntax.Nth_Statement (Parsed, Runs, 4))
-                    = Syntax.No_Node,
-                  "an uninitialized later local has no value");
             end if;
          end;
       end;
@@ -5036,7 +4993,6 @@ package body Landin.Tests.Parser_Suite is
         & "literal := [4, 5]" & LF
         & "repeated := [2 of 4]" & LF
         & "address: ptr u8 = ptr(1)" & LF
-        & "closure := (x: i32) -> (y: i32) = x end" & LF
         & "one: [1]i32 = [1] next: u8 = 1" & LF
         & "routine: () -> none = divide(10, 3)" & LF
         & "(rem: residue, quot, _) := divide(10, 3) end routine" & LF
@@ -5050,13 +5006,23 @@ package body Landin.Tests.Parser_Suite is
       Read_And_Parse (Text, Codes, Total, Nodes, Held);
       Landin.Testing.Check
         (Item, Total = 0 and then Held,
-         "written prefixes preserve literals, addresses and functions: "
+         "written prefixes preserve literals, addresses and function types: "
          & Unbounded.To_String (Codes));
       for Last in 0 .. Text'Length loop
          Read_And_Parse (Text (1 .. Last), Codes, Total, Nodes, Held);
          Landin.Testing.Check
            (Item, Held, "every truncation retains tree invariants");
       end loop;
+      --  D1654: a signature followed by `=` is the removed anonymous
+      --  function, refused whole rather than read as a conversion.
+      Read_And_Parse
+        ("closure := (x: i32) -> (y: i32) = x end" & LF,
+         Codes, Total, Nodes, Held);
+      Landin.Testing.Check
+        (Item, Total = 1 and then Held
+           and then Unbounded.To_String (Codes) = "L0696",
+         "a written function body after a signature is the removed form: "
+         & Unbounded.To_String (Codes));
       Read_And_Parse
         ("view := []u8(text, text)" & LF,
          Codes, Total, Nodes, Held);

@@ -1,4 +1,5 @@
-yes, no: atom
+yes: atom
+no: atom
 
 twice: (n: u32) -> (r: u32) =
     r = n * 2

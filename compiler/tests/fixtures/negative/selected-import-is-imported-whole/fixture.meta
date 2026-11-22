@@ -1,0 +1,8 @@
+class: negative
+summary: a selected import is refused naming the whole import, and the fix imports the module and qualifies every use of a selected name
+program: program.ldn
+root: root
+codes: L0696
+fixed: program.fixed
+constructs: 1440, 1450
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

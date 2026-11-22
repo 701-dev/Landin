@@ -5,7 +5,8 @@ end cell
 public marked: type = concept (item: type)
 end marked
 i32 is marked ()
-public absent, denied: atom
+public absent: atom
+public denied: atom
 public problems: type = absent | denied
 public choice: type = struct
     kind: variant

@@ -973,7 +973,7 @@ import core/mem
 import core/vec
 import core/map
 import core/tree
-import core/sort (sort, ordered)
+import core/sort
 
 ```
 
@@ -989,7 +989,7 @@ u32 is map.equatable (eq: eq_u32)
 u32 is map.hashable  (hash: hash_u32)
 
 less_i32: (a: i32, b: i32) -> (yes: bool) = a < b end
-i32 is ordered (less: less_i32)
+i32 is sort.ordered (less: less_i32)
 
 ```
 
@@ -1020,7 +1020,7 @@ A list, filled and sorted with the generic sort from [1290].
     for k in 0..<20 do
         try vec.push(numbers, a, 20 - i32(k))
     end for
-    sort(vec.used(numbers))
+    sort.sort(vec.used(numbers))
 
 ```
 

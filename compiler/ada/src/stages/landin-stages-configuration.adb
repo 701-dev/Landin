@@ -2990,6 +2990,17 @@ package body Landin.Stages.Configuration is
                 (Activity.all, Syn.Source_Of (Of_Tree), Node)
             then
                Record_Module_Facts (Of_Tree, Syn.Bound_Of (Of_Tree, Node));
+            --  D1663: a fixed actual folds as a length does, so a fact in
+            --  a type argument is recorded as one in a length is.  A type
+            --  argument that is a type holds no fact to record.
+            elsif Syn.Kind (Of_Tree, Node) = Syn.Type_Application
+              and then Landin.Configuration.Is_Active
+                (Activity.all, Syn.Source_Of (Of_Tree), Node)
+            then
+               for Index in 1 .. Syn.Type_Argument_Count (Of_Tree, Node) loop
+                  Record_Module_Facts
+                    (Of_Tree, Syn.Nth_Type_Argument (Of_Tree, Node, Index));
+               end loop;
             end if;
          end loop;
       end Record_Length_Facts;

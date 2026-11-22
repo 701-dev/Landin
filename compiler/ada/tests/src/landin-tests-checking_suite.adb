@@ -3301,7 +3301,9 @@ package body Landin.Tests.Checking_Suite is
      (Item : in out Landin.Testing.Context)
    is
       Text : constant String :=
-        "first, second, third: atom" & LF
+        "first: atom" & LF
+        & "second: atom" & LF
+        & "third: atom" & LF
         & "joined: type (left: type, right: type) = left | right" & LF
         & "a: type = joined(first, second)" & LF
         & "b: type = joined(second, first)" & LF
@@ -4071,7 +4073,8 @@ package body Landin.Tests.Checking_Suite is
      (Item : in out Landin.Testing.Context)
    is
       Text : constant String :=
-        "problem, denied: atom" & LF
+        "problem: atom" & LF
+        & "denied: atom" & LF
         & "leaf: () -> none ! ... = fail problem end leaf" & LF
         & "other: () -> none ! ... = fail denied end other" & LF
         & "observe: (t: type, value: t) -> none = _ = value end observe" & LF
@@ -4211,7 +4214,8 @@ package body Landin.Tests.Checking_Suite is
      (Item : in out Landin.Testing.Context)
    is
       Text : constant String :=
-        "missing, denied: atom" & LF
+        "missing: atom" & LF
+        & "denied: atom" & LF
         & "missing_set: type = missing" & LF
         & "denied_set: type = denied" & LF
         & "miss: (stop: bool) -> none ! missing_set =" & LF
@@ -9874,12 +9878,13 @@ package body Landin.Tests.Checking_Suite is
          & "end f" & LF,
          Accepted => False);
       Check_Source
-        ("anonymous body checked separately", Prefix
-         & "f: () -> (r: i32) =" & LF
-         & "cb: () -> (r: i32) = () -> (r: i32) =" & LF
+        ("declared body checked separately", Prefix
+         & "body: () -> (r: i32) =" & LF
          & "mut v: i32 = 1" & LF
          & "r = consume(v)" & LF
-         & "end" & LF
+         & "end body" & LF
+         & "f: () -> (r: i32) =" & LF
+         & "cb: () -> (r: i32) = body" & LF
          & "r = cb()" & LF
          & "end f" & LF,
          Accepted => True);
@@ -15515,11 +15520,12 @@ package body Landin.Tests.Checking_Suite is
                & "end f",
                "L0316", Facts);
             Check_Source
-              ("anonymous provider body",
-               "mut slot: ptr i32 = ptr(4096) f: () -> none = operation := "
+              ("expression-bodied provider",
+               "mut slot: ptr i32 = ptr(4096) operation: "
                & "(source: ptr mut ptr i32, flag: bool) -> (r: ptr mut ptr "
                & "i32 from source) = if flag then source else addr slot end "
-               & "if end _ = operation end f",
+               & "if end operation f: () -> none = bound := operation "
+               & "_ = bound end f",
                "L0316", Facts);
             Check_Source
               ("writable call result widens a read-only static source",
@@ -16303,15 +16309,17 @@ package body Landin.Tests.Checking_Suite is
          & LF & "i32 is ordered (other: u8, less: less_i32)", 1,
          "(a: i32, b: u8) -> (yes: bool)", "b: u32",
          At_Parameter => True);
-      --  [1240]: a binding holding an anonymous function is a value, so
-      --  the refusal says so and names the declaration to write; the
-      --  declared function beside it above is the control.
+      --  [1240]: a binding holding a function is a value, not a declared
+      --  function, so it cannot supply a concept entry; the declared
+      --  function beside it above is the control.  (D1654 removed the
+      --  anonymous function such a binding used to hold.)
       Check_Source
         (Concept_Prefix & "end ordered" & LF
-         & "less_i32 := (a: i32, b: i32) -> (yes: bool) = a < b end" & LF
+         & "lt: (a: i32, b: i32) -> (yes: bool) = a < b end lt" & LF
+         & "less_i32 := lt" & LF
          & "i32 is ordered (less: less_i32)", 1,
-         "`less_i32` is a binding holding an anonymous function",
-         "declare `less_i32` as a function", Codes => "L0341");
+         "a concept entry must be supplied by a function",
+         "conformance entries name the functions", Codes => "L0341");
       --  D241: a literal argument with a reference field takes no type
       --  from its parameter; the refusal names the binding that does, and
       --  that binding passes.

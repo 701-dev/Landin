@@ -18,7 +18,7 @@ image is reader (read: read_image)
 read_generic: (t: type is reader, self: ptr t) -> (value: u8) =
     value = t.read(self)
 end read_generic
-copy: (t: type, in source: t) -> (value: t) =
+copy: (t: type, source: t) -> (value: t) =
     value = source
 end copy
 public main: () -> (code: i32) =

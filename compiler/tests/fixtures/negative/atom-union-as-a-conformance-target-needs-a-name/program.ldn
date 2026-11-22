@@ -1,4 +1,5 @@
-read, write: atom
+read: atom
+write: atom
 named: type = concept (t: type)
 end named
 read | write is named ()

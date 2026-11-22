@@ -410,7 +410,10 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   literal local and an `else` binding its block never reads, among others.
   A form the language removes is refused naming its replacement, and where
   the rewrite is mechanical the refusal carries it as its exact fix, which
-  this command applies.
+  this command applies. Anonymous functions, a written `in` on a parameter,
+  several names in one binding, field or atom declaration, the inline
+  struct declaration and selected imports are refused so, each with its
+  rewrite (D1654-D1658, D1888).
 - `refine svd --policy=POLICY.json --out-dir=DIR DEVICE.svd` reads a
   vendor's CMSIS-SVD file and a reviewed selection policy, requires the SVD
   to be the file the policy names by SHA-256, and writes a register module
@@ -695,7 +698,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   array, `[path_max]u8` (D438). An array length, in a routine body too,
   reads an integer compiler fact and `sizeof` or `alignof` of a built-in
   scalar at the selected target's value: `[sizeof usize]u8` is `[4]u8` on
-  a 32-bit target and `[8]u8` on a 64-bit one (D1321, D1340). A run in a static image is
+  a 32-bit target and `[8]u8` on a 64-bit one (D1321, D1340). A type
+  application's fixed actual folds the same expressions, so
+  `buf(compiler.word_size)` and `buf(sizeof u32)` are types (D1663). A run in a static image is
   written as one `.zero` or `.fill` where one directive writes it, and as
   repetitions no wider than 256 otherwise, so the assembly and the
   assembler's memory stay the source's size rather than the image's (D536). Before emission every
@@ -732,8 +737,10 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   a step through a pointer stands for its field, and a record that holds
   a reference into itself lends its reference-holding fields together
   (D1371).
-- **Modules.** Directory modules have file-local imports, aliases, selected
-  imports, typed global options and ordered roots. Option names collide with
+- **Modules.** Directory modules have file-local imports, aliases, typed
+  global options and ordered roots; a module is imported whole, and a
+  selected import is refused with the whole import and qualified uses as its
+  fix (D1658). Option names collide with
   ordinary declarations/imports only in their declaring module; unrelated
   modules may reuse the spelling in the ordinary namespace. Static Linux
   checking includes an available implicit startup module before configuration.

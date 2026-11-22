@@ -1,4 +1,7 @@
-size: type = (rows: u32, cols: u32)
+size: type = struct
+    rows: u32
+    cols: u32
+end size
 
 measured: (wide: u32, limit: u32) -> (whole: size) =
     met := wide == limit

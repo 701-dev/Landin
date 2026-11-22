@@ -8,7 +8,8 @@ point: type = struct
     y: u8
 end point
 
-red, green: atom
+red: atom
+green: atom
 colour: type = red | green
 
 double: (value: i32) -> (result: i32) =

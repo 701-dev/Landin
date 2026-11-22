@@ -1,4 +1,5 @@
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
 values: type = [2]problems
 opaque: type = distinct values

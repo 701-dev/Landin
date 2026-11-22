@@ -1,6 +1,5 @@
 [
   (function_declaration)
-  (anonymous_function)
   (struct_body)
   (concept_body)
   (if_expression)

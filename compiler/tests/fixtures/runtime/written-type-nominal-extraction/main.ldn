@@ -1,5 +1,6 @@
 base: type (item: type) = item
-north, south: atom
+north: atom
+south: atom
 problems: type = north | south
 hidden_problems: type = distinct problems
 point: type = struct

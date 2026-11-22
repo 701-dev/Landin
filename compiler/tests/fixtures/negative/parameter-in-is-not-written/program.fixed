@@ -1,0 +1,10 @@
+--  D1655: `in` is never written on a parameter; one without `inout` or
+--  `sink` is read-only, which is what `in` said, so the fix removes it.
+twice: (value: i32, inout total: i32) -> none =
+    total = total + value * 2
+end twice
+
+public main: () -> (code: i32) =
+    code = 0
+    twice(21, code)
+end main
