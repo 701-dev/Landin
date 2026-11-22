@@ -217,6 +217,7 @@ package body Landin.Tests.X86_Optimization_Suite is
    procedure Small_Routines (Item : in out Landin.Testing.Context);
    procedure Caller_Saved_Slots (Item : in out Landin.Testing.Context);
    procedure Float_Sources (Item : in out Landin.Testing.Context);
+   procedure Float_Constant_Pool (Item : in out Landin.Testing.Context);
    procedure Known_Atoms (Item : in out Landin.Testing.Context);
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context);
    procedure Choices_Move_Conditionally
@@ -2071,6 +2072,45 @@ package body Landin.Tests.X86_Optimization_Suite is
       end;
    end Float_Sources;
 
+   --  D2092: size and speed read a float constant from the read-only
+   --  pool, as the memory operand of the arithmetic and comparisons that
+   --  take one, with one entry for each pattern in the object; none still
+   --  builds it in a general register.
+   procedure Float_Constant_Pool (Item : in out Landin.Testing.Context) is
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      Two : constant String := "4611686018427387904";
+      Four : constant String := "4616189618054758400";
+   begin
+      Lower
+        (Item, Work,
+         "public twice: (x: f64) -> (r: f64) = r = x * 2.0 end twice" & LF
+         & "public under: (x: f64) -> (b: bool) =" & LF
+         & "b = x + 2.0 <= 4.0 end under");
+      declare
+         None : constant String := Emitted (Work, (Opt.None, Opt.Off));
+         Speed : constant String := Emitted (Work, (Opt.Speed, Opt.Off));
+         Size : constant String := Emitted (Work, (Opt.Size, Opt.Off));
+         function Pooled (Text : String) return Boolean is
+           (Contains (Text, "mulsd .")
+            and then Contains (Text, "landin_f64_" & Two & "(%rip)")
+            and then Contains (Text, "landin_f64_" & Four & "(%rip)")
+            and then Ada.Strings.Fixed.Count (Text, ".quad " & Two) = 1
+            and then Ada.Strings.Fixed.Count (Text, ".quad " & Four) = 1
+            and then not Contains (Text, "movabsq $" & Two)
+            and then not Contains (Text, "movabsq $" & Four));
+      begin
+         Check_Assembly
+           (Item,
+            Labelled ("none", None) & Labelled ("speed", Speed)
+            & Labelled ("size", Size),
+            Pooled (Speed) and then Pooled (Size)
+            and then Contains (None, "movabsq $" & Two)
+            and then not Contains (None, "landin_f64_"),
+            "a float constant is read from the read-only pool");
+      end;
+   end Float_Constant_Pool;
+
    --  The code a load of an atom checks cannot be wrong when the store
    --  reaching it in its block wrote an atom of its set.
    procedure Known_Atoms (Item : in out Landin.Testing.Context) is
@@ -2420,6 +2460,9 @@ package body Landin.Tests.X86_Optimization_Suite is
         (Into, "x86 opt", "caller-saved slots", Caller_Saved_Slots'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "float sources", Float_Sources'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "float constants come from a pool",
+         Float_Constant_Pool'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "known atoms", Known_Atoms'Access);
       Landin.Testing.Register

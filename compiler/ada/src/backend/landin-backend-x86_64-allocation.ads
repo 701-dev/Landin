@@ -89,6 +89,16 @@ package Landin.Backend.X86_64.Allocation is
       Value : Landin.IR.Value_Id;
       Facts : Landin.Targets.Target_Facts) return String;
 
+   --  D2092: whether Value is a float constant.  Size and speed read one
+   --  from the read-only pool selection emits, and leave it with no
+   --  location when every use of it is either operand of a float add,
+   --  subtract, multiply, divide or comparison, each of which takes the
+   --  pool's memory operand where it takes a register.
+   function Pooled
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Value : Landin.IR.Value_Id) return Boolean;
+
    --  D450: whether Value is compiler.stack_switch.  Selection emits it
    --  as a call of the program's switch routine, which resumes another
    --  stack and returns with only the callee-saved registers kept, so it
