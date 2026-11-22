@@ -1455,7 +1455,7 @@ list of six citing decisions held four that matched only "entry for".
 
 ### R19.60 — One spelling for each declaration
 
-Status: planned
+Status: active
 Depends on: R19.10, R19.40
 
 SC-03, SC-04, SC-08, SC-09 and SC-22: anonymous functions (D1654), a
