@@ -93,6 +93,20 @@ what a successor needs is never only in the conversation.
 9. **Report** in [the report form](report.md); `item.py report ITEM`
    drafts it from the state, with the open questions the item asked last.
 
+**In a breaking window**, a phase whose opening says `Window: BRANCH`,
+the same commands land the item on that integration branch in place of
+main ([process](../../../docs/process.md#a-breaking-window)): `start`
+branches from it, `merge-main` merges it, `promote` pushes to it once the
+push gate on the head passed, without step 4's boards, and `finish`
+follows at once. The window reaches main once, at its phase's gate, by
+the ordinary steps.
+
+A push the mirror refuses while GitHub takes it is no failed push:
+`push` and `promote` say so and print the command that brings the mirror
+up to date. Work that is no item takes a token with `item.py queue
+--take NAME --why TEXT`, decision numbers with `register_next.py
+--decision`, and asks a question with `--asked-by` saying what it is.
+
 A decision only the maintainer can take is a question file, never only a
 line in a report: `python3 scripts/register_next.py --question --file
 --asked-by ITEM`. Carry on with its default and with all the work its
