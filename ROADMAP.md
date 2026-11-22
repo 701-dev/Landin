@@ -1623,6 +1623,25 @@ removed form is refused with its replacement named, and `refine fix`
 rewrites the mechanical ones. The corpus, the library and the examples are
 rewritten, and the prototypes reread.
 
+Claimed after R19.90, on `r19-integration` at `b437817bc`, the window's
+one promotion to main: every item's completing commit passed its gate on
+that branch, and the integrated tree, with main `cfc977b79` merged in,
+passed the full
+[pass](https://github.com/701-dev/Landin/actions/runs/45022600141), a
+[boards dispatch](https://github.com/701-dev/Landin/actions/runs/45025032992)
+and the branch's own push gate. Each removed form is refused, as L0332 or
+L0696, by a negative fixture that names its replacement; `refine fix`
+rewrites the mechanical ones, the loops of R19.50, the five declaration
+spellings of R19.60 and the positional assembly block of R19.80, and the
+range subtype, the several-atom pointer union and `layout(optimal)` carry
+none, since their rewrite is the program's design. The corpus, the library
+and the examples compile in that pass with no removed form left. The
+prototypes were reread against the ten removals: prototype 1's `baud_rate`
+is a distinct type with its checking function, its `available` takes no
+written `in`, and prototype 3 imports `core/sort` whole; the forms still
+written in their findings sections and in the tour's `WHAT WAS TRIED AND
+DROPPED` are kept as rejected wording.
+
 ## R20 — The standard library reviewed
 
 A review of structure and concepts, on the smaller language. Its input is
