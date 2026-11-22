@@ -715,7 +715,7 @@ the copies.
 
 ### R16.29 — The small targets' remaining code
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What the Cortex-M, RISC-V and Xtensa items left: SR-231's atom `match`
