@@ -4880,9 +4880,9 @@ package body Landin.Stages.Lowering is
                   end loop;
                end if;
 
-               --  D29 commits labels in source order; D64 fills omitted
-               --  fields only afterwards, never clearing a value a label
-               --  can still read from the destination.
+               --  Labels are committed in source order, and omitted fields are
+               --  filled only afterwards, never clearing a value a label can
+               --  still read from the destination (D1827).
                for Written in 1 .. Construction_Field_Count (Of_Tree, Node)
                loop
                   declare
@@ -9387,10 +9387,10 @@ package body Landin.Stages.Lowering is
                return IR.Emit_Truth (Unit.all, Filling, False, Site);
 
             when Syn.Zeroed_Literal =>
-               --  D40--D43: the checker admits this expression only where a
-               --  scalar initializer or assignment destination supplies its
-               --  type.  Reuse D10/D39's constants; the surrounding binding or
-               --  assignment path emits its ordinary store.
+               --  The checker admits this expression only where a scalar
+               --  initializer or assignment destination supplies its type
+               --  ([0540], D241).  Reuse D10's constants; the surrounding
+               --  binding or assignment path emits its ordinary store.
                if Landin.Checking.Type_Of (Types.all, Of_Tree, Node) = Ty.Bool
                then
                   return IR.Emit_Truth (Unit.all, Filling, False, Site);
@@ -12962,8 +12962,9 @@ package body Landin.Stages.Lowering is
                   Address_Slot : IR.Slot_Id := IR.No_Slot);
 
                --  One field of [0710]'s copy, read from storage on the right
-               --  and written to storage on the left.  D55 also supplies a
-               --  fresh destination slot that has no source-level place.
+               --  and written to storage on the left.  A binding initializer
+               --  (D241) also supplies a fresh destination slot that has no
+               --  source-level place.
                --  D119: one field copied between two places, each a
                --  base field and D118's run below it.  An ordinary child
                --  recurses, so the depth of the copy is the depth of the
@@ -13534,10 +13535,11 @@ package body Landin.Stages.Lowering is
                               end if;
 
                            when Landin.Checking.Fixed_Array_Field =>
-                              --  D84 writes the same contextual array forms
-                              --  as an ordinary field.  A zero payload is a
-                              --  no-op because selecting the case cleared the
-                              --  complete padded part before any label ran.
+                              --  A payload array takes every value an ordinary
+                              --  field takes (D241), written after D76 selects
+                              --  the case.  A zero payload is a no-op because
+                              --  selecting the case cleared the complete
+                              --  padded part before any label ran.
                               Write_Array_Value
                                 (Construction_Field_Value
                                    (Of_Tree, Label), Destination,
@@ -14460,8 +14462,8 @@ package body Landin.Stages.Lowering is
                              (Value, (Kind => IR.Frame_Slot, Slot => Where),
                               Field => 0);
                         else
-                           --  D55 copies a nominal aggregate field by
-                           --  field.  D128 applies the same rule to the
+                           --  A nominal aggregate is copied field by field
+                           --  (D241).  D128 applies the same rule to the
                            --  ordered fields of an anonymous result shape.
                            declare
                               Shape : constant
@@ -14987,9 +14989,9 @@ package body Landin.Stages.Lowering is
                      end;
 
                   --  [0710]'s copy visits the same fields in [0750]'s
-                  --  order: a scalar is one field read and write, and
-                  --  D54 copies an array field with D50's compact
-                  --  operation.  No whole-struct opcode says more.
+                  --  order: a scalar is one field read and write, and an array
+                  --  field is D32's one compact copy.  No whole-struct opcode
+                  --  says more.
                   elsif Landin.Checking.Type_Of
                        (Types.all, Of_Tree,
                         Syn.Target_Of (Of_Tree, Stmt)) = Ty.Aggregate
@@ -15442,9 +15444,9 @@ package body Landin.Stages.Lowering is
                                     pragma Unreferenced (Ignored);
                                  end;
                               else
-                                 --  D49--D53/D65 and D90 share one
-                                 --  field-qualified lowering rule for each
-                                 --  contextual array value.
+                                 --  Every contextual array value written to a
+                                 --  field, at any depth (D118), shares one
+                                 --  field-qualified lowering rule (D241).
                                  Write_Assigned
                                    (Place, Value,
                                     Neutral_Value_Shape (Of_Tree, Value),
@@ -17167,8 +17169,8 @@ package body Landin.Stages.Lowering is
          elsif Value = Syn.No_Node
            or else Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
          then
-            --  D10/D39: omitted and explicit scalar zero initializers use
-            --  the same value. Booleans already took the static-image path.
+            --  D10: omitted and explicit scalar zero initializers use the same
+            --  value.  Booleans already took the static-image path.
             if Held in Ty.Float_Name then
                Answer := IR.Emit_Float (Unit.all, Filling, Held, 0, Site);
             else
@@ -18910,9 +18912,9 @@ package body Landin.Stages.Lowering is
       --  disturbing item-ordered block and value runs.  Array datums keep
       --  their per-position or compact repetition folds; an aggregate literal
       --  carries one fold per declaration-order field.  A direct storage name
-      --  follows D21/D60/D61's chain while preserving the source image.  An
-      --  absent or explicit zero image stays reserved in `.bss`; a written
-      --  image reaches `.data`.
+      --  follows D21's chain, as D24 and D66 extend it, while preserving the
+      --  source image.  An absent or explicit zero image stays reserved in
+      --  `.bss`; a written image reaches `.data`.
       Resolve_Module_Images :
       declare
          Declarations : constant Natural :=
@@ -20673,10 +20675,11 @@ package body Landin.Stages.Lowering is
                                  (Unit.all, Item, Which),
                                Selected);
 
-                        --  D82's finite and hybrid payload images append
-                        --  their prefix folds to the same item-owned image
-                        --  run as D67's top-level array fields.  Count them
-                        --  before opening that single run below.
+                        --  A selected payload's finite and hybrid images (D67,
+                        --  D68, D81) append their prefix folds to the same
+                        --  item-owned image run as D67's top-level array
+                        --  fields.  Count them before opening that single run
+                        --  below.
                         if Is_Case_Construction (Of_Tree, Value) then
                            for Payload_Position in
                              1 .. Construction_Field_Count (Of_Tree, Value)
@@ -21867,7 +21870,7 @@ package body Landin.Stages.Lowering is
             if Value = Syn.No_Node then
                null;
             elsif Syn.Kind (Their_Tree.all, Value) = Syn.Zeroed_Literal then
-               --  D27's explicit zero image remains absent, just like D10's
+               --  An explicit `zeroed` image remains absent, just like D10's
                --  omitted initializer; the backend therefore selects .bss.
                null;
             elsif Syn.Kind (Their_Tree.all, Value) = Syn.Array_Literal then

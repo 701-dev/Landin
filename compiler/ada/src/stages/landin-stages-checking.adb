@@ -8928,13 +8928,12 @@ package body Landin.Stages.Checking is
                           and then Unlaid_Bodies
                             (Landin.Checking.Template_Of
                                (Types.all, Child_Body));
-                        --  D119 drops D86's depth limit: a child holding
-                        --  a child is laid out the same way, because the
-                        --  extent of a field is the child's own layout and
-                        --  the path that reaches through it is a run.
-                        --  D126 drops the last one: a child holding a
-                        --  variant part is reached by the same run, which
-                        --  every variant operation now carries.
+                        --  A child holding a child is laid out the same way
+                        --  (D86, D119), because the extent of a field is the
+                        --  child's own layout and the path that reaches
+                        --  through it is a run.  A child holding a variant
+                        --  part is reached by the same run (D126), which every
+                        --  variant operation now carries.
                         if Child_Body /= Landin.Checking.No_Nominal_Type
                           and then Landin.Checking.Has_Layout
                             (Types.all, Child_Body)
@@ -24033,10 +24032,10 @@ package body Landin.Stages.Checking is
       --  Separate from Synthesise because a bare aggregate name is a
       --  value this kernel refuses in an expression, while the same name
       --  is how a field is reached and how a whole struct is copied.
-      --  D48 first admits a fixed-array field in the one context that names
-      --  one of its elements.  Keeping this separate from Selected_From
-      --  leaves the field itself refused as a general value or place while
-      --  D49/D50 add two assignment contexts explicitly.
+      --  A fixed-array field is admitted here in the one context that names
+      --  one of its elements (D118).  Keeping this separate from Selected_From
+      --  leaves the field itself refused as a general value or place except
+      --  where Admit_Array_Field admits it as a whole.
       function Indexed_From
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind;
 
@@ -24049,11 +24048,10 @@ package body Landin.Stages.Checking is
          Length  : Landin.Checking.Element_Count;
          Shape   : Landin.Checking.Field_Shape) return Boolean;
 
-      --  D49/D50 admit that same fixed-array field as a whole place only
-      --  when assignment supplies `zeroed` or another fixed-array storage
-      --  endpoint as its complete contextual value.  D51 reuses the note for
-      --  a local initializer source; the local/module gates remain at those
-      --  contextual callers.
+      --  Admit_Array_Field admits that same fixed-array field as a whole place
+      --  where an assignment or a local initializer supplies its complete
+      --  contextual value; the local/module gates remain at those contextual
+      --  callers.
       --  This predicate notes the field shape when that exact place exists;
       --  it reports nothing and leaves every other selection for the
       --  ordinary place checker, so root mutability and field diagnostics
@@ -24064,10 +24062,11 @@ package body Landin.Stages.Checking is
       function Selected_From
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind is
       begin
-         --  D88 admits a depth-one ordinary child only as the base of a
-         --  further field selection.  Synthesise still refuses the child as
-         --  a general aggregate value; this path-bearing question records
-         --  both declaration-order identities and the child's nominal body.
+         --  An ordinary child at any depth is the base of a further field
+         --  selection here (D118, D119).  Synthesise refuses the child where a
+         --  value of another type is wanted; this path-bearing question
+         --  records the path's declaration-order identities and the child's
+         --  nominal body.
          --  A bound qualified module member is a declaration, not a field:
          --  admit it below without treating its namespace as a value.
          if Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
@@ -29382,11 +29381,10 @@ package body Landin.Stages.Checking is
       end Check_Array_Literal;
 
       --  D76: a case value is contextual to one variant part.  A bare case
-      --  selects an empty payload; a case construction labels each scalar
-      --  payload leaf, while a fixed-array leaf may take only its zero image
-      --  in this first executable slice.  The value and its labels retain
-      --  source-order identities for lowering without becoming general
-      --  aggregate values.
+      --  selects an empty payload; a case construction labels each payload
+      --  leaf, and a fixed-array leaf takes every value an ordinary array
+      --  field takes (D241).  The value and its labels retain source-order
+      --  identities for lowering without becoming general aggregate values.
       procedure Check_Variant_Value
         (Of_Tree : Syn.Tree;
          Site    : Syn.Node_Id;
@@ -30281,11 +30279,11 @@ package body Landin.Stages.Checking is
          end if;
       end Check_Variant_Value;
 
-      --  D64: a labelled struct literal is contextual.  The destination
-      --  supplies [0710]'s nominal body; labels may be written in any order,
-      --  but each names one scalar field at most once.  A trailing
+      --  [0710]: a labelled struct literal is contextual (D241).  The
+      --  destination supplies [0710]'s nominal body; labels may be written in
+      --  any order, but each names one scalar field at most once.  A trailing
       --  `of zeroed` covers every field not named explicitly, including an
-      --  array field through D49's whole-field zero image.
+      --  array field through its whole-field zero image ([0540]).
       procedure Check_Struct_Literal
         (Of_Tree      : Syn.Tree;
          Literal      : Syn.Node_Id;
@@ -33427,7 +33425,7 @@ package body Landin.Stages.Checking is
                     (Types.all, Of_Tree, Syn.Target_Of (Of_Tree, Node))
                     = Ty.Ill_Typed
                then
-                  --  D50 may put a selection on the source side.  Since the
+                  --  A selection may be the source (D241).  Since the
                   --  destination owns this refusal, mark that unvisited
                   --  source ill-typed as well: the later flow walk must not
                   --  fall back from an undecided selection to a whole read
@@ -36108,8 +36106,8 @@ package body Landin.Stages.Checking is
 
          --  A contextual initializer boundary already owns a refused binding
          --  or value.  Every Declared_As_Node refusal marks the written type,
-         --  while D51's selected field marks the value; [1940] must not add a
-         --  second report after either refusal.
+         --  while a refused value, a selected field among them, marks the
+         --  value; [1940] must not add a second report after either refusal.
          if (Written /= Syn.No_Node
              and then Landin.Checking.Type_Of
                         (Types.all, Of_Tree, Written) = Ty.Ill_Typed)
@@ -36508,8 +36506,8 @@ package body Landin.Stages.Checking is
             return Ty.Fixed_Array;
          end if;
 
-         --  D61/D70: a module binding copies a static image [1940] from a
-         --  name, and an array also from one field of one.  A deeper
+         --  A module binding copies a static image [1940] from a name, and an
+         --  array also from one field of one (D24's chain, D66).  A deeper
          --  selection, or a struct field, is that image's boundary.
          if not Local
            and then Binding_Form
@@ -36549,7 +36547,7 @@ package body Landin.Stages.Checking is
 
          declare
             --  D21 infers D17's shape from a direct storage name for a local
-            --  or module binding.  D56/D61 admit an aggregate source only
+            --  or module binding.  An aggregate source is admitted (D241) only
             --  after carrying its nominal body identity.  Settling an
             --  untouched source is intentional for a forward module name;
             --  the Underway guard preserves an inferred cycle's single
@@ -36644,7 +36642,7 @@ package body Landin.Stages.Checking is
          --  settles a literal that has none.  D21's narrow array case reads
          --  the shape from a direct storage name without making array names
          --  general values.  D25/D26's literal was already given its finite
-         --  shape and element context by Infer_Value; D33/D35 do the same
+         --  shape and element context by Infer_Value; D33 does the same
          --  for a counted repetition.  Checking either here applies its
          --  contextual element boundary.  Every other form still goes
          --  through Synthesise and keeps its existing refusal.
@@ -36858,8 +36856,9 @@ package body Landin.Stages.Checking is
             end if;
 
             --  The value carries its complete inferred shape; the binding
-            --  takes the same one.  D56/D61 give an inferred aggregate the
-            --  declaration that wrote its body, D128 its result shape.
+            --  takes the same one.  An inferred aggregate takes the
+            --  declaration that wrote its body (D241), and D128 its result
+            --  shape.
             case Got is
                when Ty.Fixed_Array =>
                   Landin.Checking.Note_Array
@@ -37548,8 +37547,8 @@ package body Landin.Stages.Checking is
          Image_States (Id) := Visiting;
 
          --  An omitted initializer is D10's zero image; D24 admits an array
-         --  literal terminal image, while D27 and D59 spell array and struct
-         --  zero images explicitly.
+         --  literal terminal image, while an explicit `zeroed` spells D10's
+         --  absent image for an array or a struct.
          --  Refused or mismatched initializer forms are left to their existing
          --  diagnostics rather than producing graph fallout.
          if Value = Syn.No_Node then
@@ -37610,12 +37609,13 @@ package body Landin.Stages.Checking is
          end if;
 
          if Is_Struct_Construction (Of_Tree.all, Value) then
-            --  D69 follows a direct module array datum; D71 follows one
-            --  directly selected field by way of its containing module
-            --  struct.  Follow only well-shaped edges.  Every malformed
-            --  label keeps Check_Struct_Literal's diagnostic owner, while
-            --  the shared Visiting state owns every array/struct mixture that
-            --  comes back to a declaration already on the image path.
+            --  A labelled array field follows a direct module array datum, or
+            --  one directly selected field by way of its containing module
+            --  struct (D24's chain, D66, D67).  Follow only well-shaped edges.
+            --  Every malformed label keeps Check_Struct_Literal's diagnostic
+            --  owner, while the shared Visiting state owns every array/struct
+            --  mixture that comes back to a declaration already on the image
+            --  path.
             declare
                Wrote : constant Landin.Checking.Nominal_Type_Id :=
                  Landin.Checking.Nominal_Of (Types.all, Id);
@@ -37932,13 +37932,13 @@ package body Landin.Stages.Checking is
          end if;
 
          if Syn.Kind (Of_Tree.all, Value) = Syn.Member_Selection then
-            --  D70 adds the reverse static-image edge: an array datum may
-            --  take one fixed-array field from a module struct.  Validation
-            --  runs before the statement walk, so perform the same silent
-            --  contextual admission here before following the containing
-            --  declaration.  The later binding check still owns any D17
-            --  disagreement.  A malformed or already refused edge is invalid
-            --  silently because its contextual owner reports later.
+            --  D24's chain also takes the reverse static-image edge: an array
+            --  datum may take one fixed-array field from a module struct.
+            --  Validation runs before the statement walk, so perform the same
+            --  silent contextual admission here before following the
+            --  containing declaration.  The later binding check still owns any
+            --  D17 disagreement.  A malformed or already refused edge is
+            --  invalid silently because its contextual owner reports later.
             declare
                From : constant Syn.Node_Id :=
                  Syn.Target_Of (Of_Tree.all, Value);
@@ -37992,11 +37992,12 @@ package body Landin.Stages.Checking is
                  and then Landin.Checking.Nominal_Of (Types.all, Source_Id)
                           = Landin.Checking.Nominal_Of (Types.all, Id)
                then
-                  --  D60/D61 follow either D10/D59's absent zero image or
-                  --  D66--D68's labelled folded image.  Following identities
-                  --  still rejects a value chain that returns to itself.  A
-                  --  body with no layout has already refused the compilation;
-                  --  this graph walk adds no fallout for it.
+                  --  A struct storage name follows either D10's absent zero
+                  --  image or D66--D68's labelled folded image (D24's chain).
+                  --  Following identities still rejects a value chain that
+                  --  returns to itself.  A body with no layout has already
+                  --  refused the compilation; this graph walk adds no fallout
+                  --  for it.
                   Reaches_Image := Validate_Module_Image (Source_Id);
                end if;
             end if;
@@ -38701,7 +38702,7 @@ package body Landin.Stages.Checking is
                         (Types.all, Of_Tree, Value);
          end if;
 
-         --  D24/D26 fold every module array literal element.  D34/D35 fold
+         --  D24/D26 fold every module array literal element.  D34 folds
          --  one repetition pattern; D38 folds every finite prefix expression
          --  and its one suffix pattern through the same target-aware boundary.
          --  The contextual shape checks have already run.

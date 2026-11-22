@@ -6970,7 +6970,7 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both repetition nodes carry a shape");
    end Inferred_Repetition_Carries_Its_Source_Shape;
 
-   --  D35: a counted repetition supplies the same inferred shape at module
+   --  D33/D34: a counted repetition supplies the same inferred shape at module
    --  scope, where its scalar expression must also satisfy [1940].
    procedure Inferred_Module_Repetition_Carries_Its_Source_Shape
      (Item : in out Landin.Testing.Context);
@@ -7039,8 +7039,8 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both module repetition nodes carry a shape");
    end Inferred_Module_Repetition_Carries_Its_Source_Shape;
 
-   --  D39: an explicitly typed module scalar supplies `zeroed`'s scalar
-   --  context, including when a type alias supplies the enabled scalar.
+   --  [0540]/D241: an explicitly typed module scalar supplies `zeroed`'s
+   --  scalar context, including when a type alias supplies the enabled scalar.
    procedure Module_Scalar_Zeroed_Takes_Its_Written_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7099,7 +7099,7 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both scalar zeroed nodes were checked");
    end Module_Scalar_Zeroed_Takes_Its_Written_Type;
 
-   --  D40: an explicitly typed local scalar supplies `zeroed`'s scalar
+   --  [0540]/D241: an explicitly typed local scalar supplies `zeroed`'s scalar
    --  context, including through an alias.  Reading both bindings also pins
    --  that their initializers make them definitely assigned.
    procedure Local_Scalar_Zeroed_Takes_Its_Written_Type
@@ -7167,8 +7167,8 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both local scalar zeroed nodes were checked");
    end Local_Scalar_Zeroed_Takes_Its_Written_Type;
 
-   --  D41: a mutable module scalar destination supplies `zeroed`'s scalar
-   --  context, including when an alias supplies that destination type.
+   --  [0540]/D241: a mutable module scalar destination supplies `zeroed`'s
+   --  scalar context, including when an alias supplies that destination type.
    procedure Module_Scalar_Assignment_Gives_Zeroed_Its_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7227,8 +7227,8 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 1, "the assigned zeroed node was checked");
    end Module_Scalar_Assignment_Gives_Zeroed_Its_Type;
 
-   --  D41: assignment to a mutable local scalar also supplies `zeroed`'s
-   --  resolved scalar type and establishes definite assignment.
+   --  [0540]/D241: assignment to a mutable local scalar also supplies
+   --  `zeroed`'s resolved scalar type and establishes definite assignment.
    procedure Local_Scalar_Assignment_Gives_Zeroed_Its_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7288,8 +7288,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 1, "the local assigned zeroed node was checked");
    end Local_Scalar_Assignment_Gives_Zeroed_Its_Type;
 
-   --  D43: a scalar named return supplies `zeroed`'s resolved type, and the
-   --  ordinary assignment establishes the return place before `return`.
+   --  [0540]/D241: a scalar named return supplies `zeroed`'s resolved type,
+   --  and the ordinary assignment establishes the return place before
+   --  `return`.
    procedure Named_Return_Assignment_Gives_Zeroed_Its_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7348,8 +7349,8 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 1, "the named-return zeroed node was checked");
    end Named_Return_Assignment_Gives_Zeroed_Its_Type;
 
-   --  D42: an ordinary mutable struct field supplies `zeroed`'s resolved
-   --  scalar type, including when an alias names the field type.
+   --  [0540]/D118: an ordinary mutable struct field supplies `zeroed`'s
+   --  resolved scalar type, including when an alias names the field type.
    procedure Struct_Field_Assignment_Gives_Zeroed_Its_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7411,9 +7412,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 1, "the field zeroed node was checked");
    end Struct_Field_Assignment_Gives_Zeroed_Its_Type;
 
-   --  D42: a fixed-array element supplies `zeroed`'s resolved scalar element
-   --  type, including when an alias names that element type.  D62 applies the
-   --  same rule through a D48 array field on module and local storage.
+   --  [0540]/D118: a fixed-array element supplies `zeroed`'s resolved scalar
+   --  element type, including when an alias names that element type, and so
+   --  does one reached through an array field on module and local storage.
    procedure Array_Element_Assignment_Gives_Zeroed_Its_Type
      (Item : in out Landin.Testing.Context);
 
@@ -7484,9 +7485,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 3, "all element zeroed nodes were checked");
    end Array_Element_Assignment_Gives_Zeroed_Its_Type;
 
-   --  D49: the selected fixed-array field supplies both the contextual
-   --  shape of `zeroed` and the whole-field assignment fact used by the
-   --  computed read that follows it.
+   --  D241: the selected fixed-array field supplies both the contextual shape
+   --  of `zeroed` and the whole-field assignment fact used by the computed
+   --  read that follows it.
    procedure Array_Field_Assignment_Gives_Zeroed_Its_Shape
      (Item : in out Landin.Testing.Context);
 
@@ -7553,9 +7554,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 1, "the array-field zeroed node was checked");
    end Array_Field_Assignment_Gives_Zeroed_Its_Shape;
 
-   --  D52 gives D29's literal the selected field's complete contextual
-   --  shape.  The selection retains its declaration-order field identity;
-   --  neither fact is a target byte offset.
+   --  D241 gives D29's literal the selected field's complete contextual shape.
+   --  The selection retains its declaration-order field identity; neither fact
+   --  is a target byte offset.
    procedure Array_Field_Literals_Carry_Their_Destination_Shape
      (Item : in out Landin.Testing.Context);
 
@@ -7651,9 +7652,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both contextual field literals were checked");
    end Array_Field_Literals_Carry_Their_Destination_Shape;
 
-   --  D53 gives D32's full repetition and D37's mixed repetition the
-   --  selected field's complete context.  The field identity stays a
-   --  declaration-order position rather than becoming a target offset.
+   --  D241 gives D32's full repetition and D37's mixed repetition the selected
+   --  field's complete context.  The field identity stays a declaration-order
+   --  position rather than becoming a target offset.
    procedure Array_Field_Repetitions_Carry_Their_Destination_Shape
      (Item : in out Landin.Testing.Context);
 
@@ -7752,9 +7753,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 4, "all contextual field repetitions were checked");
    end Array_Field_Repetitions_Carry_Their_Destination_Shape;
 
-   --  D54 admits the one aggregate expression context as soon as every
-   --  field has an enabled copy representation.  Nominal identity stays on
-   --  both names while D16 and D48 account for scalar and array fields.
+   --  D241 admits a whole struct copy once every field has an enabled copy
+   --  representation.  Nominal identity stays on both names while D16 and the
+   --  element facts account for scalar and array fields.
    procedure Array_Bearing_Struct_Copy_Uses_Each_Field_Fact
      (Item : in out Landin.Testing.Context);
 
@@ -7847,9 +7848,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 5, "every whole aggregate assignment was checked");
    end Array_Bearing_Struct_Copy_Uses_Each_Field_Fact;
 
-   --  D58 gives a whole mutable struct place D57's contextual zero image.
-   --  Both storage classes carry the destination's nominal body, and the
-   --  local clear supplies every D16/D48 field fact used by the later read.
+   --  [0540]/D241 give a whole mutable struct place its contextual zero image.
+   --  Both storage classes carry the destination's nominal body, and the local
+   --  clear supplies every scalar and array field fact used by the later read.
    procedure Struct_Assignment_Gives_Zeroed_Its_Body
      (Item : in out Landin.Testing.Context);
 
@@ -7931,9 +7932,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both whole struct zeroed assignments were checked");
    end Struct_Assignment_Gives_Zeroed_Its_Body;
 
-   --  D55 gives a directly named whole struct D54's copy context; D57 gives
-   --  `zeroed` the same written nominal context.  Each value node and binding
-   --  keep the one body later layout and selection use.
+   --  D241 gives a directly named whole struct its copy context, and [0540]
+   --  gives `zeroed` the same written nominal context.  Each value node and
+   --  binding keep the one body later layout and selection use.
    procedure Local_Struct_Initializer_Keeps_Its_Nominal_Source
      (Item : in out Landin.Testing.Context);
 
@@ -8026,9 +8027,9 @@ package body Landin.Tests.Checking_Suite is
          "five explicit local struct initializers were checked");
    end Local_Struct_Initializer_Keeps_Its_Nominal_Source;
 
-   --  D59 gives the same written zero-image context to module bindings.
-   --  Mutable, immutable and aliased spellings all carry one nominal body;
-   --  lowering may then reuse D10's existing zero datum unchanged.
+   --  The same written zero-image context reaches module bindings.  Mutable,
+   --  immutable and aliased spellings all carry one nominal body; lowering may
+   --  then reuse D10's existing zero datum unchanged.
    procedure Module_Struct_Zeroed_Keeps_Its_Nominal_Body
      (Item : in out Landin.Testing.Context);
 
@@ -8107,9 +8108,10 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 2, "both module struct zero images were checked");
    end Module_Struct_Zeroed_Keeps_Its_Nominal_Body;
 
-   --  D60/D61 follow a direct module-storage name across forward declarations
-   --  and aliases while retaining [0710]'s one nominal body in typed and
-   --  inferred destinations.  The source name remains contextual here.
+   --  D24's chain and D66 follow a direct module-storage name across forward
+   --  declarations and aliases while retaining [0710]'s one nominal body in
+   --  typed and inferred destinations.  The source name remains contextual
+   --  here.
    procedure Module_Struct_Image_Chains_Keep_Their_Nominal_Body
      (Item : in out Landin.Testing.Context);
 
@@ -8194,7 +8196,7 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 4, "the four direct-name links were checked");
    end Module_Struct_Image_Chains_Keep_Their_Nominal_Body;
 
-   --  D56 infers the same nominal body from a direct struct storage name.
+   --  D241 infers the same nominal body from a direct struct storage name.
    --  The inferred declaration must carry that identity before later
    --  selections, copies and lowering ask for its layout.
    procedure Inferred_Local_Struct_Keeps_Its_Nominal_Source
@@ -8291,9 +8293,9 @@ package body Landin.Tests.Checking_Suite is
          "four inferred local struct initializers were checked");
    end Inferred_Local_Struct_Keeps_Its_Nominal_Source;
 
-   --  D50: a fixed-array field may supply or receive D20's complete copy.
-   --  The source read uses the field-qualified whole-array fact established
-   --  by D49 or an earlier copy, rather than D16's scalar-field bit.
+   --  D241: a fixed-array field may supply or receive D20's complete copy.
+   --  The source read uses the field-qualified whole-array fact established by
+   --  a clear or an earlier copy (D102), rather than D16's scalar-field bit.
    procedure Array_Field_Copy_Uses_Whole_Field_Facts
      (Item : in out Landin.Testing.Context);
 
@@ -8365,10 +8367,9 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 6, "six contextual array-field selections were checked");
    end Array_Field_Copy_Uses_Whole_Field_Facts;
 
-   --  D51 gives a selected fixed-array field D21's initializer context for
-   --  a local binding; D70 admits the same copied-image context at module
-   --  scope.  Written and inferred destinations carry the field shape
-   --  without making the selection a general value.
+   --  D241 gives a selected fixed-array field D21's initializer context for a
+   --  local binding, and D24's chain the same copied-image context at module
+   --  scope.  Written and inferred destinations carry the field shape.
    procedure Array_Field_Initializers_Carry_Their_Source_Shape
      (Item : in out Landin.Testing.Context);
 
@@ -8619,9 +8620,9 @@ package body Landin.Tests.Checking_Suite is
       Check_Target (Landin.Targets.Linux_X86_64, True);
    end Struct_Array_Field_Extent_Follows_Usize;
 
-   --  D47 adds a target-neutral frame shape for the same laid-out type D46
-   --  admitted as zeroed module state.  Both declaration-only storage
-   --  classes are enabled without forming a whole aggregate value.
+   --  A local struct takes a target-neutral frame shape for the same laid-out
+   --  type (D45) that module state takes when zeroed.  Both declaration-only
+   --  storage classes are enabled.
    procedure Struct_Array_Field_Storage_Classes_Are_Enabled
      (Item : in out Landin.Testing.Context)
    is
@@ -8663,9 +8664,9 @@ package body Landin.Tests.Checking_Suite is
          True);
    end Struct_Array_Field_Storage_Classes_Are_Enabled;
 
-   --  D64/D66--D71 carry one nominal body on the contextual literal, record
-   --  each source label as a declaration-order field identity, and give each
-   --  module array label its field's complete static shape.
+   --  D241 and D66--D68 carry one nominal body on the contextual literal,
+   --  record each source label as a declaration-order field identity, and give
+   --  each module array label its field's complete static shape.
    procedure Struct_Literals_Carry_Body_And_Field_Identities
      (Item : in out Landin.Testing.Context);
 
@@ -8941,8 +8942,8 @@ package body Landin.Tests.Checking_Suite is
         (Item, Seen, 5, "all construction contexts were checked");
    end Constructions_Carry_Their_Nominal_Body;
 
-   --  D71 gives a selected module struct array field the static label's D17
-   --  context without making the selection a general value.
+   --  D24's chain gives a selected module struct array field the static
+   --  label's D17 context.
    procedure Module_Struct_Field_Image_Carries_Source_Shape
      (Item : in out Landin.Testing.Context);
 

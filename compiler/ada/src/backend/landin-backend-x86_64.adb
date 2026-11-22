@@ -1828,10 +1828,12 @@ package body Landin.Backend.X86_64 is
             end if;
          end Store_Value;
 
-         --  D49/D50/D53 ask three compact whole-array operations for the
-         --  same target-derived shape and base address.  D57 reuses the base
-         --  for the complete padded extent of aggregate storage.  Keep that
-         --  replay in one place: a field is an IR identity, never an offset.
+         --  D32's three compact whole-array operations, a clear, a copy and a
+         --  fill, ask for the same target-derived shape and base address,
+         --  whether they reach an array or an array field.  A whole
+         --  aggregate's [0540] clear reuses the base for the complete padded
+         --  extent of its storage.  Keep that replay in one place: a field is
+         --  an IR identity, never an offset.
          function Array_Length_Of
            (Place         : Landin.IR.Storage;
             Field         : Natural;
@@ -2196,11 +2198,10 @@ package body Landin.Backend.X86_64 is
                         (Of_Unit, Item, Place.Address).Kind
                         = Landin.IR.Aggregate_Field_Shape);
          begin
-            --  D91 clears one whole child; D119 clears one however far
-            --  down the path went; D127 lets that run start at whole array
-            --  storage, so an element is reached the same way.  Either way
-            --  the extent is the reached part's own, replayed against this
-            --  target.
+            --  D120 clears one whole child, however far down D118's path it
+            --  went; D127 lets that run start at whole array storage, so an
+            --  element is reached the same way.  Either way the extent is the
+            --  reached part's own, replayed against this target.
             if (Field > 0 or else Nested'Length > 0)
               and then Reached_Shape (Place, Field, Nested).Kind
                          = Landin.IR.Aggregate_Field_Shape
@@ -5154,9 +5155,9 @@ package body Landin.Backend.X86_64 is
                      Check => "");
 
                when Landin.IR.Copy_Array =>
-                  --  D20/D50 move bytes directly between storage places.
-                  --  Each field is a declaration-order identity; its target
-                  --  offset is derived here.  The instruction stays one
+                  --  D20 and D32 move bytes directly between storage places or
+                  --  fields.  Each field is a declaration-order identity; its
+                  --  target offset is derived here.  The instruction stays one
                   --  operation even when D18 makes the extent too large for
                   --  the compiler host to enumerate.
                   declare
@@ -5210,9 +5211,10 @@ package body Landin.Backend.X86_64 is
                   end;
 
                when Landin.IR.Copy_Variant =>
-                  --  D80 moves the complete padded unfolded part.  Both
-                  --  endpoints were proved to have the same neutral shape;
-                  --  offsets and extent are derived for this target here.
+                  --  A whole variant-bearing value (D241) moves the complete
+                  --  padded unfolded part.  Both endpoints were proved to have
+                  --  the same neutral shape; offsets and extent are derived
+                  --  for this target here.
                   declare
                      Source : constant Landin.IR.Storage :=
                        Landin.IR.Source_Of (Of_Unit, Item, Value);
@@ -5256,11 +5258,11 @@ package body Landin.Backend.X86_64 is
                   end;
 
                when Landin.IR.Clear_Array =>
-                  --  D28 clears complete array storage without making IR or
-                  --  compiler work proportional to D18's extent.  D49 carries
-                  --  a declaration-order array-field identity.  D57 gives
-                  --  field zero of aggregate storage its complete padded
-                  --  extent, so [0540]'s all-bit image includes padding.
+                  --  D32 clears complete array storage without making IR or
+                  --  compiler work proportional to D18's extent.  The field
+                  --  may be a declaration-order array-field identity.  Field
+                  --  zero of aggregate storage is its complete padded extent,
+                  --  so [0540]'s all-bit image includes padding.
                   declare
                      Destination : constant Landin.IR.Storage :=
                        Landin.IR.Destination_Of (Of_Unit, Item, Value);
@@ -5431,7 +5433,7 @@ package body Landin.Backend.X86_64 is
 
                when Landin.IR.Fill_Array =>
                   --  D32 evaluates one scalar and repeats its target-width
-                  --  pattern through the destination.  D53 may name an array
+                  --  pattern through the destination, which may be an array
                   --  field; the element count, width and both containing and
                   --  suffix offsets stay compact and target-derived.
                   declare
@@ -5528,9 +5530,9 @@ package body Landin.Backend.X86_64 is
                   --  unsigned comparison, trap on index >= length, and only
                   --  then scale it and add it to the array's base address.
                   --  D22 lets the base be a module datum's symbol or a
-                  --  frame slot's %rbp-relative address; D48 may move that
-                  --  base to an aggregate field.  D89 may move it once more
-                  --  to a fixed array inside that ordinary child.
+                  --  frame slot's %rbp-relative address; D118's path may move
+                  --  that base to an aggregate field, and on to a fixed array
+                  --  inside an ordinary child at any depth.
                   declare
                      Reaches_Slot : constant Boolean :=
                        Landin.IR.Reaches_A_Slot (Of_Unit, Item, Value);
@@ -5688,7 +5690,7 @@ package body Landin.Backend.X86_64 is
                      end if;
 
                      --  Storage_Address first derives the top-level field
-                     --  and D84's selected payload offset; only after the
+                     --  and D76's selected payload offset; only after the
                      --  bounds check above is the scaled index added, and
                      --  only then the run inside the element.
                      Storage_Address

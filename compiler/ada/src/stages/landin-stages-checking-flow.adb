@@ -66,10 +66,9 @@ package body Landin.Stages.Checking.Flow is
    --  the part a fact is about.  An empty run is the name itself, one
    --  step is a field of it, and [0420] puts no limit on the rest.
    --
-   --  A run and not a pair packed into one integer.  Packing was what
-   --  D88-D90 did with the parent and the child, and it stops working
-   --  as soon as the field count raised to the depth leaves what a
-   --  Natural holds -- silently, and with the wrong answer.
+   --  A run and not a pair packed into one integer.  A packed parent and child
+   --  stops working as soon as the field count raised to the depth leaves what
+   --  a Natural holds -- silently, and with the wrong answer (D119).
    package Field_Paths is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Field_Number);
 
@@ -127,9 +126,9 @@ package body Landin.Stages.Checking.Flow is
    --  D16 makes a field of a struct local its own answer, so a name is
    --  field zero and its fields the fields after it.  A scalar uses zero
    --  alone; a struct never uses it, because a value of one is not a
-   --  thing this kernel can read.  D88's nested leaves use the sparse
-   --  parent/child set below rather than flattening the nominal child
-   --  into these facts.
+   --  thing this kernel can read.  A part two steps or more below the name has
+   --  its fact in the nested set below, named by D118's run, rather than
+   --  flattening the nominal child into these facts.
    type Field_Fact is record
       Declaration : Res.Declaration_Id;
       Field       : Field_Number;
@@ -187,9 +186,9 @@ package body Landin.Stages.Checking.Flow is
      (Element_Type => Array_Fact);
 
    --  A part reached by a run of two steps or more: a scalar leaf, or
-   --  since D119 a whole child written as one.  The depth-one facts
-   --  stay in the dense table above, which is the same question asked
-   --  where it can be answered by indexing.
+   --  since D119 a whole child written as one.  The depth-one facts stay in
+   --  the field set above, an ordered set like this one, which asks the same
+   --  question with a field number in place of a run.
    type Nested_Fact is record
       Declaration : Res.Declaration_Id;
       Path        : Field_Path;
@@ -955,8 +954,8 @@ package body Landin.Stages.Checking.Flow is
       end Array_Base;
 
       --  The same chain, when what it names sits two steps or more below
-      --  the name: the facts for those live in the sparse set rather than
-      --  in the dense per-field table.
+      --  the name: the facts for those live in the nested set rather than in
+      --  the depth-one field set.
       procedure Nested_Base
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -1304,7 +1303,7 @@ package body Landin.Stages.Checking.Flow is
             return False;
          end if;
 
-         --  The name itself, which is column zero of the dense table.
+         --  The name itself, which is field zero of the depth-one field set.
          if State.Fields.Contains ((Id, 0)) then
             return True;
          end if;
@@ -2120,9 +2119,9 @@ package body Landin.Stages.Checking.Flow is
          --  Reaching the field is not a read of the whole struct, which
          --  is why this does not walk into the base.
          if Syn.Kind (Of_Tree, Node) = Syn.Member_Selection then
-            --  D47: a refused array-field selection has no D16 fact.  Its
-            --  type was made ill-typed by synthesis, so do not fall back to
-            --  reading the whole local and add a second diagnostic.
+            --  A refused array-field selection has no D16 fact.  Its type was
+            --  made ill-typed by synthesis, so do not fall back to reading the
+            --  whole local and add a second diagnostic.
             if Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
                  = Ty.Ill_Typed
             then
@@ -2204,9 +2203,10 @@ package body Landin.Stages.Checking.Flow is
                      if Landin.Checking.Type_Of
                           (Types.all, Of_Tree, Node) = Ty.Fixed_Array
                      then
-                        --  D50 reads a copy source as one whole fixed-array
-                        --  field.  Its D48 sparse facts and D49/D50 whole
-                        --  fact are separate from D16's scalar-field bit.
+                        --  A copy source that is a fixed-array field is read
+                        --  as one whole field (D102).  Its sparse element
+                        --  facts and its whole-field fact are separate from
+                        --  D16's scalar-field bit.
                         Require_Array
                           (Of_Tree, Node, Id, State,
                            Path => One (Which), Whole_As => Whole_As);
@@ -3448,9 +3448,10 @@ package body Landin.Stages.Checking.Flow is
               and then Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
             then
                --  A refused whole array field is not assignable and must not
-               --  acquire a D16 fact through this recovery walk.  D48's
-               --  element destination returned through the branch above;
-               --  D49's contextual whole-field clear reaches this one.
+               --  acquire a D16 fact through this recovery walk.  An element
+               --  destination (D118) returned through the branch above; a
+               --  contextual whole-field `zeroed` clear (D32) reaches this
+               --  one.
                if Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
                     = Ty.Ill_Typed
                then
@@ -3578,8 +3579,8 @@ package body Landin.Stages.Checking.Flow is
 
                      --  A whole struct copied into a place assigns every
                      --  scalar field and every complete array field.  The
-                     --  two facts stay in their D16 and D48 tables rather
-                     --  than making an array field look scalar.
+                     --  two facts stay in their D16 field set and their array
+                     --  sets rather than making an array field look scalar.
                      if Landin.Checking.Has_Layout
                        (Types.all, Landin.Checking.Nominal_Of (Types.all, Id))
                      then
