@@ -1825,7 +1825,9 @@ forms. `core/iter` declares `iterable` and `for` takes no other concept of
 that name, L0348 naming the module for a program's own (D2048); the map
 conforms over its live entries in insertion order and the tree over its
 node identifiers, which `runtime/for-over-map-and-tree` walks on every
-product target and Cortex-M0, and `fallible_iterable` has left [1320].
+hosted product target, `runtime/library-shared-iter` walking a
+conformance on Cortex-M0 and RV32, and `fallible_iterable` has left
+[1320].
 `core/fibre`'s `bridge`, a routine, a state and a keeper of the first
 failure, is the one task both groups start, `hosted/thread`'s `job` and
 its `launch` leaving, and a fibre group holds one `any scheduler`, the

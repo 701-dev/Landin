@@ -2252,7 +2252,7 @@ runtime/for-any-element-traversal | linux-x86-64, linux-arm64, darwin-arm64, fre
 runtime/for-collection-traversal | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/for-finished-in-outer-loop | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/for-iterable-evidence-traversal | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
-runtime/for-over-map-and-tree | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0
+runtime/for-over-map-and-tree | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 runtime/for-range-traversal | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/for-value-block-statements | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/function-typed-module-binding-names-a-function | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

@@ -16431,7 +16431,7 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **The alternatives:** declaring the concept in `core/mem`, which every container imports already, or in `core/cmp`, beside the other evidence concepts, both of which give a module a concept outside its subject; `core/iterable`, which makes the conformance `iterable.iterable`; and accepting a program's own concept beside the library's, which keeps two identities and the ambiguity D180 refused. All were declined. The module's name is an implementation choice under D1957's answer, made without a question.
 
-**Pinned by** `runtime/for-over-map-and-tree`, which walks a map with a removed entry and a tree of two leaves and a branch on every product target and Cortex-M0; `negative/for-takes-only-core-iter-iterable` and `negative/r491-iterable-contract`, a program's own concept refused naming `core/iter`; and the traversal fixtures, `runtime/for-iterable-evidence-traversal` among them, which conform to `iter.iterable`.
+**Pinned by** `runtime/for-over-map-and-tree`, which walks a map with a removed entry and a tree of two leaves and a branch on every hosted product target, an image past Cortex-M0's 32 KiB profile, and `runtime/library-shared-iter`, which conforms to `iter.iterable` and walks it on Cortex-M0 and RV32; `negative/for-takes-only-core-iter-iterable` and `negative/r491-iterable-contract`, a program's own concept refused naming `core/iter`; and the traversal fixtures, `runtime/for-iterable-evidence-traversal` among them, which conform to `iter.iterable`.
 
 ### D1958 — `zeroable` stays a bound a program writes
 
