@@ -604,7 +604,7 @@ held in, which `Holds` cannot see, since a write after an operation's
 own result at its position looks like the result's; the measurement's
 oracles caught it, and selection's temporaries are now never offered.
 Filed: SR-1468, an `if`'s comparison computed into a register before its
-branch; SR-1465-SR-1467 record the friction met.
+branch; `SR-1465`-`SR-1467` record the friction met.
 
 ### R16.26 — The library's costs
 
@@ -1913,21 +1913,37 @@ Exit evidence: a negative fixture for each refusal pinning its new note,
 
 ### R20.62 — Tools that know a window
 
-Status: active
+Status: complete
 Depends on: R20.10
 
 The process tools a window's items worked around, mended before R20's
-promotion meets them: SR-1445's `item.py`, which starts, pushes, promotes
-and finishes against main only; SR-1548's row ages counted across a
-window's merge and a `Kept:` line in a merge's resolution; SR-1455's
-mirror failure judged as the push's; SR-1415's and SR-1446's row
-deletion, questions and decision numbers outside an item; SR-1466's
-`run_logged.py --stop` leaving a child holding the build lock; SR-1467's
-boards README and ssh options; and SR-1639's `agent_env.sh` cache holding
+promotion meets them: `SR-1445`'s `item.py`, which starts, pushes, promotes
+and finishes against main only; `SR-1548`'s row ages counted across a
+window's merge and a `Kept:` line in a merge's resolution; `SR-1455`'s
+mirror failure judged as the push's; `SR-1415`'s and `SR-1446`'s row
+deletion, questions and decision numbers outside an item; `SR-1466`'s
+`run_logged.py --stop` leaving a child holding the build lock; `SR-1467`'s
+boards README and ssh options; and `SR-1639`'s `agent_env.sh` cache holding
 the caller's environment.
 Exit evidence: each script's tests pinning the change, `docs/process.md`
 and the landin-change skill saying the window's steps, and R20's
 promotion refused for no row its merge alone aged.
+Done: R20 declares `Window: r20-integration`, and `item.py` starts,
+merges, lands and finishes the phase's items on it, without boards and
+with a token of its own, and finishes an item landed by hand. `push` and
+`promote` judge a push by GitHub and report the mirror's refusal with the
+command to retry; `queue --take` holds a token for work that is no item;
+`status` refreshes unfinished runs. A row's age counts only items
+completed after it on its line or after the joining merge, and a `Kept:`
+line written in a merge counts, so R20's promotion ages no row by the
+merge alone. `register_next.py` deletes rows with their citations quoted
+and the page regenerated, and gives out decision numbers; a question names
+the work that asked it. `run_logged.py` ends a run's process group and a
+lock wait names a holder by its descriptor. The boards README times one
+Pico 2 port alone and every ssh line says `IdentitiesOnly=yes`.
+`agent_env.sh` read `~/.bashrc` when its standard input was a socket; it
+now reads no startup file and writes no secret-looking name. The eight
+rows are deleted.
 
 ### R20 gate
 R20's breaking window: the list reached main in one promotion, so main
