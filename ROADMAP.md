@@ -748,7 +748,9 @@ every small routine with a loop cost fannkuch-redux 3% to 7% more cycles
 for fewer instructions, which is why loops keep D339's weight. What stays
 is filed: `SR-1650` the slot placement that leaves SHA-256's words in the
 frame, `SR-1654` the gain the loop rule gives up, `SR-1655` loop-invariant
-values, and `SR-1651` to `SR-1653` what the work met.
+values, and `SR-1651` to `SR-1653` what the work met. The candidate passed
+its [gate](https://github.com/701-dev/Landin/actions/runs/45078465564) on
+the window's branch; it reaches main with the window.
 
 ### R16.29 — The small targets' remaining code
 
