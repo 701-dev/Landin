@@ -64,7 +64,7 @@ bound: (at: net.address, kind: posix.socket_kind, listening: bool)
     if listening then
         try posix.set_reuse_address(socket, true)
     end if
-    try posix.bind(socket, try posix.internet_address(at))
+    try posix.bind(socket, try system.internet_address(at))
     if listening then
         try posix.listen(socket, backlog)
     end if
@@ -143,7 +143,7 @@ end socket_ready
 --  else holds the socket yet, so nothing closes it while the fibre waits.
 connected: (self: host, to: net.address, deadline: u64)
            -> (socket: posix.descriptor) ! posix.errno =
-    target: posix.socket_address = try posix.internet_address(to)
+    target: posix.socket_address = try system.internet_address(to)
     socket = try posix.socket(family_of(to), posix.stream)
     undo quietly_closed(socket)
     try posix.set_non_blocking(socket, true)
@@ -271,7 +271,7 @@ events_send_to: (self: host, socket: io.file, bytes: []u8,
     opened: posix.descriptor = system.descriptor_of(socket)
     deadline: u64 = limit_of(opened, true)
     --  A zone that names no interface leads nowhere.
-    target: posix.socket_address = posix.internet_address(to) else (problem)
+    target: posix.socket_address = system.internet_address(to) else (problem)
         record(self, problem)
         fail net.unreachable
     end
@@ -312,7 +312,7 @@ events_receive_from: (self: host, socket: io.file, into: []mut u8)
             fail io.io_failed
         end
         fail io.io_failed when got.count > lenof into
-        sender: net.address = posix.address_of(got.sender) else (problem)
+        sender: net.address = system.address_of(got.sender) else (problem)
             record(self, problem)
             fail io.io_failed
         end
@@ -345,7 +345,7 @@ named: (socket: io.file, peer: bool) -> (at: net.address) ! posix.errno =
     record: posix.socket_address =
         if peer then try posix.peer_name(system.descriptor_of(socket))
         else try posix.socket_name(system.descriptor_of(socket)) end if
-    at = try posix.address_of(record)
+    at = try system.address_of(record)
 end named
 
 events_local_address: (self: host, socket: io.file) -> (at: net.address)

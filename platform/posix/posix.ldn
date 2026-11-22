@@ -7,7 +7,10 @@
 --  beneath it, the system's own calls twice: over platform/linux's system
 --  calls on Linux, and over platform/libc, the C library Darwin and
 --  FreeBSD give as their system interface, on those two (D346).
---  hosted/system and hosted/heap are written once over it.  A system that is not POSIX, as
+--  hosted/system and hosted/heap are written once over it.  It sits below
+--  the protocol concepts: it imports no module that reaches core/io or
+--  core/net, and hosted/system adapts it to them, network addresses and
+--  the words for a failure among them (D1951).  A system that is not POSIX, as
 --  Windows is not, has no platform/posix: its providers implement the
 --  core concepts over its own interface instead.
 --

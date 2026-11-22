@@ -37666,6 +37666,11 @@ refused everywhere; and `abi/libc-socket-facts`, which holds the scope's
 place in the record, the interface requests and their record, and the
 lookups both ways to the C library's.
 
+D2008 supersedes this decision in part: `posix.internet_address` and its
+reading back are `system.internet_address` and `system.address_of` in
+`hosted/system`, over `platform/posix`'s `internet_record` and
+`endpoint_of`, which speak numbers rather than a `net.address`.
+
 ### D325 — The rest of the file system is a concept of its own
 
 **The tour said** at [1660] that a program reaches its host through
@@ -38979,6 +38984,11 @@ headers' wording, which words one errno three ways.
 hosted system numbers to a well-formed phrase none other has, words a
 missing path's `enoent` and a library atom, and `runtime/tree-copy`, whose
 `complain` now words its failures with it.
+
+D2008 supersedes this decision in part: `posix.reason` and the words that
+pass a library atom on are `system.reason` and `system.words` in
+`hosted/system`, and `posix.words` words an errno alone, so the POSIX
+layer imports nothing above it (D1951).
 
 ### D955 — A serial line's settings and its divisor are `core/line`'s, and a driver writes nothing it refuses
 
@@ -41972,7 +41982,9 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** splitting now, each module keeping its atoms' words; and the three importers reporting in their own atom sets. Both were declined until a measurement asks for them.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Settled in implementing it:** the measurement asks for nothing. On Cortex-M0 at the default `size` objective, a firmware image that imports `core/fibre` and uses nothing of it is the bare image byte for byte, 372 bytes of text; one that runs a group of fibres whose tasks fail with library atoms is 6,544, and every routine in it is `core/fibre`'s or the program's, none of `core/failure` or the eight modules it imports, because `failure.reason` is a type and a type costs no bytes. Only a call of `failure.words` brings the registry in, 1,104 bytes of routine and the phrases with it, 1,852 bytes in all, and that is the cost of the words a program asked for, which a split would not make smaller. The registry stays one.
+
+**Pinned by** the freestanding Cortex-M lane, `environments/cortex-m/freestanding.py`, whose `library-shared-fibre` image is refused if it holds `words`, while `library-shared-failure`'s, which calls it, does.
 
 ### D1951 — `platform/posix` sits below the protocol concepts
 
@@ -41982,7 +41994,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** leaving posix above as the protocols' hosted implementation; and routing `hosted/events` through it too. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** `check.py`'s control that no `platform` module reaches `core/io` or `core/net` through its imports, directly or through another module as `core/failure` would, and the fixtures D2008 names.
 
 ### D1952 — The I/O concepts stay narrow, and `world` gives each part as a value
 
@@ -42032,7 +42044,23 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** moving `core/io/fake` into the test tree; and retiring whatever gains no example. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** the examples page's two programs, `runtime/example-dice-and-cards`, a seeded `core/random` generator rolling dice and shuffling a deck, and `runtime/example-primes-on-threads`, primes counted on four `hosted/thread` threads, each run and compared on every hosted target; `core/io/fake` keeps the fixtures that already use it as a program's test provider.
+
+### D2008 — `platform/posix` keeps host strings, and `hosted/system` adapts it to addresses and words
+
+**The tour said** nothing; D1951 put `platform/posix` below the protocol concepts as far as its types allow, and left which types those are.
+
+**Chosen:** the system layer imports no module that reaches `core/io` or `core/net`. It keeps `core/text` for `text.host_string`, a path's or an argument's bytes as the system gives them, since `core/text` imports only `core/cmp` and `core/mem` and every path in the layer is one; it keeps `core/mem` and `core/atomic`, which are below everything. Three things move:
+
+- An environment variable's record, a name and a value as host strings, is declared in `core/text` as `host_variable`, and `io.variable` is an alias of it, so `posix.variable` and `posix.spawn` read and pass one without the I/O concepts. The alias lasts this window: R20's list renames the record and the alias leaves when the list is applied.
+- `posix.internet_address` and `posix.address_of`, which took and gave a `net.address`, become `system.internet_address` and `system.address_of` in `hosted/system`, which turns an address's zone into an interface's number and back. `platform/posix` lays a record out from numbers, `internet_record` of an `internet_endpoint`, its family, octets, port and IPv6 scope, and reads one back with `endpoint_of`; `interface_index` and `interface_name` stay there.
+- `posix.reason`, an errno or a library failure, becomes `system.reason`, and `system.words` words one, passing an errno to `posix.words`, which now takes an errno alone, and a library atom to `failure.words`. A `match` arm names one atom, so `system.words` names each of `failure.reason`'s atoms in an arm of its own and passes the rest to `posix.words`: an atom added to `failure.reason` without its arm is refused there, so the two cannot drift apart.
+
+`hosted/system` is where D1951 puts the adaptation, and `hosted/blocking` and `hosted/events` already import it, so neither keeps a copy.
+
+**The alternatives:** a path as a byte slice throughout the layer, which changes every path routine and every caller for no layer it removes; the record's numbers adapted in each provider, `hosted/blocking` and `hosted/events`, twice; `words` over errnos with no combined form, which leaves a program whose set mixes errnos and library atoms, `runtime/tree-copy`'s, with D582's problem again; and `posix.spawn` taking `NAME=value` strings, which makes its caller build them.
+
+**Pinned by** `runtime/posix-sockets`, `runtime/posix-non-blocking`, `runtime/network-connect-within`, `runtime/events-connect-within` and `abi/libc-socket-facts`, which make and read records through `hosted/system`; `runtime/posix-errno-words`, which words an errno with `posix.words` and an errno and two library atoms with `system.words`; `runtime/tree-copy`, whose `complain` takes `system.reason`; the environment and spawning fixtures, `runtime/environment-variables` and `runtime/posix-processes` among them, which pass `io.variable` unchanged; and `check.py`'s import control under D1951.
 
 ### D1959 — `caller` stays, and the library uses it
 

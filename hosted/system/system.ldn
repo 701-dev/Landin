@@ -8,7 +8,10 @@
 --  over a handle of this one and hands it what does not wait.  It is
 --  written once, over platform/posix, which reaches Linux through its
 --  system calls and Darwin and FreeBSD through their C library: nothing
---  here is written per system.  Import this module, or a provider built
+--  here is written per system.  It adapts that layer to the protocol
+--  concepts, which the layer does not import: `internet_address` and
+--  `address_of` turn a `net.address` into the system's record and back,
+--  and `words` words an errno or a library failure (D1951).  Import this module, or a provider built
 --  over it, only at a hosted authority root.
 
 import core/cmp

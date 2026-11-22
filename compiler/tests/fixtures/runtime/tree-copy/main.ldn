@@ -352,14 +352,14 @@ end copy_named
 --- errno and, through `core/failure`, the library's own failures.
 complain: (host: blocking.host, problem: too_many | too_long | inside_source
            | in_the_way | differs
-           | posix.reason) -> none =
+           | system.reason) -> none =
     reason: []u8 = match problem
         too_many: "a directory holds more entries than the copy keeps"
         too_long: "a name is longer than the copy keeps"
         inside_source: "the destination is the source directory or lies inside it"
         in_the_way: "something that is not a directory is where the copy needs one"
         differs: "the copy differs from what was copied"
-        _ (rest): posix.words(rest)
+        _ (rest): system.words(rest)
     end match
     io.write(host, io.err(host), "tree-copy: ") else none
     io.write(host, io.err(host), reason) else none

@@ -14,6 +14,7 @@ import core/time
 import core/failure
 import core/fibre
 import hosted/events
+import hosted/system
 import platform/posix
 
 --  The limit each bounded attempt is given.
@@ -75,13 +76,13 @@ else
                                                   posix.stream)
         defer posix.close(held) else none
         try posix.bind(held,
-                       try posix.internet_address(net.loopback(net.ipv4, 0)))
+                       try system.internet_address(net.loopback(net.ipv4, 0)))
         if on_darwin then
             try posix.listen(held, 1)
         else
             try posix.listen(held, 0)
         end if
-        at: net.address = try posix.address_of(try posix.socket_name(held))
+        at: net.address = try system.address_of(try posix.socket_name(held))
         yes = try times_out(host, at)
     end unanswered
 end if

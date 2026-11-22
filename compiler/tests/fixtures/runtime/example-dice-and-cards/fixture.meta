@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: D1956 the published dice example seeds a core/random generator with random.new from its argument, or with random.from_entropy when it has none, rolls two dice six hundred times with random.below and prints how often each total came up, then deals five cards of a deck put in order by random.shuffle; a seed prints the same report on every target
+program: main.ldn
+root: ../../../../..
+run_args: 2026
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0960, 1030, 1140, 1150, 1650, 1660
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

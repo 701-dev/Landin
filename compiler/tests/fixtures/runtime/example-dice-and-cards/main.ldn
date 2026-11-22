@@ -1,0 +1,92 @@
+--  Roll two dice six hundred times and count each total, then shuffle a
+--  deck of cards and deal a hand of five.  The draws come from a generator
+--  seeded with the number given as the argument, so a seed prints the same
+--  report on every target; with no argument the seed comes from the
+--  system's entropy, and every run differs.
+import core/failure
+import core/io
+import core/random
+import core/text
+import hosted/blocking
+
+--- How many times the two dice are rolled.
+rolls: u32 = 600
+
+--- The generator the report draws from: seeded with the first argument
+--- when there is one, so a run can be repeated, and from the system's
+--- entropy when there is none.
+seeded: (host: blocking.host) -> (source: random.generator) ! ... =
+    if io.argument_count(host) == 0 then
+        source = try random.from_entropy(host)
+        return
+    end if
+    argument: text.host_string = try io.argument_at(host, 0)
+    source = random.new(try text.parse_u64(text.host_bytes(argument)))
+end seeded
+
+--- Roll two dice `rolls` times and print how often each total came up, with
+--- a bar of one `#` for every five rolls.
+roll_dice: (host: blocking.host, inout source: random.generator)
+           -> none ! ... =
+    mut counts: [13]u32 = zeroed
+    mut left: u32 = rolls
+    while left > 0 do
+        dec left
+        first: usize = usize(random.below(source, 6)) + 1
+        second: usize = usize(random.below(source, 6)) + 1
+        inc counts[first + second]
+    end while
+    for total in usize(2)..<13 do
+        count: u32 = counts[total]
+        --  A template has no widths, so the columns are padded by hand.
+        if total < 10 then try io.write(host, io.out(host), " ") end if
+        try io.write_format(host, io.out(host), "{} ", [any(addr total)])
+        if count < 100 then try io.write(host, io.out(host), " ") end if
+        if count < 10 then try io.write(host, io.out(host), " ") end if
+        try io.write_format(host, io.out(host), "{} ", [any(addr count)])
+        mut marks: u32 = count / 5
+        while marks > 0 do
+            dec marks
+            try io.write(host, io.out(host), "#")
+        end while
+        try io.write(host, io.out(host), "\n")
+    end for
+end roll_dice
+
+--- Shuffle a deck of 52 cards, each a number from 0 to 51 whose rank is
+--- the number modulo 13 and whose suit is the number divided by 13, and
+--- print the first five.
+deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
+    ranks: []u8 = "A23456789TJQK"
+    suits: []u8 = "SHDC"
+    mut deck: [52]u8 = zeroed
+    for card in usize(0)..<52 do
+        deck[card] = u8(card)
+    end for
+    random.shuffle(source, deck)
+    try io.write(host, io.out(host), "hand:")
+    for card in deck[0..<5] do
+        name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
+        try io.write(host, io.out(host), name)
+    end for
+    try io.write(host, io.out(host), "\n")
+end deal
+
+--- Seed a generator, roll the dice and deal a hand from it.
+report: (host: blocking.host) -> none ! ... =
+    mut source: random.generator = try seeded(host)
+    try roll_dice(host, source)
+    try deal(host, source)
+end report
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    report(host) else (problem)
+        words: []u8 = failure.words(problem)
+        io.write_format(host, io.err(host), "dice: {}\n",
+                        [any(addr words)]) else none
+        return
+    end
+    code = 0
+end main

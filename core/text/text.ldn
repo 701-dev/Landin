@@ -246,6 +246,15 @@ public host_bytes: (source: host_string) -> (result: []u8 from source) =
     result = source.bytes
 end host_bytes
 
+--- One environment variable: its name and its value, host strings as the
+--- system keeps them.  `core/io` names it `io.variable`, and
+--- `platform/posix` reads and passes it, which is why it is declared here,
+--- below both (D1951).
+public host_variable: type = struct
+    name: host_string
+    value: host_string
+end host_variable
+
 --- The host string as UTF-8 text, lent: the checked conversion, which
 --- reports `invalid_text` when its bytes are not UTF-8, as `from_bytes`
 --- does.  A host string that is not text is still a working path or

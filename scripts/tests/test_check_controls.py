@@ -388,6 +388,35 @@ class LibraryModuleNames(unittest.TestCase):
                       said[0])
         self.assertIn("platform/cortex_m/timer", said[1])
 
+class PlatformBelowProtocols(unittest.TestCase):
+    """D1951: no platform module reaches core/io or core/net."""
+
+    def test_a_platform_module_over_text_passes(self):
+        self.assertEqual(faults(checker.check_platform_below_protocols,
+                                written={"core/text/text.ldn":
+                                             "import core/mem\n",
+                                         "core/mem/mem.ldn": "x: i32 = 1\n",
+                                         "platform/posix/posix.ldn":
+                                             "import core/text\n"}), [])
+
+    def test_an_import_reaching_the_protocols_is_named_with_its_chain(self):
+        said = reasons(checker.check_platform_below_protocols,
+                       written={"core/io/io.ldn": "x: i32 = 1\n",
+                                "core/net/net.ldn": "import core/io\n",
+                                "core/failure/failure.ldn":
+                                    "import core/net\n",
+                                "platform/posix/errno.ldn":
+                                    "import core/failure\n",
+                                "platform/posix/sockets.ldn":
+                                    "import core/net\n",
+                                "hosted/system/system.ldn":
+                                    "import core/io\n"})
+        self.assertEqual(len(said), 2, said)
+        self.assertIn("platform/posix imports core/failure", said[0])
+        self.assertIn("core/failure -> core/net", said[0])
+        self.assertIn("platform/posix imports core/net", said[1])
+
+
 class LibraryCommentWidth(unittest.TestCase):
     """D1317: a library documentation comment is at most 79 columns."""
 

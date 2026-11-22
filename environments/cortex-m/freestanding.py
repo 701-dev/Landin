@@ -343,6 +343,21 @@ start: () -> none = observed = u32(main()) end start
     return result
 
 
+def registry(out):
+    """D1950: importing core/fibre costs a firmware image nothing of core/failure.
+
+    `core/fibre` imports `core/failure` for its `reason` type, and that
+    module imports eight more to name their atoms; a program that never
+    calls `failure.words` carries none of them (D296), so the registry stays
+    one.  The fibre probe calls no `words`, and its image holds only
+    core/fibre's routines and its own.
+    """
+    names = set(json.loads((out / 'closure.json').read_text())['symbols'])
+    require('words' not in names,
+            "D1950: the core/fibre probe's image holds core/failure's words,"
+            ' which it never calls')
+
+
 def execute_suite(parent, refine, profiles=PROFILES, cases=None):
     root = parent.out / 'freestanding'
     root.mkdir()
@@ -364,6 +379,8 @@ def execute_suite(parent, refine, profiles=PROFILES, cases=None):
             out.mkdir()
             run = Run(out, parent.tools)
             elf = build(run, refine, program, optimize, specialize)
+            if name == 'library-shared-fibre':
+                registry(out)
             if name == 'panic':
                 panic(run, elf, refine)
             else:

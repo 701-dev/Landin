@@ -1737,7 +1737,7 @@ uses reread against them.
 
 ### R20.40 — Layers and consumers
 
-Status: active
+Status: complete
 Depends on: R20.10
 
 `platform/posix` moved below the protocol layer as far as its types
@@ -1747,6 +1747,27 @@ split on that measurement (D1950); an example program for `core/random`
 and `hosted/thread`, `core/io/fake` kept as a test provider (D1956).
 Exit evidence: the import graph without the upward edges; the firmware
 measurement recorded.
+Done: `platform/posix` imports nothing that reaches `core/io` or
+`core/net`, and `check.py` refuses a `platform` module that does, naming
+the chain (D1951). The layer keeps `core/text` for host strings, and three
+things moved (D2008): the environment variable's record is
+`text.host_variable`, with `io.variable` its alias for this window; a
+`net.address` becomes the system's record and back in `hosted/system`,
+`system.internet_address` and `system.address_of`, over posix's new
+`internet_record` and `endpoint_of`; and `posix.reason` and the combined
+words are `system.reason` and `system.words`, `posix.words` wording an
+errno alone. Each move is on `roadmap/inputs/breaking-list.md` for R20.60's
+refusals and `refine fix`. Measured on Cortex-M0 (D1950), importing
+`core/fibre` adds no byte to an image, running a group of fibres adds
+6,172 bytes, all of them `core/fibre`'s, and only a call of `failure.words`
+brings in the registry, 1,852 bytes; the registry stays one, and the
+freestanding lane refuses a fibre image that holds `words`. `core/random`
+and `hosted/thread` have example programs on the examples page,
+`runtime/example-dice-and-cards` and `runtime/example-primes-on-threads`,
+and `core/io/fake` keeps its place as a test provider (D1956). A match
+cannot name an atom set as one arm, which made `system.words` name forty
+atoms; that is `SR-1609`. The dice example pads its columns by hand, as
+`SR-285` records.
 
 ### R20.50 — One name per idea
 

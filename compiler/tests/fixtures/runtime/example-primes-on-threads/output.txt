@@ -1,0 +1,5 @@
+from 0: 22044 primes
+from 250000: 19494 primes
+from 500000: 18700 primes
+from 750000: 18260 primes
+below 1000000: 78498 primes

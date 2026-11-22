@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: D1956 the published threads example counts the primes below a million on four threads of hosted/thread, each admitted with its index and writing only its own count, defers thread.join so every thread is waited for on any way out, and reads the counts after join, with no lock of its own
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0960, 1030, 1150, 1660, 1675
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

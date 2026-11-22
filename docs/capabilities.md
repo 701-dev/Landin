@@ -980,11 +980,11 @@ process ignores SIGPIPE and gives its children the default back.
   `os_sync_wait_on_address` (D512).
   Every descriptor is closed on exec, with a descriptor handle type and
   errno atoms that keep their numbers and have words for a person,
-  `posix.words`, which passes the core library's failures to
-  `failure.words` (D582). `duplicate_above` duplicates a descriptor at
-  or above a number, clear of the standard streams with 3. `kill` sends a
-  signal to a process it names, or to a process group as C's `kill` names
-  one, zero for the caller's own and a negated leader's ID for another,
+  `posix.words`; `hosted/system`'s `system.words` words an errno or a
+  core library failure in one call (D582, D1951). `duplicate_above`
+  duplicates a descriptor at or above a number, clear of the standard
+  streams with 3. `kill` sends a signal to a process it names, or to a
+  process group as C's `kill` names one, zero for the caller's own and a negated leader's ID for another,
   refusing -1, beside `current_process` and the signal numbers (D1279,
   D1356). It sits over `platform/libc` on
   Darwin and FreeBSD and `platform/linux` on Linux. `platform/libc`

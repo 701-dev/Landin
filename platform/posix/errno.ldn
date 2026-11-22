@@ -9,10 +9,9 @@
 --  all three and is `eagain`, Linux's EDEADLOCK is `edeadlk`, and
 --  ENOTSUP, a number of its own only on Darwin, is EOPNOTSUPP's on Linux
 --  and FreeBSD, where a failure gives `eopnotsupp`.
---  `words` gives each a phrase for a person, and passes the core
---  library's failures on to `core/failure`'s (D582).
-
-import core/failure
+--  `words` gives each a phrase for a person (D582); `hosted/system`'s
+--  `words` words these and the core library's failures together, so this
+--  layer imports none of the modules above it (D1951).
 
 --- A failure no errno this module names describes: a number newer than
 --- its tables, or a record the system filled that could not be read.  Its
@@ -451,22 +450,16 @@ public number:
     end for
 end number
 
---- A failure of a program over the POSIX layer: an errno, or one of the
---- core library's failures, which every provider over this layer also
---- reports.
-public reason: type = errno | failure.reason
-
---- A short English phrase for a failure, as `failure.words` gives one:
---- in lower case but for a name's own capitals, with no final stop, so
---- that it reads after a subject and a colon, `settings: no such file or
---- directory`.  Every errno has its own phrase, the same on every system
---- and fixed, so a program may compare them, and no locale changes them:
---- C's `strerror` wording as glibc gives it, and the BSDs' own for the
---- errnos only they define.  A library failure is worded by
---- `failure.words`, so one call words whatever a program over this layer
---- fails with.  The phrase is static text: it borrows nothing and is
---- never freed.
-public words: (problem: reason) -> (phrase: []u8) =
+--- A short English phrase for an errno: in lower case but for a name's
+--- own capitals, with no final stop, so that it reads after a subject and
+--- a colon, `settings: no such file or directory`.  Every errno has its
+--- own phrase, the same on every system and fixed, so a program may
+--- compare them, and no locale changes them: C's `strerror` wording as
+--- glibc gives it, and the BSDs' own for the errnos only they define.
+--- `system.words` in `hosted/system` words an errno or a core library
+--- failure in one call.  The phrase is static text: it borrows nothing and
+--- is never freed.
+public words: (problem: errno) -> (phrase: []u8) =
     phrase = match problem
         eperm: "operation not permitted"
         enoent: "no such file or directory"
@@ -623,6 +616,5 @@ public words: (problem: reason) -> (phrase: []u8) =
         erpcmismatch: "RPC version wrong"
         eshlibvers: "shared library version mismatch"
         unlisted: "unknown error"
-        _ (rest): failure.words(rest)
     end match
 end words

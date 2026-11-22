@@ -10,13 +10,15 @@ order:
   the file you name, and [one](#adding-up-the-arguments) adds up however
   many numbers you give it.
 - Then come the classic exercises, from [FizzBuzz](#fizzbuzz) to
-  [Merge sort](#merge-sort), and [Sensors](#sensors), a program that puts
-  the language's main ideas together.
+  [Merge sort](#merge-sort) and
+  [Dice and a shuffled deck](#dice-and-a-shuffled-deck), and
+  [Sensors](#sensors), a program that puts the language's main ideas
+  together.
 - Then come two small tools that read their input,
   [Word count](#word-count) and [Line numbers](#line-numbers).
-- Then come larger tools that load a library or use processes, the network
-  and the file system, shortest first, from
-  [Loading a library](#loading-a-library) to
+- Then come larger tools that use threads, load a library or use
+  processes, the network and the file system, shortest first, from
+  [Counting primes on threads](#counting-primes-on-threads) to
   [Copying a tree](#copying-a-tree).
 - Then comes [firmware](#firmware-for-a-microcontroller): a program with
   no operating system under it, built for a Cortex-M0 and run in an
@@ -835,6 +837,153 @@ before: -12 5 0 99 5 2 -3 18
 after: -12 -3 0 2 5 5 18 99
 ```
 
+## Dice and a shuffled deck
+
+The program rolls two dice 600 times and prints how often each total came
+up, then shuffles a deck of cards and deals five. Its draws come from a
+`core/random` generator seeded with the number you give as the argument.
+With no argument the seed comes from the system's entropy.
+
+- `random.new(seed)` makes a generator from a number. A seed gives the same
+  sequence on every target, so `./dice 2026` prints the same report
+  wherever it runs. The generator is not cryptographic: bytes for a key
+  come from `io.fill_random`.
+- `seeded` reads the seed from the first argument [1650], and `try` passes
+  on a failure to read or parse it [0960]. `random.from_entropy(host)`
+  asks the host for a seed instead, since entropy is a capability like any
+  other [1660].
+- `random.below(source, 6)` draws a number from 0 to 5 without bias, each
+  as likely as the others. The generator is an `inout` parameter, because
+  every draw changes it.
+- `random.shuffle(source, deck)` puts the deck in a random order with the
+  Fisher-Yates shuffle, every order equally likely.
+- A template has no field widths, so `roll_dice` pads its columns by hand,
+  writing a space before a short number. A `while` loop draws each bar
+  [1140], and `for` walks the totals and the first five cards [1150].
+- When the seed cannot be read, `main` says why on standard error and
+  returns 1 [1030].
+
+Fixture source: `compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn`.
+
+```landin
+--  Roll two dice six hundred times and count each total, then shuffle a
+--  deck of cards and deal a hand of five.  The draws come from a generator
+--  seeded with the number given as the argument, so a seed prints the same
+--  report on every target; with no argument the seed comes from the
+--  system's entropy, and every run differs.
+import core/failure
+import core/io
+import core/random
+import core/text
+import hosted/blocking
+
+--- How many times the two dice are rolled.
+rolls: u32 = 600
+
+--- The generator the report draws from: seeded with the first argument
+--- when there is one, so a run can be repeated, and from the system's
+--- entropy when there is none.
+seeded: (host: blocking.host) -> (source: random.generator) ! ... =
+    if io.argument_count(host) == 0 then
+        source = try random.from_entropy(host)
+        return
+    end if
+    argument: text.host_string = try io.argument_at(host, 0)
+    source = random.new(try text.parse_u64(text.host_bytes(argument)))
+end seeded
+
+--- Roll two dice `rolls` times and print how often each total came up, with
+--- a bar of one `#` for every five rolls.
+roll_dice: (host: blocking.host, inout source: random.generator)
+           -> none ! ... =
+    mut counts: [13]u32 = zeroed
+    mut left: u32 = rolls
+    while left > 0 do
+        dec left
+        first: usize = usize(random.below(source, 6)) + 1
+        second: usize = usize(random.below(source, 6)) + 1
+        inc counts[first + second]
+    end while
+    for total in usize(2)..<13 do
+        count: u32 = counts[total]
+        --  A template has no widths, so the columns are padded by hand.
+        if total < 10 then try io.write(host, io.out(host), " ") end if
+        try io.write_format(host, io.out(host), "{} ", [any(addr total)])
+        if count < 100 then try io.write(host, io.out(host), " ") end if
+        if count < 10 then try io.write(host, io.out(host), " ") end if
+        try io.write_format(host, io.out(host), "{} ", [any(addr count)])
+        mut marks: u32 = count / 5
+        while marks > 0 do
+            dec marks
+            try io.write(host, io.out(host), "#")
+        end while
+        try io.write(host, io.out(host), "\n")
+    end for
+end roll_dice
+
+--- Shuffle a deck of 52 cards, each a number from 0 to 51 whose rank is
+--- the number modulo 13 and whose suit is the number divided by 13, and
+--- print the first five.
+deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
+    ranks: []u8 = "A23456789TJQK"
+    suits: []u8 = "SHDC"
+    mut deck: [52]u8 = zeroed
+    for card in usize(0)..<52 do
+        deck[card] = u8(card)
+    end for
+    random.shuffle(source, deck)
+    try io.write(host, io.out(host), "hand:")
+    for card in deck[0..<5] do
+        name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
+        try io.write(host, io.out(host), name)
+    end for
+    try io.write(host, io.out(host), "\n")
+end deal
+
+--- Seed a generator, roll the dice and deal a hand from it.
+report: (host: blocking.host) -> none ! ... =
+    mut source: random.generator = try seeded(host)
+    try roll_dice(host, source)
+    try deal(host, source)
+end report
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    report(host) else (problem)
+        words: []u8 = failure.words(problem)
+        io.write_format(host, io.err(host), "dice: {}\n",
+                        [any(addr words)]) else none
+        return
+    end
+    code = 0
+end main
+```
+
+Given a seed:
+
+```sh
+refine compile main.ldn -o dice
+./dice 2026
+```
+
+it prints
+
+```text
+ 2  20 ####
+ 3  36 #######
+ 4  49 #########
+ 5  58 ###########
+ 6  93 ##################
+ 7 107 #####################
+ 8  63 ############
+ 9  70 ##############
+10  51 ##########
+11  37 #######
+12  16 ###
+hand: 2H KD 9H KH KC
+```
+
 ## Sensors
 
 The language's main ideas working together in one program. Two kinds of
@@ -1162,6 +1311,135 @@ which prints
      2	two
      3	
      4	last
+```
+
+## Counting primes on threads
+
+The program counts the primes below a million on four threads that run in
+parallel, each counting its own quarter of the numbers, and prints what
+each found and the total. Read `count_all`, which starts the threads and
+waits for them, and then `count`, which each thread runs.
+
+- `thread.group_over(host, backing, workers)` makes a group of up to four
+  threads over a backing the program lends, and each thread's stack is cut
+  from it. The host is a capability, here `system.new()` [1660].
+- `thread.admit(group, count, work)` starts a thread running `count`. The
+  threads are started only as a group that the caller joins, as fibres
+  are [1675].
+- A thread gets a copy of the state it is admitted with, so it cannot hand
+  its result back through it. Each writes its count into the module array
+  `found` at the index its state carries, and no thread touches another's
+  slot.
+- `thread.join(group)` waits for every thread, and fails with the first
+  failure any task had, which `try` passes on [0960]. It is also deferred,
+  so the threads are waited for on every way out, a failed admission among
+  them.
+- `main` reads `found` only after `count_all` returns, when every thread
+  has ended, so the program needs no lock.
+- `for` walks each quarter's numbers and the four parts [1150]. When a
+  thread cannot be started, `main` says why on standard error and
+  returns 1 [1030].
+
+Fixture source: `compiler/tests/fixtures/runtime/example-primes-on-threads/main.ldn`.
+
+```landin
+--  Count the primes below a million on four threads at once, each
+--  counting its own quarter of the numbers, and print what each found and
+--  the total.  Each thread writes only its own part, and the program reads
+--  the parts only after `join` has waited for every thread, so nothing
+--  they share needs a lock.
+import core/failure
+import core/io
+import hosted/blocking
+import hosted/system
+import hosted/thread
+
+--- The numbers counted run from zero up to this, which is left out.
+limit: u32 = 1000000
+
+--- How many threads share the work.
+workers: usize = 4
+
+--- Each thread's part, which it fills in.  A thread is given a copy of the
+--- state it is admitted with, so it writes its count here, by the index the
+--- state carries, for `main` to read once the threads have ended.
+mut found: [workers]u32 = zeroed
+
+--- What a thread is admitted with: which part it is.
+task: type = struct
+    index: usize
+end task
+
+--- Whether `number` is prime, by trial division up to its square root.
+prime: (number: u32) -> (yes: bool) =
+    yes = number >= 2
+    mut divisor: u32 = 2
+    while yes and divisor * divisor <= number do
+        yes = number % divisor <> 0
+        inc divisor
+    end while
+end prime
+
+--- Count the primes of the part `state` names, on a thread of its own.
+count: (inout state: task) -> none ! failure.reason =
+    first: u32 = u32(state.index) * (limit / u32(workers))
+    last: u32 = first + limit / u32(workers)
+    mut primes: u32 = 0
+    for number in first..<last do
+        if prime(number) then inc primes end if
+    end for
+    found[state.index] = primes
+end count
+
+--- The threads' stacks, 192 KiB each: `count` needs little, but each
+--- stack also holds the area its thread starts on, the system's least,
+--- which is 128 KiB on arm64 under C's runtime (`thread.least_stack`).
+mut backing: [workers * 192 * 1024]u8 = zeroed
+
+--- Start one thread for each part and wait for all of them.  `join` is
+--- deferred, so the threads are waited for on every way out, a failed
+--- admission among them.
+count_all: (host: system.host) -> none ! failure.reason =
+    mut group := try thread.group_over(host, backing, workers)
+    defer thread.join(group) else none
+    for index in usize(0)..<workers do
+        work: task = (index: index)
+        try thread.admit(group, count, work)
+    end for
+    try thread.join(group)
+end count_all
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    count_all(system.new()) else (problem)
+        words: []u8 = failure.words(problem)
+        io.write_format(host, io.err(host), "primes: {}\n",
+                        [any(addr words)]) else none
+        return
+    end
+    mut total: u32 = 0
+    for index in usize(0)..<workers do
+        primes: u32 = found[index]
+        first: u32 = u32(index) * (limit / u32(workers))
+        io.write_format(host, io.out(host), "from {}: {} primes\n",
+                        [any(addr first), any(addr primes)]) else none
+        total += primes
+    end for
+    io.write_format(host, io.out(host), "below {}: {} primes\n",
+                    [any(addr limit), any(addr total)]) else none
+    code = 0
+end main
+```
+
+It prints
+
+```text
+from 0: 22044 primes
+from 250000: 19494 primes
+from 500000: 18700 primes
+from 750000: 18260 primes
+below 1000000: 78498 primes
 ```
 
 ## Loading a library
@@ -2154,8 +2432,10 @@ How the copy works:
   in it stays a hole.
 - `platform/posix` gives what the portable concepts do not: permission
   bits, owners, times and symbolic links.
-- `complain` words a failure with `posix.words`, which has a phrase for
-  every errno and passes the library's own failures to `failure.words`.
+- `complain` words a failure with `system.words`, from `hosted/system`,
+  which takes an errno or one of the library's own failures: it has a
+  phrase for every errno through `posix.words` and passes the library's
+  failures to `failure.words`.
 
 What the copy leaves out:
 
@@ -2534,14 +2814,14 @@ end copy_named
 --- errno and, through `core/failure`, the library's own failures.
 complain: (host: blocking.host, problem: too_many | too_long | inside_source
            | in_the_way | differs
-           | posix.reason) -> none =
+           | system.reason) -> none =
     reason: []u8 = match problem
         too_many: "a directory holds more entries than the copy keeps"
         too_long: "a name is longer than the copy keeps"
         inside_source: "the destination is the source directory or lies inside it"
         in_the_way: "something that is not a directory is where the copy needs one"
         differs: "the copy differs from what was copied"
-        _ (rest): posix.words(rest)
+        _ (rest): system.words(rest)
     end match
     io.write(host, io.err(host), "tree-copy: ") else none
     io.write(host, io.err(host), reason) else none

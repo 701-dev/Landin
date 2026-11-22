@@ -211,6 +211,10 @@ RUNNING_EXAMPLES = [
      "compiler/tests/fixtures/runtime/example-run-length-encoding/main.ldn"),
     ("Merge sort",
      "compiler/tests/fixtures/runtime/example-merge-sort/main.ldn"),
+    ("Dice and a shuffled deck",
+     "compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn"),
+    ("Counting primes on threads",
+     "compiler/tests/fixtures/runtime/example-primes-on-threads/main.ldn"),
     ("Sensors",
      "compiler/tests/fixtures/runtime/example-sensors/main.ldn"),
     ("Benchmark Game fannkuch-redux",
@@ -11895,6 +11899,83 @@ def check_library_module_names(full_run):
     return out
 
 
+#  The protocol layer the system layer sits below (D1951): the I/O and
+#  network concepts.  A module that imports one, as `core/failure` does,
+#  is above the system layer too.
+PROTOCOL_MODULES = ("core/io", "core/net")
+
+
+def library_imports():
+    """Each library module's imports, by module path, from its sources."""
+    modules = {}
+    for top in ("core", "hosted", "platform"):
+        base = os.path.join(ROOT, top)
+        for here, folders, files in os.walk(base):
+            folders.sort()
+            sources = sorted(one for one in files if one.endswith(".ldn"))
+            if not sources:
+                continue
+            module = os.path.relpath(here, ROOT).replace(os.sep, "/")
+            imported = modules.setdefault(module, {})
+            for one in sources:
+                path = os.path.join(here, one)
+                for number, line in enumerate(read_file(
+                        path, encoding="utf-8").splitlines(), 1):
+                    found = re.match(r"import ([a-z0-9_/]+)\s*$", line)
+                    if found:
+                        imported.setdefault(found.group(1), (
+                            os.path.relpath(path, ROOT).replace(os.sep, "/"),
+                            number))
+    return modules
+
+
+def check_platform_below_protocols(full_run):
+    """No `platform` module reaches the I/O or network concepts (D1951).
+
+    The system layer speaks descriptors, byte slices, host strings and
+    errno numbers, and `hosted/system` adapts it to `core/io` and
+    `core/net`; an import that reaches either from `platform/`, directly
+    or through another module, as `core/failure` would, runs against the
+    layers.  The import is named where it is written, with the chain it
+    reaches the protocol layer by.
+    """
+    if not full_run:
+        return []
+    modules = library_imports()
+    out = []
+    for module in sorted(modules):
+        if not module.startswith("platform/"):
+            continue
+        for target, (path, number) in sorted(modules[module].items()):
+            seen = {target}
+            route = {target: None}
+            queue = [target]
+            reached = None
+            while queue:
+                here = queue.pop(0)
+                if here in PROTOCOL_MODULES or any(
+                        here.startswith(one + "/") for one in PROTOCOL_MODULES):
+                    reached = here
+                    break
+                for onward in sorted(modules.get(here, {})):
+                    if onward not in seen:
+                        seen.add(onward)
+                        route[onward] = here
+                        queue.append(onward)
+            if reached is None:
+                continue
+            chain = [reached]
+            while route[chain[-1]] is not None:
+                chain.append(route[chain[-1]])
+            chain.reverse()
+            out.append((path, number, (
+                "%s imports %s, which reaches the protocol layer (%s); the"
+                " system layer sits below it and hosted/system adapts it"
+                " to core/io and core/net (D1951)"
+                % (module, target, " -> ".join(chain)))))
+    return out
+
+
 def check_core_module_places(full_run):
     """A `core` module is known in each place a module has to be known.
 
@@ -12605,6 +12686,7 @@ def main(argv):
     extra += check_library_documentation(full_run)
     extra += check_core_module_places(full_run)
     extra += check_library_module_names(full_run)
+    extra += check_platform_below_protocols(full_run)
     extra += check_library_comment_width(full_run)
     extra += check_library_consumers(full_run)
     extra += check_failure_words(full_run)

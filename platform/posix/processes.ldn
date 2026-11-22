@@ -3,7 +3,6 @@
 --  program and waiting for it, and ending at once.
 
 import core/atomic
-import core/io
 import core/mem
 import core/text
 import platform/libc
@@ -239,7 +238,7 @@ end environment
 --- a table changed since it was counted may hold.
 public variable:
     (table: environment_table, index: usize)
-    -> (item: io.variable from table) =
+    -> (item: text.host_variable from table) =
     if index >= table.count then
         compiler.unreachable()
     end if
@@ -383,7 +382,7 @@ end default_in_children
 --- is given is mapped for the call and unmapped after it.
 public spawn:
     (path: text.host_string, arguments: []text.host_string,
-     environment: []io.variable, streams: standard_streams)
+     environment: []text.host_variable, streams: standard_streams)
     -> (child: process_id) ! errno =
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])

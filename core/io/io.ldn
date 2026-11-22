@@ -117,11 +117,10 @@ end files
 --- system keeps them, which need not be UTF-8.  A variable the process was
 --- given is lent from the provider; one built for a child is lent from
 --- the caller's bytes, `(name: text.host_over("LANG"), value:
---- text.host_over("C"))`.
-public variable: type = struct
-    name: text.host_string
-    value: text.host_string
-end variable
+--- text.host_over("C"))`.  It is `text.host_variable`, which is declared
+--- below this module so that `platform/posix` reads and passes one
+--- without importing the I/O concepts (D1951).
+public variable: type = text.host_variable
 
 --- Standard streams and argument access. An argument is a host string
 --- whose storage belongs to the provider; stream identifiers have

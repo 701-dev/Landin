@@ -43,7 +43,7 @@ several of the tasks together.
 | Read a whole file into memory | `io.open_read(host, path)`, then `io.read(host, file, chunk)` until it gives 0, adding each piece to a builder with `text.append(whole, chunk[0..<got])`, and `io.close(host, file)`. The two kinds of builder are compared after this table | [core/io](../core/io), [core/text](../core/text) |
 | Write straight to standard error | `io.write(host, io.err(host), bytes)` | [core/io](../core/io) |
 | Turn a failure into words for a person | `failure.words(problem)` | [core/failure](../core/failure) |
-| Turn an errno from `platform/posix` into words | `posix.words(problem)`, which words the library's failures too | [platform/posix](../platform/posix) |
+| Turn an errno from `platform/posix` into words | `posix.words(problem)` for an errno alone; `system.words(problem)` for a `system.reason`, an errno or one of the library's failures | [platform/posix](../platform/posix), [hosted/system](../hosted/system) |
 | Right-align a number in a column | `text.over(buffer)` makes a builder, `text.append_u64(line, value)` writes the number, `text.align_right(line, start, width, u8(' '))` pads it from `start`, and `io.put(out, text.used(line))` prints it | [core/text](../core/text) |
 | Print a float with two decimals | Scale it to whole hundredths and print the integer parts, as [core/text](../core/text)'s program shows; floats are not formattable | [core/text](../core/text) |
 
@@ -1599,12 +1599,15 @@ A set that also holds an atom of the program's own does not widen to
 `failure.reason`, and a `match` arm of `_` does not narrow it. So such a
 program names each library atom it passes on.
 
-`platform/posix`'s errnos have words of their own in `posix.words`. That
-call passes the library's failures on to `failure.words`, so a program
-over that layer words either with one call.
+`platform/posix`'s errnos have words of their own in `posix.words`, which
+takes an errno and nothing else. `hosted/system` has `system.reason`, an
+errno or one of the library's failures, and `system.words`, which passes
+each to its own `words`, so a program over both layers words either with
+one call.
 
 Nothing is linked into a program that never calls `words`. One that does
-carries every phrase, about 6 KB of code and text on Cortex-M0.
+carries every phrase, about 2 KB of code and text on Cortex-M0: 1,852
+bytes at the default `size` objective (D1950).
 
 [Executable example](../compiler/tests/fixtures/runtime/failure-words-report/main.ldn)
 
