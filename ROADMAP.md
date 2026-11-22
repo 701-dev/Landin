@@ -1726,8 +1726,8 @@ library to what is mechanical, an erased provider not kept, a capability
 after an input, a `caller` before the end, with a table of the departures
 the list reshapes that refuses an entry once it no longer departs. Its
 controls are `LibraryConventions`. The section "How a capability is
-received" of [the breaking list](roadmap/inputs/breaking-list.md), which
-this item began with R20.50's form, names seven: `text.format_onto`, which
+received" of [the breaking list](roadmap/inputs/breaking-list.md) names
+seven: `text.format_onto`, which
 takes `any outlet` without keeping it; `stacks.round_over`,
 `fake.network_over_turns` and the `file_system` entry `make_temporary`,
 each with a capability after an input; and `mem.transfer`,
@@ -1769,13 +1769,29 @@ measurement recorded.
 
 ### R20.50 — One name per idea
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 One name each for absence, running out of room, the end of an iteration,
 a length and giving storage back, and one meaning each for the names
 that carry several (D1953). Each rename goes on the breaking list.
 Exit evidence: the list's naming entries, each with its old and new name.
+Done: the list's naming entries are the names section of
+[`roadmap/inputs/breaking-list.md`](roadmap/inputs/breaking-list.md),
+which this item began for R20.20, R20.30, R20.40 and R20.50 to share,
+since the items named a breaking list that had no file: 45 renames, each
+with its old and new name, its decision and whether `refine fix` rewrites
+it, and what each idea keeps. Absence is one atom, `mem.not_found`
+(D2028); running out of room `mem.out_of_memory` (D2029); the end of a
+walk `at_end`, never a failure (D2030); how many items a value holds its
+`length` (D2031); giving storage back `release` and `core/mem`'s three
+`allocate`/`release` pairs, closing `close` (D2032); `host` the provider
+and the system's string an `os_string` (D2033); and `new`, `used`, `at`,
+`space`, `cursor` and `entry` one meaning each (D2034). Three spellings
+are the maintainer's, Q-171 to Q-173, and the list is written with their
+defaults. Overlaps were agreed with their owners: R20.40's moved
+`io.variable` record, whose alias leaves at R20.60, and the `entries`
+parameter R20.20 reorders.
 
 ### R20.60 — The breaking list applied
 
