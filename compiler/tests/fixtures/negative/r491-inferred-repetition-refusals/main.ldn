@@ -1,13 +1,4 @@
-box: type = struct value: u32 end box
 noop: () -> none = end noop
-
-pointers: (value: ptr u8) -> none =
-    row := [2 of value]
-end pointers
-
-structs: (value: box) -> none =
-    row := [2 of value]
-end structs
 
 nothing: () -> none =
     row := [2 of noop()]

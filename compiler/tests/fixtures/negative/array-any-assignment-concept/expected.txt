@@ -1,4 +1,4 @@
-error[L0301]: this is not an array of the type written here
+error[L0301]: this does not have the required array type and shape
   --> ../tests/fixtures/negative/array-any-assignment-concept/main.ldn:9:13
   |
 9 |     wrong = source
@@ -7,4 +7,4 @@ error[L0301]: this is not an array of the type written here
   |
 9 |     wrong = source
   |     ^^^^^ the place written here
-  = note: D17: an array's length and element type are its identity
+  = note: The value must match the complete type, shape and reference permissions required by this context

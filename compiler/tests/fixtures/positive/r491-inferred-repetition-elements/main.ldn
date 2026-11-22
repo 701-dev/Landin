@@ -1,0 +1,13 @@
+box: type = struct value: u32 end box
+
+--  [0560]/D1664: a counted repetition takes a pointer or a struct element
+--  as it takes a scalar one.
+pointers: (value: ptr u8) -> none =
+    row := [2 of value]
+    _ = row
+end pointers
+
+structs: (value: box) -> none =
+    row := [2 of value]
+    _ = row
+end structs

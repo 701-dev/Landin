@@ -6,5 +6,5 @@ error[L0328]: this array has no all-bits-zero value
   --> ../tests/fixtures/negative/array-reference-zeroed/main.ldn:5:12
   |
 5 |     value: [3]ptr node = zeroed
-  |            ^^^^^^^^^^^ the array type written here
+  |            ^^^^^^^^^^^ the type written here
   = note: [0540]: the complete element type must have a zero image; fill the array from one valid element with `[n of value]`

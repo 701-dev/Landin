@@ -1,4 +1,4 @@
-error[L0301]: this is not a value of the nominal type required here
+error[L0301]: this does not have the required aggregate type and shape
   --> ../tests/fixtures/negative/struct-copy-across-types/program.ldn:15:9
    |
 15 |     q = p

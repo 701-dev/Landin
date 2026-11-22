@@ -1,7 +1,0 @@
-error[L0304]: a counted repetition infers only a scalar element
-  --> ../tests/fixtures/negative/r720-counted-repetition-scalar-element/main.ldn:11:20
-   |
-11 |     whole := [2 of p]
-   |                    ^
-  = note: the tour describes it at [0520]
-  = note: this is a recorded source-form boundary

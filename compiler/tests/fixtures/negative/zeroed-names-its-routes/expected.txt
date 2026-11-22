@@ -16,5 +16,5 @@ error[L0328]: this array has no all-bits-zero value
   --> ../tests/fixtures/negative/zeroed-names-its-routes/main.ldn:21:19
    |
 21 |     mut readings: [4]reading = zeroed
-   |                   ^^^^^^^^^^ the array type written here
+   |                   ^^^^^^^^^^ the type written here
   = note: [0540]: the complete element type must have a zero image; fill the array from one valid element with `[n of value]`

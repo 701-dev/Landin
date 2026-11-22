@@ -1,7 +1,7 @@
 class: negative
-summary: inferred repetitions report their element refusal once and retain the refused expression fact
+summary: an inferred repetition reports an element that supplies no type once, and retains the refused expression fact
 program: main.ldn
-codes: L0304, L0304, L0331, L0301
+codes: L0331, L0301
 constructs: 0050, 0520, 0530, 0670, 1890
 targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 expect: expected.txt

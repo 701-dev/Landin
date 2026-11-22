@@ -1,4 +1,4 @@
-error[L0301]: this is not an array of the type written here
+error[L0301]: this does not have the required array type and shape
   --> ../tests/fixtures/negative/struct-array-field-copy-shape-mismatch/program.ldn:9:17
   |
 9 |     state.row = words
@@ -7,4 +7,4 @@ error[L0301]: this is not an array of the type written here
   |
 9 |     state.row = words
   |     ^^^^^^^^^ the place written here
-  = note: D17: an array's length and element type are its identity
+  = note: The value must match the complete type, shape and reference permissions required by this context

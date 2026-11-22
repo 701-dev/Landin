@@ -1,0 +1,5 @@
+class: positive
+summary: an inferred counted repetition takes a pointer or a struct element (D1664)
+program: main.ldn
+constructs: 0050, 0520, 0560, 0670
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

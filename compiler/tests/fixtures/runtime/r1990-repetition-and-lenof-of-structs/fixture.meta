@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: a counted repetition and a module literal infer a struct element, and lenof measures a literal of structs (D1664, D1947)
+constructs: 0370, 0520, 0530, 0560, 0670, 1740, 1940
+program: main.ldn
+status: 28
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

@@ -1,34 +1,20 @@
-error[L0304]: a counted repetition infers only a scalar element
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:5:18
-  |
-5 |     row := [2 of value]
-  |                  ^^^^^
-  = note: the tour describes it at [0520]
-  = note: this is a recorded source-form boundary
-error[L0304]: a counted repetition infers only a scalar element
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:9:18
-  |
-9 |     row := [2 of value]
-  |                  ^^^^^
-  = note: the tour describes it at [0520]
-  = note: this is a recorded source-form boundary
 error[L0331]: this hands back nothing, so it cannot supply an array element type
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:13:18
-   |
-13 |     row := [2 of noop()]
-   |                  ^^^^^^
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:13:5
-   |
-13 |     row := [2 of noop()]
-   |     ^^^^^^^^^^^^^^^^^^^^ this inferred binding
-  = note: D33: repetition supplies one scalar element type for the inferred array
+  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:4:18
+  |
+4 |     row := [2 of noop()]
+  |                  ^^^^^^
+  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:4:5
+  |
+4 |     row := [2 of noop()]
+  |     ^^^^^^^^^^^^^^^^^^^^ this inferred binding
+  = note: [0530]/[0560]: the first element, or the repeated value, supplies the element type of the inferred array
 error[L0301]: this operator wants numbers and was given `bool`
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:17:21
-   |
-17 |     row := [2 of (1 + true)]
-   |                     ^
-  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:17:19
-   |
-17 |     row := [2 of (1 + true)]
-   |                   ^^^^^^^^ here
+  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:8:21
+  |
+8 |     row := [2 of (1 + true)]
+  |                     ^
+  --> ../tests/fixtures/negative/r491-inferred-repetition-refusals/main.ldn:8:19
+  |
+8 |     row := [2 of (1 + true)]
+  |                   ^^^^^^^^ here
   = note: [1890]: ordinary arithmetic admits integers and floats; width and bit operators admit integers

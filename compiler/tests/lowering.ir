@@ -22116,6 +22116,17 @@ item 1 ROUTINE f result usize signature 1 params 0 slots 3 blocks 1 values 4
     2 STORE slot 1 <- 1
     3 LOAD usize slot 1
     4 LEAVE <- 3
+file positive/lenof-array-literal-takes-any-element/program.ldn
+unit signatures 1 items 1
+signature 1 () -> usize
+item 1 ROUTINE f result usize signature 1 params 0 slots 2 blocks 1 values 4
+  slot 1 length usize return
+  slot 2 value aggregate fields u8 u8
+  block 1 scope 5 BLOCK length 4
+    1 NUMBER usize 1
+    2 STORE slot 1 <- 1
+    3 LOAD usize slot 1
+    4 LEAVE <- 3
 file positive/lenof-remains-a-name/program.ldn
 unit signatures 2 items 2
 signature 1 () -> usize
@@ -28482,6 +28493,53 @@ item 2 ROUTINE read_array result u32 signature 2 params 1 slots 4 blocks 1 value
     8 STORE slot 2 <- 7
     9 LOAD u32 slot 2
     10 LEAVE <- 9
+file positive/r491-inferred-repetition-elements/main.ldn
+unit signatures 2 items 2
+signature 1 (in usize) -> none
+signature 2 (in struct box) -> none
+item 1 ROUTINE pointers result none signature 1 params 1 slots 2 blocks 1 values 3
+  slot 1 value usize param 1
+  slot 2 row elements 2 of usize
+  block 1 scope 5 BLOCK length 3
+    1 LOAD usize slot 1
+    2 FILL_ARRAY destination slot 2 first 1 <- 1
+    3 LEAVE
+item 2 ROUTINE structs result none signature 2 params 1 slots 8 blocks 4 values 23
+  slot 1 value aggregate fields u32 param 1
+  slot 2 row elements 2 of struct (u32)
+  slot 3 - aggregate fields u32
+  slot 4 - address of struct (u32)
+  slot 5 - address of struct (u32)
+  slot 6 - usize
+  slot 7 - address of struct (u32)
+  slot 8 - address of struct (u32)
+  block 1 scope 7 BLOCK length 8
+    1 STORAGE_ADDRESS usize storage slot 1
+    2 STORE slot 4 <- 1
+    3 STORAGE_ADDRESS usize storage slot 3
+    4 STORE slot 5 <- 3
+    5 COPY_ARRAY from address slot 4 to address slot 5
+    6 NUMBER usize 0
+    7 STORE slot 6 <- 6
+    8 JUMP target 2
+  block 2 scope 7 BLOCK length 4
+    9 LOAD usize slot 6
+    10 NUMBER usize 2
+    11 LESS_THAN bool <- 9 10
+    12 BRANCH target 3 alternative 4 <- 11
+  block 3 scope 7 BLOCK length 10
+    13 LOAD usize slot 6
+    14 STORAGE_ADDRESS usize storage slot 2 <- 13
+    15 STORE slot 7 <- 14
+    16 STORAGE_ADDRESS usize storage slot 3
+    17 STORE slot 8 <- 16
+    18 COPY_ARRAY from address slot 8 to address slot 7
+    19 NUMBER usize 1
+    20 ADD usize <- 13 19
+    21 STORE slot 6 <- 20
+    22 JUMP target 2
+  block 4 scope 7 BLOCK length 1
+    23 LEAVE
 file positive/r491-local-type-scope/program.ldn
 unit signatures 8 items 7
 signature 1 () -> i32
@@ -33519,6 +33577,80 @@ signature 1 () -> none
 item 1 ROUTINE start result none signature 1 params 0 slots 0 blocks 1 values 1
   block 1 scope 5 BLOCK length 1
     1 LEAVE
+file positive/r720-counted-repetition-element/main.ldn
+unit signatures 1 items 1
+signature 1 (in struct point) -> none
+item 1 ROUTINE f result none signature 1 params 1 slots 16 blocks 7 values 47
+  slot 1 p aggregate fields u8 u8 param 1
+  slot 2 written elements 2 of struct (u8,u8)
+  slot 3 - aggregate fields u8 u8
+  slot 4 - address of struct (u8,u8)
+  slot 5 - address of struct (u8,u8)
+  slot 6 - usize
+  slot 7 - address of struct (u8,u8)
+  slot 8 - address of struct (u8,u8)
+  slot 9 counted elements 2 of i32
+  slot 10 whole elements 2 of struct (u8,u8)
+  slot 11 - aggregate fields u8 u8
+  slot 12 - address of struct (u8,u8)
+  slot 13 - address of struct (u8,u8)
+  slot 14 - usize
+  slot 15 - address of struct (u8,u8)
+  slot 16 - address of struct (u8,u8)
+  block 1 scope 5 BLOCK length 8
+    1 STORAGE_ADDRESS usize storage slot 1
+    2 STORE slot 4 <- 1
+    3 STORAGE_ADDRESS usize storage slot 3
+    4 STORE slot 5 <- 3
+    5 COPY_ARRAY from address slot 4 to address slot 5
+    6 NUMBER usize 0
+    7 STORE slot 6 <- 6
+    8 JUMP target 2
+  block 2 scope 5 BLOCK length 4
+    9 LOAD usize slot 6
+    10 NUMBER usize 2
+    11 LESS_THAN bool <- 9 10
+    12 BRANCH target 3 alternative 4 <- 11
+  block 3 scope 5 BLOCK length 10
+    13 LOAD usize slot 6
+    14 STORAGE_ADDRESS usize storage slot 2 <- 13
+    15 STORE slot 7 <- 14
+    16 STORAGE_ADDRESS usize storage slot 3
+    17 STORE slot 8 <- 16
+    18 COPY_ARRAY from address slot 8 to address slot 7
+    19 NUMBER usize 1
+    20 ADD usize <- 13 19
+    21 STORE slot 6 <- 20
+    22 JUMP target 2
+  block 4 scope 5 BLOCK length 10
+    23 NUMBER i32 7
+    24 FILL_ARRAY destination slot 9 first 1 <- 23
+    25 STORAGE_ADDRESS usize storage slot 1
+    26 STORE slot 12 <- 25
+    27 STORAGE_ADDRESS usize storage slot 11
+    28 STORE slot 13 <- 27
+    29 COPY_ARRAY from address slot 12 to address slot 13
+    30 NUMBER usize 0
+    31 STORE slot 14 <- 30
+    32 JUMP target 5
+  block 5 scope 5 BLOCK length 4
+    33 LOAD usize slot 14
+    34 NUMBER usize 2
+    35 LESS_THAN bool <- 33 34
+    36 BRANCH target 6 alternative 7 <- 35
+  block 6 scope 5 BLOCK length 10
+    37 LOAD usize slot 14
+    38 STORAGE_ADDRESS usize storage slot 10 <- 37
+    39 STORE slot 15 <- 38
+    40 STORAGE_ADDRESS usize storage slot 11
+    41 STORE slot 16 <- 40
+    42 COPY_ARRAY from address slot 16 to address slot 15
+    43 NUMBER usize 1
+    44 ADD usize <- 37 43
+    45 STORE slot 14 <- 44
+    46 JUMP target 5
+  block 7 scope 5 BLOCK length 1
+    47 LEAVE
 file positive/r720-discard-aggregate-places/program.ldn
 unit signatures 1 items 3
 signature 1 (in [2]u8, in struct point, in usize, in usize, in [2]usize, in usize) -> struct point
@@ -33928,6 +34060,44 @@ item 2 ROUTINE f result u8 signature 2 params 4 slots 36 blocks 1 values 107
     105 STORE slot 5 <- 104
     106 LOAD u8 slot 5
     107 LEAVE <- 106
+file positive/r720-inferred-module-array-element/main.ldn
+unit signatures 0 items 5
+item 1 DATUM first result struct params 0 slots 0 blocks 1 values 1
+  field 1 u8
+  field 2 u8
+  image 1 2
+  block 1 scope 1 PROGRAM length 1
+    1 LEAVE
+item 2 DATUM second result struct params 0 slots 0 blocks 1 values 1
+  field 1 u8
+  field 2 u8
+  image 3 4
+  block 1 scope 1 PROGRAM length 1
+    1 LEAVE
+item 3 DATUM bytes result array params 0 slots 0 blocks 1 values 1
+  elements 2 of i32
+  image 1 2
+  block 1 scope 1 PROGRAM length 1
+    1 LEAVE
+item 4 DATUM points result array params 0 slots 0 blocks 1 values 1
+  elements 2 of struct (u8,u8)
+  image elements 2 last repeat 1
+  image element 1 nested
+  image element 1.1 image 1
+  image element 1.2 image 2
+  image element 2 nested
+  image element 2.1 image 3
+  image element 2.2 image 4
+  block 1 scope 1 PROGRAM length 1
+    1 LEAVE
+item 5 DATUM rows result array params 0 slots 0 blocks 1 values 1
+  elements 2 of struct (u8,u8)
+  image elements 1 last repeat 2
+  image element 1 nested
+  image element 1.1 image 1
+  image element 1.2 image 2
+  block 1 scope 1 PROGRAM length 1
+    1 LEAVE
 file positive/r720-inferred-reference-literals/program.ldn
 unit signatures 2 items 5
 atom set 1 atoms {red, green}

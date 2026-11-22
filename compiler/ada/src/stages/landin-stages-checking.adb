@@ -2253,7 +2253,8 @@ package body Landin.Stages.Checking is
       --  a refusal of Node itself to name; nothing Node contains is told.
       function Selected_From
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind;
-      function Admit_Array_Field
+      --  [0520]: whether a name or a selection holds a whole array.
+      function Holds_Array
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean;
       --  D118/D119: whether a selection chain [0420] starts at a bound
       --  name.  The depth is the source's; nothing here fixes one.
@@ -3165,6 +3166,15 @@ package body Landin.Stages.Checking is
          Local    : Boolean;
          Shape    : out Type_Descriptor;
          Inferred : out Boolean);
+      procedure Infer_Element_Shape
+        (Of_Tree  : Syn.Tree;
+         Owner    : Syn.Node_Id;
+         First    : Syn.Node_Id;
+         Count    : Landin.Checking.Element_Count;
+         Extent   : Syn.Node_Id;
+         Local    : Boolean;
+         Shape    : out Type_Descriptor;
+         Inferred : out Boolean);
       function Is_Known (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
         return Boolean;
       procedure Check_Module_Value
@@ -3423,6 +3433,33 @@ package body Landin.Stages.Checking is
                    or else Shape.Kind = Landin.Checking.Aggregate_Field
                  then (others => <>) else Shape);
       end Complex_Element;
+
+      --  The complete context a declared type or a place gives a value: its
+      --  kind, and for a struct its body, for an array its length and
+      --  element.  [1880]: the destination decides, whatever the value form.
+      function Destination_Context
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Kind    : Ty.Type_Kind) return Value_Context
+        is (if Kind = Ty.Fixed_Array
+            then
+              (Kind    => Ty.Fixed_Array,
+               Length  => Landin.Checking.Array_Length
+                 (Types.all, Of_Tree, Node),
+               Element => Landin.Checking.Array_Element
+                 (Types.all, Of_Tree, Node),
+               Element_Shape => Complex_Element (Of_Tree, Node),
+               Element_Nominal =>
+                 Landin.Checking.Array_Element_Nominal
+                   (Types.all, Of_Tree, Node),
+               others  => <>)
+            elsif Kind = Ty.Aggregate
+            then
+              (Kind    => Ty.Aggregate,
+               Nominal => Landin.Checking.Nominal_Of
+                 (Types.all, Of_Tree, Node),
+               others  => <>)
+            else (Kind => Kind, others => <>));
 
       function Shape_Descriptor
         (Shape : Landin.Checking.Field_Shape) return Type_Descriptor is
@@ -10348,25 +10385,6 @@ package body Landin.Stages.Checking is
                 (Types.all, Struct_Body_Id)
               and then Landin.Checking.Has_Variant_Part
                 (Types.all, Struct_Body_Id);
-            --  D46 admits [1740]'s declaration-only module state once D45
-            --  laid out all of its scalar and fixed-array fields: D10 makes
-            --  the entire datum zero without forming an aggregate value.
-            --  D47 admits the same declaration-only shape as one frame cell;
-            --  D16 still tracks and requires its scalar fields independently.
-            --  A parameter, return or written value still needs a whole-value
-            --  rule this slice does not have.
-            Is_Aggregate_Parameter : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Parameter;
-            Is_Aggregate_Return : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Named_Return;
-            Is_Array_Parameter : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Parameter;
-            Is_Array_Return : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Named_Return;
             Is_Zeroed_State : constant Boolean :=
               Syn.Kind (Of_Tree, Node) = Syn.Binding
               and then Syn.Value_Of (Of_Tree, Node) = Syn.No_Node
@@ -10384,223 +10402,6 @@ package body Landin.Stages.Checking is
                    Landin.Checking.Nominal_Of
                      (Types.all, Of_Tree, Written)
                        /= Landin.Checking.No_Nominal_Type);
-            --  D21: an array binding may be initialized directly from a
-            --  whole-array storage name.  Resolution makes that module
-            --  storage at module scope and an in-scope storage declaration
-            --  inside a body.  D51 also admits a fixed-array field when the
-            --  destination binding is local; D70 admits the same contextual
-            --  source for a module binding's static image.  The field remains
-            --  outside the general-value rules.  Every other
-            --  value form (an array literal, a call, `zeroed`, or a slice) is
-            --  deferred: none of them is a Name_Reference.  An inferred
-            --  direct-name binding has no Written node and is admitted
-            --  separately by Infer.
-            --  D118: the source may sit under however many selections
-            --  [0420] composed. D178's complete fixed-array element shape
-            --  also makes a locally selected array element whole storage,
-            --  including through a slice or pointer. A module image still
-            --  takes only a direct name or one field of one, because D70
-            --  folds it rather than copying at run time.
-            Is_Array_Storage_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then
-                (if Is_Local_Binding (Of_Tree, Node)
-                 then Chain_Names_Element_Storage
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 else Chain_Names_Storage
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-              and then
-                (Is_Local_Binding (Of_Tree, Node)
-                 or else Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                           /= Syn.Member_Selection
-                 or else Syn.Kind
-                   (Of_Tree,
-                    Syn.Target_Of
-                      (Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-                     = Syn.Name_Reference);
-            --  D55/D60: a written local or module struct type supplies the
-            --  nominal context for one initializer copied directly from
-            --  storage.  The module form copies a static image rather than
-            --  executing a runtime copy.
-            --  Resolution has already stopped the pipeline for an unresolved
-            --  name; a resolved type declaration is not runtime storage.
-            Is_Direct_Struct_Init : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then
-                (Chain_Names_Element_Storage
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 or else
-                   (Is_Local_Binding (Of_Tree, Node)
-                    and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                      = Syn.Name_Reference
-                    and then Res.Verdict_Of
-                      (Meanings.all, Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                        = Res.Bound
-                    and then Res.Sort_Of
-                      (Meanings.all, Res.Bound_To
-                         (Meanings.all, Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-                           = Res.Pattern_Binding))
-              and then
-                (Is_Local_Binding (Of_Tree, Node)
-                 or else Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                           = Syn.Name_Reference)
-              and then Landin.Checking.Nominal_Of
-                (Types.all, Of_Tree, Written)
-                  /= Landin.Checking.No_Nominal_Type;
-            Is_Array_Call_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then (Is_Local_Binding (Of_Tree, Node)
-                or else Is_Type_Call
-                  (Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       in Syn.Call | Syn.Labeled_Application
-                          | Syn.Try_Expression;
-            Is_Array_Arithmetic_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Is_Local_Binding (Of_Tree, Node)
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Is_Array_Arithmetic
-                (Of_Tree, Syn.Value_Of (Of_Tree, Node));
-            --  [0960]'s `try` has exactly one call operand and produces that
-            --  call's successful value.  Admit it through the same local
-            --  struct destination as the bare call; Synthesise still checks
-            --  the operand, error set and exact erased-entry signature.
-            Is_Struct_Call_Init : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then (Is_Local_Binding (Of_Tree, Node)
-                or else Is_Type_Call
-                  (Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then
-                (Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node)) = Syn.Call
-                 or else
-                   (Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                      = Syn.Try_Expression
-                    and then Syn.Kind
-                      (Of_Tree,
-                       Syn.Operand_Of
-                         (Of_Tree, Syn.Value_Of (Of_Tree, Node)))
-                        in Syn.Call | Syn.Labeled_Application))
-              and then Landin.Checking.Nominal_Of
-                (Types.all, Of_Tree, Written)
-                  /= Landin.Checking.No_Nominal_Type;
-            --  D125: a local control expression fills the written
-            --  caller-owned shape directly; no aggregate pseudo-value
-            --  exists.
-            Is_Array_Control_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Is_Local_Binding (Of_Tree, Node)
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                in Syn.If_Statement | Syn.Match_Statement | Syn.Bare_Block
-                   | Syn.Loop_Statement | Syn.While_Statement
-                   | Syn.For_Statement;
-            Is_Struct_Control_Init : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Is_Local_Binding (Of_Tree, Node)
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                in Syn.If_Statement | Syn.Match_Statement | Syn.Bare_Block
-                   | Syn.Loop_Statement | Syn.While_Statement
-                   | Syn.For_Statement
-              and then Landin.Checking.Nominal_Of
-                (Types.all, Of_Tree, Written)
-                  /= Landin.Checking.No_Nominal_Type;
-            --  D57/D59: the written local or module struct supplies [0540]'s
-            --  complete all-bits-zero image.  Inference and general values
-            --  remain separate contextual positions.
-            Is_Struct_Zeroed_Init : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Zeroed_Literal
-              and then Landin.Checking.Nominal_Of
-                (Types.all, Of_Tree, Written)
-                  /= Landin.Checking.No_Nominal_Type;
-            --  D64/D66: a written local or module struct type supplies the
-            --  body for one labelled literal.  The module form is a static
-            --  image; an inferred literal still has no nominal identity.
-            Is_Struct_Literal_Init : constant Boolean :=
-              Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Is_Struct_Construction
-                (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-              and then Landin.Checking.Nominal_Of
-                (Types.all, Of_Tree, Written)
-                  /= Landin.Checking.No_Nominal_Type;
-            --  D23 admits a literal only where its written local array type
-            --  supplies both the element context and the exact length.
-            Is_Local_Literal_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Is_Local_Binding (Of_Tree, Node)
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Array_Literal;
-            --  D24 admits the same literal as a module binding's static
-            --  image, on the same terms: the written type supplies the
-            --  exact length and the scalar context.  Every element must
-            --  also be [1940]'s "known", which Check_Module_Value asks
-            --  once the checker settles the types.
-            --  D34 admits full-array repetition where a written nonzero array
-            --  type supplies its shape, for either module or local storage.
-            --  D33/D35's inferred local and module forms are admitted by Infer
-            --  before this written-declaration gate.
-            Is_Typed_Repetition_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Written /= Syn.No_Node
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Array_Repetition;
-            --  D36/D38 admit a mixed prefix for an explicitly typed local or
-            --  module array; inferred and general-value forms remain refused.
-            Is_Typed_Mixed_Repetition_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Written /= Syn.No_Node
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Mixed_Array_Repetition;
-            Is_Module_Literal_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then not Is_Local_Binding (Of_Tree, Node)
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Array_Literal;
-            --  D27: every scalar element this kernel admits has one all-zero
-            --  image, so an explicitly typed module array can use [0540]
-            --  without recording a per-position static image.
-            Is_Module_Zeroed_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then not Is_Local_Binding (Of_Tree, Node)
-              and then Written /= Syn.No_Node
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Zeroed_Literal;
-            --  D28 uses the same contextual image for an explicitly typed
-            --  local, whose complete compact frame slot lowering clears at
-            --  runtime rather than enumerating D18's target-sized extent.
-            Is_Local_Zeroed_Init : constant Boolean :=
-              Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) = Syn.Binding
-              and then Is_Local_Binding (Of_Tree, Node)
-              and then Written /= Syn.No_Node
-              and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
-              and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                       = Syn.Zeroed_Literal;
-
             --  True when this declaration stops at the gate below: once, on
             --  the first pass that reaches it, with the boundary it meets.
             --  False when the initializer check owns the report instead.
@@ -10614,21 +10415,33 @@ package body Landin.Stages.Checking is
                Module : constant Boolean :=
                  Syn.Kind (Of_Tree, Node) = Syn.Binding
                  and then not Is_Local_Binding (Of_Tree, Node);
-               Zeroed : constant Boolean :=
-                 Value /= Syn.No_Node
-                 and then Held = Ty.Fixed_Array
-                 and then Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal;
+               --  [1940]: a module initializer is a static image, so it
+               --  names a value the compiler can fold.  A type call and a
+               --  construction carry their own image; one field of a named
+               --  module array is the deepest selection an image copies.
                Form : constant String :=
                  (if Value = Syn.No_Node or else not Module then ""
                   else
                     (case Syn.Kind (Of_Tree, Value) is
                         when Syn.Call | Syn.Labeled_Application
                            | Syn.Try_Expression =>
-                           (if Is_Case_Value (Of_Tree, Value) then ""
+                           (if Is_Case_Value (Of_Tree, Value)
+                              or else Is_Type_Call (Of_Tree, Value)
+                              or else
+                                (Held = Ty.Aggregate
+                                 and then Is_Struct_Construction
+                                   (Of_Tree, Value))
+                            then ""
                             else "a call"),
                         when Syn.Element_Index => "an element index",
                         when Syn.Member_Selection =>
                            (if Names_Module_Value (Of_Tree, Value) then ""
+                            elsif Held = Ty.Fixed_Array
+                              and then Syn.Kind
+                                (Of_Tree, Syn.Target_Of (Of_Tree, Value))
+                                  = Syn.Name_Reference
+                              and then Chain_Names_Storage (Of_Tree, Value)
+                            then ""
                             elsif Held = Ty.Fixed_Array
                             then "a selection below one field"
                             else "a field selection"),
@@ -10641,7 +10454,9 @@ package body Landin.Stages.Checking is
                               and then Is_Array_Arithmetic (Of_Tree, Value)
                             then "array arithmetic" else "")));
             begin
-               if Value /= Syn.No_Node and then Form = "" and then not Zeroed
+               if Syn.Kind (Of_Tree, Node) /= Syn.Binding
+                 or else Is_Zeroed_State
+                 or else (Value /= Syn.No_Node and then Form = "")
                then
                   return False;
                end if;
@@ -10658,9 +10473,6 @@ package body Landin.Stages.Checking is
                        (if Value = Syn.No_Node
                         then "this declaration's type needs a named body or"
                              & " an initializer"
-                        elsif Zeroed
-                        then "`zeroed` takes its image from the array type"
-                             & " written here"
                         elsif Held = Ty.Fixed_Array
                         then "a module array takes a literal, a repetition,"
                              & " `zeroed`, a name or one field of one, not "
@@ -10668,7 +10480,7 @@ package body Landin.Stages.Checking is
                         else "a module struct takes a construction,"
                              & " `zeroed` or a name, not " & Form
                              & " [1940]"),
-                     Refused => (if Zeroed then Bad.Zeroed_Value else Refused),
+                     Refused => Refused,
                      Into    => Found);
                end if;
                return True;
@@ -10702,46 +10514,17 @@ package body Landin.Stages.Checking is
             end if;
 
             --  [1795] declares the type and aggregates enable the values of
-            --  one: a declaration-only module or local, a whole copy from
-            --  storage, a literal, a repetition, `zeroed`, a construction, a
-            --  call, array arithmetic and a control expression, each where it
-            --  can run.  D241 records what is left at this gate.  A module
-            --  initializer is a static image [1940], so a call, an index, a
-            --  selection it cannot fold, runtime arithmetic and control are
-            --  that form's boundary.  Every other initializer has the wrong
-            --  type, which the initializer check reports as the L0301 it is.
-            if Held = Ty.Fixed_Array
-              and then Syn.Kind (Of_Tree, Node) /= Syn.Type_Declaration
-              and then not Is_Zeroed_State
-              and then not Is_Array_Storage_Init
-              and then not Is_Local_Literal_Init
-              and then not Is_Typed_Repetition_Init
-              and then not Is_Typed_Mixed_Repetition_Init
-              and then not Is_Module_Literal_Init
-              and then not Is_Module_Zeroed_Init
-              and then not Is_Local_Zeroed_Init
-              and then not Is_Array_Call_Init
-              and then not Is_Array_Arithmetic_Init
-              and then not Is_Array_Control_Init
-              and then not Is_Array_Parameter
-              and then not Is_Array_Return
-              and then Gate_Refuses (Bad.Array_Value)
-            then
-               return Ty.Ill_Typed;
-            end if;
-
-            if Held = Ty.Aggregate
-              and then Syn.Kind (Of_Tree, Node) /= Syn.Type_Declaration
-              and then not Is_Zeroed_State
-              and then not Is_Struct_Zeroed_Init
-              and then not Is_Struct_Literal_Init
-              and then not Is_Direct_Struct_Init
-              and then not Is_Struct_Call_Init
-              and then not Is_Struct_Control_Init
-              and then not Is_Aggregate_Parameter
-              and then not Is_Aggregate_Return
+            --  one, each where it can run, and D241 records what is left at
+            --  this gate: a declaration needs a named body or an
+            --  initializer, and a module initializer is a static image
+            --  [1940], so a call, an index, a selection it cannot fold,
+            --  runtime arithmetic and control are that form's boundary.
+            --  Every other initializer meets the general check, which
+            --  reports a type disagreement as the L0301 it is.
+            if Held in Ty.Fixed_Array | Ty.Aggregate
               and then Gate_Refuses
-                (if Variant_Bearing then Bad.Variant_Value
+                (if Held = Ty.Fixed_Array then Bad.Array_Value
+                 elsif Variant_Bearing then Bad.Variant_Value
                  else Bad.Struct_Value)
             then
                return Ty.Ill_Typed;
@@ -13157,9 +12940,7 @@ package body Landin.Stages.Checking is
                     (if Syn.Kind (Caller_Tree, Argument)
                          in Syn.Name_Reference | Syn.Member_Selection
                             | Syn.Element_Index
-                     then (if Admit_Array_Field (Caller_Tree, Argument)
-                           then Ty.Fixed_Array
-                           else Selected_From (Caller_Tree, Argument))
+                     then Selected_From (Caller_Tree, Argument)
                      else Synthesise (Caller_Tree, Argument));
                   --  D372: an untyped literal is typed from its
                   --  parameter, so it waits until every other argument
@@ -14937,7 +14718,7 @@ package body Landin.Stages.Checking is
          then
             return Selected_From (Of_Tree, Node);
          elsif Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
-           and then Admit_Array_Field (Of_Tree, Node)
+           and then Holds_Array (Of_Tree, Node)
          then
             return Ty.Fixed_Array;
          elsif Syn.Kind (Of_Tree, Node)
@@ -16261,16 +16042,7 @@ package body Landin.Stages.Checking is
                           (Types.all, Of_Tree, Argument);
                      else
                         --  D1201: a whole array field is lent as a local
-                        --  array is.  The field is admitted before the
-                        --  place is asked about, since a selection of one
-                        --  is otherwise a value this position refuses.
-                        if Wants = Ty.Fixed_Array
-                          and then Syn.Kind (Of_Tree, Argument)
-                            = Syn.Member_Selection
-                          and then Admit_Array_Field (Of_Tree, Argument)
-                        then
-                           null;
-                        end if;
+                        --  array is.
                         Check_Place
                           (Of_Tree, Argument, Stepping => False);
                         if Packed_Place (Of_Tree, Argument) then
@@ -16697,7 +16469,7 @@ package body Landin.Stages.Checking is
                         elsif Wants = Ty.Fixed_Array
                           and then Syn.Kind (Of_Tree, Argument)
                                      = Syn.Member_Selection
-                        then (if Admit_Array_Field (Of_Tree, Argument)
+                        then (if Holds_Array (Of_Tree, Argument)
                               then Ty.Fixed_Array else Ty.Ill_Typed)
                         else Selected_From (Of_Tree, Argument));
                      Expected : constant Landin.Checking.Nominal_Type_Id :=
@@ -24406,6 +24178,29 @@ package body Landin.Stages.Checking is
                            return Ty.Aggregate;
                         end;
                      end if;
+                     --  [0520]: an array field is a place like an array
+                     --  name, whatever selection reaches it; its identity
+                     --  is the field's shape.
+                     if Which > 0
+                       and then Landin.Checking.Has_Layout (Types.all, Wrote)
+                       and then Landin.Checking.Field_Kind_Of
+                                  (Types.all, Wrote, Which)
+                                = Landin.Checking.Fixed_Array_Field
+                     then
+                        if Landin.Checking.Type_Of
+                             (Types.all, Of_Tree, Node) = Ty.Undecided
+                        then
+                           Landin.Checking.Note
+                             (Types.all, Of_Tree, Node, Ty.Fixed_Array);
+                           Landin.Checking.Note_Field
+                             (Types.all, Of_Tree, Node, Which);
+                           Note_Array_Shape
+                             (Of_Tree, Node,
+                              Landin.Checking.Field_Shape_Of
+                                (Types.all, Wrote, Which));
+                        end if;
+                        return Ty.Fixed_Array;
+                     end if;
                   end;
                end if;
             end;
@@ -24548,7 +24343,7 @@ package body Landin.Stages.Checking is
                --  supplies the contextual element use.  Admit that context
                --  first; a fixed array is never a reference access.
                if Syn.Kind (Of_Tree, Where) = Syn.Element_Index
-                 and then Admit_Array_Field (Of_Tree, From)
+                 and then Holds_Array (Of_Tree, From)
                then
                   Where := From;
                   goto Continue_Reference_Path;
@@ -24755,87 +24550,15 @@ package body Landin.Stages.Checking is
          return Root_Names_Storage (Of_Tree, Where);
       end Chain_Names_Element_Storage;
 
-      function Admit_Array_Field
+      function Holds_Array
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean
-      is
-      begin
-         if Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
+        is (Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
               = Ty.Fixed_Array
-         then
-            return True;
-         end if;
-
-         --  [1940]: another module's array, `lib.table`, is read as the
-         --  same name unqualified in its own module is, so it is copied,
-         --  lent and passed whole wherever an array place is.
-         if Names_Module_Value (Of_Tree, Node) then
-            return Selected_From (Of_Tree, Node) = Ty.Fixed_Array;
-         end if;
-
-         if Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
-              /= Ty.Undecided
-         then
-            return False;
-         end if;
-
-         if Syn.Kind (Of_Tree, Node) = Syn.Member_Selection then
-            declare
-               From : constant Syn.Node_Id := Syn.Target_Of (Of_Tree, Node);
-            begin
-               --  D118: the array field may sit under however many
-               --  selections [0420] composed, so the question is whether
-               --  the chain starts at a name and not how long it is.
-               if Selects_From_A_Name (Of_Tree, From) then
-                  declare
-                     Held : constant Ty.Type_Kind :=
-                       Selected_From (Of_Tree, From);
-                  begin
-                     if Held = Ty.Ill_Typed then
-                        return False;
-                     end if;
-
-                     if Held = Ty.Aggregate then
-                        declare
-                           Wrote : constant Landin.Checking.Nominal_Type_Id :=
-                             Landin.Checking.Nominal_Of
-                               (Types.all, Of_Tree, From);
-                           Which : constant Natural :=
-                             (if Wrote = Landin.Checking.No_Nominal_Type then 0
-                              else Field_At
-                                     (Wrote, Syn.Name (Of_Tree, Node)));
-                        begin
-                           if Wrote /= Landin.Checking.No_Nominal_Type
-                             and then Representation_Is_Private
-                               (Wrote, Syn.Source_Of (Of_Tree))
-                           then
-                              return False;
-                           end if;
-                           if Which /= 0
-                             and then Landin.Checking.Has_Layout
-                                        (Types.all, Wrote)
-                             and then Landin.Checking.Field_Kind_Of
-                                        (Types.all, Wrote, Which)
-                                      = Landin.Checking.Fixed_Array_Field
-                           then
-                              Landin.Checking.Note
-                                (Types.all, Of_Tree, Node, Ty.Fixed_Array);
-                              Landin.Checking.Note_Field
-                                (Types.all, Of_Tree, Node, Which);
-                              Note_Array_Shape
-                                (Of_Tree, Node,
-                                 Landin.Checking.Field_Shape_Of
-                                   (Types.all, Wrote, Which));
-                              return True;
-                           end if;
-                        end;
-                     end if;
-                  end;
-               end if;
-            end;
-         end if;
-
-         return False;
-      end Admit_Array_Field;
+            or else
+              (Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
+               and then Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
+                 = Ty.Undecided
+               and then Selected_From (Of_Tree, Node) = Ty.Fixed_Array));
 
       function Admit_Variant_Field
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean
@@ -24921,7 +24644,7 @@ package body Landin.Stages.Checking is
       is
       begin
          return Is_Direct_Module_Field (Of_Tree, Node)
-           and then Admit_Array_Field (Of_Tree, Node)
+           and then Holds_Array (Of_Tree, Node)
            and then Landin.Checking.Array_Length
              (Types.all, Of_Tree, Node) = Length
            and then Landin.Checking.Field_Shapes_Agree
@@ -24931,14 +24654,7 @@ package body Landin.Stages.Checking is
 
       function Indexed_From
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind
-      is
-      begin
-         if Admit_Array_Field (Of_Tree, Node) then
-            return Ty.Fixed_Array;
-         end if;
-
-         return Selected_From (Of_Tree, Node);
-      end Indexed_From;
+        is (Selected_From (Of_Tree, Node));
 
       --  D21's inferred array initializer is deliberately narrower than an
       --  inferred value: it recognizes only a resolved direct storage name.
@@ -24958,21 +24674,6 @@ package body Landin.Stages.Checking is
                       (Res.Bound_To (Meanings.all, Of_Tree, Node))
                     = Ty.Fixed_Array;
       end Is_Direct_Array_Name;
-
-      --  D1180: an array parameter or named return is a copy source as a
-      --  local array is, so an array field takes it whole as a local or
-      --  a record literal's field does.
-      function Names_Array_Parameter
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean
-      is (Syn.Kind (Of_Tree, Node) = Syn.Name_Reference
-          and then Res.Verdict_Of (Meanings.all, Of_Tree, Node) = Res.Bound
-          and then Res.Sort_Of
-                     (Meanings.all,
-                      Res.Bound_To (Meanings.all, Of_Tree, Node))
-                   in Res.Parameter | Res.Named_Return
-          and then Settled_Type
-                     (Res.Bound_To (Meanings.all, Of_Tree, Node))
-                   = Ty.Fixed_Array);
 
       --  Whether this node directly names a binding that owns runtime storage.
       function Is_Direct_Binding_Name
@@ -25015,50 +24716,6 @@ package body Landin.Stages.Checking is
                          = Ty.Aggregate;
          end;
       end Is_Aggregate_Alias_Name;
-
-      --  D41 is a direct-binding slice; D42 adds one ordinary scalar field or
-      --  fixed-array element selected immediately from that storage.  D62
-      --  adds the scalar element of a D48 fixed-array field.  D43 adds a
-      --  direct named return, but not one of its subobjects.  D85 lets an
-      --  indexed fixed-array match alias supply the same scalar context.
-      --  Every other nested subobject remains a separate contextual position.
-      function Is_Zeroed_Scalar_Place
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean;
-
-      function Is_Zeroed_Scalar_Place
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean
-      is
-      begin
-         return Is_Direct_Binding_Name (Of_Tree, Node)
-           or else
-             (Syn.Kind (Of_Tree, Node)
-                in Syn.Member_Selection | Syn.Element_Index
-              and then Is_Direct_Binding_Name
-                         (Of_Tree, Syn.Target_Of (Of_Tree, Node)))
-           or else
-             (Syn.Kind (Of_Tree, Node) = Syn.Element_Index
-              and then Syn.Kind
-                (Of_Tree, Syn.Target_Of (Of_Tree, Node))
-                  = Syn.Member_Selection
-              and then Is_Direct_Binding_Name
-                (Of_Tree,
-                 Syn.Target_Of
-                   (Of_Tree, Syn.Target_Of (Of_Tree, Node))))
-           or else
-             (Syn.Kind (Of_Tree, Node) = Syn.Element_Index
-              and then Syn.Kind
-                (Of_Tree, Syn.Target_Of (Of_Tree, Node))
-                  = Syn.Name_Reference
-              and then Res.Verdict_Of
-                (Meanings.all, Of_Tree, Syn.Target_Of (Of_Tree, Node))
-                  = Res.Bound
-              and then Res.Sort_Of
-                (Meanings.all,
-                 Res.Bound_To
-                   (Meanings.all, Of_Tree,
-                    Syn.Target_Of (Of_Tree, Node)))
-                  = Res.Pattern_Binding);
-      end Is_Zeroed_Scalar_Place;
 
       function Synthesise
         (Of_Tree : Syn.Tree;
@@ -25611,63 +25268,17 @@ package body Landin.Stages.Checking is
                begin
                   if Syn.Kind (Of_Tree, Asked) = Syn.Array_Literal then
                      declare
-                        Count : constant Landin.Checking.Element_Count :=
-                          Landin.Checking.Element_Count
-                            (Syn.Element_Count (Of_Tree, Asked));
-                        First : constant Syn.Node_Id :=
-                          Syn.Nth_Element (Of_Tree, Asked, 1);
-                        --  A storage name is typed as the place it is, so
-                        --  a whole array or struct meets D31's own rule.
-                        Got : constant Ty.Type_Kind :=
-                          (if Syn.Kind (Of_Tree, First)
-                                in Syn.Name_Reference | Syn.Member_Selection
-                                   | Syn.Element_Index
-                             and then Chain_Names_Element_Storage
-                               (Of_Tree, First)
-                           then Selected_From (Of_Tree, First)
-                           else Synthesise (Of_Tree, First));
-                        Element : Ty.Scalar_Name;
+                        Shape : Type_Descriptor;
+                        Inferred : Boolean;
                      begin
-                        if Got = Ty.Untyped_Integer then
-                           Element := Ty.Default_Integer;
-                           Commit_To (Of_Tree, First, Element);
-                        elsif Got = Ty.Untyped_Float then
-                           Element := Ty.Default_Float;
-                           Commit_To (Of_Tree, First, Element);
-                        elsif Got in Ty.Scalar_Name then
-                           Element := Ty.Scalar_Name (Got);
-                        else
-                           if Got = Ty.No_Value then
-                              Bad.Report
-                                (Item    => Bad.Result_Use,
-                                 Source  => Syn.Source_Of (Of_Tree),
-                                 Where   => Syn.Where (Of_Tree, First),
-                                 Message => "this hands back nothing, so it"
-                                            & " cannot supply an array"
-                                            & " element type",
-                                 Note    => "D31: `lenof` checks one scalar"
-                                            & " element type without"
-                                            & " evaluating the elements",
-                                 Related => Syn.Origin (Of_Tree, Asked),
-                                 Because => "this measured literal",
-                                 Into    => Found);
-                           elsif Got /= Ty.Ill_Typed then
-                              Bad.Report
-                                (Item    => Bad.Type_Mismatch,
-                                 Source  => Syn.Source_Of (Of_Tree),
-                                 Where   => Syn.Where (Of_Tree, First),
-                                 Message => "this is " & Shown (Got)
-                                            & ", and an array literal needs"
-                                            & " a scalar element type",
-                                 Note    => "D31: `lenof` measures a literal"
-                                            & " whose elements share one"
-                                            & " scalar type, without"
-                                            & " evaluating them",
-                                 Related => Syn.Origin (Of_Tree, Asked),
-                                 Because => "this measured literal",
-                                 Into    => Found);
-                           end if;
-
+                        --  D31: the literal is checked, not formed, and its
+                        --  first element gives the element type whatever
+                        --  its shape (D1664), as an inferred local's
+                        --  literal does.
+                        Infer_Literal_Shape
+                          (Of_Tree, Node, Asked, Local => True,
+                           Shape => Shape, Inferred => Inferred);
+                        if not Inferred then
                            Landin.Checking.Refuse
                              (Types.all, Of_Tree, Asked);
                            return Kept (Ty.Ill_Typed);
@@ -25675,19 +25286,36 @@ package body Landin.Stages.Checking is
 
                         Landin.Checking.Note
                           (Types.all, Of_Tree, Asked, Ty.Fixed_Array);
-                        Landin.Checking.Note_Array
-                          (Types.all, Of_Tree, Asked, Count, Element);
+                        Note_Descriptor (Of_Tree, Asked, Shape);
 
-                        for Position in
-                          2 .. Syn.Element_Count (Of_Tree, Asked)
-                        loop
-                           Require
-                             (Of_Tree,
-                              Syn.Nth_Element
-                                (Of_Tree, Asked, Position),
-                              Element, Syn.Origin (Of_Tree, Asked),
-                              "the first literal element measured by `lenof`");
-                        end loop;
+                        if Has_Element_Metadata (Shape.Element_Shape)
+                          or else Shape.Element_Nominal
+                                    /= Landin.Checking.No_Nominal_Type
+                        then
+                           Check_Contextual_Value
+                             (Of_Tree, Asked,
+                              (Kind    => Ty.Fixed_Array,
+                               Length  => Shape.Length,
+                               Element => Shape.Element,
+                               Element_Nominal => Shape.Element_Nominal,
+                               Element_Shape => Shape.Element_Shape,
+                               others  => <>),
+                              Syn.Origin (Of_Tree, Asked),
+                              "the first literal element measured by"
+                              & " `lenof`");
+                        else
+                           for Position in
+                             2 .. Syn.Element_Count (Of_Tree, Asked)
+                           loop
+                              Require
+                                (Of_Tree,
+                                 Syn.Nth_Element
+                                   (Of_Tree, Asked, Position),
+                                 Shape.Element, Syn.Origin (Of_Tree, Asked),
+                                 "the first literal element measured by"
+                                 & " `lenof`");
+                           end loop;
+                        end if;
 
                         return Kept (Ty.Usize);
                      end;
@@ -26541,12 +26169,12 @@ package body Landin.Stages.Checking is
                         return Kept (Ty.Ill_Typed);
                      end if;
 
-                     --  D48-D51 and D89-D93 reach a fixed-array field as a
-                     --  place: indexed, assigned, copied, passed, returned
-                     --  or discarded [1930] whole, each through its own
-                     --  contextual path.  Selecting one here means this
-                     --  position wanted a value of another type.  Refuse it
-                     --  before Field_Type's scalar precondition.
+                     --  [0520]: every position that takes a whole array
+                     --  asks Selected_From, which types an array field as
+                     --  it does an array name.  Reaching here means this
+                     --  position wanted a value of another type, which a
+                     --  whole array name is refused for in the same words.
+                     --  Refuse it before Field_Type's scalar precondition.
                      if Landin.Checking.Field_Kind_Of
                           (Types.all, Wrote, Which)
                           = Landin.Checking.Fixed_Array_Field
@@ -26587,11 +26215,9 @@ package body Landin.Stages.Checking is
                         return Kept (Ty.Ill_Typed);
                      end if;
 
-                     --  D88-D93 reach an ordinary child as a place: through
-                     --  a further selection, or copied, passed, returned or
-                     --  discarded whole.  Selecting one here means this
-                     --  position wanted a value of another type, so keep it
-                     --  away from the scalar accessor.
+                     --  [0670]: the same for an ordinary child, which
+                     --  Selected_From types as a struct; keep it away from
+                     --  the scalar accessor.
                      if Landin.Checking.Field_Kind_Of
                           (Types.all, Wrote, Which)
                           = Landin.Checking.Aggregate_Field
@@ -28756,9 +28382,7 @@ package body Landin.Stages.Checking is
                         Into    => Found);
                      return Kept (Ty.Ill_Typed);
                   end if;
-                  Held := (if Admit_Array_Field (Of_Tree, Place)
-                           then Ty.Fixed_Array
-                           else Selected_From (Of_Tree, Place));
+                  Held := Selected_From (Of_Tree, Place);
 
                   if Is_Utf8_Index (Of_Tree, Place) then
                      Bad.Report
@@ -29543,7 +29167,7 @@ package body Landin.Stages.Checking is
                     and then Settled_Type (Means) = Ty.Fixed_Array;
                end;
             when Syn.Member_Selection =>
-               return Admit_Array_Field (Of_Tree, Node);
+               return Holds_Array (Of_Tree, Node);
             when others =>
                return False;
          end case;
@@ -29941,33 +29565,13 @@ package body Landin.Stages.Checking is
             end Require_Known;
          begin
             pragma Assert (Shape.Kind = Landin.Checking.Fixed_Array_Field);
-            if Is_Type_Call (Of_Tree, Given) then
-               Check_Contextual_Value
-                 (Of_Tree, Given, Context_For_Shape (Shape),
-                  Syn.Origin (Of_Tree, Label), "this array payload");
-               if Landin.Checking.Distinct_Conversion_Of
-                 (Types.all, Of_Tree, Given)
-                   /= Landin.Checking.No_Nominal_Type
-               then
-                  if Static_Image then
-                     Require_Known (Given);
-                  end if;
-                  return;
-               end if;
-            end if;
-
-            --  D82/D83 reuse D67--D71's static image forms inside D81's
-            --  selected payload descriptor run.  D84 gives runtime case
-            --  construction D65's same contextual array-destination forms,
-            --  and D241 every other form an ordinary array field takes: an
-            --  index, a call, `try`, array arithmetic and a control
-            --  expression.  Selection has already written the tag; lowering
-            --  fills the payload leaf in place or copies from a temporary.
-            --  Only the static branch asks [1940] to fold its expressions.
-            if not Static_Image
-              and then (Is_Value_Control (Of_Tree, Given)
-                        or else Needs_Arithmetic_Context (Of_Tree, Given))
-            then
+            --  [1880]: at run time a payload field is a destination like
+            --  any other, and the general check owns every value form.
+            --  Selection has already written the tag; lowering fills the
+            --  payload leaf in place or copies from a temporary.  A module
+            --  image keeps D81's selected-case image below, which asks
+            --  [1940] to fold each expression.
+            if not Static_Image then
                Check_Contextual_Value
                  (Of_Tree, Given, Context_For_Shape (Shape),
                   Syn.Origin (Of_Tree, Label), "the payload field named here");
@@ -29977,47 +29581,54 @@ package body Landin.Stages.Checking is
                return;
             end if;
 
+            if Is_Type_Call (Of_Tree, Given) then
+               Check_Contextual_Value
+                 (Of_Tree, Given, Context_For_Shape (Shape),
+                  Syn.Origin (Of_Tree, Label), "this array payload");
+               if Landin.Checking.Distinct_Conversion_Of
+                 (Types.all, Of_Tree, Given)
+                   /= Landin.Checking.No_Nominal_Type
+               then
+                  Require_Known (Given);
+                  return;
+               end if;
+            end if;
+
             case Syn.Kind (Of_Tree, Given) is
                when Syn.Array_Literal =>
                   Check_Array_Literal
                     (Of_Tree, Label, Given, Item.Length, Item.Element,
-                     Static_Image => Static_Image,
+                     Static_Image => True,
                      Element_Nominal => Item.Element_Nominal,
                      Shape => Child);
-                  if Static_Image then
-                     for Position in
-                       1 .. Syn.Element_Count (Of_Tree, Given)
-                     loop
-                        Require_Known
-                          (Syn.Nth_Element (Of_Tree, Given, Position));
-                     end loop;
-                  end if;
+                  for Position in
+                    1 .. Syn.Element_Count (Of_Tree, Given)
+                  loop
+                     Require_Known
+                       (Syn.Nth_Element (Of_Tree, Given, Position));
+                  end loop;
 
                when Syn.Array_Repetition =>
                   Check_Array_Repetition
                     (Of_Tree, Label, Given, Item.Length, Item.Element,
-                     Static_Image => Static_Image,
+                     Static_Image => True,
                      Element_Nominal => Item.Element_Nominal,
                      Shape => Child);
-                  if Static_Image then
-                     Require_Known (Syn.Repeated_Element (Of_Tree, Given));
-                  end if;
+                  Require_Known (Syn.Repeated_Element (Of_Tree, Given));
 
                when Syn.Mixed_Array_Repetition =>
                   Check_Mixed_Array_Repetition
                     (Of_Tree, Label, Given, Item.Length, Item.Element,
-                     Static_Image => Static_Image,
+                     Static_Image => True,
                      Element_Nominal => Item.Element_Nominal,
                      Shape => Child);
-                  if Static_Image then
-                     for Position in
-                       1 .. Syn.Element_Count (Of_Tree, Given)
-                     loop
-                        Require_Known
-                          (Syn.Nth_Element (Of_Tree, Given, Position));
-                     end loop;
-                     Require_Known (Syn.Repeated_Element (Of_Tree, Given));
-                  end if;
+                  for Position in
+                    1 .. Syn.Element_Count (Of_Tree, Given)
+                  loop
+                     Require_Known
+                       (Syn.Nth_Element (Of_Tree, Given, Position));
+                  end loop;
+                  Require_Known (Syn.Repeated_Element (Of_Tree, Given));
 
                when Syn.Zeroed_Literal =>
                   Check_Array_Zeroed
@@ -30028,15 +29639,12 @@ package body Landin.Stages.Checking is
                when Syn.Name_Reference =>
                   declare
                      Is_Storage : constant Boolean :=
-                       (if Static_Image
-                        then Res.Verdict_Of
-                               (Meanings.all, Of_Tree, Given) = Res.Bound
-                          and then Res.Sort_Of
-                            (Meanings.all,
-                             Res.Bound_To
-                               (Meanings.all, Of_Tree, Given))
-                              = Res.Module_Binding
-                        else Is_Direct_Binding_Name (Of_Tree, Given));
+                       Res.Verdict_Of
+                         (Meanings.all, Of_Tree, Given) = Res.Bound
+                       and then Res.Sort_Of
+                         (Meanings.all,
+                          Res.Bound_To (Meanings.all, Of_Tree, Given))
+                           = Res.Module_Binding;
                      Got : constant Ty.Type_Kind :=
                        (if Is_Storage
                         then Selected_From (Of_Tree, Given)
@@ -30072,12 +29680,10 @@ package body Landin.Stages.Checking is
                when Syn.Member_Selection =>
                   declare
                      Is_Storage : constant Boolean :=
-                       (if Static_Image
-                        then Is_Direct_Module_Field (Of_Tree, Given)
-                        else Chain_Names_Element_Storage (Of_Tree, Given));
+                       Is_Direct_Module_Field (Of_Tree, Given);
                      Admitted : constant Boolean :=
                        Is_Storage
-                       and then Admit_Array_Field (Of_Tree, Given);
+                       and then Holds_Array (Of_Tree, Given);
                      Got : constant Ty.Type_Kind :=
                        (if Admitted
                         then Selected_From (Of_Tree, Given)
@@ -30111,48 +29717,16 @@ package body Landin.Stages.Checking is
                   end;
 
                when others =>
-                  if Static_Image then
-                     Bad.Report
-                       (Item    => Bad.Unsupported_Use,
-                        Source  => Syn.Source_Of (Of_Tree),
-                        Where   => Syn.Where (Of_Tree, Given),
-                        Message => "a module payload array takes a literal,"
-                                   & " a repetition, `zeroed`, a module array"
-                                   & " or one field of one [1940]",
-                        Refused => Bad.Array_Value,
-                        Into    => Found);
-                     Landin.Checking.Refuse (Types.all, Of_Tree, Given);
-                  else
-                     declare
-                        Got : constant Ty.Type_Kind :=
-                          Synthesise (Of_Tree, Given);
-                     begin
-                        if Got /= Ty.Ill_Typed
-                          and then
-                            (Got /= Ty.Fixed_Array
-                             or else Landin.Checking.Array_Length
-                               (Types.all, Of_Tree, Given) /= Shape.Length
-                             or else not Landin.Checking.Field_Shapes_Agree
-                               (Types.all,
-                                Landin.Checking.Array_Element_Shape
-                                  (Types.all, Of_Tree, Given), Child))
-                        then
-                           Bad.Report
-                             (Item    => Bad.Type_Mismatch,
-                              Source  => Syn.Source_Of (Of_Tree),
-                              Where   => Syn.Where (Of_Tree, Given),
-                              Message => "this is not an array of the"
-                                         & " variant payload's type",
-                              Note    => "D17: an array's length and element"
-                                         & " type are its identity",
-                              Related => Syn.Origin (Of_Tree, Label),
-                              Because => "the payload field named here",
-                              Into    => Found);
-                           Landin.Checking.Refuse
-                             (Types.all, Of_Tree, Given);
-                        end if;
-                     end;
-                  end if;
+                  Bad.Report
+                    (Item    => Bad.Unsupported_Use,
+                     Source  => Syn.Source_Of (Of_Tree),
+                     Where   => Syn.Where (Of_Tree, Given),
+                     Message => "a module payload array takes a literal,"
+                                & " a repetition, `zeroed`, a module array"
+                                & " or one field of one [1940]",
+                     Refused => Bad.Array_Value,
+                     Into    => Found);
+                  Landin.Checking.Refuse (Types.all, Of_Tree, Given);
             end case;
 
             if Subtree_Was_Refused (Given) then
@@ -31014,7 +30588,7 @@ package body Landin.Stages.Checking is
                           Is_Direct_Module_Field (Of_Tree, Value);
                         Admitted : constant Boolean :=
                           Is_Module_Storage
-                          and then Admit_Array_Field (Of_Tree, Value);
+                          and then Holds_Array (Of_Tree, Value);
                         Got : constant Ty.Type_Kind :=
                           (if Admitted
                            then Selected_From (Of_Tree, Value)
@@ -31061,121 +30635,52 @@ package body Landin.Stages.Checking is
                return;
             end if;
 
-            --  D65/D124: a label supplies the same complete destination as a
-            --  typed binding or assignment, including through operators with
-            --  no synthesized answer.  Do not ask an unresolved wrapper for
-            --  its array shape before giving it the field's requirement.
-            if Is_Value_Control (Of_Tree, Value)
-              or else Needs_Arithmetic_Context (Of_Tree, Value)
-            then
+            --  [1880]: a label supplies the same complete destination as a
+            --  typed binding or assignment, and the general check owns every
+            --  value form.  `uninit` is no value: only the defining module
+            --  leaves a private compact struct's raw inline field unwritten.
+            if Syn.Kind (Of_Tree, Value) /= Syn.Uninit_Literal then
                Check_Contextual_Value
                  (Of_Tree, Value, Context_For_Shape (Array_Shape),
                   Syn.Origin (Of_Tree, Field), "the array field named here");
                return;
             end if;
 
-            case Syn.Kind (Of_Tree, Value) is
-               when Syn.Array_Literal =>
-                  Check_Array_Literal
-                    (Of_Tree, Field, Value, Expected, Element,
-                     Static_Image => False,
-                     Element_Nominal => Element_Nominal,
-                     Shape => Element_Shape);
-
-               when Syn.Array_Repetition =>
-                  Check_Array_Repetition
-                    (Of_Tree, Field, Value, Expected, Element,
-                     Static_Image => False,
-                     Element_Nominal => Element_Nominal,
-                     Shape => Element_Shape);
-
-               when Syn.Mixed_Array_Repetition =>
-                  Check_Mixed_Array_Repetition
-                    (Of_Tree, Field, Value, Expected, Element,
-                     Static_Image => False,
-                     Element_Nominal => Element_Nominal,
-                     Shape => Element_Shape);
-
-               when Syn.Zeroed_Literal =>
-                  Check_Array_Zeroed
-                    (Of_Tree, Value, Expected, Element, Element_Nominal,
-                     Syn.Origin (Of_Tree, Field),
-                     "the array field named here", Shape => Element_Shape);
-
-               when Syn.Uninit_Literal =>
-                  --  Only the defining module can construct a private
-                  --  nominal's raw inline field.  Packed aggregates have
-                  --  shared bit storage and cannot leave a field unwritten.
-                  if Res.Is_Public
-                       (Meanings.all,
-                        Landin.Checking.Template_Of (Types.all, Wrote))
-                    or else Representation_Is_Private
-                      (Wrote, Syn.Source_Of (Of_Tree))
-                    or else Landin.Checking.Layout_Of (Types.all, Wrote)
-                      = Landin.Layouts.Packed
-                    or else not Shape_Layout_Ready
-                      (Complete_Element
-                         (Element, Element_Nominal, Element_Shape))
-                  then
-                     Bad.Report
-                       (Item    => Bad.Unsupported_Use,
-                        Source  => Syn.Source_Of (Of_Tree),
-                        Where   => Syn.Where (Of_Tree, Value),
-                        Message => "`uninit` requires an array field of a"
-                                   & " private compact struct",
-                        Refused => Bad.Array_Value,
-                        Into    => Found);
-                     Landin.Checking.Refuse (Types.all, Of_Tree, Value);
-                  else
-                     Landin.Checking.Note
-                       (Types.all, Of_Tree, Value, Ty.Fixed_Array);
-                     Landin.Checking.Note_Array
-                       (Types.all, Of_Tree, Value, Expected, Element,
-                        Shape => Element_Shape);
-                     if Element_Nominal /=
-                       Landin.Checking.No_Nominal_Type
-                     then
-                        Landin.Checking.Note_Array_Element_Nominal
-                          (Types.all, Of_Tree, Value, Element_Nominal);
-                     end if;
-                  end if;
-
-               when others =>
-                  declare
-                     Admitted : constant Boolean :=
-                       Syn.Kind (Of_Tree, Value) = Syn.Member_Selection
-                       and then Admit_Array_Field (Of_Tree, Value);
-                     Got : constant Ty.Type_Kind :=
-                       (if Admitted
-                            or else Is_Direct_Binding_Name (Of_Tree, Value)
-                        then Selected_From (Of_Tree, Value)
-                        else Synthesise (Of_Tree, Value));
-                  begin
-                     if Got = Ty.Ill_Typed then
-                        null;
-                     elsif Got /= Ty.Fixed_Array
-                       or else Landin.Checking.Array_Length
-                         (Types.all, Of_Tree, Value) /= Expected
-                       or else not Landin.Checking.Field_Shapes_Agree
-                         (Types.all, Landin.Checking.Array_Element_Shape
-                            (Types.all, Of_Tree, Value), Element_Shape)
-                     then
-                        Bad.Report
-                          (Item    => Bad.Type_Mismatch,
-                           Source  => Syn.Source_Of (Of_Tree),
-                           Where   => Syn.Where (Of_Tree, Value),
-                           Message => "this is not an array of the type"
-                                      & " named by the struct field",
-                           Note    => "D17: an array's length and element"
-                                      & " type are its identity",
-                           Related => Syn.Origin (Of_Tree, Field),
-                           Because => "the field named here",
-                           Into    => Found);
-                        Landin.Checking.Refuse
-                          (Types.all, Of_Tree, Value);
-                     end if;
-                  end;
-            end case;
+            --  Packed aggregates have shared bit storage and cannot leave
+            --  a field unwritten.
+            if Res.Is_Public
+                 (Meanings.all,
+                  Landin.Checking.Template_Of (Types.all, Wrote))
+              or else Representation_Is_Private
+                (Wrote, Syn.Source_Of (Of_Tree))
+              or else Landin.Checking.Layout_Of (Types.all, Wrote)
+                = Landin.Layouts.Packed
+              or else not Shape_Layout_Ready
+                (Complete_Element
+                   (Element, Element_Nominal, Element_Shape))
+            then
+               Bad.Report
+                 (Item    => Bad.Unsupported_Use,
+                  Source  => Syn.Source_Of (Of_Tree),
+                  Where   => Syn.Where (Of_Tree, Value),
+                  Message => "`uninit` requires an array field of a"
+                             & " private compact struct",
+                  Refused => Bad.Array_Value,
+                  Into    => Found);
+               Landin.Checking.Refuse (Types.all, Of_Tree, Value);
+            else
+               Landin.Checking.Note
+                 (Types.all, Of_Tree, Value, Ty.Fixed_Array);
+               Landin.Checking.Note_Array
+                 (Types.all, Of_Tree, Value, Expected, Element,
+                  Shape => Element_Shape);
+               if Element_Nominal /=
+                 Landin.Checking.No_Nominal_Type
+               then
+                  Landin.Checking.Note_Array_Element_Nominal
+                    (Types.all, Of_Tree, Value, Element_Nominal);
+               end if;
+            end if;
          end Check_Array_Field;
 
          procedure Check_Field_Value
@@ -33382,7 +32887,7 @@ package body Landin.Stages.Checking is
 
          if Syn.Kind (Of_Tree, Value) = Syn.Member_Selection
            and then Res.Verdict_Of (Meanings.all, Of_Tree, Value) /= Res.Bound
-           and then Admit_Array_Field (Of_Tree, Value)
+           and then Holds_Array (Of_Tree, Value)
          then
             return Ty.Fixed_Array;
          end if;
@@ -33467,237 +32972,25 @@ package body Landin.Stages.Checking is
                               Into    => Found);
                         end if;
                      end;
-                  elsif Wants = Ty.Aggregate then
-                     declare
-                        Written : constant Syn.Node_Id :=
-                          Syn.Declared_Type (Of_Tree, Node);
-                     begin
-                        if Is_Value_Control (Of_Tree, Value) then
-                           Check_Contextual_Value
-                             (Of_Tree, Value,
-                              (Kind    => Ty.Aggregate,
-                               Nominal => Landin.Checking.Nominal_Of
-                                 (Types.all, Of_Tree, Written),
-                               others  => <>),
-                              Syn.Origin (Of_Tree, Node),
-                              "the type declared here",
-                              Static_Image =>
-                                not Is_Local_Binding (Of_Tree, Node));
-                        elsif Is_Case_Value (Of_Tree, Value) then
-                           Refuse_Case_Value
-                             (Of_Tree, Value, Syn.Origin (Of_Tree, Node),
-                              "the type declared here");
-                        elsif Is_Struct_Construction (Of_Tree, Value) then
-                           declare
-                              Expected : constant
-                                Landin.Checking.Nominal_Type_Id :=
-                                Landin.Checking.Nominal_Of
-                                  (Types.all, Of_Tree, Written);
-                           begin
-                              if Construction_Agrees
-                                (Of_Tree, Value, Expected,
-                                 Syn.Origin (Of_Tree, Node),
-                                 "the type declared here")
-                              then
-                                 Check_Struct_Literal
-                                   (Of_Tree, Value, Expected,
-                                    Static_Image =>
-                                      not Is_Local_Binding (Of_Tree, Node));
-                              end if;
-                           end;
-                        elsif Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
-                        then
-                           Check_Aggregate_Zeroed
-                             (Of_Tree, Value,
-                              Landin.Checking.Nominal_Of
-                                (Types.all, Of_Tree, Written),
-                              Syn.Origin (Of_Tree, Written),
-                              "the type written here");
-                        else
-                           --  D55: a direct storage name is the other
-                           --  contextual aggregate initializer.  Identity
-                           --  remains [0710]'s body declaration through
-                           --  aliases on either side.
-                           declare
-                              Got : constant Ty.Type_Kind :=
-                                (if Is_Direct_Binding_Name (Of_Tree, Value)
-                                      or else Is_Aggregate_Alias_Name
-                                        (Of_Tree, Value)
-                                      or else Syn.Kind (Of_Tree, Value)
-                                                = Syn.Member_Selection
-                                 then Selected_From (Of_Tree, Value)
-                                 else Synthesise (Of_Tree, Value));
-                           begin
-                              if Got = Ty.Ill_Typed then
-                                 null;
-                              elsif Got /= Ty.Aggregate
-                                or else Landin.Checking.Nominal_Of
-                                  (Types.all, Of_Tree, Written)
-                                    /= Landin.Checking.Nominal_Of
-                                      (Types.all, Of_Tree, Value)
-                              then
-                                 Bad.Report
-                                   (Item    => Bad.Type_Mismatch,
-                                    Source  => Syn.Source_Of (Of_Tree),
-                                    Where   => Syn.Where (Of_Tree, Value),
-                                    Message => "this is not a value of the"
-                                               & " nominal type required here",
-                                    Note    => "[0710]/D213: nominal identity"
-                                               & " remains distinct even when"
-                                               & " representation layouts"
-                                               & " agree",
-                                    Related => Syn.Origin (Of_Tree, Node),
-                                    Because => "the type declared here",
-                                    Into    => Found);
-                                 Landin.Checking.Refuse
-                                   (Types.all, Of_Tree, Value);
-                              end if;
-                           end;
-                        end if;
-                     end;
-                  elsif Wants = Ty.Fixed_Array then
-                     declare
-                        Written : constant Syn.Node_Id :=
-                          Syn.Declared_Type (Of_Tree, Node);
-                     begin
-                        if Is_Value_Control (Of_Tree, Value)
-                          or else Needs_Arithmetic_Context (Of_Tree, Value)
-                        then
-                           Check_Contextual_Value
-                             (Of_Tree, Value,
-                              (Kind    => Ty.Fixed_Array,
-                               Length  => Landin.Checking.Array_Length
-                                 (Types.all, Of_Tree, Written),
-                               Element => Landin.Checking.Array_Element
-                                 (Types.all, Of_Tree, Written),
-                               Element_Shape => Complex_Element
-                                 (Of_Tree, Written),
-                               Element_Nominal =>
-                                 Landin.Checking.Array_Element_Nominal
-                                 (Types.all, Of_Tree, Written),
-                               others  => <>),
-                              Syn.Origin (Of_Tree, Node),
-                              "the type declared here",
-                              Static_Image =>
-                                not Is_Local_Binding (Of_Tree, Node));
-                        elsif Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
-                        then
-                           Check_Array_Zeroed
-                             (Of_Tree, Value,
-                              Landin.Checking.Array_Length
-                                (Types.all, Of_Tree, Written),
-                              Landin.Checking.Array_Element
-                                (Types.all, Of_Tree, Written),
-                              Landin.Checking.Array_Element_Nominal
-                                (Types.all, Of_Tree, Written),
-                              Syn.Origin (Of_Tree, Written),
-                              "the array type written here",
-                              Shape => Complex_Element (Of_Tree, Written));
-                        elsif Syn.Kind (Of_Tree, Value)
-                                = Syn.Mixed_Array_Repetition
-                        then
-                           --  D36/D38: an explicitly typed local or module
-                           --  initializer gives a mixed prefix its shape; a
-                           --  module image additionally requires static folds.
-                           Check_Mixed_Array_Repetition
-                             (Of_Tree, Node, Value,
-                              Landin.Checking.Array_Length
-                                (Types.all, Of_Tree, Written),
-                              Landin.Checking.Array_Element
-                                (Types.all, Of_Tree, Written),
-                              Static_Image =>
-                                not Is_Local_Binding (Of_Tree, Node),
-                              Element_Nominal =>
-                                Landin.Checking.Array_Element_Nominal
-                                  (Types.all, Of_Tree, Written),
-                              Shape => Complex_Element (Of_Tree, Written));
-                        elsif Syn.Kind (Of_Tree, Value) = Syn.Array_Repetition
-                        then
-                           --  D34: the written nonzero shape supplies a count
-                           --  when `of` has none.  At module scope the one
-                           --  scalar expression also takes D24's static-fold
-                           --  boundary.
-                           Check_Array_Repetition
-                             (Of_Tree, Node, Value,
-                              Landin.Checking.Array_Length
-                                (Types.all, Of_Tree, Written),
-                              Landin.Checking.Array_Element
-                                (Types.all, Of_Tree, Written),
-                              Static_Image =>
-                                not Is_Local_Binding (Of_Tree, Node),
-                              Element_Nominal =>
-                                Landin.Checking.Array_Element_Nominal
-                                  (Types.all, Of_Tree, Written),
-                              Shape => Complex_Element (Of_Tree, Written));
-                        elsif Syn.Kind (Of_Tree, Value) = Syn.Array_Literal
-                        then
-                           --  D23 for a local, D24 for a module binding:
-                           --  the written array type supplies the exact
-                           --  count and scalar context for every element.
-                           --  Check_Module_Value applies [1940] to the
-                           --  literal as it does for any other module
-                           --  value, so a runtime element is refused there.
-                           Check_Array_Literal
-                             (Of_Tree, Node, Value,
-                              Landin.Checking.Array_Length
-                                (Types.all, Of_Tree, Written),
-                              Landin.Checking.Array_Element
-                                (Types.all, Of_Tree, Written),
-                              Static_Image =>
-                                not Is_Local_Binding (Of_Tree, Node),
-                              Element_Nominal =>
-                                Landin.Checking.Array_Element_Nominal
-                                  (Types.all, Of_Tree, Written),
-                              Shape => Complex_Element (Of_Tree, Written));
-                        else
-                           --  D21: the other initializer form is a
-                           --  whole-array copy from a storage name, so the
-                           --  identity check is D17's as an assignment's is.
-                           --  Selected_From keeps that one direct name out
-                           --  of the general-value refusal.
-                           declare
-                              Admitted : constant Boolean :=
-                                Syn.Kind (Of_Tree, Value)
-                                  = Syn.Member_Selection
-                                and then Admit_Array_Field (Of_Tree, Value);
-                              Got : constant Ty.Type_Kind :=
-                                (if Is_Direct_Binding_Name (Of_Tree, Value)
-                                      or else Admitted
-                                 then Selected_From (Of_Tree, Value)
-                                 else Synthesise (Of_Tree, Value));
-                           begin
-                              if Got = Ty.Ill_Typed then
-                                 null;
-                              elsif Got /= Ty.Fixed_Array
-                                or else Landin.Checking.Array_Length
-                                          (Types.all, Of_Tree, Value)
-                                        /= Landin.Checking.Array_Length
-                                             (Types.all, Of_Tree, Written)
-                                or else not Landin.Checking.Field_Shapes_Agree
-                                  (Types.all,
-                                   Landin.Checking.Array_Element_Shape
-                                     (Types.all, Of_Tree, Value),
-                                   Landin.Checking.Array_Element_Shape
-                                     (Types.all, Of_Tree, Written))
-                              then
-                                 Bad.Report
-                                   (Item    => Bad.Type_Mismatch,
-                                    Source  => Syn.Source_Of (Of_Tree),
-                                    Where   => Syn.Where (Of_Tree, Value),
-                                    Message => "this is not an array of the"
-                                               & " type written here",
-                                    Note    => "D17: an array's length and"
-                                               & " element type are its"
-                                               & " identity",
-                                    Related => Syn.Origin (Of_Tree, Node),
-                                    Because => "the type declared here",
-                                    Into    => Found);
-                                 Landin.Checking.Refuse
-                                   (Types.all, Of_Tree, Value);
-                              end if;
-                           end;
-                        end if;
-                     end;
+                  elsif Wants in Ty.Aggregate | Ty.Fixed_Array
+                    or else (Wants in Ty.Scalar_Name
+                      and then Syn.Kind (Of_Tree, Value)
+                        = Syn.Zeroed_Literal)
+                  then
+                     --  `zeroed` is answered by the type alone, so its
+                     --  report points there rather than at the binding.
+                     Check_Contextual_Value
+                       (Of_Tree, Value,
+                        Destination_Context
+                          (Of_Tree, Syn.Declared_Type (Of_Tree, Node), Wants),
+                        (if Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
+                         then Syn.Origin
+                           (Of_Tree, Syn.Declared_Type (Of_Tree, Node))
+                         else Syn.Origin (Of_Tree, Node)),
+                        (if Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
+                         then "the type written here"
+                         else "the type declared here"),
+                        Static_Image => not Is_Local_Binding (Of_Tree, Node));
                   elsif Wants = Ty.Any_Value then
                      declare
                         Written : constant Syn.Node_Id :=
@@ -33792,16 +33085,6 @@ package body Landin.Stages.Checking is
                            end;
                         end if;
                      end;
-                  elsif Wants in Ty.Scalar_Name
-                    and then Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
-                  then
-                     --  D39/D40: a written module or local scalar type is the
-                     --  scalar context for `zeroed`; Type_At has already
-                     --  resolved an alias to the enabled scalar it denotes.
-                     --  Inference, assignment and general expressions still
-                     --  reach the ordinary refusal.
-                     Landin.Checking.Note
-                       (Types.all, Of_Tree, Value, Wants);
                   else
                      Require
                        (Of_Tree, Value, Wants, Syn.Origin (Of_Tree, Node),
@@ -34069,9 +33352,6 @@ package body Landin.Stages.Checking is
                      Value : constant Syn.Node_Id :=
                        Syn.Value_Of (Of_Tree, Node);
                   begin
-                     if Admit_Array_Field (Of_Tree, Place) then
-                        null;
-                     end if;
                      Check_Place (Of_Tree, Place, Stepping => False);
                      if Landin.Checking.Type_Of
                           (Types.all, Of_Tree, Place) = Ty.Ill_Typed
@@ -34136,37 +33416,6 @@ package body Landin.Stages.Checking is
                   return;
                end if;
 
-               --  D49 supplies the fixed-array shape for a complete `zeroed`
-               --  assignment.  D50 additionally recognizes a direct array
-               --  name or a selection as copy syntax, D52 recognizes D29's
-               --  literal syntax, and D53 recognizes D32/D37 repetition.
-               --  The source selection is not typed until Check_Place accepts
-               --  the destination, so destination diagnostics remain first
-               --  and alone.
-               if Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                    in Syn.Zeroed_Literal | Syn.Array_Literal
-                       | Syn.Array_Repetition | Syn.Mixed_Array_Repetition
-                       | Syn.Call | Syn.Labeled_Application
-                       | Syn.Try_Expression
-                 or else Is_Value_Control
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 or else Is_Array_Arithmetic
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 or else Is_Direct_Array_Name
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 or else Names_Array_Parameter
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                 or else Syn.Kind
-                   (Of_Tree, Syn.Value_Of (Of_Tree, Node))
-                    = Syn.Member_Selection
-               then
-                  if Admit_Array_Field
-                       (Of_Tree, Syn.Target_Of (Of_Tree, Node))
-                  then
-                     null;
-                  end if;
-               end if;
-
                Check_Place
                  (Of_Tree, Syn.Target_Of (Of_Tree, Node),
                   Stepping => False);
@@ -34217,211 +33466,20 @@ package body Landin.Stages.Checking is
                            return;
                         end if;
                      end;
-
-                     if Is_Value_Control (Of_Tree, Value) then
-                        Check_Contextual_Value
-                          (Of_Tree, Value,
-                           (Kind    => Ty.Aggregate,
-                            Nominal => Landin.Checking.Nominal_Of
-                              (Types.all, Of_Tree, Place),
-                            others  => <>),
-                           Syn.Origin (Of_Tree, Place),
-                           "the place written here");
-                     elsif Is_Case_Value (Of_Tree, Value) then
-                        Refuse_Case_Value
-                          (Of_Tree, Value, Syn.Origin (Of_Tree, Place),
-                           "the place written here");
-                     elsif Is_Struct_Construction (Of_Tree, Value) then
-                        declare
-                           Expected : constant
-                             Landin.Checking.Nominal_Type_Id :=
-                             Landin.Checking.Nominal_Of
-                               (Types.all, Of_Tree, Place);
-                        begin
-                           if Construction_Agrees
-                             (Of_Tree, Value, Expected,
-                              Syn.Origin (Of_Tree, Place),
-                              "the place written here")
-                           then
-                              Check_Struct_Literal
-                                (Of_Tree, Value, Expected,
-                                 Static_Image => False);
-                           end if;
-                        end;
-                     elsif Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal then
-                        Check_Aggregate_Zeroed
-                          (Of_Tree, Value,
-                           Landin.Checking.Nominal_Of
-                             (Types.all, Of_Tree, Place),
-                           Syn.Origin (Of_Tree, Place),
-                           "the place written here");
-                     else
-                        --  [0710]: a whole struct is copied into a place of
-                        --  the same type.  A copy is the one expression
-                        --  position a struct may stand in, because the bytes
-                        --  go straight between places without a value.
-                        declare
-                           Got : constant Ty.Type_Kind :=
-                             (if Is_Direct_Binding_Name (Of_Tree, Value)
-                                   or else Is_Aggregate_Alias_Name
-                                     (Of_Tree, Value)
-                                   or else Syn.Kind (Of_Tree, Value)
-                                             = Syn.Member_Selection
-                              then Selected_From (Of_Tree, Value)
-                              else Synthesise (Of_Tree, Value));
-                        begin
-                           if Got = Ty.Ill_Typed then
-                              null;
-                           elsif Got /= Ty.Aggregate
-                             or else Landin.Checking.Nominal_Of
-                                       (Types.all, Of_Tree, Place)
-                                     /= Landin.Checking.Nominal_Of
-                                          (Types.all, Of_Tree, Value)
-                           then
-                              Bad.Report
-                                (Item    => Bad.Type_Mismatch,
-                                 Source  => Syn.Source_Of (Of_Tree),
-                                 Where   => Syn.Where (Of_Tree, Value),
-                                 Message => "this is not a value of the"
-                                            & " nominal type required here",
-                                 Note    => "[0710]/D213: nominal identity"
-                                            & " remains distinct even when"
-                                            & " representation layouts agree",
-                                 Related => Syn.Origin (Of_Tree, Place),
-                                 Because => "the place written here",
-                                 Into    => Found);
-                              Landin.Checking.Refuse
-                                (Types.all, Of_Tree, Value);
-                           end if;
-                        end;
-                     end if;
-
-                     return;
                   end if;
 
-                  --  D20 copies an array straight from one storage place to
-                  --  another.  D29's literal and D30's `zeroed` are
-                  --  contextual: the destination's D17 shape supplies their
-                  --  count and scalar element type without making either a
-                  --  general value.
-                  if Wants = Ty.Fixed_Array then
-                     if Is_Value_Control (Of_Tree, Value)
-                       or else Needs_Arithmetic_Context (Of_Tree, Value)
-                     then
-                        Check_Contextual_Value
-                          (Of_Tree, Value,
-                           (Kind    => Ty.Fixed_Array,
-                            Length  => Landin.Checking.Array_Length
-                              (Types.all, Of_Tree, Place),
-                            Element => Landin.Checking.Array_Element
-                              (Types.all, Of_Tree, Place),
-                            Element_Shape => Complex_Element
-                              (Of_Tree, Place),
-                            Element_Nominal =>
-                              Landin.Checking.Array_Element_Nominal
-                              (Types.all, Of_Tree, Place),
-                            others  => <>),
-                           Syn.Origin (Of_Tree, Place),
-                           "the place written here");
-                     elsif Syn.Kind (Of_Tree, Value)
-                          = Syn.Mixed_Array_Repetition
-                     then
-                        --  D37 gives this contextual mixed form the complete
-                        --  shape of its mutable fixed-array destination.
-                        Check_Mixed_Array_Repetition
-                          (Of_Tree, Place, Value,
-                           Landin.Checking.Array_Length
-                             (Types.all, Of_Tree, Place),
-                           Landin.Checking.Array_Element
-                             (Types.all, Of_Tree, Place),
-                           Static_Image => False,
-                           Element_Nominal =>
-                             Landin.Checking.Array_Element_Nominal
-                               (Types.all, Of_Tree, Place),
-                           Shape => Complex_Element (Of_Tree, Place));
-                     elsif Syn.Kind (Of_Tree, Value)
-                             = Syn.Array_Repetition
-                     then
-                        Check_Array_Repetition
-                          (Of_Tree, Place, Value,
-                           Landin.Checking.Array_Length
-                             (Types.all, Of_Tree, Place),
-                           Landin.Checking.Array_Element
-                             (Types.all, Of_Tree, Place),
-                           Static_Image => False,
-                           Element_Nominal =>
-                             Landin.Checking.Array_Element_Nominal
-                               (Types.all, Of_Tree, Place),
-                           Shape => Complex_Element (Of_Tree, Place));
-                     elsif Syn.Kind (Of_Tree, Value) = Syn.Array_Literal then
-                        Check_Array_Literal
-                          (Of_Tree, Place, Value,
-                           Landin.Checking.Array_Length
-                             (Types.all, Of_Tree, Place),
-                           Landin.Checking.Array_Element
-                             (Types.all, Of_Tree, Place),
-                           Static_Image => False,
-                           Element_Nominal =>
-                             Landin.Checking.Array_Element_Nominal
-                               (Types.all, Of_Tree, Place),
-                           Shape => Complex_Element (Of_Tree, Place));
-                     elsif Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
-                     then
-                        Check_Array_Zeroed
-                          (Of_Tree, Value,
-                           Landin.Checking.Array_Length
-                             (Types.all, Of_Tree, Place),
-                           Landin.Checking.Array_Element
-                             (Types.all, Of_Tree, Place),
-                           Landin.Checking.Array_Element_Nominal
-                             (Types.all, Of_Tree, Place),
-                           Syn.Origin (Of_Tree, Place),
-                           "the array place written here",
-                           Shape => Complex_Element (Of_Tree, Place));
-                     else
-                        declare
-                           Admitted : constant Boolean :=
-                             (Syn.Kind (Of_Tree, Value)
-                                = Syn.Member_Selection
-                              and then Admit_Array_Field (Of_Tree, Value));
-                           Got : constant Ty.Type_Kind :=
-                             (if Admitted
-                                   or else Is_Direct_Binding_Name
-                                     (Of_Tree, Value)
-                              then Selected_From (Of_Tree, Value)
-                              else Synthesise (Of_Tree, Value));
-                        begin
-                           if Got = Ty.Ill_Typed then
-                              null;
-                           elsif Got /= Ty.Fixed_Array
-                             or else Landin.Checking.Array_Length
-                                       (Types.all, Of_Tree, Place)
-                                     /= Landin.Checking.Array_Length
-                                          (Types.all, Of_Tree, Value)
-                             or else not Landin.Checking.Field_Shapes_Agree
-                               (Types.all,
-                                Landin.Checking.Array_Element_Shape
-                                  (Types.all, Of_Tree, Place),
-                                Landin.Checking.Array_Element_Shape
-                                  (Types.all, Of_Tree, Value))
-                           then
-                              Bad.Report
-                                (Item    => Bad.Type_Mismatch,
-                                 Source  => Syn.Source_Of (Of_Tree),
-                                 Where   => Syn.Where (Of_Tree, Value),
-                                 Message => "this is not an array of the type"
-                                            & " written here",
-                                 Note    => "D17: an array's length and"
-                                            & " element type are its identity",
-                                 Related => Syn.Origin (Of_Tree, Place),
-                                 Because => "the place written here",
-                                 Into    => Found);
-                              Landin.Checking.Refuse
-                                (Types.all, Of_Tree, Value);
-                           end if;
-                        end;
-                     end if;
-
+                  --  [1880]: an aggregate place gives its value the whole
+                  --  context, whatever the value's form.
+                  if Wants in Ty.Aggregate | Ty.Fixed_Array
+                    or else (Wants in Ty.Scalar_Name
+                      and then Syn.Kind (Of_Tree, Value)
+                        = Syn.Zeroed_Literal)
+                  then
+                     Check_Contextual_Value
+                       (Of_Tree, Value,
+                        Destination_Context (Of_Tree, Place, Wants),
+                        Syn.Origin (Of_Tree, Place),
+                        "the place written here");
                      return;
                   end if;
 
@@ -34517,22 +33575,9 @@ package body Landin.Stages.Checking is
                      return;
                   end if;
 
-                  --  D41--D43/D62: a mutable scalar binding, an admitted
-                  --  scalar subobject, or a direct named return supplies the
-                  --  contextual type for `zeroed`.  Check_Place has already
-                  --  resolved aliases and refused immutable or invalid
-                  --  destinations.
-                  if Wants in Ty.Scalar_Name
-                    and then Is_Zeroed_Scalar_Place (Of_Tree, Place)
-                    and then Syn.Kind (Of_Tree, Value) = Syn.Zeroed_Literal
-                  then
-                     Landin.Checking.Note
-                       (Types.all, Of_Tree, Value, Wants);
-                  else
-                     Require
-                       (Of_Tree, Value, Wants, Syn.Origin (Of_Tree, Place),
-                        "the place written here");
-                  end if;
+                  Require
+                    (Of_Tree, Value, Wants, Syn.Origin (Of_Tree, Place),
+                     "the place written here");
                end;
 
             when Syn.Increment | Syn.Decrement =>
@@ -35268,6 +34313,12 @@ package body Landin.Stages.Checking is
               (if Expected.Kind = Ty.Any_Value
                  and then Erased_Construction_Note (Of_Tree, Node) /= ""
                then Erased_Construction_Note (Of_Tree, Node)
+               elsif Expected.Kind = Ty.Aggregate
+                 and then Expected.Result_Shape = Landin.Checking.No_Signature
+                 and then Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
+                   = Ty.Aggregate
+               then "[0710]/D213: nominal identity remains distinct even"
+                    & " when representation layouts agree"
                else "The value must match the complete type, shape and"
                     & " reference permissions required by this context"),
             Related => Beside (Of_Tree, Node, Site),
@@ -35766,7 +34817,7 @@ package body Landin.Stages.Checking is
                declare
                   Admitted : constant Boolean :=
                     Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
-                    and then Admit_Array_Field (Of_Tree, Node);
+                    and then Holds_Array (Of_Tree, Node);
                   Got : constant Ty.Type_Kind :=
                     (if Admitted
                           or else Syn.Kind (Of_Tree, Node)
@@ -37171,12 +36222,28 @@ package body Landin.Stages.Checking is
          Literal  : Syn.Node_Id;
          Local    : Boolean;
          Shape    : out Type_Descriptor;
+         Inferred : out Boolean) is
+      begin
+         Infer_Element_Shape
+           (Of_Tree, Owner, Syn.Nth_Element (Of_Tree, Literal, 1),
+            Landin.Checking.Element_Count
+              (Syn.Element_Count (Of_Tree, Literal)),
+            Literal, Local, Shape, Inferred);
+      end Infer_Literal_Shape;
+
+      --  [0530]/[0560]: an inferred array's element is what its first
+      --  element, or its one repeated value, is, and Count of them form
+      --  its extent; Extent is what an extent report points at.
+      procedure Infer_Element_Shape
+        (Of_Tree  : Syn.Tree;
+         Owner    : Syn.Node_Id;
+         First    : Syn.Node_Id;
+         Count    : Landin.Checking.Element_Count;
+         Extent   : Syn.Node_Id;
+         Local    : Boolean;
+         Shape    : out Type_Descriptor;
          Inferred : out Boolean)
       is
-         Count : constant Landin.Checking.Element_Count :=
-           Landin.Checking.Element_Count
-             (Syn.Element_Count (Of_Tree, Literal));
-         First : constant Syn.Node_Id := Syn.Nth_Element (Of_Tree, Literal, 1);
          Maximum_Bytes : constant Ty.Magnitude :=
            Ty.Magnitude (Landin.Targets.Maximum_Object_Size (Facts));
          Got : Ty.Type_Kind;
@@ -37186,12 +36253,13 @@ package body Landin.Stages.Checking is
          Shape := (Kind => Ty.Ill_Typed, others => <>);
          Inferred := False;
 
-         --  [0530]/D25: the first element answers for every element.  A
-         --  local literal asks what an inferred binding of that element
-         --  would be, so a reference, a function, an atom set or an
-         --  aggregate supplies its complete shape.  D26's module image
-         --  keeps its scalar element; storage names are still typed as
-         --  places so the report is the literal's rather than the name's.
+         --  [0530]/D25: the first element answers for every element, and
+         --  a reference, a function, an atom set or an aggregate supplies
+         --  its complete shape (D1947).  A local literal asks what an
+         --  inferred binding of that element would be; a module image's
+         --  storage names are typed as places, so a report is the
+         --  literal's rather than the name's, and [1940] later decides
+         --  which elements its image can hold.
          if Local then
             Got := Infer_Value (Of_Tree, Owner, First, Local => True);
          else
@@ -37225,16 +36293,16 @@ package body Landin.Stages.Checking is
                Where   => Syn.Where (Of_Tree, First),
                Message => "this hands back nothing, so it cannot"
                           & " supply an array element type",
-               Note    => "[0530]: the literal's first element supplies"
-                          & " the element type of the inferred array",
+               Note    => "[0530]/[0560]: the first element, or the"
+                          & " repeated value, supplies the element type of"
+                          & " the inferred array",
                Related => Syn.Origin (Of_Tree, Owner),
                Because => Inference_Owner (Of_Tree, Owner),
                Into    => Found);
             return;
          elsif Got = Ty.Ill_Typed then
             return;
-         elsif Local
-           and then Got in Ty.Fixed_Array | Ty.Pointer_Value
+         elsif Got in Ty.Fixed_Array | Ty.Pointer_Value
              | Ty.Slice_Value | Ty.Function_Value | Ty.Atom_Value
              | Ty.Aggregate
            and then
@@ -37250,10 +36318,7 @@ package body Landin.Stages.Checking is
          else
             Refuse_Inferred_Array_Element
               (Of_Tree, First,
-               (if not Local
-                then "an inferred module array takes a scalar element;"
-                     & " write the array type for any other"
-                elsif Got = Ty.Any_Value
+               (if Got = Ty.Any_Value
                 then "an erased `any` element needs an explicitly typed"
                      & " array"
                 elsif Got = Ty.Aggregate
@@ -37270,7 +36335,7 @@ package body Landin.Stages.Checking is
             Bad.Report
               (Item    => Bad.Literal_Out_Of_Range,
                Source  => Syn.Source_Of (Of_Tree),
-               Where   => Syn.Where (Of_Tree, Literal),
+               Where   => Syn.Where (Of_Tree, Extent),
                Message => "this inferred array is larger than the"
                           & " target can address",
                Note    => "D18: an array's byte extent must fit the"
@@ -37282,7 +36347,7 @@ package body Landin.Stages.Checking is
          Shape := Shape_Descriptor
            (Landin.Checking.Make_Array_Field (Types.all, Count, Element));
          Inferred := True;
-      end Infer_Literal_Shape;
+      end Infer_Element_Shape;
 
       function Infer_Value
         (Of_Tree      : Syn.Tree;
@@ -37367,13 +36432,13 @@ package body Landin.Stages.Checking is
             return Ty.Fixed_Array;
          end if;
 
-         --  D33/D35: a counted repetition supplies D17's length and takes
-         --  its scalar element type from its one expression.  Like D25, an
-         --  untyped integer takes [0200]'s default; unlike a literal, no
-         --  source run needs a common context.  D136 admits an explicitly
-         --  typed zero-length array. A repetition that must infer its shape
-         --  still has no element-bearing source run, so D33/D35 continue to
-         --  refuse a zero count, and [0560] infers only a scalar element.
+         --  [0560]/D33: a counted repetition supplies D17's length and
+         --  takes its element from its one expression, whatever its shape
+         --  (D1664), as a literal takes it from its first element.  Like
+         --  D25, an untyped integer takes [0200]'s default.  D136 admits an
+         --  explicitly typed zero-length array; a repetition that infers
+         --  its shape has no element-bearing source run, so D33 still
+         --  refuses a zero count.
          if Binding_Form
            and then Syn.Kind (Of_Tree, Value) = Syn.Array_Repetition
            and then Syn.Repetition_Count (Of_Tree, Value) /= Syn.No_Node
@@ -37423,79 +36488,20 @@ package body Landin.Stages.Checking is
                end if;
 
                declare
-                  Count : constant Landin.Checking.Element_Count :=
-                    Landin.Checking.Element_Count (Count_Value);
-                  Got : constant Ty.Type_Kind :=
-                    (if Syn.Kind (Of_Tree, Repeated)
-                          in Syn.Name_Reference | Syn.Member_Selection
-                       and then Chain_Names_Element_Storage
-                         (Of_Tree, Repeated)
-                     then Selected_From (Of_Tree, Repeated)
-                     else Synthesise (Of_Tree, Repeated));
-                  Element : Ty.Scalar_Name;
+                  Shape : Type_Descriptor;
+                  Inferred : Boolean;
                begin
-                  if Got = Ty.Untyped_Integer then
-                     Element := Ty.Default_Integer;
-                     Commit_To (Of_Tree, Repeated, Element);
-                  elsif Got = Ty.Untyped_Float then
-                     Element := Ty.Default_Float;
-                     Commit_To (Of_Tree, Repeated, Element);
-                  elsif Got in Ty.Scalar_Name then
-                     Element := Ty.Scalar_Name (Got);
-                  else
-                     if Got = Ty.No_Value then
-                        Bad.Report
-                          (Item    => Bad.Result_Use,
-                           Source  => Syn.Source_Of (Of_Tree),
-                           Where   => Syn.Where (Of_Tree, Repeated),
-                           Message => "this hands back nothing, so it cannot"
-                                      & " supply an array element type",
-                           Note    => "D33: repetition supplies one scalar"
-                                      & " element type for the inferred array",
-                           Related => Syn.Origin (Of_Tree, Owner),
-                           Because => Inference_Owner (Of_Tree, Owner),
-                           Into    => Found);
-                     elsif Got /= Ty.Ill_Typed then
-                        Refuse_Inferred_Array_Element
-                          (Of_Tree, Repeated,
-                           "a counted repetition infers only a scalar"
-                           & " element");
-                     end if;
-
+                  Infer_Element_Shape
+                    (Of_Tree, Owner, Repeated,
+                     Landin.Checking.Element_Count (Count_Value), Value,
+                     Local, Shape, Inferred);
+                  if not Inferred then
                      Landin.Checking.Refuse (Types.all, Of_Tree, Value);
                      return Ty.Ill_Typed;
                   end if;
-
-                  declare
-                     Element_Bytes : constant Ty.Magnitude :=
-                       Ty.Magnitude
-                         (Landin.Targets.Bytes
-                            (Ty.Storage_Size (Element, Facts)));
-                     Maximum_Bytes : constant Ty.Magnitude :=
-                       Ty.Magnitude
-                         (Landin.Targets.Maximum_Object_Size (Facts));
-                  begin
-                     if Element_Bytes /= 0
-                       and then Count_Value > Maximum_Bytes / Element_Bytes
-                     then
-                        Bad.Report
-                          (Item    => Bad.Literal_Out_Of_Range,
-                           Source  => Syn.Source_Of (Of_Tree),
-                           Where   => Syn.Where (Of_Tree, Value),
-                           Message => "this inferred array is larger than the"
-                                      & " target can address",
-                           Note    => "D18: an array's byte extent must fit"
-                                      & " the target's usize",
-                           Into    => Found);
-                        Landin.Checking.Refuse (Types.all, Of_Tree, Value);
-                        return Ty.Ill_Typed;
-                     end if;
-                  end;
-
                   Landin.Checking.Note
                     (Types.all, Of_Tree, Value, Ty.Fixed_Array);
-                  Landin.Checking.Note_Array
-                    (Types.all, Of_Tree, Value, Count, Element);
+                  Note_Descriptor (Of_Tree, Value, Shape);
                end;
             end;
 
@@ -37513,12 +36519,11 @@ package body Landin.Stages.Checking is
            and then not
              (Syn.Kind (Of_Tree, Syn.Target_Of (Of_Tree, Value))
                 = Syn.Name_Reference
-              and then Admit_Array_Field (Of_Tree, Value))
+              and then Holds_Array (Of_Tree, Value))
          then
             declare
                Place : constant Ty.Type_Kind :=
-                 (if Admit_Array_Field (Of_Tree, Value) then Ty.Fixed_Array
-                  else Selected_From (Of_Tree, Value));
+                 Selected_From (Of_Tree, Value);
             begin
                if Place in Ty.Aggregate | Ty.Fixed_Array then
                   Bad.Report
@@ -37590,7 +36595,7 @@ package body Landin.Stages.Checking is
                    (Of_Tree, Syn.Target_Of (Of_Tree, Value))
                    = Syn.Name_Reference
                  or else Local)
-              and then Admit_Array_Field (Of_Tree, Value);
+              and then Holds_Array (Of_Tree, Value);
             Direct_Child : constant Boolean :=
               not Direct_Field
               and then Local

@@ -1,0 +1,20 @@
+point: type = struct
+    x: u8
+    y: u8
+end point
+
+origin: point = (x: 1, y: 2)
+--  D1947: a module array infers a struct element.
+corners := [origin, (x: 3, y: 4)]
+column := [3 of origin]
+
+--  [0560]/D1664: a counted repetition infers a struct element, and
+--  `lenof` measures a literal of them without forming it (D31).
+public main: () -> (code: i32) =
+    p: point = (x: 5, y: 6)
+    mut row := [4 of p]
+    row[2].y = 9
+    measured := lenof([p, origin, p])
+    code = i32(row[0].x) + i32(row[2].y) + i32(row[3].y)
+        + i32(corners[1].x) + i32(column[2].y) + i32(measured)
+end main

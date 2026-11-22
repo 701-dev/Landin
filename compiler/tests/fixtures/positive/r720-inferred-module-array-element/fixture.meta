@@ -1,0 +1,5 @@
+class: positive
+summary: D1947 infers a module literal and a counted repetition from a struct element as from a scalar one
+program: main.ldn
+constructs: 0520, 0530, 0560, 0670, 1740, 1830, 1940
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

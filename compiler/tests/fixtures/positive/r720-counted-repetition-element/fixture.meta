@@ -1,0 +1,5 @@
+class: positive
+summary: [0560]/D33 infers a counted repetition from any element, a struct as a scalar (D1664)
+program: main.ldn
+constructs: 0520, 0560, 0670, 1830
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

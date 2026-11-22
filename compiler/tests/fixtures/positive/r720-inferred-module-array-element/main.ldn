@@ -1,0 +1,14 @@
+point: type = struct
+    x: u8
+    y: u8
+end point
+
+first: point = (x: 1, y: 2)
+second: point = (x: 3, y: 4)
+
+--  D26/D1947: an inferred module literal or repetition takes its element
+--  from the first element or the repeated value, whatever its shape, and
+--  [1940] decides which elements its static image can hold.
+bytes := [1, 2]
+points := [first, second]
+rows := [2 of first]

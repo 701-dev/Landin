@@ -3,12 +3,14 @@ point: type = struct
     y: u8
 end point
 
---  [0560]/D33: a counted repetition infers its length and a scalar element;
---  a whole struct element takes the written array type instead.
+--  [0560]/D33: a counted repetition infers its length, and its element
+--  from the repeated value whatever its shape (D1664), as the written array
+--  type gives it.
 f: (p: point) -> none =
     written: [2]point = [2 of p]
     counted := [2 of 7]
     whole := [2 of p]
     _ = written
     _ = counted
+    _ = whole
 end f

@@ -12384,7 +12384,7 @@ package body Landin.Tests.Checking_Suite is
          & "    values[1] = addr local" & LF
          & "    stored: shelf(ptr mut node) = (values: values)" & LF
          & "end bad" & LF,
-         "this is not an array of the type named by the struct field");
+         "this does not have the required array type and shape");
    end Array_Field_Copies_Compare_Complete_Children;
 
    --  The hosted entry calls the program's argument initializer with C's
@@ -12667,8 +12667,7 @@ package body Landin.Tests.Checking_Suite is
          & "end use" & LF);
       Check_C_Boundary_Source
         (Item, Callbacks & "use: () -> none =" & LF
-         & "    values := [2 of add]" & LF & "end use" & LF,
-         "a counted repetition infers only a scalar element", "L0304");
+         & "    values := [2 of add]" & LF & "end use" & LF);
       Check_C_Boundary_Source
         (Item, "record: type = layout(c) struct" & LF
          & "    values: [1][1]u8" & LF & "end record" & LF
