@@ -1,0 +1,20 @@
+error[L0301]: this is `any named`, which does not convert to `any shape`
+  --> ../tests/fixtures/negative/any-converts-only-to-parents/main.ldn:31:27
+   |
+31 |     specific: any shape = general
+   |                           ^^^^^^^
+  --> ../tests/fixtures/negative/any-converts-only-to-parents/main.ldn:31:15
+   |
+31 |     specific: any shape = general
+   |               ^^^^^^^^^ the runtime-dispatch type written here
+  = note: [1370]: an `any C` converts only to an `any` of a concept C builds on; build this one from its pointer with `any(addr ...)` instead
+error[L0301]: this is `any shape`, which does not convert to `any labelled`
+  --> ../tests/fixtures/negative/any-converts-only-to-parents/main.ldn:32:29
+   |
+32 |     sibling: any labelled = specific
+   |                             ^^^^^^^^
+  --> ../tests/fixtures/negative/any-converts-only-to-parents/main.ldn:32:14
+   |
+32 |     sibling: any labelled = specific
+   |              ^^^^^^^^^^^^ the runtime-dispatch type written here
+  = note: [1370]: an `any C` converts only to an `any` of a concept C builds on; build this one from its pointer with `any(addr ...)` instead

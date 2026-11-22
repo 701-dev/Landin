@@ -101,6 +101,9 @@ package body Landin.IR.Verifier is
                & " or is used as an ordinary callable",
             when Evidence_Self_Disagrees =>
                "an erased call does not pair its function and receiver",
+            when Evidence_Parent_Malformed =>
+               "an erased table's parent cell names no erased table of its"
+               & " type, or an operation reads a cell its table lacks",
             when Atom_Metadata_Disagrees =>
                "an atom carrier disagrees with its structural atom set",
             when Atom_Identity_Not_In_Set =>
@@ -274,7 +277,7 @@ package body Landin.IR.Verifier is
             when Binary_Kind   => 2,
             when Failure_Test  => 1,
             when Choose        => 3,
-            when Evidence_Function | Evidence_Self => 1,
+            when Evidence_Function | Evidence_Self | Evidence_Parent => 1,
             when Storage_Address | Place_Address | Function_Address
                | Evidence_Address | Call | Indirect_Call => 0,
             when Jump          => 0,
@@ -4299,6 +4302,37 @@ package body Landin.IR.Verifier is
                   end;
                end loop;
                Entries := Entries + Held.Entries.Count;
+               --  D1949: parent cells belong to erased tables and each
+               --  names an erased table of the same represented type.
+               if Held.Parents.Count /= 0
+                 and then
+                   (not Held.Erased
+                    or else Held.Parents.First
+                      > Natural (Of_Unit.Evidence_Parents.Length)
+                    or else Held.Parents.Count
+                      > Natural (Of_Unit.Evidence_Parents.Length)
+                          - Held.Parents.First)
+               then
+                  return (Kind => Evidence_Parent_Malformed, others => <>);
+               end if;
+               for Cell in 1 .. Held.Parents.Count loop
+                  declare
+                     Parent : constant Evidence_Id :=
+                       Of_Unit.Evidence_Parents.Element
+                         (Held.Parents.First + Cell);
+                  begin
+                     if not Holds (Of_Unit, Parent)
+                       or else Natural (Parent) = Which
+                       or else not Evidence_Is_Erased (Of_Unit, Parent)
+                       or else not Same_Shape
+                         (Of_Unit, Evidence_Represented (Of_Unit, Parent),
+                          Held.Represented)
+                     then
+                        return
+                          (Kind => Evidence_Parent_Malformed, others => <>);
+                     end if;
+                  end;
+               end loop;
             end;
          end loop;
          if Entries /= Natural (Of_Unit.Evidence_Entries.Length) then
@@ -7048,6 +7082,29 @@ package body Landin.IR.Verifier is
                                     Item => Id, Block => Block, Value => V);
                               end if;
 
+                           when Evidence_Parent =>
+                              declare
+                                 Evidence : constant Evidence_Id :=
+                                   Evidence_Of (Of_Unit, Id, V);
+                                 Which : constant Natural :=
+                                   Evidence_Entry_Of (Of_Unit, Id, V);
+                              begin
+                                 if not Holds (Of_Unit, Evidence) then
+                                    return
+                                      (Kind => Evidence_Out_Of_Range,
+                                       Item => Id, Block => Block, Value => V);
+                                 elsif not Evidence_Is_Erased
+                                     (Of_Unit, Evidence)
+                                   or else Which = 0
+                                   or else Which > Evidence_Parent_Count
+                                     (Of_Unit, Evidence)
+                                 then
+                                    return
+                                      (Kind => Evidence_Parent_Malformed,
+                                       Item => Id, Block => Block, Value => V);
+                                 end if;
+                              end;
+
                            when Evidence_Function =>
                               declare
                                  Evidence : constant Evidence_Id :=
@@ -8621,6 +8678,19 @@ package body Landin.IR.Verifier is
                            when Function_Address | Evidence_Address =>
                               if Result_Of (Of_Unit, Id, V)
                                    /= Landin.Types.Usize
+                              then
+                                 return (Kind => Result_Disagrees,
+                                         Item => Id, Block => Block,
+                                         Value => V);
+                              end if;
+
+                           when Evidence_Parent =>
+                              if Result_Of (Of_Unit, Id, V)
+                                   /= Landin.Types.Usize
+                                or else Result_Of
+                                  (Of_Unit, Id,
+                                   Nth_Operand (Of_Unit, Id, V, 1))
+                                    /= Landin.Types.Usize
                               then
                                  return (Kind => Result_Disagrees,
                                          Item => Id, Block => Block,

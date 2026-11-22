@@ -16391,7 +16391,17 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **The alternatives:** keeping the two fields and filing the conversion for a later language change; and keeping `task` and `job` apart because a thread is an execution context and a fibre is not (D446). Both were declined: the conversion is additive, and the two concepts' entries are the same.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** `runtime/any-converts-to-parents`, which converts an `any` along a chain of three concepts in a binding, an assignment, an argument, a result and a struct field, over two types whose providers answer differently, on every target the gate runs, and `negative/any-converts-only-to-parents`, which refuses the conversion to a child's `any` and to a sibling's; how the table carries the parent's part is D1968. The one task concept is held by the library review's change that applies it, and the breaking list names each routine it changes.
+
+### D1968 — An erased table names its parents' tables after its entries
+
+**The tour said** at [1370], as D1949 decided, that an `any C` converts to `any P` for a concept P that C builds on, keeping its data pointer and taking P's part of the table. It did not say where that part is. D145's erased table flattens C's entries and every parent's into one run, each concept once, so a parent's entries sit inside it only when nothing is shared; with two parents that build on one concept, the second parent's run has a hole.
+
+**Chosen:** after its entries, an erased table of C has one cell for each concept C builds on, directly or through others: depth first, the represented type's constraint before the parents in written order, each concept once. The cell holds the address of the same type's erased table of that concept, which a conversion loads in place of the pair's table word, one load whatever the depth. The cells are made only for a concept some `any` in the program is converted from, so a program that converts nothing has the tables it had; the tables they name are then built too, and every table of that concept has them. A conversion where the program builds no table of C traps as D377's erased call does, since no value can reach it. The IR's `Evidence_Parent` names the cell by position, and a backend turns the position into an offset; the verifier holds each cell to an erased table of the same represented type, and each read to a cell its table has.
+
+**The alternatives:** laying each parent's flattened run out whole inside the child's table so that a conversion offsets the table pointer, which duplicates entries along every shared ancestor and lets an `any P` point into the middle of another concept's table, which D374's pruning and the debugger read as a table start; and a conversion routine per pair of concepts, a call where a load does. Both were declined.
+
+**Pinned by** `runtime/any-converts-to-parents`, whose shape table names both of its ancestors and whose conversions read the cells, and the verifier's case for malformed parent cells.
 
 ### D1957 — The library declares `iterable`, and its containers conform
 
@@ -17004,7 +17014,8 @@ structural type whose identity is exactly the direct source `Concept_Id` of
 `C`; aliases preserve it, while parent composition creates no subtype or
 conversion. The enabled source form admits a concept with exactly its one
 represented type formal and an empty D142 input tuple. There is no implicit
-conversion either from a concrete value/pointer or between two `any` types.
+conversion either from a concrete value/pointer or between two `any` types. D1949 amends the parent rule: an `any C` converts to `any P` for a
+concept `P` that `C` builds on.
 
 `any(pointer)` evaluates exactly one pointer expression and never copies the
 unknown-sized pointee. In a destination, argument or result context, that

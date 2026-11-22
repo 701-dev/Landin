@@ -1221,7 +1221,8 @@ package body Landin.IR is
         (Evidence_Record'
            (Represented => Represented, Erased => Erased, Family => Family,
             Entries => (First => Natural (Into.Evidence_Entries.Length),
-                        Count => 0)));
+                        Count => 0),
+            Parents => (First => 0, Count => 0)));
       return Evidence_Id (Into.Evidence.Last_Index);
    end Add_Evidence;
 
@@ -1344,6 +1345,35 @@ package body Landin.IR is
       return
         Of_Unit.Evidence_Entries.Element (Members.First + Which).Signature;
    end Evidence_Entry_Signature;
+
+   procedure Set_Evidence_Parents
+     (Into     : in out Unit;
+      Evidence : Evidence_Id;
+      Parents  : Evidence_Id_Array)
+   is
+      Held : Evidence_Record := Into.Evidence (Positive (Evidence));
+   begin
+      if Held.Parents.Count /= 0 then
+         raise Landin.Compiler_Defect with
+           "an erased table's parent cells were set twice";
+      end if;
+      Held.Parents :=
+        (First => Natural (Into.Evidence_Parents.Length),
+         Count => Parents'Length);
+      for Parent of Parents loop
+         Into.Evidence_Parents.Append (Parent);
+      end loop;
+      Into.Evidence (Positive (Evidence)) := Held;
+   end Set_Evidence_Parents;
+
+   function Evidence_Parent_Count
+     (Of_Unit : Unit; Id : Evidence_Id) return Natural
+     is (Of_Unit.Evidence.Element (Positive (Id)).Parents.Count);
+
+   function Evidence_Parent_Target
+     (Of_Unit : Unit; Id : Evidence_Id; Which : Positive) return Evidence_Id
+     is (Of_Unit.Evidence_Parents.Element
+           (Of_Unit.Evidence.Element (Positive (Id)).Parents.First + Which));
 
    function Evidence_Entry_Dispatch_Signature
      (Of_Unit : Unit; Id : Evidence_Id; Which : Positive)
@@ -5385,6 +5415,25 @@ package body Landin.IR is
       Into.Operands.Append (Receiver);
       return Append (Into, Item, Made);
    end Emit_Erased_Evidence_Function;
+
+   function Emit_Evidence_Parent
+     (Into     : in out Unit;
+      Item     : Item_Id;
+      Table    : Value_Id;
+      Evidence : Evidence_Id;
+      Which    : Positive;
+      Site     : Landin.Provenance.Origin) return Value_Id
+   is
+      Made : Instruction :=
+        (Op => Evidence_Parent, Result => Landin.Types.Usize,
+         Site => Site, Evidence => Evidence, Evidence_Entry => Which,
+         others => <>);
+   begin
+      Made.First_Arg := Natural (Into.Operands.Length);
+      Made.Args := 1;
+      Into.Operands.Append (Table);
+      return Append (Into, Item, Made);
+   end Emit_Evidence_Parent;
 
    function Emit_Evidence_Self
      (Into           : in out Unit;

@@ -19,7 +19,8 @@ package body Landin.IR.Effects is
             | Remainder | Add | Subtract | Shift_Left | Shift_Right =>
             return (Traps => True, others => False);
          when Load_Indirect | Load_Datum | Load_Field | Load_Element
-            | Load_Variant_Tag | Load_Variant_Field | Evidence_Function =>
+            | Load_Variant_Tag | Load_Variant_Field | Evidence_Function
+            | Evidence_Parent =>
             return (Reads => True, Traps => True, others => False);
          when Store_Indirect | Store_Datum
             | Clear_Array | Fill_Array | Select_Variant

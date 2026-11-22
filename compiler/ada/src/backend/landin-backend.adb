@@ -62,6 +62,8 @@ package body Landin.Backend is
                   /= IR.Evidence_Represented (Of_Unit, Erased)
         or else IR.Evidence_Entry_Count (Of_Unit, Direct)
                   /= IR.Evidence_Entry_Count (Of_Unit, Erased)
+        --  D1949: parent cells make the erased table the longer one.
+        or else IR.Evidence_Parent_Count (Of_Unit, Erased) /= 0
       then
          return False;
       end if;

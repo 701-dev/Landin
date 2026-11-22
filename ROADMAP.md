@@ -1385,7 +1385,7 @@ or inout parameter; then it builds a temporary and copies it once. Every
 recorded positive program, the library included, lowers as before, so
 `hosted/events/events.ldn:158`, the library's one site, takes no copy.
 Eight runtime fixtures pin the new order, two renamed to
-`reads-old-value`, and a ninth the alias cases. SR-1538 and SR-1539 were
+`reads-old-value`, and a ninth the alias cases. SR-1538 and `SR-1539` were
 filed for refusals met on the way.
 
 ### R19.40 — The migration aid
@@ -1696,7 +1696,7 @@ main before R20's gate.
 
 ### R20.11 — An `any` converts to its concept's parents
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 D1949: an `any C` converts implicitly to `any P` for every concept `P`
@@ -1705,6 +1705,21 @@ table; [1370] and the checker say so, and the backends lower it on every
 target.
 Exit evidence: a runtime fixture converting along a chain of parents on
 every target the gate runs; the refusal where `P` is not a parent.
+Done: an `any C` converts to `any P` wherever one is wanted, in a
+binding, an assignment, an argument, a result or a field, for every
+concept P that C builds on; [1370] and [1390] say so. Its table is D1968's:
+an erased table of a concept some `any` is converted from names, after
+its entries, the same type's erased table of each concept it builds on,
+which the IR's `Evidence_Parent` reads and every backend emits; a
+conversion no table of C reaches traps as D377's call does.
+`runtime/any-converts-to-parents` runs a chain of three concepts on the
+seven product targets and the firmware corpus, and
+`negative/any-converts-only-to-parents` refuses a child's and a
+sibling's `any`, now naming both types and the `any(addr ...)` that
+builds the other, where L0301 had said only that the erased type
+differed. `SR-1539`, whose activation the changed refusal met, is taken: a
+pointer type applied to an integer is refused naming `ptr(...)` and
+[0470] (`negative/pointer-type-applied-to-an-integer`).
 
 ### R20.20 — How a capability is received
 

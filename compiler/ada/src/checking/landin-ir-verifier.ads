@@ -90,6 +90,9 @@ package Landin.IR.Verifier is
       Evidence_Entry_Signature_Disagrees,
       Erased_Dispatch_Malformed,
       Evidence_Self_Disagrees,
+      --  D1949: an erased table's parent cell, or the operation reading
+      --  one, names no erased table of the same represented type.
+      Evidence_Parent_Malformed,
       Atom_Metadata_Disagrees,
       Atom_Identity_Not_In_Set,
       Field_Shape_Malformed,

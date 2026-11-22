@@ -2360,6 +2360,8 @@ package body Landin.Stages.Checking is
       function Concept_For
         (Of_Tree : Syn.Tree; Reference : Syn.Node_Id)
          return Landin.Checking.Concept_Id;
+      function Builds_On
+        (Child, Ancestor : Landin.Checking.Concept_Id) return Boolean;
 
       --  A module binding whose value is written as an anonymous function,
       --  `less_i32 := (a: i32, b: i32) -> (yes: bool) = a < b end`.
@@ -19237,6 +19239,86 @@ package body Landin.Stages.Checking is
          return Safe;
       end Entry_Is_Object_Safe;
 
+      --  D1949: whether concept Child builds on Ancestor, through its
+      --  represented type's constraint or its parents, directly or through
+      --  others.  A concept does not build on itself.
+      function Builds_On
+        (Child, Ancestor : Landin.Checking.Concept_Id) return Boolean
+      is
+         Seen : array
+           (1 .. Positive'Max (1, Landin.Checking.Concept_Count (Types.all)))
+           of Boolean := [others => False];
+         Found_It : Boolean := False;
+
+         procedure Visit (Concept : Landin.Checking.Concept_Id);
+
+         procedure Visit (Concept : Landin.Checking.Concept_Id) is
+         begin
+            if Found_It
+              or else Concept = Landin.Checking.No_Concept
+              or else Landin.Checking.Is_Compiler_Concept
+                (Types.all, Concept)
+            then
+               return;
+            end if;
+            declare
+               Position : constant Positive :=
+                 Landin.Checking.Concept_Identities.Position
+                   (Types.all, Concept);
+            begin
+               if Seen (Position) then
+                  return;
+               end if;
+               Seen (Position) := True;
+            end;
+            declare
+               Declaration : constant Res.Declaration_Id :=
+                 Landin.Checking.Concept_Declaration (Types.all, Concept);
+               Concept_Tree : constant not null access constant Syn.Tree :=
+                 Tree_For (Res.Source_Of (Meanings.all, Declaration));
+               Concept_Node : constant Syn.Node_Id :=
+                 Res.Node_Of (Meanings.all, Declaration);
+               Required : constant Syn.Node_Id :=
+                 Syn.Constraint_Of
+                   (Concept_Tree.all,
+                    Syn.Nth_Concept_Formal
+                      (Concept_Tree.all, Concept_Node, 1));
+
+               procedure Reach (Reference : Syn.Node_Id);
+
+               procedure Reach (Reference : Syn.Node_Id) is
+                  Parent : constant Landin.Checking.Concept_Id :=
+                    Concept_For (Concept_Tree.all, Reference);
+               begin
+                  if Parent = Ancestor
+                    and then Parent /= Landin.Checking.No_Concept
+                  then
+                     Found_It := True;
+                  else
+                     Visit (Parent);
+                  end if;
+               end Reach;
+            begin
+               if Required /= Syn.No_Node then
+                  Reach (Required);
+               end if;
+               for Parent in 1 .. Syn.Concept_Parent_Count
+                 (Concept_Tree.all, Concept_Node)
+               loop
+                  Reach
+                    (Syn.Nth_Concept_Parent
+                       (Concept_Tree.all, Concept_Node, Parent));
+               end loop;
+            end;
+         end Visit;
+      begin
+         if Child = Ancestor then
+            return False;
+         end if;
+         Visit (Child);
+         return Found_It;
+      end Builds_On;
+
       function Any_Selection_Signature
         (Of_Tree : Syn.Tree; Selection : Syn.Node_Id)
          return Landin.Checking.Signature_Id
@@ -28098,6 +28180,31 @@ package body Landin.Stages.Checking is
                      begin
                         if Got = Ty.Ill_Typed then
                            return Kept (Ty.Ill_Typed);
+                        elsif Source_Id = Landin.Checking.No_Reference
+                          and then Target.Kind = Ty.Pointer_Value
+                          and then Got in Ty.Integer_Name | Ty.Untyped_Integer
+                        then
+                           --  [0470]: an integer becomes a pointer through
+                           --  `ptr(...)`, which takes its type from the
+                           --  context, not through the pointer type.
+                           Bad.Report
+                             (Item    => Bad.Type_Mismatch,
+                              Source  => Syn.Source_Of (Of_Tree),
+                              Where   => Syn.Where (Of_Tree, Value),
+                              Message => "a pointer type does not convert"
+                                         & " an integer; write `ptr(...)`"
+                                         & " where the pointer type is"
+                                         & " wanted",
+                              Note    => "[0470]: `ptr(address)` makes a"
+                                         & " pointer from an integer"
+                                         & " address and takes its type"
+                                         & " from the context",
+                              Related => Syn.Origin (Of_Tree, Callee),
+                              Because => "the pointer type applied here",
+                              Into    => Found);
+                           Landin.Checking.Refuse
+                             (Types.all, Of_Tree, Node);
+                           return Kept (Ty.Ill_Typed);
                         elsif Source_Id = Landin.Checking.No_Reference then
                            Bad.Report
                              (Item    => Bad.Type_Mismatch,
@@ -34273,6 +34380,42 @@ package body Landin.Stages.Checking is
             Landin.Checking.Refuse (Types.all, Of_Tree, Node);
             return;
          end if;
+         --  D1949: two `any` types meet, and the value's concept does not
+         --  build on the one wanted.
+         if Expected.Kind = Ty.Any_Value
+           and then Landin.Checking.Holds (Types.all, Expected.Concept)
+           and then Landin.Checking.Type_Of (Types.all, Of_Tree, Node)
+             = Ty.Any_Value
+           and then Landin.Checking.Holds
+             (Types.all,
+              Landin.Checking.Any_Concept_Of (Types.all, Of_Tree, Node))
+         then
+            Bad.Report
+              (Item    => Bad.Type_Mismatch,
+               Source  => Syn.Source_Of (Of_Tree),
+               Where   => Syn.Where (Of_Tree, Node),
+               Message => "this is `"
+                          & Type_Spelling
+                              ((Kind => Ty.Any_Value,
+                                Concept => Landin.Checking.Any_Concept_Of
+                                  (Types.all, Of_Tree, Node),
+                                others => <>),
+                               Syn.Source_Of (Of_Tree))
+                          & "`, which does not convert to `"
+                          & Type_Spelling
+                              ((Kind => Ty.Any_Value,
+                                Concept => Expected.Concept,
+                                others => <>),
+                               Syn.Source_Of (Of_Tree)) & "`",
+               Note    => "[1370]: an `any C` converts only to an `any` of"
+                          & " a concept C builds on; build this one from its"
+                          & " pointer with `any(addr ...)` instead",
+               Related => Beside (Of_Tree, Node, Site),
+               Because => Beside_Label (Of_Tree, Node, Site, Because),
+               Into    => Found);
+            Landin.Checking.Refuse (Types.all, Of_Tree, Node);
+            return;
+         end if;
          Bad.Report
            (Item    => Bad.Type_Mismatch,
             Source  => Syn.Source_Of (Of_Tree),
@@ -35310,7 +35453,16 @@ package body Landin.Stages.Checking is
                   Got : constant Ty.Type_Kind :=
                     Synthesise (Of_Tree, Node, Erased_Context => True);
                begin
-                  if Got /= Ty.Ill_Typed
+                  if Got = Ty.Any_Value
+                    and then Builds_On
+                      (Landin.Checking.Any_Concept_Of
+                         (Types.all, Of_Tree, Node), Expected.Concept)
+                  then
+                     --  D1949: the value keeps its data pointer and takes
+                     --  the parent's part of its table.
+                     Landin.Checking.Note_Any_Conversion
+                       (Types.all, Of_Tree, Node, Expected.Concept);
+                  elsif Got /= Ty.Ill_Typed
                     and then
                       (Got /= Ty.Any_Value
                        or else Landin.Checking.Any_Concept_Of

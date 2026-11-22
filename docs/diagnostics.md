@@ -821,6 +821,13 @@ value converts to an address only when it is a C function value and only
 to `usize`, `usize(f)` (D1343): a function in Landin's own convention has no
 address C could call, and another integer type converts that `usize` after
 it, `u64(usize(f))`.
+An `any C` converts to `any P` only when C builds on P, directly or
+through other concepts [1340] (D1949). It converts to no other `any`,
+neither that of a concept built on C nor that of a sibling; build such
+a value from its pointer with `any(addr item)` instead.
+A pointer type applied to an integer, `ptr mut u32(address)`, is no
+conversion: write `ptr(address)` where the pointer type is wanted, which
+takes its type from the context [0470].
 
 ```landin
 flag: bool = true

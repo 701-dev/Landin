@@ -6808,6 +6808,26 @@ package body Landin.Backend.X86_64 is
                      Emit ("movq %rax, " & Value_Operand (Value));
                   end;
 
+               when Landin.IR.Evidence_Parent =>
+                  declare
+                     Witness : constant Landin.IR.Evidence_Id :=
+                       Landin.IR.Evidence_Of (Of_Unit, Item, Value);
+                     Offset : constant Landin.Targets.Byte_Count :=
+                       Landin.Targets.Evidence_Function_Offset
+                         (Facts,
+                          Landin.IR.Evidence_Entry_Count (Of_Unit, Witness)
+                          + Landin.IR.Evidence_Entry_Of
+                              (Of_Unit, Item, Value));
+                  begin
+                     Emit ("movq " & Value_Operand (Operand (1)) & ", %rax");
+                     Emit
+                       ("movq "
+                        & Trimmed
+                            (Landin.Targets.Byte_Count'Image (Offset))
+                        & "(%rax), %rax");
+                     Emit ("movq %rax, " & Value_Operand (Value));
+                  end;
+
                when Landin.IR.Evidence_Self =>
                   declare
                      Receiver : constant Landin.IR.Value_Id :=
@@ -8092,6 +8112,7 @@ package body Landin.Backend.X86_64 is
                         | Landin.IR.Code_Address
                         | Landin.IR.Evidence_Address
                         | Landin.IR.Evidence_Function
+                        | Landin.IR.Evidence_Parent
                         | Landin.IR.Evidence_Self | Landin.IR.Call
                         | Landin.IR.Memory_Access | Landin.IR.Assembly
                         | Landin.IR.Load_Indirect | Landin.IR.Store_Indirect
@@ -9430,6 +9451,16 @@ package body Landin.Backend.X86_64 is
                         else
                            Emit (".quad 0");
                         end if;
+                     end loop;
+                     --  D1949: the parent cells follow the entries.
+                     for Cell in 1 .. Landin.IR.Evidence_Parent_Count
+                       (Of_Unit, Evidence)
+                     loop
+                        Emit
+                          (".quad "
+                           & Evidence_Symbol
+                               (Landin.IR.Evidence_Parent_Target
+                                  (Of_Unit, Evidence, Cell)));
                      end loop;
                   end if;
                end;

@@ -917,9 +917,9 @@ An erased capability is built from the address of a handle binding:
   concept builds on (D492). So an `any io.world` or an `any net.network`
   goes as it is, with no adapter, to `io.buffered_over`, `io.lines_over`
   or any function generic over a writer or a reader.
-- It does not convert to an `any` of another concept. Where an
-  `any io.writer` is wanted, an erased world lends a writer to erase with
-  `writer_of`.
+- It converts to an `any` of each concept its own builds on (D1949), so
+  an `any io.world` is passed where an `any io.writer` is wanted. It
+  converts to no other `any`.
 
 Providers retain authority over files and arguments.
 

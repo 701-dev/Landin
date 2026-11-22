@@ -723,7 +723,10 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   only when their layouts and entries match, and an `any C` call no
   conformance of C answers builds as a trap no value reaches. An `any C`
   itself satisfies C and every concept C refines, so a generic routine can
-  take it and call each entry through its table (D492). A conformance may
+  take it and call each entry through its table (D492), and it converts to
+  an `any` of each concept C builds on, keeping its data pointer and
+  taking that concept's table for the same type on every target (D1949,
+  D1968). A conformance may
   hand the entries its list does not name to a field, or a routine's
   result, `through` it, its table holding a routine the compiler makes for
   each (D1363), and an entry is called through a concrete type's name,

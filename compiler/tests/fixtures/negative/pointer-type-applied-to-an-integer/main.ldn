@@ -1,0 +1,7 @@
+--  [0470]: an integer address becomes a pointer through `ptr(...)`, which
+--  takes its type from the context.  Writing the pointer type as the
+--  callee is refused, and the refusal names `ptr(...)`.
+public main: () -> (code: i32) =
+    mut seen: ptr mut [2]u32 = ptr mut [2]u32(0)
+    code = 0
+end main

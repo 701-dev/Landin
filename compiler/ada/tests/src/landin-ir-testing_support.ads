@@ -118,7 +118,8 @@ package Landin.IR.Testing_Support is
       Value : Value_Id;
       Which : Natural)
      with Pre => Holds (Into, Item, Value)
-                 and then Op_Of (Into, Item, Value) = Evidence_Function;
+                 and then Op_Of (Into, Item, Value)
+                   in Evidence_Function | Evidence_Parent;
 
    procedure Overwrite_Value_Signature
      (Into     : in out Unit;
