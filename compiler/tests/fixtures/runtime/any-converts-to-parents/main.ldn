@@ -1,0 +1,78 @@
+--  D1949: an `any C` converts to `any P` for every concept P that C
+--  builds on, directly or through others.  The converted value keeps its
+--  data pointer and takes P's part of the table, so each call below
+--  reaches the provider of the value's own type.  A `shape` builds on
+--  `sized`, which builds on `named`; the conversions run along that chain
+--  in a binding, an assignment, an argument, a result and a struct field,
+--  over a square and a circle whose providers answer differently.
+named: type = concept (t: type)
+    name: (self: ptr t) -> (n: u32)
+end named
+
+sized: type = concept (t: type) is named
+    size: (self: ptr t) -> (n: u32)
+end sized
+
+shape: type = concept (t: type) is sized
+    area: (self: ptr t) -> (n: u32)
+end shape
+
+square: type = struct
+    side: u32
+end square
+
+square_name: (self: ptr square) -> (n: u32) = n = 4 end
+square_size: (self: ptr square) -> (n: u32) = n = self.val.side end
+square_area: (self: ptr square) -> (n: u32) =
+    n = self.val.side * self.val.side
+end square_area
+
+square is named (name: square_name)
+square is sized (size: square_size)
+square is shape (area: square_area)
+
+circle: type = struct
+    radius: u32
+end circle
+
+circle_name: (self: ptr circle) -> (n: u32) = n = 0 end
+circle_size: (self: ptr circle) -> (n: u32) = n = self.val.radius * 2 end
+circle_area: (self: ptr circle) -> (n: u32) =
+    n = 3 * self.val.radius * self.val.radius
+end circle_area
+
+circle is named (name: circle_name)
+circle is sized (size: circle_size)
+circle is shape (area: circle_area)
+
+holder: type = struct
+    item: any named
+end holder
+
+name_of: (item: any named) -> (n: u32) = n = item.name() end
+
+as_sized: (item: any shape) -> (out: any sized from item) = out = item end
+
+public main: () -> (code: i32) =
+    s: square = (side: 5)
+    c: circle = (radius: 2)
+    shapes: [2]any shape = [any(addr s), any(addr c)]
+    mut total: u32 = 0
+    for item in shapes do
+        sz: any sized = item
+        total = total + sz.size()
+        mut nm: any named = sz
+        total = total + nm.name()
+        nm = item
+        total = total + nm.name()
+        total = total + name_of(item)
+        h: holder = (item: item)
+        total = total + h.item.name()
+        back := as_sized(item)
+        total = total + back.size()
+        total = total + item.area()
+    end for
+    --  The square gives 5 + 4 + 4 + 4 + 4 + 5 + 25 = 51 and the circle
+    --  4 + 0 + 0 + 0 + 0 + 4 + 12 = 20.
+    code = i32(total)
+end main

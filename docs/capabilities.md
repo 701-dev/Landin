@@ -723,7 +723,10 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   only when their layouts and entries match, and an `any C` call no
   conformance of C answers builds as a trap no value reaches. An `any C`
   itself satisfies C and every concept C refines, so a generic routine can
-  take it and call each entry through its table (D492). A conformance may
+  take it and call each entry through its table (D492), and it converts to
+  an `any` of each concept C builds on, keeping its data pointer and
+  taking that concept's table for the same type on every target (D1949,
+  D1968). A conformance may
   hand the entries its list does not name to a field, or a routine's
   result, `through` it, its table holding a routine the compiler makes for
   each (D1363), and an entry is called through a concrete type's name,
@@ -980,11 +983,11 @@ process ignores SIGPIPE and gives its children the default back.
   `os_sync_wait_on_address` (D512).
   Every descriptor is closed on exec, with a descriptor handle type and
   errno atoms that keep their numbers and have words for a person,
-  `posix.words`, which passes the core library's failures to
-  `failure.words` (D582). `duplicate_above` duplicates a descriptor at
-  or above a number, clear of the standard streams with 3. `kill` sends a
-  signal to a process it names, or to a process group as C's `kill` names
-  one, zero for the caller's own and a negated leader's ID for another,
+  `posix.words`; `hosted/system`'s `system.words` words an errno or a
+  core library failure in one call (D582, D1951). `duplicate_above`
+  duplicates a descriptor at or above a number, clear of the standard
+  streams with 3. `kill` sends a signal to a process it names, or to a
+  process group as C's `kill` names one, zero for the caller's own and a negated leader's ID for another,
   refusing -1, beside `current_process` and the signal numbers (D1279,
   D1356). It sits over `platform/libc` on
   Darwin and FreeBSD and `platform/linux` on Linux. `platform/libc`

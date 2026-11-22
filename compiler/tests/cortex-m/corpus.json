@@ -1368,6 +1368,9 @@
     "runtime/any-composed-dispatch": {
       "mode": "execute"
     },
+    "runtime/any-converts-to-parents": {
+      "mode": "execute"
+    },
     "runtime/any-expression-result": {
       "mode": "execute"
     },
@@ -2595,6 +2598,12 @@
       "mode": "refuse",
       "reason": "Firmware has no standard output to print to. runtime/binary-search executes the same algorithm here."
     },
+    "runtime/example-dice-and-cards": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-failure-words": {
       "codes": [
         "L0015"
@@ -2636,6 +2645,12 @@
       ],
       "mode": "refuse",
       "reason": "Firmware has no standard output to print to. runtime/merge-sort executes the same algorithm here."
+    },
+    "runtime/example-primes-on-threads": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/example-run-length-encoding": {
       "codes": [

@@ -1,4 +1,4 @@
-error[L0301]: this does not have the required erased type and shape
+error[L0301]: this is `any left_view`, which does not convert to `any right_view`
   --> ../tests/fixtures/negative/any-concept-identity-mismatch/main.ldn:24:13
    |
 24 |     right = left
@@ -7,4 +7,4 @@ error[L0301]: this does not have the required erased type and shape
    |
 24 |     right = left
    |     ^^^^^ the runtime-dispatch place written here
-  = note: The value must match the complete type, shape and reference permissions required by this context
+  = note: [1370]: an `any C` converts only to an `any` of a concept C builds on; build this one from its pointer with `any(addr ...)` instead

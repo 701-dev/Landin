@@ -439,6 +439,16 @@ receiving routine copies, so the erased signature replaces that parameter
 with the same address word and the verifier holds it to the represented
 record.
 
+An `any C` converts to `any P` for a concept P that C builds on (D1949) by
+keeping its data word and replacing its table word. The new table is the
+same type's erased table of P, whose address C's erased table holds in a
+parent cell after its entries, one cell for each concept C builds on
+(D1968). `Evidence_Parent` reads that cell from a table word, naming it by
+position as `Evidence_Function` names an entry; the backend turns the
+position into an offset past the entries. Only a concept some `any` is
+converted from has the cells, and the verifier holds each to an erased
+table of the same represented type.
+
 Declared failure is separate from ordinary results. A call can have a
 failure slot, and a failure test selects the subsequent control flow. A
 failure exit carries an atom belonging to the declared error set. The

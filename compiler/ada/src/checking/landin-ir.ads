@@ -346,6 +346,11 @@ package Landin.IR is
       --  D147's self carrier is bound to the immediately preceding erased
       --  function projection, never to an independently supplied data word.
       Evidence_Self,
+      --  D1949: the table of a concept the operand table's concept builds
+      --  on, for the same represented type: the parent cell Which of an
+      --  erased table, which follows its entries.  The semantic position
+      --  is retained; only a backend turns it into a target offset.
+      Evidence_Parent,
       --  [1920]: every parameter named once and in order, and the type
       --  of the named return, or no value at all.  Both forms carry a
       --  descriptor; only the direct form also names a routine item.
@@ -985,6 +990,34 @@ package Landin.IR is
       return Signature_Id
      with Pre => Holds (Of_Unit, Id)
                  and then Which <= Evidence_Entry_Count (Of_Unit, Id);
+
+   type Evidence_Id_Array is array (Positive range <>) of Evidence_Id;
+
+   --  D1949: an erased table's parent cells, which follow its entries:
+   --  for each concept its concept builds on, in one order every table
+   --  of the family shares, the erased table of that concept for the
+   --  same represented type.  An `any` converted to a parent's takes the
+   --  cell's table and keeps its data pointer.  Set once, all together.
+   procedure Set_Evidence_Parents
+     (Into     : in out Unit;
+      Evidence : Evidence_Id;
+      Parents  : Evidence_Id_Array)
+     with Pre  => Holds (Into, Evidence)
+                  and then Evidence_Is_Erased (Into, Evidence)
+                  and then Parents'Length > 0
+                  and then (for all Parent of Parents =>
+                              Holds (Into, Parent)
+                              and then Evidence_Is_Erased (Into, Parent)),
+          Post => Evidence_Parent_Count (Into, Evidence) = Parents'Length;
+
+   function Evidence_Parent_Count
+     (Of_Unit : Unit; Id : Evidence_Id) return Natural
+     with Pre => Holds (Of_Unit, Id);
+
+   function Evidence_Parent_Target
+     (Of_Unit : Unit; Id : Evidence_Id; Which : Positive) return Evidence_Id
+     with Pre => Holds (Of_Unit, Id)
+                 and then Which <= Evidence_Parent_Count (Of_Unit, Id);
 
    ------------------------------------------------------------------
    --  Items
@@ -2991,13 +3024,13 @@ package Landin.IR is
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Evidence_Id
      with Pre => Holds (Of_Unit, Item, Value)
                  and then Op_Of (Of_Unit, Item, Value)
-                   in Evidence_Address | Evidence_Function;
+                   in Evidence_Address | Evidence_Function | Evidence_Parent;
 
    function Evidence_Entry_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Natural
      with Pre => Holds (Of_Unit, Item, Value)
                  and then Op_Of (Of_Unit, Item, Value)
-                   = Evidence_Function;
+                   in Evidence_Function | Evidence_Parent;
 
    function Target_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Block_Id
@@ -3937,6 +3970,23 @@ package Landin.IR is
                  and then Which <= Evidence_Entry_Count (Into, Evidence)
                  and then Landin.Provenance.Is_Known (Site);
 
+   --  D1949: Table is an erased table's address, an `any`'s second word,
+   --  and Evidence names one table of its family for the layout only, as
+   --  an erased call's does.
+   function Emit_Evidence_Parent
+     (Into     : in out Unit;
+      Item     : Item_Id;
+      Table    : Value_Id;
+      Evidence : Evidence_Id;
+      Which    : Positive;
+      Site     : Landin.Provenance.Origin) return Value_Id
+     with Pre => Is_Emitting (Into, Item)
+                 and then Holds (Into, Item, Table)
+                 and then Holds (Into, Evidence)
+                 and then Evidence_Is_Erased (Into, Evidence)
+                 and then Which <= Evidence_Parent_Count (Into, Evidence)
+                 and then Landin.Provenance.Is_Known (Site);
+
    function Emit_Evidence_Self
      (Into           : in out Unit;
       Item           : Item_Id;
@@ -4443,12 +4493,16 @@ private
    type Evidence_Record is record
       Represented : Field_Shape;
       Entries     : Run;
+      Parents     : Run;
       Erased      : Boolean := False;
       Family      : Natural := 0;
    end record;
 
    package Evidence_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Evidence_Record);
+
+   package Evidence_Parent_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Evidence_Id);
 
    function Hash_Instance_Position
      (Position : Positive) return Ada.Containers.Hash_Type;
@@ -4562,6 +4616,7 @@ private
       Return_Source_Runs : Return_Source_Run_Vectors.Vector;
       Evidence   : Evidence_Vectors.Vector;
       Evidence_Entries : Evidence_Entry_Vectors.Vector;
+      Evidence_Parents : Evidence_Parent_Vectors.Vector;
       Fields     : Field_Shape_Vectors.Vector;
       Slot_Fields : Field_Shape_Vectors.Vector;
       Measurement_Fields : Field_Shape_Vectors.Vector;

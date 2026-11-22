@@ -3957,6 +3957,94 @@ package body Landin.Tests.Verifier_Suite is
       end;
    end Malformed_Evidence_Is_Rejected;
 
+   --  D1949: an erased table's parent cells name erased tables of the
+   --  same represented type, and a conversion reads a cell its table has.
+   procedure Malformed_Evidence_Parents_Are_Rejected
+     (Item : in out Landin.Testing.Context);
+
+   procedure Malformed_Evidence_Parents_Are_Rejected
+     (Item : in out Landin.Testing.Context)
+   is
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      Site : Landin.Provenance.Origin;
+   begin
+      Ready (Work, Site);
+      declare
+         Meanings : constant not null access Landin.Resolution.Table :=
+           Landin.Stages.Meanings (Work);
+
+         --  Two erased tables, the second naming the first as its one
+         --  parent, and a routine that reads that cell.  Parent_Shape is
+         --  the first table's represented type.
+         procedure Build
+           (Unit         : in out IR.Unit;
+            Caller       : out IR.Item_Id;
+            Parent_Value : out IR.Value_Id;
+            Parent_Shape : Landin.Types.Scalar_Name := Landin.Types.U32);
+
+         procedure Build
+           (Unit         : in out IR.Unit;
+            Caller       : out IR.Item_Id;
+            Parent_Value : out IR.Value_Id;
+            Parent_Shape : Landin.Types.Scalar_Name := Landin.Types.U32)
+         is
+            Parent, Child : IR.Evidence_Id;
+            Block : IR.Block_Id;
+            Table : IR.Value_Id;
+         begin
+            IR.Prepare (Unit, Meanings.all);
+            Parent := IR.Add_Evidence
+              (Unit,
+               (Kind => IR.Scalar_Field_Shape, Element => Parent_Shape,
+                Length => 1, others => <>),
+               Erased => True, Family => 1);
+            Child := IR.Add_Evidence
+              (Unit,
+               (Kind => IR.Scalar_Field_Shape, Element => Landin.Types.U32,
+                Length => 1, others => <>),
+               Erased => True, Family => 2);
+            IR.Set_Evidence_Parents (Unit, Child, [Parent]);
+
+            Caller := IR.Add_Item
+              (Unit, IR.Routine, 1, Landin.Types.Usize, Site);
+            Block := IR.Add_Block
+              (Unit, Caller, Landin.Resolution.Program_Scope, Site);
+            IR.Enter (Unit, Caller, Block);
+            Table := IR.Emit_Evidence_Address (Unit, Caller, Child, Site);
+            Parent_Value := IR.Emit_Evidence_Parent
+              (Unit, Caller, Table, Child, 1, Site);
+            IR.Emit_Leave (Unit, Caller, Parent_Value, Site);
+            IR.Leave_Block (Unit, Caller);
+         end Build;
+      begin
+         declare
+            Unit : IR.Unit;
+            Caller : IR.Item_Id;
+            Parent_Value : IR.Value_Id;
+         begin
+            Build (Unit, Caller, Parent_Value);
+            Expect (Item, V.Check (Unit), V.Nothing_Wrong,
+                    "a parent cell and its read are accepted");
+            Landin.IR.Testing_Support.Overwrite_Value_Evidence_Entry
+              (Unit, Caller, Parent_Value, 2);
+            Expect (Item, V.Check (Unit), V.Evidence_Parent_Malformed,
+                    "a conversion cannot read a cell its table lacks");
+         end;
+
+         declare
+            Unit : IR.Unit;
+            Caller : IR.Item_Id;
+            Parent_Value : IR.Value_Id;
+         begin
+            Build
+              (Unit, Caller, Parent_Value, Parent_Shape => Landin.Types.U64);
+            Expect (Item, V.Check (Unit), V.Evidence_Parent_Malformed,
+                    "a parent cell names a table of the same type");
+         end;
+      end;
+   end Malformed_Evidence_Parents_Are_Rejected;
+
    procedure Malformed_Runtime_Addresses_Are_Rejected
      (Item : in out Landin.Testing.Context);
 
@@ -8763,6 +8851,9 @@ package body Landin.Tests.Verifier_Suite is
       Landin.Testing.Register
         (Into, "verifier", "malformed evidence is rejected",
          Malformed_Evidence_Is_Rejected'Access);
+      Landin.Testing.Register
+        (Into, "verifier", "malformed evidence parents are rejected",
+         Malformed_Evidence_Parents_Are_Rejected'Access);
       Landin.Testing.Register
         (Into, "verifier", "malformed runtime addresses are rejected",
          Malformed_Runtime_Addresses_Are_Rejected'Access);

@@ -1,7 +1,7 @@
 --  D582: words for every errno.  `posix.words` gives each errno atom a
 --  phrase, as `failure.words` gives the core library's failures, and
---  passes those to it, so one call words whatever a program over the
---  POSIX layer fails with.  Every errno this system numbers has a phrase
+--  `system.words` words either, so one call words whatever a program over
+--  the hosted services fails with (D1951).  Every errno this system numbers has a phrase
 --  of its own, in lower case but for a name's capitals and with no final
 --  stop; a status asked of a path that is not there fails `enoent`, worded
 --  as C's `strerror` words it; and a library failure is worded as
@@ -10,6 +10,7 @@ import core/cmp
 import core/io
 import core/net
 import core/text
+import hosted/system
 import platform/posix
 
 --  Whether `phrase` is what `wanted` says.
@@ -75,7 +76,8 @@ public main: () -> (code: i32) =
       or not says(posix.words(posix.unlisted), "unknown error")
       or not says(posix.words(posix.enotsup), "operation not supported")
     code = 4
-    return when not says(posix.words(io.not_found), "not found")
-      or not says(posix.words(net.refused), "connection refused")
+    return when not says(system.words(io.not_found), "not found")
+      or not says(system.words(net.refused), "connection refused")
+      or not says(system.words(posix.enoent), "no such file or directory")
     code = 42
 end main

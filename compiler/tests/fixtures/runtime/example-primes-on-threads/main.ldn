@@ -1,0 +1,87 @@
+--  Count the primes below a million on four threads at once, each
+--  counting its own quarter of the numbers, and print what each found and
+--  the total.  Each thread writes only its own part, and the program reads
+--  the parts only after `join` has waited for every thread, so nothing
+--  they share needs a lock.
+import core/failure
+import core/io
+import hosted/blocking
+import hosted/system
+import hosted/thread
+
+--- The numbers counted run from zero up to this, which is left out.
+limit: u32 = 1000000
+
+--- How many threads share the work.
+workers: usize = 4
+
+--- Each thread's part, which it fills in.  A thread is given a copy of the
+--- state it is admitted with, so it writes its count here, by the index the
+--- state carries, for `main` to read once the threads have ended.
+mut found: [workers]u32 = zeroed
+
+--- What a thread is admitted with: which part it is.
+task: type = struct
+    index: usize
+end task
+
+--- Whether `number` is prime, by trial division up to its square root.
+prime: (number: u32) -> (yes: bool) =
+    yes = number >= 2
+    mut divisor: u32 = 2
+    while yes and divisor * divisor <= number do
+        yes = number % divisor <> 0
+        inc divisor
+    end while
+end prime
+
+--- Count the primes of the part `state` names, on a thread of its own.
+count: (inout state: task) -> none ! failure.reason =
+    first: u32 = u32(state.index) * (limit / u32(workers))
+    last: u32 = first + limit / u32(workers)
+    mut primes: u32 = 0
+    for number in first..<last do
+        if prime(number) then inc primes end if
+    end for
+    found[state.index] = primes
+end count
+
+--- The threads' stacks, 192 KiB each: `count` needs little, but each
+--- stack also holds the area its thread starts on, the system's least,
+--- which is 128 KiB on arm64 under C's runtime (`thread.least_stack`).
+mut backing: [workers * 192 * 1024]u8 = zeroed
+
+--- Start one thread for each part and wait for all of them.  `join` is
+--- deferred, so the threads are waited for on every way out, a failed
+--- admission among them.
+count_all: (host: system.host) -> none ! failure.reason =
+    mut group := try thread.group_over(host, backing, workers)
+    defer thread.join(group) else none
+    for index in usize(0)..<workers do
+        work: task = (index: index)
+        try thread.admit(group, count, work)
+    end for
+    try thread.join(group)
+end count_all
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    count_all(system.new()) else (problem)
+        words: []u8 = failure.words(problem)
+        io.write_format(host, io.err(host), "primes: {}\n",
+                        [any(addr words)]) else none
+        return
+    end
+    mut total: u32 = 0
+    for index in usize(0)..<workers do
+        primes: u32 = found[index]
+        first: u32 = u32(index) * (limit / u32(workers))
+        io.write_format(host, io.out(host), "from {}: {} primes\n",
+                        [any(addr first), any(addr primes)]) else none
+        total += primes
+    end for
+    io.write_format(host, io.out(host), "below {}: {} primes\n",
+                    [any(addr limit), any(addr total)]) else none
+    code = 0
+end main

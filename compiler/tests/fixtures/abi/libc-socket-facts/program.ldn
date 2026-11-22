@@ -8,6 +8,7 @@ import core/net
 import core/text
 import platform/libc
 import platform/linux
+import hosted/system
 import platform/posix
 
 --- Socket and signal numbers, by the peer's index.
@@ -161,7 +162,7 @@ end l_encoded
 --  The record of an address with no zone, which names no interface for
 --  the system to look up and so cannot fail.
 laid_out: (at: net.address) -> (record: posix.socket_address) =
-    record = posix.internet_address(at) else (problem)
+    record = system.internet_address(at) else (problem)
         _ = problem
         posix.socket_address(bytes: zeroed, length: 0)
     end
@@ -201,7 +202,7 @@ public extern(c) l_zone_of: (index: u32, into: ptr mut u8) -> none =
         record.bytes[24 + at] = u8((index >> u32(8 * at)) & 255)
     end for
     mut zone: [16]u8 = zeroed
-    at: net.address = posix.address_of(record) else (problem)
+    at: net.address = system.address_of(record) else (problem)
         _ = problem
         net.loopback(net.ipv6, 1)
     end
@@ -229,7 +230,7 @@ public extern(c) l_decoded: (source: ptr u8, length: u32) -> (summary: i64) =
         record.bytes[at] = slot.val
     end for
     summary = -1
-    at: net.address = posix.address_of(record) else (problem)
+    at: net.address = system.address_of(record) else (problem)
         _ = problem
         return
     end

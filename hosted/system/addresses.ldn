@@ -1,0 +1,80 @@
+--  Internet addresses between `core/net` and the system's records:
+--  `platform/posix` lays a record out from numbers, and this file turns a
+--  `net.address` into those numbers and back, an IPv6 zone included, so
+--  that the system layer names no network concept (D1951).
+
+import core/net
+import core/text
+import platform/posix
+
+--- Make the system's record of the internet address `at`, as
+--- `posix.internet_record` lays one out: C's `struct sockaddr_in` for an
+--- IPv4 address and `struct sockaddr_in6` for an IPv6 one.  The IPv6
+--- scope is the interface the address's zone names: a zone of decimal
+--- digits is the interface's number as it stands, and a name is looked up
+--- with `posix.interface_index` (D581).  It fails `enodev` when the zone
+--- names no interface here, or is a number past 32 bits.
+public internet_address:
+    (at: net.address) -> (made: posix.socket_address) ! posix.errno =
+    mut endpoint: posix.internet_endpoint =
+        (family: posix.internet, octets: at.octets, port: at.port,
+         scope: 0)
+    if at.family <> net.ipv4 then
+        endpoint.family = posix.internet6
+        endpoint.scope = try scope_of(at)
+    end if
+    made = try posix.internet_record(endpoint)
+end internet_address
+
+--  The interface number an IPv6 address's zone names, zero for none.
+scope_of: (at: net.address) -> (scope: u32) ! posix.errno =
+    scope = 0
+    length: usize = net.zone_length(at)
+    return when length == 0
+    name: []u8 = at.zone[0..<length]
+    scope = text.parse_u32(name) else (problem)
+        _ = problem
+        mut digits: bool = true
+        for index in usize(0)..<length do
+            if name[index] < u8('0') or name[index] > u8('9') then
+                digits = false
+            end if
+        end for
+        fail posix.enodev when digits
+        scope = try posix.interface_index(name)
+        return
+    end
+end scope_of
+
+--- The internet address and port the system's record `at` holds.  An
+--- IPv6 scope becomes its zone: the interface's name, or its number in
+--- decimal when no interface has that number now.  It fails
+--- `eafnosupport` for a Unix-domain address, or a record too short for
+--- its family.
+public address_of:
+    (at: posix.socket_address) -> (result: net.address) ! posix.errno =
+    endpoint: posix.internet_endpoint = try posix.endpoint_of(at)
+    if endpoint.family == posix.internet then
+        result = net.ipv4_address(endpoint.octets[0], endpoint.octets[1],
+                                  endpoint.octets[2], endpoint.octets[3],
+                                  endpoint.port)
+    else
+        result = net.unspecified(net.ipv6, endpoint.port)
+        result.octets = endpoint.octets
+        if endpoint.scope <> 0 then
+            result.zone = zone_named(endpoint.scope)
+        end if
+    end if
+end address_of
+
+--  The zone a received address's scope names: its interface's name, or,
+--  for an interface that has gone, its number in decimal.
+zone_named: (scope: u32) -> (zone: [16]u8) =
+    zone = posix.interface_name(scope) else (problem)
+        _ = problem
+        zone = zeroed
+        mut room := text.over(zone[0..<net.zone_room])
+        text.append_u32(room, scope) else none
+        return
+    end
+end zone_named

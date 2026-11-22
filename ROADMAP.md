@@ -1385,7 +1385,7 @@ or inout parameter; then it builds a temporary and copies it once. Every
 recorded positive program, the library included, lowers as before, so
 `hosted/events/events.ldn:158`, the library's one site, takes no copy.
 Eight runtime fixtures pin the new order, two renamed to
-`reads-old-value`, and a ninth the alias cases. SR-1538 and SR-1539 were
+`reads-old-value`, and a ninth the alias cases. SR-1538 and `SR-1539` were
 filed for refusals met on the way.
 
 ### R19.40 — The migration aid
@@ -1696,7 +1696,7 @@ main before R20's gate.
 
 ### R20.11 — An `any` converts to its concept's parents
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 D1949: an `any C` converts implicitly to `any P` for every concept `P`
@@ -1705,6 +1705,21 @@ table; [1370] and the checker say so, and the backends lower it on every
 target.
 Exit evidence: a runtime fixture converting along a chain of parents on
 every target the gate runs; the refusal where `P` is not a parent.
+Done: an `any C` converts to `any P` wherever one is wanted, in a
+binding, an assignment, an argument, a result or a field, for every
+concept P that C builds on; [1370] and [1390] say so. Its table is D1968's:
+an erased table of a concept some `any` is converted from names, after
+its entries, the same type's erased table of each concept it builds on,
+which the IR's `Evidence_Parent` reads and every backend emits; a
+conversion no table of C reaches traps as D377's call does.
+`runtime/any-converts-to-parents` runs a chain of three concepts on the
+seven product targets and the firmware corpus, and
+`negative/any-converts-only-to-parents` refuses a child's and a
+sibling's `any`, now naming both types and the `any(addr ...)` that
+builds the other, where L0301 had said only that the erased type
+differed. `SR-1539`, whose activation the changed refusal met, is taken: a
+pointer type applied to an integer is refused naming `ptr(...)` and
+[0470] (`negative/pointer-type-applied-to-an-integer`).
 
 ### R20.20 — How a capability is received
 
@@ -1756,7 +1771,7 @@ uses reread against them.
 
 ### R20.40 — Layers and consumers
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 `platform/posix` moved below the protocol layer as far as its types
@@ -1766,6 +1781,30 @@ split on that measurement (D1950); an example program for `core/random`
 and `hosted/thread`, `core/io/fake` kept as a test provider (D1956).
 Exit evidence: the import graph without the upward edges; the firmware
 measurement recorded.
+Done: `platform/posix` imports nothing that reaches `core/io` or
+`core/net`, and `check.py` refuses a `platform` module that does, naming
+the chain (D1951). The layer keeps `core/text` for host strings, and three
+things moved (D2008): the environment variable's record is
+`text.host_variable`, with `io.variable` its alias for this window; a
+`net.address` becomes the system's record and back in `hosted/system`,
+`system.internet_address` and `system.address_of`, over posix's new
+`internet_record` and `endpoint_of`; and `posix.reason` and the combined
+words are `system.reason` and `system.words`, `posix.words` wording an
+errno alone. Each move is on `roadmap/inputs/breaking-list.md` for R20.60's
+refusals and `refine fix`. Measured on Cortex-M0 (D1950), importing
+`core/fibre` adds no byte to an image, running a group of fibres adds
+6,172 bytes, all of them `core/fibre`'s, and only a call of `failure.words`
+brings in the registry, 1,852 bytes; the registry stays one, and the
+freestanding lane refuses a fibre image that holds `words`. `core/random`
+and `hosted/thread` have example programs on the examples page,
+`runtime/example-dice-and-cards` and `runtime/example-primes-on-threads`,
+and `core/io/fake` keeps its place as a test provider (D1956). A match
+cannot name an atom set as one arm, which made `system.words` name forty
+atoms; that is `SR-1609`. The dice example pads its columns by hand, as
+`SR-285` records. `docs/library.md` said calling `failure.words` costs
+about 6 KB on Cortex-M0, which the measurement contradicted, and now says
+about 2 KB. A `Kept:` line written in a merge's resolution does not
+restart a row's count, `SR-1610`.
 
 ### R20.50 — One name per idea
 

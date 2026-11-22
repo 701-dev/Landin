@@ -523,6 +523,21 @@ package body Landin.Stages.Lowering is
       Evidence : Evidence_Map renames Held_Evidence.Data.all;
       Held_Any_Evidence : Evidence_Tables.Table (Source_Evidence'Last);
       Any_Evidence : Evidence_Map renames Held_Any_Evidence.Data.all;
+
+      --  D1949: for each concept an `any` is converted from, by concept
+      --  position, one of its erased tables, which carries the parent
+      --  cells; a conversion names it for the layout.  No_Evidence where
+      --  the program builds no table of the concept.
+      subtype Source_Concept is Positive range
+        1 .. Positive'Max (1, Landin.Checking.Concept_Count (Types.all));
+      Held_Parent_Witness : Evidence_Tables.Table (Source_Concept'Last);
+      Parent_Witness : Evidence_Map renames Held_Parent_Witness.Data.all;
+
+      --  The `any` node a conversion is lowering unconverted, so that the
+      --  routines it calls do not convert it again.
+      Unconverted_Tree : Landin.Source.Source_Id :=
+        Landin.Source.Source_Id'First;
+      Unconverted_Node : Syn.Node_Id := Syn.No_Node;
       Evidence_Slots : Evidence_Slot_Vectors.Vector;
 
       subtype Source_Routine_Instance is Positive range
@@ -871,6 +886,77 @@ package body Landin.Stages.Lowering is
             end loop;
          end;
       end For_Each_Parent_Row;
+
+      package Concept_Lists is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Landin.Checking.Concept_Id);
+
+      --  D1949: the concepts CONCEPT builds on, in the order of an erased
+      --  table's parent cells: depth first, the represented type's
+      --  constraint before the parents in written order, each concept
+      --  once and CONCEPT itself never.
+      function Ancestor_Concepts
+        (Concept : Landin.Checking.Concept_Id) return Concept_Lists.Vector;
+
+      function Ancestor_Concepts
+        (Concept : Landin.Checking.Concept_Id) return Concept_Lists.Vector
+      is
+         Result : Concept_Lists.Vector;
+
+         procedure Visit (Of_Concept : Landin.Checking.Concept_Id);
+
+         procedure Visit (Of_Concept : Landin.Checking.Concept_Id) is
+         begin
+            if Landin.Checking.Is_Compiler_Concept (Types.all, Of_Concept)
+            then
+               return;
+            end if;
+            declare
+               Declaration : constant Res.Declaration_Id :=
+                 Landin.Checking.Concept_Declaration (Types.all, Of_Concept);
+               Concept_Tree : constant not null access constant Syn.Tree :=
+                 Tree_For (Res.Source_Of (Meanings.all, Declaration));
+               Concept_Node : constant Syn.Node_Id :=
+                 Res.Node_Of (Meanings.all, Declaration);
+               Required : constant Syn.Node_Id :=
+                 Syn.Constraint_Of
+                   (Concept_Tree.all,
+                    Syn.Nth_Concept_Formal
+                      (Concept_Tree.all, Concept_Node, 1));
+
+               procedure Reach (Reference : Syn.Node_Id);
+
+               procedure Reach (Reference : Syn.Node_Id) is
+                  Parent : constant Landin.Checking.Concept_Id :=
+                    Concept_For (Concept_Tree.all, Reference);
+               begin
+                  if Parent = Landin.Checking.No_Concept
+                    or else Parent = Concept
+                    or else Landin.Checking.Is_Compiler_Concept
+                      (Types.all, Parent)
+                    or else Result.Contains (Parent)
+                  then
+                     return;
+                  end if;
+                  Result.Append (Parent);
+                  Visit (Parent);
+               end Reach;
+            begin
+               if Required /= Syn.No_Node then
+                  Reach (Required);
+               end if;
+               for Parent in 1 .. Syn.Concept_Parent_Count
+                 (Concept_Tree.all, Concept_Node)
+               loop
+                  Reach
+                    (Syn.Nth_Concept_Parent
+                       (Concept_Tree.all, Concept_Node, Parent));
+               end loop;
+            end;
+         end Visit;
+      begin
+         Visit (Concept);
+         return Result;
+      end Ancestor_Concepts;
 
       function Neutral_Element
         (Part : Landin.Checking.Signature_Part;
@@ -1729,6 +1815,20 @@ package body Landin.Stages.Lowering is
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
          Scope   : Res.Scope_Id;
+         Destination : IR.Slot_Id);
+
+      --  D1949: whether NODE's `any` is converted to a parent concept's
+      --  here, rather than by a conversion already lowering it.
+      function Converts (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
+        return Boolean;
+
+      --  D1949: NODE's `any C` into DESTINATION as the `any P` its context
+      --  took: the same data pointer, and P's table for the same type,
+      --  which the parent cell of C's table holds.
+      procedure Lower_Any_Conversion
+        (Of_Tree     : Syn.Tree;
+         Node        : Syn.Node_Id;
+         Scope       : Res.Scope_Id;
          Destination : IR.Slot_Id);
 
       function Lower_Utf8_Index
@@ -5236,6 +5336,7 @@ package body Landin.Stages.Lowering is
             end;
          elsif Kind in Syn.Name_Reference | Syn.Member_Selection
                        | Syn.Element_Index
+           and then not Converts (Of_Tree, Node)
          then
             declare
                From : constant Stored_Place :=
@@ -5629,6 +5730,31 @@ package body Landin.Stages.Lowering is
          Ignored : IR.Value_Id;
          pragma Unreferenced (Ignored);
       begin
+         if Converts (Of_Tree, Node) then
+            if Destination_Field = 0 and then Destination_Path'Length = 0
+            then
+               Lower_Any_Conversion (Of_Tree, Node, Scope, Destination);
+            else
+               declare
+                  Site : constant Landin.Provenance.Origin :=
+                    Site_Of (Of_Tree, Node);
+                  Temporary : constant IR.Slot_Id := IR.Add_Array_Slot
+                    (Unit.all, Filling, Ty.Usize, 2, Res.No_Declaration,
+                     Site);
+               begin
+                  Lower_Any_Conversion (Of_Tree, Node, Scope, Temporary);
+                  if Current /= IR.No_Block then
+                     IR.Emit_Array_Copy
+                       (Unit.all, Filling,
+                        (Kind => IR.Frame_Slot, Slot => Temporary),
+                        (Kind => IR.Frame_Slot, Slot => Destination), Site,
+                        Destination_Field => Destination_Field,
+                        Destination_Nested => Destination_Path);
+                  end if;
+               end;
+            end if;
+            return;
+         end if;
          if Landin.Checking.Text_Conversion_Of
            (Types.all, Of_Tree, Node) /= Landin.Checking.No_Text_Conversion
          then
@@ -7796,6 +7922,88 @@ package body Landin.Stages.Lowering is
          end;
       end Lower_Utf8_Index;
 
+      function Converts (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
+        return Boolean
+      is (Landin.Checking.Any_Conversion_Of (Types.all, Of_Tree, Node)
+            /= Landin.Checking.No_Concept
+          and then not
+            (Node = Unconverted_Node
+             and then Syn.Source_Of (Of_Tree) = Unconverted_Tree));
+
+      procedure Lower_Any_Conversion
+        (Of_Tree     : Syn.Tree;
+         Node        : Syn.Node_Id;
+         Scope       : Res.Scope_Id;
+         Destination : IR.Slot_Id)
+      is
+         Site : constant Landin.Provenance.Origin :=
+           Site_Of (Of_Tree, Node);
+         From : constant Landin.Checking.Concept_Id :=
+           Landin.Checking.Any_Concept_Of (Types.all, Of_Tree, Node);
+         To : constant Landin.Checking.Concept_Id :=
+           Landin.Checking.Any_Conversion_Of (Types.all, Of_Tree, Node);
+         Witness : constant IR.Evidence_Id :=
+           Parent_Witness
+             (Landin.Checking.Concept_Identities.Position (Types.all, From));
+         Temporary : constant IR.Slot_Id := IR.Add_Array_Slot
+           (Unit.all, Filling, Ty.Usize, 2, Res.No_Declaration, Site);
+         Saved_Tree : constant Landin.Source.Source_Id := Unconverted_Tree;
+         Saved_Node : constant Syn.Node_Id := Unconverted_Node;
+         Which : Natural := 0;
+      begin
+         Unconverted_Tree := Syn.Source_Of (Of_Tree);
+         Unconverted_Node := Node;
+         begin
+            Lower_Slice_Into (Of_Tree, Node, Scope, Temporary);
+         exception
+            when others =>
+               Unconverted_Tree := Saved_Tree;
+               Unconverted_Node := Saved_Node;
+               raise;
+         end;
+         Unconverted_Tree := Saved_Tree;
+         Unconverted_Node := Saved_Node;
+         if Current = IR.No_Block then
+            return;
+         end if;
+         --  No table of C is built, so no value reaches the conversion:
+         --  it traps as D377's erased call does.
+         if Witness = IR.No_Evidence then
+            IR.Emit_Halt (Unit.all, Filling, Syn.Origin (Of_Tree, Node));
+            IR.Leave_Block (Unit.all, Filling);
+            Current := IR.No_Block;
+            return;
+         end if;
+         declare
+            Parents : constant Concept_Lists.Vector :=
+              Ancestor_Concepts (From);
+         begin
+            for Cell in 1 .. Natural (Parents.Length) loop
+               if Parents (Cell) = To then
+                  Which := Cell;
+                  exit;
+               end if;
+            end loop;
+         end;
+         if Which = 0 then
+            raise Landin.Compiler_Defect with
+              "an any conversion names a concept its own does not build on";
+         end if;
+         declare
+            Data : constant IR.Value_Id := IR.Emit_Load_Slot_Field
+              (Unit.all, Filling, Temporary, 1, Ty.Usize, Site);
+            Table : constant IR.Value_Id := IR.Emit_Load_Slot_Field
+              (Unit.all, Filling, Temporary, 2, Ty.Usize, Site);
+            Parent : constant IR.Value_Id := IR.Emit_Evidence_Parent
+              (Unit.all, Filling, Table, Witness, Which, Site);
+         begin
+            IR.Emit_Store_Slot_Field
+              (Unit.all, Filling, Destination, 1, Data, Site);
+            IR.Emit_Store_Slot_Field
+              (Unit.all, Filling, Destination, 2, Parent, Site);
+         end;
+      end Lower_Any_Conversion;
+
       procedure Lower_Slice_Into
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -8569,6 +8777,10 @@ package body Landin.Stages.Lowering is
          end Text_Unit_Width;
 
       begin
+         if Converts (Of_Tree, Node) then
+            Lower_Any_Conversion (Of_Tree, Node, Scope, Destination);
+            return;
+         end if;
          declare
             Conversion : constant Landin.Checking.Text_Conversion_Kind :=
               Landin.Checking.Text_Conversion_Of
@@ -18567,6 +18779,9 @@ package body Landin.Stages.Lowering is
            (1 .. Landin.Checking.Conformance_Count (Types.all)) :=
              [others => False];
 
+         --  D1949: the concepts some `any` is converted from, by position.
+         Converted : Boolean_Array (Source_Concept) := [others => False];
+
          procedure Collect_Any_Evidence (Of_Tree : Syn.Tree);
          procedure Collect_Any_Evidence
            (Of_Tree : Syn.Tree; Node : Syn.Node_Id);
@@ -18629,6 +18844,15 @@ package body Landin.Stages.Lowering is
          procedure Collect_Any_Evidence
            (Of_Tree : Syn.Tree; Node : Syn.Node_Id) is
          begin
+            if Landin.Checking.Any_Conversion_Of (Types.all, Of_Tree, Node)
+              /= Landin.Checking.No_Concept
+            then
+               Converted
+                 (Landin.Checking.Concept_Identities.Position
+                    (Types.all,
+                     Landin.Checking.Any_Concept_Of
+                       (Types.all, Of_Tree, Node))) := True;
+            end if;
             begin
                --  Naming or copying an any type does not require an
                --  object-safe table. Only checked constructions and entry
@@ -18775,6 +18999,45 @@ package body Landin.Stages.Lowering is
                        (Types.all, Position)))) := True;
          end loop;
 
+         --  D1949: an erased table of a concept some `any` is converted
+         --  from names the same type's table of each concept it builds on,
+         --  so those are built too.  An ancestor's own ancestors are among
+         --  them, so one pass marks every table the cells name.
+         for Position in Used_Any_Evidence'Range loop
+            declare
+               Row : constant Landin.Checking.Conformance_Id :=
+                 Landin.Checking.Conformance_Identities.Nth
+                   (Types.all, Position);
+               Concept : constant Landin.Checking.Concept_Id :=
+                 Landin.Checking.Conformance_Concept (Types.all, Row);
+            begin
+               if Used_Any_Evidence (Position)
+                 and then Converted
+                   (Landin.Checking.Concept_Identities.Position
+                      (Types.all, Concept))
+               then
+                  for Parent of Ancestor_Concepts (Concept) loop
+                     declare
+                        Parent_Row : constant Landin.Checking.Conformance_Id
+                          := Landin.Checking.Find_Conformance
+                            (Types.all, Parent,
+                             Landin.Checking.Conformance_Target
+                               (Types.all, Row),
+                             Landin.Checking.Empty_Actuals);
+                     begin
+                        if Parent_Row = Landin.Checking.No_Conformance then
+                           raise Landin.Compiler_Defect with
+                             "an any conversion's table has no parent table";
+                        end if;
+                        Used_Any_Evidence
+                          (Landin.Checking.Conformance_Identities.Position
+                             (Types.all, Parent_Row)) := True;
+                     end;
+                  end loop;
+               end if;
+            end;
+         end loop;
+
          for Position in 1 .. Landin.Checking.Conformance_Count (Types.all)
          loop
             --  A conformance nothing reached has no table; see
@@ -18828,6 +19091,61 @@ package body Landin.Stages.Lowering is
                   end if;
                end;
             end if;
+         end loop;
+
+         --  D1949: the parent cells, once every table they name exists.
+         for Position in Used_Any_Evidence'Range loop
+            declare
+               Row : constant Landin.Checking.Conformance_Id :=
+                 Landin.Checking.Conformance_Identities.Nth
+                   (Types.all, Position);
+               Concept : constant Landin.Checking.Concept_Id :=
+                 Landin.Checking.Conformance_Concept (Types.all, Row);
+               Concept_Position : constant Positive :=
+                 Landin.Checking.Concept_Identities.Position
+                   (Types.all, Concept);
+            begin
+               if Any_Evidence (Position) /= IR.No_Evidence
+                 and then Converted (Concept_Position)
+               then
+                  declare
+                     Parents : constant Concept_Lists.Vector :=
+                       Ancestor_Concepts (Concept);
+                     Cells : IR.Evidence_Id_Array
+                       (1 .. Natural (Parents.Length));
+                  begin
+                     for Cell in Cells'Range loop
+                        declare
+                           Parent_Row : constant
+                             Landin.Checking.Conformance_Id :=
+                               Landin.Checking.Find_Conformance
+                                 (Types.all, Parents (Cell),
+                                  Landin.Checking.Conformance_Target
+                                    (Types.all, Row),
+                                  Landin.Checking.Empty_Actuals);
+                        begin
+                           Cells (Cell) := Any_Evidence
+                             (Landin.Checking.Conformance_Identities.Position
+                                (Types.all, Parent_Row));
+                           if Cells (Cell) = IR.No_Evidence then
+                              raise Landin.Compiler_Defect with
+                                "an any conversion's parent table was not"
+                                & " built";
+                           end if;
+                        end;
+                     end loop;
+                     if Cells'Length > 0 then
+                        IR.Set_Evidence_Parents
+                          (Unit.all, Any_Evidence (Position), Cells);
+                        if Parent_Witness (Concept_Position) = IR.No_Evidence
+                        then
+                           Parent_Witness (Concept_Position) :=
+                             Any_Evidence (Position);
+                        end if;
+                     end if;
+                  end;
+               end if;
+            end;
          end loop;
       end;
 
