@@ -21124,7 +21124,7 @@ package body Landin.Stages.Lowering is
                                           then
                                              raise Landin.Compiler_Defect
                                                with "a module variant array"
-                                               & " payload outside D83"
+                                               & " payload outside D81"
                                                & " reached lowering";
                                           end if;
                                        end;
@@ -21328,7 +21328,7 @@ package body Landin.Stages.Lowering is
                         then
                            raise Landin.Compiler_Defect with
                              "a module struct array-field image outside"
-                             & " D69/D71 reached lowering";
+                             & " D24's chain reached lowering";
                         end if;
                      end;
                   end if;

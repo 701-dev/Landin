@@ -5939,7 +5939,8 @@ without being read.
 
 **Pinned by** `positive/lenof-array-literal-does-not-read-elements`,
 `negative/lenof-array-literal-element-mismatch`,
-`negative/lenof-array-literal-needs-scalar-elements`, and
+`positive/lenof-array-literal-takes-any-element`, which D1664 turned from a
+refusal, and
 `runtime/lenof-array-literal-is-compile-time` on Linux x86-64; the runtime case
 also keeps an ordinary array named `lenof` indexable.
 
@@ -12308,8 +12309,6 @@ a note that promises nobody's work.
 `negative/r720-discard-untyped-struct-literal`,
 `negative/r720-variant-part-has-no-value`,
 `negative/r720-variant-case-needs-its-part`,
-`negative/r720-counted-repetition-scalar-element`,
-`negative/r720-inferred-module-array-scalar-element`,
 `negative/r720-any-element-needs-typed-array`,
 `negative/r720-match-alias-array-not-copied`,
 `negative/r720-module-initializer-boundary`,
@@ -12341,7 +12340,9 @@ fixture that pins D24 to D109's surviving rules.
 
 **The alternative:** keeping the scalar element at module scope as a recorded boundary, which leaves one shape inferred at one scope and not the other when the typed form already forms the image; it was declined as the kind of special case D1664 removes.
 
-**Pinned by** `positive/r720-inferred-module-array-element`.
+**Pinned by** `positive/r720-inferred-module-array-element` and
+`runtime/r1990-repetition-and-lenof-of-structs`, whose module literal and
+repetition hold struct elements.
 
 ### D405 — One match arm names several cases, and none of them binds
 

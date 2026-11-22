@@ -24032,10 +24032,8 @@ package body Landin.Stages.Checking is
       --  Separate from Synthesise because a bare aggregate name is a
       --  value this kernel refuses in an expression, while the same name
       --  is how a field is reached and how a whole struct is copied.
-      --  A fixed-array field is admitted here in the one context that names
-      --  one of its elements (D118).  Keeping this separate from Selected_From
-      --  leaves the field itself refused as a general value or place except
-      --  where Admit_Array_Field admits it as a whole.
+      --  What an indexed place is: an array field is one as an array name
+      --  is, however many selections reach it (D118).
       function Indexed_From
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind;
 
@@ -24048,14 +24046,6 @@ package body Landin.Stages.Checking is
          Length  : Landin.Checking.Element_Count;
          Shape   : Landin.Checking.Field_Shape) return Boolean;
 
-      --  Admit_Array_Field admits that same fixed-array field as a whole place
-      --  where an assignment or a local initializer supplies its complete
-      --  contextual value; the local/module gates remain at those contextual
-      --  callers.
-      --  This predicate notes the field shape when that exact place exists;
-      --  it reports nothing and leaves every other selection for the
-      --  ordinary place checker, so root mutability and field diagnostics
-      --  keep their existing ownership.
       function Is_Direct_Array_Name
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean;
 
@@ -30467,13 +30457,10 @@ package body Landin.Stages.Checking is
                   return;
                end if;
             end if;
-            --  D65 makes the label the same contextual destination as the
-            --  selected field in D49--D53.  Each established array spelling
-            --  keeps its own shape check and diagnostic owner.  D67 admits
-            --  the finite and zero static forms; D68 adds D34/D38's compact
-            --  repetitions, D69 follows one direct module-array image name,
-            --  and D71 follows one directly selected module struct field
-            --  without making either source a general value.
+            --  [1940]: a module image's array field takes D67's finite and
+            --  zero images, D68's compact repetitions, and D24's chain: one
+            --  module array name or one field selected directly from a
+            --  module struct.
             if Static_Image then
                case Syn.Kind (Of_Tree, Value) is
                   when Syn.Array_Literal =>
@@ -30762,8 +30749,8 @@ package body Landin.Stages.Checking is
                      elsif Syn.Kind (Of_Tree, Value)
                              = Syn.Zeroed_Literal
                      then
-                        --  D65 extends D42's contextual zero image to
-                        --  the ordinary scalar field this label names.
+                        --  [0540]: the scalar field this label names is
+                        --  the context `zeroed` needs (D241).
                         Landin.Checking.Note
                           (Types.all, Of_Tree, Value, Held);
                      else
@@ -30947,7 +30934,8 @@ package body Landin.Stages.Checking is
                      Where   => Syn.Anchor (Of_Tree, Field),
                      Message => "the field `" & Field_Named (Wrote, Which)
                                 & "` is named twice in this struct literal",
-                     Note    => "D64: each labelled field is written once",
+                     Note    => "[0670]/D72: each labelled field is written"
+                                & " once",
                      Related => Syn.Origin (Of_Tree, First (Which)),
                      Because => "first named here",
                      Into    => Found);
@@ -31077,8 +31065,8 @@ package body Landin.Stages.Checking is
                      Where   => Syn.Where (Of_Tree, Literal),
                      Message => "this struct literal gives no value for "
                                 & Ada.Strings.Unbounded.To_String (Missing),
-                     Note    => "D64: every field is labelled or covered by"
-                                & " a trailing `of zeroed`",
+                     Note    => "[0670]/D72: every field is labelled or"
+                                & " covered by a trailing `of zeroed`",
                      Into    => Found);
                   Failed := True;
                end if;
@@ -38265,7 +38253,7 @@ package body Landin.Stages.Checking is
                           & Written (Met.Value) & ", and no "
                           & Shown (Met.Into) & " holds it",
                Note    => (if Image
-                           then "D24/D34/D35/D66/D132: every module image"
+                           then "D24/D34/D66/D132: every module image"
                                 & " value has to fit its contextual scalar"
                                 & " type"
                            else "[1940]: a module value has no moment in"
@@ -38394,7 +38382,7 @@ package body Landin.Stages.Checking is
                      Message => "this image value works out to "
                                 & Written (Element_Held) & ", and no "
                                 & Shown (Element) & " holds it",
-                     Note    => "D24/D34/D35/D66/D132: every module image"
+                     Note    => "D24/D34/D66/D132: every module image"
                                 & " value has to fit its contextual scalar"
                                 & " type",
                      Into    => Found);

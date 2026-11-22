@@ -6767,7 +6767,7 @@ package body Landin.Tests.Lowering_Suite is
                        (Item,
                         IR.Source_Field_Of (Unit, 2, Id) = 2
                           and then IR.Element_Field_Of (Unit, 2, Id) = 2,
-                        "the common fixed array keeps D54's copy operation");
+                        "the common fixed array keeps D32's copy operation");
                   when others =>
                      null;
                end case;

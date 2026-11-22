@@ -3928,6 +3928,9 @@
     "runtime/qualified-static-type-argument": {
       "mode": "execute"
     },
+    "runtime/r1990-repetition-and-lenof-of-structs": {
+      "mode": "execute"
+    },
     "runtime/r230-composition": {
       "mode": "execute"
     },

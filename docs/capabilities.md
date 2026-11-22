@@ -667,7 +667,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   result, `offsetof t.field` measures where a field begins, and
   `compiler.assert` measures a declared type's size, alignment and field
   offsets. Evaluated slice operands receive origin checks and run once;
-  fixed-array paths and array-literal elements remain unevaluated.
+  fixed-array paths and array-literal elements remain unevaluated, and a
+  measured literal's elements may be of any one type, structs included
+  (D1664).
 - **Failures.** `else (problem)` recovers a call in an `if` arm as anywhere
   else, and `else none` ignores the failure of a call that returns none.
   A callee selected through a type parameter's entry or a function-valued
@@ -689,7 +691,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   the place as it was before the assignment, so `row = [row[1], row[0]]`
   swaps; it is built in a temporary only where it could observe the place
   (D1827).
-- **Module values.** Module arrays hold variant-bearing struct images, a
+- **Module values.** An inferred array, a literal or a counted repetition,
+  takes its element type from its first element or repeated value whatever
+  its shape, at module scope as in a body (D1664, D1947). Module arrays hold variant-bearing struct images, a
   module array or an array field of a module struct takes a call's array
   result, and a module struct may hold an array field before a slice
   field. A
