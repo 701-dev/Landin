@@ -685,8 +685,7 @@ def remote(args, board_args):
     stage.mkdir()
     shutil.copytree(Path(args.bundle).resolve(), stage / 'bundle')
     bundle.snapshot(stage / 'source', ROOT)
-    ssh = ['ssh', '-i', str(args.identity.expanduser()), '-o', 'BatchMode=yes', args.host]
-    scp = ['scp', '-i', str(args.identity.expanduser()), '-o', 'BatchMode=yes']
+    ssh, scp = wrapper.remote_commands(args.host, args.identity)
     made = subprocess.run(ssh + ['umask 077; mktemp -d /tmp/landin-timing.XXXXXXXX'],
                           capture_output=True, text=True)
     remote_dir = made.stdout.strip()
