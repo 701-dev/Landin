@@ -41983,7 +41983,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** `any C` by default, one shape at the cost of a table call on every use; and generic everywhere, a storing type made generic over its provider. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** `check.py`'s library conventions check, which refuses a public routine that takes a capability as `any C` without keeping it unless its table of departures names the routine, and the controls `LibraryConventions` in `scripts/tests/test_check_controls.py`; D1988 says how the check reads the rule, and the review's breaking list names each routine it changes.
 
 ### D1950 — `core/failure` keeps one registry until a firmware image shows its cost
 
@@ -42105,7 +42105,17 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** capabilities first, so every allocating routine starts with its allocator; and no order rule. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** `check.py`'s library conventions check, which refuses a capability after an input and a `caller` before the end in a public routine or concept entry unless its table of departures names it, and the controls `LibraryConventions` in `scripts/tests/test_check_controls.py`; D1988 says what the check can see and what it cannot, and the review's breaking list names each routine it changes.
+
+### D1988 — How the library's capability rules read where D1948 and D1954 are silent
+
+**The decisions said** that a routine takes `provider: type is C` and keeps `any C` for a value that stores or mixes providers (D1948), and that its parameters come subject, capabilities, inputs, `caller` (D1954). They did not say what a concept entry takes, which parameter is the subject of a provider's own operation, what counts as a capability, or how a platform binding is ordered, and the library meets each.
+
+**Chosen:** a concept entry takes another capability as `any C`, since an erased table holds the entry once and an entry may not take a type of its own (L0010); the public routine over it is generic and erases at the call, as `io.make_temporary` does. A routine keeps an `any C` when the parameter is `escaping` or its result is `from` it, and a slice of `any C` mixes providers. The subject is the value the routine reads or changes, a container, a buffer, a builder or a provider's state, and for a provider's own operation, `io.read`, `mem.allocate` or `io.read_entry`, the provider, as an entry's `self` is; so `mem.transfer`, which reads `source` into `target`, takes `target` first, as `mem.copy` takes `into`. A capability is a `memory` or `host` parameter, an `any C` or a value of a type parameter whose concept is not evidence about a type; the evidence concepts are `scalar`, `exchangeable`, `equatable`, `hashable`, `ordered`, `formattable` and `task`, whose values are inputs; and a `random.generator`, a value drawn from as entropy is, stands where a capability stands. Type and `fixed` parameters come before them all. A `platform` binding of a system call keeps the system's own order. A full `python3 check.py` holds every public routine and concept entry of `core`, `hosted` and `platform` to what of this is mechanical: an erased parameter that is not kept, a capability after an input and a `caller` before the end. It cannot see which parameter is the subject, so `mem.transfer` and `random.shuffle` are on the review's breaking list without being in its table. Its table of departures names the routines the breaking list reshapes, and refuses an entry that no longer departs, so it empties as the list is applied.
+
+**The alternatives:** a concept entry made generic, which the language refuses; an explicit list of capability concepts, which a new capability concept would pass unchecked, where a new evidence concept is named once; and holding the order by review alone, which let four departures stand in modules written after D269.
+
+**Pinned by** `check.py`'s library conventions check and the controls `LibraryConventions` in `scripts/tests/test_check_controls.py`.
 
 ### D1955 — A locale is an explicit value
 
