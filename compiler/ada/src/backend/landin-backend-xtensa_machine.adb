@@ -585,12 +585,9 @@ package body Landin.Backend.Xtensa_Machine is
    --  Placement of an assembly-free routine's words (D1627).
    ---------------------------------------------------------------------
 
-   procedure Begin_Routine
-     (Of_Routine : in out Routine;
-      Frame_Bytes : Landin.Targets.Byte_Count) is
+   procedure Begin_Routine (Of_Routine : in out Routine) is
    begin
       Of_Routine.Active := True;
-      Of_Routine.Frame_Bytes := Frame_Bytes;
       Of_Routine.Lines.Clear;
       Of_Routine.Homes.Clear;
    end Begin_Routine;
@@ -601,7 +598,6 @@ package body Landin.Backend.Xtensa_Machine is
    procedure Declare_Home
      (Of_Routine : in out Routine;
       Word : Natural;
-      Offset : Landin.Targets.Byte_Count;
       Bytes : Positive) is
    begin
       if Word < First_Value_Word or else Bytes not in 1 | 2 | 4 then
@@ -611,7 +607,7 @@ package body Landin.Backend.Xtensa_Machine is
          Of_Routine.Homes.Append (Home'(others => <>));
       end loop;
       Of_Routine.Homes (Word - First_Value_Word) :=
-        (Declared => True, Offset => Offset, Bytes => Bytes);
+        (Declared => True, Offset => 0, Bytes => Bytes);
    end Declare_Home;
 
    procedure Add (Of_Routine : in out Routine; Instruction : String) is
@@ -728,14 +724,24 @@ package body Landin.Backend.Xtensa_Machine is
       Into : in out U.Unbounded_String;
       Serial : in out Natural;
       Registers : out Natural;
-      Placed : out Boolean);
+      Placed : out Boolean;
+      Prologue : not null access procedure
+        (Low_Bytes : Landin.Targets.Byte_Count;
+         Saves_A7 : Boolean;
+         A7_Home : Landin.Targets.Byte_Count;
+         Frame_Bytes : out Landin.Targets.Byte_Count));
 
    procedure Place
      (Of_Routine : Routine;
       Into : in out U.Unbounded_String;
       Serial : in out Natural;
       Registers : out Natural;
-      Placed : out Boolean)
+      Placed : out Boolean;
+      Prologue : not null access procedure
+        (Low_Bytes : Landin.Targets.Byte_Count;
+         Saves_A7 : Boolean;
+         A7_Home : Landin.Targets.Byte_Count;
+         Frame_Bytes : out Landin.Targets.Byte_Count))
    is
       use type Ada.Containers.Count_Type;
       Not_Placed : exception;
@@ -989,14 +995,14 @@ package body Landin.Backend.Xtensa_Machine is
               and then Of_Routine.Homes (Number - First_Value_Word).Declared
             else Number in 10 .. 17 | 19 .. 25 | 27 .. 31));
 
+      --  Each word's home from a7, laid out once the webs are placed,
+      --  for the words some web keeps there; Unhomed for the rest.
+      Unhomed : constant Natural := Natural'Last;
+      Assigned : Natural_Vectors.Vector;
       function Home_Offset (Word : Positive) return Long_Long_Integer is
-        (declare
-            Number : constant Natural := Word_Of (Word);
-         begin
-           (if Number >= First_Value_Word
-            then Long_Long_Integer
-              (Of_Routine.Homes (Number - First_Value_Word).Offset)
-            else Long_Long_Integer (Word_Offset (Number, True))));
+        (if Assigned (Word) = Unhomed
+         then raise Compiler_Defect with "Xtensa word home not laid out"
+         else Long_Long_Integer (Assigned (Word)));
 
       function Home_Bytes (Word : Positive) return Positive is
         (declare
@@ -1011,6 +1017,9 @@ package body Landin.Backend.Xtensa_Machine is
       Defined, Defined_At : Natural_Vectors.Vector;
       Crosses : Flag_Vectors.Vector;
       Calls_Upto : Natural_Vectors.Vector;
+      --  The frame's bytes from a7 to the CFA, once the prologue has
+      --  reserved them.
+      Frame_Laid : Long_Long_Integer := 0;
    begin
       Placed := False;
       Registers := 0;
@@ -1809,11 +1818,73 @@ package body Landin.Backend.Xtensa_Machine is
          end loop;
       end;
 
+      --  The frame's low part, from a7 up: a home for each word some web
+      --  keeps there, and none for a word whose webs are all in registers
+      --  or never read (D2116).  The incoming a7 is x15 at entry, which
+      --  the prologue stores to x15's home, first, when that web is read.
+      --  Then words by width, widest first, so that each is aligned.
+      declare
+         use type Landin.Targets.Byte_Count;
+         Needs : Flag_Vectors.Vector;
+         Saves_A7 : Boolean := False;
+         Low : Natural := 0;
+         Frame_Bytes : Landin.Targets.Byte_Count;
+         Incoming : Natural := 0;
+      begin
+         Needs.Append (False, Word_Of.Length);
+         Assigned.Append (Unhomed, Word_Of.Length);
+         for Node in 1 .. Natural (Parent.Length) loop
+            if Root (Node) = Node and then Register_Of (Node) = 0
+              and then (Occurrences (Node) > 0 or else Forced (Node))
+            then
+               Needs (Node_Word (Node)) := True;
+            end if;
+         end loop;
+         for At_Step of Steps loop
+            if At_Step.Instruction and then At_Step.Kind = Enter then
+               for Which in 1 .. At_Step.Def_Count loop
+                  if Word_Of (At_Step.Defs (Which)) = 15 then
+                     declare
+                        Web : constant Positive :=
+                          Root (At_Step.Def_Nodes (Which));
+                     begin
+                        Incoming := At_Step.Defs (Which);
+                        Saves_A7 := Register_Of (Web) /= 0
+                          or else Occurrences (Web) > 0
+                          or else Forced (Web);
+                     end;
+                  end if;
+               end loop;
+            end if;
+         end loop;
+         if Saves_A7 then
+            Needs (Incoming) := True;
+            Assigned (Incoming) := 0;
+            Low := 4;
+         end if;
+         for Bytes in reverse 1 .. 4 loop
+            for Word in 1 .. Natural (Word_Of.Length) loop
+               if Needs (Word) and then Assigned (Word) = Unhomed
+                 and then Home_Bytes (Word) = Bytes
+               then
+                  Assigned (Word) := Low;
+                  Low := Low + Bytes;
+               end if;
+            end loop;
+         end loop;
+         Low := (Low + 3) / 4 * 4;
+         Prologue
+           (Landin.Targets.Byte_Count (Low), Saves_A7, 0, Frame_Bytes);
+         if Frame_Bytes < Landin.Targets.Byte_Count (Low) then
+            raise Compiler_Defect with "Xtensa frame below its homes";
+         end if;
+         Frame_Laid := Long_Long_Integer (Frame_Bytes);
+      end;
+
       --  Selection.
       declare
          Far : constant Boolean := Natural (Steps.Length) * 16 > 120_000;
-         Frame : constant Long_Long_Integer :=
-           Long_Long_Integer (Of_Routine.Frame_Bytes);
+         Frame : constant Long_Long_Integer := Frame_Laid;
 
          type Place_Kind is (In_Register, In_Home, Nowhere, Zero_Word,
                              Stack_Word, Frame_Word);
@@ -2612,8 +2683,7 @@ package body Landin.Backend.Xtensa_Machine is
                           and then Where.Kind = In_Register
                         then
                            Load_Home (Name (Where.Register),
-                                      Long_Long_Integer
-                                        (Word_Offset (15, True)), 4);
+                                      Home_Offset (At_Step.Defs (Which)), 4);
                         end if;
                      end;
                   end loop;
@@ -2697,17 +2767,37 @@ package body Landin.Backend.Xtensa_Machine is
      (Of_Routine : in out Routine;
       Into : in out U.Unbounded_String;
       Serial : in out Natural;
-      Registers : out Natural)
+      Registers : out Natural;
+      Prologue : not null access procedure
+        (Low_Bytes : Landin.Targets.Byte_Count;
+         Saves_A7 : Boolean;
+         A7_Home : Landin.Targets.Byte_Count;
+         Frame_Bytes : out Landin.Targets.Byte_Count))
    is
+      use type Landin.Targets.Byte_Count;
       Placed : Boolean;
+      Frame_Bytes : Landin.Targets.Byte_Count;
+      --  Unplaced, every word keeps a home: the compact bank's logical
+      --  words, then the value words', widest first.
+      Low : Landin.Targets.Byte_Count := Compact_Bank_Bytes;
    begin
       Of_Routine.Active := False;
-      Place (Of_Routine, Into, Serial, Registers, Placed);
+      Place (Of_Routine, Into, Serial, Registers, Placed, Prologue);
       if not Placed then
+         for Bytes in reverse 1 .. 4 loop
+            for Held of Of_Routine.Homes loop
+               if Held.Declared and then Held.Bytes = Bytes then
+                  Held.Offset := Low;
+                  Low := Low + Landin.Targets.Byte_Count (Bytes);
+               end if;
+            end loop;
+         end loop;
+         Prologue
+           ((Low + 3) / 4 * 4, True, Word_Offset (15, True), Frame_Bytes);
          for Held of Of_Routine.Lines loop
             if Held.Kind = Logical then
                Select_Old (U.To_String (Held.Text), Into, Serial,
-                           Of_Routine.Frame_Bytes, True, Of_Routine.Homes);
+                           Frame_Bytes, True, Of_Routine.Homes);
             else
                U.Append (Into, Held.Text);
                U.Append (Into, LF);
