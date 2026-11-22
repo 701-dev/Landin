@@ -109,6 +109,93 @@ package body Landin.Tests.Cortex_Suite is
    procedure Source_Carriers (Item : in out Landin.Testing.Context);
    procedure Driver_Boundaries (Item : in out Landin.Testing.Context);
    procedure Scalar_Spill_Homes (Item : in out Landin.Testing.Context);
+   procedure Partial_Range_Checks (Item : in out Landin.Testing.Context);
+
+   --  SR-1578: a Range_Check whose bound lies at its scalar's own edge
+   --  tests only the other bound.  No source has reached the partial
+   --  bounds since range subtypes went (D1661), so the check is built
+   --  from IR directly: the conversions and pointer addresses that still
+   --  lower to one hold both bounds inside a word.
+   procedure Partial_Range_Checks (Item : in out Landin.Testing.Context) is
+      use type Ty.Folded;
+      procedure Check_Range
+        (Kind : Ty.Integer_Name; Lower, Upper : Ty.Folded;
+         Low_Word, High_Word : Natural; Label : String);
+
+      procedure Check_Range
+        (Kind : Ty.Integer_Name; Lower, Upper : Ty.Folded;
+         Low_Word, High_Word : Natural; Label : String)
+      is
+         use type IR.Verifier.Fault_Kind;
+         Work : Landin.Stages.Compilation :=
+           Landin.Stages.Create (T.Cortex_M);
+         Order : Landin.Stages.Pipeline;
+         Written : constant Landin.Source.Source_Id :=
+           Landin.Stages.Add_Source
+             (Work, "range.ldn", "f: () -> none = end f");
+         Unit : IR.Unit;
+         Site : constant Landin.Provenance.Origin :=
+           (Written, Landin.Source.Empty_Span);
+         Routine : IR.Item_Id;
+         Block : IR.Block_Id;
+         Value : IR.Value_Id;
+         Assembly : U.Unbounded_String;
+         Report : Landin.Build_Reports.Report;
+      begin
+         Landin.Stages.Append (Order, Frontend'Access);
+         Landin.Stages.Append (Order, Configurer'Access);
+         Landin.Stages.Append (Order, Resolver'Access);
+         Landin.Testing.Check_Equal
+           (Item, Landin.Stages.Run (Order, Work), 3,
+            Label & " declarations resolve");
+         IR.Prepare (Unit, Landin.Stages.Meanings (Work).all);
+         Routine := IR.Add_Item (Unit, IR.Routine, 1, Ty.No_Value, Site);
+         IR.Set_Signature
+           (Unit, Routine,
+            IR.Add_Signature (Unit, IR.No_Signature_Parts, (others => <>)));
+         Block := IR.Add_Block
+           (Unit, Routine, Landin.Resolution.Program_Scope, Site);
+         IR.Enter (Unit, Routine, Block);
+         Value := IR.Emit_Number (Unit, Routine, Kind, 7, False, Site);
+         Value := IR.Emit_Range_Check
+           (Unit, Routine, Value, Kind, Lower, Upper, Site);
+         pragma Unreferenced (Value);
+         IR.Emit_Leave (Unit, Routine, IR.No_Value, Site);
+         IR.Leave_Block (Unit, Routine);
+         Landin.Testing.Check
+           (Item, IR.Verifier.Check (Unit, T.Cortex_M).Kind
+              = IR.Verifier.Nothing_Wrong,
+            Label & " range check verifies");
+         Landin.Backend.Cortex_M.Emit
+           (Unit, Landin.Stages.Meanings (Work).all,
+            Landin.Stages.Identities (Work).all, T.Cortex_M,
+            Landin.Optimization.Reference_Options, Assembly, Report);
+         declare
+            Text : constant String := U.To_String (Assembly);
+            function Count (Needle : String) return Natural
+              is (Ada.Strings.Fixed.Count (Text, Needle));
+         begin
+            Landin.Testing.Check
+              (Item, Count ("cmp r0, r2") = Low_Word
+                 and then Count ("cmp r1, r3") = High_Word
+                 and then Contains (Text, "udf #1")
+                   = (Low_Word + High_Word > 0),
+               Label & " compares only the bounds inside the scalar"
+               & " and traps only if it compares");
+         end;
+      end Check_Range;
+   begin
+      Check_Range (Ty.U8, 0, 100, 1, 0, "u8 0..100");
+      Check_Range (Ty.U8, 10, 255, 1, 0, "u8 10..255");
+      Check_Range (Ty.I16, -100, 100, 2, 0, "i16 -100..100");
+      Check_Range (Ty.U32, 10, 4_294_967_295, 1, 0, "u32 10..max");
+      Check_Range (Ty.I32, -2_147_483_648, 5, 1, 0, "i32 min..5");
+      Check_Range (Ty.U32, 0, 4_294_967_295, 0, 0, "u32 whole range");
+      --  A u64 bound is two words, its edge two comparisons; zero is
+      --  the type's own lower edge and is not tested.
+      Check_Range (Ty.U64, 0, 100, 1, 1, "u64 0..100");
+      Check_Range (Ty.I64, -5, 5, 2, 2, "i64 -5..5");
+   end Partial_Range_Checks;
 
    procedure Scalar_Spill_Homes (Item : in out Landin.Testing.Context) is
       use type IR.Verifier.Fault_Kind;
@@ -5353,6 +5440,9 @@ package body Landin.Tests.Cortex_Suite is
          Script_Without_Program'Access);
       Landin.Testing.Register
         (Into, "cortex ABI", "routine register saves", Frame_Saves'Access);
+      Landin.Testing.Register
+        (Into, "cortex ABI", "narrow ranges use scalar comparisons",
+         Partial_Range_Checks'Access);
       Landin.Testing.Register
         (Into, "cortex ABI", "fixed fills enter their loops",
          Fixed_Fills_Enter_Their_Loops'Access);

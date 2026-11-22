@@ -240,6 +240,31 @@ package body Landin.Tests.Host_Reports_Suite is
             & """alignment"":8,""offsets"": [0,8,16,24]}]}" & LF,
             "representation cleanup preserves the original JSON bytes");
       end;
+      --  SR-1507: a routine that kept its first emission says which
+      --  write refused its allocation; any other row has no such field.
+      Reports.Clear (Report);
+      Reports.Append
+        (Report,
+         Reports.Routine_Statistics'
+           (Item => 1, Instructions => 3, others => <>));
+      Reports.Append
+        (Report,
+         Reports.Routine_Statistics'
+           (Item => 2, Instructions => 5, Kept_Homes => True,
+            Refused_Register => "r6  ", Refused_Position => 9,
+            others => <>));
+      declare
+         Text : constant String := Reports.JSON
+           (Report, Landin.Targets.Linux_X86_64,
+            Landin.Optimization.Reference_Options);
+      begin
+         Landin.Testing.Check
+           (Item, Ada.Strings.Fixed.Count (Text, """kept_homes""") = 1
+              and then Ada.Strings.Fixed.Index
+                (Text, """indirect_calls"":0,""kept_homes"":"
+                 & "{""register"":""r6"",""position"":9}}") > 0,
+            "a routine that kept its homes names the refusing write");
+      end;
    end Whole_Plans;
 
    procedure Refused_Plans (Item : in out Landin.Testing.Context) is

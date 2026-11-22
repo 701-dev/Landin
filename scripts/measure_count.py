@@ -11,6 +11,15 @@ instruction whose address lies in the image's executable range.
         run IMAGE on the level's machine, as environments/cortex-m/
         backend.py's LEVELS gives it, under -icount, until it reaches
         `_landin_firmware_returned`, or the corpus harness's `backend_done`
+    measure_count.py count --target cortex-m0 --level L --fixture F
+            [--optimize O] [--specialize S] [--refine R] [--output DIR]
+        build the fixture F, a directory under compiler/tests/fixtures
+        such as runtime/sieve-of-eratosthenes, with refine at L, O and S,
+        and count it from `main`; `--source PATH` (repeatable, with
+        `--root`) builds a .ldn file or module directory of your own
+        instead.  L is refine's level or the Cortex-M lanes' name for one,
+        and the lane's name says its description: armv7e-m+fpv5-d16 is the
+        AN500's, with its double-precision float unit
     measure_count.py plugin --qemu QEMU --output DIR
         build the plugin for the API version QEMU accepts
     measure_count.py check-header --header DIR --api N --cflags '...'
@@ -411,6 +420,59 @@ def nixos_route() -> None:
     route()
 
 
+def fixture_program(fixture: str) -> Path:
+    """The program FIXTURE, a directory under compiler/tests/fixtures or a
+    path to one, is built from: its `main.ldn` when that is its only
+    source, as scripts/measure.py's `instructions` builds a workload, and
+    the module directory otherwise."""
+    given = Path(fixture)
+    path = given if given.is_dir() else ROOT / "compiler/tests/fixtures" / fixture
+    require(path.is_dir(), f"no fixture {fixture}: a fixture is a directory under"
+            " compiler/tests/fixtures, such as runtime/sieve-of-eratosthenes")
+    sources = sorted(path.glob("*.ldn"))
+    require(sources, f"fixture {fixture} has no .ldn source")
+    return sources[0] if [p.name for p in sources] == ["main.ldn"] else path
+
+
+def run_built(args, tools: Path) -> int:
+    """`count` with --fixture or --source: build each program at --level,
+    --optimize and --specialize through the Cortex-M corpus's own
+    `--program` path, which counts from `main`, and print each count."""
+    require(args.target == "cortex-m0", "--fixture and --source build Cortex-M programs;"
+            " build an RV64 image with refine and count it by its path")
+    require(args.refine is not None, "--fixture and --source need --refine, or"
+            " $LANDIN_REFINE, naming the refine that builds them")
+    require(Path(args.refine).is_file(), f"--refine {args.refine} is no file;"
+            " ./scripts/dev-build.sh prints the path of the refine it built")
+    require(not getattr(args, "from") and not args.to and not args.word
+            and args.repeat == 1, "--from, --to, --word and --repeat count an image"
+            " built already; a built program is counted from `main`, once")
+    sys.path.insert(0, str(CORTEX))
+    import backend_corpus  # noqa: E402
+    programs = ([fixture_program(one) for one in args.fixture]
+                + [Path(one) for one in args.source])
+    output = Path(args.output) if args.output else Path(
+        tempfile.mkdtemp(prefix="landin-count-build-"))
+    require(not output.exists() or not any(output.iterdir()), f"--output {output} is not"
+            " empty: a built program's runs go into a new or empty directory")
+    output.mkdir(parents=True, exist_ok=True)
+    try:
+        results = backend_corpus.observe(
+            output, tools, args.refine, programs, [(args.optimize, args.specialize)],
+            [cortex_level(args.level)], args.root)
+    except RuntimeError as error:
+        raise Failure(str(error)) from error
+    for one in results:
+        require("instructions" in one, f"{one['name']} was not counted: {one}")
+        print(f"{one['program']}: {one['instructions']} instructions at {args.target}"
+              f" {one['level']} {one['optimize']}-{one['specialize']} from main"
+              + ("; trapped" if one.get("trapped") else ""))
+    if args.json:
+        Path(args.json).write_text(json.dumps(results, indent=1) + "\n")
+    print(f"built under {output}")
+    return 0
+
+
 def run_count(args) -> int:
     tools = None
     if args.target == "cortex-m0":
@@ -418,6 +480,11 @@ def run_count(args) -> int:
         sys.path.insert(0, str(CORTEX))
         from setup import DEFAULT, installed_tools  # noqa: E402
         tools = installed_tools(args.tools or DEFAULT)
+    built = bool(args.fixture or args.source)
+    require(built != (args.image is not None), "count takes an IMAGE, or --fixture"
+            " or --source to build one, not both")
+    if built:
+        return run_built(args, tools)
     results = []
     for index in range(args.repeat):
         work = Path(args.output) / f"run-{index + 1}" if args.output else None
@@ -593,7 +660,23 @@ def add_commands(commands) -> None:
     one.add_argument("--target", required=True, help="linux-rv64 or cortex-m0")
     one.add_argument("--level", required=True,
                      help="the image's level, as refine or the Cortex-M lanes name it")
-    one.add_argument("image", type=Path)
+    one.add_argument("image", type=Path, nargs="?",
+                     help="a built image; or build one with --fixture or --source")
+    one.add_argument("--fixture", action="append", default=[],
+                     help="Cortex-M: build and count this fixture, a directory under"
+                          " compiler/tests/fixtures such as runtime/merge-sort; repeat"
+                          " for more")
+    one.add_argument("--source", action="append", default=[],
+                     help="Cortex-M: build and count this .ldn file or module"
+                          " directory; repeat for more")
+    one.add_argument("--root", action="append", default=[],
+                     help="a module root --source needs, passed to refine")
+    one.add_argument("--optimize", default="speed", choices=("none", "size", "speed"),
+                     help="the objective a built program is compiled at")
+    one.add_argument("--specialize", default="auto", choices=("off", "auto", "all"),
+                     help="the specialization a built program is compiled at")
+    import lane_refine  # the --refine every lane takes
+    lane_refine.argument(one, required=False, environment=True)
     one.set_defaults(arguments=[])
     one.add_argument("--stdin", type=Path, help="RV64: the program's standard input")
     one.add_argument("--from", metavar="SYMBOL",

@@ -75,6 +75,16 @@ package Landin.Build_Reports is
       --  as Cortex-M0's __aeabi_* division, whose stack is not known here.
       Helper_Calls      : Natural := 0;
       Naked             : Boolean := False;
+      --  SR-1507: a recorded-writes allocation (D1503, D1567) planned
+      --  registers, but its second emission wrote one of them at a
+      --  position the plan holds it at, so the routine kept its first
+      --  emission, every value in its home.  Refused_Register is the
+      --  register's name as the target's assembly spells it, padded with
+      --  spaces; Refused_Position the position of the write in layout
+      --  order, which is the IR value it emitted.
+      Kept_Homes        : Boolean := False;
+      Refused_Register  : String (1 .. 4) := [others => ' '];
+      Refused_Position  : Natural := 0;
    end record;
 
    type Report is tagged private;

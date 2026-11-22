@@ -1255,6 +1255,56 @@ package body Landin.Backend.RiscV is
                                     Place.Live_Through));
    end Holds;
 
+   --  SR-1507: the register and the position of the first write that
+   --  makes Holds refuse Plan, for the build report, which names it.
+   procedure Find_Refusal
+     (Plan : Allocation_Plan; Writes : Write_Masks;
+      Into : in out Landin.Build_Reports.Routine_Statistics);
+
+   procedure Find_Refusal
+     (Plan : Allocation_Plan; Writes : Write_Masks;
+      Into : in out Landin.Build_Reports.Routine_Statistics)
+   is
+      Found_At : Natural := Natural'Last;
+      Found : Natural := 0;
+
+      procedure Scan (Register, First, Last : Natural);
+      procedure Scan (Register, First, Last : Natural) is
+      begin
+         if Register /= 0 then
+            for Position in First .. Natural'Min (Last, Writes'Last) loop
+               exit when Position >= Found_At;
+               if Position >= Writes'First
+                 and then (Writes (Position) and Bit (Register)) /= 0
+               then
+                  Found_At := Position;
+                  Found := Register;
+                  exit;
+               end if;
+            end loop;
+         end if;
+      end Scan;
+   begin
+      for Place of Plan.Values loop
+         Scan (Place.Register, Place.Live_From + 1, Place.Live_Through);
+         Scan (Place.High, Place.Live_From + 1, Place.Live_Through);
+      end loop;
+      for Place of Plan.Slots loop
+         Scan (Place.Register, Place.Live_From, Place.Live_Through);
+         Scan (Place.High, Place.Live_From, Place.Live_Through);
+      end loop;
+      Into.Kept_Homes := True;
+      if Found_At /= Natural'Last then
+         declare
+            Name : constant String := "x" & Trimmed (Natural'Image (Found));
+         begin
+            Into.Refused_Register := [others => ' '];
+            Into.Refused_Register (1 .. Name'Length) := Name;
+            Into.Refused_Position := Found_At;
+         end;
+      end if;
+   end Find_Refusal;
+
    function Frame_For
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
@@ -8826,6 +8876,7 @@ package body Landin.Backend.RiscV is
                   Homes : constant Allocation_Plan :=
                     Allocate (Of_Unit, Item, Facts, Options);
                   Chosen : Allocation_Plan := Homes;
+                  Refused : Landin.Build_Reports.Routine_Statistics;
                   Start : constant Natural := Unbounded.Length (Output);
                   Start_Serial : constant Natural := Serial;
                   Start_Line : constant Unbounded.Unbounded_String :=
@@ -8891,6 +8942,8 @@ package body Landin.Backend.RiscV is
                                  Chosen.Writes.Append (Mask);
                               end loop;
                            else
+                              Find_Refusal
+                                (Placed, Recording.all, Refused);
                               Free_Masks (Recording);
                               Restore;
                               Emit_Routine
@@ -8973,6 +9026,11 @@ package body Landin.Backend.RiscV is
                            end if;
                         end if;
                      end;
+                  end if;
+                  if Refused.Kept_Homes then
+                     Pending.Kept_Homes := True;
+                     Pending.Refused_Register := Refused.Refused_Register;
+                     Pending.Refused_Position := Refused.Refused_Position;
                   end if;
                   Landin.Build_Reports.Append (Report, Pending);
                   if Debug /= null and then not Pairs then

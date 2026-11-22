@@ -958,6 +958,56 @@ package body Landin.Backend.Cortex_M is
                            Place.Live_Through));
    end Holds;
 
+   --  SR-1507: the register and the position of the first write that
+   --  makes Holds refuse Plan, for the build report, which names it.
+   procedure Find_Refusal
+     (Plan : Register_Plan; Writes : Write_Masks;
+      Into : in out Landin.Build_Reports.Routine_Statistics);
+
+   procedure Find_Refusal
+     (Plan : Register_Plan; Writes : Write_Masks;
+      Into : in out Landin.Build_Reports.Routine_Statistics)
+   is
+      Found_At : Natural := Natural'Last;
+      Found : Natural := 0;
+
+      procedure Scan (Register, First, Last : Natural);
+      procedure Scan (Register, First, Last : Natural) is
+      begin
+         if Register /= 0 then
+            for Position in First .. Natural'Min (Last, Writes'Last) loop
+               exit when Position >= Found_At;
+               if Position >= Writes'First
+                 and then (Writes (Position) and Bit (Register)) /= 0
+               then
+                  Found_At := Position;
+                  Found := Register;
+                  exit;
+               end if;
+            end loop;
+         end if;
+      end Scan;
+   begin
+      for Place of Plan.Values loop
+         Scan (Place.Register, Place.Live_From + 1, Place.Live_Through);
+      end loop;
+      for Place of Plan.Slots loop
+         Scan (Place.Register, Place.Live_From, Place.Live_Through);
+      end loop;
+      Into.Kept_Homes := True;
+      if Found_At /= Natural'Last then
+         declare
+            Name : constant String :=
+              (if Found >= 16 then "d" & Trimmed (Natural'Image (Found - 16))
+               else "r" & Trimmed (Natural'Image (Found)));
+         begin
+            Into.Refused_Register := [others => ' '];
+            Into.Refused_Register (1 .. Name'Length) := Name;
+            Into.Refused_Position := Found_At;
+         end;
+      end if;
+   end Find_Refusal;
+
    --  D1567: a slot or value Registers holds in a register has no home.
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
@@ -9565,28 +9615,49 @@ package body Landin.Backend.Cortex_M is
                     (Item, Allocated_Frame
                        (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
                   if Recording /= null then
+                     --  SR-1507: a second emission may write a register
+                     --  the first left alone, where the plan holds a
+                     --  value.  The recording keeps every emission's
+                     --  writes, so the next round allocates around them;
+                     --  after the third the routine keeps its homes and
+                     --  the report names the write that refused it.
                      declare
-                        Placed : aliased constant Register_Plan :=
-                          Allocate_Registers
-                            (Of_Unit, Item, Facts, Options, Recording.all,
-                             High => Thumb2
-                               and then Options.Optimize
-                                 = Landin.Optimization.Speed);
+                        Kept : Boolean := False;
+                        Refused : Landin.Build_Reports.Routine_Statistics;
                      begin
-                        if Placed.Held /= 0 then
-                           Restore;
-                           Emit_Routine
-                             (Item, Allocated_Frame
-                                (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
-                                 Placed'Access),
-                              Registers => Placed'Access);
-                           if not Holds (Placed, Recording.all) then
+                        for Round in 1 .. 3 loop
+                           declare
+                              Placed : aliased constant Register_Plan :=
+                                Allocate_Registers
+                                  (Of_Unit, Item, Facts, Options,
+                                   Recording.all,
+                                   High => Thumb2
+                                     and then Options.Optimize
+                                       = Landin.Optimization.Speed);
+                           begin
+                              exit when Placed.Held = 0;
                               Restore;
-                              Free_Masks (Recording);
                               Emit_Routine
                                 (Item, Allocated_Frame
-                                   (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
-                           end if;
+                                   (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
+                                    Placed'Access),
+                                 Registers => Placed'Access);
+                              Kept := Holds (Placed, Recording.all);
+                              exit when Kept;
+                              Find_Refusal (Placed, Recording.all, Refused);
+                           end;
+                        end loop;
+                        if not Kept and then Refused.Kept_Homes then
+                           Restore;
+                           Free_Masks (Recording);
+                           Emit_Routine
+                             (Item, Allocated_Frame
+                                (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
+                           Pending.Kept_Homes := True;
+                           Pending.Refused_Register :=
+                             Refused.Refused_Register;
+                           Pending.Refused_Position :=
+                             Refused.Refused_Position;
                         end if;
                      end;
                      Free_Masks (Recording);

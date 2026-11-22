@@ -1271,7 +1271,13 @@ names both figures as this one does. `save_bytes` are the callee-saved registers
 the frame or pushed beside the frame record, never the record itself;
 `spill_bytes` and `spill_count` its spill homes. `register_count` is the
 distinct registers the allocation holds a value or slot in, saved or not,
-and zero on RISC-V, Xtensa and Cortex-M, which give every one a home.
+and zero where it gives every one a home: at `--optimize=none`, and in a
+routine whose allocation was refused. Cortex-M and RISC-V emit a routine
+with homes, allocate over the registers its text writes, and emit it
+again; where the second emission writes a register the plan holds a
+value in, they keep the first emission, and its row says so with
+`kept_homes`, holding the `register` and the `position`, the IR value
+whose emission wrote it.
 `instructions`, `stack_loads`, `stack_stores`, `direct_calls` and
 `indirect_calls` are static sites in the routine's final text: a load or
 store reaches the stack through the stack or frame pointer or a register

@@ -175,6 +175,31 @@ class RefusalTest(unittest.TestCase):
         self.assertEqual((getattr(args, "from"), args.to, args.arguments), ("a", "b", ["7"]))
         self.assertIs(args.run, measure_count.run_count)
 
+    def test_a_fixture_names_its_main_or_its_directory(self):
+        self.assertEqual(measure_count.fixture_program("runtime/merge-sort"),
+                         ROOT / "compiler/tests/fixtures/runtime/merge-sort/main.ldn")
+        with self.assertRaisesRegex(measure_count.Failure, "under compiler/tests/fixtures"):
+            measure_count.fixture_program("runtime/no-such-fixture")
+
+    def test_a_built_count_is_refused_what_it_cannot_take(self):
+        import argparse
+        top = argparse.ArgumentParser()
+        measure_count.add_commands(top.add_subparsers(dest="command"))
+
+        def refused(argv, message):
+            args = measure_count.parse(top, argv)
+            with self.assertRaisesRegex(measure_count.Failure, message):
+                measure_count.run_built(args, Path("/nonexistent"))
+
+        base = ["count", "--level", "armv6-m", "--fixture", "runtime/merge-sort"]
+        refused([*base, "--target", "linux-rv64"], "build Cortex-M programs")
+        refused([*base, "--target", "cortex-m0", "--refine", "/nonexistent/refine"],
+                "is no file")
+        args = measure_count.parse(top, [*base, "--target", "cortex-m0", "--optimize",
+                                         "size", "--specialize", "off"])
+        self.assertEqual((args.image, args.fixture, args.optimize, args.specialize),
+                         (None, ["runtime/merge-sort"], "size", "off"))
+
 
 if __name__ == "__main__":
     unittest.main()
