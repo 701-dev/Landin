@@ -27432,6 +27432,101 @@ which is the allocator's coalescing and a larger change.
 **Pinned by** the Cortex-M corpus at every level and
 `compiler/tests/measure/baselines/`.
 
+### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
+
+**The tour said** nothing. D1767 left an eight-byte constant, and every
+`u64(x)` of a narrower integer, a value of its own: made in r0:r1, stored
+to its home and loaded back into the pair its reader used. In
+`core.line.divisor` at armv6-m size-auto each such operand cost seven
+instructions where two make it.
+
+**Chosen:** at `size` and `speed`, in a routine without an
+`assembler.block`, an eight-byte integer constant is deferred as D1767
+defers a word's: its reader makes both words in the pair it loads. A
+conversion that cannot fail from an integer of at most a word to an
+eight-byte one, from an unsigned source or a signed word to a signed
+result, emits nothing either: its reader loads the source into the low
+register and makes the high one with `movs` zero or `asrs` 31. The
+source then lives, and is held (D1567), through the conversion's last
+reader.
+
+**The alternatives:** a held pair (D1503's form) for each, which on
+Thumb-1 moves a pair with two `mov` where a home moves it with two `ldr`
+of the same size, and holds two of the six registers a routine has.
+
+**Pinned by** the Cortex-M corpus at every level and
+`compiler/tests/measure/baselines/`.
+
+### D2121 — Cortex-M tests nothing a constant or an earlier test settled
+
+**The tour said** nothing. An eight-byte division by a constant tested
+the constant for zero and called `__aeabi_uldivmod`; a checked
+eight-byte multiplication called the same helper to divide the largest
+result by one operand, a constant one included; and an atom stored to a
+slot and loaded back, or converted, was tested against its set again.
+
+**Chosen:** an unsigned eight-byte division or remainder by a constant
+power of two is shifts of the pair, and a division by any other nonzero
+constant tests nothing before the helper, as D1767 has a word's. A
+checked unsigned eight-byte multiplication by a constant compares the
+other operand with the largest it may be, folded, high word then low.
+A conversion of an atom constant whose code the set holds, or of a value
+already tested against the same set, tests nothing; nor does a load of
+either from a slot its block stored it in, with nothing between that
+could write memory.
+
+**The alternatives:** a run-time helper for the checked multiplication,
+which would still call.
+
+**Pinned by** the Cortex-M corpus at every level, the firmware oracles
+and `compiler/tests/measure/baselines/`.
+
+### D2122 — Cortex-M reads a value from the registers that still hold it
+
+**The tour said** nothing. With every eight-byte value in its home
+(D1567), a value computed in r0:r1 was stored there and loaded back into
+r0:r1 by the next operation, and a slot's load was stored to a home of
+its own before its one reader loaded it again.
+
+**Chosen:** at `size` and `speed`, in a routine without an
+`assembler.block`, the emitter tracks which word or eight-byte integer
+value each of r0 to r7 holds since it was stored to or loaded from its
+home: any line writing the register, and any label, forgets it. A load
+of a value a register still holds is nothing, or a `mov`, and a home
+store goes once the routine's text is complete if no load read that
+home. A load of a word or eight-byte integer slot, validating no atoms,
+whose readers all come before any operation in its block that could
+write memory or leave the block, emits nothing: each reader loads the
+slot, as it loads a deferred constant (D1767).
+
+**The alternatives:** a held pair over each value's interval (D1503),
+which the recorded writes refuse wherever an operation names r0 to r3,
+that is at every eight-byte operation; and a general store-to-load
+peephole over the text, which cannot tell a value's home from a slot's.
+
+**Pinned by** the Cortex-M corpus at every level, the firmware oracles
+and `compiler/tests/measure/baselines/`.
+
+### D2123 — A Cortex-M routine reads its parameters through sp
+
+**The tour said** nothing. A framed routine read each parameter from
+its incoming register's home, and from the caller's area, through
+`mov r6, r11` and an offset, and stored it to its slot the same way,
+since sp was not taken as known before the first block.
+
+**Chosen:** after the prologue reserves the frame and stores the
+incoming registers, sp is the bottom of the homes, as at each block's
+start, so a scalar parameter of a word or eight bytes is read with
+`ldr [sp, #imm]` where that reaches, into its slot's register when the
+slot is held, and stored with D1563's forms.
+
+**The alternatives:** keeping the incoming registers to the slots
+directly, which a slot held in r1 or r3 would overwrite before its own
+parameter was stored.
+
+**Pinned by** the Cortex-M corpus at every level and
+`compiler/tests/measure/baselines/`.
+
 ### D1627 — Xtensa places every word of a routine over the routine's own text
 
 **The tour said** nothing. Xtensa's machine layer kept every RISC-V-form
