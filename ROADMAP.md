@@ -1487,7 +1487,7 @@ the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
 
-Status: planned
+Status: active
 Depends on: R19.10, R19.40
 
 SC-16, as D1661 records: `T range a .. b` leaves, and a value known to lie
