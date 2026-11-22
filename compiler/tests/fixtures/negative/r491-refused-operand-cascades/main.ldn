@@ -1,9 +1,3 @@
-percent: type = u8 range 0..100
-
-write: (p: ptr mut percent) -> none =
-    p.val = 200
-end write
-
 walk: () -> none =
     for i in (1 + true)..<3 do
         _ = i

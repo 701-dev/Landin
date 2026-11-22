@@ -1,7 +1,0 @@
-class: runtime
-profiles: standard
-summary: D188 a compound assignment past a range subtype's upper bound traps on the value it stores
-program: main.ldn
-traps: yes
-constructs: 0660, 0290, 1900
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

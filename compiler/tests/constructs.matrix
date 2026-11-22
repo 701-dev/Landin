@@ -18,7 +18,7 @@
 #  gaps and owner come from the inventory, whose
 #  disposition column explains every row.
 #  206 constructs, 200 with fixture evidence, 6 with none.
-#  States: 195 executed, 5 compiled, 2 transferred, 4 advisory.
+#  States: 196 executed, 4 compiled, 2 transferred, 4 advisory.
 #  6 rows name an open owner; 0 have target gaps.
 #
 #  id | in | evidence | linux-x86-64 | linux-arm64 | darwin-arm64 | freebsd-x86-64 | freebsd-arm64 | linux-rv64 | cortex-m0 | refusals | state | targets | gaps | owner | title
@@ -87,7 +87,7 @@
 0630 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Atoms
 0640 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Enumerations are unions of atoms
 0650 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Distinct types
-0660 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | boundary | executed | all | none | none | Range subtypes
+0660 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A value inside a range
 0670 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | boundary | executed | all | none | none | Structs
 0680 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | boundary | executed | all | none | none | Structs with a variant part
 0690 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Cases with no payload
@@ -154,7 +154,7 @@
 1300 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Calling a generic function
 1310 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | How generic code runs: tables, and specialization as an option
 1320 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Traversal is a concept
-1330 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Integer ranges are not values
+1330 | tour | accepted emitted executed | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Integer ranges are not values
 1340 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Combining concepts
 1350 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | boundary | executed | all | none | none | Generic types
 1360 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Allocation is a concept
@@ -173,7 +173,7 @@
 1490 | tour | accepted emitted executed | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | The word `fixed`
 1500 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Choosing declarations by target
 1510 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Checking a layout at compile time
-1520 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A compile-time value parameter
+1520 | tour | accepted emitted executed | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A compile-time value parameter
 1530 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Your own build switches
 1540 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | No compile-time execution
 1550 | tour | - | - | - | - | - | - | - | - | - | advisory | none | none | none | What the compiler produces
@@ -196,7 +196,7 @@
 1700 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Atoms are the same idea wherever they appear
 1710 | tour | - | - | - | - | - | - | - | - | - | advisory | none | none | none | How a new feature earns its place
 1720 | tour | accepted emitted executed | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | What Landin promises, plainly
-1730 | tour | accepted emitted | compiled | compiled | compiled | compiled | compiled | compiled | compiled | - | compiled | all | none | none | Check once, then carry the proof
+1730 | tour | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Check once, then carry the proof
 1740 | spec | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A source file is an import prelude and declarations in any order
 1750 | spec | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | A source file is bytes
 1760 | spec | accepted emitted executed refused | executed | executed | executed | executed | executed | executed | executed | - | executed | all | none | none | Identifiers are lower case, and no identifier is a keyword

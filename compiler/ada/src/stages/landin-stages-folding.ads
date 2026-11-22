@@ -89,16 +89,13 @@ package Landin.Stages.Folding is
    --  that a conversion or an operator inside it cannot take rather than
    --  an answer past the fold's own range: the conversion, or the operand
    --  of the width-dependent operator, the value it folded to, and the
-   --  type that does not hold it.  Constraint is the range subtype a
-   --  conversion applied when the value fits the base and not the range.
+   --  type that does not hold it.
    --  Node is No_Node when no such refusal was met.
    type Narrow_Refusal is record
-      Source     : Landin.Source.Source_Id := Landin.Source.No_Source;
-      Node       : Landin.Syntax.Node_Id := Landin.Syntax.No_Node;
-      Value      : Landin.Types.Folded := 0;
-      Into       : Landin.Types.Type_Kind := Landin.Types.Undecided;
-      Constraint : Landin.Checking.Constraint_Id :=
-        Landin.Checking.No_Constraint;
+      Source : Landin.Source.Source_Id := Landin.Source.No_Source;
+      Node   : Landin.Syntax.Node_Id := Landin.Syntax.No_Node;
+      Value  : Landin.Types.Folded := 0;
+      Into   : Landin.Types.Type_Kind := Landin.Types.Undecided;
    end record;
 
    --  The first such refusal the latest Fold met, in the tree it was

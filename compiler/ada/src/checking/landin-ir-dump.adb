@@ -990,7 +990,7 @@ package body Landin.IR.Dump is
                  & Operands (Item, Value);
 
             when Range_Check =>
-               --  D188: a dump that did not render the bounds would show
+               --  A dump that did not render the bounds would show
                --  two different checks as one line.
                return Lead & Operands (Item, Value) & " range "
                  & Trimmed

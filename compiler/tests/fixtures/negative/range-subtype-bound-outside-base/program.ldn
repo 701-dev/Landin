@@ -1,5 +1,0 @@
-too_wide: type = u8 range 0..300
-
-public main: () -> (code: i32) =
-    code = 0
-end main

@@ -1822,7 +1822,7 @@ package body Landin.Tests.Verifier_Suite is
             IR.Emit_Leave (Unit, E, IR.No_Value, Site);
             IR.Leave_Block (Unit, E);
 
-         --  D188: a bound the checked type does not hold would make the
+         --  A bound the checked type does not hold would make the
          --  emitted comparison meaningless rather than merely redundant,
          --  so the verifier refuses it.  The other half -- a result type
          --  that is not its operand's -- cannot be built here, because

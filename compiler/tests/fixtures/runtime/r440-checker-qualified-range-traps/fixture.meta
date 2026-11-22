@@ -1,8 +1,0 @@
-class: runtime
-profiles: standard
-summary: A dynamic conversion through a qualified imported range alias retains its runtime bound check
-program: main.ldn
-root: .
-traps: yes
-constructs: 0660, 0700, 1420
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

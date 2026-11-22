@@ -1,8 +1,8 @@
 class: runtime
 profiles: standard
-summary: Imported qualified aliases retain scalar identity, range checks and the distinction between types and calls
+summary: Imported qualified aliases retain scalar identity, conversion checks and the distinction between types and calls
 program: main.ldn
 root: .
 status: 42
-constructs: 0120, 0660, 0700, 1420, 1940
+constructs: 0120, 0700, 1420, 1940
 targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

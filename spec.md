@@ -345,8 +345,7 @@ tighter than `|`, `ptr a | b` is that union of `ptr a` and `b`. A function
 type's parameters and returns are declared too. Everywhere else a type is
 written, as an array's or a slice's element, as a type argument, a
 `distinct` base or a conformance's target, a union needs that declaration's
-name, and the one refusal says so; a range
-subtype narrows an integer type, which no union is. `sizeof`, `alignof` and
+name, and the one refusal says so. `sizeof`, `alignof` and
 a labelled argument read `a | b` as [1820]'s alternation, and a union there
 is refused the same way.
 
@@ -396,22 +395,16 @@ declaration per name per scope [1850] and a name that names
 nothing is refused [1860] both hold for it unchanged. A predeclared name is in
 no scope, so declaring its spelling duplicates nothing; [1790] says which
 meaning a type position takes.
-D188 admits [0660]'s range subtype at this one position and nowhere else,
-which is why its base is narrower than `type`: the base must be a name whose
-alias chain reaches an enabled integer scalar, both bounds are D136-folded
-values of that base, and the lower must not be above the upper. `range` is a
-contextual word [1760] does not reserve, and only `..` is admitted because
-the tour writes no exclusive bound in a type. The representation, the operands and every
-operator result are the base type's, so this is [0650]'s complement and not a
-spelling of it.
+There is no range subtype (D1661): `T range a .. b` after a type
+declaration's base type is refused as L0696, naming a `distinct` type over
+the base and a function that checks the range [0660]. `range` stays a word
+[1760] does not reserve.
 
 ```landin-grammar
 type_declaration ::= identifier ":" "type"
-                     ("=" (encoded_union | atom_union | range_subtype | distinct_body | type | struct_body)
+                     ("=" (encoded_union | atom_union | distinct_body | type | struct_body)
                      | type_formals "=" (encoded_union | atom_union | distinct_body | type | struct_body))
 distinct_body   ::= "distinct" type
-range_subtype   ::= (scalar_name | declaration_reference) "range"
-                    expression ".." expression
 concept_declaration ::= identifier ":" "type" "=" concept_body
 concept_body    ::= "concept" type_formals
                     ("is" concept_reference
@@ -2383,7 +2376,7 @@ or `out _ at register`. Its name is its `{name}` template slot and, for an
 output, its result field; it declares nothing any scope can see, and two
 operands of one block cannot share a name. Its type is an exact enabled
 integer scalar no wider than one register of the target, or `f32` or `f64`
-(D630): not bool, a pointer, a distinct type, a range subtype or a type
+(D630): not bool, a pointer, a distinct type or a type
 formal. An integer is placed at an integer register or `general`, a float
 at a float register or `float`, and a profile with no float registers
 refuses a float operand. An input is evaluated
@@ -2929,8 +2922,7 @@ enables it stays `ROADMAP.md`'s to say.
 **Pinned by** `negative/r491-shared-declaration`,
 `negative/arena-block-names-owner`, `negative/arena-type-names-owner`,
 `negative/r491-volatile-pointer`, `negative/refused-widths-name-their-owner`,
-`negative/r740-parameterized-application-boundary`,
-`negative/r720-range-subtype-array-element` and
+`negative/r740-parameterized-application-boundary` and
 `negative/cortex-refused-type-named`, whose recorded reports carry the notes,
 and the parser case `shared declarations have a named refusal`.
 
@@ -3878,8 +3870,11 @@ question has no stable answer.
 
 **Pinned by** `runtime/checked-overflow-traps`, `runtime/a-zero-divisor-traps`,
 and the conversion traps the paragraph above asked for:
-`runtime/float-to-integer-out-of-range-traps`,
-`runtime/float-to-integer-nan-traps` and `runtime/range-subtype-store-traps`.
+`runtime/float-to-integer-out-of-range-traps` and
+`runtime/float-to-integer-nan-traps`.
+
+`runtime/range-subtype-store-traps` pinned a range subtype's trap until
+D1661 removed the form.
 
 ### D13 — An amount at or past the width gives zero on every shift
 
@@ -4610,8 +4605,9 @@ subtype applied inside a larger expression reached the backend unchecked.
 
 **Chosen:** the wider range belongs to `+ - * / %`, comparison and unary
 minus alone. A conversion inside a module value takes only a value its
-target holds: an integer its integer type holds, zero or one for `bool`,
-and a value inside the bounds for a range subtype. A shift, `&`, `|`, `^`,
+target holds: an integer its integer type holds and zero or one for
+`bool`; a range subtype's bounds held there too until D1661 removed the
+form. A shift, `&`, `|`, `^`,
 `~` and a wrapping operator take only operands their operand type holds;
 a shift's amount stays under [0320]'s own rule. A value that is not held
 is L0300 at the conversion or the operand, naming the value and the type,
@@ -4625,7 +4621,7 @@ and narrowing every intermediate to its type, which takes back D224's
 wider range. Both are declined.
 
 **Pinned by** `negative/module-fold-operand-outside-its-type`, with
-`runtime/module-range-subtype-negative-mask-operand` for a negative
+`runtime/module-negative-mask-operand` for a negative
 operand its signed type holds.
 
 ## DECISIONS: POINTERS AND RAW STORAGE
@@ -7384,6 +7380,8 @@ give a type a second name at all.
 
 ### D188 — A range subtype is its base type constrained, checked where it is stored
 
+**Superseded by D1661.** There are no range subtypes; a value known to lie in a range is a `distinct` type made by a checking function, and what follows is history.
+
 D236 later records the composite, reference and generic positions refused
 below as [0660]'s permanent source-form boundary; their reports keep L0304
 and now say so.
@@ -7503,27 +7501,12 @@ make the guarantee decorative. Refusing an `inout` convention outright on a
 constrained parameter, rather than requiring the same subtype, would be less
 useful for no less work. All were declined.
 
-**Pinned by** `positive/range-subtypes`, `positive/alias-conversion`,
-`runtime/range-subtype-checks`, `runtime/range-subtype-store-traps`,
-`runtime/range-subtype-conversion-traps`,
-`runtime/range-subtype-update-traps`,
-`negative/range-subtype-literal-out-of-range`,
-`negative/range-subtype-known-value-out-of-range`,
-`negative/range-subtype-zeroed-excluded`,
-`negative/range-subtype-base-is-not-an-integer`,
-`negative/range-subtype-bounds-inverted`,
-`negative/range-subtype-bound-outside-base`,
-`negative/range-subtype-exclusive-bound`,
-`negative/range-subtype-in-a-slice`,
-`negative/range-subtype-struct-field`,
-`negative/range-subtype-address`,
-`negative/range-subtype-inout-must-match`,
-`negative/range-subtype-signature-mismatch`,
-`negative/range-subtype-external-signature`,
-`negative/range-subtype-generic-argument`,
-`positive/range-subtype-exit-before-the-check`,
-`runtime/control-expression-edges-keep-source-order`, the generated lexical
-and IR records, and the `subtype.range` guarantee row.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, which refuses the form since D1661.
+
+Range subtypes' twenty fixtures, the `subtype.range` guarantee row and
+the IR records pinned this until D1661 removed the form;
+`positive/alias-conversion` still pins `count(x)` for an alias, and
+`runtime/control-expression-edges-keep-source-order` its other consumers.
 
 ### D210 — Optimal placement is explicit, stable and strictly smaller
 
@@ -7910,6 +7893,8 @@ device contract define separate image and transaction oracles.
 
 ### D1086 — A call-site `else` value carries its own proof or none
 
+**Superseded by D1661.** With no range subtypes no call result carries a proof the recovery could lose; what follows is history.
+
 **The tour said** at [1730] that a value already of a range subtype is not
 checked again, and at [0960] that a call-site `else` supplies the value
 when the call fails. D188 lets a call whose one result is a range subtype
@@ -7930,9 +7915,13 @@ needs a second kind of owed check for one expression form; and dropping
 the proof from every call result, which checks the common call twice.
 Both are declined.
 
-**Pinned by** `runtime/range-subtype-else-value-is-checked`.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, which refuses the form since D1661.
+
+`runtime/range-subtype-else-value-is-checked` pinned this until D1661.
 
 ### D1087 — A `fixed` formal of a range subtype takes only a value inside it
+
+**Superseded by D1661.** A `fixed` formal is held to its type's own range; there is no narrower one to hold it to, and what follows is history.
 
 **The tour said** at [0660] that a range subtype is checked at a
 parameter, and at [1350] and [1520] that a `fixed` argument fits its
@@ -7948,9 +7937,13 @@ range.
 as D236 refuses it in composite positions, which takes away the cheapest
 place a range can be enforced. It is declined.
 
-**Pinned by** `negative/fixed-argument-outside-its-range`.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, which refuses the form since D1661.
+
+`negative/fixed-argument-outside-its-range` pinned this until D1661.
 
 ### D236 — A range subtype constrains scalar positions only
+
+**Superseded by D1661.** The refused positions went with the form: a `distinct` type is admitted in all of them, which is the carrier this decision already named.
 
 **The tour said** that [0660]'s range subtype is checked at assignment and
 conversion. D188 made a subtype its base type constrained rather than a new
@@ -8000,13 +7993,10 @@ and payload aliases reopen the same identity question. Transferring the
 question to a successor was declined because its answer does not wait on a
 program: the conflict is with D188 and [0440], not with cost.
 
-**Pinned by** `negative/range-subtype-struct-field`,
-`negative/r720-range-subtype-array-element`,
-`negative/range-subtype-in-a-slice`, `negative/range-subtype-address`,
-`negative/range-subtype-generic-argument`,
-`negative/range-subtype-external-signature`,
-`negative/r491-refused-operand-cascades`, whose recorded reports carry the
-boundary note, and the `subtype.range` guarantee row.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, which refuses the form since D1661.
+
+The six refused positions' fixtures pinned this until D1661 removed the
+form with them.
 
 ### D1661 — Range subtypes leave; a `distinct` type with a checking constructor replaces one
 
@@ -8016,7 +8006,17 @@ boundary note, and the `subtype.range` guarantee row.
 
 **The alternatives:** keeping range subtypes, the heaviest rule set in their section; and extending them to the positions D236 leaves out. Both were declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, whose refusal names the distinct type and its checking function and carries no fix (D1907), and `runtime/range-checking-constructor-fails`, whose checking function makes the value inside the range and fails outside it. D188, D236, D1086, D1087 and D1088 are marked superseded and D1100 amended; [0660] and [1730] teach the checking function, and prototype 1's `baud_rate` is one.
+
+### D1907 — The range subtype's refusal names its replacement and carries no fix
+
+**The discrepancy:** D1847 makes a removed form's rewrite its refusal's exact fix where the rewrite is mechanical, and D1661 leaves open whether this one is. It also says the distinct type is "made only by" its checking function, while [0650] lets any code apply a distinct type to its base.
+
+**Chosen:** the refusal, L0696, names the declaration that replaces it, `percent: type = distinct u8`, and a function that checks the range, and carries no fix. Rewriting the declaration alone leaves every place that stored a `u8` into a `percent`, every argument, return and conversion, refused, and the rewrite of each one is a choice the program makes: whether a value outside the range fails, traps or cannot occur there. An exclusive bound, `..<`, is refused the same way. "Made only by" is [1730]'s habit, not a rule: a distinct type's conversion from its base stays open to any code, as [1730] says the habit needs no feature of its own, and the checking function is the one place a program writes it.
+
+**The alternatives:** a fix that rewrites the declaration and wraps each use in a call of a generated checking function, which decides for the program where a failure goes and touches every use; and confining a distinct type's conversion to its own module, which is a new rule no item asked for. Both are declined.
+
+**Pinned by** `negative/range-subtype-is-a-distinct-type`.
 
 ### D239 — Byte order is converted where bytes cross, and the machine attribute words are withdrawn
 
@@ -15261,7 +15261,7 @@ classified failure boundary before the repository gate can pass.
 | `declarations.names` | static | 0040, 0050, 0060, 0080, 0090, 0100, 0110, 0120, 0130, 0140, 1790, 1795, 1850 | L0200 or L0201 | `negative/duplicate-in-a-module`, `negative/local-used-above-its-declaration` |
 | `types.values` | static | 0070, 0150, 0160, 0170, 0180, 0190, 0200, 0210, 0250, 1870, 1880, 1890 | L0300, L0301 or L0304 | `negative/character-literal-needs-u32`, `negative/float-literal-not-enabled`, `negative/float-type-not-enabled`, `negative/integer-literal-not-a-float`, `negative/literal-above-its-type`, `negative/refused-widths-name-their-owner`, `negative/type-name-is-not-a-type`, `negative/wide-integer-not-enabled` |
 | `float.ieee` | static | 0170, 0210, 0220, 0230, 0240, 0290, 0350, 1940 | f32/f64 decimal and hexadecimal literals plus inherently typed infinity and canonical quiet NaN names follow IEEE binary32/binary64 through runtime and module arithmetic and comparison, preserving exact hexadecimal values, nearest-even rounding, gradual underflow, signed zero and unordered NaN behavior; arithmetic NaNs use the canonical quiet pattern, L0300 rejects a finite literal that becomes infinity, and L0301 rejects an invalid named special, a width mismatch, mixed classes and integer-only operators | `negative/float-remainder-is-integer-only`, `negative/float-special-name-unknown`, `negative/float-special-on-integer-type`, `negative/float-special-width-mismatch`, `negative/hex-float-overflows-context`, `runtime/float-decimal-runtime`, `runtime/float-hexadecimal-runtime`, `runtime/float-named-specials`, `runtime/module-float-arithmetic` |
-| `distinct.identity` | static | 0310, 0430, 0650, 0700, 1280, 1290, 1940, 1975 | a distinct declaration and each normalized generic application retain nominal identity with exact base size, alignment and bytes; explicit construction and extraction preserve origins, static images and compatible C transport; L0301 rejects identity mixing and inherited operations, L0308 refuses representation fields, L0318 refuses inherited conformance, D428 gives zeroable membership exactly when the base has it while L0328 refuses a bare `zeroed` of the identity, and L0314 preserves escape refusals | `runtime/r490-distinct-scalars`, `runtime/r490-distinct-generic-representations`, `runtime/r490-distinct-generic-dispatch`, `runtime/r490-distinct-module-images`, `abi/r490-distinct-c-roundtrip`, `runtime/r490-review-generic-distinct-bool`, `runtime/r490-distinct-generic-bool-images`, `runtime/r490-distinct-generic-pointer-images`, `runtime/r490-generic-fixed-conversion-discovery`, `negative/r490-distinct-type-value`, `negative/r490-distinct-alias-type-value`, `negative/r490-distinct-generic-type-value`, `negative/r490-distinct-discard-type-value`, `negative/r490-distinct-static-address`, `negative/r490-distinct-identity`, `negative/r490-distinct-no-operators`, `negative/r490-distinct-no-fields`, `negative/r490-distinct-conformance`, `positive/r490-distinct-zeroable`, `runtime/distinct-zero-images`, `negative/distinct-bare-zeroed`, `negative/r490-distinct-origin` |
+| `distinct.identity` | static | 0310, 0430, 0650, 0660, 0700, 1280, 1290, 1730, 1940, 1975 | a distinct declaration and each normalized generic application retain nominal identity with exact base size, alignment and bytes; explicit construction and extraction preserve origins, static images and compatible C transport; L0301 rejects identity mixing and inherited operations, L0308 refuses representation fields, L0318 refuses inherited conformance, D428 gives zeroable membership exactly when the base has it while L0328 refuses a bare `zeroed` of the identity, and L0314 preserves escape refusals; a value inside a range is a distinct type its checking function makes, and L0696 refuses `T range a .. b` naming it (D1661) | `runtime/range-checking-constructor-fails`, `negative/range-subtype-is-a-distinct-type`, `runtime/r490-distinct-scalars`, `runtime/r490-distinct-generic-representations`, `runtime/r490-distinct-generic-dispatch`, `runtime/r490-distinct-module-images`, `abi/r490-distinct-c-roundtrip`, `runtime/r490-review-generic-distinct-bool`, `runtime/r490-distinct-generic-bool-images`, `runtime/r490-distinct-generic-pointer-images`, `runtime/r490-generic-fixed-conversion-discovery`, `negative/r490-distinct-type-value`, `negative/r490-distinct-alias-type-value`, `negative/r490-distinct-generic-type-value`, `negative/r490-distinct-discard-type-value`, `negative/r490-distinct-static-address`, `negative/r490-distinct-identity`, `negative/r490-distinct-no-operators`, `negative/r490-distinct-no-fields`, `negative/r490-distinct-conformance`, `positive/r490-distinct-zeroable`, `runtime/distinct-zero-images`, `negative/distinct-bare-zeroed`, `negative/r490-distinct-origin` |
 | `conversion.integer` | trap | 0150, 0190, 0310, 0470, 0700, 1120, 1460, 1670, 1880, 1940, 1950, 1960 | explicit conversion among enabled integer types preserves the mathematical value; L0300 rejects a known value outside the destination range and a runtime value outside it traps, without truncation, wrapping or signedness reinterpretation, outside [1120]'s region | `negative/integer-conversion-known-binding-out-of-range`, `negative/integer-conversion-known-out-of-range`, `runtime/integer-conversion-out-of-range-traps`, `runtime/integer-conversion-signed-overflow-traps`, `runtime/integer-conversion-unsigned-overflow-traps`, `runtime/integer-conversions` |
 | `conversion.float-width` | trap | 0170, 0210, 0230, 0240, 0310, 0700, 1880, 1940, 1950, 1960 | explicit f32/f64 conversion widens exactly or narrows to nearest with ties to even, preserving signed zero and the infinity/NaN class; L0300 rejects a known finite narrowing overflow and an equivalent runtime conversion traps | `negative/float-width-conversion-known-out-of-range`, `runtime/float-width-conversion-overflow-traps`, `runtime/float-width-conversions` |
 | `conversion.integer-to-float` | static | 0150, 0170, 0190, 0210, 0310, 0700, 1880, 1940, 1960 | explicit conversion from every enabled integer to f32 or f64 preserves the mathematical value when exact and otherwise rounds to nearest with ties to even; the enabled integer range cannot overflow either float width | `runtime/integer-to-float-conversions` |
@@ -15333,15 +15333,12 @@ classified failure boundary before the repository gate can pass.
 | `entry.point` | static | 1650, 1970 | L0502 before executable emission | `runtime/constant-return-exits-with-its-code`, `negative/r440-native-renamed-entry` |
 | `module.images` | static | 0180, 0340, 0350, 0410, 1460, 1890, 1930, 1940 | L0300, L0304 or L0305; module-known bool `not`, `and` and `or` fold left to right into scalar and aggregate images, short-circuit `and`/`or`, and execute no initializer CFG | `negative/module-value-from-a-call`, `runtime/module-known-short-circuit-bools`, `runtime/recursive-module-images-are-laid-out-and-distinct` |
 | `unchecked.region` | outside | 0290, 0300, 0310, 0320, 0430, 0470, 0570, 0580, 0700, 1100, 1110, 1120, 1950, 1960 | non-guarantee: inside [1120]'s region the compiler emits no integer overflow edge for `+`, `-`, `*` and unary `-`, no element-index or slice-range edge, and no destination-range edge for an integer-to-integer or pointer-to-integer conversion; the results are [0320]'s wrapping value, [0430]'s pointer non-guarantee at the computed address, and the low-order bits of the source; every static refusal, every division, shift, bool and float conversion edge and every text boundary edge stays, and a [1100] `defer` or [1110] `undo` call keeps the edges of the place its registration is written rather than those of the exit that runs it | `positive/unchecked-regions`, `positive/unchecked-marks-only-the-edges-it-removes`, `runtime/unchecked-arithmetic-wraps`, `runtime/unchecked-integer-conversion-truncates`, `runtime/unchecked-slice-index-passes-the-length`, `runtime/checks-return-after-the-region`, `runtime/unchecked-does-not-cross-a-call`, `runtime/unchecked-does-not-reach-an-anonymous-body`, `runtime/unchecked-keeps-the-divisor-check`, `runtime/unchecked-keeps-the-shift-check`, `runtime/unchecked-keeps-text-boundary-traps`, `runtime/unchecked-keeps-bool-conversion-traps`, `runtime/unchecked-keeps-float-conversion-traps`, `runtime/unchecked-pointer-conversion-truncates`, `runtime/unchecked-does-not-reach-an-outer-cleanup`, `runtime/unchecked-reaches-a-cleanup-written-inside`, `negative/unchecked-keeps-a-known-index`, `negative/unchecked-keeps-permissions`, `negative/unchecked-keeps-definite-assignment`, `negative/unchecked-region-end-name-mismatch` |
-| `subtype.range` | trap | 0540, 0660, 0700, 1730, 1795, 1880, 1940, 1950, 1960 | storing into a place whose declared type is [0660]'s range subtype, and applying the subtype name to a value, check the value against both folded bounds; L0300 rejects a known value outside them, a runtime value outside them traps, and a value whose own subtype's bounds lie inside them is not checked again; a successful guard on an ordinary integer does not itself elide this check; [1120]'s region does not remove this edge; L0304 records D236's boundary for a struct field, an array element, a reference target, `addr` of a constrained place and a generic argument | `positive/range-subtypes`, `runtime/range-subtype-checks`, `runtime/range-subtype-store-traps`, `runtime/range-subtype-conversion-traps`, `runtime/range-subtype-update-traps`, `negative/range-subtype-literal-out-of-range`, `negative/range-subtype-known-value-out-of-range`, `negative/range-subtype-zeroed-excluded`, `negative/range-subtype-bounds-inverted`, `negative/range-subtype-in-a-slice`, `negative/range-subtype-struct-field`, `negative/r720-range-subtype-array-element` |
 | `pointer.optional` | static | 0430, 0440, 0470, 0480, 0630, 0640, 1210, 1870 | L0335 for every use that would read an atom case as an address, for a union of one atom and a pointer and for one of several atoms and a pointer alike — `.val` in a read, in an assignment target and under `addr`, an integer conversion, `any` construction, a comparison with another union or a pointer (D429 admits one with the union's own atom), a `ptr T` position, and `ptr(n)` into one — L0333 for an `inout` arm binding and L0338 for a union of two pointer types; L0328 rejects a many-atom union without a zero image, while the one-atom `zeroed` context remains L0301; L0333 for an arm outside the union, L0301 for a widening atom outside it, for a narrowing, for a permission the member does not relax to, and for an `inout` place of another union; L0311 for a case named twice and L0312 for a case no arm and no `_` names; the bound pointer carries the subject's origin and an atom case carries none | `positive/pointer-unions`, `runtime/pointer-unions`, `runtime/pointer-union-atom-comparison`, `negative/pointer-union-dereference`, `negative/pointer-union-assignment-target`, `negative/pointer-union-address-of-referent`, `negative/pointer-union-any-construction`, `negative/pointer-union-case-named-twice`, `negative/pointer-union-present-arm-named-twice`, `negative/pointer-union-is-not-a-pointer`, `negative/pointer-union-match-not-exhaustive`, `negative/pointer-union-frame-escape`, `negative/r440-parser-frame-arena`, `negative/pointer-union-comparison`, `negative/pointer-union-integer-conversion`, `negative/pointer-union-from-an-integer`, `negative/pointer-union-inout-binding`, `negative/pointer-union-zeroed`, `negative/pointer-union-two-pointers`, `negative/pointer-case-arm-is-not-an-atom`, `positive/pointer-union-several-atoms`, `positive/pointer-union-many-declarations`, `positive/pointer-union-many-widening`, `runtime/pointer-union-many`, `negative/pointer-union-many-dereference`, `negative/pointer-union-many-assignment-target`, `negative/pointer-union-many-address-of-referent`, `negative/pointer-union-many-any-construction`, `negative/pointer-union-many-comparison`, `negative/pointer-union-many-integer-conversion`, `negative/pointer-union-many-is-not-a-pointer`, `negative/pointer-union-many-result-is-not-a-pointer`, `negative/pointer-union-many-from-an-integer`, `negative/pointer-union-many-zeroed`, `negative/pointer-union-many-inout-binding`, `negative/pointer-union-many-case-named-twice`, `negative/pointer-union-many-pointer-arm-named-twice`, `negative/pointer-union-many-match-not-exhaustive`, `negative/pointer-union-many-foreign-atom-arm`, `negative/pointer-union-many-atom-outside-the-set`, `negative/pointer-union-many-does-not-narrow`, `negative/pointer-union-many-permission-does-not-widen`, `negative/pointer-union-many-inout-is-exact`, `negative/pointer-union-many-frame-escape`, `negative/pointer-union-many-return-frame`, `negative/pointer-union-many-two-pointers` |
 | `configuration.fixed` | static | 1480, 1500, 1510, 1530, 1540, 1560, 1590, 1980 | L0200 for duplicate option names; L0203 for reserved tool names; L0300, L0301, L0305 or L0306 for invalid fixed evaluation; L0324 for a false compiler assertion; L0390 for invalid option declarations; L0391 for invalid tool directives | `negative/fixed-conditional-evaluator`, `negative/r430-assertion-false`, `negative/r430-option-cycle`, `negative/r430-option-duplicate`, `negative/r430-option-reserved`, `negative/r430-library-injection`, `positive/r430-fixed-options`, `runtime/r430-fixed-tools`, `runtime/r430-static-library` |
 
 This is a coverage register, not an optimizer contract. D187 adds
 `unchecked.region` for [1120], which weakens the four trapping rows it names
-and no others; `subtype.range` is deliberately not among them, because a
-value outside a range subtype's bounds is not a value the destination type
-holds and removing that edge would leave no stated behaviour. D203--D208 add
+and no others. D203--D208 add
 the selected C-call, export, linkage, allocation and hosted-startup boundaries
 now that the C boundary implements their source and backend paths; its
 generated binding integration is evidence rather than additional guarantee
@@ -16558,6 +16555,8 @@ concrete signature and ordinary failure opcode reach neutral IR.
 
 ### D1100 — A type parameter applied to a value converts to the instance's type
 
+**Amended by D1661.** There is no range subtype among the actual types, so no conversion through a type parameter carries a range check of its own; the rest stands.
+
 **The tour said** that a conversion is a type applied to a value [0310],
 [0700], and that a generic routine takes its type as an ordinary parameter
 [1290]. It did not say whether the parameter may stand where a conversion
@@ -16590,8 +16589,7 @@ and constructs nothing". A struct is built where its type is known.
 A generic routine is always checked and lowered as an instance with its
 actuals known, so there is no path on which the conversion's type is
 unknown where it is lowered; an `any C` value dispatches entries and has
-no type parameter to apply. A range subtype is no type argument [0660],
-so a parameter's conversion never carries bounds of its own.
+no type parameter to apply.
 
 **The alternative** was to refuse the form, which D1100 first chose: a
 type parameter names a type in a type position only, and a value takes its
@@ -17553,6 +17551,8 @@ and `blocking.host` are each named with the `fibre.scheduler` they provide.
 
 ### D1088 — A concept entry's range subtype is part of its signature
 
+**Superseded by D1661.** An entry's types are compared as a routine's are, and none is a range subtype; what follows is history.
+
 **The tour said** at [1240] that a conformance function has exactly the
 entry's signature, and D188 that a range subtype's bounds travel with a
 signature so that an indirect call cannot lose the check. An entry
@@ -17571,8 +17571,10 @@ its results with the subtype, exactly as a call of the routine does.
 would make a concept unable to state a contract a routine can. It is
 declined.
 
-**Pinned by** `negative/concept-entry-range-subtype-is-its-signature` and
-`runtime/concept-entry-range-subtype-is-checked`.
+**Pinned by** `negative/range-subtype-is-a-distinct-type`, which refuses the form since D1661.
+
+`negative/concept-entry-range-subtype-is-its-signature` and
+`runtime/concept-entry-range-subtype-is-checked` pinned this until D1661.
 
 ### D1363 — A conformance may hand its entries to a field
 
@@ -19700,7 +19702,7 @@ The complete enabled check disposition is:
 | Check family | Kind and site |
 |---|---|
 | Checked integer add/subtract/multiply/negation; zero divisor for division or remainder; signed division overflow | `overflow` at the arithmetic operation. Wrapping operations and D187's suppressed overflow checks do not acquire a panic. The defined lowest-signed remainder by minus one remains zero. |
-| Fixed-array and slice bounds/order; range-subtype membership; negative shift count | `out_of_range` at the indexing, slicing, range check or shift. Large nonnegative shifts retain their defined result. |
+| Fixed-array and slice bounds/order; a compiler-emitted range check; negative shift count | `out_of_range` at the indexing, slicing, range check or shift. Large nonnegative shifts retain their defined result. |
 | Integer, bool, float and pointer-address conversion fit; nonnull pointer construction; malformed text decoding | `bad_conversion` at the conversion/decoding operation, with D187's existing exceptions unchanged. Ordinary floating arithmetic retains its existing IEEE behavior. |
 | Volatile/atomic scalar address alignment; atom-domain validation; packed encoded membership, packed field-width fit or reserved-bit pattern validation | `bad_conversion` at the operation that validates the value. Raw packed copying still preserves every bit without extracting or validating fields. |
 | A callee returns despite `noreturn` | `unreachable` at the call, before any continuation. |
@@ -19871,7 +19873,7 @@ effects. D230's form is kept as the shorthand for `inout` at r0.
 | A register is a name in the target's table; `general` is the one class, spelled the same everywhere | GCC's constraint strings (`"=r"`, `"+a"`) and `at "r0"`: a register in text is invisible to the checker and a misspelling is a string mismatch. Register names as argument labels leave no room for a direction or a class, and `inout` would need one label twice | `negative/assembly-register-is-text`, `negative/assembly-register-not-on-target`, `negative/assembly-register-twice` |
 | The type selects the register's width in the text | GCC's width modifiers (`%w0`, `%k0`) are a second language in the template | `positive/assembly-operand-forms` |
 | Outputs are the block's value, bound like a call's named returns | Outputs that write existing places need rules for when the place is evaluated, its permission, definite assignment and aliasing with an input; a value reuses binding, assignment, destructuring, discard and D244 unchanged | `negative/assembly-outputs-dropped-by-omission`, `core-cpu.ldn` |
-| Operands are exact integer scalars one register wide | Pointer operands would convert implicitly across the boundary where X6 says origin ends, and a pointer output would hide `ptr`'s zero trap; `usize(p)` and `ptr(u)` say it where it happens. `bool`, distinct types and range subtypes would each need a check or construction inside the block | `negative/assembly-operand-types` |
+| Operands are exact integer scalars one register wide | Pointer operands would convert implicitly across the boundary where X6 says origin ends, and a pointer output would hide `ptr`'s zero trap; `usize(p)` and `ptr(u)` say it where it happens. `bool` and distinct types would each need a check or construction inside the block | `negative/assembly-operand-types` |
 | Float operands are D630's: `f32` and `f64` at a float register or the class `float`, refused on a profile with none | The first form transferred them to Language evolution while Cortex-M0, which has no float register, was the only target; the hosted targets' float registers and the M7's float unit are what brought them back | `negative/assembly-float-operand`, `runtime/assembly-float-square-root` |
 | Every block overwrites the call-clobbered set and flags; callee-saved registers are declared with `out _` or as an operand | Clobber-nothing by default (GCC, Rust) makes a forgotten clobber a silent miscompile and buys precision no allocator here uses; a separate clobber list states what `out _` already does | `negative/assembly-reserved-registers-x86-64`, `negative/assembly-reserved-registers-arm64`, `negative/assembly-discard-names-register` |
 | Frame, stack and link registers and the platform's are never named, and the language reserves no other | Letting a block name the frame pointer loses backtraces and the stackful-fibre route [1680]; reserving a register for the language is what the ambient environment cost and lost | `negative/assembly-reserved-registers-cortex`, `negative/assembly-reserved-registers-x86-64`, `negative/assembly-reserved-registers-arm64` |
@@ -31090,7 +31092,7 @@ as the harness does: D659 lowers such a fixture there too. It needs no
 refusal listed for any other target, and the D658 pairs for the three rv32
 fixtures are gone; `assembly-comments-naked`, cortex-m0's, is no longer
 compiled for the other seven, where its naked routine is gated off. A fixture whose `args` choose a target while its
-`targets:` names others, as `range-subtypes` does, is still compiled for
+`targets:` names others, as `range-subtypes` did until D1661, is still compiled for
 every target, and a refusal on one is still a fault. `check.py` holds the
 manifest's `TARGETS` to every target `refine targets` describes but the
 checking-only ones, the fixture reader's names to all of them, and
@@ -31098,7 +31100,7 @@ checking-only ones, the fixture reader's names to all of them, and
 drawn from, reading the compiler's own selection table.
 
 **The alternatives:** permitting a refusal wherever `args` choose
-another target, which would let `range-subtypes` start refusing on every
+another target, which would have let `range-subtypes` start refusing on every
 target but cortex-m0 without a fault; listing each pair as
 D658 did, which is the step that was missed; and asking the compiler at
 emission time, which the stub compilers the manifest's controls run

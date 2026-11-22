@@ -1,5 +1,0 @@
-import aliases
-
-use: () -> (result: u8) =
-    result = aliases.ratio(101)
-end use

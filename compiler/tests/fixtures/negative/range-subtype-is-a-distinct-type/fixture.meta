@@ -1,0 +1,9 @@
+class: negative
+summary: D1661 a range subtype, inclusive or exclusive, is refused naming a distinct type over its base and a checking function, and carries no fix because every use changes type
+program: program.ldn
+codes: L0696, L0696
+constructs: 0650, 0660, 1730
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/range-subtype-is-a-distinct-type/program.ldn
+status: 1

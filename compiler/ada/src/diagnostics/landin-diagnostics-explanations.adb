@@ -757,8 +757,7 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.Impossible_Operand =>
                "An operand the operation cannot take, where the compiler"
                & " knows it [1950]: a divisor of zero, a shift by a negati"
-               & "ve amount, an index outside a fixed array, or a range su"
-               & "btype whose bounds are reversed.",
+               & "ve amount, an index outside a fixed array.",
             when Catalogue.Compile_Time_Assertion_Failed =>
                "A compile-time assertion is false [1510]. Change what it"
                & " measures, a type's layout or the target the build selec"
@@ -1181,9 +1180,9 @@ package body Landin.Diagnostics.Explanations is
                & ".count`, is called where it is selected, and the note sa"
                & "ys so (D1364). A type alias is applied with its exact po"
                & "sitional arguments [1350]. A union holds atoms and at mo"
-               & "st one pointer type [0640]; a range subtype restricts an"
-               & " integer type [0660]; a fixed-array bound is an integer "
-               & "count (D136). Correct the declaration or name a type.",
+               & "st one pointer type [0640]; a fixed-array bound is an in"
+               & "teger count (D136). Correct the declaration or name a ty"
+               & "pe.",
             when Catalogue.Signature_Form =>
                "A written signature is not well formed. A function type "
                & "gives each parameter a distinct label [0980] and each re"
@@ -2238,7 +2237,14 @@ package body Landin.Diagnostics.Explanations is
                & "urns each use of a selected name into `m.a`, under the `"
                & "as` name where the import has one. It is offered only wh"
                & "ere `m` names nothing else in the file; elsewhere make t"
-               & "he same change by hand.");
+               & "he same change by hand."
+               & LF
+               & LF
+               & "A range subtype, `T range a .. b` [0660], is gone (D1661"
+               & "): declare a `distinct` type over the base and a functio"
+               & "n that checks the range and returns the value converted "
+               & "to it. There is no fix, because every use that stored a "
+               & "base value into the subtype changes too (D1907).");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is

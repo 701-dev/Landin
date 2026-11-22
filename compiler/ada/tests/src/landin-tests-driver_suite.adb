@@ -5777,7 +5777,7 @@ package body Landin.Tests.Driver_Suite is
          Host.Add_File ("entry/main.ldn", "import aliases" & LF & Source);
          Host.Add_File
            ("root/aliases/types.ldn",
-            "public percent: type = u8 range 0..100" & LF
+            "public percent: type = u8" & LF
             & "public ratio: type = percent" & LF
             & "public word: type = usize" & LF
             & "hidden: type = u8" & LF
@@ -5818,8 +5818,8 @@ package body Landin.Tests.Driver_Suite is
          "", "");
       Check
         ("use: () -> (result: u8) =" & LF
-         & "    result = aliases.ratio(101)" & LF & "end use" & LF,
-         "L0300", "this is 101, and the declared range is 0 .. 100");
+         & "    result = aliases.ratio(256)" & LF & "end use" & LF,
+         "L0300", "256");
       Check
         ("use: () -> (result: u8) =" & LF
          & "    result = aliases.value(1)" & LF & "end use" & LF,
@@ -5896,60 +5896,6 @@ package body Landin.Tests.Driver_Suite is
             Check (Unbounded.To_String (Source), "L0111", 1, Executable);
          end;
 
-         Check
-           ("level: type = u8 range 5 .. 10 f: () -> (r: level) = 3 end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: () -> (r: level) = begin 3 "
-            & "end end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> (r: level) "
-            & "= if flag then 3 else 7 end if end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 cb: () -> (r: level) = 3 end "
-            & "cb f: () -> none = callback := cb end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = begin 3 end end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = begin zeroed end end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = if flag then 3 else 7 end if end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: (flag: bool) -> none = "
-            & "value: level = level(begin 3 end) end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: () -> none = mut value: "
-            & "level = 7 value = begin 3 end end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 f: () -> (r: level) = r = "
-            & "begin 3 end end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 take: (value: level) -> none "
-            & "= end take f: () -> none = take(begin 3 end) end f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 a: atom b: atom choice: type "
-            & "= a | b f: (flag: choice) "
-            & "-> none = value: level = match flag a: 3 b: 7 end match end "
-            & "f",
-            "L0300", 1, Executable);
-         Check
-           ("level: type = u8 range 5 .. 10 missing: atom leaf: () -> (r: "
-            & "u8) ! missing = fail missing end leaf f: () -> none = value: "
-            & "level = leaf() else 3 end f",
-            "L0300", 1, Executable);
          Check
            ("widget: type = concept (t: type) bad: () -> (n: i32) size: "
             & "(self: ptr t) -> (n: i32) end widget bad_i32: () -> (n: i32) = "
@@ -6397,16 +6343,6 @@ package body Landin.Tests.Driver_Suite is
             & "i32 is lookup (get: get_i32)",
             "L0341", 1, Executable);
          Check
-           ("percent: type = u8 range 0..100 "
-            & "cell: type (t: type) = struct value: t end cell "
-            & "mut a: cell(percent)",
-            "L0304", 1, Executable);
-         Check
-           ("percent: type = u8 range 0..100 "
-            & "row: type (t: type, fixed n: u32) = [n]t "
-            & "f: () -> none = mut a: row(percent, 3) = zeroed end f",
-            "L0304", 1, Executable);
-         Check
            ("box: type (t: type) = struct value: t end box "
             & "item: box(u8) = 5",
             "L0301", 1, Executable);
@@ -6832,10 +6768,6 @@ package body Landin.Tests.Driver_Suite is
            & "kind: panic.panic_kind, site: u32) -> noreturn = "
            & "loop do end loop end panic_handler", False);
          Check (Target, "public panic_handler: u32 = 7", False);
-         Check (Target, "index: type = u32 range 0..7 "
-           & "public panic_handler: (kind: panic.panic_kind, "
-           & "site: index) -> noreturn = loop do end loop end panic_handler",
-           False);
          Check (Target, "index: type = distinct u32 "
            & "public panic_handler: (kind: panic.panic_kind, "
            & "site: index) -> noreturn = loop do end loop end panic_handler",

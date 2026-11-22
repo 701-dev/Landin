@@ -1,0 +1,33 @@
+--  D1661: a value known to lie in a range is a distinct type that only a
+--  checking function makes.  The check runs where the value is made, and
+--  outside the range the function fails.
+percent: type = distinct u8
+
+out_of_range: atom
+
+to_percent: (raw: u8) -> (p: percent) ! out_of_range =
+    fail out_of_range when raw > 100
+    p = percent(raw)
+end to_percent
+
+--  [1730]: a percent was checked where it was made, so nothing checks it
+--  again here.
+share_of: (p: percent, total: u32) -> (part: u32) =
+    part = total * u32(u8(p)) / 100
+end share_of
+
+public main: () -> (code: i32) =
+    code = 0
+    half: percent = to_percent(50) else percent(0)
+    edge: percent = to_percent(100) else percent(0)
+    mut refused := false
+    over: percent = to_percent(200) else begin
+        refused = true
+        percent(0)
+    end
+    if share_of(half, 84) == 42 and u8(edge) == 100 and refused
+      and u8(over) == 0
+    then
+        code = 42
+    end if
+end main

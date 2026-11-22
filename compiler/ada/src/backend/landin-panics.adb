@@ -22,7 +22,6 @@ package body Landin.Panics is
    use type IR.Parameter_Convention;
    use type IR.Pointee_Id;
    use type IR.Nominal_Type_Id;
-   use type Landin.Checking.Constraint_Id;
    use type Landin.Machine.Convention;
    use type Landin.Modules.Module_Id;
    use type R.Declaration_Sort;
@@ -329,9 +328,7 @@ package body Landin.Panics is
                     (if Index = 1 then "its first parameter, the kind,"
                      else "its second parameter, the site,");
                begin
-                  if Part.Constraint /= Landin.Checking.No_Constraint then
-                     return Differs (Which & " has a range constraint");
-                  elsif Part.Caller then
+                  if Part.Caller then
                      return Differs (Which & " is a `caller` parameter");
                   end if;
                end;

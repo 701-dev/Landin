@@ -12904,104 +12904,6 @@ package body Landin.Tests.Lowering_Suite is
          1, 2);
    end Erased_Tables_Validate_Their_Closure;
 
-   procedure Control_Ranges_Keep_One_Store_Check
-     (Item : in out Landin.Testing.Context);
-
-   procedure Control_Ranges_Keep_One_Store_Check
-     (Item : in out Landin.Testing.Context)
-   is
-      procedure Check_Source
-        (Label, Text : String; Expected_Checks : Natural);
-
-      procedure Check_Source
-        (Label, Text : String; Expected_Checks : Natural)
-      is
-         procedure Check_Target (Facts : Landin.Targets.Target_Facts);
-
-         procedure Check_Target (Facts : Landin.Targets.Target_Facts) is
-            Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
-            Ran : Natural;
-            Checks : Natural := 0;
-         begin
-            Lower (Work, Text, Ran);
-            Landin.Testing.Check
-              (Item, Ran = 5 and then not Landin.Stages.Failed (Work),
-               Label & " preserves the existing known-value boundary");
-            if Landin.Stages.Failed (Work) then
-               return;
-            end if;
-            declare
-               Unit : IR.Unit renames Landin.Stages.Code (Work).all;
-               Routine : constant IR.Item_Id := Named_Item (Work, "f");
-            begin
-               for Position in 1 .. IR.Value_Count (Unit, Routine) loop
-                  if IR.Op_Of (Unit, Routine, IR.Value_Id (Position))
-                    = IR.Range_Check
-                  then
-                     Checks := Checks + 1;
-                  end if;
-               end loop;
-               Landin.Testing.Check_Equal
-                 (Item, Checks, Expected_Checks,
-                  Label & " keeps the store's single owed range check");
-               Landin.Testing.Check
-                 (Item, IR.Verifier.Check (Unit, Facts).Kind
-                    = IR.Verifier.Nothing_Wrong,
-                  Label & " retains verified control and constraint edges");
-            end;
-         end Check_Target;
-      begin
-         Check_Target (Landin.Targets.Linux_X86_64);
-         Check_Target (Landin.Targets.Synthetic_32);
-      end Check_Source;
-   begin
-      Check_Source
-        ("dynamic bare",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = begin input end r = value end f",
-         1);
-      Check_Source
-        ("dynamic branches",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = if flag then input else 7 end if r "
-         & "= value end f",
-         1);
-      Check_Source
-        ("arithmetic remains dynamic",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = begin 3 + 0 end r = value end f",
-         1);
-      Check_Source
-        ("known direct proof",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: u8) = value: level = 7 r = value end f",
-         0);
-      Check_Source
-        ("early return has no arriving value",
-         "level: type = u8 range 5 .. 10 f: () -> (r: u8) = r = 1 "
-         & "value: level = begin return end end f",
-         0);
-      Check_Source
-        ("implicit dynamic result",
-         "level: type = u8 range 5 .. 10 f: (input: u8) -> (r: level) "
-         & "= input end f",
-         1);
-      Check_Source
-        ("implicit dynamic branch",
-         "level: type = u8 range 5 .. 10 f: (flag: bool, input: u8) -> "
-         & "(r: level) = if flag then input else 7 end if end f",
-         1);
-      Check_Source
-        ("implicit known proof",
-         "level: type = u8 range 5 .. 10 f: () -> (r: level) = 7 end f",
-         0);
-      Check_Source
-        ("final none call is a statement",
-         "level: type = u8 range 5 .. 10 done: () -> none = end done "
-         & "f: () -> (r: level) = r = 7 done() end f",
-         0);
-   end Control_Ranges_Keep_One_Store_Check;
-
    procedure Atom_Array_Fills_Keep_Narrow_Values
      (Item : in out Landin.Testing.Context);
 
@@ -13431,81 +13333,6 @@ package body Landin.Tests.Lowering_Suite is
          end loop;
       end loop;
    end Fixed_Measurement_Bounds_Keep_Refusals;
-
-   procedure Generic_Written_Ranges_Keep_Checks
-     (Item : in out Landin.Testing.Context);
-
-   procedure Generic_Written_Ranges_Keep_Checks
-     (Item : in out Landin.Testing.Context)
-   is
-      Common : constant String := "level: type = u8 range 5 .. 10 ";
-      Caller : constant String :=
-        " f: (input: u8, other: i32) -> (r: u8) = "
-        & "left: u8 = g(other, input) right: u8 = g(true, input) "
-        & "r = left + right end f";
-
-      procedure Check_Source (Label, Text : String; Expected : Natural);
-
-      procedure Check_Source (Label, Text : String; Expected : Natural) is
-         Work : Landin.Stages.Compilation :=
-           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
-         Ran, Checks : Natural := 0;
-      begin
-         Lower (Work, Common & Text & Caller, Ran);
-         Landin.Testing.Check
-           (Item, Ran = 5 and then not Landin.Stages.Failed (Work),
-            Label & " reaches verified IR with two instances");
-         if Landin.Stages.Failed (Work) then
-            return;
-         end if;
-         declare
-            Unit : IR.Unit renames Landin.Stages.Code (Work).all;
-         begin
-            for Position in 1 .. IR.Item_Count (Unit) loop
-               declare
-                  Routine : constant IR.Item_Id := IR.Item_Id (Position);
-               begin
-                  if IR.Kind_Of (Unit, Routine) = IR.Routine then
-                     for Index in 1 .. IR.Value_Count (Unit, Routine) loop
-                        if IR.Op_Of (Unit, Routine, IR.Value_Id (Index))
-                          = IR.Range_Check
-                        then
-                           Checks := Checks + 1;
-                        end if;
-                     end loop;
-                  end if;
-               end;
-            end loop;
-            Landin.Testing.Check_Equal
-              (Item, Checks, Expected, Label & " retains each owed check");
-            Landin.Testing.Check
-              (Item, IR.Verifier.Check (Unit, Landin.Targets.Linux_X86_64).Kind
-                 = IR.Verifier.Nothing_Wrong,
-               Label & " retains sound constraint instructions");
-         end;
-      end Check_Source;
-   begin
-      Check_Source
-        ("local range",
-         "g: (t: type, ignored: t, input: u8) -> (r: u8) = "
-         & "value: level = input r = value end g", 2);
-      Check_Source
-        ("parameter range",
-         "g: (t: type, ignored: t, input: level) -> (r: u8) = "
-         & "r = input end g", 2);
-      Check_Source
-        ("result range",
-         "g: (t: type, ignored: t, input: u8) -> (r: level) = "
-         & "r = input end g", 2);
-      Check_Source
-        ("written local proof",
-         "g: (t: type, ignored: t, input: level) -> (r: level) = "
-         & "value: level = input r = value end g", 2);
-      Check_Source
-        ("local update",
-         "g: (t: type, ignored: t, input: u8) -> (r: u8) = "
-         & "mut value: level = 7 inc value r = value end g", 2);
-   end Generic_Written_Ranges_Keep_Checks;
 
    procedure Generic_Pointer_Fields_Keep_Nominal_Identity
      (Item : in out Landin.Testing.Context);
@@ -14034,9 +13861,6 @@ package body Landin.Tests.Lowering_Suite is
         (Into, "lowering", "generic pointer fields keep nominal identity",
          Generic_Pointer_Fields_Keep_Nominal_Identity'Access);
       Landin.Testing.Register
-        (Into, "lowering", "generic written ranges keep checks",
-         Generic_Written_Ranges_Keep_Checks'Access);
-      Landin.Testing.Register
         (Into, "lowering",
          "generic bodies keep anonymous routines independent",
          Generic_Bodies_Keep_Anonymous_Routines_Independent'Access);
@@ -14055,9 +13879,6 @@ package body Landin.Tests.Lowering_Suite is
       Landin.Testing.Register
         (Into, "lowering", "single array repetition fill uses its field",
          Single_Array_Repetition_Fill_Uses_Its_Field'Access);
-      Landin.Testing.Register
-        (Into, "lowering", "control ranges keep one store check",
-         Control_Ranges_Keep_One_Store_Check'Access);
       Landin.Testing.Register
         (Into, "lowering", "erased tables validate their closure",
          Erased_Tables_Validate_Their_Closure'Access);

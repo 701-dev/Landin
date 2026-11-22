@@ -134,7 +134,7 @@ different responsibilities.
 | `Landin.Resolution` | declarations, scopes, which declaration each name means and which declaration each declaring node made, and the fields and fill of a construction as it classified them | hold a diagnostic, or decide what a name may be called |
 | `Landin.Types` | the scalar names and value categories, their widths, and ordinary scalar storage size against a target | hold a machine fact of its own, or ask the host for one |
 | `Landin.Evidence` | target-neutral semantic evidence-table positions: size, alignment, then direct concept functions in declaration order | know machine bytes, target offsets, or physical layout |
-| `Landin.Checking` | the type of every runtime node and declaration, the concept and conformance table, interned nominal and routine instances with their per-instance facts and layouts, and D188's range-subtype identities; the full list is under "What the four largest packages own" below | decide a rule, execute user code, synthesize a source declaration, mutate a template, or ask the host for a width |
+| `Landin.Checking` | the type of every runtime node and declaration, the concept and conformance table, interned nominal and routine instances with their per-instance facts and layouts; the full list is under "What the four largest packages own" below | decide a rule, execute user code, synthesize a source declaration, mutate a template, or ask the host for a width |
 | `Landin.Checking.Spelling` | how a checked type is written for a person: the one spelling the checker interns for a pointer union and a server shows over a name | decide a type, or spell one a second way |
 | `Landin.Cleanup` | target-neutral exit kinds and the defer/undo applicability policy | parse a cleanup, track definite assignment, emit a call, or name a target |
 | `Landin.IR` | the target-neutral instructions, shapes, descriptors, images, paths and source aliases into existing storage; the full list is under "What the four largest packages own" below | hold a scope tree, name a machine, ask a width, synthesize a declaration, or hold an offset, register or padding byte |
@@ -835,9 +835,6 @@ function signatures on values and aggregate fields, and ordered result
 runs; the target-dependent runtime layout of scalar, fixed-array,
 unfolded-variant and nested ordinary runs is kept outside the
 target-independent nominal keys.
-It owns the range-subtype identities, interned on the written range and
-carried beside a node's or declaration's base integer kind rather than
-becoming one, with the check each value still owes its destination (D188).
 
 **`Landin.IR`** owns the target-neutral instructions: items, slots, blocks and
 values, including signature-only external routine items, D161's read-only

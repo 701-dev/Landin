@@ -1905,9 +1905,6 @@
     "runtime/computed-array-index-traps": {
       "mode": "execute"
     },
-    "runtime/concept-entry-range-subtype-is-checked": {
-      "mode": "execute"
-    },
     "runtime/condition-declarations": {
       "mode": "execute"
     },
@@ -3499,7 +3496,7 @@
     "runtime/module-mixed-array-repetition-holds-hybrid": {
       "mode": "execute"
     },
-    "runtime/module-range-subtype-negative-mask-operand": {
+    "runtime/module-negative-mask-operand": {
       "mode": "execute"
     },
     "runtime/module-scalar-zeroed-reads-zero": {
@@ -4250,9 +4247,6 @@
         }
       }
     },
-    "runtime/r440-checker-qualified-range-traps": {
-      "mode": "execute"
-    },
     "runtime/r440-contextual-compound-array-child-copies": {
       "mode": "execute"
     },
@@ -4716,22 +4710,10 @@
     "runtime/random-sequence": {
       "mode": "execute"
     },
+    "runtime/range-checking-constructor-fails": {
+      "mode": "execute"
+    },
     "runtime/range-selection-element-is-a-place": {
-      "mode": "execute"
-    },
-    "runtime/range-subtype-checks": {
-      "mode": "execute"
-    },
-    "runtime/range-subtype-conversion-traps": {
-      "mode": "execute"
-    },
-    "runtime/range-subtype-else-value-is-checked": {
-      "mode": "execute"
-    },
-    "runtime/range-subtype-store-traps": {
-      "mode": "execute"
-    },
-    "runtime/range-subtype-update-traps": {
       "mode": "execute"
     },
     "runtime/raw-literal-bytes": {

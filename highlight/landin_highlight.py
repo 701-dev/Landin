@@ -33,7 +33,7 @@ import re
 
 KEYWORDS = {
     # declarations and types
-    "type", "struct", "variant", "concept", "is", "distinct", "range", "set",
+    "type", "struct", "variant", "concept", "is", "distinct", "set",
     "register", "layout", "atom", "soa", "option",
     # control
     "if", "then", "elsif", "else", "end", "while", "do", "for", "in", "loop",

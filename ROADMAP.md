@@ -1487,7 +1487,7 @@ the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
 
-Status: active
+Status: complete
 Depends on: R19.10, R19.40
 
 SC-16, as D1661 records: `T range a .. b` leaves, and a value known to lie
@@ -1500,6 +1500,24 @@ Exit evidence: the negative fixture refusing `range` in a type names the
 distinct type and its constructor; a runtime fixture whose checking
 constructor fails outside the range; the complete gate on the item's
 commit.
+Done: `T range a .. b` is refused as L0696, naming a `distinct` type over
+the base and a checking function and carrying no fix, since every use that
+stored a base value changes type with it (D1907); an exclusive bound is
+refused the same way. The parser keeps only the base type, the syntax node
+went, and with it the checker's constraint table, owed checks, the six
+refused composite positions and the `range a..b` signature text, about two
+thousand lines; `Range_Check` stays for the checks that still use it.
+D188, D236, D1086, D1087 and D1088 are marked superseded, D1100 amended,
+the `subtype.range` guarantee row went and `distinct.identity` covers [0660]
+and [1730], which a runtime fixture now executes. [0660] and [1730] teach
+the checking function, and prototype 1's `baud_rate` is one. No source was
+migrated by `refine fix`, there being no fix: thirty-two fixtures that
+pinned only range subtypes left, nine that used one in passing were
+rewritten by hand, one of them renamed, and `negative/range-subtype-is-a-distinct-type` and
+`runtime/range-checking-constructor-fails` are the exit evidence. No
+measured workload wrote a range subtype, so no baseline moved. SR-1578 is
+filed for Cortex-M's partial-bound `Range_Check` paths, whose only case
+compiled a range subtype.
 
 ### R19.80 — One-atom pointer unions, written layout and named operands
 

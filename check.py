@@ -3932,6 +3932,7 @@ REFUSED_BY_PARSER_UNDER_A_SHARED_CODE = {
     "one-name-per-declaration": "D1888",
     "inline-struct-is-a-struct-block": "D1888",
     "selected-import-is-imported-whole": "D1888",
+    "range-subtype-is-a-distinct-type": "D1907",
 }
 
 
@@ -7764,7 +7765,7 @@ def check_coverage_registers(full_run):
             "concepts.conformance", "any.construction", "any.dispatch",
             "modules.availability", "modules.visibility",
             "entry.point", "module.images", "configuration.fixed",
-            "unchecked.region", "subtype.range", "pointer.optional"}
+            "unchecked.region", "pointer.optional"}
         classes = {"static", "trap", "beyond-lifetime", "outside"}
         for line, row in guarantees:
             key = row["Operation"].strip("`")

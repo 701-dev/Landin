@@ -654,9 +654,8 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   accepted in every layout: indentation decides nothing in an accepted
   program (D1074). A text literal may hold about a mebibyte.
 - **Types and conversions.** Explicit conversion to a written type such as
-  `[]u8(text)`, the enabled scalar conversions and range subtypes, checked
-  also at a call-site `else` value, a `fixed` formal and a concept entry
-  (D1086-D1088). An atom
+  `[]u8(text)`, the enabled scalar conversions; a range subtype is refused,
+  naming a distinct type and its checking function (D1661). An atom
   union may be written in place as a binding's, parameter's, return's or
   field's type. A distinct type compares wherever its base does, updates
   flags in place with `|=`, `&=` and `^=`, and has its base's zero image; a

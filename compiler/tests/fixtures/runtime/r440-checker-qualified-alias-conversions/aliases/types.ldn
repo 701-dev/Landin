@@ -1,4 +1,4 @@
-public percent: type = u8 range 0..100
+public percent: type = u8
 public ratio: type = percent
 public word: type = usize
 public convert: (value: u8) -> (result: u8) =

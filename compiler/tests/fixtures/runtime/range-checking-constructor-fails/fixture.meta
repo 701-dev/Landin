@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: D1661 a distinct type made by a checking function holds values inside the range, and the function fails outside it
+program: main.ldn
+status: 42
+constructs: 0650, 0660, 0950, 1030, 1730
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

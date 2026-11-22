@@ -34,7 +34,7 @@ with every named refusal and the wording of its [1830] note.
   `synthetic-32` is a pre-Cortex model and applies to no construct.
   `rv32`, the RV32 firmware target, is not a product target and has no
   column (D840): it runs the firmware corpus on two lanes, but [1270],
-  [1400], [1570], [1610], [1730], [1830] and [1860] have their Cortex-M
+  [1400], [1570], [1610], [1830] and [1860] have their Cortex-M
   evidence only from records that are Cortex-M's alone, the derived
   driver, the firmware machine probe and fixtures that select
   `cortex-m0`, so accounting every construct on it would open gaps no
@@ -125,7 +125,7 @@ with every named refusal and the wording of its [1830] note.
 | `[0630]` | executed | all | none | none | matrix evidence |
 | `[0640]` | executed | all | none | none | matrix evidence |
 | `[0650]` | executed | all | none | none | named refusal |
-| `[0660]` | executed | all | none | none | Scalar range subtypes are matrix evidence under D188. D236 records the struct-field, array-element, reference-target, `addr` and generic-argument positions as the paragraph's permanent boundary, and their named refusals say so. |
+| `[0660]` | executed | all | none | none | D1661 removed range subtypes: `negative/range-subtype-is-a-distinct-type` pins the refusal naming the distinct type and its checking function, and `runtime/range-checking-constructor-fails` executes that function inside and outside the range. |
 | `[0670]` | executed | all | none | none | Both struct forms are matrix evidence, and a named refusal records the inline-struct source-form boundary. D241 adds whole-struct discards and inferred struct copies, makes misused struct values L0334 errors, and records the untyped literal and module-image forms as boundaries the note names. |
 | `[0680]` | executed | all | none | none | Variant declaration, storage, construction and matching are matrix evidence, and D241 gives payload arrays every ordinary array-field expression. A variant part as a value, a case outside its part and a copied part are D241's recorded boundaries, which the note names. |
 | `[0690]` | executed | all | none | none | matrix evidence |
@@ -234,7 +234,7 @@ with every named refusal and the wording of its [1830] note.
 | `[1700]` | executed | all | none | none | matrix evidence |
 | `[1710]` | advisory | none | none | none | The admission test for a new language feature, a design-process rule. It adds no source behavior; the parked and watched items it governs are records in the register in `ROADMAP.md`. |
 | `[1720]` | executed | all | none | none | matrix and guarantee evidence; its stated non-guarantees execute |
-| `[1730]` | compiled | all | none | none | `positive/range-subtypes`' recorded IR shows a range-subtype value carrying its proof with no check under D188, a hosted compile-time rule in the audited register below; two claims that could not observe elision were dropped. The Cortex-M verdict is on that same fixture, which now also records an accepted `cortex-m0` compilation of its own program. That verdict is acceptance and not a second recorded IR because the elision is a property of the target-neutral IR, which no target selects, and a duplicate program would have added a duplicate IR record for nothing. |
+| `[1730]` | executed | all | none | none | `runtime/range-checking-constructor-fails` executes the habit: a checking function makes the distinct value, and the function that takes it checks nothing again. |
 | `[1740]` | executed | all | none | none | matrix evidence |
 | `[1750]` | executed | all | none | none | matrix evidence |
 | `[1760]` | executed | all | none | none | matrix evidence |
@@ -280,7 +280,6 @@ construct.
 | --- | --- | --- | --- |
 | `[1270]` | `positive/r490-conformance-input-keys` | `negative/conformance-collision`, `negative/r490-conformance-input-alias-collision` | Whole-program conformance keys include normalized input tuples; unequal keys coexist and equal keys collide before runtime. |
 | `[1400]` | none | `negative/local-array-literal-inferred-element-mismatch` | Heterogeneous implicit boxing is deliberately absent; mismatched element types are rejected. Ordinary explicit `any` dispatch has separate executed rows. |
-| `[1730]` | `positive/range-subtypes` | none | A range-subtype value carries its proof between constrained positions; the recorded IR has no second check. A run cannot observe an elided check, so the row is here rather than among the advisory rows. |
 | `[1830]` | none | `negative/float-type-not-enabled`, `negative/indexing-not-enabled` | A construct the tour describes and the kernel has not enabled is refused with a diagnostic that names it and says what it is; the observable behaviour is that diagnostic. |
 | `[1860]` | none | `negative/name-declared-nowhere`, `negative/condition-declaration-out-of-scope` | Every name must resolve in its scope; the observable failure is a compiler diagnostic. |
 

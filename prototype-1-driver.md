@@ -261,10 +261,16 @@ public rx: type = struct
 end rx
 
 ```
-Baud is a range subtype, so a nonsense value is a compile error
-when it is known and a trap when it is not.
+Baud is a distinct type that only `baud` makes, so a nonsense value
+fails with `bad_baud` where the rate is made, before `open` sees it.
+`open` takes a `baud_rate` and checks nothing.
 ```landin
-public baud_rate: type = u32 range 1_200..12_000_000
+public baud_rate: type = distinct u32
+
+public baud: (rate: u32) -> (b: baud_rate) ! bad_baud =
+    fail bad_baud when rate < 1_200 or rate > 12_000_000
+    b = baud_rate(rate)
+end baud
 
 ```
 
@@ -325,7 +331,7 @@ public open: (port: volatile ptr mut usart.device,
     configure_pin(pins, tx_pin, gpio.alternate, 7)
     configure_pin(pins, rx_pin, gpio.alternate, 7)
 
-    divisor := try usart.divisor_for(rate)
+    divisor := try usart.divisor_for(u32(rate))
     port.val.brr = divisor
 
 ```
@@ -458,9 +464,12 @@ handed to hardware.
 mut rx_storage: [256]u8 = zeroed
 
 start: () -> noreturn =
+    rate := uart.baud(115_200) else (e)
+        halt()
+    end
     mut console := uart.open(
         usart.usart2, addr dma.dma1.val.streams[5], gpio.gpioa,
-        2, 3, 115_200, rx_storage[0..<lenof rx_storage]
+        2, 3, rate, rx_storage[0..<lenof rx_storage]
     ) else (e)
         match e
             uart.bad_baud:       halt()

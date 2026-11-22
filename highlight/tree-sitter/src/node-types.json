@@ -2672,56 +2672,6 @@
     }
   },
   {
-    "type": "range_subtype",
-    "named": true,
-    "fields": {
-      "base": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_type",
-            "named": true
-          }
-        ]
-      },
-      "lower": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
-      },
-      "operator": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "..",
-            "named": false
-          },
-          {
-            "type": "..<",
-            "named": false
-          }
-        ]
-      },
-      "upper": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
     "type": "recovery_clause",
     "named": true,
     "fields": {
@@ -3127,10 +3077,6 @@
         },
         {
           "type": "encoded_union",
-          "named": true
-        },
-        {
-          "type": "range_subtype",
           "named": true
         },
         {
@@ -3903,10 +3849,6 @@
   },
   {
     "type": "public",
-    "named": false
-  },
-  {
-    "type": "range",
     "named": false
   },
   {

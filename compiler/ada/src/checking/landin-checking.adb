@@ -1202,8 +1202,6 @@ package body Landin.Checking is
       Result := Mix (Result, Bit (Part.Escaping));
       Result := Mix (Result, Ada.Containers.Hash_Type (Part.Escaping_Into));
       Result := Mix (Result, Bit (Part.Caller));
-      Result := Mix (Result, Ada.Containers.Hash_Type'Mod
-        (Part.Constraint));
       case Part.Kind is
          when Landin.Types.Pointer_Value | Landin.Types.Slice_Value =>
             Result := Mix (Result, Reference_Hash
@@ -1802,8 +1800,6 @@ package body Landin.Checking is
                Into.Node_References.Append (No_Reference);
                Into.Node_Text_Conversions.Append (No_Text_Conversion);
                Into.Node_Distinct_Conversions.Append (No_Nominal_Type);
-               Into.Node_Constraints.Append (No_Constraint);
-               Into.Node_Owed_Checks.Append (No_Constraint);
                Into.Node_Concepts.Append (No_Concept);
                Into.Node_Result_Shapes.Append (No_Signature);
                Into.Node_Lent_Arrays.Append (0);
@@ -1825,7 +1821,6 @@ package body Landin.Checking is
          Into.Declaration_Atom_Sets.Append (No_Atom_Set);
          Into.Declaration_Signatures.Append (No_Signature);
          Into.Declaration_References.Append (No_Reference);
-         Into.Declaration_Constraints.Append (No_Constraint);
          Into.Declaration_Concepts.Append (No_Concept);
          Into.Declaration_Result_Shapes.Append (No_Signature);
       end loop;
@@ -2461,119 +2456,6 @@ package body Landin.Checking is
    ------------------------------------------------------------------
    --  References
    ------------------------------------------------------------------
-
-   function Constraint_Count (Of_Table : Table) return Natural
-     is (Natural (Of_Table.Constraints.Length));
-
-   function Add_Constraint
-     (Into : in out Table; Item : Constraint_Descriptor) return Constraint_Id
-   is
-   begin
-      Into.Constraints.Append (Item);
-      return Constraint_Id (Into.Constraints.Last_Index);
-   end Add_Constraint;
-
-   function Bounds_Of
-     (Of_Table : Table; Id : Constraint_Id) return Constraint_Descriptor
-     is (Of_Table.Constraints.Element (Positive (Id)));
-
-   function Contains
-     (Of_Table : Table; Outer, Inner : Constraint_Id) return Boolean
-   is
-      use type Landin.Types.Folded;
-      A : constant Constraint_Descriptor := Bounds_Of (Of_Table, Outer);
-      B : constant Constraint_Descriptor := Bounds_Of (Of_Table, Inner);
-   begin
-      return A.Base = B.Base
-        and then B.Lower >= A.Lower
-        and then B.Upper <= A.Upper;
-   end Contains;
-
-   function Constraint_Of
-     (Of_Table : Table;
-      Of_Tree  : Landin.Syntax.Tree;
-      Node     : Landin.Syntax.Node_Id) return Constraint_Id
-     is (Of_Table.Node_Constraints.Element (Slot (Of_Table, Of_Tree, Node)));
-
-   function Constraint_Of
-     (Of_Table : Table; Id : Declaration_Id) return Constraint_Id
-     is (if Id = No_Declaration then No_Constraint
-         else Of_Table.Declaration_Constraints.Element (Positive (Id)));
-
-   procedure Note_Constraint
-     (Into       : in out Table;
-      Of_Tree    : Landin.Syntax.Tree;
-      Node       : Landin.Syntax.Node_Id;
-      Constraint : Constraint_Id)
-   is
-      Where : constant Positive := Slot (Into, Of_Tree, Node);
-   begin
-      --  A constraint is a written source fact, not an instance one, so it
-      --  is the same answer under every routine view and needs no overlay.
-      if Into.Node_Constraints (Where) not in No_Constraint | Constraint then
-         raise Landin.Compiler_Defect with
-           "one node was assigned two range constraints";
-      end if;
-      Into.Node_Constraints (Where) := Constraint;
-   end Note_Constraint;
-
-   procedure Note_Constraint
-     (Into       : in out Table;
-      Id         : Declaration_Id;
-      Constraint : Constraint_Id) is
-   begin
-      if Into.Declaration_Constraints (Positive (Id))
-        not in No_Constraint | Constraint
-      then
-         raise Landin.Compiler_Defect with
-           "one declaration was assigned two range constraints";
-      end if;
-      Into.Declaration_Constraints (Positive (Id)) := Constraint;
-   end Note_Constraint;
-
-   function Owed_Check
-     (Of_Table : Table;
-      Of_Tree  : Landin.Syntax.Tree;
-      Node     : Landin.Syntax.Node_Id) return Constraint_Id
-   is
-      Where : constant Positive := Slot (Of_Table, Of_Tree, Node);
-      Overlay : constant Natural := Node_Overlay_Position (Of_Table, Where);
-   begin
-      if Overlay /= 0
-        and then Of_Table.Node_Overlays.Element (Overlay).Has_Owed_Check
-      then
-         return Of_Table.Node_Overlays.Element (Overlay).Owed_Check;
-      end if;
-      return Of_Table.Node_Owed_Checks.Element (Where);
-   end Owed_Check;
-
-   procedure Note_Owed_Check
-     (Into       : in out Table;
-      Of_Tree    : Landin.Syntax.Tree;
-      Node       : Landin.Syntax.Node_Id;
-      Constraint : Constraint_Id)
-   is
-      Where : constant Positive := Slot (Into, Of_Tree, Node);
-      Overlay : constant Natural :=
-        (if Into.Current_Routine = No_Routine_Instance then 0
-         else Ensure_Node_Overlay (Into, Where));
-      Previous : constant Constraint_Id :=
-        (if Overlay = 0 then Into.Node_Owed_Checks (Where)
-         else Into.Node_Overlays (Overlay).Owed_Check);
-   begin
-      --  Check the layer being written, not an inherited global answer:
-      --  unlike a written range, an owed runtime check is a derived fact.
-      if Previous not in No_Constraint | Constraint then
-         raise Landin.Compiler_Defect with
-           "one node was assigned two owed range checks in one view";
-      end if;
-      if Overlay = 0 then
-         Into.Node_Owed_Checks (Where) := Constraint;
-      else
-         Into.Node_Overlays (Overlay).Has_Owed_Check := True;
-         Into.Node_Overlays (Overlay).Owed_Check := Constraint;
-      end if;
-   end Note_Owed_Check;
 
    function Match_Of
      (Of_Table : Table;
@@ -4065,16 +3947,12 @@ package body Landin.Checking is
       Ignore_Escaping : Boolean := False) return Boolean
    is
    begin
-      --  D188: [0660]'s constraint is part of the type, so a `(v: u8)`
-      --  value does not fill a `(v: percent)` slot and an indirect call
-      --  cannot lose the check.
       if A.Kind /= B.Kind
         or else A.Convention /= B.Convention
         or else ((A.Escaping /= B.Escaping
                   or else A.Escaping_Into /= B.Escaping_Into)
                  and then not Ignore_Escaping)
         or else A.Caller /= B.Caller
-        or else A.Constraint /= B.Constraint
       then
          return False;
       end if;
@@ -4486,7 +4364,6 @@ package body Landin.Checking is
          Put (Boolean'Pos (Part.Escaping));
          Put (Landin.Packed.Image (Part.Escaping_Into));
          Put (Boolean'Pos (Part.Caller));
-         Put (Landin.Packed.Image (Part.Constraint));
          case Part.Kind is
             when Landin.Types.No_Value | Landin.Types.Scalar_Name =>
                null;

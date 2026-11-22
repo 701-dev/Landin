@@ -726,8 +726,7 @@ package Landin.Diagnostics.Catalogue is
          Fixes => No_Fix, Shown_By => Negative_Fixture,
          Rule => +("[1830]: a known form used where the language does not"
                    & " permit it")),
-      --  A module value of a range subtype has bounds to point at, and an
-      --  erased pair has the site that asked for the image.
+      --  An erased pair has the site that asked for the image.
       Not_Known_At_Compile_Time =>
         (Code => "L0305", Level => Error, State => Live,
          Source => True, Bytes => True,

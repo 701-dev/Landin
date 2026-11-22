@@ -43,7 +43,7 @@
       }
     },
     {
-      "match": "\\b(?:unchecked|continue|distinct|escaping|offsetof|register|volatile|alignof|concept|variant|caller|extern|import|layout|little|option|public|return|sizeof|struct|uninit|align|begin|break|defer|elsif|fixed|inout|lenof|match|range|while|addr|atom|else|fail|from|into|link|loop|sink|then|type|undo|when|and|any|big|dec|end|for|inc|mut|not|ptr|set|soa|try|as|at|do|if|in|is|of|or)\\b",
+      "match": "\\b(?:unchecked|continue|distinct|escaping|offsetof|register|volatile|alignof|concept|variant|caller|extern|import|layout|little|option|public|return|sizeof|struct|uninit|align|begin|break|defer|elsif|fixed|inout|lenof|match|while|addr|atom|else|fail|from|into|link|loop|sink|then|type|undo|when|and|any|big|dec|end|for|inc|mut|not|ptr|set|soa|try|as|at|do|if|in|is|of|or)\\b",
       "name": "keyword.control.landin"
     },
     {

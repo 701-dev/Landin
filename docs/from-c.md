@@ -134,15 +134,19 @@ typedef uint8_t fill_level;   /* 0 to 100, by convention */
 ```landin
 celsius: type = distinct i32
 fahrenheit: type = distinct i32
-fill_level: type = u8 range 0..100
+fill_level: type = distinct u8
 
 to_fahrenheit: (c: celsius) -> (f: fahrenheit) =
     f = fahrenheit(i32(c) * 9 / 5 + 32)
 end to_fahrenheit
 
---- How full a tank is, refused or trapped outside 0 to 100.
-tank_level: (litres: u32, capacity: u32) -> (level: fill_level) =
-    level = u8(litres * 100 / capacity)
+over_full: atom
+
+--- How full a tank is, failing above 100.
+tank_level: (litres: u32, capacity: u32) -> (level: fill_level) ! over_full =
+    share := litres * 100 / capacity
+    fail over_full when share > 100
+    level = fill_level(u8(share))
 end tank_level
 ```
 
@@ -151,11 +155,14 @@ A `distinct` type has its base's representation but not its arithmetic. A
 conversion you can see [0650]. Equality and ordering do carry over from the
 base, and so do the bit operations when the base is unsigned.
 
-A range subtype checks its values where they enter. A value outside 0 to
-100 is refused when the compiler knows it, and traps when the compiler does
-not [0660].
+There is no range type. A `fill_level` is a distinct type that `tank_level`
+makes: it checks once, fails with `over_full` above 100, and whatever takes
+a `fill_level` afterwards trusts it [0660]. The language does not stop other
+code writing `fill_level(200)`; converting only inside the checking function
+is a habit you keep.
 
-Neither kind of type costs anything at run time beyond that check.
+A distinct type costs nothing at run time. The only cost is the one check
+in the function that makes the value.
 
 ### Labelled loops, not flags and `goto`
 

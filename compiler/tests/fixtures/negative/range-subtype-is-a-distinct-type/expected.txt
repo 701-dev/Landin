@@ -1,0 +1,12 @@
+error[L0696]: a range subtype is gone: a value inside a range is a `distinct` type made by a checking function
+  --> ../tests/fixtures/negative/range-subtype-is-a-distinct-type/program.ldn:3:20
+  |
+3 | percent: type = u8 range 0..100
+  |                    ^^^^^^^^^^^^
+  = note: D1661: declare `percent: type = distinct u8` and a function that checks the range, fails or traps outside it, and returns the value converted to it [1730]
+error[L0696]: a range subtype is gone: a value inside a range is a `distinct` type made by a checking function
+  --> ../tests/fixtures/negative/range-subtype-is-a-distinct-type/program.ldn:4:20
+  |
+4 | offset: type = i16 range -100..<100
+  |                    ^^^^^^^^^^^^^^^^
+  = note: D1661: declare `offset: type = distinct i16` and a function that checks the range, fails or traps outside it, and returns the value converted to it [1730]

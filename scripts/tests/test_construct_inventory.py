@@ -258,9 +258,9 @@ class Inventory(unittest.TestCase):
 
     def test_compiled_hosted_rows_match_the_audited_register(self):
         line = next(line for line in self.inputs["registers"].splitlines()
-                    if line.startswith("| `[1730]` | `positive/range-subtypes`"))
+                    if line.startswith("| `[1830]` | none |"))
         self.refused(self.problems({line + "\n": ""}),
-                     "compiled hosted row [1730] has no audited compile-time oracle")
+                     "compiled hosted row [1830] has no audited compile-time oracle")
 
     def test_refusal_wording_is_read_from_each_table(self):
         wording = {(one, how) for one, how, _, _ in self.inputs["refusals"]}
@@ -270,13 +270,12 @@ class Inventory(unittest.TestCase):
                          ("0850", "withdrawn"),
                          ("0150", "transferred"),
                          ("0170", "transferred"),
-                         ("0660", "boundary"),
                          ("1350", "boundary"),
                          ("1630", "boundary")):
             self.assertIn(expected, wording)
         self.assertEqual({how for _, how in wording},
                          {"boundary", "withdrawn", "transferred"})
-        self.assertEqual(len(self.inputs["refusals"]), 20)
+        self.assertEqual(len(self.inputs["refusals"]), 19)
 
     def test_a_standing_the_body_does_not_write_is_unreadable(self):
         #  The table says what a refusal is and the Report body writes the
@@ -310,7 +309,7 @@ class Inventory(unittest.TestCase):
         #  selects --target=cortex-m0 carries its verdict there, and the
         #  firmware's machine probe carries [1610]'s link names, which no fixture claims.
         self.assertEqual(held["1860"]["cortex-m0"], "refused")
-        self.assertEqual(held["1730"]["cortex-m0"], "compiled")
+        self.assertEqual(held["1730"]["cortex-m0"], "executed")
         self.assertEqual(held["1610"]["cortex-m0"], "executed")
 
     def test_a_cortex_claim_must_be_the_run_that_was_made(self):

@@ -1,7 +1,0 @@
-error[L0304]: an array element cannot be a range subtype
-  --> ../tests/fixtures/negative/r720-range-subtype-array-element/main.ldn:7:13
-  |
-7 |     row: [4]percent = [first, first, first, first]
-  |             ^^^^^^^
-  = note: the tour describes it at [0660]
-  = note: this is a recorded source-form boundary

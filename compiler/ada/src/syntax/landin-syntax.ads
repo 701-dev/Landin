@@ -325,11 +325,6 @@ package Landin.Syntax is
       --  atom names, aliases/applications or pointer types in written order;
       --  checking normalizes that run, so order is not type identity.
       Atom_Union_Type,
-      --  D188's [0660] range subtype, which only a type declaration's
-      --  right-hand side may write.  Three slots: the base type, the lower
-      --  bound expression and the upper bound expression.  The syntax
-      --  retains both bounds as written; checking folds them.
-      Range_Subtype,
       --  [0650]: one base type behind a fresh opaque nominal identity.
       Distinct_Body,
       --  `! ...` on a private function before inference has finalized it.
@@ -1584,23 +1579,11 @@ package Landin.Syntax is
                              in Type_Name | Type_Reference | Member_Selection
                                 | Type_Application | Pointer_Type;
 
-   --  D188's [0660] base type and its two written bounds.  The bounds are
-   --  nodes and not numbers for Bound_Of's reason: what a literal means is
-   --  [1880]'s and a report about one points at the span it was written at.
+   --  [0650]'s base type.
    function Base_Type_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
      with Pre  => Contains (Of_Tree, Id)
-                  and then Kind (Of_Tree, Id) in Range_Subtype | Distinct_Body,
+                  and then Kind (Of_Tree, Id) = Distinct_Body,
           Post => Contains (Of_Tree, Base_Type_Of'Result);
-
-   function Lower_Bound_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
-     with Pre  => Contains (Of_Tree, Id)
-                  and then Kind (Of_Tree, Id) = Range_Subtype,
-          Post => Contains (Of_Tree, Lower_Bound_Of'Result);
-
-   function Upper_Bound_Of (Of_Tree : Tree; Id : Node_Id) return Node_Id
-     with Pre  => Contains (Of_Tree, Id)
-                  and then Kind (Of_Tree, Id) = Range_Subtype,
-          Post => Contains (Of_Tree, Upper_Bound_Of'Result);
 
    function Element_Count (Of_Tree : Tree; Id : Node_Id) return Natural
      with Pre => Contains (Of_Tree, Id)

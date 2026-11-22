@@ -4625,7 +4625,7 @@ package body Landin.Backend.X86_64 is
                   end;
 
                when Landin.IR.Range_Check =>
-                  --  D188/[0660].  Source and result are one type, so this
+                  --  Source and result are one type, so this
                   --  neither widens nor narrows: it widens to the
                   --  accumulator in that type's own signedness, compares
                   --  against the two folded bounds, and passes the value
@@ -7765,8 +7765,7 @@ package body Landin.Backend.X86_64 is
                           := Of_Value (Operand_Of (Value, 1));
 
                      when Landin.IR.Range_Check =>
-                        --  D188 folds a checked module datum before emission.
-                        --  A mandatory integer-to-pointer nonnull check also
+                        --  A mandatory integer-to-pointer nonnull check
                         --  reaches this walk, so an in-range static operand
                         --  passes through while an impossible image remains
                         --  an internal failure.

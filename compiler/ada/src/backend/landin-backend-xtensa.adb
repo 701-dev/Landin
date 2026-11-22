@@ -5450,8 +5450,7 @@ package body Landin.Backend.Xtensa is
                           := Of_Value (Operand_Of (Value, 1));
 
                      when Landin.IR.Range_Check =>
-                        --  D188 folds a checked module datum before emission.
-                        --  A mandatory integer-to-pointer nonnull check also
+                        --  A mandatory integer-to-pointer nonnull check
                         --  reaches this walk, so an in-range static operand
                         --  passes through while an impossible image remains
                         --  an internal failure.

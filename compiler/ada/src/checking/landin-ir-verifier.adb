@@ -7735,7 +7735,7 @@ package body Landin.IR.Verifier is
                               end;
 
                            when Range_Check =>
-                              --  D188: this neither widens nor narrows, so
+                              --  This neither widens nor narrows, so
                               --  its result type is its operand's, both are
                               --  integers, and both bounds are values that
                               --  type holds.  A bound the type does not

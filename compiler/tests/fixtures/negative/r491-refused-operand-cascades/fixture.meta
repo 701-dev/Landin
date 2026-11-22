@@ -1,8 +1,8 @@
 class: negative
 summary: refused operands keep their root cause without place, traversal, conversion or conformance cascades
 program: main.ldn
-codes: L0304, L0301, L0301, L0335, L0318, L0301
-constructs: 0430, 0470, 0480, 0660, 1150, 1370, 1890
+codes: L0301, L0301, L0335, L0318, L0301
+constructs: 0430, 0470, 0480, 1150, 1370, 1890
 targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 expect: expected.txt
 args: ../tests/fixtures/negative/r491-refused-operand-cascades/main.ldn

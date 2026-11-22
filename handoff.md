@@ -74,8 +74,8 @@ running only when its block is left by `fail`.
 Atoms are identity without payload and serve as enumerations, error
 sets, variant tags, register encodings and panic kinds alike — there is
 no `enum`, because nothing is left for it to be. Structs may carry a
-variant part. `distinct` inherits no operations. Range subtypes are
-checked. Overflow traps and wrapping is a separate operator.
+variant part. `distinct` inherits no operations, and a value known to lie
+in a range is a distinct type its checking function makes. Overflow traps and wrapping is a separate operator.
 
 **Generics** take the type as an ordinary compile-time parameter.
 Concepts are named requirement bundles with explicit conformances,
@@ -266,7 +266,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R19.70 — Range subtypes become distinct types.**
+**Next roadmap item: R19.80 — One-atom pointer unions, written layout and named operands (planned).**
 
 ## Versions
 

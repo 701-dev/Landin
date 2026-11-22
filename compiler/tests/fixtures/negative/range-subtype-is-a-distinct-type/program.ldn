@@ -1,0 +1,9 @@
+--  D1661: `T range a .. b` is gone, and its refusal names what replaces
+--  it: a distinct type over the base and a function that checks the range.
+percent: type = u8 range 0..100
+offset: type = i16 range -100..<100
+
+public main: () -> (code: i32) =
+    level: percent = 40
+    code = i32(level)
+end main

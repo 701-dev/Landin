@@ -50,7 +50,7 @@ package body Landin.Testing.Census is
      (Array_Operator, Array_Updating_Assignment, Self_Reading_Aggregate,
       Labelled_Statement, Anonymous_Function, Selected_Import,
       Uncounted_Repetition, Mixed_Repetition, Struct_Fill_Zeroed,
-      Struct_Fill_Other, Range_Subtype, Inclusive_For, Inclusive_Slice,
+      Struct_Fill_Other, Inclusive_For, Inclusive_Slice,
       Hexadecimal_Float);
 
    function Label (Item : Construct) return String is
@@ -68,7 +68,6 @@ package body Landin.Testing.Census is
          when Mixed_Repetition => "[0560] [e1, ..., of v]",
          when Struct_Fill_Zeroed => "[0720] struct literal of zeroed",
          when Struct_Fill_Other => "[0720] struct literal of another value",
-         when Range_Subtype => "[0660] range subtype",
          when Inclusive_For => "[0360] for over a .. b",
          when Inclusive_Slice => "[0360] slice a .. b",
          when Hexadecimal_Float => "[0230] hexadecimal float");
@@ -384,8 +383,6 @@ package body Landin.Testing.Census is
                               Note (Struct_Fill_Other, Node);
                            end if;
                         end;
-                     when Syntax.Range_Subtype =>
-                        Note (Range_Subtype, Node);
                      when Syntax.Inclusive_Slice =>
                         Note (Inclusive_Slice, Node);
                      when Syntax.Float_Literal =>

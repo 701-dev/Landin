@@ -596,10 +596,10 @@ package body Landin.Syntax.Parser is
             Held_Id : constant Landin.Source.Names.Name_Id :=
               Landin.Source.Names.Intern (Names, "held");
 
-            --  D188's [0660] range subtype.  It is recognized only after a
-            --  parsed base type at a type declaration's right-hand side, so
-            --  a binding, parameter or label named `range` keeps its
-            --  ordinary meaning and [1760] reserves nothing new.
+            --  D1661 refuses the removed [0660] range subtype, seen only
+            --  after a parsed base type at a type declaration's right-hand
+            --  side, so a binding, parameter or label named `range` keeps
+            --  its ordinary meaning and [1760] reserves nothing new.
             Range_Id : constant Landin.Source.Names.Name_Id :=
               Landin.Source.Names.Intern (Names, "range");
 
@@ -6598,91 +6598,49 @@ package body Landin.Syntax.Parser is
                   else
                      Aliased_Type := Parse_Type (False, At_Name);
 
-                     --  D188/[0660]: `range` after that base type makes this
-                     --  declaration a range subtype.  Only a type
-                     --  declaration reads the word this way, so an ordinary
-                     --  name spelled `range` is untouched, and only `..`
-                     --  is admitted -- the tour writes no exclusive bound
-                     --  in a type.
+                     --  D1661: `range` after that base type wrote a range
+                     --  subtype, which the language removed.  The bounds
+                     --  are read so that recovery resumes after them, and
+                     --  the declaration keeps only its base type.  The
+                     --  rewrite changes the type every use stores into, so
+                     --  it is not mechanical and carries no fix (D1907).
                      if not Type_Refused
                        and then Peek = Tok.Identifier
                        and then Named_Here = Range_Id
                      then
                         declare
-                           Starts : constant Landin.Source.Span :=
-                             Where (Result, Aliased_Type);
-                           Lower  : Node_Id := No_Node;
-                           Upper  : Node_Id := No_Node;
+                           Starts : constant Landin.Source.Span := Here;
+                           Ignored : Node_Id;
                         begin
                            Advance;
-
                            if Pre.Begins_Expression (Peek) then
-                              Lower := Parse_Expression;
-                           else
-                              Complain
-                                (Item    => Syn.Expression_Expected,
-                                 Where   => (if Peek = Tok.End_Of_Input
-                                             then After_Previous else Here),
-                                 Message => "a range subtype's lower bound"
-                                            & " belongs here",
-                                 Note    => "[0660]: a range subtype writes"
-                                            & " two bounds separated by"
-                                            & " `..`",
-                                 Related => At_Name,
-                                 Because => "the type declared here");
-                              Lower := Add (Error_Expression, Point);
+                              Ignored := Parse_Expression;
                            end if;
-
-                           if Peek = Tok.Dot_Dot_Less then
-                              Type_Refused := True;
-                              Complain
-                                (Item    => Syn.Type_Expected,
-                                 Where   => Here,
-                                 Message => "a range subtype's bounds are"
-                                            & " separated by `..`",
-                                 Note    => "[0660]: both of a range"
-                                            & " subtype's bounds are"
-                                            & " values of the type",
-                                 Related => At_Name,
-                                 Because => "the type declared here");
-                              Aliased_Type := Add (Error_Type, Point);
-                           elsif not Expect
-                                   (Wanted  => Tok.Dot_Dot,
-                                    Message => "a range subtype's bounds"
-                                               & " are separated by `..`",
-                                    Note    => "[0660]: a range subtype"
-                                               & " writes a base type and"
-                                               & " two bounds",
-                                    Related => At_Name,
-                                    Because => "the type declared here")
-                           then
-                              Type_Refused := True;
-                              Aliased_Type := Add (Error_Type, Point);
-                           else
+                           if Peek in Tok.Dot_Dot | Tok.Dot_Dot_Less then
+                              Advance;
                               if Pre.Begins_Expression (Peek) then
-                                 Upper := Parse_Expression;
-                              else
-                                 Complain
-                                   (Item    => Syn.Expression_Expected,
-                                    Where   =>
-                                      (if Peek = Tok.End_Of_Input
-                                       then After_Previous else Here),
-                                    Message => "a range subtype's upper"
-                                               & " bound belongs here",
-                                    Note    => "[0660]: a range subtype"
-                                               & " writes two bounds"
-                                               & " separated by `..`",
-                                    Related => At_Name,
-                                    Because => "the type declared here");
-                                 Upper := Add (Error_Expression, Point);
+                                 Ignored := Parse_Expression;
                               end if;
-
-                              Aliased_Type := Add
-                                (Of_Kind  => Range_Subtype,
-                                 At_Token => Starts,
-                                 Extent   => Join (Starts, After_Previous),
-                                 Children => [Aliased_Type, Lower, Upper]);
                            end if;
+                           Complain
+                             (Item    => Syn.Removed_Form,
+                              Where   => Join (Starts, Previous),
+                              Message => "a range subtype is gone: a value"
+                                         & " inside a range is a"
+                                         & " `distinct` type made by a"
+                                         & " checking function",
+                              Note    => "D1661: declare `"
+                                         & Landin.Source.Names.Spelling
+                                             (Names, Named)
+                                         & ": type = distinct "
+                                         & (if Text = null then "T"
+                                            else Landin.Source.Slice
+                                              (Text.all,
+                                               Where (Result, Aliased_Type)))
+                                         & "` and a function that checks"
+                                         & " the range, fails or traps"
+                                         & " outside it, and returns the"
+                                         & " value converted to it [1730]");
                         end;
                      end if;
 
@@ -6744,24 +6702,6 @@ package body Landin.Syntax.Parser is
                               At_Token => Starts,
                               Extent   => Join (Starts, After_Previous),
                               Children => To_List (Members));
-                           --  [0660]: a range narrows an integer type, and
-                           --  a union is none; said once at the word.
-                           if Peek = Tok.Identifier
-                             and then Named_Here = Range_Id
-                           then
-                              Complain
-                                (Item    => Syn.Type_Expected,
-                                 Where   => Join (Starts, Previous),
-                                 Message => "a range subtype narrows an"
-                                            & " integer type, and a union"
-                                            & " is none",
-                                 Note    => "[0660]: write the range after"
-                                            & " a named integer type, and the"
-                                            & " union as a type of its own",
-                                 Related => At_Name,
-                                 Because => "the type declared here");
-                              Resync_Declaration;
-                           end if;
                         end;
                      elsif Type_Refused then
                         Resync_Declaration;

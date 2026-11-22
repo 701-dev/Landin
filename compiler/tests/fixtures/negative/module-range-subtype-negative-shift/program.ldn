@@ -1,2 +1,0 @@
-small: type = i32 range 0 .. 10
-shifted: small = 1 << -1

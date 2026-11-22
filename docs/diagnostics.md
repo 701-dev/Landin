@@ -949,7 +949,7 @@ b: i32 = a + 1
 
 An operand the operation cannot take, where the compiler knows it [1950]: a
 divisor of zero, a shift by a negative amount, an index outside a fixed
-array, or a range subtype whose bounds are reversed.
+array.
 
 ```landin
 quotient: u32 = 7 / 0
@@ -1547,8 +1547,7 @@ a scalar type or a `type` declaration, and a type name is not a runtime value
 [1795]: a concept's entry selected through a type, `box.count` or
 `t.count`, is called where it is selected, and the note says so (D1364).
 A type alias is applied with its exact positional arguments [1350]. A
-union holds atoms and at most one pointer type [0640]; a range subtype
-restricts an integer type [0660]; a fixed-array bound is an integer count
+union holds atoms and at most one pointer type [0640]; a fixed-array bound is an integer count
 (D136). Correct the declaration or name a type.
 
 ```landin
@@ -3225,6 +3224,11 @@ and `end t`. Selected imports, `import m (a, b)` [1440], are gone (D1658):
 the fix writes `import m` and turns each use of a selected name into `m.a`,
 under the `as` name where the import has one. It is offered only where `m`
 names nothing else in the file; elsewhere make the same change by hand.
+
+A range subtype, `T range a .. b` [0660], is gone (D1661): declare a
+`distinct` type over the base and a function that checks the range and
+returns the value converted to it. There is no fix, because every use that
+stored a base value into the subtype changes too (D1907).
 
 ```landin
 public main: () -> (code: i32) =

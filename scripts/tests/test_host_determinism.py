@@ -713,8 +713,8 @@ class OwnTarget(unittest.TestCase):
         self.assertEqual(len(manifest), 2 * 3 * 3)
 
     def test_args_alone_do_not_make_a_fixture_one_targets(self):
-        #  `range-subtypes` chooses cortex-m0 in its `args` and names seven
-        #  targets: every target compiles it, and a refusal is a fault.
+        #  A fixture that chooses one target in its `args` and names
+        #  others is compiled for every target, and a refusal is a fault.
         result, manifest = self.emitted(
             "targets: rv32, cortex-m0\nargs: --target=rv32\n")
         self.assertEqual(result.returncode, 1)

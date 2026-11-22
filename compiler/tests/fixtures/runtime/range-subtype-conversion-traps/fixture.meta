@@ -1,7 +1,0 @@
-class: runtime
-profiles: standard
-summary: D188 a conversion whose source fits the base but not the bounds traps at the constraint rather than at the conversion
-program: main.ldn
-traps: yes
-constructs: 0660, 0700, 0310
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

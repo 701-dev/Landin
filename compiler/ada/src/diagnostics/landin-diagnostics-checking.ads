@@ -121,15 +121,6 @@ package Landin.Diagnostics.Checking is
       --  `negative/r740-c-category-boundary` pins the report that is actually
       --  made.
       --
-      --  D188: [0660]'s range subtype is its base type constrained, so
-      --  `[]percent` and `[]u8` would be one type and a `[]u8` write of an
-      --  excluded value would enter constrained storage unchecked.  A
-      --  composite or reference position, `addr` of a constrained place and
-      --  a generic type argument therefore refuse one; D236 makes that the
-      --  recorded boundary rather than a pending promise.  An `extern (c)`
-      --  signature is not this refusal: [1580]'s hosted-scalar boundary
-      --  already refuses it and keeps that report, which the C boundary owns.
-      Constrained_Composition,
       --  D212 withdraws [0820]'s builtin type and lexical block.  Keep
       --  migration guidance for the unresolved type spelling; a declared
       --  ordinary type of that name has already resolved normally.
@@ -150,7 +141,6 @@ package Landin.Diagnostics.Checking is
             when Array_Element      => "[0520]",
             when Parameterized_Type_Alias => "[1350]",
             when Zeroed_Value       => "[0540]",
-            when Constrained_Composition => "[0660]",
             when Arena_Region       => "[0820]",
             when Float_Operand      => "[1630]")
      with Post => Landin.Tokens.Is_Valid_Construct (Construct'Result);
@@ -231,11 +221,6 @@ private
             --  be: fully applied and positional.  An unapplied constructor
             --  or a malformed application is that rule's boundary.
             when Parameterized_Type_Alias => Recorded_Boundary,
-            --  D236 records the composite, reference and generic positions
-            --  as [0660]'s permanent source-form boundary: a constraint
-            --  belongs to a scalar binding, parameter, return or
-            --  conversion.
-            when Constrained_Composition => Recorded_Boundary,
             --  D212 withdraws both forms, with explicit ordinary allocator
             --  migration guidance.
             when Arena_Region       => Withdrawn);

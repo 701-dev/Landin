@@ -1288,30 +1288,41 @@ The fine print:
 
 Exact rules: spec [1890].
 
-### [0660] Range subtypes
+### [0660] A value inside a range
 
-A range subtype is an integer type limited to a run of its values. The range
-is checked when a value goes in.
+Landin has no range type. A value known to lie in a range is a `distinct`
+type ([0650]) over its base, made by a function that checks the range.
 
 ```landin
-percent: type = u8 range 0..100
+percent: type = distinct u8
+
+out_of_range: atom
+
+to_percent: (raw: u8) -> (p: percent) ! out_of_range =
+    fail out_of_range when raw > 100
+    p = percent(raw)
+end to_percent
 ```
 
-The check happens at a binding, a parameter, a named return and a
-conversion. When a value is outside the range, the compiler refuses it if it
-knows, and the program traps if it does not. Arithmetic on a `percent` gives
-a plain `u8`: the range is not part of the result.
+The check runs once, where the value is made. Whatever takes a `percent`
+afterwards trusts it and checks nothing ([1730]). No constant is refused at
+compile time for being out of range: `to_percent(200)` fails when it runs.
+To do arithmetic on a `percent`, or to compare it with a plain integer,
+convert it back with `u8(p)`.
 
-A range subtype is not allowed as a struct field, an array element, a
-pointer or slice target, a generic argument, or something `addr` can point
-at. In each of those, a write through the base type could reach the storage
-unchecked. To keep a checked value in storage, wrap it: a `distinct` type
-that only a checking function constructs carries the proof ([1730]).
+A check that should stop the program rather than fail can call
+`compiler.unreachable` ([1560]) instead of `fail`.
 
-A guard on an ordinary integer does not make it a `percent`. If you reject
-bad input with a `fail` guard and then store the integer as `percent`, that
-store still has its trapping check. Once the value is in a `percent` place,
-passing it to another `percent` place needs no second check.
+The language does not enforce the range. A distinct type's conversion from
+its base is open to any code, so nothing stops another function writing
+`percent(200)`. Keeping that conversion inside the checking function is a
+habit, not a rule the compiler checks.
+
+Writing `u8 range 0..100` is refused, and the report names this replacement:
+the `distinct` declaration and a checking function. It offers no automatic
+fix. Every place that stored a `u8` into a `percent` has to change too, and
+only the program knows whether a value out of range fails, traps or cannot
+happen there.
 
 ### [0670] Structs
 
@@ -5961,11 +5972,14 @@ order of side effects and traps.
 
 A successful check can produce a value that stands for what was checked. A
 buffer that passed the alignment test becomes a `dma_buffer`, and the DMA
-interface asks for nothing else. Distinct types, range subtypes and error
-sets are enough for this; it needs no feature of its own, only the habit.
+interface asks for nothing else. Distinct types and error sets are enough
+for this; it needs no feature of its own, only the habit.
 
-For a range subtype, the proof starts with a checked subtype value, not
-with a guard on an ordinary integer.
+The proof is the checking function's result. A guard on an ordinary integer
+proves nothing to the next function: the integer becomes a `percent` when
+`to_percent` returns it ([0660]), as the buffer becomes a `dma_buffer`.
+Write the conversion to the distinct type in that one function and nowhere
+else.
 
 ## WHAT LANDIN DELIBERATELY DOES NOT HAVE
 

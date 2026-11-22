@@ -56,7 +56,6 @@ package body Landin.Stages.Lowering is
    use type Landin.Checking.Array_Element_Form;
    use type Landin.Checking.Actual_Kind;
    use type Landin.Checking.Atom_Set_Id;
-   use type Landin.Checking.Constraint_Id;
    use type Landin.Checking.Concept_Id;
    use type Landin.Checking.Conformance_Id;
    use type Landin.Checking.Element_Count;
@@ -1749,21 +1748,12 @@ package body Landin.Stages.Lowering is
          Node    : Syn.Node_Id;
          Scope   : Res.Scope_Id) return IR.Value_Id;
 
-      --  D188: every scalar value passes through Lower_Expression, so
-      --  [0660]'s runtime check is emitted at that one exit and nowhere
-      --  else.  The checker decided which nodes owe one; this only obeys.
-      function Lower_Unconstrained
+      --  Lower_Expression is this with the pointee a pointer value refers
+      --  to set on the value it made.
+      function Lower_Unannotated
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
          Scope   : Res.Scope_Id) return IR.Value_Id;
-
-      --  D188: a compound assignment and [1900]'s `inc` store the
-      --  operator's result rather than any expression the source wrote, so
-      --  their check hangs on the statement and is applied here.
-      function Checked_Update
-        (Of_Tree : Syn.Tree;
-         Stmt    : Syn.Node_Id;
-         Value   : IR.Value_Id) return IR.Value_Id;
 
       function Lower_Condition
         (Of_Tree : Syn.Tree;
@@ -1965,10 +1955,10 @@ package body Landin.Stages.Lowering is
                  (Meanings.all, Res.Bound_To (Meanings.all, Of_Tree, Callee))
                    = Res.Type_Parameter));
 
-      --  D15/D188: which scalar type a one-argument call applies, whether
-      --  it is written with [1790]'s own name, an alias of one, or [0660]'s
-      --  range subtype.  Ill_Typed means this is an ordinary call.  The
-      --  checker decided the same question the same way.
+      --  D15: which scalar type a one-argument call applies, whether it
+      --  is written with [1790]'s own name or an alias of one.  Ill_Typed
+      --  means this is an ordinary call.  The checker decided the same
+      --  question the same way.
       function Conversion_Scalar
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind
       is
@@ -5589,9 +5579,7 @@ package body Landin.Stages.Lowering is
               and then Is_Short_Circuit
                 (Of_Tree, Syn.Operand_Of (Of_Tree, Node))))
           and then Distinct_Scalar_Base (Of_Tree, Node)
-                     not in Ty.Scalar_Name
-          and then Landin.Checking.Owed_Check (Types.all, Of_Tree, Node)
-                     = Landin.Checking.No_Constraint);
+                     not in Ty.Scalar_Name);
 
       --  Every block the jumping form makes is made before its operands
       --  are lowered, so that the right one follows each test, and a
@@ -9237,9 +9225,7 @@ package body Landin.Stages.Lowering is
          Scope   : Res.Scope_Id) return IR.Value_Id
       is
          Made : constant IR.Value_Id :=
-           Lower_Unconstrained (Of_Tree, Node, Scope);
-         Owed : constant Landin.Checking.Constraint_Id :=
-           Landin.Checking.Owed_Check (Types.all, Of_Tree, Node);
+           Lower_Unannotated (Of_Tree, Node, Scope);
       begin
          if Current /= IR.No_Block and then Made /= IR.No_Value
            and then Type_At (Of_Tree, Node) = Ty.Pointer_Value
@@ -9249,48 +9235,8 @@ package body Landin.Stages.Lowering is
                Pointee_For
                  (Landin.Checking.Reference_Of (Types.all, Of_Tree, Node)));
          end if;
-         --  Lower_Unconstrained answers No_Value exactly when it
-         --  terminated the flow, and every emission in this file stops
-         --  there.  D188's check is no exception: an expression whose every
-         --  edge returns leaves no value to hold to the bounds and no
-         --  reachable block to hold it in.
-         if Owed = Landin.Checking.No_Constraint
-           or else Current = IR.No_Block
-         then
-            return Made;
-         end if;
-
-         declare
-            Bounds : constant Landin.Checking.Constraint_Descriptor :=
-              Landin.Checking.Bounds_Of (Types.all, Owed);
-         begin
-            return IR.Emit_Range_Check
-              (Unit.all, Filling, Made, Bounds.Base,
-               Bounds.Lower, Bounds.Upper, Site_Of (Of_Tree, Node));
-         end;
+         return Made;
       end Lower_Expression;
-
-      function Checked_Update
-        (Of_Tree : Syn.Tree;
-         Stmt    : Syn.Node_Id;
-         Value   : IR.Value_Id) return IR.Value_Id
-      is
-         Owed : constant Landin.Checking.Constraint_Id :=
-           Landin.Checking.Owed_Check (Types.all, Of_Tree, Stmt);
-      begin
-         if Owed = Landin.Checking.No_Constraint then
-            return Value;
-         end if;
-
-         declare
-            Bounds : constant Landin.Checking.Constraint_Descriptor :=
-              Landin.Checking.Bounds_Of (Types.all, Owed);
-         begin
-            return IR.Emit_Range_Check
-              (Unit.all, Filling, Value, Bounds.Base,
-               Bounds.Lower, Bounds.Upper, Site_Of (Of_Tree, Stmt));
-         end;
-      end Checked_Update;
 
       --  D429: which operand of `==` or `<>` is a pointer union compared
       --  with one of its atoms, 1 or 2, or 0.
@@ -9433,7 +9379,7 @@ package body Landin.Stages.Lowering is
          end;
       end Lower_Union_Atom_Test;
 
-      function Lower_Unconstrained
+      function Lower_Unannotated
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
          Scope   : Res.Scope_Id) return IR.Value_Id
@@ -10791,7 +10737,7 @@ package body Landin.Stages.Lowering is
                   end;
                end;
          end case;
-      end Lower_Unconstrained;
+      end Lower_Unannotated;
 
       --  D185 represents a condition declaration as the ordinary Binding it
       --  introduces.  Evaluate the initializer in the surrounding scope,
@@ -15362,16 +15308,12 @@ package body Landin.Stages.Lowering is
                                               (Unit.all, Filling, Saved,
                                                Site);
                                           Result : constant IR.Value_Id :=
-                                            Checked_Update
-                                              (Of_Tree, Stmt,
-                                               IR.Emit_Binary
-                                                 (Unit.all, Filling,
-                                                  Update_Opcode
-                                                    (Syn
-                                                       .Assignment_Operation
-                                                         (Of_Tree, Stmt)),
-                                                  Left, Right, Held,
-                                                  Site));
+                                            IR.Emit_Binary
+                                              (Unit.all, Filling,
+                                               Update_Opcode
+                                                 (Syn.Assignment_Operation
+                                                    (Of_Tree, Stmt)),
+                                               Left, Right, Held, Site);
                                        begin
                                           if Address_Slot = IR.No_Slot then
                                              --  D85's array alias stores
@@ -16340,11 +16282,9 @@ package body Landin.Stages.Lowering is
                                         (Unit.all, Filling, Held, 1, False,
                                          Site);
                                     Updated : constant IR.Value_Id :=
-                                      Checked_Update
-                                        (Of_Tree, Stmt,
-                                         IR.Emit_Binary
-                                           (Unit.all, Filling, Op, Was, One,
-                                            Held, Site));
+                                      IR.Emit_Binary
+                                        (Unit.all, Filling, Op, Was, One,
+                                         Held, Site);
                                  begin
                                     Write
                                       (Place, Updated, Index, Address_Slot);

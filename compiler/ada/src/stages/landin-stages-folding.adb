@@ -8,7 +8,6 @@ package body Landin.Stages.Folding is
    package Ty renames Landin.Types;
 
    use type Landin.Targets.Bit_Width;
-   use type Landin.Checking.Constraint_Id;
    use type Landin.Checking.Nominal_Type_Id;
    use type Res.Declaration_Sort;
    use type Res.Declaration_Id;
@@ -59,28 +58,23 @@ package body Landin.Stages.Folding is
    function Last_Refusal return Narrow_Refusal is (Refused);
 
    procedure Refuse_Narrow
-     (Of_Tree    : Syn.Tree;
-      Node       : Syn.Node_Id;
-      Value      : Ty.Folded;
-      Into       : Ty.Type_Kind;
-      Constraint : Landin.Checking.Constraint_Id :=
-        Landin.Checking.No_Constraint);
+     (Of_Tree : Syn.Tree;
+      Node    : Syn.Node_Id;
+      Value   : Ty.Folded;
+      Into    : Ty.Type_Kind);
 
    procedure Refuse_Narrow
-     (Of_Tree    : Syn.Tree;
-      Node       : Syn.Node_Id;
-      Value      : Ty.Folded;
-      Into       : Ty.Type_Kind;
-      Constraint : Landin.Checking.Constraint_Id :=
-        Landin.Checking.No_Constraint) is
+     (Of_Tree : Syn.Tree;
+      Node    : Syn.Node_Id;
+      Value   : Ty.Folded;
+      Into    : Ty.Type_Kind) is
    begin
       if Refused.Node = Syn.No_Node then
          Refused :=
-           (Source     => Syn.Source_Of (Of_Tree),
-            Node       => Node,
-            Value      => Value,
-            Into       => Into,
-            Constraint => Constraint);
+           (Source => Syn.Source_Of (Of_Tree),
+            Node   => Node,
+            Value  => Value,
+            Into   => Into);
       end if;
    end Refuse_Narrow;
 
@@ -502,27 +496,6 @@ package body Landin.Stages.Folding is
                               Blew := True;
                               Refuse_Narrow (Of_Tree, Node, Given, Target);
                            end if;
-                        end if;
-                        --  D188: a range subtype applied to the value.
-                        if not Blew then
-                           declare
-                              Wanted : constant
-                                Landin.Checking.Constraint_Id :=
-                                  Landin.Checking.Constraint_Of
-                                    (Types.all, Of_Tree, Node);
-                           begin
-                              if Wanted /= Landin.Checking.No_Constraint
-                                and then
-                                  (Value < Landin.Checking.Bounds_Of
-                                     (Types.all, Wanted).Lower
-                                   or else Value > Landin.Checking.Bounds_Of
-                                     (Types.all, Wanted).Upper)
-                              then
-                                 Blew := True;
-                                 Refuse_Narrow
-                                   (Of_Tree, Node, Value, Target, Wanted);
-                              end if;
-                           end;
                         end if;
                      elsif Target in Ty.Float_Name then
                         if From = Ty.Bool then

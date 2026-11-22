@@ -13279,175 +13279,6 @@ package body Landin.Tests.Checking_Suite is
          Accepted => False, Code => "L0301");
    end Refused_Values_Always_Report;
 
-   procedure Range_Type_Actuals_Are_Refused
-     (Item : in out Landin.Testing.Context);
-
-   procedure Range_Type_Actuals_Are_Refused
-     (Item : in out Landin.Testing.Context)
-   is
-      procedure Check_Source
-        (Label, Text : String; Accepted : Boolean;
-         Code : String := "L0304");
-
-      procedure Check_Source
-        (Label, Text : String; Accepted : Boolean;
-         Code : String := "L0304")
-      is
-         Work : Landin.Stages.Compilation :=
-           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
-         Order : Landin.Stages.Pipeline;
-         Ran : Natural;
-         Src : Landin.Source.Source_Id;
-         pragma Unreferenced (Src);
-      begin
-         Src := Landin.Stages.Add_Source
-           (Work, "range-type-actuals.ldn", Text);
-         Landin.Stages.Append (Order, Frontend'Access);
-         Landin.Stages.Append (Order, Configurer'Access);
-         Landin.Stages.Append (Order, Names'Access);
-         Landin.Stages.Append (Order, Checker'Access);
-         Ran := Landin.Stages.Run (Order, Work);
-         declare
-            Reports : constant Landin.Diagnostics.Diagnostic_List :=
-              Landin.Stages.Report (Work);
-         begin
-            Landin.Testing.Check_Equal
-              (Item, Ran, 4, Label & " reaches checking");
-            Landin.Testing.Check
-              (Item, Landin.Stages.Failed (Work) /= Accepted
-                 and then
-                   (if Accepted then Landin.Diagnostics.Count (Reports) = 0
-                    else Landin.Diagnostics.Count (Reports) = 1
-                      and then Landin.Diagnostics.Code
-                        (Landin.Diagnostics.Get (Reports, 1)) = Code),
-               Label & " retains its exact source verdict");
-         end;
-      end Check_Source;
-
-   begin
-      Check_Source
-        ("constrained struct",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "mut a: cell(percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("constrained array",
-         "percent: type = u8 range 0..100" & LF
-         & "row: type (t: type, fixed n: u32) = [n]t" & LF
-         & "mut a: row(percent, 3)" & LF,
-         Accepted => False);
-      Check_Source
-        ("constrained alias",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "alias: type = percent" & LF
-         & "mut a: cell(alias)" & LF,
-         Accepted => False);
-      Check_Source
-        ("identity alias",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "mut a: identity(percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("unused actual",
-         "percent: type = u8 range 0..100" & LF
-         & "constant: type (t: type) = u8" & LF
-         & "mut a: constant(percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("nested actual",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "identity: type (t: type) = t" & LF
-         & "mut a: cell(identity(percent))" & LF,
-         Accepted => False);
-      Check_Source
-        ("template fixed subtype",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "outer: type (t: type) = struct" & LF
-         & "value: cell(percent) end outer" & LF,
-         Accepted => False);
-      Check_Source
-        ("local constrained struct",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "f: () -> none = mut a: cell(percent) = zeroed end f" & LF,
-         Accepted => False);
-      Check_Source
-        ("unconstrained struct",
-         "cell: type (t: type) = struct value: t end cell" & LF
-         & "mut a: cell(u8)" & LF,
-         Accepted => True);
-      Check_Source
-        ("unconstrained array",
-         "row: type (t: type, fixed n: u32) = [n]t" & LF
-         & "mut a: row(u8, 3)" & LF,
-         Accepted => True);
-      Check_Source
-        ("unconstrained alias",
-         "cell: type (t: type) = struct value: t end cell" & LF
-         & "alias: type = u8" & LF
-         & "mut a: cell(alias)" & LF,
-         Accepted => True);
-      Check_Source
-        ("nested unconstrained actual",
-         "cell: type (t: type) = struct value: t end cell" & LF
-         & "identity: type (t: type) = t" & LF
-         & "mut a: cell(identity(u8))" & LF,
-         Accepted => True);
-      Check_Source
-        ("ordinary subtype",
-         "percent: type = u8 range 0..100" & LF
-         & "mut a: percent = 40" & LF
-         & "f: (v: percent) -> (r: percent) = r = v end f" & LF,
-         Accepted => True);
-      Check_Source
-        ("deduced generic value",
-         "percent: type = u8 range 0..100" & LF
-         & "copy: (t: type, v: t) -> (r: t) = r = v end copy" & LF
-         & "f: () -> (r: u8) = p: percent = 40 r = copy(p) end f" & LF,
-         Accepted => True);
-      Check_Source
-        ("nested pointer actual",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "held: type = identity(ptr percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("nested slice actual",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "held: type = identity([]percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("nested array actual",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "held: type = identity([2]percent)" & LF,
-         Accepted => False);
-      Check_Source
-        ("nested pointer control actual",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "held: type = identity(ptr u8)" & LF,
-         Accepted => True);
-      Check_Source
-        ("nested slice control actual",
-         "percent: type = u8 range 0..100" & LF
-         & "cell: type (t: type) = struct value: t end cell" & LF
-         & "held: type = cell([]u8)" & LF,
-         Accepted => True);
-      Check_Source
-        ("nested array control actual",
-         "percent: type = u8 range 0..100" & LF
-         & "identity: type (t: type) = t" & LF
-         & "held: type = identity([2]u8)" & LF,
-         Accepted => True);
-   end Range_Type_Actuals_Are_Refused;
-
    procedure Refused_Conformances_Are_Not_Selected
      (Item : in out Landin.Testing.Context);
 
@@ -13922,16 +13753,6 @@ package body Landin.Tests.Checking_Suite is
          & "f: (v: i32) -> (r: word) = r = word(v, v) end f" & LF,
          Accepted => False);
       Check_Source
-        ("range alias empty",
-         "percent: type = u8 range 0..100" & LF
-         & "f: (v: i32) -> (r: percent) = r = percent() end f" & LF,
-         Accepted => False);
-      Check_Source
-        ("range alias excess",
-         "percent: type = u8 range 0..100" & LF
-         & "f: (v: i32) -> (r: percent) = r = percent(v, v) end f" & LF,
-         Accepted => False);
-      Check_Source
         ("text alias empty",
          "text: type = utf8" & LF
          & "f: (v: []u8) -> (r: text from v) = r = text() end f" & LF,
@@ -14227,132 +14048,6 @@ package body Landin.Tests.Checking_Suite is
          & " out = g(v) end h" & LF
          & "use: () -> none = _ = h(1) _ = h(true) end use" & LF, 2);
    end Generic_Body_Reports_Coalesce_Across_Instances;
-
-   procedure Owed_Checks_Belong_To_Routine_Views
-     (Item : in out Landin.Testing.Context);
-
-   procedure Owed_Checks_Belong_To_Routine_Views
-     (Item : in out Landin.Testing.Context)
-   is
-      package C renames Landin.Checking;
-      package Syn renames Landin.Syntax;
-      use type C.Constraint_Id;
-      Work : Landin.Stages.Compilation :=
-        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
-      Order : Landin.Stages.Pipeline;
-      Src : Landin.Source.Source_Id;
-      Ran : Natural;
-   begin
-      Src := Landin.Stages.Add_Source
-        (Work, "owed-views.ldn",
-         "identity: (t: type, value: t) -> (result: t) =" & LF
-         & "result = value end identity" & LF
-         & "other: () -> none = end other" & LF);
-      Landin.Stages.Append (Order, Frontend'Access);
-      Landin.Stages.Append (Order, Configurer'Access);
-      Landin.Stages.Append (Order, Names'Access);
-      Ran := Landin.Stages.Run (Order, Work);
-      Landin.Testing.Check
-        (Item, Ran = 3 and then not Landin.Stages.Failed (Work),
-         "the two small declarations reach the table seam");
-      if Landin.Stages.Failed (Work) then
-         return;
-      end if;
-      declare
-         Tree : constant not null access constant Syn.Tree :=
-           Syn.Forest.Tree_Of (Landin.Stages.Trees (Work).all, Src);
-         Types : constant not null access C.Table :=
-           Landin.Stages.Types (Work);
-         Meanings : Landin.Resolution.Table renames
-           Landin.Stages.Meanings (Work).all;
-         Node : constant Syn.Node_Id := Syn.Nth_Declaration (Tree.all, 1);
-         Other : constant Syn.Node_Id := Syn.Nth_Declaration (Tree.all, 2);
-         Site : constant Landin.Provenance.Origin :=
-           Syn.Origin (Tree.all, Node);
-         Template : Landin.Provenance.Declaration_Id :=
-           Landin.Provenance.No_Declaration;
-         Actuals : C.Actual_Tuple := C.Empty_Actuals;
-         First, Second, Previous, Nested : C.Routine_Instance_Id;
-         A, B, D : C.Constraint_Id;
-
-         procedure Expect (At_Node : Syn.Node_Id; Wanted : C.Constraint_Id;
-                           Message : String);
-
-         procedure Expect (At_Node : Syn.Node_Id; Wanted : C.Constraint_Id;
-                           Message : String) is
-         begin
-            Landin.Testing.Check
-              (Item, C.Owed_Check (Types.all, Tree.all, At_Node) = Wanted,
-               Message);
-         end Expect;
-
-         procedure Refuse_Rewrite (Wanted, Retained : C.Constraint_Id);
-
-         procedure Refuse_Rewrite (Wanted, Retained : C.Constraint_Id) is
-         begin
-            C.Note_Owed_Check (Types.all, Tree.all, Node, Wanted);
-            Landin.Testing.Fail (Item, "a differing owed check overwrote");
-         exception
-            when Landin.Compiler_Defect =>
-               Expect (Node, Retained, "a refused rewrite preserves its fact");
-         end Refuse_Rewrite;
-      begin
-         C.Prepare
-           (Types.all, Landin.Stages.Trees (Work).all, Meanings,
-            Landin.Stages.Identities (Work).all);
-         for Id in Landin.Provenance.Declaration_Id'(1)
-           .. Landin.Provenance.Declaration_Id
-             (Landin.Resolution.Declaration_Count (Meanings))
-         loop
-            if Landin.Resolution.Node_Of (Meanings, Id) = Node then
-               Template := Id;
-               exit;
-            end if;
-         end loop;
-         C.Append_Actual (Actuals, C.Scalar_Type_Actual (Landin.Types.U8));
-         First := C.Intern_Routine_Instance (Types.all, Template, Actuals);
-         Actuals := C.Empty_Actuals;
-         C.Append_Actual (Actuals, C.Scalar_Type_Actual (Landin.Types.I32));
-         Second := C.Intern_Routine_Instance (Types.all, Template, Actuals);
-         A := C.Add_Constraint
-           (Types.all, (Base => Landin.Types.U8, Lower => 0, Upper => 10,
-                        Site => Site));
-         B := C.Add_Constraint
-           (Types.all, (Base => Landin.Types.U8, Lower => 2, Upper => 8,
-                        Site => Site));
-         D := C.Add_Constraint
-           (Types.all, (Base => Landin.Types.U8, Lower => 3, Upper => 7,
-                        Site => Site));
-         Expect (Node, C.No_Constraint, "an untouched node owes no check");
-         C.Note_Owed_Check (Types.all, Tree.all, Node, A);
-         C.Note_Owed_Check (Types.all, Tree.all, Node, A);
-         Expect (Node, A, "a global repeated write is idempotent");
-         Refuse_Rewrite (B, A);
-         C.Activate_Routine_View (Types.all, First, Previous);
-         Expect (Node, A, "an unwritten view sees the global fact");
-         C.Note_Owed_Check (Types.all, Tree.all, Node, B);
-         C.Note_Owed_Check (Types.all, Tree.all, Node, B);
-         Expect (Node, B, "the first instance owns its repeated write");
-         Refuse_Rewrite (D, B);
-         C.Note_Owed_Check (Types.all, Tree.all, Other, B);
-         C.Activate_Routine_View (Types.all, Second, Nested);
-         Expect (Node, A, "another instance still inherits the global fact");
-         Expect (Other, C.No_Constraint,
-                 "another node's instance fact is local");
-         C.Note_Owed_Check (Types.all, Tree.all, Node, D);
-         Expect (Node, D, "the nested instance owns its distinct check");
-         C.Restore_Routine_View (Types.all, Nested);
-         Expect (Node, B, "restoring a nested view recovers its own check");
-         Expect (Other, B, "the first instance keeps its other node");
-         C.Restore_Routine_View (Types.all, Previous);
-         Expect (Node, A, "instance writes never alter the global check");
-         Expect (Other, C.No_Constraint,
-                 "instance writes never create globals");
-         C.Activate_Routine_View (Types.all, Second, Previous);
-         Expect (Node, D, "reactivation retains the second instance check");
-         C.Restore_Routine_View (Types.all, Previous);
-      end;
-   end Owed_Checks_Belong_To_Routine_Views;
 
    procedure Call_Matches_Belong_To_Routine_Views
      (Item : in out Landin.Testing.Context);
@@ -16402,9 +16097,6 @@ package body Landin.Tests.Checking_Suite is
         (Into, "checking", "iterable elements are copies",
          Iterable_Elements_Are_Copies'Access);
       Landin.Testing.Register
-        (Into, "checking", "owed checks belong to routine views",
-         Owed_Checks_Belong_To_Routine_Views'Access);
-      Landin.Testing.Register
         (Into, "checking", "call matches belong to routine views",
          Call_Matches_Belong_To_Routine_Views'Access);
       Landin.Testing.Register
@@ -16419,9 +16111,6 @@ package body Landin.Tests.Checking_Suite is
       Landin.Testing.Register
         (Into, "checking", "refused conformances are not selected",
          Refused_Conformances_Are_Not_Selected'Access);
-      Landin.Testing.Register
-        (Into, "checking", "range type actuals are refused",
-         Range_Type_Actuals_Are_Refused'Access);
       Landin.Testing.Register
         (Into, "checking", "refused values always report",
          Refused_Values_Always_Report'Access);

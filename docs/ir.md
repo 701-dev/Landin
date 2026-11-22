@@ -243,11 +243,11 @@ source spelling adds no IR operation; exact representation extraction, text
 validation and numeric conversion retain their existing operations and
 origin facts.
 Ordinary integer addition and wrapping addition are different operations.
-A checked conversion and a range-subtype check are different too: conversion
+A checked conversion and a range check are different too: conversion
 can change the integer type, while a range check passes a value of the same
 type through only if it satisfies the bounds. D232 marks range checks used
 for representation validation separately: null pointer construction, malformed
-text and reserved-bit patterns report `bad_conversion`; subtype bounds report
+text and reserved-bit patterns report `bad_conversion`; other bounds report
 `out_of_range`. Rewriting and specialization preserve this flag, and proved
 constant replacements remove it with the check. The verifier refuses it on
 other opcodes. A range check keeps both bounds, but every backend tests

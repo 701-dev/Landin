@@ -110,7 +110,7 @@ with Landin.Packed;
 --  integers, floats and bool (D168-D174, D176), including the integer
 --  address step of [0470].  Each source/result pair determines whether
 --  conversion checks, rounds, truncates or is total.  Range_Check enforces
---  D188's subtype bounds and [0470]'s pointer-address bounds on a value of
+--  bounds, such as [0470]'s pointer-address bounds, on a value of
 --  unchanged integer type; it composes with Conversion rather than
 --  generalising it.  [1830]'s deferred scalar widths remain refused.
 --  There is no Discard: [1930] throws a result away and an unused value is how
@@ -223,7 +223,7 @@ package Landin.IR is
       --  canonical-bool rule and any required check.  [0470]'s
       --  pointer-address form also converts its integer address value here.
       Conversion,
-      --  D188's [0660] constraint check.  Its source and result types are
+      --  A bounds check.  Its source and result types are
       --  identical, so this is not a conversion and cannot narrow: it
       --  passes the value through when the two folded bounds hold it and
       --  traps at [1950]'s existing edge when they do not.
@@ -2610,9 +2610,9 @@ package Landin.IR is
    function Check_Is_Removable
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Boolean
      with Pre => Holds (Of_Unit, Item, Value);
-   --  D188's edge is deliberately absent from that set: [1120]'s region
-   --  removes an edge whose absence leaves a value the destination type
-   --  holds, and a value outside a range subtype's bounds is not one.
+   --  Range_Check's edge is deliberately absent from that set: [1120]'s
+   --  region removes an edge whose absence leaves a value the destination
+   --  type holds, and a value outside the checked bounds is not one.
 
    --  The scope [1840] this block's instructions are inside, which is
    --  what source debugging turns into a lexical block with a range of
@@ -3308,7 +3308,7 @@ package Landin.IR is
           Post => Emitted
                     (Into, Item, Emit_Conversion'Result, Conversion);
 
-   --  D188: the value passes through unchanged when the bounds hold it.
+   --  The value passes through unchanged when the bounds hold it.
    --  The bounds are Folded values because that is what the checker folded
    --  them to and what the backend compares against; neither side learns a
    --  target width from them.
@@ -4279,7 +4279,7 @@ private
       Indexed_Address : Boolean                := False;
       Negated     : Boolean                   := False;
       Truth       : Boolean                   := False;
-      --  D188's two folded bounds, on a Range_Check and nowhere else.
+      --  The two folded bounds, on a Range_Check and nowhere else.
       Representation_Check : Boolean := False;
       Lower_Bound : Landin.Types.Folded       := 0;
       Upper_Bound : Landin.Types.Folded       := 0;

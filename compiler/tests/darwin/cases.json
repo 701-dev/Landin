@@ -41,7 +41,7 @@
     "runtime/float-hexadecimal-runtime",
     "runtime/float-named-specials",
     "runtime/module-float-arithmetic",
-    "runtime/range-subtype-conversion-traps",
+    "runtime/range-checking-constructor-fails",
     "runtime/unchecked-integer-conversion-truncates",
     "runtime/unchecked-keeps-bool-conversion-traps",
     "runtime/unchecked-keeps-float-conversion-traps",

@@ -291,7 +291,7 @@ module.exports = grammar({
     type_declaration: $ => seq(
       field('name', $._declaration_name), ':', 'type',
       choice(
-        seq('=', choice($.atom_union, $.encoded_union, $.range_subtype,
+        seq('=', choice($.atom_union, $.encoded_union,
                          $.distinct_body, $._type, $.struct_body)),
         seq($.type_formals, '=', choice($.atom_union, $.encoded_union,
                          $.distinct_body, $._type, $.struct_body)),
@@ -299,12 +299,6 @@ module.exports = grammar({
     ),
     // [0650]/[1795]: `distinct` makes a type that is not the type it names.
     distinct_body: $ => seq('distinct', field('type', $._type)),
-    // [0660]: a scalar with a range it must stay in.
-    range_subtype: $ => seq(
-      field('base', $._type), 'range',
-      field('lower', $._expression), field('operator', choice('..', '..<')),
-      field('upper', $._expression),
-    ),
 
     concept_declaration: $ => seq(
       field('name', $._declaration_name), ':', 'type', '=', $.concept_body,
