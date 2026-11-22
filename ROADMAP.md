@@ -1734,7 +1734,7 @@ that holds the library to them.
 
 ### R20.30 — The concepts
 
-Status: planned
+Status: active
 Depends on: R20.10, R20.11
 
 `core/fibre`'s `task` as the one task concept, which `hosted/thread`
