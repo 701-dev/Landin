@@ -589,7 +589,7 @@ first draft computed a checked sum's carry into the register the sum was
 held in, which `Holds` cannot see, since a write after an operation's
 own result at its position looks like the result's; the measurement's
 oracles caught it, and selection's temporaries are now never offered.
-Filed: SR-1468, an `if`'s comparison computed into a register before its
+Filed: `SR-1468`, an `if`'s comparison computed into a register before its
 branch; SR-1465-SR-1467 record the friction met.
 
 ### R16.26 — The library's costs
@@ -721,7 +721,7 @@ Depends on: R16.10
 What the Cortex-M, RISC-V and Xtensa items left: `SR-231`'s atom `match`
 re-testing its subject at every arm, SR-869's short `u64` routines on
 armv6-m, `SR-1433`'s Xtensa frame still reserving the logical-word bank,
-SR-1468's `slt` then `bnez` where one `blt` would do, R551-12's bounds
+`SR-1468`'s `slt` then `bnez` where one `blt` would do, R551-12's bounds
 checks and `core/atomic`'s cell calls, and `SR-1578`'s lost backend case for
 a Cortex-M `Range_Check` with a bound at one edge; with the tools those
 items lacked, `SR-1505`'s command that builds one Cortex-M fixture at a
