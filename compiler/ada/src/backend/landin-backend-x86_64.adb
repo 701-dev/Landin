@@ -1,4 +1,5 @@
 with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
@@ -758,6 +759,38 @@ package body Landin.Backend.X86_64 is
       end Unused_Local_Prefix;
 
       Local_Prefix : constant String := Unused_Local_Prefix;
+
+      --  D2092: the read-only pool.  Size and speed read a float constant
+      --  from it by its bit pattern, one entry per pattern and width in
+      --  the whole object, each in a mergeable section of its own so the
+      --  link keeps only the entries a retained routine reaches and
+      --  merges equal ones.  Ordered sets keep the emitted order
+      --  independent of the order routines are selected in.
+      package Pattern_Sets is new Ada.Containers.Ordered_Sets
+        (Element_Type => Landin.Types.Magnitude,
+         "<" => Landin.Types."<", "=" => Landin.Types."=");
+      Pool_32, Pool_64 : Pattern_Sets.Set;
+
+      function Pool_Label
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String
+      is (Local_Prefix & "landin_" & (if Single then "f32_" else "f64_")
+          & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+
+      --  The pool entry holding Pattern, as a RIP-relative memory operand.
+      function Pool_Operand
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String;
+
+      function Pool_Operand
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String
+      is
+      begin
+         if Single then
+            Pool_32.Include (Pattern);
+         else
+            Pool_64.Include (Pattern);
+         end if;
+         return Pool_Label (Single, Pattern) & "(%rip)";
+      end Pool_Operand;
 
       --  D361's report lines, each a read-only datum, and the one routine
       --  that writes a line to standard error and ends the process.
@@ -1696,7 +1729,16 @@ package body Landin.Backend.X86_64 is
             Place : Allocation.Location renames
               Allocation_Plan.Value (Positive (Value));
          begin
-            if Width > Place.Size or else Place.Kind = Allocation.Absent then
+            if Optimized and then Place.Kind = Allocation.Absent
+              and then Allocation.Pooled (Of_Unit, Item, Value)
+            then
+               --  D2092: a float constant every use of which takes a
+               --  memory operand is read from the pool.
+               return Pool_Operand
+                 (Size_Of_Value (Value) = Landin.Targets.Byte_4,
+                  Landin.IR.Number_Of (Of_Unit, Item, Value));
+            elsif Width > Place.Size or else Place.Kind = Allocation.Absent
+            then
                raise Landin.Compiler_Defect with
                  "invalid value location width";
             elsif Place.Kind = Allocation.GP then
@@ -3908,6 +3950,14 @@ package body Landin.Backend.X86_64 is
                      then
                         Emit ("xorps " & Value_Operand (Value) & ", "
                               & Value_Operand (Value));
+                     elsif Optimized and then Place.Kind = Allocation.SSE
+                     then
+                        --  D2092: any other float is loaded from the pool.
+                        Emit (Float_Move
+                                (Held = Landin.Targets.Byte_4,
+                                 Pool_Operand
+                                   (Held = Landin.Targets.Byte_4, Pattern),
+                                 Value_Operand (Value)));
                      else
                         Emit ("movabsq $"
                               & Trimmed
@@ -9368,6 +9418,26 @@ package body Landin.Backend.X86_64 is
             Put (Character'Val (9) & ELF.Size_To_Here (Stack_Start));
          end;
       end if;
+
+      --  D2092's pool, after every routine that reads it.
+      for Pattern of Pool_32 loop
+         Put (Character'Val (9) & ".section .rodata.cst4.landin_"
+              & (if True then "f32_" else "f64_")
+              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
+              & ",""aM"",@progbits,4");
+         Emit (".p2align 2");
+         Put (Pool_Label (True, Pattern) & ":");
+         Emit (".long " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+      end loop;
+      for Pattern of Pool_64 loop
+         Put (Character'Val (9) & ".section .rodata.cst8.landin_"
+              & (if False then "f32_" else "f64_")
+              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
+              & ",""aM"",@progbits,8");
+         Emit (".p2align 3");
+         Put (Pool_Label (False, Pattern) & ":");
+         Emit (".quad " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+      end loop;
 
       --  D161: read-only images sit in `.rodata`, so a write through a
       --  reference the checker should have refused faults instead of

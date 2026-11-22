@@ -395,6 +395,50 @@ package body Landin.Backend.X86_64.Allocation is
       end case;
    end Takes_Immediate;
 
+   function Pooled
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Value : Landin.IR.Value_Id) return Boolean
+     is (Landin.IR.Op_Of (Of_Unit, Item, Value) = Landin.IR.Number
+         and then Landin.IR.Result_Of (Of_Unit, Item, Value)
+           in Landin.Types.Float_Name);
+
+   --  D2092: whether selection reads operand Position of User through
+   --  any memory operand: either operand of a float add, subtract,
+   --  multiply or divide, which Float_Binary and the division move into
+   --  their register or read as the SSE source, and of a float
+   --  comparison, which loads its left side into %xmm0 when it is not in
+   --  a register and compares the right one where it lies.
+   function Takes_Memory
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      User : Landin.IR.Value_Id;
+      Position : Positive) return Boolean;
+
+   function Takes_Memory
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      User : Landin.IR.Value_Id;
+      Position : Positive) return Boolean is
+   begin
+      case Landin.IR.Op_Of (Of_Unit, Item, User) is
+         when Landin.IR.Add | Landin.IR.Subtract | Landin.IR.Multiply
+            | Landin.IR.Divide =>
+            return Position in 1 | 2
+              and then Landin.IR.Result_Of (Of_Unit, Item, User)
+                in Landin.Types.Float_Name;
+         when Landin.IR.Equal_To | Landin.IR.Not_Equal_To
+            | Landin.IR.Less_Than | Landin.IR.Less_Or_Equal
+            | Landin.IR.Greater_Than | Landin.IR.Greater_Or_Equal =>
+            return Position in 1 | 2
+              and then Landin.IR.Result_Of
+                (Of_Unit, Item, Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                in Landin.Types.Float_Name;
+         when others =>
+            return False;
+      end case;
+   end Takes_Memory;
+
    function Flags_Choice
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;
@@ -425,6 +469,8 @@ package body Landin.Backend.X86_64.Allocation is
    --  One pass over every operand: a constant that some use needs in a
    --  location keeps the one it has, and every other constant with an
    --  immediate is left absent, so it takes no register and no home.
+   --  D2092: so is a float constant every use of which takes a memory
+   --  operand; selection reads it from the read-only pool.
    procedure Omit_Immediates
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;
@@ -440,6 +486,8 @@ package body Landin.Backend.X86_64.Allocation is
       Count : constant Natural := Landin.IR.Value_Count (Of_Unit, Item);
       Kept_Data : Mask_Buffers.Buffer (Count);
       Kept : Home_Mask renames Kept_Data.Data.all;
+      Loaded_Data : Mask_Buffers.Buffer (Count);
+      Loaded : Home_Mask renames Loaded_Data.Data.all;
    begin
       for Index in 1 .. Count loop
          declare
@@ -454,6 +502,10 @@ package body Landin.Backend.X86_64.Allocation is
                   Kept (Positive (Landin.IR.Nth_Operand
                     (Of_Unit, Item, User, Position))) := True;
                end if;
+               if not Takes_Memory (Of_Unit, Item, User, Position) then
+                  Loaded (Positive (Landin.IR.Nth_Operand
+                    (Of_Unit, Item, User, Position))) := True;
+               end if;
             end loop;
          end;
       end loop;
@@ -461,6 +513,10 @@ package body Landin.Backend.X86_64.Allocation is
          if not Kept (Index)
            and then Immediate
              (Of_Unit, Item, Landin.IR.Value_Id (Index), Facts) /= ""
+         then
+            Values (Index).Kind := Absent;
+         elsif not Loaded (Index)
+           and then Pooled (Of_Unit, Item, Landin.IR.Value_Id (Index))
          then
             Values (Index).Kind := Absent;
          end if;
