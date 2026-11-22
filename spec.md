@@ -42015,6 +42015,76 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
 
+### D2028 — Absence is one atom, `mem.not_found`
+
+**The tour said** nothing; D269 kept `map.missing` and `tree.no_such_node` apart from `mem.out_of_bounds` because a missing key is not a bad index, and gave a provider's lookups their own atoms, `io.no_argument` and `io.no_variable`, so absence came to be seven atoms with `io.not_found`, `text.not_found` and `posix.no_account`, two of them spelled alike.
+
+**Chosen:** a lookup by key, name, identifier or search that finds nothing fails one atom, `not_found`, declared once in `core/mem` beside the atoms every container shares, so `map.missing`, `tree.no_such_node`, `io.not_found`, `text.not_found`, `io.no_argument`, `io.no_variable`, `posix.no_account` and `posix.no_symbol` all become `mem.not_found`. An index past a prefix stays `mem.out_of_bounds`, and `text.past_end`, a byte read past its source, is that idea and becomes it. `posix.no_library` stays, since a library that fails to load may exist. D269's separation of a bad index from a missing key stands; only the spellings of absence merge. The spelling and the module waits on the maintainer's answer, and this is the default the library review's list is written with. The breaking list's names section carries each rename, refused with its replacement and rewritten by `refine fix` (D1847).
+
+**The alternatives:** one absence atom per module, as today, which is what D1953 declined; and `not_found` in a new module of shared failure atoms, which the maintainer's question offers.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old atom with its replacement.
+
+### D2029 — Running out of room is one atom, `mem.out_of_memory`
+
+**The tour said** nothing; an allocator fails `mem.out_of_memory`, raw storage with no spare slot `mem.full`, a text builder or `text.encode` whose buffer is too short `text.no_space`, and a line reader whose buffer cannot hold a line `io.line_too_long`.
+
+**Chosen:** whatever does not fit in the memory it was given fails `mem.out_of_memory`, so a program that swaps a growing container for a fixed buffer handles the same atom; `mem.full`, `text.no_space` and `io.line_too_long` become it. `mem.grow`'s `(grown: bool)` stays an answer, since a refused extension in place is not a failure, and `tree.too_many_nodes` and `tree.too_many_leaves` stay, since they say a count has no `usize`, not that memory ran out. The spelling waits on the maintainer's answer, and this is the default the library review's list is written with.
+
+**The alternatives:** `mem.full` and a new `mem.no_room`, which the maintainer's question offers; and keeping the buffer's atoms apart from the allocator's, which D1953 declined.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old atom with its replacement.
+
+### D2030 — The end of an iteration is `at_end`, never a failure
+
+**The tour said** at [1320] that `iterable`'s entry for the end is `at_end`. The library said the end five ways: `io.read` returns zero, a `line` has `finished`, `read_entry` returns an entry with an empty name, `map.next_entry` fails `map.end_of_entries`, and `text.at_end` and `text.done` answer it for bytes and for scalars.
+
+**Chosen:** the end of a walk is answered as `at_end`, a predicate on the source and its position or a field of the record a read lends, and is never a failure atom, because reaching it is the expected way out of every loop. `map.end_of_entries` leaves, the map's walk ending at `map.at_end`, which the map's `iterable` conformance supplies (D1957); `line.finished` becomes `line.at_end`; a directory `entry` gains `at_end` in place of the empty name; and `text.done`, which takes `utf8` where `text.at_end` takes bytes and so cannot share its name, becomes `text.utf8_at_end`, the prefix the UTF-8 builder's routines carry. `io.read`'s zero stays: it is a count, the system's own end of a stream, and a stream has no position to ask about.
+
+**The alternatives:** a failure atom for the end, as the map has, which D1652's loops would have to catch on every walk; and `done`, the scalar walk's word, which `iterable` does not use.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+
+### D2031 — How many items a value holds is its `length`
+
+**The tour said** nothing; `lenof` is the language's word for a slice, and the library also says `argument_count`, `variable_count`, `count_leaves`, `pending`, `width` and, for an arena's consumed bytes, `used`.
+
+**Chosen:** the number of items a value holds or lends is `length`, prefixed by its type where the module holds several (D274): `io.argument_count` and `io.variable_count` become `io.arguments_length` and `io.variables_length`, `io.pending` `io.buffered_length`, `arena.used` `arena.length`, and `text.width`, the bytes of one scalar's encoding, `text.scalar_length`. A part's length keeps the part's name before it, as `diag.message_length` and `net.zone_length` already do. `tree.count_leaves` leaves, since `tree.leaves(tree.get(value, id))` answers it from the node. A count of something a value does not hold keeps the name of what it counts, as D274's counters do (`map.slots`, `map.removed`, `tree.leaves`, `pool.live`), and a byte extent outside the value, a file's or a block's, keeps `size`.
+
+**The alternatives:** `count` as the one name, which most modules do not use and `lenof` does not suggest; and leaving each module its own word.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+
+### D2032 — Giving storage back is `release`, and closing a system resource is `close`
+
+**The tour said** nothing; the library gives storage back as `mem.free`, `mem.delete`, `mem.delete_bytes`, `mem.release_storage`, `arena.reset` and the containers' `release`, names `mem.dispose` as if it gave a block back when it only detaches one, and closes a socket with `net.close_socket` where `io` says `close`.
+
+**Chosen:** a library routine that gives storage back is `release`, suffixed by its type where `core/mem` holds several, and one that allocates is `allocate`, so `core/mem` reads as three pairs: `allocate`/`release` for a block, `allocate_item`/`release_item` for one typed item (`mem.new`/`mem.delete`) and `allocate_bytes`/`release_bytes` for a byte buffer (`mem.new_bytes`/`mem.delete_bytes`), with `release_storage` beside them; `mem.free` becomes `mem.release`. The allocator concept's entries stay `alloc`, `grow`, `resize` and `free`: they are what a provider implements, not what a program calls. `arena.reset` becomes `arena.release`, every allocation going back at once. `mem.dispose`, which gives nothing back and hands the block to the caller, becomes `mem.detach`. `clear`, which keeps the storage, is not giving back and stays. A file, directory, socket or child's input is closed with `close`, suffixed by type where the module holds several, so `net.close_socket` becomes `net.close`; waiting for a child or joining a group is not giving back and keeps `wait` and `join`.
+
+**The alternatives:** `free` throughout, which is C's word for a raw block and reads wrong for a container that also forgets its items; and `delete`, which suggests destructors Landin does not have.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+
+### D2033 — `host` is the provider; the system's string form is an `os_string`
+
+**The tour said** nothing; `host` names the I/O provider's handle and parameter and the hosted namespace, which are one idea, the system the program runs on, and also the system's form of a path or argument, `text.host_string` and its family.
+
+**Chosen:** `host` keeps the provider, and the string family is renamed: `text.host_string`, `host_over`, `host_bytes`, `host_equal`, `from_host` and the builder's `append_host` become `text.os_string`, `os_string_over`, `os_string_bytes`, `os_string_equal`, `from_os_string` and `append_os_string`, and the environment variable record that D1951's layering moves into `core/text` becomes `text.os_variable`. The spelling waits on the maintainer's answer, and this is the default the library review's list is written with.
+
+**The alternatives:** renaming the provider instead, which every routine's `host:` parameter would carry; and `system_string` or `native_string`, which the maintainer's question offers.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+
+### D2034 — `new`, `used`, `at`, `space`, `cursor` and `entry` each keep one meaning
+
+**The tour said** nothing; `core/README.md`'s table (D269, D1032) gives each of these a meaning, and some routines use them for another.
+
+**Chosen:** each keeps the meaning the conventions table gives it, and the departures are renamed. `new` makes a value without allocating, a provider's handle included (D1032), so `mem.new` and `mem.new_bytes`, which allocate, become `allocate_item` and `allocate_bytes` (D2032). `used` lends the initialized prefix, so `arena.used`, a byte count, becomes `arena.length` (D2031). `at` lends a writable slot and `get` copies, so `io.argument_at`, which lends one argument read-only, becomes `io.argument`, and `io.variable_at` becomes `io.variable`, the record's own name having moved to `text.os_variable` (D2033); a parameter named `at` is a place, a text position, an address, a cell or an instant, and keeps it, as `read_at` keeps its offset. `space` is a provider's caller-owned state, so `fibre.space`, one fibre's saved record, becomes `fibre.record`. A place in a sequence is a `position`, as `text.position` is, so `map.cursor` becomes `map.position`, `text.cursor`, which makes one from an offset, becomes `text.from_offset`, and the directory's `cursor` field `consumed`. An `entry` is a record a collection holds or lends, the map's pair, the directory's name and the log's note; the table of fibres that `fibre/stacks.round_over` and `events.over` take is renamed from `entries` to `fibres`. A concept's entry is the language's word and not a library name.
+
+**The alternatives:** renaming the conventions' own uses instead, which every container would carry; and leaving the departures, which D1953 declined.
+
+**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+
 ### D1954 — A library routine's parameters come subject first, then capabilities, then inputs
 
 **The tour said** nothing; R13's conventions (D268-D271) fix parameter names but no order, and "subject first" appears only in D945.
