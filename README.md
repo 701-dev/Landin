@@ -590,7 +590,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R20.11 — An `any` converts to its concept's parents (planned).**
+**Current roadmap work: R20.11 — An `any` converts to its concept's parents.**
 
 ## Questions, bugs and ideas
 

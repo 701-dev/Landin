@@ -1696,7 +1696,7 @@ main before R20's gate.
 
 ### R20.11 — An `any` converts to its concept's parents
 
-Status: planned
+Status: active
 Depends on: R20.10
 
 D1949: an `any C` converts implicitly to `any P` for every concept `P`
