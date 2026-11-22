@@ -16,6 +16,7 @@ with Landin.Checking;
 with Landin.Diagnostics;
 with Landin.IR;
 with Landin.IR.Verifier;
+with Landin.Modules;
 with Landin.Provenance;
 with Landin.Resolution;
 with Landin.Source;
@@ -32,6 +33,26 @@ with Landin.Tokens;
 with Landin.Types;
 
 package body Landin.Tests.Checking_Suite is
+
+   --  D2048: `for` takes only core/iter's `iterable`, so a stage test that
+   --  declares the concept beside its traversal adds its source to a module
+   --  of that logical path rather than to the entry module.
+   function Add_Iter_Source
+     (Work : in out Landin.Stages.Compilation;
+      Name : String;
+      Text : String) return Landin.Source.Source_Id;
+
+   function Add_Iter_Source
+     (Work : in out Landin.Stages.Compilation;
+      Name : String;
+      Text : String) return Landin.Source.Source_Id
+   is
+      Module : constant Landin.Modules.Module_Id :=
+        Landin.Modules.Add_Module
+          (Landin.Stages.Modules (Work).all, "core/iter", "core/iter", 1);
+   begin
+      return Landin.Stages.Add_Source (Work, Module, Name, Text);
+   end Add_Iter_Source;
 
    use type Landin.Diagnostics.Label;
    use type Landin.IR.Item_Id;
@@ -1545,7 +1566,7 @@ package body Landin.Tests.Checking_Suite is
             Src : Landin.Source.Source_Id;
             pragma Unreferenced (Src);
          begin
-            Src := Landin.Stages.Add_Source
+            Src := Add_Iter_Source
               (Work, "iterable-copy.ldn",
                "anchor: u32 = 0" & LF
                & "iterable: type = concept (t: type, cur: type, "
@@ -1617,7 +1638,7 @@ package body Landin.Tests.Checking_Suite is
             Src : Landin.Source.Source_Id;
             pragma Unreferenced (Src);
          begin
-            Src := Landin.Stages.Add_Source
+            Src := Add_Iter_Source
               (Work, "iterable-copy.ldn",
             "anchor: u32 = 0" & LF
             & "iterable: type = concept (t: type, cur: type, "
@@ -13204,9 +13225,12 @@ package body Landin.Tests.Checking_Suite is
    procedure Refused_Conformances_Are_Not_Selected
      (Item : in out Landin.Testing.Context)
    is
-      procedure Check_Source (Label, Text, Codes : String);
+      procedure Check_Source
+        (Label, Text, Codes : String; Declares_Iterable : Boolean := False);
 
-      procedure Check_Source (Label, Text, Codes : String) is
+      procedure Check_Source
+        (Label, Text, Codes : String; Declares_Iterable : Boolean := False)
+      is
          Work : Landin.Stages.Compilation :=
            Landin.Stages.Create (Landin.Targets.Linux_X86_64);
          Order : Landin.Stages.Pipeline;
@@ -13215,8 +13239,12 @@ package body Landin.Tests.Checking_Suite is
          Got : Ada.Strings.Unbounded.Unbounded_String;
          pragma Unreferenced (Src);
       begin
-         Src := Landin.Stages.Add_Source
-           (Work, "conformance-boundaries.ldn", Text);
+         if Declares_Iterable then
+            Src := Add_Iter_Source (Work, "conformance-boundaries.ldn", Text);
+         else
+            Src := Landin.Stages.Add_Source
+              (Work, "conformance-boundaries.ldn", Text);
+         end if;
          Landin.Stages.Append (Order, Frontend'Access);
          Landin.Stages.Append (Order, Configurer'Access);
          Landin.Stages.Append (Order, Names'Access);
@@ -13470,7 +13498,8 @@ package body Landin.Tests.Checking_Suite is
          & "two: () -> (a: i32, b: i32) = a = 1 b = 2 end two" & LF
          & "f: () -> none = for value in two() do _ = value end for "
          & "end f" & LF,
-         "L0348");
+         "L0348",
+         Declares_Iterable => True);
       Check_Source
         ("valid nominal traversal",
          "iterable: type = concept (t: type, cur: type, "
@@ -13523,7 +13552,8 @@ package body Landin.Tests.Checking_Suite is
          & "" & LF
          & "f: () -> none = values: cell(i32) = (value: 1, count: 2)" & LF
          & "for value in values do _ = value end for end f" & LF,
-         "");
+         "",
+         Declares_Iterable => True);
       Check_Source
         ("self constrained concept",
          "loopy: type = concept (t: type is loopy) end loopy" & LF
