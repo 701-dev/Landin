@@ -516,7 +516,9 @@ At `--optimize speed`, `Landin.IR.Inlining` then replaces a direct call
 to a small routine with a copy of its body (D339). The routine must have a
 body, no exposed address, the ordinary convention and Landin's own
 transport, and weigh no more than a fixed bound of those weighted
-operations, as lowering made it. The copy's own calls stay calls. A caller
+operations, where a load or store of a scalar slot nothing addresses
+weighs nothing, since allocation keeps such a slot in a register (D2100).
+The copy's own calls stay calls. A caller
 grows by at most the larger of a fixed floor and its own weight, and calls
 inside loops are copied first. The call's block ends by storing each argument into the copy of its
 parameter, copying or clearing a by-value aggregate as the routine's entry
@@ -534,7 +536,9 @@ its `Inline_Site` — the routine, the call's origin and the call's scope —
 and every copied instruction keeps its own origin, so its traps and line
 rows are the routine's. Debug emission turns a site into DWARF's inlined
 subroutine. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone:
-no firmware debugging contract describes an inlined frame.
+no firmware debugging contract describes an inlined frame. Every direct
+call the pass considers goes into the build report's `copies`, copied or
+kept, with the rule that decided it.
 
 Scalar replacement runs at size and speed, as the first step of
 simplification, which verifies the two passes' output in one walk; at speed

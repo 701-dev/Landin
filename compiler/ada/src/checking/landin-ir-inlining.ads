@@ -54,7 +54,9 @@ package Landin.IR.Inlining is
    --  D2100: Item's weight as the bound and the growth budget count it:
    --  D211's weight of each operation (Landin.IR.Effects), except that a
    --  load or store of a scalar slot nothing names as storage weighs
-   --  nothing, since allocation holds such a slot in a register.
+   --  nothing, since allocation holds such a slot in a register.  A
+   --  routine with a loop is weighed as lowering made it, every operation
+   --  at D211's weight, as D339 measured its bound.
    function Weight (Of_Unit : Unit; Item : Item_Id) return Natural
      with Pre => Holds (Of_Unit, Item);
 

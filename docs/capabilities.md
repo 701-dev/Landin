@@ -1112,7 +1112,10 @@ process ignores SIGPIPE and gives its children the default back.
   its test one branch (D1627), and fuses a comparison with the branch
   after it (D1628).
 - **At speed** a direct call to a small routine becomes a copy of its body,
-  which the debuggers show as an inlined frame of that routine (D339);
+  which the debuggers show as an inlined frame of that routine (D339), a
+  routine weighed as it will run rather than as lowering made it (D2100);
+  the build report's `copies` names every call considered and the rule
+  that copied or kept it;
   slices and small structs split into scalars; and a branch whose arms only
   compute becomes a choice (D338).
 - **Reachability.** A program with a public `main` lowers, emits and

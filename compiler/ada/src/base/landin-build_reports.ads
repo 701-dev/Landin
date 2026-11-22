@@ -45,7 +45,7 @@ package Landin.Build_Reports is
    --                    parameters or slots are not a copyable routine's,
    --                    or it never returns, or it is a received copy's;
    --  Assembly          it holds an assembly block;
-   --  Weight            it weighs more than Body_Bound as lowering made it;
+   --  Weight            it weighs more than Body_Bound as D2100 counts it;
    --  Recursive         it is the routine making the call;
    --  Arguments         an argument cannot be handed to the copy exactly:
    --                    a result's storage, an addressed or aggregate

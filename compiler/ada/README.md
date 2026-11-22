@@ -1259,7 +1259,20 @@ through a table, each with its `routine`, `source`, `line`, `column`, the
 `provider` a concrete table holds and `why`, a sentence. The nested build
 carries `target`, the selected CPU feature `level`, and the `optimize` and
 `specialize` controls, plus
-`specializations`, `routines`, `layouts`. Every backend fills every field
+`specializations`, `copies`, `routines`, `layouts`. `copies` has a row
+for every direct call D339's inliner considered, which it does only at
+`--optimize speed` on a hosted target: the `caller` and `callee` items,
+the call's `source`, `first` and `last` byte offsets, its `loop_depth`,
+the callee's `weight` as far as the inliner counted it (it stops past the
+bound), `action`, `copied` or `kept`, and the `reason`: `copied`, or the
+first rule that kept it, `no-body` (an import or external),
+`address-exposed`, `callee-shape` (convention, transport, result,
+parameters, placement or a call that never returns), `assembly`,
+`weight` (past the bound of 64), `recursive`, `arguments` (an argument
+the copy cannot take exactly), `failure-shape` (a routine that can fail,
+called other than at lowering's failure test), `crossing` (a value that
+cannot wait in a slot across the copy) or `budget` (the caller's growth
+bound was spent on calls planned first). Every backend fills every field
 of a `routines` row for every routine it emits, with one meaning on every
 target. `frame_bytes` is what the prologue reserves below the frame record
 and the registers it pushes: slot cells, spill and save homes and incoming

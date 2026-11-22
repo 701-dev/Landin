@@ -124,17 +124,88 @@ package body Landin.IR.Inlining is
          then 0
          else Effects.Weight (Code.Op));
 
+   --  Whether Item's blocks hold a cycle: a depth-first walk from the
+   --  first block meets an edge to a block still on its path.  Layout
+   --  order is no test, since lowering lays an `else` after its join.
+   function Has_Loop (Of_Unit : Unit; Item : Item_Id) return Boolean;
+   function Has_Loop (Of_Unit : Unit; Item : Item_Id) return Boolean is
+      Own : constant Item_Record := Of_Unit.Items.Element (Positive (Item));
+      type Mark is (Unseen, On_Path, Done);
+      type Marks is array (1 .. Own.Blocks.Count) of Mark;
+      type Frames is array (1 .. Own.Blocks.Count) of Natural;
+      Seen : Marks := [others => Unseen];
+      --  The path: each block and how many of its successors are taken.
+      Path, Next : Frames := [others => 0];
+      Depth : Natural := 0;
+
+      function Successor (Block, Index : Positive) return Natural;
+      function Successor (Block, Index : Positive) return Natural is
+         Held : constant Block_Record :=
+           Of_Unit.Blocks.Element (Own.Blocks.First + Block);
+         Last : constant Instruction :=
+           Of_Unit.Code.Element (Held.First_Value + Held.Values);
+      begin
+         if Held.Values = 0 then
+            return 0;
+         elsif Last.Op = Jump and then Index = 1 then
+            return Natural (Last.Target);
+         elsif Last.Op = Branch and then Index = 1 then
+            return Natural (Last.Target);
+         elsif Last.Op = Branch and then Index = 2 then
+            return Natural (Last.Alternative);
+         else
+            return 0;
+         end if;
+      end Successor;
+   begin
+      if Own.Blocks.Count = 0 then
+         return False;
+      end if;
+      Depth := 1;
+      Path (1) := 1;
+      Seen (1) := On_Path;
+      while Depth > 0 loop
+         declare
+            Block : constant Positive := Path (Depth);
+         begin
+            Next (Depth) := Next (Depth) + 1;
+            declare
+               To : constant Natural := Successor (Block, Next (Depth));
+            begin
+               if To = 0 then
+                  Seen (Block) := Done;
+                  Next (Depth) := 0;
+                  Depth := Depth - 1;
+               elsif Seen (To) = On_Path then
+                  return True;
+               elsif Seen (To) = Unseen then
+                  Seen (To) := On_Path;
+                  Depth := Depth + 1;
+                  Path (Depth) := To;
+                  Next (Depth) := 0;
+               end if;
+            end;
+         end;
+      end loop;
+      return False;
+   end Has_Loop;
+
    function Weight (Of_Unit : Unit; Item : Item_Id) return Natural is
       Own : constant Item_Record := Of_Unit.Items.Element (Positive (Item));
       In_Registers : constant Boolean_Vectors.Vector :=
         Register_Slots (Of_Unit, Item);
-      Total : Natural := 0;
+      Total, Lowered : Natural := 0;
    begin
       for V in 1 .. Own.Values.Count loop
-         Total := Total + Cost
-           (Of_Unit.Code.Element (Own.Values.First + V), In_Registers);
+         declare
+            Code : constant Instruction :=
+              Of_Unit.Code.Element (Own.Values.First + V);
+         begin
+            Total := Total + Cost (Code, In_Registers);
+            Lowered := Lowered + Effects.Weight (Code.Op);
+         end;
       end loop;
-      return Total;
+      return (if Has_Loop (Of_Unit, Item) then Lowered else Total);
    end Weight;
 
    procedure Run
@@ -455,6 +526,7 @@ package body Landin.IR.Inlining is
          Signature : constant Signature_Id := Body_Of.Signature;
          Found : Callee_Facts;
          In_Registers : Boolean_Vectors.Vector;
+         Lowered : Natural := 0;
 
          procedure Refuse (Why : Reports.Copy_Reason);
          procedure Refuse (Why : Reports.Copy_Reason) is
@@ -535,6 +607,7 @@ package body Landin.IR.Inlining is
                   return;
                end if;
                Found.Weight := Found.Weight + Cost (Code, In_Registers);
+               Lowered := Lowered + Effects.Weight (Code.Op);
                if Found.Weight > Body_Bound then
                   Refuse (Reports.Weight);
                   return;
@@ -547,6 +620,16 @@ package body Landin.IR.Inlining is
                end if;
             end;
          end loop;
+         --  D2100: a routine with a loop is weighed as lowering made it,
+         --  as D339 measured: a larger copied loop inside its caller's
+         --  predicted worse than the call did.
+         if Has_Loop (Into, Callee) then
+            Found.Weight := Lowered;
+            if Lowered > Body_Bound then
+               Refuse (Reports.Weight);
+               return;
+            end if;
+         end if;
          Found.Eligible := Found.Leaves > 0;
          Found.Why :=
            (if Found.Eligible then Reports.Copied else Reports.Callee_Shape);
