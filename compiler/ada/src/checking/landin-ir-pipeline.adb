@@ -1,6 +1,7 @@
 with Landin.IR.If_Conversion;
 with Landin.IR.In_Place;
 with Landin.IR.Inlining;
+with Landin.IR.Layout;
 with Landin.IR.Simplification;
 with Landin.IR.Specialization;
 
@@ -20,6 +21,7 @@ package body Landin.IR.Pipeline is
       Landin.IR.If_Conversion.Run_On_Verified
         (Into, Facts, Options.Optimize);
       Landin.IR.In_Place.Run_On_Verified (Into, Facts, Options.Optimize);
+      Landin.IR.Layout.Run_On_Verified (Into, Facts, Options.Optimize);
    end Run_On_Verified;
 
 end Landin.IR.Pipeline;

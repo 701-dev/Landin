@@ -3017,32 +3017,6 @@ package body Landin.Backend.X86_64 is
             end loop;
          end Emit_Traps;
 
-         function Threaded
-           (Block : Landin.IR.Block_Id) return Landin.IR.Block_Id;
-
-         --  Speed sends a jump straight past blocks that only jump on.  It
-         --  never shortens code, so size keeps each jump where it was.  A
-         --  chain is followed at most once round, so a cycle still ends.
-         function Threaded
-           (Block : Landin.IR.Block_Id) return Landin.IR.Block_Id
-         is
-            Target : Landin.IR.Block_Id := Block;
-         begin
-            if Options.Optimize = Landin.Optimization.Speed then
-               for Hop in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
-                  exit when Landin.IR.Length (Of_Unit, Item, Target) /= 1
-                    or else Landin.IR.Op_Of
-                      (Of_Unit, Item,
-                       Landin.IR.Nth_Value (Of_Unit, Item, Target, 1))
-                      /= Landin.IR.Jump;
-                  Target := Landin.IR.Target_Of
-                    (Of_Unit, Item,
-                     Landin.IR.Nth_Value (Of_Unit, Item, Target, 1));
-               end loop;
-            end if;
-            return Target;
-         end Threaded;
-
          procedure Conditional_Branch
            (Condition : String; Yes, No : Landin.IR.Block_Id);
 
@@ -3053,11 +3027,11 @@ package body Landin.Backend.X86_64 is
             Inverse : constant String := Inverse_Condition (Condition);
          begin
             if Optimized and then Yes = Following then
-               Emit ("j" & Inverse & " " & Label (Item, Threaded (No)));
+               Emit ("j" & Inverse & " " & Label (Item, No));
             else
-               Emit ("j" & Condition & " " & Label (Item, Threaded (Yes)));
+               Emit ("j" & Condition & " " & Label (Item, Yes));
                if not Optimized or else No /= Following then
-                  Emit ("jmp " & Label (Item, Threaded (No)));
+                  Emit ("jmp " & Label (Item, No));
                end if;
             end if;
          end Conditional_Branch;
@@ -3068,7 +3042,10 @@ package body Landin.Backend.X86_64 is
          --  A block some block at or after it branches back to begins a
          --  loop when control enters it from outside that loop: some
          --  predecessor is less deeply nested.  A later block that only
-         --  rejoins earlier code is no loop.  Speed aligns a loop's head
+         --  rejoins earlier code is no loop.  A loop tested at its foot
+         --  (D2096) begins where its test branches back to while the
+         --  test's other edge leaves the loop, to a block less deeply
+         --  nested than the test.  Speed aligns a loop's head
          --  to thirty-two bytes when nothing falls through into it, since
          --  then no padding is executed: a word counter's loop starting
          --  sixteen bytes into a line ran a fifth slower than at thirty-two.
@@ -3084,7 +3061,7 @@ package body Landin.Backend.X86_64 is
 
             procedure Mark (Source, Target : Landin.IR.Block_Id);
             procedure Mark (Source, Target : Landin.IR.Block_Id) is
-               Head : constant Landin.IR.Block_Id := Threaded (Target);
+               Head : constant Landin.IR.Block_Id := Target;
                Edge : Natural :=
                  Landin.IR.Control_Flow.First_Predecessor (Graph, Head);
             begin
@@ -3107,6 +3084,17 @@ package body Landin.Backend.X86_64 is
                     (Graph, Edge);
                end loop;
             end Mark;
+
+            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id);
+            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id) is
+            begin
+               if Back <= Test
+                 and then Depth (Positive (Back)) = Depth (Positive (Test))
+                 and then Depth (Positive (Leaving)) < Depth (Positive (Test))
+               then
+                  Loop_Heads (Positive (Back)) := 1;
+               end if;
+            end Foot;
          begin
             for Index in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
                declare
@@ -3125,6 +3113,12 @@ package body Landin.Backend.X86_64 is
                           (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
                         Mark (Block,
                               Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                        Foot (Block,
+                              Landin.IR.Target_Of (Of_Unit, Item, Last),
+                              Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                        Foot (Block,
+                              Landin.IR.Alternative_Of (Of_Unit, Item, Last),
+                              Landin.IR.Target_Of (Of_Unit, Item, Last));
                      when others => null;
                   end case;
                end;
@@ -6492,13 +6486,13 @@ package body Landin.Backend.X86_64 is
                         Following : constant Landin.IR.Block_Id :=
                           Current_Block + 1;
                      begin
-                        Emit ("jne " & Label (Item, Threaded (Other)));
+                        Emit ("jne " & Label (Item, Other));
                         if Equal = Following then
-                           Emit ("jp " & Label (Item, Threaded (Other)));
+                           Emit ("jp " & Label (Item, Other));
                         else
-                           Emit ("jnp " & Label (Item, Threaded (Equal)));
+                           Emit ("jnp " & Label (Item, Equal));
                            if Other /= Following then
-                              Emit ("jmp " & Label (Item, Threaded (Other)));
+                              Emit ("jmp " & Label (Item, Other));
                            end if;
                         end if;
                      end Ordered_Equal_Branch;
@@ -7003,8 +6997,8 @@ package body Landin.Backend.X86_64 is
                   if not Optimized or else Landin.IR.Target_Of
                     (Of_Unit, Item, Value) /= Current_Block + 1
                   then
-                     Emit ("jmp " & Label (Item, Threaded
-                           (Landin.IR.Target_Of (Of_Unit, Item, Value))));
+                     Emit ("jmp " & Label
+                       (Item, Landin.IR.Target_Of (Of_Unit, Item, Value)));
                   end if;
 
                when Landin.IR.Branch =>
