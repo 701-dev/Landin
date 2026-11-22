@@ -1897,7 +1897,7 @@ Exit evidence: a negative fixture for each refusal pinning its new note,
 
 ### R20.62 — Tools that know a window
 
-Status: planned
+Status: active
 Depends on: R20.10
 
 The process tools a window's items worked around, mended before R20's
