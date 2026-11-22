@@ -2623,9 +2623,20 @@ Every route in the installing documentation and exercised by the gate or,
 where only a release can, by the release workflow; the release recipe
 written in `docs/process.md` with each route's step.
 
-Not claimed: five of the README's six routes are exercised, but the
-Homebrew formula is checked only by hand after a release, in the tap the
-maintainer keeps; Q-142 asks whether that suffices.
+Claimed after R23.50, on main `42fb0001f`, as Q-142 answered: every
+item's completing commit passed its gate and boards dispatch. The full
+[pass](https://github.com/701-dev/Landin/actions/runs/44944750687) on
+`65efe1ccb`, which main's gate reused, exercised five of the README's six
+routes: the install script through `install_check.py` in `release`,
+`arm64-release` and both `darwin-host-release` shards; the release archive
+as the packaged compiler, with `static_check.py` in `release` and
+`arm64-release-checks`; the user image in `outside-user-stock` and
+`arm64-release`; nix through `nix_route.py` in `flake-compiler`; and the
+source build in every lane. The release workflow checks both archives of
+each Linux architecture and both images before its approval, shown by
+rehearsal 44944776550. Homebrew, which only a release can exercise, is
+checked by hand in step 8 of the release recipe, which `docs/process.md`
+writes down with each route's step.
 
 ## Successor families
 
