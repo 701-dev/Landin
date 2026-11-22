@@ -1565,7 +1565,7 @@ three, so no size or cycle baseline moved.
 
 ### R19.90 — The value model folded
 
-Status: planned
+Status: active
 Depends on: R19.10, R19.20, R19.30, R19.40
 
 SC-24 and SC-25, as D1664 records, in the scope and order of R19.20's
