@@ -27282,6 +27282,46 @@ and building it in a general register as before, the measured cost above.
 **Pinned by** `x86 opt/float constants come from a pool` and
 `compiler/tests/measure/baselines/`.
 
+### D2096 — A hosted loop is tested at its foot
+
+**The tour said** nothing. Every backend lays blocks out in the IR's order,
+which is lowering's creation order: a loop's test at its head, the body,
+the code after the loop, then the step. Each iteration jumped to the step
+and the step jumped back; SipHash-1-3's and SHA-256's loops reached the
+step through a `jmp` to a block of one `add` and a `jmp`. x86-64 at `speed`
+sent jumps past blocks that only jump on but still emitted 415 of them
+across the hosted workloads, and arm64 executed them.
+
+**Chosen:** at `size` and `speed`, for a hosted target, `Landin.IR.Layout`
+runs after every other pass. A jump or branch to a block holding only a
+jump goes to where that chain of jumps ends, unless a branch's two edges
+would then reach one block, and the blocks nothing reaches any more are
+dropped. A loop, a back edge's natural loop, whose head ends in a branch
+with one edge out of the loop is laid out as its other blocks in order,
+then the last of them to jump straight back to the head, then the head,
+then the block the head exits to, then the other blocks that stood among
+the loop's; inner loops are placed first, a loop's blocks stay together,
+and blocks are renumbered to the new order. The body falls into the step
+and the step into the test, which branches back to the body's top: one
+taken branch and no unconditional jump an iteration, and one jump on
+entry. x86-64 aligns the block a foot test branches back to by 32 bytes at
+`speed`. On x86-64 every hosted workload executes 0.5% (binary-trees) to
+8.9% (fasta) fewer instructions at `speed` and 0.8% to 8.5% fewer at
+`size`, in a smaller `.text` but for the fibre switches at `speed`, 64
+bytes of padding larger; on arm64 SipHash, SHA-256 and fannkuch-redux
+execute 3% to 5% fewer. Firmware targets keep lowering's order.
+
+**The alternatives:** a per-backend layout permutation, which DWARF's range
+and location lists, liveness and loop-head alignment would each have had
+to follow; duplicating the test at the loop's foot, which grows code;
+x86-64's own jump threading alone, which kept the dead blocks and left
+arm64 without it; and `speed` alone, which forgoes `size`'s smaller and
+faster code.
+
+**Pinned by** `x86 opt/loop nesting`, `x86 opt/speed places code`,
+`x86 opt/caller-saved slots`, the debugger lanes on linux-x86-64 and
+linux-arm64, and `compiler/tests/measure/baselines/`.
+
 ### D2100 — D339 weighs a straight routine as it will run
 
 **The tour said** nothing; D339 bounds a copy at 64 of D211's weighted
