@@ -61,6 +61,16 @@ def transport(command, log, *, live=False):
             process.stdout.close()
 
 
+def remote_commands(host, identity):
+    """The ssh and scp prefixes every transfer to HOST uses, with the key
+    IDENTITY.  IdentitiesOnly keeps ssh to that key: without it ssh offers
+    every key an agent holds first, and with several there the server's
+    MaxAuthTries ends the login, which BatchMode=yes turns into "too many
+    authentication failures" rather than a prompt."""
+    options = ['-i', str(Path(identity).expanduser()), '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes']
+    return ['ssh'] + options + [host], ['scp'] + options
+
+
 def manual_boot(arguments):
     """Follow the last transport selector, including argparse's prefixes.
 
@@ -121,8 +131,7 @@ def execute(args, board_args=()):
     build.prepare(args.board, args.mode, args.refine, stage / 'bundle', source)
     if bundle.snapshot(stage / 'source', build.ROOT) != source:
         raise bundle.Invalid('source changed after preparation; build again')
-    ssh = ['ssh', '-i', args.identity.expanduser(), '-o', 'BatchMode=yes', args.host]
-    scp = ['scp', '-i', args.identity.expanduser(), '-o', 'BatchMode=yes']
+    ssh, scp = remote_commands(args.host, args.identity)
     # mktemp returns a private path. Accept only this fixed prefix and a
     # basename with no shell metacharacters; do not unpack remote archives.
     made = subprocess.run([str(part) for part in ssh] + [

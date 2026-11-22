@@ -123,17 +123,33 @@ puts the steps in order:
 
 | step | command | what it does |
 |---|---|---|
-| start | `item.py start ITEM` | refuses a complete item or one with an incomplete dependency; makes `../Landin-ITEM` and its branch from `origin/main`; reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
+| start | `item.py start ITEM` | refuses a complete item or one with an incomplete dependency; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
 | after a reopen | `item.py resume [ITEM]` | the worktree, every recorded run as running, finished or lost, the gate runs, the journal's last lines and the next step |
 | along the way | `item.py note ITEM TEXT`, `item.py run ITEM NAME --limit S [--cwd DIR] -- COMMAND` | a dated journal line; a detached `run_logged.py` run kept in the state, in the item's worktree or DIR |
-| push | `item.py push ITEM [--watch]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; pushes the head and records its gate runs as `gate` does |
+| push | `item.py push ITEM [--watch]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does |
 | gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, and follows them with `gate_watch.py --all` in a detached run; a failed boards run is named a timing failure when only timing jobs failed |
 | boards | `item.py boards ITEM [--watch] [--unmerged] [--rerun-failed]` | dispatches `scope=boards` on the pushed head, records the run and with `--watch` follows it in a detached run; refuses while `main` is not an ancestor of the head, since promotion would refuse that tree (`--unmerged` dispatches anyway, for board feedback before the final merge); `--rerun-failed` re-runs only the failed jobs of a boards run that [failed in timing alone](#a-timing-failure-is-not-a-boards-failure) |
-| merging main | `item.py merge-main ITEM [--no-queue]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work |
-| promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer` |
-| finish | `item.py finish ITEM` | once main's gate on the promoted commit passed: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
-| watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait ITEM \| --release ITEM]` | every running item and the token's holder and line; those nothing has moved for an hour, exit 1; the token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), or giving up ITEM's token or place |
+| merging main | `item.py merge-main ITEM [--no-queue]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work |
+| promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
+| finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
+| watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait ITEM \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released |
 | report | `item.py report ITEM` | a draft of [the report](../.agents/skills/landin-change/report.md), ending with the open questions the item asked and their defaults |
+
+### A breaking window
+
+A phase that declares a breaking window names its integration branch in a
+line of its opening paragraphs, `Window: r20-integration`, and its serial
+items land there until its gate. `item.py` reads the line from `origin/main`
+or the branch itself: `start` branches from it, `merge-main` merges it,
+`promote` pushes the head to it once the push gate on the head passed,
+with no boards, which the window's one promotion to main dispatches on the
+integrated tree, and `finish` follows the landing. The candidate's gate
+ran on the commit that lands, so a sibling's landing that cancels the
+branch's own run takes no evidence away. The window has its own promotion
+token, given up as soon as the item lands. An item started before
+`item.py` knew windows reads the line from its worktree once it has merged
+the branch. The window's own promotion to main is its gate's, by the
+ordinary steps.
 
 ## Closing an item
 
@@ -202,8 +218,13 @@ Before an item closes:
    register row the item settled, saying why in the commit message, and file
    only what outlives the item, as `ROADMAP.md`'s mechanics ask: `python3
    scripts/register_next.py --file` writes a new row under the next free
-   SR number, with its keys to fill in. Then run
-   `python3 check.py --register` for the generated `roadmap/register.md`.
+   SR number, with its keys to fill in, and `register_next.py --delete
+   ROW ...` deletes settled rows, puts their citations in `ROADMAP.md` in
+   code spans, which `check.py` asks of a row that has left, and
+   regenerates `roadmap/register.md`. After any other register edit run
+   `python3 check.py --register` for the generated page. Work outside an
+   item takes decision numbers from `register_next.py --decision`, which
+   skips every running item's reserved block.
 
    `python3 check.py` refuses a register over its cap of 60 open rows, so
    an item that would close over it first schedules, settles or puts to the
@@ -212,9 +233,12 @@ Before an item closes:
    schedule it on an item whose text names it, put its retirement to the
    maintainer as a question under `roadmap/questions/` (`python3
    scripts/register_next.py --question --file --asked-by ITEM` writes
-   one with the parts to fill in), or keep it with a
+   one with the parts to fill in; work that is no item says what it is,
+   `--asked-by "the register sweep of 2026-11-22"`), or keep it with a
    body line `Kept: ` and one sentence saying why, which restarts its
-   count. The age is read from Git's history and is not checked in a
+   count. Only items completed after the row's filing or `Kept:` line on
+   its line of history, or after the merge that joined the two, count, so
+   a merge alone ages no row. The age is read from Git's history and is not checked in a
    shallow clone; the gate's `documents` job fetches the whole history
    for it, and a local check needs a full checkout.
 
@@ -310,7 +334,14 @@ evaluates the flake before each one, about two seconds a command.
 `scripts/agent_env.sh` evaluates it once per `flake.nix`, `flake.lock` and
 `environments/pins.sh`, writes what the shell exports to a file under
 `~/.cache/landin/agent-env/`, and prints that file's path; sourcing it takes a
-few milliseconds and leaves `TMPDIR` alone. Where there is no nix, or the
+few milliseconds and leaves `TMPDIR` alone. Nothing secret belongs in the
+exports: the hook copies the file into every command's argument, where
+`ps` shows it to every user of the host. The helper runs its shells with
+`--noprofile --norc` and standard input from `/dev/null`, so a hook's
+socket on standard input cannot make bash read `~/.bashrc`; it writes only
+names the flake shell's script sets, drops a name containing `PASSWORD`,
+`TOKEN`, `SECRET` or `CREDENTIAL` with a warning giving the name alone,
+and writes again a cached file that holds one. Where there is no nix, or the
 toolchain on `PATH` is this checkout's shell or no flake's, it prints
 `/dev/null`, so `. "$(./scripts/agent_env.sh)"` holds in either shell. The
 flake's shell exports `LANDIN_ENV_KEY`, the key the helper computes; when
@@ -404,7 +435,12 @@ It returns at once and the run goes on in a session of its own, which
 `--wait` attaches to from the old session or a new one. Nothing ends such a
 run by accident, so the limit is required: past it the wrapper ends the
 command and `result.json` says `limit_reached`. `--stop DIRECTORY` ends it
-early. A detached run sends no completion notification; in a main session,
+early. Either ends the run's whole process group: what is still in it
+`--grace` seconds (10) after the SIGTERM, such as an emulator a test
+started, is killed, and `result.json`'s `group_killed` says whether that
+was needed. A build waiting for a lock no record names prints, on Linux,
+the pid and program of a process holding it through an inherited
+descriptor, and elsewhere the `fuser -v` or `lsof` command that finds one. A detached run sends no completion notification; in a main session,
 put the `--wait` itself in the background to get one. A run whose wrapper
 died without a result exits 125 at once. Those two statuses are the wait's
 own: a finished run whose command itself exited 124 or 125, as `timeout`
@@ -608,6 +644,13 @@ while GitHub still accepts it. Compare `git ls-remote` of
 <https://github.com/701-dev/Landin> and <https://git.sr.ht/~sinnfrei/landin>
 before deleting, and delete what is only on one of them from that one by its
 URL. Nothing reports a disagreement between the two.
+
+A plain `git push origin` pushes both and fails as a whole when only
+git.sr.ht refuses, though GitHub took it; GitHub having taken the push is
+what counts. `item.py push` and `promote` push to GitHub first and judge
+the step by it, then push the mirror and report its refusal with the
+command that brings it up to date, `git push git@git.sr.ht:~sinnfrei/landin
+REFSPEC`, to run once git.sr.ht answers again.
 
 ### Paseo coordination
 

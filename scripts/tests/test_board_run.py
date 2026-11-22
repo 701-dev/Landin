@@ -131,6 +131,22 @@ class Transfer(unittest.TestCase):
         self.assertEqual([command[0] for command in calls], ['scp', 'ssh', 'scp', 'ssh'])
         self.assertFalse(self.args.record.exists())
 
+    def test_every_transfer_offers_the_named_key_alone(self):
+        """With several keys in an agent, ssh offered them before -i's, and
+        BatchMode ended in "too many authentication failures"."""
+        self.args.record = self.root / 'ram-record.json'
+        _, _, calls = self.record_run(payload=b'{"status":"passed","mode":"ram"}')
+        self.assertEqual([command[0] for command in calls], ['scp', 'ssh', 'scp', 'scp', 'ssh'])
+        options = ['-i', '/key with spaces', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes']
+        for command in calls:
+            self.assertEqual(command[1:7], options)
+        for command in calls[1::3]:
+            self.assertEqual(command[7], 'jan@10.42.0.60')
+        ssh, scp = board_run.remote_commands('rigpi', Path('~/key'))
+        self.assertEqual(ssh, ['ssh', '-i', str(Path('~/key').expanduser()), '-o', 'IdentitiesOnly=yes',
+                               '-o', 'BatchMode=yes', 'rigpi'])
+        self.assertEqual(scp, ['scp'] + ssh[1:-1])
+
     REMOVAL = 'rm -rf -- /tmp/landin-board.ABC123'
 
     def test_the_remote_staging_is_removed_once_the_output_is_here(self):

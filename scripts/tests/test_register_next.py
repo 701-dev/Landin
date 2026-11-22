@@ -136,5 +136,48 @@ class Allocate(unittest.TestCase):
             self.assertEqual(register_next.allocate(root, 1), [ROW % 90041])
 
 
+class Decisions(unittest.TestCase):
+    def test_past_spec_and_every_reserved_block(self):
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        root = Path(scratch.name)
+        (root / "spec.md").write_text("D90010 and D90012 decided.\n")
+        own, others = [], [(90013, 90020)]
+        original = register_next.blocks
+        register_next.blocks = lambda *a, **k: (own, others)
+        self.addCleanup(setattr, register_next, "blocks", original)
+        self.assertEqual(register_next.allocate(root, 2, decision=True),
+                         ["D90021", "D90022"])
+        #  A running item's own block first, past what spec.md took.
+        own.append((90011, 90012))
+        self.assertEqual(register_next.allocate(root, 2, decision=True),
+                         ["D90011", "D90021"])
+
+
+class Delete(unittest.TestCase):
+    def test_a_deleted_row_leaves_its_citations_quoted(self):
+        scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(scratch.cleanup)
+        root = Path(scratch.name)
+        rows = root / register_next.DIRECTORY
+        rows.mkdir(parents=True)
+        gone, kept, merged = ROW % 90050, ROW % 90051, ROW % 90052
+        (rows / (gone + ".md")).write_text(TEXT + "\nMerged: %s.\n" % merged)
+        (rows / (kept + ".md")).write_text(TEXT)
+        (root / "ROADMAP.md").write_text(
+            "Takes %s, %s and %s; `%s` already quoted; %s0 is another.\n"
+            % (gone, kept, merged, gone, gone))
+        changed = register_next.delete(root, [gone])
+        self.assertEqual(changed, [register_next.DIRECTORY + "/%s.md" % gone,
+                                   "ROADMAP.md"])
+        self.assertFalse((rows / (gone + ".md")).exists())
+        self.assertEqual(
+            (root / "ROADMAP.md").read_text(),
+            "Takes `%s`, %s and `%s`; `%s` already quoted; %s0 is another.\n"
+            % (gone, kept, merged, gone, gone))
+        with self.assertRaises(SystemExit):
+            register_next.delete(root, [gone])
+
+
 if __name__ == "__main__":
     unittest.main()

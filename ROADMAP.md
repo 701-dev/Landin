@@ -81,7 +81,11 @@ its phase's basis, may run beside anything, and is never the next item;
 any number of them may be active. A phase that declares a
 breaking window (R19, then R20) keeps its serial items on one integration
 branch and promotes them once, at its gate; a continuous item lands on
-main meanwhile and the branch takes it.
+main meanwhile and the branch takes it. The phase declares it in one line
+of its opening paragraphs, `Window: r20-integration`, naming the branch;
+`scripts/item.py` starts the phase's items from it and lands them on it in
+place of main, after their push gate and without boards, which the
+window's one promotion dispatches on the integrated tree.
 
 ```text
 Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
@@ -123,7 +127,9 @@ add/add conflict on the file, which is the detection, and the integrator
 renumbers the later one. The script is `scripts/register_next.py`;
 `--file` writes the row with its keys to fill in. A retired or completed
 row has no file: it is deleted in the commit that says why, and the
-history keeps it. There is no departures list, and the second roadmap's
+history keeps it; `register_next.py --delete` removes the file, puts the
+row's citations here in code spans and regenerates the page. There is no
+departures list, and the second roadmap's
 retired rows were not migrated.
 
 A moved row's `opened` is the date it first appeared, which the migration
@@ -132,7 +138,9 @@ script takes from the history.
 An item's agent may delete a row its change fixed, or one that duplicates
 another, naming the evidence in the commit. Retiring a row as not worth
 doing, and anything a row asks the maintainer to choose, is a question and
-waits for the maintainer.
+waits for the maintainer. An item that meets a row without triggering its
+activation leaves the row as it is: its activation names what triggers
+it, not the items that did not.
 
 The register holds at most 60 open rows; a scheduled row does not count,
 and a row may be scheduled only on an item whose text names it. A row that has stood through ten
@@ -143,13 +151,19 @@ an item cannot close until it has brought the count under it.
 
 For a moved row the ten completed items count from the exchange, since the
 sweep before it has just reviewed every live row; for a new row, from its
-filing.
+filing. Only an item completed after the filing or the `Kept:` line on
+its own line of history, or after the merge that joined the two, counts,
+so a window's branch taking main, or main taking the window, ages no row
+by the merge alone; a `Kept:` line written in resolving a merge restarts
+the count as one in an ordinary commit does.
 
 **Questions.** A decision only the maintainer can take is a question, one
 file under `roadmap/questions/`, Q-1 onward, never a register row and never
 a question asked only in a report or a chat. The file begins with the
 question as its heading, `# Q-7 — ...?`, and the line `Asked by R17.50 on
-2026-11-17.`, then what the maintainer needs to decide it, and four
+2026-11-17.`, or for work that is no item what the work is, `Asked by the
+register sweep of 2026-11-21 on 2026-11-21.`, then what the maintainer
+needs to decide it, and four
 paragraphs each opening with its label in bold: `Options:`, a list
 numbered from 1 with at least two; `Recommendation:`; `Default until
 answered:`, which says what the default is in words and not by its option
@@ -590,7 +604,7 @@ held in, which `Holds` cannot see, since a write after an operation's
 own result at its position looks like the result's; the measurement's
 oracles caught it, and selection's temporaries are now never offered.
 Filed: SR-1468, an `if`'s comparison computed into a register before its
-branch; SR-1465-SR-1467 record the friction met.
+branch; `SR-1465`-`SR-1467` record the friction met.
 
 ### R16.26 — The library's costs
 
@@ -1685,6 +1699,8 @@ questions with a default each. Its result is one list of breaking renames
 and restructurings, applied at once. The items after R20.10 are written as
 the inventory's defaults would shape them, and R20.10 may regroup them.
 
+Window: r20-integration
+
 R20 has a breaking window of its own after R19's: each integration
 branch lives one phase, and a release can fall between the two, while
 R19.40's `refine fix` is reused for R20's renames. `iterable`, `zeroable`
@@ -1919,21 +1935,37 @@ Exit evidence: a negative fixture for each refusal pinning its new note,
 
 ### R20.62 — Tools that know a window
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 The process tools a window's items worked around, mended before R20's
-promotion meets them: SR-1445's `item.py`, which starts, pushes, promotes
-and finishes against main only; SR-1548's row ages counted across a
-window's merge and a `Kept:` line in a merge's resolution; SR-1455's
-mirror failure judged as the push's; SR-1415's and SR-1446's row
-deletion, questions and decision numbers outside an item; SR-1466's
-`run_logged.py --stop` leaving a child holding the build lock; SR-1467's
-boards README and ssh options; and SR-1639's `agent_env.sh` cache holding
+promotion meets them: `SR-1445`'s `item.py`, which starts, pushes, promotes
+and finishes against main only; `SR-1548`'s row ages counted across a
+window's merge and a `Kept:` line in a merge's resolution; `SR-1455`'s
+mirror failure judged as the push's; `SR-1415`'s and `SR-1446`'s row
+deletion, questions and decision numbers outside an item; `SR-1466`'s
+`run_logged.py --stop` leaving a child holding the build lock; `SR-1467`'s
+boards README and ssh options; and `SR-1639`'s `agent_env.sh` cache holding
 the caller's environment.
 Exit evidence: each script's tests pinning the change, `docs/process.md`
 and the landin-change skill saying the window's steps, and R20's
 promotion refused for no row its merge alone aged.
+Done: R20 declares `Window: r20-integration`, and `item.py` starts,
+merges, lands and finishes the phase's items on it, without boards and
+with a token of its own, and finishes an item landed by hand. `push` and
+`promote` judge a push by GitHub and report the mirror's refusal with the
+command to retry; `queue --take` holds a token for work that is no item;
+`status` refreshes unfinished runs. A row's age counts only items
+completed after it on its line or after the joining merge, and a `Kept:`
+line written in a merge counts, so R20's promotion ages no row by the
+merge alone. `register_next.py` deletes rows with their citations quoted
+and the page regenerated, and gives out decision numbers; a question names
+the work that asked it. `run_logged.py` ends a run's process group and a
+lock wait names a holder by its descriptor. The boards README times one
+Pico 2 port alone and every ssh line says `IdentitiesOnly=yes`.
+`agent_env.sh` read `~/.bashrc` when its standard input was a socket; it
+now reads no startup file and writes no secret-looking name. The eight
+rows are deleted.
 
 ### R20 gate
 R20's breaking window: the list reached main in one promotion, so main

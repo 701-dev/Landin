@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 import selectors
 import shutil
+import signal
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -213,6 +215,63 @@ echo "$LANDIN_BUILD_MODE"
         self.ready(waiting)
         self.release(waiting)
 
+    def test_a_waiter_names_a_program_that_inherited_the_lock(self):
+        #  A program a test started outlived its caller with the
+        #  lock's descriptors, recording nothing under `.holders/`.
+        self.script("strays.sh", '''#!/bin/sh
+. "$(dirname -- "$0")/env.sh"
+landin_build_lock mode "$@"
+sleep 600 </dev/null >/dev/null 2>&1 &
+echo "stray $!"
+''')
+        starter = self.start("strays.sh")
+        stray = int(self.line(starter.stdout).split()[1])
+
+        def end_stray():
+            try:
+                os.kill(stray, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        self.addCleanup(end_stray)
+        starter.communicate(timeout=HANG)
+        self.assertEqual(starter.returncode, 0)
+        first = self.start()
+        said = self.line(first.stderr)
+        self.assertIn("waiting for build lock test-debug", said)
+        if not os.path.isdir("/proc/self/fdinfo"):
+            self.assertIn("no holder is recorded", said)
+            self.assertIn("lsof", said)
+            return
+        self.assertIn("held by pid %d: sleep (inherited the lock's"
+                      " descriptor" % stray, said)
+        #  A second waiter has the file open too, but holds nothing.
+        second = self.start()
+        said = self.line(second.stderr)
+        self.assertIn("held by pid %d: sleep" % stray, said)
+        self.assertNotIn("pid %d" % first.pid, said)
+        end_stray()
+        self.ready(first)
+        self.release(first)
+        self.ready(second)
+        self.release(second)
+
+    def test_a_wait_with_no_holder_found_says_how_to_look(self):
+        sys.path.insert(0, str(self.root / "scripts"))
+        try:
+            import build_lock
+            lock = self.root / "lone"
+            lock.write_text("")
+            said = build_lock._waiting_message(str(lock), "to test")
+            self.assertIn("waiting for build lock lone (to test); no holder is"
+                          " recorded and none was found by its open"
+                          " descriptor", said)
+            self.assertIn(str(lock), said)
+            self.assertEqual(build_lock.descriptor_holders(
+                str(lock), proc=str(self.root / "no-proc")), [])
+        finally:
+            sys.path.remove(str(self.root / "scripts"))
+            sys.modules.pop("build_lock", None)
+
     def build_tree(self):
         build = self.root / "compiler/ada/build/test/debug"
         (build / "link").mkdir(parents=True)
@@ -304,6 +363,7 @@ echo "$LANDIN_BUILD_MODE"
         self.script("reader-publish.py", f'''#!/usr/bin/env python3
 import os
 import subprocess
+import sys
 import sys
 sys.path.insert(0, {str(alias / "scripts")!r})
 import build_lock
