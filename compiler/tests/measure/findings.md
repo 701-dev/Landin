@@ -218,6 +218,38 @@ What is left, by what each measured, for whoever takes Cortex-M next:
    known; from sp after the reservation would be one `str` each. Small:
    once a call.
 
+### The small targets after their remaining code
+
+Measured against the commit the work started from, with the sizes and
+counts of `measure.py size` and `measure.py instructions` and the build
+report's per-routine `instructions`.
+
+- **A refused allocation.** Over the runtime corpus at armv7-m
+  speed-auto, twelve routines in eight programs kept their homes because
+  the second emission wrote r6 where the plan held a value, every one of
+  them; the firmware set had none. Allocating again over every
+  emission's writes, up to three rounds, places all twelve, with 15% to
+  35% fewer static instructions each (`library-builtin-evidence`'s
+  `hash_of` 80 to 68, `core-io-line-reader`'s routine 256 to 175). The
+  build report's `kept_homes` names any that still fall back.
+- **A loop's end that is a length less one.** `for at in first..<lenof
+  s - 1` indexing `s[at]` kept its bounds check every iteration; it is
+  now proved. fasta's run on x86-64 v1 executes 3,906 M instructions at
+  speed against 4,334 M (-9.9%) and 4,472 M at size against 4,899 M
+  (-8.7%), with the same output; RV64 counts 171,000 fewer at its
+  measured argument (-5.0% at speed), and fasta's image is 63 to 100
+  bytes smaller on every hosted target. No firmware workload has the
+  shape.
+- **The atom `match` chain.** `failure.words` at armv6-m size-auto is
+  1,132 bytes for 34 arms. Its subject's set is tested once, at entry
+  (about 120 bytes); each arm is then one `movs`, `cmp` and `bne`, 6
+  bytes, and a body of a literal load and two stores, about 16 bytes and
+  a literal. A jump table would replace the 6 bytes an arm with a 4-byte
+  entry and a dispatch of about 12, about 56 bytes in all: not worth a
+  multiway IR terminator. What would shrink it is a table of the arms'
+  constant results, a different transformation that only a `match` whose
+  every arm yields constants allows.
+
 ### RV32
 
 1. **Every value in a stack home.** Report share 53.9% at rv32imc
