@@ -13,4 +13,4 @@ item: (s: ptr bag, c: usize) -> (v: ptr i32 from s) =
 end item
 next: (s: ptr bag, c: usize) -> (c2: usize) = c + 1 end next
 bag is iter.iterable (cur: usize, item_type: ptr i32,
-                 first: first, at_end: at_end, item: item, next: next)
+                      first: first, at_end: at_end, item: item, next: next)
