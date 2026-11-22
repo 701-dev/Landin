@@ -388,6 +388,84 @@ class LibraryModuleNames(unittest.TestCase):
                       said[0])
         self.assertIn("platform/cortex_m/timer", said[1])
 
+CONVENTIONAL_MODULE = """\
+--- What a capability is received by.
+public drain: type = concept (provider: type)
+    --- An entry takes another capability erased.
+    take: (self: provider, names: any drain, count: usize) -> none
+end drain
+
+--- Subject, capability, input.
+public push: (provider: type is drain, inout into: []mut u8, host: provider,
+              count: usize) -> none =
+    _ = count
+end push
+
+--- A value that keeps its provider takes it erased.
+public kept: (state: usize, runs: any drain) -> (made: any drain from runs) =
+    _ = state
+    made = runs
+end kept
+"""
+
+DEPARTING_MODULE = """\
+--- What a capability is received by.
+public drain: type = concept (provider: type)
+    --- Its capability after an input.
+    take: (self: provider, count: usize, names: any drain) -> none
+end drain
+
+--- Erased for the call alone.
+public erased: (into: []mut u8, onto: any drain) -> none =
+    _ = into
+end erased
+
+--- An allocator after an input.
+public late: (provider: type is drain, inout into: []mut u8, count: usize,
+              memory: provider) -> none =
+    _ = count
+end late
+
+--- `caller` before the end.
+public early: (into: []mut u8, caller: usize, count: usize) -> none =
+    _ = count
+end early
+"""
+
+
+class LibraryConventions(unittest.TestCase):
+    """D1948 and D1954: how a library routine receives a capability."""
+
+    def said(self, text, departures):
+        with mock.patch.dict(checker.LIBRARY_CONVENTION_DEPARTURES,
+                             departures, clear=True):
+            return faults(checker.check_library_conventions,
+                          written={"core/drain/drain.ldn": text})
+
+    def test_the_conventions_pass(self):
+        self.assertEqual(self.said(CONVENTIONAL_MODULE, {}), [])
+
+    def test_each_departure_is_refused(self):
+        said = {why.split()[0]: why
+                for _, _, why in self.said(DEPARTING_MODULE, {})}
+        self.assertEqual(sorted(said), ["core/drain.drain.take",
+                                        "core/drain.early",
+                                        "core/drain.erased",
+                                        "core/drain.late"], said)
+        self.assertIn("(D1954", said["core/drain.early"])
+        self.assertIn("take `provider: type is C` (D1948",
+                      said["core/drain.erased"])
+
+    def test_a_listed_departure_passes_and_a_stale_listing_does_not(self):
+        listed = {"core/drain.early": "D1954", "core/drain.erased": "D1948",
+                  "core/drain.late": "D1954",
+                  "core/drain.drain.take": "D1954"}
+        self.assertEqual(self.said(DEPARTING_MODULE, listed), [])
+        said = self.said(CONVENTIONAL_MODULE, {"core/drain.push": "D1954"})
+        self.assertEqual(len(said), 1, said)
+        self.assertIn("no longer departs", said[0][2])
+
+
 class LibraryCommentWidth(unittest.TestCase):
     """D1317: a library documentation comment is at most 79 columns."""
 

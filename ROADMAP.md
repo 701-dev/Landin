@@ -1708,7 +1708,7 @@ every target the gate runs; the refusal where `P` is not a parent.
 
 ### R20.20 — How a capability is received
 
-Status: active
+Status: complete
 Depends on: R20.10
 
 The rule for `type is C` against `any C` (D1948) and the order of
@@ -1716,6 +1716,25 @@ parameters (D1954) written into `core/README.md`'s conventions, and every
 routine that departs from them put on the breaking list.
 Exit evidence: the conventions stated; a check, where one is mechanical,
 that holds the library to them.
+Done: `core/README.md`'s conventions state both rules, and D1988 says how
+they read where the decisions are silent: a concept entry takes `any C`,
+since an entry may not take a type of its own; the subject of a
+provider's own operation is the provider; the evidence concepts' values
+are inputs; a platform binding keeps the system's order. A full
+`python3 check.py` holds every public routine and concept entry of the
+library to what is mechanical, an erased provider not kept, a capability
+after an input, a `caller` before the end, with a table of the departures
+the list reshapes that refuses an entry once it no longer departs. Its
+controls are `LibraryConventions`. The section "How a capability is
+received" of [the breaking list](roadmap/inputs/breaking-list.md), which
+this item began with R20.50's form, names seven: `text.format_onto`, which
+takes `any outlet` without keeping it; `stacks.round_over`,
+`fake.network_over_turns` and the `file_system` entry `make_temporary`,
+each with a capability after an input; and `mem.transfer`,
+`mem.transfer_prefix` and `random.shuffle`, whose subject is not first,
+which the check cannot see. Reordering `mem.transfer_prefix` leaves the
+old call valid, so R20.60 must refuse the old form some other way.
+A misleading follow-on refusal met on the way joined SR-1538.
 
 ### R20.30 — The concepts
 

@@ -133,6 +133,35 @@ streaming log, holds a copy of its parent's handle. One parameter name serves
 each role: `memory` is an allocator handle, `host` an I/O handle, `state` a
 provider's caller-owned state and `self` a concept entry's receiver.
 
+A routine takes a capability as a type of its own, `provider: type is C`,
+with the value `host: provider` or `memory: provider`. So the caller
+decides whether to erase it, the routine can name the type, and a call
+can be specialised; an `any C` passes to it unchanged (D1948). `any C`
+is for a value that keeps a provider beyond the call, as the text
+builder keeps its allocator and the fibre group its scheduler: the
+routine that makes one takes the provider `escaping` or returns a result
+`from` it. A slice of `any C` mixes kinds, as a template's values do. A
+concept entry takes another capability as `any C`, since an erased table
+holds the entry once and an entry takes no type of its own; the public
+routine over it is generic and erases at the call, as `io.make_temporary`
+does (D1988).
+
+Parameters come in one order (D1954). Type and `fixed` parameters come
+first. Then comes the subject: the value the routine reads or changes, a
+container, a buffer, a builder or a provider's state, or the provider
+itself for one of its own operations, as in `io.read` or `mem.allocate`.
+Then the capabilities: `memory`, `host`, an entropy or a generator. Then
+the other inputs, and a `caller` last. So `vec.push(value, memory, item)`,
+`fault.over(state, inner, 3)` and `io.make_temporary(host, names,
+directory, into)`. A `platform` binding of a system call keeps the
+system's own order. A full `python3 check.py` holds every public routine
+and concept entry to both rules where they are mechanical: an `any C` it
+does not keep, a capability after an input and a `caller` before the
+end. It reads the evidence concepts, `cmp.ordered` and the like, as
+inputs, and any other concept as a capability. The routines the
+library review's breaking list reshapes are the only exceptions it
+allows (D1988).
+
 `core/mem` keeps `new`/`delete` for one allocated item and `new_bytes`/
 `delete_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
 `release` never means anything but giving storage back. Names are

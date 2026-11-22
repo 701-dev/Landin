@@ -11895,6 +11895,161 @@ def check_library_module_names(full_run):
     return out
 
 
+#  The library's concepts that are evidence about a type, or a value a
+#  routine is given, rather than a capability it receives: a parameter of
+#  one is an input in D1954's order.  Every other library concept is a
+#  capability, so a new evidence concept is named here.
+LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
+                             "hashable", "ordered", "formattable", "task")
+
+#  The parameter names core/README.md fixes for a capability (D269).
+LIBRARY_CAPABILITY_NAMES = ("memory", "host")
+
+#  Each routine or concept entry that departs from core/README.md's
+#  conventions for receiving a capability, with the rule it departs from.
+#  Every one is on the breaking list, roadmap/inputs/breaking-list.md,
+#  whose application reshapes it and takes it out of this table; an entry
+#  that no longer departs is refused, so the table empties as the list is
+#  applied.
+LIBRARY_CONVENTION_DEPARTURES = {
+    "core/text.format_onto": "D1948",
+    "core/fibre/stacks.round_over": "D1954",
+    "core/io/fake.network_over_turns": "D1954",
+    "core/io.file_system.make_temporary": "D1954",
+}
+
+
+def library_parameters(text):
+    """The parameters of the routine signature `text`, outermost list.
+
+    Answers (name, type, modifiers) for each, with comments and the
+    signature's line breaks already gone from `text`.
+    """
+    start = text.index("(")
+    depth, end = 0, start
+    for end in range(start, len(text)):
+        if text[end] in "([":
+            depth += 1
+        elif text[end] in ")]":
+            depth -= 1
+            if depth == 0:
+                break
+    pieces, depth, current = [], 0, ""
+    for char in text[start + 1:end]:
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+        if char == "," and depth == 0:
+            pieces.append(current)
+            current = ""
+        else:
+            current += char
+    pieces.append(current)
+    out = []
+    for piece in pieces:
+        if ":" not in piece:
+            continue
+        head, kind = piece.split(":", 1)
+        words = head.split()
+        out.append((words[-1], " ".join(kind.split()), words[:-1]))
+    return out, text[end + 1:]
+
+
+def library_convention_faults(name, text, entry):
+    """How the routine or concept entry `name`, signature `text`, departs.
+
+    D1948: a capability parameter `any C` is for a value that keeps the
+    provider beyond the call, so it is refused unless it is `escaping`,
+    the result is `from` it, it is a slice mixing providers, or it is a
+    concept entry's (`entry`), which an erased table holds once and so
+    takes no type of its own.  D1954: after the subject, the first
+    parameter, every capability comes before every other input, and a
+    `caller` comes last.  Answers the decisions departed from.
+    """
+    params, rest = library_parameters(text)
+    results = rest.split("!")[0]
+    bound, values = {}, []
+    for pname, kind, modifiers in params:
+        if "fixed" in modifiers:
+            continue
+        typed = re.match(r"type(?: is (\S+))?$", kind)
+        if typed:
+            bound[pname] = typed.group(1)
+            continue
+        values.append((pname, kind, modifiers))
+
+    def capability(concept):
+        return (concept is not None
+                and concept.split(".")[-1] not in LIBRARY_EVIDENCE_CONCEPTS)
+
+    faults = set()
+    capabilities = []
+    for pname, kind, modifiers in values:
+        erased = re.match(r"any (\S+)$", kind)
+        capabilities.append(pname in LIBRARY_CAPABILITY_NAMES
+                            or bool(erased and capability(erased.group(1)))
+                            or capability(bound.get(kind)))
+        if (erased and not entry and "escaping" not in modifiers
+                and not re.search(r"\bfrom\b[^)]*\b%s\b" % pname, results)):
+            faults.add("D1948")
+    for at in range(2, len(values)):
+        if capabilities[at] and not all(capabilities[1:at]):
+            faults.add("D1954")
+    if any(pname == "caller" for pname, _, _ in values[:-1]):
+        faults.add("D1954")
+    return faults
+
+
+def check_library_conventions(full_run):
+    """The library receives a capability as core/README.md says.
+
+    Each public routine and concept entry of `core`, `hosted` and
+    `platform` takes a capability by D1948's rule and orders its
+    parameters by D1954's, or is named in LIBRARY_CONVENTION_DEPARTURES
+    because the breaking list reshapes it.
+    """
+    if not full_run:
+        return []
+    from pathlib import Path
+    try:
+        modules, _ = site_library().collect(Path(ROOT))
+    except (OSError, ValueError):
+        return []  # check_library_documentation reports it
+    found, places = {}, {}
+    for module, items in sorted(modules.items()):
+        for item in items:
+            lines = [line.split("--")[0] for line in item.signature.split("\n")]
+            if item.kind == "function" and "extern(" not in item.signature:
+                key = "%s.%s" % (module, item.name)
+                found[key] = library_convention_faults(
+                    key, " ".join(lines), False)
+                places[key] = (item.source, item.line)
+            elif item.kind == "concept":
+                body = " ".join(lines[1:])
+                for entry in re.finditer(r"(\w+):\s*\(", body):
+                    key = "%s.%s.%s" % (module, item.name, entry.group(1))
+                    found[key] = library_convention_faults(
+                        key, body[entry.start():], True)
+                    places[key] = (item.source, item.line)
+    out = []
+    for key, faults in sorted(found.items()):
+        allowed = LIBRARY_CONVENTION_DEPARTURES.get(key)
+        for fault in sorted(faults - {allowed}):
+            rule = ("takes a capability as `any C` without keeping it; take"
+                    " `provider: type is C`" if fault == "D1948" else
+                    "puts a capability after an input or `caller` before the"
+                    " end; order subject, capabilities, inputs, caller")
+            out.append(places[key] + ("%s %s (%s, core/README.md's"
+                                      " conventions)" % (key, rule, fault),))
+    for key, rule in sorted(LIBRARY_CONVENTION_DEPARTURES.items()):
+        if rule not in found.get(key, ()):
+            out.append(("check.py", 1, (
+                "LIBRARY_CONVENTION_DEPARTURES names %s for %s, which it no"
+                " longer departs from; take it out of the table" % (key, rule))))
+    return out
+
+
 def check_core_module_places(full_run):
     """A `core` module is known in each place a module has to be known.
 
@@ -12605,6 +12760,7 @@ def main(argv):
     extra += check_library_documentation(full_run)
     extra += check_core_module_places(full_run)
     extra += check_library_module_names(full_run)
+    extra += check_library_conventions(full_run)
     extra += check_library_comment_width(full_run)
     extra += check_library_consumers(full_run)
     extra += check_failure_words(full_run)
