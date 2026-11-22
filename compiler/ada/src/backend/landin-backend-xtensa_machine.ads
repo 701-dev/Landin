@@ -7,7 +7,10 @@
 --  words' liveness is computed over the routine's own text, each word's
 --  definitions are joined into webs, and the webs are placed in the
 --  window's a2-a6, which every CALL8 preserves, and a10-a15, which it
---  does not, or in their homes in the frame (D1627).  a8 and a9 are
+--  does not, or in their homes in the frame (D1627).  Only then is the
+--  frame's low part laid out, from a7 up: a home for each word some web
+--  keeps there and none for the rest, and the routine's prologue, which
+--  reserves the frame, written before its body.  a8 and a9 are
 --  selection's own transients.  A routine with an `assembler.block`, or
 --  whose text the analysis cannot follow, keeps every word in its home at
 --  a7 + offset, a8-a13 as transients, and its scratch words x5-x7, x9 and
@@ -47,17 +50,15 @@ package Landin.Backend.Xtensa_Machine is
    --  emitter's own, given a home by Declare_Home before it is used.
    First_Value_Word : constant := 32;
 
-   procedure Begin_Routine
-     (Of_Routine : in out Routine;
-      Frame_Bytes : Landin.Targets.Byte_Count);
+   procedure Begin_Routine (Of_Routine : in out Routine);
    function Buffering (Of_Routine : Routine) return Boolean;
 
-   --  Word's home at a7 + Offset, Bytes wide: 1, 2 or 4.  A narrower word
-   --  holds its value zero-extended.
+   --  That Word may have a home, Bytes wide: 1, 2 or 4.  A narrower word
+   --  holds its value zero-extended.  Where the home is, if the word
+   --  needs one, Finish_Routine decides.
    procedure Declare_Home
      (Of_Routine : in out Routine;
       Word : Natural;
-      Offset : Landin.Targets.Byte_Count;
       Bytes : Positive);
 
    --  A logical instruction, or several separated by line feeds.
@@ -67,12 +68,22 @@ package Landin.Backend.Xtensa_Machine is
 
    --  Select the buffered routine into Into.  Registers is how many
    --  physical registers its placement used, zero when it kept every word
-   --  in its home.
+   --  in its home.  Before the body, Prologue writes the routine's
+   --  prologue into Into once the homes are laid out: Low_Bytes is what
+   --  they take from a7 up, a multiple of four, and Saves_A7 whether the
+   --  incoming a7 is read, from its home at a7 + A7_Home, where the
+   --  prologue stores it.  Prologue answers the frame's bytes from a7 to
+   --  the CFA, x8, at least Low_Bytes.
    procedure Finish_Routine
      (Of_Routine : in out Routine;
       Into : in out Ada.Strings.Unbounded.Unbounded_String;
       Serial : in out Natural;
-      Registers : out Natural);
+      Registers : out Natural;
+      Prologue : not null access procedure
+        (Low_Bytes : Landin.Targets.Byte_Count;
+         Saves_A7 : Boolean;
+         A7_Home : Landin.Targets.Byte_Count;
+         Frame_Bytes : out Landin.Targets.Byte_Count));
 
 private
    type Line_Kind is (Logical, Line);
@@ -92,7 +103,6 @@ private
 
    type Routine is limited record
       Active : Boolean := False;
-      Frame_Bytes : Landin.Targets.Byte_Count := 0;
       Lines : Buffered_Vectors.Vector;
       --  Indexed by word less First_Value_Word.
       Homes : Home_Vectors.Vector;

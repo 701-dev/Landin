@@ -333,12 +333,12 @@ package body Landin.Tests.Xtensa_Backend_Suite is
       Report_At : constant Natural :=
         Ada.Strings.Fixed.Index (Text, LF & "report:" & LF);
       --  The fourth u64 is the one stack word pair: sixteen bytes at SP,
-      --  with the base of the word homes above them.
+      --  with the base of the word homes above them.  The incoming a7 is
+      --  stored there only when the routine reads it (D2116).
       Above : constant String :=
         HT & "sub a1, a1, a8" & LF
         & HT & "movi a8, 16" & LF
-        & HT & "add a8, a1, a8" & LF
-        & HT & "s32i a7, a8, ";
+        & HT & "add a8, a1, a8" & LF;
       Based : constant String := HT & "mov a7, a8" & LF;
       Above_At : constant Natural :=
         (if Report_At = 0 then 0
@@ -404,8 +404,9 @@ package body Landin.Tests.Xtensa_Backend_Suite is
                end if;
             end;
          end loop;
+         --  At least the 48 bytes below the CFA the window keeps.
          Landin.Testing.Check
-           (Item, Homes >= 128 and then Counted = 1,
+           (Item, Homes >= 48 and then Homes mod 16 = 0 and then Counted >= 1,
             "the build report's frame and stack figures of that routine"
             & " count the sixteen bytes of its area:"
             & Homes'Image & Counted'Image);
@@ -466,6 +467,60 @@ package body Landin.Tests.Xtensa_Backend_Suite is
         (Item, Placed > 0, "the build report counts the registers placed");
    end Placed_Loop;
 
+   --  D2116: a placed routine's frame is laid out after its words are
+   --  placed.  One whose words all stay in registers reserves only the
+   --  48 bytes below the CFA the window keeps, and does not store the
+   --  incoming a7 it never reads; one with an array keeps the array's
+   --  home, which its address reaches, and no bank beside it.
+   procedure Placed_Frame (Item : in out Landin.Testing.Context);
+   procedure Placed_Frame (Item : in out Landin.Testing.Context) is
+      HT : constant Character := ASCII.HT;
+      Whole : constant String := Emitted
+        (Item,
+         "total: (n: u32) -> (r: u32) =" & LF
+         & "    mut sum: u32 = 0" & LF
+         & "    mut index: u32 = 0" & LF
+         & "    while index < n do" & LF
+         & "        sum = sum +% index" & LF
+         & "        inc index" & LF
+         & "    end while" & LF
+         & "    r = sum" & LF
+         & "end total" & LF
+         & "pick: (i: usize) -> (r: usize) =" & LF
+         & "    mut table: [8]usize = [0, 0, 0, 0, 0, 0, 0, 0]" & LF
+         & "    table[i & 7] = i" & LF
+         & "    r = table[(i +% 1) & 7]" & LF
+         & "end pick" & LF);
+      Total : constant String := Routine_Text (Whole, "total");
+      Pick : constant String := Routine_Text (Whole, "pick");
+      Frames : array (1 .. 2) of Natural := [others => 0];
+   begin
+      for Index in 1 .. Landin.Build_Reports.Routine_Count (Last_Report) loop
+         declare
+            Row : constant Landin.Build_Reports.Routine_Statistics :=
+              Landin.Build_Reports.Nth_Routine (Last_Report, Index);
+            Frame : constant Natural := Natural (Row.Frame_Bytes);
+         begin
+            if Frame = 48 then
+               Frames (1) := Frames (1) + 1;
+            elsif Frame >= 48 + 32 and then Frame < 48 + 32 + 80 then
+               Frames (2) := Frames (2) + 1;
+            end if;
+         end;
+      end loop;
+      Landin.Testing.Check
+        (Item, Total /= ""
+           and then Contains
+             (Total, HT & "movi a8, 16" & LF & HT & "sub a1, a1, a8" & LF)
+           and then not Contains (Total, "s32i a7, "),
+         "a routine whose words stay in registers reserves 48 bytes and"
+         & " leaves the incoming a7 unstored" & LF & Total);
+      Landin.Testing.Check
+        (Item, Pick /= "" and then Frames (1) >= 1 and then Frames (2) = 1,
+         "the array's routine keeps its 32-byte home and no bank:"
+         & Frames (1)'Image & Frames (2)'Image & LF & Pick);
+   end Placed_Frame;
+
    --  D1627: CALL8 preserves a2-a7 alone, so a word live across a call is
    --  placed there, and the call's argument and result words are a10 on.
    procedure Placed_Across_Call (Item : in out Landin.Testing.Context);
@@ -500,6 +555,28 @@ package body Landin.Tests.Xtensa_Backend_Suite is
                        > 0),
          "after the second call x is read from a2-a6");
    end Placed_Across_Call;
+
+   --  Whether no label Text defines is defined twice.  A placed
+   --  routine's prologue is written after its body is placed (D2116),
+   --  and its stack check's labels must still be its own.
+   function Labels_Unique (Text : String) return Boolean;
+   function Labels_Unique (Text : String) return Boolean is
+      Start : Positive := Text'First;
+   begin
+      for Index in Text'Range loop
+         if Text (Index) = LF then
+            if Index > Start + 1 and then Text (Index - 1) = ':'
+              and then Text (Start) = '.'
+              and then Ada.Strings.Fixed.Count
+                (Text, LF & Text (Start .. Index)) > 1
+            then
+               return False;
+            end if;
+            Start := Index + 1;
+         end if;
+      end loop;
+      return True;
+   end Labels_Unique;
 
    --  D1110: where a program prepares stacks, each prologue
    --  checks its whole frame against the stack's limit, so the figure it
@@ -575,6 +652,9 @@ package body Landin.Tests.Xtensa_Backend_Suite is
         (Item, Sum_Homes > 0 and then Sum_Checked = Sum_Homes - 16,
          "a routine without an area checks its homes alone:"
          & Sum_Checked'Image & Sum_Homes'Image);
+      Landin.Testing.Check
+        (Item, Labels_Unique (Text),
+         "every checking prologue's labels are its own" & LF & Text);
    end Prepared_Stack_Area;
 
    --  An interrupt's entry and return leave the firmware's interrupt
@@ -634,6 +714,9 @@ package body Landin.Tests.Xtensa_Backend_Suite is
       Landin.Testing.Register
         (Into, "xtensa backend", "a word across a call keeps a2-a6",
          Placed_Across_Call'Access);
+      Landin.Testing.Register
+        (Into, "xtensa backend", "a placed frame holds only what it spills",
+         Placed_Frame'Access);
       Landin.Testing.Register
         (Into, "xtensa backend", "a prepared stack's check counts the area",
          Prepared_Stack_Area'Access);

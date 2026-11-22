@@ -27529,6 +27529,8 @@ parameter was stored.
 
 ### D1627 — Xtensa places every word of a routine over the routine's own text
 
+**Partly superseded by D2116.** Its frame, kept as it was with the 80-byte bank and every value's and slot's home, is laid out after placement since D2116; the rest stands, and what follows is history.
+
 **The tour said** nothing. Xtensa's machine layer kept every RISC-V-form
 logical word but five in memory at a7 + 4×N and every value and slot in
 its frame home, so an operation loaded its operands, computed and stored
@@ -27589,6 +27591,51 @@ words, not its IR.
 **Pinned by** `xtensa backend/placed words keep a loop in registers`,
 `xtensa backend/a word across a call keeps a2-a6`, both chips' corpus
 lanes and `compiler/tests/measure/baselines/`.
+
+### D2116 — An Xtensa routine's frame is laid out after its words are placed
+
+**The tour said** nothing. D1627 placed most of an assembly-free routine's
+words in registers but kept the frame it had, because the prologue was
+written before the body was placed: an 80-byte bank for the logical words
+and a home for every scalar value and slot, which only a spilled web reads.
+Over the firmware set the routines' frames summed to 912 to 3,408 bytes an
+image and the deepest was 304 to 752 bytes.
+
+**Chosen:** in a routine without an `assembler.block`, the homes below the
+CFA are only those of the values and slots that are not words of their own:
+slots an address reaches, aggregates and arrays, and values that assembly
+or C transport needs in memory. They keep their places relative to the
+CFA, which is still the incoming SP. The machine layer places the
+routine's webs first. It then lays out a home from a7 up for each word
+that some web keeps in memory, widest first. A word whose webs are all in
+registers, or never read, gets no home. The incoming a7, which the body
+reads as x15, gets the first home, and only when the body reads it. Only
+then is the prologue written, ahead of the body in the text. Its frame is
+those homes, the addressed homes above them and the 48 bytes below the
+CFA that the window keeps, rounded up to 16. If placement gives up,
+D1627's word-by-word fallback keeps the whole bank and a home for every
+value word in the same low part. A routine with an `assembler.block`
+keeps its two banks and every home. Firmware debug information describes
+lines and no frame, so it is unchanged. The preflight checks, L0507 and
+addressability, still bound the frame by the reference frame, which holds
+every home and so bounds this one; no lane's stack-limit record moves.
+Over the firmware set at every profile and both levels the routines' frames
+now sum to 352 to 1,072 bytes an image. The deepest frame is 128 to 208
+bytes, and `.text` is 48 to 312 bytes smaller at every key. At xtensa-esp32
+speed-auto the deepest closed call-graph depth of `--stack-report` falls
+from 800 to 2,240 bytes an image to 336 to 752.
+
+**The alternatives:** writing the prologue with a placeholder size and
+patching the text afterwards, which gives the same frame at the cost of a
+text substitution; sharing one home between words whose webs never
+overlap, which a few spilled words an image would not repay; and keeping
+the bank while dropping only the held homes, which leaves 80 bytes in every
+frame.
+
+**Pinned by** `xtensa backend/a placed frame holds only what it spills`,
+`xtensa backend/an outgoing area is part of the frame`, the prepared-stack
+case's check that every prologue's labels are its own, both chips' corpus
+lanes and native controls, and `compiler/tests/measure/baselines/`.
 
 ### D1628 — On Xtensa a comparison only its branch reads is the branch
 

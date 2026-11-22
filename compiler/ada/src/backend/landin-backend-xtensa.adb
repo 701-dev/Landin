@@ -1658,13 +1658,34 @@ package body Landin.Backend.Xtensa is
          return Offset;
       end Field_Offset;
 
-      --  Plan and Layout are the routine's one plan and frame.
+      --  Plan and Reference are the routine's one plan and the frame
+      --  that gives each of its values and slots a home.
       procedure Emit_Routine
-        (Item : Landin.IR.Item_Id; Plan : Allocation_Plan; Layout : Frame);
+        (Item : Landin.IR.Item_Id; Plan : Allocation_Plan; Reference : Frame);
 
       procedure Emit_Routine
-        (Item : Landin.IR.Item_Id; Plan : Allocation_Plan; Layout : Frame)
+        (Item : Landin.IR.Item_Id; Plan : Allocation_Plan; Reference : Frame)
       is
+         --  The homes below the CFA, at x8 - (Offset + 48): Reference's,
+         --  or in an assembly-free routine only those of the values and
+         --  slots that are not words of their own (D2116).
+         Layout : Frame := Reference;
+         --  A home Layout does not have is a defect, never offset zero.
+         function Slot_Offset
+           (Of_Frame : Frame; Slot : Landin.IR.Slot_Id)
+            return Landin.Targets.Byte_Count
+           is (if Has_Slot_Home (Of_Frame, Slot)
+               then Landin.Backend.Slot_Offset (Of_Frame, Slot)
+               else raise Compiler_Defect with "Xtensa slot has no home");
+         function Value_Offset
+           (Of_Frame : Frame; Value : Landin.IR.Value_Id)
+            return Landin.Targets.Byte_Count
+           is (if Has_Value_Home (Of_Frame, Value)
+               then Landin.Backend.Value_Offset (Of_Frame, Value)
+               else raise Compiler_Defect with "Xtensa value has no home");
+         --  The bytes from a7 up that a placed routine's spilled words'
+         --  homes take.
+         Low_Homes : Landin.Targets.Byte_Count := 0;
          Assembly_First : constant Positive := Unbounded.Length (Output) + 1;
          --  D471's checks, unless the routine runs before its thread has
          --  a thread pointer (D504).
@@ -1761,27 +1782,24 @@ package body Landin.Backend.Xtensa is
                and then Size_Of (Landin.IR.Result_Of (Of_Unit, Item, Value),
                                  Facts) in Held_Size
                and then not Use_Of.Address_Required.Data (Positive (Value)));
-         --  The homes of the words from vFirst: a value or slot's frame
-         --  home, x8 - (Offset + 48), its pair's high word four above.
+         --  The words from vFirst may have homes: a value or slot's, a
+         --  pair's high word a word of its own.  The machine layer lays
+         --  out those its placement leaves in memory.
          procedure Declare_Word_Homes
-           (First : Natural; Offset : Landin.Targets.Byte_Count;
-            Size : Landin.Targets.Scalar_Size);
+           (First : Natural; Size : Landin.Targets.Scalar_Size);
          procedure Declare_Word_Homes
-           (First : Natural; Offset : Landin.Targets.Byte_Count;
-            Size : Landin.Targets.Scalar_Size)
+           (First : Natural; Size : Landin.Targets.Scalar_Size)
          is
-            Low : constant Landin.Targets.Byte_Count :=
-              Native_Frame_Bytes - (Offset + 48);
             Wide : constant Boolean := Size = Landin.Targets.Byte_8;
          begin
             Landin.Backend.Xtensa_Machine.Declare_Home
               (Placing, Landin.Backend.Xtensa_Machine.First_Value_Word
-                          + First, Low,
+                          + First,
                (if Wide then 4 else Landin.Targets.Bytes (Size)));
             if Wide then
                Landin.Backend.Xtensa_Machine.Declare_Home
                  (Placing, Landin.Backend.Xtensa_Machine.First_Value_Word
-                             + First + 1, Low + 4, 4);
+                             + First + 1, 4);
             end if;
          end Declare_Word_Homes;
          function Slot_Held (Slot : Landin.IR.Slot_Id) return Boolean
@@ -1791,6 +1809,56 @@ package body Landin.Backend.Xtensa is
                and then not Landin.IR.Is_Array (Of_Unit, Item, Slot)
                and then Size_Of (Landin.IR.Type_Of (Of_Unit, Item, Slot),
                                  Facts) in Held_Size);
+
+         --  Reference less the homes of the values and slots that are
+         --  words of their own, which their words' homes replace.
+         function Addressed_Frame return Frame;
+         function Addressed_Frame return Frame is
+            package Value_Buffers is new Landin.Backend.Work_Arrays
+              (Natural, Spill_Assignments, 0);
+            package Extent_Buffers is new Landin.Backend.Work_Arrays
+              (Landin.Targets.Layouts.Field_Extent,
+               Landin.Targets.Layouts.Field_Extent_Array, (0, 1));
+            Slots_Data : Landin.Backend.Placement.Mask_Buffers.Buffer
+              (Landin.IR.Slot_Count (Of_Unit, Item));
+            Values_Data : Value_Buffers.Buffer (Natural (Plan.Values.Length));
+            Spills_Data : Extent_Buffers.Buffer (Plan.Homes);
+            Renumbered : Value_Buffers.Buffer (Plan.Homes);
+            Count : Natural := 0;
+            No_Saves : constant Landin.Targets.Layouts.Field_Extent_Array
+              (1 .. 0) := [others => (4, 4)];
+         begin
+            for Index in Slots_Data.Data'Range loop
+               Slots_Data.Data (Index) :=
+                 not Slot_Held (Landin.IR.Slot_Id (Index));
+            end loop;
+            Values_Data.Data.all := [others => 0];
+            Renumbered.Data.all := [others => 0];
+            for Index in Values_Data.Data'Range loop
+               declare
+                  Place : Value_Location renames Plan.Values (Index);
+               begin
+                  if Place.Home /= 0
+                    and then not Value_Held (Landin.IR.Value_Id (Index))
+                  then
+                     if Renumbered.Data (Place.Home) = 0 then
+                        Count := Count + 1;
+                        Renumbered.Data (Place.Home) := Count;
+                        Spills_Data.Data (Count) :=
+                          (Landin.Targets.Byte_Count
+                             (Landin.Targets.Bytes (Place.Size)),
+                           Landin.Targets.Alignment_Of (Facts, Place.Size));
+                     end if;
+                     Values_Data.Data (Index) :=
+                       Renumbered.Data (Place.Home);
+                  end if;
+               end;
+            end loop;
+            return Laid_Out
+              (Of_Unit, Item, Facts, Slots_Data.Data.all,
+               Values_Data.Data.all, Spills_Data.Data (1 .. Count),
+               No_Saves, 16#7fff_ffff#);
+         end Addressed_Frame;
 
          --  Where this routine's text begins in the output.
          Routine_Start : constant Natural := Unbounded.Length (Output);
@@ -2069,10 +2137,7 @@ package body Landin.Backend.Xtensa is
            (Value : Landin.IR.Value_Id; Low, High_Word : String);
 
          procedure Load_Pair
-           (Value : Landin.IR.Value_Id; Low, High_Word : String)
-         is
-            Offset : constant Landin.Targets.Byte_Count :=
-              Value_Offset (Layout, Value);
+           (Value : Landin.IR.Value_Id; Low, High_Word : String) is
          begin
             if Value_Held (Value) then
                Emit ("mv " & Low & ", " & Value_Word (Value));
@@ -2081,8 +2146,11 @@ package body Landin.Backend.Xtensa is
                return;
             end if;
             Frame_Memory
-              (False, Landin.Targets.Byte_4, High_Word, Offset - 4);
-            Frame_Memory (False, Landin.Targets.Byte_4, Low, Offset);
+              (False, Landin.Targets.Byte_4, High_Word,
+               Value_Offset (Layout, Value) - 4);
+            Frame_Memory
+              (False, Landin.Targets.Byte_4, Low,
+               Value_Offset (Layout, Value));
          end Load_Pair;
 
          procedure Epilogue is
@@ -4808,6 +4876,117 @@ package body Landin.Backend.Xtensa is
             end case;
          end Instruction;
 
+         --  The prologue of a frame of Total bytes from a7 to the CFA,
+         --  which stores the incoming a7 at a7 + A7_Home when Saves_A7.
+         --  Fits and Wrapped are the stack check's labels, made before
+         --  the machine layer takes the serial for the body's.
+         procedure Write_Prologue
+           (Total : Landin.Targets.Byte_Count; Saves_A7 : Boolean;
+            A7_Home : Landin.Targets.Byte_Count; Fits, Wrapped : String);
+         procedure Write_Prologue
+           (Total : Landin.Targets.Byte_Count; Saves_A7 : Boolean;
+            A7_Home : Landin.Targets.Byte_Count; Fits, Wrapped : String)
+         is
+         begin
+            Native_Frame_Bytes := Total;
+            Put (Character'Val (9) & "entry a1, 32");
+            if Checks then
+               begin
+                  Put (Character'Val (9) & "movi a8, "
+                       & Trimmed (Landin.Targets.Byte_Count'Image
+                           (Total + Outgoing - 16)));
+                  Put (Character'Val (9) & "sub a8, a1, a8");
+                  Put (Character'Val (9) & "movi a9, " & Stack_Limit);
+                  Put (Character'Val (9) & "l32i a9, a9, 0");
+                  --  A difference that wrapped past zero fits nothing.
+                  Put (Character'Val (9) & "bltu a1, a8, " & Wrapped);
+                  Put (Character'Val (9) & "bgeu a8, a9, " & Fits);
+                  Put (Wrapped & ":");
+                  if Panic /= null
+                    and then Landin.Panics.Handler (Panic.all)
+                      /= Landin.IR.No_Item
+                  then
+                     Put (Character'Val (9) & "movi a10, " & Trimmed
+                       (Positive'Image (Landin.Panics.Code
+                         (Panic.all, Landin.Panics.Stack_Exhausted))));
+                     Put (Character'Val (9) & "movi a11, " & Trimmed
+                       (Natural'Image (Natural (Landin.Panics.Site
+                         (Panic.all, Landin.IR.Origin_Of (Of_Unit, Item),
+                          Landin.Panics.Stack_Exhausted)))));
+                     Put (Character'Val (9) & "call8 "
+                          & Symbol (Landin.Panics.Handler (Panic.all)));
+                  end if;
+                  Put (Character'Val (9) & "ill");
+                  Put (Fits & ":");
+               end;
+            elsif Prepares and then Panic /= null
+              and then Item = Landin.Panics.Handler (Panic.all)
+            then
+               Put (Character'Val (9) & "movi a8, " & Stack_Limit);
+               Put (Character'Val (9) & "movi a9, 0");
+               Put (Character'Val (9) & "s32i a9, a8, 0");
+            end if;
+            Put (Character'Val (9) & "movi a8, "
+                 & Trimmed (Landin.Targets.Byte_Count'Image
+                     (Total + Outgoing - 32)));
+            Put (Character'Val (9) & "sub a1, a1, a8");
+            if Outgoing = 0 then
+               if Saves_A7 then
+                  Put (Character'Val (9) & "s32i a7, a1, "
+                       & Byte_Image (A7_Home));
+               end if;
+               Put (Character'Val (9) & "mov a7, a1");
+            else
+               --  The incoming a7 is homed through a8 before a7 becomes
+               --  the base of the homes.
+               Put (Character'Val (9) & "movi a8, "
+                    & Trimmed (Landin.Targets.Byte_Count'Image (Outgoing)));
+               Put (Character'Val (9) & "add a8, a1, a8");
+               if Saves_A7 then
+                  Put (Character'Val (9) & "s32i a7, a8, "
+                       & Byte_Image (A7_Home));
+               end if;
+               Put (Character'Val (9) & "mov a7, a8");
+            end if;
+            if Has_Assembly then
+               for Index in 0 .. 4 loop
+                  Put (Character'Val (9) & "s32i a" & Image (Index + 2)
+                       & ", a7, " & Native_Word_Offset (Index + 10));
+               end loop;
+            end if;
+            Put (Character'Val (9) & "movi a8, " & Trimmed (Total'Image));
+            Put (Character'Val (9) & "add a8, a7, a8");
+            if not Native_Scratch_Registers then
+               Put (Character'Val (9) & "s32i a8, a7, "
+                    & Native_Word_Offset (8));
+            end if;
+            Put (Character'Val (9) & "s32e a8, a1, -12");
+         end Write_Prologue;
+
+         Placed_Fits, Placed_Wrapped : Unbounded.Unbounded_String;
+         --  The prologue of a placed routine, whose spilled words' homes
+         --  take Low_Bytes from a7 up, below Layout's.
+         procedure Placed_Prologue
+           (Low_Bytes : Landin.Targets.Byte_Count;
+            Saves_A7 : Boolean;
+            A7_Home : Landin.Targets.Byte_Count;
+            Frame_Bytes : out Landin.Targets.Byte_Count);
+         procedure Placed_Prologue
+           (Low_Bytes : Landin.Targets.Byte_Count;
+            Saves_A7 : Boolean;
+            A7_Home : Landin.Targets.Byte_Count;
+            Frame_Bytes : out Landin.Targets.Byte_Count)
+         is
+         begin
+            Frame_Bytes := Stack_Align
+              (Low_Bytes + Extent (Layout) + 48, 16, 16#7fff_ffff#);
+            Low_Homes := Low_Bytes;
+            Write_Prologue
+              (Frame_Bytes, Saves_A7, A7_Home,
+               Unbounded.To_String (Placed_Fits),
+               Unbounded.To_String (Placed_Wrapped));
+         end Placed_Prologue;
+
       begin
          Native_Frame_Bytes := 0;
          Native_Scratch_Registers := False;
@@ -4898,137 +5077,62 @@ package body Landin.Backend.Xtensa is
               ((Item => Item, Naked => True, others => <>));
             return;
          end if;
-         --  The top 32 bytes belong to window spills. Ordinary routines
-         --  need only 80 bytes for their twenty logical word homes;
-         --  zero, SP, the derived CFA and register-held scratch words
-         --  need no home, and unused x26 has no home either.
-         --  Source assembly retains all 128 logical bytes plus its
-         --  64-byte snapshot bank at 128 + physical register number * 4.
-         --  Source homes lie between the banks and the spill area.
+         --  The top 48 bytes below the CFA belong to window spills, and
+         --  Layout's homes lie below them, at x8 - (Offset + 48).  Source
+         --  assembly keeps all 128 logical bytes at a7 and its 64-byte
+         --  snapshot bank at 128 + physical register number * 4.  An
+         --  assembly-free routine's words are placed before its frame is
+         --  laid out: the homes its spilled words take lie from a7 up,
+         --  and its prologue is written once they are known (D2116).
          --  D1110: the outgoing area is below all of it, at SP, and a7,
-         --  the base of the word homes, stands above it.
-         declare
-            Total : constant Landin.Targets.Byte_Count :=
-              Stack_Align
-                (Extent (Layout)
-                 + (if Has_Assembly then 240
-                    else 48 + Landin.Backend.Xtensa_Machine
-                                .Compact_Bank_Bytes),
-                 16, 16#7fff_ffff#);
-         begin
-            Native_Frame_Bytes := Total;
-            --  Incoming a2-a7 are homed before any selected instruction.
-            --  CALL8 preserves the current window's a2-a6; opaque source
-            --  assembly keeps the original complete scratch-bank path.
-            Native_Scratch_Registers := not Has_Assembly;
-            Put (Character'Val (9) & "entry a1, 32");
-            if Checks then
+         --  the base of the homes, stands above it.
+         if Has_Assembly then
+            Native_Scratch_Registers := False;
+            declare
+               Fits : constant String := Fresh;
+               Wrapped : constant String := Fresh;
+            begin
+               Write_Prologue
+                 (Stack_Align (Extent (Layout) + 240, 16, 16#7fff_ffff#),
+                  True, Landin.Backend.Xtensa_Machine.Word_Offset (15, False),
+                  Fits, Wrapped);
+            end;
+         else
+            --  CALL8 preserves the current window's a2-a6; the incoming
+            --  a2-a6 become x10-x14 where placement puts them, and a7,
+            --  homed by the prologue, x15 (D1627).
+            Native_Scratch_Registers := True;
+            Landin.Backend.Placement.Measure
+              (Of_Unit, Item, False, Use_Of, Debugger_Spans => False);
+            Words := True;
+            Layout := Addressed_Frame;
+            Landin.Backend.Xtensa_Machine.Begin_Routine (Placing);
+            for Index in 1 .. Value_Total loop
                declare
-                  Fits : constant String := Fresh;
-                  Wrapped : constant String := Fresh;
+                  Value : constant Landin.IR.Value_Id :=
+                    Landin.IR.Value_Id (Index);
                begin
-                  Put (Character'Val (9) & "movi a8, "
-                       & Trimmed (Landin.Targets.Byte_Count'Image
-                           (Total + Outgoing - 16)));
-                  Put (Character'Val (9) & "sub a8, a1, a8");
-                  Put (Character'Val (9) & "movi a9, " & Stack_Limit);
-                  Put (Character'Val (9) & "l32i a9, a9, 0");
-                  --  A difference that wrapped past zero fits nothing.
-                  Put (Character'Val (9) & "bltu a1, a8, " & Wrapped);
-                  Put (Character'Val (9) & "bgeu a8, a9, " & Fits);
-                  Put (Wrapped & ":");
-                  if Panic /= null
-                    and then Landin.Panics.Handler (Panic.all)
-                      /= Landin.IR.No_Item
-                  then
-                     Put (Character'Val (9) & "movi a10, " & Trimmed
-                       (Positive'Image (Landin.Panics.Code
-                         (Panic.all, Landin.Panics.Stack_Exhausted))));
-                     Put (Character'Val (9) & "movi a11, " & Trimmed
-                       (Natural'Image (Natural (Landin.Panics.Site
-                         (Panic.all, Landin.IR.Origin_Of (Of_Unit, Item),
-                          Landin.Panics.Stack_Exhausted)))));
-                     Put (Character'Val (9) & "call8 "
-                          & Symbol (Landin.Panics.Handler (Panic.all)));
+                  if Value_Held (Value) then
+                     Declare_Word_Homes
+                       (2 * (Index - 1), Size_Of_Value (Value));
                   end if;
-                  Put (Character'Val (9) & "ill");
-                  Put (Fits & ":");
                end;
-            elsif Prepares and then Panic /= null
-              and then Item = Landin.Panics.Handler (Panic.all)
-            then
-               Put (Character'Val (9) & "movi a8, " & Stack_Limit);
-               Put (Character'Val (9) & "movi a9, 0");
-               Put (Character'Val (9) & "s32i a9, a8, 0");
-            end if;
-            Put (Character'Val (9) & "movi a8, "
-                 & Trimmed (Landin.Targets.Byte_Count'Image
-                     (Total + Outgoing - 32)));
-            Put (Character'Val (9) & "sub a1, a1, a8");
-            if Outgoing = 0 then
-               Put (Character'Val (9) & "s32i a7, a1, "
-                    & Native_Word_Offset (15));
-               Put (Character'Val (9) & "mov a7, a1");
-            else
-               --  The incoming a7 is homed through a8 before a7 becomes
-               --  the base of the homes.
-               Put (Character'Val (9) & "movi a8, "
-                    & Trimmed (Landin.Targets.Byte_Count'Image (Outgoing)));
-               Put (Character'Val (9) & "add a8, a1, a8");
-               Put (Character'Val (9) & "s32i a7, a8, "
-                    & Native_Word_Offset (15));
-               Put (Character'Val (9) & "mov a7, a8");
-            end if;
-            if Has_Assembly then
-               for Index in 0 .. 4 loop
-                  Put (Character'Val (9) & "s32i a" & Image (Index + 2)
-                       & ", a7, " & Native_Word_Offset (Index + 10));
-               end loop;
-            end if;
-            Put (Character'Val (9) & "movi a8, " & Trimmed (Total'Image));
-            Put (Character'Val (9) & "add a8, a7, a8");
-            if not Native_Scratch_Registers then
-               Put (Character'Val (9) & "s32i a8, a7, "
-                    & Native_Word_Offset (8));
-            end if;
-            Put (Character'Val (9) & "s32e a8, a1, -12");
-            if not Has_Assembly then
-               --  D1627: the body is buffered and its words placed; the
-               --  incoming a2-a6 become x10-x14 where placement puts
-               --  them, and a7, homed above, x15.
-               Landin.Backend.Placement.Measure
-                 (Of_Unit, Item, False, Use_Of, Debugger_Spans => False);
-               Landin.Backend.Xtensa_Machine.Begin_Routine (Placing, Total);
-               Words := True;
-               for Index in 1 .. Value_Total loop
-                  declare
-                     Value : constant Landin.IR.Value_Id :=
-                       Landin.IR.Value_Id (Index);
-                  begin
-                     if Value_Held (Value) then
-                        Declare_Word_Homes
-                          (2 * (Index - 1), Value_Offset (Layout, Value),
-                           Size_Of_Value (Value));
-                     end if;
-                  end;
-               end loop;
-               for Index in 1 .. Landin.IR.Slot_Count (Of_Unit, Item) loop
-                  declare
-                     Slot : constant Landin.IR.Slot_Id :=
-                       Landin.IR.Slot_Id (Index);
-                  begin
-                     if Slot_Held (Slot) then
-                        Declare_Word_Homes
-                          (2 * Value_Total + 2 * (Index - 1),
-                           Slot_Offset (Layout, Slot),
-                           Size_Of (Landin.IR.Type_Of (Of_Unit, Item, Slot),
-                                    Facts));
-                     end if;
-                  end;
-               end loop;
-               Emit ("landin.entry");
-            end if;
-         end;
+            end loop;
+            for Index in 1 .. Landin.IR.Slot_Count (Of_Unit, Item) loop
+               declare
+                  Slot : constant Landin.IR.Slot_Id :=
+                    Landin.IR.Slot_Id (Index);
+               begin
+                  if Slot_Held (Slot) then
+                     Declare_Word_Homes
+                       (2 * Value_Total + 2 * (Index - 1),
+                        Size_Of (Landin.IR.Type_Of (Of_Unit, Item, Slot),
+                                 Facts));
+                  end if;
+               end;
+            end loop;
+            Emit ("landin.entry");
+         end if;
          if Panic /= null and then Item = Landin.Panics.Handler (Panic.all)
          then
             declare
@@ -5274,8 +5378,11 @@ package body Landin.Backend.Xtensa is
             Emit (".cfi_endproc");
          end if;
          if Words then
+            Placed_Fits := Unbounded.To_Unbounded_String (Fresh);
+            Placed_Wrapped := Unbounded.To_Unbounded_String (Fresh);
             Landin.Backend.Xtensa_Machine.Finish_Routine
-              (Placing, Output, Serial, Registers_Placed);
+              (Placing, Output, Serial, Registers_Placed,
+               Placed_Prologue'Access);
             Words := False;
          end if;
          Platform_Directive (ELF_Spelling.Size_To_Here (Symbol (Item)));
@@ -5285,12 +5392,11 @@ package body Landin.Backend.Xtensa is
             Landin.Backend.Xtensa_Machine.Compact_Jumps
               (Output, Assembly_First);
          end if;
-         --  Bank homes are part of the native frame at every objective.
-         --  Every value and slot keeps its home, which a placed word
-         --  spills to (D1627).
+         --  The homes of a placed routine's spilled words are its spills
+         --  with Layout's.
          Append_Statistics
            ((Item => Item, Frame_Bytes => Native_Frame_Bytes + Outgoing,
-             Spill_Bytes => Spill_Bytes (Layout),
+             Spill_Bytes => Spill_Bytes (Layout) + Low_Homes,
              Save_Bytes => Save_Bytes (Layout),
              Register_Count => Registers_Placed,
              Spill_Count => Plan.Homes,
