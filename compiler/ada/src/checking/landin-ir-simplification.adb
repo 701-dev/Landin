@@ -1365,6 +1365,12 @@ package body Landin.IR.Simplification is
             Store_Block_Owner : constant Counts.Owner :=
               Counts.Create (Slot_Total);
             Store_Block : Counts.Elements renames Store_Block_Owner.Data.all;
+            --  R551-12: the x of a checked x - k, k a constant above zero,
+            --  that is the one value stored into an eligible slot.
+            Single_Under_Owner : constant Values.Owner :=
+              Values.Create (Slot_Total);
+            Single_Under : Values.Elements renames
+              Single_Under_Owner.Data.all;
             Single_Term_Owner : constant Terms.Owner :=
               Terms.Create (Slot_Total);
             Single_Term : Terms.Elements renames Single_Term_Owner.Data.all;
@@ -1606,8 +1612,12 @@ package body Landin.IR.Simplification is
             end Lower_Of;
 
             --  Left < Right: a fact naming Right, or two bounds apart.
-            function Below (Left, Right : Value_Id) return Boolean;
-            function Below (Left, Right : Value_Id) return Boolean is
+            --  Block is the block the question is asked in.
+            function Below (Left, Right : Value_Id; Block : Positive)
+              return Boolean;
+            function Below (Left, Right : Value_Id; Block : Positive)
+              return Boolean
+            is
                Slot : constant Slot_Id :=
                  Subject (Value_Term (Positive (Left)));
             begin
@@ -1617,6 +1627,35 @@ package body Landin.IR.Simplification is
                                      Value_Term (Positive (Right)))
                then
                   return True;
+               end if;
+               --  R551-12: Left is at most a slot's content, and the slot's
+               --  one store, which strictly dominates Block, wrote a checked
+               --  x - k that did not trap, with x Right's fixed term: `for
+               --  at in a..<lenof s - 1` indexing s[at].  A fact on the
+               --  slot that held across the store would have been dropped,
+               --  since the store lies below the comparison (Holds_Below),
+               --  so the content the fact names is the one stored.
+               if Slot /= No_Slot and then Upper_Fact (Positive (Slot)).Present
+                 and then Upper_Fact (Positive (Slot)).Limit.Kind = Entry_Term
+               then
+                  declare
+                     Limit_Slot : constant Positive :=
+                       Positive (Upper_Fact (Positive (Slot)).Limit.Slot);
+                     Above : constant Value_Id := Single_Under (Limit_Slot);
+                  begin
+                     if Above /= No_Value
+                       and then Store_Total (Limit_Slot) = 1
+                       and then Dominance.Strictly_Dominates
+                         (Tree, Block_Id (Store_Block (Limit_Slot)),
+                          Block_Id (Block))
+                       and then Value_Term (Positive (Above)).Kind
+                         in Constant_Term | Fixed_Term
+                       and then Same_Term (Value_Term (Positive (Above)),
+                                           Value_Term (Positive (Right)))
+                     then
+                        return True;
+                     end if;
+                  end;
                end if;
                declare
                   Above : constant Value_Id := Under (Positive (Left));
@@ -1892,6 +1931,8 @@ package body Landin.IR.Simplification is
                         if Store_Total (Positive (Code.Slot)) = 1 then
                            Single_Term (Positive (Code.Slot)) :=
                              Value_Term (Positive (Operand (Code, 1)));
+                           Single_Under (Positive (Code.Slot)) :=
+                             Under (Positive (Operand (Code, 1)));
                            if Kind_Of (Operand (Code, 1))
                              in Landin.Types.Integer_Name
                            then
@@ -1974,7 +2015,8 @@ package body Landin.IR.Simplification is
                then
                   --  One element: lower and upper are one value, and the
                   --  inclusive upper edge asks that it be below the length.
-                  Proved := Below (Operand (Code, 3), Operand (Code, 2));
+                  Proved := Below
+                    (Operand (Code, 3), Operand (Code, 2), Block);
                end if;
                if Proved then
                   Code.Unchecked := True;
