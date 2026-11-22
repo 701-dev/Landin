@@ -234,8 +234,8 @@
   },
   "armv8-a/size-all/fasta": {
    "sections": {
-    ".text": 29980,
-    ".rodata": 11905,
+    ".text": 29952,
+    ".rodata": 11869,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -304,8 +304,8 @@
   },
   "armv8-a/size-auto/fasta": {
    "sections": {
-    ".text": 29980,
-    ".rodata": 11905,
+    ".text": 29952,
+    ".rodata": 11869,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -374,8 +374,8 @@
   },
   "armv8-a/size-off/fasta": {
    "sections": {
-    ".text": 30028,
-    ".rodata": 11905,
+    ".text": 30000,
+    ".rodata": 11869,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -444,8 +444,8 @@
   },
   "armv8-a/speed-all/fasta": {
    "sections": {
-    ".text": 26336,
-    ".rodata": 11828,
+    ".text": 26308,
+    ".rodata": 11792,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -514,8 +514,8 @@
   },
   "armv8-a/speed-auto/fasta": {
    "sections": {
-    ".text": 26336,
-    ".rodata": 11828,
+    ".text": 26308,
+    ".rodata": 11792,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -584,8 +584,8 @@
   },
   "armv8-a/speed-off/fasta": {
    "sections": {
-    ".text": 26352,
-    ".rodata": 11828,
+    ".text": 26324,
+    ".rodata": 11792,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -864,8 +864,8 @@
   },
   "armv8.1-a/size-all/fasta": {
    "sections": {
-    ".text": 31716,
-    ".rodata": 12570,
+    ".text": 31688,
+    ".rodata": 12534,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -934,8 +934,8 @@
   },
   "armv8.1-a/size-auto/fasta": {
    "sections": {
-    ".text": 31716,
-    ".rodata": 12570,
+    ".text": 31688,
+    ".rodata": 12534,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -1004,8 +1004,8 @@
   },
   "armv8.1-a/size-off/fasta": {
    "sections": {
-    ".text": 31764,
-    ".rodata": 12570,
+    ".text": 31736,
+    ".rodata": 12534,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -1074,8 +1074,8 @@
   },
   "armv8.1-a/speed-all/fasta": {
    "sections": {
-    ".text": 27580,
-    ".rodata": 12493,
+    ".text": 27552,
+    ".rodata": 12457,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -1144,8 +1144,8 @@
   },
   "armv8.1-a/speed-auto/fasta": {
    "sections": {
-    ".text": 27580,
-    ".rodata": 12493,
+    ".text": 27552,
+    ".rodata": 12457,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,
@@ -1214,8 +1214,8 @@
   },
   "armv8.1-a/speed-off/fasta": {
    "sections": {
-    ".text": 27596,
-    ".rodata": 12493,
+    ".text": 27568,
+    ".rodata": 12457,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".data": 776,

@@ -752,7 +752,7 @@ values, and `SR-1651` to `SR-1653` what the work met.
 
 ### R16.29 — The small targets' remaining code
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What the Cortex-M, RISC-V and Xtensa items left: `SR-231`'s atom `match`
@@ -768,6 +768,40 @@ Exit evidence: each cost taken measured lower than its R16.10 baseline and
 the last item's figures, the cycles on the boards no slower, the backend
 case restored, and the two tools documented where the measurement recipe
 is.
+
+Done: Cortex-M makes an eight-byte constant or widening in the pair that
+reads it (D2120), tests nothing a constant or an earlier test settled
+(D2121), keeps a value a register still holds rather than reloading it
+(D2122) and reads a framed routine's parameters from sp (D2123): SipHash
+at armv6-m size executes 31% fewer instructions, the firmware set's
+`.text` at size is 6.0% smaller at armv6-m and 9.1% at the Thumb-2
+levels, and `runtime/core-text-format` now runs in the 32 KiB reference.
+SR-869's `divisor` is 548 bytes and `frame_bits` 178, short of its
+completion; it is kept with what remains, a held pair saving only the
+stores it removes on Thumb-1. The Xtensa frame is laid out after
+placement (D2116, `SR-1433`): the deepest call chain at esp32 speed falls
+from 800 to 384 bytes up to 2,240 to 752, every image smaller. RISC-V
+branches on a comparison's operands and RISC-V and Xtensa fall through
+to a branch's next block (D2112, D2113, `SR-1468`): RV64 executes 3.4%
+fewer instructions and its `.text` is 2.0% smaller, RV32's 1.8% and
+Xtensa's 0.55%. A refused recorded-writes allocation is allocated again
+over every emission's writes and the build report names any that keeps
+its homes (D2108, `SR-1507`), placing the twelve corpus routines that
+fell back on r6. A loop's end that is a length less one bounds its index
+(D2109): fasta on x86-64 executes 9.9% fewer instructions; R551-12 is
+kept for `core/atomic`'s cell calls, which follow how D339 copies.
+`SR-1578`'s case returns built from IR, and `measure.py count` builds and
+counts a fixture at a chosen level, objective and description
+(`SR-1505`), documented in `docs/measurement.md`. `SR-231` is retired as
+not worth an IR terminator: the atom `match` chain tests its subject
+once and spends 6 bytes an arm, a table about 4, about 56 bytes over
+`failure.words`. `compiler/tests/measure/findings.md` has each figure.
+Fixed on the way: `measure.py compare` takes the directory `size` writes
+(met by two streams). `SR-1660` files a copied `refine` that cannot
+find its library, which two streams met. What is left on these targets
+is SR-869's pairs and frame record, forwarding blocks on RISC-V and
+Xtensa, and the `match` table of constant results: none measured large
+enough for another item of its own.
 
 ### The continuous items
 
