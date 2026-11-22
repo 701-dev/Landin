@@ -700,7 +700,7 @@ timing included.
 
 ### R16.28 — x86-64's code from R16.24's list
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.24 measured on x86-64 and left: SR-1422's nine allocatable
