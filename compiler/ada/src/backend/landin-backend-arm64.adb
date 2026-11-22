@@ -7759,7 +7759,7 @@ package body Landin.Backend.Arm64 is
                Emit_Packed (Shape, Parent);
                return;
             end if;
-            for Child of Plan.Order loop
+            for Child in Plan.Offsets'Range loop
                declare
                   Leaf : constant Landin.IR.Field_Shape :=
                     Landin.IR.Nth_Aggregate_Field
@@ -7863,7 +7863,7 @@ package body Landin.Backend.Arm64 is
                Landin.IR.Array_Image_Of (Of_Unit, Item));
             Written := Size;
          end if;
-         for Field of Top_Plan.Order loop
+         for Field in Top_Plan.Offsets'Range loop
             declare
                Shape : constant Landin.IR.Field_Shape :=
                  Landin.IR.Nth_Field_Shape (Of_Unit, Item, Field);

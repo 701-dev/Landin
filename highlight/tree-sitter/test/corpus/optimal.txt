@@ -1,8 +1,8 @@
 ==================
-Optimal layout keeps source field identities and contextual names
+Contextual layout words stay field names
 ==================
 
-record : type = layout(optimal) struct
+record : type = layout(c) struct
   optimal : u8
   layout : u64
   c : u8

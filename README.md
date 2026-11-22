@@ -590,7 +590,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R19.80 — One-atom pointer unions, written layout and named operands.**
+**Next roadmap item: R19.90 — The value model folded (planned).**
 
 ## Questions, bugs and ideas
 

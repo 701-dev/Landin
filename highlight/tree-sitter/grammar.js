@@ -376,7 +376,6 @@ module.exports = grammar({
     c_layout: $ => seq(
       field('attribute', alias('layout', $.identifier)), '(',
       field('convention', choice(alias('c', $.identifier),
-                                  alias('optimal', $.identifier),
                                   alias('packed', $.identifier))),
       // D410: `layout(c, packed)` is C's byte-packed record.
       optional(seq(',', choice($.scalar_type, alias('packed', $.identifier)))),

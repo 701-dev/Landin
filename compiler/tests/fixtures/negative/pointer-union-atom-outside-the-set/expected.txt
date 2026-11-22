@@ -1,0 +1,10 @@
+error[L0301]: `none_found | ptr mut u32` holds a pointer or `none_found`, and this atom is neither
+  --> ../tests/fixtures/negative/pointer-union-atom-outside-the-set/program.ldn:6:9
+  |
+6 |     m = closed
+  |         ^^^^^^
+  --> ../tests/fixtures/negative/pointer-union-atom-outside-the-set/program.ldn:6:5
+  |
+6 |     m = closed
+  |     ^ the reference place written here
+  = note: [0480]: a pointer union holds one atom beside its pointer (D1659)

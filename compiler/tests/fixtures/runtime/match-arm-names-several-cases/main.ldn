@@ -1,7 +1,7 @@
 --  D405: one arm names several cases, which share what it runs.  Every
 --  label counts toward exhaustiveness, for an atom set, a variant part
---  whose cases carry no payload and a pointer union of several atoms, as
---  a statement and as a value, first, between and last.
+--  whose cases carry no payload and a pointer union's atom and pointer
+--  case, as a statement and as a value, first, between and last.
 north: atom
 south: atom
 east: atom
@@ -42,17 +42,19 @@ measure: (s: shape) -> (size: i32) =
 end measure
 
 none_found: atom
-denied: atom
-missing: atom
-lookup: type = none_found | denied | missing | ptr i32
+lookup: type = none_found | ptr i32
 
-read: (l: lookup) -> (value: i32) =
+either: (l: lookup) -> (value: i32) =
     match l
-        none_found, missing: value = -1
-        ptr (p): value = p.val
-        denied: value = -2
+        none_found, ptr: value = 5
     end match
-end read
+end either
+
+either_value: (l: lookup) -> (value: i32) =
+    match l
+        ptr, none_found: 6
+    end match
+end either_value
 
 public main: () -> (code: i32) =
     code = 1
@@ -71,8 +73,8 @@ public main: () -> (code: i32) =
     return when measure(square_shape) <> 20
 
     seven: i32 = 7
-    return when read(none_found) <> -1 or read(missing) <> -1
-    return when read(denied) <> -2 or read(addr seven) <> 7
+    return when either(none_found) <> 5 or either(addr seven) <> 5
+    return when either_value(none_found) <> 6 or either_value(addr seven) <> 6
 
     code = 42
 end main

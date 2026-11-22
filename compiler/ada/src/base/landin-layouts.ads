@@ -6,7 +6,7 @@ package Landin.Layouts is
    --  field at alignment one and no padding, as `__attribute__((packed))`
    --  lays a record out.  It is a C representation, unlike Packed, which
    --  is D228's register image of bits.
-   type Policy is (Natural, C, Optimal, Packed, C_Packed);
+   type Policy is (Natural, C, Packed, C_Packed);
 
    --  Whether a record of this policy follows the selected target's C
    --  rules for its field placement: both C layouts do.

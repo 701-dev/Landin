@@ -1,0 +1,15 @@
+--  D1662: `assembler.block(text, value)` stood for one operand, `inout
+--  value: u32 at r0 = value`.  The positional form is refused and its fix
+--  writes that operand, doubling the text's braces, which the operand form
+--  reads as `{name}`.
+fixed if compiler.arch == cortex_m0 then
+    transport: (value: u32) -> (result: u32) =
+        result = assembler.block("adds r0, #7", value)
+    end transport
+    keep: (value: u32) -> none =
+        _ = assembler.block("adds r0, #1 @ {kept}", value)
+    end keep
+end if
+public main: () -> (code: i32) =
+    code = 0
+end main

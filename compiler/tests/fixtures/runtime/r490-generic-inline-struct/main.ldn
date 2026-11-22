@@ -11,9 +11,9 @@ callback_box: type = struct
     call: callback
     bias: i32
 end callback_box
-compact: type = layout(optimal) struct
-    small: u8
+compact: type = struct
     wide: u64
+    small: u8
     last: u8
 end compact
 module_pair: pair = (left: 17, right: 25)

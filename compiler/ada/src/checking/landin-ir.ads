@@ -655,28 +655,6 @@ package Landin.IR is
      (Of_Unit : Unit; Id : Nominal_Type_Id) return Declaration_Id
      with Pre => Holds (Of_Unit, Id);
 
-   --  [0480]/[1870]: checking's structural union of two or more atoms and
-   --  one pointer.  It has no template declaration: its shape is the atom
-   --  code field and the pointer field, and its presented name is the
-   --  canonical spelling checking interned.  Code zero is the pointer case.
-   function Add_Pointer_Union_Type
-     (Into : in out Unit; Spelling : Landin.Source.Names.Name_Id)
-      return Nominal_Type_Id
-     with Pre  => Is_Prepared (Into),
-          Post => Nominal_Type_Count (Into)
-                    = Nominal_Type_Count (Into)'Old + 1
-                  and then Holds (Into, Add_Pointer_Union_Type'Result)
-                  and then Is_Pointer_Union
-                    (Into, Add_Pointer_Union_Type'Result);
-
-   function Is_Pointer_Union
-     (Of_Unit : Unit; Id : Nominal_Type_Id) return Boolean
-     with Pre => Holds (Of_Unit, Id);
-
-   function Union_Spelling
-     (Of_Unit : Unit; Id : Nominal_Type_Id)
-      return Landin.Source.Names.Name_Id
-     with Pre => Holds (Of_Unit, Id) and then Is_Pointer_Union (Of_Unit, Id);
 
    ------------------------------------------------------------------
    --  Reached pointer shapes
@@ -2713,22 +2691,12 @@ package Landin.IR is
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Boolean
      with Pre => Holds (Of_Unit, Item, Value);
 
-   --  [0480]/[1870]: a pointer union's atom code cell also holds zero, which
-   --  no atom has, for its pointer case.  Lowering reads that cell in one
-   --  form only: a direct Load_Field of field 1 of a frame slot whose
-   --  nominal is a pointer union.  Failure_Test separates zero from an atom
-   --  exactly as for the call-status channel.
-   function Is_Union_Code_Load
-     (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Boolean
-     with Pre => Holds (Of_Unit, Item, Value);
-
-   --  Whether an atom-typed load may observe the reserved zero: either of
-   --  the two channels above.  Backends accept zero before validating the
-   --  atom members of such a load and of no other.
+   --  Whether an atom-typed load may observe the reserved zero: the
+   --  call-status channel above.  Backends accept zero before validating
+   --  the atom members of such a load and of no other.
    function Admits_Reserved_Zero
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Boolean
-     is (Is_Failure_Status_Load (Of_Unit, Item, Value)
-         or else Is_Union_Code_Load (Of_Unit, Item, Value))
+     is (Is_Failure_Status_Load (Of_Unit, Item, Value))
      with Pre => Holds (Of_Unit, Item, Value);
 
    --  Whether an atom-typed load tests that its bits are one of its set's
@@ -3392,8 +3360,7 @@ package Landin.IR is
 
    type Assembly_Operand is record
       Direction : Assembly_Direction := Input;
-      --  The `{name}` slot, or No_Name for a discarded output and for
-      --  D230's shorthand, whose text names r0 itself.
+      --  The `{name}` slot, or No_Name for a discarded output.
       Name      : Landin.Source.Names.Name_Id := Landin.Source.Names.No_Name;
       Register  : String (1 .. Register_Spelling_Limit) := [others => ' '];
       Width     : Natural := 0;
@@ -4500,11 +4467,6 @@ private
       Element_Type => Declaration_Id,
       "="          => Landin.Provenance."=");
 
-   package Spelling_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Landin.Source.Names.Name_Id,
-      "="          => Landin.Source.Names."=");
-
    type Nominal_Shape_Record is record
       Present  : Boolean := False;
       Policy   : Landin.Layouts.Policy := Landin.Layouts.Natural;
@@ -4586,8 +4548,6 @@ private
       Code       : Code_Vectors.Vector;
       Operands   : Value_Ref_Vectors.Vector;
       Nominal_Templates : Nominal_Template_Vectors.Vector;
-      --  [0480]: a pointer union's presented spelling, No_Name otherwise.
-      Nominal_Spellings : Spelling_Vectors.Vector;
       Nominal_Shapes : Nominal_Shape_Vectors.Vector;
       Nominal_Fields : Field_Shape_Vectors.Vector;
       Pointees   : Field_Shape_Vectors.Vector;

@@ -795,7 +795,10 @@ package body Landin.Tests.IR_Optimization_Suite is
                   Landin.Source.Names.Intern
                     (Landin.Stages.Identities (Work).all, "nop"),
                   [1 => IR.Operand_At
-                    (IR.Both, Landin.Source.Names.No_Name, "rax",
+                    (IR.Both,
+                     Landin.Source.Names.Intern
+                       (Landin.Stages.Identities (Work).all, "value"),
+                     "rax",
                      Landin.Types.Usize, Output)],
                   [1 => Other_Table], Site);
                if Assembly_Output = Restored then

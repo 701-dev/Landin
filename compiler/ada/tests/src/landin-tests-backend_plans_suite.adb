@@ -31,7 +31,6 @@ package body Landin.Tests.Backend_Plans_Suite is
    use type IR.Element_Total;
    use type Targets.Byte_Count;
    use type Targets.Byte_Alignment;
-   use type Layout.Field_Order;
    use type Layout.Field_Offsets;
 
    Frontend : aliased Landin.Stages.Syntax.Instance;
@@ -84,7 +83,7 @@ package body Landin.Tests.Backend_Plans_Suite is
    begin
       Prepare (Item, Unit, Site);
       Nominal := IR.Add_Nominal_Type (Unit, 1);
-      IR.Set_Nominal_Shape (Unit, Nominal, Fields, Landin.Layouts.Optimal);
+      IR.Set_Nominal_Shape (Unit, Nominal, Fields, Landin.Layouts.Natural);
       Shape := (Kind => IR.Aggregate_Field_Shape, Nominal => Nominal,
                 others => <>);
       Routine := IR.Add_Item
@@ -109,7 +108,7 @@ package body Landin.Tests.Backend_Plans_Suite is
          Landin.Types.Usize, Site);
       Direct_Measurement := IR.Emit_Aggregate_Measurement
         (Unit, Routine, IR.Measure_Size, Fields, Landin.Types.Usize, Site,
-         Policy => Landin.Layouts.Optimal);
+         Policy => Landin.Layouts.Natural);
 
       for Small in Boolean loop
          declare
@@ -127,12 +126,10 @@ package body Landin.Tests.Backend_Plans_Suite is
             Alignment : Targets.Byte_Alignment;
          begin
             Landin.Testing.Check
-              (Item, Plan.Size = 3 * Pointer
-               and then Plan.Natural_Size = 4 * Pointer
-               and then Plan.Order = [2, 4, 1, 3]
+              (Item, Plan.Size = 4 * Pointer
                and then Plan.Offsets =
-                 [2 * Pointer, 0, 2 * Pointer + 1, Pointer],
-               "source identities retain target-derived optimal placement");
+                 [0, Pointer, 2 * Pointer, 3 * Pointer],
+               "source identities retain target-derived placement");
             Landin.Testing.Check
               (Item, Backend.Aggregate_Layout (Unit, Shape, Facts).Offsets
                  = Plan.Offsets
@@ -211,7 +208,7 @@ package body Landin.Tests.Backend_Plans_Suite is
         (Item, Landin.Provenance.Is_Known (Site),
          "nested shape provenance is known");
       Nominal := IR.Add_Nominal_Type (Unit, 1);
-      IR.Set_Nominal_Shape (Unit, Nominal, Fields, Landin.Layouts.Optimal);
+      IR.Set_Nominal_Shape (Unit, Nominal, Fields, Landin.Layouts.Natural);
       Shape := (Kind => IR.Aggregate_Field_Shape, Nominal => Nominal,
                 others => <>);
       Run := IR.Add_Shape_Run (Unit, [Fields (1), Shape]);
@@ -237,8 +234,6 @@ package body Landin.Tests.Backend_Plans_Suite is
               (Unit, Outer, Landin.Layouts.Natural, Facts);
             C_Plan : constant Layout.Plan := Backend.Fields_Layout
               (Unit, Outer, Landin.Layouts.C, Facts);
-            Optimal : constant Layout.Plan := Backend.Fields_Layout
-              (Unit, Outer, Landin.Layouts.Optimal, Facts);
             Element_Plan : constant Layout.Plan :=
               Backend.Aggregate_Layout (Unit, Shape, Facts);
             Path_Layouts : IR.Shape_Measurement.Layout_Cache;
@@ -247,7 +242,7 @@ package body Landin.Tests.Backend_Plans_Suite is
          begin
             Backend.Field_Extent (Unit, Variant, Facts, Size, Alignment);
             Landin.Testing.Check
-              (Item, Size = 5 * Pointer
+              (Item, Size = 6 * Pointer
                and then Alignment = Targets.Pointer_Alignment (Facts)
                and then Backend.Variant_Payload_Field_Offset
                  (Unit, Variant, 1, 1, Facts) = Pointer
@@ -256,10 +251,10 @@ package body Landin.Tests.Backend_Plans_Suite is
                "variant keeps tag first and payload declaration order");
             Landin.Testing.Check
               (Item, Natural_Plan.Offsets = C_Plan.Offsets
-               and then Natural_Plan.Size = 8 * Pointer
-               and then Optimal.Size = 7 * Pointer
-               and then Optimal.Order = [2, 4, 1, 3],
-               "outer policy moves a whole variant and never its payload");
+               and then Natural_Plan.Size = 9 * Pointer
+               and then Natural_Plan.Offsets
+                 = [0, Pointer, 7 * Pointer, 8 * Pointer],
+               "outer placement takes a whole variant, never its payload");
             for Repeat in 1 .. 2 loop
                Landin.Testing.Check
                  (Item, Backend.Path_Offset
@@ -298,7 +293,7 @@ package body Landin.Tests.Backend_Plans_Suite is
                Backend.Field_Extent
                  (Unit, Repeated, Facts, Size, Alignment);
                Landin.Testing.Check
-                 (Item, Size = 2 ** 30 * 24 and then Alignment = 8,
+                 (Item, Size = 2 ** 30 * 32 and then Alignment = 8,
                   "huge repeated extents use only one child descriptor");
             end if;
          end;

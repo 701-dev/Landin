@@ -721,7 +721,6 @@ there is no separate Cortex layout algorithm in checking or neutral IR.
 |---|---|
 | enabled integer and float scalars | 1/2/4/8 bytes with equal natural alignment; bool occupies one byte |
 | `usize`, `isize`, references, optional atom/pointer, function address | four bytes, aligned four; semantic identities remain distinct |
-| several-atom pointer union (D235) | two four-byte cells, aligned four: the atom code, then the pointer; code zero is the pointer case |
 | slice, utf8/utf16 view, `any` | two four-byte cells, aligned four; slice base then length, any data then table |
 | cstring | one four-byte pointer |
 | natural structs, fixed arrays and instantiated generic records | shared source-order placement, element stride and final padding, bounded by target `usize` |
@@ -912,7 +911,7 @@ D228 connects `Targets.Packed` to source declarations and neutral field
 geometry. One carrier of 1/2/4/8 bytes uses the selected target's size and
 alignment, with least-significant-bit numbering and little-endian byte order.
 Unsigned field widths through 64 bits do not add ordinary scalar widths or
-calling conventions. Natural, C and optimal layouts retain their contracts.
+calling conventions. Natural and C layouts retain their contracts.
 Native x86-64 and Darwin arm64 lowering extract and insert that carrier and
 validate encoded members. M0 remains limited to one-, two- and four-byte
 volatile transactions; describing an eight-byte ordinary image does not enable
@@ -970,7 +969,7 @@ epilogue restores it before the frame record.
 ## Cortex-M assembly implementation
 
 `Backend.Cortex_M` consumes verified IR and `Backend.Arm32_ABI` entry/call plans.
-It does not change ordinary, C or optimal layout. Without optimization every
+It does not change ordinary or C layout. Without optimization every
 source slot and scalar value has a home; verified block-local scalar
 temporaries reuse homes of at least a word, a narrower value written
 zero-extended, only after their last operand read (D1563). At `size` and
@@ -1025,8 +1024,7 @@ halfword to the whole register, and emits the text one instruction a line.
 Each output is then stored through a low register no output still waiting
 holds; a block whose outputs hold all of r0-r7 moves its first aside into r12,
 which no block may name and every block may overwrite, and stores it last. A
-branch then skips the literal pool the text may have used. D230's shorthand is
-one `inout` operand at r0. With a float unit, d0-d15 are float operand
+branch then skips the literal pool the text may have used. With a float unit, d0-d15 are float operand
 registers and `float` chooses from d0-d7: a float input is loaded first by
 `vldr` through r6, before any integer input holds it, and a float output is
 stored by `vstr` through a free low register, as `s(2n)` for an `f32` and

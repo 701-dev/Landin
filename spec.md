@@ -65,7 +65,7 @@ spelled that way. A quoted word is not thereby reserved: when [1760]'s
 keyword rule omits it, the token is an identifier whose spelling the
 enclosing production recognises. Thus 'of', 'lenof', 'offsetof', 'variant', 'caller', 'range', 'arena', 'concept',
 'is', 'as', 'option', 'compiler', 'assembler', 'linker', 'c', 'layout',
-'optimal', 'packed', 'at', 'u8', 'u16', 'u32', 'u64', 'link', 'symbol',
+'packed', 'at', 'u8', 'u16', 'u32', 'u64', 'link', 'symbol',
 'align', 'section', 'region', 'keep', 'thread', 'boot_stage', 'vector',
 'interrupt', 'naked',
 'noreturn',
@@ -442,7 +442,7 @@ packed_unsigned  ::= "u1" | "u2" | "u3" | "u4" | "u5" | "u6" | "u7" | "u8"
                    | "u41" | "u42" | "u43" | "u44" | "u45" | "u46" | "u47" | "u48"
                    | "u49" | "u50" | "u51" | "u52" | "u53" | "u54" | "u55" | "u56"
                    | "u57" | "u58" | "u59" | "u60" | "u61" | "u62" | "u63" | "u64"
-struct_body      ::= ("layout" "(" ("c" ("," "packed")? | "optimal"
+struct_body      ::= ("layout" "(" ("c" ("," "packed")?
                      | "packed" ("," ("u8" | "u16" | "u32" | "u64"))?) ")")?
                      "struct" member+ "end" identifier?
 member           ::= field | variant_part
@@ -1088,13 +1088,11 @@ identity, and assignment or argument passing may widen a singleton or smaller
 set into a set that contains it. No integer is an atom and no zero or default
 atom exists.
 With one atom, `atom | ptr T` uses zero for the atom and every nonzero pattern
-for the pointer, occupying one target pointer carrier [0480] (D189). With two
-or more atoms, D235 places the atom-set carrier and then one pointer carrier by
-ordinary natural alignment: the first holds the atom's own code, and zero,
-which no atom has, marks the present case whose pointer the second holds.
-[1795]'s `union_member` admits one written pointer type beside the atom names,
-and a second pointer member is L0338. The source spelling never assumes either
-representation.
+for the pointer, occupying one target pointer carrier [0480] (D189). A pointer
+union holds exactly one atom: a union that flattens to two or more atoms beside
+a pointer, written in place, through an alias or by applying a parameterized
+alias, is L0696 (D1659). [1795]'s `union_member` admits one written pointer
+type beside the atom name, and a second pointer member is L0338.
 
 The union is not a pointer. `.val`, `addr` of a `.val` reached through one,
 an integer conversion of one, `any` construction from one, a comparison with
@@ -1102,13 +1100,11 @@ another union or a pointer, and an argument or result position wanting
 `ptr T` are each L0335, because each would read an atom case as an address; `ptr(n)` cannot produce
 one for the same reason, and `zeroed` does not name an atom case because no
 zero or default atom exists. A plain `ptr T` widens into a union whose
-pointer member it relaxes to, and an atom singleton or a contained atom set
-widens into it, in the direction this paragraph already gives atom sets; a
-smaller union widens into a larger one with the same pointer member, and
-neither direction reverses (D235). A union may be compared for equality with
-an atom value whose atoms all belong to its set, on either side: `u == a`
-and `u <> a` test the atom case without exposing an address (D429).
-`match` [1210] is the way to recover the pointer: its cases are the union's atom names and the reserved word `ptr` with an optional
+pointer member it relaxes to, and its atom's singleton widens into it, in the
+direction this paragraph already gives atom sets; neither direction reverses
+(D189). A union may be compared for equality with its atom, on either side:
+`u == a` and `u <> a` test the atom case without exposing an address (D429).
+`match` [1210] is the way to recover the pointer: its cases are the union's atom name and the reserved word `ptr` with an optional
 read-only binding of the plain pointer type, an `inout` binding on that arm is
 L0333 [1220], a case named twice is L0311, and a case named by neither an arm
 nor `_` is L0312 exactly as for an atom set. The bound pointer carries the
@@ -1225,7 +1221,7 @@ that scalar is evaluated once and broadcast, not implicitly converted.
 | `%`, and [0300]'s `+%` `-%` `*%` | one integer type, and that type back [0290] |
 | `&` `^` `\|`, and the unary `~` | one integer type, and that type back [0330]; or one distinct type whose base is an unsigned integer, and that distinct type back [0650]. That distinct type also admits `&=`, `^=` and `\|=`, reaching the assigned place once [0390] (D427) |
 | `<<` `>>` | an integer shifted by an integer of that same type, and that type back [0320]. The amount is not bounded by the width: an amount at or past it gives zero on every shift, a signed `>>` included, while inside the width a signed `>>` keeps the sign (D13). |
-| `==` `<>` `<` `<=` `>` `>=` | one type on both sides, and a bool back [0350]; atom sets have identity equality and inequality only, including between disjoint or overlapping sets. D200: the type is a scalar, an atom set, a pointer or a function value; two pointers must point at one type, permission aside, and a slice, an erased value, an array or a struct has no comparison. A pointer union has none with another union or a pointer, but takes `==` and `<>` with an atom value whose atoms all belong to its set, on either side, answering whether it holds that atom [1870] (D429). Two values of one distinct type whose base has equality, a scalar, an atom or atom set, a pointer or a function value, have `==` and `<>` [0650] (D427), and a scalar base also gives `<`, `<=`, `>` and `>=` in the base's order, IEEE's comparisons for a floating base with NaN unordered; a distinct type over a pointer union, a struct, an array or a slice has none; never with the base or another type without a conversion |
+| `==` `<>` `<` `<=` `>` `>=` | one type on both sides, and a bool back [0350]; atom sets have identity equality and inequality only, including between disjoint or overlapping sets. D200: the type is a scalar, an atom set, a pointer or a function value; two pointers must point at one type, permission aside, and a slice, an erased value, an array or a struct has no comparison. A pointer union has none with another union or a pointer, but takes `==` and `<>` with its atom, on either side, answering whether it holds that atom [1870] (D429). Two values of one distinct type whose base has equality, a scalar, an atom or atom set, a pointer or a function value, have `==` and `<>` [0650] (D427), and a scalar base also gives `<`, `<=`, `>` and `>=` in the base's order, IEEE's comparisons for a floating base with NaN unordered; a distinct type over a pointer union, a struct, an array or a slice has none; never with the base or another type without a conversion |
 | `and` `or` `not` | bool, and a bool back [0340] |
 | unary `-` | one integer or float type, and that type back |
 
@@ -2363,8 +2359,10 @@ loader. This is the explicit exception to [1550]'s frame guarantee. It does
 not permit an ordinary routine to omit its frame.
 
 `assembler.block` takes a quoted or raw fixed text literal in a routine body,
-optionally followed by operands [1630]. The fixed text is not a runtime
-argument. D248 records the operand form and D230 the positional shorthand.
+optionally followed by operands [1630], and nothing else: D1662 removed the
+positional value that once followed the text, and the parser refuses one,
+which the grammar derives as an ordinary argument. The fixed text is not a
+runtime argument. D248 records the operand form.
 [1820]'s `arguments` derive operands after any call's positional arguments,
 because which callee a name denotes is not the grammar's to say; the checker
 refuses them on every call but `assembler.block`. A module tool directive
@@ -2526,7 +2524,7 @@ Unreferenced sections are garbage-collected. Symbol linkage does not itself
 retain a section. Cortex module data may give one explicit ASCII identifier
 as its symbol; symbols cannot collide with other explicit declarations or
 compiler startup/private Arm helpers. Function symbol spelling retains
-[1975]'s existing rules. Ordinary, C and optimal aggregate layout do not change.
+[1975]'s existing rules. Ordinary and C aggregate layout do not change.
 
 `vector: N` associates a defined interrupt/naked routine with one unique
 exception slot the selected profile implements (D544): in the constrained
@@ -4633,9 +4631,10 @@ the language does not otherwise describe.
 
 **Amended by D1657.** Its examples' inline struct bodies are written with `struct ... end`; the pointer union stands.
 
-D235 later gives two or more atoms beside a pointer a two-cell union and
-retires `Reference_Union_Extent`'s two-atom arm; the one-atom representation
-below is unchanged. D429 later admits a comparison with one of the union's
+D235 later gave two or more atoms beside a pointer a two-cell union and
+retired `Reference_Union_Extent`'s two-atom arm, and D1659 withdrew that form:
+a pointer union holds one atom, and two or more beside a pointer are L0696.
+The one-atom representation below is unchanged. D429 later admits a comparison with one of the union's
 own atoms, so the comparison refused below is one between two unions or with
 a pointer.
 
@@ -4732,7 +4731,7 @@ foreign-boundary work, which records it rather than leaving [0480] looking
 closed while its headline sentence is evadable.
 
 **Pinned by** `positive/pointer-unions`, `runtime/pointer-unions`,
-`positive/pointer-union-several-atoms`,
+`negative/pointer-union-holds-one-atom`,
 `negative/pointer-union-two-pointers`,
 `negative/pointer-union-dereference`,
 `negative/pointer-union-assignment-target`,
@@ -4811,6 +4810,8 @@ nothing later reports.
 
 ### D235 — Several atoms beside a pointer store the atom's own code beside the pointer
 
+**Superseded by D1659.** A pointer union holds one atom; two or more beside a pointer are L0696, the two-cell union is gone from every backend, and what follows is history.
+
 **The tour said** that "maybe a pointer" is an ordinary union of an atom and a
 pointer type, and that the spelling does not decide how a union of several
 atoms and a pointer is laid out [0480]; [1870] placed that form as a tag beside
@@ -4883,19 +4884,8 @@ variant part was declined for the same renumbering. Keeping the form refused
 was declined: the representation needed no new backend machinery, and [1700]
 reads atoms as one idea wherever they appear.
 
-**Pinned by** `positive/pointer-union-several-atoms`,
-`positive/pointer-union-many-declarations`,
-`positive/pointer-union-many-widening`,
-`positive/r490-union-alias-tagged-pointer`, `runtime/pointer-union-many`,
-`runtime/r720-feature-interactions`,
-`negative/pointer-union-many-dereference`,
-`negative/pointer-union-many-comparison`,
-`negative/pointer-union-many-zeroed`,
-`negative/pointer-union-many-match-not-exhaustive`,
-`negative/pointer-union-many-frame-escape`,
-`negative/pointer-union-many-inout-is-exact`,
-`negative/pointer-union-many-two-pointers`, the GDB and LLDB union views in
-`compiler/tests/debugging`, and the `pointer.optional` guarantee row.
+**Pinned by** `negative/pointer-union-holds-one-atom`, which refuses the
+form since D1659.
 
 ### D238 — A device access is an operation over an ordinary pointer
 
@@ -5000,6 +4990,8 @@ another function.
 
 ### D429 — A pointer union compares with one of its own atoms
 
+**Amended by D1659.** A pointer union holds one atom, so the comparison is with that atom, true exactly when the carrier is zero; the several-atom case below is history.
+
 **The tour said** at [0480] that coming back out of a pointer union is a
 match, and D189 refused a comparison among the six positions that would read
 the carrier as an address, because comparing two carriers would tell the
@@ -5026,8 +5018,7 @@ the `match` route. Neither revives D189's declined `_` narrowing: the
 subject keeps its type, and no binding is made.
 
 **Pinned by** `runtime/pointer-union-atom-comparison`, and by
-`negative/pointer-union-comparison` and `negative/pointer-union-many-comparison`,
-which compare two unions.
+`negative/pointer-union-comparison`, which compares two unions.
 
 ### D1659 — A pointer union holds one atom
 
@@ -5037,7 +5028,7 @@ which compare two unions.
 
 **The alternatives:** keeping the several-atom form, whose second cell every target carries for programs nobody has written. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/pointer-union-holds-one-atom`, which refuses the form written in either order and in a signature, flattened from a one-atom union and reached by applying a parameterized alias, and by `negative/r490-union-alias-application-reports`, whose imported application makes one. The refusal carries no fix: the rewrite is the program's design. Fixtures that used the form in passing hold one atom now: `runtime/match-sink-binding`, `runtime/match-arm-names-several-cases`, whose pointer-union arm names the atom and `ptr` together, `runtime/r720-feature-interactions`, `runtime/pointer-union-atom-comparison`, and the debugging program's union, which GDB and LLDB show as the pointer it is. D235 and D874 are superseded and D429 amended.
 
 ## DECISIONS: ARRAYS, SLICES AND TEXT
 
@@ -7510,6 +7501,8 @@ the IR records pinned this until D1661 removed the form;
 
 ### D210 — Optimal placement is explicit, stable and strictly smaller
 
+**Superseded by D1660.** There is no `layout(optimal)`; fields are placed in the order written, and what follows is history.
+
 **The tour said** at [0750] that ordinary fields retain source order and that
 `layout(optimal)` may save padding. It supplied no deterministic algorithm,
 tie rule, nested-field unit or target-width overflow rule.
@@ -7542,19 +7535,31 @@ resources disproportionately, add gratuitous layout churn, or erase semantic
 subobject boundaries. Stable alignment buckets keep the policy bounded and
 useful on the 32 KB end of the target range.
 
-**Pinned by** `compiler/tests/quality/layout.ldn`, the `opt foundations` target
-layout cases and the `backend plans` layout-consumer cases. Synthetic-32 cases
-are target-layout evidence, never native 32-bit execution evidence.
+**Pinned by** `negative/layout-optimal-places-fields-as-written`, which refuses the form since D1660.
+
+`compiler/tests/quality/layout.ldn`, the `opt foundations` target layout cases
+and the `backend plans` layout-consumer cases pinned this until D1660 removed
+the form; they now pin source-order placement.
 
 ### D1660 — Fields are placed as written: `layout(optimal)` leaves
 
 **The tour said** at [0750] that `layout(optimal)` lets the compiler reorder a struct's fields to make it smaller, and D210 made the placement explicit, stable and strictly smaller. The library writes none.
 
-**Chosen:** `layout(optimal)` leaves. A struct's fields are placed in the order written; a program that wants the smaller layout writes its fields largest alignment first. The maintainer chose this on 2026-11-21, answering the candidate list the third roadmap's simplification phase decides.
+**Chosen:** `layout(optimal)` leaves. A struct's fields are placed in the order written; a program that wants the smaller layout writes its fields largest alignment first. The maintainer chose this on 2026-11-21, answering the candidate list the third roadmap's simplification phase decides. D1928 says why its refusal carries no fix. D210 is superseded, and the build report's layout entries lose the `natural_size`, `saved_bytes` and `order` fields that only a reordering layout could make differ from the obvious.
 
 **The alternatives:** keeping it, a second layout rule a reader of a struct has to apply in their head. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/layout-optimal-places-fields-as-written`; `runtime/r450-optimal-layout-composition` and `positive/r450-optimal-layout-source`, whose structs are now written largest alignment first, pin the rewrite.
+
+### D1928 — The `layout(optimal)` refusal carries no fix
+
+**The discrepancy:** D1847 makes a removed form's rewrite its refusal's exact fix where the rewrite is mechanical, and D1660 names the replacement, fields written largest alignment first, without saying whether a tool may write it.
+
+**Chosen:** the refusal, L0696, says fields are placed in the order written and names the replacement, and carries no fix. The order D210 chose depended on the target: a pointer or `usize` field's alignment differs between a 32-bit and a 64-bit target, and the reordering applied only when it made the struct strictly smaller there, so one source order keeps the layout of one target and changes another's. Deleting the annotation alone keeps the program's meaning but not its layout. The parser refuses the word, and the grammar no longer derives it.
+
+**The alternatives:** a fix that reorders the field lines for the target of the check, which `refine fix` would then apply differently per target; and a fix that deletes the annotation, which silently grows the struct. Both are declined.
+
+**Pinned by** `negative/layout-optimal-places-fields-as-written`.
 
 ### D213 — Distinct types have opaque identity and transparent representation
 
@@ -7878,7 +7883,7 @@ kinds, known-value fit and addressability are `static`; dynamic membership,
 field fit and packed indexing are `trap`, retained by `unchecked`. Backing
 storage, pointer-origin erasure, device premises and external-write ordering
 retain D148/D227's existing `outside` and `beyond-lifetime` classifications.
-There is no invalid-encoding optimizer license. Natural, C and optimal layout
+There is no invalid-encoding optimizer license. Natural and C layout
 retain their existing representations and ABI contracts. Packed structs are
 not C bitfield structs and cannot cross a C signature by value; explicit
 unsigned carriers or pointers use the existing C boundary.
@@ -8099,8 +8104,7 @@ one byte at a time, least significant first: ARMv6-M faults on every
 unaligned halfword or word access, and a misaligned RISC-V access may trap
 or be emulated by the kernel. Lowering marks an address slot that reaches
 such a scalar, so an access through a computed element address is moved the
-same way. `layout(c, optimal)` and any second word but `packed` after `c` are
-L0103.
+same way. Any second word but `packed` after `c` is L0103.
 
 **The alternatives:** a per-field `align(1)` would match C's per-member
 attribute, but [0760] keeps alignment a `link` label rather than a word of
@@ -12279,7 +12283,7 @@ is a binding, as a pointer union's `ptr (p):` is, and not the flow-sensitive
 narrowing D189 declined. The name is definitely assigned on entry to the arm
 and carries no origin, and `rest` widens wherever that set does. Lowering
 stores the subject's code into the binding under the narrower set; an atom's
-code does not change with its set (D235), and the store tests each
+code does not change with its set, and the store tests each
 candidate but the last so the IR verifier sees an atom of the narrower set.
 A `_` arm that binds when every atom has its own arm, more than one name, an
 `inout` or a `sink` binding, or a binding on a named atom arm, is L0333.
@@ -15244,7 +15248,7 @@ classified failure boundary before the repository gate can pass.
 | `functions.nonreturning` | static | 0890, 0940, 1000, 1100, 1240, 1290, 1370, 1930, 1960 | D231 separates infallible nonreturning signatures from none, rejects reachable return/fallthrough and preserves termination through generic/evidence calls and applicable cleanup | `positive/r491-noreturn-signatures`, `negative/r670-noreturn-fallthrough`, `abi/r670-noreturn` |
 | `panic.contract` | static | 0890, 1670 | D232 selects only a canonical public ordinary nonreturning entry-module hook; L0506 rejects malformed declarations and unrepresentable u32 site spaces | `negative/r670-panic-handler`, `abi/r670-panic` |
 | `panic.dispatch` | trap | 0300, 0470, 0570, 0890, 1100, 1670, 1675, 1950, 1960, 1995 | D232 dispatches kind/site at the failed operation, forbids later computation and cleanup, and terminates reentry; the default needs no reporting storage | `abi/r670-panic`, `environments/cortex-m/freestanding.py` selected/default/interrupt controls, `runtime/fibre-stack-past-limit-traps`, `runtime/stack-frame-past-limit-traps` |
-| `firmware.surface` | static | 0760, 1000, 1460, 1500, 1550, 1560, 1570, 1630, 1640, 1650, 1990 | D229/D230 check target, machine signatures, placement, fixed assembly and scalar transport; D248 checks named operands against each target's registers; L0505 holds static images to D537's budget before section GC | `positive/r660-machine-directives`, `positive/r670-scalar-assembly`, `positive/assembly-operand-forms`, `negative/r660-materialization`, `negative/assembly-synthetic-target` |
+| `firmware.surface` | static | 0760, 1000, 1460, 1500, 1550, 1560, 1570, 1630, 1640, 1650, 1990 | D229 checks target, machine signatures, placement and fixed assembly; D248 checks named operands against each target's registers; L0505 holds static images to D537's budget before section GC | `positive/r660-machine-directives`, `positive/r670-scalar-assembly`, `positive/assembly-operand-forms`, `negative/r660-materialization`, `negative/assembly-synthetic-target` |
 | `firmware.return` | trap | 1550, 1570, 1650, 1990 | D232 dispatches entry return as unreachable/site zero; D229 naked fallthrough retains its undefined-instruction guard and separate hardware-fault obligations | `positive/r660-machine-directives`, `environments/cortex-m/firmware.py` boot and naked-fallthrough controls |
 | `firmware.assembly-obligations` | outside | 1550, 1560, 1570, 1630, 1990 | non-guarantee: fixed text is not a proof of device completion or correct naked stack/register/control-flow behavior; the programmer owns naked machine state | `positive/r660-machine-directives` |
 | `packed.extraction` | trap | 0630, 0730, 1120 | Unnamed field encodings trap before producing a named value, including under unchecked; an image copy does not extract fields | `runtime/r640-packed-hole`, `runtime/r640-packed-small-space` |
@@ -15290,7 +15294,7 @@ classified failure boundary before the repository gate can pass.
 | `arrays.initialization` | static | 0520, 0530, 0540, 0550, 0560 | L0300--L0304 or L0313 | `negative/array-initializer-length-mismatch`, `runtime/whole-arrays-copy-between-storage` |
 | `arrays.arithmetic` | static | 0590 | L0301 refuses mismatched lengths, element types, nonnumeric lifting and every array comparison; D209 retains complete operand values in source order, allowing stable storage to supply them, and retains scalar element semantics | `negative/r450-array-length-mismatch`, `negative/r450-array-element-mismatch`, `negative/r450-array-bool-refused`, `negative/r450-array-comparison-refused`, `runtime/r450-array-snapshots`, `runtime/r450-array-compound-snapshot`, `runtime/r450-array-empty-operands`, `runtime/r450-array-float-order` |
 | `arrays.element-traps` | trap | 0290, 0300, 0310, 0590, 1120, 1960 | D209 executes element operations in ascending index order with the scalar overflow and division edges; unchecked removes no division edge | `runtime/r450-array-later-overflow`, `runtime/r450-array-unary-overflow`, `runtime/r450-array-later-division-zero`, `runtime/r450-array-signed-division-overflow`, `runtime/r450-array-unchecked-division-zero` |
-| `layout.explicit-policy` | static | 0750, 0760 | D210 changes physical field placement only for explicit optimal policy and only for a strict final padded-size win; source identities and initializer evaluation order are unchanged | `positive/r450-optimal-layout-source`, `runtime/r450-optimal-layout-composition` |
+| `layout.explicit-policy` | static | 0750, 0760 | fields are placed in the order written (D1660); a struct written largest alignment first is the smaller one, and source identities and initializer evaluation order are unchanged | `positive/r450-optimal-layout-source`, `runtime/r450-optimal-layout-composition` |
 | `raw.prefix` | static | 0420, 0500, 0510 | L0202 prevents representation access; `core/mem` reports `full`, `out_of_bounds`, `empty` or `not_empty` before an invalid transition | `negative/core-mem-private-representation`, `runtime/core-mem-raw-storage` |
 | `raw.backing` | outside | 0430, 0470, 0510, 1720 | non-guarantee: the supplied byte pointer may be invalid, misaligned or smaller than the declared capacity | `runtime/core-mem-raw-storage` |
 | `allocation.failure` | static | 0300, 0940, 1230, 1280, 1290, 1310, 1360, 1975 | allocators report `core/mem.out_of_memory`, which a caller must handle or declare; arenas reject exhaustion and unrepresentable request arithmetic before mutation, vectors check extents and growth before provider calls and preserve the old list on failure, and heap refusal, finite pool exhaustion, injected refusal and delegated inner refusal use the same channel | `runtime/core-mem-allocators`, `runtime/core-mem-arena-boundaries`, `runtime/core-vec-pointer-storage`, `runtime/r420-vec-capacity-boundaries`, `runtime/r420-vec-growth-boundary`, `runtime/r420-vec-growth-transaction`, `runtime/derived-parser`, `runtime/hosted-heap-provider`, `runtime/r420-pool-provider`, `runtime/r420-failing-providers` |
@@ -15333,7 +15337,7 @@ classified failure boundary before the repository gate can pass.
 | `entry.point` | static | 1650, 1970 | L0502 before executable emission | `runtime/constant-return-exits-with-its-code`, `negative/r440-native-renamed-entry` |
 | `module.images` | static | 0180, 0340, 0350, 0410, 1460, 1890, 1930, 1940 | L0300, L0304 or L0305; module-known bool `not`, `and` and `or` fold left to right into scalar and aggregate images, short-circuit `and`/`or`, and execute no initializer CFG | `negative/module-value-from-a-call`, `runtime/module-known-short-circuit-bools`, `runtime/recursive-module-images-are-laid-out-and-distinct` |
 | `unchecked.region` | outside | 0290, 0300, 0310, 0320, 0430, 0470, 0570, 0580, 0700, 1100, 1110, 1120, 1950, 1960 | non-guarantee: inside [1120]'s region the compiler emits no integer overflow edge for `+`, `-`, `*` and unary `-`, no element-index or slice-range edge, and no destination-range edge for an integer-to-integer or pointer-to-integer conversion; the results are [0320]'s wrapping value, [0430]'s pointer non-guarantee at the computed address, and the low-order bits of the source; every static refusal, every division, shift, bool and float conversion edge and every text boundary edge stays, and a [1100] `defer` or [1110] `undo` call keeps the edges of the place its registration is written rather than those of the exit that runs it | `positive/unchecked-regions`, `positive/unchecked-marks-only-the-edges-it-removes`, `runtime/unchecked-arithmetic-wraps`, `runtime/unchecked-integer-conversion-truncates`, `runtime/unchecked-slice-index-passes-the-length`, `runtime/checks-return-after-the-region`, `runtime/unchecked-does-not-cross-a-call`, `runtime/unchecked-does-not-reach-an-anonymous-body`, `runtime/unchecked-keeps-the-divisor-check`, `runtime/unchecked-keeps-the-shift-check`, `runtime/unchecked-keeps-text-boundary-traps`, `runtime/unchecked-keeps-bool-conversion-traps`, `runtime/unchecked-keeps-float-conversion-traps`, `runtime/unchecked-pointer-conversion-truncates`, `runtime/unchecked-does-not-reach-an-outer-cleanup`, `runtime/unchecked-reaches-a-cleanup-written-inside`, `negative/unchecked-keeps-a-known-index`, `negative/unchecked-keeps-permissions`, `negative/unchecked-keeps-definite-assignment`, `negative/unchecked-region-end-name-mismatch` |
-| `pointer.optional` | static | 0430, 0440, 0470, 0480, 0630, 0640, 1210, 1870 | L0335 for every use that would read an atom case as an address, for a union of one atom and a pointer and for one of several atoms and a pointer alike — `.val` in a read, in an assignment target and under `addr`, an integer conversion, `any` construction, a comparison with another union or a pointer (D429 admits one with the union's own atom), a `ptr T` position, and `ptr(n)` into one — L0333 for an `inout` arm binding and L0338 for a union of two pointer types; L0328 rejects a many-atom union without a zero image, while the one-atom `zeroed` context remains L0301; L0333 for an arm outside the union, L0301 for a widening atom outside it, for a narrowing, for a permission the member does not relax to, and for an `inout` place of another union; L0311 for a case named twice and L0312 for a case no arm and no `_` names; the bound pointer carries the subject's origin and an atom case carries none | `positive/pointer-unions`, `runtime/pointer-unions`, `runtime/pointer-union-atom-comparison`, `negative/pointer-union-dereference`, `negative/pointer-union-assignment-target`, `negative/pointer-union-address-of-referent`, `negative/pointer-union-any-construction`, `negative/pointer-union-case-named-twice`, `negative/pointer-union-present-arm-named-twice`, `negative/pointer-union-is-not-a-pointer`, `negative/pointer-union-match-not-exhaustive`, `negative/pointer-union-frame-escape`, `negative/r440-parser-frame-arena`, `negative/pointer-union-comparison`, `negative/pointer-union-integer-conversion`, `negative/pointer-union-from-an-integer`, `negative/pointer-union-inout-binding`, `negative/pointer-union-zeroed`, `negative/pointer-union-two-pointers`, `negative/pointer-case-arm-is-not-an-atom`, `positive/pointer-union-several-atoms`, `positive/pointer-union-many-declarations`, `positive/pointer-union-many-widening`, `runtime/pointer-union-many`, `negative/pointer-union-many-dereference`, `negative/pointer-union-many-assignment-target`, `negative/pointer-union-many-address-of-referent`, `negative/pointer-union-many-any-construction`, `negative/pointer-union-many-comparison`, `negative/pointer-union-many-integer-conversion`, `negative/pointer-union-many-is-not-a-pointer`, `negative/pointer-union-many-result-is-not-a-pointer`, `negative/pointer-union-many-from-an-integer`, `negative/pointer-union-many-zeroed`, `negative/pointer-union-many-inout-binding`, `negative/pointer-union-many-case-named-twice`, `negative/pointer-union-many-pointer-arm-named-twice`, `negative/pointer-union-many-match-not-exhaustive`, `negative/pointer-union-many-foreign-atom-arm`, `negative/pointer-union-many-atom-outside-the-set`, `negative/pointer-union-many-does-not-narrow`, `negative/pointer-union-many-permission-does-not-widen`, `negative/pointer-union-many-inout-is-exact`, `negative/pointer-union-many-frame-escape`, `negative/pointer-union-many-return-frame`, `negative/pointer-union-many-two-pointers` |
+| `pointer.optional` | static | 0430, 0440, 0470, 0480, 0630, 0640, 1210, 1870 | L0335 for every use that would read an atom case as an address — `.val` in a read, in an assignment target and under `addr`, an integer conversion, `any` construction, a comparison with another union or a pointer (D429 admits one with the union's own atom), a `ptr T` position, and `ptr(n)` into one — L0333 for an `inout` arm binding, L0338 for a union of two pointer types and L0696 for one of two or more atoms and a pointer (D1659); the `zeroed` context is L0301; L0333 for an arm outside the union, L0301 for a widening atom outside it, for a narrowing to its atom and for a permission the member does not relax to; L0311 for a case named twice and L0312 for a case no arm and no `_` names; the bound pointer carries the subject's origin and an atom case carries none | `positive/pointer-unions`, `runtime/pointer-unions`, `runtime/pointer-union-atom-comparison`, `negative/pointer-union-dereference`, `negative/pointer-union-assignment-target`, `negative/pointer-union-address-of-referent`, `negative/pointer-union-any-construction`, `negative/pointer-union-case-named-twice`, `negative/pointer-union-present-arm-named-twice`, `negative/pointer-union-is-not-a-pointer`, `negative/pointer-union-match-not-exhaustive`, `negative/pointer-union-frame-escape`, `negative/r440-parser-frame-arena`, `negative/pointer-union-comparison`, `negative/pointer-union-integer-conversion`, `negative/pointer-union-from-an-integer`, `negative/pointer-union-inout-binding`, `negative/pointer-union-zeroed`, `negative/pointer-union-two-pointers`, `negative/pointer-case-arm-is-not-an-atom`, `negative/pointer-union-holds-one-atom`, `negative/pointer-union-atom-outside-the-set`, `negative/pointer-union-foreign-atom-arm`, `negative/pointer-union-does-not-narrow`, `negative/pointer-union-permission-does-not-widen` |
 | `configuration.fixed` | static | 1480, 1500, 1510, 1530, 1540, 1560, 1590, 1980 | L0200 for duplicate option names; L0203 for reserved tool names; L0300, L0301, L0305 or L0306 for invalid fixed evaluation; L0324 for a false compiler assertion; L0390 for invalid option declarations; L0391 for invalid tool directives | `negative/fixed-conditional-evaluator`, `negative/r430-assertion-false`, `negative/r430-option-cycle`, `negative/r430-option-duplicate`, `negative/r430-option-reserved`, `negative/r430-library-injection`, `positive/r430-fixed-options`, `runtime/r430-fixed-tools`, `runtime/r430-static-library` |
 
 This is a coverage register, not an optimizer contract. D187 adds
@@ -16171,15 +16175,15 @@ Symbolic declaration checking validates independent members while leaving the
 result undecided; it never invents a partial atom-set key or records a concrete
 instance answer on template syntax. Proven pointer presence and up to two distinct
 atom identities survive symbolic alias substitution solely as diagnostic lower
-bounds, so unconditional pointer-count and tagged-pointer violations are refused
-even in unused declarations. An invalid concrete substitution names its application
+bounds, so unconditional pointer-count violations, and two atoms known beside
+a pointer (D1659), are refused even in unused declarations. An invalid concrete substitution names its application
 as the primary source and its template member as the related source. The resulting alias participates in the
 ordinary error-set, assignment and generic-key rules. A one-atom pointer union
 uses D189's existing descriptor, including the empty atom of a substituted
 optional-pointer alias. Two pointer members are still refused. Two or more
-atoms beside a pointer were refused by name here; D235 later gives them
-its two-cell union, including through a parameterized alias such as
-`opt(t) = a | b | ptr t`.
+atoms beside a pointer were refused by name here; D235 later gave them a
+two-cell union, and D1659 refuses them again as L0696, at the application
+when a parameterized alias such as `opt(t) = a | b | ptr t` makes the union.
 
 A fully applied alias is normalized during checking. Its enabled result is a
 scalar, fixed-array, atom-set, pointer or nominal aggregate descriptor; an alias
@@ -16227,9 +16231,7 @@ requires substitution. All were declined.
 `negative/r490-union-alias-direct-array`,
 `negative/r490-union-alias-unused-nonatom`,
 `negative/r490-union-alias-two-pointers`,
-`positive/r490-union-alias-tagged-pointer`,
-`positive/r490-union-alias-optional-widening`,
-`positive/r490-union-concrete-optional-widening`,
+`negative/pointer-union-holds-one-atom`,
 `negative/r490-union-alias-deduction-conflict`, the checking case
 `union aliases keep exact instance keys`, and the parameterized-alias and
 parameterized-struct parser and
@@ -19614,6 +19616,8 @@ backend.
 
 ### D230 — Scalar transport through the ordinary assembly boundary
 
+**Superseded by D1662.** There is no positional value; `inout value: u32 at r0 = operand` is written instead, and what follows is history.
+
 **From** [1360], [1550], [1570], [1620], [1630], [1990], D202, D227 and
 prototype 1's X8.
 
@@ -19656,9 +19660,12 @@ peripheral trace in `freestanding.py` uses the same ordinary-slice completion
 protocol as `firmware.py`. Assembly instructions and indirect writes remain
 programmer obligations; no ownership or interrupt-safety proof is introduced.
 
-**Pinned by:** `positive/r670-scalar-assembly`, the Cortex source/IR cases and
+**Pinned by** `negative/assembly-positional-value-is-an-operand`, which refuses the form since D1662.
+
+`positive/r670-scalar-assembly`, the Cortex source/IR cases and
 the compiler-generated `core-cpu.ldn` and ordinary-slice DMA execution in
-`environments/cortex-m/freestanding.py`.
+`environments/cortex-m/freestanding.py` pinned this until D1662 removed the
+form; their transports are now written as the `inout` operand at r0.
 
 ### D232 — Compiler-check panic dispatch and optional site identity
 
@@ -19866,7 +19873,8 @@ register is declared, which makes the routine save it; frame, stack and link
 registers are never named, and the language reserves no register beyond them.
 Every block keeps the opaque read/write, call and trap boundary on every
 target, so the verified IR sees one instruction with declared register
-effects. D230's form is kept as the shorthand for `inout` at r0.
+effects. D230's form was kept as the shorthand for `inout` at r0 until D1662
+removed it.
 
 | Choice | Alternative and reason for declining it | Executable pin |
 | --- | --- | --- |
@@ -19880,7 +19888,7 @@ effects. D230's form is kept as the shorthand for `inout` at r0.
 | The memory effect is fixed: every block reads and writes memory, may call and may trap | GCC's `"memory"` clobber and Rust's `nomem` and `readonly` let a block promise less. The default is always correct, no optimisation here would use the promise, and the case assembly exists for, a critical section, is the one a narrower promise breaks; a measured need in optimisation reopens it | `core-cpu.ldn` |
 | Every output gets a register distinct from every input unless it is `inout` | Rust's `lateout` shares an input's register with an output; it saves a register and asks the programmer to know when an input is dead | `negative/assembly-register-twice` |
 | `general` counts only the registers the block does not otherwise name | Counting the whole class accepts a block the compiler cannot give registers to, and leaves the failure to emission | `negative/assembly-general-exhausted` |
-| D230's `(text, u32)` form is the shorthand for `inout` at r0, Cortex-M0 only | Withdrawing it leaves two spellings through a transition and `platform/cortex_m` unwritable until lowering exists; giving it a hosted meaning would invent a register convention | `negative/assembly-shorthand-hosted`, `negative/assembly-shorthand-after-operand`, `positive/r670-scalar-assembly` |
+| D230's `(text, u32)` form was the shorthand for `inout` at r0, Cortex-M0 only, until D1662 removed it | Withdrawing it leaves two spellings through a transition and `platform/cortex_m` unwritable until lowering exists; giving it a hosted meaning would invent a register convention | `negative/assembly-positional-value-is-an-operand`, `negative/assembly-positional-after-operand`, `positive/r670-scalar-assembly` |
 | The operand form was specified and checked on every target before any lowered it, refused by one stated lowering limit until each did | Parsing alone would collapse every rule into one refusal; accepting before lowering exists would emit a program with a silent hole | the runtime `assembly-*` fixtures, `negative/assembly-synthetic-target` |
 
 The text rules that were Cortex-M0's are uniform where they can be: size,
@@ -19908,11 +19916,21 @@ fixtures, `backend/assembly blocks keep their registers`,
 
 **The tour said** at [1630] that inline assembly names each operand's register, and D248 kept the Cortex-M0 positional `assembler.block(text, value)` only until lowering existed on every target. It does. The library writes none; two probe programs under `environments/cortex-m/probes/` do.
 
-**Chosen:** the positional form leaves; the operand form, `inout value: u32 at r0 = …`, is the only one, and the probes are rewritten to it. The maintainer chose this on 2026-11-21, answering the candidate list the third roadmap's simplification phase decides.
+**Chosen:** the positional form leaves; the operand form, `inout value: u32 at r0 = …`, is the only one, and the probes are rewritten to it. The maintainer chose this on 2026-11-21, answering the candidate list the third roadmap's simplification phase decides. D1927 gives the refusal's fix. D230 is superseded and D248's shorthand row withdrawn; the IR's assembly operand is then always named but for a discarded output, and the verifier holds it to that.
 
 **The alternatives:** keeping the positional form for its two call sites. Declined.
 
-**Pinned by** nothing that runs yet: the change that removes the form adds the fixture that refuses it, naming its replacement, and the rewrite that replaces it, and marks each decision it withdraws as superseded by this one.
+**Pinned by** `negative/assembly-positional-value-is-an-operand` and its recorded fix; `environments/cortex-m/probes/core-cpu.ldn`, `runtime/assembly-operand-free` and `positive/r670-scalar-assembly`, rewritten by `refine fix`, pin the rewrite.
+
+### D1927 — The positional assembly value's fix writes its operand and doubles the text's braces
+
+**The discrepancy:** D1847 makes a removed form's rewrite its refusal's exact fix where the rewrite is mechanical, and D1662 names the operand form without saying what happens to a brace the text already holds, which the operand form reads as `{name}`.
+
+**Chosen:** the parser refuses a second positional argument of `assembler.block` as L0696, naming the operand it stood for, and its one exact fix inserts `inout value: u32 at r0 = ` before the value and doubles every `{` and `}` in the text literal, the operand form's escape for a literal brace. The rewrite means what the shorthand meant: the same register in and out, the block's value its one output, and an operand name that declares nothing in any scope, so `value` shadows nothing even where the value is itself named `value`. The parser refuses it on every target, since the grammar derives it as an ordinary argument and only the parser knows `assembler.block` from its spelling; where no source text is at hand the refusal carries no fix.
+
+**The alternatives:** a fix only for texts with no brace, which would leave a text that writes one, in a comment for example, to a hand edit for no reason; and a checker refusal, which would let the removed form through on a target whose `fixed if` branch the checker never enters. Both are declined.
+
+**Pinned by** `negative/assembly-positional-value-is-an-operand` and its recorded fix.
 
 ### D597 — Assembly text takes its target's own line comment
 
@@ -23033,6 +23051,8 @@ refusal cannot know the name of.
 
 ### D874 — An atom `else` filling a several-atom pointer union names the one-atom route
 
+**Superseded by D1659.** There is no several-atom pointer union to fill, and what follows is history.
+
 **The discrepancy:** D235 keeps a call returning a plain pointer from filling
 a union of several atoms and that pointer through an atom `else`, which would
 need a new lowering, and its refusal was the generic L0301, "this does not
@@ -23053,7 +23073,8 @@ not change.
 one-atom union, the new lowering D235 declined; and naming only D235, which
 says why and not what to write.
 
-**Pinned by** `negative/pointer-union-many-call-else-atom-names-the-route`.
+**Pinned by** `negative/pointer-union-holds-one-atom`, which refuses the
+union since D1659.
 
 ### D383 — `refine check` takes what `compile` takes about the program
 

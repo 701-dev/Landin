@@ -82,11 +82,6 @@ package body Landin.Checking.Spelling is
    is
       Types : Table renames From.Types.all;
    begin
-      if Is_Pointer_Union (Types, Id) then
-         return "(" & Atoms_Text (From, Union_Atoms (Types, Id))
-           & " | " & Reference_Text (From, Union_Pointer (Types, Id), Within)
-           & ")";
-      end if;
       declare
          Template : constant Res.Declaration_Id := Template_Of (Types, Id);
          --  Outside its module a private type is written by its public

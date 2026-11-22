@@ -232,7 +232,7 @@ package Landin.Targets is
    --  and the layout does not shift under a new compiler".  That sentence
    --  is the whole of this: no reordering, no packing, and padding only
    --  where an alignment demands it.  The supported SysV C record subset
-   --  uses this same placement; `layout(optimal)` remains a separate policy.
+   --  uses this same placement.
    --
    --  An accumulator rather than a function over a list, because the
    --  caller holds the fields and this package must not learn what a

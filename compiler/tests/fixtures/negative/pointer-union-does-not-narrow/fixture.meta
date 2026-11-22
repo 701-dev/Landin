@@ -1,0 +1,9 @@
+class: negative
+summary: D189 a pointer union never narrows to its atom
+constructs: 0480, 0640, 1870
+program: program.ldn
+codes: L0301
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/pointer-union-does-not-narrow/program.ldn
+status: 1

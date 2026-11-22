@@ -200,16 +200,16 @@ package body Landin.Tests.Host_Reports_Suite is
             end loop;
             declare
                Plan : constant Layout.Plan :=
-                 Layout.Make (Fields, Landin.Layouts.Optimal);
+                 Layout.Make (Fields, Landin.Layouts.Natural);
             begin
                Reports.Append_Layout
-                 (Report, Count + 1, Landin.Layouts.Optimal, Plan);
+                 (Report, Count + 1, Landin.Layouts.Natural, Plan);
                Landin.Testing.Check
                  (Item, Reports.Layout_Plan (Report, Count + 1) = Plan
                   and then Reports.Layout_Position (Report, Count + 1)
                     = Count + 1
                   and then Reports.Layout_Policy (Report, Count + 1)
-                    = Landin.Layouts.Optimal,
+                    = Landin.Layouts.Natural,
                   "the complete discriminated plan round trips");
             end;
          end;
@@ -221,11 +221,11 @@ package body Landin.Tests.Host_Reports_Suite is
          Empty : constant Layout.Plan := Layout.Make
            (Layout.Field_Extent_Array'(1 .. 0 => <>));
          Small : constant Layout.Plan := Layout.Make
-           ([(1, 1), (8, 8), (1, 1), (8, 8)], Landin.Layouts.Optimal);
+           ([(1, 1), (8, 8), (1, 1), (8, 8)], Landin.Layouts.C);
       begin
          Reports.Clear (Report);
          Reports.Append_Layout (Report, 1, Landin.Layouts.Natural, Empty);
-         Reports.Append_Layout (Report, 3, Landin.Layouts.Optimal, Small);
+         Reports.Append_Layout (Report, 3, Landin.Layouts.C, Small);
          Landin.Testing.Check_Equal
            (Item, Reports.JSON (Report, Landin.Targets.Linux_X86_64,
                                 Landin.Optimization.Reference_Options),
@@ -235,11 +235,9 @@ package body Landin.Tests.Host_Reports_Suite is
             & """specialize"":""off"",""specializations"": ["
             & "],""routines"": [],""layouts"": [" & LF
             & "{""nominal"":1,""policy"":""natural"",""size"":0,"
-            & """alignment"":1,""natural_size"":0,""saved_bytes"":0,"
-            & """order"": [],""offsets"": []},"
-            & LF & "{""nominal"":3,""policy"":""optimal"",""size"":24,"
-            & """alignment"":8,""natural_size"":32,""saved_bytes"":8,"
-            & """order"": [2,4,1,3],""offsets"": [16,0,17,8]}]}" & LF,
+            & """alignment"":1,""offsets"": []},"
+            & LF & "{""nominal"":3,""policy"":""c"",""size"":32,"
+            & """alignment"":8,""offsets"": [0,8,16,24]}]}" & LF,
             "representation cleanup preserves the original JSON bytes");
       end;
    end Whole_Plans;
@@ -249,7 +247,7 @@ package body Landin.Tests.Host_Reports_Suite is
       Good : constant Layout.Plan := Layout.Make ([(1, 1), (8, 8)]);
    begin
       Reports.Append_Layout (Report, 1, Landin.Layouts.Natural, Good);
-      for Failure in 1 .. 7 loop
+      for Failure in 1 .. 3 loop
          declare
             Bad : Layout.Plan := Good;
             Position : Positive := 2;
@@ -258,13 +256,9 @@ package body Landin.Tests.Host_Reports_Suite is
                Landin.Optimization.Reference_Options);
          begin
             case Failure is
-               when 1 => Bad.Order (2) := Bad.Order (1);
-               when 2 => Bad.Order (2) := Bad.Count + 1;
-               when 3 => Bad.Size := Bad.Natural_Size + 1;
-               when 4 => Bad.Saved_Bytes := 1;
-               when 5 => Bad.Alignment := 3;
-               when 6 => Bad.Offsets (2) := Bad.Size + 1;
-               when 7 => Position := 1;
+               when 1 => Bad.Alignment := 3;
+               when 2 => Bad.Offsets (2) := Bad.Size + 1;
+               when 3 => Position := 1;
             end case;
             begin
                Reports.Append_Layout

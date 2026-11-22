@@ -45,23 +45,13 @@ package body Landin.Build_Reports is
      (Into : in out Report; Nominal_Position : Positive;
       Policy : Landin.Layouts.Policy; Placement : Landin.Targets.Layouts.Plan)
    is
-      Seen : array (1 .. Placement.Count) of Boolean := [others => False];
    begin
       if (not Into.Layouts.Is_Empty
           and then Nominal_Position <= Into.Layouts.Last_Element.Position)
-        or else Placement.Size > Placement.Natural_Size
-        or else Placement.Saved_Bytes
-          /= Placement.Natural_Size - Placement.Size
         or else not Landin.Targets.Is_Power_Of_Two (Placement.Alignment)
       then
          raise Landin.Compiler_Defect with "invalid layout report";
       end if;
-      for Position of Placement.Order loop
-         if Position > Placement.Count or else Seen (Position) then
-            raise Landin.Compiler_Defect with "invalid reported field order";
-         end if;
-         Seen (Position) := True;
-      end loop;
       for Offset of Placement.Offsets loop
          if Offset > Placement.Size then
             raise Landin.Compiler_Defect with "invalid reported field offset";
@@ -222,7 +212,6 @@ package body Landin.Build_Reports is
               (case L.Policy is
                   when Landin.Layouts.Natural => "natural",
                   when Landin.Layouts.C => "c",
-                  when Landin.Layouts.Optimal => "optimal",
                   when Landin.Layouts.Packed => "packed",
                   when Landin.Layouts.C_Packed => "c-packed");
          begin
@@ -234,16 +223,7 @@ package body Landin.Build_Reports is
                  & ",""policy"":""" & Policy & """");
             Field ("size", P.Size);
             Field ("alignment", Landin.Targets.Byte_Count (P.Alignment));
-            Field ("natural_size", P.Natural_Size);
-            Field ("saved_bytes", P.Saved_Bytes);
-            Put (",""order"": [");
-            for Position in P.Order'Range loop
-               if Position > 1 then
-                  Put (",");
-               end if;
-               Put (Image (Landin.Targets.Byte_Count (P.Order (Position))));
-            end loop;
-            Put ("],""offsets"": [");
+            Put (",""offsets"": [");
             for Position in P.Offsets'Range loop
                if Position > 1 then
                   Put (",");

@@ -1,10 +1,10 @@
 fixed if compiler.arch == cortex_m0 then
     mask: () -> (value: u32) =
         zero: u32 = 0
-        value = assembler.block("mrs r0, primask\ncpsid i", zero)
+        value = assembler.block("mrs r0, primask\ncpsid i", inout value: u32 at r0 = zero)
     end mask
     restore: (value: u32) -> none =
-        _ = assembler.block("msr primask, r0\nisb sy", value)
+        _ = assembler.block("msr primask, r0\nisb sy", inout value: u32 at r0 = value)
     end restore
 end if
 start: () -> none = end start

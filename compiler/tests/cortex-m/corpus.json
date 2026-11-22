@@ -3758,9 +3758,6 @@
     "runtime/pointer-union-atom-comparison": {
       "mode": "execute"
     },
-    "runtime/pointer-union-many": {
-      "mode": "execute"
-    },
     "runtime/pointer-unions": {
       "counterpart": "pointer-unions",
       "mode": "execute",

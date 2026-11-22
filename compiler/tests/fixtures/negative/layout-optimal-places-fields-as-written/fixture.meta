@@ -1,0 +1,9 @@
+class: negative
+summary: layout(optimal) is refused, naming source-order placement and fields written largest alignment first
+program: program.ldn
+codes: L0696
+constructs: 0750, 1800
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/layout-optimal-places-fields-as-written/program.ldn
+status: 1

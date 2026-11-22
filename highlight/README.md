@@ -125,9 +125,9 @@ held. The renderings that can look ahead colour each word there alone,
 Nano and Notepad++ cannot, and colour both wherever they stand, as they
 colour `is`.
 The tree-sitter grammar handles the enabled structural surface, including contextual `lenof` and `of`, the
-`layout(c)`, `layout(optimal)`, `layout(packed, u32)`, packed positions,
+`layout(c)`, `layout(packed, u32)`, packed positions,
 encoded unions and `link(symbol: ...)` annotations, and
-`extern(c)` function types, while `c`, `optimal`, `layout`, `link`, and `symbol`
+`extern(c)` function types, while `c`, `layout`, `link`, and `symbol`
 remain ordinary identifiers
 outside those positions. It remains deliberately non-normative and tolerant
 enough for incomplete editor buffers.

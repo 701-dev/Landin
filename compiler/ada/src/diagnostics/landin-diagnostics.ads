@@ -142,7 +142,8 @@ package Landin.Diagnostics is
       One_Name_Each,   --  D1656: a shared declaration, one line a name
       Struct_Block,    --  D1657: an inline struct becomes `struct … end`
       Name_Function,   --  D1654: an anonymous function is declared
-      Import_Whole);   --  D1658: selected names become `m.name`
+      Import_Whole,    --  D1658: selected names become `m.name`
+      Name_Operand);   --  D1662: a positional assembly value is named
 
    type Fix is private;
 

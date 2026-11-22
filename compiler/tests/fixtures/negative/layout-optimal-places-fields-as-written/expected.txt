@@ -1,0 +1,6 @@
+error[L0696]: fields are placed in the order written
+  --> ../tests/fixtures/negative/layout-optimal-places-fields-as-written/program.ldn:4:16
+  |
+4 | record: type = layout(optimal) struct
+  |                ^^^^^^^^^^^^^^
+  = note: D1660: `layout(optimal)` left; write the fields largest alignment first for the smaller layout

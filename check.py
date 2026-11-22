@@ -3933,6 +3933,7 @@ REFUSED_BY_PARSER_UNDER_A_SHARED_CODE = {
     "inline-struct-is-a-struct-block": "D1888",
     "selected-import-is-imported-whole": "D1888",
     "range-subtype-is-a-distinct-type": "D1907",
+    "layout-optimal-places-fields-as-written": "D1928",
 }
 
 
@@ -11152,7 +11153,7 @@ def check_highlight_vocabulary(full_run):
                         "the tree-sitter `%s` rule omits %s"
                         % (rule, ", ".join(missing_refs))))
 
-    contextual = {"c", "optimal", "layout", "link", "symbol"}
+    contextual = {"c", "layout", "link", "symbol"}
     reserved_contextual = sorted(contextual & listed) if reserved else []
     if reserved_contextual:
         out.append((grammar, 1,

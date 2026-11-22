@@ -1,6 +1,6 @@
 natural: type = struct a: u8 b: u64 c: u8 d: u64 end natural
 foreign: type = layout(c) struct a: u8 b: u64 c: u8 d: u64 end foreign
-compact: type = layout(optimal) struct a: u8 b: u64 c: u8 d: u64 end compact
+compact: type = struct b: u64 d: u64 a: u8 c: u8 end compact
 outer: type = struct tag: u8 value: compact tail: u8 end outer
 image: outer = outer(tag: 9, value: compact(a: 1, b: 2, c: 3, d: 4), tail: 8)
 images: [2]compact = [compact(a: 5, b: 6, c: 7, d: 8),

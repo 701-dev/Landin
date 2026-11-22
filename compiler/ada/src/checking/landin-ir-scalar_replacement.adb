@@ -172,11 +172,7 @@ package body Landin.IR.Scalar_Replacement is
             end if;
             Plan.Parts := Natural (Slot.Length);
          elsif Slot.Aggregate then
-            --  A pointer union's code field admits a reserved zero only
-            --  as a load of that field from frame storage.
             if Slot.Fields.Count < 1 or else Slot.Fields.Count > Most_Parts
-              or else (Slot.Nominal /= No_Nominal_Type
-                       and then Is_Pointer_Union (Into, Slot.Nominal))
             then
                return;
             end if;

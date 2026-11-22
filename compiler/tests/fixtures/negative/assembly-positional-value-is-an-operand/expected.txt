@@ -1,0 +1,14 @@
+error[L0696]: assembly names its operands
+  --> ../tests/fixtures/negative/assembly-positional-value-is-an-operand/program.ldn:7:49
+  |
+7 |         result = assembler.block("adds r0, #7", value)
+  |                                                 ^^^^^
+  = note: D1662: the positional value stood for `inout value: u32 at r0 = value`; write that operand
+  = help: write the value as the operand it stood for, `inout value: u32 at r0`
+error[L0696]: assembly names its operands
+  --> ../tests/fixtures/negative/assembly-positional-value-is-an-operand/program.ldn:10:53
+   |
+10 |         _ = assembler.block("adds r0, #1 @ {kept}", value)
+   |                                                     ^^^^^
+  = note: D1662: the positional value stood for `inout value: u32 at r0 = value`; write that operand
+  = help: write the value as the operand it stood for, `inout value: u32 at r0`

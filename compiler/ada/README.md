@@ -321,10 +321,8 @@ which would read the carrier as an address are guarded by name in
 `Landin.Stages.Checking` rather than by an exhaustive case. Reference
 checking gives the bound pointer the subject's own origin and gives the empty
 case none; lowering emits the reserved zero and one comparison against it.
-D235's several-atom union is instead `Landin.Checking.Intern_Pointer_Union`'s
-two-cell aggregate nominal, keyed by its atom set and pointer type, with no
-source body; `Landin.IR.Admits_Reserved_Zero` lets the backends load its zero
-code cell, and the DWARF writer names it by its canonical spelling.
+A union of two or more atoms and a pointer is L0696 (D1659), so there is no
+other pointer-union representation.
 D206 separately refuses known null integer constructions and checks dynamic
 zero after target-width conversion, even in `unchecked`; origin erasure does
 not erase non-nullness. The library's absent backing uses named pointer unions,
@@ -861,8 +859,7 @@ bounds the verifier holds to values that type holds.
 
 Every `assembler.block` form is one IR instruction with the same
 conservative effects and ordinary register and frame restrictions: named
-operands (D248), the Cortex-M-only `u32` shorthand through r0 (D230) and the
-operand-free block. `platform/cortex_m` uses `general` operands;
+operands (D248) and the operand-free block. `platform/cortex_m` uses `general` operands;
 [the core guide](../../core/README.md) records its public interfaces.
 Compiler-host tests verify the source and IR restrictions on Cortex-M, and
 the freestanding lane executes the generated firmware. Nonreturning control

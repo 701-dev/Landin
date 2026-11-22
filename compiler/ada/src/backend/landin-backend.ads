@@ -179,8 +179,7 @@ package Landin.Backend is
    --  Where one field of an aggregate slot sits, as a distance below the
    --  frame pointer like any other cell.  A cell grows downward while
    --  aggregate fields grow upward from its base.  Subtract the selected
-   --  source field's physical offset from the cell's downward distance;
-   --  an explicit optimal layout may place that field out of source order.
+   --  source field's physical offset from the cell's downward distance.
    function Field_Offset
      (Of_Unit  : Landin.IR.Unit;
       Item     : Landin.IR.Item_Id;

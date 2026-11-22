@@ -1454,7 +1454,6 @@ package body Landin.Checking is
            (Into, Into.Nominal_Buckets, Template, Actuals,
             Into.Nominal_Templates.Last_Index);
          Into.Distinct_Bases.Append (Signature_Part'(others => <>));
-         Into.Nominal_Spellings.Append (Landin.Source.Names.No_Name);
          Into.Nominal_Actual_Runs.Append (Members);
          Into.Layouts.Append (Aggregate_Layout'(others => <>));
       end;
@@ -1490,43 +1489,6 @@ package body Landin.Checking is
       return Natural (Candidates.Length);
    end Nominal_Instance_Candidate_Count;
 
-   function Intern_Pointer_Union
-     (Into    : in out Table;
-      Atoms   : Atom_Set_Id;
-      Pointer : Reference_Id) return Nominal_Type_Id
-   is
-      Key : Actual_Tuple := Empty_Actuals;
-   begin
-      Append_Actual (Key, Atom_Set_Type_Actual (Into, Atoms));
-      Append_Actual (Key, Reference_Type_Actual (Into, Pointer));
-      return Intern (Into, No_Declaration, Key);
-   end Intern_Pointer_Union;
-
-   function Is_Pointer_Union
-     (Of_Table : Table; Id : Nominal_Type_Id) return Boolean
-     is (Template_Of (Of_Table, Id) = No_Declaration);
-
-   function Union_Atoms
-     (Of_Table : Table; Id : Nominal_Type_Id) return Atom_Set_Id
-     is (Nth_Instance_Actual (Of_Table, Id, 1).Atoms);
-
-   function Union_Pointer
-     (Of_Table : Table; Id : Nominal_Type_Id) return Reference_Id
-     is (Nth_Instance_Actual (Of_Table, Id, 2).Reference);
-
-   function Union_Spelling
-     (Of_Table : Table; Id : Nominal_Type_Id)
-      return Landin.Source.Names.Name_Id
-     is (Of_Table.Nominal_Spellings.Element
-           (Nominal_Identities.Position (Of_Table, Id)));
-
-   procedure Note_Union_Spelling
-     (Into : in out Table;
-      Id   : Nominal_Type_Id;
-      Name : Landin.Source.Names.Name_Id) is
-   begin
-      Into.Nominal_Spellings (Nominal_Identities.Position (Into, Id)) := Name;
-   end Note_Union_Spelling;
 
    function Public_Alias_Of
      (Of_Table : Table; Template : Declaration_Id) return Declaration_Id
@@ -5118,7 +5080,7 @@ package body Landin.Checking is
             Reject;
             return;
       end;
-      for Position of Placement.Order loop
+      for Position in Placement.Offsets'Range loop
          declare
             Field : constant Positive := Fields'First + Position - 1;
             Ignored : Landin.Targets.Byte_Count;

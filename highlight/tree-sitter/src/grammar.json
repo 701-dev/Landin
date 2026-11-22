@@ -2239,15 +2239,6 @@
                 "type": "ALIAS",
                 "content": {
                   "type": "STRING",
-                  "value": "optimal"
-                },
-                "named": true,
-                "value": "identifier"
-              },
-              {
-                "type": "ALIAS",
-                "content": {
-                  "type": "STRING",
                   "value": "packed"
                 },
                 "named": true,

@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: a pointer union of one atom or of several compares with == and <> against one of its atoms on either side, without matching and without reading the address
+summary: a pointer union compares with == and <> against its atom on either side, as a declared local and as a call's result, without matching and without reading the address
 program: main.ldn
 status: 42
 constructs: 0350, 0480, 1890

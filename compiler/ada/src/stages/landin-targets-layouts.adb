@@ -8,38 +8,7 @@ package body Landin.Targets.Layouts is
       Maximum : Byte_Count := Byte_Count'Last) return Plan
    is
       Made : Plan (Fields'Length);
-
-      procedure Place_Order (Into : in out Plan);
-
-      procedure Place_Order (Into : in out Plan) is
-         Layout : Placement := Empty_Placement;
-      begin
-         for Position of Into.Order loop
-            declare
-               --  D410: a byte-packed C record places every field at
-               --  alignment one, so it has no padding and alignment one.
-               Field : constant Field_Extent :=
-                 (if Policy = Landin.Layouts.C_Packed
-                  then (Fields (Fields'First + Position - 1).Size, 1)
-                  else Fields (Fields'First + Position - 1));
-            begin
-               if not Can_Place
-                 (Layout, Field.Size, Field.Alignment, Byte_Count'Last)
-               then
-                  raise Landin.Compiler_Defect with
-                    "invalid or overflowing field placement";
-               end if;
-               Place (Layout, Field.Size, Field.Alignment,
-                      Into.Offsets (Position));
-            end;
-         end loop;
-         Into.Size := Size_Of (Layout);
-         Into.Alignment := Alignment_Of (Layout);
-      end Place_Order;
    begin
-      for Position in Made.Order'Range loop
-         Made.Order (Position) := Position;
-      end loop;
       if Policy = Landin.Layouts.Packed then
          if Fields'Length = 0 then
             raise Landin.Compiler_Defect with "an empty packed image";
@@ -58,46 +27,33 @@ package body Landin.Targets.Layouts is
             raise Landin.Compiler_Defect with "packed image exceeds limit";
          end if;
          Made.Offsets := [others => 0];
-         Made.Natural_Size := Made.Size;
          return Made;
       end if;
-      Place_Order (Made);
-      Made.Natural_Size := Made.Size;
-      if Policy = Landin.Layouts.Optimal then
-         declare
-            Candidate : Plan := Made;
-            Alignment : Byte_Alignment := Byte_Alignment'Last;
-            Count : Natural := 0;
-         begin
-            --  Alignments are validated powers of two.  Thirteen stable
-            --  buckets avoid quadratic sorting and allocate no per-byte
-            --  metadata, even for a field representing a huge fixed array.
-            loop
-               for Position in Made.Order'Range loop
-                  if Fields (Fields'First + Position - 1).Alignment
-                    = Alignment
-                  then
-                     Count := Count + 1;
-                     Candidate.Order (Count) := Position;
-                  end if;
-               end loop;
-               exit when Alignment = 1;
-               Alignment := Alignment / 2;
-            end loop;
-            --  An unpadded unit may make the candidate larger.  Even if
-            --  its final padding overflows, the valid natural plan wins.
+      declare
+         Layout : Placement := Empty_Placement;
+      begin
+         for Position in Made.Offsets'Range loop
+            declare
+               --  D410: a byte-packed C record places every field at
+               --  alignment one, so it has no padding and alignment one.
+               Field : constant Field_Extent :=
+                 (if Policy = Landin.Layouts.C_Packed
+                  then (Fields (Fields'First + Position - 1).Size, 1)
+                  else Fields (Fields'First + Position - 1));
             begin
-               Place_Order (Candidate);
-               if Candidate.Size < Made.Size then
-                  Candidate.Saved_Bytes := Made.Size - Candidate.Size;
-                  Made := Candidate;
+               if not Can_Place
+                 (Layout, Field.Size, Field.Alignment, Byte_Count'Last)
+               then
+                  raise Landin.Compiler_Defect with
+                    "invalid or overflowing field placement";
                end if;
-            exception
-               when Landin.Compiler_Defect =>
-                  null;
+               Place (Layout, Field.Size, Field.Alignment,
+                      Made.Offsets (Position));
             end;
-         end;
-      end if;
+         end loop;
+         Made.Size := Size_Of (Layout);
+         Made.Alignment := Alignment_Of (Layout);
+      end;
       if Made.Size > Maximum then
          raise Landin.Compiler_Defect with
            "field placement exceeds the target object limit";

@@ -1,0 +1,12 @@
+--  D1660: `layout(optimal)` left.  Fields are placed in the order written,
+--  and a struct wanting the smaller layout writes its fields largest
+--  alignment first.  The order depended on the target, so there is no fix.
+record: type = layout(optimal) struct
+    first: u8
+    middle: u64
+    last: u8
+end record
+
+public main: () -> (code: i32) =
+    code = 0
+end main

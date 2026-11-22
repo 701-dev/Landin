@@ -659,7 +659,8 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   union may be written in place as a binding's, parameter's, return's or
   field's type. A distinct type compares wherever its base does, updates
   flags in place with `|=`, `&=` and `^=`, and has its base's zero image; a
-  pointer union compares with one of its own atoms. A nearer declaration of
+  pointer union holds one atom and compares with it, and two or more atoms
+  beside a pointer are refused (D1659). A nearer declaration of
   a predeclared type's name, `u8` or `utf8`, shadows it in type positions as
   any declaration shadows a name (D1260).
 - **Measuring.** `lenof` measures a field or element path or a call's
@@ -1061,9 +1062,9 @@ process ignores SIGPIPE and gives its children the default back.
   whatever the build directory, environment or order, on all nine targets, with both Xtensa configurations;
   a hosted linked image without `--debug` is too, on one host's toolchain
   and under one output name (D810).
-- **Switches.** D209 to D211 specify compact numeric-array arithmetic,
-  explicit `layout(optimal)` field placement and optional evidence-proved
-  specialization, which are independent switches. The driver selects
+- **Switches.** D209 and D211 specify compact numeric-array arithmetic and
+  optional evidence-proved specialization, which are independent switches;
+  fields are always placed in the order written (D1660). The driver selects
   size/auto by default; `--optimize=none --specialize=off` selects the
   reference, and `--build-report=PATH` requests deterministic off-target
   JSON, [whose fields the compiler guide lists](../compiler/ada/README.md#the-build-report),

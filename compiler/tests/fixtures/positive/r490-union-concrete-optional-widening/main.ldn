@@ -1,4 +1,0 @@
-first: atom
-second: atom
-optional: type = first | ptr i32
-wrong: type = optional | second

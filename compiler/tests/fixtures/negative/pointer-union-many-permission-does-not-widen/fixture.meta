@@ -1,9 +1,0 @@
-class: negative
-summary: [0480]/[1870] a read-only pointer or a read-only union does not widen into a union whose member is `ptr mut`
-constructs: 0440, 0480, 1870
-program: program.ldn
-codes: L0301, L0301
-targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
-expect: expected.txt
-args: ../tests/fixtures/negative/pointer-union-many-permission-does-not-widen/program.ldn
-status: 1

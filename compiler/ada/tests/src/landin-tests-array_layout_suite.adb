@@ -136,20 +136,18 @@ package body Landin.Tests.Array_Layout_Suite is
             Lower (Item, Work,
               "natural: type = struct"
               & " a: u8 b: usize c: u8 d: usize end natural"
-              & LF & "compact: type = layout(optimal) struct"
-              & " a: u8 b: usize c: u8 d: usize end compact"
               --  Synthetic32 has no selected C ABI; neutral C placement is
               --  tested separately by backend plans on both target models.
               & (if Small then "" else
                    LF & "foreign: type = layout(c) struct"
                    & " a: u8 b: usize c: u8 d: usize end foreign")
-              & LF & "f: () -> (r: usize) = sizeof compact end f");
+              & LF & "f: () -> (r: usize) = sizeof natural end f");
             if Landin.Stages.Failed (Work) then
                return;
             end if;
             Landin.Testing.Check_Equal
               (Item, IR.Nominal_Type_Count (Unit.all),
-               (if Small then 2 else 3),
+               (if Small then 1 else 2),
                "all source layout policies have canonical identities");
             for Position in 1 .. IR.Nominal_Type_Count (Unit.all) loop
                declare
@@ -162,7 +160,6 @@ package body Landin.Tests.Array_Layout_Suite is
                   Expected : constant Landin.Layouts.Policy :=
                     (case Position is
                         when 1 => Landin.Layouts.Natural,
-                        when 2 => Landin.Layouts.Optimal,
                         when others => Landin.Layouts.C);
                begin
                   Landin.Testing.Check

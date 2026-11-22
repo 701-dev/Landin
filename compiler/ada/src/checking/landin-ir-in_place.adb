@@ -641,11 +641,7 @@ package body Landin.IR.In_Place is
             begin
                if not Kept.Addressed
                  and then
-                   ((Kept.Aggregate
-                     and then Kept.Fields.Count > 0
-                     and then not
-                       (Holds (Into, Kept.Nominal)
-                        and then Is_Pointer_Union (Into, Kept.Nominal)))
+                   ((Kept.Aggregate and then Kept.Fields.Count > 0)
                     or else Kept.Array_Shape)
                then
                   Candidate (Positive (Slot)) := True;

@@ -410,18 +410,9 @@ package body Landin.Stages.Checking.Flow is
 
       function Field_Named
         (Nominal : Landin.Checking.Nominal_Type_Id;
-         Index   : Positive) return String
-      is
-         Wrote : constant Res.Declaration_Id :=
-           Landin.Checking.Template_Of (Types.all, Nominal);
-      begin
-         --  [0480]/[1870]: a pointer union has no template; its two cells
-         --  are named as a debugger presents them.
-         if Wrote = Res.No_Declaration then
-            return (if Index = 1 then "atom" else "ptr");
-         end if;
-         return Template_Field_Named (Wrote, Index);
-      end Field_Named;
+         Index   : Positive) return String is
+        (Template_Field_Named
+           (Landin.Checking.Template_Of (Types.all, Nominal), Index));
 
       function Template_Field_Named
         (Wrote : Res.Declaration_Id;

@@ -489,9 +489,8 @@ def gdb_script(start_commands: list[str], source_lines: dict[str, int]) -> str:
     emit_section(lines, "unions-values", ["output union_atom", "printf \"\\n\"",
                                           "output union_pointer", "printf \"\\n\""])
     emit_values(lines, "unions", (
-        ("atom_code", "union_atom.atom"),
-        ("pointer_code", "union_pointer.atom"),
-        ("pointee", "*union_pointer.ptr"),
+        ("atom_address", "union_atom"),
+        ("pointee", "*union_pointer"),
     ))
     #  [1630]: the block's own line, its output a local after it, and the
     #  callee-saved register it declares, rbx or x19, restored for the
@@ -1067,7 +1066,7 @@ def check_transcript(transcript: str, source_lines: dict[str, int],
         "multiple.base": 5, "multiple.first": 15, "multiple.second": 25,
         "aliases.renamed_left": 15, "aliases.renamed_right": 25,
         "loop.element": 3, "loop.sum": 0,
-        "unions.pointer_code": 0, "unions.pointee": 41,
+        "unions.atom_address": 0, "unions.pointee": 41,
     }
     variant_members = {
         "choice.tag": 1,
@@ -1126,23 +1125,15 @@ def check_transcript(transcript: str, source_lines: dict[str, int],
                 f"variant debug view omits {name}")
     require(re.search(r"\btag = 1\b", variant_values) is not None,
             "variant debug view omits the active payload tag")
-    #  [0480]/[1870]: the union is a structure named by its canonical
-    #  spelling; an atom case has a nonzero code, which D423's enumeration
-    #  shows as the atom's name, and the pointer case code 0.
+    #  [0480]/[1870]: a union of one atom and a pointer is the pointer
+    #  (D189, D1659); its atom case is the zero address.
     union_type = marker_section(transcript, "unions-type")
-    require("debug_denied | debug_none | ptr mut i32" in union_type
-            and re.search(r"\batom;", union_type) is not None
-            and re.search(r"\*\s*ptr;", union_type) is not None,
+    require("i32" in union_type and "*" in union_type,
             f"pointer union type is not presented: {union_type!r}")
     union_values = marker_section(transcript, "unions-values")
-    require(re.search(r"atom = debug_(?:denied|none), ptr = 0x0\b",
-                      union_values)
-            is not None and re.search(r"atom = 0, ptr = 0x[0-9a-f]*[1-9a-f]",
-                                      union_values) is not None,
+    require(re.search(r"\b0x0\b", union_values) is not None
+            and re.search(r"0x[0-9a-f]*[1-9a-f]", union_values) is not None,
             f"pointer union cases are not presented: {union_values!r}")
-    require(re.search(r"^LANDIN-VALUE unions\.atom_code=[1-9]\d*$",
-                      transcript, re.M) is not None,
-            "GDB did not report a nonzero atom code for the atom case")
     for value in ("7000000000", "111", "222", "333"):
         require(value in variant_values,
                 f"variant payload debug view omits {value}")

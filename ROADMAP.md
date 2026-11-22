@@ -1521,7 +1521,7 @@ compiled a range subtype.
 
 ### R19.80 — One-atom pointer unions, written layout and named operands
 
-Status: active
+Status: complete
 Depends on: R19.10, R19.40
 
 SC-10, SC-13 and SC-06, the three that reach the backends: a pointer union
@@ -1536,6 +1536,32 @@ replacement; the build-modes comparison and the emit manifest unchanged
 for every program that wrote none of the three; the Cortex-M lanes passing
 with the rewritten probes; the complete gate and a `scope=boards` run on
 the item's commit.
+Done: a pointer union of two or more atoms is refused as L0696 by the
+checker, written in place, through an alias or in a template whether or
+not it is applied, naming a one-atom union beside an error set or a struct
+of a state and a pointer, with no fix (D1659); the two-cell aggregate left
+checking, the IR, lowering, the verifier, scalar replacement, in-place
+parameters, the dump and DWARF, with D874's route and the code cell's
+reserved zero, and an error set holding a pointer keeps its own refusal.
+`layout(optimal)` is refused by the parser, which the grammar now agrees
+with, with no fix since its order depended on the target (D1928); the
+layout plan lost its order, natural size and saved bytes, and the build
+report the fields that showed them. `assembler.block(text, value)` is
+refused by the parser with one exact fix that writes `inout value: u32 at
+r0 = value` and doubles the text's braces (D1927), and the IR verifier now
+holds every operand but a discarded output to a name. D210, D230, D235 and
+D874 are superseded, D248 and D429 amended. `refine fix` migrated the three
+positional calls in `environments/cortex-m/probes/core-cpu.ldn` (the brief's
+two plus a third), `runtime/assembly-operand-free` and
+`positive/r670-scalar-assembly`; no union or layout source could be, there
+being no fix. Twenty-seven fixtures that pinned only a removed form left,
+five were renamed, eleven rewritten by hand, and
+`negative/pointer-union-holds-one-atom`,
+`negative/layout-optimal-places-fields-as-written` and
+`negative/assembly-positional-value-is-an-operand` are the exit evidence.
+An atom outside a one-atom union is now refused naming the union and its
+atom, a finding met on the way. No measured workload wrote any of the
+three, so no size or cycle baseline moved.
 
 ### R19.90 — The value model folded
 

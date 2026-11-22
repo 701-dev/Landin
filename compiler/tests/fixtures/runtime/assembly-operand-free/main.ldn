@@ -18,7 +18,7 @@ elsif compiler.arch == xtensa then
 else
     idle: () -> none = assembler.block("nop\nyield") end idle
     through: (value: u32) -> (r: u32) =
-        r = assembler.block("adds r0, #7", value)
+        r = assembler.block("adds r0, #7", inout value: u32 at r0 = value)
     end through
 end if
 

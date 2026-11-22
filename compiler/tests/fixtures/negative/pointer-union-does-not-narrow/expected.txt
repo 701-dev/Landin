@@ -1,0 +1,10 @@
+error[L0301]: this is not an atom admitted by the set required here
+  --> ../tests/fixtures/negative/pointer-union-does-not-narrow/program.ldn:5:9
+  |
+5 |     a = m
+  |         ^
+  --> ../tests/fixtures/negative/pointer-union-does-not-narrow/program.ldn:5:5
+  |
+5 |     a = m
+  |     ^ the atom place written here
+  = note: [0640]: an atom value may widen only into a union that contains its identity

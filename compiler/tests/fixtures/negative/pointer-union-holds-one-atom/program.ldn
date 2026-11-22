@@ -1,0 +1,18 @@
+--  D1659: a pointer union holds one atom.  Two or more atoms beside a
+--  pointer are refused however the union is reached: written in either
+--  order, flattened from a one-atom union into a larger one, reached by
+--  applying a parameterized alias, and written in a signature.
+none_found: atom
+denied: atom
+written: type = none_found | denied | ptr mut u32
+reversed: type = ptr u32 | denied | none_found
+optional: type = none_found | ptr u32
+widened: type = optional | denied
+tagged: type (t: type) = none_found | denied | ptr t
+applied: type = tagged(u32)
+joined: type (t: type) = t | denied
+substituted: type = joined(optional)
+
+in_place: (m: none_found | denied | ptr u32) -> (r: u32) =
+    r = 0
+end in_place

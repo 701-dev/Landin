@@ -434,9 +434,9 @@ package body Landin.Tests.Frontend_Review_Suite is
    procedure Layout_Boundaries (Item : in out Landin.Testing.Context) is
    begin
       for Small in Boolean loop
-         --  These ordinary fields exercise the three byte layouts; packed
+         --  These ordinary fields exercise the two byte layouts; packed
          --  geometry has its own target-parametric controls.
-         for Policy in Landin.Layouts.Natural .. Landin.Layouts.Optimal loop
+         for Policy in Landin.Layouts.Natural .. Landin.Layouts.C loop
             declare
                Facts : constant Landin.Targets.Target_Facts :=
                  (if Small then Landin.Targets.Synthetic_32
@@ -494,17 +494,11 @@ package body Landin.Tests.Frontend_Review_Suite is
                for Field in 1 .. 4 loop
                   declare
                      Expected : constant Landin.Targets.Byte_Count :=
-                       (if Policy = Landin.Layouts.Optimal then
-                          (case Field is
-                              when 1 => 2 * Pointer,
-                              when 2 => 0,
-                              when 3 => 2 * Pointer + 1,
-                              when others => Pointer)
-                        else (case Field is
-                              when 1 => 0,
-                              when 2 => Pointer,
-                              when 3 => 2 * Pointer,
-                              when others => 3 * Pointer));
+                       (case Field is
+                           when 1 => 0,
+                           when 2 => Pointer,
+                           when 3 => 2 * Pointer,
+                           when others => 3 * Pointer);
                   begin
                      Landin.Testing.Check
                        (Item, C.Field_Offset (Types.all,
@@ -541,15 +535,8 @@ package body Landin.Tests.Frontend_Review_Suite is
                          (Element => Ty.Usize, others => <>), Large],
                         Facts, Fits, Policy);
                      Landin.Testing.Check
-                       (Item, Fits = (Policy = Landin.Layouts.Optimal),
-                        "optimal rescues a natural layout above target limit");
-                     if Fits then
-                        Landin.Testing.Check
-                          (Item, C.Layout_Size (Types.all,
-                             C.Nth_Nominal_Type (Types.all, 4))
-                               = 4_294_967_292,
-                           "rescued layout uses 32-bit target facts");
-                     end if;
+                       (Item, not Fits,
+                        "padding past the 32-bit target limit is refused");
                   end;
                end if;
                begin

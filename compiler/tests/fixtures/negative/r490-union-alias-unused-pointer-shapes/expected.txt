@@ -8,6 +8,12 @@ error[L0338]: a union holds at most one pointer type
 6 | two_ptrs: type (t: type) = first | ptr t | ptr u8
   |                                    ^^^^^ the pointer member already given
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:7:26
+  |
+7 | tagged: type (t: type) = first | second | ptr t
+  |                          ^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
 error[L0338]: a union holds at most one pointer type
   --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:8:51
   |
@@ -18,3 +24,15 @@ error[L0338]: a union holds at most one pointer type
 8 | nested_two: type (t: type) = first | pointer(t) | ptr u8
   |                                      ^^^^^^^^^^ the pointer member already given
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:9:33
+  |
+9 | nested_tagged: type (t: type) = optional(t) | second
+  |                                 ^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/r490-union-alias-unused-pointer-shapes/main.ldn:10:32
+   |
+10 | nested_atoms: type (t: type) = atoms(t) | ptr u8
+   |                                ^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer

@@ -818,7 +818,8 @@ Every struct keeps its fields in the order they are written, with natural
 alignment, so a hexdump matches the source [0750].
 
 `layout(c)` applies the selected target's C rules and is what may cross to
-C. `layout(optimal)` lets the compiler reorder for a smaller size [0750].
+C. Nothing reorders fields: for a smaller struct, write them largest
+alignment first [0750].
 
 A field holds the target's byte order. Data in another order is converted
 with shifts where it crosses [0750].

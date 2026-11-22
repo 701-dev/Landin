@@ -1231,11 +1231,10 @@ package body Landin.Stages.Resolution is
          if Landin.Configuration.Assembly_Call
            (Spellings.all, Of_Tree, Node)
          then
-            --  Fixed text belongs to the assembly boundary. The positional
-            --  scalar shorthand remains an ordinary evaluated expression.
-            --  [1630]'s operand writes a type and an input in the
-            --  surrounding scope; its own name declares nothing any scope
-            --  can see, and its register is the target's to answer for.
+            --  Fixed text belongs to the assembly boundary.  [1630]'s
+            --  operand writes a type and an input in the surrounding
+            --  scope; its own name declares nothing any scope can see, and
+            --  its register is the target's to answer for.
             for I in 2 .. Syn.Argument_Count (Of_Tree, Node) loop
                declare
                   Argument : constant Syn.Node_Id :=

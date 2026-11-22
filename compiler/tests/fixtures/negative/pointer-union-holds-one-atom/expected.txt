@@ -1,0 +1,36 @@
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:7:17
+  |
+7 | written: type = none_found | denied | ptr mut u32
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:8:18
+  |
+8 | reversed: type = ptr u32 | denied | none_found
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:10:17
+   |
+10 | widened: type = optional | denied
+   |                 ^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:11:26
+   |
+11 | tagged: type (t: type) = none_found | denied | ptr t
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:14:21
+   |
+14 | substituted: type = joined(optional)
+   |                     ^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:16:15
+   |
+16 | in_place: (m: none_found | denied | ptr u32) -> (r: u32) =
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer

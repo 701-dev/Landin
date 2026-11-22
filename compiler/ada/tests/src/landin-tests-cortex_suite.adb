@@ -2628,7 +2628,8 @@ package body Landin.Tests.Cortex_Suite is
            when 37 => "link(vector: 0x10) extern(interrupt) h: () -> none"
              & " = end h",
            when 38 => "h: (x: u32) -> (r: u32) = "
-             & "assembler.block(""adds r0, #1"", x) end h",
+             & "assembler.block(""adds r0, #1"","
+             & " inout value: u32 at r0 = x) end h",
            when 39 => "h: (x: u16) -> none = "
              & "_ = assembler.block(""nop"", x) end h",
            when 40 => "extern(naked) h: () -> none = "
@@ -2642,8 +2643,8 @@ package body Landin.Tests.Cortex_Suite is
            when 44 => "h: (x: u32) -> none = "
              & "_ = assembler.block(""nop"", x) end h",
            when 45 => "h: (x: u32) -> (r: u32) = r = 42 "
-             & "_ = assembler.block(""nop"", begin return when x == 0 "
-             & "x end) end h",
+             & "_ = assembler.block(""nop"", inout value: u32 at r0 ="
+             & " begin return when x == 0 x end) end h",
            when 46 => "h: (x: u32) -> none = "
              & "_ = assembler.block(""nop"", x) else 0 end h",
            when 47 => "h: () -> none = "
@@ -3062,7 +3063,8 @@ package body Landin.Tests.Cortex_Suite is
                 (Work, "assembly.ldn", "f: (x: u32) -> (r: u32) = "
                  & "flag: bool = true _ = flag "
                  & (if Mode <= 4
-                    then "r = assembler.block(""adds r0, #7"", x)"
+                    then "r = assembler.block(""adds r0, #7"","
+                         & " inout value: u32 at r0 = x)"
                     else "r = assembler.block(""adds {o}, {i}, #7"","
                          & " out o: u32 at general,"
                          & " in i: u32 at r1 = x)")
@@ -3122,7 +3124,7 @@ package body Landin.Tests.Cortex_Suite is
                              (IR.Both, First.Name, "r0", Ty.U16,
                               First.Output));
                      when 3 =>
-                        --  The shorthand on a target that has no r0.
+                        --  An r0 operand on a target that has no r0.
                         null;
                      when 4 =>
                         --  An output that writes no slot.

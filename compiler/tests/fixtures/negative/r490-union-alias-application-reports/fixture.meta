@@ -1,8 +1,8 @@
 class: negative
-summary: Invalid union substitutions name each application and its local or imported template member; an imported union of several atoms and a pointer is valid
+summary: Invalid union substitutions name each application and its local or imported template member; an imported application that makes a union of several atoms and a pointer is L0696 (D1659) at the application
 program: main.ldn
 root: .
-codes: L0338, L0338, L0338, L0338, L0338
+codes: L0338, L0338, L0338, L0338, L0338, L0696
 constructs: 0480, 0630, 0640, 1350, 1795
 targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 expect: expected.txt

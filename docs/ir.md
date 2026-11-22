@@ -911,16 +911,12 @@ traps. Whole aggregate copies preserve the carrier without extracting fields.
 Ordinary atom loads also validate their software codes. The private call-status
 slot has a different domain: zero means success, otherwise the code identifies
 a declared error. `Is_Failure_Status_Load` recognizes only a slot designated by
-a direct or indirect call's failure edge. D235's pointer union has a second
-reserved-zero cell: its first field holds the atom's own code, and zero marks
-the pointer case. `Is_Union_Code_Load` recognizes a load of that field from a
-union held in a frame slot, and `Admits_Reserved_Zero` is the union of the two
-predicates. Every implemented backend asks it, and permits zero only for such a load
+a direct or indirect call's failure edge. Every implemented backend asks
+`Admits_Reserved_Zero`, which names that load, and permits zero only for it
 before `Failure_Test`; ordinary source atom storage does not gain a zero value.
-Recovery still observes a named error on the failing branch. The union itself
-is an ordinary two-cell aggregate nominal with no source body — code, then one
-pointer — and the verifier holds its shape to exactly those cells, so no IR
-instruction, ABI position or selection was added for it.
+Recovery still observes a named error on the failing branch. A pointer union
+holds one atom (D1659) and is a pointer whose empty case is the zero address,
+so it adds no atom cell for this rule to admit.
 
 The x86 baseline body-sharing check compares slot and value atom domains as
 well as scalar carriers: two u32 carriers can require different validation
@@ -955,8 +951,8 @@ canonical full-width name, or empty for
 the instruction's operands in written order, evaluated and kept in slots
 before it; it defines no value, and lowering reads each output slot back
 after it, filling a multi-output block's anonymous result field by field.
-D230's shorthand is one `inout` entry at r0 with no name, and an operand-free
-or naked block has no entries. The verifier holds entries to their inputs and
+Every entry is named but a discarded output's, and an operand-free or naked
+block has no entries. The verifier holds entries to their inputs and
 slots, refuses outputs that name parameter slots, holds names and registers
 to being distinct, and, given target facts, every
 register to the target's table and every type to one register's width;
@@ -978,9 +974,9 @@ register tables on every target. A backend chooses each `general` register
 through the same table, in its written order, passing over every register the
 block holds or its text names, and fills `{name}` at the operand's width.
 Every implemented backend emits ordinary blocks. A naked body keeps its
-no-frame contract on every target, written in that target's assembly, and
-the positional shorthand keeps its Cortex register contract. x86-64's allocator hands
-out only rbx and r12-r15 in a routine with assembly, and
+no-frame contract on every target, written in that target's assembly.
+x86-64's allocator hands out only rbx and r12-r15 in a routine with
+assembly, and
 never one a block of the routine declares, which it saves instead, so each
 input moves straight into its register and each output straight to its slot.
 

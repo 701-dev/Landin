@@ -15,7 +15,7 @@ end operand
 
 skip_assembly: (early: bool) -> (result: u32) =
     result = 41
-    _ = assembler.block("movs r1, #99\nstr r1, [r0]", begin
+    _ = assembler.block("movs r1, #99\nstr r1, [r0]", inout value: u32 at r0 = begin
         return when early
         operand()
     end)
@@ -33,7 +33,7 @@ extern(interrupt) irq: () -> none =
 end irq
 
 transport: (item: type, value: u32) -> (result: u32) =
-    result = assembler.block("adds r0, #7\nmovs r1, #99\nmovs r4, #88", value)
+    result = assembler.block("adds r0, #7\nmovs r1, #99\nmovs r4, #88", inout value: u32 at r0 = value)
 end transport
 
 --  [1630]'s named operands: several outputs destructured, a block that
@@ -96,7 +96,7 @@ start: () -> none =
     answer := transport(item: u32, value: value)
     return when answer <> 42 or value <> 35
     before := discarded
-    _ = assembler.block("movs r1, #73\nstr r1, [r0]", operand())
+    _ = assembler.block("movs r1, #73\nstr r1, [r0]", inout value: u32 at r0 = operand())
     return when before <> 0 or discarded <> 73 or evaluations <> 1
     return when skip_assembly(true) <> 41
     return when discarded <> 73 or evaluations <> 1

@@ -255,6 +255,14 @@ package Landin.Diagnostics.Fixes is
       Edits  : Edit_List) return Fix
      with Pre => Edits'Length > 0;
 
+   --  D1662: the positional value of `assembler.block(text, value)`
+   --  becomes the operand it stood for, `inout value: u32 at r0 = value`,
+   --  and every brace in the text is doubled, since the operand form reads
+   --  `{name}` as an operand's register.  Exact: the shorthand meant that
+   --  operand, and the operand's name declares nothing in any scope.
+   function Name_Operand (Edits : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
    --  One Respell per name the ranking kept, nearest first; none when it
    --  kept none.
    function Respellings

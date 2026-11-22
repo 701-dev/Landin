@@ -605,9 +605,9 @@ package body Landin.Tests.Backend_Scale_Suite is
                     others => <>);
          end Shape_Of;
       begin
-         --  These ordinary fields exercise the three byte layouts; packed
+         --  These ordinary fields exercise the two byte layouts; packed
          --  geometry has its own target-parametric controls.
-         for Policy in Landin.Layouts.Natural .. Landin.Layouts.Optimal loop
+         for Policy in Landin.Layouts.Natural .. Landin.Layouts.C loop
             declare
                Shape : constant IR.Field_Shape := Shape_Of (Fields, Policy);
                Run : constant Natural :=
@@ -633,8 +633,7 @@ package body Landin.Tests.Backend_Scale_Suite is
                      Pointer : constant Targets.Byte_Count :=
                        Targets.Byte_Count
                          (Targets.Bytes (Targets.Pointer_Size (Facts)));
-                     Base : constant Targets.Byte_Count := Pointer
-                       * (if Policy = Landin.Layouts.Optimal then 3 else 4);
+                     Base : constant Targets.Byte_Count := 4 * Pointer;
                   begin
                      Landin.Testing.Check
                        (Item, Measure.Extent
@@ -760,9 +759,9 @@ package body Landin.Tests.Backend_Scale_Suite is
          end Shape_Of;
       begin
          IR.Set_Nominal_Shape (Other_Code, Other_Nominal, [Fields (1)]);
-         --  These ordinary fields exercise the three byte layouts; packed
+         --  These ordinary fields exercise the two byte layouts; packed
          --  geometry has its own target-parametric controls.
-         for Policy in Landin.Layouts.Natural .. Landin.Layouts.Optimal loop
+         for Policy in Landin.Layouts.Natural .. Landin.Layouts.C loop
             declare
                Base : constant IR.Field_Shape := Shape_Of (Fields, Policy);
                Shared : IR.Field_Shape := Base;
@@ -795,8 +794,7 @@ package body Landin.Tests.Backend_Scale_Suite is
                           Targets.Byte_Count
                             (Targets.Bytes (Targets.Pointer_Size (Facts)));
                         Expected : constant Targets.Byte_Count :=
-                          16 * Pointer
-                          * (if Policy = Landin.Layouts.Optimal then 3 else 4);
+                          64 * Pointer;
                      begin
                         Landin.Testing.Check
                           (Item, Measure.Extent

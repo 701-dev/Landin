@@ -1,0 +1,9 @@
+class: negative
+summary: D1659 a union of two or more atoms and a pointer is refused, written in place in either order or in a signature, flattened from a one-atom union, or reached by applying a parameterized alias, and carries no fix because the rewrite is the program's design
+program: program.ldn
+codes: L0696, L0696, L0696, L0696, L0696, L0696
+constructs: 0480, 0630, 0640, 1290, 1350, 1795, 1870
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn
+status: 1

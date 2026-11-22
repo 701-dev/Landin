@@ -12,7 +12,7 @@ debug_site: type = struct
     column: u32
 end debug_site
 
-debug_record: type = layout(optimal) struct
+debug_record: type = struct
     tiny: u8
     huge: i64
     middle: u16
@@ -169,18 +169,18 @@ debug_outer: (caller call_site: debug_site,
 end debug_outer
 
 debug_none: atom
-debug_denied: atom
-debug_union: type = debug_none | debug_denied | ptr mut i32
+debug_union: type = debug_none | ptr mut i32
 
---  [0480]/[1870]: one union local holds an atom case and one the pointer
---  case; a debugger presents each as its atom's name and pointer cells.
+--  [0480]/[1870]: one union local holds the atom case and one the pointer
+--  case; a debugger presents each as the pointer it is, the atom case as
+--  the zero address (D189).
 debug_unions: (union_param: ptr mut i32) -> (result: i32) =
-    union_atom: debug_union = debug_denied
+    union_atom: debug_union = debug_none
     union_pointer: debug_union = union_param
     union_ready: i32 = 1
     result = 1
     match union_atom
-        debug_denied:
+        debug_none:
             match union_pointer
                 ptr (union_bound):
                     if union_bound.val == 41 and union_ready == 1

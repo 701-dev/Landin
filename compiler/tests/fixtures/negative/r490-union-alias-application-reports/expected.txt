@@ -48,3 +48,9 @@ error[L0338]: a union holds at most one pointer type
 4 | public with_pointer: type (t: type) = first | t | ptr u8
   |                                                   ^^^^^^ the template pointer member
   = note: [0480]: `maybe a pointer` is an atom beside one pointer type
+error[L0696]: a pointer union holds one atom
+  --> ../tests/fixtures/negative/r490-union-alias-application-reports/main.ldn:9:23
+  |
+9 | several_atoms: type = unions.with_atoms(ptr u8)
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer

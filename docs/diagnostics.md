@@ -816,10 +816,7 @@ never a pointer; for a `ptr u8` parameter, bind it, `name: []u8 = "..."`, and
 pass `addr name[0]`, since the literal ends in NUL (D442). A `[` that begins
 a line indexes the value the line above ends with [1750]; when that value is
 no array the report stands on the `[` and says the line was continued, and
-the value in parentheses, `(name)`, lets the `[` begin a value (D1191). An atom `else` on a
-call that returns a plain pointer does not widen it into a union of several
-atoms and that pointer (D235): the refusal names the one-atom union to
-recover into, whose value widens into the larger one (D874). A function
+the value in parentheses, `(name)`, lets the `[` begin a value (D1191). A function
 value converts to an address only when it is a C function value and only
 to `usize`, `usize(f)` (D1343): a function in Landin's own convention has no
 address C could call, and another integer type converts that `usize` after
@@ -3229,6 +3226,21 @@ A range subtype, `T range a .. b` [0660], is gone (D1661): declare a
 `distinct` type over the base and a function that checks the range and
 returns the value converted to it. There is no fix, because every use that
 stored a base value into the subtype changes too (D1907).
+
+A pointer union of two or more atoms, `a | b | ptr T` [0480], is gone
+(D1659), written in place or made by an alias or a parameterized alias's
+application: a pointer union holds one atom. A pointer with several states
+is a one-atom union beside an error set, or a struct of a state and a
+pointer. There is no fix; which of the two fits is the program's design.
+
+`layout(optimal)` [0750] is gone (D1660): fields are placed in the order
+written, so a struct that wants the smaller layout writes its fields largest
+alignment first. There is no fix, because the order it chose depended on the
+target's alignments (D1928). The positional value of
+`assembler.block(text, value)` [1630] is gone (D1662): it stood for
+`inout value: u32 at r0 = value`, and the fix writes that operand and
+doubles every brace in the text, which the operand form reads as `{name}`
+(D1927).
 
 ```landin
 public main: () -> (code: i32) =

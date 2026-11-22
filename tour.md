@@ -1496,7 +1496,6 @@ You ask for another layout by name:
 | layout | what it does |
 |---|---|
 | no `layout` | source order, natural alignment |
-| `layout(optimal)` | sorts fields by descending alignment, but only if that makes the struct strictly smaller |
 | `layout(c)` | the selected target's C rules (spec [1975]) |
 | `layout(c, packed)` | C's byte-packed record: every field at alignment one, no padding |
 | `layout(packed)` | a register image of bits ([0730]) |
@@ -1509,9 +1508,8 @@ cost is visible where it is paid.
 
 The fine print:
 
-- `layout(optimal)` keeps source order when sorting saves nothing, moves
-  nested structs, arrays and variant parts whole, and never makes a struct
-  fit for C.
+- No layout reorders fields. For the smallest struct, write its fields
+  largest alignment first.
 - `layout(c)` does not choose a function's calling convention. A C record
   holds native-endian scalars, fixed arrays, nested nonempty C structs and
   callback fields declared with C's convention.
@@ -1533,7 +1531,7 @@ each takes:
 |---|---|---|
 | `mut` | none | [0060] |
 | `public` | none | [0090] |
-| `layout` | `c`, `optimal`, `packed`, or `c, packed` | [0730], [0750] |
+| `layout` | `c`, `packed`, or `c, packed` | [0730], [0750] |
 | `escaping` | none | [0780] |
 | `caller` | none | [1040] |
 | `fixed` | none | [1490] |
@@ -3143,8 +3141,9 @@ To ask only which case the union holds, compare with the atom:
 `m == none_found` or `m <> none_found`. That reads no address, so it needs
 no `match`. Two such unions do not compare with each other.
 
-A union may also hold several atoms beside the pointer; it then takes two
-cells instead of one.
+The union holds exactly one atom. For a pointer with several states,
+put the union beside an error set ([0940]), or write a struct of a state
+and a pointer.
 
 Exact rules: spec [1870].
 
@@ -5148,10 +5147,6 @@ critical section wants. It is not itself a hardware barrier.
 An ordinary block is straight-line code, with no labels or calls; a system
 call returns to the next instruction, so it is straight-line too.
 
-The older Cortex-M0 form stays as a shorthand:
-`assembler.block(text, value)` passes one `u32` in and out of r0, and the
-text names r0 itself.
-
 **The common blocks, already written.** `platform/cortex_m` wraps them:
 
 - `disable_interrupts()` returns the prior PRIMASK, and
@@ -6074,6 +6069,19 @@ what it refused.
   used them; a mutable local and a plain `break`, or a function
   that returns, says the same, and so does a `while` over tried
   steps [1170] [1190] [1150].
+- pointer unions of several atoms. A union of a pointer and two or more
+  atoms kept a code cell beside the pointer, and was removed: every
+  union in the library held one atom, and the second cell cost every
+  target's IR, calls and widening. A one-atom union beside an error set,
+  or a struct of a state and a pointer, says the same [0480].
+- a layout that reordered fields. `layout(optimal)` sorted a struct's
+  fields by alignment when that made it smaller, and was removed: no
+  library struct asked for it, and a reader had to sort the fields in
+  their head to know where one sat. Fields written largest alignment
+  first give the same struct [0750].
+- assembly's positional value. `assembler.block(text, value)` passed one
+  `u32` through Cortex-M0's r0, and was removed once every target had
+  named operands; `inout value: u32 at r0 = value` says it [1630].
 - a concept for ranges. Integer range traversal now uses bounds in a
   `for` header, and left-exclusive forms went with the concept [0360].
 - a second type with the shape of a fixed array and different

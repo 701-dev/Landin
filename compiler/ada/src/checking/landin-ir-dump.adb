@@ -123,15 +123,9 @@ package body Landin.IR.Dump is
          end;
       end Item_Named;
 
-      --  A nominal's template spelling, or a pointer union's canonical
-      --  spelling in parentheses: that identity has no template.
+      --  A nominal's template spelling.
       function Nominal_Named (Id : Nominal_Type_Id) return String
-        is (if Holds (Of_Unit, Id) and then Is_Pointer_Union (Of_Unit, Id)
-              and then Landin.Source.Names.Is_Interned
-                (Names, Union_Spelling (Of_Unit, Id))
-            then "(" & Landin.Source.Names.Spelling
-              (Names, Union_Spelling (Of_Unit, Id)) & ")"
-            elsif Holds (Of_Unit, Id)
+        is (if Holds (Of_Unit, Id)
             then Named (Template_Of (Of_Unit, Id)) else "-");
 
       function Atom_Set_Text (Set_Id : Atom_Set_Id) return String;

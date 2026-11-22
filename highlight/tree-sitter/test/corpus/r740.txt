@@ -190,7 +190,7 @@ point: type = struct
     x: i32
     y: i32
 end point
-compact: type = layout(optimal) struct
+compact: type = layout(c) struct
     small: u8
     wide: u64
 end compact

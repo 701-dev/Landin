@@ -94,9 +94,7 @@ still be proved, the evidence positions the checked instance body selects
 and its hidden result positions stay, and heterogeneous `any` dispatch needs
 no specialization at all. The default profile, size/auto, is the same in
 both build modes. `unchecked` establishes no optimizer facts. Fields are
-reordered only in a struct declared optimal, and only when that strictly
-shrinks its padded size (D210); the build report, not the program, states
-the chosen order, so a 32 KB device carries no machinery for it.
+never reordered: a struct is laid out in the order written (D1660).
 
 **Capabilities** replace effects in interfaces. An allocator, an Io, a
 diagnostics log, a peripheral handle are values a function can receive.
@@ -266,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R19.80 — One-atom pointer unions, written layout and named operands.**
+**Next roadmap item: R19.90 — The value model folded (planned).**
 
 ## Versions
 

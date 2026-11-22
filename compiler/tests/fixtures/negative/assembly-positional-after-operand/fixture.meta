@@ -1,0 +1,9 @@
+class: negative
+summary: D248's operands are the whole list after the text, so no positional value can follow one
+program: program.ldn
+expect: expected.txt
+args: ../tests/fixtures/negative/assembly-positional-after-operand/program.ldn
+codes: L0103
+status: 1
+constructs: 1630, 1820
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

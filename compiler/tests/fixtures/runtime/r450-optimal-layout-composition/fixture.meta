@@ -1,6 +1,6 @@
 class: runtime
 profiles: specialization
-summary: optimal placement preserves source evaluation, nested images, copies and calls
+summary: fields written largest alignment first give the smaller layout, and construction, nested images, copies and calls keep written evaluation order
 constructs: 0300, 0370, 0520, 0590, 0760, 1890
 program: main.ldn
 status: 42

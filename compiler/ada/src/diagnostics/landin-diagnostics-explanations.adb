@@ -646,16 +646,12 @@ package body Landin.Diagnostics.Explanations is
                & "the line above ends with [1750]; when that value is no a"
                & "rray the report stands on the `[` and says the line was "
                & "continued, and the value in parentheses, `(name)`, lets "
-               & "the `[` begin a value (D1191). An atom `else` on a call "
-               & "that returns a plain pointer does not widen it into a un"
-               & "ion of several atoms and that pointer (D235): the refusa"
-               & "l names the one-atom union to recover into, whose value "
-               & "widens into the larger one (D874). A function value conv"
-               & "erts to an address only when it is a C function value an"
-               & "d only to `usize`, `usize(f)` (D1343): a function in Lan"
-               & "din's own convention has no address C could call, and an"
-               & "other integer type converts that `usize` after it, `u64("
-               & "usize(f))`.",
+               & "the `[` begin a value (D1191). A function value converts"
+               & " to an address only when it is a C function value and on"
+               & "ly to `usize`, `usize(f)` (D1343): a function in Landin'"
+               & "s own convention has no address C could call, and anothe"
+               & "r integer type converts that `usize` after it, `u64(usiz"
+               & "e(f))`.",
             when Catalogue.Not_Definitely_Assigned =>
                "Required storage is not definitely assigned at a read or"
                & " an exit [1910]. A read needs the place assigned on ever"
@@ -2244,7 +2240,27 @@ package body Landin.Diagnostics.Explanations is
                & "): declare a `distinct` type over the base and a functio"
                & "n that checks the range and returns the value converted "
                & "to it. There is no fix, because every use that stored a "
-               & "base value into the subtype changes too (D1907).");
+               & "base value into the subtype changes too (D1907)."
+               & LF
+               & LF
+               & "A pointer union of two or more atoms, `a | b | ptr T` [0"
+               & "480], is gone (D1659), written in place or made by an al"
+               & "ias or a parameterized alias's application: a pointer un"
+               & "ion holds one atom. A pointer with several states is a o"
+               & "ne-atom union beside an error set, or a struct of a stat"
+               & "e and a pointer. There is no fix; which of the two fits "
+               & "is the program's design."
+               & LF
+               & LF
+               & "`layout(optimal)` [0750] is gone (D1660): fields are pla"
+               & "ced in the order written, so a struct that wants the sma"
+               & "ller layout writes its fields largest alignment first. T"
+               & "here is no fix, because the order it chose depended on t"
+               & "he target's alignments (D1928). The positional value of "
+               & "`assembler.block(text, value)` [1630] is gone (D1662): i"
+               & "t stood for `inout value: u32 at r0 = value`, and the fi"
+               & "x writes that operand and doubles every brace in the tex"
+               & "t, which the operand form reads as `{name}` (D1927).");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is

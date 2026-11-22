@@ -366,10 +366,9 @@ def main() -> None:
                     <= evidence["array-4"][key]["text_bytes"] + 2048,
                     f"{key}: array object text is not compact")
             plans = evidence["layout"][key]["build"]["layouts"]
-            require(any(p["policy"] == "optimal" and p["size"] == 16
-                        and p["natural_size"] == 24 and p["saved_bytes"] == 8
-                        and p["offsets"] == [8, 0, 9] for p in plans),
-                    f"{key}: missing factual optimal placement")
+            require(any(p["policy"] == "natural" and p["size"] == 16
+                        and p["offsets"] == [0, 8, 9] for p in plans),
+                    f"{key}: missing factual source-order placement")
         dispatch_base = evidence["specialization"]["none-off"]
         call_pattern = r"^\s*[0-9a-f]+:\s+call\w*\s+\*"
         baseline_indirect = len(re.findall(

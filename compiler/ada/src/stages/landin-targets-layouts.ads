@@ -11,26 +11,20 @@ package Landin.Targets.Layouts is
    end record;
 
    type Field_Extent_Array is array (Positive range <>) of Field_Extent;
-   type Field_Order is array (Positive range <>) of Positive;
    type Field_Offsets is array (Positive range <>) of Byte_Count;
 
    type Plan (Count : Natural) is record
       --  Positions, not input-array indexes: both arrays start at one even
       --  if the input is a slice with another lower bound.
-      Order        : Field_Order (1 .. Count);
       Offsets      : Field_Offsets (1 .. Count);
       Size         : Byte_Count := 0;
       Alignment    : Byte_Alignment := 1;
-      Natural_Size : Byte_Count := 0;
-      Saved_Bytes  : Byte_Count := 0;
    end record;
 
-   --  C_Packed places each field in order at alignment one (D410).
-   --  Stable descending alignment is only selected when the final padded
-   --  size is strictly smaller.  Zero-size units still require alignment.
+   --  Fields are placed in source order (D1660); C_Packed places each at
+   --  alignment one (D410).  Zero-size units still require alignment.
    --  Invalid alignment or byte-count overflow raises Compiler_Defect in
-   --  every build mode.  Maximum limits the selected size, so an optimal
-   --  placement may rescue a natural layout above a target's object limit.
+   --  every build mode, and Maximum limits the size.
    function Make
      (Fields  : Field_Extent_Array;
       Policy  : Landin.Layouts.Policy := Landin.Layouts.Natural;

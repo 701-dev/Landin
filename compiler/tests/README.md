@@ -397,7 +397,7 @@ same output to ELF objects, measures sections, function bytes, prologue frames
 and disassembled instruction sites, and executes that same assembly against
 exact exit/stdout/stderr oracles. Its probes cover scalar chains
 and loops, a tiny leaf, compact large-array arithmetic with real stack-page
-touches, explicit optimal layout, single-instance evidence specialization,
+touches, source-order layout, single-instance evidence specialization,
 a source-level two-instance size/speed threshold and final private-body
 folding. The specialization and folding probes also run none/all and speed/all.
 The complete `derived-parser` client runs all six quality profiles with its
@@ -1698,9 +1698,9 @@ those QEMU results are not hosted fixture passes or source-debugging
 acceptance. Existing runtime/ABI fixtures and their Cortex dispositions remain
 unchanged.
 
-D230's `positive/r670-scalar-assembly` pins the target-fixed syntax without
-enabling hosted assembly. `cortex ABI/assembly IR` lowers the shorthand and
-the named form to one instruction and independently corrupts an input, an
+`positive/r670-scalar-assembly` pins target-fixed assembly without
+enabling hosted assembly. `cortex ABI/assembly IR` lowers an `inout` operand
+at r0 and the named `general` form to one instruction and independently corrupts an input, an
 output slot, a register and a width, including a register Cortex-M0's table
 never answers for. The machine-directive cases check
 source operands, registers, arity, naked restrictions and hosted refusals.

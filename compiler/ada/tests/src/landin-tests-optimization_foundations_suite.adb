@@ -24,7 +24,6 @@ package body Landin.Tests.Optimization_Foundations_Suite is
    use type Landin.Layouts.Policy;
    use type Opt.Objective;
    use type Opt.Specialization_Mode;
-   use type Layout.Field_Order;
    use type Layout.Field_Offsets;
    use type Landin.Targets.Byte_Count;
    use type Landin.Targets.Byte_Alignment;
@@ -79,8 +78,6 @@ package body Landin.Tests.Optimization_Foundations_Suite is
         [(1, 1), (8, 8), (1, 1), (8, 8)];
       Natural_Plan : constant Layout.Plan := Layout.Make (Fields);
       C_Plan : constant Layout.Plan := Layout.Make (Fields, Landin.Layouts.C);
-      Optimal : constant Layout.Plan :=
-        Layout.Make (Fields, Landin.Layouts.Optimal);
    begin
       Landin.Testing.Check
         (Item, Natural_Plan.Size = 32
@@ -88,50 +85,25 @@ package body Landin.Tests.Optimization_Foundations_Suite is
          and then C_Plan.Offsets = Natural_Plan.Offsets
          and then C_Plan.Size = Natural_Plan.Size,
          "natural and C retain source-order placement");
-      Landin.Testing.Check
-        (Item, Optimal.Size = 24 and then Optimal.Natural_Size = 32
-         and then Optimal.Saved_Bytes = 8
-         and then Optimal.Order = [2, 4, 1, 3]
-         and then Optimal.Offsets = [16, 0, 17, 8],
-         "optimal saves padding with stable alignment ties");
       declare
-         Equal_Size : constant Layout.Plan := Layout.Make
-           ([(1, 1), (8, 8)], Landin.Layouts.Optimal);
-         Larger_Candidate : constant Layout.Plan := Layout.Make
-           ([(0, 2), (1, 4), (3, 1)], Landin.Layouts.Optimal);
-         Overflowing_Candidate : constant Layout.Plan := Layout.Make
-           ([(0, 2), (1, 4), (Byte_Count'Last - 4, 1)],
-            Landin.Layouts.Optimal);
          Empty : constant Layout.Plan := Layout.Make
-           (Layout.Field_Extent_Array'(1 .. 0 => <>), Landin.Layouts.Optimal);
+           (Layout.Field_Extent_Array'(1 .. 0 => <>));
          Zero_Size : constant Layout.Plan := Layout.Make
-           ([(1, 1), (0, 8), (1, 1)], Landin.Layouts.Optimal);
+           ([(1, 1), (0, 8), (1, 1)]);
          Shifted : constant Layout.Plan := Layout.Make
            (Layout.Field_Extent_Array'(7 => (1, 1), 8 => (8, 8),
-                                       9 => (1, 1), 10 => (8, 8)),
-            Landin.Layouts.Optimal);
+                                       9 => (1, 1), 10 => (8, 8)));
       begin
-         Landin.Testing.Check
-           (Item, Equal_Size.Order = [1, 2]
-            and then Equal_Size.Saved_Bytes = 0,
-            "an equal padded size keeps natural order");
-         Landin.Testing.Check
-           (Item, Larger_Candidate.Size = 4
-            and then Larger_Candidate.Order = [1, 2, 3]
-            and then Overflowing_Candidate.Size = Byte_Count'Last - 3
-            and then Overflowing_Candidate.Order = [1, 2, 3],
-            "a larger or overflowing candidate retains valid natural layout");
          Landin.Testing.Check
            (Item, Empty.Count = 0 and then Empty.Size = 0
             and then Empty.Alignment = 1,
             "empty placement has byte alignment and zero extent");
          Landin.Testing.Check
-           (Item, Zero_Size.Size = 8 and then Zero_Size.Alignment = 8
-            and then Zero_Size.Offsets = [0, 0, 1],
+           (Item, Zero_Size.Size = 16 and then Zero_Size.Alignment = 8
+            and then Zero_Size.Offsets = [0, 8, 8],
             "zero-sized fields retain alignment without consuming bytes");
          Landin.Testing.Check
-           (Item, Shifted.Offsets = Optimal.Offsets
-            and then Shifted.Order = Optimal.Order,
+           (Item, Shifted.Offsets = Natural_Plan.Offsets,
             "input lower bounds never become field identities");
       end;
       for Small in Boolean loop
@@ -143,13 +115,12 @@ package body Landin.Tests.Optimization_Foundations_Suite is
             Alignment : constant Byte_Alignment := Pointer_Alignment (Facts);
             Placed : constant Layout.Plan := Layout.Make
               ([(1, 1), (Pointer, Alignment), (1, 1), (Pointer, Alignment)],
-               Landin.Layouts.Optimal, Maximum_Object_Size (Facts));
+               Landin.Layouts.Natural, Maximum_Object_Size (Facts));
          begin
             Landin.Testing.Check
-              (Item, Placed.Size = (if Small then 12 else 24)
-               and then Placed.Natural_Size = (if Small then 16 else 32)
-               and then Placed.Offsets = [2 * Pointer, 0, 2 * Pointer + 1,
-                                         Pointer],
+              (Item, Placed.Size = (if Small then 16 else 32)
+               and then Placed.Offsets = [0, Pointer, 2 * Pointer,
+                                         3 * Pointer],
                "pointer-field placement follows the selected target");
          end;
       end loop;
@@ -158,11 +129,11 @@ package body Landin.Tests.Optimization_Foundations_Suite is
          and then not Layout.Fits ([(Byte_Count'Last, 8)])
          and then not Layout.Fits ([(Byte_Count'Last, 1), (1, 1)])
          and then not Layout.Fits (Fields, Maximum => 24)
-         and then Layout.Fits (Fields, Landin.Layouts.Optimal, 24),
+         and then Layout.Fits (Fields, Maximum => 32),
          "invalid alignment, overflow and target object limits are explicit");
       declare
          Huge : constant Layout.Plan := Layout.Make
-           ([(2 ** 40, 8), (1, 1)], Landin.Layouts.Optimal);
+           ([(2 ** 40, 8), (1, 1)]);
       begin
          Landin.Testing.Check
            (Item, Huge.Count = 2 and then Huge.Size = 2 ** 40 + 8,
@@ -264,9 +235,9 @@ package body Landin.Tests.Optimization_Foundations_Suite is
       Nominal := IR.Add_Nominal_Type (Unit, 1);
       IR.Set_Nominal_Shape
         (Unit, Nominal, IR.Field_Shape_Array'[1 => (others => <>)],
-         Policy => Landin.Layouts.Optimal);
+         Policy => Landin.Layouts.Packed);
       Landin.Testing.Check
-        (Item, IR.Layout_Of (Unit, Nominal) = Landin.Layouts.Optimal
+        (Item, IR.Layout_Of (Unit, Nominal) = Landin.Layouts.Packed
          and then not IR.Has_C_Layout (Unit, Nominal),
          "nominal shape stores one explicit neutral layout policy");
    end Concrete_Metadata;
@@ -276,14 +247,14 @@ package body Landin.Tests.Optimization_Foundations_Suite is
       Decision : constant Reports.Specialization_Decision :=
         (Item => 1, Reason => Reports.Disabled, others => <>);
       Placement : constant Layout.Plan := Layout.Make
-        ([(1, 1), (8, 8), (1, 1), (8, 8)], Landin.Layouts.Optimal);
+        ([(1, 1), (8, 8), (1, 1), (8, 8)]);
    begin
       Reports.Append (Report, Decision);
       Reports.Append
         (Report, Reports.Routine_Statistics'
            (Item => 1, Frame_Bytes => 2 ** 40, Instructions => 17,
             Stack_Bytes => 2 ** 40 + 48, others => <>));
-      Reports.Append_Layout (Report, 3, Landin.Layouts.Optimal, Placement);
+      Reports.Append_Layout (Report, 3, Landin.Layouts.Natural, Placement);
       declare
          First : constant String := Reports.JSON
            (Report, Landin.Targets.Linux_X86_64, Opt.Reference_Options);
@@ -299,12 +270,12 @@ package body Landin.Tests.Optimization_Foundations_Suite is
               (First, """frame_bytes"":1099511627776,"
                  & """stack_bytes"":1099511627824") > 0
             and then Ada.Strings.Fixed.Index
-              (First, """offsets"": [16,0,17,8]") > 0,
+              (First, """offsets"": [0,8,16,24]") > 0,
             "negative decisions and target-byte measurements render exactly");
       end;
       Landin.Testing.Check
         (Item, Reports.Layout_Position (Report, 1) = 3
-         and then Reports.Layout_Policy (Report, 1) = Landin.Layouts.Optimal
+         and then Reports.Layout_Policy (Report, 1) = Landin.Layouts.Natural
          and then Reports.Layout_Plan (Report, 1).Offsets = Placement.Offsets,
          "typed layout data round trips independently of JSON");
       begin

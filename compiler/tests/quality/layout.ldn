@@ -1,6 +1,6 @@
-record: type = layout(optimal) struct
-    first: u8
+record: type = struct
     middle: u64
+    first: u8
     last: u8
 end record
 

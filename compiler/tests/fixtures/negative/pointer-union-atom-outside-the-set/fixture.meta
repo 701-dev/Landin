@@ -1,0 +1,9 @@
+class: negative
+summary: an atom outside a one-atom pointer union is refused naming the union and the one atom it holds
+constructs: 0480, 0640, 1870
+program: program.ldn
+codes: L0301
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/pointer-union-atom-outside-the-set/program.ldn
+status: 1

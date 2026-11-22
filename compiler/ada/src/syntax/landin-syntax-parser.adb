@@ -5609,7 +5609,7 @@ package body Landin.Syntax.Parser is
                Advance;
                if not Expect
                  (Tok.Left_Paren, "a layout annotation opens with `(`",
-                  "[0750]: write `layout(c)` or `layout(optimal)`",
+                  "[0750]: write `layout(c)` or `layout(packed, u32)`",
                   Opened, "this annotation")
                then
                   return Policy;
@@ -5623,7 +5623,17 @@ package body Landin.Syntax.Parser is
                  and then Landin.Source.Names.Spelling
                    (Names, Named_Here) = "optimal"
                then
-                  Policy := Landin.Layouts.Optimal;
+                  --  D1660: the reordering layout left.  Its order depended
+                  --  on the target's alignments and on a strictly-smaller
+                  --  test, so no one rewrite keeps every target's layout,
+                  --  and the refusal carries no fix.
+                  Complain
+                    (Item    => Syn.Removed_Form,
+                     Where   => Join (Opened, Here),
+                     Message => "fields are placed in the order written",
+                     Note    => "D1660: `layout(optimal)` left; write the"
+                                & " fields largest alignment first for the"
+                                & " smaller layout");
                elsif Peek = Tok.Identifier
                  and then Landin.Source.Names.Spelling
                    (Names, Named_Here) = "packed"
@@ -5632,7 +5642,7 @@ package body Landin.Syntax.Parser is
                else
                   Complain
                     (Syn.Token_Expected, Here,
-                     "the supported layouts are `c`, `optimal` and `packed`",
+                     "the supported layouts are `c` and `packed`",
                      Note => "[0750]: ordinary structs retain natural layout",
                      Related => Opened, Because => "this annotation");
                end if;
@@ -5683,7 +5693,7 @@ package body Landin.Syntax.Parser is
                end if;
                if not Expect
                  (Tok.Right_Paren, "a layout annotation closes with `)`",
-                  "[0750]: write `layout(c)` or `layout(optimal)`",
+                  "[0750]: write `layout(c)` or `layout(packed, u32)`",
                   Opened, "this annotation")
                then
                   Recover_Annotation_Closer;
@@ -6513,7 +6523,7 @@ package body Landin.Syntax.Parser is
                              (Syn.Type_Expected, Here,
                               "a layout annotation requires a struct body",
                               Note => "[0750]: a layout annotation precedes"
-                                      & " a struct body, `layout(optimal)"
+                                      & " a struct body, `layout(c)"
                                       & " struct` and its fields, closed by"
                                       & " `end`",
                               Related => At_Name, Because => "this type");
@@ -13977,6 +13987,70 @@ package body Landin.Syntax.Parser is
                             = Assembler_Id;
                Operand_Seen     : Boolean := False;
                Opener           : constant Tok.Token_Index := Index;
+
+               --  D1662: `assembler.block(text, value)`'s positional value
+               --  is refused; the fix writes the operand it stood for and
+               --  doubles the text's braces, which the operand form reads
+               --  as `{name}`.
+               procedure Refuse_Positional_Assembly
+                 (At_Argument : Landin.Source.Span);
+
+               procedure Refuse_Positional_Assembly
+                 (At_Argument : Landin.Source.Span)
+               is
+                  Written : constant Node_Id := Args.First_Element;
+                  Literal : constant Landin.Source.Span :=
+                    Where (Result, Written);
+                  Edits   : Edit_Vectors.Vector;
+               begin
+                  if Text /= null
+                    and then Kind (Result, Written)
+                               in Text_Literal | Raw_Literal
+                  then
+                     declare
+                        Bytes : constant String :=
+                          Landin.Source.Slice (Text.all, Literal);
+                        At_Byte : Landin.Source.Byte_Offset := Literal.First;
+                     begin
+                        for Each of Bytes loop
+                           if Each in '{' | '}' then
+                              Edits.Append
+                                (Landin.Diagnostics.Make_Edit
+                                   (Origin_Of,
+                                    (First => At_Byte, Last => At_Byte + 1),
+                                    [Each, Each]));
+                           end if;
+                           At_Byte := At_Byte + 1;
+                        end loop;
+                     end;
+                     Edits.Append
+                       (Landin.Diagnostics.Make_Edit
+                          (Origin_Of,
+                           (First => At_Argument.First,
+                            Last  => At_Argument.First),
+                           "inout value: u32 at r0 = "));
+                  end if;
+                  declare
+                     Listed : Landin.Diagnostics.Edit_List
+                       (1 .. Natural (Edits.Length));
+                  begin
+                     for Position in Listed'Range loop
+                        Listed (Position) := Edits (Position);
+                     end loop;
+                     Complain
+                       (Item    => Syn.Removed_Form,
+                        Where   => At_Argument,
+                        Message => "assembly names its operands",
+                        Note    => "D1662: the positional value stood for"
+                                   & " `inout value: u32 at r0 = value`;"
+                                   & " write that operand",
+                        Fixes   =>
+                          (if Listed'Length = 0
+                           then Landin.Diagnostics.No_Fixes
+                           else [1 => Landin.Diagnostics.Fixes.Name_Operand
+                                        (Listed)]));
+                  end;
+               end Refuse_Positional_Assembly;
             begin
                if not Expect
                         (Wanted  => Tok.Left_Paren,
@@ -14077,35 +14151,18 @@ package body Landin.Syntax.Parser is
                                       and then Ahead (1)
                                         in Tok.Identifier | Tok.Underscore))
                         then
-                           if Is_Assembly
-                             and then not Operand_Seen
-                             and then Natural (Args.Length) > 1
-                           then
-                              Complain
-                                (Item    => Syn.Token_Expected,
-                                 Where   => Here,
-                                 Message => "the positional `u32` shorthand"
-                                            & " and operands do not mix",
-                                 Note    => "[1630]: the shorthand stands"
-                                            & " for `inout value: u32 at r0"
-                                            & " = expression`",
-                                 Related => Starts,
-                                 Because => "this assembly block");
-                           end if;
                            Operand_Seen := True;
                            Args.Append (Parse_Assembly_Operand);
                         elsif Operand_Seen then
                            --  Operands are the whole of the list after the
-                           --  text.  D230's positional scalar is the
-                           --  shorthand for one, so it cannot follow one.
+                           --  text.
                            Complain
                              (Item    => Syn.Token_Expected,
                               Where   => Here,
                               Message => "an assembly operand opens with"
                                          & " `in`, `out` or `inout`",
                               Note    => "[1630]: after its text a block"
-                                         & " takes operands, or the one"
-                                         & " positional `u32` shorthand",
+                                         & " takes only operands",
                               Related => Starts,
                               Because => "this assembly block");
                            Args.Append (Parse_Delimited_Expression);
@@ -14224,6 +14281,12 @@ package body Landin.Syntax.Parser is
                                  then Parse_Argument_RHS
                                  else Parse_Delimited_Expression);
                            begin
+                              if Is_Assembly
+                                and then not Named_Seen
+                                and then Natural (Args.Length) = 1
+                              then
+                                 Refuse_Positional_Assembly (At_Argument);
+                              end if;
                               if Named_Seen then
                                  if not Order_Complained
                                    and then not Fill_Seen

@@ -1,3 +1,0 @@
-f: (value: u32) -> (r: u32) =
-    r = assembler.block("addl $7, %eax", value)
-end f

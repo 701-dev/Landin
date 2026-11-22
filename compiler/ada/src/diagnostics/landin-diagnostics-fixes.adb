@@ -324,6 +324,13 @@ package body Landin.Diagnostics.Fixes is
             "declare the function as `" & Name & "` and pass it by name",
             Edits));
 
+   function Name_Operand (Edits : Edit_List) return Fix
+     is (With_Edits
+           (Name_Operand,
+            "write the value as the operand it stood for, `inout value: u32"
+            & " at r0`",
+            Edits));
+
    function Import_Whole
      (Module : String;
       Edits  : Edit_List) return Fix

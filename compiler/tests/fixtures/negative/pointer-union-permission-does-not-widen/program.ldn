@@ -1,0 +1,8 @@
+none_found: atom
+maybe_ptr: type = none_found | ptr mut u32
+reading: type = none_found | ptr u32
+
+bad: (p: ptr u32, r: reading) -> (m: maybe_ptr) =
+    m = p
+    m = r
+end bad
