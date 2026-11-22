@@ -27255,6 +27255,41 @@ constant already or in hardware.
 
 **Pinned by** the Cortex-M corpus and `compiler/tests/measure/baselines/`.
 
+### D2088 — x86-64 offers %r10 and %r11 where selection does not write them
+
+**The tour said** nothing. x86-64 allocated nine general registers;
+`%rax`, `%rcx`, `%rdx`, `%r10` and `%r11` were selection's scratch
+everywhere, where C's code uses fifteen. SHA-256's compression round kept
+three of its eight words in the frame, and SipHash-1-3's byte loop
+reloaded its slice's pointer and length from the frame for every byte.
+
+**Chosen:** at `size` and `speed`, `%r10` and `%r11` are caller-saved
+locations like `%rsi` to `%r9`. A value or slot may hold one only where no
+operation in its interval writes it: a call, switch, copy, clear, fill,
+variant selection or assembly block, as for every caller-saved register; a
+packed field or element access, which reaches its word through `%r10` and
+masks through `%r11`; preparing a stack, which forms its limit in `%r11`;
+a `fail`, and a leave from a routine that may fail, which write the
+failure code in `%r10`; and a C entry, which transports its arguments
+through both. The frame's stack probe runs before any parameter moves, so
+it excludes nothing. A store that stages a value from memory stages it
+through `%rdx` instead of `%r11`, since no element or indirect store
+address names `%rdx`, and selection refuses as a compiler defect a packed
+access the allocator did not see. At `speed` a SHA-256 of 64 MiB falls
+from 8.90 G to 8.69 G instructions, two of its eight words left in the
+frame, SipHash-1-3 from 7.30 G to 6.76 G and fannkuch-redux by 4.8%, and
+every hosted workload's `.text` shrinks at both objectives.
+
+**The alternatives:** `%rcx` and `%rdx`, which shifts, division,
+`cmpxchg`, string moves and most addressing sequences write; narrowing
+`%r8` and `%r9`'s packed-atom rule to packed parts, which gave SHA-256's
+eight words registers its round's temporaries then lacked, 8% more
+instructions at `speed`; and capping how many registers slot intervals
+take, which cost reverse-complement 2.6% to 6.3%.
+
+**Pinned by** the runtime corpus at every profile on x86-64 and
+`compiler/tests/measure/baselines/`.
+
 ### D2092 — x86-64 reads float constants from a read-only pool
 
 **The tour said** nothing. x86-64 has no load-immediate into an XMM
