@@ -533,11 +533,11 @@ a float element, field, pointee or datum straight into one (D1625): at
 size-auto mandelbrot executes 0.435 of its instructions and fasta and
 binary-trees 0.92, and fasta 0.968 at speed-auto. Compiling the hosted set
 at speed takes no longer. What stays is filed with its measurement:
-SR-1422 the nine registers x86-64 offers, `SR-1423` the assembly block's
-rule, SR-1424 float constants made in each block, SR-1425 a loop's two
-jumps, SR-1426 the order D339 copies in, and R551-12 keeps the bounds
+`SR-1422` the nine registers x86-64 offers, `SR-1423` the assembly block's
+rule, `SR-1424` float constants made in each block, `SR-1425` a loop's two
+jumps, `SR-1426` the order D339 copies in, and R551-12 keeps the bounds
 check a loop's end does not name and the calls of `core/atomic`'s cells;
-SR-1427, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
+`SR-1427`, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
 STM32H753's binary-search, 9.7% slower at size where the RP2040 and
 RP2350 run every configuration faster. Findings fixed on
 the way: the public exposure above, and a dead shift kept as if it could
@@ -703,10 +703,10 @@ timing included.
 Status: complete
 Depends on: R16.10
 
-What R16.24 measured on x86-64 and left: SR-1422's nine allocatable
-registers, SR-1424's float constants made again in every block, SR-1425's
+What R16.24 measured on x86-64 and left: `SR-1422`'s nine allocatable
+registers, `SR-1424`'s float constants made again in every block, `SR-1425`'s
 two jumps a loop iteration and the unreachable `jmp` after a branch,
-SR-1426's D339 copying no routine that received a copy, and SR-1427's
+`SR-1426`'s D339 copying no routine that received a copy, and `SR-1427`'s
 build report that does not say which calls `--optimize speed` copied and
 why the rest stayed calls.
 Exit evidence: each cost taken measured lower than its R16.10 and R16.24
