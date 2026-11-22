@@ -78,6 +78,9 @@ Open:
 | [Q-171 — Which atom names absence, and which module declares it?](questions/Q-171.md) | `mem.not_found`, declared in `core/mem`, and the breaking list's absence entries are written with it. | only the spelling R20.60 writes; R20.50's list and every other entry are written with the default. |
 | [Q-172 — Which atom names running out of room?](questions/Q-172.md) | `mem.out_of_memory` is the one atom, and `mem.full`, `text.no_space` and `io.line_too_long` are rewritten to it. | only the spelling R20.60 writes. |
 | [Q-173 — What is a host string called once `host` means only the provider?](questions/Q-173.md) | the `os_string` family as option 1 spells it, and R20.40's moved `text.host_variable` becomes `text.os_variable`. | only the spelling R20.60 writes. |
+| [Q-181 — May the register sweep of 2026-11-22 retire six rows nobody is waiting on?](questions/Q-181.md) | all six stay open in the register as they are. | nothing; the register is under its cap without it. |
+| [Q-182 — Should four new items take 26 register rows?](questions/Q-182.md) | no item is added and the 26 rows stay open. | nothing; the register is under its cap without it. |
+| [Q-183 — Should a `match` arm name a declared atom set, or should the refusals say how to split one?](questions/Q-183.md) | the language stays as it is and SR-1609 stays open. | nothing. |
 
 Answered:
 
