@@ -128,6 +128,21 @@ class Compare(unittest.TestCase):
         self.assertEqual(status, 1)
 
 
+class MeasurementsFile(unittest.TestCase):
+    def test_a_directory_names_the_one_file_it_holds(self):
+        with tempfile.TemporaryDirectory() as where:
+            directory = Path(where)
+            with self.assertRaisesRegex(measure.Failure, "neither"):
+                measure.measurements_file(where)
+            (directory / "size.json").write_text("{}")
+            self.assertEqual(measure.measurements_file(where), directory / "size.json")
+            (directory / "instructions.json").write_text("{}")
+            with self.assertRaisesRegex(measure.Failure, "both"):
+                measure.measurements_file(where)
+            with self.assertRaisesRegex(measure.Failure, "no measurements"):
+                measure.measurements_file(str(directory / "absent.json"))
+
+
 class Instructions(Compare):
     """An instruction count is held exactly, like a section."""
 
