@@ -4,6 +4,9 @@ with Landin.IR.Verifier;
 with Landin.Machine;
 
 package body Landin.IR.Inlining is
+   package Reports renames Landin.Build_Reports;
+   use type Reports.Copy_Reason;
+   use type Reports.Copy_Decision;
    use type Landin.Machine.Convention;
    use type Landin.Machine.Placement;
    use type Landin.Optimization.Objective;
@@ -17,6 +20,8 @@ package body Landin.IR.Inlining is
    --  What a routine is as a body to copy, measured once.
    type Callee_Facts is record
       Eligible : Boolean := False;
+      --  Why the routine is no body to copy, when it is not.
+      Why : Reports.Copy_Reason := Reports.Callee_Shape;
       Weight : Natural := 0;
       Leaves, Fails : Natural := 0;
       --  The block of the routine's one `return`, when it has one.
@@ -36,6 +41,8 @@ package body Landin.IR.Inlining is
       Value : Value_Id := No_Value;
       Depth, Weight : Natural := 0;
       Kind : Expansion := Kept;
+      --  The call's place among its caller's considered calls.
+      Seen : Positive := 1;
    end record;
    package Candidate_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Candidate);
@@ -51,19 +58,181 @@ package body Landin.IR.Inlining is
 
    type Value_Array is array (Positive range <>) of Value_Id;
 
+   package Copy_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Reports.Copy_Decision);
+
+   --  D2100: what an operation of Item costs as the routine will run.
+   --  A load or store of a scalar slot that nothing names as storage --
+   --  no address is taken of it, nothing copies or clears it in place
+   --  -- is a register's read or write once allocation holds the slot,
+   --  as simplification and allocation leave the temporaries lowering
+   --  makes: it weighs nothing.  Everything else weighs D211's weight.
+   function Register_Slots
+     (Into : Unit; Item : Item_Id) return Boolean_Vectors.Vector;
+   function Register_Slots
+     (Into : Unit; Item : Item_Id) return Boolean_Vectors.Vector
+   is
+      Own : constant Item_Record := Into.Items.Element (Positive (Item));
+      Result : Boolean_Vectors.Vector := Boolean_Vectors.To_Vector
+        (False, Ada.Containers.Count_Type (Own.Slots.Count));
+
+      procedure Named (Place : Storage);
+      procedure Named (Place : Storage) is
+      begin
+         if Place.Kind = Frame_Slot and then Place.Slot /= No_Slot then
+            Result.Replace_Element (Positive (Place.Slot), False);
+         end if;
+      end Named;
+   begin
+      for S in 1 .. Own.Slots.Count loop
+         declare
+            Slot : constant Slot_Record :=
+              Into.Slots.Element (Own.Slots.First + S);
+         begin
+            Result.Replace_Element
+              (S, not (Slot.Aggregate or else Slot.Array_Shape));
+         end;
+      end loop;
+      for V in 1 .. Own.Values.Count loop
+         declare
+            Code : constant Instruction :=
+              Into.Code.Element (Own.Values.First + V);
+         begin
+            Named (Code.Source);
+            Named (Code.Destination);
+            for A in 1 .. Code.Assembly_Run.Count loop
+               declare
+                  Output : constant Slot_Id :=
+                    Into.Assembly_Operands.Element
+                      (Code.Assembly_Run.First + A).Output;
+               begin
+                  if Output /= No_Slot then
+                     Result.Replace_Element (Positive (Output), False);
+                  end if;
+               end;
+            end loop;
+         end;
+      end loop;
+      return Result;
+   end Register_Slots;
+
+   function Cost
+     (Code : Instruction; In_Registers : Boolean_Vectors.Vector)
+      return Natural
+     is (if Code.Op in Load | Store and then Code.Slot /= No_Slot
+           and then In_Registers.Element (Positive (Code.Slot))
+         then 0
+         else Effects.Weight (Code.Op));
+
+   --  Whether Item's blocks hold a cycle: a depth-first walk from the
+   --  first block meets an edge to a block still on its path.  Layout
+   --  order is no test, since lowering lays an `else` after its join.
+   function Has_Loop (Of_Unit : Unit; Item : Item_Id) return Boolean;
+   function Has_Loop (Of_Unit : Unit; Item : Item_Id) return Boolean is
+      Own : constant Item_Record := Of_Unit.Items.Element (Positive (Item));
+      type Mark is (Unseen, On_Path, Done);
+      type Marks is array (1 .. Own.Blocks.Count) of Mark;
+      type Frames is array (1 .. Own.Blocks.Count) of Natural;
+      Seen : Marks := [others => Unseen];
+      --  The path: each block and how many of its successors are taken.
+      Path, Next : Frames := [others => 0];
+      Depth : Natural := 0;
+
+      function Successor (Block, Index : Positive) return Natural;
+      function Successor (Block, Index : Positive) return Natural is
+         Held : constant Block_Record :=
+           Of_Unit.Blocks.Element (Own.Blocks.First + Block);
+         Last : constant Instruction :=
+           Of_Unit.Code.Element (Held.First_Value + Held.Values);
+      begin
+         if Held.Values = 0 then
+            return 0;
+         elsif Last.Op = Jump and then Index = 1 then
+            return Natural (Last.Target);
+         elsif Last.Op = Branch and then Index = 1 then
+            return Natural (Last.Target);
+         elsif Last.Op = Branch and then Index = 2 then
+            return Natural (Last.Alternative);
+         else
+            return 0;
+         end if;
+      end Successor;
+   begin
+      if Own.Blocks.Count = 0 then
+         return False;
+      end if;
+      Depth := 1;
+      Path (1) := 1;
+      Seen (1) := On_Path;
+      while Depth > 0 loop
+         declare
+            Block : constant Positive := Path (Depth);
+         begin
+            Next (Depth) := Next (Depth) + 1;
+            declare
+               To : constant Natural := Successor (Block, Next (Depth));
+            begin
+               if To = 0 then
+                  Seen (Block) := Done;
+                  Next (Depth) := 0;
+                  Depth := Depth - 1;
+               elsif Seen (To) = On_Path then
+                  return True;
+               elsif Seen (To) = Unseen then
+                  Seen (To) := On_Path;
+                  Depth := Depth + 1;
+                  Path (Depth) := To;
+                  Next (Depth) := 0;
+               end if;
+            end;
+         end;
+      end loop;
+      return False;
+   end Has_Loop;
+
+   function Weight (Of_Unit : Unit; Item : Item_Id) return Natural is
+      Own : constant Item_Record := Of_Unit.Items.Element (Positive (Item));
+      In_Registers : constant Boolean_Vectors.Vector :=
+        Register_Slots (Of_Unit, Item);
+      Total, Lowered : Natural := 0;
+   begin
+      for V in 1 .. Own.Values.Count loop
+         declare
+            Code : constant Instruction :=
+              Of_Unit.Code.Element (Own.Values.First + V);
+         begin
+            Total := Total + Cost (Code, In_Registers);
+            Lowered := Lowered + Effects.Weight (Code.Op);
+         end;
+      end loop;
+      return (if Has_Loop (Of_Unit, Item) then Lowered else Total);
+   end Weight;
+
    procedure Run
      (Into : in out Unit;
       Facts : Landin.Targets.Target_Facts;
-      Objective : Landin.Optimization.Objective) is
+      Objective : Landin.Optimization.Objective)
+   is
+      Report : Reports.Report;
+   begin
+      Run (Into, Facts, Objective, Report);
+   end Run;
+
+   procedure Run
+     (Into : in out Unit;
+      Facts : Landin.Targets.Target_Facts;
+      Objective : Landin.Optimization.Objective;
+      Report : in out Landin.Build_Reports.Report) is
    begin
       Verifier.Verify (Into, Facts);
-      Run_On_Verified (Into, Facts, Objective);
+      Run_On_Verified (Into, Facts, Objective, Report);
    end Run;
 
    procedure Run_On_Verified
      (Into : in out Unit;
       Facts : Landin.Targets.Target_Facts;
-      Objective : Landin.Optimization.Objective)
+      Objective : Landin.Optimization.Objective;
+      Report : in out Landin.Build_Reports.Report)
    is
       Items : constant Natural := Item_Count (Into);
       Callees : Callee_Vectors.Vector;
@@ -356,11 +525,26 @@ package body Landin.IR.Inlining is
          Body_Of : constant Item_Record := Held (Callee);
          Signature : constant Signature_Id := Body_Of.Signature;
          Found : Callee_Facts;
+         In_Registers : Boolean_Vectors.Vector;
+         Lowered : Natural := 0;
+
+         procedure Refuse (Why : Reports.Copy_Reason);
+         procedure Refuse (Why : Reports.Copy_Reason) is
+         begin
+            Found.Eligible := False;
+            Found.Why := Why;
+            Callees.Replace_Element (Positive (Callee), Found);
+         end Refuse;
       begin
          if Body_Of.Kind /= Routine or else Body_Of.External
            or else Body_Of.Blocks.Count = 0
-           or else Body_Of.Inlines.Count /= 0
-           or else Exposed (Positive (Callee))
+         then
+            Refuse (Reports.No_Body);
+            return;
+         elsif Exposed (Positive (Callee)) then
+            Refuse (Reports.Address_Exposed);
+            return;
+         elsif Body_Of.Inlines.Count /= 0
            or else not Holds (Into, Signature)
            or else Signature_Uses_C_ABI (Into, Signature)
            or else Signature_Machine (Into, Signature)
@@ -374,18 +558,21 @@ package body Landin.IR.Inlining is
                                                | Landin.Types.Fixed_Array)
            or else Body_Of.Placement /= Landin.Machine.Placement'(others => <>)
          then
+            Refuse (Reports.Callee_Shape);
             return;
          end if;
          for Index in 1 .. Signature_Parameter_Count (Into, Signature) loop
             if Nth_Signature_Parameter (Into, Signature, Index).Convention
               = Sink_Value
             then
+               Refuse (Reports.Callee_Shape);
                return;
             end if;
          end loop;
          for S in 1 .. Body_Of.Slots.Count loop
             if Into.Slots.Element (Body_Of.Slots.First + S).Home /= No_Slot
             then
+               Refuse (Reports.Callee_Shape);
                return;
             end if;
          end loop;
@@ -404,20 +591,25 @@ package body Landin.IR.Inlining is
                                            (Body_Of.Parameters.First + P)
                                          = Slot_Id (S)))
                then
+                  Refuse (Reports.Callee_Shape);
                   return;
                end if;
             end;
          end loop;
+         In_Registers := Register_Slots (Into, Callee);
          for V in 1 .. Body_Of.Values.Count loop
             declare
                Code : constant Instruction :=
                  Into.Code.Element (Body_Of.Values.First + V);
             begin
                if Code.Op = Assembly then
+                  Refuse (Reports.Assembly);
                   return;
                end if;
-               Found.Weight := Found.Weight + Effects.Weight (Code.Op);
+               Found.Weight := Found.Weight + Cost (Code, In_Registers);
+               Lowered := Lowered + Effects.Weight (Code.Op);
                if Found.Weight > Body_Bound then
+                  Refuse (Reports.Weight);
                   return;
                end if;
                if Code.Op = Leave then
@@ -428,7 +620,19 @@ package body Landin.IR.Inlining is
                end if;
             end;
          end loop;
+         --  D2100: a routine with a loop is weighed as lowering made it,
+         --  as D339 measured: a larger copied loop inside its caller's
+         --  predicted worse than the call did.
+         if Has_Loop (Into, Callee) then
+            Found.Weight := Lowered;
+            if Lowered > Body_Bound then
+               Refuse (Reports.Weight);
+               return;
+            end if;
+         end if;
          Found.Eligible := Found.Leaves > 0;
+         Found.Why :=
+           (if Found.Eligible then Reports.Copied else Reports.Callee_Shape);
          Callees.Replace_Element (Positive (Callee), Found);
       end Measure;
 
@@ -446,7 +650,12 @@ package body Landin.IR.Inlining is
          Entries : Natural_Vectors.Vector := Natural_Vectors.To_Vector
            (0, Ada.Containers.Count_Type (Own.Blocks.Count));
          Found : Candidate_Vectors.Vector;
+         --  Every direct call of the caller, in value order, with the rule
+         --  that decides it.
+         Considered : Copy_Vectors.Vector;
          Weight : Natural := 0;
+         In_Registers : constant Boolean_Vectors.Vector :=
+           Register_Slots (Into, Caller);
 
          procedure Note_Slot (Slot : Slot_Id);
          procedure Note_Slot (Slot : Slot_Id) is
@@ -583,7 +792,7 @@ package body Landin.IR.Inlining is
                Code : constant Instruction :=
                  Into.Code.Element (Own.Values.First + V);
             begin
-               Weight := Weight + Effects.Weight (Code.Op);
+               Weight := Weight + Cost (Code, In_Registers);
                for A in 1 .. Code.Args loop
                   declare
                      Used : constant Positive := Positive (Operand (Code, A));
@@ -637,11 +846,20 @@ package body Landin.IR.Inlining is
                        Into.Code.Element (Block.First_Value + P);
                      Callee : constant Item_Id := Code.Named;
                      Kind : Expansion := Kept;
+                     Why : Reports.Copy_Reason := Reports.Copied;
                   begin
-                     if Code.Op = Call and then Callee /= Caller
-                       and then Callees.Element (Positive (Callee)).Eligible
-                       and then Code.Args = Held (Callee).Parameters.Count
-                     then
+                     if Code.Op = Call then
+                        Why :=
+                          (if Callee = Caller then Reports.Recursive
+                           elsif not Callees.Element (Positive (Callee))
+                                       .Eligible
+                           then Callees.Element (Positive (Callee)).Why
+                           elsif Code.Args
+                                   /= Held (Callee).Parameters.Count
+                           then Reports.Arguments
+                           else Reports.Copied);
+                     end if;
+                     if Code.Op = Call and then Why = Reports.Copied then
                         Kind := Plain;
                         for A in 1 .. Code.Args loop
                            declare
@@ -672,26 +890,44 @@ package body Landin.IR.Inlining is
                               end if;
                            end;
                         end loop;
-                        if Kind /= Kept then
-                           if Signature_Errors
-                               (Into, Held (Callee).Signature) /= No_Atom_Set
-                           then
-                              Kind :=
-                                (if Callees.Element (Positive (Callee)).Fails
-                                      > 0
-                                   and then Failure_Test_Follows
-                                     (Block, P, V, Code)
-                                 then Failing else Kept);
-                           elsif Stranded > P then
-                              Kind := Kept;
+                        if Kind = Kept then
+                           Why := Reports.Arguments;
+                        elsif Signature_Errors
+                            (Into, Held (Callee).Signature) /= No_Atom_Set
+                        then
+                           Kind :=
+                             (if Callees.Element (Positive (Callee)).Fails
+                                   > 0
+                                and then Failure_Test_Follows
+                                  (Block, P, V, Code)
+                              then Failing else Kept);
+                           if Kind = Kept then
+                              Why := Reports.Failure_Shape;
                            end if;
+                        elsif Stranded > P then
+                           Kind := Kept;
+                           Why := Reports.Crossing;
                         end if;
+                     end if;
+                     if Code.Op = Call then
+                        Considered.Append
+                          (Reports.Copy_Decision'
+                             (Caller => Caller, Callee => Callee,
+                              Site => Code.Site,
+                              --  Budget until the plan below copies it.
+                              Reason =>
+                                (if Kind /= Kept then Reports.Budget
+                                 else Why),
+                              Weight =>
+                                Callees.Element (Positive (Callee)).Weight,
+                              Depth => Code.Call_Depth));
                         if Kind /= Kept then
                            Found.Append
                              (Candidate'(Value => V, Depth => Code.Call_Depth,
                                Weight =>
                                  Callees.Element (Positive (Callee)).Weight,
-                               Kind => Kind));
+                               Kind => Kind,
+                               Seen => Positive (Considered.Length)));
                         end if;
                      end if;
                      if not Crosses (Caller, Code) then
@@ -702,9 +938,6 @@ package body Landin.IR.Inlining is
                end loop;
             end;
          end loop;
-         if Found.Is_Empty then
-            return;
-         end if;
          Candidate_Order.Sort (Found);
          declare
             Budget : Natural := Natural'Max (Growth_Floor, Weight);
@@ -716,9 +949,19 @@ package body Landin.IR.Inlining is
                     (Global (Caller, Chosen.Value), Chosen.Kind);
                   Changed.Replace_Element (Positive (Caller), True);
                   Any := True;
+                  declare
+                     Decided : Reports.Copy_Decision :=
+                       Considered.Element (Chosen.Seen);
+                  begin
+                     Decided.Reason := Reports.Copied;
+                     Considered.Replace_Element (Chosen.Seen, Decided);
+                  end;
                end if;
             end loop;
          end;
+         for Decided of Considered loop
+            Reports.Append (Report, Decided);
+         end loop;
       end Plan;
 
       New_Items : Item_Vectors.Vector;

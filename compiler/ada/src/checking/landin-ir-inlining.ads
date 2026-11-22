@@ -1,3 +1,4 @@
+with Landin.Build_Reports;
 with Landin.Optimization;
 with Landin.Targets;
 
@@ -14,8 +15,7 @@ with Landin.Targets;
 --  * is not the routine making the call, uses the ordinary convention and
 --    Landin's own transport, returns, is not variadic, carries one scalar
 --    result or none, has no placement and no assembly block;
---  * weighs at most Body_Bound of Landin.IR.Effects' weighted operations
---    as lowering made it.
+--  * weighs at most Body_Bound, as Weight counts it.
 --
 --  and the call itself can be replaced exactly.  Every argument is already
 --  evaluated where the call stands, so the copy stores each one into the
@@ -43,21 +43,39 @@ with Landin.Targets;
 --  contract has inlined frames.
 --  Each copied block, slot and alias records where it came from
 --  (Landin.IR.Inline_Site), which is what source debugging describes.
+--  Every direct call it considered goes into the build report with the
+--  rule that copied or kept it (Landin.Build_Reports.Copy_Reason).
 package Landin.IR.Inlining is
 
    Body_Bound : constant := 64;
 
    Growth_Floor : constant := 512;
 
+   --  D2100: Item's weight as the bound and the growth budget count it:
+   --  D211's weight of each operation (Landin.IR.Effects), except that a
+   --  load or store of a scalar slot nothing names as storage weighs
+   --  nothing, since allocation holds such a slot in a register.  A
+   --  routine with a loop is weighed as lowering made it, every operation
+   --  at D211's weight, as D339 measured its bound.
+   function Weight (Of_Unit : Unit; Item : Item_Id) return Natural
+     with Pre => Holds (Of_Unit, Item);
+
    procedure Run
      (Into : in out Unit;
       Facts : Landin.Targets.Target_Facts;
       Objective : Landin.Optimization.Objective);
+
+   procedure Run
+     (Into : in out Unit;
+      Facts : Landin.Targets.Target_Facts;
+      Objective : Landin.Optimization.Objective;
+      Report : in out Landin.Build_Reports.Report);
 
    --  For the driver after specialization verified Into against these same
    --  Facts.  An enabled pass verifies its changed output.
    procedure Run_On_Verified
      (Into : in out Unit;
       Facts : Landin.Targets.Target_Facts;
-      Objective : Landin.Optimization.Objective);
+      Objective : Landin.Optimization.Objective;
+      Report : in out Landin.Build_Reports.Report);
 end Landin.IR.Inlining;

@@ -35,6 +35,7 @@ checked source
     -> scalar replacement and simplification -> verified IR
     -> if-conversion -> verified IR
     -> in-place parameter reads -> verified IR
+    -> block layout, for a hosted target -> verified IR
     -> target layout, allocation and instruction selection
     -> assembly -> platform assembler and linker
 ```
@@ -516,7 +517,10 @@ At `--optimize speed`, `Landin.IR.Inlining` then replaces a direct call
 to a small routine with a copy of its body (D339). The routine must have a
 body, no exposed address, the ordinary convention and Landin's own
 transport, and weigh no more than a fixed bound of those weighted
-operations, as lowering made it. The copy's own calls stay calls. A caller
+operations, where a load or store of a scalar slot nothing addresses
+weighs nothing, since allocation keeps such a slot in a register, unless
+the routine holds a loop (D2100).
+The copy's own calls stay calls. A caller
 grows by at most the larger of a fixed floor and its own weight, and calls
 inside loops are copied first. The call's block ends by storing each argument into the copy of its
 parameter, copying or clearing a by-value aggregate as the routine's entry
@@ -534,7 +538,9 @@ its `Inline_Site` — the routine, the call's origin and the call's scope —
 and every copied instruction keeps its own origin, so its traps and line
 rows are the routine's. Debug emission turns a site into DWARF's inlined
 subroutine. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone:
-no firmware debugging contract describes an inlined frame.
+no firmware debugging contract describes an inlined frame. Every direct
+call the pass considers goes into the build report's `copies`, copied or
+kept, with the rule that decided it.
 
 Scalar replacement runs at size and speed, as the first step of
 simplification, which verifies the two passes' output in one walk; at speed
@@ -656,6 +662,34 @@ Cortex-M and Xtensa backends select no conditional move: they use the
 condition's own zero or one for a choice of one or zero and branch around
 one load for any other. Xtensa has `moveqz` and `movnez`; the backend does
 not use them.
+
+Under size and speed, `Landin.IR.Layout` then orders a hosted target's
+blocks (D2096). Every backend lays a routine's blocks out in the IR's order,
+and x86-64 and arm64 fall from one block into the next where a jump would
+only reach the block after it, so the order is part of what a loop costs.
+Lowering's order is the order it made the blocks in: a loop's test at its
+head, the body, the code after the loop, then the step, which the body
+reaches by a jump. The pass first sends a jump or branch to a block that
+holds nothing but a jump straight to where that chain of jumps ends,
+unless a branch's two edges would then reach one block; nothing reaches
+the blocks jumped past, and compaction drops them, so no backend emits a
+block that only jumps on. Then a loop whose head ends in a branch with one
+edge out of the loop is tested at its foot. Its other blocks keep their
+order, except that the last of them to jump straight back to the head, a
+`for`'s step, comes after the rest; the head follows it, then the block the
+head leaves the loop for, then any other block that stood among the loop's
+without being in it. The body falls into the step, the step into the test,
+and the test branches back to the body's top while the loop runs and falls
+out of it when it ends: an iteration takes one taken branch and no
+unconditional jump, and entering the loop costs one jump to the test. A
+loop is a back edge's natural loop; inner loops are placed before the loops
+around them, and a loop's blocks stay together, so an inlined copy's do
+too. A loop whose head is the routine's entry, has a block before its head
+or has no block jumping straight back to it keeps lowering's order. Block
+identities are renumbered to the new order, so a dump after the pass
+lists blocks as they are laid out. x86-64 at speed aligns a loop tested at
+its foot where its test branches back to, which nothing falls into. Firmware
+targets, Cortex-M, RV32 and Xtensa, keep lowering's order.
 
 These passes expose useful facts to the backend while leaving register
 allocation and machine instruction selection there. The current controls and

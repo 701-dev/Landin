@@ -27,6 +27,8 @@ package body Landin.Backend.X86_64.Dwarf is
           when Allocation.RDI => 5,
           when Allocation.R8 => 8,
           when Allocation.R9 => 9,
+          when Allocation.R10 => 10,
+          when Allocation.R11 => 11,
           when Allocation.R12 => 12,
           when Allocation.R13 => 13,
           when Allocation.R14 => 14,
