@@ -9,6 +9,7 @@ package body Landin.Build_Reports is
    procedure Clear (Into : in out Report) is
    begin
       Into.Decisions.Clear;
+      Into.Copies.Clear;
       Into.Routines.Clear;
       Into.Layouts.Clear;
    end Clear;
@@ -27,6 +28,25 @@ package body Landin.Build_Reports is
       end if;
       Into.Decisions.Append (Decision);
    end Append;
+
+   procedure Append (Into : in out Report; Decision : Copy_Decision) is
+   begin
+      if Decision.Caller = Landin.IR.No_Item
+        or else Decision.Callee = Landin.IR.No_Item
+        or else (not Into.Copies.Is_Empty
+                 and then Decision.Caller < Into.Copies.Last_Element.Caller)
+      then
+         raise Landin.Compiler_Defect with "invalid copy report order";
+      end if;
+      Into.Copies.Append (Decision);
+   end Append;
+
+   function Copy_Count (Of_Report : Report) return Natural
+     is (Natural (Of_Report.Copies.Length));
+
+   function Nth_Copy
+     (Of_Report : Report; Index : Positive) return Copy_Decision
+     is (Of_Report.Copies (Index));
 
    procedure Append
      (Into : in out Report; Statistics : Routine_Statistics) is
@@ -103,6 +123,20 @@ package body Landin.Build_Reports is
             when Cost_Threshold => "cost-threshold",
             when Unsupported_Proof => "unsupported-proof");
 
+   function Spelling (Value : Copy_Reason) return String
+     is (case Value is
+            when Copied => "copied",
+            when No_Body => "no-body",
+            when Address_Exposed => "address-exposed",
+            when Callee_Shape => "callee-shape",
+            when Assembly => "assembly",
+            when Weight => "weight",
+            when Recursive => "recursive",
+            when Arguments => "arguments",
+            when Failure_Shape => "failure-shape",
+            when Crossing => "crossing",
+            when Budget => "budget");
+
    function JSON
      (Of_Report : Report;
       Facts : Landin.Targets.Target_Facts;
@@ -174,6 +208,28 @@ package body Landin.Build_Reports is
                  & Boolean_Image (D.Retains_Evidence_ABI)
                  & ",""retains_fallback"":"
                  & Boolean_Image (D.Retains_Fallback) & "}");
+         end;
+      end loop;
+      Put ("],""copies"": [");
+      for Index in 1 .. Copy_Count (Of_Report) loop
+         declare
+            C : constant Copy_Decision := Nth_Copy (Of_Report, Index);
+         begin
+            if Index > 1 then
+               Put (",");
+            end if;
+            Put (LF & "{""caller"":"
+                 & Image (Landin.Targets.Byte_Count (C.Caller)));
+            Field ("callee", Landin.Targets.Byte_Count (C.Callee));
+            Put (",""action"":"""
+                 & (if C.Reason = Copied then "copied" else "kept")
+                 & """,""reason"":""" & Spelling (C.Reason) & """");
+            Field ("weight", Landin.Targets.Byte_Count (C.Weight));
+            Field ("loop_depth", Landin.Targets.Byte_Count (C.Depth));
+            Field ("source", Landin.Targets.Byte_Count (C.Site.Source));
+            Field ("first", Landin.Targets.Byte_Count (C.Site.Where.First));
+            Field ("last", Landin.Targets.Byte_Count (C.Site.Where.Last));
+            Put ("}");
          end;
       end loop;
       Put ("],""routines"": [");

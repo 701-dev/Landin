@@ -65,10 +65,18 @@ load_word: (at: usize) -> (value: usize) =
 end load_word
 
 --  The first address at or above `first` that is a multiple of `unit`.
+--  Every unit an allocation asks for in practice is a power of two,
+--  which a mask aligns; any other takes the division.
 align_up: (first: usize, unit: usize) -> (aligned: usize) =
+    low: usize = unit -% 1
+    aligned = if unit & low == 0 then (first + low) & (0 -% unit)
+              else align_any(first, unit) end if
+end align_up
+
+align_any: (first: usize, unit: usize) -> (aligned: usize) =
     over: usize = first % unit
     aligned = if over == 0 then first else first + (unit - over) end if
-end align_up
+end align_any
 
 --  Every block is preceded by two words: the start of the slot or mapping
 --  that holds it, and that slot's or mapping's extent.  A slot of a size
@@ -168,8 +176,6 @@ end take_slot
 --  Slots and mappings start at multiples of the smallest class, so a unit
 --  that divides the header has the block a header past the start aligned
 --  already; any other unit may need up to unit - 1 bytes more.
---  Every unit an allocation asks for in practice is a power of two,
---  which a mask aligns without the division `align_up` makes.
 host_alloc: (size: usize, unit: usize) -> (block: usize) =
     low: usize = unit -% 1
     power: bool = unit & low == 0
@@ -195,8 +201,7 @@ host_alloc: (size: usize, unit: usize) -> (block: usize) =
         block = 0
         return
     end if
-    block = if power then (origin + header + low) & (0 -% unit)
-            else align_up(origin + header, unit) end if
+    block = align_up(origin + header, unit)
     at: usize = header_at(block)
     store_word(at, origin)
     store_word(at + word, held)

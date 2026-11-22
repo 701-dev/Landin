@@ -6,6 +6,7 @@ private with Ada.Containers.Vectors;
 with Landin.IR;
 with Landin.Layouts;
 with Landin.Optimization;
+with Landin.Provenance;
 with Landin.Targets;
 with Landin.Targets.Levels;
 with Landin.Targets.Layouts;
@@ -33,6 +34,42 @@ package Landin.Build_Reports is
       --  Indirect calls remaining in this item after specialization,
       --  including erased dispatch and ordinary function-value calls.
       Retains_Fallback  : Boolean := True;
+   end record;
+
+   --  What D339 did with one direct call at `--optimize speed` on a hosted
+   --  target, and the rule that decided it.  The reasons a call stays one,
+   --  in the order the inliner asks them:
+   --  No_Body           the callee has no body here: an import or external;
+   --  Address_Exposed   its address is taken, or it is an entry or export;
+   --  Callee_Shape      its convention, transport, result, placement,
+   --                    parameters or slots are not a copyable routine's,
+   --                    or it never returns, or it is a received copy's;
+   --  Assembly          it holds an assembly block;
+   --  Weight            it weighs more than Body_Bound as lowering made it;
+   --  Recursive         it is the routine making the call;
+   --  Arguments         an argument cannot be handed to the copy exactly:
+   --                    a result's storage, an addressed or aggregate
+   --                    parameter given something other than its place;
+   --  Failure_Shape     it can fail and the call is not lowering's failure
+   --                    test with nothing else reading its status;
+   --  Crossing          a value made before the call that cannot travel
+   --                    through a slot is read after it;
+   --  Budget            the caller's growth bound was spent on calls
+   --                    planned before it.
+   type Copy_Reason is
+     (Copied, No_Body, Address_Exposed, Callee_Shape, Assembly, Weight,
+      Recursive, Arguments, Failure_Shape, Crossing, Budget);
+
+   type Copy_Decision is record
+      Caller : Landin.IR.Item_Id := Landin.IR.No_Item;
+      Callee : Landin.IR.Item_Id := Landin.IR.No_Item;
+      Site   : Landin.Provenance.Origin;
+      Reason : Copy_Reason := Copied;
+      --  The callee's weight in Landin.IR.Effects' operations as far as
+      --  the inliner measured it: past Body_Bound it stops counting.
+      Weight : Natural := 0;
+      --  Loop depth of the call; deeper calls are planned first.
+      Depth  : Natural := 0;
    end record;
 
    type Routine_Statistics is record
@@ -83,6 +120,8 @@ package Landin.Build_Reports is
      (Into : in out Report; Decision : Specialization_Decision);
    procedure Append
      (Into : in out Report; Statistics : Routine_Statistics);
+   --  In increasing caller order, a caller's calls in its value order.
+   procedure Append (Into : in out Report; Decision : Copy_Decision);
    procedure Append_Layout
      (Into : in out Report; Nominal_Position : Positive;
       Policy : Landin.Layouts.Policy; Placement : Landin.Targets.Layouts.Plan);
@@ -90,6 +129,9 @@ package Landin.Build_Reports is
    function Specialization_Count (Of_Report : Report) return Natural;
    function Nth_Specialization
      (Of_Report : Report; Index : Positive) return Specialization_Decision;
+   function Copy_Count (Of_Report : Report) return Natural;
+   function Nth_Copy
+     (Of_Report : Report; Index : Positive) return Copy_Decision;
    function Routine_Count (Of_Report : Report) return Natural;
    function Nth_Routine
      (Of_Report : Report; Index : Positive) return Routine_Statistics;
@@ -103,6 +145,7 @@ package Landin.Build_Reports is
 
    function Spelling (Value : Specialization_Action) return String;
    function Spelling (Value : Decision_Reason) return String;
+   function Spelling (Value : Copy_Reason) return String;
 
    --  Pure renderer.  No paths, clocks, addresses or hash iteration.  Source
    --  filename/origin adapters may be added by integration without changing
@@ -124,6 +167,8 @@ private
 
    package Decision_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Specialization_Decision);
+   package Copy_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Copy_Decision);
    package Statistics_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Routine_Statistics);
    type Layout_Record (Count : Natural) is record
@@ -136,6 +181,7 @@ private
 
    type Report is tagged record
       Decisions : Decision_Vectors.Vector;
+      Copies : Copy_Vectors.Vector;
       Routines : Statistics_Vectors.Vector;
       Layouts : Layout_Vectors.Vector;
    end record;

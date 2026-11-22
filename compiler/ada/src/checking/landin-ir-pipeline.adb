@@ -14,7 +14,8 @@ package body Landin.IR.Pipeline is
    begin
       Landin.IR.Specialization.Run_On_Verified
         (Into, Facts, Options, Report);
-      Landin.IR.Inlining.Run_On_Verified (Into, Facts, Options.Optimize);
+      Landin.IR.Inlining.Run_On_Verified
+        (Into, Facts, Options.Optimize, Report);
       Landin.IR.Simplification.Run_On_Verified
         (Into, Facts, Options.Optimize);
       Landin.IR.If_Conversion.Run_On_Verified

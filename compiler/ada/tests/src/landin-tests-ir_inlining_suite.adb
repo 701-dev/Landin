@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
+with Landin.Build_Reports;
 with Landin.IR.Dump;
-with Landin.IR.Effects;
 with Landin.IR.Inlining;
 with Landin.IR.Simplification;
 with Landin.Optimization;
@@ -123,23 +123,17 @@ package body Landin.Tests.IR_Inlining_Suite is
    end Calls_To;
 
    function Weight (Code : IR.Unit; Item : IR.Item_Id) return Natural;
-   function Weight (Code : IR.Unit; Item : IR.Item_Id) return Natural is
-      Total : Natural := 0;
-   begin
-      for V in 1 .. IR.Value_Count (Code, Item) loop
-         Total := Total + IR.Effects.Weight
-           (IR.Op_Of (Code, Item, IR.Value_Id (V)));
-      end loop;
-      return Total;
-   end Weight;
+   function Weight (Code : IR.Unit; Item : IR.Item_Id) return Natural
+     is (IR.Inlining.Weight (Code, Item));
 
-   --  A statement of the form `a = a * 3 + 1` weighs more than six, so
-   --  this many of them put a routine past the bound.
+   --  A statement of the form `a = a * 3 + 1` weighs more than two once
+   --  its slot's loads and stores weigh nothing (D2100), so this many of
+   --  them put a routine past the bound.
    function Heavy_Body return String;
    function Heavy_Body return String is
       Result : Ada.Strings.Unbounded.Unbounded_String;
    begin
-      for Index in 1 .. IR.Inlining.Body_Bound / 6 + 2 loop
+      for Index in 1 .. IR.Inlining.Body_Bound / 2 + 2 loop
          Ada.Strings.Unbounded.Append (Result, "a = a * 3 + 1 ");
       end loop;
       return Ada.Strings.Unbounded.To_String (Result);
@@ -428,7 +422,9 @@ package body Landin.Tests.IR_Inlining_Suite is
       Calls : constant := 300;
       Source : Ada.Strings.Unbounded.Unbounded_String :=
         Ada.Strings.Unbounded.To_Unbounded_String
-          ("step: (x: u64) -> (y: u64) = y = x *% 3 +% 7 end step "
+          --  Heavier than the call it replaces, so the budget binds.
+          ("step: (x: u64) -> (y: u64) = "
+           & "y = ((x *% 3 +% 7) ^ (x >> 5)) *% 5 +% (x & 9) end step "
            & "public main: () -> (code: i32) = mut s: u64 = 1 ");
       Work : Landin.Stages.Compilation :=
         Landin.Stages.Create (Landin.Targets.Linux_X86_64);
@@ -475,6 +471,83 @@ package body Landin.Tests.IR_Inlining_Suite is
       end;
    end Growth_Is_Bounded;
 
+   --  SR-1427: every direct call the inliner considered is in the build
+   --  report, copied or kept, with the rule that decided it.
+   procedure Report_Names_Each_Call (Item : in out Landin.Testing.Context);
+   procedure Report_Names_Each_Call (Item : in out Landin.Testing.Context) is
+      package Reports renames Landin.Build_Reports;
+      use type Reports.Copy_Reason;
+      Source : constant String :=
+        "leaf: (x: u32) -> (y: u32) = y = x + 1 end leaf "
+        & "big: (x: u32) -> (y: u32) = mut a: u32 = x "
+        & Heavy_Body & "y = a end big "
+        & "taken: (x: u32) -> (y: u32) = y = x + 2 end taken "
+        & "down: (n: u32) -> (r: u32) = r = 0 "
+        & "if n > 0 then r = down(n - 1) end if end down "
+        & "public main: () -> (code: i32) = kept := taken "
+        & "code = i32(leaf(41) + big(1) + taken(1) + kept(1) + down(3)) "
+        & "end main";
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      Report : Reports.Report;
+   begin
+      Lower (Item, Work, Source);
+      declare
+         Code : IR.Unit renames Landin.Stages.Code (Work).all;
+         Main : constant IR.Item_Id := Named (Work, "main");
+         Down : constant IR.Item_Id := Named (Work, "down");
+
+         function Reason_Of (Caller, Callee : IR.Item_Id)
+            return Reports.Copy_Reason;
+         function Reason_Of (Caller, Callee : IR.Item_Id)
+            return Reports.Copy_Reason is
+         begin
+            for Index in 1 .. Reports.Copy_Count (Report) loop
+               if Reports.Nth_Copy (Report, Index).Caller = Caller
+                 and then Reports.Nth_Copy (Report, Index).Callee = Callee
+               then
+                  return Reports.Nth_Copy (Report, Index).Reason;
+               end if;
+            end loop;
+            raise Program_Error with "no report of the call";
+         end Reason_Of;
+      begin
+         IR.Inlining.Run
+           (Code, Landin.Stages.Target (Work), Opt.Speed, Report);
+         Landin.Testing.Check
+           (Item, Reason_Of (Main, Named (Work, "leaf")) = Reports.Copied
+              and then Reason_Of (Main, Down) = Reports.Copied,
+            "the copies are reported as copied");
+         Landin.Testing.Check
+           (Item, Reason_Of (Main, Named (Work, "big")) = Reports.Weight,
+            "a routine past the bound is kept for its weight");
+         Landin.Testing.Check
+           (Item, Reason_Of (Main, Named (Work, "taken"))
+                    = Reports.Address_Exposed,
+            "a routine whose address is taken is kept for that");
+         Landin.Testing.Check
+           (Item, Reason_Of (Down, Down) = Reports.Recursive,
+            "a routine's call of itself is kept as recursive");
+         Landin.Testing.Check
+           (Item, Reports.Nth_Copy (Report, 1).Site
+                    /= Landin.Provenance.No_Origin,
+            "each call is reported with its site");
+      end;
+      declare
+         Sized : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+         Quiet : Reports.Report;
+      begin
+         Lower (Item, Sized, Source);
+         IR.Inlining.Run
+           (Landin.Stages.Code (Sized).all, Landin.Stages.Target (Sized),
+            Opt.Size, Quiet);
+         Landin.Testing.Check_Equal
+           (Item, Reports.Copy_Count (Quiet), 0,
+            "size considers no call and reports none");
+      end;
+   end Report_Names_Each_Call;
+
    procedure Register (Into : in out Landin.Testing.Registry) is
    begin
       Landin.Testing.Register
@@ -492,5 +565,8 @@ package body Landin.Tests.IR_Inlining_Suite is
       Landin.Testing.Register
         (Into, "ir opt", "inlined growth is bounded",
          Growth_Is_Bounded'Access);
+      Landin.Testing.Register
+        (Into, "ir opt", "the build report says why each call stayed one",
+         Report_Names_Each_Call'Access);
    end Register;
 end Landin.Tests.IR_Inlining_Suite;
