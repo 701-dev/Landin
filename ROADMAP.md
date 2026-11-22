@@ -1658,7 +1658,7 @@ and `caller`, which R19 leaves to R20, land in R20's window.
 
 ### R20.10 — Decide the review's questions
 
-Status: active
+Status: complete
 Depends on: R19
 
 The maintainer answers the inventory's questions: when a routine takes
@@ -1676,29 +1676,62 @@ or regrouped here. Its answers are asked as Q-143 to Q-151, the
 inventory's questions in its order without the eighth, and Q-152 to
 Q-155, `iterable`, `zeroable`, `caller` and C3.
 Exit evidence: the decisions in `spec.md`; this phase's items match them.
+Done: the maintainer answered Q-143 to Q-155 on 2026-11-22, each a
+decision in `spec.md`, D1948 to D1960. A routine takes `type is C` and
+`any C` is for a value that stores or mixes providers (D1948); `any C`
+converts to `any P` for a concept it builds on, and fibres and threads
+share one task concept (D1949), which adds R20.11; `core/failure` keeps
+its registry until a firmware image shows a cost (D1950);
+`platform/posix` moves below the protocols (D1951); the I/O concepts stay
+narrow and `world` loses `lent` (D1952); one name per idea (D1953);
+subject, capabilities, inputs (D1954); a locale is an explicit value
+(D1955), which R22.50's text takes; the three fixture-only modules stay
+(D1956); the library declares `iterable` and its containers conform
+(D1957); `zeroable` stays (D1958); `caller` stays with a library routine
+(D1959); and a call tree's host authority stays a convention (D1960),
+which retires C3. The items below keep the inventory's grouping, each
+naming its decisions. The closing commit is the first on R20's
+integration branch, `r20-integration`, made from main, and does not reach
+main before R20's gate.
+
+### R20.11 — An `any` converts to its concept's parents
+
+Status: planned
+Depends on: R20.10
+
+D1949: an `any C` converts implicitly to `any P` for every concept `P`
+that `C` builds on, keeping its data pointer and taking `P`'s part of the
+table; [1370] and the checker say so, and the backends lower it on every
+target.
+Exit evidence: a runtime fixture converting along a chain of parents on
+every target the gate runs; the refusal where `P` is not a parent.
 
 ### R20.20 — How a capability is received
 
 Status: planned
 Depends on: R20.10
 
-The rule for `type is C` against `any C` and the order of parameters
-written into `core/README.md`'s conventions, and every routine that
-departs from them put on the breaking list.
+The rule for `type is C` against `any C` (D1948) and the order of
+parameters (D1954) written into `core/README.md`'s conventions, and every
+routine that departs from them put on the breaking list.
 Exit evidence: the conventions stated; a check, where one is mechanical,
 that holds the library to them.
 
 ### R20.30 — The concepts
 
 Status: planned
-Depends on: R20.10
+Depends on: R20.10, R20.11
 
-One task concept for `core/fibre` and `hosted/thread`; the I/O concepts
-grouped, and `world` giving each of its parts without `lent`; whether
-containers iterate through `iterable`, and the fate of `zeroable` and
-`caller`. It takes on SR-1284: either the library declares `iterable` and
-`fallible_iterable`, which the compiler recognises by name, or the tour
-says a program declares its own. Each change goes on the breaking list.
+`core/fibre`'s `task` as the one task concept, which `hosted/thread`
+uses, and the fibre group holding one `any scheduler` (D1949); the I/O
+concepts kept narrow, `world` giving each of its parts by R20.11's
+conversion so `lent`, `lent_writer` and `writer_of` leave, and a pair
+merged only where its receivers and failures can be one (D1952); the
+library's `iterable`, which `for` takes and `core/map` and `core/tree`
+conform to, with `fallible_iterable` out of the tour (D1957); and a
+`core` routine that takes its call site through `caller` (D1959).
+`zeroable` stays (D1958). It takes on SR-1284, which D1957 answers: the
+library declares `iterable`. Each change goes on the breaking list.
 Exit evidence: the concept changes on the list, prototype 3's concept
 uses reread against them.
 
@@ -1708,9 +1741,10 @@ Status: planned
 Depends on: R20.10
 
 `platform/posix` moved below the protocol layer as far as its types
-allow; what importing `core/fibre` costs a firmware image measured, and
-`core/failure`'s registry kept or split on that measurement; an example
-program for each module only fixtures import.
+allow, `hosted/system` adapting it (D1951); what importing `core/fibre`
+costs a firmware image measured, and `core/failure`'s registry kept or
+split on that measurement (D1950); an example program for `core/random`
+and `hosted/thread`, `core/io/fake` kept as a test provider (D1956).
 Exit evidence: the import graph without the upward edges; the firmware
 measurement recorded.
 
@@ -1721,13 +1755,13 @@ Depends on: R20.10
 
 One name each for absence, running out of room, the end of an iteration,
 a length and giving storage back, and one meaning each for the names
-that carry several. Each rename goes on the breaking list.
+that carry several (D1953). Each rename goes on the breaking list.
 Exit evidence: the list's naming entries, each with its old and new name.
 
 ### R20.60 — The breaking list applied
 
 Status: planned
-Depends on: R20.20, R20.30, R20.40, R20.50, R19.40
+Depends on: R20.20, R20.30, R20.11, R20.40, R20.50, R19.40
 
 The list, applied on R20's own integration branch and promoted alone in
 one promotion: every renamed or moved name refused with its replacement,
@@ -2133,9 +2167,9 @@ Depends on: R22.20, R22.30
 Numbers and text formatted for a locale, an explicit value from a BCP 47
 identifier and never global state, from generated CLDR data a program
 uses in part: SR-98's locale half, with R22.20's template width and
-precision applied to a locale's digits and separators. From R20: the
-answer on a locale as an explicit value, and how formatting evidence
-takes one.
+precision applied to a locale's digits and separators. From R20: a
+locale is an explicit value (D1955), and the host's preferred one is read
+through `hosted/system`; how formatting evidence takes one is this item's.
 Exit evidence: CLDR's own test data pass for the locales generated; a
 program that uses one locale carries only its data.
 

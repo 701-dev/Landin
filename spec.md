@@ -16207,6 +16207,8 @@ pinned the ceiling, turned) and `negative/loop-exit-skips-assignment`.
 
 **The alternatives:** removing each, as the candidate list recommended for labels, the declaration in a condition, the fills, block comments, whole-array arithmetic and the packed array fields. The maintainer declined each for this roadmap; a later proposal needs evidence beyond the counts the list already gave.
 
+The library review decided both: containers iterate through a library `iterable` (D1957), and `zeroable` stays (D1958).
+
 **Pinned by** the fixtures that pin each form today, which stay: `runtime/loop-control-flow` and `positive/r720-labelled-bare-blocks` among them, and the `control.loops` guarantee row.
 
 ### D431 — A final control whose only answers diverge is a statement
@@ -16380,6 +16382,36 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 **The alternatives:** keeping D135 as it stood, two rules for one kind of value. Declined.
 
 **Pinned by** `positive/fixed-actual-folds-as-a-length`, which applies a type to `compiler.word_size`, `sizeof` of a scalar, a module integer and arithmetic on one, and `negative/fixed-actual-refusals`, which gives a call, a bool and a width-dependent operator the refusals an array length gives them. D135 and D1321 are marked amended. How a type argument is told from a fixed one is D1889.
+
+### D1949 — An `any C` converts to `any P` for a concept `P` that `C` builds on; fibres and threads share one task concept
+
+**The tour said** at [1370] that an `any C` is a provider of C and of every concept C builds on ([1340]), and that an `any` is not erased again: so an `any turns` passes to a routine generic over `scheduler`, but is not an `any scheduler` value. The library's fibre group keeps both an `any scheduler` and an `any turns` with a flag for that reason, and `core/fibre`'s `task` and `hosted/thread`'s `job` have the identical entry, each with its own bridge.
+
+**Chosen:** an `any C` converts implicitly to `any P` wherever `P` is a concept `C` builds on, directly or through others; the converted value keeps the same data pointer and takes `P`'s part of the table, so nothing is erased twice and the pointee and its origin are unchanged. The fibre group holds one `any scheduler`, and asks for turns where it needs them. `core/fibre`'s `task` is the one task concept, which `hosted/thread` uses for what it runs, with one bridge from a routine and a state. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** keeping the two fields and filing the conversion for a later language change; and keeping `task` and `job` apart because a thread is an execution context and a fibre is not (D446). Both were declined: the conversion is additive, and the two concepts' entries are the same.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1957 — The library declares `iterable`, and its containers conform
+
+**The tour said** at [1320] that `for x in s` over a program's own type uses the `iterable` concept, which the compiler recognises by name; no library module declares it, no library type conforms, and a container hands out a slice for `for` to walk. D1652 removed `try for`, so nothing recognises `fallible_iterable`, which [1320] still shows.
+
+**Chosen:** a `core` module declares `iterable`, and `for` uses that declaration; a container whose items are not one slice, a map or a tree, conforms, and one that is a slice keeps handing it out. [1320] names the module, and `fallible_iterable` leaves the tour: a fallible source is walked by D1652's `while`. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** a program declaring its own `iterable`, the tour saying so; and removing the protocol, `for` walking slices and ranges only. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1958 — `zeroable` stays a bound a program writes
+
+**The tour said** at [0550] that `zeroable` is the one compiler-owned concept, which generic code requires where it needs a zero image, as [1350]'s `cleared` does. The simplification left it for the library review to decide with the generic containers (D1653); the library writes it nowhere since `core/spill` replaced `core/small`.
+
+**Chosen:** it stays as [0550] says. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** removing it as a written bound, the compiler keeping its knowledge of zero images ([0540]) to itself. Declined: it is the honest way for a container that needs a filler to say so.
+
+**Pinned by** `positive/compiler-zeroable-conformances`, `positive/r490-distinct-zeroable`, `negative/nonzeroable-constraint`, `negative/nonzeroable-zero-length-constraint` and `negative/r490-atom-aggregate-zeroable`, which stay.
 
 ### D1889 — A type argument written as an expression is a fixed actual
 
@@ -32832,6 +32864,16 @@ for provider substitution, and the `capabilities.host-root-exclusion` guarantee
 row. These demonstrate the current behavior; they do not prove that an
 arbitrary call tree uses only supplied providers.
 
+### D1960 — A call tree's host authority stays a convention
+
+**The tour said** at [1680] that a parameter list says what a caller supplies, not everything the call can reach: any hosted function may call the public host and heap constructors, and a driver may make a pointer from an address. D258 keeps the constructors public, so a provider argument selects a provider without proving that a call tree uses no other. An inherited proposal asked for a checkable boundary, accounting for constructors, foreign calls and address literals.
+
+**Chosen:** no checkable boundary is added; [1680] and D258 stand, and a reader who needs to know that a call tree does no host I/O reads its calls and imports. A trusted-code case needing static host exclusion, or untrusted code to run, reopens it as a new question. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** keeping the proposal open until such a case, and designing the boundary in the library review. Both were declined: no case has arisen, and the review does not need it.
+
+**Pinned by** D258's fixtures, which stay: `runtime/derived-hosted-memory` and `runtime/core-io-erased-system`, and the `capabilities.host-root-exclusion` guarantee row.
+
 ### D154 — Diagnostics separate retention from delivery failure
 
 **The tour and prototype 2 said** that a diagnostic sink is an ordinary
@@ -41911,3 +41953,93 @@ forgets a join, or a second library value is as unsafe to forget.
 **Pinned by** every fibre fixture that makes a group, among them
 `runtime/library-shared-fibre`, `runtime/fibre-turns-interleave` and
 `runtime/fibre-join-first-failure`, each joining its group in a `defer`.
+
+### D1948 — A library routine takes `type is C`; `any C` is for a value that stores or mixes providers
+
+**The tour said** at [1290] that a generic function takes a type that satisfies a concept, and at [1370] that an `any C` holds a value of some type that satisfies C, decided at run time, and is itself a provider of C. No rule said which a library routine takes, and the same capability arrived in several shapes: an allocator generic in 44 routines and erased in the text builder, a byte sink in four shapes, entropy in three.
+
+**Chosen:** a routine's capability parameter is `provider: type is C`, so that the caller decides whether to erase, the routine can name the type, and a call can be specialised; an `any C` passes to it unchanged. A value that stores a provider beyond the call, as the text builder and the fibre group do, or that holds several kinds at once, takes `any C`. `core/README.md`'s conventions say so, and each routine that departs is renamed or reshaped on the review's breaking list. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** `any C` by default, one shape at the cost of a table call on every use; and generic everywhere, a storing type made generic over its provider. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1950 — `core/failure` keeps one registry until a firmware image shows its cost
+
+**The tour said** nothing; D388 gives each library failure atom its words in `failure.reason`, so `core/failure` imports eight modules to name their atoms, and `core/fibre`, `hosted/thread` and `platform/posix` import it, which makes importing `core/fibre` pull in nearly the whole of `core`. D296 drops what a program cannot reach.
+
+**Chosen:** the one registry stays. The review measures what importing `core/fibre` costs a Cortex-M image, and splits the registry only where the measurement shows a cost. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** splitting now, each module keeping its atoms' words; and the three importers reporting in their own atom sets. Both were declined until a measurement asks for them.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1951 — `platform/posix` sits below the protocol concepts
+
+**The tour said** nothing; `platform/posix` imports `core/io`, `core/net`, `core/text` and `core/failure`, so the system layer depends on the abstractions built over it, while `hosted/events` reaches epoll and kqueue without it.
+
+**Chosen:** `platform/posix` moves below the protocol layer as far as its types allow: it speaks descriptors, byte slices and errno numbers, and `hosted/system` adapts it to `core/io` and `core/net`. `hosted/events` keeps its own readiness calls. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** leaving posix above as the protocols' hosted implementation; and routing `hosted/events` through it too. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1952 — The I/O concepts stay narrow, and `world` gives each part as a value
+
+**The tour said** at [1680] that a function takes the thing that does its I/O. D268 made the capability four narrow concepts and their composition, so a firmware provider supplies only what it has; `io.world` has no entries of its own, and because an `any world` was not an `any writer` the library carries `lent`, `lent_writer` and `writer_of`.
+
+**Chosen:** the concepts stay narrow. With D1949 an `any world` converts to each concept it builds on, so `lent`, `lent_writer` and `writer_of` leave. A pair of concepts that says one idea twice, `io.writer` and `text.outlet` or the three file concepts, is merged only where the review finds that their receivers and failures can be one. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** merging those pairs now; and one broad `world` whose firmware providers refuse what they lack at run time. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1953 — The library has one name for each idea
+
+**The tour said** nothing; the library names absence seven ways, a count or length about ten, giving storage back about fifteen and the end of an iteration five, and `used`, `new`, `at`, `host`, `space`, `cursor` and `entry` each carry two or more meanings, while `not_found` is two atoms.
+
+**Chosen:** absence, running out of room, the end of an iteration, a length and giving storage back each get one name, and each overloaded name one meaning, as one list of renames taken at once; every old name is refused with its replacement and rewritten by `refine fix` (D1847) where the rewrite is mechanical. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** renaming only the overloaded names; and renaming nothing. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1954 — A library routine's parameters come subject first, then capabilities, then inputs
+
+**The tour said** nothing; R13's conventions (D268-D271) fix parameter names but no order, and "subject first" appears only in D945.
+
+**Chosen:** a routine takes its subject first, then its capabilities (`memory`, `host`, entropy and the like), then its other inputs; a `caller` parameter, where there is one, comes last. `core/README.md`'s conventions say so, and each departure is on the breaking list. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** capabilities first, so every allocating routine starts with its allocator; and no order rule. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1955 — A locale is an explicit value
+
+**The tour said** nothing; no library routine consults a locale.
+
+**Chosen:** a locale is a plain value made from a BCP 47 identifier and passed to each routine that formats or compares by it; the host's preferred locale is read through `hosted/system` like any other host fact. There is no global or process-wide locale. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** a capability concept with providers of its own; and a process-wide locale set from the host, as C's `setlocale`. Both were declined: a locale is data, not authority, and an explicit value keeps a result reproducible.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1956 — `core/random`, `hosted/thread` and `core/io/fake` keep their places
+
+**The tour said** nothing; D1033 makes a library name public when a program has a use for it, and these three modules are imported only by the compiler's fixtures.
+
+**Chosen:** all three stay. `core/random` and `hosted/thread` each get an example program; `core/io/fake` is the provider a program's own tests use, and those tests are its consumer. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** moving `core/io/fake` into the test tree; and retiring whatever gains no example. Both were declined.
+
+**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+
+### D1959 — `caller` stays, and the library uses it
+
+**The tour said** at [1040] that the compiler fills a `caller` parameter with where the call was written, so assertions and logging need no macros. The library, the examples and the prototypes use it nowhere.
+
+**Chosen:** it stays, and `core` gains an assertion or logging routine that takes its call site through a `caller` parameter, the use [1040] describes. The maintainer chose this on 2026-11-22, answering the library review's questions.
+
+**The alternatives:** keeping it without a library use; and removing it, though nothing else does its job. Both were declined.
+
+**Pinned by** `positive/caller-parameters` and `runtime/caller-parameters`, which stay; the library routine adds its own fixture.

@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R20.10 — Decide the review's questions.**
+**Next roadmap item: R20.11 — An `any` converts to its concept's parents (planned).**
 
 ## Versions
 
