@@ -291,6 +291,8 @@ class Comparison(unittest.TestCase):
                       "same entries, so this is no difference between them: "
                       "1 fault(s)", result.stderr)
         self.assertEqual(result.stderr.count("unexpected emission result"), 1)
+        self.assertIn("if the refusal is intended, add the pair to "
+                      "REFUSAL_PAIRS in scripts/emit_manifest.py", result.stderr)
 
     def test_a_difference_and_a_manifests_own_fault_are_reported_apart(self):
         other = dict(BASE)
@@ -533,7 +535,9 @@ class Selectors(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(set(manifest.values()), {"refused:1"})
         self.assertIn("'refused:1': error[L0500]: no library was found"
-                      " --> main.ldn:1:1 = note: name it with --library=PATH\n",
+                      " --> main.ldn:1:1 = note: name it with --library=PATH;"
+                      " if the refusal is intended, add the pair to"
+                      " REFUSAL_PAIRS in scripts/emit_manifest.py\n",
                       result.stderr)
         self.assertNotIn("quoted source", result.stderr)
         self.assertNotIn("L0001", result.stderr)

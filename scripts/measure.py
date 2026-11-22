@@ -859,7 +859,9 @@ def main(argv=None) -> int:
     size.add_argument("--target", action="append", required=True)
     size.add_argument("--output", required=True)
     size.add_argument("--environment", required=True,
-                      help="the linking environment's name, kept with the figures")
+                      help="the linking environment's name, kept with the figures "
+                      "beside the linker's version: the gate passes nix on "
+                      "Linux and macos-26 on Darwin")
     size.add_argument("--toolchain", action="append", default=[],
                       metavar="TARGET=DRIVER")
     size.add_argument("--runner", action="append", default=[],

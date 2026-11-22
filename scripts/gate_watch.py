@@ -71,7 +71,10 @@ PAGE = 30
 PAGES = 100
 #  Times one request is asked while GitHub answers a server error.
 TRIES = 4
-SERVER_ERROR = re.compile(r"HTTP 5\d\d")
+#  A rate limit and a connection that broke before an answer are asked
+#  again as a server error is: one of them ended a watch with exit 3.
+SERVER_ERROR = re.compile(r"HTTP (5\d\d|429)|timed? ?out|connection "
+                          r"(reset|refused)|unexpected EOF", re.IGNORECASE)
 #  Seconds between those tries; main lowers it to a shorter --interval.
 retry_pause = 5.0
 
