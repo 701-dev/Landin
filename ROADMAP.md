@@ -1672,7 +1672,9 @@ it is not reopened. With these come the questions R19 left here:
 `iterable` (SC-17), `zeroable` (SC-18) and `caller`, and C3, whether a
 call tree's host authority gets a checkable boundary. The output is each
 answer recorded as a decision in `spec.md` and the items below confirmed
-or regrouped here.
+or regrouped here. Its answers are asked as Q-143 to Q-151, the
+inventory's questions in its order without the eighth, and Q-152 to
+Q-155, `iterable`, `zeroable`, `caller` and C3.
 Exit evidence: the decisions in `spec.md`; this phase's items match them.
 
 ### R20.20 — How a capability is received
