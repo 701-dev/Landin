@@ -390,8 +390,11 @@ REGISTER_KEPT_GIT = "^Kept: [^ ]"
 #  a paragraph beginning with its bold label.  An answer closes it.
 QUESTION_FILE = re.compile(r"Q-([1-9]\d*)\.md")
 QUESTION_HEADING = re.compile(r"# (Q-[1-9]\d*) — \S.*\?")
+#  Work that is no roadmap item says what it is in place of the item:
+#  `Asked by the register sweep of 2026-11-21 on 2026-11-21.`
 QUESTION_ASKED = re.compile(
-    r"^Asked by (R\d+\.\d+) on (\d{4}-\d\d-\d\d)(?:, [^\n]+)?\.$", re.M)
+    r"^Asked by (\S[^\n]*?) on (\d{4}-\d\d-\d\d)(?:, [^\n]+)?\.$", re.M)
+QUESTION_ASKER_ITEM = re.compile(r"R\d+\.\d+")
 QUESTION_PARTS = ("Options", "Recommendation", "Default until answered",
                   "What waits on the answer")
 QUESTION_ANSWER = re.compile(
@@ -2382,13 +2385,17 @@ def register_ages(root):
     """{row: the items completed since it was filed or last kept}, or None.
 
     A row's count starts at the newest commit that added its file or
-    changed its `Kept:` line; the items it has stood through are the ones
-    complete in the working ROADMAP.md that were not complete in that
-    commit's.  A row the moved register brought keeps the exchange's
-    commit, as the mechanics ask.  A row or a `Kept:` line not yet
-    committed has stood through nothing.  Without Git's full history -- an
-    exported tree, or the gate's shallow checkout -- the ages cannot be
-    read and None is returned.
+    changed its `Kept:` line, a merge that wrote the line in resolving
+    included; the items it has stood through are those complete in the
+    working ROADMAP.md whose completion came after that commit on the line
+    it was made on, or after the merge that brought it.  An item completed
+    on another line before the merge that joined the two is not counted,
+    so a breaking window's integration branch taking main, or main taking
+    the window, ages no row by the merge alone.  A row the moved register
+    brought keeps the exchange's commit, as the mechanics ask.  A row or a
+    `Kept:` line not yet committed has stood through nothing.  Without
+    Git's full history -- an exported tree, or the gate's shallow
+    checkout -- the ages cannot be read and None is returned.
     """
     if not os.path.exists(os.path.join(root, ".git")):
         return None
@@ -2401,8 +2408,13 @@ def register_ages(root):
                 in roadmap_statuses(read_file(path, encoding="utf-8")).items()
                 if status == "complete"}
     #  Each log is newest first, so a row's first commit in it is its last.
+    #  A merge's own diff is read only where it differs from every parent:
+    #  a `Kept:` line written in resolving it, not one it brought cleanly,
+    #  whose own commit is in the history.
     starts = []
-    for arguments in (("--diff-filter=A",), ("-G", REGISTER_KEPT_GIT)):
+    for arguments in (("--diff-filter=A",),
+                      ("--diff-merges=dense-combined", "-G",
+                       REGISTER_KEPT_GIT)):
         log = _git(root, "log", "--format=commit %H", "--name-only",
                    *arguments, "--", REGISTER_DIRECTORY)
         if log is None:
@@ -2416,7 +2428,40 @@ def register_ages(root):
                                   commit)
         starts.append(newest)
     added, kept = starts
-    committed = {}
+    pending = _git(root, "rev-parse", "-q", "--verify", "MERGE_HEAD")
+    pending = pending.strip() if pending else None
+    complete_at = {}
+    def complete(commit):
+        if commit not in complete_at:
+            then = _git(root, "show", "%s:%s" % (commit, ROADMAP))
+            complete_at[commit] = ({item for item, status
+                                    in roadmap_statuses(then).items()
+                                    if status == "complete"}
+                                   if then is not None else set())
+        return complete_at[commit]
+    before = {}
+    def completed_before(start):
+        """The items complete at START, or on a line a merge joined to
+        START's after it, as that line stood at the merge."""
+        if start in before:
+            return before[start]
+        done = set(complete(start))
+        after = _git(root, "rev-list", "--ancestry-path",
+                     "%s..HEAD" % start)
+        descendants = set((after or "").split()) | {start}
+        merges = _git(root, "rev-list", "--merges", "--parents",
+                      "--ancestry-path", "%s..HEAD" % start) or ""
+        joined = [parent for line in merges.splitlines()
+                  for parent in line.split()[1:]]
+        for parent in joined:
+            if parent not in descendants:
+                done |= complete(parent)
+        #  A merge being resolved joins MERGE_HEAD's line to HEAD's.
+        if pending and _git(root, "merge-base", "--is-ancestor", start,
+                            pending) is None:
+            done |= complete(pending)
+        before[start] = done
+        return done
     ages = {}
     for record, (_, row) in register_rows(root).items():
         start = kept.get(record) or added.get(record)
@@ -2425,13 +2470,7 @@ def register_ages(root):
         if start is None:
             ages[record] = 0
             continue
-        if start not in committed:
-            then = _git(root, "show", "%s:%s" % (start, ROADMAP))
-            committed[start] = ({item for item, status
-                                 in roadmap_statuses(then).items()
-                                 if status == "complete"}
-                                if then is not None else set())
-        ages[record] = len(finished - committed[start])
+        ages[record] = len(finished - completed_before(start))
     return ages
 
 
@@ -2561,8 +2600,11 @@ def question_problems(root, statuses):
         asked = QUESTION_ASKED.search(text)
         if not asked:
             out.append((where, 1, "%s does not say `Asked by ITEM on"
-                        " YYYY-MM-DD.`" % identity))
-        elif asked.group(1) not in statuses:
+                        " YYYY-MM-DD.`, or for work that is no item what it"
+                        " is in place of ITEM, `Asked by the register sweep"
+                        " of YYYY-MM-DD on YYYY-MM-DD.`" % identity))
+        elif QUESTION_ASKER_ITEM.fullmatch(asked.group(1)) and \
+                asked.group(1) not in statuses:
             out.append((where, text.count("\n", 0, asked.start()) + 1,
                         "%s was asked by %s, which is not a work item of"
                         " this roadmap" % (identity, asked.group(1))))
@@ -10794,8 +10836,11 @@ def check_document_anchors(full_run):
 PROCESS_SECTION_BUDGETS = {
     "": 1000,
     "The loop that runs now": 9200,
-    "Running an item": 4200,
-    "Closing an item": 6000,
+    #  Both raised when item.py learned breaking windows, the mirror's
+    #  refusal and register_next.py's --delete and --decision, which an
+    #  item's agent meets in these steps and nowhere else.
+    "Running an item": 5600,
+    "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
     "Command reference": 8400,

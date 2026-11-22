@@ -217,6 +217,7 @@ package body Landin.Tests.X86_Optimization_Suite is
    procedure Small_Routines (Item : in out Landin.Testing.Context);
    procedure Caller_Saved_Slots (Item : in out Landin.Testing.Context);
    procedure Float_Sources (Item : in out Landin.Testing.Context);
+   procedure Float_Constant_Pool (Item : in out Landin.Testing.Context);
    procedure Known_Atoms (Item : in out Landin.Testing.Context);
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context);
    procedure Choices_Move_Conditionally
@@ -536,6 +537,7 @@ package body Landin.Tests.X86_Optimization_Suite is
         Landin.Stages.Create (Landin.Targets.Linux_X86_64);
       Speed : constant Opt.Options := (Opt.Speed, Opt.Auto);
       Updates : US.Unbounded_String;
+      HT : constant Character := Character'Val (9);
    begin
       --  Each arm also stores to a module variable, so if-conversion,
       --  which at size and speed turns an arm that touches only private
@@ -611,9 +613,10 @@ package body Landin.Tests.X86_Optimization_Suite is
             Shaped (Emitted (Work), "jbe .L@_@" & LF)
             and then Shaped (Emitted (Work, Speed), "jbe .L@_@" & LF)
             and then not Contains
-              (Emitted (Work, Speed),
-               "jbe " & Operand_Of (Emitted (Work), "jbe") & LF),
-            "speed branches past a block that only jumps on");
+              (Emitted (Work), ":" & LF & HT & "jmp .L")
+            and then not Contains
+              (Emitted (Work, Speed), ":" & LF & HT & "jmp .L"),
+            "no block that only jumps on is emitted (D2096)");
       end;
    end Loop_Nesting;
 
@@ -1897,11 +1900,11 @@ package body Landin.Tests.X86_Optimization_Suite is
    --  conversion and a comparison work where their operands live, and a
    --  variable stored from a value that outlives it is that value's
    --  register, which a debugger is told until something overwrites it.
-   --  Speed aligns the loop's head.
+   --  Speed aligns the loop's head, which only the jump to its test at the
+   --  foot (D2096) reaches.
    procedure Caller_Saved_Slots (Item : in out Landin.Testing.Context) is
       Work : Landin.Stages.Compilation :=
         Landin.Stages.Create (Landin.Targets.Linux_X86_64);
-      HT : constant Character := Character'Val (9);
       Speed : constant Opt.Options := (Opt.Speed, Opt.Off);
    begin
       Lower
@@ -2002,10 +2005,9 @@ package body Landin.Tests.X86_Optimization_Suite is
            (Item,
             Labelled ("speed", Text)
             & Labelled ("size", Emitted (Work, (Opt.Size, Opt.Off))),
-            Contains (Text, ".p2align 4,,10" & LF & HT
-                            & ".p2align 3" & LF & ".L1_")
+            Contains (Text, ".p2align 5" & LF & ".L1_")
             and then not Contains
-              (Emitted (Work, (Opt.Size, Opt.Off)), ".p2align 4"),
+              (Emitted (Work, (Opt.Size, Opt.Off)), ".p2align"),
             "speed aligns a loop's head");
          declare
             Info : aliased Landin.Debugging.Information
@@ -2070,6 +2072,45 @@ package body Landin.Tests.X86_Optimization_Suite is
             "a conversion's and a call's float hold XMM registers");
       end;
    end Float_Sources;
+
+   --  D2092: size and speed read a float constant from the read-only
+   --  pool, as the memory operand of the arithmetic and comparisons that
+   --  take one, with one entry for each pattern in the object; none still
+   --  builds it in a general register.
+   procedure Float_Constant_Pool (Item : in out Landin.Testing.Context) is
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      Two : constant String := "4611686018427387904";
+      Four : constant String := "4616189618054758400";
+   begin
+      Lower
+        (Item, Work,
+         "public twice: (x: f64) -> (r: f64) = r = x * 2.0 end twice" & LF
+         & "public under: (x: f64) -> (b: bool) =" & LF
+         & "b = x + 2.0 <= 4.0 end under");
+      declare
+         None : constant String := Emitted (Work, (Opt.None, Opt.Off));
+         Speed : constant String := Emitted (Work, (Opt.Speed, Opt.Off));
+         Size : constant String := Emitted (Work, (Opt.Size, Opt.Off));
+         function Pooled (Text : String) return Boolean is
+           (Contains (Text, "mulsd .")
+            and then Contains (Text, "landin_f64_" & Two & "(%rip)")
+            and then Contains (Text, "landin_f64_" & Four & "(%rip)")
+            and then Ada.Strings.Fixed.Count (Text, ".quad " & Two) = 1
+            and then Ada.Strings.Fixed.Count (Text, ".quad " & Four) = 1
+            and then not Contains (Text, "movabsq $" & Two)
+            and then not Contains (Text, "movabsq $" & Four));
+      begin
+         Check_Assembly
+           (Item,
+            Labelled ("none", None) & Labelled ("speed", Speed)
+            & Labelled ("size", Size),
+            Pooled (Speed) and then Pooled (Size)
+            and then Contains (None, "movabsq $" & Two)
+            and then not Contains (None, "landin_f64_"),
+            "a float constant is read from the read-only pool");
+      end;
+   end Float_Constant_Pool;
 
    --  The code a load of an atom checks cannot be wrong when the store
    --  reaching it in its block wrote an atom of its set.
@@ -2238,16 +2279,19 @@ package body Landin.Tests.X86_Optimization_Suite is
 
    --  Speed starts every routine on a cache line and pads a loop's head to
    --  thirty-two bytes where only a jump reaches it, so that padding never
-   --  runs; a head control falls into keeps GCC's bounded padding.  Size
-   --  and none place nothing.
+   --  runs: a loop tested at its foot (D2096) is entered by a jump to its
+   --  test.  A head control falls into, a `loop do` that tests where it
+   --  branches back, keeps GCC's bounded padding.  Size and none place
+   --  nothing.
    procedure Speed_Places_Code (Item : in out Landin.Testing.Context) is
       HT : constant Character := Character'Val (9);
       Source : constant String :=
         "public fill: (inout t: [64]u8) -> none = "
         & "for at in usize(0)..<64 do t[at] = u8(at) end for end fill "
         & "public total: (t: []u8) -> (n: usize) = n = 0 "
-        & "mut at: usize = 0 while at < lenof t do "
-        & "n = n + usize(t[at]) inc at end while end total";
+        & "mut at: usize = 0 loop do "
+        & "n = n + usize(t[at]) inc at if at >= lenof t then break end if "
+        & "end loop end total";
       Speed : constant String := Converted (Item, Source, Opt.Speed);
       Fill : constant String := Routine (Speed, "fill");
       Total : constant String := Routine (Speed, "total");
@@ -2420,6 +2464,9 @@ package body Landin.Tests.X86_Optimization_Suite is
         (Into, "x86 opt", "caller-saved slots", Caller_Saved_Slots'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "float sources", Float_Sources'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "float constants come from a pool",
+         Float_Constant_Pool'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "known atoms", Known_Atoms'Access);
       Landin.Testing.Register

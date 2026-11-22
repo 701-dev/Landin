@@ -3858,7 +3858,8 @@ package body Landin.Tests.Driver_Suite is
            (Item,
             Contains
               (Host.Written (Landin.Driver.Default_Assembly),
-               "movl 16(%rbp), %eax"),
+               --  Into whichever register holds it (D2088).
+               "movl 16(%rbp), %"),
             "and assembly for the stack parameter is written");
       end;
    end A_Seventh_Parameter_Is_Emitted;

@@ -1,4 +1,5 @@
 with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
@@ -758,6 +759,38 @@ package body Landin.Backend.X86_64 is
       end Unused_Local_Prefix;
 
       Local_Prefix : constant String := Unused_Local_Prefix;
+
+      --  D2092: the read-only pool.  Size and speed read a float constant
+      --  from it by its bit pattern, one entry per pattern and width in
+      --  the whole object, each in a mergeable section of its own so the
+      --  link keeps only the entries a retained routine reaches and
+      --  merges equal ones.  Ordered sets keep the emitted order
+      --  independent of the order routines are selected in.
+      package Pattern_Sets is new Ada.Containers.Ordered_Sets
+        (Element_Type => Landin.Types.Magnitude,
+         "<" => Landin.Types."<", "=" => Landin.Types."=");
+      Pool_32, Pool_64 : Pattern_Sets.Set;
+
+      function Pool_Label
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String
+      is (Local_Prefix & "landin_" & (if Single then "f32_" else "f64_")
+          & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+
+      --  The pool entry holding Pattern, as a RIP-relative memory operand.
+      function Pool_Operand
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String;
+
+      function Pool_Operand
+        (Single : Boolean; Pattern : Landin.Types.Magnitude) return String
+      is
+      begin
+         if Single then
+            Pool_32.Include (Pattern);
+         else
+            Pool_64.Include (Pattern);
+         end if;
+         return Pool_Label (Single, Pattern) & "(%rip)";
+      end Pool_Operand;
 
       --  D361's report lines, each a read-only datum, and the one routine
       --  that writes a line to standard error and ends the process.
@@ -1696,7 +1729,16 @@ package body Landin.Backend.X86_64 is
             Place : Allocation.Location renames
               Allocation_Plan.Value (Positive (Value));
          begin
-            if Width > Place.Size or else Place.Kind = Allocation.Absent then
+            if Optimized and then Place.Kind = Allocation.Absent
+              and then Allocation.Pooled (Of_Unit, Item, Value)
+            then
+               --  D2092: a float constant every use of which takes a
+               --  memory operand is read from the pool.
+               return Pool_Operand
+                 (Size_Of_Value (Value) = Landin.Targets.Byte_4,
+                  Landin.IR.Number_Of (Of_Unit, Item, Value));
+            elsif Width > Place.Size or else Place.Kind = Allocation.Absent
+            then
                raise Landin.Compiler_Defect with
                  "invalid value location width";
             elsif Place.Kind = Allocation.GP then
@@ -2364,14 +2406,18 @@ package body Landin.Backend.X86_64 is
             end if;
          end Carry;
 
-         --  %r11 at one width: the scratch a store stages a value from
+         --  %rdx at one width: the scratch a store stages a value from
          --  memory through when the accumulator is part of its address.
+         --  No address an element or indirect store writes through names
+         --  it: its base is %rbp, %rcx or an allocated register, and its
+         --  index the accumulator or an allocated register.  D2088: it
+         --  was %r11, which the allocator now offers.
          function Staging (Size : Held_Size) return String
            is (case Size is
-                  when Landin.Targets.Byte_1 => "%r11b",
-                  when Landin.Targets.Byte_2 => "%r11w",
-                  when Landin.Targets.Byte_4 => "%r11d",
-                  when Landin.Targets.Byte_8 => "%r11");
+                  when Landin.Targets.Byte_1 => "%dl",
+                  when Landin.Targets.Byte_2 => "%dx",
+                  when Landin.Targets.Byte_4 => "%edx",
+                  when Landin.Targets.Byte_8 => "%rdx");
 
          --  A store to a memory operand that may name the accumulator,
          --  which size and speed address elements with.
@@ -2803,8 +2849,11 @@ package body Landin.Backend.X86_64 is
          end Emit_C_Result;
 
          --  Linux stack growth touches at most 4096 bytes apart.  R11 is
-         --  scratch at each reservation boundary; argument banks, R10 failure
-         --  state and allocated callee-saves remain live and untouched.
+         --  scratch at each reservation boundary: the frame's, before the
+         --  entry moves any parameter, a C entry's and a call's, which
+         --  the allocator treats as writing it (D2088).  Argument banks,
+         --  R10 failure state and allocated callee-saves remain live and
+         --  untouched.
          procedure Check_Limit (Bytes : Landin.Targets.Byte_Count) is
          begin
             if Bytes = 0 then
@@ -3017,32 +3066,6 @@ package body Landin.Backend.X86_64 is
             end loop;
          end Emit_Traps;
 
-         function Threaded
-           (Block : Landin.IR.Block_Id) return Landin.IR.Block_Id;
-
-         --  Speed sends a jump straight past blocks that only jump on.  It
-         --  never shortens code, so size keeps each jump where it was.  A
-         --  chain is followed at most once round, so a cycle still ends.
-         function Threaded
-           (Block : Landin.IR.Block_Id) return Landin.IR.Block_Id
-         is
-            Target : Landin.IR.Block_Id := Block;
-         begin
-            if Options.Optimize = Landin.Optimization.Speed then
-               for Hop in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
-                  exit when Landin.IR.Length (Of_Unit, Item, Target) /= 1
-                    or else Landin.IR.Op_Of
-                      (Of_Unit, Item,
-                       Landin.IR.Nth_Value (Of_Unit, Item, Target, 1))
-                      /= Landin.IR.Jump;
-                  Target := Landin.IR.Target_Of
-                    (Of_Unit, Item,
-                     Landin.IR.Nth_Value (Of_Unit, Item, Target, 1));
-               end loop;
-            end if;
-            return Target;
-         end Threaded;
-
          procedure Conditional_Branch
            (Condition : String; Yes, No : Landin.IR.Block_Id);
 
@@ -3053,11 +3076,11 @@ package body Landin.Backend.X86_64 is
             Inverse : constant String := Inverse_Condition (Condition);
          begin
             if Optimized and then Yes = Following then
-               Emit ("j" & Inverse & " " & Label (Item, Threaded (No)));
+               Emit ("j" & Inverse & " " & Label (Item, No));
             else
-               Emit ("j" & Condition & " " & Label (Item, Threaded (Yes)));
+               Emit ("j" & Condition & " " & Label (Item, Yes));
                if not Optimized or else No /= Following then
-                  Emit ("jmp " & Label (Item, Threaded (No)));
+                  Emit ("jmp " & Label (Item, No));
                end if;
             end if;
          end Conditional_Branch;
@@ -3068,7 +3091,10 @@ package body Landin.Backend.X86_64 is
          --  A block some block at or after it branches back to begins a
          --  loop when control enters it from outside that loop: some
          --  predecessor is less deeply nested.  A later block that only
-         --  rejoins earlier code is no loop.  Speed aligns a loop's head
+         --  rejoins earlier code is no loop.  A loop tested at its foot
+         --  (D2096) begins where its test branches back to while the
+         --  test's other edge leaves the loop, to a block less deeply
+         --  nested than the test.  Speed aligns a loop's head
          --  to thirty-two bytes when nothing falls through into it, since
          --  then no padding is executed: a word counter's loop starting
          --  sixteen bytes into a line ran a fifth slower than at thirty-two.
@@ -3084,7 +3110,7 @@ package body Landin.Backend.X86_64 is
 
             procedure Mark (Source, Target : Landin.IR.Block_Id);
             procedure Mark (Source, Target : Landin.IR.Block_Id) is
-               Head : constant Landin.IR.Block_Id := Threaded (Target);
+               Head : constant Landin.IR.Block_Id := Target;
                Edge : Natural :=
                  Landin.IR.Control_Flow.First_Predecessor (Graph, Head);
             begin
@@ -3107,6 +3133,17 @@ package body Landin.Backend.X86_64 is
                     (Graph, Edge);
                end loop;
             end Mark;
+
+            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id);
+            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id) is
+            begin
+               if Back <= Test
+                 and then Depth (Positive (Back)) = Depth (Positive (Test))
+                 and then Depth (Positive (Leaving)) < Depth (Positive (Test))
+               then
+                  Loop_Heads (Positive (Back)) := 1;
+               end if;
+            end Foot;
          begin
             for Index in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
                declare
@@ -3125,6 +3162,12 @@ package body Landin.Backend.X86_64 is
                           (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
                         Mark (Block,
                               Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                        Foot (Block,
+                              Landin.IR.Target_Of (Of_Unit, Item, Last),
+                              Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                        Foot (Block,
+                              Landin.IR.Alternative_Of (Of_Unit, Item, Last),
+                              Landin.IR.Target_Of (Of_Unit, Item, Last));
                      when others => null;
                   end case;
                end;
@@ -3719,6 +3762,21 @@ package body Landin.Backend.X86_64 is
                end if;
             end Float_Binary;
 
+            --  D2088: the allocator offers %r10 and %r11 only where no
+            --  packed access, as Allocation.Packed_Part sees one, lies in
+            --  a location's interval; one it missed would write over it.
+            procedure Check_Packed;
+
+            procedure Check_Packed is
+            begin
+               if Optimized
+                 and then not Allocation.Packed_Part (Of_Unit, Item, Value)
+               then
+                  raise Landin.Compiler_Defect with
+                    "a packed access the allocator did not see";
+               end if;
+            end Check_Packed;
+
             procedure Packed_Atom
               (Set_Id : Landin.IR.Atom_Set_Id; Encode : Boolean);
 
@@ -3908,6 +3966,14 @@ package body Landin.Backend.X86_64 is
                      then
                         Emit ("xorps " & Value_Operand (Value) & ", "
                               & Value_Operand (Value));
+                     elsif Optimized and then Place.Kind = Allocation.SSE
+                     then
+                        --  D2092: any other float is loaded from the pool.
+                        Emit (Float_Move
+                                (Held = Landin.Targets.Byte_4,
+                                 Pool_Operand
+                                   (Held = Landin.Targets.Byte_4, Pattern),
+                                 Value_Operand (Value)));
                      else
                         Emit ("movabsq $"
                               & Trimmed
@@ -5590,6 +5656,7 @@ package body Landin.Backend.X86_64 is
                            Mask : constant Landin.Packed.Image :=
                              Landin.Packed.Mask (Shape.Packing.Bits);
                         begin
+                           Check_Packed;
                            Storage_Address
                              (Place, Field, "%r10", Nested => Nested);
                            Emit ("movq " & Value_Operand (Index)
@@ -5741,6 +5808,7 @@ package body Landin.Backend.X86_64 is
                            Shift : constant String := Trimmed
                              (Natural'Image (Shape.Packing.First));
                         begin
+                           Check_Packed;
                            Storage_Address
                              (Place, Natural (Which), "%rcx",
                               Nested => Nested);
@@ -6492,13 +6560,13 @@ package body Landin.Backend.X86_64 is
                         Following : constant Landin.IR.Block_Id :=
                           Current_Block + 1;
                      begin
-                        Emit ("jne " & Label (Item, Threaded (Other)));
+                        Emit ("jne " & Label (Item, Other));
                         if Equal = Following then
-                           Emit ("jp " & Label (Item, Threaded (Other)));
+                           Emit ("jp " & Label (Item, Other));
                         else
-                           Emit ("jnp " & Label (Item, Threaded (Equal)));
+                           Emit ("jnp " & Label (Item, Equal));
                            if Other /= Following then
-                              Emit ("jmp " & Label (Item, Threaded (Other)));
+                              Emit ("jmp " & Label (Item, Other));
                            end if;
                         end if;
                      end Ordered_Equal_Branch;
@@ -7003,8 +7071,8 @@ package body Landin.Backend.X86_64 is
                   if not Optimized or else Landin.IR.Target_Of
                     (Of_Unit, Item, Value) /= Current_Block + 1
                   then
-                     Emit ("jmp " & Label (Item, Threaded
-                           (Landin.IR.Target_Of (Of_Unit, Item, Value))));
+                     Emit ("jmp " & Label
+                       (Item, Landin.IR.Target_Of (Of_Unit, Item, Value)));
                   end if;
 
                when Landin.IR.Branch =>
@@ -9368,6 +9436,26 @@ package body Landin.Backend.X86_64 is
             Put (Character'Val (9) & ELF.Size_To_Here (Stack_Start));
          end;
       end if;
+
+      --  D2092's pool, after every routine that reads it.
+      for Pattern of Pool_32 loop
+         Put (Character'Val (9) & ".section .rodata.cst4.landin_"
+              & (if True then "f32_" else "f64_")
+              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
+              & ",""aM"",@progbits,4");
+         Emit (".p2align 2");
+         Put (Pool_Label (True, Pattern) & ":");
+         Emit (".long " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+      end loop;
+      for Pattern of Pool_64 loop
+         Put (Character'Val (9) & ".section .rodata.cst8.landin_"
+              & (if False then "f32_" else "f64_")
+              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
+              & ",""aM"",@progbits,8");
+         Emit (".p2align 3");
+         Put (Pool_Label (False, Pattern) & ":");
+         Emit (".quad " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
+      end loop;
 
       --  D161: read-only images sit in `.rodata`, so a write through a
       --  reference the checker should have refused faults instead of

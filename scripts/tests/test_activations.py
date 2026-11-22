@@ -306,7 +306,11 @@ class TheRegister(unittest.TestCase):
     def test_the_roadmap_register_is_read(self):
         rows = activations.register(ROOT)
         statuses = {status.split(" ", 1)[0] for _, _, status in rows}
-        self.assertGreater(len(rows), 50)
+        #  Every row's file, however few the register holds: a fixed
+        #  floor failed once a close deleted the rows it fixed.
+        files = list((ROOT / "roadmap/register").glob("*.md"))
+        self.assertTrue(files)
+        self.assertEqual(len(rows), len(files))
         self.assertLessEqual(statuses, {"open", "scheduled", "watch", "limit"})
         self.assertTrue(any(identity.startswith("SR-") for identity, _, _ in rows))
         self.assertTrue(any(identity.startswith("R551-") for identity, _, _ in rows))

@@ -71,7 +71,11 @@ the fixed image a boot check restores.
 ## Prepare the Pi once
 
 The rig is reached with
-`ssh -i ~/.ssh/epycmicro-2026-09-17 jan@10.42.0.60`. It provides Python,
+`ssh -i ~/.ssh/epycmicro-2026-09-17 -o IdentitiesOnly=yes jan@10.42.0.60`.
+`IdentitiesOnly=yes` makes ssh offer that key alone: with several keys in
+an agent it offers those first, and the Pi ends the login with "too many
+authentication failures" before it reaches the named one. `run.py` and
+`timing.py` pass it with their `--identity`. It provides Python,
 uhubctl and probe-rs. Debug reaches probehive directly by UDP, for example
 `--probe 0000:0002:10.42.0.50/0`; the UART service remains a separate
 runtime dependency of the RP and ESP32-C3 tools.
@@ -91,9 +95,9 @@ epycmicro, import its closure on the Pi, and root it there in a profile:
 nix build .#board-ram-run-rigpi --out-link /tmp/landin-ram-run
 helper=$(readlink -f /tmp/landin-ram-run)
 nix-store --export $(nix-store -qR "$helper") > /tmp/landin-ram-run.closure
-ssh -i ~/.ssh/epycmicro-2026-09-17 jan@10.42.0.60 \
+ssh -i ~/.ssh/epycmicro-2026-09-17 -o IdentitiesOnly=yes jan@10.42.0.60 \
     'sudo nix-store --import' < /tmp/landin-ram-run.closure
-ssh -i ~/.ssh/epycmicro-2026-09-17 jan@10.42.0.60 \
+ssh -i ~/.ssh/epycmicro-2026-09-17 -o IdentitiesOnly=yes jan@10.42.0.60 \
     "sudo nix-env -p /nix/var/nix/profiles/landin-ram-run --set $helper &&
      install -d -m 2770 /var/lib/landin-rig/bin &&
      ln -sfn /nix/var/nix/profiles/landin-ram-run/bin/landin-ram-run \
@@ -404,6 +408,52 @@ maintainer's NixOS configuration for rigpi also sets `early_stop` on that
 hub port, a backstop the tools do not rely on. Malformed-block controls
 stay refused in this arrangement too.
 
+### One Pico 2 port alone
+
+Either Pico 2 port can be recorded and timed without running the other;
+the gate's four steps are needed only to leave both checked. A RAM run
+never changes the architecture, so it needs the board already running the
+port's own: Hazard3 on its resting image, where the gate leaves it, or Arm
+after a `rp2350` boot check. A boot check changes to its port's
+architecture itself. For the Hazard3 port, with the arguments rig.json
+gives the gate:
+
+```sh
+python3 environments/boards/run.py --board=rp2350_hazard3 --mode=ram \
+    --refine REFINE --output NEW_DIRECTORY --record NEW_RAM_RECORD -- \
+    --probehive /var/lib/landin-rig/probehive \
+    --ram-loader /var/lib/landin-rig/bin/landin-ram-run \
+    --hub .3.3 --port 2 --power-only
+python3 environments/boards/run.py --board=rp2350_hazard3 --mode=boot \
+    --refine REFINE --output NEW_DIRECTORY --record NEW_RECORD -- \
+    --probehive /var/lib/landin-rig/probehive \
+    --ram-loader /var/lib/landin-rig/bin/landin-ram-run \
+    --hub .3.3 --port 2 --power-only
+```
+
+`--record` never replaces a file, so name new paths and move them over the
+port's `ram-record.json` and `record.json` once they are checked. If the
+board may be on Arm or on an unknown image, run the boot check first: it
+ends on the port's fixed image, from which the RAM run starts. The Hazard3
+boot check leaves the board on its resting image, the Arm one does not;
+end an Arm session with a `rp2350_hazard3` boot check.
+
+[Timing](#timing-runs) one port is a `--board` of `timing.py`, which takes
+the Pico 2's hub and port from rig.json itself. Each timing run is a warm
+load, so the board must run the port's architecture here as well:
+
+```sh
+python3 environments/boards/timing.py build --refine REFINE --output BUNDLE \
+    --board rp2350_hazard3
+python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY \
+    --board rp2350_hazard3 --repeat 3
+python3 environments/boards/timing.py figures --results NEW_DIRECTORY --output figures.json
+python3 environments/boards/timing.py compare figures.json
+python3 environments/boards/timing.py record figures.json --board rp2350_hazard3
+```
+
+The same holds for `rp2350` once the board runs Arm.
+
 ### A Pico 2 with a data cable
 
 A Pico 2 whose cable carries USB data, run without `--power-only`, keeps
@@ -505,7 +555,13 @@ RAM run each, through the SRAM helper's timing plan:
 python3 environments/boards/timing.py build --refine REFINE --output BUNDLE
 python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY \
     --board esp32 --repeat 3 --ram-loader PI_HELPER
+python3 environments/boards/timing.py figures --results NEW_DIRECTORY --output figures.json
 ```
+
+`figures --results` reads the result directories a local `remote` or
+`run` wrote, and `figures --evidence` the gate's artifacts
+([below](#the-board-gate-on-the-rig)); `compare` and `record` take the
+file either writes.
 
 `build`, on epycmicro and without the rig, compiles each workload of
 `compiler/tests/measure/workloads.json`'s firmware set at all nine

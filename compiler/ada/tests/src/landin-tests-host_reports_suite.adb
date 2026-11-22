@@ -233,7 +233,7 @@ package body Landin.Tests.Host_Reports_Suite is
             & """target"":""linux-x86-64"",""level"":""x86-64-v1"","
             & """optimize"":""none"","
             & """specialize"":""off"",""specializations"": ["
-            & "],""routines"": [],""layouts"": [" & LF
+            & "],""copies"": [],""routines"": [],""layouts"": [" & LF
             & "{""nominal"":1,""policy"":""natural"",""size"":0,"
             & """alignment"":1,""offsets"": []},"
             & LF & "{""nominal"":3,""policy"":""c"",""size"":32,"

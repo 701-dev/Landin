@@ -14,6 +14,13 @@
 #  Claude Code takes it through a SessionStart hook; see "Local agent
 #  feedback" in docs/process.md.
 #
+#  The file holds only names the shell's script sets, and never one that
+#  looks secret: the hook puts it into every command's argument, where
+#  `ps` shows it to every user of the host.  Its child shells read no
+#  startup file, which bash otherwise reads under `env -i` when standard
+#  input is a socket, as it is in a hook Claude Code runs, taking
+#  ~/.bashrc's exports, a daemon's password among them, into the file.
+#
 #  Where there is no nix, it prints /dev/null and succeeds, so
 #  `. "$(./scripts/agent_env.sh)"` holds in every shell and a hook calling
 #  it is harmless on every host.  So it does where python3 and gprbuild are
@@ -60,11 +67,24 @@ fi
 cache=${XDG_CACHE_HOME:-$HOME/.cache}/landin/agent-env
 file=$cache/$key.sh
 
+#  Names that look like a secret's, in either case, are never written,
+#  and a file that holds one is written again.
+secret='PASSWORD|TOKEN|SECRET|CREDENTIAL'
+#  The first line of a file this version writes; one without it was
+#  written by a version that could take the caller's startup files in.
+format='# scripts/agent_env.sh: the flake shell'"'"'s exports, format 2'
+
 #  A cached file stays good while the store paths it names exist; the
 #  profile beside it is the garbage collector's root for them.
 if [ -s "$file" ]; then
     first=$(sed -n "s/^export PATH='\([^:']*\).*/\1/p" "$file")
-    if [ -n "$first" ] && [ -d "$first" ]; then
+    header=
+    IFS= read -r header < "$file" || :
+    if grep -q -i -E "^export [A-Za-z0-9_]*($secret)" "$file"; then
+        printf 'agent_env: %s holds a name that looks secret; writing it' \
+            "$file" >&2
+        printf ' again without one\n' >&2
+    elif [ "$header" = "$format" ] && [ -n "$first" ] && [ -d "$first" ]; then
         printf '%s\n' "$file"
         exit 0
     fi
@@ -75,27 +95,38 @@ script=$(mktemp "$cache/print-dev-env.XXXXXX")
 trap 'rm -f "$script" "$script".*' EXIT
 nix --extra-experimental-features 'nix-command flakes' print-dev-env \
     --option warn-dirty false --profile "$cache/$key.profile" "$root" \
-    > "$script"
+    < /dev/null > "$script"
 
 #  Source the shell's script in a child, discarding the hook's output, and
-#  compare what it exports with what the child started with.  Both start
-#  from a bare environment, so the file holds every export of this
-#  checkout's shell whatever the caller has: an export another checkout's
-#  shell already set to the same value would otherwise be left out, and
-#  the file, kept for every later caller, would lack it.
-env -i HOME="$HOME" PATH="$PATH" env -0 > "$script.before"
+#  compare what it exports with what the same child, sourcing nothing,
+#  starts with.  Both start from a bare environment, so the file holds
+#  every export of this checkout's shell whatever the caller has: an
+#  export another checkout's shell already set to the same value would
+#  otherwise be left out, and the file, kept for every later caller, would
+#  lack it.  Neither reads a startup file: bash reads /etc/bashrc and
+#  ~/.bashrc, whatever `env -i` cleared, when it is no subshell and its
+#  standard input is a socket, as if sshd had started it.
+children() {
+    env -i HOME="$HOME" PATH="$PATH" \
+        bash --noprofile --norc -c "$1" agent_env "$script" < /dev/null
+}
+children 'env -0' > "$script.before"
 #  shellcheck disable=SC2016 # $1 is the child's, expanded there
-env -i HOME="$HOME" PATH="$PATH" \
-    bash -c '. "$1" > /dev/null 2>&1; env -0' agent_env "$script" \
-    > "$script.out"
+children '. "$1" > /dev/null 2>&1; env -0' > "$script.out"
 changed_exports() {
     #  Lines are NAME=VALUE separated by NUL; a value may hold newlines.
     local name value before_path
-    declare -A before=()
+    declare -A before=() named=()
     while IFS= read -r -d '' entry; do
         before[${entry%%=*}]=${entry#*=}
     done < "$script.before"
     before_path=${before[PATH]:-}
+    #  Every word of the shell's script: a name it never mentions came
+    #  from somewhere else, a file its hook sourced, and is not the flake's.
+    while IFS= read -r word; do
+        named[$word]=1
+    done < <(grep -o -E '[A-Za-z_][A-Za-z0-9_]*' "$script" | sort -u)
+    printf '%s\n' "$format"
     while IFS= read -r -d '' entry; do
         name=${entry%%=*}
         value=${entry#*=}
@@ -105,6 +136,18 @@ changed_exports() {
                 BASH_FUNC_*) continue ;;
             *[!A-Za-z0-9_]* | '') continue ;;
         esac
+        if [[ ${name^^} =~ $secret ]]; then
+            #  The name alone, never its value.
+            printf 'agent_env: %s looks secret and is left out of %s\n' \
+                "$name" "$file" >&2
+            continue
+        fi
+        if [ "${named[$name]+set}" != set ]; then
+            printf "agent_env: %s is left out of %s: the shell's script" \
+                "$name" "$file" >&2
+            printf ' does not name it\n' >&2
+            continue
+        fi
         if [ "$name" = PATH ]; then
             #  Store paths hold no quote, so the prefix is quoted plainly.
             printf "export PATH='%s':\"\$PATH\"\n" "${value%":$before_path"}"

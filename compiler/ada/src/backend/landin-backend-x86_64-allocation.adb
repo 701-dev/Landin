@@ -10,8 +10,10 @@ with Landin.Types;
 
 package body Landin.Backend.X86_64.Allocation is
 
+   use type Landin.IR.Atom_Set_Id;
    use type Landin.IR.Block_Id;
    use type Landin.IR.Declaration_Id;
+   use type Landin.IR.Field_Shape_Kind;
    use type Landin.IR.Opcode;
    use type Landin.IR.Signature_Id;
    use type Landin.IR.Slot_Id;
@@ -21,8 +23,8 @@ package body Landin.Backend.X86_64.Allocation is
    use type Landin.Types.Magnitude;
    use type Landin.Types.Type_Kind;
 
-   Value_Order : constant array (1 .. 9) of General_Register :=
-     [RSI, RDI, R8, R9, RBX, R12, R13, R14, R15];
+   Value_Order : constant array (1 .. 11) of General_Register :=
+     [RSI, RDI, R8, R9, R10, R11, RBX, R12, R13, R14, R15];
 
    --  The slots placed in one register for their whole interval, by the
    --  position each interval opens at.
@@ -100,6 +102,18 @@ package body Landin.Backend.X86_64.Allocation is
                        when Landin.Targets.Byte_2 => "%r9w",
                        when Landin.Targets.Byte_4 => "%r9d",
                        when Landin.Targets.Byte_8 => "%r9");
+         when R10 =>
+            return (case Size is
+                       when Landin.Targets.Byte_1 => "%r10b",
+                       when Landin.Targets.Byte_2 => "%r10w",
+                       when Landin.Targets.Byte_4 => "%r10d",
+                       when Landin.Targets.Byte_8 => "%r10");
+         when R11 =>
+            return (case Size is
+                       when Landin.Targets.Byte_1 => "%r11b",
+                       when Landin.Targets.Byte_2 => "%r11w",
+                       when Landin.Targets.Byte_4 => "%r11d",
+                       when Landin.Targets.Byte_8 => "%r11");
       end case;
    end Name;
 
@@ -187,11 +201,91 @@ package body Landin.Backend.X86_64.Allocation is
           = Landin.Memory.Stack_Switch;
    end Is_Switch;
 
+   function Packed_Part
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Value : Landin.IR.Value_Id) return Boolean
+   is
+      Op : constant Landin.IR.Opcode := Landin.IR.Op_Of (Of_Unit, Item, Value);
+   begin
+      if Op not in Landin.IR.Load_Field | Landin.IR.Store_Field
+        | Landin.IR.Load_Element | Landin.IR.Store_Element
+      then
+         return False;
+      end if;
+      declare
+         --  The storage and the shapes selection reaches, as it forms
+         --  them for the access.
+         Place : constant Landin.IR.Storage :=
+           (if Landin.IR.Reaches_A_Slot (Of_Unit, Item, Value)
+            then (if Landin.IR.Is_Address
+                    (Of_Unit, Item, Landin.IR.Slot_Of (Of_Unit, Item, Value))
+                  then (Kind => Landin.IR.Runtime_Address,
+                        Address => Landin.IR.Slot_Of (Of_Unit, Item, Value))
+                  else (Kind => Landin.IR.Frame_Slot,
+                        Slot => Landin.IR.Slot_Of (Of_Unit, Item, Value)))
+            else (Kind => Landin.IR.Module_Datum,
+                  Datum => Landin.IR.Datum_Of (Of_Unit, Item, Value)));
+
+         function Part_Shape
+           (Which : Landin.IR.Part_Position) return Landin.IR.Field_Shape
+         is (case Place.Kind is
+                when Landin.IR.Module_Datum =>
+                  (if Landin.IR.Result_Of (Of_Unit, Place.Datum)
+                        = Landin.Types.Fixed_Array
+                   then Landin.IR.Array_Element_Shape (Of_Unit, Place.Datum)
+                   else Landin.IR.Nth_Field_Shape
+                     (Of_Unit, Place.Datum, Positive (Which))),
+                when Landin.IR.Frame_Slot =>
+                  (if Landin.IR.Is_Array (Of_Unit, Item, Place.Slot)
+                   then Landin.IR.Slot_Array_Element_Shape
+                     (Of_Unit, Item, Place.Slot)
+                   else Landin.IR.Nth_Slot_Field_Shape
+                     (Of_Unit, Item, Place.Slot, Positive (Which))),
+                when Landin.IR.Runtime_Address =>
+                  (if Landin.IR.Address_Shape
+                        (Of_Unit, Item, Place.Address).Kind
+                        = Landin.IR.Array_Field_Shape
+                   then Landin.IR.Array_Element_Shape
+                     (Of_Unit,
+                      Landin.IR.Address_Shape (Of_Unit, Item, Place.Address))
+                   else Landin.IR.Nth_Aggregate_Field
+                     (Of_Unit,
+                      Landin.IR.Address_Shape (Of_Unit, Item, Place.Address),
+                      Positive (Which))));
+
+         function Root_Shape (Field : Natural) return Landin.IR.Field_Shape
+         is (if Field > 0
+             then Part_Shape (Landin.IR.Part_Position (Field))
+             else (case Place.Kind is
+                      when Landin.IR.Module_Datum =>
+                        Landin.IR.Whole_Array_Shape (Of_Unit, Place.Datum),
+                      when Landin.IR.Frame_Slot =>
+                        Landin.IR.Whole_Slot_Array_Shape
+                          (Of_Unit, Item, Place.Slot),
+                      when Landin.IR.Runtime_Address =>
+                        Landin.IR.Address_Shape
+                          (Of_Unit, Item, Place.Address)));
+      begin
+         return Landin.IR.Shape_At
+           (Of_Unit,
+            (if Op in Landin.IR.Load_Element | Landin.IR.Store_Element
+             then Root_Shape
+               (Landin.IR.Element_Field_Of (Of_Unit, Item, Value))
+             else Part_Shape (Landin.IR.Field_Of (Of_Unit, Item, Value))),
+            Landin.IR.Path_Of (Of_Unit, Item, Value)).Packing.Bits /= 0;
+      end;
+   end Packed_Part;
+
    function Touches
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;
       Value : Landin.IR.Value_Id;
-      Register : Caller_Saved) return Boolean is
+      Register : Caller_Saved) return Boolean
+   is
+      use type Landin.Memory.Operation;
+      --  D2088: what %r10 and %r11 are selection's scratch for besides.
+      Scratch : constant Boolean := Register in R10 | R11;
    begin
       case Landin.IR.Op_Of (Of_Unit, Item, Value) is
          when Landin.IR.Call | Landin.IR.Indirect_Call
@@ -202,18 +296,33 @@ package body Landin.Backend.X86_64.Allocation is
          when Landin.IR.Memory_Access =>
             --  D450: a switch calls out of line and resumes another
             --  stack, which leaves every caller-saved register changed.
-            return Is_Switch (Of_Unit, Item, Value);
+            --  Preparing a stack forms its limit in %r11.
+            return Is_Switch (Of_Unit, Item, Value)
+              or else
+                (Scratch
+                 and then Landin.IR.Memory_Operation (Of_Unit, Item, Value)
+                   = Landin.Memory.Stack_Prepare);
+         when Landin.IR.Fail =>
+            --  The failure's code leaves in %r10.
+            return Register = R10;
          when Landin.IR.Leave =>
             --  A scalar result moves to the accumulator and a `-> none`
             --  routine moves nothing; the teardown names none of them.
+            --  A routine that may fail clears %r10 for its success.
             return Landin.IR.Result_Of (Of_Unit, Item)
                      not in Landin.Types.Scalar_Name
                        | Landin.Types.No_Value
               or else
                 (Landin.IR.Signature_Of (Of_Unit, Item)
                    /= Landin.IR.No_Signature
-                 and then Landin.IR.Signature_Uses_C_ABI
-                   (Of_Unit, Landin.IR.Signature_Of (Of_Unit, Item)));
+                 and then
+                   (Landin.IR.Signature_Uses_C_ABI
+                      (Of_Unit, Landin.IR.Signature_Of (Of_Unit, Item))
+                    or else
+                      (Register = R10
+                       and then Landin.IR.Signature_Errors
+                         (Of_Unit, Landin.IR.Signature_Of (Of_Unit, Item))
+                         /= Landin.IR.No_Atom_Set)));
          when Landin.IR.Conversion =>
             --  Decoding a float into an integer.
             return Register in R8 | R9
@@ -225,18 +334,25 @@ package body Landin.Backend.X86_64.Allocation is
                 in Landin.Types.Float_Name;
          when Landin.IR.Load_Field | Landin.IR.Load_Element =>
             --  An atom is carried as a u32, which a packed part
-            --  translates through a table.
-            return Register in R8 | R9
-              and then Landin.IR.Result_Of (Of_Unit, Item, Value)
-                in Landin.Types.U32 | Landin.Types.Atom_Value;
+            --  translates through a table searched with %r8 and %r9; a
+            --  packed part is reached through %r10 and masked through
+            --  %r11.  The first keeps to every u32: narrowed to the
+            --  packed part, it gave SHA-256's eight words registers its
+            --  round's temporaries then lacked, 8% more instructions
+            --  (D2088).
+            return (Register in R8 | R9
+                    and then Landin.IR.Result_Of (Of_Unit, Item, Value)
+                      in Landin.Types.U32 | Landin.Types.Atom_Value)
+              or else (Scratch and then Packed_Part (Of_Unit, Item, Value));
          when Landin.IR.Store_Field | Landin.IR.Store_Element =>
-            return Register in R8 | R9
-              and then Landin.IR.Result_Of
-                (Of_Unit, Item, Landin.IR.Nth_Operand
-                   (Of_Unit, Item, Value,
-                    (if Landin.IR.Op_Of (Of_Unit, Item, Value)
-                          = Landin.IR.Store_Field then 1 else 2)))
-                in Landin.Types.U32 | Landin.Types.Atom_Value;
+            return (Register in R8 | R9
+                    and then Landin.IR.Result_Of
+                      (Of_Unit, Item, Landin.IR.Nth_Operand
+                         (Of_Unit, Item, Value,
+                          (if Landin.IR.Op_Of (Of_Unit, Item, Value)
+                                = Landin.IR.Store_Field then 1 else 2)))
+                      in Landin.Types.U32 | Landin.Types.Atom_Value)
+              or else (Scratch and then Packed_Part (Of_Unit, Item, Value));
          when others =>
             return False;
       end case;
@@ -395,6 +511,50 @@ package body Landin.Backend.X86_64.Allocation is
       end case;
    end Takes_Immediate;
 
+   function Pooled
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Value : Landin.IR.Value_Id) return Boolean
+     is (Landin.IR.Op_Of (Of_Unit, Item, Value) = Landin.IR.Number
+         and then Landin.IR.Result_Of (Of_Unit, Item, Value)
+           in Landin.Types.Float_Name);
+
+   --  D2092: whether selection reads operand Position of User through
+   --  any memory operand: either operand of a float add, subtract,
+   --  multiply or divide, which Float_Binary and the division move into
+   --  their register or read as the SSE source, and of a float
+   --  comparison, which loads its left side into %xmm0 when it is not in
+   --  a register and compares the right one where it lies.
+   function Takes_Memory
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      User : Landin.IR.Value_Id;
+      Position : Positive) return Boolean;
+
+   function Takes_Memory
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      User : Landin.IR.Value_Id;
+      Position : Positive) return Boolean is
+   begin
+      case Landin.IR.Op_Of (Of_Unit, Item, User) is
+         when Landin.IR.Add | Landin.IR.Subtract | Landin.IR.Multiply
+            | Landin.IR.Divide =>
+            return Position in 1 | 2
+              and then Landin.IR.Result_Of (Of_Unit, Item, User)
+                in Landin.Types.Float_Name;
+         when Landin.IR.Equal_To | Landin.IR.Not_Equal_To
+            | Landin.IR.Less_Than | Landin.IR.Less_Or_Equal
+            | Landin.IR.Greater_Than | Landin.IR.Greater_Or_Equal =>
+            return Position in 1 | 2
+              and then Landin.IR.Result_Of
+                (Of_Unit, Item, Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                in Landin.Types.Float_Name;
+         when others =>
+            return False;
+      end case;
+   end Takes_Memory;
+
    function Flags_Choice
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;
@@ -425,6 +585,8 @@ package body Landin.Backend.X86_64.Allocation is
    --  One pass over every operand: a constant that some use needs in a
    --  location keeps the one it has, and every other constant with an
    --  immediate is left absent, so it takes no register and no home.
+   --  D2092: so is a float constant every use of which takes a memory
+   --  operand; selection reads it from the read-only pool.
    procedure Omit_Immediates
      (Of_Unit : Landin.IR.Unit;
       Item : Landin.IR.Item_Id;
@@ -440,6 +602,8 @@ package body Landin.Backend.X86_64.Allocation is
       Count : constant Natural := Landin.IR.Value_Count (Of_Unit, Item);
       Kept_Data : Mask_Buffers.Buffer (Count);
       Kept : Home_Mask renames Kept_Data.Data.all;
+      Loaded_Data : Mask_Buffers.Buffer (Count);
+      Loaded : Home_Mask renames Loaded_Data.Data.all;
    begin
       for Index in 1 .. Count loop
          declare
@@ -454,6 +618,10 @@ package body Landin.Backend.X86_64.Allocation is
                   Kept (Positive (Landin.IR.Nth_Operand
                     (Of_Unit, Item, User, Position))) := True;
                end if;
+               if not Takes_Memory (Of_Unit, Item, User, Position) then
+                  Loaded (Positive (Landin.IR.Nth_Operand
+                    (Of_Unit, Item, User, Position))) := True;
+               end if;
             end loop;
          end;
       end loop;
@@ -461,6 +629,10 @@ package body Landin.Backend.X86_64.Allocation is
          if not Kept (Index)
            and then Immediate
              (Of_Unit, Item, Landin.IR.Value_Id (Index), Facts) /= ""
+         then
+            Values (Index).Kind := Absent;
+         elsif not Loaded (Index)
+           and then Pooled (Of_Unit, Item, Landin.IR.Value_Id (Index))
          then
             Values (Index).Kind := Absent;
          end if;
@@ -612,10 +784,14 @@ package body Landin.Backend.X86_64.Allocation is
          Interval_Data : Count_Buffers.Buffer (Slot_Count);
          Interval_Slots : Counts renames Interval_Data.Data.all;
          --  How many operations before each position plus one use the
-         --  argument registers, and how many use those or %r8 and %r9.
-         Argument_Data, Wide_Data : Count_Buffers.Buffer (Value_Count + 1);
+         --  argument registers, how many use those or %r8 and %r9, and
+         --  how many write %r10 and %r11 (D2088).
+         Argument_Data, Wide_Data, R10_Data, R11_Data :
+           Count_Buffers.Buffer (Value_Count + 1);
          Argument_Uses : Counts renames Argument_Data.Data.all;
          Wide_Uses : Counts renames Wide_Data.Data.all;
+         R10_Uses : Counts renames R10_Data.Data.all;
+         R11_Uses : Counts renames R11_Data.Data.all;
          --  For each load, the position of the next store to its slot in
          --  the same block, and of the next load of it there, if any.
          Written_Data, Loaded_Data : Count_Buffers.Buffer (Value_Count);
@@ -702,9 +878,12 @@ package body Landin.Backend.X86_64.Allocation is
          --  Position through Last, which Touches answers for each
          --  operation; position zero is the entry, which copies aggregate
          --  arguments through the first two and clears an in-place
-         --  parameter's home through the first.  A routine with assembly
-         --  gives a location none of them at all, so its blocks' operands
-         --  move straight into their registers.
+         --  parameter's home through the first.  D2088: the entry probes
+         --  the stack through %r11 before it moves any parameter, which
+         --  leaves it to %r10 and %r11 alone, but a C entry transports
+         --  its arguments through both.  A routine with assembly gives a
+         --  location none of them at all, so its blocks' operands move
+         --  straight into their registers.
          function Untouched
            (Register : Caller_Saved; Position, Last : Natural)
             return Boolean is
@@ -714,11 +893,23 @@ package body Landin.Backend.X86_64.Allocation is
             then False
             elsif Position = 0 and then Entry_Clears and then Register = RDI
             then False
-            elsif Register in RSI | RDI
-            then Argument_Uses (Last + 1)
-              = Argument_Uses (Natural'Max (Position, 1))
-            else Wide_Uses (Last + 1)
-              = Wide_Uses (Natural'Max (Position, 1)));
+            elsif Position = 0 and then C_Entry
+              and then Register in R10 | R11
+            then False
+            else
+              (case Register is
+                  when RSI | RDI =>
+                     Argument_Uses (Last + 1)
+                       = Argument_Uses (Natural'Max (Position, 1)),
+                  when R8 | R9 =>
+                     Wide_Uses (Last + 1)
+                       = Wide_Uses (Natural'Max (Position, 1)),
+                  when R10 =>
+                     R10_Uses (Last + 1)
+                       = R10_Uses (Natural'Max (Position, 1)),
+                  when R11 =>
+                     R11_Uses (Last + 1)
+                       = R11_Uses (Natural'Max (Position, 1))));
 
          --  Whether a location from Position through Last may take
          --  Register: nothing holds it now, and the next slot interval
@@ -1011,7 +1202,7 @@ package body Landin.Backend.X86_64.Allocation is
 
          --  Each eligible slot read or written twice, and each parameter
          --  read once, may hold a register over its whole interval, and
-         --  eight GP and six XMM registers are offered: the heaviest slot
+         --  ten GP and six XMM registers are offered: the heaviest slot
          --  first, ties to the earlier, and each to the first register
          --  whose intervals so far it does not meet.  A caller-saved
          --  register comes first, which costs no save, and only where
@@ -1022,8 +1213,8 @@ package body Landin.Backend.X86_64.Allocation is
          --  register is the scan's.  An XMM interval holds across no call.
          procedure Place_Intervals is
             Count : Natural := 0;
-            Interval_Order : constant array (1 .. 8) of General_Register :=
-              [RSI, RDI, R8, R9, RBX, R12, R13, R14];
+            Interval_Order : constant array (1 .. 10) of General_Register :=
+              [RSI, RDI, R8, R9, R10, R11, RBX, R12, R13, R14];
 
             function Before (Left, Right : Positive) return Boolean is
               (Weights (Interval_Slots (Left))
@@ -1292,6 +1483,10 @@ package body Landin.Backend.X86_64.Allocation is
                        + Boolean'Pos (Touches (Of_Unit, Item, Value, RSI));
                      Wide_Uses (Tick + 1) := Wide_Uses (Tick)
                        + Boolean'Pos (Touches (Of_Unit, Item, Value, R8));
+                     R10_Uses (Tick + 1) := R10_Uses (Tick)
+                       + Boolean'Pos (Touches (Of_Unit, Item, Value, R10));
+                     R11_Uses (Tick + 1) := R11_Uses (Tick)
+                       + Boolean'Pos (Touches (Of_Unit, Item, Value, R11));
                      if Kind in Landin.Types.Scalar_Name then
                         Result.Value (Index).Kind := Stack;
                         Result.Value (Index).Size := Size_Of (Kind, Facts);

@@ -325,5 +325,29 @@ class Evidence(unittest.TestCase):
                                      'board-evidence-pico2-2/pico2/evidence/rp2350_hazard3-time/result.json'])
 
 
+class Remote(unittest.TestCase):
+    def test_the_rig_host_is_reached_with_the_named_key_alone(self):
+        """`remote` logs in as run.py does, IdentitiesOnly included: with
+        several keys in an agent, BatchMode otherwise ended in "too many
+        authentication failures"."""
+        import subprocess
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from expected_runs import expect
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'bundle').mkdir()
+            args = SimpleNamespace(bundle=root / 'bundle', output=root / 'out', host='rigpi',
+                                   identity=Path('/the key'))
+            refused = expect({'ssh': SimpleNamespace(returncode=255, stdout='', stderr='refused')})
+            with mock.patch.object(timing, 'read_bundle'), \
+                    mock.patch.object(timing.bundle, 'snapshot'), \
+                    mock.patch.object(timing.subprocess, 'run', side_effect=refused):
+                with self.assertRaisesRegex(common.Failed, 'remote staging failed: refused'):
+                    timing.remote(args, [])
+        self.assertEqual(refused.calls, [['ssh', '-i', '/the key', '-o', 'IdentitiesOnly=yes',
+                                          '-o', 'BatchMode=yes', 'rigpi',
+                                          'umask 077; mktemp -d /tmp/landin-timing.XXXXXXXX']])
+
+
 if __name__ == '__main__':
     unittest.main()

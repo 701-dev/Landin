@@ -141,6 +141,7 @@ different responsibilities.
 | `Landin.IR.Control_Flow` | linear-space adjacency and entry reachability of structurally checked IR | assume reachability or store represented object bytes |
 | `Landin.IR.If_Conversion` | under size and speed, D338's proof that neither arm of a two-armed `if` can trap, call or touch anything but a private slot, or that its one trapping operation is a checked update `x = x + k` the other arm leaves alone, and the rewrite of its branch to choices and stores | speculate a trap, a call, a memory access or a store outside a private slot, or convert at `--optimize none` |
 | `Landin.IR.In_Place` | under size and speed, the proof that a callee cannot tell its `in` aggregate from its caller's storage (D94, D95), with a whole-unit summary of which routines may write outside their frame; the rewrite to an address parameter whose home a zero carrier clears; and dropping a caller's slice or `any` temporary that nothing can change before its call | revise the convention, read a parameter in place across a possible write outside the frame, or touch a C or machine-convention entry |
+| `Landin.IR.Layout` | under size and speed for a hosted target, D2096's block order: jumps sent past blocks that only jump on, and each loop whose head tests for its exit tested at its foot, after the step its body falls into | change what a block does, merge or split a block, or reorder a firmware target's blocks |
 | `Landin.IR.Inlining` | D339's copies, at speed only: which direct calls are copied into their callers, the copy of each body with its arguments stored into copied parameters, its returns and failures rejoining the caller, values that cross it carried in slots, and each copied block, slot and alias recording the call it came from | copy a routine whose address is taken, copy a copy's own calls, change a trap's site or order, grow a routine past its bound, or run for a firmware target |
 | `Landin.IR.Dominance` | a routine's dominator tree from its control-flow graph, in O(E log V) work and linear space, with constant-time dominance questions | assume reachability, or say what holds in a block |
 | `Landin.IR.Liveness` | each slot's live interval over the laid-out order of a routine's values, in work bounded linearly in the routine, and each block's loop depth | choose a location, a register or which slots one may hold |
@@ -349,7 +350,8 @@ D209--D211 add independent `--optimize=none|size|speed` (default size) and
 `--specialize=off|auto|all` (default auto) controls. The driver runs verified
 specialization, then, at speed, verified inlining (D339), then scalar
 replacement and simplification verified together, then verified
-if-conversion, then verified in-place parameter reads, then option-aware frame
+if-conversion, then verified in-place parameter reads, then, for a hosted
+target, verified block layout (D2096), then option-aware frame
 preflight and selected-target emission. Legacy
 backend `Text` callers explicitly retain none/off;
 the command-line default never inherits that reference convenience.
@@ -359,7 +361,8 @@ calls are copied into their callers, `Landin.IR.Scalar_Replacement` owns
 which slots become one scalar slot per part, `Landin.IR.Simplification` owns
 conservative neutral rewrites, `Landin.IR.If_Conversion` owns which branches
 become choices, `Landin.IR.In_Place` owns which `in` aggregates
-a callee reads where its caller keeps them, and each native backend owns
+a callee reads where its caller keeps them, `Landin.IR.Layout` owns the
+order a hosted target's blocks are laid out in, and each native backend owns
 allocation and selection.
 Call verification checks the addressed storage shape of every aggregate or
 array argument and hidden result, for direct calls, ordinary function values
@@ -1259,7 +1262,20 @@ through a table, each with its `routine`, `source`, `line`, `column`, the
 `provider` a concrete table holds and `why`, a sentence. The nested build
 carries `target`, the selected CPU feature `level`, and the `optimize` and
 `specialize` controls, plus
-`specializations`, `routines`, `layouts`. Every backend fills every field
+`specializations`, `copies`, `routines`, `layouts`. `copies` has a row
+for every direct call D339's inliner considered, which it does only at
+`--optimize speed` on a hosted target: the `caller` and `callee` items,
+the call's `source`, `first` and `last` byte offsets, its `loop_depth`,
+the callee's `weight` as far as the inliner counted it (it stops past the
+bound), `action`, `copied` or `kept`, and the `reason`: `copied`, or the
+first rule that kept it, `no-body` (an import or external),
+`address-exposed`, `callee-shape` (convention, transport, result,
+parameters, placement or a call that never returns), `assembly`,
+`weight` (past the bound of 64), `recursive`, `arguments` (an argument
+the copy cannot take exactly), `failure-shape` (a routine that can fail,
+called other than at lowering's failure test), `crossing` (a value that
+cannot wait in a slot across the copy) or `budget` (the caller's growth
+bound was spent on calls planned first). Every backend fills every field
 of a `routines` row for every routine it emits, with one meaning on every
 target. `frame_bytes` is what the prologue reserves below the frame record
 and the registers it pushes: slot cells, spill and save homes and incoming

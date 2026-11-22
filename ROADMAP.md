@@ -81,7 +81,11 @@ its phase's basis, may run beside anything, and is never the next item;
 any number of them may be active. A phase that declares a
 breaking window (R19, then R20) keeps its serial items on one integration
 branch and promotes them once, at its gate; a continuous item lands on
-main meanwhile and the branch takes it.
+main meanwhile and the branch takes it. The phase declares it in one line
+of its opening paragraphs, `Window: r20-integration`, naming the branch;
+`scripts/item.py` starts the phase's items from it and lands them on it in
+place of main, after their push gate and without boards, which the
+window's one promotion dispatches on the integrated tree.
 
 ```text
 Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
@@ -123,7 +127,9 @@ add/add conflict on the file, which is the detection, and the integrator
 renumbers the later one. The script is `scripts/register_next.py`;
 `--file` writes the row with its keys to fill in. A retired or completed
 row has no file: it is deleted in the commit that says why, and the
-history keeps it. There is no departures list, and the second roadmap's
+history keeps it; `register_next.py --delete` removes the file, puts the
+row's citations here in code spans and regenerates the page. There is no
+departures list, and the second roadmap's
 retired rows were not migrated.
 
 A moved row's `opened` is the date it first appeared, which the migration
@@ -132,7 +138,9 @@ script takes from the history.
 An item's agent may delete a row its change fixed, or one that duplicates
 another, naming the evidence in the commit. Retiring a row as not worth
 doing, and anything a row asks the maintainer to choose, is a question and
-waits for the maintainer.
+waits for the maintainer. An item that meets a row without triggering its
+activation leaves the row as it is: its activation names what triggers
+it, not the items that did not.
 
 The register holds at most 60 open rows; a scheduled row does not count,
 and a row may be scheduled only on an item whose text names it. A row that has stood through ten
@@ -143,13 +151,19 @@ an item cannot close until it has brought the count under it.
 
 For a moved row the ten completed items count from the exchange, since the
 sweep before it has just reviewed every live row; for a new row, from its
-filing.
+filing. Only an item completed after the filing or the `Kept:` line on
+its own line of history, or after the merge that joined the two, counts,
+so a window's branch taking main, or main taking the window, ages no row
+by the merge alone; a `Kept:` line written in resolving a merge restarts
+the count as one in an ordinary commit does.
 
 **Questions.** A decision only the maintainer can take is a question, one
 file under `roadmap/questions/`, Q-1 onward, never a register row and never
 a question asked only in a report or a chat. The file begins with the
 question as its heading, `# Q-7 — ...?`, and the line `Asked by R17.50 on
-2026-11-17.`, then what the maintainer needs to decide it, and four
+2026-11-17.`, or for work that is no item what the work is, `Asked by the
+register sweep of 2026-11-21 on 2026-11-21.`, then what the maintainer
+needs to decide it, and four
 paragraphs each opening with its label in bold: `Options:`, a list
 numbered from 1 with at least two; `Recommendation:`; `Default until
 answered:`, which says what the default is in words and not by its option
@@ -533,11 +547,11 @@ a float element, field, pointee or datum straight into one (D1625): at
 size-auto mandelbrot executes 0.435 of its instructions and fasta and
 binary-trees 0.92, and fasta 0.968 at speed-auto. Compiling the hosted set
 at speed takes no longer. What stays is filed with its measurement:
-SR-1422 the nine registers x86-64 offers, `SR-1423` the assembly block's
-rule, SR-1424 float constants made in each block, SR-1425 a loop's two
-jumps, SR-1426 the order D339 copies in, and R551-12 keeps the bounds
+`SR-1422` the nine registers x86-64 offers, `SR-1423` the assembly block's
+rule, `SR-1424` float constants made in each block, `SR-1425` a loop's two
+jumps, `SR-1426` the order D339 copies in, and R551-12 keeps the bounds
 check a loop's end does not name and the calls of `core/atomic`'s cells;
-SR-1427, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
+`SR-1427`, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
 STM32H753's binary-search, 9.7% slower at size where the RP2040 and
 RP2350 run every configuration faster. Findings fixed on
 the way: the public exposure above, and a dead shift kept as if it could
@@ -590,7 +604,7 @@ held in, which `Holds` cannot see, since a write after an operation's
 own result at its position looks like the result's; the measurement's
 oracles caught it, and selection's temporaries are now never offered.
 Filed: `SR-1468`, an `if`'s comparison computed into a register before its
-branch; SR-1465-SR-1467 record the friction met.
+branch; `SR-1465`-`SR-1467` record the friction met.
 
 ### R16.26 — The library's costs
 
@@ -700,18 +714,41 @@ timing included.
 
 ### R16.28 — x86-64's code from R16.24's list
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
-What R16.24 measured on x86-64 and left: SR-1422's nine allocatable
-registers, SR-1424's float constants made again in every block, SR-1425's
+What R16.24 measured on x86-64 and left: `SR-1422`'s nine allocatable
+registers, `SR-1424`'s float constants made again in every block, `SR-1425`'s
 two jumps a loop iteration and the unreachable `jmp` after a branch,
-SR-1426's D339 copying no routine that received a copy, and SR-1427's
+`SR-1426`'s D339 copying no routine that received a copy, and `SR-1427`'s
 build report that does not say which calls `--optimize speed` copied and
 why the rest stayed calls.
 Exit evidence: each cost taken measured lower than its R16.10 and R16.24
 figures, no other combination over its own, and the build report naming
 the copies.
+
+Done: x86-64 offers `%r10` and `%r11` where selection does not write them
+(D2088, `SR-1422`) and reads float constants from a read-only pool (D2092,
+`SR-1424`); every hosted target lays a loop out tested at its foot and
+emits no block that only jumps on (D2096, `SR-1425`); D339 weighs a routine
+without loop as it will run, its scalar slots' loads and stores free, and
+a routine with a loop as before (D2100, `SR-1426`), so the heap's
+`align_up` carries its mask and is copied; and the build report's `copies`
+names every call the inliner considered and the rule that copied or kept
+it (D2101, `SR-1427`), which found that the weight, not a received copy,
+kept `align_up` a call. Against the base, x86-64 at speed executes 10.2%
+fewer instructions on fannkuch-redux, 12.1% on mandelbrot, 12.2% on fasta,
+7.5% on reverse-complement, 3.9% on binary-trees, 6.5% on the fibre
+switches, 4.5% on a SHA-256 of 64 MiB (8.50 G against gcc's 4.56 G) and
+11.4% on SipHash-1-3, and at size 1.0% to 14.6% fewer. Every image's
+`.text` is smaller at size; at speed, where more is copied,
+fannkuch-redux's, reverse-complement's and binary-trees' grow 0.1% to 0.3%. On arm64 the loop
+layout runs SipHash, SHA-256 and fannkuch-redux 3% to 5% fewer. Copying
+every small routine with a loop cost fannkuch-redux 3% to 7% more cycles
+for fewer instructions, which is why loops keep D339's weight. What stays
+is filed: `SR-1650` the slot placement that leaves SHA-256's words in the
+frame, `SR-1654` the gain the loop rule gives up, `SR-1655` loop-invariant
+values, and `SR-1651` to `SR-1653` what the work met.
 
 ### R16.29 — The small targets' remaining code
 
@@ -1685,6 +1722,8 @@ questions with a default each. Its result is one list of breaking renames
 and restructurings, applied at once. The items after R20.10 are written as
 the inventory's defaults would shape them, and R20.10 may regroup them.
 
+Window: r20-integration
+
 R20 has a breaking window of its own after R19's: each integration
 branch lives one phase, and a release can fall between the two, while
 R19.40's `refine fix` is reused for R20's renames. `iterable`, `zeroable`
@@ -1897,21 +1936,37 @@ Exit evidence: a negative fixture for each refusal pinning its new note,
 
 ### R20.62 — Tools that know a window
 
-Status: planned
+Status: complete
 Depends on: R20.10
 
 The process tools a window's items worked around, mended before R20's
-promotion meets them: SR-1445's `item.py`, which starts, pushes, promotes
-and finishes against main only; SR-1548's row ages counted across a
-window's merge and a `Kept:` line in a merge's resolution; SR-1455's
-mirror failure judged as the push's; SR-1415's and SR-1446's row
-deletion, questions and decision numbers outside an item; SR-1466's
-`run_logged.py --stop` leaving a child holding the build lock; SR-1467's
-boards README and ssh options; and SR-1639's `agent_env.sh` cache holding
+promotion meets them: `SR-1445`'s `item.py`, which starts, pushes, promotes
+and finishes against main only; `SR-1548`'s row ages counted across a
+window's merge and a `Kept:` line in a merge's resolution; `SR-1455`'s
+mirror failure judged as the push's; `SR-1415`'s and `SR-1446`'s row
+deletion, questions and decision numbers outside an item; `SR-1466`'s
+`run_logged.py --stop` leaving a child holding the build lock; `SR-1467`'s
+boards README and ssh options; and `SR-1639`'s `agent_env.sh` cache holding
 the caller's environment.
 Exit evidence: each script's tests pinning the change, `docs/process.md`
 and the landin-change skill saying the window's steps, and R20's
 promotion refused for no row its merge alone aged.
+Done: R20 declares `Window: r20-integration`, and `item.py` starts,
+merges, lands and finishes the phase's items on it, without boards and
+with a token of its own, and finishes an item landed by hand. `push` and
+`promote` judge a push by GitHub and report the mirror's refusal with the
+command to retry; `queue --take` holds a token for work that is no item;
+`status` refreshes unfinished runs. A row's age counts only items
+completed after it on its line or after the joining merge, and a `Kept:`
+line written in a merge counts, so R20's promotion ages no row by the
+merge alone. `register_next.py` deletes rows with their citations quoted
+and the page regenerated, and gives out decision numbers; a question names
+the work that asked it. `run_logged.py` ends a run's process group and a
+lock wait names a holder by its descriptor. The boards README times one
+Pico 2 port alone and every ssh line says `IdentitiesOnly=yes`.
+`agent_env.sh` read `~/.bashrc` when its standard input was a socket; it
+now reads no startup file and writes no secret-looking name. The eight
+rows are deleted.
 
 ### R20 gate
 R20's breaking window: the list reached main in one promotion, so main
