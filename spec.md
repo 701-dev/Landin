@@ -27432,6 +27432,54 @@ which is the allocator's coalescing and a larger change.
 **Pinned by** the Cortex-M corpus at every level and
 `compiler/tests/measure/baselines/`.
 
+### D2108 — A refused allocation is allocated again, and the report names it
+
+**The tour said** nothing. D1503 and D1567 emit a routine with homes,
+allocate over the registers that text writes, emit it again and check
+that no write the second emission made meets a register the plan holds;
+where one does, the first emission is kept with every value in its home,
+and nothing said so. Over the runtime corpus at armv7-m speed-auto
+twelve routines fell back this way, every one because the second
+emission wrote r6 where the first had not.
+
+**Chosen:** Cortex-M's recording keeps every emission's writes, so a
+refused plan is followed by another allocation over all of them, up to
+three rounds, before the routine keeps its homes. A routine that keeps
+them on Cortex-M or RISC-V carries `kept_homes` in its build report row,
+naming the register and the position, the IR value whose emission wrote
+it. The twelve routines are allocated, with 15% to 35% fewer static
+instructions each.
+
+**The alternatives:** recording the refusal alone, which leaves the
+twelve in their homes; and a debug option instead of a report field,
+which a measurement script cannot read from a gate's artifacts.
+
+**Pinned by** the host reports suite's `whole discriminated plans` and
+the Cortex-M corpus.
+
+### D2109 — A loop's end that is a length less one bounds its index
+
+**The tour said** nothing. The simplifier proves an index below a
+slice's length when a loop's comparison names that length, but `for at
+in first..<lenof s - 1` names the slot its end was stored in, so
+`s[at]` kept its check each iteration: fasta's `select_symbol` spends
+the run in one such loop.
+
+**Chosen:** a slot stored once, by a store that strictly dominates the
+check, with a checked `x - k` for a constant `k` above zero, holds a
+value below `x`; an index below the slot's content is then below `x`
+when `x` is a constant or a fixed term the check names. A fact on the
+slot that held across its store would have been dropped, since the
+store lies below the comparison, so the content the fact names is the
+stored one. An unchecked subtraction proves nothing, nor does a slot
+stored twice.
+
+**The alternatives:** rewriting the loop's end in lowering, which would
+leave the same shape written by hand unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`, with four
+controls, at size and speed.
+
 ### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
 
 **The tour said** nothing. D1767 left an eight-byte constant, and every

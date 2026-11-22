@@ -111,7 +111,7 @@ package body Landin.Tests.Cortex_Suite is
    procedure Scalar_Spill_Homes (Item : in out Landin.Testing.Context);
    procedure Partial_Range_Checks (Item : in out Landin.Testing.Context);
 
-   --  SR-1578: a Range_Check whose bound lies at its scalar's own edge
+   --  A Range_Check whose bound lies at its scalar's own edge
    --  tests only the other bound.  No source has reached the partial
    --  bounds since range subtypes went (D1661), so the check is built
    --  from IR directly: the conversions and pointer addresses that still

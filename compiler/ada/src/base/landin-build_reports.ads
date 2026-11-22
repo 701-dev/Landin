@@ -75,7 +75,7 @@ package Landin.Build_Reports is
       --  as Cortex-M0's __aeabi_* division, whose stack is not known here.
       Helper_Calls      : Natural := 0;
       Naked             : Boolean := False;
-      --  SR-1507: a recorded-writes allocation (D1503, D1567) planned
+      --  D2108: a recorded-writes allocation (D1503, D1567) planned
       --  registers, but its second emission wrote one of them at a
       --  position the plan holds it at, so the routine kept its first
       --  emission, every value in its home.  Refused_Register is the

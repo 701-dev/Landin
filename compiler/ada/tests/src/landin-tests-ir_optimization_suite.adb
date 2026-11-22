@@ -2388,7 +2388,7 @@ package body Landin.Tests.IR_Optimization_Suite is
         ("public f: (inout v: [8]u8, i: usize) -> (r: u8) = "
          & "unchecked begin v[i] = 1 end unchecked r = v[i] end f",
          IR.Storage_Address, 1, "an unchecked index proves nothing");
-      --  R551-12: a loop's end that is the length less one, a checked
+      --  D2109: a loop's end that is the length less one, a checked
       --  subtraction stored once before the loop, bounds the index too.
       for Objective of Objectives'[Opt.Size, Opt.Speed] loop
          Check_Proved

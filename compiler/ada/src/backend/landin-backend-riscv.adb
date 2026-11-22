@@ -1255,7 +1255,7 @@ package body Landin.Backend.RiscV is
                                     Place.Live_Through));
    end Holds;
 
-   --  SR-1507: the register and the position of the first write that
+   --  D2108: the register and the position of the first write that
    --  makes Holds refuse Plan, for the build report, which names it.
    procedure Find_Refusal
      (Plan : Allocation_Plan; Writes : Write_Masks;

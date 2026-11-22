@@ -240,7 +240,7 @@ package body Landin.Tests.Host_Reports_Suite is
             & """alignment"":8,""offsets"": [0,8,16,24]}]}" & LF,
             "representation cleanup preserves the original JSON bytes");
       end;
-      --  SR-1507: a routine that kept its first emission says which
+      --  D2108: a routine that kept its first emission says which
       --  write refused its allocation; any other row has no such field.
       Reports.Clear (Report);
       Reports.Append

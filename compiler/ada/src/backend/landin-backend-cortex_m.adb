@@ -1011,7 +1011,7 @@ package body Landin.Backend.Cortex_M is
                            Place.Live_Through));
    end Holds;
 
-   --  SR-1507: the register and the position of the first write that
+   --  D2108: the register and the position of the first write that
    --  makes Holds refuse Plan, for the build report, which names it.
    procedure Find_Refusal
      (Plan : Register_Plan; Writes : Write_Masks;
@@ -10165,7 +10165,7 @@ package body Landin.Backend.Cortex_M is
                     (Item, Allocated_Frame
                        (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
                   if Recording /= null then
-                     --  SR-1507: a second emission may write a register
+                     --  D2108: a second emission may write a register
                      --  the first left alone, where the plan holds a
                      --  value.  The recording keeps every emission's
                      --  writes, so the next round allocates around them;

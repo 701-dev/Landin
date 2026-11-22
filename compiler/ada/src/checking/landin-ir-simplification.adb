@@ -1365,7 +1365,7 @@ package body Landin.IR.Simplification is
             Store_Block_Owner : constant Counts.Owner :=
               Counts.Create (Slot_Total);
             Store_Block : Counts.Elements renames Store_Block_Owner.Data.all;
-            --  R551-12: the x of a checked x - k, k a constant above zero,
+            --  D2109: the x of a checked x - k, k a constant above zero,
             --  that is the one value stored into an eligible slot.
             Single_Under_Owner : constant Values.Owner :=
               Values.Create (Slot_Total);
@@ -1628,7 +1628,7 @@ package body Landin.IR.Simplification is
                then
                   return True;
                end if;
-               --  R551-12: Left is at most a slot's content, and the slot's
+               --  D2109: Left is at most a slot's content, and the slot's
                --  one store, which strictly dominates Block, wrote a checked
                --  x - k that did not trap, with x Right's fixed term: `for
                --  at in a..<lenof s - 1` indexing s[at].  A fact on the
