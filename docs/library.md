@@ -420,8 +420,9 @@ The compiler does not prove the laws:
 
 The concept a `for` loop walks a value through.
 
-`for x in s` over a struct or an `any C` takes `s`'s conformance to
-`iter.iterable`, and no other concept of that name. A conformance names a
+`for x in s` over a struct or an `any C` uses `s`'s conformance to
+`iter.iterable`. A concept named `iterable` declared anywhere else is not
+used. A conformance names a
 cursor type and an item type and supplies `first`, `at_end`, `item` and
 `next`, each given a read-only pointer to the loop's own copy of the
 source; `item` hands out a value of its own, never a view of the source.
@@ -476,10 +477,11 @@ draws its seed from the system's entropy, and
 [a firmware map](../compiler/tests/fixtures/runtime/map-firmware-seed/main.ldn)
 is given two words.
 
-A walk starts at `map.entries()` and calls `map.next_entry` until the
-call fails with `map.end_of_entries`, or is a `for` loop over the map,
-[as this program does](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn).
-The executable example below walks with `next_entry`. The
+There are two ways to walk a map. One starts at `map.entries()` and
+calls `map.next_entry` until the call fails with `map.end_of_entries`;
+the executable example below walks this way. The other is a `for` loop
+over the map,
+[as this program does](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn). The
 [derived container program](../examples/derived_containers/workload/workload.ldn)
 also walks after removing keys.
 
@@ -1636,7 +1638,7 @@ An append-only store of named leaves and branches addressed by node identifiers.
 - Names borrow their UTF-8 backing; releasing the tree frees node
   storage, not names.
 - `for id in t` walks every node's identifier in the order the nodes were
-  added, each branch after its children.
+  added, so each branch comes after its children.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-tree/main.ldn)
 
@@ -1735,11 +1737,12 @@ use these atoms.
 An entry-module panic handler has the language-specified nonreturning
 signature. A panic is distinct from a recoverable allocator or I/O error.
 
-`panic.require(holds)` is C's `assert`: when `holds` is false it stops the
-program as a failed check does, reported where `require` was called. Its
-`caller` parameter, a `panic.call_site`, takes the call's place; a check
-of your own takes one too and passes it on, `panic.require(holds, where:
-where)`.
+`panic.require(holds)` is C's `assert`: when `holds` is false it stops
+the program as a failed check does, and the stop is reported at the line
+that called `require`. The compiler fills its `caller` parameter, a
+`panic.call_site`, with the place of the call. A check of your own takes
+a `caller` parameter of that type too and passes it on,
+`panic.require(holds, where: where)`.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-panic/main.ldn)
 
@@ -1941,9 +1944,9 @@ Fibres: tasks a function starts as a group and waits for before it goes on.
 
 A task is an ordinary function, `(inout state: T) -> none !
 failure.reason`. Its state is a value copied onto its own stack, so one
-group holds tasks of different state types. `admit` makes a
-`fibre.bridge` of the function and the state, a `fibre.task`, which is
-what a provider starts; `hosted/thread`'s groups run the same task.
+group holds tasks of different state types. `admit` wraps the function
+and the state in a `fibre.bridge`. That bridge is a `fibre.task`, which
+is what a provider starts; `hosted/thread`'s groups run the same task.
 
 The state is kept until the task ends, `escaping into` the group: what it
 refers to must outlive the group, as the function's own parameters and the

@@ -4114,9 +4114,11 @@ does not match.
 `item` returns a fresh value for the loop binding, never an alias into
 the source. A container that wants to hand out references into its
 storage returns a slice view instead and uses the built-in slice
-traversal, as `for value in vec.used(numbers)` does. A map and a tree
-conform: `for each in m` walks a map's entries in insertion order, each a
-copy of its key and item, and `for id in t` a tree's node identifiers.
+traversal, as `for value in vec.used(numbers)` does.
+
+The library's map and tree conform. `for each in m` walks a map's
+entries in insertion order, each entry a copy of its key and item.
+`for id in t` walks a tree's node identifiers.
 
 A source whose steps can fail is not `iterable`: it is walked with a
 `while` that takes each step with `try` ([1150]).
