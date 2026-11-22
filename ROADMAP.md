@@ -1750,7 +1750,7 @@ measurement recorded.
 
 ### R20.50 — One name per idea
 
-Status: planned
+Status: active
 Depends on: R20.10
 
 One name each for absence, running out of room, the end of an iteration,
