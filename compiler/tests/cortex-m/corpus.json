@@ -2066,9 +2066,7 @@
       "mode": "execute"
     },
     "runtime/core-text-format": {
-      "mode": "execute",
-      "profile_limit": "selected-image",
-      "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder needs about 42 KiB of flash at size/auto, of which the fixture's own routines are 11 KiB, for the frame-home reason runtime/core-text-builder gives. Each profile still attempts execution; runtime/core-text-format-firmware formats within the image with both refusals and requires execution; this image limit is not runtime evidence."
+      "mode": "execute"
     },
     "runtime/core-text-format-firmware": {
       "mode": "execute"
