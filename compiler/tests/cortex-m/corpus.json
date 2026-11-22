@@ -2070,11 +2070,11 @@
       "lanes": {
         "esp32c3": {
           "mode": "limit",
-          "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+          "reason": "D698: Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
         },
         "sifive-e": {
           "mode": "limit",
-          "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+          "reason": "D698: Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
         }
       }
     },
@@ -4008,7 +4008,7 @@
       "lanes": {
         "mps2-an505": {
           "mode": "limit",
-          "reason": "On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the map's failure path goes through allocate past the 4 KiB stack reservation, which the harness's watchpoint stops; none/off's static stack is 4,128 bytes. The reference's own limit is the row's profile_limit."
+          "reason": "D698: On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the map's failure path goes through allocate past the 4 KiB stack reservation, which the harness's watchpoint stops; none/off's static stack is 4,128 bytes. The reference's own limit is the row's profile_limit."
         }
       }
     },
@@ -4832,7 +4832,7 @@
       "lanes": {
         "mps2-an505": {
           "mode": "limit",
-          "reason": "On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the process consumer's buffered output goes past the 4 KiB stack reservation in out, which the harness's watchpoint stops; none/off still overflows the flash by about 17 KiB. The reference's own limit is the row's profile_limit."
+          "reason": "D698: On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the process consumer's buffered output goes past the 4 KiB stack reservation in out, which the harness's watchpoint stops; none/off still overflows the flash by about 17 KiB. The reference's own limit is the row's profile_limit."
         }
       }
     },
