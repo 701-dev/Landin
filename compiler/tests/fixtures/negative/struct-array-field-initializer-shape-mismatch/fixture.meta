@@ -1,5 +1,5 @@
 class: negative
-summary: D51 requires a typed local initializer to match its source field shape
+summary: D241 requires a typed local initializer to match its source field shape
 constructs: 0520, 0670, 0750, 1740, 1810, 1820
 program: program.ldn
 codes: L0301

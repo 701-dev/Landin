@@ -1,5 +1,5 @@
 class: negative
-summary: D48 requires an array-field index to be exactly usize
+summary: an array-field element's index is exactly usize, as every index is (D118)
 constructs: 0520, 0670, 0750, 1740, 1820, 1890
 program: program.ldn
 codes: L0301

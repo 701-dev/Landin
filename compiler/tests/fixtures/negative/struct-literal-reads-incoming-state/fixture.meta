@@ -1,5 +1,5 @@
 class: negative
-summary: D64 checks field expressions against state arriving before any literal write
+summary: [1910] checks field expressions against the state arriving before the literal is written
 constructs: 0080, 0410, 0670, 0710, 0750, 1810, 1910
 program: program.ldn
 codes: L0302

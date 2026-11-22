@@ -1,5 +1,5 @@
 class: negative
-summary: D55 leaves an unresolved local struct initializer source to name resolution
+summary: an unresolved local struct initializer source is left to name resolution
 constructs: 0670, 0710, 1810, 1860
 program: program.ldn
 codes: L0201

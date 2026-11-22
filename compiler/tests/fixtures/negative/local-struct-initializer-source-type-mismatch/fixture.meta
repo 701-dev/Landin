@@ -1,5 +1,5 @@
 class: negative
-summary: D55 requires a typed local struct initializer source to have its nominal struct type
+summary: D241 requires a typed local struct initializer source to have its nominal struct type
 constructs: 0190, 0670, 0710, 1810
 program: program.ldn
 codes: L0301

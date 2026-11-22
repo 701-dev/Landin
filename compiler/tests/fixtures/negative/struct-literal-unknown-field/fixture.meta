@@ -1,5 +1,5 @@
 class: negative
-summary: D64 resolves each struct literal label against its contextual nominal body
+summary: [0710] resolves each struct literal label against its contextual nominal body
 constructs: 0670, 0710, 0750, 1810
 program: program.ldn
 codes: L0308

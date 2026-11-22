@@ -1,5 +1,5 @@
 class: negative
-summary: D49 assigns only the array field it clears
+summary: [1910] assigns only the array field `zeroed` clears
 constructs: 0520, 0540, 0670, 0750, 1810, 1910
 program: program.ldn
 codes: L0302

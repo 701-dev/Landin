@@ -1,5 +1,5 @@
 class: negative
-summary: D50 assigns only the array field that receives a whole copy
+summary: [1910] assigns only the array field that receives a whole copy
 constructs: 0520, 0670, 0750, 1810, 1820, 1910
 program: program.ldn
 codes: L0302

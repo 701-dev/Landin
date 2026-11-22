@@ -1,5 +1,5 @@
 class: negative
-summary: D53 requires a written repetition count to equal the field length
+summary: D32 requires a written repetition count to equal the field length
 constructs: 0410, 0520, 0560, 0670, 0750, 1740, 1820, 1900
 program: program.ldn
 codes: L0301

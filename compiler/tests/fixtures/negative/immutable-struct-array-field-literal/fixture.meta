@@ -1,5 +1,5 @@
 class: negative
-summary: D52 gives root mutability sole ownership of a refused field literal
+summary: [1900] gives root mutability sole ownership of a refused field literal
 constructs: 0080, 0410, 0520, 0670, 0750, 1740, 1820, 1900
 program: program.ldn
 codes: L0303, L0303

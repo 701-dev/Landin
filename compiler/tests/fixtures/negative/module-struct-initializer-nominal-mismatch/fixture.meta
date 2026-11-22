@@ -1,5 +1,5 @@
 class: negative
-summary: D60 requires a module struct image source to have the written nominal struct type
+summary: D241 requires a module struct image source to have the written nominal struct type
 constructs: 0670, 0710, 1740
 program: program.ldn
 codes: L0301

@@ -1,5 +1,5 @@
 class: negative
-summary: D52 requires a field literal to have its destination length
+summary: D241 requires a field literal to have its destination length
 constructs: 0410, 0520, 0670, 0750, 1740, 1820, 1900
 program: program.ldn
 codes: L0301

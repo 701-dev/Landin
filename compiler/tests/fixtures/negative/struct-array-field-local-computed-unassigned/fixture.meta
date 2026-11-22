@@ -1,5 +1,5 @@
 class: negative
-summary: D48 requires every local array-field element before a computed read
+summary: [1910] requires every local array-field element before a computed read
 constructs: 0520, 0670, 0750, 1810, 1820, 1910
 program: program.ldn
 codes: L0302

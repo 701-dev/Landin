@@ -1,5 +1,5 @@
 class: negative
-summary: D54 gives destination-root mutability sole ownership of a refused whole copy
+summary: [1900] gives destination-root mutability sole ownership of a refused whole copy
 constructs: 0080, 0410, 0520, 0670, 0710, 0750, 1810, 1900, 1910
 program: program.ldn
 codes: L0303

@@ -1,5 +1,5 @@
 class: negative
-summary: D34 and D35 refuse an array index as a module repetition element before lowering
+summary: D34 refuses an array index as a module repetition element before lowering, typed or inferred (D33)
 constructs: 0050, 0520, 0560, 1740, 1940
 program: program.ldn
 codes: L0304, L0304
