@@ -280,8 +280,8 @@
   },
   "rv64gc/size-all/fasta": {
    "sections": {
-    ".text": 34980,
-    ".rodata": 11961,
+    ".text": 34924,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -364,8 +364,8 @@
   },
   "rv64gc/size-auto/fasta": {
    "sections": {
-    ".text": 34980,
-    ".rodata": 11961,
+    ".text": 34924,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -448,8 +448,8 @@
   },
   "rv64gc/size-off/fasta": {
    "sections": {
-    ".text": 35052,
-    ".rodata": 11961,
+    ".text": 34996,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 248,
@@ -532,8 +532,8 @@
   },
   "rv64gc/speed-all/fasta": {
    "sections": {
-    ".text": 31216,
-    ".rodata": 11867,
+    ".text": 31160,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -616,8 +616,8 @@
   },
   "rv64gc/speed-auto/fasta": {
    "sections": {
-    ".text": 31216,
-    ".rodata": 11867,
+    ".text": 31160,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -700,8 +700,8 @@
   },
   "rv64gc/speed-off/fasta": {
    "sections": {
-    ".text": 31268,
-    ".rodata": 11867,
+    ".text": 31212,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 248,
@@ -1036,8 +1036,8 @@
   },
   "rv64gc_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 34972,
-    ".rodata": 11961,
+    ".text": 34916,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -1120,8 +1120,8 @@
   },
   "rv64gc_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 34972,
-    ".rodata": 11961,
+    ".text": 34916,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -1204,8 +1204,8 @@
   },
   "rv64gc_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 35044,
-    ".rodata": 11961,
+    ".text": 34988,
+    ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 248,
@@ -1288,8 +1288,8 @@
   },
   "rv64gc_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 31208,
-    ".rodata": 11867,
+    ".text": 31152,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -1372,8 +1372,8 @@
   },
   "rv64gc_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 31208,
-    ".rodata": 11867,
+    ".text": 31152,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 288,
@@ -1456,8 +1456,8 @@
   },
   "rv64gc_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 31260,
-    ".rodata": 11867,
+    ".text": 31204,
+    ".rodata": 11831,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 248,
@@ -1792,8 +1792,8 @@
   },
   "rv64gc_zba/size-all/fasta": {
    "sections": {
-    ".text": 36492,
-    ".rodata": 12461,
+    ".text": 36436,
+    ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -1876,8 +1876,8 @@
   },
   "rv64gc_zba/size-auto/fasta": {
    "sections": {
-    ".text": 36492,
-    ".rodata": 12461,
+    ".text": 36436,
+    ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -1960,8 +1960,8 @@
   },
   "rv64gc_zba/size-off/fasta": {
    "sections": {
-    ".text": 36564,
-    ".rodata": 12461,
+    ".text": 36508,
+    ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 296,
@@ -2044,8 +2044,8 @@
   },
   "rv64gc_zba/speed-all/fasta": {
    "sections": {
-    ".text": 32616,
-    ".rodata": 12367,
+    ".text": 32560,
+    ".rodata": 12331,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2128,8 +2128,8 @@
   },
   "rv64gc_zba/speed-auto/fasta": {
    "sections": {
-    ".text": 32616,
-    ".rodata": 12367,
+    ".text": 32560,
+    ".rodata": 12331,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2212,8 +2212,8 @@
   },
   "rv64gc_zba/speed-off/fasta": {
    "sections": {
-    ".text": 32668,
-    ".rodata": 12367,
+    ".text": 32612,
+    ".rodata": 12331,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 296,
@@ -2548,8 +2548,8 @@
   },
   "rv64gc_zba_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 36492,
-    ".rodata": 12470,
+    ".text": 36436,
+    ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2632,8 +2632,8 @@
   },
   "rv64gc_zba_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 36492,
-    ".rodata": 12470,
+    ".text": 36436,
+    ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2716,8 +2716,8 @@
   },
   "rv64gc_zba_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 36564,
-    ".rodata": 12470,
+    ".text": 36508,
+    ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 296,
@@ -2800,8 +2800,8 @@
   },
   "rv64gc_zba_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 32616,
-    ".rodata": 12376,
+    ".text": 32560,
+    ".rodata": 12340,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2884,8 +2884,8 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 32616,
-    ".rodata": 12376,
+    ".text": 32560,
+    ".rodata": 12340,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 336,
@@ -2968,8 +2968,8 @@
   },
   "rv64gc_zba_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 32668,
-    ".rodata": 12376,
+    ".text": 32612,
+    ".rodata": 12340,
     ".tbss": 4,
     ".data.rel.ro": 88,
     ".got": 296,

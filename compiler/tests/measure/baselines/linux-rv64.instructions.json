@@ -72,7 +72,7 @@
    "instructions": 3811842
   },
   "rv64gc/size-all/fasta": {
-   "instructions": 4075405
+   "instructions": 3904405
   },
   "rv64gc/size-all/fibre": {
    "instructions": 3810222
@@ -93,7 +93,7 @@
    "instructions": 3811842
   },
   "rv64gc/size-auto/fasta": {
-   "instructions": 4075405
+   "instructions": 3904405
   },
   "rv64gc/size-auto/fibre": {
    "instructions": 3810222
@@ -114,7 +114,7 @@
    "instructions": 3811857
   },
   "rv64gc/size-off/fasta": {
-   "instructions": 4076116
+   "instructions": 3905116
   },
   "rv64gc/size-off/fibre": {
    "instructions": 3810237
@@ -135,7 +135,7 @@
    "instructions": 3680467
   },
   "rv64gc/speed-all/fasta": {
-   "instructions": 3327981
+   "instructions": 3156981
   },
   "rv64gc/speed-all/fibre": {
    "instructions": 3664878
@@ -156,7 +156,7 @@
    "instructions": 3680467
   },
   "rv64gc/speed-auto/fasta": {
-   "instructions": 3327981
+   "instructions": 3156981
   },
   "rv64gc/speed-auto/fibre": {
    "instructions": 3664878
@@ -177,7 +177,7 @@
    "instructions": 3680859
   },
   "rv64gc/speed-off/fasta": {
-   "instructions": 3328301
+   "instructions": 3157301
   },
   "rv64gc/speed-off/fibre": {
    "instructions": 3664896
@@ -261,7 +261,7 @@
    "instructions": 3782245
   },
   "rv64gc_xtheadba/size-all/fasta": {
-   "instructions": 4075405
+   "instructions": 3904405
   },
   "rv64gc_xtheadba/size-all/fibre": {
    "instructions": 3810222
@@ -282,7 +282,7 @@
    "instructions": 3782245
   },
   "rv64gc_xtheadba/size-auto/fasta": {
-   "instructions": 4075405
+   "instructions": 3904405
   },
   "rv64gc_xtheadba/size-auto/fibre": {
    "instructions": 3810222
@@ -303,7 +303,7 @@
    "instructions": 3782260
   },
   "rv64gc_xtheadba/size-off/fasta": {
-   "instructions": 4076116
+   "instructions": 3905116
   },
   "rv64gc_xtheadba/size-off/fibre": {
    "instructions": 3810237
@@ -324,7 +324,7 @@
    "instructions": 3650870
   },
   "rv64gc_xtheadba/speed-all/fasta": {
-   "instructions": 3327981
+   "instructions": 3156981
   },
   "rv64gc_xtheadba/speed-all/fibre": {
    "instructions": 3664878
@@ -345,7 +345,7 @@
    "instructions": 3650870
   },
   "rv64gc_xtheadba/speed-auto/fasta": {
-   "instructions": 3327981
+   "instructions": 3156981
   },
   "rv64gc_xtheadba/speed-auto/fibre": {
    "instructions": 3664878
@@ -366,7 +366,7 @@
    "instructions": 3651262
   },
   "rv64gc_xtheadba/speed-off/fasta": {
-   "instructions": 3328301
+   "instructions": 3157301
   },
   "rv64gc_xtheadba/speed-off/fibre": {
    "instructions": 3664896
@@ -450,7 +450,7 @@
    "instructions": 3782671
   },
   "rv64gc_zba/size-all/fasta": {
-   "instructions": 4075831
+   "instructions": 3904831
   },
   "rv64gc_zba/size-all/fibre": {
    "instructions": 3810671
@@ -471,7 +471,7 @@
    "instructions": 3782671
   },
   "rv64gc_zba/size-auto/fasta": {
-   "instructions": 4075831
+   "instructions": 3904831
   },
   "rv64gc_zba/size-auto/fibre": {
    "instructions": 3810671
@@ -492,7 +492,7 @@
    "instructions": 3782686
   },
   "rv64gc_zba/size-off/fasta": {
-   "instructions": 4076542
+   "instructions": 3905542
   },
   "rv64gc_zba/size-off/fibre": {
    "instructions": 3810686
@@ -513,7 +513,7 @@
    "instructions": 3651163
   },
   "rv64gc_zba/speed-all/fasta": {
-   "instructions": 3328274
+   "instructions": 3157274
   },
   "rv64gc_zba/speed-all/fibre": {
    "instructions": 3665189
@@ -534,7 +534,7 @@
    "instructions": 3651163
   },
   "rv64gc_zba/speed-auto/fasta": {
-   "instructions": 3328274
+   "instructions": 3157274
   },
   "rv64gc_zba/speed-auto/fibre": {
    "instructions": 3665189
@@ -555,7 +555,7 @@
    "instructions": 3651555
   },
   "rv64gc_zba/speed-off/fasta": {
-   "instructions": 3328594
+   "instructions": 3157594
   },
   "rv64gc_zba/speed-off/fibre": {
    "instructions": 3665207
@@ -639,7 +639,7 @@
    "instructions": 3782671
   },
   "rv64gc_zba_xtheadba/size-all/fasta": {
-   "instructions": 4075831
+   "instructions": 3904831
   },
   "rv64gc_zba_xtheadba/size-all/fibre": {
    "instructions": 3810671
@@ -660,7 +660,7 @@
    "instructions": 3782671
   },
   "rv64gc_zba_xtheadba/size-auto/fasta": {
-   "instructions": 4075831
+   "instructions": 3904831
   },
   "rv64gc_zba_xtheadba/size-auto/fibre": {
    "instructions": 3810671
@@ -681,7 +681,7 @@
    "instructions": 3782686
   },
   "rv64gc_zba_xtheadba/size-off/fasta": {
-   "instructions": 4076542
+   "instructions": 3905542
   },
   "rv64gc_zba_xtheadba/size-off/fibre": {
    "instructions": 3810686
@@ -702,7 +702,7 @@
    "instructions": 3651163
   },
   "rv64gc_zba_xtheadba/speed-all/fasta": {
-   "instructions": 3328274
+   "instructions": 3157274
   },
   "rv64gc_zba_xtheadba/speed-all/fibre": {
    "instructions": 3665189
@@ -723,7 +723,7 @@
    "instructions": 3651163
   },
   "rv64gc_zba_xtheadba/speed-auto/fasta": {
-   "instructions": 3328274
+   "instructions": 3157274
   },
   "rv64gc_zba_xtheadba/speed-auto/fibre": {
    "instructions": 3665189
@@ -744,7 +744,7 @@
    "instructions": 3651555
   },
   "rv64gc_zba_xtheadba/speed-off/fasta": {
-   "instructions": 3328594
+   "instructions": 3157594
   },
   "rv64gc_zba_xtheadba/speed-off/fibre": {
    "instructions": 3665207
