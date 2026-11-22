@@ -34801,13 +34801,14 @@ package body Landin.Stages.Checking is
                end case;
 
                declare
+                  --  D85: a match alias of an array names the matched
+                  --  storage by element and is never copied, so it is not
+                  --  a place here; Synthesise refuses it.
                   Admitted : constant Boolean :=
                     Syn.Kind (Of_Tree, Node) = Syn.Member_Selection
                     and then Holds_Array (Of_Tree, Node);
                   Got : constant Ty.Type_Kind :=
-                    (if Admitted
-                          or else Syn.Kind (Of_Tree, Node)
-                                    = Syn.Name_Reference
+                    (if Admitted or else Is_Direct_Binding_Name (Of_Tree, Node)
                      then Selected_From (Of_Tree, Node)
                      else Synthesise (Of_Tree, Node));
                begin

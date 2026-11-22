@@ -1,6 +1,0 @@
-class: negative
-summary: D25 infers a callable literal element, while counted repetition refuses one explicitly rather than silently settling ill-typed
-program: program.ldn
-codes: L0304
-constructs: 0520, 0530, 0560, 1580
-targets: linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64

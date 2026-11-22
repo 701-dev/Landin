@@ -4,4 +4,5 @@ use: () -> none =
     values := [add, add]
     _ = values
     repeated := [2 of add]
+    _ = repeated
 end use

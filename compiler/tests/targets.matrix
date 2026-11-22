@@ -1051,7 +1051,6 @@ negative/r440-c-variadic-identity | linux-x86-64, linux-arm64, freebsd-x86-64, f
 negative/r440-c-variadic-label | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/r440-c-variadic-missing-fixed | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/r440-c-variadic-no-fixed | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
-negative/r440-checker-callback-inference-boundary | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/r440-checker-hosted-main-collision | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/r440-checker-recursive-image-cycle | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/r440-checker-recursive-inner-length | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
@@ -1846,6 +1845,7 @@ positive/r440-array-callback-type-argument | linux-x86-64, linux-arm64, freebsd-
 positive/r440-c-aliases | linux-x86-64, freebsd-x86-64
 positive/r440-c-layout-recursive-callback | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 positive/r440-c-signatures | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
+positive/r440-checker-callback-inference | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 positive/r440-checker-recursive-callback-contexts | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 positive/r440-checker-recursive-contexts | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 positive/r440-compatible-link-declarations | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64

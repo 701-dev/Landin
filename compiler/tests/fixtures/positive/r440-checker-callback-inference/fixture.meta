@@ -1,0 +1,5 @@
+class: positive
+summary: D25 infers a callable literal element, and a counted repetition a callable repeated value (D1664)
+program: program.ldn
+constructs: 0520, 0530, 0560, 1580
+targets: linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64

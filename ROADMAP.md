@@ -1604,9 +1604,9 @@ keeps its refusal of a whole array or struct field where another type is
 wanted, in the words it uses for a whole name, since the general mismatch
 lost the erased view's `any(addr ...)` hint. A counted repetition, `lenof`
 of a literal and an inferred module array take any element shape (D1664,
-D1947), through one `Infer_Element_Shape`; four refusing fixtures became
+D1947), through one `Infer_Element_Shape`; five refusing fixtures became
 positive ones and `runtime/r1990-repetition-and-lenof-of-structs` runs
-them. Lowering's binding and assignment inline writes went to the general
+them. A match alias of an array is still never copied (D85). Lowering's binding and assignment inline writes went to the general
 writer with the recorded IR of every existing program unchanged. No code
 moved from L0304 to L0301; twenty-two negative fixtures keep their codes
 and take the general check's words, a `zeroed` report still pointing at
