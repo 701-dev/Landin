@@ -703,8 +703,84 @@ package body Landin.Tests.Xtensa_Backend_Suite is
          "a frame larger than the stack pointer's value goes to the trap");
    end Switch_Masks_First;
 
+   --  D1628, D2113: a comparison only its branch reads is the branch, and
+   --  an edge to the block laid out next falls through rather than
+   --  jumping.
+   procedure Branches_Fall_Through (Item : in out Landin.Testing.Context);
+   procedure Branches_Fall_Through (Item : in out Landin.Testing.Context) is
+      HT : constant Character := ASCII.HT;
+      Text : constant String := Emitted
+        (Item,
+         "pick: (a: i32, b: i32) -> (r: i32) =" & LF
+         & "    if a < b then" & LF
+         & "        r = a" & LF
+         & "    else" & LF
+         & "        r = b" & LF
+         & "    end if" & LF
+         & "end pick" & LF
+         & "count: (n: u32) -> (r: u32) =" & LF
+         & "    mut i: u32 = 0" & LF
+         & "    while i < n do" & LF
+         & "        i = i + 1" & LF
+         & "    end while" & LF
+         & "    r = i" & LF
+         & "end count" & LF
+         & "fless: (a: f32, b: f32) -> (r: u32) =" & LF
+         & "    if a < b then" & LF
+         & "        r = 1" & LF
+         & "    else" & LF
+         & "        r = 2" & LF
+         & "    end if" & LF
+         & "end fless" & LF);
+
+      --  Whether a jump in Text, near or far, goes to the label after it.
+      function Jumps_To_Next return Boolean;
+      function Jumps_To_Next return Boolean is
+         Before, Previous : U.Unbounded_String;
+         First : Positive := Text'First;
+      begin
+         for Index in Text'Range loop
+            if Text (Index) = LF then
+               declare
+                  Line : constant String := Text (First .. Index - 1);
+               begin
+                  if Line'Length > 1 and then Line (Line'Last) = ':' then
+                     declare
+                        Name : constant String :=
+                          Line (Line'First .. Line'Last - 1);
+                     begin
+                        if U.To_String (Previous) = HT & "j " & Name
+                          or else (U.To_String (Previous) = HT & "jx a10"
+                                   and then U.To_String (Before)
+                                     = HT & "movi a10, " & Name)
+                        then
+                           return True;
+                        end if;
+                     end;
+                  end if;
+                  Before := Previous;
+                  Previous := U.To_Unbounded_String (Line);
+               end;
+               First := Index + 1;
+            end if;
+         end loop;
+         return False;
+      end Jumps_To_Next;
+   begin
+      Landin.Testing.Check
+        (Item, Contains (Text, HT & "bge ")
+           or else Contains (Text, HT & "blt "),
+         "a signed comparison is the branch on its operands" & LF & Text);
+      Landin.Testing.Check
+        (Item, not Jumps_To_Next,
+         "no jump goes to the label after it" & LF & Text);
+   end Branches_Fall_Through;
+
    procedure Register (Into : in out Landin.Testing.Registry) is
    begin
+      Landin.Testing.Register
+        (Into, "xtensa backend", "a branch falls through to the next block",
+         Branches_Fall_Through'Access);
       Landin.Testing.Register
         (Into, "xtensa backend", "an outgoing area is part of the frame",
          Outgoing_Area_In_Frame'Access);

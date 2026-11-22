@@ -9920,6 +9920,32 @@ package body Landin.Tests.Backend_Suite is
            Has (Text, "x" & Ada.Strings.Fixed.Trim
                   (Natural'Image (Number), Ada.Strings.Left)));
 
+      --  D2112: whether a jump in Text goes to the label that follows it.
+      function Jumps_To_Next (Text : String) return Boolean;
+      function Jumps_To_Next (Text : String) return Boolean is
+         Previous : Ada.Strings.Unbounded.Unbounded_String;
+         First : Positive := Text'First;
+      begin
+         for Index in Text'Range loop
+            if Text (Index) = LF then
+               declare
+                  Line : constant String := Text (First .. Index - 1);
+               begin
+                  if Line'Length > 1 and then Line (Line'Last) = ':'
+                    and then Ada.Strings.Unbounded.To_String (Previous)
+                      = HT & "j " & Line (Line'First .. Line'Last - 1)
+                  then
+                     return True;
+                  end if;
+                  Previous := Ada.Strings.Unbounded.To_Unbounded_String
+                    (Line);
+               end;
+               First := Index + 1;
+            end if;
+         end loop;
+         return False;
+      end Jumps_To_Next;
+
       type Facts_List is array (1 .. 2) of Landin.Targets.Target_Facts;
       Walked : constant Facts_List :=
         [Landin.Targets.Linux_RV64, Landin.Targets.RV32];
@@ -9963,6 +9989,15 @@ package body Landin.Tests.Backend_Suite is
                        and then not Has (Pick, "sltu x30, "),
                      Name & ": a checked signed sum computes its overflow "
                      & "in x30, and no carry");
+                  Landin.Testing.Check
+                    (Item, Pick /= "" and then not Has (Pick, "slt ")
+                       and then (Has (Pick, "bge ")
+                                 or else Has (Pick, "blt ")),
+                     Name & ": a comparison only its branch reads is the "
+                     & "branch on its operands (D2112)");
+                  Landin.Testing.Check
+                    (Item, not Jumps_To_Next (Text),
+                     Name & ": no jump goes to the label after it (D2112)");
                end;
             end;
          end loop;
