@@ -990,6 +990,7 @@ negative/placement-on-a-hosted-target | linux-x86-64
 negative/pointer-case-arm-is-not-an-atom | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/pointer-comparison-referent-mismatch | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/pointer-to-cstring-conversion | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/pointer-type-applied-to-an-integer | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/pointer-union-address-of-referent | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/pointer-union-any-construction | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/pointer-union-assignment-target | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64

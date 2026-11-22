@@ -15879,7 +15879,7 @@ package body Landin.Tests.Checking_Suite is
          & " read: (self: ptr t) -> (a: u32) end other" & LF
          & "u32 is other (read: u_area)" & LF
          & "f: () -> none = n: u32 = 3 v: any other = any(addr n)"
-         & " show(v) end f", 1, "required erased type and shape",
+         & " show(v) end f", 1, "which does not convert to `any shape`",
          Absent => "any(addr v)");
       Check_Source
         (Concept_Prefix & "end ordered" & LF & Provider

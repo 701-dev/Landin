@@ -1,0 +1,10 @@
+error[L0301]: a pointer type does not convert an integer; write `ptr(...)` where the pointer type is wanted
+  --> ../tests/fixtures/negative/pointer-type-applied-to-an-integer/main.ldn:5:47
+  |
+5 |     mut seen: ptr mut [2]u32 = ptr mut [2]u32(0)
+  |                                               ^
+  --> ../tests/fixtures/negative/pointer-type-applied-to-an-integer/main.ldn:5:32
+  |
+5 |     mut seen: ptr mut [2]u32 = ptr mut [2]u32(0)
+  |                                ^^^^^^^^^^^^^^ the pointer type applied here
+  = note: [0470]: `ptr(address)` makes a pointer from an integer address and takes its type from the context

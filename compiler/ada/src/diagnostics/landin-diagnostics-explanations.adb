@@ -655,7 +655,11 @@ package body Landin.Diagnostics.Explanations is
                & "s on P, directly or through other concepts [1340] (D1949"
                & "). It converts to no other `any`, neither that of a conc"
                & "ept built on C nor that of a sibling; build such a value"
-               & " from its pointer with `any(addr item)` instead.",
+               & " from its pointer with `any(addr item)` instead. A point"
+               & "er type applied to an integer, `ptr mut u32(address)`, i"
+               & "s no conversion: write `ptr(address)` where the pointer "
+               & "type is wanted, which takes its type from the context [0"
+               & "470].",
             when Catalogue.Not_Definitely_Assigned =>
                "Required storage is not definitely assigned at a read or"
                & " an exit [1910]. A read needs the place assigned on ever"

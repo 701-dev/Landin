@@ -28180,6 +28180,31 @@ package body Landin.Stages.Checking is
                      begin
                         if Got = Ty.Ill_Typed then
                            return Kept (Ty.Ill_Typed);
+                        elsif Source_Id = Landin.Checking.No_Reference
+                          and then Target.Kind = Ty.Pointer_Value
+                          and then Got in Ty.Integer_Name | Ty.Untyped_Integer
+                        then
+                           --  [0470]: an integer becomes a pointer through
+                           --  `ptr(...)`, which takes its type from the
+                           --  context, not through the pointer type.
+                           Bad.Report
+                             (Item    => Bad.Type_Mismatch,
+                              Source  => Syn.Source_Of (Of_Tree),
+                              Where   => Syn.Where (Of_Tree, Value),
+                              Message => "a pointer type does not convert"
+                                         & " an integer; write `ptr(...)`"
+                                         & " where the pointer type is"
+                                         & " wanted",
+                              Note    => "[0470]: `ptr(address)` makes a"
+                                         & " pointer from an integer"
+                                         & " address and takes its type"
+                                         & " from the context",
+                              Related => Syn.Origin (Of_Tree, Callee),
+                              Because => "the pointer type applied here",
+                              Into    => Found);
+                           Landin.Checking.Refuse
+                             (Types.all, Of_Tree, Node);
+                           return Kept (Ty.Ill_Typed);
                         elsif Source_Id = Landin.Checking.No_Reference then
                            Bad.Report
                              (Item    => Bad.Type_Mismatch,
