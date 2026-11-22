@@ -1658,7 +1658,7 @@ and `caller`, which R19 leaves to R20, land in R20's window.
 
 ### R20.10 — Decide the review's questions
 
-Status: planned
+Status: active
 Depends on: R19
 
 The maintainer answers the inventory's questions: when a routine takes
