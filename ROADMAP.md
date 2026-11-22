@@ -1521,7 +1521,7 @@ compiled a range subtype.
 
 ### R19.80 — One-atom pointer unions, written layout and named operands
 
-Status: planned
+Status: active
 Depends on: R19.10, R19.40
 
 SC-10, SC-13 and SC-06, the three that reach the backends: a pointer union
