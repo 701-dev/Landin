@@ -27336,10 +27336,13 @@ storage (no address is taken of it, nothing copies, clears or writes it in
 place) weighs nothing, for the bound and for the caller's growth budget
 alike; every other operation weighs what D211 says. A routine whose blocks
 hold a cycle is weighed as before, every operation at D211's weight, which
-is the measure D339's bound was chosen on. The heap's `align_up` is written
-plainly again and copied where it is called. At `speed` on x86-64
-binary-trees 15 executes 3.0% fewer instructions and the fibre switches
-3.6% fewer; the hosted images grow by under 2%.
+is the measure D339's bound was chosen on. The heap's `align_up` now
+carries the mask itself, its division in `align_any`, and is copied where
+it is called at `speed`; `host_alloc` keeps the mask on its own path,
+since `size` copies no call and the call cost binary-trees 2.5% of its
+instructions there. At `speed` on x86-64 binary-trees 15 executes 3.0%
+fewer instructions and the fibre switches 3.6% fewer; the hosted images
+grow by under 2%.
 
 **The alternatives:** the new count for every routine, which copied
 fannkuch-redux's `reverse_prefix`, a loop, into its caller's loop: 8.7%

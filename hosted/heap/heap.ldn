@@ -201,7 +201,9 @@ host_alloc: (size: usize, unit: usize) -> (block: usize) =
         block = 0
         return
     end if
-    block = align_up(origin + header, unit)
+    --  `size` copies no call, so the hot path keeps the mask itself.
+    block = if power then (origin + header + low) & (0 -% unit)
+            else align_any(origin + header, unit) end if
     at: usize = header_at(block)
     store_word(at, origin)
     store_word(at + word, held)
