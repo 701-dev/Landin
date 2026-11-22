@@ -1767,7 +1767,10 @@ and `hosted/thread` have example programs on the examples page,
 and `core/io/fake` keeps its place as a test provider (D1956). A match
 cannot name an atom set as one arm, which made `system.words` name forty
 atoms; that is `SR-1609`. The dice example pads its columns by hand, as
-`SR-285` records.
+`SR-285` records. `docs/library.md` said calling `failure.words` costs
+about 6 KB on Cortex-M0, which the measurement contradicted, and now says
+about 2 KB. A `Kept:` line written in a merge's resolution does not
+restart a row's count, `SR-1610`.
 
 ### R20.50 — One name per idea
 
