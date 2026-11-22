@@ -914,6 +914,17 @@ package body Landin.IR.Dump is
             when Evidence_Self =>
                return Lead & " bound function" & Operands (Item, Value);
 
+            when Evidence_Parent =>
+               return Lead & " parent of evidence "
+                 & Trimmed
+                     (Evidence_Id'Image
+                        (Evidence_Of (Of_Unit, Item, Value)))
+                 & " cell "
+                 & Trimmed
+                     (Natural'Image
+                        (Evidence_Entry_Of (Of_Unit, Item, Value)))
+                 & Operands (Item, Value);
+
             when Call =>
                declare
                   C : constant Item_Id := Callee_Of (Of_Unit, Item, Value);
@@ -1158,6 +1169,11 @@ package body Landin.IR.Dump is
                     & (if Kept = null then ""
                        elsif Kept (Id, Entry_Index) then " kept"
                        else " dropped"));
+            end loop;
+            for Cell in 1 .. Evidence_Parent_Count (Of_Unit, Id) loop
+               Put ("  parent " & Trimmed (Positive'Image (Cell))
+                    & " evidence " & Trimmed (Evidence_Id'Image
+                      (Evidence_Parent_Target (Of_Unit, Id, Cell))));
             end loop;
          end;
       end loop;

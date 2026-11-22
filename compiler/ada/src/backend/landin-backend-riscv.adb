@@ -6752,6 +6752,14 @@ package body Landin.Backend.RiscV is
                       Value)));
                   Emit (Load_Word & " x5, 0(x5)");
                   Store_Value (Value);
+               when Landin.IR.Evidence_Parent =>
+                  Load_Value (Operand (1));
+                  Add_Offset ("x5", Landin.Targets.Evidence_Function_Offset
+                    (Facts, Landin.IR.Evidence_Entry_Count
+                       (Of_Unit, Landin.IR.Evidence_Of (Of_Unit, Item, Value))
+                     + Landin.IR.Evidence_Entry_Of (Of_Unit, Item, Value)));
+                  Emit (Load_Word & " x5, 0(x5)");
+                  Store_Value (Value);
                when Landin.IR.Evidence_Self =>
                   Load_Value (Landin.IR.Nth_Operand (Of_Unit, Item, Operand
                     (1), 1));
@@ -7837,6 +7845,7 @@ package body Landin.Backend.RiscV is
                         | Landin.IR.Code_Address
                         | Landin.IR.Evidence_Address
                         | Landin.IR.Evidence_Function
+                        | Landin.IR.Evidence_Parent
                         | Landin.IR.Evidence_Self | Landin.IR.Call
                         | Landin.IR.Memory_Access | Landin.IR.Assembly
                         | Landin.IR.Load_Indirect | Landin.IR.Store_Indirect
@@ -9112,6 +9121,14 @@ package body Landin.Backend.RiscV is
                         else
                            Emit (Word_Directive & " 0");
                         end if;
+                     end loop;
+                     --  D1949: the parent cells follow the entries.
+                     for Cell in 1 .. Landin.IR.Evidence_Parent_Count
+                       (Of_Unit, Id)
+                     loop
+                        Emit (Word_Directive & " " & Evidence_Symbol
+                          (Landin.IR.Evidence_Parent_Target
+                             (Of_Unit, Id, Cell)));
                      end loop;
                   end if;
                end;

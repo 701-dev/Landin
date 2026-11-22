@@ -1763,6 +1763,7 @@ package body Landin.Checking is
                Into.Node_Text_Conversions.Append (No_Text_Conversion);
                Into.Node_Distinct_Conversions.Append (No_Nominal_Type);
                Into.Node_Concepts.Append (No_Concept);
+               Into.Node_Any_Conversions.Append (No_Concept);
                Into.Node_Result_Shapes.Append (No_Signature);
                Into.Node_Lent_Arrays.Append (0);
                Into.Node_Routine_Targets.Append (No_Routine_Instance);
@@ -3253,6 +3254,48 @@ package body Landin.Checking is
          end;
       end if;
    end Note_Any_Concept;
+
+   function Any_Conversion_Of
+     (Of_Table : Table;
+      Of_Tree  : Landin.Syntax.Tree;
+      Node     : Landin.Syntax.Node_Id) return Concept_Id
+   is
+      Where : constant Positive := Slot (Of_Table, Of_Tree, Node);
+      Overlay : constant Natural := Node_Overlay_Position (Of_Table, Where);
+   begin
+      if Overlay /= 0
+        and then Of_Table.Node_Overlays.Element (Overlay).Has_Any_Conversion
+      then
+         return Of_Table.Node_Overlays.Element (Overlay).Any_Conversion;
+      end if;
+      return Of_Table.Node_Any_Conversions.Element (Where);
+   end Any_Conversion_Of;
+
+   procedure Note_Any_Conversion
+     (Into    : in out Table;
+      Of_Tree : Landin.Syntax.Tree;
+      Node    : Landin.Syntax.Node_Id;
+      To      : Concept_Id)
+   is
+      Where : constant Positive := Slot (Into, Of_Tree, Node);
+   begin
+      if Any_Conversion_Of (Into, Of_Tree, Node) /= No_Concept
+        and then Any_Conversion_Of (Into, Of_Tree, Node) /= To
+      then
+         raise Landin.Compiler_Defect with
+           "one any value was converted to two concepts";
+      end if;
+      if Into.Current_Routine = No_Routine_Instance then
+         Into.Node_Any_Conversions (Where) := To;
+      else
+         declare
+            Overlay : constant Positive := Ensure_Node_Overlay (Into, Where);
+         begin
+            Into.Node_Overlays (Overlay).Has_Any_Conversion := True;
+            Into.Node_Overlays (Overlay).Any_Conversion := To;
+         end;
+      end if;
+   end Note_Any_Conversion;
 
    procedure Note_Any_Concept
      (Into : in out Table; Id : Declaration_Id; Concept : Concept_Id) is

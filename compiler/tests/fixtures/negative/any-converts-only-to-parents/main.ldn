@@ -1,0 +1,34 @@
+--  D1949: an `any C` converts only to an `any` of a concept C builds on.
+--  A parent's `any` does not convert to its child's, nor a child's to its
+--  sibling's.
+named: type = concept (t: type)
+    name: (self: ptr t) -> (n: u32)
+end named
+
+shape: type = concept (t: type) is named
+    area: (self: ptr t) -> (n: u32)
+end shape
+
+labelled: type = concept (t: type) is named
+    label: (self: ptr t) -> (n: u32)
+end labelled
+
+square: type = struct
+    side: u32
+end square
+
+square_name: (self: ptr square) -> (n: u32) = n = 4 end
+square_area: (self: ptr square) -> (n: u32) = n = self.val.side end
+square_label: (self: ptr square) -> (n: u32) = n = 1 end
+
+square is named (name: square_name)
+square is shape (area: square_area)
+square is labelled (label: square_label)
+
+public main: () -> (code: i32) =
+    s: square = (side: 5)
+    general: any named = any(addr s)
+    specific: any shape = general
+    sibling: any labelled = specific
+    code = i32(specific.area() + sibling.label())
+end main

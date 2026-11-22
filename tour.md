@@ -4283,6 +4283,25 @@ paint_one: (item: any widget, target: ptr mut canvas) -> none =
 end paint_one
 ```
 
+An `any C` converts to `any P` for every concept P that C builds on,
+directly or through other concepts. The conversion is implicit wherever
+an `any P` is wanted: a binding, an assignment, an argument, a result or
+a struct field. The converted value has the same data pointer and P's
+table for the same type, so its calls reach the same type's entries, and
+the pointee and its origin are unchanged.
+
+```landin
+show: (item: any widget, target: ptr mut canvas) -> none =
+    shown: any drawable = item
+    shown.draw(target)
+end show
+```
+
+An `any C` converts to no other `any`: not to that of a concept built on
+C, and not to that of a concept beside it. Build such a value from its
+pointer with `any(addr item)` instead. A slice or array of `any C` does
+not convert to one of `any P`.
+
 An `any C` provides no other concept, and the compiler, not the program,
 declares these conformances. An `any` is not erased again: where an
 `any C` is wanted, pass the one you have rather than its address.
@@ -4356,8 +4375,9 @@ made. So to put a small handle, such as an allocator handle `memory`,
 behind `any`, take the address of the variable that holds it:
 `any(addr memory)`.
 
-`any C` is exactly C: a concept's parent gives no conversion, and two
-`any` types never convert to each other. The implicit `self` takes part in
+An `any C` converts only to the `any` of a concept C builds on [1370];
+no other two `any` types convert to each other, and a slice or array of
+`any C` does not convert at all. The implicit `self` takes part in
 the same `from`, `escaping` and origin checks as a written pointer
 argument.
 

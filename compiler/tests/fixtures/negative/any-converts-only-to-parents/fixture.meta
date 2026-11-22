@@ -1,0 +1,9 @@
+class: negative
+summary: an any converts only to the any of a concept its own builds on, not to a child or a sibling
+program: main.ldn
+codes: L0301, L0301
+constructs: 0310, 1230, 1240, 1340, 1370, 1380
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/any-converts-only-to-parents/main.ldn
+status: 1

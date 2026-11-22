@@ -1378,6 +1378,29 @@ package Landin.Checking is
                  and then Holds (Into, Concept),
           Post => Any_Concept_Of (Into, Id) = Concept;
 
+   --  D1949: a value whose `any C` meets a context that wants `any P`,
+   --  where P is a concept C builds on, converts to it.  The node keeps C
+   --  as its own concept, and this says which P its context took.
+   --  No_Concept when the value is not converted.
+   function Any_Conversion_Of
+     (Of_Table : Table;
+      Of_Tree  : Landin.Syntax.Tree;
+      Node     : Landin.Syntax.Node_Id) return Concept_Id
+     with Pre => Is_Prepared (Of_Table)
+                 and then Covers (Of_Table, Of_Tree)
+                 and then Landin.Syntax.Contains (Of_Tree, Node);
+
+   procedure Note_Any_Conversion
+     (Into    : in out Table;
+      Of_Tree : Landin.Syntax.Tree;
+      Node    : Landin.Syntax.Node_Id;
+      To      : Concept_Id)
+     with Pre => Is_Prepared (Into)
+                 and then Covers (Into, Of_Tree)
+                 and then Landin.Syntax.Contains (Of_Tree, Node)
+                 and then Holds (Into, To),
+          Post => Any_Conversion_Of (Into, Of_Tree, Node) = To;
+
    function Conformance_Count (Of_Table : Table) return Natural
      with Pre => Is_Prepared (Of_Table);
 
@@ -2816,6 +2839,8 @@ private
       Text_Conversion : Text_Conversion_Kind := No_Text_Conversion;
       Has_Concept : Boolean := False;
       Concept : Concept_Id := No_Concept;
+      Has_Any_Conversion : Boolean := False;
+      Any_Conversion : Concept_Id := No_Concept;
       Has_Result_Shape : Boolean := False;
       Result_Shape : Signature_Id := No_Signature;
       Has_Field : Boolean := False;
@@ -2927,6 +2952,7 @@ private
       Node_Text_Conversions : Text_Conversion_Vectors.Vector;
       Node_Distinct_Conversions : Nominal_Id_Vectors.Vector;
       Node_Concepts : Concept_Id_Vectors.Vector;
+      Node_Any_Conversions : Concept_Id_Vectors.Vector;
       Node_Result_Shapes : Signature_Id_Vectors.Vector;
       --  Zero where the node lends nothing, else one more than the length
       --  of the whole array it lends as a slice.

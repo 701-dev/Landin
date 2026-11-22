@@ -6231,6 +6231,14 @@ package body Landin.Backend.Arm64 is
                       Value)));
                   Emit ("ldr x9, [x9]");
                   Store_Value (Value);
+               when Landin.IR.Evidence_Parent =>
+                  Load_Value (Operand (1));
+                  Add_Offset ("x9", Landin.Targets.Evidence_Function_Offset
+                    (Facts, Landin.IR.Evidence_Entry_Count
+                       (Of_Unit, Landin.IR.Evidence_Of (Of_Unit, Item, Value))
+                     + Landin.IR.Evidence_Entry_Of (Of_Unit, Item, Value)));
+                  Emit ("ldr x9, [x9]");
+                  Store_Value (Value);
                when Landin.IR.Evidence_Self =>
                   Load_Value (Landin.IR.Nth_Operand (Of_Unit, Item, Operand
                     (1), 1));
@@ -7277,6 +7285,7 @@ package body Landin.Backend.Arm64 is
                         | Landin.IR.Code_Address
                         | Landin.IR.Evidence_Address
                         | Landin.IR.Evidence_Function
+                        | Landin.IR.Evidence_Parent
                         | Landin.IR.Evidence_Self | Landin.IR.Call
                         | Landin.IR.Memory_Access | Landin.IR.Assembly
                         | Landin.IR.Load_Indirect | Landin.IR.Store_Indirect
@@ -8329,6 +8338,14 @@ package body Landin.Backend.Arm64 is
                         else
                            Emit (".quad 0");
                         end if;
+                     end loop;
+                     --  D1949: the parent cells follow the entries.
+                     for Cell in 1 .. Landin.IR.Evidence_Parent_Count
+                       (Of_Unit, Id)
+                     loop
+                        Emit (".quad " & Evidence_Symbol
+                          (Landin.IR.Evidence_Parent_Target
+                             (Of_Unit, Id, Cell)));
                      end loop;
                   end if;
                end;
