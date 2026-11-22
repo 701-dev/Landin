@@ -211,6 +211,7 @@ REFUSAL_PAIRS = {
     ("r440-c-aliases", "rv32"),
     ("r440-c-layout-recursive-callback", "rv32"),
     ("r440-c-signatures", "rv32"),
+    ("r440-checker-callback-inference", "rv32"),
     ("r440-checker-recursive-callback-contexts", "rv32"),
     ("r440-checker-recursive-contexts", "rv32"),
     ("r440-compatible-link-declarations", "rv32"),
