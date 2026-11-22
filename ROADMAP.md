@@ -1737,7 +1737,7 @@ uses reread against them.
 
 ### R20.40 — Layers and consumers
 
-Status: planned
+Status: active
 Depends on: R20.10
 
 `platform/posix` moved below the protocol layer as far as its types
