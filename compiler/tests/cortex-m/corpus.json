@@ -2066,7 +2066,17 @@
       "mode": "execute"
     },
     "runtime/core-text-format": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "Formatting every library conformance, a program's own, every malformed template, a partway refusal and a growing builder fits every profile on the Cortex-M reference, but RV32's none/off text outgrows the 32 KiB map: FLASH 46844 on the esp32c3 lane and 46316 on sifive-e, 14076 and 13548 bytes over; size and speed fit at about 29 KiB."
+        }
+      }
     },
     "runtime/core-text-format-firmware": {
       "mode": "execute"
@@ -3994,7 +4004,13 @@
     "runtime/r420-map-failure-rollback": {
       "mode": "execute",
       "profile_limit": "selected-image",
-      "reason": "Selected Cortex-M0 profile: 32 KiB flash, 16 KiB RAM with 4 KiB stack. Every profile is attempted; only actual flash/RAM overflow or a measured minimum frame/static extent outside this map is a retained limit. Larger profiles and general large-image placement remain open work."
+      "reason": "Selected Cortex-M0 profile: 32 KiB flash, 16 KiB RAM with 4 KiB stack. Every profile is attempted; only actual flash/RAM overflow or a measured minimum frame/static extent outside this map is a retained limit. Larger profiles and general large-image placement remain open work.",
+      "lanes": {
+        "mps2-an505": {
+          "mode": "limit",
+          "reason": "On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the map's failure path goes through allocate past the 4 KiB stack reservation, which the harness's watchpoint stops; none/off's static stack is 4,128 bytes. The reference's own limit is the row's profile_limit."
+        }
+      }
     },
     "runtime/r420-map-operations": {
       "codes": [
@@ -4812,7 +4828,13 @@
     "runtime/run-shell-memory": {
       "mode": "execute",
       "profile_limit": "selected-image",
-      "reason": "The process consumer's routines over core/io's scripted programs beside a memory world, with its report's buffered writer and format, a manual clock timing it and every failure oracle, need about 78 KiB of flash at size/auto, overflowing the 32 KiB profile by 46 KiB; most of it is the Cortex-M0 backend's frame homes and copies between them, as runtime/directory-memory's limit records. Each profile still attempts execution; runtime/run-memory-firmware starts a scripted program and reads the world's environment within the image and requires execution; this image limit is not runtime evidence."
+      "reason": "The process consumer's routines over core/io's scripted programs beside a memory world, with its report's buffered writer and format, a manual clock timing it and every failure oracle, need about 78 KiB of flash at size/auto, overflowing the 32 KiB profile by 46 KiB; most of it is the Cortex-M0 backend's frame homes and copies between them, as runtime/directory-memory's limit records. Each profile still attempts execution; runtime/run-memory-firmware starts a scripted program and reads the world's environment within the image and requires execution; this image limit is not runtime evidence.",
+      "lanes": {
+        "mps2-an505": {
+          "mode": "limit",
+          "reason": "On the AN505's map the size and speed images fit its flash since the Cortex-M code shrank (D2120-D2123), and run, but the process consumer's buffered output goes past the 4 KiB stack reservation in out, which the harness's watchpoint stops; none/off still overflows the flash by about 17 KiB. The reference's own limit is the row's profile_limit."
+        }
+      }
     },
     "runtime/run-signal-defaults": {
       "codes": [

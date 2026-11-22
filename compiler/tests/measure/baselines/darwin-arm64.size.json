@@ -332,10 +332,10 @@
   },
   "armv8-a/size-all/fasta": {
    "sections": {
-    "__TEXT,__text": 24100,
+    "__TEXT,__text": 24072,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -432,10 +432,10 @@
   },
   "armv8-a/size-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 24100,
+    "__TEXT,__text": 24072,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -532,10 +532,10 @@
   },
   "armv8-a/size-off/fasta": {
    "sections": {
-    "__TEXT,__text": 24148,
+    "__TEXT,__text": 24120,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -632,10 +632,10 @@
   },
   "armv8-a/speed-all/fasta": {
    "sections": {
-    "__TEXT,__text": 20976,
+    "__TEXT,__text": 20948,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -732,10 +732,10 @@
   },
   "armv8-a/speed-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 20976,
+    "__TEXT,__text": 20948,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -832,10 +832,10 @@
   },
   "armv8-a/speed-off/fasta": {
    "sections": {
-    "__TEXT,__text": 20992,
+    "__TEXT,__text": 20964,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1232,10 +1232,10 @@
   },
   "armv8.1-a/size-all/fasta": {
    "sections": {
-    "__TEXT,__text": 24100,
+    "__TEXT,__text": 24072,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1332,10 +1332,10 @@
   },
   "armv8.1-a/size-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 24100,
+    "__TEXT,__text": 24072,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1432,10 +1432,10 @@
   },
   "armv8.1-a/size-off/fasta": {
    "sections": {
-    "__TEXT,__text": 24148,
+    "__TEXT,__text": 24120,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7067,
+    "__TEXT,__cstring": 7031,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1532,10 +1532,10 @@
   },
   "armv8.1-a/speed-all/fasta": {
    "sections": {
-    "__TEXT,__text": 20976,
+    "__TEXT,__text": 20948,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1632,10 +1632,10 @@
   },
   "armv8.1-a/speed-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 20976,
+    "__TEXT,__text": 20948,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1732,10 +1732,10 @@
   },
   "armv8.1-a/speed-off/fasta": {
    "sections": {
-    "__TEXT,__text": 20992,
+    "__TEXT,__text": 20964,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7044,
+    "__TEXT,__cstring": 7008,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
