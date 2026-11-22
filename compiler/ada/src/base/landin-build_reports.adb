@@ -256,6 +256,14 @@ package body Landin.Build_Reports is
             Field ("direct_calls", Landin.Targets.Byte_Count (R.Direct_Calls));
             Field ("indirect_calls", Landin.Targets.Byte_Count
                    (R.Indirect_Calls));
+            if R.Kept_Homes then
+               Put (",""kept_homes"":{""register"":"""
+                    & Ada.Strings.Fixed.Trim
+                        (R.Refused_Register, Ada.Strings.Right)
+                    & """,""position"":"
+                    & Image (Landin.Targets.Byte_Count (R.Refused_Position))
+                    & "}");
+            end if;
             Put ("}");
          end;
       end loop;

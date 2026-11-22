@@ -166,9 +166,10 @@ package body Landin.Tests.Stack_Report_Suite is
          Leaf, Middle, Main : Natural;
       end record;
       --  D1565: a Cortex-M call passing scalars in registers reserves
-      --  no area for them.
+      --  no area for them; since D2122 the leaf keeps its value in r3 and
+      --  pushes no register.
       Frames : constant array (Native'Range) of Expected :=
-        [(32, 48, 48), (32, 48, 48), (32, 48, 48), (28, 48, 40)];
+        [(32, 48, 48), (32, 48, 48), (32, 48, 48), (24, 48, 40)];
    begin
       for Index in Native'Range loop
          declare
@@ -306,8 +307,14 @@ package body Landin.Tests.Stack_Report_Suite is
                     (Item, Field (Counted (Routine), "stack_bytes") > 0
                        and then Field (Counted (Routine), "stack_bytes")
                          = Field (Measured (Routine), "stack_bytes")
-                       and then Field (Counted (Routine), "stack_bytes")
-                         > Field (Counted (Routine), "frame_bytes")
+                       and then
+                         (if Target = "cortex-m0" and then Routine = 1
+                          --  A Cortex-M leaf that pushes nothing keeps its
+                          --  return address in lr: its stack is its frame.
+                          then Field (Counted (Routine), "stack_bytes")
+                            >= Field (Counted (Routine), "frame_bytes")
+                          else Field (Counted (Routine), "stack_bytes")
+                            > Field (Counted (Routine), "frame_bytes"))
                        and then Field (Counted (Routine), "frame_bytes") > 0
                        and then Field (Counted (Routine), "frame_bytes")
                          = Field (Measured (Routine), "frame_bytes"),

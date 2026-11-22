@@ -251,7 +251,7 @@ new parts are time, the matrix and the baselines. A report format change here
 also says where a program's compile time goes among its sources, and gives
 the build and depth reports one name for each frame quantity. A measured code-quality cost attributable to
 assembly's fixed memory effect is recorded against `SR-09` before any narrower
-effect is proposed. Its ranked list answers the activations of SR-231,
+effect is proposed. Its ranked list answers the activations of `SR-231`,
 `SR-387`, `SR-596`, SR-869 and `SR-1023`, and measures x86-64's two-instruction
 reach of a thread instance. This takes on `SR-996` and `SR-275`, and carries the
 fresh-copy requirement. The instruction count under emulation is the
@@ -294,7 +294,7 @@ cycles, and up to 1.085 in an A/A wall run, so a pair past its tolerance is
 timed again. `compiler/tests/measure/findings.md` is the ranked list:
 arm64's allocator unused at `size`, RV64's far jumps, Cortex-M's homes
 addressed through r6, then allocation. `SR-09` and `SR-1267` are settled;
-`SR-596`, SR-869, SR-231, `SR-996`, `SR-577`, `SR-583` and `SR-1268` are R16.20's;
+`SR-596`, SR-869, `SR-231`, `SR-996`, `SR-577`, `SR-583` and `SR-1268` are R16.20's;
 `SR-275`, `SR-387` and `SR-1023` are restated with their figures, and `SR-1302`
 records the Xtensa reference's boot layout. Findings fixed on the way: the
 stack report names its frame quantities as the build report does (D1380),
@@ -412,7 +412,7 @@ then values are allocated through r0 to r7, then at the Thumb-2 levels the
 high registers and Thumb-2's forms. This takes on `SR-581`, `SR-582`, `SR-583`
 and `SR-584` at the Thumb-2 levels; `SR-596`'s float selection in VFP
 registers, measured on `runtime/firmware-mandelbrot` with the AN500
-description; SR-869's short `u64` routines on armv6-m; SR-231's atom `match`
+description; SR-869's short `u64` routines on armv6-m; `SR-231`'s atom `match`
 arms; `SR-996`'s counterpart against 32 KiB; `SR-577`'s float saves beside an
 assembly block; and `SR-586`'s local labels, since every Cortex-M board record
 is made again here once.
@@ -448,7 +448,7 @@ The programs and corpus lanes, the unit suites and the fixtures pass, the
 build modes agree and the scaling bound holds. The candidate passed its
 [gate](https://github.com/JanHaan/Landin/actions/runs/44578956148) and
 [boards](https://github.com/JanHaan/Landin/actions/runs/44584549572). R16.27
-takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, SR-869 and SR-231,
+takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, SR-869 and `SR-231`,
 each with today's figures. Findings fixed on the way: the devices lane's
 cached consumer read a register's address only from literal words; and
 `runtime/directory-memory`, which now fits the reference at every profile,
@@ -504,7 +504,7 @@ stack's check to the outgoing area, and a negative fixture a firmware entry
 whose area alone exceeds the reference's stack. `SR-1302`: the measurement
 reads an Xtensa image as its loader writes it, as D1359 has it, so the
 reference's boot layout is measured, and an image it cannot measure is
-refused naming the segment, symbol or line it met (D1629). SR-1433 files
+refused naming the segment, symbol or line it met (D1629). `SR-1433` files
 the frame placement leaves: a bank and a home for every word. Findings
 fixed on the way: a lane's relative `--refine` was run from another
 directory, so `measure.py size` failed with a traceback; it is now made
@@ -603,7 +603,7 @@ first draft computed a checked sum's carry into the register the sum was
 held in, which `Holds` cannot see, since a write after an operation's
 own result at its position looks like the result's; the measurement's
 oracles caught it, and selection's temporaries are now never offered.
-Filed: SR-1468, an `if`'s comparison computed into a register before its
+Filed: `SR-1468`, an `if`'s comparison computed into a register before its
 branch; `SR-1465`-`SR-1467` record the friction met.
 
 ### R16.26 — The library's costs
@@ -667,7 +667,7 @@ levels' own registers and forms: SipHash and mandelbrot still spend about
 two fifths of their instructions on homes, and r8, r10 and r12 hold nothing.
 This takes on `SR-581`'s high registers, `SR-582`'s CBZ and CBNZ, `SR-583`'s
 bitfield instructions, `SR-596`'s float selection in VFP registers, SR-869's
-short `u64` routines on armv6-m and SR-231's atom `match` arms, and `SR-1430`, the STM32H753's binary-search and merge-sort running
+short `u64` routines on armv6-m and `SR-231`'s atom `match` arms, and `SR-1430`, the STM32H753's binary-search and merge-sort running
 more cycles after R16.24 while the M33 ran them faster: the cause found and
 the configurations no slower than R16.22's figures, or the cause recorded
 with its measurement.
@@ -704,7 +704,7 @@ and `SR-231`'s `failure.words` 1,132 bytes; both are kept with these
 figures, and `compiler/tests/measure/findings.md` lists what is left with
 what each measured. The RP2040, RP2350 (Arm) and STM32H753 records were
 made again on the rig. Found on the way and fixed: a leaf saving d8-d15
-had no restore, which no routine needed before. SR-1505-SR-1507 record
+had no restore, which no routine needed before. `SR-1505`-`SR-1507` record
 the friction met: no command builds and counts one Cortex-M fixture,
 `measure.py size`'s unexplained `--environment`, and a silent fallback
 of the recorded-writes allocation. The candidate passed its
@@ -748,26 +748,62 @@ every small routine with a loop cost fannkuch-redux 3% to 7% more cycles
 for fewer instructions, which is why loops keep D339's weight. What stays
 is filed: `SR-1650` the slot placement that leaves SHA-256's words in the
 frame, `SR-1654` the gain the loop rule gives up, `SR-1655` loop-invariant
-values, and `SR-1651` to `SR-1653` what the work met.
+values, and `SR-1651` to `SR-1653` what the work met. The candidate passed
+its [gate](https://github.com/701-dev/Landin/actions/runs/45078465564) on
+the window's branch; it reaches main with the window.
 
 ### R16.29 — The small targets' remaining code
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
-What the Cortex-M, RISC-V and Xtensa items left: SR-231's atom `match`
+What the Cortex-M, RISC-V and Xtensa items left: `SR-231`'s atom `match`
 re-testing its subject at every arm, SR-869's short `u64` routines on
-armv6-m, SR-1433's Xtensa frame still reserving the logical-word bank,
-SR-1468's `slt` then `bnez` where one `blt` would do, R551-12's bounds
-checks and `core/atomic`'s cell calls, and SR-1578's lost backend case for
+armv6-m, `SR-1433`'s Xtensa frame still reserving the logical-word bank,
+`SR-1468`'s `slt` then `bnez` where one `blt` would do, R551-12's bounds
+checks and `core/atomic`'s cell calls, and `SR-1578`'s lost backend case for
 a Cortex-M `Range_Check` with a bound at one edge; with the tools those
-items lacked, SR-1505's command that builds one Cortex-M fixture at a
-chosen level and description and counts it, and SR-1507's report of a
+items lacked, `SR-1505`'s command that builds one Cortex-M fixture at a
+chosen level and description and counts it, and `SR-1507`'s report of a
 routine that kept its first emission.
 Exit evidence: each cost taken measured lower than its R16.10 baseline and
 the last item's figures, the cycles on the boards no slower, the backend
 case restored, and the two tools documented where the measurement recipe
 is.
+
+Done: Cortex-M makes an eight-byte constant or widening in the pair that
+reads it (D2120), tests nothing a constant or an earlier test settled
+(D2121), keeps a value a register still holds rather than reloading it
+(D2122) and reads a framed routine's parameters from sp (D2123): SipHash
+at armv6-m size executes 31% fewer instructions, the firmware set's
+`.text` at size is 6.0% smaller at armv6-m and 9.1% at the Thumb-2
+levels, and `runtime/core-text-format` now runs in the 32 KiB reference.
+SR-869's `divisor` is 548 bytes and `frame_bits` 178, short of its
+completion; it is kept with what remains, a held pair saving only the
+stores it removes on Thumb-1. The Xtensa frame is laid out after
+placement (D2116, `SR-1433`): the deepest call chain at esp32 speed falls
+from 800 to 384 bytes up to 2,240 to 752, every image smaller. RISC-V
+branches on a comparison's operands and RISC-V and Xtensa fall through
+to a branch's next block (D2112, D2113, `SR-1468`): RV64 executes 3.4%
+fewer instructions and its `.text` is 2.0% smaller, RV32's 1.8% and
+Xtensa's 0.55%. A refused recorded-writes allocation is allocated again
+over every emission's writes and the build report names any that keeps
+its homes (D2108, `SR-1507`), placing the twelve corpus routines that
+fell back on r6. A loop's end that is a length less one bounds its index
+(D2109): fasta on x86-64 executes 9.9% fewer instructions; R551-12 is
+kept for `core/atomic`'s cell calls, which follow how D339 copies.
+`SR-1578`'s case returns built from IR, and `measure.py count` builds and
+counts a fixture at a chosen level, objective and description
+(`SR-1505`), documented in `docs/measurement.md`. `SR-231` is retired as
+not worth an IR terminator: the atom `match` chain tests its subject
+once and spends 6 bytes an arm, a table about 4, about 56 bytes over
+`failure.words`. `compiler/tests/measure/findings.md` has each figure.
+Fixed on the way: `measure.py compare` takes the directory `size` writes
+(met by two streams). `SR-1660` files a copied `refine` that cannot
+find its library, which two streams met. What is left on these targets
+is SR-869's pairs and frame record, forwarding blocks on RISC-V and
+Xtensa, and the `match` table of constant results: none measured large
+enough for another item of its own.
 
 ### The continuous items
 
@@ -1586,7 +1622,7 @@ migrated by `refine fix`, there being no fix: thirty-two fixtures that
 pinned only range subtypes left, nine that used one in passing were
 rewritten by hand, one of them renamed, and `negative/range-subtype-is-a-distinct-type` and
 `runtime/range-checking-constructor-fails` are the exit evidence. No
-measured workload wrote a range subtype, so no baseline moved. SR-1578 is
+measured workload wrote a range subtype, so no baseline moved. `SR-1578` is
 filed for Cortex-M's partial-bound `Range_Check` paths, whose only case
 compiled a range subtype.
 

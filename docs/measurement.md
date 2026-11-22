@@ -183,7 +183,20 @@ two symbols with `--from` and `--to`. The Cortex-M corpus's `--program`
 option (`environments/cortex-m/backend_corpus.py`), which runs any `.ldn`
 file or module directory, prints the same count for each program it runs,
 which is what choosing between implementations by their cost on a
-firmware target needs.
+firmware target needs. `count` builds and counts in one step when given
+`--fixture` (a directory under `compiler/tests/fixtures`) or `--source`
+(a `.ldn` file or module directory, with `--root` for its roots) in place
+of an image, at `--level`, `--optimize` and `--specialize` and with
+`--refine` or `$LANDIN_REFINE` naming the compiler. The level is
+`refine`'s or a lane's own name for one, and the lane's name says its
+description: `armv7e-m+fpv5-d16` builds for the MPS2 AN500's
+double-precision float unit and runs on that machine:
+
+```sh
+python3 scripts/measure.py count --target cortex-m0 \
+    --level armv7e-m+fpv5-d16 --fixture runtime/firmware-mandelbrot \
+    --optimize speed --refine "$REFINE" --output /tmp/count
+```
 
 ## Runners
 

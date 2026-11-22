@@ -26971,6 +26971,47 @@ which would ask the same of every backend for RISC-V's want alone.
 RV64 fixtures under QEMU, the RV32 lanes' corpus and
 `compiler/tests/measure/baselines/`.
 
+### D2112 — On RISC-V a comparison only its branch reads is the branch
+
+**The tour said** nothing. After D1687 only the checks inside an operation
+branched on their operands: an `if` or a loop's test made its truth value
+with `slt`, `sltu` or `xor` and `seqz`, at most with an `xori`, and the
+block's branch tested it with `bnez` and jumped with `j` to the other
+arm, so RV32's `pick` spent `slt x16, x9, x18; bnez x16, .L2_2; j .L2_3`
+on `if a < b`. Every jump to the block laid out next was an instruction.
+
+**Chosen:** when the value after a comparison in its block is the branch
+that is the comparison's only reader, the comparison is that branch, on
+its operands where they are (`bge x9, x18`), and the truth value is never
+made; a float comparison is its one `feq`, `flt` or `fle` and the branch
+on that. An edge to the block laid out next falls through: a branch whose
+target is next is the inverse branch to the alternative, exact for an
+unordered float pair since it inverts the test of the truth value rather
+than the relation, and a jump to the next block is no instruction. This
+holds at every level and objective, as D1566 has it on Cortex-M, and the
+far forms (D678) are unchanged, since a branch is lengthened after it is
+chosen. A wide comparison on RV32 and a soft-float one, whose answers are
+a sequence or a helper's, keep their truth value.
+
+Every RV64, RV32 and Xtensa configuration is smaller: the seven hosted
+workloads' RV64 images by 1.6% at `size` to 2.3% at `none`, and their
+instructions executed under QEMU fall 2.7% at `size`, 3.4% at `none` and
+4.4% at `speed` (fannkuch-redux 7.8%, thread and fibre 5.4%); the firmware
+set's RV32 images fall 1.4% to 2.3% (fannkuch-redux 6.5%, merge-sort
+5.1%). Of RV64's 3.4% fewer instructions over every configuration,
+the fusion is 2.0% and the fall-through 1.4%.
+
+**The alternatives:** a peephole over the emitted text, which would have
+to prove the truth value's register dead where the IR already says it is
+read once; fusing in the IR, which D1687 declined as asking the same of
+every backend; and threading the forwarding blocks lowering
+leaves, a jump to a block that only jumps, which is target-neutral and
+belongs to the IR's simplification.
+
+**Pinned by** `backend/RISC-V compares without copies`, the RV64 fixtures
+under QEMU, the RV32 lanes' corpus and
+`compiler/tests/measure/baselines/`.
+
 ### D1688 — A RISC-V routine's frame holds only the saves its text names
 
 **The tour said** nothing. RV64 saved x9 and x18-x26 in every routine
@@ -27612,7 +27653,152 @@ which is the allocator's coalescing and a larger change.
 **Pinned by** the Cortex-M corpus at every level and
 `compiler/tests/measure/baselines/`.
 
+### D2108 — A refused allocation is allocated again, and the report names it
+
+**The tour said** nothing. D1503 and D1567 emit a routine with homes,
+allocate over the registers that text writes, emit it again and check
+that no write the second emission made meets a register the plan holds;
+where one does, the first emission is kept with every value in its home,
+and nothing said so. Over the runtime corpus at armv7-m speed-auto
+twelve routines fell back this way, every one because the second
+emission wrote r6 where the first had not.
+
+**Chosen:** Cortex-M's recording keeps every emission's writes, so a
+refused plan is followed by another allocation over all of them, up to
+three rounds, before the routine keeps its homes. A routine that keeps
+them on Cortex-M or RISC-V carries `kept_homes` in its build report row,
+naming the register and the position, the IR value whose emission wrote
+it. The twelve routines are allocated, with 15% to 35% fewer static
+instructions each.
+
+**The alternatives:** recording the refusal alone, which leaves the
+twelve in their homes; and a debug option instead of a report field,
+which a measurement script cannot read from a gate's artifacts.
+
+**Pinned by** the host reports suite's `whole discriminated plans` and
+the Cortex-M corpus.
+
+### D2109 — A loop's end that is a length less one bounds its index
+
+**The tour said** nothing. The simplifier proves an index below a
+slice's length when a loop's comparison names that length, but `for at
+in first..<lenof s - 1` names the slot its end was stored in, so
+`s[at]` kept its check each iteration: fasta's `select_symbol` spends
+the run in one such loop.
+
+**Chosen:** a slot stored once, by a store that strictly dominates the
+check, with a checked `x - k` for a constant `k` above zero, holds a
+value below `x`; an index below the slot's content is then below `x`
+when `x` is a constant or a fixed term the check names. A fact on the
+slot that held across its store would have been dropped, since the
+store lies below the comparison, so the content the fact names is the
+stored one. An unchecked subtraction proves nothing, nor does a slot
+stored twice.
+
+**The alternatives:** rewriting the loop's end in lowering, which would
+leave the same shape written by hand unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`, with four
+controls, at size and speed.
+
+### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
+
+**The tour said** nothing. D1767 left an eight-byte constant, and every
+`u64(x)` of a narrower integer, a value of its own: made in r0:r1, stored
+to its home and loaded back into the pair its reader used. In
+`core.line.divisor` at armv6-m size-auto each such operand cost seven
+instructions where two make it.
+
+**Chosen:** at `size` and `speed`, in a routine without an
+`assembler.block`, an eight-byte integer constant is deferred as D1767
+defers a word's: its reader makes both words in the pair it loads. A
+conversion that cannot fail from an integer of at most a word to an
+eight-byte one, from an unsigned source or a signed word to a signed
+result, emits nothing either: its reader loads the source into the low
+register and makes the high one with `movs` zero or `asrs` 31. The
+source then lives, and is held (D1567), through the conversion's last
+reader.
+
+**The alternatives:** a held pair (D1503's form) for each, which on
+Thumb-1 moves a pair with two `mov` where a home moves it with two `ldr`
+of the same size, and holds two of the six registers a routine has.
+
+**Pinned by** the Cortex-M corpus at every level and
+`compiler/tests/measure/baselines/`.
+
+### D2121 — Cortex-M tests nothing a constant or an earlier test settled
+
+**The tour said** nothing. An eight-byte division by a constant tested
+the constant for zero and called `__aeabi_uldivmod`; a checked
+eight-byte multiplication called the same helper to divide the largest
+result by one operand, a constant one included; and an atom stored to a
+slot and loaded back, or converted, was tested against its set again.
+
+**Chosen:** an unsigned eight-byte division or remainder by a constant
+power of two is shifts of the pair, and a division by any other nonzero
+constant tests nothing before the helper, as D1767 has a word's. A
+checked unsigned eight-byte multiplication by a constant compares the
+other operand with the largest it may be, folded, high word then low.
+A conversion of an atom constant whose code the set holds, or of a value
+already tested against the same set, tests nothing; nor does a load of
+either from a slot its block stored it in, with nothing between that
+could write memory.
+
+**The alternatives:** a run-time helper for the checked multiplication,
+which would still call.
+
+**Pinned by** the Cortex-M corpus at every level, the firmware oracles
+and `compiler/tests/measure/baselines/`.
+
+### D2122 — Cortex-M reads a value from the registers that still hold it
+
+**The tour said** nothing. With every eight-byte value in its home
+(D1567), a value computed in r0:r1 was stored there and loaded back into
+r0:r1 by the next operation, and a slot's load was stored to a home of
+its own before its one reader loaded it again.
+
+**Chosen:** at `size` and `speed`, in a routine without an
+`assembler.block`, the emitter tracks which word or eight-byte integer
+value each of r0 to r7 holds since it was stored to or loaded from its
+home: any line writing the register, and any label, forgets it. A load
+of a value a register still holds is nothing, or a `mov`, and a home
+store goes once the routine's text is complete if no load read that
+home. A load of a word or eight-byte integer slot, validating no atoms,
+whose readers all come before any operation in its block that could
+write memory or leave the block, emits nothing: each reader loads the
+slot, as it loads a deferred constant (D1767).
+
+**The alternatives:** a held pair over each value's interval (D1503),
+which the recorded writes refuse wherever an operation names r0 to r3,
+that is at every eight-byte operation; and a general store-to-load
+peephole over the text, which cannot tell a value's home from a slot's.
+
+**Pinned by** the Cortex-M corpus at every level, the firmware oracles
+and `compiler/tests/measure/baselines/`.
+
+### D2123 — A Cortex-M routine reads its parameters through sp
+
+**The tour said** nothing. A framed routine read each parameter from
+its incoming register's home, and from the caller's area, through
+`mov r6, r11` and an offset, and stored it to its slot the same way,
+since sp was not taken as known before the first block.
+
+**Chosen:** after the prologue reserves the frame and stores the
+incoming registers, sp is the bottom of the homes, as at each block's
+start, so a scalar parameter of a word or eight bytes is read with
+`ldr [sp, #imm]` where that reaches, into its slot's register when the
+slot is held, and stored with D1563's forms.
+
+**The alternatives:** keeping the incoming registers to the slots
+directly, which a slot held in r1 or r3 would overwrite before its own
+parameter was stored.
+
+**Pinned by** the Cortex-M corpus at every level and
+`compiler/tests/measure/baselines/`.
+
 ### D1627 — Xtensa places every word of a routine over the routine's own text
+
+**Partly superseded by D2116.** Its frame, kept as it was with the 80-byte bank and every value's and slot's home, is laid out after placement since D2116; the rest stands, and what follows is history.
 
 **The tour said** nothing. Xtensa's machine layer kept every RISC-V-form
 logical word but five in memory at a7 + 4×N and every value and slot in
@@ -27675,6 +27861,51 @@ words, not its IR.
 `xtensa backend/a word across a call keeps a2-a6`, both chips' corpus
 lanes and `compiler/tests/measure/baselines/`.
 
+### D2116 — An Xtensa routine's frame is laid out after its words are placed
+
+**The tour said** nothing. D1627 placed most of an assembly-free routine's
+words in registers but kept the frame it had, because the prologue was
+written before the body was placed: an 80-byte bank for the logical words
+and a home for every scalar value and slot, which only a spilled web reads.
+Over the firmware set the routines' frames summed to 912 to 3,408 bytes an
+image and the deepest was 304 to 752 bytes.
+
+**Chosen:** in a routine without an `assembler.block`, the homes below the
+CFA are only those of the values and slots that are not words of their own:
+slots an address reaches, aggregates and arrays, and values that assembly
+or C transport needs in memory. They keep their places relative to the
+CFA, which is still the incoming SP. The machine layer places the
+routine's webs first. It then lays out a home from a7 up for each word
+that some web keeps in memory, widest first. A word whose webs are all in
+registers, or never read, gets no home. The incoming a7, which the body
+reads as x15, gets the first home, and only when the body reads it. Only
+then is the prologue written, ahead of the body in the text. Its frame is
+those homes, the addressed homes above them and the 48 bytes below the
+CFA that the window keeps, rounded up to 16. If placement gives up,
+D1627's word-by-word fallback keeps the whole bank and a home for every
+value word in the same low part. A routine with an `assembler.block`
+keeps its two banks and every home. Firmware debug information describes
+lines and no frame, so it is unchanged. The preflight checks, L0507 and
+addressability, still bound the frame by the reference frame, which holds
+every home and so bounds this one; no lane's stack-limit record moves.
+Over the firmware set at every profile and both levels the routines' frames
+now sum to 352 to 1,072 bytes an image. The deepest frame is 128 to 208
+bytes, and `.text` is 48 to 312 bytes smaller at every key. At xtensa-esp32
+speed-auto the deepest closed call-graph depth of `--stack-report` falls
+from 800 to 2,240 bytes an image to 336 to 752.
+
+**The alternatives:** writing the prologue with a placeholder size and
+patching the text afterwards, which gives the same frame at the cost of a
+text substitution; sharing one home between words whose webs never
+overlap, which a few spilled words an image would not repay; and keeping
+the bank while dropping only the held homes, which leaves 80 bytes in every
+frame.
+
+**Pinned by** `xtensa backend/a placed frame holds only what it spills`,
+`xtensa backend/an outgoing area is part of the frame`, the prepared-stack
+case's check that every prologue's labels are its own, both chips' corpus
+lanes and native controls, and `compiler/tests/measure/baselines/`.
+
 ### D1628 — On Xtensa a comparison only its branch reads is the branch
 
 **The tour said** nothing. A comparison made its truth value with a branch
@@ -27692,6 +27923,25 @@ truth value's memory traffic but keeps both branches.
 
 **Pinned by** both chips' corpus lanes and
 `compiler/tests/measure/baselines/`.
+
+### D2113 — On Xtensa an edge to the block laid out next falls through
+
+**The tour said** nothing. D1628's branch was followed by a `j` to the
+alternative even where the alternative was the next block, a branch on a
+truth value by another, and every jump to the next block was one.
+
+**Chosen:** as D2112 has RISC-V do, a branch whose target is laid out
+next is the inverse branch to the alternative, and a jump to the next
+block is no instruction. Both chips' firmware images fall 0.5% to 0.65%
+at every objective, fannkuch-redux's 1.1%.
+
+**The alternatives:** the machine layer dropping a `j` before its own
+label, which sees the text after selection and could not invert the
+branch before it; and a float comparison fused as an integer one is,
+which changed no byte of any measured image and was left out.
+
+**Pinned by** `xtensa backend/a branch falls through to the next block`,
+both chips' corpus lanes and `compiler/tests/measure/baselines/`.
 
 ### D1629 — An Xtensa image is measured as a loader writes it
 

@@ -731,8 +731,23 @@ def total(value) -> int:
     return sum(value.values()) if isinstance(value, dict) else value
 
 
+def measurements_file(given: str) -> Path:
+    """GIVEN, a size.json or instructions.json, or the --output directory
+    of `size` or `instructions` holding exactly one of them."""
+    path = Path(given)
+    if path.is_dir():
+        found = [path / name for name in ("size.json", "instructions.json")
+                 if (path / name).is_file()]
+        require(len(found) == 1, f"{path} holds {'both' if found else 'neither'} of"
+                " size.json and instructions.json; name the file")
+        return found[0]
+    require(path.is_file(), f"no measurements at {path}: name the size.json or"
+            " instructions.json that `size` or `instructions` wrote, or its directory")
+    return path
+
+
 def compare(args) -> int:
-    measured = json.loads(Path(args.measurements).read_text())
+    measured = json.loads(measurements_file(args.measurements).read_text())
     kind = measured.get("class", "size")
     named = field(kind)
     base = args.base or default_base()
@@ -876,7 +891,9 @@ def main(argv=None) -> int:
     size.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     size.set_defaults(run=measure_size)
     against = commands.add_parser("compare", help="hold measurements to baselines")
-    against.add_argument("measurements")
+    against.add_argument("measurements",
+                         help="a size.json or instructions.json, or the directory"
+                              " `size` or `instructions` wrote it to")
     against.add_argument("--base")
     against.add_argument("--verbose", action="store_true",
                          help="each key's sections, not only its group's total")

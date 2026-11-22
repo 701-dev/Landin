@@ -2255,6 +2255,7 @@ package body Landin.Tests.IR_Optimization_Suite is
    --  type's range or a passed check in its block bounds cannot fail, and
    --  loses its edge.  Every case beside one that must keep it.
    procedure Proved_Checks (Item : in out Landin.Testing.Context) is
+      type Objectives is array (Positive range <>) of Opt.Objective;
       procedure Check_Proved
         (Source : String; Op : IR.Opcode; Expected : Natural; Why : String;
          Objective : Opt.Objective := Opt.Size);
@@ -2387,6 +2388,43 @@ package body Landin.Tests.IR_Optimization_Suite is
         ("public f: (inout v: [8]u8, i: usize) -> (r: u8) = "
          & "unchecked begin v[i] = 1 end unchecked r = v[i] end f",
          IR.Storage_Address, 1, "an unchecked index proves nothing");
+      --  D2109: a loop's end that is the length less one, a checked
+      --  subtraction stored once before the loop, bounds the index too.
+      for Objective of Objectives'[Opt.Size, Opt.Speed] loop
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 first: usize = 0 "
+            & "for i in first..<lenof s - 1 do r += usize(s[i]) end for "
+            & "end f",
+            IR.Slice_Address, 1, "a loop below the length less one",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 first: usize = 0 "
+            & "for i in first..<lenof s - 1 do r += usize(s[i + 1]) end for "
+            & "end f",
+            IR.Slice_Address, 0, "the next element below the length less "
+            & "one is not proved", Objective);
+         Check_Proved
+           ("public f: (s: []u8, t: []u8) -> (r: usize) = r = 0 "
+            & "first: usize = 0 "
+            & "for i in first..<lenof t - 1 do r += usize(s[i]) end for "
+            & "end f",
+            IR.Slice_Address, 0, "another slice's length less one bounds "
+            & "nothing", Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 mut last: usize = 0 "
+            & "unchecked begin last = lenof s - 1 end unchecked "
+            & "mut i: usize = 0 while i < last do r += usize(s[i]) "
+            & "inc i end while end f",
+            IR.Slice_Address, 0, "an unchecked length less one may wrap",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: usize) = r = 0 "
+            & "mut last: usize = lenof s - 1 if n > 3 then last = n end if "
+            & "mut i: usize = 0 while i < last do r += usize(s[i]) "
+            & "inc i end while end f",
+            IR.Slice_Address, 0, "a bound stored twice proves nothing",
+            Objective);
+      end loop;
    end Proved_Checks;
 
    --  D211: impossible comparisons cannot make the proof arithmetic leave

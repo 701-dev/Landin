@@ -175,7 +175,7 @@ different responsibilities.
 | `Landin.Backend.ELF` | the ELF directive spellings every ELF backend shares: symbol types and sizes, the read-only, relocated read-only, data and zero sections, the panic flag's section and the non-executable stack note | own a backend's line discipline, choose which section a datum belongs in, or spell ARM's `%` section types |
 | `Landin.Backend.Dispatch` | backend selection for frame preflight and assembly/debug emission | choose language semantics or discover host tools |
 | `Landin.Backend.Xtensa` | windowed Xtensa emission from verified IR: frames, the bank of homes of the logical words, integer ABI carriers and every IR operation, written as RISC-V-form logical instructions over words, a scalar value's or eligible slot's its own in a routine without assembly, that `Xtensa_Machine` selects | parse or check source, keep a logical instruction in its output, access files or run tools |
-| `Landin.Backend.Xtensa_Machine` | the Xtensa instructions for the logical instructions: an assembly-free routine buffered whole, its words' liveness, webs, constant folding, dead operations and placement in a2-a6 and a10-a15 over its own text (D1627); otherwise every word read from and written to its home at a7 + 4×N, or held in a2-a6, through the transient a8-a13; CALL8 and CALLX8 calls; and shortening a local jump proved in range | define language semantics, alias a word that has no home, or execute bytecode |
+| `Landin.Backend.Xtensa_Machine` | the Xtensa instructions for the logical instructions: an assembly-free routine buffered whole, its words' liveness, webs, constant folding, dead operations and placement in a2-a6 and a10-a15 over its own text (D1627), then the homes of the words it leaves in memory and the prologue that reserves them (D2116); otherwise every word read from and written to its home at a7 + 4×N, or held in a2-a6, through the transient a8-a13; CALL8 and CALLX8 calls; and shortening a local jump proved in range | define language semantics, alias a word that has no home, or execute bytecode |
 | `Landin.Backend.X86_64` | the assembly text for one target, every register in it, collision-safe whole-program symbols, the hosted entry's initializer call, D161's read-only literal data, the target-width scalar, finite-array, compact repetition, nested-child and selected-variant directives and padding for recursively written aggregate images, and D187's omission of exactly the overflow, element-index, slice-range and integer-conversion edges an instruction is marked for | decide a language error mapping, write a file, or run a tool |
 | `Landin.Backend.X86_64.Allocation` | deterministic stack homes, the five available SysV callee-save GP registers, slots' registers over their live intervals, and the four caller-saved registers selection leaves alone between two operations | give a location a register selection writes inside its interval, or allocate failure registers |
 | `Landin.Backend.X86_64.Machine` | selected instruction counts and optional canonical body-equivalence evidence | canonicalize external symbols as local labels or equate counts with assembled bytes |
@@ -1287,7 +1287,13 @@ names both figures as this one does. `save_bytes` are the callee-saved registers
 the frame or pushed beside the frame record, never the record itself;
 `spill_bytes` and `spill_count` its spill homes. `register_count` is the
 distinct registers the allocation holds a value or slot in, saved or not,
-and zero on RISC-V, Xtensa and Cortex-M, which give every one a home.
+and zero where it gives every one a home: at `--optimize=none`, and in a
+routine whose allocation was refused. Cortex-M and RISC-V emit a routine
+with homes, allocate over the registers its text writes, and emit it
+again; where the second emission writes a register the plan holds a
+value in, they keep the first emission, and its row says so with
+`kept_homes`, holding the `register` and the `position`, the IR value
+whose emission wrote it.
 `instructions`, `stack_loads`, `stack_stores`, `direct_calls` and
 `indirect_calls` are static sites in the routine's final text: a load or
 store reaches the stack through the stack or frame pointer or a register
