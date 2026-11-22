@@ -590,7 +590,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R19.90 — The value model folded.**
+**Next roadmap item: R20.10 — Decide the review's questions (planned).**
 
 ## Questions, bugs and ideas
 

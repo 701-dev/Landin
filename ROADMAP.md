@@ -1315,7 +1315,7 @@ removed them on 2026-11-16, replaced by a `distinct` type with a checking
 constructor, and R19.10 records that and groups it. The candidates that
 wait on R20 (SC-17, SC-18) are recorded as such, not forced. The answers
 on labels, `break with` and `complete` (SC-01, SC-02) settle E1.
-It takes on SR-1288: the answer on SC-24 either folds the
+It takes on `SR-1288`: the answer on SC-24 either folds the
 value-model decisions or marks each boundary a later decision lifted, so
 that a superseded boundary no longer reads as a live rule. SC-27 is
 decided on a count, not an estimate: R19.10 counted the constructs over
@@ -1336,7 +1336,7 @@ SC-14, SC-15, SC-19, SC-20, SC-21, SC-23, SC-27, SC-28 and SC-29 stay,
 SC-17 and SC-18 wait on R20, and SC-26 is R19.30's (D1653). SC-24 and
 SC-25 fold (D1664), so R19.20 runs. A fixed actual folds as an array
 length does (D1663), which settles `SR-1237`; D1651 and D1653 settle
-`E1`; SR-1288 moves to the fold's item. The maintainer named no groups,
+`E1`; `SR-1288` moves to the fold's item. The maintainer named no groups,
 and the five below group the removals by the part of the compiler each
 touches, the declaration spellings taking D1663 with them. The census,
 `./scripts/dev-test.sh --census`, completed `SR-1286`; the checker's
@@ -1565,7 +1565,7 @@ three, so no size or cycle baseline moved.
 
 ### R19.90 — The value model folded
 
-Status: active
+Status: complete
 Depends on: R19.10, R19.20, R19.30, R19.40
 
 SC-24 and SC-25, as D1664 records, in the scope and order of R19.20's
@@ -1582,13 +1582,38 @@ R19.30 has settled its write order. A counted repetition and `lenof` of
 a literal take any element shape, and so does an inferred module array,
 a literal or a counted repetition (D26, D35), as the maintainer's answer
 to Q-122 chose. Comments, notes and fixture summaries are
-re-pointed to the surviving rules. This takes on SR-1288.
+re-pointed to the surviving rules. This takes on `SR-1288`.
 
 Exit evidence: no fixture pinning a surviving rule of D24 to D109
 changed in meaning; diagnostic changes from L0304 to L0301 listed in the
 commit; positive fixtures for a repetition, a `lenof` and an inferred
 module array of a non-scalar element; the build-modes comparison and the manifest over lowering's
 collapse; the complete gate on the item's commit.
+Done: 47 of D24 to D109 are marked superseded, D63 and D73 as refused
+syntax later enabled, and 17 partly live ones name the sentences that no
+longer hold, D26 among them once D1947 lifted its scalar element; D32
+states the compact whole-array rule D28 and D30 first did, and 159
+fixture summaries cite the rule that still decides. The checker's gate
+keeps only [1940]'s module refusals and "needs a named body or an
+initializer"; a binding's and an assignment's aggregate, array and scalar
+`zeroed` values, and the runtime halves of `Check_Array_Field` and
+`Check_Fixed_Array_Payload`, are one `Check_Contextual_Value` call each;
+`Is_Zeroed_Scalar_Place` and `Admit_Array_Field` left, and `Selected_From`
+types a whole array field wherever a selection reaches it. `Synthesise`
+keeps its refusal of a whole array or struct field where another type is
+wanted, in the words it uses for a whole name, since the general mismatch
+lost the erased view's `any(addr ...)` hint. A counted repetition, `lenof`
+of a literal and an inferred module array take any element shape (D1664,
+D1947), through one `Infer_Element_Shape`; four refusing fixtures became
+positive ones and `runtime/r1990-repetition-and-lenof-of-structs` runs
+them. Lowering's binding and assignment inline writes went to the general
+writer with the recorded IR of every existing program unchanged. No code
+moved from L0304 to L0301; twenty-two negative fixtures keep their codes
+and take the general check's words, a `zeroed` report still pointing at
+the written type. The item removed no form, so it has no `refine fix`
+(D1847). `check.py`'s refusal of a pinned fixture that does not exist no
+longer assumes it was retired, a finding met on the way. `SR-1288` is
+settled.
 
 ### R19 gate
 R19's breaking window: every accepted group, R19.30 and R19.40 integrate on
