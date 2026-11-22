@@ -2862,6 +2862,9 @@
     "runtime/for-iterable-evidence-traversal": {
       "mode": "execute"
     },
+    "runtime/for-over-map-and-tree": {
+      "mode": "execute"
+    },
     "runtime/for-range-traversal": {
       "mode": "execute"
     },
@@ -3263,6 +3266,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-io": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-iter": {
       "mode": "execute"
     },
     "runtime/library-shared-line": {
@@ -3747,6 +3753,9 @@
       "mode": "execute"
     },
     "runtime/option-names-stay-in-their-module": {
+      "mode": "execute"
+    },
+    "runtime/panic-require-reports-its-caller": {
       "mode": "execute"
     },
     "runtime/parameterized-struct-lazy-value-layout": {

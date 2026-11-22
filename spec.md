@@ -16391,7 +16391,7 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **The alternatives:** keeping the two fields and filing the conversion for a later language change; and keeping `task` and `job` apart because a thread is an execution context and a fibre is not (D446). Both were declined: the conversion is additive, and the two concepts' entries are the same.
 
-**Pinned by** `runtime/any-converts-to-parents`, which converts an `any` along a chain of three concepts in a binding, an assignment, an argument, a result and a struct field, over two types whose providers answer differently, on every target the gate runs, and `negative/any-converts-only-to-parents`, which refuses the conversion to a child's `any` and to a sibling's; how the table carries the parent's part is D1968. The one task concept is held by the library review's change that applies it, and the breaking list names each routine it changes.
+**Pinned by** `runtime/any-converts-to-parents`, which converts an `any` along a chain of three concepts in a binding, an assignment, an argument, a result and a struct field, over two types whose providers answer differently, on every target the gate runs, and `negative/any-converts-only-to-parents`, which refuses the conversion to a child's `any` and to a sibling's; how the table carries the parent's part is D1968. The one task concept and the group's one scheduler are D2049.
 
 ### D1968 — An erased table names its parents' tables after its entries
 
@@ -16403,6 +16403,16 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **Pinned by** `runtime/any-converts-to-parents`, whose shape table names both of its ancestors and whose conversions read the cells, and the verifier's case for malformed parent cells.
 
+### D2049 — One bridge makes a task for fibres and threads, and a fibre group holds one scheduler
+
+**The tour said** at [1370], as D1949 decided, that `core/fibre`'s `task` is the one task concept, which `hosted/thread` uses with one bridge from a routine and a state, and that the fibre group holds one `any scheduler`. It did not say how one bridge serves a group whose fibres share one execution context and a group whose threads run in parallel, which keep a task's first failure differently.
+
+**Chosen:** `core/fibre` declares `bridge(state_type)`, a public struct of the routine, the state, the address of the group's record of its first failure and a keeper, a routine `(kept: usize, problem: failure.reason) -> none` that the bridge calls with the failure; it conforms to `task`. The fibre group's keeper writes the ledger when nothing has failed before, and the thread group's takes an atomic claim first, as its own bridge did, so `core/fibre` imports no `core/atomic`, whose read-modify-write Cortex-M0 lacks (D510). `hosted/thread` imports `core/fibre`, which adds no byte to an image that starts no fibre group (D1950), and its private `job` concept, its `launch` and its `launch_run` leave; a slot holds an `any fibre.task`. The fibre group keeps one `any scheduler`: `turns_over` stores the `any turns` it is given as the scheduler it converts to, so the flag saying which of two fields ran, the second field and the `unused` provider that filled it leave. Nothing a program wrote changes: `task` and both groups' routines keep their signatures, and the bridge is new.
+
+**The alternatives:** one bridge whose keeper is always the atomic claim, which Cortex-M0 cannot run; the keeper as a concept, which makes the bridge generic over a second type for one call; and keeping `launch` in both modules, each conforming to `task`, which keeps two bridges of one shape. All were declined.
+
+**Pinned by** the fibre and thread fixtures, which run unchanged: `runtime/fibre-join-first-failure`, `runtime/fibre-turns-interleave`, `runtime/thread-join-first-failure` and `runtime/example-primes-on-threads` among them, on every target the gate runs, and the freestanding lane's fibre images on Cortex-M0.
+
 ### D1957 — The library declares `iterable`, and its containers conform
 
 **The tour said** at [1320] that `for x in s` over a program's own type uses the `iterable` concept, which the compiler recognises by name; no library module declares it, no library type conforms, and a container hands out a slice for `for` to walk. D1652 removed `try for`, so nothing recognises `fallible_iterable`, which [1320] still shows.
@@ -16411,7 +16421,17 @@ and `runtime/parameterized-struct-values` on Linux x86-64.
 
 **The alternatives:** a program declaring its own `iterable`, the tour saying so; and removing the protocol, `for` walking slices and ranges only. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** what D2048 names: `runtime/for-over-map-and-tree`, `negative/for-takes-only-core-iter-iterable` and the traversal fixtures that import `core/iter`. The breaking list names the forms it changes.
+
+### D2048 — `core/iter` declares `iterable`, `for` takes no other, and the map and the tree conform
+
+**The tour said** at [1320], as D1957 decided, that a `core` module declares `iterable` and `for` uses it, and that a map and a tree conform. It named neither the module, nor what a program's own concept of that name becomes, nor what each container hands out.
+
+**Chosen:** the module is `core/iter`, which declares `iterable` and nothing else, so a type conforms to `iter.iterable` and the map and the tree import it without bringing anything more. The checker takes only that declaration: a program's own concept named `iterable` is an ordinary concept, and a `for` over a type that conforms to it and not to `iter.iterable` is L0348 naming `core/iter`. The map conforms with its `cursor` as the cursor, holding the slot of the entry handed out next, and `map.entry(key, item)` as the item, a copy of the key and the item, walking the live entries in insertion order as `next_entry` does. The tree conforms with an ordinal as the cursor and `tree.node_id` as the item, walking every published node in the order the nodes were added, which puts a branch after its children; a node is not the item, because it holds its name borrowed from the tree and [1320]'s item returns no view. The contract check of the concept's shape stays, for the library's own declaration. The checker's refusal of two concepts named `iterable` leaves, since one module declares it.
+
+**The alternatives:** declaring the concept in `core/mem`, which every container imports already, or in `core/cmp`, beside the other evidence concepts, both of which give a module a concept outside its subject; `core/iterable`, which makes the conformance `iterable.iterable`; and accepting a program's own concept beside the library's, which keeps two identities and the ambiguity D180 refused. All were declined. The module's name is an implementation choice under D1957's answer, made without a question.
+
+**Pinned by** `runtime/for-over-map-and-tree`, which walks a map with a removed entry and a tree of two leaves and a branch on every product target and Cortex-M0; `negative/for-takes-only-core-iter-iterable` and `negative/r491-iterable-contract`, a program's own concept refused naming `core/iter`; and the traversal fixtures, `runtime/for-iterable-evidence-traversal` among them, which conform to `iter.iterable`.
 
 ### D1958 — `zeroable` stays a bound a program writes
 
@@ -33754,6 +33774,8 @@ pointer-to-cstring conversion.
 
 ### D268 — The I/O capability is four narrow concepts and their composition
 
+**Amended by D2050.** `io.writer_of`, its adapter and `lent_writer` left once an `any io.world` converted to `any io.writer` (D1949, D1952); a routine holding only the world passes it where a writer is wanted. The rest stands.
+
 **The tour said** [1660] that Io is a concept so another provider can satisfy
 it, and [1260] that a concept is not widened to fit its hungriest
 implementation: there are two concepts instead. D153 then gave `core/io` one
@@ -36309,6 +36331,8 @@ keeps.
 
 ### D288 — A service is a handle, made from state its caller declares
 
+**Amended by D2050.** `io.writer_of`, its adapter and `lent_writer` left once an `any io.world` converted to `any io.writer` (D1949, D1952); a routine holding only the world passes it where a writer is wanted. The rest stands.
+
 **The tour said** at [1360] that an allocator is threaded rather than stored
 and wrote its entries `inout a: provider`, at [1660] that Io is a concept a
 root passes on, at [0790] that a result names what it borrows and at [0800]
@@ -38408,6 +38432,8 @@ it; `runtime/first-program`; and
 
 ### D348 — `core/io` splits into `core/time`, `core/net` and `core/io/fake`
 
+**Amended by D2050.** `io.writer_of`, its adapter and `lent_writer` left once an `any io.world` converted to `any io.writer` (D1949, D1952); a routine holding only the world passes it where a writer is wanted. The rest stands.
+
 **The tour said** at [1660] that I/O is a capability passed as an argument,
 and nothing of how its module grows. Each hosted item had added a file to
 `core/io`, which reached 193 public names: the clocks and spans of D315 and
@@ -40227,6 +40253,8 @@ waiter for SIGHUP woken by `stop_watching`.
 
 ### D489 — Prototype 5's derived server, and where it departs from the sketch
 
+**Amended by D2049.** An `any fibre.turns` converts to `any fibre.scheduler` (D1949), so `serve_until_terminated` takes the provider twice, as `fibre.turns` and `signal.signals`, and runs its sessions on the turns; the lending three ways below is history.
+
 **The tour said** at [1660] that a program's roots are minted at its entry
 and lent down, and at [1675] that a group's tasks run one at a time or take
 turns as the provider says. Prototype 5 sketched a server whose `main`
@@ -42015,7 +42043,17 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** merging those pairs now; and one broad `world` whose firmware providers refuse what they lack at run time. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** `runtime/library-io-writer-adapter`, which passes an erased world where an `any io.writer` is wanted, and the derived examples, whose roots hand `diag.stream` the world. The review of the pairs is D2050.
+
+### D2050 — No pair of I/O concepts merges, and `writer_of` leaves
+
+**The tour said** at [1680], as D1952 decided, that the I/O concepts stay narrow, that `lent`, `lent_writer` and `writer_of` leave, and that a pair saying one idea twice merges only where its receivers and failures can be one. It left the review of the pairs to the change applying it.
+
+**Chosen:** no pair merges. `io.writer` and `text.outlet` differ in both: a writer's entries take the provider's handle by value and a file, and fail `io_failed`, which a system reports; an outlet's one entry takes the outlet `ptr mut`, since a builder is an edited value, names no file, and fails `no_space`, which its caller's buffer decides. `io.write_format` already makes an outlet over a writer's file, which is the one place the two meet. The three file concepts, `files`, `file_system` and `directories`, take the same receiver, but `file_system` already builds on `files`, so a provider of it has one `close`, and `directories` is outside `world` because firmware's memory world has no tree: merging either into `files` gives every `world` the whole file system, which D268 split to avoid. `io.writer_of`, the private adapter `lent` behind `io.lent_writer` and its two forwarding routines leave; a routine holding an `any io.world` passes it where an `any io.writer` is wanted, and `diag.stream(world, world.err())` is how a root streams its log.
+
+**The alternatives:** merging `outlet` into `writer` with a pseudo-file, which gives a builder a system's failure; and folding `file_system` into `files`. Both were declined.
+
+**Pinned by** `runtime/library-io-writer-adapter` and the derived examples, as D1952 says; `docs/library.md`, generated, has no `writer_of`.
 
 ### D1953 — The library has one name for each idea
 
@@ -42151,4 +42189,14 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** keeping it without a library use; and removing it, though nothing else does its job. Both were declined.
 
-**Pinned by** `positive/caller-parameters` and `runtime/caller-parameters`, which stay; the library routine adds its own fixture.
+**Pinned by** `positive/caller-parameters` and `runtime/caller-parameters`, which stay, and the library routine's fixture, `runtime/panic-require-reports-its-caller` (D2051).
+
+### D2051 — `core/panic` gives `require` over a `call_site`
+
+**The tour said** at [1040], as D1959 decided, that `core` gains an assertion or logging routine taking its call site through `caller`. It named neither.
+
+**Chosen:** `core/panic` declares the struct [1040] gives a `caller` parameter as `panic.call_site`, and `panic.require(holds: bool, caller where: call_site) -> none`, which calls `compiler.unreachable(where)` when `holds` is false, so the stop is reported at `require`'s call, or, through a wrapper that passes its own `caller` on, at the wrapper's. The struct is `call_site` rather than [1040]'s `site` because a panic handler's second parameter is a `site` too, a number ([1670]); the routine is `require`, the tour's and `runtime/caller-site-trap`'s name for it, since `assert` suggests a check a build turns off and nothing turns this one off. It is in `core/panic` because what it does is stop as a failed check does, which is that module's subject, and the module imports nothing.
+
+**The alternatives:** a logging routine in `core/diag` taking a `caller`, which would put a site in every log entry where a text position already is; and `core/failure`, which is the registry of failure atoms. Both were declined.
+
+**Pinned by** `runtime/panic-require-reports-its-caller`, whose trap is reported at the wrapper's call on every hosted product target.

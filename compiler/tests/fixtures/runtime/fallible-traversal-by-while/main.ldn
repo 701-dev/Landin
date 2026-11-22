@@ -1,11 +1,6 @@
-stream_failed: atom
+import core/iter
 
-iterable: type = concept (t: type, cur: type, item_type: type)
-    first: (s: ptr t) -> (c: cur)
-    at_end: (s: ptr t, c: cur) -> (yes: bool)
-    item: (s: ptr t, c: cur) -> (v: item_type)
-    next: (s: ptr t, c: cur) -> (c2: cur)
-end iterable
+stream_failed: atom
 
 stream: type = struct
     mode: i32
@@ -43,7 +38,7 @@ plain_next: (s: ptr stream, c: usize) -> (c2: usize) =
     c2 = c + 1
 end plain_next
 
-stream is iterable
+stream is iter.iterable
     (cur: usize, item_type: i32,
      first: plain_first, at_end: plain_end, item: plain_item, next: plain_next)
 
@@ -95,7 +90,7 @@ badge_next: (s: ptr badge, c: usize) -> (c2: usize) =
     c2 = c + 1
 end badge_next
 
-badge is iterable
+badge is iter.iterable
     (cur: usize, item_type: i32,
      first: badge_first, at_end: badge_end, item: badge_item, next: badge_next)
 

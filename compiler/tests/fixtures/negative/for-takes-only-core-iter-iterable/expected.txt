@@ -1,0 +1,10 @@
+error[L0348]: `bag` has no conformance to core/iter's `iterable`; `for` takes no other concept of that name
+  --> ../tests/fixtures/negative/for-takes-only-core-iter-iterable/main.ldn:26:17
+   |
+26 |     for each in items do
+   |                 ^^^^^
+  --> ../tests/fixtures/negative/for-takes-only-core-iter-iterable/main.ldn:26:5
+   |
+26 |     for each in items do
+   |     ^^^^^^^^^^^^^^^^^^^^ the loop that traverses it
+  = note: D1957: import core/iter and conform to `iter.iterable` in place of declaring one

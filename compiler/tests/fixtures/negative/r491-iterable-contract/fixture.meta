@@ -1,5 +1,5 @@
 class: negative
-summary: early iterable typing requires the exact declared traversal contract
+summary: a for loop over a program's own concept named iterable, whatever its contract, is refused naming core/iter's iterable
 program: main.ldn
 codes: L0348
 constructs: 0430, 1150, 1240, 1280, 1320

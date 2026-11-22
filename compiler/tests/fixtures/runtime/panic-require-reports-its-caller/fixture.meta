@@ -1,0 +1,9 @@
+class: runtime
+profiles: standard
+summary: core/panic's require reports its stop at the call that filled its caller parameter, through a wrapper that forwards its own, and not inside the library
+program: main.ldn
+root: ../../../../..
+traps: yes
+constructs: 1040, 1560, 1670
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
+trap_report: main.ldn:17:5: trap: unreachable

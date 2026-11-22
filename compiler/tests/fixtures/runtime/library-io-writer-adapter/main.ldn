@@ -2,7 +2,7 @@ import core/io
 import core/text
 
 --  A small world with one writable stream. Unsupported services refuse;
---  the adapter must preserve partial progress and failures on that stream.
+--  the writer the world converts to keeps partial progress and failures.
 device_state: type = struct
     byte: u8
     calls: usize
@@ -89,8 +89,7 @@ exercise: () -> (ok: bool) ! io.io_failed =
     mut state: device_state = (byte: 0, calls: 0)
     host: device = (state: addr state)
     world: any io.world = any(addr host)
-    lent := io.writer_of(world)
-    writer: any io.writer = any(addr lent)
+    writer: any io.writer = world
     try writer.write(world.out(), "A")
     return when state.byte <> 65 or state.calls <> 1
     partial: usize = try writer.write_some(world.out(), "BC")

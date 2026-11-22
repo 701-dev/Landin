@@ -66,9 +66,8 @@ run: (signals: fake.signals, runs: any fibre.turns, host: blocking.host)
                             signals: signals, heard: addr heard)
     try fibre.admit(clients, client, asking)
     try server.serve_until_terminated(runs, any(addr signals),
-                                      any(addr signals), any(addr network),
-                                      any(addr taking), any(addr host),
-                                      listener)
+                                      any(addr network), any(addr taking),
+                                      any(addr host), listener)
     try fibre.join(clients)
     fail io.io_failed when heard.count <> 2
       or cmp.compare(heard.order[0..<2], "ba") <> cmp.equal

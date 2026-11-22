@@ -111,8 +111,8 @@ over_blocking: (port: u16) -> (code: i32) =
 end over_blocking
 
 --  Over the provider whose waits switch fibres, `hosted/events`: one
---  handle erased as `turning`, `signals`, `runs`, `network`, `clock` and
---  `world`, served by `server.serve_until_terminated`, whose fibre waiting
+--  handle erased as `turning`, `signals`, `network`, `clock` and `world`,
+--  served by `server.serve_until_terminated`, whose fibre waiting
 --  for SIGTERM stops it cleanly.  The round's table holds the fibres that
 --  may be unfinished at once, the signal waiter and two sessions, and one
 --  more.
@@ -127,7 +127,6 @@ over_events: (port: u16) -> (code: i32) =
     end
     turning: any fibre.turns = any(addr host)
     signals: any signal.signals = any(addr host)
-    runs: any fibre.scheduler = any(addr host)
     network: any net.network = any(addr host)
     clock: any time.clock = any(addr host)
     world: any io.world = any(addr host)
@@ -135,8 +134,8 @@ over_events: (port: u16) -> (code: i32) =
         _ = problem
         return
     end
-    server.serve_until_terminated(turning, signals, runs, network, clock,
-                                  world, listener) else (problem)
+    server.serve_until_terminated(turning, signals, network, clock, world,
+                                  listener) else (problem)
         complain(world, failure.words(problem))
         return
     end

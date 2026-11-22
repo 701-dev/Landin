@@ -7,4 +7,4 @@ error[L0348]: `source` has no [1320] iterable conformance
    |
 30 |     for item in value do
    |     ^^^^^^^^^^^^^^^^^^^^ the loop that traverses it
-  = note: [1150]: a struct or `any C` traversal uses the named iterable evidence
+  = note: [1150]: a struct or `any C` traversal uses core/iter's `iterable`; import core/iter and conform to `iter.iterable`

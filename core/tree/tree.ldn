@@ -1,3 +1,4 @@
+import core/iter
 import core/mem
 import core/vec
 
@@ -215,6 +216,32 @@ public count_leaves: (value: tree, id: node_id)
     end
     count = selected.leaves
 end count_leaves
+
+--  The tree's conformance to core/iter's `iterable` (D1957): `for id in t`
+--  walks every published node's identifier in the order the nodes were
+--  added, which puts each branch after its children.
+walk_first: (s: ptr tree_value) -> (c: usize) =
+    _ = s
+    c = 0
+end walk_first
+
+walk_at_end: (s: ptr tree_value, c: usize) -> (yes: bool) =
+    yes = c >= vec.length(s.val.nodes)
+end walk_at_end
+
+walk_item: (s: ptr tree_value, c: usize) -> (v: node_id) =
+    _ = s
+    v = identifier(c)
+end walk_item
+
+walk_next: (s: ptr tree_value, c: usize) -> (c2: usize) =
+    _ = s
+    c2 = c + 1
+end walk_next
+
+tree_value is iter.iterable (cur: usize, item_type: node_id,
+                             first: walk_first, at_end: walk_at_end,
+                             item: walk_item, next: walk_next)
 
 --- Release node storage through the original allocator and reset the tree.
 --- Name backing remains owned by its caller.

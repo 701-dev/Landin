@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: lending a writer from an erased world preserves full writes, partial progress, empty writes and failures
+summary: an erased world converts to its writer (D1952), which keeps full writes, partial progress, empty writes and failures
 program: main.ldn
 root: ../../../../..
 status: 42

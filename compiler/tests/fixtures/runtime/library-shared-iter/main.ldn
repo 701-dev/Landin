@@ -1,0 +1,40 @@
+import core/iter
+
+--  Three counts, walked by `for` through core/iter's `iterable`.
+counts: type = struct
+    limit: u32
+end counts
+
+first: (s: ptr counts) -> (c: u32) =
+    _ = s
+    c = 1
+end first
+
+at_end: (s: ptr counts, c: u32) -> (yes: bool) =
+    yes = c > s.val.limit
+end at_end
+
+item: (s: ptr counts, c: u32) -> (v: u32) =
+    _ = s
+    v = c * 10
+end item
+
+next: (s: ptr counts, c: u32) -> (c2: u32) =
+    _ = s
+    c2 = c + 1
+end next
+
+counts is iter.iterable (cur: u32, item_type: u32, first: first,
+                         at_end: at_end, item: item, next: next)
+
+public main: () -> (code: i32) =
+    source: counts = (limit: 3)
+    mut sum: u32 = 0
+    for value in source do
+        sum += value
+    end for
+    code = 1
+    if sum == 60 then
+        code = 42
+    end if
+end main

@@ -173,9 +173,8 @@ end write_position
 
 --- Create a streaming logger over an erased writer and file identifier. The
 --- logger holds a copy of both; keep the writer's handle and its state alive
---- while logging. A streaming log needs only a writer. A root that holds an
---- `any io.world` builds an `any io.writer` from the same handle, because
---- one erased value does not convert to the other.
+--- while logging. A streaming log needs only a writer, and an
+--- `any io.world` converts to one (D1952).
 public stream: (host: any io.writer, where_to: io.file)
                -> (result: streaming from host) =
     result = streaming(host: host, where_to: where_to, errors: 0)

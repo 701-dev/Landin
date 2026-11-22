@@ -506,16 +506,21 @@ Those contracts do not match. The library therefore traverses
 `vec.used(list)` with the existing slice traversal rules instead of discarding
 the returned origin or widening `iterable`. `negative/iterable-retained-item-source` pins the exact
 signature refusal. The cursor sketch below is not an implemented conformance.
+The concept is `core/iter`'s since D2048, which `for` takes and nothing
+else of its name; the library's map and tree conform to it, handing out a
+copied entry and a node identifier, neither of them a view of the storage.
 
 ```landin
+import core/iter
+
 list_first:  (t: type, s: list(t)) -> (c: usize)   = 0 end
 list_at_end: (t: type, s: list(t), c: usize) -> (yes: bool) = c >= s.len end
 list_item:   (t: type, s: list(t), c: usize) -> (v: t)      = s.items[c] end
 list_next:   (t: type, s: list(t), c: usize) -> (c2: usize) = c + 1 end
 
-(t: type) list(t) is iterable (cur: usize, item_type: t,
-                               first:  list_first, at_end: list_at_end,
-                               item:   list_item,  next:   list_next)
+(t: type) list(t) is iter.iterable (cur: usize, item_type: t,
+                                    first:  list_first, at_end: list_at_end,
+                                    item:   list_item,  next:   list_next)
 
 ```
 
