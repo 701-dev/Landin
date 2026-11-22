@@ -1012,7 +1012,8 @@ package body Landin.Backend.Xtensa is
       procedure Compare
         (Left, Right : String; Literal : Boolean := False);
       procedure Compare_Float (Suffix, Left, Right : String);
-      procedure Branch (Condition, Target : String);
+      procedure Branch
+        (Condition, Target : String; Negated : Boolean := False);
       procedure Predicate (Destination, Condition : String);
       procedure Add_Sub
         (Destination, Left, Right : String; Subtract : Boolean;
@@ -1046,7 +1047,11 @@ package body Landin.Backend.Xtensa is
          Emit ("andi x24, x24, 768");
       end Compare_Float;
 
-      procedure Branch (Condition, Target : String) is
+      --  To Target when Condition holds, or when Negated when it does not:
+      --  the same test with its branch inverted (D2113).
+      procedure Branch
+        (Condition, Target : String; Negated : Boolean := False)
+      is
          Test : Unbounded.Unbounded_String;
       begin
          if Float_Comparison then
@@ -1085,6 +1090,26 @@ package body Landin.Backend.Xtensa is
                elsif Condition = "cs" then "bnez x23, "
                elsif Condition = "cc" then "beqz x23, "
                else raise Compiler_Defect with "invalid integer predicate");
+         end if;
+         if Negated then
+            declare
+               Text : constant String := Unbounded.To_String (Test);
+               Space : constant Natural := Ada.Strings.Fixed.Index (Text, " ");
+               Mnemonic : constant String := Text (Text'First .. Space - 1);
+               Inverse : constant String :=
+                 (if Mnemonic = "beq" then "bne"
+                  elsif Mnemonic = "bne" then "beq"
+                  elsif Mnemonic = "blt" then "bge"
+                  elsif Mnemonic = "bge" then "blt"
+                  elsif Mnemonic = "bltu" then "bgeu"
+                  elsif Mnemonic = "bgeu" then "bltu"
+                  elsif Mnemonic = "beqz" then "bnez"
+                  elsif Mnemonic = "bnez" then "beqz"
+                  else raise Compiler_Defect with "a branch with no inverse");
+            begin
+               Test := Unbounded.To_Unbounded_String
+                 (Inverse & Text (Space .. Text'Last));
+            end;
          end if;
          Emit (Unbounded.To_String (Test) & Target);
       end Branch;
@@ -1690,6 +1715,37 @@ package body Landin.Backend.Xtensa is
          --  its comparison has already made (D1628).
          Next_Value : Landin.IR.Value_Id := Landin.IR.No_Value;
          Fused : Landin.IR.Value_Id := Landin.IR.No_Value;
+         --  D2113: the block emitted now.
+         Current_Block : Natural := 0;
+
+         --  D2113: a jump to the block laid out next is no instruction.
+         procedure Jump_To_Block (Block : Landin.IR.Block_Id);
+         procedure Jump_To_Block (Block : Landin.IR.Block_Id) is
+         begin
+            if Natural (Block) /= Current_Block + 1 then
+               Emit ("j " & Label (Item, Block));
+            end if;
+         end Jump_To_Block;
+
+         --  D2113: to Target when Condition holds, else to Alternative,
+         --  falling through to whichever is laid out next.
+         procedure Transfer
+           (Condition : String; Target, Alternative : Landin.IR.Block_Id);
+         procedure Transfer
+           (Condition : String; Target, Alternative : Landin.IR.Block_Id)
+         is
+            use type Landin.IR.Block_Id;
+         begin
+            if Natural (Target) = Current_Block + 1
+              and then Target /= Alternative
+            then
+               Branch (Condition, Label (Item, Alternative), Negated => True);
+            else
+               Branch (Condition, Label (Item, Target));
+               Jump_To_Block (Alternative);
+            end if;
+         end Transfer;
+
          type Panic_Edge is record
             Reason : Landin.Panics.Kind;
             Site : Landin.Panics.Site_Number;
@@ -4428,7 +4484,8 @@ package body Landin.Backend.Xtensa is
                         Extend ("x6", Scalar);
                         Compare ("x5", "x6");
                         --  D1628: a comparison only the branch after it
-                        --  reads is that branch's test.
+                        --  reads is that branch's test; D2113, falling
+                        --  through to the block laid out next.
                         if Next_Value /= Landin.IR.No_Value
                           and then Landin.IR.Op_Of (Of_Unit, Item, Next_Value)
                             = Landin.IR.Branch
@@ -4437,10 +4494,10 @@ package body Landin.Backend.Xtensa is
                           and then Read_Once (Value)
                         then
                            Fused := Next_Value;
-                           Branch (Condition, Label (Item, Landin.IR.Target_Of
-                             (Of_Unit, Item, Next_Value)));
-                           Emit ("j " & Label (Item, Landin.IR.Alternative_Of
-                             (Of_Unit, Item, Next_Value)));
+                           Transfer (Condition,
+                             Landin.IR.Target_Of (Of_Unit, Item, Next_Value),
+                             Landin.IR.Alternative_Of
+                               (Of_Unit, Item, Next_Value));
                            return;
                         end if;
                      end if;
@@ -4758,14 +4815,25 @@ package body Landin.Backend.Xtensa is
                      end if;
                   end;
                when Landin.IR.Jump =>
-                  Emit ("j " & Label (Item, Landin.IR.Target_Of (Of_Unit,
-                    Item, Value)));
+                  Jump_To_Block (Landin.IR.Target_Of (Of_Unit, Item, Value));
                when Landin.IR.Branch =>
-                  Load_Value (Operand (1));
-                  Emit ("bnez x5, " & Label (Item, Landin.IR.Target_Of
-                    (Of_Unit, Item, Value)));
-                  Emit ("j " & Label (Item, Landin.IR.Alternative_Of (Of_Unit,
-                    Item, Value)));
+                  declare
+                     use type Landin.IR.Block_Id;
+                     Target : constant Landin.IR.Block_Id :=
+                       Landin.IR.Target_Of (Of_Unit, Item, Value);
+                     Alternative : constant Landin.IR.Block_Id :=
+                       Landin.IR.Alternative_Of (Of_Unit, Item, Value);
+                  begin
+                     Load_Value (Operand (1));
+                     if Natural (Target) = Current_Block + 1
+                       and then Target /= Alternative
+                     then
+                        Emit ("beqz x5, " & Label (Item, Alternative));
+                     else
+                        Emit ("bnez x5, " & Label (Item, Target));
+                        Jump_To_Block (Alternative);
+                     end if;
+                  end;
                when Landin.IR.Leave =>
                   if Is_C_Item (Item) then
                      C_Result (Value);
@@ -5213,6 +5281,7 @@ package body Landin.Backend.Xtensa is
          end if;
          for Block in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
             Put (Label (Item, Landin.IR.Block_Id (Block)) & ":");
+            Current_Block := Block;
             for Position in 1 .. Landin.IR.Length (Of_Unit, Item,
               Landin.IR.Block_Id (Block)) loop
                Current_Value := Landin.IR.Nth_Value (Of_Unit, Item,

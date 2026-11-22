@@ -379,6 +379,22 @@ package body Landin.Backend.RiscV is
    --  or by their ABI names.
    function Written_By (Line : String) return Register_Mask;
 
+   --  The conditional branch that is taken exactly when Mnemonic's is not,
+   --  on the same operands; empty for any other mnemonic.
+   function Inverse_Branch (Mnemonic : String) return String
+     is (if Mnemonic = "beq" then "bne"
+         elsif Mnemonic = "bne" then "beq"
+         elsif Mnemonic = "blt" then "bge"
+         elsif Mnemonic = "bge" then "blt"
+         elsif Mnemonic = "bltu" then "bgeu"
+         elsif Mnemonic = "bgeu" then "bltu"
+         elsif Mnemonic = "beqz" then "bnez"
+         elsif Mnemonic = "bnez" then "beqz"
+         elsif Mnemonic = "bltz" then "bgez"
+         elsif Mnemonic = "bgez" then "bltz"
+         elsif Mnemonic = "blez" then "bgtz"
+         elsif Mnemonic = "bgtz" then "blez" else "");
+
    function Written_By (Line : String) return Register_Mask is
       HT : constant Character := Character'Val (9);
       First : Positive := Line'First;
@@ -1904,19 +1920,7 @@ package body Landin.Backend.RiscV is
          Mnemonic : constant String :=
            (if Space = 0 then Instruction
             else Instruction (Instruction'First .. Space - 1));
-         Inverse : constant String :=
-           (if Mnemonic = "beq" then "bne"
-            elsif Mnemonic = "bne" then "beq"
-            elsif Mnemonic = "blt" then "bge"
-            elsif Mnemonic = "bge" then "blt"
-            elsif Mnemonic = "bltu" then "bgeu"
-            elsif Mnemonic = "bgeu" then "bltu"
-            elsif Mnemonic = "beqz" then "bnez"
-            elsif Mnemonic = "bnez" then "beqz"
-            elsif Mnemonic = "bltz" then "bgez"
-            elsif Mnemonic = "bgez" then "bltz"
-            elsif Mnemonic = "blez" then "bgtz"
-            elsif Mnemonic = "bgtz" then "blez" else "");
+         Inverse : constant String := Inverse_Branch (Mnemonic);
       begin
          if Near and then (Mnemonic = "j" or else Inverse /= "") then
             Put (Character'Val (9) & Instruction);
@@ -2211,7 +2215,8 @@ package body Landin.Backend.RiscV is
       procedure Compare
         (Left, Right : String; Literal : Boolean := False);
       procedure Compare_Float (Suffix, Left, Right : String);
-      procedure Branch (Condition, Target : String);
+      procedure Branch
+        (Condition, Target : String; Negated : Boolean := False);
       procedure Predicate (Destination, Condition : String);
       procedure Add_Sub
         (Destination, Left, Right : String; Subtract : Boolean;
@@ -2267,7 +2272,12 @@ package body Landin.Backend.RiscV is
          end if;
       end Check_Comparison;
 
-      procedure Branch (Condition, Target : String) is
+      --  To Target when Condition holds, or when Negated when it does not:
+      --  the same test with its branch inverted, exact for an unordered
+      --  float pair as for integers.
+      procedure Branch
+        (Condition, Target : String; Negated : Boolean := False)
+      is
          Left : constant String := Unbounded.To_String (Compared_Left);
          Right : constant String := Unbounded.To_String (Compared_Right);
          Suffix : constant String := Unbounded.To_String (Compared_Suffix);
@@ -2329,6 +2339,20 @@ package body Landin.Backend.RiscV is
                elsif Condition = "ls" then
                   "bgeu " & Right & ", " & Left & ", "
                else raise Compiler_Defect with "invalid integer predicate");
+         end if;
+         if Negated then
+            declare
+               Text : constant String := Unbounded.To_String (Test);
+               Space : constant Natural := Ada.Strings.Fixed.Index (Text, " ");
+               Inverse : constant String :=
+                 Inverse_Branch (Text (Text'First .. Space - 1));
+            begin
+               if Inverse = "" then
+                  raise Compiler_Defect with "a branch with no inverse";
+               end if;
+               Test := Unbounded.To_Unbounded_String
+                 (Inverse & Text (Space .. Text'Last));
+            end;
          end if;
          Emit (Unbounded.To_String (Test) & Target);
          Branching := False;
@@ -3097,6 +3121,53 @@ package body Landin.Backend.RiscV is
          Shared_Exit : constant String := Label (Item, 1) & "_exit";
          Terminal_Count : Natural := 0;
          Current_Value : Landin.IR.Value_Id := Landin.IR.No_Value;
+         --  D2112: the block emitted now, the value after the one emitted
+         --  now in it, a branch its comparison emitted, and how many
+         --  operands read each value.
+         Current_Block : Natural := 0;
+         Next_Value : Landin.IR.Value_Id := Landin.IR.No_Value;
+         Fused : Landin.IR.Value_Id := Landin.IR.No_Value;
+         Readers : Landin.Backend.Placement.Count_Buffers.Buffer
+           (Landin.IR.Value_Count (Of_Unit, Item));
+
+         --  D2112: whether Value is a comparison the branch after it is
+         --  the only reader of.
+         function Fuses (Value : Landin.IR.Value_Id) return Boolean is
+           (Next_Value /= Landin.IR.No_Value
+            and then Landin.IR.Op_Of (Of_Unit, Item, Next_Value)
+              = Landin.IR.Branch
+            and then Landin.IR.Nth_Operand (Of_Unit, Item, Next_Value, 1)
+              = Value
+            and then Readers.Data (Positive (Value)) = 1);
+
+         --  D2112: a jump to the block laid out next is no instruction.
+         procedure Jump_To_Block (Block : Landin.IR.Block_Id);
+         procedure Jump_To_Block (Block : Landin.IR.Block_Id) is
+         begin
+            if Natural (Block) /= Current_Block + 1 then
+               Emit ("j " & Label (Item, Block));
+            end if;
+         end Jump_To_Block;
+
+         --  D2112: to Target when Condition holds, else to Alternative,
+         --  falling through to whichever is laid out next.
+         procedure Transfer
+           (Condition : String; Target, Alternative : Landin.IR.Block_Id);
+         procedure Transfer
+           (Condition : String; Target, Alternative : Landin.IR.Block_Id)
+         is
+            use type Landin.IR.Block_Id;
+         begin
+            if Natural (Target) = Current_Block + 1
+              and then Target /= Alternative
+            then
+               Branch (Condition, Label (Item, Alternative), Negated => True);
+            else
+               Branch (Condition, Label (Item, Target));
+               Jump_To_Block (Alternative);
+            end if;
+         end Transfer;
+
          type Panic_Edge is record
             Reason : Landin.Panics.Kind;
             Site : Landin.Panics.Site_Number;
@@ -6608,6 +6679,17 @@ package body Landin.Backend.RiscV is
                            Compare (Left, Right);
                         end;
                      end if;
+                     --  D2112: a comparison only the branch after it reads
+                     --  is that branch's test, on the operands where they
+                     --  are.
+                     if Fuses (Value) then
+                        Fused := Next_Value;
+                        Transfer (Condition,
+                          Landin.IR.Target_Of (Of_Unit, Item, Next_Value),
+                          Landin.IR.Alternative_Of
+                            (Of_Unit, Item, Next_Value));
+                        return;
+                     end if;
                      declare
                         Into : constant String := Result_In (Value);
                      begin
@@ -6912,14 +6994,26 @@ package body Landin.Backend.RiscV is
                      Restore_Stack (Bytes);
                   end;
                when Landin.IR.Jump =>
-                  Emit ("j " & Label (Item, Landin.IR.Target_Of (Of_Unit,
-                    Item, Value)));
+                  Jump_To_Block (Landin.IR.Target_Of (Of_Unit, Item, Value));
                when Landin.IR.Branch =>
-                  Emit ("bnez " & Operand_In (Operand (1), "x5") & ", "
-                    & Label (Item,
-                             Landin.IR.Target_Of (Of_Unit, Item, Value)));
-                  Emit ("j " & Label (Item, Landin.IR.Alternative_Of (Of_Unit,
-                    Item, Value)));
+                  declare
+                     use type Landin.IR.Block_Id;
+                     Test : constant String := Operand_In (Operand (1), "x5");
+                     Target : constant Landin.IR.Block_Id :=
+                       Landin.IR.Target_Of (Of_Unit, Item, Value);
+                     Alternative : constant Landin.IR.Block_Id :=
+                       Landin.IR.Alternative_Of (Of_Unit, Item, Value);
+                  begin
+                     if Natural (Target) = Current_Block + 1
+                       and then Target /= Alternative
+                     then
+                        Emit ("beqz " & Test & ", "
+                          & Label (Item, Alternative));
+                     else
+                        Emit ("bnez " & Test & ", " & Label (Item, Target));
+                        Jump_To_Block (Alternative);
+                     end if;
+                  end;
                when Landin.IR.Leave =>
                   if Is_C_Item (Item) then
                      C_Result (Value);
@@ -7306,12 +7400,31 @@ package body Landin.Backend.RiscV is
                end loop;
             end;
          end if;
+         for Index in 1 .. Landin.IR.Value_Count (Of_Unit, Item) loop
+            for Which in 1 .. Landin.IR.Operand_Count
+              (Of_Unit, Item, Landin.IR.Value_Id (Index))
+            loop
+               declare
+                  Read : constant Positive := Positive (Landin.IR.Nth_Operand
+                    (Of_Unit, Item, Landin.IR.Value_Id (Index), Which));
+               begin
+                  Readers.Data (Read) := Readers.Data (Read) + 1;
+               end;
+            end loop;
+         end loop;
          for Block in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
             Put (Label (Item, Landin.IR.Block_Id (Block)) & ":");
+            Current_Block := Block;
             for Position in 1 .. Landin.IR.Length (Of_Unit, Item,
               Landin.IR.Block_Id (Block)) loop
                Current_Value := Landin.IR.Nth_Value (Of_Unit, Item,
                  Landin.IR.Block_Id (Block), Position);
+               Next_Value :=
+                 (if Position < Landin.IR.Length
+                    (Of_Unit, Item, Landin.IR.Block_Id (Block))
+                  then Landin.IR.Nth_Value
+                    (Of_Unit, Item, Landin.IR.Block_Id (Block), Position + 1)
+                  else Landin.IR.No_Value);
                Tick := Tick + 1;
                Record_At := Tick;
                if Debug /= null then
@@ -7320,7 +7433,9 @@ package body Landin.Backend.RiscV is
                   Put (Dwarf.Source_Line (Debug.all,
                     Landin.IR.Origin_Of (Of_Unit, Item, Current_Value)));
                end if;
-               Instruction (Current_Value);
+               if Current_Value /= Fused then
+                  Instruction (Current_Value);
+               end if;
                if Debug /= null then
                   Put (Dwarf.Label_Name (Local_Prefix, "after", Item,
                     Natural (Current_Value)) & ":");

@@ -26951,6 +26951,47 @@ which would ask the same of every backend for RISC-V's want alone.
 RV64 fixtures under QEMU, the RV32 lanes' corpus and
 `compiler/tests/measure/baselines/`.
 
+### D2112 — On RISC-V a comparison only its branch reads is the branch
+
+**The tour said** nothing. After D1687 only the checks inside an operation
+branched on their operands: an `if` or a loop's test made its truth value
+with `slt`, `sltu` or `xor` and `seqz`, at most with an `xori`, and the
+block's branch tested it with `bnez` and jumped with `j` to the other
+arm, so RV32's `pick` spent `slt x16, x9, x18; bnez x16, .L2_2; j .L2_3`
+on `if a < b`. Every jump to the block laid out next was an instruction.
+
+**Chosen:** when the value after a comparison in its block is the branch
+that is the comparison's only reader, the comparison is that branch, on
+its operands where they are (`bge x9, x18`), and the truth value is never
+made; a float comparison is its one `feq`, `flt` or `fle` and the branch
+on that. An edge to the block laid out next falls through: a branch whose
+target is next is the inverse branch to the alternative, exact for an
+unordered float pair since it inverts the test of the truth value rather
+than the relation, and a jump to the next block is no instruction. This
+holds at every level and objective, as D1566 has it on Cortex-M, and the
+far forms (D678) are unchanged, since a branch is lengthened after it is
+chosen. A wide comparison on RV32 and a soft-float one, whose answers are
+a sequence or a helper's, keep their truth value.
+
+Every RV64, RV32 and Xtensa configuration is smaller: the seven hosted
+workloads' RV64 images by 1.6% at `size` to 2.3% at `none`, and their
+instructions executed under QEMU fall 2.7% at `size`, 3.4% at `none` and
+4.4% at `speed` (fannkuch-redux 7.8%, thread and fibre 5.4%); the firmware
+set's RV32 images fall 1.4% to 2.3% (fannkuch-redux 6.5%, merge-sort
+5.1%). Of RV64's 3.4% fewer instructions over every configuration,
+the fusion is 2.0% and the fall-through 1.4%.
+
+**The alternatives:** a peephole over the emitted text, which would have
+to prove the truth value's register dead where the IR already says it is
+read once; fusing in the IR, which D1687 declined as asking the same of
+every backend; and threading the forwarding blocks lowering
+leaves, a jump to a block that only jumps, which is target-neutral and
+belongs to the IR's simplification.
+
+**Pinned by** `backend/RISC-V compares without copies`, the RV64 fixtures
+under QEMU, the RV32 lanes' corpus and
+`compiler/tests/measure/baselines/`.
+
 ### D1688 — A RISC-V routine's frame holds only the saves its text names
 
 **The tour said** nothing. RV64 saved x9 and x18-x26 in every routine
@@ -27512,6 +27553,25 @@ truth value's memory traffic but keeps both branches.
 
 **Pinned by** both chips' corpus lanes and
 `compiler/tests/measure/baselines/`.
+
+### D2113 — On Xtensa an edge to the block laid out next falls through
+
+**The tour said** nothing. D1628's branch was followed by a `j` to the
+alternative even where the alternative was the next block, a branch on a
+truth value by another, and every jump to the next block was one.
+
+**Chosen:** as D2112 has RISC-V do, a branch whose target is laid out
+next is the inverse branch to the alternative, and a jump to the next
+block is no instruction. Both chips' firmware images fall 0.5% to 0.65%
+at every objective, fannkuch-redux's 1.1%.
+
+**The alternatives:** the machine layer dropping a `j` before its own
+label, which sees the text after selection and could not invert the
+branch before it; and a float comparison fused as an integer one is,
+which changed no byte of any measured image and was left out.
+
+**Pinned by** `xtensa backend/a branch falls through to the next block`,
+both chips' corpus lanes and `compiler/tests/measure/baselines/`.
 
 ### D1629 — An Xtensa image is measured as a loader writes it
 
