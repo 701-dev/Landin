@@ -275,8 +275,11 @@ def evidence_faults(manifest, diagnostics=None, runtime=frozenset()):
             continue
         else:
             said = (diagnostics or {}).get(key)
-            faults.append("%s has unexpected emission result %r%s"
-                          % (key, value, ": " + said if said else ""))
+            fix = ("; if the refusal is intended, add the pair to "
+                   "REFUSAL_PAIRS in scripts/emit_manifest.py"
+                   if value == "refused:1" else "")
+            faults.append("%s has unexpected emission result %r%s%s"
+                          % (key, value, ": " + said if said else "", fix))
     if not emitted:
         faults.insert(0, "no assembly digest was emitted")
     return faults

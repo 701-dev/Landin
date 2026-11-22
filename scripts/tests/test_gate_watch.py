@@ -351,6 +351,20 @@ class GateWatch(unittest.TestCase):
         self.assertIn("gh: Server Error (HTTP 502); asking again (2 of 4)",
                       result.stdout)
 
+    def test_a_broken_connection_or_rate_limit_is_asked_again(self):
+        for said in ("Get \"https://api.github.com/repos\": read tcp: "
+                     "connection reset by peer",
+                     "gh: API rate limit exceeded (HTTP 429)",
+                     "dial tcp: i/o timeout"):
+            with self.subTest(said=said):
+                (self.states.parent / "states.json.fail").write_text(
+                    json.dumps([1, said]))
+                result = self.watch([state("completed", [job(1, "gate")],
+                                           conclusion="success")], "--run=7")
+                self.assertEqual(result.returncode, 0,
+                                 result.stdout + result.stderr)
+                self.assertIn("asking again (2 of 4)", result.stdout)
+
     def test_a_request_that_stays_unanswered_is_named_without_a_traceback(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
             [99, "gh: Server Error (HTTP 502)"]))
