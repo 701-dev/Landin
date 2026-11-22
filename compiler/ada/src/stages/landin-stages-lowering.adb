@@ -14403,126 +14403,11 @@ package body Landin.Stages.Lowering is
                         then
                            Lower_Stored_Expression
                              (Of_Tree, Value, Scope, Where);
-                        elsif Syn.Kind (Of_Tree, Value)
-                                in Syn.Array_Literal
-                                   | Syn.Mixed_Array_Repetition
-                                   | Syn.Array_Repetition
-                          and then Neutral_Element
-                            (Of_Tree, Value).Kind /= IR.Scalar_Field_Shape
-                        then
-                           --  A compound child is constructed in storage,
-                           --  not lowered as a scalar expression or call.
-                           Write_Array_Value
-                             (Value, (Kind => IR.Frame_Slot, Slot => Where),
-                              Field => 0);
-                        elsif Syn.Kind (Of_Tree, Value)
-                                = Syn.Array_Literal
-                        then
-                           --  D23/D25: a literal has exactly the finite
-                           --  element run the source wrote.  Lower and
-                           --  store each one immediately, preserving
-                           --  [0410]'s left-to-right evaluation in the
-                           --  existing compact array slot.
-                           for Position in
-                             1 .. Syn.Element_Count (Of_Tree, Value)
-                           loop
-                              declare
-                                 Held : constant IR.Value_Id :=
-                                   Lower_Expression
-                                     (Of_Tree,
-                                      Syn.Nth_Element
-                                        (Of_Tree, Value, Position),
-                                      Scope);
-                              begin
-                                 exit when Current = IR.No_Block;
-                                 IR.Emit_Store_Slot_Field
-                                   (Unit.all, Filling, Where,
-                                    IR.Part_Position (Position), Held,
-                                    Site);
-                              end;
-                           end loop;
-                        elsif Syn.Kind (Of_Tree, Value)
-                                = Syn.Mixed_Array_Repetition
-                        then
-                           --  D36 stores the prefix as it is evaluated,
-                           --  then evaluates one suffix pattern and fills
-                           --  from the first part after that prefix.
-                           for Position in
-                             1 .. Syn.Element_Count (Of_Tree, Value)
-                           loop
-                              declare
-                                 Held : constant IR.Value_Id :=
-                                   Lower_Expression
-                                     (Of_Tree,
-                                      Syn.Nth_Element
-                                        (Of_Tree, Value, Position),
-                                      Scope);
-                              begin
-                                 exit when Current = IR.No_Block;
-                                 IR.Emit_Store_Slot_Field
-                                   (Unit.all, Filling, Where,
-                                    IR.Part_Position (Position), Held,
-                                    Site);
-                              end;
-                           end loop;
-
-                           if Current /= IR.No_Block then
-                              declare
-                                 Held : constant IR.Value_Id :=
-                                   Lower_Expression
-                                     (Of_Tree,
-                                      Syn.Repeated_Element
-                                        (Of_Tree, Value), Scope);
-                              begin
-                                 if Current /= IR.No_Block then
-                                    IR.Emit_Array_Fill
-                                      (Unit.all, Filling,
-                                       Destination =>
-                                         IR.Storage'
-                                           (Kind => IR.Frame_Slot,
-                                            Slot => Where),
-                                       First => IR.Part_Position
-                                         (Syn.Element_Count
-                                            (Of_Tree, Value) + 1),
-                                       Value => Held,
-                                       Site  => Site);
-                                 end if;
-                              end;
-                           end if;
-                        elsif Syn.Kind (Of_Tree, Value)
-                                = Syn.Array_Repetition
-                        then
-                           declare
-                              Held : constant IR.Value_Id :=
-                                Lower_Expression
-                                  (Of_Tree,
-                                   Syn.Repeated_Element (Of_Tree, Value),
-                                   Scope);
-                           begin
-                              if Current /= IR.No_Block then
-                                 IR.Emit_Array_Fill
-                                   (Unit.all, Filling,
-                                    Destination =>
-                                      IR.Storage'
-                                        (Kind => IR.Frame_Slot,
-                                         Slot => Where),
-                                    First => 1, Value => Held,
-                                    Site => Site);
-                              end if;
-                           end;
-                        elsif Syn.Kind (Of_Tree, Value)
-                                = Syn.Zeroed_Literal
-                        then
-                           --  D28: clear the complete compact slot at
-                           --  runtime with one extent-independent
-                           --  operation.
-                           IR.Emit_Array_Clear
-                             (Unit.all, Filling,
-                              Destination =>
-                                IR.Storage'
-                                  (Kind => IR.Frame_Slot, Slot => Where),
-                              Site        => Site);
                         else
+                           --  [1880]: every other value form is written into
+                           --  the fresh slot by the one general writer, a
+                           --  literal's elements in source order and a
+                           --  repeated value evaluated once (D1827, D32).
                            Write_Array_Value
                              (Value, (Kind => IR.Frame_Slot, Slot => Where),
                               Field => 0);
@@ -14569,15 +14454,11 @@ package body Landin.Stages.Lowering is
                         elsif Syn.Kind (Of_Tree, Value)
                              = Syn.Zeroed_Literal
                         then
-                           --  D57: one whole-storage clear writes the
-                           --  complete padded image of the fresh aggregate
-                           --  slot; field zero identifies the whole cell.
-                           IR.Emit_Array_Clear
-                             (Unit.all, Filling,
-                              Destination =>
-                                IR.Storage'
-                                  (Kind => IR.Frame_Slot, Slot => Where),
-                              Site => Site);
+                           --  The general writer clears the complete padded
+                           --  image of the fresh slot as one operation (D32).
+                           Write_Array_Value
+                             (Value, (Kind => IR.Frame_Slot, Slot => Where),
+                              Field => 0);
                         else
                            --  D55 copies a nominal aggregate field by
                            --  field.  D128 applies the same rule to the
@@ -15400,7 +15281,13 @@ package body Landin.Stages.Lowering is
                                  end if;
                               end;
                            end if;
-                        elsif Is_Struct_Construction (Of_Tree, From) then
+                        elsif Is_Struct_Construction (Of_Tree, From)
+                          or else Syn.Kind (Of_Tree, From)
+                            = Syn.Zeroed_Literal
+                        then
+                           --  The general writer forms a construction and
+                           --  clears a `zeroed` place, a whole aggregate or
+                           --  one child, as one operation (D32).
                            Write_Assigned
                              (Place, From,
                               Neutral_Body
@@ -15408,15 +15295,6 @@ package body Landin.Stages.Lowering is
                                    (Types.all, Of_Tree, Place)),
                               Stored_At
                                 (Destination, Parent_Field, Parent_Steps));
-                        elsif Syn.Kind (Of_Tree, From) = Syn.Zeroed_Literal
-                        then
-                           --  D58 clears a direct aggregate and D91 clears
-                           --  one ordinary child. The field identity stays
-                           --  neutral until the backend places it.
-                           IR.Emit_Array_Clear
-                             (Unit.all, Filling, Destination, Site,
-                              Field => Parent_Field,
-                              Nested => Parent_Steps);
                         else
                            Copy_Aggregate_Value
                              (Landin.Checking.Nominal_Of
