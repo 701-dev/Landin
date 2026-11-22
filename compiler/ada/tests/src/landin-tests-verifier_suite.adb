@@ -217,11 +217,13 @@ package body Landin.Tests.Verifier_Suite is
          IR.Emit_Array_Copy
            (Unit, A, (Kind => IR.Frame_Slot, Slot => Q),
             (Kind => IR.Frame_Slot, Slot => R), Site);
-         --  D57 gives field zero of the destination-only clear a second
-         --  sound shape: the complete padded extent of aggregate storage.
+         --  [0540]'s whole aggregate zero image gives field zero of the
+         --  destination-only clear a second sound shape: the complete padded
+         --  extent of aggregate storage.
          IR.Emit_Array_Clear
            (Unit, A, (Kind => IR.Frame_Slot, Slot => T), Site);
-         --  D58 makes D57's other whole-aggregate storage class live.
+         --  An aggregate place assigned `zeroed` makes the other
+         --  whole-aggregate storage class live.
          IR.Emit_Array_Clear
            (Unit, A, (Kind => IR.Module_Datum, Datum => G), Site);
          N := IR.Emit_Number (Unit, A, Landin.Types.U16, 7, False, Site);

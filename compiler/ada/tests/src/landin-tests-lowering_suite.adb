@@ -755,9 +755,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Module_Value_Becomes_A_Datum;
 
-   --  D39 lowers contextual scalar `zeroed` through D10's existing zero
-   --  representation.  D177 records the bool directly as a static image;
-   --  the integer keeps its existing scalar IR fold.
+   --  A module scalar `zeroed` ([0540]) lowers through D10's existing zero
+   --  representation.  D177 records the bool directly as a static image; the
+   --  integer keeps its existing scalar IR fold.
    procedure A_Zeroed_Module_Scalar_Reuses_The_Zero_IR
      (Item : in out Landin.Testing.Context);
 
@@ -796,9 +796,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Zeroed_Module_Scalar_Reuses_The_Zero_IR;
 
-   --  D40 uses the existing scalar constant/store path for a local: integers
-   --  become zero Numbers, bool becomes false Truth, and each is stored in its
-   --  ordinary frame slot.  The alias is settled before lowering.
+   --  A local scalar `zeroed` ([0540]) uses the existing scalar constant/store
+   --  path: integers become zero Numbers, bool becomes false Truth, and each
+   --  is stored in its ordinary frame slot.  The alias is settled before
+   --  lowering.
    procedure Local_Scalar_Zeroed_Uses_The_Constant_Store_Path
      (Item : in out Landin.Testing.Context);
 
@@ -846,8 +847,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Local_Scalar_Zeroed_Uses_The_Constant_Store_Path;
 
-   --  D41 lowers assignment-context `zeroed` as the existing typed zero or
-   --  false constant followed by the destination's ordinary scalar store.
+   --  Assignment-context `zeroed` ([0540]) lowers as the existing typed zero
+   --  or false constant followed by the destination's ordinary scalar store.
    procedure Scalar_Zeroed_Assignment_Uses_Ordinary_Stores
      (Item : in out Landin.Testing.Context);
 
@@ -895,8 +896,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Scalar_Zeroed_Assignment_Uses_Ordinary_Stores;
 
-   --  D43 lowers named-return `zeroed` through the named return's existing
-   --  slot Store path before the ordinary return load and Leave.
+   --  Named-return `zeroed` ([0540]) lowers through the named return's
+   --  existing slot Store path before the ordinary return load and Leave.
    procedure Named_Return_Zeroed_Uses_The_Ordinary_Store
      (Item : in out Landin.Testing.Context);
 
@@ -939,10 +940,11 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Named_Return_Zeroed_Uses_The_Ordinary_Store;
 
-   --  D42 reuses the ordinary subobject store paths.  D62 reaches the same
-   --  Store_Element through a D48 array field and carries its positive field
-   --  identity.  The selected scalar type chooses false or zero; a computed
-   --  destination index is evaluated once before the contextual RHS is formed.
+   --  A scalar subobject's `zeroed` reuses the ordinary subobject store paths,
+   --  and reaches the same Store_Element through an array field (D118),
+   --  carrying its positive field identity.  The selected scalar type chooses
+   --  false or zero; a computed destination index is evaluated once before the
+   --  contextual RHS is formed.
    procedure Scalar_Subobject_Zeroed_Uses_Ordinary_Stores
      (Item : in out Landin.Testing.Context);
 
@@ -1800,9 +1802,10 @@ package body Landin.Tests.Lowering_Suite is
    ------------------------------------------------------------------
 
    --  [0670]'s state carries each field's compact target-neutral shape and
-   --  no value at all: D10, D59's explicit spelling and D60/D61's typed and
+   --  no value at all: D10, its explicit `zeroed` spelling and D24's typed and
    --  inferred direct-name image chains share the same zero image, and where
    --  each field sits needs a target this stage lacks.  Every declaration
+   --  remains a distinct datum.
    --  remains a distinct datum.
    procedure A_Struct_State_Carries_Its_Fields
      (Item : in out Landin.Testing.Context);
@@ -1877,9 +1880,9 @@ package body Landin.Tests.Lowering_Suite is
 
    ------------------------------------------------------------------
 
-   --  D47 gives [1810]'s declaration-only local the same compact field
-   --  shapes as D46's datum, but in one aggregate slot rather than one
-   --  module item.  This stage still carries no target offsets.
+   --  [1810]'s declaration-only local takes the same compact field shapes as a
+   --  module datum (D45), but in one aggregate slot rather than one module
+   --  item.  This stage still carries no target offsets.
    procedure A_Struct_Local_Carries_Its_Field_Shapes
      (Item : in out Landin.Testing.Context);
 
@@ -2391,9 +2394,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Mixed_Repetition_Becomes_Prefix_Stores_And_One_Fill;
 
-   --  D37 reaches the assignment destination first, then stores each prefix
-   --  expression in source order and evaluates one scalar for one compact
-   --  suffix fill.  The same lowering serves frame slots and module datums.
+   --  D37/D1827: a mixed assignment reaches its destination first, then stores
+   --  each prefix expression in source order and evaluates one scalar for one
+   --  compact suffix fill, written in place where nothing observes the
+   --  destination.  The same lowering serves frame slots and module datums.
    procedure Mixed_Assignment_Becomes_Prefix_Stores_And_One_Fill
      (Item : in out Landin.Testing.Context);
 
@@ -2471,9 +2475,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Mixed_Assignment_Becomes_Prefix_Stores_And_One_Fill;
 
-   --  D29 forms a contextual assignment literal directly in its destination,
-   --  preserving one expression-store pair per source element for both local
-   --  and module storage rather than introducing a hidden array temporary.
+   --  D29/D1827 form a contextual assignment literal directly in its
+   --  destination where nothing observes it, preserving one expression-store
+   --  pair per source element for both local and module storage rather than
+   --  introducing a hidden array temporary.
    procedure An_Array_Literal_Assignment_Becomes_Ordered_Stores
      (Item : in out Landin.Testing.Context);
 
@@ -2538,8 +2543,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end An_Array_Literal_Assignment_Becomes_Ordered_Stores;
 
-   --  D28 clears a complete local array with one storage operation rather
-   --  than one instruction per element of its target-sized extent.
+   --  D32 clears a complete local array with one storage operation rather than
+   --  one instruction per element of its target-sized extent.
    procedure A_Local_Zeroed_Array_Becomes_One_Clear
      (Item : in out Landin.Testing.Context);
 
@@ -2577,9 +2582,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Local_Zeroed_Array_Becomes_One_Clear;
 
-   --  D30 lowers assignment to local and module arrays through the same
-   --  destination-only Clear_Array operation D28 introduced.  D58 reuses
-   --  field zero for the padded whole of module and local aggregate storage.
+   --  D32 lowers `zeroed` assigned to local and module arrays through the same
+   --  destination-only Clear_Array operation, and reuses field zero for the
+   --  padded whole of module and local aggregate storage ([0540]).
    procedure Zeroed_Assignment_Clears_Either_Storage_Kind
      (Item : in out Landin.Testing.Context);
 
@@ -2656,9 +2661,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Zeroed_Assignment_Clears_Either_Storage_Kind;
 
-   --  D49 lowers a whole array-field clear through the same compact
-   --  operation, carrying the declaration-order field rather than a target
-   --  byte offset for both module and frame storage.
+   --  D32 lowers a whole array-field clear through the same compact operation,
+   --  carrying the declaration-order field rather than a target byte offset
+   --  for both module and frame storage.
    procedure Zeroed_Array_Field_Carries_Its_Containing_Field
      (Item : in out Landin.Testing.Context);
 
@@ -2712,9 +2717,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Zeroed_Array_Field_Carries_Its_Containing_Field;
 
-   --  D50 carries an independent declaration-order field for each compact
-   --  Copy_Array endpoint.  Zero keeps the direct-array spelling, so all
-   --  field/name and module/frame combinations use the same operation.
+   --  D32's copy carries an independent declaration-order field for each
+   --  compact Copy_Array endpoint.  Zero keeps the direct-array spelling, so
+   --  all field/name and module/frame combinations use the same operation.
    procedure Array_Field_Copy_Carries_Both_Endpoint_Fields
      (Item : in out Landin.Testing.Context);
 
@@ -2796,9 +2801,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Array_Field_Copy_Carries_Both_Endpoint_Fields;
 
-   --  D51 lowers both typed and inferred local initializers from a selected
-   --  array field through D21's Copy_Array.  The source keeps D50's field
-   --  identity and the fresh destination slot remains field zero.
+   --  Typed and inferred local initializers from a selected array field (D241)
+   --  lower through D21's Copy_Array.  The source keeps its field identity and
+   --  the fresh destination slot remains field zero.
    procedure Array_Field_Initializer_Carries_Its_Source_Field
      (Item : in out Landin.Testing.Context);
 
@@ -2867,8 +2872,8 @@ package body Landin.Tests.Lowering_Suite is
    --  D24: a module array literal folds each element to a Folded value
    --  and records the source-order image against the datum item, so a
    --  target loader can consume it byte for byte.  A datum with no image
-   --  is D10 zero and stays reserved storage; D27's explicit `zeroed`
-   --  initializer deliberately has that same absent image.
+   --  is D10 zero and stays reserved storage; an explicit `zeroed` initializer
+   --  deliberately has that same absent image.
    procedure A_Module_Array_Literal_Records_Its_Image
      (Item : in out Landin.Testing.Context);
 
@@ -2979,7 +2984,7 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Module_Array_Chain_Copies_The_Terminal_Image;
 
-   --  D70 resolves a module struct image before copying one selected
+   --  D24's chain resolves a module struct image before copying one selected
    --  fixed-array field into a typed or inferred array datum.  Every D67/D68
    --  descriptor form becomes the exact recursive array root, and a later D21
    --  link clones that root and its fold run like any other array datum.
@@ -3111,9 +3116,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Module_Array_Copies_A_Struct_Field_Image;
 
-   --  D71 copies a selected aggregate field descriptor into another module
-   --  struct image, rebasing its finite prefix at the destination's compact
-   --  element cursor.  Aggregate chains reuse the same descriptor copier.
+   --  D24's chain copies a selected aggregate field descriptor into another
+   --  module struct image, rebasing its finite prefix at the destination's
+   --  compact element cursor.  Aggregate chains reuse the same descriptor
+   --  copier.
    procedure A_Module_Struct_Field_Copies_A_Struct_Field_Image
      (Item : in out Landin.Testing.Context);
 
@@ -3183,9 +3189,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Module_Struct_Field_Copies_A_Struct_Field_Image;
 
-   --  D66--D71 extend D60/D61's module struct image chain with scalar folds,
+   --  D66--D68 extend D24's module image chain to structs with scalar folds,
    --  compact finite, repeated and hybrid array-field segments, and direct or
-   --  selected array sources.  D81--D83 carry the same forms inside a selected
+   --  selected array sources.  D81 carries the same forms inside a selected
    --  variant case, including direct and selected module array sources.  Every
    --  destination gets its own run; a zero repetition keeps an absent field.
    procedure A_Module_Struct_Literal_Records_And_Copies_Its_Image
@@ -3552,8 +3558,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Module_Repetition_Images_Stay_Compact;
 
-   --  D35 reuses D34's compact module image after the count and scalar have
-   --  supplied an inferred shape, including through chains and zero patterns.
+   --  D33/D34: a counted module repetition reuses D34's compact module image
+   --  after the count and scalar have supplied an inferred shape, including
+   --  through chains and zero patterns.
    procedure Inferred_Module_Repetition_Images_Stay_Compact
      (Item : in out Landin.Testing.Context);
 
@@ -3967,9 +3974,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end An_Array_Field_Element_Carries_Its_Containing_Field;
 
-   --  D52 keeps D29's direct-array Store_Field run unchanged, but an
-   --  element inside a selected field needs D48's two-level identity:
-   --  containing field plus its one-based constant child position.
+   --  A literal assigned to an array field (D241) keeps D29's direct-array
+   --  Store_Field run unchanged, but an element inside a selected field needs
+   --  D118's path: containing field plus its one-based constant child
+   --  position.
    procedure Array_Field_Literals_Become_Field_Qualified_Element_Stores
      (Item : in out Landin.Testing.Context);
 
@@ -4056,9 +4064,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Array_Field_Literals_Become_Field_Qualified_Element_Stores;
 
-   --  D53 keeps the direct-array D32/D37 lowering unchanged.  A selected
-   --  field qualifies D37's prefix stores and the one compact suffix fill
-   --  with the same declaration-order field identity D48 introduced.
+   --  A repetition assigned to an array field keeps the direct-array D32/D37
+   --  lowering unchanged.  A selected field qualifies D37's prefix stores and
+   --  the one compact suffix fill with the same declaration-order field
+   --  identity (D118).
    procedure Array_Field_Repetitions_Become_Qualified_Fills
      (Item : in out Landin.Testing.Context);
 
@@ -4183,8 +4192,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Array_Field_Repetitions_Become_Qualified_Fills;
 
-   --  D54 keeps scalar fields on their existing load/store pair and uses
-   --  one D50 Copy_Array for each fixed-array field.  The instruction run
+   --  A whole struct copy (D241) keeps scalar fields on their existing
+   --  load/store pair and uses one D32 Copy_Array for each fixed-array field.
    --  remains declaration ordered and target-neutral for every endpoint.
    procedure Array_Bearing_Struct_Copy_Uses_Compact_Field_Operations
      (Item : in out Landin.Testing.Context);
@@ -4287,9 +4296,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Array_Bearing_Struct_Copy_Uses_Compact_Field_Operations;
 
-   --  D55 lowers a typed local struct initializer as D54's declaration-
-   --  ordered field run into the fresh aggregate slot.  No aggregate value
-   --  or initializer-specific opcode crosses the IR boundary.
+   --  A typed local struct initializer (D241) lowers as the same
+   --  declaration-ordered field run into the fresh aggregate slot.  No
+   --  aggregate value or initializer-specific opcode crosses the IR boundary.
    procedure Local_Struct_Initializer_Copies_Into_Its_Fresh_Slot
      (Item : in out Landin.Testing.Context);
 
@@ -4386,9 +4395,10 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Local_Struct_Initializer_Copies_Into_Its_Fresh_Slot;
 
-   --  D56 reaches D55's lowering through an inferred declaration whose body
-   --  came from its source.  The same compact field run must target the new
-   --  aggregate slot without introducing an aggregate value.
+   --  An inferred struct initializer (D241) reaches the same lowering through
+   --  an inferred declaration whose body came from its source.  The same
+   --  compact field run must target the new aggregate slot without introducing
+   --  an aggregate value.
    procedure Inferred_Local_Struct_Copies_Into_Its_Fresh_Slot
      (Item : in out Landin.Testing.Context);
 
@@ -4833,7 +4843,7 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Struct_Measurement_Carries_A_Nested_Field;
 
-   --  D87 gives D86's child run to both runtime storage kinds.  A complete
+   --  D86's child run reaches both runtime storage kinds (D119).  A complete
    --  zero image remains one whole-storage clear; the child does not become
    --  one flattened sequence of parent fields.
    procedure Nested_Struct_Storage_Carries_A_Child_Run
@@ -4920,8 +4930,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Nested_Struct_Storage_Carries_A_Child_Run;
 
-   --  D88 keeps both source-order identities on a scalar operation through
-   --  D87's ordinary child.  The target offset remains absent from the IR.
+   --  D118's path keeps the source-order identities on a scalar operation
+   --  through an ordinary child.  The target offset remains absent from the
+   --  IR.
    procedure Nested_Scalar_Fields_Carry_Both_Identities
      (Item : in out Landin.Testing.Context);
 
@@ -5005,8 +5016,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Nested_Scalar_Fields_Carry_Both_Identities;
 
-   --  D89 gives an element operation the same two source identities without
-   --  flattening the child or recording a target-derived byte offset.
+   --  D118's path gives an element operation the same source identities
+   --  without flattening the child or recording a target-derived byte offset.
    procedure Nested_Array_Elements_Carry_Both_Identities
      (Item : in out Landin.Testing.Context);
 
@@ -5107,8 +5118,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Nested_Array_Elements_Carry_Both_Identities;
 
-   --  D90 extends D89's two-identity carrier to each contextual whole-array
-   --  operation while keeping source and destination paths independent.
+   --  D118's path reaches each contextual whole-array operation (D32) while
+   --  keeping source and destination paths independent.
    procedure Nested_Array_Values_Carry_Both_Identities
      (Item : in out Landin.Testing.Context);
 
@@ -5228,8 +5239,8 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Nested_Array_Values_Carry_Both_Identities;
 
-   --  D91 uses D87's child shape as a contextual aggregate place.  Scalar
-   --  and array leaves retain the parent identity independently at each copy
+   --  D120 uses the child shape as a contextual aggregate place.  Scalar and
+   --  array leaves retain the parent identity independently at each copy
    --  endpoint; clearing the child remains one compact operation.
    procedure Nested_Child_Values_Keep_Their_Parent
      (Item : in out Landin.Testing.Context);
@@ -5348,9 +5359,9 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end Nested_Child_Values_Keep_Their_Parent;
 
-   --  D92 admits a nested child selection only as a local storage-copy
-   --  initializer.  At module scope the same source remains L0304 rather than
-   --  becoming a static image edge.
+   --  A nested child selection copies into a local initializer (D119, D241).
+   --  At module scope the same source remains L0304, D241's module image
+   --  boundary, rather than becoming a static image edge.
    procedure Nested_Child_Module_Initializer_Is_Refused
      (Item : in out Landin.Testing.Context);
 
@@ -5774,7 +5785,8 @@ package body Landin.Tests.Lowering_Suite is
    end Aggregate_Arguments_Carry_Storage_Identity;
 
    --  D96 keeps the outer and child declaration-order identities on an
-   --  address carrier, just as D90 keeps them on compact array operations.
+   --  address carrier, just as D118's path keeps them on compact array
+   --  operations.
    procedure Nested_Arguments_Carry_Both_Identities
      (Item : in out Landin.Testing.Context);
 
@@ -6694,7 +6706,7 @@ package body Landin.Tests.Lowering_Suite is
          0);
    end Variant_Aggregate_Payloads_Materialize_Values;
 
-   --  D80 keeps whole variant-bearing copies contextual to storage.  Each
+   --  A whole variant-bearing copy (D241) stays contextual to storage.  Each
    --  common scalar or array field retains its old operation, while the
    --  complete unfolded variant part travels as one Copy_Variant identity.
    procedure Variant_Whole_Copy_Carries_One_Compact_Part
@@ -8302,10 +8314,11 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end The_Recorded_Corpus_Is_Current;
 
-   --  D64 commits labelled scalar fields in source order, then writes the
-   --  omitted fields in declaration order.  D72's nominal spelling reaches
-   --  the same direct-destination path.  A fixed-array omission reuses D49's
-   --  field-qualified clear rather than expanding the array extent.
+   --  A labelled literal commits its scalar fields in source order, then
+   --  writes the omitted fields in declaration order (D1827).  D72's nominal
+   --  spelling reaches the same direct-destination path.  A fixed-array
+   --  omission reuses D32's field-qualified clear rather than expanding the
+   --  array extent.
    procedure A_Struct_Literal_Becomes_Ordered_Field_Writes
      (Item : in out Landin.Testing.Context);
 
@@ -8386,7 +8399,7 @@ package body Landin.Tests.Lowering_Suite is
       end;
    end A_Struct_Literal_Becomes_Ordered_Field_Writes;
 
-   --  D65 reuses the field-qualified D49--D53 operations for each labelled
+   --  D241 reuses D32's field-qualified operations for each labelled
    --  fixed-array field; a scalar `zeroed` label takes the existing typed
    --  scalar store path.  No aggregate or array temporary is introduced.
    procedure Struct_Literal_Array_Labels_Use_Field_Operations

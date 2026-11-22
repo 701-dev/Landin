@@ -249,28 +249,29 @@ package Landin.IR is
       Store_Field,
       --  An element selected by a runtime `usize`.  Unlike Load_Field, the
       --  position is an operand because [1950] checks its value at runtime.
-      --  D22 lets this reach either [1740]'s module array or [1810]'s
-      --  local array in this item's own frame; D48 additionally carries
-      --  a containing aggregate field.  Which storage class is reached is
-      --  Reaches_A_Slot's answer.
+      --  D22 lets this reach either [1740]'s module array or [1810]'s local
+      --  array in this item's own frame, or an array field of a containing
+      --  aggregate (D118).  Which storage class is reached is Reaches_A_Slot's
+      --  answer.
       Load_Element,
       Store_Element,
-      --  One whole [0520] array copied between two storage places or D50
-      --  fields, cleared in one place or D49 field for [0540], or filled in
-      --  one place or D53 field for [0560].  D57 also gives a field-zero
-      --  clear the complete padded extent of aggregate storage.  Storage and
-      --  field identities never carry one entry per part, so each operation
-      --  remains compact for D18's target-sized extent.
+      --  One whole [0520] array copied between two storage places or fields,
+      --  cleared in one place or field for [0540], or filled in one place or
+      --  field for [0560]: D32's compact whole-array operations.  A field-zero
+      --  clear of aggregate storage clears its complete padded extent,
+      --  [0540]'s whole zero image.  Storage and field identities never carry
+      --  one entry per part, so each operation remains compact for D18's
+      --  target-sized extent.
       Copy_Array,
-      --  D80 copies one complete unfolded variant part between aggregate
-      --  storage places.  Field identities are target-neutral; the backend
-      --  derives the padded part extent.
+      --  A whole variant-bearing value (D241) copies one complete unfolded
+      --  variant part between aggregate storage places.  Field identities are
+      --  target-neutral; the backend derives the padded part extent.
       Copy_Variant,
       Clear_Array,
       Fill_Array,
       --  D77 reads the source-order tag of an unfolded variant field.  D78
       --  reads one scalar payload alias.  D76 selects one source-order case
-      --  and writes any labelled scalar leaves of that case.  D84 gives the
+      --  and writes any labelled scalar leaves of that case, and gives the
       --  existing array operations the same case/payload identities for a
       --  fixed-array leaf.  All carry source identities only: the backend
       --  derives target offsets from the aggregate's neutral shape.
@@ -463,11 +464,10 @@ package Landin.IR is
      renames Nominal_Identities.None;
 
    --  One target-neutral aggregate field shape.  D44 needs the scalar form,
-   --  D45 adds the compact fixed-scalar-array form for measurement, D46
-   --  uses that input for module storage, D74 adds the unfolded variant,
-   --  D86 adds a nested aggregate field run for measurement, and D87 carries
-   --  that run into runtime storage.  Item and measurement runs remain
-   --  separate APIs and vectors.
+   --  D45 adds the compact fixed-scalar-array form for measurement and
+   --  storage, D74 adds the unfolded variant, and D86 adds a nested aggregate
+   --  field run, which carries into runtime storage at any depth (D119).  Item
+   --  and measurement runs remain separate APIs and vectors.
    type Field_Shape_Kind is
      (Scalar_Field_Shape, Array_Field_Shape, Aggregate_Field_Shape,
       Variant_Field_Shape);
@@ -516,13 +516,12 @@ package Landin.IR is
    --  declaration-order position [0750] inside the run the path has
    --  reached so far; Case_Index is zero when that run is an ordinary
    --  field run and the one-based source-order case when the step before
-   --  it named a variant part.  D88--D90 needed exactly one step below a
-   --  parent field and spelt it as a second scalar; D118 makes the same
-   --  thing a run, because [0420] composes `a.b.c.d` with no depth of its
-   --  own and a pair cannot say what a third selection reached.  A step
-   --  is an identity and never a target offset: how far into the parent
-   --  the reached part sits is Landin.Backend's, replayed from the shapes
-   --  the steps name.
+   --  it named a variant part.  A path is a run of steps (D118) rather than a
+   --  parent field and a second scalar, because [0420] composes `a.b.c.d` with
+   --  no depth of its own and a pair cannot say what a third selection
+   --  reached.  A step is an identity and never a target offset: how far into
+   --  the parent the reached part sits is Landin.Backend's, replayed from the
+   --  shapes the steps name.
    type Path_Step is record
       Field      : Part_Position := 1;
       Case_Index : Natural       := 0;
@@ -1306,7 +1305,7 @@ package Landin.IR is
    ------------------------------------------------------------------
 
    --  [0750]: an aggregate datum's fields, in the order they were written.
-   --  D46 permits scalar and compact fixed-scalar-array shapes; D75 adds
+   --  D45 permits scalar and compact fixed-scalar-array shapes; D75 adds
    --  the unfolded variant shape already used by D74's measurements.  Shapes
    --  and not offsets are carried, for the reason
    --  Measure_Size carries a type rather than an answer: an offset needs
@@ -1340,9 +1339,10 @@ package Landin.IR is
                     (Into, Item, Field_Count (Into, Item)) = Shape;
 
    --  D75 carries a variant field's target-neutral case payloads beside
-   --  runtime storage as well as beside D74's measurements.  D87 carries
-   --  D86's depth-one ordinary-struct run through the same vectors.  The
-   --  top-level shape names the supplied run; neither contains target
+   --  runtime storage as well as beside D74's measurements.  D86's
+   --  ordinary-struct run goes through the same vectors at any depth (D119).
+   --  The top-level shape names the supplied run; neither contains target
+   --  offsets.
    --  offsets.
    procedure Add_Field
      (Into    : in out Unit;
@@ -2776,7 +2776,7 @@ package Landin.IR is
                           in Copy_Array | Copy_Variant | Load_Variant_Tag
                              | Load_Variant_Field;
 
-   --  D50's containing aggregate field for the source of an array copy.
+   --  The containing aggregate field for the source of an array copy.
    --  Zero means the source storage is itself a fixed array; a positive
    --  value is [0750]'s declaration-order field, never a target offset.
    function Source_Field_Of
@@ -2785,9 +2785,9 @@ package Landin.IR is
                  and then Op_Of (Of_Unit, Item, Value)
                           in Copy_Array | Copy_Variant;
 
-   --  D90's fixed-array field below Source_Field_Of, generalised by D118
-   --  into a run of steps, and by D126 given to a variant copy's source.
-   --  An empty path keeps D20/D50's direct source.
+   --  A fixed-array field below Source_Field_Of, reached by D118's run of
+   --  steps, which D126 also gives a variant copy's source.  An empty path
+   --  keeps D20's direct source, a storage place or one field of it.
    function Source_Path_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id)
       return Path_Step_Array
@@ -2805,10 +2805,10 @@ package Landin.IR is
                              | Select_Variant | Store_Variant_Field;
 
    --  D76's source-order case and declaration-order payload field.  D78
-   --  gives scalar loads the same identities; D84 gives them to element
-   --  stores, array fills and array-copy destinations, and D85 gives them to
-   --  element loads.  Neither is a target offset; a selected bare case has
-   --  no payload field at all.
+   --  gives scalar loads the same identities; D76's case writes give them to
+   --  element stores, array fills and array-copy destinations, and D85 gives
+   --  them to element loads.  Neither is a target offset; a selected bare case
+   --  has no payload field at all.
    function Variant_Case_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Natural
      with Pre => Holds (Of_Unit, Item, Value)
@@ -2843,11 +2843,11 @@ package Landin.IR is
                  and then Op_Of (Of_Unit, Item, Value)
                           in Load_Field | Store_Field;
 
-   --  D88's scalar field, or D89/D90's fixed-array field, below the base
-   --  field above -- and, since D118, however many further selections
-   --  [0420] composed to reach the part the operation names.  An empty
-   --  path keeps the direct operation.  Each step is an identity inside
-   --  the run the step before it reached, never a target offset.
+   --  A scalar or fixed-array field below the base field above, through
+   --  however many selections [0420] composed to reach the part the operation
+   --  names (D118, D119).  An empty path keeps the direct operation.  Each
+   --  step is an identity inside the run the step before it reached, never a
+   --  target offset.
    function Path_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id)
       return Path_Step_Array
@@ -2900,15 +2900,14 @@ package Landin.IR is
       return Field_Shape
      with Pre => Path_Is_Valid (Of_Unit, Root, Path);
 
-   --  D48's containing aggregate field for an element operation, D49's
-   --  destination field for a clear, D50's destination field for a copy,
-   --  and D53's destination field for a fill.  D84 lets that field contain
-   --  the variant whose selected payload the two identities above reach.
-   --  Zero ordinarily means the
-   --  reached storage is itself a fixed array; for D57's Clear_Array it may
-   --  instead mean the whole padded aggregate storage.  A positive value is
-   --  [0750]'s declaration-order array field.  It is an identity, never a
-   --  target byte offset.
+   --  The containing aggregate field for an element operation, or the
+   --  destination field of D32's compact clear, copy or fill.  That field may
+   --  contain the variant whose selected payload the two identities above
+   --  reach (D76).  Zero ordinarily means the reached storage is itself a
+   --  fixed array; for a whole aggregate's Clear_Array ([0540]) it may instead
+   --  mean the whole padded aggregate storage.  A positive value is [0750]'s
+   --  declaration-order array field.  It is an identity, never a target byte
+   --  offset.
    function Element_Field_Of
      (Of_Unit : Unit; Item : Item_Id; Value : Value_Id) return Natural
      with Pre => Holds (Of_Unit, Item, Value)
@@ -2921,9 +2920,9 @@ package Landin.IR is
                              | Load_Variant_Field
                              | Select_Variant | Store_Variant_Field;
 
-   --  D86's bounded child-shape run.  These queries sit beside the nested
-   --  element accessors because their contracts validate D89's second field
-   --  identity before any accessor can index it.
+   --  D86's child-shape run.  These queries sit beside the nested element
+   --  accessors because their contracts validate the nested path's field
+   --  identity (D118) before any accessor can index it.
    function Aggregate_Field_Run_Is_Valid
      (Of_Unit : Unit; Shape : Field_Shape) return Boolean
      with Pre => Shape.Kind = Aggregate_Field_Shape;
@@ -3586,8 +3585,8 @@ package Landin.IR is
    --  [1950]'s runtime-selected array element.  Index is operand one; a
    --  store's value is operand two.  The verifier holds the former to
    --  `usize`, the latter and the result to the array's element type, and
-   --  Datum either to an array item, D48's named aggregate field, or D89's
-   --  fixed-array leaf inside one ordinary child.
+   --  Datum either to an array item, a named aggregate's array field, or a
+   --  fixed-array leaf inside an ordinary child, reached by D118's path.
    function Emit_Load_Element
      (Into   : in out Unit;
       Item   : Item_Id;
@@ -3627,10 +3626,10 @@ package Landin.IR is
                  and then Landin.Provenance.Is_Known (Site);
 
    --  The same element operations reaching a slot in this item's own frame
-   --  [1810].  Field zero names an Add_Array_Slot shape; D48's positive
-   --  field names a compact fixed-array leaf of an aggregate slot, and D89's
-   --  Nested names that leaf inside the field's ordinary child, and
-   --  since D118 may go on naming a part of it.
+   --  [1810].  Field zero names an Add_Array_Slot shape; a positive field
+   --  names a compact fixed-array leaf of an aggregate slot, and Nested names
+   --  that leaf inside the field's ordinary child, or a part of it, at any
+   --  depth (D118, D119).
    function Emit_Load_Slot_Element
      (Into   : in out Unit;
       Item   : Item_Id;

@@ -13401,9 +13401,9 @@ package body Landin.Syntax.Parser is
                      return Parse_Anonymous_Function;
                   end if;
 
-                  --  D64 replaces D63's labelled refusal with [0710]'s real
-                  --  field-value run.  The all-`of` form remains outside the
-                  --  grammar; `of` is contextual just as it is in [0560].
+                  --  [0710]'s labelled literal is a real field-value run.  The
+                  --  all-`of` form remains outside the grammar; `of` is
+                  --  contextual just as it is in [0560].
                   if Ahead (1) = Tok.Identifier
                     and then Ahead (2) = Tok.Colon
                   then
@@ -13760,7 +13760,7 @@ package body Landin.Syntax.Parser is
                        Children => Head & To_List (Fields));
                begin
                   --  Indexing a real literal is now its own refused shape,
-                  --  rather than recovery from D63's literal refusal.
+                  --  rather than recovery from a refused literal.
                   Refuse_Any_Index;
                   return Made;
                end;

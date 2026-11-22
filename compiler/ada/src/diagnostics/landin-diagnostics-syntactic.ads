@@ -58,9 +58,9 @@ package Landin.Diagnostics.Syntactic is
       --  from [1790]'s array type and [0520]'s array literal.
       Array_Repetition,
       Indexing,
-      --  D64 parses [0710]'s nonempty labelled form and D72 its call-shaped
-      --  construction.  [0720]'s all-`of` spelling remains outside [1810]'s
-      --  enabled expression grammar.
+      --  The parser takes [0710]'s nonempty labelled form and D72 its
+      --  call-shaped construction.  [0720]'s all-`of` spelling remains outside
+      --  [1810]'s enabled expression grammar.
       Struct_All_Of,
       Volatile_Reference,
       Shared_Declaration,

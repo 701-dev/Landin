@@ -1098,8 +1098,9 @@ package body Landin.IR.Verifier is
          return Nothing_Wrong;
       end Shape_Of;
 
-      --  D57 gives field zero of Clear_Array the complete padded aggregate;
-      --  D91 gives a positive aggregate-field identity its child extent.
+      --  [0540]'s whole zero image gives field zero of Clear_Array the
+      --  complete padded aggregate; D120 gives a positive aggregate-field
+      --  identity its child extent.
       --  These predicates are deliberately safe on invented identities; a
       --  false answer falls
       --  through Shape_Of, which owns the precise existing storage fault.
@@ -1306,11 +1307,11 @@ package body Landin.IR.Verifier is
               and then Address_Shape (Of_Unit, Item, Place.Address).Kind
                 = Array_Field_Shape);
 
-      --  D91 recognised one whole child at the base field; D119 lets the
-      --  path go on before the part it reaches has to be one.  The base
-      --  field is proved to exist before the path is walked, and the walk
-      --  is Landin.IR's own, so an invented identity answers False here
-      --  rather than reaching an accessor.
+      --  D120 recognises one whole child at the base field, and D119 lets the
+      --  path go on before the part it reaches has to be one.  The base field
+      --  is proved to exist before the path is walked, and the walk is
+      --  Landin.IR's own, so an invented identity answers False here rather
+      --  than reaching an accessor.
       function Is_Whole_Aggregate_Field
         (Item : Item_Id; Place : Storage; Field : Natural;
          Path : Path_Step_Array := No_Path_Steps) return Boolean;
@@ -1532,9 +1533,9 @@ package body Landin.IR.Verifier is
          return Nothing_Wrong;
       end Variant_Shape_Of;
 
-      --  D86 introduced this carrier for measurements; D87 uses the same
-      --  target-neutral shape for datum and slot storage.  Prove every run
-      --  and leaf before any accessor reads it, in every build mode.
+      --  D86 introduced this carrier for measurements, and datum and slot
+      --  storage use the same target-neutral shape at any depth (D119).  Prove
+      --  every run and leaf before any accessor reads it, in every build mode.
       --  A run may hold a shape naming another run, and nothing in the
       --  vector proves that naming is acyclic, so the walk carries a
       --  budget: a well-formed nesting cannot be deeper than the number
@@ -4535,11 +4536,11 @@ package body Landin.IR.Verifier is
          end if;
       end;
 
-      --  D46 shares one target-neutral field shape between aggregate
-      --  storage and D45's measurement.  Hold the aggregate run to its
-      --  canonical scalar representation before inspecting any item's
-      --  blocks, just as the vector partition checks above precede uses of
-      --  the vectors they protect.
+      --  Aggregate storage shares one target-neutral field shape with D45's
+      --  measurement.  Hold the aggregate run to its canonical scalar
+      --  representation before inspecting any item's blocks, just as the
+      --  vector partition checks above precede uses of the vectors they
+      --  protect.
       for Which in 1 .. Item_Count (Of_Unit) loop
          declare
             Id : constant Item_Id := Item_Id (Which);
@@ -6768,8 +6769,8 @@ package body Landin.IR.Verifier is
                                         (Of_Unit, Id, V));
                               begin
                                  --  Preserve D22's public fault for field
-                                 --  zero while D84's variant payload and
-                                 --  D89's ordinary child route array leaves
+                                 --  zero while a variant payload (D76) and an
+                                 --  ordinary child (D118) route array leaves
                                  --  through the same release-safe shape walk.
                                  if Bad = Array_Storage_Is_Not_An_Array
                                    and then Element_Field_Of
@@ -6909,7 +6910,7 @@ package body Landin.IR.Verifier is
                                        Path_Of (Of_Unit, Id, V)))
                                  then
                                     --  Arrays and positive aggregate array
-                                    --  fields retain their exact D49 checks.
+                                    --  fields retain their exact D32 checks.
                                     --  Invalid storage also comes here;
                                     --  Shape_Of reports it before an accessor.
                                     Bad := Shape_Of

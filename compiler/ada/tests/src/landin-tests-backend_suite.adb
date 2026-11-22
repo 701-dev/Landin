@@ -2027,10 +2027,11 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Struct_State_Becomes_Zeroed_Data;
 
-   --  D59's explicit static zero image and D60/D61's typed and inferred copied
-   --  images against two descriptions: an array field's element width and the
-   --  aggregate's tail padding follow the target rather than the host.  Each
-   --  absent image remains a distinct padded .bss object.
+   --  D10's explicit static zero image and D24's chain of typed and inferred
+   --  copied images, through D66's struct images, against two descriptions: an
+   --  array field's element width and the aggregate's tail padding follow the
+   --  target rather than the host.  Each absent image remains a distinct
+   --  padded .bss object.
    procedure A_Struct_State_Follows_Its_Target
      (Item : in out Landin.Testing.Context);
 
@@ -2105,9 +2106,10 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Struct_State_Follows_Its_Target;
 
-   --  D66--D71 write scalar, finite, repeated and hybrid array-field folds at
-   --  target-derived offsets.  D81--D83 do the same inside a selected variant
-   --  payload, including direct and selected module image sources.
+   --  D66--D68 write scalar, finite, repeated and hybrid array-field folds,
+   --  direct or copied through D24's chain, at target-derived offsets.  D81
+   --  does the same inside a selected variant payload, including direct and
+   --  selected module image sources.
    procedure A_Module_Struct_Literal_Becomes_Data_Image
      (Item : in out Landin.Testing.Context);
 
@@ -2987,8 +2989,8 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Field_Is_Read_At_Its_Own_Offset;
 
-   --  D46 still forms an array-bearing module field address from the
-   --  symbol, but a small nonzero offset needs no constant register.
+   --  An array-bearing module struct (D45) still forms a field address from
+   --  the symbol, but a small nonzero offset needs no constant register.
    procedure A_Field_After_A_Small_Array_Uses_An_Immediate
      (Item : in out Landin.Testing.Context);
 
@@ -3032,10 +3034,11 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Field_After_A_Small_Array_Uses_An_Immediate;
 
-   --  D46 can put a scalar sibling beyond the signed displacement of an
-   --  x86-64 memory operand.  Like D18's far array element, the backend
-   --  must form that address in registers rather than ask the assembler
-   --  and loader to encode an impossible symbol-plus-offset relocation.
+   --  An array-bearing module struct (D45) can put a scalar sibling beyond the
+   --  signed displacement of an x86-64 memory operand.  Like D18's far array
+   --  element, the backend must form that address in registers rather than ask
+   --  the assembler and loader to encode an impossible symbol-plus-offset
+   --  relocation.
    procedure A_Field_After_A_Wide_Array_Uses_A_Register_Address
      (Item : in out Landin.Testing.Context);
 
@@ -3124,9 +3127,10 @@ package body Landin.Tests.Backend_Suite is
       end;
    end An_Array_Field_After_A_Wide_Field_Uses_Registers;
 
-   --  D52 reuses D48's field-qualified path for every constant literal
-   --  position.  Each far module leaf is register-formed at its complete
-   --  target offset; frame leaves use their direct target-derived cells.
+   --  A literal assigned to an array field (D241) reuses the field-qualified
+   --  path (D118) for every constant literal position.  Each far module leaf
+   --  is register-formed at its complete target offset; frame leaves use their
+   --  direct target-derived cells.
    procedure Array_Field_Literal_Stores_Follow_Their_Target
      (Item : in out Landin.Testing.Context);
 
@@ -3212,9 +3216,10 @@ package body Landin.Tests.Backend_Suite is
         (Landin.Targets.Synthetic_32, "-12", "-8", "movl %eax");
    end Array_Field_Literal_Stores_Follow_Their_Target;
 
-   --  D53 composes the target-derived containing-field address with D37's
-   --  suffix offset.  A far module field is register-formed; a local field
-   --  remains an L0504-bounded displacement on both target descriptions.
+   --  A repetition assigned to an array field (D32) composes the
+   --  target-derived containing-field address with D37's suffix offset.  A far
+   --  module field is register-formed; a local field remains an L0504-bounded
+   --  displacement on both target descriptions.
    procedure Array_Field_Repetition_Fills_Follow_Their_Target
      (Item : in out Landin.Testing.Context);
 
@@ -3296,9 +3301,10 @@ package body Landin.Tests.Backend_Suite is
       Check_Local (Landin.Targets.Synthetic_32, "-20", "8", "stosl");
    end Array_Field_Repetition_Fills_Follow_Their_Target;
 
-   --  D54's whole struct copy delegates each fixed-array field to D50.
-   --  A wide module field therefore forms both addresses in registers, and
-   --  a local-to-local field copy follows the selected frame layout.
+   --  A whole struct copy (D241) delegates each fixed-array field to D32's
+   --  compact copy.  A wide module field therefore forms both addresses in
+   --  registers, and a local-to-local field copy follows the selected frame
+   --  layout.
    procedure Array_Bearing_Struct_Copy_Derives_Field_Addresses
      (Item : in out Landin.Testing.Context);
 
@@ -3396,9 +3402,10 @@ package body Landin.Tests.Backend_Suite is
       Check_Local (Landin.Targets.Synthetic_32, "-28", "-12", "8");
    end Array_Bearing_Struct_Copy_Derives_Field_Addresses;
 
-   --  D55's destination is a fresh aggregate frame slot.  Its fixed-array
-   --  field therefore composes D54's compact copy with the target-derived
-   --  module field address and frame field displacement.
+   --  A struct binding initialized from storage (D241) has a fresh aggregate
+   --  frame slot as its destination.  Its fixed-array field therefore composes
+   --  D32's compact copy with the target-derived module field address and
+   --  frame field displacement.
    procedure Local_Struct_Initializer_Derives_Field_Addresses
      (Item : in out Landin.Testing.Context);
 
@@ -3471,9 +3478,9 @@ package body Landin.Tests.Backend_Suite is
         (Landin.Targets.Synthetic_32, "-12", "4", "8", "-32", "16");
    end Local_Struct_Initializer_Derives_Field_Addresses;
 
-   --  D56 reuses the same fresh-slot copy after inference carried the source
-   --  identity.  Target facts still derive both the frame displacement and
-   --  the module field address.
+   --  An inferred struct binding (D241) reuses the same fresh-slot copy after
+   --  inference carried the source identity.  Target facts still derive both
+   --  the frame displacement and the module field address.
    procedure Inferred_Local_Struct_Derives_Field_Addresses
      (Item : in out Landin.Testing.Context);
 
@@ -3534,8 +3541,9 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "-12", "4", "8");
    end Inferred_Local_Struct_Derives_Field_Addresses;
 
-   --  D49 clears the same far field from its register-formed module address;
-   --  the byte count is the field extent, not the containing datum extent.
+   --  D32's clear reaches the same far field from its register-formed module
+   --  address; the byte count is the field extent, not the containing datum
+   --  extent.
    procedure A_Wide_Array_Field_Clear_Uses_Registers
      (Item : in out Landin.Testing.Context);
 
@@ -3573,9 +3581,9 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Wide_Array_Field_Clear_Uses_Registers;
 
-   --  D50 derives both copy endpoints from the selected target.  A module
-   --  field behind D18's wide prefix is register-formed on either side;
-   --  frame fields use the L0504-bounded target displacement.
+   --  D32's copy between array fields derives both endpoints from the selected
+   --  target.  A module field behind D18's wide prefix is register-formed on
+   --  either side; frame fields use the L0504-bounded target displacement.
    procedure Array_Field_Copy_Derives_Both_Target_Addresses
      (Item : in out Landin.Testing.Context);
 
@@ -3668,9 +3676,10 @@ package body Landin.Tests.Backend_Suite is
       Check_Local (Landin.Targets.Synthetic_32, "-28", "-12", "8");
    end Array_Field_Copy_Derives_Both_Target_Addresses;
 
-   --  D51's fresh destination is direct array storage in the frame while its
-   --  source may be a D18-wide module field.  The field identity therefore
-   --  takes D50's register-formed source path on either target description.
+   --  A local array initialized from an array field (D241) has direct array
+   --  storage in the frame as its fresh destination, while its source may be a
+   --  D18-wide module field.  The field identity therefore takes the
+   --  register-formed source path of D32's copy on either target description.
    procedure Array_Field_Initializer_Derives_Its_Source_Address
      (Item : in out Landin.Testing.Context);
 
@@ -3811,9 +3820,10 @@ package body Landin.Tests.Backend_Suite is
       end;
    end A_Struct_Local_Is_A_Cell_In_The_Frame;
 
-   --  D47 replays a compact array-field shape inside [1810]'s one frame
-   --  cell.  Both the cell extent and the trailing scalar's address follow
-   --  the selected target's usize width rather than the host.
+   --  A local array-bearing struct (D45) replays a compact array-field shape
+   --  inside [1810]'s one frame cell.  Both the cell extent and the trailing
+   --  scalar's address follow the selected target's usize width rather than
+   --  the host.
    procedure A_Struct_Array_Field_Local_Follows_Its_Target
      (Item : in out Landin.Testing.Context);
 
@@ -3881,9 +3891,9 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "-16", "-12", "-4");
    end A_Struct_Array_Field_Local_Follows_Its_Target;
 
-   --  D136 admits D17's empty fixed-array source shape. When one reaches
-   --  D47's slot field run it takes no bytes and imposes alignment one,
-   --  exactly as in D45 and D46.
+   --  D136 admits D17's empty fixed-array source shape.  When one reaches a
+   --  local struct's slot field run it takes no bytes and imposes alignment
+   --  one, exactly as in D45's measurement and module storage.
    procedure An_Empty_Array_Slot_Field_Has_Identity_Extent
      (Item : in out Landin.Testing.Context);
 
@@ -4142,8 +4152,8 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "12");
    end An_Array_Copy_Moves_A_Constant_Target_Extent;
 
-   --  D28 clears one complete compact array slot.  Its byte count follows
-   --  the target's usize width and the emitted operation never visits source
+   --  D32 clears one complete compact array slot.  Its byte count follows the
+   --  target's usize width and the emitted operation never visits source
    --  elements in the compiler.
    procedure A_Local_Array_Clear_Follows_The_Target_Extent
      (Item : in out Landin.Testing.Context);
@@ -4195,8 +4205,9 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "12");
    end A_Local_Array_Clear_Follows_The_Target_Extent;
 
-   --  D30 reaches module array storage with the same target-sized byte clear,
-   --  addressing the datum directly rather than inventing source storage.
+   --  D32's clear reaches module array storage with the same target-sized byte
+   --  clear, addressing the datum directly rather than inventing source
+   --  storage.
    procedure A_Module_Array_Clear_Follows_The_Target_Extent
      (Item : in out Landin.Testing.Context);
 
@@ -4248,9 +4259,9 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "12");
    end A_Module_Array_Clear_Follows_The_Target_Extent;
 
-   --  D58 reaches D57's whole aggregate clear through module storage.  The
-   --  byte count is the target's padded object extent, not the sum of its
-   --  field bytes, and the datum itself is the field-zero base address.
+   --  [0540]'s whole aggregate clear reaches module storage too.  The byte
+   --  count is the target's padded object extent, not the sum of its field
+   --  bytes, and the datum itself is the field-zero base address.
    procedure A_Module_Struct_Clear_Follows_The_Target_Extent
      (Item : in out Landin.Testing.Context);
 
@@ -4307,8 +4318,8 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "16");
    end A_Module_Struct_Clear_Follows_The_Target_Extent;
 
-   --  D87 recursively places D86's child run inside runtime storage.  The
-   --  clear count is the parent's complete padded extent on each target,
+   --  D86's child run is placed recursively inside runtime storage (D119).
+   --  The clear count is the parent's complete padded extent on each target,
    --  not the child's raw field-byte sum and not a host-derived constant.
    procedure A_Nested_Struct_Clear_Follows_The_Target_Extent
      (Item : in out Landin.Testing.Context);
@@ -4365,7 +4376,7 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "24");
    end A_Nested_Struct_Clear_Follows_The_Target_Extent;
 
-   --  D91 clears one ordinary child at its own recursively derived target
+   --  D120 clears one ordinary child at its own recursively derived target
    --  extent, not the parent's extent and not the child's raw field sum.
    procedure An_Ordinary_Child_Clear_Follows_The_Target
      (Item : in out Landin.Testing.Context);
@@ -4422,7 +4433,7 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "4", "16");
    end An_Ordinary_Child_Clear_Follows_The_Target;
 
-   --  D88 replays both neutral field identities only after a target is
+   --  D118's path replays its neutral field identities only after a target is
    --  selected.  Pointer width changes the padding before both the child and
    --  its `usize` leaf, so the same source reaches a different byte offset.
    procedure A_Nested_Scalar_Field_Follows_The_Target
@@ -4485,9 +4496,10 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "8", "l");
    end A_Nested_Scalar_Field_Follows_The_Target;
 
-   --  D89 places the parent child and then its compact fixed-array leaf.
-   --  Both offsets change with pointer width while the two IR identities do
-   --  not, and the computed element is added only after both placements.
+   --  D118's path places the parent's child and then its compact fixed-array
+   --  leaf.  Both offsets change with pointer width while the two IR
+   --  identities do not, and the computed element is added only after both
+   --  placements.
    procedure A_Nested_Array_Element_Follows_The_Target
      (Item : in out Landin.Testing.Context);
 
@@ -4541,8 +4553,8 @@ package body Landin.Tests.Backend_Suite is
       Check_Target (Landin.Targets.Synthetic_32, "4", "8");
    end A_Nested_Array_Element_Follows_The_Target;
 
-   --  D90 replays both endpoint paths for compact fills, copies and clears.
-   --  Their extent remains the nested array's scalar bytes, never the
+   --  D118 replays both endpoint paths for D32's compact fills, copies and
+   --  clears.  Their extent remains the nested array's scalar bytes, never the
    --  containing child or parent extent.
    procedure Nested_Array_Values_Follow_The_Target
      (Item : in out Landin.Testing.Context);
@@ -4791,8 +4803,9 @@ package body Landin.Tests.Backend_Suite is
       end;
    end Zero_Data_Is_Reserved_And_Not_Written;
 
-   --  D39 reaches the same absent loader-zero image as D10, including through
-   --  a scalar alias: spelling `zeroed` must not move either datum to `.data`.
+   --  A scalar `zeroed` reaches the same absent loader-zero image as D10,
+   --  including through a scalar alias: spelling `zeroed` must not move either
+   --  datum to `.data`.
    procedure A_Zeroed_Module_Scalar_Stays_In_Bss
      (Item : in out Landin.Testing.Context);
 
@@ -4914,9 +4927,9 @@ package body Landin.Tests.Backend_Suite is
    --  D24: an array datum whose value is a literal reaches `.data` with
    --  one directive per element at the element's own alignment, while a
    --  chain terminating at D10 zero stays in `.bss` beside the other
-   --  reserved storage, as does D27's explicitly `zeroed` array.  The four
-   --  u32 image is sixteen bytes at four-byte alignment, and each position
-   --  is spelled with its folded value.
+   --  reserved storage, as does an explicitly `zeroed` array.  The four u32
+   --  image is sixteen bytes at four-byte alignment, and each position is
+   --  spelled with its folded value.
    procedure A_Module_Array_Literal_Becomes_Data_Image
      (Item : in out Landin.Testing.Context);
 
@@ -5551,9 +5564,10 @@ package body Landin.Tests.Backend_Suite is
          "one source emits one text");
    end The_Same_Source_Emits_The_Same_Bytes;
 
-   --  D84 keeps the nested payload address target-neutral.  One source
-   --  therefore derives both the element scale and the tag/payload padding
-   --  again for each target description.
+   --  A payload array written after D76 selects its case keeps the nested
+   --  payload address target-neutral.  One source therefore derives both the
+   --  element scale and the tag/payload padding again for each target
+   --  description.
    procedure Variant_Array_Payload_Writes_Follow_The_Target
      (Item : in out Landin.Testing.Context);
 

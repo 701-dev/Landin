@@ -4125,11 +4125,10 @@ package body Landin.Backend.RiscV is
                         (Of_Unit, Item, Place.Address).Kind
                         = Landin.IR.Aggregate_Field_Shape);
          begin
-            --  D91 clears one whole child; D119 clears one however far
-            --  down the path went; D127 lets that run start at whole array
-            --  storage, so an element is reached the same way.  Either way
-            --  the extent is the reached part's own, replayed against this
-            --  target.
+            --  D120 clears one whole child, however far down D118's path it
+            --  went; D127 lets that run start at whole array storage, so an
+            --  element is reached the same way.  Either way the extent is the
+            --  reached part's own, replayed against this target.
             if (Field > 0 or else Nested'Length > 0)
               and then Reached_Shape (Place, Field, Nested).Kind
                          = Landin.IR.Aggregate_Field_Shape
