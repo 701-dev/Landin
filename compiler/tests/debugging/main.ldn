@@ -13,9 +13,9 @@ debug_site: type = struct
 end debug_site
 
 debug_record: type = struct
-    tiny: u8
     huge: i64
     middle: u16
+    tiny: u8
 end debug_record
 
 debug_choice: type = struct
