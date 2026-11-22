@@ -1087,7 +1087,10 @@ process ignores SIGPIPE and gives its children the default back.
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in
   caller-saved registers, floating-point values included, at size as at
-  speed (D1625). Both keep each
+  speed (D1625); x86-64 offers `%r10` and `%r11` where selection does not
+  write them (D2088) and reads float constants from a read-only pool
+  (D2092). On every hosted target a loop is laid out tested at its foot,
+  and no block that only jumps on is emitted (D2096). Both keep each
   routine's traps after its body, compute into a result's own register with
   immediate operands, fuse comparisons with their branches and fold indexed
   accesses into scaled operands. RISC-V, RV64 and RV32, places slots and
