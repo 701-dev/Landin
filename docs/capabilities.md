@@ -1113,7 +1113,8 @@ process ignores SIGPIPE and gives its children the default back.
   after it (D1628).
 - **At speed** a direct call to a small routine becomes a copy of its body,
   which the debuggers show as an inlined frame of that routine (D339), a
-  routine weighed as it will run rather than as lowering made it (D2100);
+  straight routine weighed as it will run rather than as lowering made it
+  (D2100);
   the build report's `copies` names every call considered and the rule
   that copied or kept it;
   slices and small structs split into scalars; and a branch whose arms only

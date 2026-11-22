@@ -517,7 +517,8 @@ to a small routine with a copy of its body (D339). The routine must have a
 body, no exposed address, the ordinary convention and Landin's own
 transport, and weigh no more than a fixed bound of those weighted
 operations, where a load or store of a scalar slot nothing addresses
-weighs nothing, since allocation keeps such a slot in a register (D2100).
+weighs nothing, since allocation keeps such a slot in a register, unless
+the routine holds a loop (D2100).
 The copy's own calls stay calls. A caller
 grows by at most the larger of a fixed floor and its own weight, and calls
 inside loops are copied first. The call's block ends by storing each argument into the copy of its

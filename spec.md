@@ -19395,7 +19395,7 @@ it is not the routine making the call, it uses the ordinary convention and
 Landin's own transport, it returns, it is not variadic, it has no placement
 and no assembly block, every aggregate it is passed or returns has a
 nominal shape, and it weighs at most 64 of D211's weighted operations as
-lowering made it. The copy's own calls stay calls: one level. A routine
+lowering made it, counted since D2100 as the routine will run. The copy's own calls stay calls: one level. A routine
 grows by at most the larger of 512 and its own weight; calls inside loops
 are copied first, then the lightest. `none` and `size` copy nothing, and
 neither does Cortex-M0, whose backend does not read the objective. One
@@ -27254,6 +27254,88 @@ Xtensa, x86-64 and arm64 do not need for speed, each dividing by a
 constant already or in hardware.
 
 **Pinned by** the Cortex-M corpus and `compiler/tests/measure/baselines/`.
+
+### D2092 — x86-64 reads float constants from a read-only pool
+
+**The tour said** nothing. x86-64 has no load-immediate into an XMM
+register, so at `size` and `speed` a float constant was built in every
+block that used it through `%rax`, `movabsq` and `movq`: mandelbrot's
+`in_set` loop rebuilt `2.0` and `4.0` on every iteration, four of its 25
+instructions.
+
+**Chosen:** at `size` and `speed` the object holds one read-only pool, an
+entry per bit pattern and width, each in a mergeable `.rodata.cst4` or
+`.rodata.cst8` section of its own, so the link keeps only the entries a
+retained routine reaches; the entries are emitted in pattern order. A
+float constant every use of which is an operand of a float add, subtract,
+multiply, divide or comparison has no location, and those instructions
+read it as a RIP-relative memory operand. Any other float constant held in
+an XMM register is loaded from the pool with one `movss` or `movsd`. A zero
+there stays `xorps`, and `none` builds constants as before. mandelbrot
+executes 8.0% fewer instructions at `speed` and at `size`, fasta 0.9%
+fewer.
+
+**The alternatives:** holding the constant in an XMM register across the
+loop, which the block-local value model cannot express without hoisting;
+and building it in a general register as before, the measured cost above.
+
+**Pinned by** `x86 opt/float constants come from a pool` and
+`compiler/tests/measure/baselines/`.
+
+### D2100 — D339 weighs a straight routine as it will run
+
+**The tour said** nothing; D339 bounds a copy at 64 of D211's weighted
+operations as lowering made the routine. Lowering makes every temporary a
+scalar slot, stored and loaded at two each, which allocation then holds in
+a register: `hosted/heap`'s `align_up`, a mask with its division in a
+second routine, weighed 65 and stayed a call, so the heap carried the mask
+written out by hand in `host_alloc`.
+
+**Chosen:** a load or store of a scalar slot that no operation names as
+storage (no address is taken of it, nothing copies, clears or writes it in
+place) weighs nothing, for the bound and for the caller's growth budget
+alike; every other operation weighs what D211 says. A routine whose blocks
+hold a cycle is weighed as before, every operation at D211's weight, which
+is the measure D339's bound was chosen on. The heap's `align_up` is written
+plainly again and copied where it is called. At `speed` on x86-64
+binary-trees 15 executes 3.0% fewer instructions and the fibre switches
+3.6% fewer; the hosted images grow by under 2%.
+
+**The alternatives:** the new count for every routine, which copied
+fannkuch-redux's `reverse_prefix`, a loop, into its caller's loop: 8.7%
+fewer instructions and 3 to 7% more cycles, 5% more branch misses, the loss
+D339 recorded at a bound of 96; refusing every routine with a loop, which
+lost the small loops D339 already copied and left binary-trees slower than
+before; weighing routines after simplification, which D339 declined as
+needing the program simplified twice; and copying in callee-first order, so
+that a routine is measured with the copies it received, which the row that
+asked for this named but which keeps nothing in one pass: every routine is
+measured before any is copied, and the weight alone kept `align_up`.
+
+**Pinned by** the `ir opt` inlining cases, whose weight is
+`Landin.IR.Inlining.Weight`, and `compiler/tests/measure/baselines/`.
+
+### D2101 — The build report names each call D339 kept and why
+
+**The tour said** nothing. Nothing said which calls `--optimize speed`
+copied and why the rest stayed calls: learning why `align_up` stayed one
+took tracing the inliner with a rebuilt compiler.
+
+**Chosen:** the build report's `copies` lists every direct call the
+inliner considered, which it does only at `speed` on a hosted target: the
+caller and callee items, the call's source span, its loop depth, the
+callee's weight as far as the inliner counted it, `copied` or `kept`, and
+the first rule that decided it: `copied`, `no-body`, `address-exposed`,
+`callee-shape`, `assembly`, `weight`, `recursive`, `arguments`,
+`failure-shape`, `crossing` or `budget`. The compiler guide's build report
+section says what each means.
+
+**The alternatives:** an annotation in `--emit=ir`, which a reader must
+match back to source by hand and which a linked build does not write; and
+only the calls kept, which leaves a reader no way to confirm a copy.
+
+**Pinned by** `ir opt/the build report says why each call stayed one` and
+the `host reports` JSON case.
 
 ### D1767 — Cortex-M makes a word constant where an operation reads it
 

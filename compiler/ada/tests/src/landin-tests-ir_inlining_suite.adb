@@ -471,7 +471,7 @@ package body Landin.Tests.IR_Inlining_Suite is
       end;
    end Growth_Is_Bounded;
 
-   --  SR-1427: every direct call the inliner considered is in the build
+   --  D2101: every direct call the inliner considered is in the build
    --  report, copied or kept, with the rule that decided it.
    procedure Report_Names_Each_Call (Item : in out Landin.Testing.Context);
    procedure Report_Names_Each_Call (Item : in out Landin.Testing.Context) is
