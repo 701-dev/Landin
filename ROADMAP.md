@@ -700,7 +700,7 @@ timing included.
 
 ### R16.28 — x86-64's code from R16.24's list
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What R16.24 measured on x86-64 and left: SR-1422's nine allocatable
@@ -712,6 +712,29 @@ why the rest stayed calls.
 Exit evidence: each cost taken measured lower than its R16.10 and R16.24
 figures, no other combination over its own, and the build report naming
 the copies.
+
+Done: x86-64 offers `%r10` and `%r11` where selection does not write them
+(D2088, `SR-1422`) and reads float constants from a read-only pool (D2092,
+`SR-1424`); every hosted target lays a loop out tested at its foot and
+emits no block that only jumps on (D2096, `SR-1425`); D339 weighs a routine
+without loop as it will run, its scalar slots' loads and stores free, and
+a routine with a loop as before (D2100, `SR-1426`), so the heap's
+`align_up` carries its mask and is copied; and the build report's `copies`
+names every call the inliner considered and the rule that copied or kept
+it (D2101, `SR-1427`), which found that the weight, not a received copy,
+kept `align_up` a call. Against the base, x86-64 at speed executes 10.2%
+fewer instructions on fannkuch-redux, 12.1% on mandelbrot, 12.2% on fasta,
+7.5% on reverse-complement, 3.9% on binary-trees, 6.5% on the fibre
+switches, 4.5% on a SHA-256 of 64 MiB (8.50 G against gcc's 4.56 G) and
+11.4% on SipHash-1-3, and at size 1.0% to 14.6% fewer. Every image's
+`.text` is smaller at size; at speed, where more is copied,
+fannkuch-redux's, reverse-complement's and binary-trees' grow 0.1% to 0.3%. On arm64 the loop
+layout runs SipHash, SHA-256 and fannkuch-redux 3% to 5% fewer. Copying
+every small routine with a loop cost fannkuch-redux 3% to 7% more cycles
+for fewer instructions, which is why loops keep D339's weight. What stays
+is filed: `SR-1650` the slot placement that leaves SHA-256's words in the
+frame, `SR-1654` the gain the loop rule gives up, `SR-1655` loop-invariant
+values, and `SR-1651` to `SR-1653` what the work met.
 
 ### R16.29 — The small targets' remaining code
 
