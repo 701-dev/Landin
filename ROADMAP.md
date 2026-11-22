@@ -1708,7 +1708,7 @@ every target the gate runs; the refusal where `P` is not a parent.
 
 ### R20.20 — How a capability is received
 
-Status: planned
+Status: active
 Depends on: R20.10
 
 The rule for `type is C` against `any C` (D1948) and the order of
