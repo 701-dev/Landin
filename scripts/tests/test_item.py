@@ -677,6 +677,197 @@ class Timing(Promote):
         self.assertIn("boards %s --rerun-failed" % FIRST, text)
 
 
+WINDOW_BRANCH = "r0-integration"
+
+
+class Window(Clone):
+    """A phase's breaking window: its items land on its integration
+    branch, not on main."""
+
+    def setUp(self):
+        super().setUp()
+        text = (self.clone / "ROADMAP.md").read_text().replace(
+            "## R0 — A phase\n", "## R0 — A phase\n\nWindow: %s\n"
+            % WINDOW_BRANCH)
+        (self.clone / "ROADMAP.md").write_text(text)
+        git(self.clone, "commit", "-q", "-am", "the window")
+        git(self.clone, "push", "-q", "origin",
+            "main:refs/heads/" + WINDOW_BRANCH)
+        #  Main moves on without the window.
+        (self.clone / "main.txt").write_text("main\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "on main")
+        git(self.clone, "push", "-q", "origin", "main")
+        self.window = git(self.clone, "rev-parse", "origin/" + WINDOW_BRANCH)
+
+    def started(self):
+        status, out = self.item("start", FIRST)
+        self.assertEqual(status, 0, out)
+        state = item.load(FIRST)
+        worktree = Path(state["worktree"])
+        (worktree / "work.txt").write_text("work\n")
+        git(worktree, "add", "-A")
+        git(worktree, "commit", "-q", "-m", "work")
+        return state, worktree, out
+
+    def offline(self, passed=True):
+        """GitHub as a listing would give it: the head's push gate passed
+        or not, and nothing else running."""
+        saved = (item.record_gates, item.complete_listing, item.gh)
+        def record(state, commit):
+            if passed and not any(entry["commit"] == commit
+                                  for entry in state["gates"]):
+                state["gates"].append({
+                    "run": 1, "commit": commit, "kind": "software",
+                    "tree": git(state["worktree"], "rev-parse",
+                                commit + "^{tree}"),
+                    "status": "completed", "conclusion": "success"})
+            return state
+        item.record_gates = record
+        item.complete_listing = lambda run: None
+        item.gh = lambda *arguments: []
+        self.addCleanup(lambda: (
+            setattr(item, "record_gates", saved[0]),
+            setattr(item, "complete_listing", saved[1]),
+            setattr(item, "gh", saved[2])))
+
+    def test_start_branches_from_the_window_and_says_so(self):
+        state, worktree, out = self.started()
+        self.assertEqual(state["target"], WINDOW_BRANCH)
+        self.assertEqual(state["base"], self.window)
+        self.assertIn("lands on %s" % WINDOW_BRANCH, out)
+        brief = (item.item_directory(FIRST) / "brief.md").read_text()
+        self.assertIn("land it on the window's integration branch %s"
+                      % WINDOW_BRANCH, brief)
+        self.assertFalse((worktree / "main.txt").exists())
+
+    def test_promote_lands_on_the_window_without_boards(self):
+        state, worktree, _ = self.started()
+        self.offline()
+        status, out = self.item("promote", FIRST, "--partial")
+        self.assertEqual(status, 2, out)
+        self.assertIn("HEAD is not the branch's pushed head", out)
+        status, out = self.item("push", FIRST)
+        self.assertEqual(status, 0, out)
+        status, out = self.item("promote", FIRST, "--partial")
+        self.assertEqual(status, 0, out)
+        head = git(worktree, "rev-parse", "HEAD")
+        self.assertEqual(git(self.clone, "ls-remote", "origin",
+                             WINDOW_BRANCH).split()[0], head)
+        self.assertNotEqual(git(self.clone, "ls-remote", "origin",
+                                "refs/heads/main").split()[0], head)
+        #  The window's token is given up at the landing, and main's was
+        #  never taken.
+        self.assertEqual(item.take(SECOND, "test", target=WINDOW_BRANCH),
+                         (True, None))
+        self.assertEqual(item.take(SECOND, "test"), (True, None))
+        self.assertIn("`item.py finish %s`" % FIRST,
+                      item.next_step(item.load(FIRST)))
+        status, out = self.item("finish", FIRST)
+        self.assertEqual(status, 0, out)
+        self.assertFalse(worktree.exists())
+
+    def test_merge_main_merges_the_window(self):
+        state, worktree, _ = self.started()
+        git(self.clone, "fetch", "-q", "origin")
+        git(self.clone, "checkout", "-q", "-b", "w", "origin/" + WINDOW_BRANCH)
+        (self.clone / "sibling.txt").write_text("a sibling landed\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "sibling")
+        git(self.clone, "push", "-q", "origin", "w:" + WINDOW_BRANCH)
+        status, out = self.item("merge-main", FIRST)
+        self.assertEqual(status, 0, out)
+        self.assertIn("merged origin/%s" % WINDOW_BRANCH, out)
+        self.assertTrue((worktree / "sibling.txt").exists())
+        self.assertFalse((worktree / "main.txt").exists())
+
+    def test_a_state_from_before_windows_reads_its_roadmap(self):
+        state, worktree, _ = self.started()
+        del state["target"]
+        item.save(state)
+        self.assertEqual(item.target_of(item.load(FIRST)), WINDOW_BRANCH)
+
+    def test_finish_takes_a_head_landed_by_hand(self):
+        state, worktree, _ = self.started()
+        status, out = self.item("finish", FIRST)
+        self.assertEqual(status, 2, out)
+        self.assertIn("neither origin/%s nor origin/main" % WINDOW_BRANCH, out)
+        git(worktree, "push", "-q", "origin", "HEAD:" + WINDOW_BRANCH)
+        status, out = self.item("finish", FIRST)
+        self.assertEqual(status, 0, out)
+        journal = (item.state_root() / item.DONE_DIRECTORY / FIRST
+                   / "journal.md").read_text()
+        self.assertIn("its head is in %s" % WINDOW_BRANCH, journal)
+
+
+class Mirror(Clone):
+    """A mirror among origin's push URLs that refuses fails no step."""
+
+    def test_a_refusing_mirror_is_reported_and_the_push_stands(self):
+        git(self.clone, "remote", "set-url", "--add", "--push", "origin",
+            str(self.origin))
+        git(self.clone, "remote", "set-url", "--add", "--push", "origin",
+            str(self.top / "no-such-mirror.git"))
+        self.item("start", FIRST)
+        state = item.load(FIRST)
+        saved = item.gh
+        item.gh = lambda *arguments: []
+        self.addCleanup(setattr, item, "gh", saved)
+        status, out = self.item("push", FIRST)
+        self.assertEqual(status, 0, out)
+        self.assertIn("GitHub took the push; the mirror", out)
+        self.assertIn("git push %s" % (self.top / "no-such-mirror.git"), out)
+        worktree = Path(state["worktree"])
+        self.assertEqual(git(worktree, "rev-parse", "origin/"
+                             + state["branch"]),
+                         git(worktree, "rev-parse", "HEAD"))
+        self.assertIn("the mirror refused",
+                      (item.item_directory(FIRST) / "journal.md").read_text())
+
+    def test_credentials_in_a_url_are_not_shown(self):
+        self.assertEqual(item.shown_url("https://user:secret@example.org/x"),
+                         "https://example.org/x")
+
+
+class SessionToken(Clone):
+    def test_work_that_is_no_item_takes_and_releases_the_token(self):
+        self.item("start", FIRST)
+        status, out = self.item("queue", "--take", "sweep", "--why",
+                                "a register sweep")
+        self.assertEqual(status, 0, out)
+        taken, why = item.take(FIRST, "test")
+        self.assertFalse(taken)
+        self.assertIn("until it releases it", why)
+        #  Not dropped for want of an item's state.
+        status, out = self.item("queue")
+        self.assertIn("promotion token: sweep since", out)
+        status, out = self.item("queue", "--take", FIRST)
+        self.assertEqual(status, 2, out)
+        status, out = self.item("queue", "--release", "sweep")
+        self.assertIn("released", out)
+        self.assertEqual(item.take(FIRST, "test"), (True, None))
+
+
+class Clashes(Clone):
+    def test_a_merged_branch_that_took_a_reserved_number_is_named(self):
+        self.item("start", FIRST)
+        state = item.load(FIRST)
+        low = state["reserved"]["D"][0]
+        sr = state["reserved"]["SR"][0]
+        (self.clone / "spec.md").write_text("D41, D42 and D%d.\n" % low)
+        rows = self.clone / "roadmap/register"
+        rows.mkdir(parents=True)
+        (rows / ("SR-%d.md" % sr)).write_text("a row\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "taken outside the item")
+        git(self.clone, "push", "-q", "origin", "main")
+        git(state["worktree"], "fetch", "-q", "origin")
+        said = item.reserved_clashes(state, "origin/main")
+        self.assertEqual(len(said), 2, said)
+        self.assertIn("D%d of %s's reserved block" % (low, FIRST), said[0])
+        self.assertIn("SR-%d" % sr, said[1])
+
+
 def git_or_none(root, *arguments):
     result = subprocess.run(["git", *arguments], cwd=root, env=environment(),
                             text=True, stdout=subprocess.PIPE,

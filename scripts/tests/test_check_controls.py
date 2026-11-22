@@ -2877,6 +2877,63 @@ class RoadmapStructure(unittest.TestCase):
         self.assertEqual(ages, {old: 4, new: 2, kept: 1})
         assert item not in ages
 
+    def test_a_merge_alone_ages_no_row(self):
+        #  A breaking window's branch completes items while main files a
+        #  row; the branch taking main, or main taking the branch, joins
+        #  the two lines, and the items completed on the branch before the
+        #  merge did not stand through the row.  A `Kept:` line written in
+        #  resolving a merge restarts the count as an ordinary commit does.
+        from temporary_git import environment
+        def roadmap(statuses):
+            return "".join("### R9.%d — Item\n\nStatus: %s\n\n" % (n, status)
+                           for n, status in enumerate(statuses, 1))
+        row = real_rows()[OPEN_ROW]
+        filed, kept = ("SR-%d" % n for n in (99011, 99012))
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            rows = root / checker.REGISTER_DIRECTORY
+            rows.mkdir(parents=True)
+            def git(*arguments, check=True):
+                return subprocess.run(["git", *arguments], cwd=root,
+                                      check=check, env=environment(),
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, text=True)
+            def commit(statuses, *files):
+                (root / "ROADMAP.md").write_text(roadmap(statuses))
+                for name, text in files:
+                    (rows / (name + ".md")).write_text(text)
+                git("add", "-A")
+                git("commit", "-q", "-m", "x")
+            git("init", "-q", "-b", "main")
+            commit(["planned"] * 4, (kept, row))
+            git("checkout", "-q", "-b", "window")
+            commit(["complete"] * 2 + ["planned"] * 2)
+            git("checkout", "-q", "main")
+            commit(["planned"] * 4, (filed, row))
+            git("checkout", "-q", "window")
+            #  The window takes main: a conflict in ROADMAP.md is resolved
+            #  with the branch's statuses, and the second row kept in the merge.
+            git("merge", "-q", "--no-ff", "--no-commit", "main",
+                check=False)
+            (root / "ROADMAP.md").write_text(roadmap(["complete"] * 2
+                                                     + ["planned"] * 2))
+            (rows / (kept + ".md")).write_text(row + "Kept: Still wanted.\n")
+            #  Mid-merge, MERGE_HEAD's line is joined already.
+            self.assertEqual(checker.register_ages(str(root))[filed], 0)
+            git("add", "-A")
+            git("commit", "-q", "-m", "merge main")
+            self.assertEqual(checker.register_ages(str(root)),
+                             {filed: 0, kept: 0})
+            commit(["complete"] * 3 + ["planned"])
+            self.assertEqual(checker.register_ages(str(root)),
+                             {filed: 1, kept: 1})
+            #  Main takes the window, as its one promotion does.
+            git("checkout", "-q", "main")
+            git("merge", "-q", "--no-ff", "-m", "promote", "window")
+            (root / "ROADMAP.md").write_text(roadmap(["complete"] * 4))
+            ages = checker.register_ages(str(root))
+        self.assertEqual(ages, {filed: 2, kept: 2})
+
     def test_a_roadmap_identity_cited_elsewhere_is_reported(self):
         #  An item or record of any roadmap: the earlier roadmaps' are
         #  closed and in the history, and no more welcome outside it.
@@ -3144,6 +3201,14 @@ class Questions(unittest.TestCase):
         said = self.faults(asked="Asked in a chat.")
         self.assertTrue(any("does not say `Asked by ITEM" in why
                             for why in said))
+
+    def test_work_that_is_no_item_says_what_it_is(self):
+        #  Two answers' filings borrowed the nearest item for want of a
+        #  form; the line names the work instead.
+        said = self.faults(asked="Asked by the register sweep of 2026-11-21"
+                           " on 2026-11-21.")
+        self.assertFalse(any("Asked by" in why or "work item" in why
+                             for why in said), said)
 
     def test_a_heading_that_is_no_question_or_names_another_is_refused(self):
         for heading in ("# %s — A statement." % ASKED,

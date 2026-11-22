@@ -16,7 +16,11 @@ Lock order is all, then mode, then readers, so none of this can deadlock.
 
 Whoever waits says what it is waiting for and which processes hold it: every
 holder writes its pid and command under `<lock>.holders/`, and a waiter
-names the live ones.
+names the live ones.  A program a build or test starts inherits the lock's
+descriptors without recording itself, and holds the lock if it outlives its
+caller; when no record names a live holder, a waiter on Linux finds the
+processes whose open descriptor carries the lock and names their pid and
+program, and elsewhere says how to find them.
 """
 import atexit
 import fcntl
@@ -125,6 +129,77 @@ def holders(path):
     return found
 
 
+def _program(pid):
+    """PID's program: its argv[0], or the kernel's name for it."""
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as stream:
+            first = stream.read().split(b"\0", 1)[0]
+        if first:
+            return first.decode(errors="replace")
+    except OSError:
+        pass
+    try:
+        with open(f"/proc/{pid}/comm", "rb") as stream:
+            return stream.read().decode(errors="replace").strip() or "?"
+    except OSError:
+        return "?"
+
+
+def descriptor_holders(path, proc="/proc"):
+    """`pid N: program` for every process whose open descriptor holds PATH.
+
+    The lock belongs to an open file description, which a program started
+    under the lock inherits without recording itself under `.holders/`.
+    Linux shows a held flock as a `lock:` line in the descriptor's fdinfo, so
+    a process that has the file open only to wait for it is not named.
+    Without /proc, or for processes this user cannot inspect, nothing is
+    found.  Only the program is read, never the arguments or environment.
+    """
+    try:
+        wanted = os.stat(path)
+        pids = sorted(int(name) for name in os.listdir(proc) if name.isdigit())
+    except OSError:
+        return []
+    found = []
+    for pid in pids:
+        if pid == os.getpid():
+            continue
+        directory = f"{proc}/{pid}/fd"
+        try:
+            descriptors = os.listdir(directory)
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                opened = os.stat(f"{directory}/{descriptor}")
+                if (opened.st_dev, opened.st_ino) != (wanted.st_dev,
+                                                      wanted.st_ino):
+                    continue
+                with open(f"{proc}/{pid}/fdinfo/{descriptor}") as stream:
+                    locked = any(line.startswith("lock:") and "FLOCK" in line
+                                 and "->" not in line for line in stream)
+            except OSError:
+                continue
+            if locked:
+                found.append(f"pid {pid}: {_program(pid)} (inherited the"
+                             " lock's descriptor; recorded no command)")
+                break
+    return found
+
+
+def _waiting_message(path, purpose):
+    said = f"landin: waiting for build lock {Path(path).name}"
+    if purpose:
+        said += f" ({purpose})"
+    named = holders(path) or descriptor_holders(path)
+    if named:
+        return said + ", held by " + "; ".join(named)
+    finder = "fuser -v" if sys.platform.startswith("linux") else "lsof"
+    return (said + "; no holder is recorded and none was found by its open"
+            f" descriptor; `{finder} {path}` lists the processes that have"
+            " it open")
+
+
 def _record(path, command):
     directory = Path(str(path) + ".holders")
     directory.mkdir(parents=True, exist_ok=True)
@@ -146,12 +221,7 @@ def acquire(path, kind, command, purpose=None):
     try:
         fcntl.flock(fd, kind | fcntl.LOCK_NB)
     except BlockingIOError:
-        said = f"landin: waiting for build lock {Path(path).name}"
-        if purpose:
-            said += f" ({purpose})"
-        named = holders(path)
-        said += (", held by " + "; ".join(named)) if named else ""
-        print(said, file=sys.stderr, flush=True)
+        print(_waiting_message(path, purpose), file=sys.stderr, flush=True)
         fcntl.flock(fd, kind)
     _record(path, command)
     return fd

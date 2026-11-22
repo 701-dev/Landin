@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import tempfile
 import unittest
@@ -83,6 +84,53 @@ class AgentEnvTest(unittest.TestCase):
                     self.assertEqual(completed.stdout, "/dev/null\n")
                     self.assertEqual(completed.stderr, "")
 
+    def flake_shell(self, scratch, script="", toolchain=False):
+        """A PATH with a nix whose shell's script puts a store directory
+        on PATH, sets the build tag and key, and then runs SCRIPT, and with
+        python3 and gprbuild when TOOLCHAIN; the store directory."""
+        tools = scratch / "bin"
+        store = scratch / "store/bin"
+        tools.mkdir()
+        store.mkdir(parents=True)
+        path = self.path_with(
+            tools, ("python3", "gprbuild") if toolchain else ())
+        for tool in ("env", "mkdir", "mktemp", "mv", "rm", "sed", "grep",
+                     "sort"):
+            os.symlink(shutil.which(tool), tools / tool)
+        nix = tools / "nix"
+        nix.write_text(
+            "#!/bin/sh\n"
+            "cat <<'EOF'\n"
+            "PATH=${PATH:-}\n"
+            "nix_saved_PATH=\"$PATH\"\n"
+            f"PATH='{store}'\n"
+            "export PATH\n"
+            "LANDIN_BUILD_TAG=nix-x86_64-linux\n"
+            "export LANDIN_BUILD_TAG\n"
+            f"LANDIN_ENV_KEY={self.key()}\n"
+            "export LANDIN_ENV_KEY\n"
+            "PATH=\"$PATH${nix_saved_PATH:+:$nix_saved_PATH}\"\n"
+            + script +
+            "EOF\n")
+        nix.chmod(0o755)
+        return path, store
+
+    def run_helper(self, scratch, path, caller=None, stdin=None):
+        completed = subprocess.run(
+            [str(SCRIPT)],
+            env={"PATH": path, "HOME": str(scratch),
+                 "XDG_CACHE_HOME": str(scratch / "cache"), **(caller or {})},
+            stdin=subprocess.DEVNULL if stdin is None else stdin,
+            capture_output=True, text=True, timeout=60)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        printed = Path(completed.stdout.strip())
+        self.assertEqual(printed, scratch / f"cache/landin/agent-env/{self.key()}.sh")
+        return printed, completed.stderr
+
+    def exported(self, printed):
+        return re.findall(r"^export ([A-Za-z_][A-Za-z0-9_]*)=",
+                          printed.read_text(), re.M)
+
     def test_another_checkouts_shell_gets_this_ones(self):
         #  A session started in one checkout has that checkout's shell on
         #  PATH in every worktree: the helper says so, and prints this
@@ -94,40 +142,11 @@ class AgentEnvTest(unittest.TestCase):
             with self.subTest(caller=caller), \
                     tempfile.TemporaryDirectory() as scratch:
                 scratch = Path(scratch)
-                tools = scratch / "bin"
-                store = scratch / "store/bin"
-                tools.mkdir()
-                store.mkdir(parents=True)
-                path = self.path_with(tools, ("python3", "gprbuild"))
-                for tool in ("env", "mkdir", "mktemp", "mv", "rm", "sed"):
-                    os.symlink(shutil.which(tool), tools / tool)
-                nix = tools / "nix"
-                nix.write_text(
-                    "#!/bin/sh\n"
-                    "cat <<'EOF'\n"
-                    "PATH=${PATH:-}\n"
-                    "nix_saved_PATH=\"$PATH\"\n"
-                    f"PATH='{store}'\n"
-                    "export PATH\n"
-                    "LANDIN_BUILD_TAG=nix-x86_64-linux\n"
-                    "export LANDIN_BUILD_TAG\n"
-                    f"LANDIN_ENV_KEY={self.key()}\n"
-                    "export LANDIN_ENV_KEY\n"
-                    "PATH=\"$PATH${nix_saved_PATH:+:$nix_saved_PATH}\"\n"
-                    "EOF\n")
-                nix.chmod(0o755)
-                completed = subprocess.run(
-                    [str(SCRIPT)],
-                    env={"PATH": path, "HOME": str(scratch),
-                         "XDG_CACHE_HOME": str(scratch / "cache"), **caller},
-                    capture_output=True, text=True, timeout=60)
-                self.assertEqual(completed.returncode, 0, completed.stderr)
+                path, store = self.flake_shell(scratch, toolchain=True)
+                printed, said = self.run_helper(scratch, path, caller)
                 self.assertIn("the shell of another flake.nix, flake.lock or"
-                              " pins.sh", completed.stderr)
-                self.assertIn(self.key(), completed.stderr)
-                printed = Path(completed.stdout.strip())
-                self.assertEqual(printed.parent,
-                                 scratch / "cache/landin/agent-env")
+                              " pins.sh", said)
+                self.assertIn(self.key(), said)
                 sourced = subprocess.run(
                     ["sh", "-c", '. "$0" && printf "%s %s %s" "$PATH"'
                      ' "$LANDIN_BUILD_TAG" "$LANDIN_ENV_KEY"', str(printed)],
@@ -136,6 +155,77 @@ class AgentEnvTest(unittest.TestCase):
                 self.assertEqual(sourced.returncode, 0, sourced.stderr)
                 self.assertEqual(sourced.stdout.split(" "), [
                     f"{store}:{path}", "nix-x86_64-linux", self.key()])
+
+    def test_the_callers_startup_files_stay_out(self):
+        #  A SessionStart hook's standard input is a socket, and
+        #  bash under `env -i` with no SHLVL then reads ~/.bashrc as if
+        #  sshd had started it.  On 2026-11-21 that put the maintainer's
+        #  whole login environment, a daemon's password among it, into
+        #  five cached files, and the hook into every command's argument.
+        #  BASH_ENV and a login profile are the other ways in.
+        with tempfile.TemporaryDirectory() as scratch:
+            scratch = Path(scratch)
+            path, _ = self.flake_shell(scratch)
+            for startup in (".bashrc", ".bash_profile", ".profile",
+                            "bash_env"):
+                (scratch / startup).write_text(
+                    "export FROM_STARTUP_%s=1\n"
+                    % startup.strip(".").upper())
+            ours, theirs = socket.socketpair()
+            with ours, theirs:
+                printed, said = self.run_helper(
+                    scratch, path, {"BASH_ENV": str(scratch / "bash_env")},
+                    stdin=ours)
+            self.assertEqual(sorted(self.exported(printed)),
+                             ["LANDIN_BUILD_TAG", "LANDIN_ENV_KEY", "PATH"])
+            self.assertNotIn("FROM_STARTUP", said)
+
+    def test_names_that_look_secret_are_left_out(self):
+        #  The shell's own script naming one is refused as firmly as the
+        #  caller's would be: the hook would show it to `ps`.  The name is
+        #  said, its value never.  A name the script does not mention, here
+        #  one a file it sources sets, is not the flake's and is left out.
+        with tempfile.TemporaryDirectory() as scratch:
+            scratch = Path(scratch)
+            (scratch / "elsewhere.sh").write_text("export ELSEWHERE_SET=1\n")
+            secrets = ("DAEMON_PASSWORD", "GITHUB_TOKEN", "my_secret_key",
+                       "AWS_CREDENTIALS")
+            path, _ = self.flake_shell(scratch, "".join(
+                f"{name}=value-{name}; export {name}\n" for name in secrets)
+                + "KEPT_NAME=kept; export KEPT_NAME\n"
+                + ". \"$HOME/elsewhere.sh\"\n")
+            printed, said = self.run_helper(scratch, path)
+            self.assertEqual(sorted(self.exported(printed)), [
+                "KEPT_NAME", "LANDIN_BUILD_TAG", "LANDIN_ENV_KEY", "PATH"])
+            for name in secrets:
+                self.assertIn(f"{name} looks secret", said)
+                self.assertNotIn(f"value-{name}", said)
+                self.assertNotIn(f"value-{name}", printed.read_text())
+            self.assertIn("ELSEWHERE_SET is left out", said)
+
+    def test_a_cached_file_that_holds_a_secret_is_written_again(self):
+        #  A file an earlier version wrote is replaced, the poisoned ones
+        #  aloud, rather than kept while its store paths last.
+        for line, aloud in (("export PASEO_PASSWORD=hidden\n", True),
+                            ("", False)):
+            with self.subTest(aloud=aloud), \
+                    tempfile.TemporaryDirectory() as scratch:
+                scratch = Path(scratch)
+                path, store = self.flake_shell(scratch)
+                cached = scratch / f"cache/landin/agent-env/{self.key()}.sh"
+                cached.parent.mkdir(parents=True)
+                cached.write_text(f"export PATH='{store}':\"$PATH\"\n"
+                                  "export STALE_NAME=1\n" + line)
+                printed, said = self.run_helper(scratch, path)
+                self.assertEqual(sorted(self.exported(printed)),
+                                 ["LANDIN_BUILD_TAG", "LANDIN_ENV_KEY", "PATH"])
+                self.assertEqual("holds a name that looks secret" in said,
+                                 aloud, said)
+                self.assertNotIn("hidden", said)
+                #  The file now written is the one kept.
+                again, said = self.run_helper(scratch, path)
+                self.assertEqual(said, "")
+                self.assertEqual(again.read_text(), printed.read_text())
 
 
 class SessionStartHookTest(unittest.TestCase):
