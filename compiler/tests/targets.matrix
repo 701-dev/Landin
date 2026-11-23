@@ -2219,13 +2219,14 @@ runtime/events-blocking-pipe-two-writers | linux-x86-64, linux-arm64, linux-rv64
 runtime/events-blocking-pipe-write | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 runtime/events-blocking-socket-write-refused | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/events-child-wait | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
-runtime/events-close-wakes-waiter | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
+runtime/events-close-wakes-waiter | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64
 runtime/events-connect-within | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+runtime/events-network-limits | linux-x86-64, linux-arm64, linux-rv64, windows-x86-64
 runtime/events-signal-during-sleep | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 runtime/events-signal-stops-server | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
-runtime/events-sleep-answers-now | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
-runtime/events-stack-past-limit-traps | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
-runtime/events-tcp-exchange | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
+runtime/events-sleep-answers-now | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64
+runtime/events-stack-past-limit-traps | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64
+runtime/events-tcp-exchange | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64
 runtime/evidence-projected-entries-kept | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64
 runtime/example-binary-search | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
 runtime/example-dice-and-cards | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
@@ -2891,6 +2892,9 @@ runtime/volume-links-as-systems-follow | linux-x86-64, linux-arm64, darwin-arm64
 runtime/volume-memory | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
 runtime/whole-array-elements | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
 runtime/whole-arrays-copy-between-storage | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
+runtime/windows-events-child-wait | windows-x86-64
+runtime/windows-events-console-control | windows-x86-64
+runtime/windows-events-control-in-worker | windows-x86-64
 runtime/windows-run-programs | windows-x86-64
 runtime/word-count | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
 runtime/word-count-closed-input | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64

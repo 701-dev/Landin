@@ -63,7 +63,7 @@ public main: () -> (code: i32) =
     code = 1
     _ = windows.free_console()
     return when windows.allocate_console() == 0
-                or windows.set_control_handler(0, 0) == 0
+      or windows.set_control_handler(0, 0) == 0
     code = 2
     threaded(system.new()) else (problem)
         _ = problem

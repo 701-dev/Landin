@@ -44,8 +44,7 @@ fixed if compiler.os == windows then
     --- How an overlapped call on `socket` ended,
     --- `WSAGetOverlappedResult`: nonzero with the bytes it moved, or zero
     --- with the Windows Sockets code for `socket_last_error`.
-    public extern(c) link(symbol: "WSAGetOverlappedResult")
-        socket_overlapped_result:
+    public extern(c) link(symbol: "WSAGetOverlappedResult") socket_overlapped_result:
         (socket: handle, record: ptr mut overlapped, moved: ptr mut u32,
          wait: i32, flags: ptr mut u32) -> (done: i32)
 
@@ -59,11 +58,12 @@ fixed if compiler.os == windows then
     --- `SIO_GET_EXTENSION_FUNCTION_POINTER`.
     public get_extension_function: u32 = 0xC8000006
 
-    --- The GUIDs that name `ConnectEx` and `AcceptEx`, `WSAID_CONNECTEX`
-    --- and `WSAID_ACCEPTEX`, as the 16 bytes `socket_control` is given.
+    --- The GUID that names `ConnectEx`, `WSAID_CONNECTEX`, as the 16 bytes
+    --- `socket_control` is given.
     public connect_extension: [16]u8 =
         [0xB9, 0x07, 0xA2, 0x25, 0xF3, 0xDD, 0x60, 0x46,
          0x8E, 0xE9, 0x76, 0xE5, 0x8C, 0x74, 0x06, 0x3E]
+    --- The GUID that names `AcceptEx`, `WSAID_ACCEPTEX`.
     public accept_extension: [16]u8 =
         [0xF1, 0x7D, 0x36, 0xB5, 0xAC, 0xCB, 0xCF, 0x11,
          0x95, 0xCA, 0x00, 0x80, 0x5F, 0x48, 0xA1, 0x92]
@@ -86,9 +86,10 @@ fixed if compiler.os == windows then
     --- and 16 bytes more.
     public address_room: u32 = 44
 
-    --- The options that give a socket `ConnectEx` or `AcceptEx` connected
-    --- the state `getpeername`, `shutdown` and the rest expect,
-    --- `SO_UPDATE_CONNECT_CONTEXT` and `SO_UPDATE_ACCEPT_CONTEXT`.
+    --- The option that gives a socket `ConnectEx` connected the state
+    --- `getpeername`, `shutdown` and the rest expect,
+    --- `SO_UPDATE_CONNECT_CONTEXT`.
     public so_update_connect_context: i32 = 0x7010
+    --- The same for a socket `AcceptEx` accepted, `SO_UPDATE_ACCEPT_CONTEXT`.
     public so_update_accept_context: i32 = 0x700B
 end if

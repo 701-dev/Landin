@@ -70,7 +70,7 @@ public main: () -> (code: i32) =
     code = 4
     _ = windows.free_console()
     return when windows.allocate_console() == 0
-               or windows.set_control_handler(0, 0) == 0
+      or windows.set_control_handler(0, 0) == 0
     code = 5
     signal.watch(host, signal.interrupt) else (problem)
         _ = problem
