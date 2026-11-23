@@ -212,8 +212,8 @@ import core/mem
 --- every way out, the failing ones included.
 scratch_sum: (provider: type is mem.allocator, memory: provider, bytes: []u8)
              -> (sum: u8) ! mem.out_of_memory | mem.out_of_bounds =
-    mut block := try mem.new_bytes(memory, lenof bytes)
-    defer mem.delete_bytes(memory, block)
+    mut block := try mem.allocate_bytes(memory, lenof bytes)
+    defer mem.release_bytes(memory, block)
     try mem.copy(mem.bytes(block), bytes)
     sum = byte_sum(mem.bytes(block))
 end scratch_sum
@@ -273,7 +273,7 @@ import core/mem
 --- A copy of `bytes` in whatever memory the caller passes.
 duplicate: (provider: type is mem.allocator, memory: provider, bytes: []u8)
            -> (copy: mem.byte_buffer) ! mem.out_of_memory =
-    copy = try mem.new_bytes(memory, lenof bytes)
+    copy = try mem.allocate_bytes(memory, lenof bytes)
     mem.copy(mem.bytes(copy), bytes) else none -- the lengths are equal
 end duplicate
 ```
@@ -307,7 +307,7 @@ import hosted/blocking
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 2
-    if io.argument_count(host) == 0 then
+    if io.arguments_length(host) == 0 then
         io.write(host, io.err(host), "usage: tool FILE...\n") else none
         return
     end if
@@ -375,13 +375,14 @@ out, because no destructor does it for you [1100]:
 
 ```landin
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
 --- Many lines through one buffered writer: made once, passed down or used
 --- in place, and flushed at the end.
 print_report: (host: blocking.host, names: []utf8)
-              -> none ! io.io_failed | text.no_space | text.invalid_format =
+              -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [4096]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
@@ -400,6 +401,7 @@ line with `%5u` in it is therefore built first and then written:
 
 ```landin
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -407,7 +409,7 @@ import hosted/blocking
 --- would: the line is built first, because a template has no widths.
 report_aligned: (inout out: io.buffered_writer(blocking.host), name: utf8,
                  count: u32)
-                -> none ! io.io_failed | text.no_space | text.invalid_format =
+                -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [128]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, "{}: ", [any(addr name)])
@@ -444,8 +446,8 @@ end point
 --- Allocate a point, move it and free it, through the caller's allocator.
 moved_point: (provider: type is mem.allocator, memory: provider, start: point)
              -> (x: i32) ! mem.out_of_memory =
-    cell := try mem.new(memory, start)
-    defer mem.delete(memory, cell)
+    cell := try mem.allocate_item(memory, start)
+    defer mem.release_item(memory, cell)
     cell.val.x += 1
     x = cell.val.x
 end moved_point
@@ -478,6 +480,7 @@ if (fd < 0) { if (errno == ENOENT) return 0; return -1; }
 
 ```landin
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -486,10 +489,10 @@ settings_present: (host: blocking.host)
                   -> (present: bool)
                   ! io.no_access | io.is_a_directory | io.io_failed =
     present = false
-    path := text.host_over("settings.conf")
+    path := text.os_string_over("settings.conf")
     opened := io.open_read(host, path) else (problem)
         match problem
-            io.not_found: return
+            mem.not_found: return
             io.no_access: fail io.no_access
             io.is_a_directory: fail io.is_a_directory
             io.io_failed: fail io.io_failed
@@ -553,11 +556,11 @@ import hosted/blocking
 
 --- Write each argument on a line of its own.
 print_arguments: (host: blocking.host) -> none ! io.io_failed =
-    for index in usize(0)..<io.argument_count(host) do
-        argument := io.argument_at(host, index) else begin
+    for index in usize(0)..<io.arguments_length(host) do
+        argument := io.argument(host, index) else begin
             return
         end
-        try io.write(host, io.out(host), text.host_bytes(argument))
+        try io.write(host, io.out(host), text.os_string_bytes(argument))
         try io.write(host, io.out(host), "\n")
     end for
 end print_arguments
@@ -566,7 +569,7 @@ end print_arguments
 The arguments belong to the hosted provider, which lends each one as a host
 string: the bytes the system gave, unconverted and not necessarily UTF-8
 [1660]. The sequence starts after the program's name, at C's `argv[1]`.
-`text.from_host` is the checked conversion to `utf8`.
+`text.from_os_string` is the checked conversion to `utf8`.
 
 ### `fgets`
 
@@ -577,17 +580,18 @@ while (fgets(line, sizeof line, stdin)) longest = max(longest, strlen(line));
 
 ```landin
 import core/io
+import core/mem
 import hosted/blocking
 
 --- The length of the longest line on standard input.
 longest_line: (host: blocking.host)
-              -> (longest: usize) ! io.io_failed | io.line_too_long =
+              -> (longest: usize) ! io.io_failed | mem.out_of_memory =
     longest = 0
     mut buffer: [256]u8 = zeroed
     mut lines := io.lines_over(host, io.input(host), buffer)
     loop do
         line: io.line = try io.read_line(lines)
-        break when line.finished
+        break when line.at_end
         if lenof line.bytes > longest then longest = lenof line.bytes end if
     end loop
 end longest_line
@@ -596,9 +600,9 @@ end longest_line
 `io.lines_over` makes a line reader over a buffer you supply.
 `io.read_line` lends each line from it until the next read, without its
 `\n` or `\r\n` [0790] [0800]. The end of the input is a line that has
-`finished`.
+`at_end`.
 
-A line longer than the buffer is the failure `io.line_too_long`, rather
+A line longer than the buffer is the failure `mem.out_of_memory`, rather
 than a line silently cut in two. The reader skips the rest of that line, so
 the next read gives the line after it.
 
@@ -612,8 +616,8 @@ the next read gives the line after it.
 import core/text
 
 --- Where the tool reads its settings.
-public config_path: () -> (path: text.host_string) =
-    path = text.host_over("/etc/tool.conf")
+public config_path: () -> (path: text.os_string) =
+    path = text.os_string_over("/etc/tool.conf")
 end config_path
 ```
 
@@ -621,7 +625,7 @@ There are no header files. A module is a directory, and every file in it
 sees the others. `public` is what another module may name [1410].
 
 A plain `import core/text` binds `text`, and its members are named through
-it, `text.host_over`. `as` renames it [1430]; a module is always imported
+it, `text.os_string_over`. `as` renames it [1430]; a module is always imported
 whole [1440].
 
 A compilation never reads a C header. `refine bindings` asks Clang for one
@@ -895,15 +899,16 @@ out:
 
 ```landin
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
 --- Copy the first block of one file into another, closing both on every way
 --- out.
-copy_first_block: (host: blocking.host, source_path: text.host_string,
-                   target_path: text.host_string)
+copy_first_block: (host: blocking.host, source_path: text.os_string,
+                   target_path: text.os_string)
                   -> none
-                  ! io.not_found | io.no_access | io.is_a_directory
+                  ! mem.not_found | io.no_access | io.is_a_directory
                   | io.io_failed =
     source := try io.open_read(host, source_path)
     defer io.close(host, source) else none
@@ -1005,14 +1010,14 @@ import core/text
 import hosted/blocking
 
 --- The home directory, or `/` when the environment names none.
-home_directory: (host: blocking.host) -> (home: text.host_string from host) =
-    home = io.variable_named(host, text.host_over("HOME")) else begin
-        text.host_over("/")
+home_directory: (host: blocking.host) -> (home: text.os_string from host) =
+    home = io.variable_named(host, text.os_string_over("HOME")) else begin
+        text.os_string_over("/")
     end
 end home_directory
 ```
 
-A missing variable is the failure `no_variable`, not a null pointer.
+A missing variable is the failure `mem.not_found`, not a null pointer.
 
 The environment is read-only. A program gives a child the environment it
 builds, rather than changing its own.

@@ -5,6 +5,7 @@
 --  provider's too.  Written once, over platform/posix, like the rest.
 
 import core/io
+import core/mem
 import core/text
 import platform/posix
 
@@ -56,7 +57,7 @@ prepared: (choice: io.stream_choice, target: posix.descriptor, output: bool)
         loop do
             opened: posix.descriptor =
                 posix.open_at(posix.working_directory,
-                              text.host_over(null_device), options,
+                              text.os_string_over(null_device), options,
                               0) else (problem)
                     continue when problem == posix.eintr
                     fail problem
@@ -99,8 +100,8 @@ end quietly_closed
 
 --  posix.spawn reports a failure only when no child was started, so an
 --  interrupted spawn is made again.
-spawned: (path: text.host_string, arguments: []text.host_string,
-          environment: []io.variable, streams: posix.standard_streams)
+spawned: (path: text.os_string, arguments: []text.os_string,
+          environment: []text.os_variable, streams: posix.standard_streams)
          -> (child: posix.process_id) ! posix.errno =
     loop do
         child = posix.spawn(path, arguments, environment,
@@ -112,8 +113,8 @@ spawned: (path: text.host_string, arguments: []text.host_string,
     end loop
 end spawned
 
-launched: (path: text.host_string, arguments: []text.host_string,
-           environment: []io.variable, streams: io.child_streams)
+launched: (path: text.os_string, arguments: []text.os_string,
+           environment: []text.os_variable, streams: io.child_streams)
           -> (started: io.child) ! posix.errno =
     input: stream_end = try prepared(streams.input, posix.standard_input,
                                      false)
@@ -154,11 +155,11 @@ end launched
 --- the handle's last-error cell. On any failure no child was started and
 --- nothing `start` made is left open. `io.child`'s `handle` is the child's
 --- platform/posix `process_id`.
-public start: (handle: host, path: text.host_string,
-               arguments: []text.host_string, environment: []io.variable,
+public start: (handle: host, path: text.os_string,
+               arguments: []text.os_string, environment: []text.os_variable,
                streams: io.child_streams)
               -> (started: io.child)
-              ! io.not_found | io.no_access | io.io_failed =
+              ! mem.not_found | io.no_access | io.io_failed =
     keep_failure(handle, 0)
     started = launched(path, arguments, environment, streams) else (problem)
         try path_failure(handle, problem)

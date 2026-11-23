@@ -6,7 +6,7 @@ import platform/posix
 
 public main: () -> (code: i32) =
     loaded: posix.library = posix.open_library(
-        text.host_over("libm.so.6"), posix.local_symbols) else (problem)
+        text.os_string_over("libm.so.6"), posix.local_symbols) else (problem)
         _ = problem
         code = 1
         return

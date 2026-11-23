@@ -1,0 +1,35 @@
+error[L0696]: module `map` no longer has `missing`
+  --> ../tests/fixtures/negative/library-name-removed-moves/main.ldn:8:37
+  |
+8 | lookup: (found: bool) -> none ! map.missing =
+  |                                     ^^^^^^^
+  = note: D2028: `map.missing` is `mem.not_found`
+  = help: write `mem.not_found`
+error[L0696]: module `map` no longer has `missing`
+  --> ../tests/fixtures/negative/library-name-removed-moves/main.ldn:9:14
+  |
+9 |     fail map.missing when not found
+  |              ^^^^^^^
+  = note: D2028: `map.missing` is `mem.not_found`
+  = help: write `mem.not_found`
+error[L0696]: module `io` no longer has `not_found`
+  --> ../tests/fixtures/negative/library-name-removed-moves/main.ldn:12:40
+   |
+12 | open_named: (found: bool) -> none ! io.not_found | text.not_found =
+   |                                        ^^^^^^^^^
+  = note: D2028: `io.not_found` is `mem.not_found`
+  = help: write `mem.not_found`
+error[L0696]: module `text` no longer has `not_found`
+  --> ../tests/fixtures/negative/library-name-removed-moves/main.ldn:12:57
+   |
+12 | open_named: (found: bool) -> none ! io.not_found | text.not_found =
+   |                                                         ^^^^^^^^^
+  = note: D2028: `text.not_found` is `mem.not_found`
+  = help: write `mem.not_found`
+error[L0696]: module `io` no longer has `not_found`
+  --> ../tests/fixtures/negative/library-name-removed-moves/main.ldn:13:13
+   |
+13 |     fail io.not_found when not found
+   |             ^^^^^^^^^
+  = note: D2028: `io.not_found` is `mem.not_found`
+  = help: write `mem.not_found`

@@ -4,7 +4,7 @@
  "entries": {
   "armv8-a/none-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107076,
+    "__TEXT,__text": 107028,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -46,7 +46,7 @@
   },
   "armv8-a/none-all/fibre": {
    "sections": {
-    "__TEXT,__text": 110536,
+    "__TEXT,__text": 110344,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -89,7 +89,7 @@
   },
   "armv8-a/none-all/thread": {
    "sections": {
-    "__TEXT,__text": 145940,
+    "__TEXT,__text": 145568,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -104,7 +104,7 @@
   },
   "armv8-a/none-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107076,
+    "__TEXT,__text": 107028,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -146,7 +146,7 @@
   },
   "armv8-a/none-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 110536,
+    "__TEXT,__text": 110344,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -189,7 +189,7 @@
   },
   "armv8-a/none-auto/thread": {
    "sections": {
-    "__TEXT,__text": 145940,
+    "__TEXT,__text": 145568,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -204,7 +204,7 @@
   },
   "armv8-a/none-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107148,
+    "__TEXT,__text": 107100,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -246,7 +246,7 @@
   },
   "armv8-a/none-off/fibre": {
    "sections": {
-    "__TEXT,__text": 110568,
+    "__TEXT,__text": 110376,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -289,7 +289,7 @@
   },
   "armv8-a/none-off/thread": {
    "sections": {
-    "__TEXT,__text": 146004,
+    "__TEXT,__text": 145632,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -304,7 +304,7 @@
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39472,
+    "__TEXT,__text": 39424,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -346,7 +346,7 @@
   },
   "armv8-a/size-all/fibre": {
    "sections": {
-    "__TEXT,__text": 43024,
+    "__TEXT,__text": 42832,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -389,7 +389,7 @@
   },
   "armv8-a/size-all/thread": {
    "sections": {
-    "__TEXT,__text": 56680,
+    "__TEXT,__text": 56308,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -404,7 +404,7 @@
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39472,
+    "__TEXT,__text": 39424,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -446,7 +446,7 @@
   },
   "armv8-a/size-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 43024,
+    "__TEXT,__text": 42832,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -489,7 +489,7 @@
   },
   "armv8-a/size-auto/thread": {
    "sections": {
-    "__TEXT,__text": 56680,
+    "__TEXT,__text": 56308,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -504,7 +504,7 @@
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39496,
+    "__TEXT,__text": 39448,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -546,7 +546,7 @@
   },
   "armv8-a/size-off/fibre": {
    "sections": {
-    "__TEXT,__text": 43048,
+    "__TEXT,__text": 42856,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -589,7 +589,7 @@
   },
   "armv8-a/size-off/thread": {
    "sections": {
-    "__TEXT,__text": 56680,
+    "__TEXT,__text": 56308,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -604,7 +604,7 @@
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34772,
+    "__TEXT,__text": 34724,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -646,7 +646,7 @@
   },
   "armv8-a/speed-all/fibre": {
    "sections": {
-    "__TEXT,__text": 35528,
+    "__TEXT,__text": 35336,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -689,7 +689,7 @@
   },
   "armv8-a/speed-all/thread": {
    "sections": {
-    "__TEXT,__text": 50932,
+    "__TEXT,__text": 50560,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -704,7 +704,7 @@
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34772,
+    "__TEXT,__text": 34724,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -746,7 +746,7 @@
   },
   "armv8-a/speed-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 35528,
+    "__TEXT,__text": 35336,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -789,7 +789,7 @@
   },
   "armv8-a/speed-auto/thread": {
    "sections": {
-    "__TEXT,__text": 50932,
+    "__TEXT,__text": 50560,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -804,7 +804,7 @@
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34928,
+    "__TEXT,__text": 34880,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -846,7 +846,7 @@
   },
   "armv8-a/speed-off/fibre": {
    "sections": {
-    "__TEXT,__text": 35568,
+    "__TEXT,__text": 35376,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -889,7 +889,7 @@
   },
   "armv8-a/speed-off/thread": {
    "sections": {
-    "__TEXT,__text": 51020,
+    "__TEXT,__text": 50648,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -904,7 +904,7 @@
   },
   "armv8.1-a/none-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107044,
+    "__TEXT,__text": 106996,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -946,7 +946,7 @@
   },
   "armv8.1-a/none-all/fibre": {
    "sections": {
-    "__TEXT,__text": 110536,
+    "__TEXT,__text": 110344,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -989,7 +989,7 @@
   },
   "armv8.1-a/none-all/thread": {
    "sections": {
-    "__TEXT,__text": 145920,
+    "__TEXT,__text": 145548,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1004,7 +1004,7 @@
   },
   "armv8.1-a/none-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107044,
+    "__TEXT,__text": 106996,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -1046,7 +1046,7 @@
   },
   "armv8.1-a/none-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 110536,
+    "__TEXT,__text": 110344,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1089,7 +1089,7 @@
   },
   "armv8.1-a/none-auto/thread": {
    "sections": {
-    "__TEXT,__text": 145920,
+    "__TEXT,__text": 145548,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1104,7 +1104,7 @@
   },
   "armv8.1-a/none-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107116,
+    "__TEXT,__text": 107068,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 13720,
@@ -1146,7 +1146,7 @@
   },
   "armv8.1-a/none-off/fibre": {
    "sections": {
-    "__TEXT,__text": 110568,
+    "__TEXT,__text": 110376,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1189,7 +1189,7 @@
   },
   "armv8.1-a/none-off/thread": {
    "sections": {
-    "__TEXT,__text": 145984,
+    "__TEXT,__text": 145612,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1204,7 +1204,7 @@
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39440,
+    "__TEXT,__text": 39392,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -1246,7 +1246,7 @@
   },
   "armv8.1-a/size-all/fibre": {
    "sections": {
-    "__TEXT,__text": 43024,
+    "__TEXT,__text": 42832,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1289,7 +1289,7 @@
   },
   "armv8.1-a/size-all/thread": {
    "sections": {
-    "__TEXT,__text": 56660,
+    "__TEXT,__text": 56288,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1304,7 +1304,7 @@
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39440,
+    "__TEXT,__text": 39392,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -1346,7 +1346,7 @@
   },
   "armv8.1-a/size-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 43024,
+    "__TEXT,__text": 42832,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1389,7 +1389,7 @@
   },
   "armv8.1-a/size-auto/thread": {
    "sections": {
-    "__TEXT,__text": 56660,
+    "__TEXT,__text": 56288,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1404,7 +1404,7 @@
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39464,
+    "__TEXT,__text": 39416,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11944,
@@ -1446,7 +1446,7 @@
   },
   "armv8.1-a/size-off/fibre": {
    "sections": {
-    "__TEXT,__text": 43048,
+    "__TEXT,__text": 42856,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1489,7 +1489,7 @@
   },
   "armv8.1-a/size-off/thread": {
    "sections": {
-    "__TEXT,__text": 56660,
+    "__TEXT,__text": 56288,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1504,7 +1504,7 @@
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34740,
+    "__TEXT,__text": 34692,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -1546,7 +1546,7 @@
   },
   "armv8.1-a/speed-all/fibre": {
    "sections": {
-    "__TEXT,__text": 35528,
+    "__TEXT,__text": 35336,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1589,7 +1589,7 @@
   },
   "armv8.1-a/speed-all/thread": {
    "sections": {
-    "__TEXT,__text": 50912,
+    "__TEXT,__text": 50540,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1604,7 +1604,7 @@
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34740,
+    "__TEXT,__text": 34692,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -1646,7 +1646,7 @@
   },
   "armv8.1-a/speed-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 35528,
+    "__TEXT,__text": 35336,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1689,7 +1689,7 @@
   },
   "armv8.1-a/speed-auto/thread": {
    "sections": {
-    "__TEXT,__text": 50912,
+    "__TEXT,__text": 50540,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
@@ -1704,7 +1704,7 @@
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34896,
+    "__TEXT,__text": 34848,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
     "__TEXT,__cstring": 11742,
@@ -1746,7 +1746,7 @@
   },
   "armv8.1-a/speed-off/fibre": {
    "sections": {
-    "__TEXT,__text": 35568,
+    "__TEXT,__text": 35376,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
@@ -1789,7 +1789,7 @@
   },
   "armv8.1-a/speed-off/thread": {
    "sections": {
-    "__TEXT,__text": 51000,
+    "__TEXT,__text": 50628,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,

@@ -52,10 +52,10 @@ exhaust: (provider: type is mem.allocator, inner: provider)
             return
         end
         text: utf8 = tree.name(saved)
-        leaves: usize = tree.count_leaves(value, tree.id(at)) else (problem)
+        leaves: usize = tree.leaves(tree.get(value, tree.id(at)) else (problem)
             _ = problem
             return
-        end
+        end)
         return when lenof text <> 4 or text[0] <> 'k' or leaves <> 1
         inc at
     end while
@@ -83,10 +83,10 @@ reuse: (slab: pool.provider) -> (okay: bool) =
         _ = problem
         return
     end
-    leaves: usize = tree.count_leaves(value, root) else (problem)
+    leaves: usize = tree.leaves(tree.get(value, root) else (problem)
         _ = problem
         return
-    end
+    end)
     tree.release(value, slab)
     okay = leaves == 3 and tree.length(value) == 0
 end reuse
@@ -99,7 +99,7 @@ public main: () -> (code: i32) =
     mut arena_space: arena.space = zeroed
     memory := arena.over_unchecked(arena_space, arena_base, extent)
     arena_ok: bool = exhaust(memory)
-    return when not arena_ok or arena.used(memory) <> extent
+    return when not arena_ok or arena.length(memory) <> extent
     mut words: [2048]u64 = zeroed
     mut records: [1]pool.slot = zeroed
     --  The slot holds the first eight nodes exactly, as the arena does, so a

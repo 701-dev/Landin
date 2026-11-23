@@ -14,6 +14,7 @@
 --  nothing, and no check of the language follows a function value back
 --  to the library it came from.
 
+import core/mem
 import core/text
 import platform/libc
 
@@ -46,10 +47,6 @@ public symbol_scope: type = local_symbols | global_symbols
 --- `library_failure` gives the loader's own words.
 public no_library: atom
 
---- The library defines no symbol of that name, nor do the objects it
---- loaded with it.  `library_failure` gives the loader's own words.
-public no_symbol: atom
-
 --  The longest symbol name `find_symbol` takes, with its NUL.
 symbol_room: type = [4096]u8
 
@@ -65,9 +62,9 @@ symbol_room: type = [4096]u8
 --- `enoent`, as it does in every other call here: the loader would give
 --- the program itself for it, which is no library this layer loads.
 public open_library:
-    (path: text.host_string, scope: symbol_scope)
+    (path: text.os_string, scope: symbol_scope)
     -> (loaded: library) ! errno | no_library =
-    fail enoent when lenof text.host_bytes(path) == 0
+    fail enoent when lenof text.os_string_bytes(path) == 0
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])
     match libc.dlopen(terminated, mode_of(scope))
@@ -87,13 +84,13 @@ mode_of: (scope: symbol_scope) -> (mode: i32) =
 end mode_of
 
 --- The address of the symbol `name` in `loaded`, or in an object it
---- loaded with it: never zero, or `no_symbol`.  A name holding a NUL is
+--- loaded with it: never zero, or `mem.not_found`.  A name holding a NUL is
 --- `einval`, and one of 4096 bytes or more `enametoolong`.  What is at
 --- the address is the program's to know: a function is made a value by
 --- naming its C function type, `adder(address)`, and is the program's to
 --- call only while `loaded` stays loaded.
 public find_symbol:
-    (loaded: library, name: []u8) -> (address: usize) ! errno | no_symbol =
+    (loaded: library, name: []u8) -> (address: usize) ! errno | mem.not_found =
     fail enametoolong when lenof name >= sizeof symbol_room
     mut room: symbol_room = zeroed
     for at in usize(0)..<lenof name do
@@ -101,7 +98,7 @@ public find_symbol:
         room[at] = name[at]
     end for
     match libc.dlsym(loaded.handle, addr room[0])
-        libc.no_address: fail no_symbol
+        libc.no_address: fail mem.not_found
         ptr (found): address = usize(found)
     end match
 end find_symbol
@@ -116,7 +113,7 @@ public close_library:
     fail no_library when libc.dlclose(loaded.handle) <> 0
 end close_library
 
---- The loader's own words for the last `no_library` or `no_symbol` on
+--- The loader's own words for the last `no_library` or `mem.not_found` on
 --- this thread, copied into `into` and lent from it, cut at its length:
 --- empty when there has been none since they were last asked for.  Asking
 --- clears them, and the next call of this module that loads, finds or

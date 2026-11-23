@@ -5,5 +5,5 @@ import hosted/blocking
 -- an actual argv-dependent operation; it must trap before publishing a ptr.
 public extern(c) l_root: () -> (count: usize) =
     state: blocking.host = blocking.new()
-    count = io.argument_count(state)
+    count = io.arguments_length(state)
 end l_root

@@ -29,9 +29,9 @@ end number
 --  The copy's part: report each descriptor it was given that is open.
 check: (host: blocking.host) -> none ! ... =
     out: io.file = io.out(host)
-    given: usize = io.argument_count(host)
+    given: usize = io.arguments_length(host)
     for at in usize(1)..<given do
-        digits: []u8 = text.host_bytes(try io.argument_at(host, at))
+        digits: []u8 = text.os_string_bytes(try io.argument(host, at))
         found: u32 = try text.parse_u32(digits)
         mut entries: [1]posix.poll_entry =
             [posix.watch(posix.descriptor(i32(found)), posix.poll_input)]
@@ -54,27 +54,27 @@ end check
 --  The parent's part.
 parent: (host: blocking.host) -> (code: i32) =
     code = 1
-    first: io.file = io.open_read(host, text.host_over("/dev/null")) else (problem)
+    first: io.file = io.open_read(host, text.os_string_over("/dev/null")) else (problem)
         _ = problem
         return
     end
-    second: io.file = io.open_write(host, text.host_over("/dev/null")) else (problem)
+    second: io.file = io.open_write(host, text.os_string_over("/dev/null")) else (problem)
         _ = problem
         return
     end
     mut buffer: [1024]u8 = zeroed
-    listed: io.directory = io.open_directory(host, text.host_over("/"),
+    listed: io.directory = io.open_directory(host, text.os_string_over("/"),
                                              buffer[0..<1024]) else (problem)
         _ = problem
         return
     end
-    waiting: [2]text.host_string = [text.host_over("-c"),
-                                    text.host_over("read -r line")]
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"), value: text.host_over("/bin:/usr/bin"))]
+    waiting: [2]text.os_string = [text.os_string_over("-c"),
+                                  text.os_string_over("read -r line")]
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"), value: text.os_string_over("/bin:/usr/bin"))]
     piped: io.child_streams = (input: io.piped, output: io.piped,
                                errors: io.piped)
-    mut other: io.child = io.spawn(host, text.host_over("/bin/sh"),
+    mut other: io.child = io.spawn(host, text.os_string_over("/bin/sh"),
                                    waiting[0..<2], variables[0..<1],
                                    piped) else (problem)
         _ = problem
@@ -102,15 +102,15 @@ parent: (host: blocking.host) -> (code: i32) =
     held: [9]io.file = [first, second, io.file(listed.handle), other.input,
                         other.output, other.errors, listener, connection,
                         datagrams]
-    mut arguments: [10]text.host_string =
-        [10 of text.host_over("")]
-    arguments[0] = text.host_over("check")
+    mut arguments: [10]text.os_string =
+        [10 of text.os_string_over("")]
+    arguments[0] = text.os_string_over("check")
     for at in usize(0)..<9 do
         digits: []u8 = number(held[at], rooms[at][0..<4]) else (problem)
             _ = problem
             return
         end
-        arguments[1 + at] = text.host_over(digits)
+        arguments[1 + at] = text.os_string_over(digits)
     end for
     checked: io.child = io.spawn(host, posix.program_name(),
                                  arguments[0..<10], variables[0..<1],
@@ -138,15 +138,15 @@ parent: (host: blocking.host) -> (code: i32) =
         return
     end
     _ = finished
-    net.close_socket(host, datagrams) else (problem)
+    net.close(host, datagrams) else (problem)
         _ = problem
         return
     end
-    net.close_socket(host, connection) else (problem)
+    net.close(host, connection) else (problem)
         _ = problem
         return
     end
-    net.close_socket(host, listener) else (problem)
+    net.close(host, listener) else (problem)
         _ = problem
         return
     end
@@ -167,7 +167,7 @@ end parent
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    if io.argument_count(host) == 0 then
+    if io.arguments_length(host) == 0 then
         code = parent(host)
         return
     end if

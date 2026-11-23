@@ -13,14 +13,14 @@ import platform/posix
 
 --  A value as the listing shows it: as it is when it is UTF-8, and
 --  otherwise each byte in hexadecimal.
-show: (host: blocking.host, value: text.host_string) -> none ! ... =
+show: (host: blocking.host, value: text.os_string) -> none ! ... =
     out := io.out(host)
-    as_text: utf8 = text.from_host(value) else (problem)
+    as_text: utf8 = text.from_os_string(value) else (problem)
         _ = problem
         mut room: [64]u8 = zeroed
         mut line := text.over(room[0..<64])
         try text.append(line, "bytes")
-        for byte in text.host_bytes(value) do
+        for byte in text.os_string_bytes(value) do
             try text.append_byte(line, u8(' '))
             try text.append_hex_u32(line, u32(byte))
         end for
@@ -33,15 +33,15 @@ end show
 --  What the started copy does: list its environment and look up names.
 listed: (host: blocking.host) -> none ! ... =
     out := io.out(host)
-    count: usize = io.variable_count(host)
+    count: usize = io.variables_length(host)
     for index in usize(0)..<count do
-        item: io.variable = try io.variable_at(host, index)
-        try io.write(host, out, text.host_bytes(item.name))
+        item: text.os_variable = try io.variable(host, index)
+        try io.write(host, out, text.os_string_bytes(item.name))
         try io.write(host, out, " = ")
         try show(host, item.value)
         try io.write(host, out, "\n")
     end for
-    past: io.variable = io.variable_at(host, count) else (problem)
+    past: text.os_variable = io.variable(host, count) else (problem)
         _ = problem
         try io.write(host, out, "no variable past the last\n")
         return
@@ -55,7 +55,7 @@ looked: (host: blocking.host, name: []u8) -> none ! ... =
     try io.write(host, out, "looked up ")
     try io.write(host, out, name)
     try io.write(host, out, ": ")
-    value: text.host_string = io.variable_named(host, text.host_over(name))
+    value: text.os_string = io.variable_named(host, text.os_string_over(name))
         else (problem)
         _ = problem
         try io.write(host, out, "none\n")
@@ -77,14 +77,14 @@ end copy
 --  started, with the argument `copy`.
 parent: (host: blocking.host) -> (code: i32) ! ... =
     bytes: [3]u8 = [0xc3, 0x28, 0xff]
-    variables: [6]io.variable =
-        [(name: text.host_over("TEXT"), value: text.host_over("grüße")),
-         (name: text.host_over("BYTES"), value: text.host_over(bytes[0..<3])),
-         (name: text.host_over("TWICE"), value: text.host_over("first")),
-         (name: text.host_over("EQUALS"), value: text.host_over("a=b")),
-         (name: text.host_over("EMPTY"), value: text.host_over("")),
-         (name: text.host_over("TWICE"), value: text.host_over("second"))]
-    arguments: [1]text.host_string = [text.host_over("copy")]
+    variables: [6]text.os_variable =
+        [(name: text.os_string_over("TEXT"), value: text.os_string_over("grüße")),
+         (name: text.os_string_over("BYTES"), value: text.os_string_over(bytes[0..<3])),
+         (name: text.os_string_over("TWICE"), value: text.os_string_over("first")),
+         (name: text.os_string_over("EQUALS"), value: text.os_string_over("a=b")),
+         (name: text.os_string_over("EMPTY"), value: text.os_string_over("")),
+         (name: text.os_string_over("TWICE"), value: text.os_string_over("second"))]
+    arguments: [1]text.os_string = [text.os_string_over("copy")]
     child: io.child = try io.spawn(host, posix.program_name(),
                                    arguments[0..<1], variables[0..<6],
                                    io.inheriting)
@@ -107,7 +107,7 @@ end copied
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    if io.argument_count(host) <> 0 then
+    if io.arguments_length(host) <> 0 then
         code = copied(host)
         return
     end if

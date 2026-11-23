@@ -14,7 +14,7 @@ import core/text
 
 --  Whether NAME is the entry's name.
 named: (item: io.entry, name: []u8) -> (yes: bool) =
-    yes = cmp.compare(text.host_bytes(item.name), name) == cmp.equal
+    yes = cmp.compare(text.os_string_bytes(item.name), name) == cmp.equal
 end named
 
 --  Read the next entry of OPENED, or report whether the call failed
@@ -45,7 +45,7 @@ public main: () -> (code: i32) =
     mut state: fake.volume_space = zeroed
     host := fake.volume_over(state, nodes[0..<2], "/volume")
     mut buffer: [64]u8 = zeroed
-    mut opened: io.directory = io.open_directory(host, text.host_over("."),
+    mut opened: io.directory = io.open_directory(host, text.os_string_over("."),
                                                  buffer[0..<64]) else (problem)
         _ = problem
         return
@@ -76,8 +76,8 @@ public main: () -> (code: i32) =
         return
     end
     code = 8
-    return when state.calls <> 5 or not named(ending, "")
-    size: u64 = io.entry_size(host, opened, text.host_over("more"))
+    return when state.calls <> 5 or not ending.at_end
+    size: u64 = io.entry_size(host, opened, text.os_string_over("more"))
         else (problem)
         _ = problem
         code = 9
@@ -87,7 +87,7 @@ public main: () -> (code: i32) =
     return when state.calls <> 6 or size <> 3
     state.fail_at = state.calls + 1
     mut refused: bool = false
-    _ = io.entry_size(host, opened, text.host_over("data")) else (problem)
+    _ = io.entry_size(host, opened, text.os_string_over("data")) else (problem)
         refused = problem == io.io_failed
         0
     end
@@ -95,15 +95,15 @@ public main: () -> (code: i32) =
     return when not refused or state.calls <> 7
     state.fail_at = state.calls + 1
     refused = false
-    _ = io.same_file(host, text.host_over("data"),
-                     text.host_over("data")) else (problem)
+    _ = io.same_file(host, text.os_string_over("data"),
+                     text.os_string_over("data")) else (problem)
         refused = problem == io.io_failed
         false
     end
     code = 12
     return when not refused or state.calls <> 8
-    same: bool = io.same_file(host, text.host_over("data"),
-                              text.host_over("data")) else (problem)
+    same: bool = io.same_file(host, text.os_string_over("data"),
+                              text.os_string_over("data")) else (problem)
         _ = problem
         code = 13
         return
@@ -113,7 +113,7 @@ public main: () -> (code: i32) =
     --  A read that would refill the buffer fails when it is named, and
     --  the next refills it from the first entry.
     mut again_buffer: [64]u8 = zeroed
-    mut again: io.directory = io.open_directory(host, text.host_over("."),
+    mut again: io.directory = io.open_directory(host, text.os_string_over("."),
                                                 again_buffer[0..<64])
         else (problem)
         _ = problem

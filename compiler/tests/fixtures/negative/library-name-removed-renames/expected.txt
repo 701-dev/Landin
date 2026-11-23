@@ -1,0 +1,28 @@
+error[L0696]: module `text` no longer has `host_string`
+  --> ../tests/fixtures/negative/library-name-removed-renames/main.ldn:9:24
+  |
+9 | measure: (source: text.host_string) -> (n: usize) =
+  |                        ^^^^^^^^^^^
+  = note: D2033: `text.host_string` is `text.os_string`
+  = help: write `text.os_string`
+error[L0696]: module `text` no longer has `host_bytes`
+  --> ../tests/fixtures/negative/library-name-removed-renames/main.ldn:10:20
+   |
+10 |     n = lenof text.host_bytes(source)
+   |                    ^^^^^^^^^^
+  = note: D2033: `text.host_bytes` is `text.os_string_bytes`
+  = help: write `text.os_string_bytes`
+error[L0696]: module `arena` no longer has `used`
+  --> ../tests/fixtures/negative/library-name-removed-renames/main.ldn:14:15
+   |
+14 |     n = arena.used(memory)
+   |               ^^^^
+  = note: D2031: `arena.used` is `arena.length`
+  = help: write `arena.length`
+error[L0696]: module `mem` no longer has `full`
+  --> ../tests/fixtures/negative/library-name-removed-renames/main.ldn:17:53
+   |
+17 | admit: (inout store: mem.storage(u8)) -> none ! mem.full | mem.out_of_memory =
+   |                                                     ^^^^
+  = note: D2029: `mem.full` is `mem.out_of_memory`
+  = help: write `mem.out_of_memory`

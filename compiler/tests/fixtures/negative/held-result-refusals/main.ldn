@@ -42,7 +42,7 @@ read_back: (escaping seed: ptr node) -> (p: ptr node from seed)
 end read_back
 
 --  D1370: a view of this pass's binding still holds it.
-this_pass: () -> (n: usize) ! mem.out_of_memory | mem.full =
+this_pass: () -> (n: usize) ! mem.out_of_memory =
     memory := heap.new()
     n = 0
     for at in usize(0)..<2 do

@@ -1,13 +1,14 @@
 import core/failure
 import core/io
+import core/mem
 import hosted/blocking
 
 --- How many lines the file named by the first argument has.
 count_file_lines: (host: blocking.host) -> (lines: usize)
-                  ! io.no_argument | io.not_found | io.no_access
+                  ! mem.not_found | io.no_access
                   | io.is_a_directory | io.io_failed
-                  | io.line_too_long =
-    path := try io.argument_at(host, 0)
+                  | mem.out_of_memory =
+    path := try io.argument(host, 0)
     source := try io.open_read(host, path)
     defer io.close(host, source) else none
     mut buffer: [4096]u8 = zeroed
@@ -15,7 +16,7 @@ count_file_lines: (host: blocking.host) -> (lines: usize)
     lines = 0
     loop do
         line := try io.read_line(reader)
-        break when line.finished
+        break when line.at_end
         inc lines
     end loop
 end count_file_lines

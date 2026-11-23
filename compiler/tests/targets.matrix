@@ -732,6 +732,11 @@ negative/library-at-live-inout | linux-x86-64, linux-arm64, darwin-arm64, synthe
 negative/library-evidence-collision | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/library-evidence-collision-time-net | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/library-hosted-system-rv32 | rv32
+negative/library-name-removed-by-hand | linux-x86-64
+negative/library-name-removed-field | linux-x86-64
+negative/library-name-removed-moves | linux-x86-64
+negative/library-name-removed-renames | linux-x86-64
+negative/library-name-removed-reorders | linux-x86-64
 negative/library-platform-c-rv32 | rv32
 negative/library-platform-cortex-m-hosted | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 negative/library-platform-cortex-m-l1-hosted | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64

@@ -16,7 +16,7 @@ exercise: () -> (result: u32) ! mem.out_of_memory =
     mut values := vec.new(item: empty)
     maximum: usize = 0 -% 1
     try vec.reserve(values, counted, maximum)
-    return when vec.capacity(values) <> maximum or arena.used(memory) <> 0
+    return when vec.capacity(values) <> maximum or arena.length(memory) <> 0
     return when fault.successes(counted) <> 1 or fault.remaining(counted) <> 0
     value: empty = zeroed
     try vec.push(values, counted, value)

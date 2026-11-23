@@ -34,7 +34,7 @@ reading: io.open_options = (read: true, write: false, append: false,
 
 opened_by: (provider: type is io.file_system, host: provider, path: []u8,
             how: u8) -> (opened: io.file) ! failure.reason =
-    named: text.host_string = text.host_over(path)
+    named: text.os_string = text.os_string_over(path)
     if how == by_read then
         opened = try io.open_read(host, named)
     elsif how == by_write then
@@ -109,27 +109,27 @@ volume_refuses: () -> (yes: bool) ! mem.out_of_bounds =
     end for
     return when refused(host, "docs/note", by_read, io.is_a_directory,
                         "is a directory")
-    yes = refused(host, "absent", by_read, io.not_found, "not found")
+    yes = refused(host, "absent", by_read, mem.not_found, "not found")
 end volume_refuses
 
 public main: () -> (code: i32) =
     host: blocking.host = blocking.new()
     code = 1
-    io.make_directory(host, text.host_over(directory)) else (problem)
+    io.make_directory(host, text.os_string_over(directory)) else (problem)
         return when problem <> io.already_exists
     end
     code = blocking_refuses(host)
     return when code <> 0
     code = 2
     --  A file still opens, and a missing one is still not found.
-    opened: io.file = io.open_read(host, text.host_over(existing))
+    opened: io.file = io.open_read(host, text.os_string_over(existing))
         else (problem)
         _ = problem
         return
     end
     io.close(host, opened) else none
     code = 3
-    return when not refused(host, missing, by_read, io.not_found,
+    return when not refused(host, missing, by_read, mem.not_found,
                             "not found")
     code = 4
     mut state: events.space = zeroed
@@ -147,7 +147,7 @@ public main: () -> (code: i32) =
     end
     return when not held
     code = 6
-    io.remove_directory(host, text.host_over(directory)) else (problem)
+    io.remove_directory(host, text.os_string_over(directory)) else (problem)
         _ = problem
         return
     end

@@ -56,7 +56,7 @@ end if
 
 --  Open PATH to read and write, a new open file each time.
 opened: (path: []u8) -> (made: posix.descriptor) ! posix.errno =
-    made = try posix.open_at(posix.working_directory, text.host_over(path),
+    made = try posix.open_at(posix.working_directory, text.os_string_over(path),
                              (access: posix.read_write, create: true,
                               exclusive: false, truncate: false,
                               append: false, directory: false), 0o644)
@@ -264,7 +264,7 @@ public main: () -> (code: i32) =
     --  A shared record lock needs the file open for reading.
     code = 7
     writing: posix.descriptor =
-        posix.open_at(posix.working_directory, text.host_over(range_path),
+        posix.open_at(posix.working_directory, text.os_string_over(range_path),
                       (access: posix.write_only, create: false,
                        exclusive: false, truncate: false, append: false,
                        directory: false), 0) else (problem)
@@ -283,7 +283,7 @@ public main: () -> (code: i32) =
     end for
     paths: [2][]u8 = [whole_path, range_path]
     for name in paths do
-        posix.unlink_at(posix.working_directory, text.host_over(name))
+        posix.unlink_at(posix.working_directory, text.os_string_over(name))
             else (problem)
             said("unlink", problem)
             return

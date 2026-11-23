@@ -51,8 +51,8 @@ public push: (item: type, provider: type is mem.allocator,
         try reserve(value, memory, next)
     end if
     admitted: usize = mem.admit(value.values, added) else (problem)
-        --  After successful growth or a spare-slot check, mem.full would
-        --  indicate an internal invariant defect. Retain the established
+        --  After successful growth or a spare-slot check, mem.out_of_memory
+        --  would indicate an internal invariant defect. Retain the established
         --  public fallback without claiming the provider exhausted memory.
         _ = problem
         fail mem.out_of_memory

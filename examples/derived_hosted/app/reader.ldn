@@ -14,14 +14,14 @@ public reader: type = struct
 end reader
 
 public open_reader: (provider: type is mem.allocator, memory: provider,
-                     world: any io.world, path: text.host_string,
+                     world: any io.world, path: text.os_string,
                      chunk_size: usize)
                     -> (value: reader)
-                    ! io.not_found | io.no_access | io.is_a_directory
+                    ! mem.not_found | io.no_access | io.is_a_directory
                     | io.io_failed | mem.out_of_memory =
     fail io.io_failed when chunk_size == 0
     opened: io.file = try world.open_read(path)
-    chunk := mem.new_bytes(memory, chunk_size) else (problem)
+    chunk := mem.allocate_bytes(memory, chunk_size) else (problem)
         world.close(opened) else none
         fail problem
     end
@@ -89,7 +89,7 @@ public shut_reader: (provider: type is mem.allocator, memory: provider,
                     -> none ! io.io_failed =
     mut chunk := value.chunk
     mut line := value.line
-    mem.delete_bytes(memory, chunk)
+    mem.release_bytes(memory, chunk)
     vec.release(line, memory)
     try world.close(value.opened)
 end shut_reader

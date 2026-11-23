@@ -7,17 +7,18 @@
 --  is then reaped with POSIX's `waitpid`, which no longer waits.
 
 import core/io
+import core/mem
 import core/text
 import hosted/system
 import platform/linux
 import platform/linux/numbers
 import platform/posix
 
-events_spawn: (self: host, path: text.host_string,
-               arguments: []text.host_string, environment: []io.variable,
+events_spawn: (self: host, path: text.os_string,
+               arguments: []text.os_string, environment: []text.os_variable,
                streams: io.child_streams)
               -> (started: io.child)
-              ! io.not_found | io.no_access | io.io_failed =
+              ! mem.not_found | io.no_access | io.io_failed =
     started = try system.start(self.services, path, arguments, environment,
                                streams)
     --  A pipe the system leaves blocking stays as it is rather than fail

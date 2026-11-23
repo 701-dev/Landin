@@ -41,7 +41,7 @@ serve: (inout state: serving) -> none ! failure.reason =
         try net.send(state.host, connection, buffer)
         _ = round
     end for
-    try net.close_socket(state.host, connection)
+    try net.close(state.host, connection)
 end serve
 
 asking: type = struct
@@ -63,7 +63,7 @@ ask: (inout state: asking) -> none ! failure.reason =
     end for
     got: usize = try net.receive(state.host, connection, buffer)
     fail io.io_failed when got <> 0
-    try net.close_socket(state.host, connection)
+    try net.close(state.host, connection)
 end ask
 
 mut backing: [2 * 32768]u8 = zeroed
@@ -78,7 +78,7 @@ run: (host: events.host) -> none ! failure.reason =
     client: asking = (host: host, peer: peer)
     try fibre.admit(tasks, ask, client)
     try fibre.join(tasks)
-    try net.close_socket(host, listener)
+    try net.close(host, listener)
     try io.write(host, io.out(host), trace[0..<marks])
     try io.write(host, io.out(host), "\n")
 end run

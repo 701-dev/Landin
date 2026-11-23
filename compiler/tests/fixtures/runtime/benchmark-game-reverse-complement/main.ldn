@@ -30,7 +30,7 @@ end complements
 
 --- Append all of standard input to `whole`, a read at a time.
 read_all: (host: blocking.host, inout whole: text.builder)
-          -> none ! io.io_failed | text.no_space =
+          -> none ! io.io_failed | mem.out_of_memory =
     input: io.file = io.input(host)
     mut chunk: [65536]u8 = zeroed
     loop do
@@ -98,7 +98,7 @@ public main: () -> (code: i32) =
     code = 1
 
     read_all(host, whole) else (problem)
-        if problem == text.no_space then
+        if problem == mem.out_of_memory then
             io.write(host, io.err(host), "revcomp: out of memory\n") else none
         else
             io.write(host, io.err(host), "revcomp: standard input could not be read\n")

@@ -21,12 +21,12 @@ import platform/posix
 --  and, since the provider watches SIGTERM, SIGTERM at its default.
 waiting_shell: (input: posix.descriptor)
                -> (child: posix.process_id) ! posix.errno =
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"),
-          value: text.host_over("/bin:/usr/bin"))]
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over("read line")]
-    child = try posix.spawn(text.host_over("/bin/sh"), arguments[0..<2],
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"),
+          value: text.os_string_over("/bin:/usr/bin"))]
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over("read line")]
+    child = try posix.spawn(text.os_string_over("/bin/sh"), arguments[0..<2],
                             variables[0..<1],
                             (input: input, output: posix.standard_output,
                              errors: posix.standard_error))

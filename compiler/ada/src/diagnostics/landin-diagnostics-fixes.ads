@@ -265,6 +265,16 @@ package Landin.Diagnostics.Fixes is
 
    --  One Respell per name the ranking kept, nearest first; none when it
    --  kept none.
+   --  D2129: a library name a breaking list removed becomes the name that
+   --  replaced it, Spelling, with whatever else the rewrite needs: its
+   --  module's import, or the call's arguments in their new order.  Exact:
+   --  the list decides the replacement, and the new name means what the
+   --  old one did.
+   function Library_Name
+     (Spelling : String;
+      Edits    : Edit_List) return Fix
+     with Pre => Edits'Length > 0;
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;

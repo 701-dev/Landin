@@ -33,5 +33,5 @@ public extern(c) l_heap: () -> (ok: bool) =
     end
     block.val = 42
     ok = block.val == 42 and usize(block) % 24 == 0
-    mem.free(provider, block, usize(64))
+    mem.release(provider, block, usize(64))
 end l_heap

@@ -2,6 +2,6 @@ import core/mem
 import hosted/heap
 bad: (object: ptr mut u32) -> (value: u32) =
     state := heap.new()
-    mem.delete(state, object)
+    mem.release_item(state, object)
     value = object.val
 end bad

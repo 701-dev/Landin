@@ -2,6 +2,7 @@
 --  checked as text, split at its `=` and its arrow into views of the
 --  buffer, its value's scalars walked, and the value encoded again scalar
 --  by scalar into a fixed reply, which refuses what it has no room for.
+import core/mem
 import core/text
 
 --  The value's scalars and where each begins, `°` two bytes wide, as
@@ -13,7 +14,7 @@ walked: (value: utf8) -> (yes: bool) =
     yes = false
     mut at := text.start(value)
     mut index: usize = 0
-    while not text.done(value, at) do
+    while not text.utf8_at_end(value, at) do
         return when index >= 4 or value[at] <> scalars[index]
           or text.offset(at) <> offsets[index]
         at = text.step(value, at)
@@ -29,7 +30,7 @@ encoded: (value: utf8, reply: []mut u8) -> (yes: bool) =
     yes = false
     mut used: usize = 0
     mut at := text.start(value)
-    while not text.done(value, at) do
+    while not text.utf8_at_end(value, at) do
         count: usize = text.encode(value[at], reply[used..<lenof reply])
             else begin
                 return
@@ -43,7 +44,7 @@ encoded: (value: utf8, reply: []mut u8) -> (yes: bool) =
     return when not text.equal(again, value)
     --  Three bytes are left, and the thermometer takes four.
     _ = text.encode('\u{1f321}', reply[used..<lenof reply]) else (problem)
-        return when problem <> text.no_space or reply[used] <> 0
+        return when problem <> mem.out_of_memory or reply[used] <> 0
         _ = text.encode(0xd800, reply[used..<lenof reply]) else (invalid)
             yes = invalid == text.invalid_scalar and reply[used] == 0
             return
@@ -82,7 +83,7 @@ public main: () -> (code: i32) =
     return when not encoded(value, reply[0..<8])
     code = 5
     _ = text.find(line, "\u{2190}") else (problem)
-        code = if problem == text.not_found then 42 else 6 end if
+        code = if problem == mem.not_found then 42 else 6 end if
         return
     end
 end main

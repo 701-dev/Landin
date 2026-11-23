@@ -1,0 +1,10 @@
+class: negative
+summary: a field of a library type that R20's breaking list renamed is refused where it is read and where a struct value names it, and the fix writes the new name
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696, L0696, L0696
+fixed: main.fixed
+constructs: 0750, 0670
+targets: linux-x86-64
+expect: expected.txt

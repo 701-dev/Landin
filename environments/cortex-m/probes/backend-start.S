@@ -13,7 +13,7 @@
  * bytes the boot kind puts before it, and LANDIN_BOOT_SUFFIX, those it
  * puts after it, zeros here: the harness's image is linked, never booted.  The harness's own fault and
  * unexpected entries stay in the `_landin` prefix the compiler keeps for
- * its own symbols, so a program's public routine, `arena.reset` among them,
+ * its own symbols, so a program's public routine, `arena.release` among them,
  * cannot collide with them.
  *
  * LANDIN_FPU, set for a lane whose description has a float unit (D616),

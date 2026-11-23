@@ -1,0 +1,25 @@
+import core/iter
+
+--  D1957: `for` takes core/iter's `iterable`.  A program's own concept of
+--  that name, shaped exactly as [1320]'s, is an ordinary concept, and the
+--  refusal names the library's.
+
+bag: type = struct
+    count: usize
+end bag
+
+first: (s: ptr bag) -> (c: usize) = c = 0 end first
+at_end: (s: ptr bag, c: usize) -> (yes: bool) = yes = c >= s.val.count end at_end
+item: (s: ptr bag, c: usize) -> (v: usize) = v = c end item
+next: (s: ptr bag, c: usize) -> (c2: usize) = c2 = c + 1 end next
+
+bag is iter.iterable (cur: usize, item_type: usize,
+                 first: first, at_end: at_end, item: item, next: next)
+
+public main: () -> (code: i32) =
+    items: bag = (count: 2)
+    code = 0
+    for each in items do
+        code += i32(each)
+    end for
+end main

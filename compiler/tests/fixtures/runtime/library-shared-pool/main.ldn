@@ -12,7 +12,7 @@ exercise: () -> (ok: bool) ! mem.out_of_memory =
     return when address.val <> 42 or pool.live(slab) <> 1
     _ = mem.allocate(slab, usize(1), usize(1)) else (problem)
         _ = problem
-        mem.free(slab, address, usize(16))
+        mem.release(slab, address, usize(16))
         ok = pool.live(slab) == 0 and pool.frees(slab) == 1
         return
     end

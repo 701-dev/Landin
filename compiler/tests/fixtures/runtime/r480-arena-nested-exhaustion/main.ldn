@@ -12,7 +12,7 @@ leave: (memory: counted, mode: u8) -> none ! stopped =
         _ = problem
         fail stopped
     end
-    defer mem.free(memory, block, usize(1))
+    defer mem.release(memory, block, usize(1))
     if mode == 0 then
         return
     end if
@@ -25,12 +25,12 @@ nested: (outer: counted, inner: counted)
         -> (ok: bool) ! mem.out_of_memory =
     ok = false
     first := try mem.allocate(outer, usize(1), usize(1))
-    defer mem.free(outer, first, usize(1))
+    defer mem.release(outer, first, usize(1))
     mut steps: u8 = 0
     while steps < 2 do
         inc steps
         block := try mem.allocate(inner, usize(1), usize(1))
-        defer mem.free(inner, block, usize(1))
+        defer mem.release(inner, block, usize(1))
         continue when steps == 1
         break
     end while
@@ -42,7 +42,7 @@ nested: (outer: counted, inner: counted)
     end match
     --  The outer provider has independent authority and still works.
     second := try mem.allocate(outer, usize(1), usize(1))
-    defer mem.free(outer, second, usize(1))
+    defer mem.release(outer, second, usize(1))
     ok = empty and fault.successes(inner) == 2 and fault.frees(inner) == 2
 end nested
 
@@ -61,8 +61,8 @@ public main: () -> (code: i32) =
     outer := fault.over(outer_space, outer_arena, usize(4))
     inner := fault.over(inner_space, inner_arena, usize(3))
     ok: bool = nested(outer, inner) else false
-    return when not ok or arena.used(outer_arena) <> 2
-      or arena.used(inner_arena) <> 2
+    return when not ok or arena.length(outer_arena) <> 2
+      or arena.length(inner_arena) <> 2
     --  The arena's refusal reached it, so it spent the inner budget's third
     --  permit.
     return when fault.frees(outer) <> 2 or fault.remaining(inner) <> 0
@@ -72,8 +72,8 @@ public main: () -> (code: i32) =
         return
     end
     leave(outer, 1) else none
-    if arena.used(outer_arena) == 4 and fault.successes(outer) == 4
-      and fault.frees(outer) == 4 and arena.used(inner_arena) == 2
+    if arena.length(outer_arena) == 4 and fault.successes(outer) == 4
+      and fault.frees(outer) == 4 and arena.length(inner_arena) == 2
     then
         code = 42
     end if

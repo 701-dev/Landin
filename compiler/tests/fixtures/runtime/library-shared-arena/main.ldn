@@ -11,10 +11,10 @@ exercise: () -> (ok: bool) ! mem.out_of_memory =
     return when address.val <> 42
     _ = mem.allocate(memory, usize(64), usize(1)) else (problem)
         _ = problem
-        return when arena.used(memory) <> 4
-        arena.reset(memory)
+        return when arena.length(memory) <> 4
+        arena.release(memory)
         again := try mem.allocate(memory, usize(32), usize(1))
-        ok = arena.used(memory) == 32 and again == address
+        ok = arena.length(memory) == 32 and again == address
         return
     end
 end exercise

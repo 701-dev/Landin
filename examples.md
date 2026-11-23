@@ -86,7 +86,7 @@ truncates toward zero [0310], so adding 0.5 first rounds.
 A buffered writer has two failures to know about:
 
 - `io.format` formats each line straight into the buffer, so a line larger
-  than the whole buffer fails with `text.no_space`.
+  than the whole buffer fails with `mem.out_of_memory`.
 - The deferred flush drops a failure without a word. A program that must
   know its output arrived flushes once more at the end and handles that
   call's failure, `io.flush(out) else (problem) ... end`, as
@@ -214,7 +214,7 @@ public main: () -> (code: i32) =
     end for
 
     path: []u8 = "missing-settings.conf"
-    file := io.open_read(host, text.host_over(path)) else (problem)
+    file := io.open_read(host, text.os_string_over(path)) else (problem)
         report(out, path, problem)
         return
     end
@@ -239,7 +239,7 @@ prints the count. It is like `wc -l` for one file, except that a last line
 without its newline counts too. When something fails, the program says
 what in words on standard error and returns 1.
 
-- `io.argument_at(host, 0)` lends the first argument as a host string, the
+- `io.argument(host, 0)` lends the first argument as a host string, the
   bytes the system gave [1660]. With no argument it fails, and the program
   prints how to use it.
 - `count_lines` declares its failures as `! ...`, which lets the compiler
@@ -247,7 +247,7 @@ what in words on standard error and returns 1.
   that is not `public` may leave its set to the compiler [0960].
 - `io.lines_over` makes a line reader over a buffer in the function's frame,
   and `io.read_line` lends each line [0790] [0800]. A line too long for the
-  buffer is the failure `io.line_too_long`, which the count takes as one
+  buffer is the failure `mem.out_of_memory`, which the count takes as one
   more line.
 - A `defer` closes the file on every way out of `count_lines` [1100].
 - `complain` writes the program's name, what it was working on and the
@@ -263,12 +263,13 @@ Fixture source: `compiler/tests/fixtures/runtime/line-count/main.ldn`.
 --  then returns 1.
 import core/failure
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
 --- How many lines the file at `path` holds.  A last line without its
 --- newline counts, and so does a line too long for the buffer.
-count_lines: (host: blocking.host, path: text.host_string)
+count_lines: (host: blocking.host, path: text.os_string)
              -> (lines: u64) ! ... =
     lines = 0
     opened: io.file = try io.open_read(host, path)
@@ -277,11 +278,11 @@ count_lines: (host: blocking.host, path: text.host_string)
     mut reader := io.lines_over(host, opened, buffer)
     loop do
         item: io.line = io.read_line(reader) else (problem)
-            fail problem when problem <> io.line_too_long
+            fail problem when problem <> mem.out_of_memory
             inc lines
             continue
         end
-        break when item.finished
+        break when item.at_end
         inc lines
     end loop
 end count_lines
@@ -298,12 +299,12 @@ end complain
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 1
-    path := io.argument_at(host, 0) else begin
+    path := io.argument(host, 0) else begin
         io.write(host, io.err(host), "usage: count FILE\n") else none
         return
     end
     lines := count_lines(host, path) else (problem)
-        complain(host, text.host_bytes(path), problem)
+        complain(host, text.os_string_bytes(path), problem)
         return
     end
     io.write_format(host, io.out(host), "{} lines\n", [any(addr lines)])
@@ -331,9 +332,9 @@ The program adds up the numbers you give it as arguments, however many
 there are, and prints the sum. When an argument is not a number, the
 program names it on standard error and returns 1.
 
-- `io.argument_count(host)` is how many arguments the program was given,
+- `io.arguments_length(host)` is how many arguments the program was given,
   not counting its own name [1650]. The loop asks the host for each one by
-  its index, `io.argument_at(host, at)`, from 0 up to the count [1150].
+  its index, `io.argument(host, at)`, from 0 up to the count [1150].
 - With no argument at all, `main` prints how to use the program.
 - `text.parse_u64` reads an argument's bytes as decimal digits. Anything
   else is the failure `text.invalid_number`, and digits too large for a
@@ -359,17 +360,17 @@ import hosted/blocking
 sum_arguments: (host: blocking.host, inout at_fault: usize)
                -> (sum: u64) ! ... =
     sum = 0
-    for at in usize(0)..<io.argument_count(host) do
+    for at in usize(0)..<io.arguments_length(host) do
         at_fault = at
-        argument: text.host_string = try io.argument_at(host, at)
-        sum += try text.parse_u64(text.host_bytes(argument))
+        argument: text.os_string = try io.argument(host, at)
+        sum += try text.parse_u64(text.os_string_bytes(argument))
     end for
 end sum_arguments
 
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 1
-    if io.argument_count(host) == 0 then
+    if io.arguments_length(host) == 0 then
         io.write(host, io.err(host), "usage: sum NUMBER...\n") else none
         return
     end if
@@ -517,6 +518,7 @@ Fixture source: `compiler/tests/fixtures/runtime/example-insertion-sort/main.ldn
 --  Insertion sort grows a sorted prefix, moving each new value left past
 --  the larger ones before it.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -535,7 +537,7 @@ end insertion_sort
 --- `label`, then each of `values` after a space, then a newline.
 show: (inout out: io.buffered_writer(blocking.host), label: utf8,
        values: []i32)
-      -> none ! io.io_failed | text.no_space | text.invalid_format =
+      -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     try io.format(out, "{}:", [any(addr label)])
     for value in values do
         try io.format(out, " {}", [any(addr value)])
@@ -776,6 +778,7 @@ Fixture source: `compiler/tests/fixtures/runtime/example-merge-sort/main.ldn`.
 --  Merge sort halves the range, sorts each half, and merges the two sorted
 --  halves back through a work array the caller lends.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -807,7 +810,7 @@ end merge_sort
 --- `label`, then each of `values` after a space, then a newline.
 show: (inout out: io.buffered_writer(blocking.host), label: utf8,
        values: []i32)
-      -> none ! io.io_failed | text.no_space | text.invalid_format =
+      -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     try io.format(out, "{}:", [any(addr label)])
     for value in values do
         try io.format(out, " {}", [any(addr value)])
@@ -855,7 +858,7 @@ With no argument the seed comes from the system's entropy.
 - `random.below(source, 6)` draws a number from 0 to 5 without bias, each
   as likely as the others. The generator is an `inout` parameter, because
   every draw changes it.
-- `random.shuffle(source, deck)` puts the deck in a random order with the
+- `random.shuffle(deck, source)` puts the deck in a random order with the
   Fisher-Yates shuffle, every order equally likely.
 - A template has no field widths, so `roll_dice` pads its columns by hand,
   writing a space before a short number. A `while` loop draws each bar
@@ -884,12 +887,12 @@ rolls: u32 = 600
 --- when there is one, so a run can be repeated, and from the system's
 --- entropy when there is none.
 seeded: (host: blocking.host) -> (source: random.generator) ! ... =
-    if io.argument_count(host) == 0 then
+    if io.arguments_length(host) == 0 then
         source = try random.from_entropy(host)
         return
     end if
-    argument: text.host_string = try io.argument_at(host, 0)
-    source = random.new(try text.parse_u64(text.host_bytes(argument)))
+    argument: text.os_string = try io.argument(host, 0)
+    source = random.new(try text.parse_u64(text.os_string_bytes(argument)))
 end seeded
 
 --- Roll two dice `rolls` times and print how often each total came up, with
@@ -931,7 +934,7 @@ deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
     for card in usize(0)..<52 do
         deck[card] = u8(card)
     end for
-    random.shuffle(source, deck)
+    random.shuffle(deck, source)
     try io.write(host, io.out(host), "hand:")
     for card in deck[0..<5] do
         name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
@@ -1220,7 +1223,7 @@ number and a tab, the number right-aligned in six columns.
 - `io.lines_over` makes a line reader over a 32-byte buffer, and
   `io.read_line` lends each line from that buffer until the next read
   [0790] [0800], without its `\n` or `\r\n`.
-- A line too long for the buffer is the failure `io.line_too_long`. The
+- A line too long for the buffer is the failure `mem.out_of_memory`. The
   program numbers it with a note in its place and goes on.
 - A placeholder has no width, so the number is right-aligned with
   `text.align_right` in a small `text.builder`, and each piece is written
@@ -1241,6 +1244,7 @@ Fixture source: `compiler/tests/fixtures/runtime/line-numbers/main.ldn`.
 --  output goes through a buffered writer, flushed on every way out.
 import core/failure
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -1260,12 +1264,12 @@ numbered: (provider: type is io.world, host: provider,
         try text.align_right(prefix, 0, 6, u8(' '))
         try text.append_byte(prefix, u8('\t'))
         item: io.line = io.read_line(lines) else (problem)
-            fail problem when problem <> io.line_too_long
+            fail problem when problem <> mem.out_of_memory
             try io.put(out, text.used(prefix))
             try io.put(out, "(a line too long to show)\n")
             continue
         end
-        break when item.finished
+        break when item.at_end
         try io.put(out, text.used(prefix))
         try io.put(out, item.bytes)
         try io.put(out, "\n")
@@ -1458,7 +1462,7 @@ own to call back. Read `main`, which loads and looks up, and then
   the library's function is one [1580], as a C cast cannot.
 - `doubled` is an `extern(c)` function [1570], so the plugin can call it
   through a C function pointer.
-- A symbol the library does not define is `posix.no_symbol`, a failure to
+- A symbol the library does not define is `mem.not_found`, a failure to
   recover from [1030]. A library that cannot be loaded is
   `posix.no_library`, and `posix.library_failure` gives the loader's own
   words for either.
@@ -1519,7 +1523,7 @@ end report
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 1
-    path := io.argument_at(host, 0) else (problem)
+    path := io.argument(host, 0) else (problem)
         _ = problem
         io.write(host, io.err(host), "usage: plugin LIBRARY\n") else none
         return
@@ -1529,7 +1533,7 @@ public main: () -> (code: i32) =
             refused(host)
         else
             io.write(host, io.err(host), "plugin: ") else none
-            io.write(host, io.err(host), text.host_bytes(path)) else none
+            io.write(host, io.err(host), text.os_string_bytes(path)) else none
             io.write(host, io.err(host), " is not a path the system takes\n")
                 else none
         end if
@@ -1608,7 +1612,7 @@ and reports it. Read `main`, which starts the shell, and then `capture`,
 which reads from it.
 
 - `io.spawn` starts a program by its path, never searching for it, with
-  exactly the arguments and the variables, each an `io.variable`, that
+  exactly the arguments and the variables, each an `text.os_variable`, that
   you pass. The parent's own `HOME` is not passed on, as the third line
   of the report shows.
 - `io.capturing` pipes the child's output and errors to the parent, and
@@ -1737,9 +1741,9 @@ end report
 --- The parent's own PATH, the one variable of its environment it passes
 --- on, or the directories every hosted system keeps `sleep` in when it
 --- has none.
-search_path: (host: blocking.host) -> (path: text.host_string from host) =
-    path = io.variable_named(host, text.host_over("PATH"))
-        else text.host_over("/bin:/usr/bin")
+search_path: (host: blocking.host) -> (path: text.os_string from host) =
+    path = io.variable_named(host, text.os_string_over("PATH"))
+        else text.os_string_over("/bin:/usr/bin")
 end search_path
 
 --- Say on standard error why the shell could not be run or reported.
@@ -1755,15 +1759,15 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    variables: [3]io.variable =
-        [(name: text.host_over("NAME"), value: text.host_over("landin")),
-         (name: text.host_over("GREETING"),
-          value: text.host_over("hello, world")),
-         (name: text.host_over("PATH"), value: search_path(host))]
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    variables: [3]text.os_variable =
+        [(name: text.os_string_over("NAME"), value: text.os_string_over("landin")),
+         (name: text.os_string_over("GREETING"),
+          value: text.os_string_over("hello, world")),
+         (name: text.os_string_over("PATH"), value: search_path(host))]
     began: time.instant = time.now(host)
-    started := io.spawn(host, text.host_over("/bin/sh"),
+    started := io.spawn(host, text.os_string_over("/bin/sh"),
                         arguments, variables,
                         io.capturing) else (problem)
         complain(host, problem)
@@ -1864,7 +1868,7 @@ serve: (provider: type is net.network, host: provider, connection: io.file)
     lines = 0
     loop do
         item: io.line = try io.read_line(reader)
-        break when item.finished
+        break when item.at_end
         try io.put(writer, item.bytes)
         try io.put(writer, "\n")
         inc lines
@@ -1883,22 +1887,22 @@ tcp_echo: (provider: type is net.network, host: provider,
            family: net.address_family, inout echoed: text.builder)
           -> (lines: usize) ! ... =
     listener: io.file = try net.listen(host, net.loopback(family, 0))
-    defer net.close_socket(host, listener) else none
+    defer net.close(host, listener) else none
     at: net.address = try net.local_address(host, listener)
     client: io.file = try net.connect(host, at)
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     try net.set_timeouts(host, client, time.seconds(5), time.seconds(5))
     try net.send(host, client, request)
     try net.shutdown(host, client, net.sending)
     server: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     try net.set_timeouts(host, server, time.seconds(5), time.seconds(5))
     lines = try serve(host, server)
     mut incoming: [64]u8 = zeroed
     mut replies := io.lines_over(host, client, incoming)
     loop do
         item: io.line = try io.read_line(replies)
-        break when item.finished
+        break when item.at_end
         try text.append(echoed, item.bytes)
         try text.append_byte(echoed, u8('\n'))
     end loop
@@ -1911,9 +1915,9 @@ udp_echo: (provider: type is net.network, host: provider,
            family: net.address_family, inout echoed: text.builder)
           -> none ! ... =
     server: io.file = try net.open_datagram(host, net.loopback(family, 0))
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     client: io.file = try net.open_datagram(host, net.loopback(family, 0))
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     try net.set_timeouts(host, server, time.seconds(5), time.seconds(5))
     try net.set_timeouts(host, client, time.seconds(5), time.seconds(5))
     at: net.address = try net.local_address(host, server)
@@ -2093,12 +2097,12 @@ list: (host: blocking.host, path: []u8, into: []mut kept)
     count = 0
     mut buffer: [1024]u8 = zeroed
     mut listing: io.directory =
-        try io.open_directory(host, text.host_over(path), buffer)
+        try io.open_directory(host, text.os_string_over(path), buffer)
     defer io.close_directory(host, listing) else none
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         fail too_many when count == lenof into
         fail too_long when lenof name > 255
         try mem.copy(into[count].name[0..<255], name)
@@ -2178,7 +2182,7 @@ shown: type = struct
 end shown
 
 append_shown: (self: ptr shown, inout into: text.builder)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     escaped(self.val.name, into) else (problem)
         text.truncate(into, start)
@@ -2188,7 +2192,7 @@ end append_shown
 
 shown is text.formattable (append: append_shown)
 
-escaped: (name: []u8, inout into: text.builder) -> none ! text.no_space =
+escaped: (name: []u8, inout into: text.builder) -> none ! mem.out_of_memory =
     if text.valid(name) then
         try text.append(into, name)
         return
@@ -2208,7 +2212,7 @@ end escaped
 --- List the directory the first argument names, up to 256 entries.
 list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
             -> none ! ... =
-    path: []u8 = text.host_bytes(try io.argument_at(host, 0))
+    path: []u8 = text.os_string_bytes(try io.argument(host, 0))
     blank: kept = (name: [255 of 0], length: 0, kind: io.special, size: 0)
     mut entries: [256]kept = [256 of blank]
     count: usize = try list(host, path, entries)
@@ -2242,7 +2246,7 @@ differs: atom
 
 --- The path of `name` in the top directory, or of the top directory itself
 --- when `name` is empty, built in `path`.
-joined: (name: []u8, inout path: text.builder) -> none ! text.no_space =
+joined: (name: []u8, inout path: text.builder) -> none ! mem.out_of_memory =
     text.clear(path)
     try text.append(path, top)
     if lenof name > 0 then
@@ -2256,7 +2260,7 @@ make_file: (host: blocking.host, name: []u8, contents: []u8) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    opened: io.file = try io.open_write(host, text.host_over(text.used(path)))
+    opened: io.file = try io.open_write(host, text.os_string_over(text.used(path)))
     io.write(host, opened, contents) else (problem)
         io.close(host, opened) else none
         fail problem
@@ -2265,7 +2269,7 @@ make_file: (host: blocking.host, name: []u8, contents: []u8) -> none ! ... =
 end make_file
 
 --- Remove the file `path` names, or with `directory` the empty directory.
-remove: (host: blocking.host, path: text.host_string, directory: bool)
+remove: (host: blocking.host, path: text.os_string, directory: bool)
         -> none ! ... =
     if directory then
         try io.remove_directory(host, path)
@@ -2280,8 +2284,8 @@ forget: (host: blocking.host, name: []u8, directory: bool) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    remove(host, text.host_over(text.used(path)), directory) else (problem)
-        fail problem when problem <> io.not_found
+    remove(host, text.os_string_over(text.used(path)), directory) else (problem)
+        fail problem when problem <> mem.not_found
     end
 end forget
 
@@ -2313,7 +2317,7 @@ make_directory: (host: blocking.host, name: []u8) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    try io.make_directory(host, text.host_over(text.used(path)))
+    try io.make_directory(host, text.os_string_over(text.used(path)))
 end make_directory
 
 --- Four files, one of them empty and one with a name beyond ASCII, and a
@@ -2353,7 +2357,7 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.argument_count(host) > 0 then
+    if io.arguments_length(host) > 0 then
         list_named(host, out) else (problem)
             complain(host, problem)
             return
@@ -2486,12 +2490,12 @@ import platform/posix
 copy_directory: (host: blocking.host, from_path: []u8, to_path: []u8,
                  inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
-    io.make_directory(host, text.host_over(to_path)) else (problem)
+    io.make_directory(host, text.os_string_over(to_path)) else (problem)
         fail problem when problem <> io.already_exists
         there: posix.status = try posix.status_at(posix.working_directory,
-                                                  text.host_over(to_path),
+                                                  text.os_string_over(to_path),
                                                   false)
         fail in_the_way when there.kind <> posix.directory
     end
@@ -2515,7 +2519,7 @@ copy_directory: (host: blocking.host, from_path: []u8, to_path: []u8,
             io.special: inc done.skipped
         end match
     end for
-    target: text.host_string = text.host_over(to_path)
+    target: text.os_string = text.os_string_over(to_path)
     if privileged() then
         try posix.change_owner_at(posix.working_directory, target, found.user,
                                   found.group, true)
@@ -2532,13 +2536,13 @@ end copy_directory
 copy_file: (host: blocking.host, from_path: []u8, to_path: []u8,
             inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
-    input: io.file = try io.open_read(host, text.host_over(from_path))
+    input: io.file = try io.open_read(host, text.os_string_over(from_path))
     defer io.close(host, input) else none
     mut room: [256]u8 = zeroed
     made: io.temporary =
-        try io.make_temporary(host, host, text.host_over(parent_of(to_path)),
+        try io.make_temporary(host, host, text.os_string_over(parent_of(to_path)),
                               room)
     filled(host, input, made.opened, found) else (problem)
         io.close(host, made.opened) else none
@@ -2549,7 +2553,7 @@ copy_file: (host: blocking.host, from_path: []u8, to_path: []u8,
         dropped(host, made.path)
         fail problem
     end
-    target: text.host_string = text.host_over(to_path)
+    target: text.os_string = text.os_string_over(to_path)
     replacing: bool = try present(host, target)
     io.rename(host, made.path, target) else (problem)
         dropped(host, made.path)
@@ -2592,20 +2596,20 @@ end filled
 copy_link: (host: blocking.host, from_path: []u8, to_path: []u8,
             inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
     mut target_room: [256]u8 = zeroed
-    target: text.host_string =
+    target: text.os_string =
         try posix.read_link_at(posix.working_directory,
-                               text.host_over(from_path), target_room)
+                               text.os_string_over(from_path), target_room)
     mut room: [256]u8 = zeroed
-    mut name: text.host_string = text.host_over(room[0..<0])
+    mut name: text.os_string = text.os_string_over(room[0..<0])
     mut made: bool = false
     for attempt in usize(0)..<io.temporary_tries do
         _ = attempt
         mut bytes: [8]u8 = zeroed
         try io.fill_random(host, bytes)
-        name = try io.temporary_path(text.host_over(parent_of(to_path)), bytes,
+        name = try io.temporary_path(text.os_string_over(parent_of(to_path)), bytes,
                                      room)
         posix.symbolic_link_at(target, posix.working_directory, name)
             else (problem)
@@ -2623,7 +2627,7 @@ copy_link: (host: blocking.host, from_path: []u8, to_path: []u8,
     end if
     try posix.set_times_at(posix.working_directory, name, found.accessed,
                            found.modified, false)
-    destination: text.host_string = text.host_over(to_path)
+    destination: text.os_string = text.os_string_over(to_path)
     replacing: bool = try present(host, destination)
     try io.rename(host, name, destination)
     if replacing then inc done.replaced end if
@@ -2675,12 +2679,12 @@ entries_of: (host: blocking.host, path: []u8, into: []mut kept)
     count = 0
     mut buffer: [1024]u8 = zeroed
     mut listing: io.directory =
-        try io.open_directory(host, text.host_over(path), buffer)
+        try io.open_directory(host, text.os_string_over(path), buffer)
     defer io.close_directory(host, listing) else none
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         fail too_many when count == lenof into
         fail too_long when lenof name > 255
         into[count] = blank
@@ -2695,7 +2699,7 @@ end entries_of
 --- The path `name` in `parent`, or `parent` when `name` is empty, built in
 --- `into`.
 joined: (parent: []u8, name: []u8, inout into: text.builder)
-        -> none ! text.no_space =
+        -> none ! mem.out_of_memory =
     text.clear(into)
     try text.append(into, parent)
     separator: []u8 = if lenof name > 0 then "/" else "" end if
@@ -2742,17 +2746,17 @@ zeros: (bytes: []u8) -> (yes: bool) =
 end zeros
 
 --- Whether anything is at `path`, a link not followed.
-present: (host: blocking.host, path: text.host_string) -> (yes: bool) ! ... =
+present: (host: blocking.host, path: text.os_string) -> (yes: bool) ! ... =
     yes = true
     _ = io.status_of(host, path, io.not_following) else (problem)
-        fail problem when problem <> io.not_found
+        fail problem when problem <> mem.not_found
         yes = false
         return
     end
 end present
 
 --- Forget a temporary file that will not be renamed into place.
-dropped: (host: blocking.host, path: text.host_string) -> none =
+dropped: (host: blocking.host, path: text.os_string) -> none =
     io.remove_file(host, path) else none
 end dropped
 
@@ -2763,7 +2767,7 @@ end dropped
 outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     source_status: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(from_path), true)
+                            text.os_string_over(from_path), true)
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     mut length: usize = lenof to_path
@@ -2773,12 +2777,12 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     try text.append(path, to_path[0..<length])
     mut found: posix.status =
         posix.status_at(posix.working_directory,
-                        text.host_over(text.used(path)), true) else (problem)
+                        text.os_string_over(text.used(path)), true) else (problem)
             fail problem when problem <> posix.enoent
             text.clear(path)
             try text.append(path, parent_of(to_path[0..<length]))
             try posix.status_at(posix.working_directory,
-                                text.host_over(text.used(path)), true)
+                                text.os_string_over(text.used(path)), true)
         end
     loop do
         fail inside_source when found.device == source_status.device
@@ -2786,7 +2790,7 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
         try text.append(path, "/..")
         parent: posix.status =
             try posix.status_at(posix.working_directory,
-                                text.host_over(text.used(path)), true)
+                                text.os_string_over(text.used(path)), true)
         break when parent.device == found.device
           and parent.inode == found.inode
         found = parent
@@ -2797,8 +2801,8 @@ end outside_source
 --- names, and say what the copy did.
 copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
             -> none ! ... =
-    from_path: []u8 = text.host_bytes(try io.argument_at(host, 0))
-    to_path: []u8 = text.host_bytes(try io.argument_at(host, 1))
+    from_path: []u8 = text.os_string_bytes(try io.argument(host, 0))
+    to_path: []u8 = text.os_string_bytes(try io.argument(host, 1))
     try outside_source(from_path, to_path)
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
@@ -2846,13 +2850,13 @@ differs: atom
 
 --- Remove the tree at `path`, whatever is in it, if it is there.
 remove_tree: (host: blocking.host, path: []u8) -> none ! ... =
-    found: io.status = io.status_of(host, text.host_over(path), io.not_following)
+    found: io.status = io.status_of(host, text.os_string_over(path), io.not_following)
         else (problem)
-        fail problem when problem <> io.not_found
+        fail problem when problem <> mem.not_found
         return
     end
     if found.kind <> io.subdirectory then
-        try io.remove_file(host, text.host_over(path))
+        try io.remove_file(host, text.os_string_over(path))
         return
     end if
     mut entries: [16]kept = [16 of blank]
@@ -2863,7 +2867,7 @@ remove_tree: (host: blocking.host, path: []u8) -> none ! ... =
         try joined(path, item.name[0..<item.length], child)
         try remove_tree(host, text.used(child))
     end for
-    try io.remove_directory(host, text.host_over(path))
+    try io.remove_directory(host, text.os_string_over(path))
 end remove_tree
 
 --- Clean up after a failure, reporting why an owned scratch directory
@@ -2884,14 +2888,14 @@ make_file: (host: blocking.host, name: []u8, contents: []u8,
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    opened: io.file = try io.open_write(host, text.host_over(text.used(path)))
+    opened: io.file = try io.open_write(host, text.os_string_over(text.used(path)))
     io.write(host, opened, contents) else (problem)
         io.close(host, opened) else none
         fail problem
     end
     try io.close(host, opened)
     try posix.change_mode_at(posix.working_directory,
-                             text.host_over(text.used(path)), permissions)
+                             text.os_string_over(text.used(path)), permissions)
 end make_file
 
 --- Make the directory `name` in the source, or the source when it is
@@ -2900,9 +2904,9 @@ make_folder: (host: blocking.host, name: []u8) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    try io.make_directory(host, text.host_over(text.used(path)))
+    try io.make_directory(host, text.os_string_over(text.used(path)))
     try posix.change_mode_at(posix.working_directory,
-                             text.host_over(text.used(path)), 0o755)
+                             text.os_string_over(text.used(path)), 0o755)
 end make_folder
 
 --- Give the source entry `name` the times `epoch` and `second` seconds,
@@ -2913,7 +2917,7 @@ stamp: (name: []u8, second: i64) -> none ! ... =
     try joined(source, name, path)
     at: posix.time_value = (seconds: epoch + second, nanoseconds: 0)
     try posix.set_times_at(posix.working_directory,
-                           text.host_over(text.used(path)), at, at, false)
+                           text.os_string_over(text.used(path)), at, at, false)
 end stamp
 
 --- The names the source holds, in the order their times are given:
@@ -2931,7 +2935,7 @@ make_sparse: (host: blocking.host, name: []u8) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    sparse: text.host_string = text.host_over(text.used(path))
+    sparse: text.os_string = text.os_string_over(text.used(path))
     opened: io.file = try io.open_file(host, sparse, io.creating)
     defer io.close(host, opened) else none
     try io.write_at(host, opened, u64(0), "head")
@@ -2945,9 +2949,9 @@ make_link: (target: []u8, name: []u8, hard: bool) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    made: text.host_string = text.host_over(text.used(path))
+    made: text.os_string = text.os_string_over(text.used(path))
     if not hard then
-        try posix.symbolic_link_at(text.host_over(target),
+        try posix.symbolic_link_at(text.os_string_over(target),
                                    posix.working_directory, made)
         return
     end if
@@ -2955,7 +2959,7 @@ make_link: (target: []u8, name: []u8, hard: bool) -> none ! ... =
     mut existing := text.over(other)
     try joined(source, target, existing)
     try posix.link_at(posix.working_directory,
-                      text.host_over(text.used(existing)),
+                      text.os_string_over(text.used(existing)),
                       posix.working_directory, made)
 end make_link
 
@@ -2968,10 +2972,10 @@ make_socket: (name: []u8) -> none ! ... =
     socket: posix.descriptor = try posix.socket(posix.local, posix.stream)
     defer posix.close(socket) else none
     at: posix.socket_address =
-        try posix.unix_address(text.host_over(text.used(path)))
+        try posix.unix_address(text.os_string_over(text.used(path)))
     try posix.bind(socket, at)
     named: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(text.used(path)),
+                                              text.os_string_over(text.used(path)),
                                               false)
     fail differs when named.kind <> posix.socket_file
 end make_socket
@@ -2989,7 +2993,7 @@ build: (host: blocking.host) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut locked := text.over(room)
     try joined(source, "locked", locked)
-    try io.set_read_only(host, text.host_over(text.used(locked)), true)
+    try io.set_read_only(host, text.os_string_over(text.used(locked)), true)
     try make_sparse(host, "sparse.bin")
     try make_link("readme", "readme-again", true)
     try make_link("notes", "link-to-notes", false)
@@ -3003,7 +3007,7 @@ end build
 
 --- Write `permissions` as four octal digits.
 append_mode: (inout into: text.builder, permissions: u32)
-             -> none ! text.no_space =
+             -> none ! mem.out_of_memory =
     shifts: [4]u32 = [9, 6, 3, 0]
     for shift in shifts do
         try text.append_byte(into, u8(48 + ((permissions >> shift) & 7)))
@@ -3016,13 +3020,13 @@ end append_mode
 line: (path: []u8, name: []u8, kind: io.entry_kind,
        inout into: text.builder) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(path), false)
+                                              text.os_string_over(path), false)
     text.clear(into)
     if kind == io.symbolic_link then
         mut room: [256]u8 = zeroed
-        target: text.host_string =
+        target: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(path), room)
+                                   text.os_string_over(path), room)
         seconds: i64 = found.modified.seconds - epoch
         try text.format(into, "link +{} {} -> {}\n",
                         [any(addr seconds), any(addr name), any(addr target)])
@@ -3077,32 +3081,32 @@ end show
 same_entry: (host: blocking.host, from_path: []u8, to_path: []u8,
              kind: io.entry_kind) -> none ! ... =
     original: posix.status = try posix.status_at(posix.working_directory,
-                                                 text.host_over(from_path),
+                                                 text.os_string_over(from_path),
                                                  false)
     copied: posix.status = try posix.status_at(posix.working_directory,
-                                               text.host_over(to_path), false)
+                                               text.os_string_over(to_path), false)
     fail differs when original.kind <> copied.kind
       or original.modified.seconds <> copied.modified.seconds
       or original.modified.nanoseconds <> copied.modified.nanoseconds
     if kind == io.symbolic_link then
         mut first_room: [256]u8 = zeroed
-        first: text.host_string =
+        first: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(from_path), first_room)
+                                   text.os_string_over(from_path), first_room)
         mut second_room: [256]u8 = zeroed
-        second: text.host_string =
+        second: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(to_path), second_room)
-        fail differs when cmp.compare(text.host_bytes(first),
-                                      text.host_bytes(second)) <> cmp.equal
+                                   text.os_string_over(to_path), second_room)
+        fail differs when cmp.compare(text.os_string_bytes(first),
+                                      text.os_string_bytes(second)) <> cmp.equal
         return
     end if
     fail differs when original.permissions <> copied.permissions
     return when kind <> io.regular
     fail differs when original.size <> copied.size
-    left: io.file = try io.open_read(host, text.host_over(from_path))
+    left: io.file = try io.open_read(host, text.os_string_over(from_path))
     defer io.close(host, left) else none
-    right: io.file = try io.open_read(host, text.host_over(to_path))
+    right: io.file = try io.open_read(host, text.os_string_over(to_path))
     defer io.close(host, right) else none
     mut first_block: [4096]u8 = zeroed
     mut second_block: [4096]u8 = zeroed
@@ -3161,7 +3165,7 @@ edge_cases: (host: blocking.host) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(copy, "locked", path)
-    locked: text.host_string = text.host_over(text.used(path))
+    locked: text.os_string = text.os_string_over(text.used(path))
     found: io.status = try io.status_of(host, locked, io.following)
     fail differs when not found.read_only
     --  A file open only for reading refuses a write whoever writes, root
@@ -3197,7 +3201,7 @@ edge_cases: (host: blocking.host) -> none ! ... =
     try joined(copy, "sparse.bin", sparse_path)
     sparse: io.file = system.file_of(
         try posix.open_at(posix.working_directory,
-                          text.host_over(text.used(sparse_path)),
+                          text.os_string_over(text.used(sparse_path)),
                           posix.reading, 0))
     defer io.close(host, sparse) else none
     size: io.status = try io.status_of_file(host, sparse)
@@ -3212,13 +3216,13 @@ edge_cases: (host: blocking.host) -> none ! ... =
     try joined(source, "readme", first_path)
     first: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(text.used(first_path)), false)
+                            text.os_string_over(text.used(first_path)), false)
     mut second_room: [256]u8 = zeroed
     mut second_path := text.over(second_room)
     try joined(copy, "readme", second_path)
     second: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(text.used(second_path)), false)
+                            text.os_string_over(text.used(second_path)), false)
     fail differs when first.links <> 2 or second.links <> 1
 end edge_cases
 
@@ -3227,11 +3231,11 @@ end edge_cases
 --- to.  A set-user-ID file is copied with the bit only by a process that
 --- gave the copy its owner.
 guards: (host: blocking.host) -> none ! ... =
-    try io.make_directory(host, text.host_over("tree-copy-scratch/elsewhere"))
-    try io.make_directory(host, text.host_over("tree-copy-scratch/trap"))
-    try posix.symbolic_link_at(text.host_over("../elsewhere"),
+    try io.make_directory(host, text.os_string_over("tree-copy-scratch/elsewhere"))
+    try io.make_directory(host, text.os_string_over("tree-copy-scratch/trap"))
+    try posix.symbolic_link_at(text.os_string_over("../elsewhere"),
                                posix.working_directory,
-                               text.host_over("tree-copy-scratch/trap/notes"))
+                               text.os_string_over("tree-copy-scratch/trap/notes"))
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
     mut refused: bool = false
@@ -3245,7 +3249,7 @@ guards: (host: blocking.host) -> none ! ... =
                                     entries)
     fail differs when reached <> 0
 
-    tool: text.host_string = text.host_over("tree-copy-scratch/tool")
+    tool: text.os_string = text.os_string_over("tree-copy-scratch/tool")
     opened: io.file = try io.open_write(host, tool)
     try io.close(host, opened)
     try posix.change_mode_at(posix.working_directory, tool, 0o4755)
@@ -3255,7 +3259,7 @@ guards: (host: blocking.host) -> none ! ... =
                   done)
     copied: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over("tree-copy-scratch/tool-copy"),
+                            text.os_string_over("tree-copy-scratch/tool-copy"),
                             false)
     wanted: u32 = if privileged() then original.permissions
                   else original.permissions & 0o1777 end if
@@ -3287,15 +3291,15 @@ end report
 --- copy, check the copy, list it to `out` and remove both trees.
 demonstrate: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
              -> none ! ... =
-    try io.make_directory(host, text.host_over(top))
+    try io.make_directory(host, text.os_string_over(top))
     undo abandon(host)
     try build(host)
     try refuses_inside(source, source)
     try refuses_inside(source, "tree-copy-scratch/source/child")
     try refuses_inside(source, "tree-copy-scratch/source/../source/child")
-    try posix.symbolic_link_at(text.host_over("source"),
+    try posix.symbolic_link_at(text.os_string_over("source"),
                                posix.working_directory,
-                               text.host_over("tree-copy-scratch/alias"))
+                               text.os_string_over("tree-copy-scratch/alias"))
     try refuses_inside(source, "tree-copy-scratch/alias/child")
     mut first: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                         replaced: 0)
@@ -3322,7 +3326,7 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.argument_count(host) == 2 then
+    if io.arguments_length(host) == 2 then
         copy_named(host, out) else (problem)
             complain(host, problem)
             return
@@ -3506,6 +3510,7 @@ Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-fannkuch-redux/m
 --  The order is the program's argument: seven for the correctness output,
 --  twelve for the performance run, and never more than sixteen.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -3587,16 +3592,16 @@ end fannkuch
 --- The order named by the first argument, one to sixteen.
 order_size: (host: blocking.host)
             -> (n: usize)
-            ! io.no_argument | text.invalid_number | text.number_overflow
+            ! mem.not_found | text.invalid_number | text.number_overflow
             | bad_size =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
     fail bad_size when n < 1 or n > 16
 end order_size
 
 report: (host: blocking.host, n: usize, value: score)
-        -> none ! io.io_failed | text.no_space | text.invalid_format =
+        -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [64]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, "{}\nPfannkuchen({}) = {}\n",
@@ -3696,7 +3701,7 @@ pack_row: (n: usize, imaginary_coordinate: f64, row: []mut u8) -> none =
 end pack_row
 
 render: (inout out: io.buffered_writer(blocking.host), n: usize, row: []mut u8)
-        -> none ! io.io_failed | text.no_space | text.invalid_format =
+        -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut room: [48]u8 = zeroed
     mut header := text.over(room)
     try text.format(header, "P4\n{} {}\n", [any(addr n), any(addr n)])
@@ -3713,10 +3718,10 @@ end render
 --- The image size named by the first argument.
 image_size: (host: blocking.host)
             -> (n: usize)
-            ! io.no_argument | text.invalid_number | text.number_overflow =
+            ! mem.not_found | text.invalid_number | text.number_overflow =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
 end image_size
 
 public main: () -> (code: i32) =
@@ -3728,11 +3733,11 @@ public main: () -> (code: i32) =
         return
     end
 
-    mut row := mem.new_bytes(memory, (n + 7) / 8) else begin
+    mut row := mem.allocate_bytes(memory, (n + 7) / 8) else begin
         io.write(host, io.err(host), "mandelbrot: out of memory\n") else none
         return
     end
-    defer mem.delete_bytes(memory, row)
+    defer mem.release_bytes(memory, row)
 
     mut storage: [16384]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
@@ -3770,6 +3775,7 @@ Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-fasta/main.ldn`.
 --  first it does not, and the naïve LCG advances once for every random
 --  nucleotide.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -3884,10 +3890,10 @@ end fasta
 --- The sequence length named by the first argument.
 sequence_size: (host: blocking.host)
                -> (n: usize)
-               ! io.no_argument | text.invalid_number | text.number_overflow =
+               ! mem.not_found | text.invalid_number | text.number_overflow =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
 end sequence_size
 
 public main: () -> (code: i32) =
@@ -3969,7 +3975,7 @@ end complements
 
 --- Append all of standard input to `whole`, a read at a time.
 read_all: (host: blocking.host, inout whole: text.builder)
-          -> none ! io.io_failed | text.no_space =
+          -> none ! io.io_failed | mem.out_of_memory =
     input: io.file = io.input(host)
     mut chunk: [65536]u8 = zeroed
     loop do
@@ -4037,7 +4043,7 @@ public main: () -> (code: i32) =
     code = 1
 
     read_all(host, whole) else (problem)
-        if problem == text.no_space then
+        if problem == mem.out_of_memory then
             io.write(host, io.err(host), "revcomp: out of memory\n") else none
         else
             io.write(host, io.err(host), "revcomp: standard input could not be read\n")
@@ -4118,7 +4124,7 @@ build: (memory: nodes_region, depth: usize)
         right = try build(memory, depth - 1)
     end if
     shape: node = (left: left, right: right)
-    root = try mem.new(memory, shape)
+    root = try mem.allocate_item(memory, shape)
 end build
 
 --- The nodes of `tree`, counted by walking all of it.
@@ -4145,7 +4151,7 @@ end checked_tree
 
 --- Write one line of the report.
 say: (host: blocking.host, template: utf8, values: []any text.formattable)
-     -> none ! io.io_failed | text.no_space | text.invalid_format =
+     -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [96]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, template, values)
@@ -4153,7 +4159,7 @@ say: (host: blocking.host, template: utf8, values: []any text.formattable)
 end say
 
 binary_trees: (host: blocking.host, n: usize)
-              -> none ! mem.out_of_memory | io.io_failed | text.no_space
+              -> none ! mem.out_of_memory | io.io_failed
                       | text.invalid_format =
     memory := heap.new()
     max_depth: usize = if n > min_depth + 2 then n else min_depth + 2 end if
@@ -4190,11 +4196,11 @@ end binary_trees
 --- The depth named by the first argument; above fifty-nine the nodes
 --- counted at depth four would not fit in a usize.
 tree_depth: (host: blocking.host)
-            -> (n: usize) ! io.no_argument | text.invalid_number
+            -> (n: usize) ! mem.not_found | text.invalid_number
                           | text.number_overflow | bad_depth =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
     fail bad_depth when n > 59
 end tree_depth
 

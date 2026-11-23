@@ -7,6 +7,7 @@ import core/failure
 import core/fibre
 import core/fibre/stacks
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -54,14 +55,14 @@ end both
 
 turns_asked: (host: blocking.host)
              -> (turns: usize)
-             ! io.no_argument | text.invalid_number | text.number_overflow =
+             ! mem.not_found | text.invalid_number | text.number_overflow =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    turns = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    turns = try text.parse_usize(text.os_string_bytes(argument))
 end turns_asked
 
 report: (host: blocking.host) -> none
-        ! io.io_failed | text.no_space | text.invalid_format =
+        ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [64]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, "{}\n", [any(addr checksum)])
@@ -78,7 +79,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [3]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

@@ -52,7 +52,7 @@ socket_role: type = free_slot | listening_slot | connection_slot
 --- send that does not fit waits as a real one would.  Make each with
 --- `socket_over`; the other fields are the network's.  A free record is
 --- a socket the network can open; one that is open is a file of the
---- network until `close_socket` frees it again.
+--- network until `close` frees it again.
 public network_socket: type = struct
     buffer: []mut u8
     role: socket_role
@@ -133,7 +133,7 @@ alone: type = struct
     reserved: u32
 end alone
 
-alone_start: (self: alone, escaping record: ptr mut fibre.space,
+alone_start: (self: alone, escaping record: ptr mut fibre.record,
               escaping stack: []mut u8, escaping work: any fibre.task)
              -> none ! mem.out_of_memory =
     _ = self
@@ -142,7 +142,7 @@ alone_start: (self: alone, escaping record: ptr mut fibre.space,
     _ = work
 end alone_start
 
-alone_finished: (self: alone, record: fibre.space) -> (yes: bool) =
+alone_finished: (self: alone, record: fibre.record) -> (yes: bool) =
     _ = self
     _ = record
     yes = true
@@ -174,8 +174,8 @@ end network_over
 --- fibres that use it are `runs`'s, and the network borrows the
 --- scheduler for as long as it is used.
 public network_over_turns: (inout state: network_space,
-                            sockets: []mut network_socket,
-                            runs: any fibre.turns)
+                            runs: any fibre.turns,
+                            sockets: []mut network_socket)
                            -> (host: network from state, sockets, runs) =
     freed(state, sockets)
     host = (state: addr state, sockets: sockets, runs: runs,
@@ -767,4 +767,4 @@ network is net.network
      peer_address: network_peer_address,
      set_timeouts: network_set_timeouts,
      set_no_delay: network_set_no_delay,
-     close_socket: network_close_socket)
+     close: network_close_socket)

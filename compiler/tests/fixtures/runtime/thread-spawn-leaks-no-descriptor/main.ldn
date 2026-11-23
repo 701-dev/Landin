@@ -84,9 +84,9 @@ end make_pipes
 --  The copy's part: whether any descriptor it was given is open.
 any_open: (host: blocking.host) -> (open: bool) ! failure.reason =
     open = false
-    given: usize = io.argument_count(host)
+    given: usize = io.arguments_length(host)
     for at in usize(1)..<given do
-        digits: []u8 = text.host_bytes(try io.argument_at(host, at))
+        digits: []u8 = text.os_string_bytes(try io.argument(host, at))
         found: u32 = try text.parse_u32(digits)
         mut entries: [1]posix.poll_entry =
             [posix.watch(posix.descriptor(i32(found)), posix.poll_input)]
@@ -105,9 +105,9 @@ end any_open
 mut rooms: [8][12]u8 = zeroed
 
 --  Start the copy and say whether it found nothing open.
-nothing_inherited: (host: blocking.host, arguments: []text.host_string)
+nothing_inherited: (host: blocking.host, arguments: []text.os_string)
                    -> (clean: bool) ! failure.reason =
-    variables: []io.variable = []
+    variables: []text.os_variable = []
     running: io.child = try io.spawn(host, posix.program_name(),
                                      arguments, variables, io.inheriting)
     ended: io.ending = try io.wait(host, running)
@@ -133,13 +133,13 @@ run: (host: blocking.host) -> none ! failure.reason =
     while compiler.atomic_load(addr holding, compiler.acquire) == 0 do
         inc spins
     end while
-    mut arguments: [9]text.host_string = [9 of text.host_over("")]
-    arguments[0] = text.host_over("check")
+    mut arguments: [9]text.os_string = [9 of text.os_string_over("")]
+    arguments[0] = text.os_string_over("check")
     for index in usize(0)..<8 do
         mut line := text.over(rooms[index][0..<12])
         try text.append_i32(line, held[index])
         arguments[1 + index] =
-            text.host_over(rooms[index][0..<text.length(line)])
+            text.os_string_over(rooms[index][0..<text.length(line)])
     end for
     for child in usize(0)..<8 do
         _ = child
@@ -158,7 +158,7 @@ end run
 --  found one open, or 1 when it could not ask.
 public main: () -> (code: i32) =
     host := blocking.new()
-    if io.argument_count(host) > 0 then
+    if io.arguments_length(host) > 0 then
         code = 1
         open: bool = any_open(host) else (problem)
             _ = problem

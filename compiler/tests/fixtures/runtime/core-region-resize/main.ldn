@@ -65,7 +65,7 @@ end ledger_resize
 ledger_free: (self: ledger, block: ptr mut u8, size: usize) -> none =
     inc self.state.val.frees
     self.state.val.freed += size
-    mem.free(self.inner, block, size)
+    mem.release(self.inner, block, size)
 end ledger_free
 
 ledger is mem.allocator (alloc: ledger_alloc, grow: ledger_grow,

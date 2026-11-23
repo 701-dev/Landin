@@ -30,9 +30,9 @@ exercise: () -> (ok: bool) ! mem.out_of_memory | mem.out_of_bounds =
     mut nodes := spill.new(item: ptr node, inline_slots: 2)
     try spill.push(nodes, memory, addr first)
     try spill.push(nodes, memory, addr second)
-    return when arena.used(memory) <> 0
+    return when arena.length(memory) <> 0
     try spill.push(nodes, memory, addr third)
-    return when arena.used(memory) == 0 or spill.length(addr nodes) <> 3
+    return when arena.length(memory) == 0 or spill.length(addr nodes) <> 3
     spilled: ptr node = try spill.get(addr nodes, usize(2))
     return when spilled.val.value <> 3
 

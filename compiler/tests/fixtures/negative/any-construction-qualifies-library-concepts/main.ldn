@@ -1,6 +1,7 @@
 --  [1380]: a pointer whose pointee conforms to more than one concept needs
 --  an `any C` context, and the refusal lists the concepts as this program
 --  writes them: its own `display`, and core/text's `text.formattable`.
+import core/mem
 import core/text
 
 display: type = concept (t: type)
@@ -16,7 +17,7 @@ thing_code: (self: ptr thing) -> (value: i32) =
 end thing_code
 
 thing_append: (self: ptr thing, inout into: text.builder)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     _ = self
     try text.append(into, "thing")
 end thing_append

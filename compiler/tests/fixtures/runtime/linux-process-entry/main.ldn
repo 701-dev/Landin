@@ -27,18 +27,18 @@ end has_equals
 public main: () -> (code: i32) =
     code = 1
     state: blocking.host = blocking.new()
-    return when io.argument_count(state) <> 2
+    return when io.arguments_length(state) <> 2
     code = 2
-    first: text.host_string = io.argument_at(state, usize(0)) else (problem)
+    first: text.os_string = io.argument(state, usize(0)) else (problem)
         _ = problem
         return
     end
-    return when not text.host_equal(first, "first")
-    second: text.host_string = io.argument_at(state, usize(1)) else (problem)
+    return when not text.os_string_equal(first, "first")
+    second: text.os_string = io.argument(state, usize(1)) else (problem)
         _ = problem
         return
     end
-    return when not text.host_equal(second, "second")
+    return when not text.os_string_equal(second, "second")
 
     --  The environment ends at a null entry, and every entry is a
     --  `NAME=value` string.

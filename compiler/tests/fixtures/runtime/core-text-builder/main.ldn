@@ -12,14 +12,14 @@ holds: (line: text.builder, expected: []u8) -> (yes: bool) =
     yes = cmp.compare(text.used(line), expected) == cmp.equal
 end holds
 
-pieces: () -> (ok: bool) ! text.no_space =
+pieces: () -> (ok: bool) ! mem.out_of_memory =
     ok = false
     mut storage: [160]u8 = zeroed
     mut line := text.over(storage[0..<160])
     try text.append(line, "<")
     try text.append_byte(line, u8('>'))
     try text.append_text(line, " café ")
-    try text.append_host(line, text.host_over("name"))
+    try text.append_os_string(line, text.os_string_over("name"))
     return when not holds(line, "<> café name")
     text.clear(line)
     try text.append_u32(line, 4294967295)
@@ -57,7 +57,7 @@ pieces: () -> (ok: bool) ! text.no_space =
     ok = true
 end pieces
 
-aligned: () -> (ok: bool) ! text.no_space =
+aligned: () -> (ok: bool) ! mem.out_of_memory =
     ok = false
     mut storage: [32]u8 = zeroed
     mut line := text.over(storage[0..<32])
@@ -92,16 +92,16 @@ bounded: () -> (ok: bool) =
         return
     end
     text.append(line, "cde") else (problem)
-        return when problem <> text.no_space
+        return when problem <> mem.out_of_memory
         return when not holds(line, "ab")
         text.append_i32(line, 0 - 123) else (signed)
-            return when signed <> text.no_space
+            return when signed <> mem.out_of_memory
             return when not holds(line, "ab")
             text.append_u64(line, 100) else (decimal)
-                return when decimal <> text.no_space
+                return when decimal <> mem.out_of_memory
                 return when not holds(line, "ab")
                 text.align_right(line, 0, 5, u8(' ')) else (padded)
-                    ok = padded == text.no_space and holds(line, "ab")
+                    ok = padded == mem.out_of_memory and holds(line, "ab")
                          and text.capacity(line) == 4
                     return
                 end
@@ -117,7 +117,7 @@ end bounded
 --  place while its block is the arena's last, and by copying once another
 --  block follows it; when the arena runs out it reports no_space and keeps
 --  its text.
-growing: () -> (ok: bool) ! text.no_space =
+growing: () -> (ok: bool) ! mem.out_of_memory =
     ok = false
     mut backing: [256]u8 = zeroed
     mut space: arena.space = zeroed
@@ -127,24 +127,24 @@ growing: () -> (ok: bool) ! text.no_space =
     try text.append(line, "0123456789")
     return when text.capacity(line) <> 16
     try text.append(line, "0123456789")
-    return when text.capacity(line) <> 32 or arena.used(memory) <> 32
+    return when text.capacity(line) <> 32 or arena.length(memory) <> 32
     other: ptr mut u8 = mem.allocate(memory, usize(8), usize(1)) else (problem)
         _ = problem
         return
     end
     _ = other
     try text.append(line, "0123456789abcd")
-    return when text.capacity(line) <> 64 or arena.used(memory) <> 104
+    return when text.capacity(line) <> 64 or arena.length(memory) <> 104
     return when not holds(line, "012345678901234567890123456789abcd")
     try text.append_u64(line, 18446744073709551615)
-    return when text.capacity(line) <> 64 or arena.used(memory) <> 104
+    return when text.capacity(line) <> 64 or arena.length(memory) <> 104
     mut more: [100]u8 = zeroed
     mem.fill(more[0..<100], u8('x'))
     try text.append(line, more[0..<64])
-    return when text.capacity(line) <> 128 or arena.used(memory) <> 168
+    return when text.capacity(line) <> 128 or arena.length(memory) <> 168
     held: usize = text.length(line)
     text.append(line, more[0..<100]) else (problem)
-        return when problem <> text.no_space
+        return when problem <> mem.out_of_memory
         return when text.length(line) <> held
         return when text.capacity(line) <> 128
     end

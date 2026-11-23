@@ -38,8 +38,8 @@ several of the tasks together.
 | Get the handle every hosted call takes | `host := blocking.new()` | [hosted/blocking](../hosted/blocking) |
 | Print a formatted line | `io.write_format(host, io.out(host), "{} lines\n", [any(addr count)])` | [core/io](../core/io) |
 | Print many lines | `io.buffered_over(host, io.out(host), storage)` once, then `io.format(out, "{} lines\n", [any(addr count)])` for each line, and `io.flush(out)`, checked, before reporting success | [core/io](../core/io) |
-| Get a command-line argument | `io.argument_at(host, 0)`, and `io.argument_count(host)` | [core/io](../core/io) |
-| Read a file line by line | `io.open_read(host, path)`, `io.lines_over(host, file, buffer)`, then `io.read_line(lines)` until `item.finished`, and `io.close(host, file)` | [core/io](../core/io) |
+| Get a command-line argument | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
+| Read a file line by line | `io.open_read(host, path)`, `io.lines_over(host, file, buffer)`, then `io.read_line(lines)` until `item.at_end`, and `io.close(host, file)` | [core/io](../core/io) |
 | Read a whole file into memory | `io.open_read(host, path)`, then `io.read(host, file, chunk)` until it gives 0, adding each piece to a builder with `text.append(whole, chunk[0..<got])`, and `io.close(host, file)`. The two kinds of builder are compared after this table | [core/io](../core/io), [core/text](../core/text) |
 | Write straight to standard error | `io.write(host, io.err(host), bytes)` | [core/io](../core/io) |
 | Turn a failure into words for a person | `failure.words(problem)` | [core/failure](../core/failure) |
@@ -50,11 +50,11 @@ several of the tasks together.
 A program that reads a whole file into memory chooses between two
 builders:
 
-- A builder that `text.over(storage)` makes fails with `text.no_space`
+- A builder that `text.over(storage)` makes fails with `mem.out_of_memory`
   once the file outgrows `storage`.
 - A builder that `text.growing(any(addr heap))` makes grows from the
   allocator until `text.release` gives its storage back. It fails with
-  `text.no_space` too, when the allocator refuses.
+  `mem.out_of_memory` too, when the allocator refuses.
 
 [This program](../compiler/tests/fixtures/runtime/library-read-whole-file/main.ldn)
 reads a file both ways. Its runs over
@@ -80,7 +80,7 @@ import hosted/blocking
 
 --- Write each line of the file at `path` to `out` after its number.
 numbered: (inout out: io.buffered_writer(blocking.host), host: blocking.host,
-           path: text.host_string) -> none ! ... =
+           path: text.os_string) -> none ! ... =
     file := try io.open_read(host, path)
     defer io.close(host, file) else none
     mut buffer: [4096]u8 = zeroed
@@ -88,7 +88,7 @@ numbered: (inout out: io.buffered_writer(blocking.host), host: blocking.host,
     mut number: u64 = 0
     loop do
         item := try io.read_line(lines)
-        break when item.finished
+        break when item.at_end
         inc number
         try io.format(out, "{}: {}\n", [any(addr number), any(addr item.bytes)])
     end loop
@@ -100,12 +100,12 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    path := io.argument_at(host, 0) else begin
+    path := io.argument(host, 0) else begin
         io.write(host, io.err(host), "usage: number FILE\n") else none
         return
     end
     numbered(out, host, path) else (problem)
-        io.write(host, io.err(host), text.host_bytes(path)) else none
+        io.write(host, io.err(host), text.os_string_bytes(path)) else none
         io.write(host, io.err(host), ": ") else none
         io.write(host, io.err(host), failure.words(problem)) else none
         io.write(host, io.err(host), "\n") else none
@@ -169,9 +169,9 @@ and [its failing run](../compiler/tests/fixtures/runtime/library-common-tasks-mi
 
 On the site, [the library reference](https://www.701.dev/library.html)
 gives each module a page that shows the full signature of every call. The
-signature of `io.argument_at`, for example, is
-`(provider: type is process, host: provider, index: usize) -> (value: text.host_string from host) ! no_argument`.
-A call writes far less: `io.argument_at(host, 0)`.
+signature of `io.argument`, for example, is
+`(provider: type is process, host: provider, index: usize) -> (value: text.os_string from host) ! no_argument`.
+A call writes far less: `io.argument(host, 0)`.
 
 This table says what each part of a signature means:
 
@@ -280,7 +280,7 @@ Memory providers and typed storage: the foundation for allocation, initialized p
 
 | Call | What it does |
 |---|---|
-| `mem.allocate`, `mem.free` | Take a block from a provider, and give it back through the same provider with the same extent. |
+| `mem.allocate`, `mem.release` | Take a block from a provider, and give it back through the same provider with the same extent. |
 | `mem.resize` | Give a block a new extent, larger or smaller, in place or by moving it. |
 | `mem.storage_over` | Make typed storage over the caller's bytes. |
 | `mem.copy`, `mem.fill`, `mem.find` | Copy, set and search byte blocks. |
@@ -449,7 +449,7 @@ lists the types `hashable` ships for. An alternative policy uses a
 policy.
 
 Keep keys and their backing stable while the map stores them, and
-restart cursors after any mutation.
+restart positions after any mutation.
 
 A map hashes every key under the seed `map.new` is given, and keeps it
 through `release` and `clear`. A seed the key's chooser does not know
@@ -478,7 +478,7 @@ draws its seed from the system's entropy, and
 is given two words.
 
 There are two ways to walk a map. One starts at `map.entries()` and
-calls `map.next_entry` until the call fails with `map.end_of_entries`;
+asks `map.at_end` before each `map.next_entry`, which never fails;
 the executable example below walks this way. The other is a `for` loop
 over the map,
 [as this program does](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn). The
@@ -508,7 +508,7 @@ The program keeps three maps over one arena, keyed by `i32`, `[]u8` and
 `utf8`. It inserts keys, replaces one key's item and reads each item
 back. It finds a `[]u8` key through equal bytes at another address. It
 walks the `utf8` map's entries in insertion order until
-`map.end_of_entries`, and it releases every map.
+`map.at_end`, and it releases every map.
 
 ## core/sort
 
@@ -542,7 +542,7 @@ Byte cursors, validated UTF-8 views, positions and searches inside them, a scala
 | Call | What it does |
 |---|---|
 | `text.from_bytes`, `text.valid` | Check that bytes are UTF-8, as a view or as a yes or no. |
-| `text.start`, `text.step`, `text.done`, `text.width` | Walk text a scalar at a time, keeping each scalar's byte position. |
+| `text.start`, `text.step`, `text.utf8_at_end`, `text.scalar_length` | Walk text a scalar at a time, keeping each scalar's byte position. |
 | `text.find`, `text.find_scalar` and their `_from` forms | Find where text or a scalar first occurs. |
 | `text.encode` | Write a scalar's UTF-8 bytes into your buffer. |
 | `text.utf8_over` | Make a builder that only ever holds UTF-8. |
@@ -551,7 +551,7 @@ Byte cursors, validated UTF-8 views, positions and searches inside them, a scala
 | `text.format` | Append a template with each `{}` filled in. |
 | `text.format_onto` | Format a template through a buffer, handing the text to an `outlet` as the buffer fills. |
 | `text.parse_u32` and the rest | Read a number from bytes. |
-| `text.host_over`, `text.from_host` | Make a host string, and check that one is UTF-8. |
+| `text.os_string_over`, `text.from_os_string` | Make an OS string, and check that one is UTF-8. |
 
 ### Views and cursors
 
@@ -567,7 +567,7 @@ Three things check that bytes are UTF-8:
 
 A `text.position` indexes `utf8` by byte offset, while a `usize` index
 into `utf8` counts scalars. So do not index with `offset(position)`.
-`text.cursor` makes a position at any offset you give it and checks
+`text.from_offset` makes a position at any offset you give it and checks
 nothing. The positions below are always on a scalar's start.
 
 UTF-8 equality, hashing and ordering use the encoded bytes, with no
@@ -584,12 +584,12 @@ whole scalar, so each position is where a scalar starts, or the end:
 | `done(source, at)` | Whether `at` is at the end. |
 | `width(source, at)` | How many bytes, one to four, the scalar at `at` takes. |
 | `step(source, at)` | The position after the scalar at `at`. |
-| `find(source, sought)` | Where `sought` first begins, or `not_found`. |
+| `find(source, sought)` | Where `sought` first begins, or `mem.not_found`. |
 | `find_from(source, sought, at)` | The same, searching from `at`. |
-| `find_scalar(source, scalar)`, `find_scalar_from` | Where a scalar first is, or `not_found`. |
+| `find_scalar(source, scalar)`, `find_scalar_from` | Where a scalar first is, or `mem.not_found`. |
 
 Read the scalar at a position as `source[at]`. Walk the text by stepping
-until `done`. This function walks a key that way, and checks each scalar
+until `utf8_at_end`. This function walks a key that way, and checks each scalar
 and where it begins:
 
 ```landin
@@ -601,10 +601,10 @@ key_steps: (key: utf8) -> (yes: bool) =
     yes = false
     mut at := text.start(key)
     mut index: usize = 0
-    while not text.done(key, at) do
+    while not text.utf8_at_end(key, at) do
         return when index >= 5 or key[at] <> scalars[index]
           or text.offset(at) <> offsets[index]
-          or text.width(key, at) <> widths[index]
+          or text.scalar_length(key, at) <> widths[index]
         at = text.step(key, at)
         inc index
     end while
@@ -612,7 +612,7 @@ key_steps: (key: utf8) -> (yes: bool) =
 end key_steps
 ```
 
-`step` and `width` read the scalar at the position, so they trap where
+`step` and `scalar_length` read the scalar at the position, so they trap where
 `source[at]` traps: at the end and inside a scalar. A search from a
 position inside a scalar traps too.
 
@@ -623,7 +623,7 @@ a record at its first `=`:
 
 ```landin
 --  The key before the first `=` and the value after it.
-split: (record: utf8) -> (result: entry from record) ! text.not_found =
+split: (record: utf8) -> (result: entry from record) ! mem.not_found =
     equals := try text.find_scalar(record, '=')
     value_at: usize = text.offset(text.step(record, equals))
     result = (key: record[0..<text.offset(equals)],
@@ -638,7 +638,7 @@ Three more facts about searches:
 
 - Empty sought text is found where the search begins, as `contains` finds
   it.
-- A surrogate is in no text, so `find_scalar` reports `not_found` for one.
+- A surrogate is in no text, so `find_scalar` reports `mem.not_found` for one.
 - Searches are the Two-Way search that `contains` uses. It is linear in
   the two lengths, with no table and no allocation.
 
@@ -652,24 +652,24 @@ pass what follows the offset, `buffer[at..<lenof buffer]`.
 
 - A surrogate, U+D800 to U+DFFF, or a value above U+10FFFF is
   `invalid_scalar`. This refusal comes first, whatever the room.
-- A scalar that does not fit is `no_space`.
+- A scalar that does not fit is `mem.out_of_memory`.
 
-### Host strings
+### OS strings
 
-A host string, `host_string`, is a path, a process argument or a
+An OS string, `os_string`, is a path, a process argument or a
 directory entry's name, in the representation its system gives and
 takes. On Linux, Darwin and FreeBSD that representation is bytes, which
-need not be UTF-8. A host string is never converted on the way through,
+need not be UTF-8. An OS string is never converted on the way through,
 so an argument passed on as a path reaches the system as it was given.
 
 | Call | What it does |
 |---|---|
-| `from_host` | The checked conversion to `utf8`, reporting `invalid_text` as `from_bytes` does. |
-| `host_bytes` | Lend its bytes. |
-| `host_equal` | Compare it with a literal. |
-| `host_over` | Make one over the caller's bytes: `text.host_over("input.txt")` for a literal path. |
+| `from_os_string` | The checked conversion to `utf8`, reporting `invalid_text` as `from_bytes` does. |
+| `os_string_bytes` | Lend its bytes. |
+| `os_string_equal` | Compare it with a literal. |
+| `os_string_over` | Make one over the caller's bytes: `text.os_string_over("input.txt")` for a literal path. |
 
-A host string lends what it was made from. The NUL a C call needs is
+An OS string lends what it was made from. The NUL a C call needs is
 never the caller's: `platform/posix` adds it beneath the provider, and
 refuses a path that holds one.
 
@@ -691,7 +691,7 @@ An append, and `format`, may be given the builder's own bytes,
 the call began, though the builder grew and moved while it wrote. The
 view is still not to be used after the call.
 
-Each append writes its whole piece, or reports `no_space` and leaves the
+Each append writes its whole piece, or reports `mem.out_of_memory` and leaves the
 builder as it was:
 
 | Append | Writes |
@@ -700,7 +700,7 @@ builder as it was:
 | `append_byte` | one byte |
 | `append_text` | a `utf8` |
 | `append_scalar` | a scalar's UTF-8 bytes, as `encode` writes them, or `invalid_scalar` |
-| `append_host` | a host string's bytes |
+| `append_os_string` | an OS string's bytes |
 | `append_u32`, `append_u64`, `append_usize` | decimal |
 | `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
 | `append_hex_u32`, `append_hex_u64`, `append_hex_usize` | lower-case hexadecimal with no `0x` |
@@ -725,7 +725,7 @@ align what was appended. The fill is a byte, so a space is `u8(' ')`:
 --- Append `value` to `line` in decimal, right-aligned in a field `width`
 --- bytes wide.
 append_right: (inout line: text.builder, value: u64, width: usize)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     start: usize = text.length(line)
     try text.append_u64(line, value)
     try text.align_right(line, start, width, u8(' '))
@@ -750,7 +750,7 @@ scalars and numbers. `utf8_over(buffer)` makes one over your buffer.
 | `utf8_length`, `utf8_capacity`, `utf8_clear` | As the builder's. |
 | `utf8_truncate` | Cut back to a length, never inside a scalar. |
 
-Each append writes its whole piece, or reports `no_space` and leaves the
+Each append writes its whole piece, or reports `mem.out_of_memory` and leaves the
 builder as it was. A cut inside a scalar keeps only the scalars before
 the cut. A `utf8_builder` has no byte append, no alignment and no
 `format` into it, since each of those can write any bytes.
@@ -772,7 +772,7 @@ these types, and a program declares it for a type of its own:
 
 - the ten integer types, in decimal;
 - `bool`, as `true` or `false`;
-- `utf8`, `[]u8` and host strings.
+- `utf8`, `[]u8` and OS strings.
 
 Floats, `f32` and `f64`, are not formattable yet.
 
@@ -781,13 +781,13 @@ values when `format` runs:
 
 - A different number of placeholders, or a brace that is neither part of
   `{}` nor doubled, is `invalid_format`, and nothing is written.
-- A builder that fills partway is put back before `no_space` is reported.
+- A builder that fills partway is put back before `mem.out_of_memory` is reported.
 
 `format_onto` formats text that may be longer than its buffer. It formats
 through a buffer of the caller's, and hands the text to an `outlet` each
 time the buffer fills and once at the end. `io.write_format` is
 `format_onto` over a file. An `outlet` has one entry, `take`, which takes
-the bytes whole or reports `no_space`.
+the bytes whole or reports `mem.out_of_memory`.
 
 How a value passes through the buffer:
 
@@ -798,7 +798,7 @@ How a value passes through the buffer:
 - The buffer must still hold the largest piece a value asks room for at
   once. Twenty bytes hold every integer the library formats. A
   conformance of the program's own that asks for more than the buffer has
-  fails with `no_space`.
+  fails with `mem.out_of_memory`.
 
 A conformance of the program's own may be writing a value longer than the
 whole buffer, a row with a long name in it. Its offsets still hold:
@@ -808,7 +808,7 @@ whole buffer, a row with a long name in it. Its offsets still hold:
 - `align_left` fills after its piece wherever the piece began.
 - `align_right` needs the whole piece still in the buffer, and room there
   for the fill. When some of the piece has been handed on, nothing can go
-  before it, and the call fails with `no_space`. Through
+  before it, and the call fails with `mem.out_of_memory`. Through
   `io.write_format` that is `io_failed`, after the text before it was
   written. A column that must hold a long value right-aligned is built in
   a builder of the program's own that is long enough, and written whole.
@@ -825,7 +825,7 @@ off first so that a negative value rounds the same way:
 --- are not formattable, so this scales the value to whole hundredths and
 --- writes the integer part, a point and the two digits after it.
 append_hundredths: (inout line: text.builder, value: f64)
-                   -> none ! text.no_space =
+                   -> none ! mem.out_of_memory =
     mut magnitude: f64 = value
     if value < 0.0 then
         magnitude = -value
@@ -916,8 +916,8 @@ The table below shows typical use, as in the tour's first program:
 | Print many lines | `mut out := io.buffered_over(host, io.out(host), storage)` makes a buffered writer over your buffer, an array such as `mut storage: [4096]u8 = zeroed`. `defer io.flush(out) else none` writes what waits on the way out. `try io.format(out, "{} of {}\n", [any(addr done), any(addr total)])` fills each `{}` with a value. |
 | Print bytes as they are | `try io.put(out, "done\n")`, through the same writer. |
 | Write straight to a stream | `io.write(host, io.err(host), bytes)` writes all the bytes, or fails with `io_failed`. |
-| Get an argument | `path := try io.argument_at(host, 0)` lends the first argument after the program's name as a host string, or fails with `no_argument`. `io.argument_count(host)` counts the arguments. |
-| Read a file line by line | `file := try io.open_read(host, path)` opens it. `mut lines := io.lines_over(host, file, buffer)` makes a line reader over your buffer. `item := try io.read_line(lines)` gives each line in `item.bytes` until `item.finished`. `try io.close(host, file)` closes the file. |
+| Get an argument | `path := try io.argument(host, 0)` lends the first argument after the program's name as an OS string, or fails with `mem.not_found`. `io.arguments_length(host)` counts the arguments. |
+| Read a file line by line | `file := try io.open_read(host, path)` opens it. `mut lines := io.lines_over(host, file, buffer)` makes a line reader over your buffer. `item := try io.read_line(lines)` gives each line in `item.bytes` until `item.at_end`. `try io.close(host, file)` closes the file. |
 
 ### Providers
 
@@ -945,14 +945,14 @@ the argument table, as in `io.out(host)`. Standard input is read through
 `reader` like any file, and a read of zero bytes into a nonempty buffer
 is its end.
 
-A path and an argument are both host strings, `text.host_string`, so an
+A path and an argument are both OS strings, `text.os_string`, so an
 argument passed on as a path is never converted.
 
 ### The memory world
 
 `memory_over` makes the memory world, firmware's own:
 
-- It takes each argument as its bytes and lends it back as a host string,
+- It takes each argument as its bytes and lends it back as an OS string,
   so an argument table can be static data.
 - It fills the caller's `memory_space`, whose limits and counters stay
   readable and settable.
@@ -990,17 +990,18 @@ well.
 `directory`. The caller passes that value `inout` to `read_entry`, which
 refills the buffer as entries are read.
 
-- Each entry's name is a host string that need not be UTF-8, lent from
+- Each entry's name is an OS string that need not be UTF-8, lent from
   the directory until the next read. The compiler refuses a name kept
   past that read [0800], so a program copies the names it keeps.
-- An empty name is the end.
+- The entry read after the last one has `at_end` true, and its name is
+  empty.
 - `.` and `..` are never listed, and the order is the system's.
 - `entry_size` asks the open directory for an entry's size by name, as a
   `u64`. It does not follow a symbolic link.
 
 `make_directory`, `remove_file` and `remove_directory` change the tree:
 
-- A missing path is `not_found`, and so is a path through or to something
+- A missing path is `mem.not_found`, and so is a path through or to something
   that is not a directory.
 - A name already taken is `already_exists`.
 
@@ -1014,13 +1015,13 @@ The environment is a concept of its own, `environment`, outside `world`.
 So a provider without an environment carries none of it, and neither does
 a firmware image that never asks for one.
 
-- `variable_count` counts its variables.
-- `variable_at` lends the one at an index, an `io.variable` of a name and
+- `variables_length` counts its variables.
+- `variable` lends the one at an index, a `text.os_variable` of a name and
   a value.
 - `variable_named` lends the value of the first variable with a name,
-  compared as bytes, or reports `no_variable`.
+  compared as bytes, or reports `mem.not_found`.
 
-Names and values are host strings that need not be UTF-8, lent from the
+Names and values are OS strings that need not be UTF-8, lent from the
 provider for as long as the process lives.
 
 The environment is read-only. A process does not change its own
@@ -1035,12 +1036,12 @@ a table of `NAME=value` byte strings, which firmware can declare as data.
 `programs` is a seventh concept, outside `world`, for running other
 programs.
 
-`spawn` starts the program at a path, a host string:
+`spawn` starts the program at a path, an OS string:
 
 - The path is never looked up on a search path or handed to a shell.
 - The program sees the arguments after its own name, and gets exactly the
   variables the caller builds.
-- A missing program is `not_found`, and one the caller may not run is
+- A missing program is `mem.not_found`, and one the caller may not run is
   `no_access`. On any failure no child exists.
 
 Each of the program's three standard streams is connected as
@@ -1129,7 +1130,7 @@ The concept's other calls:
 `rename` is how a whole file is replaced: write a `make_temporary` file
 beside it, `synchronize` it, close it and rename it onto the old one.
 
-- A missing name is `not_found`.
+- A missing name is `mem.not_found`.
 - A rename across file systems is `io_failed`, and so is a rename of a
   directory onto a file or of a file onto a directory.
 
@@ -1199,7 +1200,7 @@ test. It runs on Cortex-M0.
 - The text is formatted into `format_store` bytes on the stack, 128, and
   written whenever they fill and at the end. A line that fits is one
   write, and a value of any length goes out in pieces, so it never
-  reports `no_space`.
+  reports `mem.out_of_memory`.
 - A failed write is `io_failed` and may follow partial output, as
   `write`'s may.
 - It needs no buffer or flush of the caller's, and works on every target
@@ -1218,14 +1219,14 @@ writer when the buffer fills or the program flushes it.
 | `put` | Write bytes through it, flushing first when they do not fit. Bytes as large as the buffer go straight to the writer. |
 | `format` | Format a template straight into its buffer, flushing first when the text does not fit after what waits. |
 | `flush` | Write what waits. |
-| `pending` | Say how many bytes wait. |
+| `buffered_length` | Say how many bytes wait. |
 
 A failed flush reports the writer's `io_failed` and keeps every byte the
 writer did not take, so the next flush writes each byte once.
 
 `format` refuses a text larger than the whole buffer with
-`text.no_space`. Its values are `text.formattable`'s types, as
-`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and host strings.
+`mem.out_of_memory`. Its values are `text.formattable`'s types, as
+`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and OS strings.
 Floats are not formattable yet. To print one, scale it to an integer and
 print the parts, as `append_hundredths` in [core/text](../core/text) does
 for two decimals.
@@ -1250,10 +1251,10 @@ What counts as a line:
 - A line ends at `\n`, and a `\r` just before it is part of the ending,
   so text written with `\r\n` reads as text written with `\n`.
 - A lone `\r` is an ordinary byte, and the last line need not end.
-- The end of input is a line that has `finished`, every time it is asked
+- The end of input is a line that has `at_end`, every time it is asked
   again; an empty line has not.
 - A line that does not fit the buffer with its ending is
-  `line_too_long`, and the rest of it is skipped, so the next read gives
+  `mem.out_of_memory`, and the rest of it is skipped, so the next read gives
   the line after it.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-common-tasks/main.ldn)
@@ -1463,7 +1464,7 @@ The network concept, whose connections are readers and writers, and internet add
 | `net.send`, `net.receive` | Send and receive on a connection. |
 | `net.open_datagram`, `net.send_to`, `net.receive_from` | A UDP socket and its datagrams. |
 | `net.parse_address`, `net.append_address` | Read and write `192.0.2.1:80`, `[2001:db8::1]:80` and `[fe80::1%eth0]:80`. |
-| `net.close_socket` | Close a socket. |
+| `net.close` | Close a socket. |
 
 ### Sockets
 
@@ -1492,7 +1493,7 @@ It is a reader and a writer of its own sockets as well:
 | `peer_address` | Names a connection's other end. |
 | `set_timeouts` | Limits how long a receive, an accept and a send wait; zero for no limit. |
 | `set_no_delay` | Turns Nagle's algorithm off. |
-| `close_socket` | Closes a socket. |
+| `close` | Closes a socket. |
 
 An address the system does not have, a zone that names none of its
 interfaces, or a family it lacks, is `address_unavailable`.
@@ -1603,7 +1604,7 @@ checked for both.
 
 Words for a person for every failure atom a `core` module raises: a short English phrase each.
 
-`failure.words(problem)` gives the phrase for any of the 39 atoms in
+`failure.words(problem)` gives the phrase for any of the 29 atoms in
 `failure.reason`, every atom a `core` module fails with. So a call's
 `else (problem)` passes its failure straight on, whatever subset it
 declares.
@@ -1650,8 +1651,8 @@ A monotonic allocator over caller-supplied bytes.
 |---|---|
 | `arena.over` | Fill the caller's `arena.space`, declared `zeroed` beside the backing, and return the handle, an `arena.arena`, `from` it. |
 | `arena.over_unchecked` | The same over local backing, with an explicit lifetime opt-out. |
-| `arena.reset` | Give every allocation back at once. |
-| `arena.used` | Count the bytes handed out, padding included. |
+| `arena.release` | Give every allocation back at once. |
+| `arena.length` | Count the bytes handed out, padding included. |
 
 With `over_unchecked`, the caller ends every allocation before that
 backing ends.
@@ -1989,7 +1990,7 @@ the entries that wait, and only in those:
 | `io.reader`, `io.writer` | `read`, `write`, `write_some`, which wait for input or for room | none |
 | `io.programs` | `wait`, for a child to end, and the child's `read_child` and `write_child` | `spawn`, `close_input` |
 | `time.clock` | `sleep` | `now` |
-| `net.network` | `connect`, `connect_within`, `accept`, `send`, `receive`, `send_to`, `receive_from` | `listen`, `open_datagram`, `shutdown`, `local_address`, `peer_address`, `set_timeouts`, `set_no_delay`, `close_socket` |
+| `net.network` | `connect`, `connect_within`, `accept`, `send`, `receive`, `send_to`, `receive_from` | `listen`, `open_datagram`, `shutdown`, `local_address`, `peer_address`, `set_timeouts`, `set_no_delay`, `close` |
 | `signal.signals` | `next_signal` | `watch`, `stop_watching` |
 
 Every other entry of `core/io`, `core/time` and `core/net` never
@@ -2010,7 +2011,7 @@ The library's own providers of turns switch in fewer:
 | `stacks.round` | `yield` and `wait`; its `start` prepares the fibre and returns |
 | `fake.network` over turns | `accept`, `send`, `receive`, `receive_from`, `read`, `write` and `write_some`, and only where the call would wait |
 | `fake.signals` | `next_signal` when nothing waits to be read, and its round's `yield` and `wait` |
-| `events.host` | `yield` and `wait`; `read`, `write` and `write_some` when the file is not ready; `read_child` and `write_child` when the pipe is not; the programs' `wait`, for the child's end; `sleep` until its deadline; `accept`, `connect`, `connect_within`, `send`, `receive`, `send_to` and `receive_from` where the socket would wait; and `next_signal` when no arrival waits to be read. Its `start` prepares the fibre and returns, and `close`, `close_socket`, `shutdown`, `close_input` and `stop_watching` wake the fibres waiting on what they end without switching |
+| `events.host` | `yield` and `wait`; `read`, `write` and `write_some` when the file is not ready; `read_child` and `write_child` when the pipe is not; the programs' `wait`, for the child's end; `sleep` until its deadline; `accept`, `connect`, `connect_within`, `send`, `receive`, `send_to` and `receive_from` where the socket would wait; and `next_signal` when no arrival waits to be read. Its `start` prepares the fibre and returns, and `close`, of a file or a socket, `shutdown`, `close_input` and `stop_watching` wake the fibres waiting on what they end without switching |
 
 Where a fake clock switches depends on how it was made:
 
@@ -2287,7 +2288,7 @@ The provider is `host`, made by `over`. The module is written once over
 
 | Call | What it does |
 |---|---|
-| `events.over(state, entries)` | Fill an `events.space` the caller declares `zeroed` and return a `host` over it and over `entries`, the table of fibres that may be unfinished at once, one more than a group's count. |
+| `events.over(state, fibres)` | Fill an `events.space` the caller declares `zeroed` and return a `host` over it and over `fibres`, the table of fibres that may be unfinished at once, one more than a group's count. |
 | `events.last_errno(host)` | The errno of the provider's last failing call, kept in the provider's own `space`. |
 | `events.last_signal(host)` | The signal that ended the last child waited for. |
 
@@ -2410,7 +2411,7 @@ waiting for the child both wait. A provider built over it supplies
 
 ### The provider
 
-`new` makes a handle exposing process arguments, lent as host strings,
+`new` makes a handle exposing process arguments, lent as OS strings,
 and standard streams. They come from the root the hosted entry
 establishes through `platform/posix`'s
 `_landin_host_initialize_arguments`. A C `main` that drives Landin's
@@ -2469,7 +2470,7 @@ calling `_landin_host_initialize_arguments(argc, argv, envp)` from
 
 - Standard input, output and error are descriptors 0, 1 and 2.
 - Open-write creates or truncates regular files.
-- A path that names nothing fails with `not_found`, whether a component
+- A path that names nothing fails with `mem.not_found`, whether a component
   is missing (ENOENT) or one before the last is not a directory
   (ENOTDIR). `same_file` answers false for such an output path.
 - A path that names a directory where a file is opened fails with
@@ -2526,7 +2527,7 @@ over it reads, writes and closes them as its own:
 | Call | On the hosted provider |
 |---|---|
 | `open_file` | Creates a file 0666, which the process umask filters. Refuses options no open can have with `io_failed`, keeping EINVAL, before it asks the system. A taken name `exclusive` meets is `already_exists`. |
-| `rename` | `renameat`: ENOENT is `not_found` and the rest `io_failed` with the errno kept. Not retried when interrupted. |
+| `rename` | `renameat`: ENOENT is `mem.not_found` and the rest `io_failed` with the errno kept. Not retried when interrupted. |
 | `read_only` status | A file is read-only when no permission bit lets anyone write it. |
 | `set_read_only` | Clears every write bit, or sets the owner's again, reading the bits and setting them in two calls. |
 | `synchronize` | `fsync`, or `fdatasync` for the data alone; on Darwin `F_FULLFSYNC` either way. |
@@ -2678,7 +2679,7 @@ Two things the module leaves as the system reports them:
 - An interrupted call fails with `eintr` and is not retried here.
 - A short transfer is returned as it came.
 
-A path or an argument is a host string. The module copies it into a
+A path or an argument is an OS string. The module copies it into a
 buffer of the system's PATH_MAX with the NUL a C call needs. It refuses
 one that holds a NUL with `einval`, and one too long with
 `enametoolong`.
@@ -2974,7 +2975,7 @@ back the settings it found with a `defer`.
 | `parse_account`, `parse_group` | Read one line of /etc/passwd's or /etc/group's form. |
 | `member_count`, `member` | Read a group's members. |
 
-A lookup reports `no_account` when there is none, and `erange` when the
+A lookup reports `mem.not_found` when there is none, and `erange` when the
 buffer is too small. Where it looks is told apart by `compiler.c_runtime`
 when the program is compiled; the table under "How each system does it"
 says which.
@@ -3025,7 +3026,7 @@ cast.
 A function found in a library is the program's to call only while a use
 of it is open, which no check of the language follows.
 
-A failure is `no_library` or `no_symbol`. Call `library_failure` at once,
+A failure is `no_library` or `mem.not_found`. Call `library_failure` at once,
 since asking clears the words and the next call may replace them.
 
 It is the C library's `dlopen`, `dlsym`, `dlclose` and `dlerror` on every

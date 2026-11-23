@@ -1,4 +1,5 @@
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -7,10 +8,10 @@ settings_present: (host: blocking.host)
                   -> (present: bool)
                   ! io.no_access | io.is_a_directory | io.io_failed =
     present = false
-    path := text.host_over("settings.conf")
+    path := text.os_string_over("settings.conf")
     opened := io.open_read(host, path) else (problem)
         match problem
-            io.not_found: return
+            mem.not_found: return
             io.no_access: fail io.no_access
             io.is_a_directory: fail io.is_a_directory
             io.io_failed: fail io.io_failed

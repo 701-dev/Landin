@@ -405,14 +405,14 @@ own [1750], and stands where its block's statements do.
 ```landin
 f: () -> none =
     selected: map.entry(key, item) =
-  try map.next_entry(value, position)
+  map.next_entry(value, position)
 end f
 ```
 
 ```landin
 f: () -> none =
     selected: map.entry(key, item) =
-        try map.next_entry(value, position)
+        map.next_entry(value, position)
 end f
 ```
 

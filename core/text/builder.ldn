@@ -1,6 +1,7 @@
 --  A builder writes typed pieces into bytes: a caller's buffer, or storage
 --  an allocator the caller names grows.  Every append either writes its
---  whole piece or reports `no_space` and leaves the builder as it was.
+--  whole piece or reports `mem.out_of_memory` and leaves the builder as it
+--  was.
 
 import core/mem
 
@@ -46,9 +47,9 @@ end builder_value
 grower: type = concept (implementation: type)
     --  Make room for `extra` more bytes after the used ones, more than the
     --  buffer has left, and append `bytes` when they are not empty, `extra`
-    --  being their length; or report `no_space`.
+    --  being their length; or report `mem.out_of_memory`.
     enlarge: (self: ptr implementation, inout target: builder_value,
-              extra: usize, bytes: []u8) -> none ! no_space
+              extra: usize, bytes: []u8) -> none ! mem.out_of_memory
 end grower
 
 --  `over`'s policy, which holds nothing and refuses.
@@ -65,20 +66,22 @@ end doubling_value
 
 doubling: doubling_value = (unused: 0)
 
---  `format_onto`'s policy: the outlet a builder's bytes are handed to.
-draining_value: type = struct
-    onto: any outlet
+--  `format_onto`'s policy: the outlet a builder's bytes are handed to,
+--  where `format_onto` keeps it for the call.  It is generic, so that an
+--  outlet given as `any outlet` is used as it is rather than erased again.
+draining_value: type (provider: type) = struct
+    onto: ptr mut provider
 end draining_value
 
 --- Where `format_onto` hands the text it formats, a piece at a time.  An
 --- outlet is a value the caller keeps.  It takes each piece whole or
---- reports `no_space`, and keeps its own reason for the caller, since a
---- builder's appends fail with nothing else.  `io.write_format` makes one
+--- reports `mem.out_of_memory`, and keeps its own reason for the caller, since
+--- a builder's appends fail with nothing else.  `io.write_format` makes one
 --- over a file.  Only a program that builds an erased `outlet` links any
 --- outlet's routines (D374).
 public outlet: type = concept (item: type)
-    --- Take all of `bytes`, or report `no_space`.
-    take: (self: ptr mut item, bytes: []u8) -> none ! no_space
+    --- Take all of `bytes`, or report `mem.out_of_memory`.
+    take: (self: ptr mut item, bytes: []u8) -> none ! mem.out_of_memory
 end outlet
 
 --- Text being built: the bytes written so far, in a buffer the caller gave
@@ -90,7 +93,7 @@ end outlet
 public builder: type = builder_value
 
 --- A builder over the caller's `buffer`, empty, which never grows: an
---- append that does not fit reports `no_space`.  The buffer's earlier
+--- append that does not fit reports `mem.out_of_memory`.  The buffer's earlier
 --- contents are overwritten as pieces are appended.
 public over: (buffer: []mut u8) -> (result: builder from buffer) =
     --  A read-only view of module storage, which no store reaches (D375).
@@ -101,10 +104,10 @@ public over: (buffer: []mut u8) -> (result: builder from buffer) =
 end over
 
 --- An empty builder that takes its storage from `memory` as it needs it,
---- doubling what it holds, and reports `no_space` only when the allocator
---- refuses.  Build the erased allocator from the address of its handle's
---- binding, `text.growing(any(addr heap))`, and keep the handle and its
---- state alive while the builder is used.  `release` gives the storage
+--- doubling what it holds, and reports `mem.out_of_memory` only when the
+--- allocator refuses.  Build the erased allocator from the address of its
+--- handle's binding, `text.growing(any(addr heap))`, and keep the handle and
+--- its state alive while the builder is used.  `release` gives the storage
 --- back: there are no destructors, so a builder dropped without it keeps
 --- its storage.
 public growing: (memory: any mem.allocator) -> (result: builder from memory) =
@@ -148,8 +151,8 @@ end clear
 --- Keep only the first `count` bytes written; a count at or past the
 --- length changes nothing.  A `formattable` conformance that appends
 --- several pieces puts the builder back with this, to an earlier `length`,
---- when a later piece reports `no_space`.  Bytes `format_onto` has already
---- handed on cannot be taken back: a count before them cuts everything
+--- when a later piece reports `mem.out_of_memory`.  Bytes `format_onto` has
+--- already handed on cannot be taken back: a count before them cuts everything
 --- the builder still holds and nothing else (D1123).
 public truncate: (inout target: builder, count: usize) -> none =
     if count < target.handed then
@@ -198,8 +201,8 @@ within: (buffer: []mut u8, bytes: []u8) -> (yes: bool) =
 end within
 
 --  Room for `extra` more bytes in a growing builder, doubling the storage
---  it holds, with its bytes kept, then `bytes` appended: `no_space` when
---  the allocator refuses, changing nothing.  When nothing can read the
+--  it holds, with its bytes kept, then `bytes` appended: `mem.out_of_memory`
+--  when the allocator refuses, changing nothing.  When nothing can read the
 --  block again, the allocator's `resize` grows the storage in place or
 --  moves it, a large block's pages where it can.  Something can when
 --  `bytes` is a view of the block, or a `format` is writing and has kept
@@ -208,9 +211,9 @@ end within
 --  grow it there, and otherwise moves to a fresh block as a container's
 --  does (D356), `bytes` appended before the old block is given back.
 doubling_enlarge: (self: ptr doubling_value, inout target: builder_value,
-                   extra: usize, bytes: []u8) -> none ! no_space =
+                   extra: usize, bytes: []u8) -> none ! mem.out_of_memory =
     maximum: usize = 0 -% 1
-    fail no_space when extra > maximum - target.used
+    fail mem.out_of_memory when extra > maximum - target.used
     wanted: usize = target.used + extra
     capacity_now: usize = lenof target.buffer
     mut size: usize = 16
@@ -223,7 +226,7 @@ doubling_enlarge: (self: ptr doubling_value, inout target: builder_value,
         size = wanted
     end if
     match target.growth
-        bounded: fail no_space
+        bounded: fail mem.out_of_memory
         grows(memory): begin
             mut moves: bool = true
             read_again: bool = within(target.buffer, bytes)
@@ -233,7 +236,7 @@ doubling_enlarge: (self: ptr doubling_value, inout target: builder_value,
                 block: ptr mut u8 = memory.resize(where, capacity_now, size,
                                                   1) else (problem)
                     _ = problem
-                    fail no_space
+                    fail mem.out_of_memory
                 end
                 target.buffer = view(block, size)
                 moves = false
@@ -247,7 +250,7 @@ doubling_enlarge: (self: ptr doubling_value, inout target: builder_value,
             if moves then
                 block: ptr mut u8 = memory.alloc(size, 1) else (problem)
                     _ = problem
-                    fail no_space
+                    fail mem.out_of_memory
                 end
                 fresh: []mut u8 = view(block, size)
                 if target.held == allocated then
@@ -287,17 +290,18 @@ doubling_value is grower (enlarge: doubling_enlarge)
 
 --  A bounded builder's answer to a piece that does not fit.
 refusing_enlarge: (self: ptr refusing_value, inout target: builder_value,
-                   extra: usize, bytes: []u8) -> none ! no_space =
-    fail no_space
+                   extra: usize, bytes: []u8) -> none ! mem.out_of_memory =
+    fail mem.out_of_memory
 end refusing_enlarge
 
 refusing_value is grower (enlarge: refusing_enlarge)
 
 --  Hand what a builder holds to `onto`, which takes it whole or fails, and
 --  empty the builder.
-handed: (inout target: builder, onto: any outlet) -> none ! no_space =
+handed: (provider: type is outlet, inout target: builder,
+         onto: ptr mut provider) -> none ! mem.out_of_memory =
     return when target.used == 0
-    try onto.take(target.buffer[0..<target.used])
+    try provider.take(onto, target.buffer[0..<target.used])
     target.handed += target.used
     target.used = 0
 end handed
@@ -305,35 +309,38 @@ end handed
 --  Room in a draining builder: what it holds is handed on and it starts
 --  again from empty, which is room for anything its whole buffer holds.
 --  `bytes` longer than that are handed on as they are.
-draining_enlarge: (self: ptr draining_value, inout target: builder_value,
-                   extra: usize, bytes: []u8) -> none ! no_space =
-    onto: any outlet = self.val.onto
+draining_enlarge: (provider: type is outlet,
+                   self: ptr draining_value(provider),
+                   inout target: builder_value, extra: usize, bytes: []u8)
+                  -> none ! mem.out_of_memory =
+    onto: ptr mut provider = self.val.onto
     try handed(target, onto)
     if extra <= lenof target.buffer then
         try append(target, bytes)
     elsif lenof bytes == extra then
-        try onto.take(bytes)
+        try provider.take(onto, bytes)
         target.handed += extra
     else
-        fail no_space
+        fail mem.out_of_memory
     end if
 end draining_enlarge
 
-draining_value is grower (enlarge: draining_enlarge)
+(provider: type is outlet) draining_value(provider) is grower
+    (enlarge: draining_enlarge)
 
 --  Make room for `extra` more bytes after the used ones, asking the
 --  builder's policy when the buffer has not the room: a bounded builder
---  reports `no_space`, a growing one doubles, and a draining one hands
---  what it holds on.  A failure changes nothing but what a draining
+--  reports `mem.out_of_memory`, a growing one doubles, and a draining one
+--  hands what it holds on.  A failure changes nothing but what a draining
 --  builder has handed on.
-room: (inout target: builder, extra: usize) -> none ! no_space =
+room: (inout target: builder, extra: usize) -> none ! mem.out_of_memory =
     return when extra <= lenof target.buffer - target.used
     policy: any grower = target.policy
     try policy.enlarge(target, extra, "")
 end room
 
 --- Append bytes as they are.
-public append: (inout into: builder, bytes: []u8) -> none ! no_space =
+public append: (inout into: builder, bytes: []u8) -> none ! mem.out_of_memory =
     count: usize = lenof bytes
     if count > lenof into.buffer - into.used then
         policy: any grower = into.policy
@@ -343,37 +350,39 @@ public append: (inout into: builder, bytes: []u8) -> none ! no_space =
     ends: usize = into.used + count
     mem.copy(into.buffer[into.used..<ends], bytes) else (problem)
         _ = problem
-        fail no_space
+        fail mem.out_of_memory
     end
     into.used = ends
 end append
 
 --- Append one byte.
-public append_byte: (inout into: builder, value: u8) -> none ! no_space =
+public append_byte: (inout into: builder, value: u8)
+                    -> none ! mem.out_of_memory =
     try room(into, 1)
     into.buffer[into.used] = value
     inc into.used
 end append_byte
 
 --- Append text's encoded bytes.
-public append_text: (inout into: builder, value: utf8) -> none ! no_space =
+public append_text: (inout into: builder, value: utf8)
+                    -> none ! mem.out_of_memory =
     try append(into, bytes(value))
 end append_text
 
 --- Append a host string's bytes, as the system gave them: a name that is
---- not UTF-8 is written as it is.  Check it with `from_host` first where
+--- not UTF-8 is written as it is.  Check it with `from_os_string` first where
 --- the output must be text.
-public append_host: (inout into: builder, value: host_string)
-                    -> none ! no_space =
+public append_os_string: (inout into: builder, value: os_string)
+                         -> none ! mem.out_of_memory =
     try append(into, value.bytes)
-end append_host
+end append_os_string
 
 --- Append the UTF-8 encoding of `scalar`, one to four bytes, as `encode`
 --- writes it.  A surrogate or a value above U+10FFFF reports
---- `invalid_scalar`, before a scalar that does not fit reports `no_space`,
---- and either leaves the builder as it was.
+--- `invalid_scalar`, before a scalar that does not fit reports
+--- `mem.out_of_memory`, and either leaves the builder as it was.
 public append_scalar: (inout into: builder, scalar: u32)
-                      -> none ! no_space | invalid_scalar =
+                      -> none ! mem.out_of_memory | invalid_scalar =
     count: usize = encoded_width(scalar)
     fail invalid_scalar when count == 0
     try room(into, count)
@@ -387,7 +396,7 @@ end append_scalar
 --  digits are counted by division before the first store, so a builder
 --  without room for all of them is left as it was.
 
-decimal_u32: (inout into: builder, value: u32) -> none ! no_space =
+decimal_u32: (inout into: builder, value: u32) -> none ! mem.out_of_memory =
     mut digits: usize = 1
     mut scan: u32 = value
     while scan >= 10 do
@@ -408,7 +417,7 @@ decimal_u32: (inout into: builder, value: u32) -> none ! no_space =
     into.used += digits
 end decimal_u32
 
-decimal_u64: (inout into: builder, value: u64) -> none ! no_space =
+decimal_u64: (inout into: builder, value: u64) -> none ! mem.out_of_memory =
     mut digits: usize = 1
     mut scan: u64 = value
     while scan >= 10 do
@@ -429,7 +438,8 @@ decimal_u64: (inout into: builder, value: u64) -> none ! no_space =
     into.used += digits
 end decimal_u64
 
-decimal_usize: (inout into: builder, value: usize) -> none ! no_space =
+decimal_usize: (inout into: builder, value: usize)
+               -> none ! mem.out_of_memory =
     mut digits: usize = 1
     mut scan: usize = value
     while scan >= 10 do
@@ -452,23 +462,27 @@ end decimal_usize
 
 --- Append a `u32` in decimal: its digits, with no sign, padding or
 --- separator.  Write `u8` and `u16` through it.
-public append_u32: (inout into: builder, value: u32) -> none ! no_space =
+public append_u32: (inout into: builder, value: u32)
+                   -> none ! mem.out_of_memory =
     try decimal_u32(into, value)
 end append_u32
 
 --- Append a `u64` in decimal.
-public append_u64: (inout into: builder, value: u64) -> none ! no_space =
+public append_u64: (inout into: builder, value: u64)
+                   -> none ! mem.out_of_memory =
     try decimal_u64(into, value)
 end append_u64
 
 --- Append a `usize` in decimal, at the target's width.
-public append_usize: (inout into: builder, value: usize) -> none ! no_space =
+public append_usize: (inout into: builder, value: usize)
+                     -> none ! mem.out_of_memory =
     try decimal_usize(into, value)
 end append_usize
 
 --- Append an `i32` in decimal: a `-` before a negative value's digits and
 --- nothing before any other's.  Write `i8` and `i16` through it.
-public append_i32: (inout into: builder, value: i32) -> none ! no_space =
+public append_i32: (inout into: builder, value: i32)
+                   -> none ! mem.out_of_memory =
     if value >= 0 then
         try append_u32(into, u32(value))
         return
@@ -483,7 +497,8 @@ public append_i32: (inout into: builder, value: i32) -> none ! no_space =
 end append_i32
 
 --- Append an `i64` in decimal, signed as `append_i32` is.
-public append_i64: (inout into: builder, value: i64) -> none ! no_space =
+public append_i64: (inout into: builder, value: i64)
+                   -> none ! mem.out_of_memory =
     if value >= 0 then
         try append_u64(into, u64(value))
         return
@@ -498,7 +513,8 @@ public append_i64: (inout into: builder, value: i64) -> none ! no_space =
 end append_i64
 
 --- Append an `isize` in decimal, signed as `append_i32` is.
-public append_isize: (inout into: builder, value: isize) -> none ! no_space =
+public append_isize: (inout into: builder, value: isize)
+                     -> none ! mem.out_of_memory =
     if value >= 0 then
         try append_usize(into, usize(value))
         return
@@ -516,7 +532,8 @@ hex_digits: []u8 = "0123456789abcdef"
 
 --- Append a `u32` in hexadecimal: lower-case digits, as few as the value
 --- needs, and no `0x`, which is a piece of its own.
-public append_hex_u32: (inout into: builder, value: u32) -> none ! no_space =
+public append_hex_u32: (inout into: builder, value: u32)
+                       -> none ! mem.out_of_memory =
     mut count: usize = 1
     mut scan: u32 = value >> 4
     while scan <> 0 do
@@ -535,7 +552,8 @@ public append_hex_u32: (inout into: builder, value: u32) -> none ! no_space =
 end append_hex_u32
 
 --- Append a `u64` in hexadecimal, as `append_hex_u32` does.
-public append_hex_u64: (inout into: builder, value: u64) -> none ! no_space =
+public append_hex_u64: (inout into: builder, value: u64)
+                       -> none ! mem.out_of_memory =
     mut count: usize = 1
     mut scan: u64 = value >> 4
     while scan <> 0 do
@@ -555,7 +573,7 @@ end append_hex_u64
 
 --- Append a `usize` in hexadecimal, as `append_hex_u32` does.
 public append_hex_usize: (inout into: builder, value: usize)
-                         -> none ! no_space =
+                         -> none ! mem.out_of_memory =
     mut count: usize = 1
     mut scan: usize = value >> 4
     while scan <> 0 do
@@ -581,23 +599,23 @@ end append_hex_usize
 --- slice's would be.  The piece has to be in the builder still: where
 --- `format_onto` has handed any of it on, or has to hand it on to make
 --- room for the fill, nothing can go before it and the call reports
---- `no_space` (D1123).
+--- `mem.out_of_memory` (D1123).
 public align_right: (inout into: builder, start: usize, width: usize,
-                     fill: u8) -> none ! no_space =
+                     fill: u8) -> none ! mem.out_of_memory =
     piece: usize = length(into) - start
     return when piece >= width
-    fail no_space when start < into.handed
+    fail mem.out_of_memory when start < into.handed
     padding: usize = width - piece
     try room(into, padding)
     --  A draining builder made the room by handing the piece on.
-    fail no_space when start < into.handed
+    fail mem.out_of_memory when start < into.handed
     begins: usize = start - into.handed
     ends: usize = into.used + padding
     moved: usize = begins + padding
     mem.copy(into.buffer[moved..<ends], into.buffer[begins..<into.used])
         else (problem)
         _ = problem
-        fail no_space
+        fail mem.out_of_memory
     end
     mem.fill(into.buffer[begins..<moved], fill)
     into.used = ends
@@ -608,7 +626,7 @@ end align_right
 --- the field or wider is left as it is.  The fill follows the piece
 --- wherever its start now is, handed on by `format_onto` or not.
 public align_left: (inout into: builder, start: usize, width: usize,
-                    fill: u8) -> none ! no_space =
+                    fill: u8) -> none ! mem.out_of_memory =
     piece: usize = length(into) - start
     return when piece >= width
     padding: usize = width - piece
@@ -630,7 +648,7 @@ end utf8_builder_value
 --- caller gave `utf8_over`, which takes text, scalars and numbers and
 --- nothing else, since bytes or a host string could be anything.  Each
 --- call is the byte builder's with `utf8_` before it, and writes the same
---- bytes: whole, or `no_space` and the builder left as it was.
+--- bytes: whole, or `mem.out_of_memory` and the builder left as it was.
 public utf8_builder: type = utf8_builder_value
 
 --- A `utf8_builder` over the caller's `buffer`, empty, which never grows,
@@ -691,66 +709,66 @@ end utf8_truncate
 
 --- Append text.
 public utf8_append_text: (inout into: utf8_builder, value: utf8)
-                         -> none ! no_space =
+                         -> none ! mem.out_of_memory =
     try append(into.inner, bytes(value))
 end utf8_append_text
 
 --- Append the UTF-8 encoding of `scalar`, as `append_scalar` does.
 public utf8_append_scalar: (inout into: utf8_builder, scalar: u32)
-                           -> none ! no_space | invalid_scalar =
+                           -> none ! mem.out_of_memory | invalid_scalar =
     try append_scalar(into.inner, scalar)
 end utf8_append_scalar
 
 --- Append a `u32` in decimal, as `append_u32` does.
 public utf8_append_u32: (inout into: utf8_builder, value: u32)
-                        -> none ! no_space =
+                        -> none ! mem.out_of_memory =
     try decimal_u32(into.inner, value)
 end utf8_append_u32
 
 --- Append a `u64` in decimal.
 public utf8_append_u64: (inout into: utf8_builder, value: u64)
-                        -> none ! no_space =
+                        -> none ! mem.out_of_memory =
     try decimal_u64(into.inner, value)
 end utf8_append_u64
 
 --- Append a `usize` in decimal, at the target's width.
 public utf8_append_usize: (inout into: utf8_builder, value: usize)
-                          -> none ! no_space =
+                          -> none ! mem.out_of_memory =
     try decimal_usize(into.inner, value)
 end utf8_append_usize
 
 --- Append an `i32` in decimal, with a `-` before a negative value.
 public utf8_append_i32: (inout into: utf8_builder, value: i32)
-                        -> none ! no_space =
+                        -> none ! mem.out_of_memory =
     try append_i32(into.inner, value)
 end utf8_append_i32
 
 --- Append an `i64` in decimal, signed as `utf8_append_i32` is.
 public utf8_append_i64: (inout into: utf8_builder, value: i64)
-                        -> none ! no_space =
+                        -> none ! mem.out_of_memory =
     try append_i64(into.inner, value)
 end utf8_append_i64
 
 --- Append an `isize` in decimal, signed as `utf8_append_i32` is.
 public utf8_append_isize: (inout into: utf8_builder, value: isize)
-                          -> none ! no_space =
+                          -> none ! mem.out_of_memory =
     try append_isize(into.inner, value)
 end utf8_append_isize
 
 --- Append a `u32` in lower-case hexadecimal, as `append_hex_u32` does.
 public utf8_append_hex_u32: (inout into: utf8_builder, value: u32)
-                            -> none ! no_space =
+                            -> none ! mem.out_of_memory =
     try append_hex_u32(into.inner, value)
 end utf8_append_hex_u32
 
 --- Append a `u64` in lower-case hexadecimal.
 public utf8_append_hex_u64: (inout into: utf8_builder, value: u64)
-                            -> none ! no_space =
+                            -> none ! mem.out_of_memory =
     try append_hex_u64(into.inner, value)
 end utf8_append_hex_u64
 
 --- Append a `usize` in lower-case hexadecimal.
 public utf8_append_hex_usize: (inout into: utf8_builder, value: usize)
-                              -> none ! no_space =
+                              -> none ! mem.out_of_memory =
     try append_hex_usize(into.inner, value)
 end utf8_append_hex_usize

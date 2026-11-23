@@ -25,6 +25,7 @@ with Landin.Diagnostics.Fixes;
 with Landin.Diagnostics.Resolution;
 with Landin.Diagnostics.Suggestions;
 with Landin.Modules;
+with Landin.Modules.Removed;
 with Landin.Provenance;
 with Landin.Resolution;
 with Landin.Source.Names;
@@ -17480,6 +17481,67 @@ package body Landin.Stages.Checking is
            Landin.Checking.No_Signature)
          return Landin.Diagnostics.Fix_List;
 
+      --  D2129: the breaking list's row for the field Written of the library
+      --  type Wrote names, or No_Row when no list removed it.
+      function Removed_Field
+        (Wrote   : Landin.Checking.Nominal_Type_Id;
+         Written : Landin.Source.Names.Name_Id)
+         return Landin.Modules.Removed.Row;
+
+      function Removed_Field
+        (Wrote   : Landin.Checking.Nominal_Type_Id;
+         Written : Landin.Source.Names.Name_Id)
+         return Landin.Modules.Removed.Row
+      is
+         Template : Res.Declaration_Id;
+      begin
+         if Wrote = Landin.Checking.No_Nominal_Type then
+            return Landin.Modules.Removed.No_Row;
+         end if;
+         Template := Template_Declaration (Wrote);
+         if Template = Res.No_Declaration then
+            return Landin.Modules.Removed.No_Row;
+         end if;
+         return Landin.Modules.Removed.Field
+           (Landin.Modules.Logical_Path
+              (Grouped.all,
+               Landin.Modules.Module_Of
+                 (Grouped.all, Res.Source_Of (Meanings.all, Template))),
+            Spelled (Res.Name_Of (Meanings.all, Template)),
+            Spelled (Written));
+      end Removed_Field;
+
+      --  The refusal of a field or concept entry the list renamed: its new
+      --  name, as an exact fix at Node's anchor, where the name is written.
+      procedure Report_Removed_Field
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Written : Landin.Source.Names.Name_Id);
+
+      procedure Report_Removed_Field
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Written : Landin.Source.Names.Name_Id) is
+      begin
+         Bad.Report
+           (Item    => Bad.Removed_Form,
+            Source  => Syn.Source_Of (Of_Tree),
+            Where   => Syn.Anchor (Of_Tree, Node),
+            Message => "the library no longer declares `"
+                       & Spelled (Written) & "` here",
+            Note    => Landin.Modules.Removed.Note (Row),
+            Fixes   =>
+              [1 => Landin.Diagnostics.Fixes.Library_Name
+                      (Landin.Modules.Removed.New_Name (Row),
+                       [1 => Landin.Diagnostics.Make_Edit
+                               (Syn.Source_Of (Of_Tree),
+                                Syn.Anchor (Of_Tree, Node),
+                                Landin.Modules.Removed.New_Name (Row))])],
+            Into    => Found);
+      end Report_Removed_Field;
+
       function Fields_Near
         (Of_Tree : Syn.Tree;
          Where   : Syn.Node_Id;
@@ -20342,6 +20404,33 @@ package body Landin.Stages.Checking is
                               Because => "the parent concept declared here",
                               Into    => Found);
                            Valid := False;
+                        elsif not Known
+                          and then Landin.Modules.Removed.Found
+                            (Landin.Modules.Removed.Field
+                               (Landin.Modules.Logical_Path
+                                  (Grouped.all,
+                                   Landin.Modules.Module_Of
+                                     (Grouped.all,
+                                      Syn.Source_Of (Concept_Tree.all))),
+                                Spelled
+                                  (Syn.Name (Concept_Tree.all, Concept_Node)),
+                                Spelled (Syn.Name (Of_Tree, Supplied))))
+                        then
+                           --  D2129: an entry the breaking list renamed.
+                           Report_Removed_Field
+                             (Of_Tree, Supplied,
+                              Landin.Modules.Removed.Field
+                                (Landin.Modules.Logical_Path
+                                   (Grouped.all,
+                                    Landin.Modules.Module_Of
+                                      (Grouped.all,
+                                       Syn.Source_Of (Concept_Tree.all))),
+                                 Spelled
+                                   (Syn.Name
+                                      (Concept_Tree.all, Concept_Node)),
+                                 Spelled (Syn.Name (Of_Tree, Supplied))),
+                              Syn.Name (Of_Tree, Supplied));
+                           Valid := False;
                         elsif not Known then
                            Bad.Report
                              (Item    => Bad.Conformance_Form,
@@ -22241,10 +22330,19 @@ package body Landin.Stages.Checking is
            Landin.Checking.No_Conformance;
          Matches : Natural := 0;
          Own_Iterable : Boolean := False;
+         Own_Declaration : Res.Declaration_Id := Res.No_Declaration;
 
-         procedure Report (Message : String; Note : String);
+         procedure Report
+           (Message : String;
+            Note    : String;
+            Fixes   : Landin.Diagnostics.Fix_List :=
+              Landin.Diagnostics.No_Fixes);
 
-         procedure Report (Message : String; Note : String) is
+         procedure Report
+           (Message : String;
+            Note    : String;
+            Fixes   : Landin.Diagnostics.Fix_List :=
+              Landin.Diagnostics.No_Fixes) is
          begin
             Bad.Report
               (Item    => Bad.Traversal_Source,
@@ -22254,9 +22352,270 @@ package body Landin.Stages.Checking is
                Note    => Note,
                Related => Context_Site (Of_Tree, Source),
                Because => "the loop that traverses it",
+               Fixes   => Fixes,
                Into    => Found);
             Landin.Checking.Refuse (Types.all, Of_Tree, Source);
          end Report;
+
+         --  D2129, for the list's concepts entry: a program's own
+         --  module-internal `iterable` written exactly as [1320] wrote it
+         --  before D1957 leaves, each use of it in its module becomes
+         --  `iter.iterable`, and each file that gains one imports
+         --  core/iter.  No fix for another shape, which is a concept of its
+         --  own, or a public one, whose users the rewrite does not reach.
+         function Own_Iterable_Fixes return Landin.Diagnostics.Fix_List;
+
+         function Own_Iterable_Fixes return Landin.Diagnostics.Fix_List is
+            package Edit_Vectors is new Ada.Containers.Vectors
+              (Positive, Landin.Diagnostics.Edit, Landin.Diagnostics."=");
+            Shape : constant String :=
+              "iterable:type=concept(t:type,cur:type,item_type:type)"
+              & "first:(s:ptrt)->(c:cur)"
+              & "at_end:(s:ptrt,c:cur)->(yes:bool)"
+              & "item:(s:ptrt,c:cur)->(v:item_type)"
+              & "next:(s:ptrt,c:cur)->(c2:cur)enditerable";
+            Home : constant Landin.Source.Source_Id :=
+              Res.Source_Of (Meanings.all, Own_Declaration);
+            Home_Tree : constant not null access constant Syn.Tree :=
+              Tree_For (Home);
+            Home_Node : constant Syn.Node_Id :=
+              Res.Node_Of (Meanings.all, Own_Declaration);
+            Home_Text : Landin.Source.Snapshot renames
+              Landin.Stages.Source (Context, Home);
+            Home_Module : constant Landin.Modules.Module_Id :=
+              Landin.Modules.Module_Of (Grouped.all, Home);
+            Written : constant String :=
+              Landin.Source.Slice
+                (Home_Text, Syn.Where (Home_Tree.all, Home_Node));
+            Squeezed : Ada.Strings.Unbounded.Unbounded_String;
+            In_Comment : Boolean := False;
+            Edits : Edit_Vectors.Vector;
+         begin
+            for I in Written'Range loop
+               if In_Comment then
+                  In_Comment := Written (I) /= ASCII.LF;
+               elsif Written (I) = '-' and then I < Written'Last
+                 and then Written (I + 1) = '-'
+               then
+                  In_Comment := True;
+               elsif Written (I) not in ' ' | ASCII.LF | ASCII.CR | ASCII.HT
+               then
+                  Ada.Strings.Unbounded.Append (Squeezed, Written (I));
+               end if;
+            end loop;
+            if Ada.Strings.Unbounded.To_String (Squeezed) /= Shape then
+               return Landin.Diagnostics.No_Fixes;
+            end if;
+            for Each in 1 .. Landin.Modules.Source_Count (Grouped.all) loop
+               declare
+                  Id : constant Landin.Source.Source_Id :=
+                    Landin.Source.Source_Id (Each);
+               begin
+                  if Landin.Modules.Module_Of (Grouped.all, Id)
+                    = Home_Module
+                  then
+                     declare
+                        One : constant not null access constant Syn.Tree :=
+                          Tree_For (Id);
+                        Uses : Edit_Vectors.Vector;
+                        Bound : Ada.Strings.Unbounded.Unbounded_String;
+                        Taken : Boolean := False;
+                        Last_Import : Syn.Node_Id := Syn.No_Node;
+                        Removed_From, Removed_To : Landin.Source.Byte_Offset
+                          := 0;
+                     begin
+                        if Id = Home then
+                           --  The declaration and its own lines go, with
+                           --  the doc comment written above it.
+                           declare
+                              Text : constant String :=
+                                Landin.Source.Text (Home_Text);
+                              Span : constant Landin.Source.Span :=
+                                Syn.Where (Home_Tree.all, Home_Node);
+                              From : Natural := Natural (Span.First);
+                              To : Natural := Natural (Span.Last);
+                           begin
+                              --  Text is one-based: offset K is Text (K + 1).
+                              while From > 0
+                                and then Text (From) /= ASCII.LF
+                              loop
+                                 From := From - 1;
+                              end loop;
+                              loop
+                                 declare
+                                    Line_Start : Natural := From;
+                                 begin
+                                    exit when From = 0;
+                                    Line_Start := From - 1;
+                                    while Line_Start > 0
+                                      and then Text (Line_Start) /= ASCII.LF
+                                    loop
+                                       Line_Start := Line_Start - 1;
+                                    end loop;
+                                    declare
+                                       Line : constant String :=
+                                         Text (Line_Start + 1 .. From - 1);
+                                       Lead : Natural := Line'First;
+                                    begin
+                                       while Lead <= Line'Last
+                                         and then Line (Lead) = ' '
+                                       loop
+                                          Lead := Lead + 1;
+                                       end loop;
+                                       exit when Line'Length < 3
+                                         or else Lead + 2 > Line'Last
+                                         or else Line (Lead .. Lead + 2)
+                                                   /= "---";
+                                       From := Line_Start;
+                                    end;
+                                 end;
+                              end loop;
+                              while To < Text'Length
+                                and then Text (To + 1) /= ASCII.LF
+                              loop
+                                 To := To + 1;
+                              end loop;
+                              if To < Text'Length then
+                                 To := To + 1;
+                              end if;
+                              Removed_From := Landin.Source.Byte_Offset (From);
+                              Removed_To := Landin.Source.Byte_Offset (To);
+                           end;
+                        end if;
+                        for Index in 1 .. Syn.Import_Count (One.all) loop
+                           declare
+                              Import : constant Syn.Node_Id :=
+                                Syn.Nth_Import (One.all, Index);
+                              Target : constant Landin.Modules.Module_Id :=
+                                Landin.Modules.Imported_Module
+                                  (Grouped.all, Id, Import);
+                              Alias : constant Syn.Node_Id :=
+                                Syn.Import_Alias_Of (One.all, Import);
+                              Path : constant String :=
+                                (if Target = Landin.Modules.No_Module
+                                 then ""
+                                 else Landin.Modules.Logical_Path
+                                        (Grouped.all, Target));
+                              Binds : constant String :=
+                                (if Alias /= Syn.No_Node
+                                 then Spelled (Syn.Name (One.all, Alias))
+                                 elsif Path'Length >= 4
+                                   and then Path (Path'Last - 3 .. Path'Last)
+                                              = "iter"
+                                 then "iter"
+                                 else Path);
+                           begin
+                              Last_Import := Import;
+                              if Syn.Import_Selection_Count
+                                   (One.all, Import) = 0
+                              then
+                                 if Path = "core/iter" then
+                                    Bound :=
+                                      Ada.Strings.Unbounded
+                                        .To_Unbounded_String (Binds);
+                                 elsif Binds = "iter" then
+                                    Taken := True;
+                                 end if;
+                              end if;
+                           end;
+                        end loop;
+                        if Ada.Strings.Unbounded.Length (Bound) = 0 then
+                           Bound := Ada.Strings.Unbounded.To_Unbounded_String
+                             ("iter");
+                        end if;
+                        for Node in 1 .. Syn.Last_Node (One.all) loop
+                           if Syn.Kind (One.all, Node) = Syn.Concept_Reference
+                             and then Res.Verdict_Of
+                               (Meanings.all, One.all, Node) = Res.Bound
+                             and then Res.Bound_To
+                               (Meanings.all, One.all, Node) = Own_Declaration
+                             and then not
+                               (Id = Home
+                                and then Syn.Where (One.all, Node).First
+                                           >= Removed_From
+                                and then Syn.Where (One.all, Node).Last
+                                           <= Removed_To)
+                           then
+                              Uses.Append
+                                (Landin.Diagnostics.Make_Edit
+                                   (Id, Syn.Where (One.all, Node),
+                                    Ada.Strings.Unbounded.To_String (Bound)
+                                    & ".iterable"));
+                           end if;
+                        end loop;
+                        if Taken and then not Uses.Is_Empty then
+                           return Landin.Diagnostics.No_Fixes;
+                        end if;
+                        --  In source order: an import first, then the
+                        --  declaration's removal and the uses around it.
+                        if not Uses.Is_Empty
+                          and then Ada.Strings.Unbounded.To_String (Bound)
+                                     = "iter"
+                          and then not
+                            (for some Index in 1 .. Syn.Import_Count (One.all)
+                             => Landin.Modules.Imported_Module
+                                  (Grouped.all, Id,
+                                   Syn.Nth_Import (One.all, Index))
+                                  /= Landin.Modules.No_Module
+                                and then Landin.Modules.Logical_Path
+                                  (Grouped.all,
+                                   Landin.Modules.Imported_Module
+                                     (Grouped.all, Id,
+                                      Syn.Nth_Import (One.all, Index)))
+                                  = "core/iter")
+                        then
+                           declare
+                              At_Start : constant Landin.Source.Byte_Offset :=
+                                (if Last_Import = Syn.No_Node then 0
+                                 else Syn.Where (One.all, Last_Import).Last);
+                           begin
+                              Edits.Append
+                                (Landin.Diagnostics.Make_Edit
+                                   (Id, (First => At_Start, Last => At_Start),
+                                    (if Last_Import = Syn.No_Node
+                                     then "import core/iter" & [ASCII.LF]
+                                          & [ASCII.LF]
+                                     else [ASCII.LF] & "import core/iter")));
+                           end;
+                        end if;
+                        declare
+                           Removal_Pending : Boolean := Id = Home;
+                        begin
+                           for Each_Use of Uses loop
+                              if Removal_Pending
+                                and then Landin.Diagnostics.Span_Of
+                                  (Each_Use).First >= Removed_To
+                              then
+                                 Edits.Append
+                                   (Landin.Diagnostics.Make_Edit
+                                      (Id, (First => Removed_From,
+                                            Last  => Removed_To), ""));
+                                 Removal_Pending := False;
+                              end if;
+                              Edits.Append (Each_Use);
+                           end loop;
+                           if Removal_Pending then
+                              Edits.Append
+                                (Landin.Diagnostics.Make_Edit
+                                   (Id, (First => Removed_From,
+                                         Last  => Removed_To), ""));
+                           end if;
+                        end;
+                     end;
+                  end if;
+               end;
+            end loop;
+            declare
+               List : Landin.Diagnostics.Edit_List
+                 (1 .. Natural (Edits.Length));
+            begin
+               for Each in List'Range loop
+                  List (Each) := Edits (Each);
+               end loop;
+               return [1 => Landin.Diagnostics.Fixes.Library_Name
+                              ("iter.iterable", List)];
+            end;
+         end Own_Iterable_Fixes;
 
          function Entry_Signature
            (Row : Landin.Checking.Conformance_Id;
@@ -22451,6 +22810,7 @@ package body Landin.Stages.Checking is
                            Concept := Candidate;
                         else
                            Own_Iterable := True;
+                           Own_Declaration := Declaration;
                         end if;
                      end if;
                   end;
@@ -22466,7 +22826,12 @@ package body Landin.Stages.Checking is
                      & " has no conformance to core/iter's `iterable`;"
                      & " `for` takes no other concept of that name",
                      "D1957: import core/iter and conform to"
-                     & " `iter.iterable` in place of declaring one");
+                     & " `iter.iterable` in place of declaring one",
+                     (if Own_Declaration /= Res.No_Declaration
+                        and then not Res.Is_Public
+                          (Meanings.all, Own_Declaration)
+                      then Own_Iterable_Fixes
+                      else Landin.Diagnostics.No_Fixes));
                else
                   Report
                     (Named_Type (Actual, Syn.Source_Of (Of_Tree), "this type")
@@ -26227,6 +26592,17 @@ package body Landin.Stages.Checking is
                         end;
                         Landin.Checking.Refuse (Types.all, Of_Tree, Node);
                         return Ty.Ill_Typed;
+                     end if;
+
+                     if Which = 0
+                       and then Landin.Modules.Removed.Found
+                         (Removed_Field (Wrote, Syn.Name (Of_Tree, Node)))
+                     then
+                        Report_Removed_Field
+                          (Of_Tree, Node,
+                           Removed_Field (Wrote, Syn.Name (Of_Tree, Node)),
+                           Syn.Name (Of_Tree, Node));
+                        return Kept (Ty.Ill_Typed);
                      end if;
 
                      if Which = 0 then
@@ -31032,7 +31408,19 @@ package body Landin.Stages.Checking is
                Which : constant Natural :=
                  Field_At (Wrote, Construction_Field_Name (Of_Tree, Field));
             begin
-               if Which = 0 then
+               if Which = 0
+                 and then Landin.Modules.Removed.Found
+                   (Removed_Field
+                      (Wrote, Construction_Field_Name (Of_Tree, Field)))
+               then
+                  Report_Removed_Field
+                    (Of_Tree, Field,
+                     Removed_Field
+                       (Wrote, Construction_Field_Name (Of_Tree, Field)),
+                     Construction_Field_Name (Of_Tree, Field));
+                  Unknown_Fields := Unknown_Fields + 1;
+                  Failed := True;
+               elsif Which = 0 then
                   Bad.Report
                     (Item    => Bad.Unresolved_Field,
                      Source  => Syn.Source_Of (Of_Tree),

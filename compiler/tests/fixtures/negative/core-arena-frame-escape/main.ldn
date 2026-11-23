@@ -19,7 +19,7 @@ saved: type = absent | ptr mut u8
 mut retained: saved = absent
 
 retain: (memory: arena.arena) -> none ! mem.out_of_memory =
-    retained = try mem.new(memory, u8(7))
+    retained = try mem.allocate_item(memory, u8(7))
 end retain
 
 helper_escape: () -> none =

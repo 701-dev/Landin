@@ -14,7 +14,7 @@ bad: () -> none =
     state := heap.new()
     local: node = (value: 23)
     value: any reader = any(addr local)
-    _ = mem.new(state, value) else (problem)
+    _ = mem.allocate_item(state, value) else (problem)
         _ = problem
     end
 end bad

@@ -2925,9 +2925,16 @@ def check_project_status(full_run):
         elif (expected is not None
               and (markers[0][1] != marker_kind
                    or markers[0][2] != expected)):
+            #  The whole line is named, since the three kinds differ in
+            #  their wording and not only in the item.
+            line = {"current": "**Current roadmap work: %s.**",
+                    "next": "**Next roadmap item: %s (planned).**",
+                    "endpoint": "**Roadmap endpoint: %s (complete).**"}
             out.append((relative, markers[0][0],
-                        "roadmap status pointer is %s %r, expected %s %r"
-                        % (markers[0][1], markers[0][2], marker_kind, expected)))
+                        "roadmap status pointer is %s %r, expected %s %r;"
+                        " write the line %s"
+                        % (markers[0][1], markers[0][2], marker_kind, expected,
+                           line.get(marker_kind, "%s") % expected)))
 
         #  Possessive status prose is allowed, but it cannot contradict the
         #  durable status. Work paragraph-by-paragraph so an unrelated later
@@ -11955,17 +11962,13 @@ LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
 LIBRARY_CAPABILITY_NAMES = ("memory", "host")
 
 #  Each routine or concept entry that departs from core/README.md's
-#  conventions for receiving a capability, with the rule it departs from.
-#  Every one is on the breaking list, roadmap/inputs/breaking-list.md,
-#  whose application reshapes it and takes it out of this table; an entry
-#  that no longer departs is refused, so the table empties as the list is
-#  applied.
-LIBRARY_CONVENTION_DEPARTURES = {
-    "core/text.format_onto": "D1948",
-    "core/fibre/stacks.round_over": "D1954",
-    "core/io/fake.network_over_turns": "D1954",
-    "core/io.file_system.make_temporary": "D1954",
-}
+#  conventions for receiving a capability, with the rule it departs from,
+#  "core/text.format_onto": "D1948" for one.  Applying the breaking list,
+#  roadmap/inputs/breaking-list.md, reshaped every departure the table
+#  named, so it is empty: a departure added to the library is refused
+#  unless a decision names it here, and an entry that no longer departs is
+#  refused too.
+LIBRARY_CONVENTION_DEPARTURES = {}
 
 
 def library_parameters(text):

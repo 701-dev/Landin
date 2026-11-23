@@ -4,6 +4,7 @@
 --  address that does not begin a page is `einval` to `unmap` on Linux,
 --  Darwin and FreeBSD, and a mapping larger than any address space fails,
 --  with whichever errno the system gives, which the program writes.
+import core/mem
 import core/text
 import platform/posix
 
@@ -21,7 +22,7 @@ end said
 
 --  NAME, `=`, NUMBER in decimal and a line end.
 line_of: (inout line: text.builder, name: []u8, number: u32)
-         -> none ! text.no_space =
+         -> none ! mem.out_of_memory =
     try text.append(line, name)
     try text.append_byte(line, u8('='))
     try text.append_u32(line, number)

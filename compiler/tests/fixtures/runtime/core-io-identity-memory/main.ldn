@@ -17,9 +17,9 @@ public main: () -> (code: i32) =
     mut state: io.memory_space = zeroed
     memory := io.memory_over(state, files[0..<2], args[0..<0], "",
                              out[0..<0], err[0..<0])
-    a: text.host_string = text.host_over("a")
-    b: text.host_string = text.host_over("b")
-    missing: text.host_string = text.host_over("c")
+    a: text.os_string = text.os_string_over("a")
+    b: text.os_string = text.os_string_over("b")
+    missing: text.os_string = text.os_string_over("c")
     distinct: bool = io.same_file(memory, a, b) else (problem)
         _ = problem
         return

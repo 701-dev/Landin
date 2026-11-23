@@ -1,4 +1,5 @@
 import core/fault
+import core/mem
 import core/tree
 import hosted/heap
 
@@ -48,10 +49,10 @@ public main: () -> (code: i32) =
             break
         end if
         return when overflow
-        count: usize = tree.count_leaves(value, added) else (problem)
+        count: usize = tree.leaves(tree.get(value, added) else (problem)
             _ = problem
             return
-        end
+        end)
         return when count <> expected
         if count > 4294967295 then wide_count = true end if
         left = right
@@ -59,10 +60,10 @@ public main: () -> (code: i32) =
         last = added
         inc at
     end while
-    final: usize = tree.count_leaves(value, last) else (problem)
+    final: usize = tree.leaves(tree.get(value, last) else (problem)
         _ = problem
         return
-    end
+    end)
     --  The cumulative total now exceeds usize, but this child interval does not.
     one: usize = 1
     small: tree.node_id = tree.add_branch(value, counted, label, first, one)
@@ -70,11 +71,17 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    small_count: usize = tree.count_leaves(value, small) else 0
+    small_count: usize = tree.leaves(tree.get(value, small) else (problem)
+        _ = problem
+        return
+    end)
     mut invalid: bool = false
-    _ = tree.count_leaves(value, wide) else (problem)
-        invalid = problem == tree.no_such_node
-        0
+    _ = tree.get(value, wide) else (problem)
+        invalid = problem == mem.not_found
+        tree.get(value, first) else (fallback)
+            _ = fallback
+            return
+        end
     end
     before_release: usize = tree.length(value)
     tree.release(value, counted)

@@ -19,5 +19,5 @@ public extern(c) link(symbol: "r440_renamed_main") main: () -> (code: i32) =
 end main
 
 public extern(c) r440_retained_count: () -> (count: usize) =
-    count = io.argument_count(blocking.new())
+    count = io.arguments_length(blocking.new())
 end r440_retained_count

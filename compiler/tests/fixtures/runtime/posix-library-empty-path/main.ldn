@@ -5,7 +5,7 @@ import platform/posix
 
 public main: () -> (code: i32) =
     code = 1
-    loaded: posix.library = posix.open_library(text.host_over(""),
+    loaded: posix.library = posix.open_library(text.os_string_over(""),
                                                posix.local_symbols)
         else (problem)
         code = if problem == posix.enoent then 42 else 2 end if

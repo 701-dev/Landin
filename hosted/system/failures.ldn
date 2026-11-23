@@ -7,7 +7,6 @@ import core/cache
 import core/failure
 import core/io
 import core/line
-import core/map
 import core/mem
 import core/net
 import core/text
@@ -31,23 +30,16 @@ public words: (problem: reason) -> (phrase: []u8) =
     phrase = match problem
         mem.out_of_bounds: failure.words(mem.out_of_bounds)
         mem.empty: failure.words(mem.empty)
-        mem.full: failure.words(mem.full)
         mem.not_empty: failure.words(mem.not_empty)
         mem.out_of_memory: failure.words(mem.out_of_memory)
-        map.missing: failure.words(map.missing)
-        map.end_of_entries: failure.words(map.end_of_entries)
-        tree.no_such_node: failure.words(tree.no_such_node)
+        mem.not_found: failure.words(mem.not_found)
         tree.invalid_children: failure.words(tree.invalid_children)
         tree.too_many_nodes: failure.words(tree.too_many_nodes)
         tree.too_many_leaves: failure.words(tree.too_many_leaves)
-        io.not_found: failure.words(io.not_found)
         io.no_access: failure.words(io.no_access)
         io.io_failed: failure.words(io.io_failed)
         io.is_a_directory: failure.words(io.is_a_directory)
-        io.no_argument: failure.words(io.no_argument)
         io.already_exists: failure.words(io.already_exists)
-        io.no_variable: failure.words(io.no_variable)
-        io.line_too_long: failure.words(io.line_too_long)
         io.not_a_terminal: failure.words(io.not_a_terminal)
         net.invalid_address: failure.words(net.invalid_address)
         net.refused: failure.words(net.refused)
@@ -56,13 +48,10 @@ public words: (problem: reason) -> (phrase: []u8) =
         net.address_unavailable: failure.words(net.address_unavailable)
         net.timed_out: failure.words(net.timed_out)
         net.disconnected: failure.words(net.disconnected)
-        text.past_end: failure.words(text.past_end)
         text.invalid_text: failure.words(text.invalid_text)
         text.invalid_number: failure.words(text.invalid_number)
         text.number_overflow: failure.words(text.number_overflow)
-        text.no_space: failure.words(text.no_space)
         text.invalid_format: failure.words(text.invalid_format)
-        text.not_found: failure.words(text.not_found)
         text.invalid_scalar: failure.words(text.invalid_scalar)
         cache.misaligned: failure.words(cache.misaligned)
         cache.bad_line: failure.words(cache.bad_line)

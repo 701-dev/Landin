@@ -5,6 +5,6 @@ error[L0302]: this place was consumed by `sink` and has not been assigned again
   |             ^^^^^^
   --> ../tests/fixtures/negative/core-mem-delete-consumed/main.ldn:5:5
   |
-5 |     mem.delete(state, object)
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^ consumed here
+5 |     mem.release_item(state, object)
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ consumed here
   = note: [0910]: a sunk place is dead until assignment

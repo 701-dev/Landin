@@ -1995,7 +1995,7 @@ parameter R20.20 reorders.
 
 ### R20.60 — The breaking list applied
 
-Status: planned
+Status: complete
 Depends on: R20.20, R20.30, R20.11, R20.40, R20.50, R19.40
 
 The list, applied on R20's own integration branch and promoted alone in
@@ -2003,6 +2003,27 @@ one promotion: every renamed or moved name refused with its replacement,
 and rewritten by R19.40's `refine fix` where the rewrite is mechanical.
 Exit evidence: the library, the corpus, the examples and the documents
 rewritten; `docs/library.md` regenerated.
+Done: the library declares only the list's new forms and the library, the
+corpus, the examples, the prototypes' code and the documents use them;
+`docs/library.md` is written by hand, not generated, and was rewritten, the
+site's page being generated from it. Q-171 to Q-173 were answered as
+recommended. `mem.transfer_prefix`, whose old order still checked, is
+`mem.copy_prefix`, target first (D2128). The compiler keeps the removed
+names in one table, `Landin.Modules.Removed`, and refuses each with L0696
+naming its successor, a qualified name, a field, a struct value's field
+or a conformance label alike; a mechanical rewrite is the refusal's exact
+fix, which imports the successor's module and drops a merged atom its set
+already names, and `map.end_of_entries`, `io.writer_of` and
+`io.lent_writer` are refused saying what to write (D2129). L0348's fix
+replaces a program's own `iterable` written as [1320] wrote it with
+`iter.iterable`. `check.py`'s table of convention departures is empty.
+The fixes suite now checks a fixture whose program or result imports the
+library against the real library, which it could not before. A call of a
+routine in its old parameter order, a renamed parameter label, the old
+`io.variable` type and `posix.words` of a library atom resolve and are
+refused only by their types, which is `SR-1670`; a doubled atom in a set
+is accepted silently and an unimported library module's name is refused
+without naming the import, which is `SR-1671`.
 
 ### R20.61 — Refusals that say what to write
 

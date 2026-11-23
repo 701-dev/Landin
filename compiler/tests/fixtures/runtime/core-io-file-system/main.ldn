@@ -8,6 +8,7 @@
 import core/cmp
 import core/io
 import core/io/fake
+import core/mem
 import core/text
 import hosted/blocking
 import platform/posix
@@ -18,18 +19,18 @@ top: []u8 = "core-io-file-system-scratch"
 wrong: atom
 
 --  How an open may fail.
-open_failure: type = io.already_exists | io.not_found | io.no_access
+open_failure: type = io.already_exists | mem.not_found | io.no_access
     | io.io_failed
 
 --  The path NAME in the scratch directory, built in INTO.
-place: (name: []u8, into: []mut u8) -> (path: text.host_string from into)
-       ! text.no_space =
+place: (name: []u8, into: []mut u8) -> (path: text.os_string from into)
+       ! mem.out_of_memory =
     mut made := text.over(into)
     try text.append(made, top)
     try text.append(made, "/")
     try text.append(made, name)
     length: usize = text.length(made)
-    path = text.host_over(into[0..<length])
+    path = text.os_string_over(into[0..<length])
 end place
 
 --  Remove the file NAME in the scratch directory, if it is there.
@@ -45,23 +46,23 @@ end forget
 clear: (host: blocking.host) -> none ! ... =
     mut buffer: [1024]u8 = zeroed
     mut listing: io.directory =
-        io.open_directory(host, text.host_over(top), buffer[0..<1024])
+        io.open_directory(host, text.os_string_over(top), buffer[0..<1024])
         else (problem)
-            fail problem when problem <> io.not_found
+            fail problem when problem <> mem.not_found
             return
         end
     defer io.close_directory(host, listing) else none
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         try forget(name)
     end loop
 end clear
 
 --  Whether opening PATH with OPTIONS fails as WANTED says, closing what
 --  it opens otherwise.
-refuses: (host: blocking.host, path: text.host_string,
+refuses: (host: blocking.host, path: text.os_string,
           options: io.open_options, wanted: open_failure) -> (yes: bool) =
     yes = false
     opened: io.file = io.open_file(host, path, options) else (problem)
@@ -72,7 +73,7 @@ refuses: (host: blocking.host, path: text.host_string,
 end refuses
 
 --  The bytes of the file at PATH, read into INTO.
-contents: (host: blocking.host, path: text.host_string, into: []mut u8)
+contents: (host: blocking.host, path: text.os_string, into: []mut u8)
           -> (bytes: []u8 from into) ! ... =
     opened: io.file = try io.open_read(host, path)
     defer io.close(host, opened) else none
@@ -89,13 +90,13 @@ end same
 --  appending and updating in place.
 opening: (host: blocking.host) -> none ! ... =
     mut room: [128]u8 = zeroed
-    log: text.host_string = try place("log", room[0..<128])
+    log: text.os_string = try place("log", room[0..<128])
     nothing: io.open_options = (read: false, write: false, append: false,
                                 create: false, exclusive: false,
                                 truncate: false)
     fail wrong when not refuses(host, log, nothing, io.io_failed)
       or blocking.last_errno(host) <> posix.number(posix.einval)
-    fail wrong when not refuses(host, log, io.updating, io.not_found)
+    fail wrong when not refuses(host, log, io.updating, mem.not_found)
     made: io.file = try io.open_file(host, log, io.creating)
     try io.write(host, made, "first\n")
     try io.close(host, made)
@@ -114,9 +115,9 @@ end opening
 --  Renaming onto a taken name replaces it; a missing one is not found.
 renaming: (host: blocking.host) -> none ! ... =
     mut first: [128]u8 = zeroed
-    log: text.host_string = try place("log", first[0..<128])
+    log: text.os_string = try place("log", first[0..<128])
     mut second: [128]u8 = zeroed
-    data: text.host_string = try place("data", second[0..<128])
+    data: text.os_string = try place("data", second[0..<128])
     made: io.file = try io.open_write(host, data)
     try io.write(host, made, "replaced\n")
     try io.close(host, made)
@@ -126,7 +127,7 @@ renaming: (host: blocking.host) -> none ! ... =
                              "FIRST\nsecond\n")
     mut met: bool = false
     io.rename(host, log, data) else (problem)
-        met = problem == io.not_found
+        met = problem == mem.not_found
     end
     fail wrong when not met
 end renaming
@@ -134,20 +135,20 @@ end renaming
 --  A link's status followed is its target's, and not followed its own.
 statuses: (host: blocking.host) -> none ! ... =
     mut first: [128]u8 = zeroed
-    link: text.host_string = try place("link", first[0..<128])
-    try posix.symbolic_link_at(text.host_over("data"),
+    link: text.os_string = try place("link", first[0..<128])
+    try posix.symbolic_link_at(text.os_string_over("data"),
                                posix.working_directory, link)
     followed: io.status = try io.status_of(host, link, io.following)
     itself: io.status = try io.status_of(host, link, io.not_following)
     fail wrong when followed.kind <> io.regular or followed.size <> 13
       or itself.kind <> io.symbolic_link or itself.size <> 4
-    here: io.status = try io.status_of(host, text.host_over(top), io.following)
+    here: io.status = try io.status_of(host, text.os_string_over(top), io.following)
     fail wrong when here.kind <> io.subdirectory
     mut second: [128]u8 = zeroed
     mut met: bool = false
     _ = io.status_of(host, try place("absent", second[0..<128]), io.not_following)
         else (problem)
-        met = problem == io.not_found
+        met = problem == mem.not_found
         here
     end
     fail wrong when not met
@@ -157,7 +158,7 @@ end statuses
 --  root, whom no permission bit refuses; made writable again, it opens.
 read_only: (host: blocking.host) -> none ! ... =
     mut room: [128]u8 = zeroed
-    data: text.host_string = try place("data", room[0..<128])
+    data: text.os_string = try place("data", room[0..<128])
     try io.set_read_only(host, data, true)
     locked: io.status = try io.status_of(host, data, io.following)
     fail wrong when not locked.read_only
@@ -182,7 +183,7 @@ end read_only
 --  write past it leaves zeros between, and truncation cuts.
 offsets: (host: blocking.host) -> none ! ... =
     mut room: [128]u8 = zeroed
-    data: text.host_string = try place("data", room[0..<128])
+    data: text.os_string = try place("data", room[0..<128])
     opened: io.file = try io.open_file(host, data, io.updating)
     defer io.close(host, opened) else none
     mut buffer: [8]u8 = [8 of 255]
@@ -209,16 +210,16 @@ end offsets
 temporaries: (host: blocking.host) -> none ! ... =
     mut first_room: [128]u8 = zeroed
     first: io.temporary =
-        try io.make_temporary(host, host, text.host_over(top),
+        try io.make_temporary(host, host, text.os_string_over(top),
                               first_room[0..<128])
     try io.close(host, first.opened)
     mut second_room: [128]u8 = zeroed
     second: io.temporary =
-        try io.make_temporary(host, host, text.host_over(top),
+        try io.make_temporary(host, host, text.os_string_over(top),
                               second_room[0..<128])
     try io.close(host, second.opened)
-    fail wrong when same(text.host_bytes(first.path),
-                         text.host_bytes(second.path))
+    fail wrong when same(text.os_string_bytes(first.path),
+                         text.os_string_bytes(second.path))
     owned: posix.status = try posix.status_at(posix.working_directory,
                                               first.path, false)
     fail wrong when owned.permissions <> 0o600 or owned.size <> 0
@@ -230,36 +231,36 @@ temporaries: (host: blocking.host) -> none ! ... =
     scripted := fake.entropy_over(state, given[0..<24])
     mut third_room: [128]u8 = zeroed
     third: io.temporary =
-        try io.make_temporary(host, scripted, text.host_over(top),
+        try io.make_temporary(host, scripted, text.os_string_over(top),
                               third_room[0..<128])
     try io.close(host, third.opened)
     mut fourth_room: [128]u8 = zeroed
     fourth: io.temporary =
-        try io.make_temporary(host, scripted, text.host_over(top),
+        try io.make_temporary(host, scripted, text.os_string_over(top),
                               fourth_room[0..<128])
     try io.close(host, fourth.opened)
-    fail wrong when not text.host_equal(third.path,
-                                        "core-io-file-system-scratch/.tmp-0102030405060708")
-      or not text.host_equal(fourth.path,
-                             "core-io-file-system-scratch/.tmp-0909090909090909")
+    fail wrong when not text.os_string_equal(third.path,
+                                             "core-io-file-system-scratch/.tmp-0102030405060708")
+      or not text.os_string_equal(fourth.path,
+                                  "core-io-file-system-scratch/.tmp-0909090909090909")
       or state.requests <> 3
     --  Sixteen tries of the same eight bytes.
     same_bytes: [128]u8 = [128 of 9]
     mut repeated: fake.entropy_space = zeroed
     stuck := fake.entropy_over(repeated, same_bytes[0..<128])
-    fail wrong when not temporary_refused(host, stuck, text.host_over(top),
+    fail wrong when not temporary_refused(host, stuck, text.os_string_over(top),
                                           io.io_failed)
       or blocking.last_errno(host) <> posix.number(posix.eexist)
       or repeated.requests <> io.temporary_tries
     fail wrong when not temporary_refused(
-        host, host, text.host_over("core-io-file-system-absent"),
-        io.not_found)
+        host, host, text.os_string_over("core-io-file-system-absent"),
+        mem.not_found)
 end temporaries
 
 --  Whether making a temporary file in DIRECTORY with names from NAMES
 --  fails as WANTED says, closing one it makes otherwise.
 temporary_refused: (source: type is io.entropy, host: blocking.host,
-                    names: source, directory: text.host_string,
+                    names: source, directory: text.os_string,
                     wanted: open_failure) -> (yes: bool) =
     yes = false
     mut room: [128]u8 = zeroed
@@ -275,10 +276,10 @@ end temporary_refused
 --  too small for it is refused.
 working: (host: blocking.host) -> none ! ... =
     mut room: [4096]u8 = zeroed
-    path: text.host_string = try io.current_directory(host, room[0..<4096])
+    path: text.os_string = try io.current_directory(host, room[0..<4096])
     mut other: [4096]u8 = zeroed
-    named: text.host_string = try posix.current_directory(other[0..<4096])
-    fail wrong when not same(text.host_bytes(path), text.host_bytes(named))
+    named: text.os_string = try posix.current_directory(other[0..<4096])
+    fail wrong when not same(text.os_string_bytes(path), text.os_string_bytes(named))
     mut small: [1]u8 = zeroed
     mut met: bool = false
     _ = io.current_directory(host, small[0..<1]) else (problem)
@@ -313,7 +314,7 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    io.make_directory(host, text.host_over(top)) else (problem)
+    io.make_directory(host, text.os_string_over(top)) else (problem)
         _ = problem
         return
     end
@@ -362,7 +363,7 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    io.remove_directory(host, text.host_over(top)) else (problem)
+    io.remove_directory(host, text.os_string_over(top)) else (problem)
         _ = problem
         return
     end

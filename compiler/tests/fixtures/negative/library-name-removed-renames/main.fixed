@@ -1,0 +1,23 @@
+--  D2129: a library name R20's breaking list renamed is refused naming its
+--  successor, and the fix writes it.  `mem.full` merged into
+--  `mem.out_of_memory`, which the failure set already names, so the fix
+--  takes it out of the set rather than naming the atom twice.
+import core/arena
+import core/mem
+import core/text
+
+measure: (source: text.os_string) -> (n: usize) =
+    n = lenof text.os_string_bytes(source)
+end measure
+
+taken: (memory: arena.arena) -> (n: usize) =
+    n = arena.length(memory)
+end taken
+
+admit: (inout store: mem.storage(u8)) -> none ! mem.out_of_memory =
+    try mem.admit_bytes(store, 1)
+end admit
+
+public main: () -> (code: i32) =
+    code = 0
+end main

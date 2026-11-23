@@ -131,6 +131,7 @@ different responsibilities.
 | `Landin.Formatting` | D252's layout of one source's bytes: the scan and the parse as locals, the edits that take the source to the layout, a re-scan that the edits changed no token and no comment, and D359's account of each line the edits change | read anything later than the parse, keep anything past the call, break or join a line, or write a file |
 | `Landin.Modules` | the deterministic reached graph: module identities, selected directories/root ordinals, source membership and resolved import edges | read the host, parse source, own a scope or depend on a stage |
 | `Landin.Modules.Availability` | source namespace availability from target facts, independent of root selection | read the host, resolve imports, enable an ABI or select runtime authority |
+| `Landin.Modules.Removed` | D2129's table of the library names R20's breaking list removed: by module and name, or by type or concept and field, each with its successor, how a use is rewritten and the note naming the decision | read the host, resolve a name, build a diagnostic or decide that a name is missing |
 | `Landin.Resolution` | declarations, scopes, which declaration each name means and which declaration each declaring node made, and the fields and fill of a construction as it classified them | hold a diagnostic, or decide what a name may be called |
 | `Landin.Types` | the scalar names and value categories, their widths, and ordinary scalar storage size against a target | hold a machine fact of its own, or ask the host for one |
 | `Landin.Evidence` | target-neutral semantic evidence-table positions: size, alignment, then direct concept functions in declaration order | know machine bytes, target offsets, or physical layout |
@@ -328,7 +329,7 @@ other pointer-union representation.
 D206 separately refuses known null integer constructions and checks dynamic
 zero after target-width conversion, even in `unchecked`; origin erasure does
 not erase non-nullness. The library's absent backing uses named pointer unions,
-and `dispose` reports `raw_empty` rather than returning an invalid pointer.
+and `detach` reports `raw_empty` rather than returning an invalid pointer.
 
 D203's C convention and variadic flags follow the complete recursive signature,
 not the bodyless import flag or a concrete callee item. Checking admits only

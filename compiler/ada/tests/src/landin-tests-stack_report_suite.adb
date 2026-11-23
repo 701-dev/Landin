@@ -1092,7 +1092,7 @@ package body Landin.Tests.Stack_Report_Suite is
      & "    mut state: stacks.round_space = zeroed" & LF
      & "    mut entries: [3]usize = zeroed" & LF
      & "    idler: stacks.spin = zeroed" & LF
-     & "    round := stacks.round_over(state, entries, any(addr idler))"
+     & "    round := stacks.round_over(state, any(addr idler), entries)"
      & " else (problem)" & LF
      & "        _ = problem" & LF
      & "        return" & LF

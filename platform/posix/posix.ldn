@@ -96,9 +96,9 @@ end view
 --  Copy PATH into ROOM with a NUL after it, for a call that takes a C
 --  path: `enametoolong` when it and its NUL do not fit, before anything
 --  is copied, and `einval` when it holds a NUL.
-terminate: (path: text.host_string, room: []mut u8)
+terminate: (path: text.os_string, room: []mut u8)
            -> (terminated: ptr u8 from room) ! errno =
-    bytes: []u8 = text.host_bytes(path)
+    bytes: []u8 = text.os_string_bytes(path)
     fail enametoolong when lenof bytes >= lenof room
     for at in usize(0)..<lenof bytes do
         fail einval when bytes[at] == 0

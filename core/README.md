@@ -158,12 +158,12 @@ system's own order. A full `python3 check.py` holds every public routine
 and concept entry to both rules where they are mechanical: an `any C` it
 does not keep, a capability after an input and a `caller` before the
 end. It reads the evidence concepts, `cmp.ordered` and the like, as
-inputs, and any other concept as a capability. The routines the
-library review's breaking list reshapes are the only exceptions it
-allows (D1988).
+inputs, and any other concept as a capability. It allows no
+exceptions: the library review's breaking list reshaped the routines
+that were (D1988).
 
-`core/mem` keeps `new`/`delete` for one allocated item and `new_bytes`/
-`delete_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
+`core/mem` keeps `allocate_item`/`release_item` for one allocated item and
+`allocate_bytes`/`release_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
 `release` never means anything but giving storage back. Names are
 prefixed only where one module holds several types (`io.memory_over`). A
 provider's counters are plural nouns: `pool.allocations`, `pool.frees`,
@@ -186,13 +186,12 @@ shares are `core/line`, beside the board's own `serial`. A full
 (D1316).
 
 Two atoms serve every core container: `mem.out_of_bounds` for an index past
-the initialized prefix and `mem.empty` for taking from nothing. Key lookups
-keep their own, `map.missing` and `tree.no_such_node`, because a missing key
-is not a bad index. These atoms are the containers'; a provider concept
-that lends by index or by name keeps its own, as `io.argument_at` fails
-`io.no_argument` and `io.variable_at` and `io.variable_named` fail
-`io.no_variable`, since a provider has no initialized prefix to be past
-(D269). A second kind of provider in a module whose principal type is a
+the initialized prefix and `mem.empty` for taking from nothing. A key
+lookup fails a third, `mem.not_found`, because a missing key is not a bad
+index. A provider concept that lends by index or by name keeps no atom of
+its own for absence: `io.argument`, `io.variable` and `io.variable_named`
+fail `mem.not_found` too, since a provider has no initialized prefix to
+be past (D269). A second kind of provider in a module whose principal type is a
 concept is named for what it is rather than `new`: `core/cache`'s
 principal type is the `maintenance` concept, and `cache.cacheless(line)`
 makes the provider for memory no cache stands in front of (D1032).
@@ -210,7 +209,7 @@ through `any io.writer` (D268). Every entry takes the provider's
 handle by value, and an erased capability is built from the address of a
 handle binding, `any(addr host)`; dispatch copies the handle from there.
 `process` lends the standard streams `input`, `out` and `err` and the argument
-table, each argument a host string, and its free functions take the handle `in`, as `read` and `write` do,
+table, each argument an OS string, and its free functions take the handle `in`, as `read` and `write` do,
 so two lent arguments, the count and a write through an erased world made
 from the same handle are live at once. `in` is reserved [1760], so the
 standard-input entry is the noun `input`, which reads beside `out` and `err`
@@ -225,9 +224,9 @@ returns, supplies its read buffer, and passes it `inout` to `read_entry`.
 Each entry's name is lent `from` the directory, because the next read
 refills the buffer the name lies in, so a program that keeps a name copies
 it, and keeping one across a read is refused [0800]. Names, paths and
-arguments are host strings, `text.host_string`, as the system stores and
-takes them, never converted on the way through; `text.from_host` validates
-one that should be text, and `text.host_over` makes one over the caller's
+arguments are OS strings, `text.os_string`, as the system stores and
+takes them, never converted on the way through; `text.from_os_string` validates
+one that should be text, and `text.os_string_over` makes one over the caller's
 bytes. An
 empty name is the end of the directory, as a zero-byte read is the end of a
 file, and `.` and `..` are never entries. The size is a separate
@@ -241,7 +240,7 @@ are; its tree is the caller's slots, so it makes and removes nothing.
 `environment` is a sixth concept, outside `world` as `directories` is, so
 that widening `process` does not put an environment into every firmware
 image that streams through a world: it lends each variable, a name and a
-value that are host strings, by index or the first by name, read-only
+value that are OS strings, by index or the first by name, read-only
 because changing a process's own environment is not safe beside threads.
 `programs` is a seventh, also outside `world`, for running another
 program, D293's shape again: the provider is a handle, and a
@@ -333,18 +332,19 @@ into, that conforms to `reader`, `writer`, `files`, `directories` and
 `file_system` alike, and `fake.terminals` over the caller's screens.
 `core/text` builds text: a `builder` over the caller's buffer, or one
 growing through an allocator the caller erases, takes typed pieces, bytes,
-text, host strings, decimals of every width and hexadecimal, each whole or
+text, OS strings, decimals of every width and hexadecimal, each whole or
 not at all, and aligns a piece in a field; `format` fills a template's `{}`
 with values of any type that has `text.formattable` evidence, checked
 against them when it runs, since nothing runs at compile time. Parsing is
 its mirror for every integer width, and no locale is consulted anywhere. A
 program does not write its own digit loop. Over `utf8` it steps positions a
-whole scalar at a time, with `start`, `step`, `done` and `width`, and its
+whole scalar at a time, with `start`, `step`, `utf8_at_end` and
+`scalar_length`, and its
 searches, `find`, `find_scalar` and their `_from` forms, return where a
-match begins or `not_found`, so the text around a match is a range of the
+match begins or `mem.not_found`, so the text around a match is a range of the
 source and nothing is copied. `encode` writes a scalar's bytes into the
 caller's buffer, refusing a surrogate or a value above U+10FFFF with
-`invalid_scalar` and a buffer too short with `no_space`, writing nothing
+`invalid_scalar` and a buffer too short with `mem.out_of_memory`, writing nothing
 either way. A `utf8_builder` from `utf8_over` takes only text, scalars and
 numbers, each call the byte builder's with `utf8_` before it, and cuts back
 only to a scalar's start, so what it holds is always UTF-8 and `utf8_used`
@@ -374,12 +374,12 @@ allocator is hidden in a container or selected implicitly by the target.
 
 | Module | Interface and boundary |
 |---|---|
-| `core/mem` | `allocator` with `alloc`/`grow`/`resize`/`free` taking the handle by value, `allocate`/`resize`/`free`, `relocate` for a provider that resizes by moving, the `aligned_offset` a bump provider advances with, typed `storage`, `new`/`delete` and byte buffers. Byte storage can release its initialized prefix in one typed transition before disposal. Requests and capacities use target `usize`. Raw backing and its lifetime belong to the caller. |
-| `core/arena` | The caller-backed monotonic `arena` over an `arena.space`, made by `over` or `over_unchecked`, with `used` and `reset`. Its state, its backing and their lifetime belong to the caller. A program that imports no provider, `core/arena`'s or another, still builds: an erased allocator call no conformance answers is a trap no value reaches (D377). |
+| `core/mem` | `allocator` with `alloc`/`grow`/`resize`/`free` taking the handle by value, `allocate`/`resize`/`release`, `relocate` for a provider that resizes by moving, the `aligned_offset` a bump provider advances with, typed `storage`, `allocate_item`/`release_item` and byte buffers. Byte storage can release its initialized prefix in one typed transition before disposal. Requests and capacities use target `usize`. Raw backing and its lifetime belong to the caller. |
+| `core/arena` | The caller-backed monotonic `arena` over an `arena.space`, made by `over` or `over_unchecked`, with `length` and `release`. Its state, its backing and their lifetime belong to the caller. A program that imports no provider, `core/arena`'s or another, still builds: an erased allocator call no conformance answers is a trap no value reaches (D377). |
 | `core/vec` | `list`, `new`, `reserve`, `push`/`pop`, initialized views, length/capacity and `release`. Operations receive an allocator explicitly. Growth asks the provider to `resize` the list's block, which grows it in place or moves it; a list without a block allocates one. A refused growth leaves the list as it was. |
 | `core/pool` | A provider handle over a caller's `pool.space`, its bytes and initialized slot metadata. A free-index heap gives lowest-index reuse in logarithmic time; exact frees find their slot by address. A growth or a resize keeps a block in its slot to any extent the slot holds, so a list over a pool grows in place until its slot is full (`runtime/core-pool-grow`, 7.9 KB at size/auto, and `runtime/core-pool-list-grows`, 12.8 KB) (D386). No backing allocation or fallback heap. |
 | `core/sort` | Heapsort and selection sort by `cmp.ordered` evidence, and `sort_by`, heapsort by a comparison given a context, with no allocation; `runtime/core-sort-context`, which sorts records into a shared pool of names with `cmp.compare`, is 5.5 KB at size/auto (D387). |
-| `core/failure` | `failure.words`, a phrase for each of the 39 library failure atoms, linked only into a program that calls it (`runtime/failure-words`, 4.7 KB at size/auto) (D388). |
+| `core/failure` | `failure.words`, a phrase for each of the 29 library failure atoms, linked only into a program that calls it (`runtime/failure-words`, 4.7 KB at size/auto) (D388). |
 | `core/panic` | The canonical five-atom `panic_kind` domain. An entry-module public ordinary `(kind: panic.panic_kind, site: u32) -> noreturn` handler replaces the terminal default; no reporting or allocation dependency is imported. `require(holds)` stops the program as a failed check does when `holds` is false. The stop is reported at the line that called `require`, which its `caller` parameter, a `call_site`, receives (D1959). |
 | `core/text` | A builder over a caller's buffer with byte, text, decimal, hexadecimal and aligned appends, and `format` over `any text.formattable`. At size/auto the bounded builder's core, `over`, `used`, `append`, `append_byte` and the room check, is about 2.0 KB with `mem.copy`; a `u32` decimal adds about 1.0 KB, a signed one 0.5 KB more, an aligned hexadecimal about 1.3 KB, and `format` with two conformances about 2.7 KB (`runtime/core-text-format-firmware`, 10.2 KB in all, 15.1 KB at none/off). One line formatted into a fixed builder through `format` is a 7.0 KB image executing 3,889 instructions, against 4.5 KB and 2,259 through `append`. A growing builder's doubling is reached only through the table `text.growing` builds, so it is linked only into a program that calls `growing`, and no allocator is used unless the program builds a growing builder over its own. Over `utf8`, positions, the searches and the encoder with both builders' scalar appends and a refusal of each, `runtime/library-shared-text`, are 13.4 KB at size/auto and 19.6 KB at none/off, with 664 and 1,472 bytes of stack observed and 4 bytes of static RAM. A console line checked, split at a found `=` and arrow and encoded again, `runtime/core-text-utf8-firmware`, is 12.2 KB and 19.1 KB. |
 | `core/io` | Besides the concepts and the memory world, a buffered writer over the caller's buffer and a line reader, with `mem.copy` and `mem.find` (`runtime/core-io-buffered-writer`, an 11.9 KB image at size/auto, and `runtime/core-io-line-reader`, 13.1 KB). `diag.stream` writing one note through `any io.writer` adds about 3.2 KB and 1,000 instructions to the four writes it makes, most of it the decimal position. |
@@ -397,7 +397,7 @@ Overflow and exhaustion report `out_of_memory` before changing the cursor. A
 zero-byte request still checks alignment/address arithmetic and may consume
 padding; it need not have a distinct address. Arena free does not reclaim
 individual allocations. A pool zero-byte request consumes a slot and must be
-freed with its original size. `new_bytes(0)` instead returns an empty descriptor
+freed with its original size. `allocate_bytes(0)` instead returns an empty descriptor
 without asking the provider. These are deliberately distinct contracts.
 An arena can extend its current top allocation if the larger extent fits;
 other allocations between vector growths force the normal replacement path.
@@ -856,3 +856,27 @@ These answers of the library review change what a program writes
 | `map.next_entry` in a `while` to walk a map, and a tree's identifiers counted by ordinal | `for each in m`, which walks the entries in insertion order, each a copy of its key and item, and `for id in t` |
 | an `any fibre.scheduler` made beside an `any fibre.turns` from the same handle | the `any fibre.turns`, which converts to `any fibre.scheduler` where one is wanted |
 | a program's own `site` struct and a check over `compiler.unreachable(where)` | `panic.call_site` and `panic.require(holds)`, from `import core/panic` |
+
+### Migrating to one name for each idea
+
+The library renamed, merged and reshaped names so that each idea has one
+name (D1953, D1954, D2008, D2028 to D2034, D2048, D2050, D2128, D2129).
+The compiler refuses every old name with L0696, naming its replacement,
+and `refine fix` rewrites every mechanical one, adding the module's
+import where the new name lives elsewhere. The complete list is
+[the breaking list](../roadmap/inputs/breaking-list.md).
+
+| Was | Now |
+|---|---|
+| absence under eight names: `map.missing`, `tree.no_such_node`, `io.not_found`, `text.not_found`, `io.no_argument`, `io.no_variable`, `posix.no_account`, `posix.no_symbol`; and `text.past_end` | `mem.not_found`; and `mem.out_of_bounds` (D2028) |
+| out of room: `mem.full`, `text.no_space`, `io.line_too_long` | `mem.out_of_memory` (D2029) |
+| the end of a walk: `map.next_entry` failing `map.end_of_entries`; a directory entry whose name is empty at the end; `finished` on `io.line` and on the directory; `text.done` | ask `map.at_end(value, position)` first, and `next_entry` no longer fails; `entry.at_end`; `at_end`; `text.utf8_at_end`. The map walk and the directory entry are rewritten by hand (D2030) |
+| lengths: `io.argument_count`, `io.variable_count`, `io.pending`, `arena.used`, `text.width`, `try tree.count_leaves(t, id)` | `io.arguments_length`, `io.variables_length`, `io.buffered_length`, `arena.length`, `text.scalar_length`, `tree.leaves(try tree.get(t, id))` (D2031) |
+| giving back: `mem.free`; `mem.new` and `mem.delete`; `mem.new_bytes` and `mem.delete_bytes`; `mem.dispose`; `arena.reset`; `net.close_socket` | `mem.release`; `mem.allocate_item` and `mem.release_item`; `mem.allocate_bytes` and `mem.release_bytes`; `mem.detach`; `arena.release`; `net.close` (D2032) |
+| OS strings: `text.host_string`, `text.host_over`, `text.host_bytes`, `text.host_equal`, `text.from_host`, `text.append_host`; the environment variable record `io.variable` | `text.os_string`, `text.os_string_over`, `text.os_string_bytes`, `text.os_string_equal`, `text.from_os_string`, `text.append_os_string`; `text.os_variable` (D2033, D2008) |
+| one meaning each: `io.argument_at`, `io.variable_at`, `fibre.space`, `map.cursor`, `text.cursor`, the directory's `cursor`, the `entries` parameter of `stacks.round_over` and `events.over` | `io.argument`, `io.variable`, `fibre.record`, `map.position`, `text.from_offset`, `consumed`, `fibres` (D2034) |
+| `mem.transfer_prefix(source, target, n)` | `mem.copy_prefix(target, source, n)` (D2128) |
+| `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and `io.make_temporary` with their arguments in the old order | the subject first and capabilities before inputs (D1954). An old-order call is refused by its argument's type and is swapped by hand |
+| layers: `posix.internet_address`, `posix.address_of`, `posix.reason`; `posix.words` of a library atom | `system.internet_address`, `system.address_of`, `system.reason`; `system.words` (D2008) |
+| `io.writer_of(world)` and `io.lent_writer` | the world itself, since an `any io.world` converts to `any io.writer` (D2050) |
+| a program's own `iterable` | `import core/iter` and `iter.iterable`, which `refine fix` writes (D2048, D2129) |

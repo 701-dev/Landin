@@ -21,7 +21,7 @@ end step_of
 take: (inout state: step) -> none ! failure.reason =
     order = order * 10 + state.digit
     fail net.timed_out when state.failing and state.digit == 2
-    fail mem.full when state.failing
+    fail mem.out_of_memory when state.failing
 end take
 
 three: (runs: any fibre.scheduler) -> none ! failure.reason =

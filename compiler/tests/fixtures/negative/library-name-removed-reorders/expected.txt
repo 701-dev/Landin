@@ -1,0 +1,14 @@
+error[L0696]: module `mem` no longer has `transfer_prefix`
+  --> ../tests/fixtures/negative/library-name-removed-reorders/main.ldn:11:13
+   |
+11 |     try mem.transfer_prefix(source, target, 2)
+   |             ^^^^^^^^^^^^^^^
+  = note: D2128: `mem.transfer_prefix` is `mem.copy_prefix`, which takes the target first and the source second
+  = help: write `mem.copy_prefix`
+error[L0696]: module `tree` no longer has `count_leaves`
+  --> ../tests/fixtures/negative/library-name-removed-reorders/main.ldn:16:18
+   |
+16 |     n = try tree.count_leaves(value, id)
+   |                  ^^^^^^^^^^^^
+  = note: D2031: `tree.count_leaves` was removed; a node's leaves are `tree.leaves(tree.get(value, id))`
+  = help: write `tree.leaves`

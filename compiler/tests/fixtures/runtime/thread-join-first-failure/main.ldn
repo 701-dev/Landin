@@ -41,7 +41,7 @@ run: (host: system.host) -> none ! failure.reason =
     thread.join(workers) else (problem)
         thread.join(workers) else (again)
             _ = again
-            fail mem.full
+            fail mem.out_of_memory
         end
         fail problem
     end

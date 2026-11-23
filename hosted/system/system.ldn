@@ -16,6 +16,7 @@
 
 import core/cmp
 import core/io
+import core/mem
 import core/text
 import platform/posix
 
@@ -156,9 +157,9 @@ end refused
 --  is refused, and `io_failed` for the rest.  The one mapping every call
 --  on a path uses.
 path_failure: (self: host, problem: posix.errno)
-              -> none ! io.not_found | io.no_access | io.io_failed =
+              -> none ! mem.not_found | io.no_access | io.io_failed =
     record(self, problem)
-    fail io.not_found when absent(problem)
+    fail mem.not_found when absent(problem)
     fail io.no_access when refused(problem)
     fail io.io_failed
 end path_failure
@@ -213,9 +214,9 @@ end is_socket
 --  to write with EISDIR, and opens one to read and fails each read, so
 --  an open to read alone asks what it opened, closes a directory and
 --  keeps EISDIR.
-open: (self: host, path: text.host_string, options: posix.open_options,
+open: (self: host, path: text.os_string, options: posix.open_options,
        mode: u32) -> (opened: io.file)
-      ! io.already_exists | io.not_found | io.no_access | io.is_a_directory
+      ! io.already_exists | mem.not_found | io.no_access | io.is_a_directory
       | io.io_failed =
     keep_failure(self, 0)
     loop do
@@ -251,22 +252,22 @@ open: (self: host, path: text.host_string, options: posix.open_options,
     end loop
 end open
 
-system_open_read: (self: host, path: text.host_string)
+system_open_read: (self: host, path: text.os_string)
                   -> (opened: io.file)
-                  ! io.not_found | io.no_access | io.is_a_directory | io.io_failed =
+                  ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
     opened = open(self, path, posix.reading, created_mode) else (problem)
-        fail io.not_found when problem == io.not_found
+        fail mem.not_found when problem == mem.not_found
         fail io.no_access when problem == io.no_access
         fail io.is_a_directory when problem == io.is_a_directory
         fail io.io_failed
     end
 end system_open_read
 
-system_open_write: (self: host, path: text.host_string)
+system_open_write: (self: host, path: text.os_string)
                    -> (opened: io.file)
-                   ! io.not_found | io.no_access | io.is_a_directory | io.io_failed =
+                   ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
     opened = open(self, path, posix.writing, created_mode) else (problem)
-        fail io.not_found when problem == io.not_found
+        fail mem.not_found when problem == mem.not_found
         fail io.no_access when problem == io.no_access
         fail io.is_a_directory when problem == io.is_a_directory
         fail io.io_failed
@@ -275,8 +276,8 @@ end system_open_write
 
 --  A stable-path identity check, not an atomic check-and-open operation.
 --  Every input lookup failure refuses; only an absent output is allowed.
-system_same_file: (self: host, left: text.host_string,
-                   right: text.host_string)
+system_same_file: (self: host, left: text.os_string,
+                   right: text.os_string)
                   -> (same: bool) ! io.io_failed =
     keep_failure(self, 0)
     first: posix.status =
@@ -321,54 +322,54 @@ system_err: (self: host) -> (stream: io.file) =
     stream = file_of(posix.standard_error)
 end system_err
 
-system_argument_count: (self: host) -> (count: usize) =
+system_arguments_length: (self: host) -> (count: usize) =
     _ = self.failure
     table: posix.argument_table = posix.arguments()
     count = table.count
-end system_argument_count
+end system_arguments_length
 
 --  The argument is lent from the process's argument root, storage that
 --  outlives every handle, which satisfies the concept's `from self`.
 system_argument: (self: host, index: usize)
-                 -> (value: text.host_string from self) ! io.no_argument =
+                 -> (value: text.os_string from self) ! mem.not_found =
     _ = self.failure
     table: posix.argument_table = posix.arguments()
-    fail io.no_argument when index >= table.count
+    fail mem.not_found when index >= table.count
     value = posix.argument(table, index)
 end system_argument
 
 --  The environment is platform/posix's, read where the process's entry
 --  left it, and lent from storage that outlives every handle, as an
 --  argument is.
-system_variable_count: (self: host) -> (count: usize) =
+system_variables_length: (self: host) -> (count: usize) =
     _ = self.failure
     table: posix.environment_table = posix.environment()
     count = table.count
-end system_variable_count
+end system_variables_length
 
-system_variable_at: (self: host, index: usize)
-                    -> (item: io.variable from self) ! io.no_variable =
+system_variable: (self: host, index: usize)
+                 -> (item: text.os_variable from self) ! mem.not_found =
     _ = self.failure
     table: posix.environment_table = posix.environment()
-    fail io.no_variable when index >= table.count
+    fail mem.not_found when index >= table.count
     item = posix.variable(table, index)
-end system_variable_at
+end system_variable
 
-system_variable_named: (self: host, name: text.host_string)
-                       -> (value: text.host_string from self)
-                       ! io.no_variable =
+system_variable_named: (self: host, name: text.os_string)
+                       -> (value: text.os_string from self)
+                       ! mem.not_found =
     _ = self.failure
     table: posix.environment_table = posix.environment()
-    wanted: []u8 = text.host_bytes(name)
+    wanted: []u8 = text.os_string_bytes(name)
     for index in usize(0)..<table.count do
-        item: io.variable = posix.variable(table, index)
-        found: []u8 = text.host_bytes(item.name)
+        item: text.os_variable = posix.variable(table, index)
+        found: []u8 = text.os_string_bytes(item.name)
         if cmp.compare(found, wanted) == cmp.equal then
             value = item.value
             return
         end if
     end for
-    fail io.no_variable
+    fail mem.not_found
 end system_variable_named
 
 host is io.files
@@ -376,10 +377,10 @@ host is io.files
      same_file: system_same_file, close: system_close)
 host is io.process
     (input: system_input, out: system_out, err: system_err,
-     argument_count: system_argument_count, argument: system_argument)
+     arguments_length: system_arguments_length, argument: system_argument)
 host is io.environment
-    (variable_count: system_variable_count,
-     variable_at: system_variable_at,
+    (variables_length: system_variables_length,
+     variable: system_variable,
      variable_named: system_variable_named)
 
 --- Return a handle to the hosted services that do not wait. It exposes the

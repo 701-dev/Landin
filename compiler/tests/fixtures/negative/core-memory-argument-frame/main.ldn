@@ -1,7 +1,8 @@
 import core/io
 import core/io/fake
+import core/mem
 import core/text
-bad: () -> (value: text.host_string) ! io.no_argument =
+bad: () -> (value: text.os_string) ! mem.not_found =
     mut bytes: [1]u8 = [65]
     mut args: [1][]u8
     args[0] = bytes[0..<1]

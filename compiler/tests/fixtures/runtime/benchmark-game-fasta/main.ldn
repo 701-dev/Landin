@@ -5,6 +5,7 @@
 --  first it does not, and the naïve LCG advances once for every random
 --  nucleotide.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -119,10 +120,10 @@ end fasta
 --- The sequence length named by the first argument.
 sequence_size: (host: blocking.host)
                -> (n: usize)
-               ! io.no_argument | text.invalid_number | text.number_overflow =
+               ! mem.not_found | text.invalid_number | text.number_overflow =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
 end sequence_size
 
 public main: () -> (code: i32) =

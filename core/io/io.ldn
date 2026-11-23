@@ -4,10 +4,9 @@
 --  providers core/io/fake's; the hosted provider is hosted/system, selected
 --  explicitly.
 
+import core/mem
 import core/text
 
---- The requested file or path could not be found by the provider.
-public not_found: atom
 --- The provider refused access to the requested file.
 public no_access: atom
 --- An I/O operation failed. Provider-specific diagnostic detail, if offered,
@@ -15,13 +14,8 @@ public no_access: atom
 public io_failed: atom
 --- The path names a directory where a file was to be opened.
 public is_a_directory: atom
---- The argument index does not identify an available argument.
-public no_argument: atom
 --- The name a file or directory was to be made at is already taken.
 public already_exists: atom
---- No environment variable has the name asked for, or the index does not
---- identify one.
-public no_variable: atom
 
 --- A directory entry that is a regular file.
 public regular: atom
@@ -83,46 +77,37 @@ public reader: type = concept (provider: type)
           -> (count: usize) ! io_failed
 end reader
 
---- File lifecycle and identity capability. A path is a host string, as
---- the system gives and takes it (`text.host_string`); a literal one is
---- `text.host_over("name")`. A successful open returns a
+--- File lifecycle and identity capability. A path is an OS string, as
+--- the system gives and takes it (`text.os_string`); a literal one is
+--- `text.os_string_over("name")`. A successful open returns a
 --- provider-specific handle; close consumes the handle even when reporting
 --- failure.
 public files: type = concept (provider: type)
     --- Open a path for reading; return a handle owned by this provider.
     --- A path that names a directory is `is_a_directory`: a directory is
     --- read through `directories`.
-    open_read: (self: provider, path: text.host_string)
+    open_read: (self: provider, path: text.os_string)
                -> (opened: file)
-               ! not_found | no_access | is_a_directory | io_failed
+               ! mem.not_found | no_access | is_a_directory | io_failed
     --- Open a path for writing; creation and truncation follow the
     --- provider contract.  A path that names a directory is
     --- `is_a_directory`.
-    open_write: (self: provider, path: text.host_string)
+    open_write: (self: provider, path: text.os_string)
                 -> (opened: file)
-                ! not_found | no_access | is_a_directory | io_failed
+                ! mem.not_found | no_access | is_a_directory | io_failed
     --- Report whether two paths name the same file. The left path is an
     --- existing input: if it names no file the provider can examine, the
     --- call fails with `io_failed`. The right path may be an output not yet
     --- created: if it does not exist, the answer is false.
-    same_file: (self: provider, left: text.host_string,
-                right: text.host_string)
+    same_file: (self: provider, left: text.os_string,
+                right: text.os_string)
                -> (same: bool) ! io_failed
     --- Consume a file handle, including when closure reports a failure.
     close: (self: provider, sink opened: file)
            -> none ! io_failed
 end files
 
---- One environment variable: its name and its value, host strings as the
---- system keeps them, which need not be UTF-8.  A variable the process was
---- given is lent from the provider; one built for a child is lent from
---- the caller's bytes, `(name: text.host_over("LANG"), value:
---- text.host_over("C"))`.  It is `text.host_variable`, which is declared
---- below this module so that `platform/posix` reads and passes one
---- without importing the I/O concepts (D1951).
-public variable: type = text.host_variable
-
---- Standard streams and argument access. An argument is a host string
+--- Standard streams and argument access. An argument is an OS string
 --- whose storage belongs to the provider; stream identifiers have
 --- provider-specific lifetime and closing rules.
 public process: type = concept (provider: type)
@@ -134,15 +119,15 @@ public process: type = concept (provider: type)
     --- Return the standard-error handle.
     err: (self: provider) -> (stream: file)
     --- Return the count of available arguments.
-    argument_count: (self: provider) -> (count: usize)
+    arguments_length: (self: provider) -> (count: usize)
     --- Lend an argument by index; the provider retains its backing. Report
-    --- no_argument when out of range.
+    --- mem.not_found when out of range.
     argument: (self: provider, index: usize)
-              -> (value: text.host_string from self) ! no_argument
+              -> (value: text.os_string from self) ! mem.not_found
 end process
 
 --- The process's environment: its variables, each a name and a value that
---- are host strings whose storage belongs to the provider, in the order
+--- are OS strings whose storage belongs to the provider, in the order
 --- the provider keeps them.  It is read-only: a process does not change
 --- its own environment, which is not safe beside threads, and gives a
 --- child the one it builds instead (`programs`).  It is a concept of its
@@ -150,16 +135,16 @@ end process
 --- firmware image that never asks for one, carries none.
 public environment: type = concept (provider: type)
     --- Return the count of the environment's variables.
-    variable_count: (self: provider) -> (count: usize)
+    variables_length: (self: provider) -> (count: usize)
     --- Lend the environment variable at an index; the provider retains its
-    --- backing. Report no_variable when out of range.
-    variable_at: (self: provider, index: usize)
-                 -> (item: variable from self) ! no_variable
+    --- backing. Report mem.not_found when out of range.
+    variable: (self: provider, index: usize)
+              -> (item: text.os_variable from self) ! mem.not_found
     --- Lend the value of the first variable named `name`, compared as the
-    --- system stores names, with no normalization. Report no_variable when
+    --- system stores names, with no normalization. Report mem.not_found when
     --- none has that name.
-    variable_named: (self: provider, name: text.host_string)
-                    -> (value: text.host_string from self) ! no_variable
+    variable_named: (self: provider, name: text.os_string)
+                    -> (value: text.os_string from self) ! mem.not_found
 end environment
 
 --- Composition of reader, writer, files and process over one provider type.
@@ -193,22 +178,23 @@ public directory: type = struct
     position: usize
     buffer: []mut u8
     filled: usize
-    cursor: usize
-    finished: bool
+    consumed: usize
+    at_end: bool
 end directory
 
---- One entry of a directory: its name, a host string as the system stores
+--- One entry of a directory: its name, an OS string as the system stores
 --- it, which need not be UTF-8, and what it is.  `read_entry` returns an
---- entry with an empty name at the end of the directory, since no entry
---- has one.
+--- entry whose `at_end` is true at the end of the directory, its name then
+--- empty; every other entry's `at_end` is false.
 public entry: type = struct
-    name: text.host_string
+    name: text.os_string
     kind: entry_kind
+    at_end: bool
 end entry
 
 --- Directory listing and the names in a tree: open a directory and read its
 --- entries, ask an entry's size, make and remove directories, and remove
---- files.  Paths are host strings, as `files` takes them, and an entry's
+--- files.  Paths are OS strings, as `files` takes them, and an entry's
 --- name is one too, so a name read is given back unconverted.  A listing
 --- leaves out `.` and `..`, which every directory holds and which are no
 --- entries of its own.  It gives its entries in the system's order, and no
@@ -216,44 +202,45 @@ end entry
 public directories: type = concept (provider: type)
     --- Open the directory at `path` and read it into the caller's
     --- `buffer`.  A missing path and a path through or to something that
-    --- is not a directory are `not_found`.
-    open_directory: (self: provider, path: text.host_string,
+    --- is not a directory are `mem.not_found`.
+    open_directory: (self: provider, path: text.os_string,
                      buffer: []mut u8)
                     -> (opened: directory from buffer)
-                    ! not_found | no_access | io_failed
+                    ! mem.not_found | no_access | io_failed
     --- The directory's next entry, lent from it until the next read, or
-    --- an entry with an empty name at its end.
+    --- an entry whose `at_end` is true at its end.
     read_entry: (self: provider, inout opened: directory)
                 -> (item: entry from opened) ! io_failed
     --- The size in bytes of the entry `name` in the open directory, not
-    --- following a symbolic link.  A name no entry can have is `not_found`: an
-    --- empty one, one with a `/` or a NUL, or one longer than
-    --- `directory_buffer` allows.  So is an entry removed since it was read.
+    --- following a symbolic link.  A name no entry can have is
+    --- `mem.not_found`: an empty one, one with a `/` or a NUL, or one longer
+    --- than `directory_buffer` allows.  So is an entry removed since it was
+    --- read.
     entry_size: (self: provider, opened: directory,
-                 name: text.host_string)
-                -> (size: u64) ! not_found | no_access | io_failed
+                 name: text.os_string)
+                -> (size: u64) ! mem.not_found | no_access | io_failed
     --- Close the directory, which is consumed even when this fails.
     close_directory: (self: provider, sink opened: directory)
                      -> none ! io_failed
     --- Make a directory at `path`.  A path whose parent is missing is
-    --- `not_found`; a name already taken is `already_exists`.
-    make_directory: (self: provider, path: text.host_string)
-                    -> none ! already_exists | not_found | no_access | io_failed
+    --- `mem.not_found`; a name already taken is `already_exists`.
+    make_directory: (self: provider, path: text.os_string)
+                    -> none ! already_exists | mem.not_found | no_access | io_failed
     --- Remove the file `path` names, not a directory.
-    remove_file: (self: provider, path: text.host_string)
-                 -> none ! not_found | no_access | io_failed
+    remove_file: (self: provider, path: text.os_string)
+                 -> none ! mem.not_found | no_access | io_failed
     --- Remove the empty directory `path` names.
-    remove_directory: (self: provider, path: text.host_string)
-                      -> none ! not_found | no_access | io_failed
+    remove_directory: (self: provider, path: text.os_string)
+                      -> none ! mem.not_found | no_access | io_failed
 end directories
 
 --- Open a path for reading through `files` evidence. The caller must close
 --- a successful handle using the same provider. A path that names a
 --- directory fails `is_a_directory`.
 public open_read: (provider: type is files, host: provider,
-                   path: text.host_string)
+                   path: text.os_string)
                   -> (opened: file)
-                  ! not_found | no_access | is_a_directory | io_failed =
+                  ! mem.not_found | no_access | is_a_directory | io_failed =
     opened = try provider.open_read(host, path)
 end open_read
 
@@ -262,16 +249,16 @@ end open_read
 --- through that provider. A path that names a directory fails
 --- `is_a_directory`.
 public open_write: (provider: type is files, host: provider,
-                    path: text.host_string)
+                    path: text.os_string)
                    -> (opened: file)
-                   ! not_found | no_access | is_a_directory | io_failed =
+                   ! mem.not_found | no_access | is_a_directory | io_failed =
     opened = try provider.open_write(host, path)
 end open_write
 
 --- Ask whether two paths name the same file. The provider applies its own
 --- identity rules; a failure is `io_failed`.
 public same_file: (provider: type is files, host: provider,
-                   left: text.host_string, right: text.host_string)
+                   left: text.os_string, right: text.os_string)
                   -> (same: bool) ! io_failed =
     same = try provider.same_file(host, left, right)
 end same_file
@@ -287,14 +274,15 @@ end close
 --- into the caller's `buffer`; close a successful directory through the
 --- same provider.
 public open_directory: (provider: type is directories, host: provider,
-                        path: text.host_string, buffer: []mut u8)
+                        path: text.os_string, buffer: []mut u8)
                        -> (opened: directory from buffer)
-                       ! not_found | no_access | io_failed =
+                       ! mem.not_found | no_access | io_failed =
     opened = try provider.open_directory(host, path, buffer)
 end open_directory
 
 --- Read the directory's next entry, whose name is lent from the directory
---- until the next read; an empty name is the end of the directory.
+--- until the next read; an entry whose `at_end` is true is the end of the
+--- directory.
 public read_entry: (provider: type is directories, host: provider,
                     inout opened: directory)
                    -> (item: entry from opened) ! io_failed =
@@ -304,8 +292,8 @@ end read_entry
 --- The size in bytes of the entry `name` in an open directory, without
 --- following a symbolic link.
 public entry_size: (provider: type is directories, host: provider,
-                    opened: directory, name: text.host_string)
-                   -> (size: u64) ! not_found | no_access | io_failed =
+                    opened: directory, name: text.os_string)
+                   -> (size: u64) ! mem.not_found | no_access | io_failed =
     size = try provider.entry_size(host, opened, name)
 end entry_size
 
@@ -318,23 +306,23 @@ end close_directory
 
 --- Make a directory at a path.
 public make_directory: (provider: type is directories, host: provider,
-                        path: text.host_string)
+                        path: text.os_string)
                        -> none
-                       ! already_exists | not_found | no_access | io_failed =
+                       ! already_exists | mem.not_found | no_access | io_failed =
     try provider.make_directory(host, path)
 end make_directory
 
 --- Remove the file a path names.
 public remove_file: (provider: type is directories, host: provider,
-                     path: text.host_string)
-                    -> none ! not_found | no_access | io_failed =
+                     path: text.os_string)
+                    -> none ! mem.not_found | no_access | io_failed =
     try provider.remove_file(host, path)
 end remove_file
 
 --- Remove the empty directory a path names.
 public remove_directory: (provider: type is directories, host: provider,
-                          path: text.host_string)
-                         -> none ! not_found | no_access | io_failed =
+                          path: text.os_string)
+                         -> none ! mem.not_found | no_access | io_failed =
     try provider.remove_directory(host, path)
 end remove_directory
 
@@ -362,10 +350,10 @@ file_outlet: type (provider: type) = struct
 end file_outlet
 
 file_take: (provider: type is writer, self: ptr mut file_outlet(provider),
-            bytes: []u8) -> none ! text.no_space =
+            bytes: []u8) -> none ! mem.out_of_memory =
     provider.write(self.val.host, self.val.opened, bytes) else (problem)
         _ = problem
-        fail text.no_space
+        fail mem.out_of_memory
     end
 end file_take
 
@@ -432,47 +420,46 @@ end err
 
 --- Return the number of arguments after the program's name, which is not
 --- one of them: C's `argc - 1`.
-public argument_count: (provider: type is process, host: provider)
-                       -> (count: usize) =
-    count = provider.argument_count(host)
-end argument_count
+public arguments_length: (provider: type is process, host: provider)
+                         -> (count: usize) =
+    count = provider.arguments_length(host)
+end arguments_length
 
---- Lend the process argument at `index` as a host string; index zero is the
+--- Lend the process argument at `index` as an OS string; index zero is the
 --- first argument after the program's name, C's `argv[1]`. An index that
---- names no argument reports `no_argument`. The provider's argument backing
+--- names no argument reports `mem.not_found`. The provider's argument backing
 --- must outlive the string's use. Convert it to `utf8` with the checked
---- `text.from_host`, or take its bytes with `text.host_bytes`; passed on as
---- a path, it is not converted at all.
-public argument_at: (provider: type is process, host: provider,
-                     index: usize)
-                    -> (value: text.host_string from host) ! no_argument =
+--- `text.from_os_string`, or take its bytes with `text.os_string_bytes`;
+--- passed on as a path, it is not converted at all.
+public argument: (provider: type is process, host: provider, index: usize)
+                 -> (value: text.os_string from host) ! mem.not_found =
     value = try provider.argument(host, index)
-end argument_at
+end argument
 
 --- Return the number of variables in the provider's environment.
-public variable_count: (provider: type is environment, host: provider)
-                       -> (count: usize) =
-    count = provider.variable_count(host)
-end variable_count
+public variables_length: (provider: type is environment, host: provider)
+                         -> (count: usize) =
+    count = provider.variables_length(host)
+end variables_length
 
 --- Lend the environment variable at `index`, from zero, its name and value
---- host strings.  Reports `no_variable` for an index at or past the count;
+--- OS strings.  Reports `mem.not_found` for an index at or past the count;
 --- the provider's backing must outlive its use.  Every index below
---- `variable_count` gives one, so a loop over them lists the whole
+--- `variables_length` gives one, so a loop over them lists the whole
 --- environment.
-public variable_at: (provider: type is environment, host: provider,
-                     index: usize)
-                    -> (item: variable from host) ! no_variable =
-    item = try provider.variable_at(host, index)
-end variable_at
+public variable: (provider: type is environment, host: provider,
+                  index: usize)
+                 -> (item: text.os_variable from host) ! mem.not_found =
+    item = try provider.variable(host, index)
+end variable
 
 --- Lend the value of the environment variable named `name`, the first one
---- when the environment names it twice.  Reports `no_variable` when no
---- variable has that name.  `text.from_host` is the value's checked
+--- when the environment names it twice.  Reports `mem.not_found` when no
+--- variable has that name.  `text.from_os_string` is the value's checked
 --- conversion to `utf8`.
 public variable_named: (provider: type is environment, host: provider,
-                        name: text.host_string)
-                       -> (value: text.host_string from host)
-                       ! no_variable =
+                        name: text.os_string)
+                       -> (value: text.os_string from host)
+                       ! mem.not_found =
     value = try provider.variable_named(host, name)
 end variable_named

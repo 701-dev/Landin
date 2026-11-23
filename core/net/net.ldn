@@ -104,7 +104,7 @@ public direction: type = receiving | sending | both_directions
 --- connections whose handshake the system completes on its own, so one
 --- thread can connect to its own listener and then accept.  A connection's
 --- sends wait only once the system's buffers are full.  Close every socket
---- with `close_socket`; one dropped unclosed is open until the process
+--- with `close`; one dropped unclosed is open until the process
 --- ends, since there are no destructors.
 public network: type = concept (provider: type) is io.reader, io.writer
     --- Connect to a listener at `to` and return the connection.  A port
@@ -167,7 +167,7 @@ public network: type = concept (provider: type) is io.reader, io.writer
     set_no_delay: (self: provider, connection: io.file, on: bool) -> none
                   ! io.io_failed
     --- Close a socket, which is consumed even when this fails.
-    close_socket: (self: provider, sink socket: io.file) -> none ! io.io_failed
+    close: (self: provider, sink socket: io.file) -> none ! io.io_failed
 end network
 
 --- An IPv4 address `a.b.c.d` and a port.
@@ -453,7 +453,7 @@ end group
 
 --  Append the IPv4 address in the four bytes from FIRST.
 dotted: (inout into: text.builder, at: address, first: usize)
-        -> none ! text.no_space =
+        -> none ! mem.out_of_memory =
     for index in usize(0)..<4 do
         if index > 0 then try text.append_byte(into, u8('.')) end if
         try text.append_u32(into, u32(at.octets[first + index]))
@@ -464,7 +464,7 @@ end dotted
 --  without leading zeros, the longest run of two or more zero groups, the
 --  first of equals, written `::`, and an IPv4-mapped address's last 32
 --  bits in dotted decimal.
-grouped: (inout into: text.builder, at: address) -> none ! text.no_space =
+grouped: (inout into: text.builder, at: address) -> none ! mem.out_of_memory =
     mut mapped: bool = group(at, 5) == 65535
     for index in usize(0)..<5 do
         if group(at, index) <> 0 then mapped = false end if
@@ -515,7 +515,7 @@ end grouped
 --- `::ffff:192.0.2.1`, and its zone after a `%`, `fe80::1%eth0`.
 --- `parse_ip` reads it back.  It is written whole or not at all.
 public append_ip: (inout into: text.builder, at: address)
-                  -> none ! text.no_space =
+                  -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     address_written(into, at, false) else (problem)
         text.truncate(into, start)
@@ -528,7 +528,7 @@ end append_ip
 --- `[fe80::1%eth0]:8080`.  `parse_address` reads it back.  It is written
 --- whole or not at all.
 public append_address: (inout into: text.builder, at: address)
-                       -> none ! text.no_space =
+                       -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     address_written(into, at, true) else (problem)
         text.truncate(into, start)
@@ -537,7 +537,7 @@ public append_address: (inout into: text.builder, at: address)
 end append_address
 
 address_written: (inout into: text.builder, at: address, with_port: bool)
-                 -> none ! text.no_space =
+                 -> none ! mem.out_of_memory =
     bracketed: bool = with_port and at.family == ipv6
     if bracketed then try text.append_byte(into, u8('[')) end if
     if at.family == ipv4 then
@@ -558,14 +558,14 @@ address_written: (inout into: text.builder, at: address, with_port: bool)
 end address_written
 
 address_text: (self: ptr address, inout into: text.builder)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     try append_address(into, self.val)
 end address_text
 
 address is text.formattable (append: address_text)
 
 --- Connect to a listener at `to` through `network` evidence, waiting as
---- long as the system does.  Close the connection with `close_socket`.
+--- long as the system does.  Close the connection with `close`.
 public connect: (provider: type is network, host: provider, to: address)
                 -> (connected: io.file)
                 ! refused | unreachable | address_unavailable | timed_out
@@ -587,7 +587,7 @@ public connect_within: (provider: type is network, host: provider,
 end connect_within
 
 --- Listen for connections at `at`, port 0 for a free one; close the
---- listener with `close_socket`.
+--- listener with `close`.
 public listen: (provider: type is network, host: provider, at: address)
                -> (listener: io.file)
                ! address_in_use | address_unavailable | io.no_access
@@ -676,7 +676,7 @@ end set_no_delay
 
 --- Close a socket.  Treat it as consumed even if closing reports
 --- `io_failed`.
-public close_socket: (provider: type is network, host: provider,
-                      sink socket: io.file) -> none ! io.io_failed =
-    try provider.close_socket(host, socket)
-end close_socket
+public close: (provider: type is network, host: provider,
+               sink socket: io.file) -> none ! io.io_failed =
+    try provider.close(host, socket)
+end close

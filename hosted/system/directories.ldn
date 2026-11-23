@@ -4,6 +4,7 @@
 --  working directory.  Written once, over platform/posix, like the rest.
 
 import core/io
+import core/mem
 import core/text
 import platform/posix
 
@@ -14,19 +15,19 @@ import platform/posix
 stream_of: (opened: io.directory) -> (stream: posix.directory_stream) =
     stream = (descriptor: posix.descriptor(i32(opened.handle)),
               stream: opened.stream, filled: opened.filled,
-              cursor: opened.cursor, finished: opened.finished)
+              cursor: opened.consumed, finished: opened.at_end)
 end stream_of
 
 keep: (inout opened: io.directory, stream: posix.directory_stream) -> none =
     opened.filled = stream.filled
-    opened.cursor = stream.cursor
-    opened.finished = stream.finished
+    opened.consumed = stream.cursor
+    opened.at_end = stream.finished
 end keep
 
-system_open_directory: (self: host, path: text.host_string,
+system_open_directory: (self: host, path: text.os_string,
                         buffer: []mut u8)
                        -> (opened: io.directory from buffer)
-                       ! io.not_found | io.no_access | io.io_failed =
+                       ! mem.not_found | io.no_access | io.io_failed =
     keep_failure(self, 0)
     --  Every name a hosted system gives fits a buffer this large, record
     --  and all, so a read never meets one that cannot fit.
@@ -42,7 +43,7 @@ system_open_directory: (self: host, path: text.host_string,
             end
         opened = (handle: usize(i32(made.descriptor)), stream: made.stream,
                   position: 0, buffer: buffer, filled: made.filled,
-                  cursor: made.cursor, finished: made.finished)
+                  consumed: made.cursor, at_end: made.finished)
         return
     end loop
 end system_open_directory
@@ -97,17 +98,17 @@ system_read_entry: (self: host, inout opened: io.directory)
                 fail io.io_failed
             end
         opened.filled = stream.filled
-        opened.cursor = stream.cursor
-        opened.finished = stream.finished
-        name: []u8 = text.host_bytes(next.name)
+        opened.consumed = stream.cursor
+        opened.at_end = stream.finished
+        name: []u8 = text.os_string_bytes(next.name)
         if lenof name == 0 then
-            item = (name: next.name, kind: io.special)
+            item = (name: next.name, kind: io.special, at_end: true)
             return
         end if
         if not dot_name(name) then
             (kind, present) := try kind_at(self, stream.descriptor, next)
             if present then
-                item = (name: next.name, kind: kind)
+                item = (name: next.name, kind: kind, at_end: false)
                 return
             end if
         end if
@@ -115,17 +116,17 @@ system_read_entry: (self: host, inout opened: io.directory)
 end system_read_entry
 
 system_entry_size: (self: host, opened: io.directory,
-                    name: text.host_string)
-                   -> (size: u64) ! io.not_found | io.no_access | io.io_failed =
+                    name: text.os_string)
+                   -> (size: u64) ! mem.not_found | io.no_access | io.io_failed =
     keep_failure(self, 0)
     size = 0
     --  No hosted system gives a name this long, or one with a `/` or a
     --  NUL, so no entry has one, and the system is not asked.
-    bytes: []u8 = text.host_bytes(name)
-    fail io.not_found when lenof bytes == 0
+    bytes: []u8 = text.os_string_bytes(name)
+    fail mem.not_found when lenof bytes == 0
       or lenof bytes >= io.directory_buffer
     for byte in bytes do
-        fail io.not_found when byte == 0 or byte == u8('/')
+        fail mem.not_found when byte == 0 or byte == u8('/')
     end for
     found: posix.status =
         posix.status_at(posix.descriptor(i32(opened.handle)), name,
@@ -147,9 +148,9 @@ system_close_directory: (self: host, sink opened: io.directory)
     end
 end system_close_directory
 
-system_make_directory: (self: host, path: text.host_string)
+system_make_directory: (self: host, path: text.os_string)
                        -> none
-                       ! io.already_exists | io.not_found | io.no_access
+                       ! io.already_exists | mem.not_found | io.no_access
                        | io.io_failed =
     keep_failure(self, 0)
     --  Not retried on EINTR: a directory made before the interruption
@@ -164,7 +165,7 @@ system_make_directory: (self: host, path: text.host_string)
 end system_make_directory
 
 --  Remove the file, or with `directory` the empty directory, at `path`.
-removed: (path: text.host_string, directory: bool) -> none ! posix.errno =
+removed: (path: text.os_string, directory: bool) -> none ! posix.errno =
     if directory then
         try posix.remove_directory_at(posix.working_directory, path)
     else
@@ -172,8 +173,8 @@ removed: (path: text.host_string, directory: bool) -> none ! posix.errno =
     end if
 end removed
 
-remove: (self: host, path: text.host_string, directory: bool)
-        -> none ! io.not_found | io.no_access | io.io_failed =
+remove: (self: host, path: text.os_string, directory: bool)
+        -> none ! mem.not_found | io.no_access | io.io_failed =
     keep_failure(self, 0)
     removed(path, directory) else (problem)
         try path_failure(self, problem)
@@ -181,13 +182,13 @@ remove: (self: host, path: text.host_string, directory: bool)
     end
 end remove
 
-system_remove_file: (self: host, path: text.host_string)
-                    -> none ! io.not_found | io.no_access | io.io_failed =
+system_remove_file: (self: host, path: text.os_string)
+                    -> none ! mem.not_found | io.no_access | io.io_failed =
     try remove(self, path, false)
 end system_remove_file
 
-system_remove_directory: (self: host, path: text.host_string)
-                         -> none ! io.not_found | io.no_access | io.io_failed =
+system_remove_directory: (self: host, path: text.os_string)
+                         -> none ! mem.not_found | io.no_access | io.io_failed =
     try remove(self, path, true)
 end system_remove_directory
 

@@ -15,7 +15,7 @@ exercise: () -> (ok: bool) ! mem.out_of_memory =
     _ = mem.allocate(counted, usize(4), usize(1)) else (problem)
         _ = problem
         ok = fault.successes(counted) == 1 and fault.injected_failures(counted) == 1
-        mem.free(counted, address, usize(4))
+        mem.release(counted, address, usize(4))
         return
     end
 end exercise

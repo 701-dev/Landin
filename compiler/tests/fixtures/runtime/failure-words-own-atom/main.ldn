@@ -4,14 +4,15 @@
 --  all the library's, so the rest is passed on without naming each one.
 import core/failure
 import core/io
+import core/mem
 
 unconfigured: atom
 
 load: (configured: bool, refused: bool) -> none
-      ! unconfigured | io.not_found | io.no_access =
+      ! unconfigured | mem.not_found | io.no_access =
     fail unconfigured when not configured
     fail io.no_access when refused
-    fail io.not_found
+    fail mem.not_found
 end load
 
 phrase_for: (configured: bool, refused: bool) -> (length: i32) =
@@ -30,7 +31,7 @@ refused_twice: () -> (answer: i32) =
     load(true, true) else (problem)
         match problem
             unconfigured: answer = 1
-            _ (rest): if rest == io.no_access and rest <> io.not_found then
+            _ (rest): if rest == io.no_access and rest <> mem.not_found then
                           answer = 2
                       end if
         end match

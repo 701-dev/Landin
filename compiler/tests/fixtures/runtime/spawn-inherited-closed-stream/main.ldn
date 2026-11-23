@@ -17,12 +17,12 @@ import platform/posix
 --  piped streams, which is one short line.
 said: (host: blocking.host, script: []u8, streams: io.child_streams,
        into: []mut u8) -> (count: usize) ! failure.reason =
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"),
-          value: text.host_over("/bin:/usr/bin"))]
-    mut child: io.child = try io.spawn(host, text.host_over("/bin/sh"),
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"),
+          value: text.os_string_over("/bin:/usr/bin"))]
+    mut child: io.child = try io.spawn(host, text.os_string_over("/bin/sh"),
                                        arguments, variables, streams)
     count = 0
     loop do

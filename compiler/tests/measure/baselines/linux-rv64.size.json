@@ -4,7 +4,7 @@
  "entries": {
   "rv64gc/none-all/binary-trees": {
    "sections": {
-    ".text": 91376,
+    ".text": 91104,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -16,7 +16,7 @@
   },
   "rv64gc/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 70592,
+    ".text": 70500,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -28,7 +28,7 @@
   },
   "rv64gc/none-all/fasta": {
    "sections": {
-    ".text": 63984,
+    ".text": 63872,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -40,7 +40,7 @@
   },
   "rv64gc/none-all/fibre": {
    "sections": {
-    ".text": 92276,
+    ".text": 91992,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -52,7 +52,7 @@
   },
   "rv64gc/none-all/mandelbrot": {
    "sections": {
-    ".text": 97084,
+    ".text": 96844,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -64,7 +64,7 @@
   },
   "rv64gc/none-all/reverse-complement": {
    "sections": {
-    ".text": 106240,
+    ".text": 106024,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -76,7 +76,7 @@
   },
   "rv64gc/none-all/thread": {
    "sections": {
-    ".text": 120688,
+    ".text": 120188,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -88,7 +88,7 @@
   },
   "rv64gc/none-auto/binary-trees": {
    "sections": {
-    ".text": 91376,
+    ".text": 91104,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -100,7 +100,7 @@
   },
   "rv64gc/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 70592,
+    ".text": 70500,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -112,7 +112,7 @@
   },
   "rv64gc/none-auto/fasta": {
    "sections": {
-    ".text": 63984,
+    ".text": 63872,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -124,7 +124,7 @@
   },
   "rv64gc/none-auto/fibre": {
    "sections": {
-    ".text": 92276,
+    ".text": 91992,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -136,7 +136,7 @@
   },
   "rv64gc/none-auto/mandelbrot": {
    "sections": {
-    ".text": 97084,
+    ".text": 96844,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -148,7 +148,7 @@
   },
   "rv64gc/none-auto/reverse-complement": {
    "sections": {
-    ".text": 106240,
+    ".text": 106024,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -160,7 +160,7 @@
   },
   "rv64gc/none-auto/thread": {
    "sections": {
-    ".text": 120688,
+    ".text": 120188,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -172,7 +172,7 @@
   },
   "rv64gc/none-off/binary-trees": {
    "sections": {
-    ".text": 91404,
+    ".text": 91132,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -184,7 +184,7 @@
   },
   "rv64gc/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 70608,
+    ".text": 70516,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -196,7 +196,7 @@
   },
   "rv64gc/none-off/fasta": {
    "sections": {
-    ".text": 64004,
+    ".text": 63896,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -208,7 +208,7 @@
   },
   "rv64gc/none-off/fibre": {
    "sections": {
-    ".text": 92292,
+    ".text": 92008,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -220,7 +220,7 @@
   },
   "rv64gc/none-off/mandelbrot": {
    "sections": {
-    ".text": 97124,
+    ".text": 96884,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -232,7 +232,7 @@
   },
   "rv64gc/none-off/reverse-complement": {
    "sections": {
-    ".text": 106280,
+    ".text": 106064,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -244,7 +244,7 @@
   },
   "rv64gc/none-off/thread": {
    "sections": {
-    ".text": 120720,
+    ".text": 120220,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -256,7 +256,7 @@
   },
   "rv64gc/size-all/binary-trees": {
    "sections": {
-    ".text": 53436,
+    ".text": 53188,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -268,7 +268,7 @@
   },
   "rv64gc/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 39796,
+    ".text": 39720,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -280,7 +280,7 @@
   },
   "rv64gc/size-all/fasta": {
    "sections": {
-    ".text": 34932,
+    ".text": 34840,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -292,7 +292,7 @@
   },
   "rv64gc/size-all/fibre": {
    "sections": {
-    ".text": 53840,
+    ".text": 53556,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -304,7 +304,7 @@
   },
   "rv64gc/size-all/mandelbrot": {
    "sections": {
-    ".text": 54864,
+    ".text": 54660,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -316,7 +316,7 @@
   },
   "rv64gc/size-all/reverse-complement": {
    "sections": {
-    ".text": 58992,
+    ".text": 58792,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -328,7 +328,7 @@
   },
   "rv64gc/size-all/thread": {
    "sections": {
-    ".text": 71940,
+    ".text": 71440,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -340,7 +340,7 @@
   },
   "rv64gc/size-auto/binary-trees": {
    "sections": {
-    ".text": 53436,
+    ".text": 53188,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -352,7 +352,7 @@
   },
   "rv64gc/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 39796,
+    ".text": 39720,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -364,7 +364,7 @@
   },
   "rv64gc/size-auto/fasta": {
    "sections": {
-    ".text": 34932,
+    ".text": 34840,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -376,7 +376,7 @@
   },
   "rv64gc/size-auto/fibre": {
    "sections": {
-    ".text": 53840,
+    ".text": 53556,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -388,7 +388,7 @@
   },
   "rv64gc/size-auto/mandelbrot": {
    "sections": {
-    ".text": 54864,
+    ".text": 54660,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -400,7 +400,7 @@
   },
   "rv64gc/size-auto/reverse-complement": {
    "sections": {
-    ".text": 58992,
+    ".text": 58792,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -412,7 +412,7 @@
   },
   "rv64gc/size-auto/thread": {
    "sections": {
-    ".text": 71940,
+    ".text": 71440,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -424,7 +424,7 @@
   },
   "rv64gc/size-off/binary-trees": {
    "sections": {
-    ".text": 53528,
+    ".text": 53280,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -436,7 +436,7 @@
   },
   "rv64gc/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 39836,
+    ".text": 39760,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -448,7 +448,7 @@
   },
   "rv64gc/size-off/fasta": {
    "sections": {
-    ".text": 35004,
+    ".text": 34916,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -460,7 +460,7 @@
   },
   "rv64gc/size-off/fibre": {
    "sections": {
-    ".text": 53880,
+    ".text": 53596,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -472,7 +472,7 @@
   },
   "rv64gc/size-off/mandelbrot": {
    "sections": {
-    ".text": 54996,
+    ".text": 54792,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -484,7 +484,7 @@
   },
   "rv64gc/size-off/reverse-complement": {
    "sections": {
-    ".text": 59104,
+    ".text": 58904,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -496,7 +496,7 @@
   },
   "rv64gc/size-off/thread": {
    "sections": {
-    ".text": 72024,
+    ".text": 71524,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -508,7 +508,7 @@
   },
   "rv64gc/speed-all/binary-trees": {
    "sections": {
-    ".text": 48056,
+    ".text": 47784,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -520,7 +520,7 @@
   },
   "rv64gc/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 36080,
+    ".text": 35996,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -532,7 +532,7 @@
   },
   "rv64gc/speed-all/fasta": {
    "sections": {
-    ".text": 31752,
+    ".text": 31632,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -544,7 +544,7 @@
   },
   "rv64gc/speed-all/fibre": {
    "sections": {
-    ".text": 47340,
+    ".text": 47068,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -556,7 +556,7 @@
   },
   "rv64gc/speed-all/mandelbrot": {
    "sections": {
-    ".text": 49440,
+    ".text": 49196,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -568,7 +568,7 @@
   },
   "rv64gc/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55908,
+    ".text": 55644,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -580,7 +580,7 @@
   },
   "rv64gc/speed-all/thread": {
    "sections": {
-    ".text": 66796,
+    ".text": 66308,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -592,7 +592,7 @@
   },
   "rv64gc/speed-auto/binary-trees": {
    "sections": {
-    ".text": 48056,
+    ".text": 47784,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -604,7 +604,7 @@
   },
   "rv64gc/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 36080,
+    ".text": 35996,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -616,7 +616,7 @@
   },
   "rv64gc/speed-auto/fasta": {
    "sections": {
-    ".text": 31752,
+    ".text": 31632,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -628,7 +628,7 @@
   },
   "rv64gc/speed-auto/fibre": {
    "sections": {
-    ".text": 47340,
+    ".text": 47068,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -640,7 +640,7 @@
   },
   "rv64gc/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 49440,
+    ".text": 49196,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -652,7 +652,7 @@
   },
   "rv64gc/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55908,
+    ".text": 55644,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -664,7 +664,7 @@
   },
   "rv64gc/speed-auto/thread": {
    "sections": {
-    ".text": 66796,
+    ".text": 66308,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -676,7 +676,7 @@
   },
   "rv64gc/speed-off/binary-trees": {
    "sections": {
-    ".text": 48164,
+    ".text": 47892,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -688,7 +688,7 @@
   },
   "rv64gc/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 36120,
+    ".text": 36036,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -700,7 +700,7 @@
   },
   "rv64gc/speed-off/fasta": {
    "sections": {
-    ".text": 31764,
+    ".text": 31640,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -712,7 +712,7 @@
   },
   "rv64gc/speed-off/fibre": {
    "sections": {
-    ".text": 47376,
+    ".text": 47104,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -724,7 +724,7 @@
   },
   "rv64gc/speed-off/mandelbrot": {
    "sections": {
-    ".text": 49420,
+    ".text": 49176,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -736,7 +736,7 @@
   },
   "rv64gc/speed-off/reverse-complement": {
    "sections": {
-    ".text": 56136,
+    ".text": 55876,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -748,7 +748,7 @@
   },
   "rv64gc/speed-off/thread": {
    "sections": {
-    ".text": 66856,
+    ".text": 66368,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -760,7 +760,7 @@
   },
   "rv64gc_xtheadba/none-all/binary-trees": {
    "sections": {
-    ".text": 91360,
+    ".text": 91084,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -772,7 +772,7 @@
   },
   "rv64gc_xtheadba/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 70580,
+    ".text": 70484,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -784,7 +784,7 @@
   },
   "rv64gc_xtheadba/none-all/fasta": {
    "sections": {
-    ".text": 63980,
+    ".text": 63864,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -796,7 +796,7 @@
   },
   "rv64gc_xtheadba/none-all/fibre": {
    "sections": {
-    ".text": 92272,
+    ".text": 91988,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -808,7 +808,7 @@
   },
   "rv64gc_xtheadba/none-all/mandelbrot": {
    "sections": {
-    ".text": 97068,
+    ".text": 96824,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -820,7 +820,7 @@
   },
   "rv64gc_xtheadba/none-all/reverse-complement": {
    "sections": {
-    ".text": 106224,
+    ".text": 106004,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -832,7 +832,7 @@
   },
   "rv64gc_xtheadba/none-all/thread": {
    "sections": {
-    ".text": 120684,
+    ".text": 120184,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -844,7 +844,7 @@
   },
   "rv64gc_xtheadba/none-auto/binary-trees": {
    "sections": {
-    ".text": 91360,
+    ".text": 91084,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -856,7 +856,7 @@
   },
   "rv64gc_xtheadba/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 70580,
+    ".text": 70484,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -868,7 +868,7 @@
   },
   "rv64gc_xtheadba/none-auto/fasta": {
    "sections": {
-    ".text": 63980,
+    ".text": 63864,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -880,7 +880,7 @@
   },
   "rv64gc_xtheadba/none-auto/fibre": {
    "sections": {
-    ".text": 92272,
+    ".text": 91988,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -892,7 +892,7 @@
   },
   "rv64gc_xtheadba/none-auto/mandelbrot": {
    "sections": {
-    ".text": 97068,
+    ".text": 96824,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -904,7 +904,7 @@
   },
   "rv64gc_xtheadba/none-auto/reverse-complement": {
    "sections": {
-    ".text": 106224,
+    ".text": 106004,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -916,7 +916,7 @@
   },
   "rv64gc_xtheadba/none-auto/thread": {
    "sections": {
-    ".text": 120684,
+    ".text": 120184,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -928,7 +928,7 @@
   },
   "rv64gc_xtheadba/none-off/binary-trees": {
    "sections": {
-    ".text": 91388,
+    ".text": 91112,
     ".rodata": 20175,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -940,7 +940,7 @@
   },
   "rv64gc_xtheadba/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 70596,
+    ".text": 70500,
     ".rodata": 16588,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -952,7 +952,7 @@
   },
   "rv64gc_xtheadba/none-off/fasta": {
    "sections": {
-    ".text": 64000,
+    ".text": 63888,
     ".rodata": 13561,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -964,7 +964,7 @@
   },
   "rv64gc_xtheadba/none-off/fibre": {
    "sections": {
-    ".text": 92288,
+    ".text": 92004,
     ".rodata": 23624,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -976,7 +976,7 @@
   },
   "rv64gc_xtheadba/none-off/mandelbrot": {
    "sections": {
-    ".text": 97108,
+    ".text": 96864,
     ".rodata": 20607,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -988,7 +988,7 @@
   },
   "rv64gc_xtheadba/none-off/reverse-complement": {
    "sections": {
-    ".text": 106264,
+    ".text": 106044,
     ".rodata": 21356,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1000,7 +1000,7 @@
   },
   "rv64gc_xtheadba/none-off/thread": {
    "sections": {
-    ".text": 120716,
+    ".text": 120216,
     ".rodata": 31177,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1012,7 +1012,7 @@
   },
   "rv64gc_xtheadba/size-all/binary-trees": {
    "sections": {
-    ".text": 53420,
+    ".text": 53168,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1024,7 +1024,7 @@
   },
   "rv64gc_xtheadba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 39784,
+    ".text": 39704,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1036,7 +1036,7 @@
   },
   "rv64gc_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 34928,
+    ".text": 34832,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1048,7 +1048,7 @@
   },
   "rv64gc_xtheadba/size-all/fibre": {
    "sections": {
-    ".text": 53836,
+    ".text": 53552,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1060,7 +1060,7 @@
   },
   "rv64gc_xtheadba/size-all/mandelbrot": {
    "sections": {
-    ".text": 54848,
+    ".text": 54640,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1072,7 +1072,7 @@
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 58976,
+    ".text": 58772,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1084,7 +1084,7 @@
   },
   "rv64gc_xtheadba/size-all/thread": {
    "sections": {
-    ".text": 71936,
+    ".text": 71436,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1096,7 +1096,7 @@
   },
   "rv64gc_xtheadba/size-auto/binary-trees": {
    "sections": {
-    ".text": 53420,
+    ".text": 53168,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1108,7 +1108,7 @@
   },
   "rv64gc_xtheadba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 39784,
+    ".text": 39704,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1120,7 +1120,7 @@
   },
   "rv64gc_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 34928,
+    ".text": 34832,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1132,7 +1132,7 @@
   },
   "rv64gc_xtheadba/size-auto/fibre": {
    "sections": {
-    ".text": 53836,
+    ".text": 53552,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1144,7 +1144,7 @@
   },
   "rv64gc_xtheadba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 54848,
+    ".text": 54640,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1156,7 +1156,7 @@
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 58976,
+    ".text": 58772,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1168,7 +1168,7 @@
   },
   "rv64gc_xtheadba/size-auto/thread": {
    "sections": {
-    ".text": 71936,
+    ".text": 71436,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1180,7 +1180,7 @@
   },
   "rv64gc_xtheadba/size-off/binary-trees": {
    "sections": {
-    ".text": 53512,
+    ".text": 53260,
     ".rodata": 17691,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1192,7 +1192,7 @@
   },
   "rv64gc_xtheadba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 39824,
+    ".text": 39744,
     ".rodata": 14133,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1204,7 +1204,7 @@
   },
   "rv64gc_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 35000,
+    ".text": 34908,
     ".rodata": 11925,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1216,7 +1216,7 @@
   },
   "rv64gc_xtheadba/size-off/fibre": {
    "sections": {
-    ".text": 53876,
+    ".text": 53592,
     ".rodata": 20329,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1228,7 +1228,7 @@
   },
   "rv64gc_xtheadba/size-off/mandelbrot": {
    "sections": {
-    ".text": 54980,
+    ".text": 54772,
     ".rodata": 18194,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1240,7 +1240,7 @@
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 59088,
+    ".text": 58884,
     ".rodata": 19488,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1252,7 +1252,7 @@
   },
   "rv64gc_xtheadba/size-off/thread": {
    "sections": {
-    ".text": 72020,
+    ".text": 71520,
     ".rodata": 26518,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1264,7 +1264,7 @@
   },
   "rv64gc_xtheadba/speed-all/binary-trees": {
    "sections": {
-    ".text": 48036,
+    ".text": 47768,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1276,7 +1276,7 @@
   },
   "rv64gc_xtheadba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 36068,
+    ".text": 35988,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1288,7 +1288,7 @@
   },
   "rv64gc_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 31748,
+    ".text": 31632,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1300,7 +1300,7 @@
   },
   "rv64gc_xtheadba/speed-all/fibre": {
    "sections": {
-    ".text": 47336,
+    ".text": 47064,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1312,7 +1312,7 @@
   },
   "rv64gc_xtheadba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 49420,
+    ".text": 49180,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1324,7 +1324,7 @@
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55884,
+    ".text": 55624,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1336,7 +1336,7 @@
   },
   "rv64gc_xtheadba/speed-all/thread": {
    "sections": {
-    ".text": 66788,
+    ".text": 66300,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1348,7 +1348,7 @@
   },
   "rv64gc_xtheadba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 48036,
+    ".text": 47768,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1360,7 +1360,7 @@
   },
   "rv64gc_xtheadba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 36068,
+    ".text": 35988,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1372,7 +1372,7 @@
   },
   "rv64gc_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 31748,
+    ".text": 31632,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1384,7 +1384,7 @@
   },
   "rv64gc_xtheadba/speed-auto/fibre": {
    "sections": {
-    ".text": 47336,
+    ".text": 47064,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1396,7 +1396,7 @@
   },
   "rv64gc_xtheadba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 49420,
+    ".text": 49180,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1408,7 +1408,7 @@
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55884,
+    ".text": 55624,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1420,7 +1420,7 @@
   },
   "rv64gc_xtheadba/speed-auto/thread": {
    "sections": {
-    ".text": 66788,
+    ".text": 66300,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1432,7 +1432,7 @@
   },
   "rv64gc_xtheadba/speed-off/binary-trees": {
    "sections": {
-    ".text": 48144,
+    ".text": 47876,
     ".rodata": 17526,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1444,7 +1444,7 @@
   },
   "rv64gc_xtheadba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 36108,
+    ".text": 36028,
     ".rodata": 14056,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1456,7 +1456,7 @@
   },
   "rv64gc_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 31760,
+    ".text": 31640,
     ".rodata": 11848,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1468,7 +1468,7 @@
   },
   "rv64gc_xtheadba/speed-off/fibre": {
    "sections": {
-    ".text": 47372,
+    ".text": 47100,
     ".rodata": 18799,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1480,7 +1480,7 @@
   },
   "rv64gc_xtheadba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 49400,
+    ".text": 49160,
     ".rodata": 18032,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1492,7 +1492,7 @@
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 56112,
+    ".text": 55856,
     ".rodata": 19284,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1504,7 +1504,7 @@
   },
   "rv64gc_xtheadba/speed-off/thread": {
    "sections": {
-    ".text": 66848,
+    ".text": 66360,
     ".rodata": 24610,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1516,7 +1516,7 @@
   },
   "rv64gc_zba/none-all/binary-trees": {
    "sections": {
-    ".text": 93564,
+    ".text": 93288,
     ".rodata": 20674,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1528,7 +1528,7 @@
   },
   "rv64gc_zba/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 72784,
+    ".text": 72688,
     ".rodata": 17087,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1540,7 +1540,7 @@
   },
   "rv64gc_zba/none-all/fasta": {
    "sections": {
-    ".text": 66184,
+    ".text": 66068,
     ".rodata": 14061,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1552,7 +1552,7 @@
   },
   "rv64gc_zba/none-all/fibre": {
    "sections": {
-    ".text": 94768,
+    ".text": 94484,
     ".rodata": 24405,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1564,7 +1564,7 @@
   },
   "rv64gc_zba/none-all/mandelbrot": {
    "sections": {
-    ".text": 99272,
+    ".text": 99028,
     ".rodata": 21106,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1576,7 +1576,7 @@
   },
   "rv64gc_zba/none-all/reverse-complement": {
    "sections": {
-    ".text": 108428,
+    ".text": 108208,
     ".rodata": 21854,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1588,7 +1588,7 @@
   },
   "rv64gc_zba/none-all/thread": {
    "sections": {
-    ".text": 123180,
+    ".text": 122680,
     ".rodata": 31958,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1600,7 +1600,7 @@
   },
   "rv64gc_zba/none-auto/binary-trees": {
    "sections": {
-    ".text": 93564,
+    ".text": 93288,
     ".rodata": 20674,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1612,7 +1612,7 @@
   },
   "rv64gc_zba/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 72784,
+    ".text": 72688,
     ".rodata": 17087,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1624,7 +1624,7 @@
   },
   "rv64gc_zba/none-auto/fasta": {
    "sections": {
-    ".text": 66184,
+    ".text": 66068,
     ".rodata": 14061,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1636,7 +1636,7 @@
   },
   "rv64gc_zba/none-auto/fibre": {
    "sections": {
-    ".text": 94768,
+    ".text": 94484,
     ".rodata": 24405,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1648,7 +1648,7 @@
   },
   "rv64gc_zba/none-auto/mandelbrot": {
    "sections": {
-    ".text": 99272,
+    ".text": 99028,
     ".rodata": 21106,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1660,7 +1660,7 @@
   },
   "rv64gc_zba/none-auto/reverse-complement": {
    "sections": {
-    ".text": 108428,
+    ".text": 108208,
     ".rodata": 21854,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1672,7 +1672,7 @@
   },
   "rv64gc_zba/none-auto/thread": {
    "sections": {
-    ".text": 123180,
+    ".text": 122680,
     ".rodata": 31958,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1684,7 +1684,7 @@
   },
   "rv64gc_zba/none-off/binary-trees": {
    "sections": {
-    ".text": 93592,
+    ".text": 93316,
     ".rodata": 20674,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1696,7 +1696,7 @@
   },
   "rv64gc_zba/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 72800,
+    ".text": 72704,
     ".rodata": 17087,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1708,7 +1708,7 @@
   },
   "rv64gc_zba/none-off/fasta": {
    "sections": {
-    ".text": 66204,
+    ".text": 66092,
     ".rodata": 14061,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1720,7 +1720,7 @@
   },
   "rv64gc_zba/none-off/fibre": {
    "sections": {
-    ".text": 94784,
+    ".text": 94500,
     ".rodata": 24405,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1732,7 +1732,7 @@
   },
   "rv64gc_zba/none-off/mandelbrot": {
    "sections": {
-    ".text": 99312,
+    ".text": 99068,
     ".rodata": 21106,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1744,7 +1744,7 @@
   },
   "rv64gc_zba/none-off/reverse-complement": {
    "sections": {
-    ".text": 108468,
+    ".text": 108248,
     ".rodata": 21854,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1756,7 +1756,7 @@
   },
   "rv64gc_zba/none-off/thread": {
    "sections": {
-    ".text": 123212,
+    ".text": 122712,
     ".rodata": 31958,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1768,7 +1768,7 @@
   },
   "rv64gc_zba/size-all/binary-trees": {
    "sections": {
-    ".text": 54932,
+    ".text": 54680,
     ".rodata": 18190,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1780,7 +1780,7 @@
   },
   "rv64gc_zba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 41296,
+    ".text": 41216,
     ".rodata": 14632,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1792,7 +1792,7 @@
   },
   "rv64gc_zba/size-all/fasta": {
    "sections": {
-    ".text": 36440,
+    ".text": 36344,
     ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1804,7 +1804,7 @@
   },
   "rv64gc_zba/size-all/fibre": {
    "sections": {
-    ".text": 55580,
+    ".text": 55296,
     ".rodata": 21053,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1816,7 +1816,7 @@
   },
   "rv64gc_zba/size-all/mandelbrot": {
    "sections": {
-    ".text": 56360,
+    ".text": 56152,
     ".rodata": 18693,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1828,7 +1828,7 @@
   },
   "rv64gc_zba/size-all/reverse-complement": {
    "sections": {
-    ".text": 60488,
+    ".text": 60284,
     ".rodata": 19986,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1840,7 +1840,7 @@
   },
   "rv64gc_zba/size-all/thread": {
    "sections": {
-    ".text": 73680,
+    ".text": 73180,
     ".rodata": 27242,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1852,7 +1852,7 @@
   },
   "rv64gc_zba/size-auto/binary-trees": {
    "sections": {
-    ".text": 54932,
+    ".text": 54680,
     ".rodata": 18190,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1864,7 +1864,7 @@
   },
   "rv64gc_zba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 41296,
+    ".text": 41216,
     ".rodata": 14632,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1876,7 +1876,7 @@
   },
   "rv64gc_zba/size-auto/fasta": {
    "sections": {
-    ".text": 36440,
+    ".text": 36344,
     ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1888,7 +1888,7 @@
   },
   "rv64gc_zba/size-auto/fibre": {
    "sections": {
-    ".text": 55580,
+    ".text": 55296,
     ".rodata": 21053,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1900,7 +1900,7 @@
   },
   "rv64gc_zba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 56360,
+    ".text": 56152,
     ".rodata": 18693,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1912,7 +1912,7 @@
   },
   "rv64gc_zba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 60488,
+    ".text": 60284,
     ".rodata": 19986,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1924,7 +1924,7 @@
   },
   "rv64gc_zba/size-auto/thread": {
    "sections": {
-    ".text": 73680,
+    ".text": 73180,
     ".rodata": 27242,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -1936,7 +1936,7 @@
   },
   "rv64gc_zba/size-off/binary-trees": {
    "sections": {
-    ".text": 55024,
+    ".text": 54772,
     ".rodata": 18190,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1948,7 +1948,7 @@
   },
   "rv64gc_zba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 41336,
+    ".text": 41256,
     ".rodata": 14632,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -1960,7 +1960,7 @@
   },
   "rv64gc_zba/size-off/fasta": {
    "sections": {
-    ".text": 36512,
+    ".text": 36420,
     ".rodata": 12425,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -1972,7 +1972,7 @@
   },
   "rv64gc_zba/size-off/fibre": {
    "sections": {
-    ".text": 55620,
+    ".text": 55336,
     ".rodata": 21053,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -1984,7 +1984,7 @@
   },
   "rv64gc_zba/size-off/mandelbrot": {
    "sections": {
-    ".text": 56492,
+    ".text": 56284,
     ".rodata": 18693,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -1996,7 +1996,7 @@
   },
   "rv64gc_zba/size-off/reverse-complement": {
    "sections": {
-    ".text": 60600,
+    ".text": 60396,
     ".rodata": 19986,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2008,7 +2008,7 @@
   },
   "rv64gc_zba/size-off/thread": {
    "sections": {
-    ".text": 73764,
+    ".text": 73264,
     ".rodata": 27242,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2020,7 +2020,7 @@
   },
   "rv64gc_zba/speed-all/binary-trees": {
    "sections": {
-    ".text": 49380,
+    ".text": 49112,
     ".rodata": 18025,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2032,7 +2032,7 @@
   },
   "rv64gc_zba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 37412,
+    ".text": 37332,
     ".rodata": 14555,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2044,7 +2044,7 @@
   },
   "rv64gc_zba/speed-all/fasta": {
    "sections": {
-    ".text": 33092,
+    ".text": 32976,
     ".rodata": 12348,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2056,7 +2056,7 @@
   },
   "rv64gc_zba/speed-all/fibre": {
    "sections": {
-    ".text": 48800,
+    ".text": 48528,
     ".rodata": 19410,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2068,7 +2068,7 @@
   },
   "rv64gc_zba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 50764,
+    ".text": 50524,
     ".rodata": 18531,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2080,7 +2080,7 @@
   },
   "rv64gc_zba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 57228,
+    ".text": 56968,
     ".rodata": 19782,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2092,7 +2092,7 @@
   },
   "rv64gc_zba/speed-all/thread": {
    "sections": {
-    ".text": 68252,
+    ".text": 67764,
     ".rodata": 25221,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2104,7 +2104,7 @@
   },
   "rv64gc_zba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 49380,
+    ".text": 49112,
     ".rodata": 18025,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2116,7 +2116,7 @@
   },
   "rv64gc_zba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 37412,
+    ".text": 37332,
     ".rodata": 14555,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2128,7 +2128,7 @@
   },
   "rv64gc_zba/speed-auto/fasta": {
    "sections": {
-    ".text": 33092,
+    ".text": 32976,
     ".rodata": 12348,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2140,7 +2140,7 @@
   },
   "rv64gc_zba/speed-auto/fibre": {
    "sections": {
-    ".text": 48800,
+    ".text": 48528,
     ".rodata": 19410,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2152,7 +2152,7 @@
   },
   "rv64gc_zba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 50764,
+    ".text": 50524,
     ".rodata": 18531,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2164,7 +2164,7 @@
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 57228,
+    ".text": 56968,
     ".rodata": 19782,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2176,7 +2176,7 @@
   },
   "rv64gc_zba/speed-auto/thread": {
    "sections": {
-    ".text": 68252,
+    ".text": 67764,
     ".rodata": 25221,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2188,7 +2188,7 @@
   },
   "rv64gc_zba/speed-off/binary-trees": {
    "sections": {
-    ".text": 49488,
+    ".text": 49220,
     ".rodata": 18025,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2200,7 +2200,7 @@
   },
   "rv64gc_zba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 37452,
+    ".text": 37372,
     ".rodata": 14555,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2212,7 +2212,7 @@
   },
   "rv64gc_zba/speed-off/fasta": {
    "sections": {
-    ".text": 33104,
+    ".text": 32984,
     ".rodata": 12348,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2224,7 +2224,7 @@
   },
   "rv64gc_zba/speed-off/fibre": {
    "sections": {
-    ".text": 48836,
+    ".text": 48564,
     ".rodata": 19410,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2236,7 +2236,7 @@
   },
   "rv64gc_zba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 50744,
+    ".text": 50504,
     ".rodata": 18531,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2248,7 +2248,7 @@
   },
   "rv64gc_zba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 57456,
+    ".text": 57200,
     ".rodata": 19782,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2260,7 +2260,7 @@
   },
   "rv64gc_zba/speed-off/thread": {
    "sections": {
-    ".text": 68312,
+    ".text": 67824,
     ".rodata": 25221,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2272,7 +2272,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/binary-trees": {
    "sections": {
-    ".text": 93564,
+    ".text": 93288,
     ".rodata": 20683,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2284,7 +2284,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 72784,
+    ".text": 72688,
     ".rodata": 17096,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2296,7 +2296,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/fasta": {
    "sections": {
-    ".text": 66184,
+    ".text": 66068,
     ".rodata": 14070,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2308,7 +2308,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/fibre": {
    "sections": {
-    ".text": 94768,
+    ".text": 94484,
     ".rodata": 24414,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2320,7 +2320,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/mandelbrot": {
    "sections": {
-    ".text": 99272,
+    ".text": 99028,
     ".rodata": 21115,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2332,7 +2332,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/reverse-complement": {
    "sections": {
-    ".text": 108428,
+    ".text": 108208,
     ".rodata": 21863,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2344,7 +2344,7 @@
   },
   "rv64gc_zba_xtheadba/none-all/thread": {
    "sections": {
-    ".text": 123180,
+    ".text": 122680,
     ".rodata": 31967,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2356,7 +2356,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/binary-trees": {
    "sections": {
-    ".text": 93564,
+    ".text": 93288,
     ".rodata": 20683,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2368,7 +2368,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 72784,
+    ".text": 72688,
     ".rodata": 17096,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2380,7 +2380,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/fasta": {
    "sections": {
-    ".text": 66184,
+    ".text": 66068,
     ".rodata": 14070,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2392,7 +2392,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/fibre": {
    "sections": {
-    ".text": 94768,
+    ".text": 94484,
     ".rodata": 24414,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2404,7 +2404,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/mandelbrot": {
    "sections": {
-    ".text": 99272,
+    ".text": 99028,
     ".rodata": 21115,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2416,7 +2416,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/reverse-complement": {
    "sections": {
-    ".text": 108428,
+    ".text": 108208,
     ".rodata": 21863,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2428,7 +2428,7 @@
   },
   "rv64gc_zba_xtheadba/none-auto/thread": {
    "sections": {
-    ".text": 123180,
+    ".text": 122680,
     ".rodata": 31967,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2440,7 +2440,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/binary-trees": {
    "sections": {
-    ".text": 93592,
+    ".text": 93316,
     ".rodata": 20683,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2452,7 +2452,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 72800,
+    ".text": 72704,
     ".rodata": 17096,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2464,7 +2464,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/fasta": {
    "sections": {
-    ".text": 66204,
+    ".text": 66092,
     ".rodata": 14070,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2476,7 +2476,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/fibre": {
    "sections": {
-    ".text": 94784,
+    ".text": 94500,
     ".rodata": 24414,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2488,7 +2488,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/mandelbrot": {
    "sections": {
-    ".text": 99312,
+    ".text": 99068,
     ".rodata": 21115,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2500,7 +2500,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/reverse-complement": {
    "sections": {
-    ".text": 108468,
+    ".text": 108248,
     ".rodata": 21863,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2512,7 +2512,7 @@
   },
   "rv64gc_zba_xtheadba/none-off/thread": {
    "sections": {
-    ".text": 123212,
+    ".text": 122712,
     ".rodata": 31967,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2524,7 +2524,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/binary-trees": {
    "sections": {
-    ".text": 54932,
+    ".text": 54680,
     ".rodata": 18199,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2536,7 +2536,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 41296,
+    ".text": 41216,
     ".rodata": 14641,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2548,7 +2548,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/fasta": {
    "sections": {
-    ".text": 36440,
+    ".text": 36344,
     ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2560,7 +2560,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/fibre": {
    "sections": {
-    ".text": 55580,
+    ".text": 55296,
     ".rodata": 21062,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2572,7 +2572,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/mandelbrot": {
    "sections": {
-    ".text": 56360,
+    ".text": 56152,
     ".rodata": 18702,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2584,7 +2584,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 60488,
+    ".text": 60284,
     ".rodata": 19995,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2596,7 +2596,7 @@
   },
   "rv64gc_zba_xtheadba/size-all/thread": {
    "sections": {
-    ".text": 73680,
+    ".text": 73180,
     ".rodata": 27251,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2608,7 +2608,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/binary-trees": {
    "sections": {
-    ".text": 54932,
+    ".text": 54680,
     ".rodata": 18199,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2620,7 +2620,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 41296,
+    ".text": 41216,
     ".rodata": 14641,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2632,7 +2632,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/fasta": {
    "sections": {
-    ".text": 36440,
+    ".text": 36344,
     ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2644,7 +2644,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/fibre": {
    "sections": {
-    ".text": 55580,
+    ".text": 55296,
     ".rodata": 21062,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2656,7 +2656,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/mandelbrot": {
    "sections": {
-    ".text": 56360,
+    ".text": 56152,
     ".rodata": 18702,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2668,7 +2668,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 60488,
+    ".text": 60284,
     ".rodata": 19995,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2680,7 +2680,7 @@
   },
   "rv64gc_zba_xtheadba/size-auto/thread": {
    "sections": {
-    ".text": 73680,
+    ".text": 73180,
     ".rodata": 27251,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2692,7 +2692,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/binary-trees": {
    "sections": {
-    ".text": 55024,
+    ".text": 54772,
     ".rodata": 18199,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2704,7 +2704,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 41336,
+    ".text": 41256,
     ".rodata": 14641,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2716,7 +2716,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/fasta": {
    "sections": {
-    ".text": 36512,
+    ".text": 36420,
     ".rodata": 12434,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2728,7 +2728,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/fibre": {
    "sections": {
-    ".text": 55620,
+    ".text": 55336,
     ".rodata": 21062,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2740,7 +2740,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/mandelbrot": {
    "sections": {
-    ".text": 56492,
+    ".text": 56284,
     ".rodata": 18702,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2752,7 +2752,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 60600,
+    ".text": 60396,
     ".rodata": 19995,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2764,7 +2764,7 @@
   },
   "rv64gc_zba_xtheadba/size-off/thread": {
    "sections": {
-    ".text": 73764,
+    ".text": 73264,
     ".rodata": 27251,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2776,7 +2776,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/binary-trees": {
    "sections": {
-    ".text": 49380,
+    ".text": 49112,
     ".rodata": 18034,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2788,7 +2788,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 37412,
+    ".text": 37332,
     ".rodata": 14564,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2800,7 +2800,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/fasta": {
    "sections": {
-    ".text": 33092,
+    ".text": 32976,
     ".rodata": 12357,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2812,7 +2812,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/fibre": {
    "sections": {
-    ".text": 48800,
+    ".text": 48528,
     ".rodata": 19419,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2824,7 +2824,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/mandelbrot": {
    "sections": {
-    ".text": 50764,
+    ".text": 50524,
     ".rodata": 18540,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2836,7 +2836,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 57228,
+    ".text": 56968,
     ".rodata": 19791,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2848,7 +2848,7 @@
   },
   "rv64gc_zba_xtheadba/speed-all/thread": {
    "sections": {
-    ".text": 68252,
+    ".text": 67764,
     ".rodata": 25230,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2860,7 +2860,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/binary-trees": {
    "sections": {
-    ".text": 49380,
+    ".text": 49112,
     ".rodata": 18034,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2872,7 +2872,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 37412,
+    ".text": 37332,
     ".rodata": 14564,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2884,7 +2884,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/fasta": {
    "sections": {
-    ".text": 33092,
+    ".text": 32976,
     ".rodata": 12357,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2896,7 +2896,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/fibre": {
    "sections": {
-    ".text": 48800,
+    ".text": 48528,
     ".rodata": 19419,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2908,7 +2908,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 50764,
+    ".text": 50524,
     ".rodata": 18540,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2920,7 +2920,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 57228,
+    ".text": 56968,
     ".rodata": 19791,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -2932,7 +2932,7 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/thread": {
    "sections": {
-    ".text": 68252,
+    ".text": 67764,
     ".rodata": 25230,
     ".tbss": 16,
     ".data.rel.ro": 408,
@@ -2944,7 +2944,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/binary-trees": {
    "sections": {
-    ".text": 49488,
+    ".text": 49220,
     ".rodata": 18034,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2956,7 +2956,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 37452,
+    ".text": 37372,
     ".rodata": 14564,
     ".tbss": 4,
     ".data.rel.ro": 184,
@@ -2968,7 +2968,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/fasta": {
    "sections": {
-    ".text": 33104,
+    ".text": 32984,
     ".rodata": 12357,
     ".tbss": 4,
     ".data.rel.ro": 88,
@@ -2980,7 +2980,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/fibre": {
    "sections": {
-    ".text": 48836,
+    ".text": 48564,
     ".rodata": 19419,
     ".tbss": 16,
     ".data.rel.ro": 280,
@@ -2992,7 +2992,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/mandelbrot": {
    "sections": {
-    ".text": 50744,
+    ".text": 50504,
     ".rodata": 18540,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -3004,7 +3004,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 57456,
+    ".text": 57200,
     ".rodata": 19791,
     ".tbss": 4,
     ".data.rel.ro": 232,
@@ -3016,7 +3016,7 @@
   },
   "rv64gc_zba_xtheadba/speed-off/thread": {
    "sections": {
-    ".text": 68312,
+    ".text": 67824,
     ".rodata": 25230,
     ".tbss": 16,
     ".data.rel.ro": 408,

@@ -311,9 +311,9 @@ binder, which is invented. [Z1]
 
 The `new_slice`/`drop_slice` sketch below preserves the original pressure, not
 the hosted library's allocation API. Spare capacity has no typed slice image: the private
-raw state and `used` expose only initialized items. `mem.new(state, value)`
-stores a complete value before returning its pointer; `mem.delete` releases
-that object through the same allocator. The byte-specific `mem.new_bytes`
+raw state and `used` expose only initialized items. `mem.allocate_item(state, value)`
+stores a complete value before returning its pointer; `mem.release_item` releases
+that object through the same allocator. The byte-specific `mem.allocate_bytes`
 returns a `byte_buffer` holding the complete allocation extent, initializes
 all requested bytes, and exposes a borrowed slice through `mem.bytes`.
 `mem.drop_bytes` clears that owner and releases its original backing, rather
@@ -857,8 +857,6 @@ end release_map
 import core/mem
 import core/vec
 
-public no_such_node: atom
-
 ```
 
 A handle, not a pointer. u32 rather than usize, because halving
@@ -939,8 +937,8 @@ public add_branch: (provider: type is mem.allocator, inout t: tree, inout a: pro
                  (name: name, kind: branch(first: first, count: count)))
 end add_branch
 
-public get: (t: tree, id: node_id) -> (n: node from t) ! no_such_node =
-    fail no_such_node when usize(u32(id)) >= t.nodes.len
+public get: (t: tree, id: node_id) -> (n: node from t) ! mem.not_found =
+    fail mem.not_found when usize(u32(id)) >= t.nodes.len
     n = t.nodes.items[usize(u32(id))]
 end get
 
@@ -948,10 +946,12 @@ end get
 
 The original counting sketch recurses over indices. Its numeric result carries
 no origin; a node or name read along the way still carries the stored text's
-lifetime. The append-only library caches this same total when adding a branch.
+lifetime. The append-only library caches this same total when adding a branch
+and gives it as `tree.leaves(tree.get(t, id))`; absence is `mem.not_found`,
+the one atom every lookup fails (D2028, D2031).
 
 ```landin
-public count_leaves: (t: tree, id: node_id) -> (n: u32) ! no_such_node =
+public leaves_under: (t: tree, id: node_id) -> (n: u32) ! mem.not_found =
     this := try get(t, id)
     n = match this.kind
             leaf: 1
@@ -959,12 +959,12 @@ public count_leaves: (t: tree, id: node_id) -> (n: u32) ! no_such_node =
                 begin
                     mut total: u32 = 0
                     for k in 0..<count do
-                        total += try count_leaves(t, node_id(u32(first) + k))
+                        total += try leaves_under(t, node_id(u32(first) + k))
                     end for
                     total
                 end
         end match
-end count_leaves
+end leaves_under
 ```
 
 A match arm whose value takes several statements has to open a
@@ -1048,7 +1048,7 @@ A tree: three leaves under one branch.
     _      = try tree.add_leaf(t, a, "b")
     _      = try tree.add_leaf(t, a, "c")
     root  := try tree.add_branch(t, a, "root", first, 3)
-    total := tree.count_leaves(t, root) else 0
+    total := tree.leaves_under(t, root) else 0
 
     report(nine, total)
 end run

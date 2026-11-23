@@ -38,21 +38,30 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    three: usize = tree.count_leaves(value, root) else 0
+    three: usize = tree.leaves(tree.get(value, root) else (problem)
+        _ = problem
+        return
+    end)
     zero: tree.node_id = tree.add_branch(value, counted, "empty", a,
                                          zero_count)
         else (problem)
         _ = problem
         return
     end
-    empty: usize = tree.count_leaves(value, zero) else 1
+    empty: usize = tree.leaves(tree.get(value, zero) else (problem)
+        _ = problem
+        return
+    end)
     shared: tree.node_id = tree.add_branch(value, counted, "shared", a,
                                            four_count)
         else (problem)
         _ = problem
         return
     end
-    six: usize = tree.count_leaves(value, shared) else 0
+    six: usize = tree.leaves(tree.get(value, shared) else (problem)
+        _ = problem
+        return
+    end)
     mut deep: tree.node_id = root
     mut at: usize = 0
     while at < 512 do
@@ -73,7 +82,10 @@ public main: () -> (code: i32) =
     end then
         return
     end if
-    deep_count: usize = tree.count_leaves(value, deep) else 0
+    deep_count: usize = tree.leaves(tree.get(value, deep) else (problem)
+        _ = problem
+        return
+    end)
     --  Every range starts at the same branch and extends one child farther.
     --  The shared and empty nodes make the cumulative totals nonuniform.
     at = 0
@@ -84,7 +96,10 @@ public main: () -> (code: i32) =
             _ = problem
             return
         end
-        observed: usize = tree.count_leaves(value, overlap) else 0
+        observed: usize = tree.leaves(tree.get(value, overlap) else (problem)
+            _ = problem
+            return
+        end)
         if at < 2 then
             return when observed <> 3
         else

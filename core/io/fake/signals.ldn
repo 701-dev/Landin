@@ -131,13 +131,13 @@ fake_stop_watching: (self: signals) -> none ! io.io_failed =
     state.val.stopped = true
 end fake_stop_watching
 
-fake_start: (self: signals, escaping record: ptr mut fibre.space,
+fake_start: (self: signals, escaping record: ptr mut fibre.record,
              escaping stack: []mut u8, escaping work: any fibre.task)
             -> none ! mem.out_of_memory =
     try self.runs.start(record, stack, work)
 end fake_start
 
-fake_finished: (self: signals, record: fibre.space) -> (yes: bool) =
+fake_finished: (self: signals, record: fibre.record) -> (yes: bool) =
     yes = self.runs.finished(record)
 end fake_finished
 

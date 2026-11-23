@@ -5,6 +5,7 @@
 --  output goes through a buffered writer, flushed on every way out.
 import core/failure
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -24,12 +25,12 @@ numbered: (provider: type is io.world, host: provider,
         try text.align_right(prefix, 0, 6, u8(' '))
         try text.append_byte(prefix, u8('\t'))
         item: io.line = io.read_line(lines) else (problem)
-            fail problem when problem <> io.line_too_long
+            fail problem when problem <> mem.out_of_memory
             try io.put(out, text.used(prefix))
             try io.put(out, "(a line too long to show)\n")
             continue
         end
-        break when item.finished
+        break when item.at_end
         try io.put(out, text.used(prefix))
         try io.put(out, item.bytes)
         try io.put(out, "\n")

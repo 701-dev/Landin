@@ -125,21 +125,21 @@ echo: type = struct
 end echo
 
 echo_text: (self: ptr echo, inout into: text.builder)
-           -> none ! text.no_space =
+           -> none ! mem.out_of_memory =
     _ = self.val.unused
     once: []u8 = unowned(text.used(into))
     twice: []u8 = once
     text.format(into, "{}{}", [any(addr once), any(addr twice)])
         else (problem)
         _ = problem
-        fail text.no_space
+        fail mem.out_of_memory
     end
 end echo_text
 
 echo is text.formattable (append: echo_text)
 
 builder_appends: (memory: scrub) -> (ok: bool)
-                 ! text.no_space | text.invalid_format =
+                 ! mem.out_of_memory | text.invalid_format =
     ok = false
     mut source: [16]u8 = zeroed
     for at in usize(0)..<16 do

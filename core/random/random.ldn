@@ -141,7 +141,7 @@ end below
 --- Put `values` in an order drawn uniformly from every order they could
 --- have, by Fisher and Yates's shuffle: from the last, each is swapped
 --- with one drawn by `below` from those before it and itself.
-public shuffle: (item: type, inout source: generator, values: []mut item)
+public shuffle: (item: type, values: []mut item, inout source: generator)
                 -> none =
     mut at: usize = lenof values
     while at > 1 do

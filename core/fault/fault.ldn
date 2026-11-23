@@ -79,7 +79,7 @@ end injector_alloc
 injector_free: (inner_provider: type is mem.allocator,
                 self: injector(inner_provider),
                 block: ptr mut u8, size: usize) -> none =
-    mem.free(self.inner, block, size)
+    mem.release(self.inner, block, size)
     --  Allocator free has no result. These two counters are therefore exact
     --  under the allocator contract: the caller frees each successful block
     --  once with its original extent. A malformed or duplicate free is still

@@ -1054,7 +1054,7 @@ package Landin.Diagnostics.Catalogue is
         (Code => "L0348", Level => Error, State => Live,
          Source => True, Bytes => True,
          Least => 1, Most => 1, Notes => 1, Route => False,
-         Fixes => No_Fix, Shown_By => Negative_Fixture,
+         Fixes => May_Fix, Shown_By => Negative_Fixture,
          Rule => +("[1150]/D180: a for source is a range, a traversable"
                    & " value or one exact iterable conformance")),
       --  D542-D547: a description and a placement in its regions. The note

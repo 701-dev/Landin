@@ -1,0 +1,9 @@
+class: negative
+summary: a library name whose replacement changes the program's shape is refused saying what to write, with no fix
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696, L0696, L0696
+constructs: 1420
+targets: linux-x86-64
+expect: expected.txt

@@ -31,7 +31,7 @@ end asker
 ask: (inout state: asker) -> none ! failure.reason =
     time.sleep(state.clock, state.span)
     connection: io.file = try net.connect(state.network, state.to)
-    defer net.close_socket(state.network, connection) else none
+    defer net.close(state.network, connection) else none
     try net.send(state.network, connection, state.tag[0..<1])
 end ask
 
@@ -40,7 +40,7 @@ end ask
 take: (network: fake.network, clock: fake.clock, listener: io.file)
       -> (at: u64) ! failure.reason =
     connection: io.file = try net.accept(network, listener)
-    defer net.close_socket(network, connection) else none
+    defer net.close(network, connection) else none
     at = u64(time.now(clock))
     mut buffer: [1]u8 = zeroed
     got: usize = try net.receive(network, connection, buffer)
@@ -68,12 +68,12 @@ run: (runs: any fibre.turns) -> (code: i32) ! failure.reason =
     mut sockets: [5]fake.network_socket =
         [fake.socket_over(b0), fake.socket_over(b1), fake.socket_over(b2),
          fake.socket_over(b3), fake.socket_over(b4)]
-    network := fake.network_over_turns(space, sockets, runs)
+    network := fake.network_over_turns(space, runs, sockets)
     mut clock_space: fake.clock_space = zeroed
     clock := fake.clock_over_beside(clock_space, time.instant(0),
                                     (seconds: 0, nanoseconds: 0), network)
     listener: io.file = try net.listen(network, net.loopback(net.ipv4, 0))
-    defer net.close_socket(network, listener) else none
+    defer net.close(network, listener) else none
     to: net.address = try net.local_address(network, listener)
     mut tasks := try fibre.turns_over(runs, backing, 2)
     defer fibre.join(tasks) else none
@@ -94,9 +94,9 @@ run: (runs: any fibre.turns) -> (code: i32) ! failure.reason =
       or clock_space.sleeps <> 2 or space.sleepers <> 0
     code = 5
     caller: io.file = try net.connect(network, to)
-    defer net.close_socket(network, caller) else none
+    defer net.close(network, caller) else none
     answerer: io.file = try net.accept(network, listener)
-    defer net.close_socket(network, answerer) else none
+    defer net.close(network, answerer) else none
     mut buffer: [1]u8 = zeroed
     mut timed: bool = false
     got: usize = net.receive(network, answerer, buffer) else (problem)
@@ -112,7 +112,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [3]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

@@ -161,15 +161,15 @@ end arguments
 --- below argc is.
 public argument:
     (table: argument_table, index: usize)
-    -> (value: text.host_string from table) =
+    -> (value: text.os_string from table) =
     if index >= table.count then
         compiler.unreachable()
     end if
     entry: ptr argument_string = ptr(usize(table.values) + index * word)
     match entry.val
         no_string: compiler.unreachable()
-        ptr (data): value = text.host_over(view(data,
-                                                terminated_length(data)))
+        ptr (data): value = text.os_string_over(view(data,
+                                                     terminated_length(data)))
     end match
 end argument
 
@@ -179,17 +179,17 @@ end argument
 --- parent gave no arguments at all, and it traps before the argument root
 --- exists, as `arguments` does.
 public program_name:
-    () -> (name: text.host_string) =
+    () -> (name: text.os_string) =
     held: ptr ptr u8 = match root_values
         no_table: uninitialized()
         ptr (found): found
     end match
-    name = text.host_over(no_bytes[0..<0])
+    name = text.os_string_over(no_bytes[0..<0])
     return when root_count < 1
     first: ptr argument_string = ptr(usize(held))
     match first.val
         no_string: return
-        ptr (data): name = text.host_over(view(data, terminated_length(data)))
+        ptr (data): name = text.os_string_over(view(data, terminated_length(data)))
     end match
 end program_name
 
@@ -238,7 +238,7 @@ end environment
 --- a table changed since it was counted may hold.
 public variable:
     (table: environment_table, index: usize)
-    -> (item: text.host_variable from table) =
+    -> (item: text.os_variable from table) =
     if index >= table.count then
         compiler.unreachable()
     end if
@@ -250,8 +250,8 @@ public variable:
             at: usize = mem.find(whole, u8('='))
             value: []u8 = if at < lenof whole then whole[at + 1..<lenof whole]
                           else whole[lenof whole..<lenof whole] end if
-            item = (name: text.host_over(whole[0..<at]),
-                    value: text.host_over(value))
+            item = (name: text.os_string_over(whole[0..<at]),
+                    value: text.os_string_over(value))
         end
     end match
 end variable
@@ -381,25 +381,25 @@ end default_in_children
 --- `posix_spawnattr_setsigmask`. The block of strings and tables the child
 --- is given is mapped for the call and unmapped after it.
 public spawn:
-    (path: text.host_string, arguments: []text.host_string,
-     environment: []text.host_variable, streams: standard_streams)
+    (path: text.os_string, arguments: []text.os_string,
+     environment: []text.os_variable, streams: standard_streams)
     -> (child: process_id) ! errno =
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    named: []u8 = text.host_bytes(path)
+    named: []u8 = text.os_string_bytes(path)
     --  The tables first, so each pointer is aligned, then every string
     --  with its NUL: the name, the arguments, and each variable as
     --  `NAME=value`.
     entries: usize = (lenof arguments + 2) + (lenof environment + 1)
     mut size: usize = entries * word + lenof named + 1
     for argument in arguments do
-        bytes: []u8 = text.host_bytes(argument)
+        bytes: []u8 = text.os_string_bytes(argument)
         fail einval when mem.find(bytes, 0) < lenof bytes
         size += lenof bytes + 1
     end for
     for item in environment do
-        name: []u8 = text.host_bytes(item.name)
-        value: []u8 = text.host_bytes(item.value)
+        name: []u8 = text.os_string_bytes(item.name)
+        value: []u8 = text.os_string_bytes(item.value)
         fail einval when lenof name == 0 or mem.find(name, u8('=')) < lenof name
           or mem.find(name, 0) < lenof name or mem.find(value, 0) < lenof value
         size += lenof name + lenof value + 2
@@ -412,17 +412,17 @@ public spawn:
     at = place(whole, at, table, named)
     table += word
     for argument in arguments do
-        at = place(whole, at, table, text.host_bytes(argument))
+        at = place(whole, at, table, text.os_string_bytes(argument))
         table += word
     end for
     table += word
     variables: usize = table
     for item in environment do
         start: usize = at
-        at = place(whole, at, table, text.host_bytes(item.name))
+        at = place(whole, at, table, text.os_string_bytes(item.name))
         --  The name's NUL becomes the `=`, and the value follows it.
         whole[at - 1] = u8('=')
-        at = place(whole, at, table, text.host_bytes(item.value))
+        at = place(whole, at, table, text.os_string_bytes(item.value))
         slot: ptr mut usize = ptr(table)
         slot.val = usize(block) + start
         table += word

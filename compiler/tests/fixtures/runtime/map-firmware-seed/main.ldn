@@ -8,12 +8,13 @@
 import core/arena
 import core/cmp
 import core/map
+import core/mem
 
 device_words: [2]u64 = [0x5eed0001c0ffee00, 0x0123456789abcdef]
 
 mut backing: [1024]u8 = zeroed
 
-exercise: () -> (ok: bool) ! map.missing =
+exercise: () -> (ok: bool) ! mem.not_found =
     ok = false
     mut value := map.new(key: u32, item: i32,
                          seed: cmp.seed_from(device_words[0], device_words[1]))
@@ -21,12 +22,12 @@ exercise: () -> (ok: bool) ! map.missing =
     return when map.contains(value, u32(42))
     mut refused: bool = false
     _ = map.at(value, u32(42)) else (problem)
-        return when problem <> map.missing
+        return when problem <> mem.not_found
         refused = true
     end
     return when not refused
     _ = map.get(value, u32(42)) else (problem)
-        return when problem <> map.missing
+        return when problem <> mem.not_found
     end
     mut space: arena.space = zeroed
     memory := arena.over_unchecked(space, addr backing[0], lenof backing)
@@ -43,17 +44,14 @@ exercise: () -> (ok: bool) ! map.missing =
     return when map.length(value) <> 11 or map.contains(value, u32(14))
     mut walk := map.entries()
     mut expected: i32 = 0
-    loop do
-        next := map.next_entry(value, walk) else (problem)
-            _ = problem
-            break
-        end
+    while not map.at_end(value, walk) do
+        next := map.next_entry(value, walk)
         if expected == 2 then
             expected = 3
         end if
         return when next.item <> expected or next.key <> u32(expected) * 7
         inc expected
-    end loop
+    end while
     found: i32 = try map.get(value, u32(77))
     ok = found == 11 and expected == 12
 end exercise

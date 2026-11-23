@@ -106,8 +106,8 @@ thread-local host errno.
 
 For the argument path touched by this slice, both providers expose only user
 arguments and index zero is the first of them, never `argv[0]`. Each is lent
-as a host string, `text.host_string`, in the system's own representation and
-never converted: `text.from_host` is the checked route to UTF-8, and passed on
+as a host string, `text.os_string`, in the system's own representation and
+never converted: `text.from_os_string` is the checked route to UTF-8, and passed on
 as a path it reaches the system unconverted. The complete application
 copies every retained argument into its explicitly supplied region before
 building configuration, so later changes to memory-world argument bytes do
@@ -119,9 +119,9 @@ A single object rather than a slice. No from clause: what comes
 back is independent of the allocator, which is why two live
 allocations from one allocator are unremarkable [0790].
 ```landin
-public new: (t: type, provider: type is allocator,
-             inout state: provider, escaping value: t)
-            -> (p: ptr mut t) ! out_of_memory = ... end
+public allocate_item: (t: type, provider: type is allocator,
+                       inout state: provider, escaping value: t)
+                      -> (p: ptr mut t) ! out_of_memory = ... end
 
 ```
 
@@ -218,7 +218,7 @@ public args: () -> (a: []cstring) = ... end
 ## app/read  —  a buffered line reader
 
 The buffer is an allocation owner with its complete extent, not a freeable
-slice. `mem.new_bytes` initializes every byte before returning; `mem.bytes`
+slice. `mem.allocate_bytes` initializes every byte before returning; `mem.bytes`
 borrows a writable view and `mem.drop_bytes` releases the owner's original
 backing. Object allocation likewise receives a complete initial value before
 publishing its pointer. These library operations leave copied aliases and the
@@ -245,7 +245,7 @@ public open: (provider: type is mem.allocator, inout h: any io.world, inout a: p
     f := try io.open_read(h, path)
     undo io.close(h, f)
 
-    buf := try mem.new_bytes(state: a, count: size)
+    buf := try mem.allocate_bytes(state: a, count: size)
 
     r = (f: f, buf: buf, fill: 0, pos: 0)
 end open
@@ -399,7 +399,7 @@ public open_text_dest: (provider: type is mem.allocator, inout h: any io.world,
     f := try io.open_write(h, path)
     undo io.close(h, f)
 
-    buf := try mem.new_bytes(state: a, count: size)
+    buf := try mem.allocate_bytes(state: a, count: size)
 
     d = (f: f, buf: buf, used: 0)
 end open_text_dest
@@ -498,7 +498,7 @@ public build: (provider: type is mem.allocator, inout h: any io.world, inout a: 
             end
             initial: filter.level_filter =
                 (least: try level_named(level_text))
-            f := try mem.new(state: a, value: initial)
+            f := try mem.allocate_item(state: a, value: initial)
             try vec.push(chain, a, any(f))
 
         elsif text.eq(arg, "--match") then
@@ -509,7 +509,7 @@ public build: (provider: type is mem.allocator, inout h: any io.world, inout a: 
                 fail bad_argument
             end
             initial: filter.match_filter = (needle: needle)
-            f := try mem.new(state: a, value: initial)
+            f := try mem.allocate_item(state: a, value: initial)
             try vec.push(chain, a, any(f))
 
         elsif text.eq(arg, "--every") then
@@ -545,7 +545,7 @@ hold, so [0950] says check it here.
                 n = 1
             end if
             initial: filter.sample_filter = (every: n, seen: 0)
-            f := try mem.new(state: a, value: initial)
+            f := try mem.allocate_item(state: a, value: initial)
             try vec.push(chain, a, any(f))
 
         elsif text.eq(arg, "--out") then
@@ -576,11 +576,11 @@ downstream sees 'any dest'.
     if lenof to_file > 0 then
         initial := try dest.open_text_dest(h, a, to_file, 8 * 1024)
         undo dest.discard_text_dest(h, a, initial)
-        t := try mem.new(state: a, value: initial)
+        t := try mem.allocate_item(state: a, value: initial)
         chosen = any(t)
     else
         initial: dest.count_dest = (by_level: zeroed, total: 0)
-        t := try mem.new(state: a, value: initial)
+        t := try mem.allocate_item(state: a, value: initial)
         chosen = any(t)
     end if
 
@@ -672,7 +672,7 @@ end on_progress
 
 ```
 Hosted entry. The sketch names its argument adapter `io.args`; the complete
-derivative uses the supplied world's `argument_count` and `argument` entries,
+derivative uses the supplied world's `arguments_length` and `argument` entries,
 then admits their bytes directly into run-lifetime raw storage, over which a
 path is a host string again; the NUL a C call needs is added beneath the
 provider. Its hosted `entry` routine imports `hosted/system`

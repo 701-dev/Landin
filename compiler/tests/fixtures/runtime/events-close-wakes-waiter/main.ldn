@@ -49,7 +49,7 @@ stop: (inout state: stopping) -> none ! failure.reason =
     fibre.yield(state.host)
     if state.closing then
         closed: io.file = state.connection
-        try net.close_socket(state.host, closed)
+        try net.close(state.host, closed)
     else
         try net.shutdown(state.host, state.connection, net.receiving)
     end if
@@ -76,14 +76,14 @@ run: (host: events.host) -> none ! failure.reason =
     client: io.file = try net.connect(host, peer)
     accepted: io.file = try net.accept(host, listener)
     try woken(host, accepted, true, u8('c'))
-    try net.close_socket(host, client)
+    try net.close(host, client)
     --  A connection of its own, whose peer stays open while it is shut.
     second: io.file = try net.connect(host, peer)
     taken: io.file = try net.accept(host, listener)
     try woken(host, second, false, u8('s'))
-    try net.close_socket(host, second)
-    try net.close_socket(host, taken)
-    try net.close_socket(host, listener)
+    try net.close(host, second)
+    try net.close(host, taken)
+    try net.close(host, listener)
 end run
 
 public main: () -> (code: i32) =

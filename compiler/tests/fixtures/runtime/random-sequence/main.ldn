@@ -80,7 +80,7 @@ shuffle_matches: () -> (yes: bool) =
     yes = false
     mut source := random.new(7)
     mut values: [10]u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    random.shuffle(source, values[0..<10])
+    random.shuffle(values[0..<10], source)
     for at in usize(0)..<10 do
         return when values[at] <> shuffled[at]
     end for

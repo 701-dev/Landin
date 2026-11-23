@@ -23,17 +23,17 @@ gathered: (host: io.memory, state: ptr mut io.memory_space)
     try io.put(out, "ab")
     try io.put(out, "cde")
     try io.put(out, "")
-    return when state.val.writes <> 0 or io.pending(out) <> 5
+    return when state.val.writes <> 0 or io.buffered_length(out) <> 5
     try io.put(out, "fghi")
-    return when state.val.writes <> 1 or io.pending(out) <> 4
+    return when state.val.writes <> 1 or io.buffered_length(out) <> 4
     return when not wrote(state.val, "abcde")
     try io.put(out, "12345678")
-    return when state.val.writes <> 3 or io.pending(out) <> 0
+    return when state.val.writes <> 3 or io.buffered_length(out) <> 0
     return when not wrote(state.val, "abcdefghi12345678")
     try io.put(out, "xyz")
     try io.flush(out)
     try io.flush(out)
-    return when state.val.writes <> 4 or io.pending(out) <> 0
+    return when state.val.writes <> 4 or io.buffered_length(out) <> 0
     ok = wrote(state.val, "abcdefghi12345678xyz")
 end gathered
 
@@ -50,19 +50,19 @@ failing: (host: io.memory, state: ptr mut io.memory_space) -> (ok: bool) =
     end
     state.val.fail_write_at = state.val.writes + 1
     io.flush(out) else (problem)
-        return when problem <> io.io_failed or io.pending(out) <> 7
+        return when problem <> io.io_failed or io.buffered_length(out) <> 7
         return when state.val.output_used <> 0
         state.val.write_limit = 3
         state.val.fail_write_at = state.val.writes + 2
         io.flush(out) else (again)
-            return when again <> io.io_failed or io.pending(out) <> 4
+            return when again <> io.io_failed or io.buffered_length(out) <> 4
             return when not wrote(state.val, "123")
             state.val.fail_write_at = 0
             io.flush(out) else (last)
                 _ = last
                 return
             end
-            ok = io.pending(out) == 0 and wrote(state.val, "1234567")
+            ok = io.buffered_length(out) == 0 and wrote(state.val, "1234567")
             return
         end
         return
@@ -81,7 +81,7 @@ direct: (host: io.memory, state: ptr mut io.memory_space) -> (ok: bool) =
     end
     state.val.fail_write_at = state.val.writes + 1
     io.put(out, "abcdef") else (problem)
-        ok = problem == io.io_failed and io.pending(out) == 2
+        ok = problem == io.io_failed and io.buffered_length(out) == 2
         return
     end
 end direct

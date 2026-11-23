@@ -68,13 +68,13 @@ zero_size_occupies_slot: () -> (ok: bool) =
         _ = problem
         exhausted = true
     end
-    mem.free(slab, block, one)
+    mem.release(slab, block, one)
     ok = exhausted and pool.live(slab) == 1
          and pool.rejected_frees(slab) == 1
-    mem.free(slab, block, zero)
+    mem.release(slab, block, zero)
     ok = ok and pool.live(slab) == 0 and pool.frees(slab) == 1
     maximum: usize = 0 -% 1
-    mem.free(slab, block, maximum)
+    mem.release(slab, block, maximum)
     ok = ok and pool.rejected_frees(slab) == 2
 end zero_size_occupies_slot
 
@@ -108,7 +108,7 @@ one_slot_reuses: () -> (ok: bool) =
         _ = problem
         exhausted = true
     end
-    mem.free(slab, first, first_size)
+    mem.release(slab, first, first_size)
     second_size: usize = 31
     second: ptr mut u8 = mem.allocate(slab, second_size, alignment)
         else (problem)
@@ -124,7 +124,7 @@ one_slot_reuses: () -> (ok: bool) =
          and second.val == 13 and second_last.val == 17
          and pool.allocations(slab) == 2
          and pool.frees(slab) == 1 and pool.live(slab) == 1
-    mem.free(slab, second, second_size)
+    mem.release(slab, second, second_size)
     ok = ok and pool.frees(slab) == 2 and pool.live(slab) == 0
 
     --  The non-power-of-two slot alignment admits both kinds of divisors.
@@ -138,21 +138,21 @@ one_slot_reuses: () -> (ok: bool) =
         return
     end
     ok = ok and usize(by_eight) % eight == 0
-    mem.free(slab, by_eight, one)
+    mem.release(slab, by_eight, one)
     by_three: ptr mut u8 = mem.allocate(slab, one, three) else (problem)
         _ = problem
         ok = false
         return
     end
     ok = ok and usize(by_three) % three == 0
-    mem.free(slab, by_three, one)
+    mem.release(slab, by_three, one)
     zero: usize = 0
     by_zero: ptr mut u8 = mem.allocate(slab, one, zero) else (problem)
         _ = problem
         ok = false
         return
     end
-    mem.free(slab, by_zero, one)
+    mem.release(slab, by_zero, one)
     mut sixteen_refused: bool = false
     _ = mem.allocate(slab, one, sixteen) else (problem)
         _ = problem
@@ -216,7 +216,7 @@ multiple_live_and_bounds: () -> (ok: bool) =
         _ = problem
         exhausted = true
     end
-    mem.free(slab, first, first_size)
+    mem.release(slab, first, first_size)
     replacement_size: usize = 64
     replacement: ptr mut u8 = mem.allocate
         (slab, replacement_size, alignment) else (problem)
@@ -226,7 +226,7 @@ multiple_live_and_bounds: () -> (ok: bool) =
     end
 
     wrong_size: usize = 63
-    mem.free(slab, replacement, wrong_size)
+    mem.release(slab, replacement, wrong_size)
     mut wrong_free_kept_live: bool = false
     _ = mem.allocate(slab, third_size, alignment) else (problem)
         _ = problem
@@ -254,9 +254,9 @@ multiple_live_and_bounds: () -> (ok: bool) =
          and pool.frees(slab) == 1 and pool.live(slab) == 3
          and pool.rejected_frees(slab) == 1
 
-    mem.free(slab, replacement, replacement_size)
-    mem.free(slab, second, second_size)
-    mem.free(slab, third, third_size)
+    mem.release(slab, replacement, replacement_size)
+    mem.release(slab, second, second_size)
+    mem.release(slab, third, third_size)
     ok = ok and pool.frees(slab) == 4 and pool.live(slab) == 0
 end multiple_live_and_bounds
 
@@ -328,12 +328,12 @@ six_live_slots: () -> (ok: bool) =
          and pool.live(slab) == 6
          and usize(second) - usize(first) == slot_size
          and usize(sixth) - usize(fifth) == slot_size
-    mem.free(slab, first, slot_size)
-    mem.free(slab, second, slot_size)
-    mem.free(slab, third, slot_size)
-    mem.free(slab, fourth, slot_size)
-    mem.free(slab, fifth, slot_size)
-    mem.free(slab, sixth, slot_size)
+    mem.release(slab, first, slot_size)
+    mem.release(slab, second, slot_size)
+    mem.release(slab, third, slot_size)
+    mem.release(slab, fourth, slot_size)
+    mem.release(slab, fifth, slot_size)
+    mem.release(slab, sixth, slot_size)
     ok = ok and pool.live(slab) == 0 and pool.frees(slab) == 6
 end six_live_slots
 
@@ -373,20 +373,20 @@ out_of_order_reuse: () -> (ok: bool) =
     between: ptr mut u8 = ptr(addresses[4] + 1)
     after: ptr mut u8 = ptr(addresses[7] + slot_size)
     fourth: ptr mut u8 = ptr(addresses[4])
-    mem.free(slab, before, slot_size)
-    mem.free(slab, between, slot_size)
-    mem.free(slab, after, slot_size)
-    mem.free(slab, fourth, slot_size - 1)
+    mem.release(slab, before, slot_size)
+    mem.release(slab, between, slot_size)
+    mem.release(slab, after, slot_size)
+    mem.release(slab, fourth, slot_size - 1)
 
     release_order: [8]usize = [7, 1, 5, 3, 6, 0, 4, 2]
     index = 0
     while index < count do
         to_release: ptr mut u8 = ptr(addresses[release_order[index]])
-        mem.free(slab, to_release, slot_size)
+        mem.release(slab, to_release, slot_size)
         inc index
     end while
     duplicate: ptr mut u8 = ptr(addresses[2])
-    mem.free(slab, duplicate, slot_size)
+    mem.release(slab, duplicate, slot_size)
 
     ok = pool.live(slab) == 0 and pool.frees(slab) == count
          and pool.rejected_frees(slab) == 5
@@ -405,8 +405,8 @@ out_of_order_reuse: () -> (ok: bool) =
          and pool.allocations(slab) == count * 2
     second: ptr mut u8 = ptr(addresses[2])
     sixth: ptr mut u8 = ptr(addresses[6])
-    mem.free(slab, sixth, slot_size)
-    mem.free(slab, second, slot_size)
+    mem.release(slab, sixth, slot_size)
+    mem.release(slab, second, slot_size)
     reused_second: ptr mut u8 = mem.allocate(slab, slot_size, alignment)
         else (problem)
         _ = problem

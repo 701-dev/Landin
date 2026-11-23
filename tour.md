@@ -47,14 +47,15 @@ Save it as `main.ldn` in a directory of its own:
 ```landin
 import core/failure
 import core/io
+import core/mem
 import hosted/blocking
 
 --- How many lines the file named by the first argument has.
 count_file_lines: (host: blocking.host) -> (lines: usize)
-                  ! io.no_argument | io.not_found | io.no_access
+                  ! mem.not_found | io.no_access
                   | io.is_a_directory | io.io_failed
-                  | io.line_too_long =
-    path := try io.argument_at(host, 0)
+                  | mem.out_of_memory =
+    path := try io.argument(host, 0)
     source := try io.open_read(host, path)
     defer io.close(host, source) else none
     mut buffer: [4096]u8 = zeroed
@@ -62,7 +63,7 @@ count_file_lines: (host: blocking.host) -> (lines: usize)
     lines = 0
     loop do
         line := try io.read_line(reader)
-        break when line.finished
+        break when line.at_end
         inc lines
     end loop
 end count_file_lines
@@ -2020,13 +2021,13 @@ new_buffers: (provider: type is mem.allocator,
               memory: provider, count: usize)
              -> (first: mem.byte_buffer, second: mem.byte_buffer,
                  third: mem.byte_buffer) ! mem.out_of_memory =
-    first = try mem.new_bytes(memory: memory, count: count)
-    undo mem.delete_bytes(memory, first)
+    first = try mem.allocate_bytes(memory: memory, count: count)
+    undo mem.release_bytes(memory, first)
 
-    second = try mem.new_bytes(memory: memory, count: count)
-    undo mem.delete_bytes(memory, second)
+    second = try mem.allocate_bytes(memory: memory, count: count)
+    undo mem.release_bytes(memory, second)
 
-    third = try mem.new_bytes(memory: memory, count: count)
+    third = try mem.allocate_bytes(memory: memory, count: count)
     -- All three owners are published by the successful return.
 end new_buffers
 ```
@@ -2738,9 +2739,9 @@ allocator.
 
 - On plain `[]u8`, the functions are `first`, `at_end`, `next`, `advance`,
   `offset`, `byte` and `slice`. Reading a byte at the end fails with
-  `past_end`, and a slice keeps its source's origin.
+  `mem.out_of_bounds`, and a slice keeps its source's origin.
 - On `utf8`, the same positions step a whole scalar with `start`, `step`,
-  `done` and `width`. `find` returns where a match begins, so the text
+  `utf8_at_end` and `scalar_length`. `find` returns where a match begins, so the text
   around it slices out by range with nothing copied.
 
 ### [0610] Indexing text by scalar or by position
@@ -3197,10 +3198,10 @@ hold one but not look inside.
 | `used` | the initialized prefix as a `[]mut t` |
 | `withdraw`, `clear` | drop the last item, or every item |
 | `transfer` | copy one item onto the end of another `storage`, for growing |
-| `dispose` | hand the block back once it is empty |
+| `detach` | hand the block back once it is empty |
 
 The four ways of asking for something impossible are ordinary failures:
-`full`, `out_of_bounds`, `empty` and `not_empty`.
+`out_of_memory`, `out_of_bounds`, `empty` and `not_empty`.
 
 **Growing.** To grow, reserve a bigger block and `transfer` every item into
 it. A `transfer` copies and leaves its source as it was, so the old block is
@@ -3289,7 +3290,7 @@ caller may then pass only something that lives long enough: allocated or
 static, never frame.
 
 The next example assumes a struct `node` with a field
-`next: ptr mut node`. `mem.new` allocates one value through the allocator
+`next: ptr mut node`. `mem.allocate_item` allocates one value through the allocator
 it is given and returns a pointer to it ([1360]; `core/mem` in the
 [library guide](docs/library.md)).
 
@@ -3304,7 +3305,7 @@ build: (provider: type is mem.allocator, memory: provider,
         escaping seed: ptr mut node)
        -> (head: ptr mut node) ! mem.out_of_memory =
     head = seed
-    n := try mem.new(memory: memory, value: seed.val)
+    n := try mem.allocate_item(memory: memory, value: seed.val)
     push_front(head, n) -- allocated, fine
 
     mut local: node = seed.val
@@ -3586,11 +3587,11 @@ report: () -> (code: i32) =
     mut space: arena.space = zeroed
     scratch := arena.over(space, addr backing[0], 1024)
     code = 1
-    first := mem.new(scratch, u8(7)) else (problem)
+    first := mem.allocate_item(scratch, u8(7)) else (problem)
         _ = problem
         return
     end
-    second := mem.new(scratch, u8(9)) else (problem)
+    second := mem.allocate_item(scratch, u8(9)) else (problem)
         _ = problem
         return
     end
@@ -3604,7 +3605,7 @@ end report
   handle share one arena.
 - Allocation aligns the address and advances an offset. A request that
   does not fit fails with `mem.out_of_memory` before changing anything.
-- `arena.reset` gives everything back at once, and `arena.used` reports
+- `arena.release` gives everything back at once, and `arena.length` reports
   the bytes consumed.
 
 `over` takes its backing as `escaping base`, so it accepts module storage
@@ -4331,7 +4332,7 @@ context where it can; otherwise name it.
 make_widget: (provider: type is mem.allocator, memory: provider)
              -> (item: any widget) ! mem.out_of_memory =
     initial: button = (text: "OK")
-    b := try mem.new(memory: memory, value: initial)
+    b := try mem.allocate_item(memory: memory, value: initial)
     item = any(b)
 end make_widget
 ```
@@ -5506,8 +5507,8 @@ A hosted program starts at `public main: () -> (code: i32)` in the entry
 module, and `code` is the exit status, passed through the system's C ABI.
 
 **Arguments.** The arguments are not parameters. You ask the host for
-them, as `io.argument_at(host, 0)` does in "Reading a file" at the top:
-the host keeps the argument table and lends each argument as a host string
+them, as `io.argument(host, 0)` does in "Reading a file" at the top:
+the host keeps the argument table and lends each argument as an OS string
 ([1660]). The first argument is the one after the program's own name. C's
 `argc` and `argv` shape could not be indexed in Landin without turning a
 pointer into a slice, which Landin does not do ([0500]).
@@ -5660,7 +5661,7 @@ on, keeping the same handle ([1370]). An `any io.writer` does not convert
 back, since a writer need not be a world.
 
 **Arguments and paths.** Both providers lend each argument and path as a
-`text.host_string`: the bytes the system gave, unconverted and uncopied,
+`text.os_string`: the bytes the system gave, unconverted and uncopied,
 so an argument passed on as a path reaches the system unchanged, whether
 or not it is UTF-8. Neither provider's arguments include `argv[0]`.
 
@@ -5821,7 +5822,7 @@ roots are minted ([1660]), and the functions below never learn it:
 | provider | a call that waits | groups | signals |
 | --- | --- | --- | --- |
 | `hosted/blocking`, `blocking.new()` | blocks the thread | `scheduler`: each task to its end | none: SIGTERM ends the process |
-| `hosted/events`, `events.over(state, entries)` | lets the other fibres run while epoll or kqueue waits | `turns` | `core/io/signal`'s `signals` |
+| `hosted/events`, `events.over(state, fibres)` | lets the other fibres run while epoll or kqueue waits | `turns` | `core/io/signal`'s `signals` |
 
 `events.over` takes a space the caller declares and a round's table, one
 entry more than the fibres unfinished at once. A signal is an event a

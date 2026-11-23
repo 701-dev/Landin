@@ -4,6 +4,6 @@ import hosted/blocking
 public main: () -> (code: i32) =
     host := blocking.new()
     world: any io.world = any(host)
-    _ = world.argument_count()
+    _ = world.arguments_length()
     code = 0
 end main

@@ -1,0 +1,17 @@
+--  D2129: a library name whose replacement changes the program's shape is
+--  refused saying what to write, and with no fix: the map's walk no longer
+--  fails at its end, and an erased world is already a writer.
+import core/io
+import core/map
+import hosted/blocking
+
+walked: (done: bool) -> none ! map.end_of_entries =
+    fail map.end_of_entries when done
+end walked
+
+public main: () -> (code: i32) =
+    host: blocking.host = blocking.new()
+    writer: any io.writer = io.writer_of(host)
+    _ = writer
+    code = 0
+end main

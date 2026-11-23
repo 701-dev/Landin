@@ -48,14 +48,14 @@ public main: () -> (code: i32) =
     end
     budget_refused: allocation =
         mem.allocate(limited, eight, eight) else no_allocation
-    mem.free(limited, accepted, eight)
+    mem.release(limited, accepted, eight)
 
     if usize(first) == usize(base)
       and usize(second) % eight == 0
-      and arena.used(bump) == usize(second) - usize(base) + eight
+      and arena.length(bump) == usize(second) - usize(base) + eight
       and is_absent(refused)
       and usize(accepted) % eight == 0
-      and arena.used(limited_arena) == usize(accepted) - usize(limited_base) + eight
+      and arena.length(limited_arena) == usize(accepted) - usize(limited_base) + eight
       and is_absent(budget_refused)
       and fault.successes(limited) == 1 and fault.remaining(limited) == 0
       and fault.frees(limited) == 1

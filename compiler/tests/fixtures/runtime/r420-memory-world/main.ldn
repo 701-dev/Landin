@@ -1,5 +1,6 @@
 import core/io
 import core/io/fake
+import core/mem
 import core/text
 
 mut input: [5]u8 = [65, 66, 67, 68, 69]
@@ -29,9 +30,9 @@ public main: () -> (code: i32) =
     state.read_limit = 2
     state.write_limit = 2
     world: any io.world = any(addr memory)
-    if world.argument_count() <> 0 then return end if
+    if world.arguments_length() <> 0 then return end if
     if not missing_argument(world) then return end if
-    path_in := text.host_over(path_in_bytes)
+    path_in := text.os_string_over(path_in_bytes)
     opened: io.file = world.open_read(path_in) else (problem)
         _ = problem
         return
@@ -86,7 +87,7 @@ public main: () -> (code: i32) =
     end
     if not no_progress or state.output_used <> 7 then return end if
     state.write_limit = 2
-    path_out := text.host_over(path_out_bytes)
+    path_out := text.os_string_over(path_out_bytes)
     destination_file: io.file = world.open_write(path_out) else (problem)
         _ = problem
         return
@@ -116,10 +117,10 @@ public main: () -> (code: i32) =
 end main
 
 missing_argument: (world: any io.world) -> (yes: bool) =
-    value: text.host_string = world.argument(0) else (problem)
-        yes = problem == io.no_argument
+    value: text.os_string = world.argument(0) else (problem)
+        yes = problem == mem.not_found
         return
     end
-    _ = text.host_bytes(value)
+    _ = text.os_string_bytes(value)
     yes = false
 end missing_argument

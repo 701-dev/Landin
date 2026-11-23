@@ -4,6 +4,7 @@
 --  byte builder's `append_scalar` writes the same bytes and refuses the
 --  same way, its length and bytes unchanged.
 import core/cmp
+import core/mem
 import core/text
 
 --  Each scalar, its width and its bytes, padded with zeros.
@@ -75,7 +76,7 @@ refusals_hold: () -> (yes: bool) =
     for index in usize(0)..<usize(4) do
         mut buffer: [4]u8 = [0x55, 0x55, 0x55, 0x55]
         _ = text.encode(roomy[index], buffer[0..<index]) else (problem)
-            return when problem <> text.no_space
+            return when problem <> mem.out_of_memory
             0
         end
         return when not untouched(buffer[0..<4], 0x55)
@@ -86,7 +87,7 @@ end refusals_hold
 --  `append_scalar` writes the encoder's bytes; a value that is no scalar,
 --  or a scalar with too little room, leaves the builder's length and its
 --  buffer as they were.
-appends_hold: () -> (yes: bool) ! text.no_space | text.invalid_scalar =
+appends_hold: () -> (yes: bool) ! mem.out_of_memory | text.invalid_scalar =
     yes = false
     mut storage: [8]u8 = [0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55]
     mut line := text.over(storage[0..<8])
@@ -97,7 +98,7 @@ appends_hold: () -> (yes: bool) ! text.no_space | text.invalid_scalar =
     text.append_scalar(line, 0xdc00) else (problem)
         return when problem <> text.invalid_scalar or text.length(line) <> 6
         text.append_scalar(line, 0x1f600) else (again)
-            return when again <> text.no_space or text.length(line) <> 6
+            return when again <> mem.out_of_memory or text.length(line) <> 6
               or not untouched(storage[6..<8], 0x55)
             try text.append_scalar(line, 0x7e)
             yes = cmp.compare(text.used(line), text.bytes("<\u{e9}\u{2192}~"))

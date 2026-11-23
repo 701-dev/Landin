@@ -3,6 +3,7 @@
 --  written draining: the store is handed to the outlet whenever a piece
 --  does not fit.  `text.length` counts what was handed on, so an offset
 --  taken before a hand-over still names the same byte after it.
+import core/mem
 import core/text
 
 --  An outlet that keeps what it is handed.
@@ -11,8 +12,8 @@ keeper: type = struct
     count: usize
 end keeper
 
-sink_take: (self: ptr mut keeper, bytes: []u8) -> none ! text.no_space =
-    fail text.no_space when lenof bytes > 96 - self.val.count
+sink_take: (self: ptr mut keeper, bytes: []u8) -> none ! mem.out_of_memory =
+    fail mem.out_of_memory when lenof bytes > 96 - self.val.count
     for at in usize(0)..<lenof bytes do
         self.val.bytes[self.val.count + at] = bytes[at]
     end for
@@ -31,7 +32,7 @@ row: type = struct
     side: right | left
 end row
 
-row_text: (self: ptr row, inout into: text.builder) -> none ! text.no_space =
+row_text: (self: ptr row, inout into: text.builder) -> none ! mem.out_of_memory =
     try text.append_text(into, self.val.label)
     try text.append_byte(into, u8(' '))
     start: usize = text.length(into)
@@ -53,7 +54,7 @@ cell: type = struct
 end cell
 
 cell_text: (self: ptr cell, inout into: text.builder)
-           -> none ! text.no_space =
+           -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     try text.append_text(into, self.val.name)
     if self.val.side == right then
@@ -73,7 +74,7 @@ retracted: type = struct
 end retracted
 
 retracted_text: (self: ptr retracted, inout into: text.builder)
-                -> none ! text.no_space =
+                -> none ! mem.out_of_memory =
     begins: usize = text.length(into)
     try text.append_text(into, self.val.label)
     kept: usize = text.length(into)
@@ -113,7 +114,7 @@ refuses: (value: any text.formattable) -> (yes: bool) =
     mut kept: keeper = zeroed
     onto: any text.outlet = any(addr kept)
     text.format_onto(store[0..<16], onto, "[{}]", [value]) else (problem)
-        yes = problem == text.no_space
+        yes = problem == mem.out_of_memory
     end
 end refuses
 
