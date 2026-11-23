@@ -181,6 +181,11 @@ def wine_prefix(runner, output):
                               capture_output=True)
         require(done.returncode == 0, 'could not configure the Wine prefix: '
                 + (done.stdout + done.stderr).decode(errors='replace')[-400:])
+    #  Wine finishes making a new prefix after the command that made it
+    #  returns; a program started meanwhile can wait past its limit.
+    server = Path(shutil.which(runner[0]) or runner[0]).with_name('wineserver')
+    if server.exists():
+        subprocess.run([str(server), '-w'], capture_output=True, timeout=300)
 
 
 def without_wine_report(text):

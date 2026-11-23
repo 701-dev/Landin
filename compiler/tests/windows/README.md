@@ -12,8 +12,11 @@ checked release compiler and `--prepare-only`, linking with Clang 19, LLD
 and Ubuntu's MinGW-w64 import libraries (`mingw-w64-x86-64-dev`) under the
 name `x86_64-w64-mingw32-clang`, which is llvm-mingw's; `windows-runtime`
 runs the bundle with `--prepared=DIR` on GitHub's `windows-2025` image, with
-nothing but Python, this file's script and the bundle. An emitted bundle is
-not an execution verdict.
+nothing but Python and the bundle, which carries this directory's script and
+the three it imports at their own paths. That job checks nothing out: the
+tree holds a fixture path with a double quote, which Git for Windows refuses
+even outside a sparse checkout. An emitted bundle is not an execution
+verdict.
 
 A fixture's `status` is what a POSIX parent reads, the low byte of what
 `main` returned; Windows keeps all 32 bits, so the lane compares the low
@@ -25,7 +28,7 @@ so Windows Error Reporting neither opens a dialog nor waits on a trap.
 
 The selection refuses a fixture naming `windows-x86-64` that asks for what
 the lane does not run yet: C peers, a C library (`link:`), library
-directories, files, arguments' files or standard input. A Windows program
+directories, files given as arguments, or standard input. A Windows program
 has no hosted provider yet, so a fixture importing `hosted/` or the POSIX
 platform modules does not name the target.
 
