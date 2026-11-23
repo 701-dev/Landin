@@ -243,8 +243,10 @@ def main():
                 return
         failures = []
         if not args.dap:
-            failures += direct(bundle, manifest, shlex.split(args.lldb),
-                               args.output)
+            #  A Windows path's backslashes are no shell's escapes.
+            lldb = ([args.lldb] if Path(args.lldb).is_file()
+                    else shlex.split(args.lldb))
+            failures += direct(bundle, manifest, lldb, args.output)
         if args.dap or not args.prepared:
             require(args.lldb_dap, 'the refine dap session needs --lldb-dap')
             try:
