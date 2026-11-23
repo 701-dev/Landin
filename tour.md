@@ -864,6 +864,10 @@ log_it: (m: utf8) -> none = end log_it
 halt_it: () -> noreturn = loop do end loop end halt_it
 ```
 
+A function that returns nothing still writes `-> none` after its
+parameters: leaving the returns out, `f: (x: i32) =`, does not spell it,
+and neither do empty parentheses, `-> ()`.
+
 The body of a `noreturn` function has to diverge on every reachable path:
 an unconditional `loop` with no exit, or a call to another `noreturn`
 function. A conditional loop does not count, even if you expect it to run
@@ -1827,6 +1831,11 @@ Inside an `if` arm, `else value` after a call is the `if`'s own `else`,
 which is how `if c then a() else b() end if` reads. To handle the call's
 failure there, parenthesize it, `(open_file(path) else 0)`, or bind the
 error: `else (e)` always belongs to the call, wherever it is written.
+The same holds for `else begin ... end`. When an arm's lines go on after
+it, as in `count := encode(c) else begin fail bad end` followed by more
+lines of the arm, the compiler reports that `else`: the layout shows you
+meant the call's recovery, and the fix is the same, bind the error or
+parenthesize the call.
 
 A handled call is an expression, so it also works inside a larger one, as
 an operand or an argument:

@@ -1,0 +1,12 @@
+error[L0110]: this `else` recovers the call, and written bare it ends the `if` arm it stands in
+  --> ../tests/fixtures/negative/else-begin-in-an-if-arm-is-said-at-the-else/program.ldn:13:32
+   |
+13 |         count: usize = conv(x) else begin fail bad_escape end
+   |                                ^^^^
+  = note: [1820]: in an `if` arm, a bare `else` divides the `if`; keep it the call's by binding the error, `else (problem) ... end`, or with parentheses, `(call(...) else value)`
+error[L0110]: this `else` recovers the call, and written bare it ends the `if` arm it stands in
+  --> ../tests/fixtures/negative/else-begin-in-an-if-arm-is-said-at-the-else/program.ldn:23:32
+   |
+23 |         count: usize = conv(x) else begin
+   |                                ^^^^
+  = note: [1820]: in an `if` arm, a bare `else` divides the `if`; keep it the call's by binding the error, `else (problem) ... end`, or with parentheses, `(call(...) else value)`

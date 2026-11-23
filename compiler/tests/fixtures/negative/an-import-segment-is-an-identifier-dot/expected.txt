@@ -1,0 +1,6 @@
+error[L0100]: each segment of an import path is an identifier, and `.` is not part of one
+  --> ../tests/fixtures/negative/an-import-segment-is-an-identifier-dot/program.ldn:1:14
+  |
+1 | import github.com/tools/lines
+  |              ^
+  = note: [1420]: a segment of an import path is lower-case letters, digits and `_`, beginning with a letter, as in `import refine_build/lines`

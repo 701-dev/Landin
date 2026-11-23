@@ -239,6 +239,13 @@ package Landin.Tokens is
    function Refused (Item : Fault) return Described_Kind
      with Pre => Kind (Item) = Unterminated_Literal;
 
+   --  D2170: a malformed integer that stands in an import's module path,
+   --  `import 701_dev/pkg`, is a segment beginning with a digit.  It is a
+   --  fault, so the file is refused here as everywhere, and its wording
+   --  is the parser's, which names the segment rule.
+   function In_Import_Path (Item : Fault) return Boolean
+     with Pre => Kind (Item) = Malformed_Integer_Run;
+
    --  D528: a word of letters, digits and underscores that holds a capital
    --  is an identifier token of that spelling, and this is its name, so the
    --  report can offer the lower-case one.  Its wording waits for the

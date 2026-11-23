@@ -413,7 +413,9 @@ a name, then index the name. Where another form does the work the report's
 own sentence names it: several names before `:=` with a call on the right
 are bound in parentheses, `(low, high) := pair(2)`, and a count before `of`
 that is not a literal goes in the binding's type, `name: [count]t = [of
-value]`.
+value]`. A concept entry that takes a type formal of its own, `pull: (self: t,
+other: type is drain) -> none`, is refused once at `type`, and the concept's
+entries after it and its `end` are read as written (D2169).
 
 ```landin
 point: type = struct
@@ -429,7 +431,9 @@ An integer literal is malformed if a base prefix has no digits, a digit is not
 in its base, an underscore begins or ends the digit run, or the literal runs
 straight into a name [1770]. `0x` takes hexadecimal digits, `0b` binary and
 `0o` octal. Keep underscores between digits, and put a separator before a
-following name.
+following name. A segment of an import path that begins with a digit, `import
+701_dev/pkg`, is L0100's, a name that belongs there, and not a malformed
+integer (D2170).
 
 ```landin
 mask: u64 = 1u64
@@ -538,7 +542,17 @@ arm is refused too: it covers every case no other arm names, so it is an arm
 of its own (D405). An import's module path is names and slashes and is never
 quoted: `import core/text`, not `import "core/text"` (D862). `addr` of a
 measure, `addr lenof items`, would take the address of a value: bind the
-measure to a name first and take the address of the name (D863).
+measure to a name first and take the address of the name (D863). `-> ()`,
+another language's empty tuple, is refused naming `-> none`, the spelling of a
+routine that returns nothing; the exact fix writes `none`, and the function or
+concept entry is read on to its `end` (D2168). Each segment of an import path
+is an identifier [1420]: a `-` or `.` joining names, `import
+tools/refine-build/lines` or `import github.com/tools/lines`, is refused at
+that character, and a segment beginning with a digit, `import 701_dev/pkg`, at
+the digit. Write a segment in lower-case letters, digits and `_`, beginning
+with a letter, such as `refine_build` (D2170). `lenof` before a text literal,
+`lenof "abcde"`, is refused, since `lenof` measures what a name begins [0370]:
+bind the text, `word := "abcde"`, and measure `lenof word` (D2171).
 
 ```landin
 _: u32 = 1
@@ -595,7 +609,10 @@ declares a binding, and the likely fix writes `:=` rather than removing
 `mut`, which would assign a name nobody declared [1790]. A variant case
 written as a call, `full(n: i32)`, is refused at the `(` naming
 `full: (...)`, and the likely fix writes the `:` [0680]. A list beginning a
-line after a name is refused as [1750]'s continued index, as L0102 says.
+line after a name is refused as [1750]'s continued index, as L0102 says. A
+signature with `=` where `->` belongs, `f: (inout row: [2]u32) =`, is refused
+with a note naming `-> none` for a routine that returns nothing, and the body
+after `=` is still read (D2168).
 
 ```landin
 extern(c) bad: (...) -> none
@@ -674,7 +691,14 @@ routine per system in a module-level `fixed if`, or branch with `if` on a
 module value that holds the fact, `on_linux: bool = compiler.os == linux`
 (D437). `when` after a statement that is no exit, `code = 1 when ready`, is
 refused naming the four exits that take it, `return`, `fail`, `break` and
-`continue`; any other statement runs on a condition inside `if` (D865).
+`continue`; any other statement runs on a condition inside `if` (D865). Inside
+an `if` arm, a bare `else` after a call divides the `if` [1820], so `count:
+usize = f(x) else begin fail bad end` followed by more lines of the arm would
+end the arm there. When the arm goes on after the block's `end`, with another
+line as deep as the `else`'s or with the `if`'s own `elsif` or `else`, the
+`else` is refused where it stands and read as the call's recovery; keep it the
+call's by binding the error, `else (problem) ... end`, or with parentheses,
+`(f(x) else value)` (D2172).
 
 ```landin
 begin = 10

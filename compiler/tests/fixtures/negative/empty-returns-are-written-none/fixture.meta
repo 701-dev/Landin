@@ -1,0 +1,10 @@
+class: negative
+summary: [1800] `-> ()` is refused naming `-> none`, with the exact fix that writes it, in a function and in a concept entry, and neither leaves anything unclosed
+program: program.ldn
+codes: L0100, L0100
+fixed: program.fixed
+constructs: 1800
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/empty-returns-are-written-none/program.ldn
+status: 1

@@ -1,0 +1,9 @@
+class: negative
+summary: [1420] a segment of an import path is an identifier, and a `-` joining two names is refused there as a segment, at the `-`; each import reports for itself, so the second refused import is said too
+program: program.ldn
+codes: L0100, L0100
+constructs: 1420
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/an-import-segment-is-an-identifier-hyphen/program.ldn
+status: 1

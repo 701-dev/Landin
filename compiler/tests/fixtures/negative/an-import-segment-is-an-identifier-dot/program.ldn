@@ -1,0 +1,5 @@
+import github.com/tools/lines
+
+public main: () -> (code: i32) =
+    code = 0
+end main

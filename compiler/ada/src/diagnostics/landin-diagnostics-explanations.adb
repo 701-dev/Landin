@@ -355,14 +355,21 @@ package body Landin.Diagnostics.Explanations is
                & "before `:=` with a call on the right are bound in parent"
                & "heses, `(low, high) := pair(2)`, and a count before `of`"
                & " that is not a literal goes in the binding's type, `name"
-               & ": [count]t = [of value]`.",
+               & ": [count]t = [of value]`. A concept entry that takes a t"
+               & "ype formal of its own, `pull: (self: t, other: type is d"
+               & "rain) -> none`, is refused once at `type`, and the conce"
+               & "pt's entries after it and its `end` are read as written "
+               & "(D2169).",
             when Catalogue.Malformed_Integer =>
                "An integer literal is malformed if a base prefix has no "
                & "digits, a digit is not in its base, an underscore begins"
                & " or ends the digit run, or the literal runs straight int"
                & "o a name [1770]. `0x` takes hexadecimal digits, `0b` bin"
                & "ary and `0o` octal. Keep underscores between digits, and"
-               & " put a separator before a following name.",
+               & " put a separator before a following name. A segment of a"
+               & "n import path that begins with a digit, `import 701_dev/"
+               & "pkg`, is L0100's, a name that belongs there, and not a m"
+               & "alformed integer (D2170).",
             when Catalogue.Unknown_Bytes =>
                "A run of bytes no lexical rule spells [1750], or a word "
                & "with a capital in it. A name is lower case [1760], and a"
@@ -420,7 +427,21 @@ package body Landin.Diagnostics.Explanations is
                & "never quoted: `import core/text`, not `import ""core/text"
                & """` (D862). `addr` of a measure, `addr lenof items`, woul"
                & "d take the address of a value: bind the measure to a nam"
-               & "e first and take the address of the name (D863).",
+               & "e first and take the address of the name (D863). `-> ()`"
+               & ", another language's empty tuple, is refused naming `-> "
+               & "none`, the spelling of a routine that returns nothing; t"
+               & "he exact fix writes `none`, and the function or concept "
+               & "entry is read on to its `end` (D2168). Each segment of a"
+               & "n import path is an identifier [1420]: a `-` or `.` join"
+               & "ing names, `import tools/refine-build/lines` or `import "
+               & "github.com/tools/lines`, is refused at that character, a"
+               & "nd a segment beginning with a digit, `import 701_dev/pkg"
+               & "`, at the digit. Write a segment in lower-case letters, "
+               & "digits and `_`, beginning with a letter, such as `refine"
+               & "_build` (D2170). `lenof` before a text literal, `lenof """
+               & "abcde""`, is refused, since `lenof` measures what a name "
+               & "begins [0370]: bind the text, `word := ""abcde""`, and mea"
+               & "sure `lenof word` (D2171).",
             when Catalogue.Type_Expected =>
                "A type position holds nothing the kernel enables as a ty"
                & "pe [1790]. A parameter's mode written after its colon, `"
@@ -476,7 +497,11 @@ package body Landin.Diagnostics.Explanations is
                & "as a call, `full(n: i32)`, is refused at the `(` naming "
                & "`full: (...)`, and the likely fix writes the `:` [0680]."
                & " A list beginning a line after a name is refused as [175"
-               & "0]'s continued index, as L0102 says.",
+               & "0]'s continued index, as L0102 says. A signature with `="
+               & "` where `->` belongs, `f: (inout row: [2]u32) =`, is ref"
+               & "used with a note naming `-> none` for a routine that ret"
+               & "urns nothing, and the body after `=` is still read (D216"
+               & "8).",
             when Catalogue.Unclosed_Construct =>
                "A construct opened and its `end` never arrived [1800]. T"
                & "he second label shows where it opened; close it there.",
@@ -510,7 +535,16 @@ package body Landin.Diagnostics.Explanations is
                & "er a statement that is no exit, `code = 1 when ready`, i"
                & "s refused naming the four exits that take it, `return`, "
                & "`fail`, `break` and `continue`; any other statement runs"
-               & " on a condition inside `if` (D865).",
+               & " on a condition inside `if` (D865). Inside an `if` arm, "
+               & "a bare `else` after a call divides the `if` [1820], so `"
+               & "count: usize = f(x) else begin fail bad end` followed by"
+               & " more lines of the arm would end the arm there. When the"
+               & " arm goes on after the block's `end`, with another line "
+               & "as deep as the `else`'s or with the `if`'s own `elsif` o"
+               & "r `else`, the `else` is refused where it stands and read"
+               & " as the call's recovery; keep it the call's by binding t"
+               & "he error, `else (problem) ... end`, or with parentheses,"
+               & " `(f(x) else value)` (D2172).",
             when Catalogue.Nesting_Too_Deep =>
                "An implementation limit, not a rule of the language: a c"
                & "onstruct nests more deeply than the parser holds. Split "

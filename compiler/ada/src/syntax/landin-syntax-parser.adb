@@ -3140,6 +3140,61 @@ package body Landin.Syntax.Parser is
                return True;
             end On_One_Line;
 
+            --  D2172: whether the `else begin` in hand, written after a
+            --  call in the middle of a line, is followed past its block's
+            --  `end` by more of the arm it stands in: a line no shallower
+            --  than the `else`'s own, or the `if`'s `elsif` or `else`.
+            --  The block closes on the `else`'s line, or with an `end`
+            --  alone on a line as deep as it.  The arm going on is the
+            --  layout of a recovery, which [1820]'s `else` in an arm is
+            --  not.
+            function Arm_Goes_On_After_Else_Block return Boolean;
+
+            function Arm_Goes_On_After_Else_Block return Boolean is
+               Indent   : Natural;
+               Position : Tok.Token_Index := Index + 2;
+            begin
+               if Index + 2 >= Last
+                 or else Begins_Line (Index)
+                 or else Tok.Kind (From, Index + 1) /= Tok.Kw_Begin
+                 or else Begins_Line (Index + 1)
+               then
+                  return False;
+               end if;
+               Indent := Line_Indent (Index);
+               while Position < Last and then not Begins_Line (Position) loop
+                  Position := Position + 1;
+               end loop;
+               if Tok.Kind (From, Position - 1) /= Tok.Kw_End
+                 or else Position - 1 = Index + 1
+               then
+                  --  The block goes on below: its `end` is the first line
+                  --  no deeper than the `else`'s, alone on that line.
+                  while Position < Last
+                    and then not (Begins_Line (Position)
+                                  and then Indent_Of (Position) <= Indent)
+                  loop
+                     Position := Position + 1;
+                  end loop;
+                  if Position >= Last
+                    or else Tok.Kind (From, Position) /= Tok.Kw_End
+                    or else Indent_Of (Position) /= Indent
+                    or else Position + 1 >= Last
+                    or else not Begins_Line (Position + 1)
+                  then
+                     return False;
+                  end if;
+                  Position := Position + 1;
+               end if;
+               return Position < Last
+                 and then Begins_Line (Position)
+                 and then
+                   (Tok.Kind (From, Position) in Tok.Kw_Elsif | Tok.Kw_Else
+                    or else
+                      (Indent_Of (Position) >= Indent
+                       and then Tok.Kind (From, Position) /= Tok.Kw_End));
+            end Arm_Goes_On_After_Else_Block;
+
             function Fence_For
               (Named  : Landin.Source.Names.Name_Id;
                Opened : Tok.Token_Index) return Natural;
@@ -3777,6 +3832,9 @@ package body Landin.Syntax.Parser is
                Items : Slot_Vectors.Vector;
             begin
                while Peek = Tok.Kw_Import loop
+                  --  Each import is a header of its own, and reports once,
+                  --  as a declaration's does.
+                  Header_Reported := False;
                   Items.Append (Parse_Import);
                end loop;
                Result.Import_Prefix_Length := Natural (Items.Length);
@@ -3977,6 +4035,52 @@ package body Landin.Syntax.Parser is
                end if;
 
                loop
+                  --  D2170: a segment is an identifier.  One that begins
+                  --  with a digit, whose wording the scanner left to
+                  --  this, or one a `-` or `.` joins to more, is said
+                  --  once at the character that breaks it, and the rest
+                  --  of the path is read as part of the mistake.
+                  if Peek in Tok.Integer_Literal | Tok.Malformed_Integer
+                    or else
+                      (not Segments.Is_Empty
+                       and then Peek in Tok.Minus | Tok.Dot
+                       and then not Begins_Line (Index))
+                  then
+                     declare
+                        Digit : constant Boolean :=
+                          Peek in Tok.Integer_Literal | Tok.Malformed_Integer;
+                        Broken : constant Landin.Source.Span :=
+                          (if Digit
+                           then (First => Here.First,
+                                 Last  => Here.First + 1)
+                           else Here);
+                     begin
+                        Complain
+                          (Item    => Syn.Name_Expected,
+                           Where   => Broken,
+                           Message =>
+                             (if Digit
+                              then "each segment of an import path is an"
+                                   & " identifier, and this one begins"
+                                   & " with a digit"
+                              else "each segment of an import path is an"
+                                   & " identifier, and `"
+                                   & Tok.Spelling (Peek)
+                                   & "` is not part of one"),
+                           Note    => "[1420]: a segment of an import path is"
+                                      & " lower-case letters, digits and `_`,"
+                                      & " beginning with a letter, as in"
+                                      & " `import refine_build/lines`");
+                        while Peek /= Tok.End_Of_Input
+                          and then not Begins_Line (Index)
+                        loop
+                           Advance;
+                        end loop;
+                        return Add
+                          (Error_Declaration, At_Import,
+                           Extent => Join (At_Import, After_Previous));
+                     end;
+                  end if;
                   declare
                      Named   : Landin.Source.Names.Name_Id;
                      At_Name : constant Landin.Source.Span :=
@@ -3986,8 +4090,12 @@ package body Landin.Syntax.Parser is
                        (Add (Import_Segment, At_Name, Named => Named));
                   end;
 
-                  exit when Peek /= Tok.Slash;
-                  Advance;
+                  exit when Peek /= Tok.Slash
+                    and then not (Peek in Tok.Minus | Tok.Dot
+                                  and then not Begins_Line (Index));
+                  if Peek = Tok.Slash then
+                     Advance;
+                  end if;
                end loop;
 
                if Peek = Tok.Identifier and then Named_Here = As_Id
@@ -5819,7 +5927,25 @@ package body Landin.Syntax.Parser is
                      Message => "`type` requires a type declaration"
                                 & " or a generic formal");
                   Advance;
-                  return Add (Error_Type, At_Type);
+                  --  D2169: a formal's constraint, `type is drain`, is
+                  --  the rest of the refused formal, so the parameters
+                  --  after it are read as written.
+                  if In_Parameter
+                    and then Peek = Tok.Identifier
+                    and then Named_Here = Is_Id
+                    and then Ahead (1) = Tok.Identifier
+                    and then not Begins_Line (Index + 1)
+                  then
+                     Advance;
+                     Advance;
+                     while Peek = Tok.Dot and then Ahead (1) = Tok.Identifier
+                     loop
+                        Advance;
+                        Advance;
+                     end loop;
+                  end if;
+                  return Add (Error_Type, At_Type,
+                              Extent => Join (At_Type, After_Previous));
                end if;
 
                --  D117: the infallible signature syntax is also one written
@@ -6877,7 +7003,21 @@ package body Landin.Syntax.Parser is
                while Peek = Tok.Identifier and then Ahead (1) = Tok.Colon
                  and then Ahead (2) = Tok.Left_Paren
                loop
-                  Items.Append (Parse_Entry);
+                  declare
+                     Reports_Before : constant Natural := Reported;
+                  begin
+                     Items.Append (Parse_Entry);
+                     --  D2169: what an entry left on its line is the rest
+                     --  of the mistake it reported; the next entry, or the
+                     --  concept's `end`, begins the next line.
+                     if Reported /= Reports_Before then
+                        while Peek /= Tok.End_Of_Input
+                          and then not Begins_Line (Index)
+                        loop
+                           Advance;
+                        end loop;
+                     end if;
+                  end;
                end loop;
 
                if Peek = Tok.Kw_End then
@@ -8572,6 +8712,35 @@ package body Landin.Syntax.Parser is
                   return Add (Return_List, Start);
                end if;
 
+               --  D2168: `-> ()`, another language's empty tuple, is a
+               --  routine that returns nothing, which [1800] writes
+               --  `none`.  Said once, and read as `none`.
+               if Peek = Tok.Left_Paren and then Ahead (1) = Tok.Right_Paren
+               then
+                  declare
+                     Empty : constant Landin.Source.Span :=
+                       Join (Here, Tok.Where (From, Index + 1));
+                  begin
+                     Complain
+                       (Item    => Syn.Name_Expected,
+                        Where   => Empty,
+                        Message => "a routine that returns nothing is written"
+                                   & " `-> none`, not `-> ()`",
+                        Note    => "[1800]: a function's returns are named"
+                                   & " in parentheses, as in `(code: i32)`,"
+                                   & " or written `none`; empty parentheses"
+                                   & " name no return",
+                        Fixes   =>
+                          [1 => Landin.Diagnostics.Fixes.Insert_Token
+                                  (Origin_Of, Empty, "none", "none",
+                                   Landin.Diagnostics.Exact,
+                                   Neighbour => "->")]);
+                     Advance;
+                     Advance;
+                     return No_Node;
+                  end;
+               end if;
+
                --  A type where the returns belong is another language's
                --  unnamed result, `-> i32`.  Said once, naming the form
                --  with a name, and the type is read as one return's, so
@@ -9165,8 +9334,15 @@ package body Landin.Syntax.Parser is
                     (Wanted  => Tok.Minus_Greater,
                      Message => "a signature says what it returns after"
                                 & " `->`",
-                     Note    => "[1800]: a signature is the parameter list"
-                                & " in parentheses, `->` and the returns",
+                     Note    =>
+                       (if Peek = Tok.Equal
+                        then "[1800]: a signature is the parameter list"
+                             & " in parentheses, `->` and the returns:"
+                             & " write `-> none` before `=` for a routine"
+                             & " that returns nothing, or name the"
+                             & " returns, as in `-> (code: i32)`"
+                        else "[1800]: a signature is the parameter list"
+                             & " in parentheses, `->` and the returns"),
                      Related => At_Name,
                      Because => "declared here")
                then
@@ -13248,6 +13424,30 @@ package body Landin.Syntax.Parser is
                --  after the word measures what the primary it begins
                --  names [1820]: the name, a field or element path, a slice
                --  of one, or a call's result.
+               --  D2171: a text literal after the word is no primary
+               --  `lenof` measures, and `lenof` before one is no name a
+               --  binding could have either.  Said once, at both, and the
+               --  literal is read.
+               if Peek = Tok.Identifier
+                 and then Named_Here = Lenof_Id
+                 and then Ahead (1) in Tok.Text_Literal | Tok.Raw_Literal
+                 and then not Begins_Line (Index + 1)
+               then
+                  Complain
+                    (Item    => Syn.Name_Expected,
+                     Where   => Join (Here, Tok.Where (From, Index + 1)),
+                     Message => "`lenof` measures what a name begins, and a"
+                                & " text literal has no name",
+                     Note    => "[0370]: `lenof` takes a binding, a field or"
+                                & " element path, a slice of one or a call's"
+                                & " result; bind the text first, as in `word"
+                                & " := ""abcde""`, then write `lenof word`");
+                  Advance;
+                  Advance;
+                  return Add (Error_Expression, At_Item,
+                              Join (At_Item, After_Previous));
+               end if;
+
                if Peek = Tok.Identifier
                  and then Named_Here = Lenof_Id
                  and then
@@ -14380,6 +14580,15 @@ package body Landin.Syntax.Parser is
                     and then Ahead (2) in Tok.Identifier | Tok.Underscore
                     and then Ahead (3) = Tok.Right_Paren
                     and then Ahead (4) /= Tok.Colon_Equal;
+                  --  D2172: an `else begin` the arm goes on after was
+                  --  written as this call's recovery.  Said at the `else`,
+                  --  and read as that recovery, so the arm goes on.
+                  Laid_Out_As_Recovery : constant Boolean :=
+                    Allow_Recovery
+                    and then Peek = Tok.Kw_Else
+                    and then Else_Closes_Arm
+                    and then not Binds_Error
+                    and then Arm_Goes_On_After_Else_Block;
                begin
                   if Allow_Recovery and then Binds_Error
                     and then Else_Closes_Arm
@@ -14417,7 +14626,8 @@ package body Landin.Syntax.Parser is
                      end;
                   elsif Allow_Recovery and then Peek = Tok.Kw_Else
                     and then (not Else_Closes_Arm or else Binds_Error
-                              or else Ahead (1) = Tok.Kw_None)
+                              or else Ahead (1) = Tok.Kw_None
+                              or else Laid_Out_As_Recovery)
                   then
                      --  D376: `none` begins no block an `if`'s own `else`
                      --  could hold, so `else none` is this call's recovery
@@ -14432,6 +14642,20 @@ package body Landin.Syntax.Parser is
                         --  closes no arm of an `if` around this call.
                         Saved_Arm : constant Boolean := Else_Closes_Arm;
                      begin
+                        if Laid_Out_As_Recovery then
+                           Complain
+                             (Item    => Syn.Stray_Token,
+                              Where   => At_Else,
+                              Message => "this `else` recovers the call,"
+                                         & " and written bare it ends the"
+                                         & " `if` arm it stands in",
+                              Note    => "[1820]: in an `if` arm, a bare"
+                                         & " `else` divides the `if`; keep"
+                                         & " it the call's by binding the"
+                                         & " error, `else (problem) ..."
+                                         & " end`, or with parentheses,"
+                                         & " `(call(...) else value)`");
+                        end if;
                         Else_Closes_Arm := False;
                         Advance;
                         --  `(_)` would bind nothing: an error unused is the

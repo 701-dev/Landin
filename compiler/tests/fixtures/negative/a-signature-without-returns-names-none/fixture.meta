@@ -1,0 +1,9 @@
+class: negative
+summary: [1800] a signature with `=` where `->` belongs names `-> none` for a routine that returns nothing, and the body after it is read
+program: program.ldn
+codes: L0103
+constructs: 1800
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/a-signature-without-returns-names-none/program.ldn
+status: 1

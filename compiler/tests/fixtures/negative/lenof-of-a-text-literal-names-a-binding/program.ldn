@@ -1,0 +1,11 @@
+take: (n: usize) -> none =
+    _ = n
+end take
+
+public main: () -> (code: i32) =
+    take(lenof "abcde")
+    take(usize(lenof "abcde"))
+    word := "abcde"
+    take(lenof word)
+    code = 0
+end main
