@@ -42463,7 +42463,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** merging `outlet` into `writer` with a pseudo-file, which gives a builder a system's failure; and folding `file_system` into `files`. Both were declined.
 
-**Pinned by** `runtime/library-io-writer-adapter` and the derived examples, as D1952 says; `docs/library.md`, generated, has no `writer_of`.
+**Pinned by** `runtime/library-io-writer-adapter` and the derived examples, as D1952 says; `docs/library.md`, generated, has no `writer_of`; and `negative/library-name-removed-by-hand`, where `io.writer_of` is refused saying to pass the world (D2129).
 
 ### D1953 — The library has one name for each idea
 
@@ -42473,7 +42473,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** renaming only the overloaded names; and renaming nothing. Both were declined.
 
-**Pinned by** nothing that runs yet: the library review's change that applies it adds the check or fixture that holds it, and the breaking list names each routine it changes.
+**Pinned by** D2129's table of removed names, which refuses every old name of the breaking list's names section with its replacement, `negative/library-name-removed-renames`, `-moves`, `-field` and `-by-hand` among them; the library, the corpus and the examples use only the new names.
 
 ### D2028 — Absence is one atom, `mem.not_found`
 
@@ -42483,7 +42483,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** one absence atom per module, as today, which is what D1953 declined; and `not_found` in a new module of shared failure atoms, which the maintainer's question offers.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old atom with its replacement.
+**Pinned by** `negative/library-name-removed-moves`, where `map.missing`, `io.not_found` and `text.not_found` are refused naming `mem.not_found` and the fix names it once, by D2129's table.
 
 ### D2029 — Running out of room is one atom, `mem.out_of_memory`
 
@@ -42493,7 +42493,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** `mem.full` and a new `mem.no_room`, which the maintainer's question offers; and keeping the buffer's atoms apart from the allocator's, which D1953 declined.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old atom with its replacement.
+**Pinned by** `negative/library-name-removed-renames`, where `mem.full` is refused naming `mem.out_of_memory`, by D2129's table.
 
 ### D2030 — The end of an iteration is `at_end`, never a failure
 
@@ -42503,7 +42503,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** a failure atom for the end, as the map has, which D1652's loops would have to catch on every walk; and `done`, the scalar walk's word, which `iterable` does not use.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+**Pinned by** `negative/library-name-removed-field`, where `io.line`'s `finished` and the directory's are refused naming `at_end`, and `negative/library-name-removed-by-hand`, where `map.end_of_entries` is refused saying to ask `map.at_end`, by D2129's table.
 
 ### D2031 — How many items a value holds is its `length`
 
@@ -42513,7 +42513,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** `count` as the one name, which most modules do not use and `lenof` does not suggest; and leaving each module its own word.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+**Pinned by** `negative/library-name-removed-renames`, where `arena.used` is refused naming `arena.length`, and `negative/library-name-removed-reorders`, where `tree.count_leaves` becomes `tree.leaves` of `tree.get`, by D2129's table.
 
 ### D2032 — Giving storage back is `release`, and closing a system resource is `close`
 
@@ -42523,7 +42523,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** `free` throughout, which is C's word for a raw block and reads wrong for a container that also forgets its items; and `delete`, which suggests destructors Landin does not have.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+**Pinned by** D2129's table, which refuses each old name with its replacement; the library, the corpus and the examples use only the new names.
 
 ### D2033 — `host` is the provider; the system's string form is an `os_string`
 
@@ -42533,7 +42533,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** renaming the provider instead, which every routine's `host:` parameter would carry; and `system_string` or `native_string`, which the maintainer's question offers.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+**Pinned by** `negative/library-name-removed-renames`, where `text.host_string` and `text.host_bytes` are refused naming `text.os_string` and `text.os_string_bytes`, by D2129's table.
 
 ### D2034 — `new`, `used`, `at`, `space`, `cursor` and `entry` each keep one meaning
 
@@ -42543,7 +42543,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** renaming the conventions' own uses instead, which every container would carry; and leaving the departures, which D1953 declined.
 
-**Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
+**Pinned by** `negative/library-name-removed-field`, where the directory's `cursor` is refused naming `consumed`, by D2129's table.
 
 ### D2128 — `mem.transfer_prefix` is `mem.copy_prefix`, target first
 

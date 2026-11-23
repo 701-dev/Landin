@@ -476,80 +476,87 @@ package body Landin.Stages.Resolution is
          if Gone.How (Row) = Gone.By_Hand then
             return Landin.Diagnostics.No_Fixes;
          end if;
-         --  An atom set that already names the successor, or an earlier old
+         --  An atom set that names the successor itself, or an earlier old
          --  name of it, loses this member rather than naming it twice.
          if Gone.How (Row) = Gone.Rename
            and then Enclosing /= Syn.No_Node
            and then Syn.Kind (Of_Tree, Enclosing) = Syn.Atom_Union_Type
          then
-            for Index in 1 .. Syn.Atom_Member_Count (Of_Tree, Enclosing) loop
-               declare
-                  Other : constant Syn.Node_Id :=
-                    Syn.Nth_Atom_Member (Of_Tree, Enclosing, Index);
-               begin
-                  exit when Other = Node;
-                  if Syn.Kind (Of_Tree, Other) = Syn.Member_Selection
-                    and then Syn.Kind
-                      (Of_Tree, Syn.Target_Of (Of_Tree, Other))
-                        in Syn.Name_Reference | Syn.Type_Reference
+            declare
+               Count : constant Natural :=
+                 Syn.Atom_Member_Count (Of_Tree, Enclosing);
+               Mine : Natural := 0;
+            begin
+               for Index in 1 .. Count loop
+                  if Syn.Nth_Atom_Member (Of_Tree, Enclosing, Index) = Node
                   then
-                     declare
-                        Its_Module : constant Landin.Modules.Module_Id :=
-                          Res.Imported_Module_Of
-                            (Meanings.all, Source_Id,
-                             Syn.Name
-                               (Of_Tree, Syn.Target_Of (Of_Tree, Other)));
-                        Its_Path : constant String :=
-                          (if Its_Module = Landin.Modules.No_Module then ""
-                           else Landin.Modules.Logical_Path
-                                  (Graph.all, Its_Module));
-                        Its_Name : constant String :=
-                          Spelled (Syn.Name (Of_Tree, Other));
-                        Its_Row : constant Gone.Row :=
-                          Gone.Member (Its_Path, Its_Name);
-                        Same : constant Boolean :=
-                          Its_Path /= ""
-                          and then
-                            (if Gone.Found (Its_Row)
-                             then Gone.How (Its_Row) = Gone.Rename
-                                  and then Gone.New_Module (Its_Row) = Wanted
-                                  and then Gone.New_Name (Its_Row)
-                                           = Gone.New_Name (Row)
-                             else Its_Path = Wanted
-                                  and then Its_Name = Gone.New_Name (Row));
-                     begin
-                        if Same then
-                           --  Index names an earlier member, so this one
-                           --  has a member before it, whose end begins
-                           --  the ` | old` this deletes.
-                           declare
-                              Previous : Syn.Node_Id := Other;
-                           begin
-                              for K in Index + 1
-                                .. Syn.Atom_Member_Count (Of_Tree, Enclosing)
-                              loop
-                                 exit when Syn.Nth_Atom_Member
-                                   (Of_Tree, Enclosing, K) = Node;
-                                 Previous := Syn.Nth_Atom_Member
-                                   (Of_Tree, Enclosing, K);
-                              end loop;
+                     Mine := Index;
+                  end if;
+               end loop;
+               for Index in 1 .. Count loop
+                  declare
+                     Other : constant Syn.Node_Id :=
+                       Syn.Nth_Atom_Member (Of_Tree, Enclosing, Index);
+                  begin
+                     if Mine /= 0 and then Count > 1 and then Index /= Mine
+                       and then Syn.Kind (Of_Tree, Other)
+                                  = Syn.Member_Selection
+                       and then Syn.Kind
+                         (Of_Tree, Syn.Target_Of (Of_Tree, Other))
+                           in Syn.Name_Reference | Syn.Type_Reference
+                     then
+                        declare
+                           Its_Module : constant Landin.Modules.Module_Id :=
+                             Res.Imported_Module_Of
+                               (Meanings.all, Source_Id,
+                                Syn.Name
+                                  (Of_Tree, Syn.Target_Of (Of_Tree, Other)));
+                           Its_Path : constant String :=
+                             (if Its_Module = Landin.Modules.No_Module then ""
+                              else Landin.Modules.Logical_Path
+                                     (Graph.all, Its_Module));
+                           Its_Name : constant String :=
+                             Spelled (Syn.Name (Of_Tree, Other));
+                           Its_Row : constant Gone.Row :=
+                             Gone.Member (Its_Path, Its_Name);
+                           Same : constant Boolean :=
+                             Its_Path /= ""
+                             and then
+                               (if Gone.Found (Its_Row)
+                                then Index < Mine
+                                     and then Gone.How (Its_Row) = Gone.Rename
+                                     and then Gone.New_Module (Its_Row)
+                                              = Wanted
+                                     and then Gone.New_Name (Its_Row)
+                                              = Gone.New_Name (Row)
+                                else Its_Path = Wanted
+                                     and then Its_Name = Gone.New_Name (Row));
+                           Gap : constant Landin.Source.Span :=
+                             (if Mine > 1
+                              then (First => Syn.Where
+                                      (Of_Tree,
+                                       Syn.Nth_Atom_Member
+                                         (Of_Tree, Enclosing, Mine - 1)).Last,
+                                    Last  => Syn.Where (Of_Tree, Node).Last)
+                              else (First => Syn.Where (Of_Tree, Node).First,
+                                    Last  => Syn.Where
+                                      (Of_Tree,
+                                       Syn.Nth_Atom_Member
+                                         (Of_Tree, Enclosing, 2)).First));
+                        begin
+                           if Same then
                               return [1 => Landin.Diagnostics.Fixes
                                 .Library_Name
                                   (Short_Name (Wanted) & "."
                                    & Gone.New_Name (Row),
                                    [1 => Landin.Diagnostics.Make_Edit
-                                      (Source_Id,
-                                       (First => Syn.Where
-                                          (Of_Tree, Previous).Last,
-                                        Last  => Syn.Where
-                                          (Of_Tree, Node).Last),
-                                       "")])];
-                           end;
-                        end if;
-                     end;
-                  end if;
-               end;
-            end loop;
+                                      (Source_Id, Gap, "")])];
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end loop;
+            end;
          end if;
          --  The name the file binds the successor's module to, if any.
          if Wanted /= Landin.Modules.Logical_Path (Graph.all, Module) then
