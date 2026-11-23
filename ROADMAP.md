@@ -803,7 +803,17 @@ Fixed on the way: `measure.py compare` takes the directory `size` writes
 find its library, which two streams met. What is left on these targets
 is SR-869's pairs and frame record, forwarding blocks on RISC-V and
 Xtensa, and the `match` table of constant results: none measured large
-enough for another item of its own.
+enough for another item of its own. Every board's records were made
+again on the rig, and the boards are faster: the geometric mean of the
+cycles that moved is 0.890 on the RP2040, 0.893 on the RP2350 and 0.921
+on its Hazard3, 0.896 on the STM32H753, 0.925 and 0.934 on the ESP32-C3
+and C5 and 0.895 and 0.900 on the ESP32 and S3, SipHash at speed down to
+0.601. Twelve configurations on the STM32H753 are slower, the sieve at
+speed by 14.5%, where one routine's shorter entry moves the unchanged
+loops after it; `SR-1661` records it. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45088026461), and
+its [boards](https://github.com/701-dev/Landin/actions/runs/45088038656)
+passed every port, the cycles recorded from them.
 
 ### The continuous items
 
