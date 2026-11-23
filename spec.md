@@ -7413,6 +7413,9 @@ directions through a generic pattern and a plain parameter, and
 
 ### D2187 — `utf16` stays a validated text identity, and a Windows host string is not one
 
+**Amended by D2268,** which says how the units reach the program: as
+WTF-8 in an `os_string`.
+
 **From** [0600] and [1975].
 
 **The discrepancy:** R19's audit found `utf16` unused by the library and
@@ -7448,6 +7451,41 @@ layer would use and which a buffer serves.
 `runtime/utf16-slice-not-boundary-traps`, which the Windows corpus runs,
 `negative/utf16-indexing-is-not-utf8-indexing`, and
 `runtime/target-hosted-system-facts`.
+
+### D2268 — A Windows host string is WTF-8
+
+**From** [0600], [1975] and D2187.
+
+**The discrepancy:** D2187 keeps a Windows host string apart from `utf16`
+and has it reach the program "as an `os_string` does", the units the
+system gave, possibly ill-formed. `os_string` is bytes on every system,
+and programs build one from bytes, `text.os_string_over("input.txt")`.
+Units in place of bytes would change the type's representation and every
+caller that builds one.
+
+**Chosen:** a Windows host string is the system's units in WTF-8: each
+scalar value as UTF-8 encodes it, a surrogate pair as its scalar, and a
+lone surrogate as the three bytes UTF-8 would give its value.
+`platform/windows`' `terminate` converts one into a buffer of units with a
+NUL after it on its way to the system, as `platform/posix` terminates a
+path, refusing a NUL or bytes WTF-8 does not encode as
+`ERROR_INVALID_NAME` and a name too long for the buffer as
+`ERROR_FILENAME_EXCED_RANGE`; the entry converts the command line and the
+environment once, and a directory listing each name as it reads it. A
+name that is well-formed UTF-16 is valid UTF-8 and `from_os_string` gives
+it; one holding a lone surrogate round-trips to the system unchanged and
+is `invalid_text` as text. `os_string` and its operations are unchanged.
+
+**The alternatives:** units in `os_string` on Windows, which makes every
+literal path a conversion with storage and splits the type's operations by
+system; and UTF-8 with replacement, which loses names Windows accepts, as
+D2187 says of `utf16`.
+
+**Pinned by** `runtime/directory-name-not-utf8`, whose bytes are no WTF-8
+and are refused on Windows before the system is asked, the corpus's
+directory and argument fixtures on the Windows lane, and
+`runtime/windows-run-programs`, whose arguments and environment cross
+the conversion both ways.
 
 ## DECISIONS: DECLARED TYPES, RANGES AND LAYOUT
 
@@ -18836,6 +18874,42 @@ breaks `hosted/system` on Darwin and FreeBSD (D279). Both were declined.
 **Pinned by** `negative/rooted-negative-selects-its-target`, a
 `platform/linux` call written for Darwin, and
 `negative/module-member-for-another-target`.
+
+### D2267 — Every hosted system's own interface is imported on all of them
+
+**From** D267, D439 and D2188.
+
+**The discrepancy:** D439 lets a provider written once import a system's
+own module everywhere because that module declares nothing elsewhere, and
+D267 scoped `platform/posix`, `platform/libc`, `platform/linux` and
+`platform/kqueue` to the POSIX systems and D2188 `platform/windows` to
+Windows. A provider written for every hosted system, Windows among them,
+imports both families, and with no conditional import one of the two was
+always refused.
+
+**Chosen:** the POSIX layer, the interfaces beneath it and
+`platform/windows` are available on every hosted system, and each declares
+nothing off its own: the POSIX layer's files and `platform/libc`'s
+common ones hold their declarations inside `fixed if compiler.os <>
+windows`, as `platform/linux` already did inside its own `fixed if`, and
+`platform/windows` inside `fixed if compiler.os == windows`. A Windows
+program that calls `posix.open` is told by L0201 that the module declares
+it only for another target, as D439 says of a Linux call on Darwin.
+Firmware still refuses all of them by namespace (D267). The hosted
+providers keep their POSIX bodies under the same condition and give their
+Windows arms in files of their own, so a reader of either system's code
+reads one condition.
+
+**The alternatives:** a compiler rule that an out-of-scope module is
+imported empty, which saves the indentation but hides in the scope table
+what a module's source should say, and loses D439's diagnostic; and
+platform/posix written over Windows, a POSIX emulation that D2188 and
+`platform/posix`'s own header rule out.
+
+**Pinned by** `driver/source namespaces enforce target availability`,
+which imports `platform/posix` and `platform/kqueue` on Windows and
+`platform/windows` on Linux and Darwin and refuses each in firmware, and
+every Windows fixture over a hosted provider.
 
 ### D496 — Per-thread module storage is placed by `link(thread)`
 
@@ -33531,6 +33605,10 @@ the commands' parse and the driver to the same answers for a missing
 
 ### D2188 — Windows x86-64 is a hosted target over kernel32, with no C runtime
 
+**Amended by D2267 and D2270.** The POSIX layer is imported on Windows,
+where it declares nothing, and the hosted providers are written over
+kernel32; what follows of their absence is history.
+
 **From** [1500], [1550], [1970] and [1975].
 
 **The discrepancy:** the third roadmap adds Windows. Every hosted target
@@ -33711,6 +33789,9 @@ with `traps: yes` the Windows corpus runs.
 
 ### D2193 — A Windows program has one thread until Windows' threads are written
 
+**Superseded by D2274.** Windows' threads and their storage are written;
+what follows is history.
+
 **From** [1590] and D496.
 
 **The discrepancy:** a thread variable is ELF thread storage on every other
@@ -33726,6 +33807,249 @@ and the TEB's slot array now, which only a second thread would test.
 
 **Pinned by** the fibre fixtures of the Windows corpus, whose prepared
 stacks keep the limit in that cell.
+
+### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
+
+**From** [1650], D1281 and D2188.
+
+**The discrepancy:** D2188's entry called `main` with no arguments and no
+environment. Windows gives a process one command line, which the program
+splits itself, and an environment block of 16-bit units; a POSIX
+system gives both as vectors, which `platform/posix`'s argument root keeps.
+
+**Chosen:** `_landin_start` reads `GetCommandLineW` and
+`GetEnvironmentStringsW`, converts each argument and entry to a host string
+(D2268) in storage it takes from `VirtualAlloc` for the process's life, and
+gives `main` the C vectors it built, as C's runtime would. The command line
+is split by the rules Microsoft's C runtime follows and every Windows
+parent quotes for: the program's name to the next blank or between its
+quotes with no escapes; after it blanks separate arguments, quotes begin
+and end a quoted run, `""` in a run is one quote, and backslashes are
+literal except before a quote, where each pair is one backslash and an odd
+one makes the quote literal. `platform/windows` defines
+`_landin_host_initialize_arguments`, which the hosted entry calls first as
+on every system and a C `main` may call itself, and gives `arguments`,
+`argument`, `environment` and `variable` over the root as `platform/posix`
+does. A variable's name runs to the first `=` after its first unit, so
+the hidden `=C:` entries Windows keeps are named so; `variable_named`
+compares names without regard to ASCII case, as Windows does.
+
+**The alternatives:** `CommandLineToArgvW`, which is shell32's, loads a
+second library into every program, and splits the program's name by
+another rule; and converting lazily on first use, which would need a lock
+once programs have threads, for storage every program that reads an
+argument needs anyway.
+
+**Pinned by** `runtime/library-system-arguments`,
+`runtime/example-sum-arguments`, `runtime/hosted-system-alone` and every
+fixture with `run_args` or `run_files` on the Windows lane, and
+`runtime/windows-run-programs`, whose child receives quoted arguments.
+
+### D2270 — On Windows a hosted file is a handle and a failure a Win32 code
+
+**From** D476, D503 and D2188.
+
+**The discrepancy:** `hosted/system` was written over `platform/posix`: a
+file is a descriptor, `last_errno` keeps an errno, and each concept's atoms
+are mapped from errnos.
+
+**Chosen:** `hosted/system`'s Windows arm is written over
+`platform/windows` directly. An `io.file` is the handle's word, the three
+standard streams `GetStdHandle`'s; `handle_of` and `file_of` convert,
+beside `socket_of` and `is_socket`, whose mark is bit 62, and `is_pipe`,
+bit 61, which `start` sets on the parent's end of a child's pipe. A failure
+keeps the Win32 or Windows Sockets code in the same last-error cell
+`last_errno` reads, and maps to the concepts' atoms as the POSIX arm maps
+errnos: `ERROR_FILE_NOT_FOUND`, `ERROR_PATH_NOT_FOUND`, a missing drive or
+`ERROR_DIRECTORY` to `mem.not_found`, denied access, sharing and lock
+violations and write protection to `io.no_access`. An open to read takes a
+directory with backup semantics, asks what it opened, and fails it
+`is_a_directory`, as the POSIX arm does; an open to write that is refused
+asks whether the path is a directory. Every handle is opened sharing
+reading, writing and deletion, as a POSIX file is, and none is inherited.
+`same_file` compares volume and file index; a directory is listed with
+`FindFirstFileW` over the path the directory's own handle resolves to,
+which `entry_size` asks with `GetFileAttributesExW`; `read_at` and
+`write_at` save and restore the handle's position around a call at an
+offset, which on a handle that does not overlap moves it. `system.reason`
+is `failure.reason` alone on Windows, whose codes have no atoms.
+
+**The alternatives:** a table of Win32 codes as atoms beside
+`posix.errno`, which a program over the portable concepts never meets and
+which would grow with every call; and `NtQueryDirectoryFile` for a
+listing relative to its handle, which is ntdll's and not promised.
+
+**Pinned by** `runtime/hosted-system-alone`, `runtime/directory-listing`,
+`runtime/directory-larger-than-buffer`, `runtime/directory-missing-path`,
+whose missing parent keeps `ERROR_PATH_NOT_FOUND`, 3,
+`runtime/buffered-writer-closed-output` and
+`runtime/word-count-closed-input`, which keep `ERROR_INVALID_HANDLE`, 6,
+and the rest of the hosted corpus on the Windows lane.
+
+### D2271 — A Windows child gets exactly its three streams, piped through named pipes
+
+**From** D479 and D2270.
+
+**The discrepancy:** `io.programs` names a program by path, never looked
+up, gives it exactly the arguments and environment its parent builds and
+no other open file, and has a provider read whichever of a child's output
+and errors has something. Windows starts a program from one command line,
+inherits every inheritable handle when it inherits any, and has no `poll`
+for anonymous pipes.
+
+**Chosen:** `start` calls `CreateProcessW` with the path as the
+application, which is not searched for and given no extension, a command
+line of the path and the arguments quoted as D2269 splits them, and an
+environment block of exactly the given variables. The child's three
+handles are inheritable copies, a `NUL` device for a discarded stream, a
+duplicate of the parent's for an inherited one, and the child's end of a
+named pipe for a piped one, and the attribute list's
+`PROC_THREAD_ATTRIBUTE_HANDLE_LIST` names them as the only handles it
+inherits. The parent's end of each pipe is overlapped and not inherited; a
+provider reads and writes it with an overlapped call and waits as its own
+waiting does, and `hosted/blocking` learns which of two pipes has
+something by a read of no bytes on each, which ends when its pipe has data
+or ends, and withdraws the other. A child's exit code is its whole 32 bits
+as `exited`; Windows ends a process with a code and no signal, so
+`last_signal` is zero.
+
+**The alternatives:** anonymous pipes, which overlap neither for
+`hosted/blocking`'s choice between two nor for `hosted/events`' port;
+`PeekNamedPipe` in a loop, which polls; and inheriting by
+`bInheritHandles` alone, under which a child started on one thread
+inherits another thread's pipes.
+
+**Pinned by** `runtime/windows-run-programs`.
+
+### D2272 — The blocking provider waits a socket's limit out itself on Windows
+
+**From** D580 and D2270.
+
+**The discrepancy:** `set_timeouts` limits a receive, an accept and a send.
+Windows Sockets' `SO_RCVTIMEO` limits a receive but not an accept, as on
+Darwin, and leaves a socket whose receive it ended in a state no later call
+may rely on; the fixture that pins D580 receives on the socket after its
+limit.
+
+**Chosen:** the blocking provider keeps the limits in the socket's options
+and, before an accept, a receive or a send on a socket that has one, waits
+with `select` until it is ready or the limit has passed on the monotonic
+clock, never early, failing `timed_out` with `WSAETIMEDOUT`. The call then
+finds the socket ready. A connection with a limit is begun without
+waiting and watched the same way. A socket is made by `WSASocketW`
+overlapped-capable and not inherited, `WSAStartup` called once before the
+first; an IPv6 socket takes IPv6 alone, and a listener is bound with no
+option, since Windows lets one take an address its earlier connections
+hold and refuses one another socket listens at without being asked.
+
+**The alternatives:** `SO_RCVTIMEO` alone, which does not cover `accept`
+and leaves the socket indeterminate; and `SO_REUSEADDR`, which on Windows
+lets a second listener take the address.
+
+**Pinned by** `runtime/network-receive-timeout`,
+`runtime/network-listen-beside-accepted` and `runtime/network-echo` on the
+Windows lane.
+
+### D2273 — The Windows lane carries a fixture's files and runs each outcome apart
+
+**From** D2188.
+
+**The discrepancy:** the lane refused a fixture with `run_files` or
+`stdin`, since no Windows program could read one, and ran every outcome in
+the bundle's directory; the gate's Windows job checks nothing out.
+
+**Chosen:** the bundle carries each fixture's `run_files` and `stdin` under
+`inputs/`, a program's file arguments name the copies, and its standard
+input is the copy; each outcome runs in a working directory of its own,
+which holds copies of its files too, since the profiles of one fixture run
+at once and a fixture may build files where it runs.
+
+**The alternatives:** checking the fixtures out on the Windows runner,
+which Git for Windows refuses for the one fixture path with a quote.
+
+**Pinned by** the lane's run of every fixture with `run_files` or `stdin`
+that names `windows-x86-64`, `runtime/directory-listing` among them.
+
+### D2274 — Windows thread storage is the image's implicit thread storage
+
+**From** D496, D471 and D2193.
+
+**The discrepancy:** D2193 kept a Windows thread variable in module
+storage while a Windows program had one thread. `hosted/thread` now starts
+threads on Windows, and each needs its own last-error cells and stack
+limit.
+
+**Chosen:** a `link(thread)` datum, and D471's limit cell, lies in a
+`.tls$` section, the template Windows copies for every thread. Code reaches
+the running thread's block in one register: the image's `_tls_index`, its
+slot in the array the TEB's `ThreadLocalStoragePointer` at GS:0x58 points
+to, and the datum's section-relative offset. No C runtime brings a TLS
+directory (D2188), so the backend emits `_tls_used` and `_tls_index` when
+the program has thread storage, and none when it has not. D471's prologue
+check adds the frame to the limit, since the block takes the register the
+ELF check computes the stack pointer less the frame in: a sum that carries
+traps as a difference that borrows does. A thread datum has no DWARF
+location on Windows, as before; CodeView describes it.
+
+**The alternatives:** MSVC's form, which takes the executable's
+`_tls_index` to be zero and saves two instructions an access, which Windows
+does but documents nowhere; `TlsAlloc` and `TlsGetValue`, a call an
+access; and module storage, which a second thread breaks.
+
+**Pinned by** `runtime/thread-storage-holds-its-instance`,
+`runtime/thread-stack-past-limit-traps`, whose worker's limit is its own,
+`runtime/thread-creation-and-join-order-writes` and the stack and fibre
+fixtures of the Windows corpus. D2193 is superseded.
+
+### D2275 — A Windows thread starts on a system stack and switches to its own
+
+**From** D495, D502 and D2274.
+
+**The discrepancy:** `hosted/thread` runs each thread on a stack cut from
+the group's backing, which a POSIX thread is given at its start;
+`CreateThread` takes no stack of the caller's.
+
+**Chosen:** a thread starts on a 64 KiB stack the system reserves, and
+`begin_thread`, which POSIX threads share, switches from it to the stack
+cut from the backing, as a POSIX thread switches from its start area; the
+backing on Windows holds no start area. The thread returns to kernel32,
+which ends it; a join is `WaitForSingleObject` and `CloseHandle`. A
+refused `CreateThread` keeps its code in the group's handle and fails
+`mem.out_of_memory`, as POSIX keeps the errno. The lock sleeps in
+`WaitOnAddress` and wakes with `WakeByAddressSingle`, the same three-state
+lock as POSIX's over a futex, through MinGW-w64's `synchronization` import
+library.
+
+**The alternatives:** running the task on the system's stack, sized by
+`CreateThread`, which drops D495's stack from the caller's backing and its
+limit; SRW locks, a second lock design for one system.
+
+**Pinned by** `runtime/thread-creation-and-join-order-writes`,
+`runtime/thread-join-first-failure`, `runtime/thread-runs-fibres`,
+`runtime/thread-lock-one-thread` and
+`runtime/hosted-heap-after-thread-start` on the Windows lane.
+
+### D2276 — On Windows the heap grows into its reservation and copies past it
+
+**From** D502 and the heap's size classes.
+
+**The discrepancy:** `hosted/heap` maps, trims, extends and remaps through
+`platform/posix`; Windows reserves and commits address space in 64 KiB
+granules and has no `mremap`.
+
+**Chosen:** a mapping reserves its length rounded to the allocation
+granularity and commits its length; freeing releases the reservation; a
+trim decommits the tail, which stays reserved; a growth in place commits
+the reserved pages after a mapping when `VirtualQuery` says they are its
+own and uncommitted, and a resize past them copies. The page is 4096 bytes
+and a size class's chunk the same 64 KiB mapping as elsewhere.
+
+**The alternatives:** the process heap's `HeapAlloc`, a second heap with
+its own lock; and reserving beyond the granule for growth, which the
+optimization phase may measure.
+
+**Pinned by** `runtime/hosted-heap-provider`, `runtime/hosted-heap-resize`
+and the heap fixtures of the core containers on the Windows lane.
 
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 

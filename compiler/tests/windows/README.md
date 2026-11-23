@@ -27,10 +27,20 @@ Before it runs anything the lane sets the error mode its programs inherit,
 so Windows Error Reporting neither opens a dialog nor waits on a trap.
 
 The selection refuses a fixture naming `windows-x86-64` that asks for what
-the lane does not run yet: C peers, a C library (`link:`), library
-directories, files given as arguments, or standard input. A Windows program
-has no hosted provider yet, so a fixture importing `hosted/` or the POSIX
-platform modules does not name the target.
+the lane does not run yet: C peers, a C library (`link:`) or library
+directories. The runtime job checks nothing out, so the bundle carries the
+files a fixture names in `run_files` and `stdin` under `inputs/`, and a
+program is given the copies. Each outcome runs in a working directory of
+its own under the bundle's `work/`, holding copies of those files too,
+since the profiles of one fixture run at once and a fixture may make files
+where it runs (D2273).
+
+The hosted providers are written over `platform/windows` on Windows
+(D2270 to D2272), so a fixture over `hosted/` names the target unless it
+needs POSIX itself: a fixture that imports `platform/posix`, starts
+`/bin/sh`, opens `/dev/null` or holds an errno's POSIX number does not.
+A Windows-only fixture, `runtime/windows-run-programs`, starts the command
+processor in place of a shell.
 
 ## Running it locally
 
@@ -52,9 +62,11 @@ which Windows does not. Wine is development feedback: the gate's Windows
 runner is the verdict. `--case=NAME`, the fixture directory's bare name,
 repeats and is visibly filtered; `--prepare-only` and `--prepared=DIR`
 split the stages as the gate does, and on Windows the second needs no
-`--runner`. A lane runs every build and every outcome before it reports,
-then lists every failure, one line each, and exits 1; each transcript,
-status file and `summary.json` is in the output directory.
+`--runner`. A lane runs every build, and every outcome of the builds that
+succeeded, before it reports, then lists every failed build and every
+failed outcome, one line each, and exits 1; `--prepare-only` fails on a
+failed build after writing the rest. Each transcript, status file and
+`summary.json` is in the output directory.
 
 On a Windows host with llvm-mingw or MSYS2's CLANG64 toolchain, `refine`
 itself is not yet built for Windows, so emission stays on Linux.
