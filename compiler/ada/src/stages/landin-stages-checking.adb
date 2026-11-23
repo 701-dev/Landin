@@ -22240,7 +22240,7 @@ package body Landin.Stages.Checking is
          Selected : Landin.Checking.Conformance_Id :=
            Landin.Checking.No_Conformance;
          Matches : Natural := 0;
-         Concept_Matches : Natural := 0;
+         Own_Iterable : Boolean := False;
 
          procedure Report (Message : String; Note : String);
 
@@ -22435,11 +22435,23 @@ package body Landin.Stages.Checking is
                      Concept_Node : constant Syn.Node_Id :=
                        Res.Node_Of (Meanings.all, Declaration);
                   begin
+                     --  D1957: `for` takes core/iter's `iterable`, the
+                     --  library's one declaration; a program's own concept
+                     --  of that name is an ordinary concept.
                      if Spelled (Syn.Name (Concept_Tree.all, Concept_Node))
                           = "iterable"
                      then
-                        Concept_Matches := Concept_Matches + 1;
-                        Concept := Candidate;
+                        if Landin.Modules.Logical_Path
+                             (Grouped.all,
+                              Landin.Modules.Module_Of
+                                (Grouped.all,
+                                 Res.Source_Of (Meanings.all, Declaration)))
+                             = "core/iter"
+                        then
+                           Concept := Candidate;
+                        else
+                           Own_Iterable := True;
+                        end if;
                      end if;
                   end;
                end if;
@@ -22448,18 +22460,22 @@ package body Landin.Stages.Checking is
 
          if Concept = Landin.Checking.No_Concept then
             if not Quiet_Missing then
-               Report
-                 (Named_Type (Actual, Syn.Source_Of (Of_Tree), "this type")
-                  & " has no [1320] iterable conformance",
-                  "[1150]: a struct or `any C` traversal uses the named"
-                  & " iterable evidence");
+               if Own_Iterable then
+                  Report
+                    (Named_Type (Actual, Syn.Source_Of (Of_Tree), "this type")
+                     & " has no conformance to core/iter's `iterable`;"
+                     & " `for` takes no other concept of that name",
+                     "D1957: import core/iter and conform to"
+                     & " `iter.iterable` in place of declaring one");
+               else
+                  Report
+                    (Named_Type (Actual, Syn.Source_Of (Of_Tree), "this type")
+                     & " has no [1320] iterable conformance",
+                     "[1150]: a struct or `any C` traversal uses core/iter's"
+                     & " `iterable`; import core/iter and conform to"
+                     & " `iter.iterable`");
+               end if;
             end if;
-            return Landin.Checking.No_Conformance;
-         elsif Concept_Matches > 1 then
-            Report
-              ("more than one concept is named `iterable`",
-               "D180: implicit traversal requires one unambiguous [1320]"
-               & " concept identity");
             return Landin.Checking.No_Conformance;
          end if;
 
@@ -22686,8 +22702,8 @@ package body Landin.Stages.Checking is
                Report
                  (Named_Type (Actual, Syn.Source_Of (Of_Tree), "this type")
                   & " has no [1320] iterable conformance",
-                  "[1150]: a struct or `any C` traversal selects one exact"
-                  & " Cur and Item pair");
+                  "[1150]: a struct or `any C` traversal takes its one"
+                  & " conformance to core/iter's `iter.iterable`");
             end if;
             return Landin.Checking.No_Conformance;
          elsif Matches > 1 then

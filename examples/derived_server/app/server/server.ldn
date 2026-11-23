@@ -106,14 +106,13 @@ end released
 --- on `world`'s output, serve beside a fibre that waits for the signal and
 --- then stops the server by closing the listener, and say how many
 --- requests were answered, `stopped after 2 requests`. Each capability is
---- erased from the one provider, `turning` as `fibre.turns`, which does
---- not convert to `runs`'s `fibre.scheduler` (D464). The end is clean only
+--- erased from the one provider, and the sessions run on `turning` as the
+--- `fibre.scheduler` it converts to (D1949). The end is clean only
 --- when the signal stopped it; a failure to accept before that is
 --- `serve_until_terminated`'s, once `stop_watching` has woken the waiter
 --- and it has been joined.
 public serve_until_terminated: (turning: any fibre.turns,
                                 signals: any signal.signals,
-                                runs: any fibre.scheduler,
                                 network: any net.network,
                                 clock: any time.clock, world: any io.world,
                                 listener: io.file)
@@ -128,7 +127,7 @@ public serve_until_terminated: (turning: any fibre.turns,
     stopper: stopping = (signals: signals, network: network,
                          listener: listener, stopped: addr stopped)
     try fibre.admit(waiter, stop_on_terminate, stopper)
-    serve_forever(runs, network, clock, listener) else (problem)
+    serve_forever(turning, network, clock, listener) else (problem)
         if not stopped then
             signals.stop_watching() else none
             fail problem

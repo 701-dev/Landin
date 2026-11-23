@@ -1,0 +1,66 @@
+--  D1957: core/map and core/tree conform to core/iter's `iterable`, so
+--  `for` walks them.  The map's walk skips a removed entry and keeps
+--  insertion order; the tree's hands out every node's identifier, the
+--  branch after its children.
+import core/arena
+import core/cmp
+import core/map
+import core/tree
+
+walk_map: () -> (ok: bool) =
+    ok = false
+    mut backing: [2048]u8 = zeroed
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    mut value := map.new(key: u32, item: i32, seed: cmp.seed_from(1, 2))
+    mut count: usize = 0
+    for each in value do
+        _ = each
+        inc count
+    end for
+    return when count <> 0
+    map.insert(value, memory, u32(30), 3) else none
+    map.insert(value, memory, u32(10), 1) else none
+    map.insert(value, memory, u32(20), 2) else none
+    map.insert(value, memory, u32(40), 4) else none
+    map.remove(value, u32(20)) else none
+    --  Insertion order is 30, 10, 40: the keys read as one number, 301040.
+    mut keys: u32 = 0
+    mut sum: i32 = 0
+    for each in value do
+        keys = keys * 100 + each.key
+        sum += each.item
+        inc count
+    end for
+    ok = count == 3 and keys == 301040 and sum == 8
+end walk_map
+
+walk_tree: () -> (ok: bool) =
+    ok = false
+    mut backing: [1024]u8 = zeroed
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    mut value := tree.new()
+    first := tree.add_leaf(value, memory, "a") else begin return end
+    _ = tree.add_leaf(value, memory, "b") else begin return end
+    top := tree.add_branch(value, memory, "top", first, 2) else begin return end
+    mut seen: usize = 0
+    mut leaves: usize = 0
+    mut last: usize = 0
+    for id in value do
+        node := tree.get(value, id) else begin return end
+        if tree.kind(node) == tree.leaf_node then
+            inc leaves
+        end if
+        last = tree.ordinal(id)
+        inc seen
+    end for
+    ok = seen == 3 and leaves == 2 and last == tree.ordinal(top)
+end walk_tree
+
+public main: () -> (code: i32) =
+    code = 1
+    if walk_map() and walk_tree() then
+        code = 42
+    end if
+end main

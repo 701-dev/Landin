@@ -1,9 +1,5 @@
-iterable: type = concept (t: type, cur: type, item_type: type)
-    first: (s: ptr t) -> (c: cur)
-    at_end: (s: ptr t, c: cur) -> (yes: bool)
-    item: (s: ptr t, c: cur) -> (v: item_type)
-    next: (s: ptr t, c: cur) -> (c2: cur)
-end iterable
+import core/iter
+
 bag: type = struct
     values: []mut i32
 end bag
@@ -16,5 +12,5 @@ item: (s: ptr bag, c: usize) -> (v: ptr i32 from s) =
     v = addr s.val.values[c]
 end item
 next: (s: ptr bag, c: usize) -> (c2: usize) = c + 1 end next
-bag is iterable (cur: usize, item_type: ptr i32,
-                 first: first, at_end: at_end, item: item, next: next)
+bag is iter.iterable (cur: usize, item_type: ptr i32,
+                      first: first, at_end: at_end, item: item, next: next)

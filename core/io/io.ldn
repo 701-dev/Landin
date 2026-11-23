@@ -49,7 +49,7 @@ public file: type = file_value
 --- positive progress for nonempty input and zero for empty input, and a
 --- failed attempt makes no progress.
 ---
---  An erased world is not an erased writer: spec.md's D268.
+--  Four narrow concepts and their composition: spec.md's D268 and D1952.
 --- The capability is four narrow concepts over one provider type, so a
 --- provider supplies only what it has: a UART is a writer and a read-only
 --- image is a reader, while system and memory providers also supply files and
@@ -58,9 +58,9 @@ public file: type = file_value
 --- roots that have everything.  A provider is a handle: a small copyable
 --- value, passed by value, that refers to its state, so a program and its
 --- logger share one without locking it.  An erased `any io.world` is built
---- from the address of a handle binding and dispatches every entry. It is not
---- an `any io.writer`: where a writer is wanted, build one from the same
---- handle.
+--- from the address of a handle binding and dispatches every entry, and it
+--- converts to an `any` of each concept it is built on: where an
+--- `any io.writer` is wanted, pass the world (D1952).
 public writer: type = concept (provider: type)
     --- Write the entire byte slice or fail. Failure may follow partial
     --- output; do not blindly retry the whole slice.
@@ -246,35 +246,6 @@ public directories: type = concept (provider: type)
     remove_directory: (self: provider, path: text.host_string)
                       -> none ! not_found | no_access | io_failed
 end directories
-
---  The writer part of an erased world. `any io.world` and `any io.writer`
---  do not convert, so a consumer holding only the world lends its writer
---  through this adapter, which holds a copy of the erased world and forwards
---  both entries to it.
-lent: type = struct
-    source: any world
-end lent
---- Adapter holding an erased world and forwarding the two writer entries.
-public lent_writer: type = lent
-
---- Lend a writer adapter from an erased world. Keep the world's handle and
---- its state alive while the adapter is used; this does not transfer
---- ownership.
-public writer_of: (host: any world) -> (adapter: lent_writer from host) =
-    adapter = (source: host)
-end writer_of
-
-lent_write: (self: lent, opened: file, bytes: []u8)
-            -> none ! io_failed =
-    try self.source.write(opened, bytes)
-end lent_write
-
-lent_write_some: (self: lent, opened: file, bytes: []u8)
-                 -> (count: usize) ! io_failed =
-    count = try self.source.write_some(opened, bytes)
-end lent_write_some
-
-lent is writer (write: lent_write, write_some: lent_write_some)
 
 --- Open a path for reading through `files` evidence. The caller must close
 --- a successful handle using the same provider. A path that names a

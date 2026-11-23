@@ -4,10 +4,10 @@
 --  lends and a count; `admit` copies a task's state onto a free stack and
 --  starts a thread that calls an ordinary routine with the copy; and
 --  `join`, which the routine making the group defers, waits for every one
---  and fails with the first failure any had.  Threads are no provider of
---  `core/fibre`'s concepts (D446): a thread runs in parallel with the one
---  that started it, so state they share is the atomic wrapper's or a
---  lock's.
+--  and fails with the first failure any had.  A thread runs `core/fibre`'s
+--  `task`, made by its `bridge` (D1949), but threads are no provider of its
+--  `scheduler` (D446): a thread runs in parallel with the one that started
+--  it, so state they share is the atomic wrapper's or a lock's.
 --
 --  Each stack is cut from the backing and prepared with
 --  `compiler.stack_prepare`, so every routine of the task checks its frame
@@ -22,17 +22,11 @@
 
 import core/atomic
 import core/failure
+import core/fibre
 import core/mem
 import hosted/system
 import hosted/thread/lock
 import platform/posix
-
---  What a thread runs: one entry, as `core/fibre`'s task, with no error
---  set, since a thread's first frame has no caller to fail to.
-job: type = concept (job_type: type)
-    --  Run the task to its end.
-    run: (self: ptr mut job_type) -> none
-end job
 
 --  The record at a stack's base: the system's record of the thread, the
 --  start area's saved stack pointer while the task runs and the prepared
@@ -43,7 +37,7 @@ slot: type = struct
     thread: posix.thread
     home: usize
     prepared: usize
-    work: any job
+    work: any fibre.task
     ended: atomic.cell(u32)
     running: u32
     order: usize
@@ -149,32 +143,22 @@ public group_over: (host: system.host, backing: []mut u8, count: usize)
     end while
 end group_over
 
---  What a task's stack holds at its top, below the area its thread starts
---  on: the routine, the address of its group's ledger and the state the
---  routine is called with.
-launch: type (state_type: type) = struct
-    work: (inout state: state_type) -> none ! failure.reason
-    kept: usize
-    state: state_type
-end launch
-
---  Run the task; the first failure of the group's tasks takes the claim,
---  and only it writes the failure, beside the count `admit` writes, whose
---  bytes it never touches.  The failure is read only after `join` has
---  waited for every thread, whose end orders the write.
-launch_run: (state_type: type, self: ptr mut launch(state_type)) -> none =
-    self.val.work(self.val.state) else (problem)
-        kept: ptr mut ledger = ptr(self.val.kept)
-        if atomic.compare_exchange(addr kept.val.claimed, u32(0), u32(1))
-          == 0
-        then
-            kept.val.problem = problem
-            kept.val.failed = true
-        end if
-    end
-end launch_run
-
-(state_type: type) launch(state_type) is job (run: launch_run)
+--  A thread group's keeper for `core/fibre`'s bridge, which a task's stack
+--  holds at its top, below the area its thread starts on: the first
+--  failure of the group's tasks takes the claim, and only it writes the
+--  failure, beside the count `admit` writes, whose bytes it never touches.
+--  The failure is read only after `join` has waited for every thread,
+--  whose end orders the write.
+keep_first: (kept: usize, problem: failure.reason) -> none =
+    --  [0810]: `kept` is the address of the group's ledger.
+    ledger_cell: ptr mut ledger = ptr(kept)
+    if atomic.compare_exchange(addr ledger_cell.val.claimed, u32(0), u32(1))
+      == 0
+    then
+        ledger_cell.val.problem = problem
+        ledger_cell.val.failed = true
+    end if
+end keep_first
 
 --  The prepared stack's first frame: run the task, then go back to the
 --  area the thread started on, which ends the thread.  Nothing resumes
@@ -275,22 +259,22 @@ public admit: (state_type: type, inout g: group,
     record: ptr mut slot = record_of(g, index)
     low: usize = usize(record) + record_room
     area: usize = usize(record) + g.size - g.area
-    extent: usize = sizeof launch(state_type)
+    extent: usize = sizeof fibre.bridge(state_type)
     fail mem.out_of_memory when extent > area - low - least_task
     mut place: usize = round_down(area - extent, alignment)
-    place -= place % alignof launch(state_type)
+    place -= place % alignof fibre.bridge(state_type)
     fail mem.out_of_memory when place < low + least_task
-    --  [0810]: the launch is the top bytes of the stack's own part, kept
+    --  [0810]: the bridge is the top bytes of the stack's own part, kept
     --  until the task ends; the task's stack is the bytes below it, and
     --  the thread's start area the bytes above.
-    copy: ptr mut launch(state_type) = ptr(place)
-    copy.val = (work: work, kept: g.front, state: state)
+    copy: ptr mut fibre.bridge(state_type) = ptr(place)
+    copy.val = (work: work, keep: keep_first, kept: g.front, state: state)
     bottom: ptr mut [1]u8 = ptr(low)
     mut stack: []mut u8 = bottom.val[0..<1]
     top: ptr mut [1]u8 = ptr(area)
     mut start: []mut u8 = top.val[0..<1]
     unchecked begin
-        --  The bytes from `low` to the launch, and from the area to the
+        --  The bytes from `low` to the bridge, and from the area to the
         --  stack's end, are the backing's.
         stack = stack[0..<place - low]
         start = start[0..<g.area]

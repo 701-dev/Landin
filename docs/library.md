@@ -416,6 +416,20 @@ The compiler does not prove the laws:
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-cmp/main.ldn)
 
+## core/iter
+
+The concept a `for` loop walks a value through.
+
+`for x in s` over a struct or an `any C` uses `s`'s conformance to
+`iter.iterable`. A concept named `iterable` declared anywhere else is not
+used. A conformance names a
+cursor type and an item type and supplies `first`, `at_end`, `item` and
+`next`, each given a read-only pointer to the loop's own copy of the
+source; `item` hands out a value of its own, never a view of the source.
+`core/map` and `core/tree` conform.
+
+[Executable example](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn)
+
 ## core/map
 
 An insertion-ordered hash map with explicit entry walks.
@@ -427,6 +441,7 @@ An insertion-ordered hash map with explicit entry walks.
 | `map.get`, `map.at`, `map.contains` | Copy an item, lend a pointer to it, or ask whether a key is there. |
 | `map.remove` | Remove a key. |
 | `map.entries`, `map.next_entry` | Walk the entries in insertion order. |
+| `for each in m` | The same walk through `core/iter`'s `iterable`, each entry a copy of its key and item. |
 
 Keys are constrained on the `hashable` concept of `core/cmp`, whose table
 lists the types `hashable` ships for. An alternative policy uses a
@@ -462,9 +477,11 @@ draws its seed from the system's entropy, and
 [a firmware map](../compiler/tests/fixtures/runtime/map-firmware-seed/main.ldn)
 is given two words.
 
-A walk starts at `map.entries()` and calls `map.next_entry` until the
-call fails with `map.end_of_entries`. The executable example below walks
-this way. The
+There are two ways to walk a map. One starts at `map.entries()` and
+calls `map.next_entry` until the call fails with `map.end_of_entries`;
+the executable example below walks this way. The other is a `for` loop
+over the map,
+[as this program does](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn). The
 [derived container program](../examples/derived_containers/workload/workload.ldn)
 also walks after removing keys.
 
@@ -1620,6 +1637,8 @@ An append-only store of named leaves and branches addressed by node identifiers.
 - Shared children count once for each incoming path.
 - Names borrow their UTF-8 backing; releasing the tree frees node
   storage, not names.
+- `for id in t` walks every node's identifier in the order the nodes were
+  added, so each branch comes after its children.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-tree/main.ldn)
 
@@ -1717,6 +1736,13 @@ use these atoms.
 
 An entry-module panic handler has the language-specified nonreturning
 signature. A panic is distinct from a recoverable allocator or I/O error.
+
+`panic.require(holds)` is C's `assert`: when `holds` is false it stops
+the program as a failed check does, and the stop is reported at the line
+that called `require`. The compiler fills its `caller` parameter, a
+`panic.call_site`, with the place of the call. A check of your own takes
+a `caller` parameter of that type too and passes it on,
+`panic.require(holds, where: where)`.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-panic/main.ldn)
 
@@ -1918,7 +1944,9 @@ Fibres: tasks a function starts as a group and waits for before it goes on.
 
 A task is an ordinary function, `(inout state: T) -> none !
 failure.reason`. Its state is a value copied onto its own stack, so one
-group holds tasks of different state types.
+group holds tasks of different state types. `admit` wraps the function
+and the state in a `fibre.bridge`. That bridge is a `fibre.task`, which
+is what a provider starts; `hosted/thread`'s groups run the same task.
 
 The state is kept until the task ends, `escaping into` the group: what it
 refers to must outlive the group, as the function's own parameters and the

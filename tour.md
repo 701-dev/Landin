@@ -1093,6 +1093,10 @@ require: (cond: bool, caller where: site) -> none =
 end require
 ```
 
+`core/panic` declares this struct as `panic.call_site` and this check as
+`panic.require`, so a program that wants one imports it rather than
+writing its own.
+
 This `site` is not the `site` that a panic handler receives at [1670]. That
 one is a single `u32` number, which the compiler gives a failing check.
 
@@ -4082,10 +4086,12 @@ concepts.
 
 ### [1320] Traversal is a concept
 
-`for x in s` over your own type uses the `iterable` concept. Conform to
-it and your type works in a `for` loop.
+`for x in s` over your own type uses the `iterable` concept that
+`core/iter` declares. Conform to `iter.iterable` and your type works in a
+`for` loop; a concept of your own with the same name does not.
 
 ```landin
+--  core/iter
 iterable: type = concept (t: type, cur: type, item_type: type)
     first: (s: ptr t) -> (c: cur)
     at_end: (s: ptr t, c: cur) -> (yes: bool)
@@ -4110,24 +4116,12 @@ the source. A container that wants to hand out references into its
 storage returns a slice view instead and uses the built-in slice
 traversal, as `for value in vec.used(numbers)` does.
 
-A source that can fail while streaming conforms to `fallible_iterable`,
-which adds an error set as a fourth input:
+The library's map and tree conform. `for each in m` walks a map's
+entries in insertion order, each entry a copy of its key and item.
+`for id in t` walks a tree's node identifiers.
 
-```landin
-fallible_iterable: type = concept
-    (t: type, cur: type, item_type: type, errors: type)
-    first: (s: ptr t) -> (c: cur) ! errors
-    at_end: (s: ptr t, c: cur) -> (yes: bool) ! errors
-    item: (s: ptr t, c: cur) -> (v: item_type) ! errors
-    next: (s: ptr t, c: cur) -> (c2: cur) ! errors
-end fallible_iterable
-```
-
-`errors` is an atom set, and all four entries declare exactly that set;
-a provider may declare an error it never raises. A program may declare
-this concept, but no loop walks it implicitly: plain `for` only ever uses
-`iterable`. Such a source is walked with a `while` that calls its entries
-with `try` ([1150]).
+A source whose steps can fail is not `iterable`: it is walked with a
+`while` that takes each step with `try` ([1150]).
 
 ### [1330] Integer ranges are not values
 
@@ -5604,8 +5598,7 @@ public entry: () -> (code: i32) =
     mut ledger: region.growing_space = zeroed
     program := region.over(ledger, heap)
     defer region.release(ledger, heap)
-    writer: any io.writer = any(addr host)
-    mut logger := diag.stream(writer, world.err())
+    mut logger := diag.stream(world, world.err())
     log: any diag.log = any(addr logger)
     kept: usize = run_logged(program, world, usize(4096), log) else (problem)
         _ = problem
@@ -5628,8 +5621,8 @@ value, that refers to its state.
   region is made from `ledger`. The handle cannot outlive that state, and
   the state cannot be released while the handle is still used.
 - An erased capability is built from the address of a handle binding, and
-  its dispatch copies the handle from there. So `world`, `writer` and
-  `host` itself can be used side by side, and nothing is locked.
+  its dispatch copies the handle from there. So `world` and `host` itself
+  can be used side by side, and nothing is locked.
 
 **Handing it something else.** Because the code below the root only sees
 what it is handed, you can hand it something else. A test gives the same
@@ -5661,13 +5654,10 @@ of the world: `directories`, `environment`, `programs`, `file_system`,
 `world.write` on an erased world reaches the writer's entry. A UART
 implements `writer` and nothing else.
 
-A diagnostics log asks for `any io.writer`, which is why `entry` builds
-one from the same `host`: an `any io.world` is not an `any io.writer`, and
-neither converts to the other. A function holding only an erased world can
-go on in either of these ways:
-
-- pass it as it is to a function generic over a writer, or
-- make an `any io.writer` from the adapter `io.writer_of(world)` lends it.
+A diagnostics log asks for `any io.writer`, and `entry` hands it the
+world: an `any io.world` converts to an `any` of each concept it is built
+on, keeping the same handle ([1370]). An `any io.writer` does not convert
+back, since a writer need not be a world.
 
 **Arguments and paths.** Both providers lend each argument and path as a
 `text.host_string`: the bytes the system gave, unconverted and uncopied,

@@ -214,8 +214,7 @@ public build: (provider: type is mem.allocator, memory: provider,
               ! bad_argument | mem.out_of_memory
               | io.not_found | io.no_access | io.is_a_directory
               | io.io_failed =
-    lent := io.writer_of(world)
-    writer: any io.writer = any(addr lent)
+    writer: any io.writer = world
     mut logger := diag.stream(writer, world.err())
     log: any diag.log = any(addr logger)
     value = try build_logged(memory, world, log)

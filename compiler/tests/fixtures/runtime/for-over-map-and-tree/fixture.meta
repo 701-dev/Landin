@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: a for loop walks a map's live entries in insertion order and a tree's node identifiers through core/iter's iterable
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
+constructs: 1150, 1320

@@ -2870,6 +2870,11 @@
     "runtime/for-iterable-evidence-traversal": {
       "mode": "execute"
     },
+    "runtime/for-over-map-and-tree": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "A map over an arena with SipHash keys, its rebuild and its walk, beside a tree over a vec, is 50,888 bytes of flash at none/off, overflowing the 32 KiB profile by 18,120. Each profile still attempts execution; runtime/library-shared-iter walks core/iter's iterable on Cortex-M0 and RV32 within the image, and requires execution; this image limit is not runtime evidence."
+    },
     "runtime/for-range-traversal": {
       "mode": "execute"
     },
@@ -3271,6 +3276,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-io": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-iter": {
       "mode": "execute"
     },
     "runtime/library-shared-line": {
@@ -3755,6 +3763,9 @@
       "mode": "execute"
     },
     "runtime/option-names-stay-in-their-module": {
+      "mode": "execute"
+    },
+    "runtime/panic-require-reports-its-caller": {
       "mode": "execute"
     },
     "runtime/parameterized-struct-lazy-value-layout": {

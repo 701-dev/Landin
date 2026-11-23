@@ -24,7 +24,7 @@ The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
 `core/diag`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule
 `core/fibre/stacks`, `core/io` with its submodules `core/io/fake` and
-`core/io/signal`, `core/line`,
+`core/io/signal`, `core/iter`, `core/line`,
 `core/map`, `core/mem`,
 `core/net`, `core/panic`, `core/pool`, `core/random`, `core/region`,
 `core/sort`, `core/spill`, `core/text`, `core/time`, `core/tree` and
@@ -203,7 +203,8 @@ table of its own; a new failure atom adds its phrase there (D388).
 
 `core/io` is four narrow concepts, `reader`, `writer`, `files` and
 `process`, which one provider type may implement together; `world` composes
-them, and `writer_of` lends a world's writer. A destination that only
+them, and an `any io.world` converts to an `any` of each, so a world is
+passed where a writer is wanted (D1952). A destination that only
 takes output implements `writer`'s two entries, and `core/diag` streams
 through `any io.writer` (D268). Every entry takes the provider's
 handle by value, and an erased capability is built from the address of a
@@ -379,7 +380,7 @@ allocator is hidden in a container or selected implicitly by the target.
 | `core/pool` | A provider handle over a caller's `pool.space`, its bytes and initialized slot metadata. A free-index heap gives lowest-index reuse in logarithmic time; exact frees find their slot by address. A growth or a resize keeps a block in its slot to any extent the slot holds, so a list over a pool grows in place until its slot is full (`runtime/core-pool-grow`, 7.9 KB at size/auto, and `runtime/core-pool-list-grows`, 12.8 KB) (D386). No backing allocation or fallback heap. |
 | `core/sort` | Heapsort and selection sort by `cmp.ordered` evidence, and `sort_by`, heapsort by a comparison given a context, with no allocation; `runtime/core-sort-context`, which sorts records into a shared pool of names with `cmp.compare`, is 5.5 KB at size/auto (D387). |
 | `core/failure` | `failure.words`, a phrase for each of the 39 library failure atoms, linked only into a program that calls it (`runtime/failure-words`, 4.7 KB at size/auto) (D388). |
-| `core/panic` | The canonical five-atom `panic_kind` domain. An entry-module public ordinary `(kind: panic.panic_kind, site: u32) -> noreturn` handler replaces the terminal default; no reporting or allocation dependency is imported. |
+| `core/panic` | The canonical five-atom `panic_kind` domain. An entry-module public ordinary `(kind: panic.panic_kind, site: u32) -> noreturn` handler replaces the terminal default; no reporting or allocation dependency is imported. `require(holds)` stops the program as a failed check does when `holds` is false. The stop is reported at the line that called `require`, which its `caller` parameter, a `call_site`, receives (D1959). |
 | `core/text` | A builder over a caller's buffer with byte, text, decimal, hexadecimal and aligned appends, and `format` over `any text.formattable`. At size/auto the bounded builder's core, `over`, `used`, `append`, `append_byte` and the room check, is about 2.0 KB with `mem.copy`; a `u32` decimal adds about 1.0 KB, a signed one 0.5 KB more, an aligned hexadecimal about 1.3 KB, and `format` with two conformances about 2.7 KB (`runtime/core-text-format-firmware`, 10.2 KB in all, 15.1 KB at none/off). One line formatted into a fixed builder through `format` is a 7.0 KB image executing 3,889 instructions, against 4.5 KB and 2,259 through `append`. A growing builder's doubling is reached only through the table `text.growing` builds, so it is linked only into a program that calls `growing`, and no allocator is used unless the program builds a growing builder over its own. Over `utf8`, positions, the searches and the encoder with both builders' scalar appends and a refusal of each, `runtime/library-shared-text`, are 13.4 KB at size/auto and 19.6 KB at none/off, with 664 and 1,472 bytes of stack observed and 4 bytes of static RAM. A console line checked, split at a found `=` and arrow and encoded again, `runtime/core-text-utf8-firmware`, is 12.2 KB and 19.1 KB. |
 | `core/io` | Besides the concepts and the memory world, a buffered writer over the caller's buffer and a line reader, with `mem.copy` and `mem.find` (`runtime/core-io-buffered-writer`, an 11.9 KB image at size/auto, and `runtime/core-io-line-reader`, 13.1 KB). `diag.stream` writing one note through `any io.writer` adds about 3.2 KB and 1,000 instructions to the four writes it makes, most of it the decimal position. |
 | `core/random` | A generator of four `u64` words and its draws, written with shifts, exclusive ors and additions so the 32-bit core needs only `__aeabi_lmul` for seeding: `new`, splitmix64, `next`, `below` and a shuffle of bytes are in `runtime/random-sequence`'s 8.8 KB image at size/auto, which seeds from `core/io`'s scripted entropy too. |
@@ -842,3 +843,16 @@ workarounds have library forms (D1276, D1278 to D1280, D1344).
 | `linux.system_call(numbers.kill_number, ...)` on Linux and `libc.kill` elsewhere, under `fixed if compiler.os` | `posix.kill(process, posix.signal_terminate)`, with `posix.current_process()` for this process and `system.process_of(child)` for a child |
 | a handler's address read out of a function binding through a `ptr u64` for `signal_action.handler` | `action: libc.signal_action = libc.handling(handler, 0)` then `libc.sigaction(signal, addr action, libc.no_address)`; the handler's address is `usize(handler)` (D1343, D1344) |
 | a write through `hosted/events` to a blocking terminal or socket, which could hold the thread | refused with `io_failed` and EAGAIN; make the descriptor non-blocking with `posix.set_non_blocking`, or write it through `hosted/blocking` |
+
+### Migrating to the reviewed concepts
+
+These answers of the library review change what a program writes
+(D1949, D1952, D1957, D1959, D2048 to D2051).
+
+| Was | Now |
+|---|---|
+| `io.writer_of(world)`, and an `any io.writer` made from the adapter it lent | the world itself: an `any io.world` converts to `any io.writer`, `any io.reader`, `any io.files` and `any io.process` |
+| a program's own `iterable` concept, which `for` recognised by name | `import core/iter` and a conformance to `iter.iterable`; `for` takes no other concept of that name |
+| `map.next_entry` in a `while` to walk a map, and a tree's identifiers counted by ordinal | `for each in m`, which walks the entries in insertion order, each a copy of its key and item, and `for id in t` |
+| an `any fibre.scheduler` made beside an `any fibre.turns` from the same handle | the `any fibre.turns`, which converts to `any fibre.scheduler` where one is wanted |
+| a program's own `site` struct and a check over `compiler.unreachable(where)` | `panic.call_site` and `panic.require(holds)`, from `import core/panic` |

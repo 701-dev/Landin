@@ -167,3 +167,26 @@ for the initialized prefix; `at` for a writable slot, and as a parameter
 for a place; `space` for a provider's state; `position` for a place in a
 sequence; `entry` for a record a collection holds or lends, the map's,
 the directory's and the log's.
+
+## Concepts (R20.30)
+
+The concept changes (D1949, D1952, D1957, D1959, D2048 to D2051) are
+already made on `r20-integration`, as R20.40's are: the library, the
+fixtures and the examples use the new forms. What R20.60 adds is the
+refusal of each removed form naming its replacement, and the `refine fix`
+rewrite where it is mechanical.
+
+| old form | new form | decision | rewrite |
+|---|---|---|---|
+| `io.writer_of(world)`, and `writer: any io.writer = any(addr adapter)` over what it lent | `world` itself where an `any io.writer` is wanted | D1952, D2050 | by hand: the adapter binding leaves and its uses name the world |
+| `io.lent_writer` | removed; an `any io.world` converts to `any io.writer` | D1952, D2050 | by hand |
+| a program's own concept named `iterable` that a `for` walks through | `import core/iter` and a conformance to `iter.iterable`; the program's declaration leaves | D1957, D2048 | mechanical: the declaration of [1320]'s exact shape is removed, `is iterable` becomes `is iter.iterable` and the import is added. Since this candidate the refusal (L0348) names `core/iter` already |
+
+Added, replacing nothing a program wrote: `core/iter` and its `iterable`;
+the map's and the tree's conformances, so `for each in m` and `for id in
+t` walk them (D2048); `fibre.bridge`, which both groups make tasks with
+(D2049); `panic.call_site` and `panic.require` (D2051). Kept: `fibre.task`,
+`fibre.group_over`, `fibre.turns_over` and every `hosted/thread` routine
+with their signatures, though a fibre group now holds one `any scheduler`
+(D2049); `map.next_entry`, which R20.50's entry reshapes; `zeroable`
+(D1958); and every I/O concept, since no pair merges (D2050).

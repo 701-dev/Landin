@@ -1,4 +1,5 @@
 import core/cmp
+import core/iter
 import core/mem
 
 --- No live entry has the requested key.
@@ -162,6 +163,58 @@ public next_entry: (key: type is cmp.hashable, item: type,
     end
     result = (key: found_key, item: found_item)
 end next_entry
+
+--  The map's conformance to core/iter's `iterable` (D1957): `for entry in
+--  m` walks the live entries in insertion order, as `next_entry` does,
+--  each a copy of its key and item.  The cursor is the slot of the entry
+--  next handed out.
+walk_first: (key: type is cmp.hashable, item: type,
+             s: ptr map_value(key, item)) -> (c: cursor) =
+    c = (next_slot: s.val.first_used)
+end walk_first
+
+walk_at_end: (key: type is cmp.hashable, item: type,
+              s: ptr map_value(key, item), c: cursor) -> (yes: bool) =
+    yes = true
+    return when c.next_slot >= slots(s.val)
+    record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
+        _ = problem
+        return
+    end
+    yes = record.state <> slot_used
+end walk_at_end
+
+walk_item: (key: type is cmp.hashable, item: type,
+            s: ptr map_value(key, item), c: cursor)
+           -> (v: entry(key, item)) =
+    record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
+        _ = problem
+        compiler.unreachable()
+    end
+    found_key: key = mem.get(s.val.keys, record.dense_index) else (problem)
+        _ = problem
+        compiler.unreachable()
+    end
+    found_item: item = mem.get(s.val.values, record.dense_index)
+        else (problem)
+        _ = problem
+        compiler.unreachable()
+    end
+    v = (key: found_key, item: found_item)
+end walk_item
+
+walk_next: (key: type is cmp.hashable, item: type,
+            s: ptr map_value(key, item), c: cursor) -> (c2: cursor) =
+    record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
+        _ = problem
+        compiler.unreachable()
+    end
+    c2 = (next_slot: record.next_used)
+end walk_next
+
+(key: type is cmp.hashable, item: type) map_value(key, item) is iter.iterable
+    (cur: cursor, item_type: entry(key, item), first: walk_first,
+     at_end: walk_at_end, item: walk_item, next: walk_next)
 
 replace_value: (value: type, inout storage: mem.storage(value),
                 index: usize, escaping into storage replacement: value)

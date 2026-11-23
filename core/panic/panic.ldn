@@ -16,3 +16,22 @@ public stack_exhausted: atom
 --- nonreturning panic handler; these failures are not allocator error
 --- returns.
 public panic_kind: type = out_of_range | overflow | bad_conversion | unreachable | stack_exhausted
+
+--- Where a call was written: the struct [1040] gives a `caller` parameter,
+--- whose fields the compiler fills, line and column counting from one. Its
+--- file is a number that the table written beside the program names. This
+--- is not the number a panic handler receives as its `site` [1670].
+public call_site: type = struct
+    file_id: u32
+    line: u32
+    column: u32
+end call_site
+
+--- Stop the program, as a failed check does, when `holds` is false: C's
+--- `assert`, with nothing that turns it off. The stop is reported where
+--- `require` was called, the call site the compiler fills `where` with
+--- (D1959); a routine that checks for its own caller takes a `caller`
+--- parameter too and passes it on, `panic.require(holds, where: where)`.
+public require: (holds: bool, caller where: call_site) -> none =
+    if not holds then compiler.unreachable(where) end if
+end require

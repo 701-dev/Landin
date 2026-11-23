@@ -1872,7 +1872,7 @@ A misleading follow-on refusal met on the way joined SR-1538.
 
 ### R20.30 — The concepts
 
-Status: planned
+Status: complete
 Depends on: R20.10, R20.11
 
 `core/fibre`'s `task` as the one task concept, which `hosted/thread`
@@ -1883,10 +1883,34 @@ merged only where its receivers and failures can be one (D1952); the
 library's `iterable`, which `for` takes and `core/map` and `core/tree`
 conform to, with `fallible_iterable` out of the tour (D1957); and a
 `core` routine that takes its call site through `caller` (D1959).
-`zeroable` stays (D1958). It takes on SR-1284, which D1957 answers: the
+`zeroable` stays (D1958). It takes on `SR-1284`, which D1957 answers: the
 library declares `iterable`. Each change goes on the breaking list.
 Exit evidence: the concept changes on the list, prototype 3's concept
 uses reread against them.
+Done: the concepts section of
+[`roadmap/inputs/breaking-list.md`](roadmap/inputs/breaking-list.md)
+lists each change, made on `r20-integration` for R20.60 to refuse the old
+forms. `core/iter` declares `iterable` and `for` takes no other concept of
+that name, L0348 naming the module for a program's own (D2048); the map
+conforms over its live entries in insertion order and the tree over its
+node identifiers, which `runtime/for-over-map-and-tree` walks on every
+hosted product target, `runtime/library-shared-iter` walking a
+conformance on Cortex-M0 and RV32, and `fallible_iterable` has left
+[1320].
+`core/fibre`'s `bridge`, a routine, a state and a keeper of the first
+failure, is the one task both groups start, `hosted/thread`'s `job` and
+its `launch` leaving, and a fibre group holds one `any scheduler`, the
+`unused` provider and its flag leaving (D2049). `io.writer_of`,
+`lent_writer` and the adapter left, the examples handing `diag.stream`
+the world, and no pair of I/O concepts merges (D2050). `core/panic` gives
+`require` over a `call_site`, the tour's [1040] and the C guide's `assert`
+now pointing at it (D2051). Prototype 3's concept uses were reread: its
+iteration sketch conforms to `iter.iterable`, and its allocator, sort and
+`any drawable` uses are unchanged. `SR-1284`, which D1957 answered, is
+taken. The server example's comment said an `any turns` does not convert
+to an `any scheduler`, and `core/diag` and `core/io` said an erased world
+was not a writer, which R20.11 had made untrue; each now says it
+converts.
 
 ### R20.40 — Layers and consumers
 

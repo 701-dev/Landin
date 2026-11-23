@@ -1,9 +1,4 @@
-iterable: type = concept (t: type, cur: type, item_type: type)
-    first: (s: ptr t) -> (c: cur)
-    at_end: (s: ptr t, c: cur) -> (yes: bool)
-    item: (s: ptr t, c: cur) -> (v: item_type)
-    next: (s: ptr t, c: cur) -> (c2: cur)
-end iterable
+import core/iter
 
 token: type = struct
     value: i32
@@ -40,7 +35,7 @@ cell_next: (t: type, s: ptr cell(t), c: usize) -> (c2: usize) =
     c2 = c + 1
 end cell_next
 
-(t: type) cell(t) is iterable
+(t: type) cell(t) is iter.iterable
     (next: cell_next, item_type: t, first: cell_first,
      cur: usize, item: cell_item, at_end: cell_at_end)
 
@@ -135,7 +130,7 @@ bag_next: (s: ptr bag, c: cursor) -> (c2: cursor) =
     c2 = (position: c.position + 1)
 end bag_next
 
-bag is iterable
+bag is iter.iterable
     (item_type: token, item: bag_item, next: bag_next,
      cur: cursor, at_end: bag_at_end, first: bag_first)
 
@@ -164,7 +159,7 @@ any_next: (s: ptr any sequence, c: usize) -> (c2: usize) =
     c2 = c + 1
 end any_next
 
-any sequence is iterable
+any sequence is iter.iterable
     (next: any_next, item_type: any marker, item: any_item,
      first: any_first, cur: usize, at_end: any_at_end)
 

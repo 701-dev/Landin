@@ -1778,10 +1778,12 @@ extern(c) link(symbol: "foreign_entry+8") bad: () -> none
 
 A `for` source is not something the loop can traverse [1150]. A range
 traversal runs over integers, an array or slice is walked by element, and a
-struct or `any C` source selects one exact iterable conformance with one
-`Cur` and `Item` pair (D180). An ordinary pointer is not a `cstring` (D184).
-Traverse an integer range or a traversable value, or declare one iterable
-conformance. Each provider takes a read-only, non-escaping `ptr T` to the
+struct or `any C` source selects its one exact conformance to `core/iter`'s
+`iterable`, with one `Cur` and `Item` pair (D180, D1957); a program's own
+concept named `iterable` is an ordinary concept the loop does not take. An
+ordinary pointer is not a `cstring` (D184). Traverse an integer range or a
+traversable value, or import `core/iter` and declare one conformance to
+`iter.iterable`. Each provider takes a read-only, non-escaping `ptr T` to the
 retained source, with the exact cursor, item, permission and origin contract
 at [1320]; migrate a by-value source parameter to that pointer contract.
 

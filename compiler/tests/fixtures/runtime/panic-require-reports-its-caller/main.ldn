@@ -1,0 +1,25 @@
+--  D1959: `panic.require` takes its call site through `caller`, so its stop
+--  is reported where it was called, and through a wrapper that passes its
+--  own `caller` on, at the wrapper's call.
+import core/panic
+
+--- A wrapper that passes its own caller on, so its caller is reported.
+require_positive: (value: i32, caller where: panic.call_site) -> none =
+    panic.require(value > 0, where: where)
+end require_positive
+
+first: (value: i32) -> (doubled: i32) =
+    panic.require(value < 100)
+    doubled = value * 2
+end first
+
+second: (value: i32) -> (doubled: i32) =
+    require_positive(value)
+    doubled = first(value)
+end second
+
+public main: () -> (code: i32) =
+    panic.require(true)
+    code = second(3) - 6
+    code = code + second(-1)
+end main

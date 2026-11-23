@@ -1,0 +1,23 @@
+--  Traversal: the concept a `for` loop walks a value through ([1320]).  A
+--  `for x in s` over a struct or an `any C` takes `s`'s conformance to this
+--  `iterable`, and to no other concept of that name (D1957).
+
+--- What `for x in s` walks. A conformance supplies the cursor type `cur`
+--- and the type of the items handed out, `item_type`, and the four entries:
+--- `first` gives the cursor of the first item, `at_end` says whether a
+--- cursor is past the last, `item` hands out the item at a cursor as a
+--- fresh value, never a view of the source, and `next` gives the cursor
+--- after it. Each entry gets a read-only pointer to the loop's own copy of
+--- the source. The signatures are exact: no permission, error set or
+--- `from` clause is inferred or converted. A container whose items are one
+--- slice hands out the slice instead, which `for` walks directly.
+public iterable: type = concept (t: type, cur: type, item_type: type)
+    --- The cursor of the first item, or one `at_end` already.
+    first: (s: ptr t) -> (c: cur)
+    --- Whether `c` is past the last item.
+    at_end: (s: ptr t, c: cur) -> (yes: bool)
+    --- The item at `c`, a value of its own.
+    item: (s: ptr t, c: cur) -> (v: item_type)
+    --- The cursor after `c`.
+    next: (s: ptr t, c: cur) -> (c2: cur)
+end iterable
