@@ -1,0 +1,14 @@
+error[L0100]: a routine that returns nothing is written `-> none`, not `-> ()`
+  --> ../tests/fixtures/negative/empty-returns-are-written-none/program.ldn:2:28
+  |
+2 |     take: (self: ptr t) -> ()
+  |                            ^^
+  = note: [1800]: a function's returns are named in parentheses, as in `(code: i32)`, or written `none`; empty parentheses name no return
+  = help: write `none` after `->`
+error[L0100]: a routine that returns nothing is written `-> none`, not `-> ()`
+  --> ../tests/fixtures/negative/empty-returns-are-written-none/program.ldn:6:30
+  |
+6 | fill: (inout row: [2]u32) -> () =
+  |                              ^^
+  = note: [1800]: a function's returns are named in parentheses, as in `(code: i32)`, or written `none`; empty parentheses name no return
+  = help: write `none` after `->`

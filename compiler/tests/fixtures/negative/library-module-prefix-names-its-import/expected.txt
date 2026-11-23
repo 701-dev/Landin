@@ -1,0 +1,19 @@
+error[L0201]: `mem` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/library-module-prefix-names-its-import/main.ldn:3:16
+  |
+3 | grow: (buffer: mem.byte_buffer, list: vec.list(mem.byte_buffer))
+  |                ^^^
+  = note: [1420]: `mem` is the library module `core/mem`, which this file does not import; add `import core/mem`
+  = help: import `core/mem`
+error[L0201]: `mem` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/library-module-prefix-names-its-import/main.ldn:3:48
+  |
+3 | grow: (buffer: mem.byte_buffer, list: vec.list(mem.byte_buffer))
+  |                                                ^^^
+  = note: [1420]: `mem` is the library module `core/mem`, which this file does not import; add `import core/mem`
+error[L0201]: `mem` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/library-module-prefix-names-its-import/main.ldn:4:17
+  |
+4 |       -> none ! mem.out_of_memory =
+  |                 ^^^
+  = note: [1420]: `mem` is the library module `core/mem`, which this file does not import; add `import core/mem`

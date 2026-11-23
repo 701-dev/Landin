@@ -1,0 +1,10 @@
+class: negative
+summary: D2174 a module's file using a name only its sibling file imports is L0201 saying the sibling imports it and each file has its own imports, with the import as an exact fix
+program: main.ldn
+root: root
+codes: L0201
+fixed: root/app/two.ldn -> two.fixed
+constructs: 1420, 1450, 1860
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+status: 1

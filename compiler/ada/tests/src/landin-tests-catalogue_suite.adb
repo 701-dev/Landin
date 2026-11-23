@@ -84,6 +84,7 @@ package body Landin.Tests.Catalogue_Suite is
                       | Rows.Unresolved_Name
                       | Rows.Expression_Expected
                       | Rows.Token_Expected
+                      | Rows.Removed_Form
          then
             Landin.Testing.Check_Equal
               (Item, Rows.Minimum_Secondaries (Name),
@@ -118,6 +119,14 @@ package body Landin.Tests.Catalogue_Suite is
          Rows.Minimum_Secondaries (Rows.Unresolved_Name) = 0
            and then Rows.Maximum_Secondaries (Rows.Unresolved_Name) = 1,
          "an unresolved name admits the local that hid it");
+      --  D2180: a removed form may point at the declaration that makes it
+      --  so, a template's union at its application or the declaration a
+      --  name now means.
+      Landin.Testing.Check
+        (Item,
+         Rows.Minimum_Secondaries (Rows.Removed_Form) = 0
+           and then Rows.Maximum_Secondaries (Rows.Removed_Form) = 1,
+         "a removed form admits the declaration that removed it");
 
       --  D761: a route note follows fixed notes, and L0304's are the only
       --  fixed facts a route would otherwise be written beside.  Any other

@@ -1,0 +1,6 @@
+error[L0100]: each segment of an import path is an identifier, and this one begins with a digit
+  --> ../tests/fixtures/negative/an-import-segment-is-an-identifier-digit/program.ldn:1:8
+  |
+1 | import 701_dev/pkg/lines
+  |        ^
+  = note: [1420]: a segment of an import path is lower-case letters, digits and `_`, beginning with a letter, as in `import refine_build/lines`

@@ -275,6 +275,17 @@ package Landin.Diagnostics.Fixes is
       Edits    : Edit_List) return Fix
      with Pre => Edits'Length > 0;
 
+   --  D2174: `import Module`, Text, written at Where, an empty
+   --  span after the file's last import or at its start.  Exact: the
+   --  prefix names nothing in the file, so the import's name means only
+   --  the module the prefix was written for.
+   function Add_Import
+     (Source : Landin.Source.Source_Id;
+      Where  : Landin.Source.Span;
+      Text   : String;
+      Module : String) return Fix
+     with Pre => Landin.Source.Length (Where) = 0;
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;

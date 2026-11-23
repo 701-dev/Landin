@@ -829,6 +829,9 @@ close an enclosing `then` or `elsif` arm: there it divides the `if`, which is
 the one reading `if c then a() else b() end if` can have, and parentheses
 around the recovered call, `(f() else 0)`, recover it in the arm. A refusal
 that meets either reading names this rule and that route.
+A bare `else begin` after a call in the middle of an arm's line, whose arm
+goes on past the block's `end`, is refused there and read as the call's
+recovery (D2172).
 An `if`, exhaustive `match` or bare `begin` block is also a primary; a loop
 is not (D1651). Their
 conditions or subject run first, then exactly the selected block runs in source
@@ -5030,6 +5033,16 @@ subject keeps its type, and no binding is made.
 
 **Pinned by** `negative/pointer-union-holds-one-atom`, which refuses the form written in either order and in a signature, flattened from a one-atom union and reached by applying a parameterized alias, and by `negative/r490-union-alias-application-reports`, whose imported application makes one. The refusal carries no fix: the rewrite is the program's design. Fixtures that used the form in passing hold one atom now: `runtime/match-sink-binding`, `runtime/match-arm-names-several-cases`, whose pointer-union arm names the atom and `ptr` together, `runtime/r720-feature-interactions`, `runtime/pointer-union-atom-comparison`, and the debugging program's union, which GDB and LLDB show as the pointer it is. D235 and D874 are superseded and D429 amended.
 
+### D2181 — A pointer union refused at an application names the template's union
+
+**The discrepancy:** D1659 refuses a pointer union of two or more atoms where a parameterized alias's application makes one, and the refusal stood at the application alone, while the one-pointer refusal beside it names the template's member.
+
+**Chosen:** at an application, L0696's "a pointer union holds one atom" names the template's union as its second place, "the template's union"; written in place, it names none.
+
+**The alternatives:** a note naming the template, which would spell in prose what a label shows.
+
+**Pinned by** `negative/pointer-union-holds-one-atom`, whose application `joined(optional)` names `t | denied`.
+
 ## DECISIONS: ARRAYS, SLICES AND TEXT
 
 Array identity and the contextual storage an array value is formed in,
@@ -7363,6 +7376,37 @@ included; `positive/array-length-facts-at-the-target-width`, which holds
 64-bit targets; and `negative/array-length-refusals-are-reported-once`,
 whose `alignof` of a struct stays L0305.
 
+
+### D2176 — A `utf8` given for `[]u8`, or the reverse, is told the conversion
+
+**The discrepancy:** a `utf8` value passed where `[]u8` is wanted was
+L0340, "a different reference permission or view from its parameter
+pattern", through a generic routine, and L0301 through a plain parameter,
+neither naming the conversion; `[]u8` passed where `utf8` is wanted was
+L0340's "this is a slice and a slice belongs here". A text literal given to
+a type formal an earlier argument made `[]u8`, `vec.push(names, memory,
+"a")` on a `vec.list([]u8)`, is `utf8` under D138 and was told only that
+every argument must decide the same.
+
+**Chosen:** the two codes keep their messages and rules and their notes add
+what to write. For `utf8` where a read-only `[]u8` is wanted, the note names
+`[]u8(value)` [0700], the same bytes with no copy; for `[]u8` where `utf8`
+is wanted, `text.from_bytes(value)`, which reports `invalid_text`, and
+`utf8(value)`, which traps, and L0340's message names both types. For a
+text literal that conflicts with a formal already bound to `[]u8`, L0340's
+note says the literal is `utf8` and to bind it with the type meant, `name:
+[]u8 = "..."`, and pass the name, as L0304 says for a struct literal.
+
+**The alternatives:** typing a text literal from a formal an earlier
+argument bound, as D372 types a numeric one, which changes D138's deduction
+for one literal kind and was not asked for; naming `text.bytes(value)`,
+which needs an import the conversion does not; and a code of its own, which
+would split one rule for a wording reason.
+
+**Pinned by** `negative/utf8-and-bytes-name-their-conversion`, both
+directions through a generic pattern and a plain parameter, and
+`negative/text-literal-for-a-byte-formal-is-bound-first`.
+
 ## DECISIONS: DECLARED TYPES, RANGES AND LAYOUT
 
 The types a program declares for itself, and what a target may do with
@@ -8260,6 +8304,16 @@ plain `u32` already did.
 
 **Pinned by** `runtime/distinct-zero-images`, `positive/r490-distinct-zeroable`
 (the negative fixture D213 named, turned) and `negative/distinct-bare-zeroed`.
+
+### D2183 — A refused value's type is spelt by the alias its declaration wrote
+
+**The discrepancy:** a type's descriptor keeps no alias, so a refusal that spelt a value's structural type spelt its structure: an alias `maybe` of `absent | ptr u32` read as that union in L0344, not as the `maybe` the program wrote.
+
+**Chosen:** where the refused value is a name whose declaration writes its type as a non-generic alias of a structural type, a union, a pointer, a slice, an array, an `any` or a function type, the refusal spells the alias as written there. Elsewhere, and for a generic alias's application, the structure is spelt as before.
+
+**The alternatives:** an alias kept in every descriptor, which would make two spellings of one type two descriptors that agreement must equate.
+
+**Pinned by** `negative/r630-optional`, whose L0344 names `maybe`.
 
 ## DECISIONS: STRUCTS, VARIANTS AND NESTING
 
@@ -12431,6 +12485,57 @@ unnecessary.
 
 **Pinned by** `runtime/module-variant-images`, on every target.
 
+
+### D2175 — An atom set naming one member twice is warned about
+
+**The discrepancy:** a failure set or atom union that names one atom twice,
+`! mem.not_found | mem.not_found`, was accepted without a word [0640]. R20's
+merged atoms left sets doubled across the corpus, each found by searching.
+
+**Chosen:** L0697, a warning under D251's policy, at the second name of a
+member, atom or declared set, that an earlier member of the same written
+union names; the related label is the first. The set means what it would
+with the name once, so its exact fix removes the second name with the `|`
+before it. Like L0684 it is raised only on a program with no error. Two
+sets that share atoms, `vertical | north`, name no member twice and are not
+warned about.
+
+**The alternatives:** refusing the doubled set, which makes a lint a rule
+of the language against D251; and leaving it to `refine fix`'s removed-name
+rewrites (D2129), which remove a duplicate only for the names R20's list
+renamed.
+
+**Pinned by** `negative/atom-named-twice-in-a-set`, in a declared set, a
+parameter's set and a failure set, whose fixed program compiles with no
+report; and `positive/parameterized-atom-union`, whose repeated member is
+still accepted and now warned of.
+
+### D2179 — The refusals say how a union of atom sets is split
+
+**The discrepancy:** a `match` arm cannot name a declared atom set, and a
+reader splitting `posix.errno | failure.reason` tried `posix.errno
+(number):`, which was L0333 twice, "an atom arm has no payload to bind" and
+"this atom is not a member of the matched set", neither saying how. A
+comparison does not narrow either (D189, D434): `if problem <>
+report.refused then gave_up(problem) end if` was L0301 with a note naming
+only the widening rule.
+
+**Chosen:** the maintainer's answer to the question: no new form. [1210]
+says a union is split by naming one side's atoms, which may share an arm,
+and ending with `_ (rest):`, which binds the other side's as a set (D434).
+An arm that names a declared atom set is one L0333 whose note says so; the
+set's atoms count as matched, so none is also reported missing. L0301 at an
+atom value whose set has more than one atom and is not inside the one
+required adds to its note that a comparison does not narrow, and that
+`match` with `_ (rest):` does.
+
+**The alternatives:** an arm that names a declared set and binds the
+subject narrowed to it, a language change the maintainer declined until a
+second program wants it; and keeping both refusals, which say what is wrong
+and not what to write.
+
+**Pinned by** `negative/atom-set-union-is-split-with-rest`.
+
 ## DECISIONS: LIFETIME, ESCAPE AND ALLOCATION
 
 Which origin a reference carries, where it may reach, and who owns the
@@ -13299,6 +13404,23 @@ refused names, `negative/escaping-into-function-value` for a call through a
 function value and for two types that differ in the contract, the parser case
 `escaping into names a target`, and the structural grammar's
 `contextual-names` corpus.
+
+
+### D2177 — L0314 spells `escaping inout` for an `inout` parameter
+
+**The discrepancy:** L0314's note said a retained parameter is declared
+`escaping`, and an `inout` parameter whose parts a callee keeps needs both
+words, `escaping inout value:`, which nothing said; it was found by reading
+`core/spill`.
+
+**Chosen:** when the parameter the escaping reference derives from is
+`inout`, L0314's note ends with the spelling, `escaping inout NAME:`
+[0780]/[0900]. The rule and the message are unchanged.
+
+**The alternatives:** a fix inserting `escaping`, which changes the
+function's contract for every caller and so is not a local repair.
+
+**Pinned by** `negative/escaping-inout-is-spelled-for-an-inout-part`.
 
 ## DECISIONS: FUNCTIONS, CALLS AND RETURNS
 
@@ -15076,6 +15198,39 @@ today for a form that has a meaning; and a sentence in the tour alone, which
 the tour now carries as well. The maintainer chose the warning.
 
 **Pinned by** `negative/a-value-after-an-assigned-result`.
+
+### D2178 — L0303's repair for a `[]mut` parameter written `inout` drops `inout`
+
+**The discrepancy:** a `[]mut f64` parameter written `inout` makes every
+caller's slice binding need `mut` (L0303), and the offered fix was `mut` on
+the caller's binding, though a `[]mut` parameter writes its elements
+without `inout` [0570]/[0900], which only lets the callee replace the
+caller's slice.
+
+**Chosen:** when the place L0303 refuses is lent to an `inout` parameter
+whose type is a `[]mut` slice, the note says that `inout` lets the callee
+replace the slice and that a `[]mut` parameter writes the elements without
+it, and the guessed fix removes `inout` from the parameter, in whatever
+file declares it. It is a guess, because a callee that does replace the
+slice needs the caller's binding `mut`, which the note also names. The fix
+is not offered for a library parameter, which a program does not edit.
+
+**The alternatives:** keeping `mut` on the binding as the fix, which
+spreads the parameter's mistake to every caller; and an exact fix, which
+would be wrong for a callee that assigns the whole slice.
+
+**Pinned by** `negative/inout-mut-slice-parameter-drops-inout`, whose
+guessed fix the `fixes` suite applies and compiles clean.
+
+### D2182 — A function value of another signature is told which part differs
+
+**The discrepancy:** L0301 refused a function value whose signature differs from its place's, saying only that it differs, so a `from held` against a `from`, or an `escaping into` against an `escaping`, read as identical text on the page.
+
+**Chosen:** the note names what differs. Where both signatures have as many parameters and as many results, it names the first parameter or result that differs in more than its label, which D117's agreement does not compare, as each side writes it; otherwise, or where the difference is in the error set or the return, it gives both signatures whole. A comparison of two function values says the same, the left operand's signature standing where a place's would.
+
+**The alternatives:** both signatures always, which leaves a reader to find one word in two long lines; and the first differing character, which can fall inside a type's name.
+
+**Pinned by** `negative/function-value-escaping-into-differs`, `negative/held-result-refusals`, `negative/caller-parameter-signature-mismatch`, `negative/multiple-result-function-signature-mismatch`, whose results differ in number, and `negative/function-value-signature-mismatch`.
 
 ## DECISIONS: CONTROL FLOW
 
@@ -18981,6 +19136,41 @@ declined.
 **Pinned by** `negative/module-float-declared-below-is-known` and
 `runtime/module-float-declared-below-is-known`.
 
+
+### D2174 — An unresolved prefix names the import the file is missing
+
+**The discrepancy:** [1450] gives every file of a module its own imports,
+and a file using a name its sibling imports was L0201 with [1860]'s note to
+check the spelling; refine-build met twenty splitting one module in two. A
+qualified name whose module the file does not import, `mem.out_of_memory`
+without `import core/mem`, was L0201 naming `out_of_memory` in a type
+position, or L0304 "this type argument names no type", neither saying that
+`mem` is a module the file could import.
+
+**Chosen:** a prefix of a qualified name that resolves to nothing is asked
+two questions before it is called a misspelling. If another file of the
+same module imports the name, L0201's note says which file and that each
+file has its own imports; if exactly one library module the program
+reaches has the name as its last segment, and the file imports that module
+under no name, the note names it. Either way the message names the prefix,
+the refusal is L0201 also where L0304 stood, and the first such prefix in
+the file carries the import as an exact fix, after the file's last import
+or at its start, so that the fixes of one file never write it twice. The
+answer comes from the module table and the resolution table, without the
+host; a library module the program does not reach is not known, and its
+prefix keeps the misspelling note.
+
+**The alternatives:** reading the library's directories from the checker,
+which would make a stage ask the host; offering the fix at every use, which
+the fixes of one file could not all apply; and keeping L0304 at the type
+argument, whose rule is about a form, not a name.
+
+**Pinned by** `negative/sibling-file-import-is-named`,
+`negative/library-module-prefix-names-its-import`, in a parameter's type, a
+type argument and a failure set, and
+`negative/library-module-concept-prefix-names-its-import`, a prefix the
+resolver reads; each fixed program compiles with no report.
+
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE
 
 The C boundary, the machine directives, the entry point, and the
@@ -21134,6 +21324,37 @@ lists both, leaves a likely respelling unapplied and writes nothing under
 routine that applies edits, shared with the harness; and every fixture's
 pinned fix, which that routine applies.
 
+### D2186 — `refine fix --code` applies only the named codes' fixes
+
+**The discrepancy:** D1847 applies every exact fix a check offers, and
+nothing selects which. Migrating the corpus off a removed form applied the
+fixes of unrelated warnings too, such as removing the unused locals
+`positive/r491-contextual-statements` keeps on purpose (L0349), and
+`--allow all`, which keeps warnings' fixes out, still lets an error's own
+exact fix in, so a negative fixture's refusal would be mended together
+with the removal's rewrite.
+
+**Chosen:** `refine fix` takes `--code=CODE`, repeatable. With any given,
+a pass applies a diagnostic's first exact fix only when its code is one
+named, and the passes end when no named code's fix applies; `--check`
+selects the same way. The report and the status are the check's as
+before, so a fix left out is still reported. A code that is not live in
+the catalogue, or whose diagnostics never carry a fix, is refused as a
+misuse (L0002) naming `refine explain CODE`, so a misspelt code does not
+apply nothing silently.
+
+**The alternatives:** an option selecting removed forms alone (L0696),
+which leaves out the closer and keyword removals refused under other
+codes and every future migration that is no removal; selecting by
+severity, which separates a removal's rewrite from a fixture's own
+refusal no better than `--allow all` does; and a list of codes to skip,
+which a migration that wants one rewrite spells longer.
+
+**Pinned by** the commands case `fix applies exact fixes`, which applies a
+closer's fix alone under `--code=L0109` and leaves the `mut` warning's in
+the report, and refuses `--code=L0002`; and
+`scripts/tests/test_cli_native.py`'s `test_fix_applies_only_the_codes_named`.
+
 ### D360 — A parenthesized operand begins at its parenthesis
 
 **The discrepancy:** the syntax tree keeps no node for parentheses that only
@@ -23007,6 +23228,127 @@ conditional form beside `if` that the tour does not have; and a fix
 rewriting the line as an `if`, which spans lines the parser has not read.
 
 **Pinned by** `negative/when-on-a-statement-names-the-exits`.
+
+### D2168 — A routine that returns nothing is named `-> none` by both refusals met on the way
+
+**The discrepancy:** `f: (inout row: [2]u32) =` was L0103, "a signature says
+what it returns after `->`, not `=`", whose note described the returns but
+named no spelling for none; the next try, `f: (inout row: [2]u32) -> () =`,
+was L0100, "a name belongs here", at `)`, with [1760]'s rule for names as
+its note. The spelling, `-> none`, came from grepping the fixtures.
+
+**Chosen:** with `=` where `->` belongs, the L0103 note says to write `->
+none` before `=` for a routine that returns nothing, or to name the returns,
+and the body after `=` is read as before. `-> ()` in a function, a function
+type or a concept entry is L0100, "a routine that returns nothing is written
+`-> none`, not `-> ()`", at the parentheses, read as `none`, with the exact
+fix that writes `none` in their place: empty parentheses can mean nothing
+else.
+
+**The alternatives:** admitting `-> ()` as a second spelling of `none`,
+which [1800]'s one form declines; and a fix inserting `-> none` before `=`,
+which guesses, since a body that assigns returns meant a list.
+
+**Pinned by** `negative/a-signature-without-returns-names-none` and
+`negative/empty-returns-are-written-none`, whose fix `refine fix` applies.
+
+### D2169 — A refused concept entry leaves the concept closed by its own `end`
+
+**The discrepancy:** a concept entry taking a type formal of its own,
+`pull: (self: t, other: type is drain, s: other) -> none`, was L0010 at
+`type`, which is right, and then L0104, "this concept is never closed",
+though the concept's `end` stood on the next line: the refused formal left
+`is drain` unread, and the entry's broken rest ended the concept's entries.
+
+**Chosen:** the L0010 refusal of `type` in a parameter takes the
+constraint after it, `is` and a concept name, as the rest of the refused
+formal, and after an entry that reported, what it left on its line is
+passed over, so the next entry or the concept's `end` begins the next line.
+One report.
+
+**The alternatives:** admitting the entry's type formal, which [1290]
+leaves a recorded boundary; and passing over the rest of the concept after
+any refused entry, which would hide the mistakes of the entries below it.
+
+**Pinned by** `negative/a-refused-concept-entry-leaves-the-concept-closed`.
+
+### D2170 — Each segment of an import path is refused as an identifier
+
+**The discrepancy:** `import tools/refine-build/lines` and `import
+github.com/tools/refine-build/lines` were L0110, "this begins no
+declaration", at the path's rest, with [1740]'s note; `import
+701_dev/pkg/lines` was L0011, "this is not an integer any base spells".
+None said that a segment is an identifier, or which character broke it.
+
+**Chosen:** a `-` or `.` that joins a segment to more on its line is L0100,
+"each segment of an import path is an identifier, and `-` is not part of
+one", at that character; a segment beginning with a digit is L0100, "...
+and this one begins with a digit", at the digit: the scanner, which
+knows from the tokens before it that a number stands in an import's path,
+still records its fault and leaves the wording to the parser, as D528 does
+for a capitalised word. The note says what a segment is, lower-case letters,
+digits and `_` beginning with a letter, as in `import refine_build/lines`.
+The rest of the path is passed over and the import binds nothing. Each
+import reports once for itself, as a declaration's header does, where a
+second refused import had been quiet after the first.
+
+**The alternatives:** admitting hyphens or dots in paths, which a module
+path's mapping onto directories and [1760]'s names decline; and leaving the
+digit to L0011, whose sentence and note are about integers.
+
+**Pinned by** `negative/an-import-segment-is-an-identifier-hyphen`,
+`negative/an-import-segment-is-an-identifier-dot` and
+`negative/an-import-segment-is-an-identifier-digit`.
+
+### D2171 — `lenof` before a text literal names the binding to measure
+
+**The discrepancy:** `f(lenof "abcde")` and `f(usize(lenof "abcde"))` were
+L0103, "a call's arguments are never closed", at the literal, though every
+parenthesis was closed: [0370]'s `lenof` measures what a name begins, so the
+parser read `lenof` as a name and the literal as a second argument with no
+`,`. `f(lenof s)` of a slice `s` was accepted.
+
+**Chosen:** the grammar does not admit it, and it stays out: `lenof` before
+a text or raw literal on its line is L0100, "`lenof` measures what a name
+begins, and a text literal has no name", over both, and its note says to
+bind the text, `word := "abcde"`, and write `lenof word`. The literal is
+read and the expression is an error, so nothing else is said.
+
+**The alternatives:** admitting `lenof` of a text literal, a compile-time
+count that D31 gives only an array literal in parentheses, and that a named
+text already has; and keeping the call's report with a note, which would
+still point at a closed call.
+
+**Pinned by** `negative/lenof-of-a-text-literal-names-a-binding`.
+
+### D2172 — An `else begin` the arm goes on after is the call's, and said at the `else`
+
+**The discrepancy:** inside an `if` arm, `count: usize = text.encode(scalar,
+room) else begin fail bad_escape end` closes the `if` at that `else`, as
+[1820] says, and nothing was reported there: the refusal came later, as
+L0110 "`elsif` continues no branch that is open here" on the next arm, or
+as L0201 on names the arm declared, and none named the `else` or `else
+(problem)`.
+
+**Chosen:** a bare `else begin` after a call, in the middle of an arm's
+line, whose arm goes on past the block's `end` — on a line no shallower
+than the `else`'s, or with the `if`'s `elsif` or `else` — is refused at the
+`else` as L0110, "this `else` recovers the call, and written bare it ends
+the `if` arm it stands in", whose note names `else (problem) ... end` and
+parentheses as the ways to keep it the call's. It is read as the call's
+recovery, so the arm, its names and the `elsif` after it go on as written.
+The block closes on the `else`'s line, or with an `end` alone on a line as
+deep as it. An arm that ends with the block, its `if`'s `end` on the next
+line, is read as [1820] says and not refused: nothing there shows which was
+meant.
+
+**The alternatives:** binding a bare `else begin` to the call in an arm
+always, which makes `if c then a() else begin b() end end if` mean
+something else; refusing every mid-line `else` in a multi-line arm, which
+refuses layouts that show nothing; and attributing the later L0110 or
+L0201 to the `else`, which needs the resolver to know the parser's reading.
+
+**Pinned by** `negative/else-begin-in-an-if-arm-is-said-at-the-else`.
 
 ### D866 — A `_` arm on a variant part is one refusal naming the cases left
 
@@ -42752,6 +43094,8 @@ forgets a join, or a second library value is as unsafe to forget.
 
 ### D2129 — A library name the breaking list removed is refused naming its successor
 
+**Amended by D2180.** A routine that kept its name in a new order is refused naming the new order where its arguments' kinds show the old one; elsewhere it is refused as below.
+
 **The discrepancy:** D1847 asks for a refusal that names the replacement of every removed form, and the breaking list (D1948-D2051) removes library names, which the library no longer declares: a program that wrote one would meet only "has no member", with a respelling to whatever name was near.
 
 **Chosen:** the compiler keeps one table of the names the list removed, `Landin.Modules.Removed`, by module and name, and by type or concept and name for a field or concept entry. A qualified name, field, struct value's field or conformance label that resolves to nothing and that the table names is refused with L0696, whose note gives the decision and the replacement. A rename's exact fix writes the new name, and where the successor lives in another module it takes the name the file imports that module as, or adds the module's import after the file's last when nothing in the file binds its name; an atom set that already names the successor, or names an earlier old name of it, loses the member instead, so a merged atom is not named twice. `try tree.count_leaves(v, id)` becomes `tree.leaves(try tree.get(v, id))`, and a call of `mem.transfer_prefix` D2128's call; `count_leaves` under an `else` has no fix, since the `else` recovered a count and `tree.get`'s failure gives none. A program's own module-internal `iterable` written exactly as [1320] wrote it before D1957 is the breaking list's concepts entry: L0348's fix removes it, writes `iter.iterable` for each use in its module and imports `core/iter`. A name whose replacement changes the program's shape, `map.end_of_entries`, `io.writer_of` and `io.lent_writer`, is refused with a note saying what to write and no fix. Only a name that fails to resolve consults the table, so a program's own declaration of an old name keeps its meaning. A routine that kept its name in a new order (D1954) is refused as before, by the type of the argument now out of place.
@@ -42759,6 +43103,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a migration table read by `refine fix` alone, which D1847 declined; and leaving the old names declared beside the new ones for a window, which would give each idea two names, the thing D1953 removed.
 
 **Pinned by** `negative/library-name-removed-renames`, `negative/library-name-removed-moves`, `negative/library-name-removed-field`, `negative/library-name-removed-by-hand` and `negative/for-takes-only-core-iter-iterable`, whose fix conforms to `iter.iterable`.
+
+### D2180 — A breaking-list form that still resolves is refused naming its replacement
+
+**The discrepancy:** D2129 consults the table of removed names only when a name fails to resolve, and four of the breaking list's forms resolve: a routine that kept its name in D1954's new order, `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and the `io.file_system` entry `make_temporary`; a call's label `entries:` on `stacks.round_over` or `events.over`, which D2034 renamed; `io.variable` written as a type, which D2008 and D2033 moved to `text.os_variable` and which now names a routine; and `posix.words` given a library atom, which D2008 moved to `system.words`. Each was refused by a type mismatch, an unknown label or "not a type", none of which said the list had changed it.
+
+**Chosen:** `Landin.Modules.Removed` keeps each of these beside D2129's rows, and each is refused with L0696, the note naming the decision and what to write. A reordered call is told apart before its arguments are matched, by the kind of value each moved argument is, read only where it is already known without checking: a literal, an `any(...)` or a name whose type is settled, as a struct, a slice or an array, an `any` value or an integer. Every argument whose kind is known must fit the old order, and at least one must not fit the new; the fix then writes the arguments in the new order. A call whose kinds do not show it is refused as before, by the argument out of place. A conformance whose function takes `make_temporary`'s parameters in the old order is refused the same way, with no fix: swapping the function's own parameters would put every direct call of it out of order. The `entries:` label's fix writes `fibres:`. `io.variable` in a type position becomes `text.os_variable`, and the file's first such use adds `import core/text` when nothing binds it. `posix.words` given an atom set wider than `posix.errno` becomes `system.words`; where `hosted/system` is not imported, only the file's first call of `posix.words` carries the import, and a later one has no fix until it is there.
+
+**The alternatives:** a refusal after the call's own matching, which reports the first argument out of place and would need to undo it; reading the kinds by checking each argument, which would check it twice and report its own errors before the order's; and a fix for the conformance that also swaps every direct call, which reaches past the refused declaration.
+
+**Pinned by** `negative/library-order-removed-calls`, whose fix writes each of the five calls in its new order, `negative/library-order-removed-conformance`, `negative/library-label-removed-fibres`, `negative/library-type-removed-io-variable`, whose fix imports `core/text` once for three uses, and `negative/library-words-narrowed`, where `posix.words` of an errno stays.
 
 ### D1954 — A library routine's parameters come subject first, then capabilities, then inputs
 

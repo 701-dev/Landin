@@ -26,6 +26,14 @@ package body Landin.Modules.Removed is
        New_Module => +New_Module, New_Name => +New_Name, How => How,
        Decision => +Decision, Advice => Null_Unbounded_String);
 
+   --  A rename whose note is Advice rather than "old is new".
+   function A
+     (Module, Name, New_Module, New_Name, Decision, Advice : String)
+      return Entry_Row
+   is (Module => +Module, Owner => Null_Unbounded_String, Name => +Name,
+       New_Module => +New_Module, New_Name => +New_Name, How => Rename,
+       Decision => +Decision, Advice => +Advice);
+
    function H (Module, Name, Decision, Advice : String) return Entry_Row
    is (Module => +Module, Owner => Null_Unbounded_String, Name => +Name,
        New_Module => Null_Unbounded_String,
@@ -126,13 +134,73 @@ package body Landin.Modules.Removed is
       F ("core/io", "environment", "variable_at", "variable", "D2034"),
       F ("core/net", "network", "close_socket", "close", "D2032")];
 
+   --  Parameters a routine kept and the list renamed, by the routine, and
+   --  the label a call wrote: D2034's `entries`, now `fibres`.
+   Labels : constant array (Positive range <>) of Entry_Row :=
+     [F ("core/fibre/stacks", "round_over", "entries", "fibres", "D2034"),
+      F ("hosted/events", "over", "entries", "fibres", "D2034")];
+
+   --  A type the list moved whose old name now means something that is no
+   --  type (D2008, D2033): the record `io.variable` was is
+   --  `text.os_variable`, and `io.variable` is the routine that lends one.
+   Types : constant array (Positive range <>) of Entry_Row :=
+     [1 => A ("core/io", "variable", "core/text", "os_variable", "D2033",
+              "the record of an environment variable is `text.os_variable`;"
+              & " `io.variable` lends the variable at an index")];
+
+   --  A routine that now takes a narrower argument, whose wider form the
+   --  list moved to another (D2008): `posix.words` words an errno alone,
+   --  and `system.words` a library atom as well.
+   Narrowings : constant array (Positive range <>) of Entry_Row :=
+     [1 => A ("platform/posix", "words", "hosted/system", "words", "D2008",
+              "`system.words` of `hosted/system` words an errno or a library"
+              & " atom")];
+
+   --  D2180: the routines and the entry D1954 reordered under their own
+   --  names, as R20's breaking list gives them.  Each letter is the kind
+   --  of value at a moved position, in the old order: S a struct, L a
+   --  slice or an array lent as one, E an erased `any` value and I an
+   --  integer.  Goes gives the new place of each old position.
+   type Order_Row is record
+      Module   : Unbounded_String;
+      Owner    : Unbounded_String;
+      Name     : Unbounded_String;
+      Shapes   : Unbounded_String;
+      Goes     : Unbounded_String;
+      Decision : Unbounded_String;
+      Advice   : Unbounded_String;
+   end record;
+
+   function O (Module, Owner, Name, Shapes, Goes, Decision, Advice : String)
+      return Order_Row
+   is (Module => +Module, Owner => +Owner, Name => +Name,
+       Shapes => +Shapes, Goes => +Goes, Decision => +Decision,
+       Advice => +Advice);
+
+   Orders : constant array (Positive range <>) of Order_Row :=
+     [O ("core/mem", "", "transfer", "SIS", "231", "D1954",
+         "`mem.transfer` takes the target first, then the source and the"
+         & " index, as `mem.copy` takes `into` first"),
+      O ("core/random", "", "shuffle", "SL", "21", "D1954",
+         "`random.shuffle` takes the values first and the generator"
+         & " second"),
+      O ("core/fibre/stacks", "", "round_over", "LE", "21", "D1954",
+         "`stacks.round_over` takes the state, then `when_idle`, then the"
+         & " fibres; a capability comes before the inputs"),
+      O ("core/io/fake", "", "network_over_turns", "LE", "21", "D1954",
+         "`fake.network_over_turns` takes the state, then `runs`, then the"
+         & " sockets; a capability comes before the inputs"),
+      O ("core/io", "file_system", "make_temporary", "SEL", "213", "D1954",
+         "`make_temporary` of `io.file_system` takes `names` before"
+         & " `directory`, then `into`; a capability comes before the inputs")];
+
    function Member (Module, Name : String) return Row is
    begin
       for Index in Members'Range loop
          if To_String (Members (Index).Module) = Module
            and then To_String (Members (Index).Name) = Name
          then
-            return (Index => Index, Field => False);
+            return (Index => Index, Table => Members_Table);
          end if;
       end loop;
       return No_Row;
@@ -145,16 +213,58 @@ package body Landin.Modules.Removed is
            and then To_String (Fields (Index).Owner) = Owner
            and then To_String (Fields (Index).Name) = Name
          then
-            return (Index => Index, Field => True);
+            return (Index => Index, Table => Fields_Table);
          end if;
       end loop;
       return No_Row;
    end Field;
 
+   function Label (Module, Name, Label : String) return Row is
+   begin
+      for Index in Labels'Range loop
+         if To_String (Labels (Index).Module) = Module
+           and then To_String (Labels (Index).Owner) = Name
+           and then To_String (Labels (Index).Name) = Label
+         then
+            return (Index => Index, Table => Labels_Table);
+         end if;
+      end loop;
+      return No_Row;
+   end Label;
+
+   function Type_Member (Module, Name : String) return Row is
+   begin
+      for Index in Types'Range loop
+         if To_String (Types (Index).Module) = Module
+           and then To_String (Types (Index).Name) = Name
+         then
+            return (Index => Index, Table => Types_Table);
+         end if;
+      end loop;
+      return No_Row;
+   end Type_Member;
+
+   function Narrowed (Module, Name : String) return Row is
+   begin
+      for Index in Narrowings'Range loop
+         if To_String (Narrowings (Index).Module) = Module
+           and then To_String (Narrowings (Index).Name) = Name
+         then
+            return (Index => Index, Table => Narrowed_Table);
+         end if;
+      end loop;
+      return No_Row;
+   end Narrowed;
+
    function Found (Item : Row) return Boolean is (Item.Index /= 0);
 
    function Get (Item : Row) return Entry_Row
-   is (if Item.Field then Fields (Item.Index) else Members (Item.Index));
+   is (case Item.Table is
+          when Members_Table  => Members (Item.Index),
+          when Fields_Table   => Fields (Item.Index),
+          when Labels_Table   => Labels (Item.Index),
+          when Types_Table    => Types (Item.Index),
+          when Narrowed_Table => Narrowings (Item.Index));
 
    function New_Module (Item : Row) return String
    is (To_String (Get (Item).New_Module));
@@ -176,7 +286,7 @@ package body Landin.Modules.Removed is
    function Note (Item : Row) return String is
       This : constant Entry_Row := Get (Item);
       Old  : constant String :=
-        (if Item.Field
+        (if Item.Table in Fields_Table | Labels_Table
          then Short (To_String (This.Module)) & "." & To_String (This.Owner)
               & "'s `" & To_String (This.Name) & "`"
          else "`" & Short (To_String (This.Module)) & "."
@@ -187,8 +297,15 @@ package body Landin.Modules.Removed is
             return To_String (This.Decision) & ": " & Old
               & " was removed; " & To_String (This.Advice);
          when Rename =>
+            case Item.Table is
+               when Types_Table | Narrowed_Table =>
+                  return To_String (This.Decision) & ": "
+                    & To_String (This.Advice);
+               when Members_Table | Fields_Table | Labels_Table =>
+                  null;
+            end case;
             return To_String (This.Decision) & ": " & Old & " is "
-              & (if Item.Field
+              & (if Item.Table in Fields_Table | Labels_Table
                  then "`" & To_String (This.New_Name) & "`"
                  else "`" & Short (To_String (This.New_Module)) & "."
                       & To_String (This.New_Name) & "`");
@@ -204,5 +321,64 @@ package body Landin.Modules.Removed is
               & Short (To_String (This.New_Module)) & ".get(value, id))`";
       end case;
    end Note;
+
+   function Reordered (Module, Owner, Name : String) return Order is
+   begin
+      for Index in Orders'Range loop
+         if To_String (Orders (Index).Module) = Module
+           and then To_String (Orders (Index).Owner) = Owner
+           and then To_String (Orders (Index).Name) = Name
+         then
+            return (Index => Index);
+         end if;
+      end loop;
+      return No_Order;
+   end Reordered;
+
+   function Reordered_Entry (Module, Name : String) return Order is
+   begin
+      for Index in Orders'Range loop
+         if To_String (Orders (Index).Module) = Module
+           and then Length (Orders (Index).Owner) > 0
+           and then To_String (Orders (Index).Name) = Name
+         then
+            return (Index => Index);
+         end if;
+      end loop;
+      return No_Order;
+   end Reordered_Entry;
+
+   function Found (Item : Order) return Boolean is (Item.Index /= 0);
+
+   function Moved (Item : Order) return Positive
+   is (Length (Orders (Item.Index).Shapes));
+
+   function Shape_Of (Letter : Character) return Shape
+   is (case Letter is
+          when 'S' => Struct_Shape,
+          when 'L' => Slice_Shape,
+          when 'E' => Erased_Shape,
+          when others => Integer_Shape);
+
+   function Old_Shape (Item : Order; Position : Positive) return Shape
+   is (Shape_Of (Element (Orders (Item.Index).Shapes, Position)));
+
+   function Goes_To (Item : Order; Position : Positive) return Positive
+   is (Character'Pos (Element (Orders (Item.Index).Goes, Position))
+       - Character'Pos ('0'));
+
+   function New_Shape (Item : Order; Position : Positive) return Shape is
+   begin
+      for Old in 1 .. Moved (Item) loop
+         if Goes_To (Item, Old) = Position then
+            return Old_Shape (Item, Old);
+         end if;
+      end loop;
+      raise Program_Error with "a reorder leaves a position empty";
+   end New_Shape;
+
+   function Note (Item : Order) return String
+   is (To_String (Orders (Item.Index).Decision) & ": "
+       & To_String (Orders (Item.Index).Advice));
 
 end Landin.Modules.Removed;

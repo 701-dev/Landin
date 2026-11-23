@@ -1,0 +1,20 @@
+error[L0333]: `vertical` is an atom set, and an arm names atoms
+  --> ../tests/fixtures/negative/atom-set-union-is-split-with-rest/program.ldn:14:9
+   |
+14 |         vertical (part): climb(part)
+   |         ^^^^^^^^
+  --> ../tests/fixtures/negative/atom-set-union-is-split-with-rest/program.ldn:13:11
+   |
+13 |     match way
+   |           ^^^ this matched atom set
+  = note: [1210]: to take `vertical`'s atoms as a set, name every other atom (several may share one arm) and end with `_ (rest):`, which binds what is left
+error[L0301]: this is not an atom admitted by the set required here
+  --> ../tests/fixtures/negative/atom-set-union-is-split-with-rest/program.ldn:21:15
+   |
+21 |         climb(way)
+   |               ^^^
+  --> ../tests/fixtures/negative/atom-set-union-is-split-with-rest/program.ldn:9:9
+  |
+9 | climb: (way: vertical) -> none =
+  |         ^^^^^^^^^^^^^ this atom-valued parameter
+  = note: [0640]: an atom value may widen only into a union that contains its identity; a comparison does not narrow a set (D434), so `match` the value, name the atoms the required set lacks, and pass on what `_ (rest):` binds

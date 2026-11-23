@@ -1,0 +1,10 @@
+error[L0314]: this parameter is non-escaping, so its reference cannot be retained by the called function
+  --> ../tests/fixtures/negative/escaping-inout-is-spelled-for-an-inout-part/program.ldn:9:10
+  |
+9 |     keep(box.view)
+  |          ^^^^^^^^
+  --> ../tests/fixtures/negative/escaping-inout-is-spelled-for-an-inout-part/program.ldn:8:8
+  |
+8 | pass: (inout box: holder) -> none =
+  |        ^^^^^^^^^^^^^^^^^ the shorter-lived reference source
+  = note: [0770]/[0780]: frame references cannot escape and a retained parameter is declared `escaping`, here `escaping inout box:`

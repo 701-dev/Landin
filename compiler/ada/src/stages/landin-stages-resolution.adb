@@ -18,6 +18,7 @@ with Landin.Source.Names;
 with Landin.Source;
 with Landin.Syntax.Forest;
 with Landin.Types;
+with Landin.Stages.Wanted_Imports;
 with Landin.Syntax;
 
 package body Landin.Stages.Resolution is
@@ -106,6 +107,9 @@ package body Landin.Stages.Resolution is
       function Reserved_Tool_Name
         (Named : Landin.Source.Names.Name_Id) return Boolean
         is (Spelled (Named) in "compiler" | "assembler" | "linker");
+
+      package Wanted_Imports renames Landin.Stages.Wanted_Imports;
+
 
       --  Options are globally available to configuration expressions, but
       --  their ordinary declaration/import collision belongs to the module
@@ -2245,6 +2249,33 @@ package body Landin.Stages.Resolution is
                               Syn.Anchor (Of_Tree, Node),
                               Imported_Case (Named, Inside))],
                         Into    => Found);
+                  elsif Named /= Landin.Source.Names.No_Name
+                    and then Wanted_Imports.Found
+                      (Wanted_Imports.Wanted (Context, Of_Tree, Node))
+                  then
+                     --  D2174: the prefix names a module the file
+                     --  could import, and the note says which.
+                     declare
+                        Missing : constant Wanted_Imports.Answer :=
+                          Wanted_Imports.Wanted (Context, Of_Tree, Node);
+                     begin
+                        Names.Report
+                          (Item    => Names.Unresolved_Name,
+                           Source  => Syn.Source_Of (Of_Tree),
+                           Where   => Syn.Anchor (Of_Tree, Node),
+                           Message => "`" & Spelled (Named)
+                                      & "` is not declared in any scope"
+                                      & " this reaches",
+                           Note    => Wanted_Imports.Note
+                             (Context, Spelled (Named), Missing),
+                           Fixes   => Wanted_Imports.Import_Fixes
+                             (Of_Tree, Node, Named,
+                              [Syn.Name_Reference | Syn.Concept_Reference =>
+                                 True,
+                               others => False],
+                              Missing),
+                           Into    => Found);
+                     end;
                   elsif Named /= Landin.Source.Names.No_Name then
                      Names.Report
                        (Item    => Names.Unresolved_Name,

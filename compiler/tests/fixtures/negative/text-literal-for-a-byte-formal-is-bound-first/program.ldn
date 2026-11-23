@@ -1,0 +1,6 @@
+keep: (item: type, slot: []item, value: item) -> none =
+end keep
+
+use: (names: [][]u8) -> none =
+    keep(names, "a")
+end use

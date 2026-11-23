@@ -355,14 +355,21 @@ package body Landin.Diagnostics.Explanations is
                & "before `:=` with a call on the right are bound in parent"
                & "heses, `(low, high) := pair(2)`, and a count before `of`"
                & " that is not a literal goes in the binding's type, `name"
-               & ": [count]t = [of value]`.",
+               & ": [count]t = [of value]`. A concept entry that takes a t"
+               & "ype formal of its own, `pull: (self: t, other: type is d"
+               & "rain) -> none`, is refused once at `type`, and the conce"
+               & "pt's entries after it and its `end` are read as written "
+               & "(D2169).",
             when Catalogue.Malformed_Integer =>
                "An integer literal is malformed if a base prefix has no "
                & "digits, a digit is not in its base, an underscore begins"
                & " or ends the digit run, or the literal runs straight int"
                & "o a name [1770]. `0x` takes hexadecimal digits, `0b` bin"
                & "ary and `0o` octal. Keep underscores between digits, and"
-               & " put a separator before a following name.",
+               & " put a separator before a following name. A segment of a"
+               & "n import path that begins with a digit, `import 701_dev/"
+               & "pkg`, is L0100's, a name that belongs there, and not a m"
+               & "alformed integer (D2170).",
             when Catalogue.Unknown_Bytes =>
                "A run of bytes no lexical rule spells [1750], or a word "
                & "with a capital in it. A name is lower case [1760], and a"
@@ -420,7 +427,21 @@ package body Landin.Diagnostics.Explanations is
                & "never quoted: `import core/text`, not `import ""core/text"
                & """` (D862). `addr` of a measure, `addr lenof items`, woul"
                & "d take the address of a value: bind the measure to a nam"
-               & "e first and take the address of the name (D863).",
+               & "e first and take the address of the name (D863). `-> ()`"
+               & ", another language's empty tuple, is refused naming `-> "
+               & "none`, the spelling of a routine that returns nothing; t"
+               & "he exact fix writes `none`, and the function or concept "
+               & "entry is read on to its `end` (D2168). Each segment of a"
+               & "n import path is an identifier [1420]: a `-` or `.` join"
+               & "ing names, `import tools/refine-build/lines` or `import "
+               & "github.com/tools/lines`, is refused at that character, a"
+               & "nd a segment beginning with a digit, `import 701_dev/pkg"
+               & "`, at the digit. Write a segment in lower-case letters, "
+               & "digits and `_`, beginning with a letter, such as `refine"
+               & "_build` (D2170). `lenof` before a text literal, `lenof """
+               & "abcde""`, is refused, since `lenof` measures what a name "
+               & "begins [0370]: bind the text, `word := ""abcde""`, and mea"
+               & "sure `lenof word` (D2171).",
             when Catalogue.Type_Expected =>
                "A type position holds nothing the kernel enables as a ty"
                & "pe [1790]. A parameter's mode written after its colon, `"
@@ -476,7 +497,11 @@ package body Landin.Diagnostics.Explanations is
                & "as a call, `full(n: i32)`, is refused at the `(` naming "
                & "`full: (...)`, and the likely fix writes the `:` [0680]."
                & " A list beginning a line after a name is refused as [175"
-               & "0]'s continued index, as L0102 says.",
+               & "0]'s continued index, as L0102 says. A signature with `="
+               & "` where `->` belongs, `f: (inout row: [2]u32) =`, is ref"
+               & "used with a note naming `-> none` for a routine that ret"
+               & "urns nothing, and the body after `=` is still read (D216"
+               & "8).",
             when Catalogue.Unclosed_Construct =>
                "A construct opened and its `end` never arrived [1800]. T"
                & "he second label shows where it opened; close it there.",
@@ -510,7 +535,16 @@ package body Landin.Diagnostics.Explanations is
                & "er a statement that is no exit, `code = 1 when ready`, i"
                & "s refused naming the four exits that take it, `return`, "
                & "`fail`, `break` and `continue`; any other statement runs"
-               & " on a condition inside `if` (D865).",
+               & " on a condition inside `if` (D865). Inside an `if` arm, "
+               & "a bare `else` after a call divides the `if` [1820], so `"
+               & "count: usize = f(x) else begin fail bad end` followed by"
+               & " more lines of the arm would end the arm there. When the"
+               & " arm goes on after the block's `end`, with another line "
+               & "as deep as the `else`'s or with the `if`'s own `elsif` o"
+               & "r `else`, the `else` is refused where it stands and read"
+               & " as the call's recovery; keep it the call's by binding t"
+               & "he error, `else (problem) ... end`, or with parentheses,"
+               & " `(f(x) else value)` (D2172).",
             when Catalogue.Nesting_Too_Deep =>
                "An implementation limit, not a rule of the language: a c"
                & "onstruct nests more deeply than the parser holds. Split "
@@ -581,6 +615,18 @@ package body Landin.Diagnostics.Explanations is
                & " the local; rename it (D381)."
                & LF
                & LF
+               & "Each file of a module has its own imports [1450]. A qual"
+               & "ified name whose prefix another file of the module impor"
+               & "ts, or whose prefix is the last segment of a library mod"
+               & "ule the program reaches [1420], is told which import thi"
+               & "s file lacks (D2174), and the exact fix, which `refine f"
+               & "ix` applies, inserts the line, `import core/mem`. A type"
+               & " argument written with such a prefix, `vec.list(mem.allo"
+               & "cator)`, is reported the same way. A library module no i"
+               & "mport of the program reaches is not known here, so its n"
+               & "ame is reported as a misspelling."
+               & LF
+               & LF
                & "An option is read only in fixed conditions, option defau"
                & "lts and compiler assertions (D202) [1530], so a module v"
                & "alue or a routine that reads one is told the option is c"
@@ -637,29 +683,43 @@ package body Landin.Diagnostics.Explanations is
                & " another length or element type, a function of another s"
                & "ignature [1000], or a reference of another permission [0"
                & "440]. The second label shows where the requirement was s"
-               & "tated. Change the value, or convert it explicitly where "
-               & "a conversion exists. A text literal takes `utf8`, `[]u8`"
-               & ", `utf16` or `cstring` from its context but never a poin"
-               & "ter; for a `ptr u8` parameter, bind it, `name: []u8 = ""."
-               & "..""`, and pass `addr name[0]`, since the literal ends in"
-               & " NUL (D442). A `[` that begins a line indexes the value "
-               & "the line above ends with [1750]; when that value is no a"
-               & "rray the report stands on the `[` and says the line was "
-               & "continued, and the value in parentheses, `(name)`, lets "
-               & "the `[` begin a value (D1191). A function value converts"
-               & " to an address only when it is a C function value and on"
-               & "ly to `usize`, `usize(f)` (D1343): a function in Landin'"
-               & "s own convention has no address C could call, and anothe"
-               & "r integer type converts that `usize` after it, `u64(usiz"
-               & "e(f))`. An `any C` converts to `any P` only when C build"
-               & "s on P, directly or through other concepts [1340] (D1949"
-               & "). It converts to no other `any`, neither that of a conc"
-               & "ept built on C nor that of a sibling; build such a value"
-               & " from its pointer with `any(addr item)` instead. A point"
-               & "er type applied to an integer, `ptr mut u32(address)`, i"
-               & "s no conversion: write `ptr(address)` where the pointer "
-               & "type is wanted, which takes its type from the context [0"
-               & "470].",
+               & "tated. For a function of another signature, the note nam"
+               & "es the first parameter or result that differs, as each s"
+               & "ide writes it. Where the signatures differ in their numb"
+               & "er of parameters, or the difference is elsewhere, it giv"
+               & "es both signatures whole (D2182). Change the value, or c"
+               & "onvert it explicitly where a conversion exists. A text l"
+               & "iteral takes `utf8`, `[]u8`, `utf16` or `cstring` from i"
+               & "ts context but never a pointer; for a `ptr u8` parameter"
+               & ", bind it, `name: []u8 = ""...""`, and pass `addr name[0]`"
+               & ", since the literal ends in NUL (D442). `utf8` and `[]u8"
+               & "` are different types (D2176): `[]u8(value)`, or `core/t"
+               & "ext`'s `text.bytes(value)`, is a `utf8` value's bytes in"
+               & " the same storage, not a copy, and for bytes `text.from_"
+               & "bytes(value)` checks that they are UTF-8 and reports `in"
+               & "valid_text`, where `utf8(value)` traps instead. An atom "
+               & "value widens only into a set that contains its identity "
+               & "[0640], and a comparison does not narrow a set (D434), s"
+               & "o a value of a wider set is narrowed with `match` (D2179"
+               & "): name the atoms the required set lacks and pass on wha"
+               & "t `_ (rest):` binds. A `[` that begins a line indexes th"
+               & "e value the line above ends with [1750]; when that value"
+               & " is no array the report stands on the `[` and says the l"
+               & "ine was continued, and the value in parentheses, `(name)"
+               & "`, lets the `[` begin a value (D1191). A function value "
+               & "converts to an address only when it is a C function valu"
+               & "e and only to `usize`, `usize(f)` (D1343): a function in"
+               & " Landin's own convention has no address C could call, an"
+               & "d another integer type converts that `usize` after it, `"
+               & "u64(usize(f))`. An `any C` converts to `any P` only when"
+               & " C builds on P, directly or through other concepts [1340"
+               & "] (D1949). It converts to no other `any`, neither that o"
+               & "f a concept built on C nor that of a sibling; build such"
+               & " a value from its pointer with `any(addr item)` instead."
+               & " A pointer type applied to an integer, `ptr mut u32(addr"
+               & "ess)`, is no conversion: write `ptr(address)` where the "
+               & "pointer type is wanted, which takes its type from the co"
+               & "ntext [0470].",
             when Catalogue.Not_Definitely_Assigned =>
                "Required storage is not definitely assigned at a read or"
                & " an exit [1910]. A read needs the place assigned on ever"
@@ -686,10 +746,18 @@ package body Landin.Diagnostics.Explanations is
                & "ding, an `in` parameter, an atom, a function, or storage"
                & " reached through a read-only reference. When the place i"
                & "s a local or module binding of one name, the diagnostic "
-               & "offers `mut` on its declaration as a likely fix. A bindi"
-               & "ng written several times is reported once, at its first "
-               & "write, and a refused write still counts as assigning the"
-               & " place, so later reads are not reported (D263).",
+               & "offers `mut` on its declaration as a likely fix. An `ino"
+               & "ut` parameter lets the callee replace what the caller pa"
+               & "ssed [0900], so the binding passed must be `mut`. A slic"
+               & "e parameter written `inout values: []mut f64` asks for t"
+               & "hat only to write elements, which `[]mut` allows without"
+               & " `inout`, so for a slice binding that is not `mut` the l"
+               & "ikely fix removes `inout` from the callee's parameter in"
+               & "stead (D2178); it is a guess, because a callee that does"
+               & " replace the slice needs the `mut` binding. A binding wr"
+               & "itten several times is reported once, at its first write"
+               & ", and a refused write still counts as assigning the plac"
+               & "e, so later reads are not reported (D263).",
             when Catalogue.Unsupported_Use =>
                "A known form used where the language does not permit it "
                & "[1830], found once the checker knows what the form means"
@@ -831,17 +899,19 @@ package body Landin.Diagnostics.Explanations is
                & "ed storage will remain live. If that retention is intend"
                & "ed, declare the source parameter `escaping`, or `escapin"
                & "g into` the parameter whose storage keeps it (D445), and"
-               & " make its callers satisfy that contract. A reference kep"
-               & "t `escaping into` a parameter must outlive that argument"
-               & "'s origin: a frame reference never outlives a parameter'"
-               & "s storage, and a local only the storage of locals declar"
-               & "ed after it (D455). Otherwise, keep the use non-retainin"
-               & "g or update storage within the same origin. Keeping the "
-               & "storage alive longer alone does not grant retention perm"
-               & "ission. A thread's instance of `link(thread)` storage en"
-               & "ds with its thread, so its address is not kept in a modu"
-               & "le binding every thread reads (D772); keep it in a local"
-               & " or pass it on as an argument.",
+               & " make its callers satisfy that contract. The word comes "
+               & "first, and for an `inout` parameter the note spells it, "
+               & "`escaping inout box:` (D2177). A reference kept `escapin"
+               & "g into` a parameter must outlive that argument's origin:"
+               & " a frame reference never outlives a parameter's storage,"
+               & " and a local only the storage of locals declared after i"
+               & "t (D455). Otherwise, keep the use non-retaining or updat"
+               & "e storage within the same origin. Keeping the storage al"
+               & "ive longer alone does not grant retention permission. A "
+               & "thread's instance of `link(thread)` storage ends with it"
+               & "s thread, so its address is not kept in a module binding"
+               & " every thread reads (D772); keep it in a local or pass i"
+               & "t on as an argument.",
             when Catalogue.Borrowed_Place =>
                "A place is changed while a view derived from it is still"
                & " in use [0800] [0830]. Finish with the view first, or ta"
@@ -1115,16 +1185,20 @@ package body Landin.Diagnostics.Explanations is
                & "rm matches only a pointer union and binds one read-only "
                & "pointer, or one `sink` pointer that consumes the matched"
                & " place [1220] (D433); no other binding is `sink`. Atom a"
-               & "rms bind no payload [0630]. A wildcard arm comes last; o"
-               & "n an atom set it may bind one read-only name, `_ (rest):"
-               & "`, to the atoms no other arm names, and only when some a"
-               & "re left (D434). A variant part takes no wildcard arm: it"
-               & "s match names every case, and the refusal names the case"
-               & "s the `_` was to cover, to be listed in one arm, `full, "
-               & "spare:`, with no missing-case report for each (D866). Va"
-               & "riant payload names are positional and complete (D78). R"
-               & "ewrite the arm in the form its subject admits, or compar"
-               & "e numbers with `if` and `elsif`.",
+               & "rms bind no payload [0630]. An arm names atoms and never"
+               & " a declared atom set, and there is no arm that binds one"
+               & " (D2179): a union of sets is split by naming one side's "
+               & "atoms, which may share one arm, `east, west:`, and endin"
+               & "g with `_ (rest):`, which binds the other side's. A wild"
+               & "card arm comes last; on an atom set it may bind one read"
+               & "-only name, `_ (rest):`, to the atoms no other arm names"
+               & ", and only when some are left (D434). A variant part tak"
+               & "es no wildcard arm: its match names every case, and the "
+               & "refusal names the cases the `_` was to cover, to be list"
+               & "ed in one arm, `full, spare:`, with no missing-case repo"
+               & "rt for each (D866). Variant payload names are positional"
+               & " and complete (D78). Rewrite the arm in the form its sub"
+               & "ject admits, or compare numbers with `if` and `elsif`.",
             when Catalogue.Aggregate_Form =>
                "A struct, variant or array value is built or used outsid"
                & "e its admitted form [0700] [0720]. A construction applie"
@@ -1209,8 +1283,15 @@ package body Landin.Diagnostics.Explanations is
                & "late has no function value until it is called. Recursion"
                & " that keeps changing the actual tuple never ends, and a "
                & "circular error-set dependency cannot be resolved (D215)."
-               & " Give the type argument explicitly, pass arguments that "
-               & "agree, or call a concrete routine.",
+               & " `utf8` and `[]u8` are different types in every call, an"
+               & "d here a text literal is `utf8` too, since it is typed b"
+               & "efore its parameter is known, where a parameter written "
+               & "`[]u8` would give it that type (D2176): pass `[]u8(value"
+               & ")` for a text's bytes, `text.from_bytes(value)` or `utf8"
+               & "(value)` for bytes that are text, and bind a literal mea"
+               & "nt as bytes with its type, `name: []u8 = ""...""`, and pas"
+               & "s the name. Give the type argument explicitly, pass argu"
+               & "ments that agree, or call a concrete routine.",
             when Catalogue.Conformance_Form =>
                "A concept or conformance declaration is not well formed "
                & "[1230]-[1270]. A concept is parameterized by types and n"
@@ -2293,7 +2374,45 @@ package body Landin.Diagnostics.Explanations is
                & "e. `map.end_of_entries` is gone because `map.next_entry`"
                & " no longer fails: ask `map.at_end`. Instead of `io.write"
                & "r_of` or `io.lent_writer`, pass the world itself, since "
-               & "an `any io.world` converts to `any io.writer`.");
+               & "an `any io.world` converts to `any io.writer`."
+               & LF
+               & LF
+               & "Five routines and one concept entry kept their names and"
+               & " took their parameters in a new order (D1954): `mem.tran"
+               & "sfer`, `random.shuffle`, `stacks.round_over`, `fake.netw"
+               & "ork_over_turns`, and `make_temporary` of `io.file_system"
+               & "`. A call whose arguments are in the old order is refuse"
+               & "d here when their kinds show it, which a literal, an `an"
+               & "y(...)` or a name whose type is known does; the note nam"
+               & "es the new order and the fix writes the arguments in it "
+               & "(D2180). Where the kinds do not show it, the call is ref"
+               & "used at the argument out of place, as before. A conforma"
+               & "nce that supplies `make_temporary` with a function whose"
+               & " parameters are in the old order is refused with no fix,"
+               & " since swapping that function's parameters would put eve"
+               & "ry direct call of it out of order. Three more forms are "
+               & "refused with a fix. A call's `entries:` label on `stacks"
+               & ".round_over` or `events.over` becomes `fibres:` (D2034)."
+               & " `io.variable` written as a type becomes `text.os_variab"
+               & "le` (D2033), and the fix imports `core/text` if the file"
+               & " does not. `posix.words` given an argument whose atom se"
+               & "t holds a library atom becomes `system.words` (D2008), a"
+               & "nd the fix imports `hosted/system` the same way. Separat"
+               & "ely, a pointer union refused at the application of a par"
+               & "ameterized alias (D1659) names the template's union besi"
+               & "de the application (D2181).",
+            when Catalogue.Atom_Named_Twice =>
+               "An atom set names one member twice, as the failure set `"
+               & "! mem.not_found | mem.not_found` or the type `north | so"
+               & "uth | north` does (D2175). The program is accepted: a se"
+               & "t holds each atom once [0640], so it means what it would"
+               & " with the name written once, and the second name adds no"
+               & "thing. The report stands on the second name and points a"
+               & "t the first. Its exact fix removes the second name with "
+               & "the `|` before it, and `refine fix` applies it. Like L06"
+               & "84 it is raised only in a program with no error. `--allo"
+               & "w=L0697` suppresses the warning; `--deny=L0697` makes it"
+               & " an invocation error.");
 
    function Example (Of_Code : Catalogue.Code_Name) return String
      is (case Of_Code is
@@ -3471,6 +3590,15 @@ package body Landin.Diagnostics.Explanations is
                & "    end while"
                & LF
                & "end main"
+               & LF,
+            when Catalogue.Atom_Named_Twice =>
+               "missing: atom"
+               & LF
+               & "look: () -> none ! missing | missing ="
+               & LF
+               & "    fail missing"
+               & LF
+               & "end look"
                & LF);
 
    function Fixture (Of_Code : Catalogue.Code_Name) return String
@@ -4341,6 +4469,8 @@ package body Landin.Diagnostics.Explanations is
             when Catalogue.External_Command_Incompatible =>
                "",
             when Catalogue.Removed_Form =>
+               "",
+            when Catalogue.Atom_Named_Twice =>
                "");
 
 end Landin.Diagnostics.Explanations;

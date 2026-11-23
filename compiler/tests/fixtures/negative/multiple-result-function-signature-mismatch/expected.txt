@@ -7,4 +7,4 @@ error[L0301]: this function has a different signature
   |
 4 |     operation: wanted = wrong
   |                ^^^^^^ the function type written here
-  = note: [1000]: function values have the signature written by their type
+  = note: [1000]: function values have the signature written by their type; one signature is `() -> (only: i32)` and the other is `() -> (left: i32, right: i32)`

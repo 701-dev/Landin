@@ -1,0 +1,6 @@
+import core/vec
+import core/mem
+
+grow: (buffer: mem.byte_buffer, list: vec.list(mem.byte_buffer))
+      -> none ! mem.out_of_memory =
+end grow

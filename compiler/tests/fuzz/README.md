@@ -113,6 +113,15 @@ target where it instantiates the conformance. The fixture
 `positive/family-provider-held-by-pointer` pins it on the command line, and
 `min-501889.ldn`, the mutant as the fuzzer kept it, in the server.
 
+Once the fixtures of D2168-D2183 joined the corpus, a round met a
+declaration of several names whose `=` ends the source. D1656's rewrite
+copied a value with no tokens, a range that ended before it began, so the
+parser raised a defect. A missing value now makes the rewrite no
+mechanical one, and the declaration is refused for the missing value
+alone. The fixture
+`negative/several-names-before-an-empty-value` pins it on the command line,
+and `min-501804.ldn`, the mutant as the fuzzer kept it, in the server.
+
 The first driver was a Perl mutator, `mutate.pl`, run by `fuzz.sh`, with a
 `reduce.sh` beside it. They made the two recorded runs below and are in the
 history, last at commit `bb04329d`; a seed in those logs names a mutant only
@@ -160,6 +169,7 @@ not a second copy of those tests:
 | `min-207836.ldn` | `positive/struct-array-field-element-zeroed` | 1 | L0201, L0302 |
 | `min-501824.ldn` | `runtime/derived-server-two-process` | 1 | L0102 |
 | `min-501889.ldn` | `runtime/any-parameterized-provider-expression-result` | 0 | none |
+| `min-501804.ldn` | `negative/variant-part-end-name-mismatch` | 1 | L0109, L0102 |
 
 ## What it is not
 

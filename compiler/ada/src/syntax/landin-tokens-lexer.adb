@@ -314,6 +314,38 @@ package body Landin.Tokens.Lexer is
                when Decimal     => Is_Digit (Item),
                when Hexadecimal => Is_Hex (Item));
 
+      --  D2170: whether the token about to be scanned stands in an
+      --  import's module path: after `import`, or after a `/` in a run of
+      --  segments and slashes that `import` begins.  A segment that
+      --  begins with a digit is still a fault, but the parser words it,
+      --  as a segment rather than as an integer.
+      function In_Import_Path return Boolean;
+
+      function In_Import_Path return Boolean is
+         At_Item : Natural := Natural (Into.Items.Length);
+      begin
+         loop
+            if At_Item = 0 then
+               return False;
+            end if;
+            case Into.Items (At_Item).Kind is
+               when Kw_Import =>
+                  return True;
+               when Slash =>
+                  if At_Item = 1
+                    or else Into.Items (At_Item - 1).Kind
+                      not in Identifier | Integer_Literal
+                           | Malformed_Integer
+                  then
+                     return False;
+                  end if;
+                  At_Item := At_Item - 2;
+               when others =>
+                  return False;
+            end case;
+         end loop;
+      end In_Import_Path;
+
       procedure Scan_Integer;
 
       procedure Scan_Integer is
@@ -321,6 +353,7 @@ package body Landin.Tokens.Lexer is
          Base        : Integer_Base := Decimal;
          Digits_From : Natural := Position;
          Prefixed    : Boolean := False;
+         Import_Segment : constant Boolean := In_Import_Path;
 
          function Good_Run
            (From, Through : Natural; Radix : Integer_Base) return Boolean;
@@ -512,7 +545,9 @@ package body Landin.Tokens.Lexer is
                          Assignment => Plain_Assignment));
             else
                Emit (Malformed_Integer, First, Position - 1);
-               Complain (Malformed_Integer_Run, First, Position - 1);
+               Complain
+                 (Malformed_Integer_Run, First, Position - 1,
+                  Refused => (if Import_Segment then Kw_Import else Bang));
             end if;
          end;
       end Scan_Integer;

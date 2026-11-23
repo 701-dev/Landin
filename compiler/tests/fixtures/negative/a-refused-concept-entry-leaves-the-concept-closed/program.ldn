@@ -1,0 +1,12 @@
+drain: type = concept (t: type)
+    take: (self: ptr t) -> none
+end drain
+
+provider: type = concept (t: type)
+    pull: (self: t, other: type is drain, s: other) -> none
+    count: (self: t) -> (n: u32)
+end provider
+
+public main: () -> (code: i32) =
+    code = 0
+end main

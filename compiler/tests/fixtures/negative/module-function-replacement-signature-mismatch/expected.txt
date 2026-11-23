@@ -7,4 +7,4 @@ error[L0301]: this function has a different signature
   |
 9 |     current = pair
   |     ^^^^^^^ the function place written here
-  = note: [1000]: function values have the signature written by their type
+  = note: [1000]: function values have the signature written by their type; one signature is `(left: i32, right: i32) -> (result: i32)` and the other is `(value: i32) -> (result: i32)`

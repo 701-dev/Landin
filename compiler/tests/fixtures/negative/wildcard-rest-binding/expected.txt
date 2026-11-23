@@ -27,7 +27,7 @@ error[L0301]: this is not an atom admitted by the set required here
    |
 30 |         _ (rest): w = rest
    |                   ^ the atom place written here
-  = note: [0640]: an atom value may widen only into a union that contains its identity
+  = note: [0640]: an atom value may widen only into a union that contains its identity; a comparison does not narrow a set (D434), so `match` the value, name the atoms the required set lacks, and pass on what `_ (rest):` binds
 error[L0333]: an atom arm has no payload to bind
   --> ../tests/fixtures/negative/wildcard-rest-binding/main.ldn:36:9
    |

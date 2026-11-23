@@ -1,0 +1,9 @@
+class: negative
+summary: [1820] a bare `else begin ... end` after a call in an `if` arm whose lines go on after it is reported at that `else`, naming `else (problem)` and parentheses, and read as the call's recovery, so the `elsif` after it and the names the arm declares stay the arm's
+program: program.ldn
+codes: L0110, L0110
+constructs: 1030, 1820
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/else-begin-in-an-if-arm-is-said-at-the-else/program.ldn
+status: 1

@@ -2525,14 +2525,25 @@ package body Landin.Stages.Checking.References is
       is
          Derived : constant Res.Declaration_Id := First_Derivation (Fact);
          Place : Landin.Provenance.Origin := Related;
+         --  D2177: an `inout` parameter whose parts are kept is spelled
+         --  with both words, `escaping` first, and the note says how.
+         Inout_Name : Landin.Source.Names.Name_Id :=
+           Landin.Source.Names.No_Name;
       begin
          if Derived /= Res.No_Declaration then
             declare
                Source_Tree : constant not null access constant Syn.Tree :=
                  Tree_For (Res.Source_Of (Meanings.all, Derived));
+               Its_Node : constant Syn.Node_Id :=
+                 Res.Node_Of (Meanings.all, Derived);
             begin
-               Place := Syn.Origin
-                 (Source_Tree.all, Res.Node_Of (Meanings.all, Derived));
+               Place := Syn.Origin (Source_Tree.all, Its_Node);
+               if Syn.Kind (Source_Tree.all, Its_Node) = Syn.Parameter
+                 and then Syn.Convention_Of (Source_Tree.all, Its_Node)
+                   = Syn.Inout_Convention
+               then
+                  Inout_Name := Syn.Name (Source_Tree.all, Its_Node);
+               end if;
             end;
          end if;
          Bad.Report
@@ -2542,6 +2553,11 @@ package body Landin.Stages.Checking.References is
             Message => Message,
             Note    => "[0770]/[0780]: frame references cannot escape and"
                        & " a retained parameter is declared `escaping`"
+                       & (if Landin.Source.Names."/="
+                            (Inout_Name, Landin.Source.Names.No_Name)
+                          then ", here `escaping inout "
+                               & Spelled (Inout_Name) & ":`"
+                          else "")
                        & Advice,
             Related => Place,
             Because => "the shorter-lived reference source",

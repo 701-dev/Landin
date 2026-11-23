@@ -1,0 +1,9 @@
+class: negative
+summary: [1290] an entry that takes a type formal of its own is refused once, and the concept's own `end` on the next line still closes it
+program: program.ldn
+codes: L0010
+constructs: 1230, 1290
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/a-refused-concept-entry-leaves-the-concept-closed/program.ldn
+status: 1

@@ -3949,6 +3949,9 @@ UNSTATED_BY_GRAMMAR = {"L0109"}
 #  derives `(r)` as the `if`'s other branch.  Any other call-site `else`
 #  there divides the `if`, so a value followed by more of the arm is
 #  refused, while the grammar derives the whole as the call's recovery.
+#  D2172: an `else begin` there that the arm goes on after is refused at
+#  the `else`, while the grammar derives the block as the `if`'s other
+#  branch.
 #
 #  [1750]: a line end never ends a statement where the next token can
 #  continue it, so a `[` that begins a line after a name indexes it, and an
@@ -3957,6 +3960,7 @@ UNSTATED_BY_GRAMMAR = {"L0109"}
 STATED_IN_PROSE = {
     "parenthesised-name-after-a-call-else-is-its-recovery": "[1820]",
     "recovery-value-before-more-of-an-if-arm": "[1820]",
+    "else-begin-in-an-if-arm-is-said-at-the-else": "[1820]",
     "line-leading-bracket-continues-as-an-index": "[1750]",
     #  D1889: a type argument may be an expression, which derives `a | b`
     #  as an alternation; [1790] refuses a union there in prose.
@@ -4326,7 +4330,10 @@ def check_grammar_corpus(full_run):
                 elif not must_derive_here and derives:
                     out.append((where, 1,
                                 "the grammar derives this, and a negative "
-                                "fixture must not be derivable"))
+                                "fixture must not be derivable; one the "
+                                "parser refuses by a rule stated in prose "
+                                "beside the productions is listed in "
+                                "check.py's STATED_IN_PROSE"))
 
                 #  A fixture may pin the complaint as well as the refusal.
                 #  Refusing for the wrong reason means the wrong span, and

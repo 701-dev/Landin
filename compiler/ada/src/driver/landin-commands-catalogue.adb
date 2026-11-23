@@ -1,8 +1,12 @@
 with Ada.Strings.Fixed;
+with Landin.Diagnostics.Catalogue;
 with Landin.Diagnostics.Suggestions;
 with Landin.Diagnostics.Warning_Policy;
 
 package body Landin.Commands.Catalogue is
+
+   use type Landin.Diagnostics.Catalogue.Disposition;
+   use type Landin.Diagnostics.Catalogue.Fix_Admission;
 
    LF : constant Character := ASCII.LF;
 
@@ -74,7 +78,8 @@ package body Landin.Commands.Catalogue is
          when Format_Stdout => "--stdout", when Explain_Full => "--full",
          when Stdio => "--stdio", when JSON => "--json",
          when Warnings => "--warnings", when Warn => "--warn",
-         when Allow => "--allow", when Deny => "--deny");
+         when Allow => "--allow", when Deny => "--deny",
+         when Fix_Code => "--code");
 
    function Description (Flag : Option) return String is
      (case Flag is
@@ -135,12 +140,27 @@ package body Landin.Commands.Catalogue is
          when Warnings => "Base warning selection: default, all, none",
          when Warn => "Enable a warning code or all (repeatable)",
          when Allow => "Suppress a warning code or all (repeatable)",
-         when Deny => "Enable and promote a warning to an error (repeatable)");
+         when Deny => "Enable and promote a warning to an error (repeatable)",
+         when Fix_Code =>
+           "Apply only this code's exact fixes (repeatable)");
+
+   --  D2186: a code `refine fix --code` may select: one the catalogue
+   --  holds, live, whose diagnostics may carry a fix.
+   function Fixable_Code (Text : String) return Boolean is
+     (Landin.Diagnostics.Is_Valid_Code (Text)
+      and then Landin.Diagnostics.Catalogue.Holds (Text)
+      and then Landin.Diagnostics.Catalogue.State
+        (Landin.Diagnostics.Catalogue.Named (Text))
+          = Landin.Diagnostics.Catalogue.Live
+      and then Landin.Diagnostics.Catalogue.Fixes
+        (Landin.Diagnostics.Catalogue.Named (Text))
+          /= Landin.Diagnostics.Catalogue.No_Fix);
 
    function Values (Flag : Option) return String is
      (case Flag is
          when Warnings => "default|all|none",
          when Warn | Allow | Deny => "CODE|all",
+         when Fix_Code => "CODE",
          when Color => "auto|always|never",
          when Diagnostics => "human|short|json",
          when Firmware_Layout => "boot|ram",
@@ -183,7 +203,7 @@ package body Landin.Commands.Catalogue is
             | Library_Directory | Build_Option | Build_Mode | Optimize
             | Specialize | Link
             | Firmware_Entry | Firmware_Layout
-            | Warnings | Warn | Allow | Deny | Format_Check,
+            | Warnings | Warn | Allow | Deny | Format_Check | Fix_Code,
           --  D1240: where the citations file is, as a compilation's.
           when Explain => Flag in Explain_Full | Library,
           when Server => Flag = Stdio,
@@ -226,7 +246,7 @@ package body Landin.Commands.Catalogue is
 
    function Repeatable (Flag : Option) return Boolean is
      (Flag in Help_Flag | Verbose | Quiet | Root | Library_Directory
-       | Build_Option | Warn | Allow | Deny);
+       | Build_Option | Warn | Allow | Deny | Fix_Code);
 
    function Valid_Value (Flag : Option; Text : String) return Boolean is
    begin
@@ -234,6 +254,8 @@ package body Landin.Commands.Catalogue is
          when Warnings => return Text in "default" | "all" | "none";
          when Warn | Allow | Deny =>
             return Landin.Diagnostics.Warning_Policy.Valid_Selector (Text);
+         when Fix_Code =>
+            return Fixable_Code (Text);
          when Color => return Text in "auto" | "always" | "never";
          when Diagnostics => return Text in "human" | "short" | "json";
          when Firmware_Layout => return Text in "boot" | "ram";
@@ -341,7 +363,14 @@ package body Landin.Commands.Catalogue is
       else "; it takes " & Spoken (Values (Flag)));
 
    function Value_Problem (Flag : Option; Value : String) return String is
-     (if Value = "" then Name (Flag) & " needs a value" & Value_Choices (Flag)
+     (if Flag = Fix_Code and then Value /= ""
+        and then Landin.Diagnostics.Is_Valid_Code (Value)
+        and then Landin.Diagnostics.Catalogue.Holds (Value)
+      then Name (Flag) & " takes a code whose diagnostics can carry a fix;"
+        & " those of `" & Value & "` never do, and `refine explain " & Value
+        & "` says what the code means"
+      elsif Value = ""
+      then Name (Flag) & " needs a value" & Value_Choices (Flag)
       else Name (Flag) & " does not take `" & Value & "`"
         & Value_Choices (Flag));
 
@@ -583,6 +612,11 @@ package body Landin.Commands.Catalogue is
               & LF & "Each fix applied is listed on standard output, and the"
               & LF & "report is what is left. With --check no file is"
               & LF & "written and the status is 1 if a fix would be applied."
+              & LF & "--code=CODE applies only the exact fixes of"
+              & LF & "diagnostics with that code, and may be given again for"
+              & LF & "more codes. The report is still the whole check's, so a"
+              & LF & "fix that was left out is still reported. A code that is"
+              & LF & "unknown, retired or never carries a fix is refused."
               & LF & "Example: refine fix program.ldn" & LF);
          when Completion =>
             US.Append (Text, LF

@@ -1,0 +1,35 @@
+error[L0696]: `random.shuffle` takes these arguments in another order
+  --> ../tests/fixtures/negative/library-order-removed-calls/main.ldn:14:5
+   |
+14 |     random.shuffle(g, values)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1954: `random.shuffle` takes the values first and the generator second
+  = help: write `random.shuffle(values, g)`
+error[L0696]: `mem.transfer` takes these arguments in another order
+  --> ../tests/fixtures/negative/library-order-removed-calls/main.ldn:19:13
+   |
+19 |     n = try mem.transfer(source, 0, target)
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1954: `mem.transfer` takes the target first, then the source and the index, as `mem.copy` takes `into` first
+  = help: write `mem.transfer(target, source, 0)`
+error[L0696]: `stacks.round_over` takes these arguments in another order
+  --> ../tests/fixtures/negative/library-order-removed-calls/main.ldn:26:18
+   |
+26 |     round := try stacks.round_over(state, entries, any(addr idler))
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1954: `stacks.round_over` takes the state, then `when_idle`, then the fibres; a capability comes before the inputs
+  = help: write `stacks.round_over(state, any(addr idler), entries)`
+error[L0696]: `fake.network_over_turns` takes these arguments in another order
+  --> ../tests/fixtures/negative/library-order-removed-calls/main.ldn:34:16
+   |
+34 |     network := fake.network_over_turns(space, sockets, runs)
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1954: `fake.network_over_turns` takes the state, then `runs`, then the sockets; a capability comes before the inputs
+  = help: write `fake.network_over_turns(space, runs, sockets)`
+error[L0696]: `fs.make_temporary` takes these arguments in another order
+  --> ../tests/fixtures/negative/library-order-removed-calls/main.ldn:41:17
+   |
+41 |     made := try fs.make_temporary(directory, names, into)
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: D1954: `make_temporary` of `io.file_system` takes `names` before `directory`, then `into`; a capability comes before the inputs
+  = help: write `fs.make_temporary(names, directory, into)`

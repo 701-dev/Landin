@@ -1,0 +1,17 @@
+--  D2180: the record of an environment variable was `io.variable` and is
+--  `text.os_variable` (D2008, D2033); `io.variable` now names the routine
+--  that lends one.  Written as a type it is refused naming the record, and
+--  the fix writes it, importing `core/text` once.
+import core/io
+
+name_length: (item: io.variable) -> (n: usize) =
+    n = 0
+end name_length
+
+both: (left: io.variable, right: io.variable) -> (same: bool) =
+    same = true
+end both
+
+public main: () -> (code: i32) =
+    code = 0
+end main

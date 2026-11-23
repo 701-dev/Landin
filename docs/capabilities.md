@@ -405,7 +405,12 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   writes each changed source in place as `fmt` does, lists each fix applied
   on standard output, and reports what is left. A likely fix, a guess such
   as the nearest name to a misspelling, is never applied. `--check` writes
-  nothing and fails when a fix would be applied (D1847). Exact fixes today
+  nothing and fails when a fix would be applied (D1847). `--code=CODE`,
+  which may be repeated, limits the fixes applied to the exact fixes of
+  diagnostics with that code, so a migration off a removed form applies
+  only that rewrite; the report is still the whole check's, so the fixes
+  left out are still reported. A code that is unknown, retired or whose
+  diagnostics never carry a fix is refused (D2186). Exact fixes today
   mend a closer that names the wrong function, an unread `mut`, an unused
   literal local and an `else` binding its block never reads, among others.
   A form the language removes is refused naming its replacement, and where

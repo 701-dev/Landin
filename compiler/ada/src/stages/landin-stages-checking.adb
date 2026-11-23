@@ -34,6 +34,7 @@ with Landin.Stages.Checking.Flow;
 with Landin.Stages.Folding;
 with Landin.Stages.Configuration;
 with Landin.Stages.Checking.References;
+with Landin.Stages.Wanted_Imports;
 with Landin.Syntax.Forest;
 with Landin.Syntax;
 with Landin.Tokens.Spacing;
@@ -1202,6 +1203,8 @@ package body Landin.Stages.Checking is
                when Ty.Atom_Value      => "an atom",
                when Ty.Fixed_Array     => "an array",
                when Ty.Aggregate       => "a struct",
+               when Ty.Any_Value       => "a value of a concept",
+               when Ty.Function_Value  => "a function",
                when others             => "something unknown");
 
       function Semantic_Convention
@@ -2670,6 +2673,17 @@ package body Landin.Stages.Checking is
       procedure Collect_Conformances;
       procedure Validate_Composed_Conformances;
       procedure Validate_Conformance_Entries;
+
+      --  A signature as a program would write it, in Within's spelling.
+      function Signature_Text
+        (Signature : Landin.Checking.Signature_Id;
+         Within : Landin.Source.Source_Id) return String;
+
+      --  D2182: what a function value's report adds, both
+      --  signatures, or "" when they read alike.
+      function Signature_Difference
+        (Wanted, Got : Landin.Checking.Signature_Id;
+         Within      : Landin.Source.Source_Id) return String;
       function Require_Conformance
         (Actual      : Type_Descriptor;
          Constraint  : Syn.Node_Id;
@@ -2903,6 +2917,51 @@ package body Landin.Stages.Checking is
       function Synthesise_Control
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Ty.Type_Kind;
 
+      --  The logical path of the module a source belongs to.
+      function Module_Path (Of_Source : Landin.Source.Source_Id)
+         return String;
+
+      --  D2183: a descriptor keeps no alias, so a structural type is spelt
+      --  by its structure.  Where Node names a declaration whose type is
+      --  written as a non-generic alias of a structural type, the alias as
+      --  written there; otherwise "".
+      function Written_Alias (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
+         return String;
+
+      --  D2180: whether Signature, a conformance's function for the entry
+      --  Item names, takes its last parameters in the order the breaking
+      --  list replaced, told apart by their kinds.  False when Item is
+      --  No_Order.
+      function Old_Order_Parameters
+        (Item      : Landin.Modules.Removed.Order;
+         Signature : Landin.Checking.Signature_Id) return Boolean;
+
+      --  D2180: the exact fix for Node, a selection `prefix.name` whose
+      --  replacement Row names in another module: the replacement under the
+      --  name the file binds that module to, and the module's import, added
+      --  after the file's last, when nothing binds it.  Only the file's
+      --  first selection of the same name from the same module adds the
+      --  import, so two fixes never add it twice: among the selections
+      --  outside a call, every one of which is refused, or among the
+      --  callees when Callee holds, where a call refused after the first
+      --  has no fix until the first's has added the import.  No fix when
+      --  the module's short name is bound to another, or the file imports
+      --  nothing to add it after.
+      function Moved_Name_Fixes
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Callee  : Boolean := False)
+         return Landin.Diagnostics.Fix_List;
+
+      --  D2180: Call, a call of the routine or entry Item names, refused
+      --  when the kinds of its arguments put them in the order the
+      --  breaking list replaced; True when it was.
+      function Refused_Old_Order
+        (Of_Tree : Syn.Tree;
+         Call    : Syn.Node_Id;
+         Item    : Landin.Modules.Removed.Order) return Boolean;
+
       function Check_Call
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -3042,11 +3101,15 @@ package body Landin.Stages.Checking is
          Because : String);
       function Names_Module_Value
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean;
+      --  Inout_Slice is the site of a `[]mut` parameter written `inout`
+      --  that Node is lent to, or No_Origin (D2178).
       procedure Check_Place
         (Of_Tree        : Syn.Tree;
          Node           : Syn.Node_Id;
          Stepping       : Boolean;
-         Variant_Context : Boolean := False);
+         Variant_Context : Boolean := False;
+         Inout_Slice     : Landin.Provenance.Origin :=
+           Landin.Provenance.No_Origin);
       procedure Check_Array_Literal
         (Of_Tree         : Syn.Tree;
          Context         : Syn.Node_Id;
@@ -3310,6 +3373,74 @@ package body Landin.Stages.Checking is
       function Text_Reference
         (View : Ty.Text_View) return Landin.Checking.Reference_Id
         is (Landin.Checking.Text_Reference_Of (Types.all, View));
+
+      --  D2176: `utf8` and `[]u8` hold the same bytes and are different
+      --  types, so a value of one given where the other is wanted is told
+      --  the conversion.  Text_For_Bytes is `utf8` where a read-only
+      --  `[]u8` is wanted, Bytes_For_Text the other way.
+      type Byte_Text_Mix is (No_Mix, Text_For_Bytes, Bytes_For_Text);
+
+      function Is_Byte_Slice
+        (Item : Landin.Checking.Reference_Descriptor) return Boolean
+        is (Item.Kind = Ty.Slice_Value
+            and then Item.View = Ty.Ordinary_View
+            and then Item.Referent = Ty.U8
+            and then Item.Empty_Atom = Res.No_Declaration);
+
+      function Mix_Of
+        (Got, Wanted : Landin.Checking.Reference_Id) return Byte_Text_Mix;
+
+      function Mix_Of
+        (Got, Wanted : Landin.Checking.Reference_Id) return Byte_Text_Mix
+      is
+      begin
+         if Got = Landin.Checking.No_Reference
+           or else Wanted = Landin.Checking.No_Reference
+         then
+            return No_Mix;
+         end if;
+         declare
+            Has : constant Landin.Checking.Reference_Descriptor :=
+              Landin.Checking.Descriptor_Of (Types.all, Got);
+            Needs : constant Landin.Checking.Reference_Descriptor :=
+              Landin.Checking.Descriptor_Of (Types.all, Wanted);
+         begin
+            if Has.View = Ty.Utf8_View and then Is_Byte_Slice (Needs)
+              and then not Needs.Mutable
+            then
+               return Text_For_Bytes;
+            elsif Is_Byte_Slice (Has) and then Needs.View = Ty.Utf8_View
+            then
+               return Bytes_For_Text;
+            end if;
+            return No_Mix;
+         end;
+      end Mix_Of;
+
+      --  Whether Node, a written type, is the predeclared scalar Scalar.
+      function Names_Scalar
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Scalar  : Ty.Scalar_Name) return Boolean
+        is (Node /= Syn.No_Node
+            and then Syn.Kind (Of_Tree, Node)
+                       in Syn.Type_Reference | Syn.Name_Reference
+            and then Res.Verdict_Of (Meanings.all, Of_Tree, Node)
+                       /= Res.Bound
+            and then Landin.Checking.Named
+                       (Types.all, Syn.Name (Of_Tree, Node)) = Scalar);
+
+      function Mix_Note (Mix : Byte_Text_Mix) return String
+        is (case Mix is
+               when Text_For_Bytes =>
+                  "; `utf8` and `[]u8` are different types: pass"
+                  & " `[]u8(value)`, the text's own bytes and no copy",
+               when Bytes_For_Text =>
+                  "; `utf8` and `[]u8` are different types: pass"
+                  & " `text.from_bytes(value)`, which reports"
+                  & " `invalid_text` unless the bytes are UTF-8, or"
+                  & " `utf8(value)`, which traps instead",
+               when No_Mix => "");
 
       function Text_Descriptor
         (View : Ty.Text_View) return Type_Descriptor
@@ -3785,6 +3916,12 @@ package body Landin.Stages.Checking is
       function Reported_Unknown_Applied
         (Of_Tree : Syn.Tree; Applied : Syn.Node_Id) return Boolean;
 
+      --  D2174: report a qualified type name whose prefix names a
+      --  module the file could import as L0201 naming the import, and
+      --  say whether it was one.
+      function Reported_Missing_Import
+        (Of_Tree : Syn.Tree; Written : Syn.Node_Id) return Boolean;
+
       procedure Validate_Caller_Parameter
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -3857,6 +3994,50 @@ package body Landin.Stages.Checking is
             Into    => Found);
          return True;
       end Reported_Unknown_Applied;
+
+      function Reported_Missing_Import
+        (Of_Tree : Syn.Tree; Written : Syn.Node_Id) return Boolean
+      is
+         package Wanted_Imports renames Landin.Stages.Wanted_Imports;
+         Prefix : Syn.Node_Id;
+      begin
+         if Syn.Kind (Of_Tree, Written) /= Syn.Member_Selection then
+            return False;
+         end if;
+         Prefix := Syn.Target_Of (Of_Tree, Written);
+         if Syn.Kind (Of_Tree, Prefix)
+              not in Syn.Name_Reference | Syn.Type_Reference
+           or else Res.Verdict_Of (Meanings.all, Of_Tree, Prefix) = Res.Bound
+         then
+            return False;
+         end if;
+         declare
+            Missing : constant Wanted_Imports.Answer :=
+              Wanted_Imports.Wanted (Context, Of_Tree, Prefix);
+            Named : constant Landin.Source.Names.Name_Id :=
+              Syn.Name (Of_Tree, Prefix);
+         begin
+            if not Wanted_Imports.Found (Missing) then
+               return False;
+            end if;
+            Landin.Checking.Note (Types.all, Of_Tree, Written, Ty.Ill_Typed);
+            Name_Bad.Report
+              (Item    => Name_Bad.Unresolved_Name,
+               Source  => Syn.Source_Of (Of_Tree),
+               Where   => Syn.Where (Of_Tree, Prefix),
+               Message => "`" & Spelled (Named)
+                          & "` is not declared in any scope this reaches",
+               Note    => Wanted_Imports.Note
+                 (Context, Spelled (Named), Missing),
+               Fixes   => Wanted_Imports.Import_Fixes
+                 (Of_Tree, Prefix, Named,
+                  [Syn.Name_Reference | Syn.Type_Reference => True,
+                   others => False],
+                  Missing),
+               Into    => Found);
+            return True;
+         end;
+      end Reported_Missing_Import;
 
       procedure Validate_Caller_Parameter
         (Of_Tree : Syn.Tree;
@@ -5829,6 +6010,12 @@ package body Landin.Stages.Checking is
                      Note    => "D1659: a pointer with several states is"
                                 & " a one-atom union with an error set,"
                                 & " or a struct of a state and a pointer",
+                     --  D2181: at an application, the template's union.
+                     Related => (if Applied
+                                 then Syn.Origin (Of_Tree, Written)
+                                 else Landin.Provenance.No_Origin),
+                     Because => (if Applied then "the template's union"
+                                 else ""),
                      Into    => Found);
                   return Invalid;
                elsif Symbolic then
@@ -6064,6 +6251,7 @@ package body Landin.Stages.Checking is
                --  must retain that root report rather than add a feature gate.
                if Landin.Checking.Type_Of (Types.all, Of_Tree, Written)
                   /= Ty.Ill_Typed
+                 and then not Reported_Missing_Import (Of_Tree, Written)
                then
                   Report_Application
                     (Of_Tree, Written, "this type argument names no type");
@@ -9492,6 +9680,11 @@ package body Landin.Stages.Checking is
                end;
             elsif Landin.Checking.Type_Of (Types.all, Of_Tree, Written)
                = Ty.Undecided
+              and then Reported_Missing_Import (Of_Tree, Written)
+            then
+               null;
+            elsif Landin.Checking.Type_Of (Types.all, Of_Tree, Written)
+               = Ty.Undecided
             then
                Landin.Checking.Note
                  (Types.all, Of_Tree, Written, Ty.Ill_Typed);
@@ -9591,6 +9784,40 @@ package body Landin.Stages.Checking is
                --  belongs is a type error, not a refused construct.
                Landin.Checking.Note (Types.all, Of_Tree, Written,
                                      Ty.Ill_Typed);
+               --  D2180: a library type the breaking list moved, whose old
+               --  name now means something else.
+               if Syn.Kind (Of_Tree, Written) = Syn.Member_Selection
+                 and then Landin.Modules.Removed.Found
+                   (Landin.Modules.Removed.Type_Member
+                      (Module_Path (Res.Source_Of (Meanings.all, Means)),
+                       Spelled (Res.Name_Of (Meanings.all, Means))))
+               then
+                  declare
+                     Row : constant Landin.Modules.Removed.Row :=
+                       Landin.Modules.Removed.Type_Member
+                         (Module_Path (Res.Source_Of (Meanings.all, Means)),
+                          Spelled (Res.Name_Of (Meanings.all, Means)));
+                  begin
+                     Bad.Report
+                       (Item    => Bad.Removed_Form,
+                        Source  => Syn.Source_Of (Of_Tree),
+                        Where   => Syn.Where (Of_Tree, Written),
+                        Message => "`"
+                                   & Landin.Source.Slice
+                                       (Source (Context,
+                                                Syn.Source_Of (Of_Tree)),
+                                        Syn.Where (Of_Tree, Written))
+                                   & "` is no longer a type",
+                        Note    => Landin.Modules.Removed.Note (Row),
+                        Related => Syn.Origin
+                          (Tree_For (Res.Source_Of (Meanings.all, Means)).all,
+                           Res.Node_Of (Meanings.all, Means)),
+                        Because => "the routine it names",
+                        Fixes   => Moved_Name_Fixes (Of_Tree, Written, Row),
+                        Into    => Found);
+                     return Ty.Ill_Typed;
+                  end;
+               end if;
                Bad.Report
                  (Item    => Bad.Type_Declaration_Form,
                   Source  => Syn.Source_Of (Of_Tree),
@@ -11564,6 +11791,20 @@ package body Landin.Stages.Checking is
                                 then "; a literal that nothing else decides"
                                      & " is `i32`, so convert it to the"
                                      & " type meant"
+                                elsif Syn.Kind (Caller_Tree, Argument)
+                                  in Syn.Text_Literal | Syn.Raw_Literal
+                                  and then Bound (Position).Value.Kind
+                                    = Ty.Slice_Value
+                                  and then Bound (Position).Value.Reference
+                                    /= Landin.Checking.No_Reference
+                                  and then Is_Byte_Slice
+                                    (Landin.Checking.Descriptor_Of
+                                       (Types.all,
+                                        Bound (Position).Value.Reference))
+                                then "; a text literal is `utf8` here, so"
+                                     & " bind it with the type meant,"
+                                     & " `name: []u8 = ""...""`, and pass"
+                                     & " the name"
                                 else ""),
                   --  One argument may decide a formal twice, and is then
                   --  no second place.
@@ -11663,7 +11904,8 @@ package body Landin.Stages.Checking is
             Position     : Positive;
             Pattern_Tree : Syn.Tree;
             Pattern      : Syn.Node_Id;
-            Message      : String);
+            Message      : String;
+            Extra        : String := "");
 
          function Bind_Type_Formal
            (Formal   : Res.Declaration_Id;
@@ -11707,7 +11949,8 @@ package body Landin.Stages.Checking is
             Position     : Positive;
             Pattern_Tree : Syn.Tree;
             Pattern      : Syn.Node_Id;
-            Message      : String) is
+            Message      : String;
+            Extra        : String := "") is
          begin
             if not Pattern_Failure_Reported (Position) then
                Bad.Report
@@ -11718,7 +11961,8 @@ package body Landin.Stages.Checking is
                   Note    => "D138: an argument to a generic routine is"
                              & " typed on its own, before the parameter is"
                              & " known, and must match the type written"
-                             & " for it; only `mut` may relax to read-only",
+                             & " for it; only `mut` may relax to read-only"
+                             & Extra,
                   Related => Syn.Origin (Pattern_Tree, Pattern),
                   Because => "the parameter's type, as written",
                   Into    => Found);
@@ -12139,11 +12383,20 @@ package body Landin.Stages.Checking is
                      and then Expected.Kind = Ty.Atom_Value
                    then "this atom set is not the one written here, nor"
                         & " inside it"
+                   elsif Mix_Of (Actual.Reference, Expected.Reference)
+                     = Bytes_For_Text
+                   then "this is `[]u8` and `utf8` belongs here"
                    else "this is " & Shown (Actual.Kind) & " and "
                         & Shown (Expected.Kind) & " belongs here")
                   & (if Actual.Kind = Ty.I32
                      then "; an integer literal takes only an integer type,"
                           & " and `i32` when nothing else decides it"
+                     else ""),
+                  Extra =>
+                    (if Actual.Kind in Ty.Slice_Value | Ty.Pointer_Value
+                       and then Expected.Kind = Actual.Kind
+                     then Mix_Note
+                       (Mix_Of (Actual.Reference, Expected.Reference))
                      else ""));
                return False;
             end Constant_Agrees;
@@ -12255,7 +12508,18 @@ package body Landin.Stages.Checking is
                      Report_Pattern_Failure
                        (Argument, Position, Pattern_Tree, Pattern,
                         "this argument has a different reference permission"
-                        & " or view from its parameter pattern");
+                        & " or view from its parameter pattern",
+                        Extra =>
+                          (if Reference.View = Ty.Utf8_View
+                             and then Kind = Syn.Slice_Type
+                             and then not Syn.Is_Referent_Mutable
+                               (Pattern_Tree, Pattern)
+                             and then Names_Scalar
+                               (Pattern_Tree,
+                                Syn.Referenced_Type (Pattern_Tree, Pattern),
+                                Ty.U8)
+                           then Mix_Note (Text_For_Bytes)
+                           else ""));
                      return False;
                   end if;
                   return Match_Type_Pattern
@@ -13856,6 +14120,22 @@ package body Landin.Stages.Checking is
                        and then Landin.Checking.Type_Of
                          (Types.all, Of_Tree, Node) = Ty.Undecided
                        and then not Needs_Error_Type (Of_Tree, Node)
+                       --  D2180: an old order is refused, not deduced.
+                       and then not
+                         (Landin.Modules.Removed.Found
+                            (Landin.Modules.Removed.Reordered
+                               (Module_Path
+                                  (Res.Source_Of (Meanings.all, Means)),
+                                "",
+                                Spelled (Res.Name_Of (Meanings.all, Means))))
+                          and then Refused_Old_Order
+                            (Of_Tree, Node,
+                             Landin.Modules.Removed.Reordered
+                               (Module_Path
+                                  (Res.Source_Of (Meanings.all, Means)),
+                                "",
+                                Spelled
+                                  (Res.Name_Of (Meanings.all, Means)))))
                      then
                         declare
                            Signature : constant
@@ -14645,6 +14925,64 @@ package body Landin.Stages.Checking is
               Wanted)
          then
             Landin.Checking.Refuse (Types.all, Of_Tree, Node);
+            --  D2180: a routine whose wider form the breaking list moved
+            --  to another, given an argument only that one takes.
+            declare
+               Around : constant Syn.Node_Id :=
+                 (if Syn.Enclosing (Of_Tree, Node) /= Syn.No_Node
+                    and then Syn.Kind
+                      (Of_Tree, Syn.Enclosing (Of_Tree, Node))
+                        = Syn.Call_Argument
+                  then Syn.Enclosing
+                    (Of_Tree, Syn.Enclosing (Of_Tree, Node))
+                  else Syn.Enclosing (Of_Tree, Node));
+               Called : constant Syn.Node_Id :=
+                 (if Around /= Syn.No_Node
+                    and then Syn.Kind (Of_Tree, Around) = Syn.Call
+                  then Syn.Callee_Of (Of_Tree, Around)
+                  else Syn.No_Node);
+               Row : constant Landin.Modules.Removed.Row :=
+                 (if Called /= Syn.No_Node
+                    and then Got = Ty.Atom_Value
+                    and then Syn.Kind (Of_Tree, Called)
+                      = Syn.Member_Selection
+                    and then Res.Verdict_Of (Meanings.all, Of_Tree, Called)
+                      = Res.Bound
+                    and then Res.Sort_Of
+                      (Meanings.all,
+                       Res.Bound_To (Meanings.all, Of_Tree, Called))
+                        = Res.Module_Function
+                  then Landin.Modules.Removed.Narrowed
+                    (Module_Path
+                       (Res.Source_Of
+                          (Meanings.all,
+                           Res.Bound_To (Meanings.all, Of_Tree, Called))),
+                     Spelled
+                       (Res.Name_Of
+                          (Meanings.all,
+                           Res.Bound_To (Meanings.all, Of_Tree, Called))))
+                  else Landin.Modules.Removed.No_Row);
+            begin
+               if Landin.Modules.Removed.Found (Row) then
+                  Bad.Report
+                    (Item    => Bad.Removed_Form,
+                     Source  => Syn.Source_Of (Of_Tree),
+                     Where   => Syn.Where (Of_Tree, Node),
+                     Message => "`"
+                                & Landin.Source.Slice
+                                    (Source (Context,
+                                             Syn.Source_Of (Of_Tree)),
+                                     Syn.Where (Of_Tree, Called))
+                                & "` words an errno alone",
+                     Note    => Landin.Modules.Removed.Note (Row),
+                     Related => Beside (Of_Tree, Node, Site),
+                     Because => Beside_Label (Of_Tree, Node, Site, Because),
+                     Fixes   => Moved_Name_Fixes
+                       (Of_Tree, Called, Row, Callee => True),
+                     Into    => Found);
+                  return;
+               end if;
+            end;
             Bad.Report
               (Item    => Bad.Type_Mismatch,
                Source  => Syn.Source_Of (Of_Tree),
@@ -14652,7 +14990,20 @@ package body Landin.Stages.Checking is
                Message => "this is not an atom admitted by the set"
                           & " required here",
                Note    => "[0640]: an atom value may widen only into a"
-                          & " union that contains its identity",
+                          & " union that contains its identity"
+                          & (if Got = Ty.Atom_Value
+                               and then Landin.Checking.Atom_Set_Of
+                                 (Types.all, Of_Tree, Node)
+                                   /= Landin.Checking.No_Atom_Set
+                               and then Landin.Checking.Atom_Count
+                                 (Types.all,
+                                  Landin.Checking.Atom_Set_Of
+                                    (Types.all, Of_Tree, Node)) > 1
+                             then "; a comparison does not narrow a set"
+                                  & " (D434), so `match` the value, name the"
+                                  & " atoms the required set lacks, and"
+                                  & " pass on what `_ (rest):` binds"
+                             else ""),
                Related => Beside (Of_Tree, Node, Site),
                Because => Beside_Label (Of_Tree, Node, Site, Because),
                Into    => Found);
@@ -14966,7 +15317,13 @@ package body Landin.Stages.Checking is
                Where   => Syn.Where (Of_Tree, Right),
                Message => "these function values have different signatures",
                Note    => "[1000]: a function value's complete signature"
-                          & " is its type",
+                          & " is its type"
+                          & Signature_Difference
+                              (Landin.Checking.Signature_Of
+                                 (Types.all, Of_Tree, Left),
+                               Landin.Checking.Signature_Of
+                                 (Types.all, Of_Tree, Right),
+                               Syn.Source_Of (Of_Tree)),
                Related => Syn.Origin (Of_Tree, Left),
                Because => "the function compared here",
                Into    => Found);
@@ -15484,6 +15841,21 @@ package body Landin.Stages.Checking is
          Inout_Places : array (1 .. Written_Count) of Syn.Node_Id :=
            [others => Syn.No_Node];
          Inout_Count : Natural := 0;
+         --  D2180: a concept entry the breaking list reordered, called
+         --  through a provider in its old order.
+         Old_Entry : constant Landin.Modules.Removed.Order :=
+           (if Syn.Kind (Of_Tree, Callee) = Syn.Member_Selection
+              and then Res.Verdict_Of (Meanings.all, Of_Tree, Callee)
+                /= Res.Bound
+              and then Signature /= Landin.Checking.No_Signature
+              and then Landin.Checking.Signature_Origin
+                (Types.all, Signature).Source /= Landin.Source.No_Source
+            then Landin.Modules.Removed.Reordered_Entry
+              (Module_Path
+                 (Landin.Checking.Signature_Origin
+                    (Types.all, Signature).Source),
+               Spelled (Syn.Name (Of_Tree, Callee)))
+            else Landin.Modules.Removed.No_Order);
 
          function Same_Provable_Place
            (Left, Right : Syn.Node_Id) return Boolean;
@@ -15737,7 +16109,51 @@ package body Landin.Stages.Checking is
                            exit;
                         end if;
                      end loop;
-                     if Position = 0 then
+                     if Position = 0
+                       and then Syn.Kind (Of_Tree, Callee)
+                         in Syn.Name_Reference | Syn.Member_Selection
+                       and then Landin.Checking.Signature_Origin
+                         (Types.all, Signature).Source
+                           /= Landin.Source.No_Source
+                       and then Landin.Modules.Removed.Found
+                         (Landin.Modules.Removed.Label
+                            (Module_Path
+                               (Landin.Checking.Signature_Origin
+                                  (Types.all, Signature).Source),
+                             Spelled (Syn.Name (Of_Tree, Callee)),
+                             Spelled (Label)))
+                     then
+                        --  D2180: a parameter the breaking list renamed.
+                        declare
+                           Row : constant Landin.Modules.Removed.Row :=
+                             Landin.Modules.Removed.Label
+                               (Module_Path
+                                  (Landin.Checking.Signature_Origin
+                                     (Types.all, Signature).Source),
+                                Spelled (Syn.Name (Of_Tree, Callee)),
+                                Spelled (Label));
+                        begin
+                           Bad.Report
+                             (Item    => Bad.Removed_Form,
+                              Source  => Syn.Source_Of (Of_Tree),
+                              Where   => Syn.Anchor (Of_Tree, Argument),
+                              Message => "`" & Spelled (Label)
+                                         & "` is no longer a parameter of"
+                                         & " this callable",
+                              Note    => Landin.Modules.Removed.Note (Row),
+                              Fixes   =>
+                                [1 => Landin.Diagnostics.Fixes.Library_Name
+                                   (Landin.Modules.Removed.New_Name (Row),
+                                    [1 => Landin.Diagnostics.Make_Edit
+                                       (Syn.Source_Of (Of_Tree),
+                                        Syn.Anchor (Of_Tree, Argument),
+                                        Landin.Modules.Removed.New_Name
+                                          (Row))])],
+                              Into    => Found);
+                        end;
+                        Unknown_Labels := Unknown_Labels + 1;
+                        Valid := False;
+                     elsif Position = 0 then
                         declare
                            --  [0980]: the labels this callable has, which
                            --  are the only names a named argument can be.
@@ -15888,6 +16304,11 @@ package body Landin.Stages.Checking is
             return Valid;
          end Match_Runtime_Arguments;
       begin
+         if Landin.Modules.Removed.Found (Old_Entry)
+           and then Refused_Old_Order (Of_Tree, Node, Old_Entry)
+         then
+            return Ty.Ill_Typed;
+         end if;
          if Landin.Checking.Signature_Machine (Types.all, Signature)
            /= Landin.Machine.Ordinary
          then
@@ -16046,7 +16467,15 @@ package body Landin.Stages.Checking is
                         --  D1201: a whole array field is lent as a local
                         --  array is.
                         Check_Place
-                          (Of_Tree, Argument, Stepping => False);
+                          (Of_Tree, Argument, Stepping => False,
+                           Inout_Slice =>
+                             (if Wants = Ty.Slice_Value
+                                and then Parameter.Reference
+                                  /= Landin.Checking.No_Reference
+                                and then Landin.Checking.Descriptor_Of
+                                  (Types.all, Parameter.Reference).Mutable
+                              then Parameter.Site
+                              else Landin.Provenance.No_Origin));
                         if Packed_Place (Of_Tree, Argument) then
                            Bad.Report
                              (Item => Bad.Packed_Image,
@@ -16271,7 +16700,11 @@ package body Landin.Stages.Checking is
                                       & " permission",
                            Note    => "[0430]/[0440]/[0570]: reference"
                                       & " permission relaxes only from"
-                                      & " `mut` to read-only",
+                                      & " `mut` to read-only"
+                                      & Mix_Note (Mix_Of
+                                        (Landin.Checking.Reference_Of
+                                           (Types.all, Of_Tree, Argument),
+                                         Parameter.Reference)),
                            Related => Parameter.Site,
                            Because => "this reference parameter",
                            Into    => Found);
@@ -16301,7 +16734,12 @@ package body Landin.Stages.Checking is
                            Message => "this function argument has a"
                                       & " different signature",
                            Note    => "[1000]: a function value's complete"
-                                      & " signature is its type",
+                                      & " signature is its type"
+                                      & Signature_Difference
+                                          (Parameter.Signature,
+                                           Landin.Checking.Signature_Of
+                                             (Types.all, Of_Tree, Argument),
+                                           Syn.Source_Of (Of_Tree)),
                            Related => Parameter.Site,
                            Because => "this function-valued parameter",
                            Into    => Found);
@@ -17541,6 +17979,424 @@ package body Landin.Stages.Checking is
                                 Landin.Modules.Removed.New_Name (Row))])],
             Into    => Found);
       end Report_Removed_Field;
+
+      function Module_Path (Of_Source : Landin.Source.Source_Id)
+         return String
+      is (Landin.Modules.Logical_Path
+            (Grouped.all, Landin.Modules.Module_Of (Grouped.all, Of_Source)));
+
+      function Written_Alias (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
+         return String
+      is
+      begin
+         if Node = Syn.No_Node
+           or else Syn.Kind (Of_Tree, Node) /= Syn.Name_Reference
+           or else Res.Verdict_Of (Meanings.all, Of_Tree, Node) /= Res.Bound
+         then
+            return "";
+         end if;
+         declare
+            Means : constant Res.Declaration_Id :=
+              Res.Bound_To (Meanings.all, Of_Tree, Node);
+            Its_Tree : constant not null access constant Syn.Tree :=
+              Tree_For (Res.Source_Of (Meanings.all, Means));
+            Declared : constant Syn.Node_Id :=
+              Res.Node_Of (Meanings.all, Means);
+            Written : constant Syn.Node_Id :=
+              (if Res.Sort_Of (Meanings.all, Means)
+                    in Res.Module_Type | Res.Module_Function
+                    | Res.Module_Concept | Res.Type_Parameter
+               then Syn.No_Node
+               else Syn.Declared_Type (Its_Tree.all, Declared));
+         begin
+            if Written = Syn.No_Node
+              or else Syn.Kind (Its_Tree.all, Written)
+                not in Syn.Type_Reference | Syn.Type_Name
+                     | Syn.Member_Selection | Syn.Name_Reference
+              or else Res.Verdict_Of (Meanings.all, Its_Tree.all, Written)
+                /= Res.Bound
+            then
+               return "";
+            end if;
+            declare
+               Alias : constant Res.Declaration_Id :=
+                 Res.Bound_To (Meanings.all, Its_Tree.all, Written);
+               Alias_Tree : constant not null access constant Syn.Tree :=
+                 Tree_For (Res.Source_Of (Meanings.all, Alias));
+               Alias_Node : constant Syn.Node_Id :=
+                 Res.Node_Of (Meanings.all, Alias);
+            begin
+               if Res.Sort_Of (Meanings.all, Alias) /= Res.Module_Type
+                 or else Syn.Type_Formal_Count (Alias_Tree.all, Alias_Node)
+                   /= 0
+                 or else Syn.Declared_Type (Alias_Tree.all, Alias_Node)
+                   = Syn.No_Node
+                 or else Syn.Kind
+                   (Alias_Tree.all,
+                    Syn.Declared_Type (Alias_Tree.all, Alias_Node))
+                     not in Syn.Atom_Union_Type | Syn.Array_Type
+                          | Syn.Pointer_Type | Syn.Slice_Type
+                          | Syn.Any_Type | Syn.Function_Type
+               then
+                  return "";
+               end if;
+               return Landin.Source.Slice
+                 (Source (Context, Res.Source_Of (Meanings.all, Means)),
+                  Syn.Where (Its_Tree.all, Written));
+            end;
+         end;
+      end Written_Alias;
+
+      function Moved_Name_Fixes
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Callee  : Boolean := False)
+         return Landin.Diagnostics.Fix_List
+      is
+         Source_Id : constant Landin.Source.Source_Id :=
+           Syn.Source_Of (Of_Tree);
+         Wanted : constant String := Landin.Modules.Removed.New_Module (Row);
+         Short : constant String :=
+           Wanted (Ada.Strings.Fixed.Index
+                     (Wanted, "/", Ada.Strings.Backward) + 1 .. Wanted'Last);
+         Bound : Ada.Strings.Unbounded.Unbounded_String;
+         Taken : Boolean := False;
+         Last_Import : Syn.Node_Id := Syn.No_Node;
+         Prefix : constant Syn.Node_Id := Syn.Target_Of (Of_Tree, Node);
+         Its_Module : constant Landin.Modules.Module_Id :=
+           Res.Imported_Module_Of
+             (Meanings.all, Source_Id, Syn.Name (Of_Tree, Prefix));
+         First : Syn.Node_Id := Syn.No_Node;
+      begin
+         for Index in 1 .. Syn.Import_Count (Of_Tree) loop
+            declare
+               Import : constant Syn.Node_Id :=
+                 Syn.Nth_Import (Of_Tree, Index);
+               Target : constant Landin.Modules.Module_Id :=
+                 Landin.Modules.Imported_Module
+                   (Grouped.all, Source_Id, Import);
+               Alias : constant Syn.Node_Id :=
+                 Syn.Import_Alias_Of (Of_Tree, Import);
+            begin
+               Last_Import := Import;
+               if Syn.Import_Selection_Count (Of_Tree, Import) = 0
+                 and then Target /= Landin.Modules.No_Module
+               then
+                  declare
+                     Path : constant String :=
+                       Landin.Modules.Logical_Path (Grouped.all, Target);
+                     Binds : constant String :=
+                       (if Alias /= Syn.No_Node
+                        then Spelled (Syn.Name (Of_Tree, Alias))
+                        else Path (Ada.Strings.Fixed.Index
+                                     (Path, "/", Ada.Strings.Backward) + 1
+                                   .. Path'Last));
+                  begin
+                     if Path = Wanted then
+                        Bound :=
+                          Ada.Strings.Unbounded.To_Unbounded_String (Binds);
+                     elsif Binds = Short then
+                        Taken := True;
+                     end if;
+                  end;
+               end if;
+            end;
+         end loop;
+         if Ada.Strings.Unbounded.Length (Bound) > 0 then
+            return [1 => Landin.Diagnostics.Fixes.Library_Name
+                           (Ada.Strings.Unbounded.To_String (Bound) & "."
+                            & Landin.Modules.Removed.New_Name (Row),
+                            [1 => Landin.Diagnostics.Make_Edit
+                               (Source_Id, Syn.Where (Of_Tree, Node),
+                                Ada.Strings.Unbounded.To_String (Bound) & "."
+                                & Landin.Modules.Removed.New_Name (Row))])];
+         elsif Taken or else Last_Import = Syn.No_Node
+           or else Its_Module = Landin.Modules.No_Module
+         then
+            return Landin.Diagnostics.No_Fixes;
+         end if;
+         for Each in 1 .. Syn.Last_Node (Of_Tree) loop
+            if Syn.Kind (Of_Tree, Each) = Syn.Member_Selection
+              and then Syn.Name (Of_Tree, Each) = Syn.Name (Of_Tree, Node)
+              and then Syn.Kind (Of_Tree, Syn.Target_Of (Of_Tree, Each))
+                in Syn.Name_Reference | Syn.Type_Reference
+              and then Res.Imported_Module_Of
+                (Meanings.all, Source_Id,
+                 Syn.Name (Of_Tree, Syn.Target_Of (Of_Tree, Each)))
+                  = Its_Module
+              and then Callee =
+                (Syn.Enclosing (Of_Tree, Each) /= Syn.No_Node
+                 and then Syn.Kind (Of_Tree, Syn.Enclosing (Of_Tree, Each))
+                   in Syn.Call | Syn.Labeled_Application
+                 and then Syn.Callee_Of
+                   (Of_Tree, Syn.Enclosing (Of_Tree, Each)) = Each)
+              and then (First = Syn.No_Node
+                        or else Syn.Where (Of_Tree, Each).First
+                          < Syn.Where (Of_Tree, First).First)
+            then
+               First := Each;
+            end if;
+         end loop;
+         declare
+            Renamed : constant Landin.Diagnostics.Edit :=
+              Landin.Diagnostics.Make_Edit
+                (Source_Id, Syn.Where (Of_Tree, Node),
+                 Short & "." & Landin.Modules.Removed.New_Name (Row));
+            At_End : constant Landin.Source.Byte_Offset :=
+              Syn.Where (Of_Tree, Last_Import).Last;
+         begin
+            if First = Node then
+               return [1 => Landin.Diagnostics.Fixes.Library_Name
+                              (Short & "."
+                               & Landin.Modules.Removed.New_Name (Row),
+                               [Landin.Diagnostics.Make_Edit
+                                  (Source_Id,
+                                   (First => At_End, Last => At_End),
+                                   [ASCII.LF] & "import " & Wanted),
+                                Renamed])];
+            elsif Callee then
+               return Landin.Diagnostics.No_Fixes;
+            end if;
+            return [1 => Landin.Diagnostics.Fixes.Library_Name
+                           (Short & "."
+                            & Landin.Modules.Removed.New_Name (Row),
+                            [1 => Renamed])];
+         end;
+      end Moved_Name_Fixes;
+
+      function Old_Order_Parameters
+        (Item      : Landin.Modules.Removed.Order;
+         Signature : Landin.Checking.Signature_Id) return Boolean
+      is
+         package Gone renames Landin.Modules.Removed;
+         use type Gone.Shape;
+         Told : Boolean := False;
+      begin
+         if not Gone.Found (Item) then
+            return False;
+         end if;
+         declare
+            Count : constant Natural :=
+              Landin.Checking.Signature_Parameter_Count
+                (Types.all, Signature);
+            Moved : constant Positive := Gone.Moved (Item);
+         begin
+            if Count < Moved then
+               return False;
+            end if;
+            for Position in 1 .. Moved loop
+               declare
+                  Kind : constant Ty.Type_Kind :=
+                    Landin.Checking.Nth_Signature_Parameter
+                      (Types.all, Signature,
+                       Count - Moved + Position).Kind;
+                  Is_Shape : constant Gone.Shape :=
+                    (case Kind is
+                        when Ty.Aggregate => Gone.Struct_Shape,
+                        when Ty.Slice_Value | Ty.Fixed_Array =>
+                          Gone.Slice_Shape,
+                        when Ty.Any_Value => Gone.Erased_Shape,
+                        when others => Gone.Integer_Shape);
+               begin
+                  if Kind not in Ty.Aggregate | Ty.Slice_Value
+                    | Ty.Fixed_Array | Ty.Any_Value | Ty.Integer_Name
+                    or else Is_Shape /= Gone.Old_Shape (Item, Position)
+                  then
+                     return False;
+                  elsif Is_Shape /= Gone.New_Shape (Item, Position) then
+                     Told := True;
+                  end if;
+               end;
+            end loop;
+         end;
+         return Told;
+      end Old_Order_Parameters;
+
+      function Refused_Old_Order
+        (Of_Tree : Syn.Tree;
+         Call    : Syn.Node_Id;
+         Item    : Landin.Modules.Removed.Order) return Boolean
+      is
+         package Gone renames Landin.Modules.Removed;
+         use type Gone.Shape;
+         Count : constant Natural :=
+           (if Syn.Kind (Of_Tree, Call) = Syn.Call
+            then Syn.Argument_Count (Of_Tree, Call) else 0);
+         Moved : constant Positive := Gone.Moved (Item);
+         Kept_Before : constant Integer := Count - Moved;
+         Told : Boolean := False;
+
+         --  The value an argument writes.
+         function Value_Of (Position : Positive) return Syn.Node_Id;
+         function Value_Of (Position : Positive) return Syn.Node_Id is
+            Argument : constant Syn.Node_Id :=
+              Syn.Nth_Argument (Of_Tree, Call, Position);
+         begin
+            if Syn.Kind (Of_Tree, Argument) = Syn.Call_Argument then
+               return Syn.Expression_Projection (Of_Tree, Argument);
+            end if;
+            return Argument;
+         end Value_Of;
+
+         --  What kind of value an argument is, read only where it is
+         --  already known: a literal, an `any(...)`, or a name whose type
+         --  is settled.  Nothing is checked to find out.
+         procedure Shape_Of
+           (Value : Syn.Node_Id;
+            Known : out Boolean;
+            Found_Shape : out Gone.Shape);
+         procedure Shape_Of
+           (Value : Syn.Node_Id;
+            Known : out Boolean;
+            Found_Shape : out Gone.Shape)
+         is
+            Kind : Ty.Type_Kind := Ty.Undecided;
+         begin
+            Known := False;
+            Found_Shape := Gone.Struct_Shape;
+            if Value = Syn.No_Node then
+               return;
+            end if;
+            case Syn.Kind (Of_Tree, Value) is
+               when Syn.Any_Construction =>
+                  Kind := Ty.Any_Value;
+               when Syn.Integer_Literal =>
+                  Kind := Ty.Untyped_Integer;
+               when Syn.Name_Reference =>
+                  if Res.Verdict_Of (Meanings.all, Of_Tree, Value)
+                       = Res.Bound
+                  then
+                     declare
+                        Means : constant Res.Declaration_Id :=
+                          Res.Bound_To (Meanings.all, Of_Tree, Value);
+                     begin
+                        if Res.Sort_Of (Meanings.all, Means)
+                             not in Res.Module_Type | Res.Module_Concept
+                                  | Res.Type_Parameter | Res.Module_Function
+                          and then Landin.Checking.State_Of
+                            (Types.all, Means) = Landin.Checking.Settled
+                        then
+                           Kind := Landin.Checking.Type_Of
+                             (Types.all, Means);
+                        end if;
+                     end;
+                  end if;
+               when others =>
+                  null;
+            end case;
+            case Kind is
+               when Ty.Aggregate =>
+                  Known := True;
+                  Found_Shape := Gone.Struct_Shape;
+               when Ty.Slice_Value | Ty.Fixed_Array =>
+                  Known := True;
+                  Found_Shape := Gone.Slice_Shape;
+               when Ty.Any_Value =>
+                  Known := True;
+                  Found_Shape := Gone.Erased_Shape;
+               when Ty.Integer_Name | Ty.Untyped_Integer =>
+                  Known := True;
+                  Found_Shape := Gone.Integer_Shape;
+               when others =>
+                  null;
+            end case;
+         end Shape_Of;
+      begin
+         if Kept_Before not in 0 .. 1 then
+            return False;
+         end if;
+         --  Every argument the kinds can be read for agrees with the old
+         --  order, and one of them disagrees with the new.
+         for Position in 1 .. Moved loop
+            declare
+               Known : Boolean;
+               Found_Shape : Gone.Shape;
+            begin
+               Shape_Of (Value_Of (Kept_Before + Position), Known,
+                         Found_Shape);
+               if Known then
+                  if Found_Shape /= Gone.Old_Shape (Item, Position) then
+                     return False;
+                  elsif Found_Shape /= Gone.New_Shape (Item, Position) then
+                     Told := True;
+                  end if;
+               end if;
+            end;
+         end loop;
+         if not Told then
+            return False;
+         end if;
+
+         declare
+            Source_Id : constant Landin.Source.Source_Id :=
+              Syn.Source_Of (Of_Tree);
+            Snap : Landin.Source.Snapshot renames
+              Source (Context, Source_Id);
+            Edits : Landin.Diagnostics.Edit_List (1 .. Moved);
+            Used : Natural := 0;
+            Written : Ada.Strings.Unbounded.Unbounded_String :=
+              Ada.Strings.Unbounded.To_Unbounded_String
+                (Landin.Source.Slice
+                   (Snap, Syn.Where (Of_Tree, Syn.Callee_Of (Of_Tree, Call)))
+                 & "(");
+         begin
+            for Position in 1 .. Count loop
+               declare
+                  From : Positive := Position;
+               begin
+                  if Position > Kept_Before then
+                     for Old in 1 .. Moved loop
+                        if Kept_Before + Gone.Goes_To (Item, Old) = Position
+                        then
+                           From := Kept_Before + Old;
+                        end if;
+                     end loop;
+                  end if;
+                  declare
+                     Text : constant String :=
+                       Landin.Source.Slice
+                         (Snap,
+                          Syn.Where
+                            (Of_Tree, Syn.Nth_Argument (Of_Tree, Call, From)));
+                  begin
+                     if Position > 1 then
+                        Ada.Strings.Unbounded.Append (Written, ", ");
+                     end if;
+                     Ada.Strings.Unbounded.Append (Written, Text);
+                     if From /= Position then
+                        Used := Used + 1;
+                        Edits (Used) := Landin.Diagnostics.Make_Edit
+                          (Source_Id,
+                           Syn.Where
+                             (Of_Tree,
+                              Syn.Nth_Argument (Of_Tree, Call, Position)),
+                           Text);
+                     end if;
+                  end;
+               end;
+            end loop;
+            Ada.Strings.Unbounded.Append (Written, ")");
+            Bad.Report
+              (Item    => Bad.Removed_Form,
+               Source  => Source_Id,
+               Where   => Syn.Where (Of_Tree, Call),
+               Message => "`"
+                          & Landin.Source.Slice
+                              (Snap,
+                               Syn.Where
+                                 (Of_Tree, Syn.Callee_Of (Of_Tree, Call)))
+                          & "` takes these arguments in another order",
+               Note    => Gone.Note (Item),
+               Fixes   =>
+                 [1 => Landin.Diagnostics.Fixes.Library_Name
+                         (Ada.Strings.Unbounded.To_String (Written),
+                          Edits (1 .. Used))],
+               Into    => Found);
+         end;
+         Landin.Checking.Refuse (Types.all, Of_Tree, Call);
+         return True;
+      end Refused_Old_Order;
 
       function Fields_Near
         (Of_Tree : Syn.Tree;
@@ -23692,110 +24548,228 @@ package body Landin.Stages.Checking is
          return To_String (Text);
       end Instance_Note;
 
-      procedure Validate_Conformance_Entries is
-         procedure Validate (Of_Tree : Syn.Tree; Node : Syn.Node_Id);
+      function Signature_Text
+        (Signature : Landin.Checking.Signature_Id;
+         Within : Landin.Source.Source_Id) return String
+      is
+         package U renames Ada.Strings.Unbounded;
+         Text : U.Unbounded_String;
 
-         function Signature_Text
-           (Signature : Landin.Checking.Signature_Id;
-            Within : Landin.Source.Source_Id) return String;
+         function Part_Text
+           (Part : Landin.Checking.Signature_Part) return String;
 
-         function Signature_Text
-           (Signature : Landin.Checking.Signature_Id;
-            Within : Landin.Source.Source_Id) return String
+         function Part_Text
+           (Part : Landin.Checking.Signature_Part) return String
          is
-            package U renames Ada.Strings.Unbounded;
-            Text : U.Unbounded_String;
-
-            function Part_Text
-              (Part : Landin.Checking.Signature_Part) return String;
-
-            function Part_Text
-              (Part : Landin.Checking.Signature_Part) return String
-            is
-            begin
-               return
-                 (if Part.Caller then "caller " else "")
-                 & (if Part.Escaping then "escaping "
-                    elsif Part.Escaping_Into /= 0
-                    then "escaping into " & Spelled
-                      (Landin.Checking.Nth_Signature_Parameter
-                         (Types.all, Signature, Part.Escaping_Into).Name)
-                      & " "
-                    else "")
-                 & (case Part.Convention is
-                      when Syn.Implicit_In => "",
-                      when Syn.Inout_Convention => "inout ",
-                      when Syn.Sink_Convention => "sink ")
-                 & (if Part.Name = Landin.Source.Names.No_Name then ""
-                    else Spelled (Part.Name) & ": ")
-                 & Type_Spelling (Part_Descriptor (Part), Within);
-            end Part_Text;
          begin
-            if Signature = Landin.Checking.No_Signature then
-               return "_";
+            return
+              (if Part.Caller then "caller " else "")
+              & (if Part.Escaping then "escaping "
+                 elsif Part.Escaping_Into /= 0
+                 then "escaping into " & Spelled
+                   (Landin.Checking.Nth_Signature_Parameter
+                      (Types.all, Signature, Part.Escaping_Into).Name)
+                   & " "
+                 else "")
+              & (case Part.Convention is
+                   when Syn.Implicit_In => "",
+                   when Syn.Inout_Convention => "inout ",
+                   when Syn.Sink_Convention => "sink ")
+              & (if Part.Name = Landin.Source.Names.No_Name then ""
+                 else Spelled (Part.Name) & ": ")
+              & Type_Spelling (Part_Descriptor (Part), Within);
+         end Part_Text;
+      begin
+         if Signature = Landin.Checking.No_Signature then
+            return "_";
+         end if;
+         U.Append (Text, "(");
+         for Index in 1 .. Landin.Checking.Signature_Parameter_Count
+           (Types.all, Signature)
+         loop
+            if Index > 1 then
+               U.Append (Text, ", ");
             end if;
+            U.Append (Text, Part_Text
+              (Landin.Checking.Nth_Signature_Parameter
+                 (Types.all, Signature, Index)));
+         end loop;
+         U.Append (Text, ") -> ");
+         if Landin.Checking.Signature_Never_Returns
+           (Types.all, Signature)
+         then
+            U.Append (Text, "noreturn");
+         elsif Landin.Checking.Signature_Result_Count
+           (Types.all, Signature) = 0
+         then
+            U.Append (Text, "none");
+         else
             U.Append (Text, "(");
-            for Index in 1 .. Landin.Checking.Signature_Parameter_Count
+            for Index in 1 .. Landin.Checking.Signature_Result_Count
               (Types.all, Signature)
             loop
                if Index > 1 then
                   U.Append (Text, ", ");
                end if;
                U.Append (Text, Part_Text
-                 (Landin.Checking.Nth_Signature_Parameter
+                 (Landin.Checking.Nth_Signature_Result
                     (Types.all, Signature, Index)));
-            end loop;
-            U.Append (Text, ") -> ");
-            if Landin.Checking.Signature_Never_Returns
-              (Types.all, Signature)
-            then
-               U.Append (Text, "noreturn");
-            elsif Landin.Checking.Signature_Result_Count
-              (Types.all, Signature) = 0
-            then
-               U.Append (Text, "none");
-            else
-               U.Append (Text, "(");
-               for Index in 1 .. Landin.Checking.Signature_Result_Count
-                 (Types.all, Signature)
+               for Source in 1 ..
+                 Landin.Checking.Signature_Return_Source_Count
+                   (Types.all, Signature, Index)
                loop
-                  if Index > 1 then
-                     U.Append (Text, ", ");
-                  end if;
-                  U.Append (Text, Part_Text
-                    (Landin.Checking.Nth_Signature_Result
-                       (Types.all, Signature, Index)));
-                  for Source in 1 ..
-                    Landin.Checking.Signature_Return_Source_Count
-                      (Types.all, Signature, Index)
-                  loop
-                     U.Append
-                       (Text, (if Source = 1 then " from " else ", ")
-                        & (if Landin.Checking.Nth_Signature_Return_Source_Held
-                             (Types.all, Signature, Index, Source)
-                           then "held " else "")
-                        & Spelled (Landin.Checking.Nth_Signature_Parameter
-                          (Types.all, Signature,
-                           Landin.Checking.Nth_Signature_Return_Source
-                             (Types.all, Signature, Index, Source)).Name));
-                  end loop;
+                  U.Append
+                    (Text, (if Source = 1 then " from " else ", ")
+                     & (if Landin.Checking.Nth_Signature_Return_Source_Held
+                          (Types.all, Signature, Index, Source)
+                        then "held " else "")
+                     & Spelled (Landin.Checking.Nth_Signature_Parameter
+                       (Types.all, Signature,
+                        Landin.Checking.Nth_Signature_Return_Source
+                          (Types.all, Signature, Index, Source)).Name));
                end loop;
-               U.Append (Text, ")");
+            end loop;
+            U.Append (Text, ")");
+         end if;
+         if Landin.Checking.Signature_Error_Form (Types.all, Signature)
+           = Landin.Checking.Inferred
+         then
+            U.Append (Text, " ! ...");
+         elsif Landin.Checking.Signature_Errors (Types.all, Signature)
+           /= Landin.Checking.No_Atom_Set
+         then
+            U.Append (Text, " ! " & Spelling.Atoms_Text
+              ((Types => Types, Meanings => Meanings,
+                Spellings => Spellings),
+               Landin.Checking.Signature_Errors (Types.all, Signature)));
+         end if;
+         return U.To_String (Text);
+      end Signature_Text;
+
+      function Signature_Difference
+        (Wanted, Got : Landin.Checking.Signature_Id;
+         Within      : Landin.Source.Source_Id) return String
+      is
+         Wanted_Text : constant String := Signature_Text (Wanted, Within);
+         Got_Text : constant String := Signature_Text (Got, Within);
+
+         --  The Nth part of a signature's text: a parameter, a result,
+         --  or a run between them such as `->` or the error set, or "".
+         function Part (Text : String; Nth : Positive) return String;
+         function Part (Text : String; Nth : Positive) return String is
+            Depth : Natural := 0;
+            Seen : Natural := 0;
+            First : Positive := Text'First;
+            Index : Positive := Text'First;
+
+            function Ends (Last : Integer) return Boolean;
+            function Ends (Last : Integer) return Boolean is
+            begin
+               if Last >= First
+                 and then Ada.Strings.Fixed.Trim
+                   (Text (First .. Last), Ada.Strings.Both) /= ""
+               then
+                  Seen := Seen + 1;
+               end if;
+               return Seen = Nth;
+            end Ends;
+         begin
+            while Index <= Text'Last loop
+               case Text (Index) is
+                  when '(' | '[' =>
+                     if Depth = 0 then
+                        if Ends (Index - 1) then
+                           return Ada.Strings.Fixed.Trim
+                             (Text (First .. Index - 1), Ada.Strings.Both);
+                        end if;
+                        First := Index + 1;
+                     end if;
+                     Depth := Depth + 1;
+                  when ')' | ']' =>
+                     Depth := Depth - 1;
+                     if Depth = 0 then
+                        if Ends (Index - 1) then
+                           return Text (First .. Index - 1);
+                        end if;
+                        First := Index + 1;
+                     end if;
+                  when ',' =>
+                     if Depth = 1 then
+                        if Ends (Index - 1) then
+                           return Text (First .. Index - 1);
+                        end if;
+                        First := Index + 2;
+                     end if;
+                  when others =>
+                     null;
+               end case;
+               Index := Index + 1;
+            end loop;
+            if Ends (Text'Last) then
+               return Ada.Strings.Fixed.Trim
+                 (Text (First .. Text'Last), Ada.Strings.Both);
             end if;
-            if Landin.Checking.Signature_Error_Form (Types.all, Signature)
-              = Landin.Checking.Inferred
-            then
-               U.Append (Text, " ! ...");
-            elsif Landin.Checking.Signature_Errors (Types.all, Signature)
-              /= Landin.Checking.No_Atom_Set
-            then
-               U.Append (Text, " ! " & Spelling.Atoms_Text
-                 ((Types => Types, Meanings => Meanings,
-                   Spellings => Spellings),
-                  Landin.Checking.Signature_Errors (Types.all, Signature)));
+            return "";
+         end Part;
+
+         --  A part without its label, which agreement does not compare
+         --  (D117): the name before the part's first `: `.
+         function Unlabelled (Item : String) return String;
+         function Unlabelled (Item : String) return String is
+            Colon : constant Natural := Ada.Strings.Fixed.Index (Item, ": ");
+            Start : Natural := Colon;
+         begin
+            if Colon = 0 then
+               return Item;
             end if;
-            return U.To_String (Text);
-         end Signature_Text;
+            while Start > Item'First
+              and then Item (Start - 1) not in ' ' | '('
+            loop
+               Start := Start - 1;
+            end loop;
+            return Item (Item'First .. Start - 1)
+              & Item (Colon + 2 .. Item'Last);
+         end Unlabelled;
+      begin
+         if Got = Landin.Checking.No_Signature
+           or else Wanted = Landin.Checking.No_Signature
+           or else Wanted_Text = Got_Text
+         then
+            return "";
+         end if;
+         --  With as many parameters and results, the first part that
+         --  differs in more than its label.
+         if Landin.Checking.Signature_Parameter_Count (Types.all, Wanted)
+              = Landin.Checking.Signature_Parameter_Count (Types.all, Got)
+           and then Landin.Checking.Signature_Result_Count (Types.all, Wanted)
+              = Landin.Checking.Signature_Result_Count (Types.all, Got)
+         then
+            for Nth in Positive loop
+               declare
+                  Was : constant String := Part (Got_Text, Nth);
+                  Is_Wanted : constant String := Part (Wanted_Text, Nth);
+               begin
+                  exit when Was = "" or else Is_Wanted = "";
+                  if Unlabelled (Was) /= Unlabelled (Is_Wanted) then
+                     if Was (Was'First) not in '-' | '!'
+                       and then Is_Wanted (Is_Wanted'First) not in '-' | '!'
+                     then
+                        return "; the first difference is `" & Was
+                          & "` on one side and `" & Is_Wanted
+                          & "` on the other";
+                     end if;
+                     exit;
+                  end if;
+               end;
+            end loop;
+         end if;
+         return "; one signature is `" & Got_Text & "` and the other is `"
+           & Wanted_Text & "`";
+      end Signature_Difference;
+
+      procedure Validate_Conformance_Entries is
+         procedure Validate (Of_Tree : Syn.Tree; Node : Syn.Node_Id);
+
 
          procedure Validate (Of_Tree : Syn.Tree; Node : Syn.Node_Id) is
          begin
@@ -24156,6 +25130,54 @@ package body Landin.Stages.Checking is
                                     end Mismatch_Site;
                                  begin
                                     if Actual_Signature
+                                         /= Landin.Checking.No_Signature
+                                      and then not Landin.Checking
+                                        .Signatures_Agree
+                                          (Types.all, Expected_Signature,
+                                           Actual_Signature)
+                                      and then Old_Order_Parameters
+                                        (Landin.Modules.Removed
+                                           .Reordered_Entry
+                                             (Module_Path
+                                                (Syn.Source_Of
+                                                   (Concept_Tree.all)),
+                                              Spelled
+                                                (Syn.Name
+                                                   (Concept_Tree.all,
+                                                    Requirement_Node))),
+                                         Actual_Signature)
+                                    then
+                                       --  D2180: an entry the breaking
+                                       --  list reordered, supplied in its
+                                       --  old order.
+                                       Bad.Report
+                                         (Item    => Bad.Removed_Form,
+                                          Source  => Syn.Source_Of (Of_Tree),
+                                          Where   => Syn.Where
+                                            (Of_Tree, Node),
+                                          Message => "this function takes"
+                                            & " the parameters of `"
+                                            & Spelled
+                                                (Syn.Name
+                                                   (Concept_Tree.all,
+                                                    Requirement_Node))
+                                            & "` in another order",
+                                          Note    => Landin.Modules.Removed
+                                            .Note
+                                              (Landin.Modules.Removed
+                                                 .Reordered_Entry
+                                                   (Module_Path
+                                                      (Syn.Source_Of
+                                                         (Concept_Tree.all)),
+                                                    Spelled
+                                                      (Syn.Name
+                                                         (Concept_Tree.all,
+                                                          Requirement_Node)))),
+                                          Related => Mismatch_Site,
+                                          Because => "the first parameter"
+                                            & " out of place",
+                                          Into    => Found);
+                                    elsif Actual_Signature
                                          = Landin.Checking.No_Signature
                                       or else not Landin.Checking
                                         .Signatures_Agree
@@ -27650,13 +28672,17 @@ package body Landin.Stages.Checking is
                                     return Refuse
                                       ("memory access needs an unsigned"
                                        & " scalar pointer without a subtype,"
-                                       & " not `" & Spelling.Reference_Text
-                                         ((Types => Types,
-                                           Meanings => Meanings,
-                                           Spellings => Spellings),
-                                          Landin.Checking.Reference_Of
-                                            (Types.all, Of_Tree, Arg),
-                                          Reader) & "`",
+                                       & " not `"
+                                       & (if Written_Alias (Of_Tree, Arg)
+                                            /= ""
+                                          then Written_Alias (Of_Tree, Arg)
+                                          else Spelling.Reference_Text
+                                            ((Types => Types,
+                                              Meanings => Meanings,
+                                              Spellings => Spellings),
+                                             Landin.Checking.Reference_Of
+                                               (Types.all, Of_Tree, Arg),
+                                             Reader)) & "`",
                                        Arg,
                                        (if not In_Atomic then Contract_Note
                                         else "D500: an atomic cell is read"
@@ -27904,8 +28930,24 @@ package body Landin.Stages.Checking is
                      elsif Written then Destination.Kind
                      elsif Named then Settled_Type (Means)
                      else Synthesise (Of_Tree, Callee));
+                  --  D2180: a reordered routine called in its old order is
+                  --  refused before its arguments are matched, which would
+                  --  only find one of them out of place.
+                  Old_Order : constant Boolean :=
+                    Named
+                    and then Res.Sort_Of (Meanings.all, Means)
+                      = Res.Module_Function
+                    and then Landin.Modules.Removed.Found
+                      (Landin.Modules.Removed.Reordered
+                         (Module_Path (Res.Source_Of (Meanings.all, Means)),
+                          "", Spelled (Res.Name_Of (Meanings.all, Means))))
+                    and then Refused_Old_Order
+                      (Of_Tree, Node,
+                       Landin.Modules.Removed.Reordered
+                         (Module_Path (Res.Source_Of (Meanings.all, Means)),
+                          "", Spelled (Res.Name_Of (Meanings.all, Means))));
                   Selected : constant Landin.Checking.Signature_Id :=
-                    (if Is_Generic
+                    (if Is_Generic and then not Old_Order
                      then Instantiate_Generic_Call (Of_Tree, Node, Means)
                      else Landin.Checking.No_Signature);
                   Signature : constant Landin.Checking.Signature_Id :=
@@ -27915,6 +28957,9 @@ package body Landin.Stages.Checking is
                      then Landin.Checking.No_Signature
                      else Effective_Call_Signature (Of_Tree, Node));
                begin
+                  if Old_Order then
+                     return Kept (Ty.Ill_Typed);
+                  end if;
                   if Written and then Destination.Kind = Ty.Ill_Typed then
                      return Kept (Ty.Ill_Typed);
                   end if;
@@ -29284,9 +30329,61 @@ package body Landin.Stages.Checking is
         (Of_Tree        : Syn.Tree;
          Node           : Syn.Node_Id;
          Stepping       : Boolean;
-         Variant_Context : Boolean := False)
+         Variant_Context : Boolean := False;
+         Inout_Slice     : Landin.Provenance.Origin :=
+           Landin.Provenance.No_Origin)
       is
          Held : Ty.Type_Kind;
+
+         --  D2178: a `[]mut` parameter writes its elements without
+         --  `inout`, which only lets the callee replace the caller's
+         --  slice, so the guess is to drop the word there rather than to
+         --  make the caller's binding `mut`.  Not offered for a parameter
+         --  of the library, which a program does not edit.
+         function Drop_Inout return Landin.Diagnostics.Fix_List;
+
+         function Drop_Inout return Landin.Diagnostics.Fix_List is
+            Text : Landin.Source.Snapshot renames
+              Landin.Stages.Source (Context, Inout_Slice.Source).Element.all;
+            Path : constant String := Landin.Modules.Logical_Path
+              (Grouped.all,
+               Landin.Modules.Module_Of (Grouped.all, Inout_Slice.Source));
+            Written : constant String :=
+              Landin.Source.Slice (Text, Inout_Slice.Where);
+            Skip : constant Natural :=
+              (if Written'Length >= 9
+                 and then Written (Written'First .. Written'First + 8)
+                   = "escaping "
+               then 9 else 0);
+            At_Word : constant Natural := Written'First + Skip;
+            Last : Natural := At_Word + 5;
+         begin
+            if (Path'Length >= 5
+                and then Path (Path'First .. Path'First + 4) = "core/")
+              or else (Path'Length >= 7
+                and then Path (Path'First .. Path'First + 6) = "hosted/")
+              or else (Path'Length >= 9
+                and then Path (Path'First .. Path'First + 8) = "platform/")
+              or else Written'Last < Last
+              or else Written (At_Word .. At_Word + 4) /= "inout"
+              or else Written (Last) not in ' ' | ASCII.HT
+            then
+               return Landin.Diagnostics.No_Fixes;
+            end if;
+            while Last < Written'Last
+              and then Written (Last + 1) in ' ' | ASCII.HT
+            loop
+               Last := Last + 1;
+            end loop;
+            return [1 => Landin.Diagnostics.Fixes.Delete_Token
+                      (Inout_Slice.Source,
+                       (First => Inout_Slice.Where.First
+                                   + Landin.Source.Byte_Offset (Skip),
+                        Last  => Inout_Slice.Where.First
+                                   + Landin.Source.Byte_Offset
+                                       (Last - Written'First + 1)),
+                       "", "inout", Landin.Diagnostics.Likely)];
+         end Drop_Inout;
 
          --  What a place is a place *in*.  A field and an element are
          --  written exactly as the binding holding them is [1810], so
@@ -29491,6 +30588,18 @@ package body Landin.Stages.Checking is
                      then "[1160]: over `[]mut T` or mutable array storage"
                           & " an element is a writable place, and over"
                           & " anything else it is not"
+                     elsif Landin.Provenance.Is_Known (Inout_Slice)
+                     then "[0900]: `inout` lets the callee replace the"
+                          & " caller's slice, so the binding passed must be"
+                          & (if Sort = Res.Parameter then " `inout`"
+                             else " `mut`")
+                          & ". A `[]mut` parameter writes the elements"
+                          & " without it: remove `inout` from the parameter,"
+                          & " or declare `"
+                          & Spelled (Syn.Name (Of_Tree, Base))
+                          & (if Sort = Res.Parameter then "` `inout`"
+                             else "` with `mut`")
+                          & " if the callee does replace the slice."
                      elsif Sort = Res.Parameter
                      then "[1900]: to change a copy, copy the value into"
                           & " a `mut` local; to change the caller's place,"
@@ -29503,7 +30612,10 @@ package body Landin.Stages.Checking is
                                 Where  => Syn.Anchor
                                             (Their_Tree.all, Their_Node)),
                   Because => "declared here",
-                  Fixes   => Mutable_Declaration (Means, Sort),
+                  Fixes   =>
+                    (if Landin.Provenance.Is_Known (Inout_Slice)
+                     then Drop_Inout
+                     else Mutable_Declaration (Means, Sort)),
                   Into    => Found);
                Landin.Checking.Refuse (Types.all, Of_Tree, Base);
 
@@ -30400,7 +31512,12 @@ package body Landin.Stages.Checking is
                                          & " a different signature",
                                        Note    => "[1000]: a function"
                                          & " payload keeps its complete"
-                                         & " structural signature",
+                                         & " structural signature"
+                                         & Signature_Difference
+                                             (Shape.Signature,
+                                              Landin.Checking.Signature_Of
+                                                (Types.all, Of_Tree, Given),
+                                              Syn.Source_Of (Of_Tree)),
                                        Related => Syn.Origin
                                          (Of_Tree, Label),
                                        Because => "the variant payload"
@@ -31227,7 +32344,13 @@ package body Landin.Stages.Checking is
                                             & " different signature",
                                  Note    => "[1000]: a function-valued"
                                             & " field keeps its complete"
-                                            & " structural signature",
+                                            & " structural signature"
+                                            & Signature_Difference
+                                                (Shape.Signature,
+                                                 Landin.Checking.Signature_Of
+                                                   (Types.all, Of_Tree,
+                                                    Value),
+                                                 Syn.Source_Of (Of_Tree)),
                                  Related => Syn.Origin
                                    (Of_Tree, Field),
                                  Because => "the struct field named"
@@ -32409,6 +33532,69 @@ package body Landin.Stages.Checking is
                         goto Next_Atom_Arm;
                      end if;
 
+                     --  D2179: an arm that names a declared atom set is
+                     --  one report, which says how a union is split; its
+                     --  atoms count as matched, so none is reported
+                     --  missing as well.
+                     if Syn.Name (Of_Tree, Pattern)
+                          /= Landin.Source.Names.No_Name
+                       and then Res.Verdict_Of
+                         (Meanings.all, Of_Tree, Pattern) = Res.Bound
+                       and then Res.Sort_Of
+                         (Meanings.all,
+                          Res.Bound_To (Meanings.all, Of_Tree, Pattern))
+                           = Res.Module_Type
+                       and then Landin.Checking.Atom_Set_Of
+                         (Types.all,
+                          Res.Bound_To (Meanings.all, Of_Tree, Pattern))
+                           /= Landin.Checking.No_Atom_Set
+                     then
+                        declare
+                           Named_Set : constant Landin.Checking.Atom_Set_Id :=
+                             Landin.Checking.Atom_Set_Of
+                               (Types.all,
+                                Res.Bound_To
+                                  (Meanings.all, Of_Tree, Pattern));
+                           Set_Name : constant String :=
+                             Spelled (Syn.Name (Of_Tree, Pattern));
+                        begin
+                           Bad.Report
+                             (Item    => Bad.Match_Arm_Form,
+                              Source  => Syn.Source_Of (Of_Tree),
+                              Where   => Syn.Where (Of_Tree, Pattern),
+                              Message => "`" & Set_Name & "` is an atom"
+                                         & " set, and an arm names atoms",
+                              Note    => "[1210]: to take `" & Set_Name
+                                         & "`'s atoms as a set, name every"
+                                         & " other atom (several may share"
+                                         & " one arm) and end with"
+                                         & " `_ (rest):`, which binds what"
+                                         & " is left",
+                              Related => Syn.Origin (Of_Tree, Subject),
+                              Because => "this matched atom set",
+                              Into    => Found);
+                           for Index in 1 .. Landin.Checking.Atom_Count
+                             (Types.all, Named_Set)
+                           loop
+                              declare
+                                 Atom : constant Res.Declaration_Id :=
+                                   Landin.Checking.Nth_Atom
+                                     (Types.all, Named_Set, Index);
+                              begin
+                                 if not Seen.Contains (Atom) then
+                                    Seen.Insert (Atom, Pattern);
+                                 end if;
+                              end;
+                           end loop;
+                        end;
+                        Landin.Checking.Refuse (Types.all, Of_Tree, Pattern);
+                        Refuse_Bindings (Arm);
+                        if Syn.Ends_Arm (Of_Tree, Node, Position) then
+                           Visit_Arm (Arm);
+                        end if;
+                        goto Next_Atom_Arm;
+                     end if;
+
                      if Syn.Match_Binding_Count (Of_Tree, Arm) /= 0
                        and then Syn.Name (Of_Tree, Pattern)
                          = Landin.Source.Names.No_Name
@@ -33566,7 +34752,14 @@ package body Landin.Stages.Checking is
                                                & " different signature",
                                     Note    => "[1000]: function values"
                                                & " have the signature"
-                                               & " written by their type",
+                                               & " written by their type"
+                                               & Signature_Difference
+                                                   (Expected,
+                                                    Landin.Checking
+                                                      .Signature_Of
+                                                        (Types.all, Of_Tree,
+                                                         Value),
+                                                    Syn.Source_Of (Of_Tree)),
                                     Related => Syn.Origin (Of_Tree, Written),
                                     Because =>
                                       "the function type written here",
@@ -34036,7 +35229,14 @@ package body Landin.Stages.Checking is
                                                & " different signature",
                                     Note    => "[1000]: function values"
                                                & " have the signature"
-                                               & " written by their type",
+                                               & " written by their type"
+                                               & Signature_Difference
+                                                   (Expected,
+                                                    Landin.Checking
+                                                      .Signature_Of
+                                                        (Types.all, Of_Tree,
+                                                         Value),
+                                                    Syn.Source_Of (Of_Tree)),
                                     Related => Syn.Origin (Of_Tree, Place),
                                     Because =>
                                       "the function place written here",
@@ -44038,6 +45238,92 @@ package body Landin.Stages.Checking is
                        & " declaration another name",
                      Into    => Found);
                end if;
+            end;
+         end loop;
+      end if;
+
+      --  D2175: an atom set that names one member twice means what it
+      --  would with the name once, so the second name is a warning whose
+      --  exact fix removes it with the `|` before it.  Like D1342's it
+      --  waits for a program with no error.
+      if not Landin.Diagnostics.Has_Errors (Found) then
+         for Index in 1 .. Source_Count (Context) loop
+            declare
+               Id : constant Landin.Source.Source_Id :=
+                 Nth_Source (Context, Index);
+               Of_Tree : constant not null access constant Syn.Tree :=
+                 Tree_For (Id);
+               Text : Landin.Source.Snapshot renames
+                 Landin.Stages.Source (Context, Id).Element.all;
+
+               function Member_Means
+                 (Member : Syn.Node_Id) return Res.Declaration_Id
+                 is (if Res.Verdict_Of (Meanings.all, Of_Tree.all, Member)
+                          = Res.Bound
+                     then Res.Bound_To (Meanings.all, Of_Tree.all, Member)
+                     else Res.No_Declaration);
+            begin
+               for Node in 1 .. Syn.Last_Node (Of_Tree.all) loop
+                  if Syn.Kind (Of_Tree.all, Node) = Syn.Atom_Union_Type then
+                     for Later in 2 .. Syn.Atom_Member_Count
+                       (Of_Tree.all, Node)
+                     loop
+                        declare
+                           Member : constant Syn.Node_Id :=
+                             Syn.Nth_Atom_Member (Of_Tree.all, Node, Later);
+                           Means : constant Res.Declaration_Id :=
+                             Member_Means (Member);
+                        begin
+                           if Means /= Res.No_Declaration then
+                              for Earlier in 1 .. Later - 1 loop
+                                 declare
+                                    First : constant Syn.Node_Id :=
+                                      Syn.Nth_Atom_Member
+                                        (Of_Tree.all, Node, Earlier);
+                                    Before : constant Syn.Node_Id :=
+                                      Syn.Nth_Atom_Member
+                                        (Of_Tree.all, Node, Later - 1);
+                                    Gap : constant Landin.Source.Span :=
+                                      (First => Syn.Where
+                                         (Of_Tree.all, Before).Last,
+                                       Last  => Syn.Where
+                                         (Of_Tree.all, Member).Last);
+                                    Spelling : constant String :=
+                                      Landin.Source.Slice
+                                        (Text,
+                                         Syn.Where (Of_Tree.all, Member));
+                                 begin
+                                    if Member_Means (First) = Means then
+                                       Bad.Report
+                                         (Item    => Bad.Atom_Named_Twice,
+                                          Source  => Id,
+                                          Where   => Syn.Where
+                                            (Of_Tree.all, Member),
+                                          Message => "`" & Spelling
+                                            & "` is named twice in this"
+                                            & " set",
+                                          Note    => "D2175: a set holds"
+                                            & " each atom once, so the"
+                                            & " second name adds nothing",
+                                          Related => Syn.Origin
+                                            (Of_Tree.all, First),
+                                          Because => "named first here",
+                                          Fixes   =>
+                                            [1 => Landin.Diagnostics.Fixes
+                                               .Delete_Token
+                                                 (Id, Gap, "", Spelling,
+                                                  Landin.Diagnostics
+                                                    .Exact)],
+                                          Into    => Found);
+                                       exit;
+                                    end if;
+                                 end;
+                              end loop;
+                           end if;
+                        end;
+                     end loop;
+                  end if;
+               end loop;
             end;
          end loop;
       end if;

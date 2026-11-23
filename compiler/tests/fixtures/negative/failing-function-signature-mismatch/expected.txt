@@ -7,4 +7,4 @@ error[L0301]: this function has a different signature
    |
 13 |     callback: wants_missing = fails_denied
    |               ^^^^^^^^^^^^^ the function type written here
-  = note: [1000]: function values have the signature written by their type
+  = note: [1000]: function values have the signature written by their type; one signature is `() -> none ! denied` and the other is `() -> none ! missing`

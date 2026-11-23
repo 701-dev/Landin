@@ -423,6 +423,33 @@ class NativeCLI(unittest.TestCase):
         self.assertIn('L0326', run.stdout)
         self.assertNotIn('mut', (app / 'util' / 'util.ldn').read_text())
 
+    def test_fix_applies_only_the_codes_named(self):
+        # D2186: --code limits refine fix to one code's fixes, as a
+        # migration off a removed form wants, leaving a warning's fix the
+        # program keeps on purpose; the report is still the whole check's.
+        broken = ('public f: () -> (result: i32) =\n'
+                  'mut value: i32 = 1\nresult = value\nend g\n')
+        closed = ('public f: () -> (result: i32) =\n'
+                  'mut value: i32 = 1\nresult = value\nend f\n')
+        source = self.root / 'only.ldn'
+        source.write_text(broken)
+        run = self.run_cli('fix', '--code=L0109', 'only.ldn')
+        self.assertEqual(run.stdout.splitlines(),
+                         ['only.ldn:4:5: L0109: close it with `end f`'])
+        self.assertIn('warning[L0326]', run.stderr)
+        self.assertEqual(source.read_text(), closed)
+        self.assertEqual(self.run_cli('fix', '--code', 'L0109',
+                                      'only.ldn').stdout, '')
+        both = self.run_cli('fix', '--code=L0109', '--code=L0326', 'only.ldn')
+        self.assertIn('L0326', both.stdout)
+        self.assertNotIn('mut', source.read_text())
+        refused = self.run_cli('fix', '--code=L0002', 'only.ldn', status=2)
+        self.assertIn('--code takes a code whose diagnostics can carry a fix',
+                      refused.stderr)
+        self.assertIn('refine explain L0002', refused.stderr)
+        self.run_cli('fix', '--code=L9999', 'only.ldn', status=2)
+        self.run_cli('check', '--code=L0109', 'only.ldn', status=2)
+
     def test_fmt_takes_a_directory(self):
         # D385: a directory is the .ldn files under it, a dot-named
         # directory left out, and one holding no source is refused.

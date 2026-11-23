@@ -1,0 +1,8 @@
+fill: (values: []mut f64) -> none =
+    values[0] = 1.0
+end fill
+
+use: (store: []mut f64) -> none =
+    view: []mut f64 = store
+    fill(view)
+end use

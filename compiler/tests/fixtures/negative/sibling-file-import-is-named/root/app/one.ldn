@@ -1,0 +1,5 @@
+import util
+
+public first: () -> (n: i32) =
+    n = util.width
+end first

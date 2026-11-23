@@ -1,0 +1,9 @@
+fill: (inout row: [2]u32) =
+    row[0] = 1
+end fill
+
+public main: () -> (code: i32) =
+    mut row: [2]u32 = [1, 2]
+    fill(row)
+    code = i32(row[0])
+end main

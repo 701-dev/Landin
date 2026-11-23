@@ -1,0 +1,10 @@
+class: negative
+summary: a call labelling stacks.round_over's or events.over's fibres parameter by its old name entries is refused naming fibres, and the fix writes it
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696, L0696
+fixed: main.fixed
+constructs: 0980, 1420
+targets: linux-x86-64
+expect: expected.txt

@@ -1,0 +1,5 @@
+import app
+
+main: () -> (code: i32) =
+    code = app.first() + app.second()
+end main

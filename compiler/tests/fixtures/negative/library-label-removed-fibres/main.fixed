@@ -1,0 +1,27 @@
+--  D2180: D2034 renamed the `entries` parameter of `stacks.round_over`
+--  and `events.over` to `fibres`; a call that labels it `entries:` is
+--  refused naming `fibres`, and the fix writes the new label.
+import core/fibre/stacks
+import core/io
+import core/mem
+import hosted/events
+
+rounds: () -> none ! mem.out_of_memory =
+    mut state: stacks.round_space = zeroed
+    mut entries: [3]usize = zeroed
+    idler: stacks.spin = zeroed
+    round := try stacks.round_over(state, when_idle: any(addr idler),
+                                   fibres: entries)
+    _ = round
+end rounds
+
+queue: () -> none ! mem.out_of_memory | io.io_failed =
+    mut space: events.space = zeroed
+    mut entries: [2]usize = zeroed
+    host := try events.over(space, fibres: entries)
+    _ = host
+end queue
+
+public main: () -> (code: i32) =
+    code = 0
+end main
