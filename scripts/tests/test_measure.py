@@ -208,6 +208,28 @@ class Time(unittest.TestCase):
                                             "base": 0.2}}), 1)
 
 
+class BaseCheckout(unittest.TestCase):
+    def test_a_base_refine_builds_from_its_own_checkout(self):
+        #  Across a breaking window the base's library cannot build the
+        #  candidate's fixtures, so the base side takes its own tree's.
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory) / "base"
+            (base / "compiler/tests/fixtures").mkdir(parents=True)
+            (base / "core").mkdir()
+            refine = base / "compiler/ada/build/linux-arm64/debug/bin/refine"
+            refine.parent.mkdir(parents=True)
+            refine.write_text("")
+            self.assertEqual(measure.checkout_of(refine), base.resolve())
+            self.assertIsNone(measure.checkout_of(Path(directory) / "elsewhere/refine"))
+
+    def test_a_workload_the_base_lacks_is_refused_naming_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(measure.Failure, "has no fixture"):
+                measure.build("refine", "linux-x86-64", "x86-64-v1", ("speed", "auto"),
+                              {"fixture": "runtime/none-such", "name": "w"},
+                              Path(directory), None, root=Path(directory))
+
+
 class Levels(unittest.TestCase):
     def test_kernel_flag_spellings(self):
         cpuinfo = "flags\t: fpu cx16 lahf_lm pni avx2\n"

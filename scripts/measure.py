@@ -248,8 +248,11 @@ def sources(arguments: list[str]) -> list[str]:
     return named
 
 
-def build(refine, target, level, profile, workload, out, toolchain, library=None):
-    fixture = ROOT / "compiler/tests/fixtures" / workload["fixture"]
+def build(refine, target, level, profile, workload, out, toolchain, library=None,
+          root=ROOT):
+    fixture = root / "compiler/tests/fixtures" / workload["fixture"]
+    require(fixture.is_dir(), f"{root} has no fixture {workload['fixture']} to build"
+            f" {workload['name']} from")
     meta = fixture_meta.read(fixture)
     image = out / f"{target}-{level}-{profile[0]}-{profile[1]}-{workload['name']}"
     firmware = (["--firmware-entry=start"] if target in FIRMWARE else [])
@@ -263,7 +266,7 @@ def build(refine, target, level, profile, workload, out, toolchain, library=None
                "-o", str(image),
                f"--build-report={image}.json"]
     done = subprocess.run(command, capture_output=True, text=True, timeout=900,
-                          cwd=ROOT / "compiler/ada")
+                          cwd=root / "compiler/ada")
     require(done.returncode == 0, f"{target} {key(level, profile, workload['name'])}"
             f" did not build:\n{' '.join(command)}\n{done.stdout}{done.stderr}")
     return image, meta, fixture
@@ -447,6 +450,15 @@ def timed_run(image: Path, workload: dict, stdin: Path | None, scratch: Path):
     return seconds, hashlib.sha256(done.stdout).hexdigest()
 
 
+def checkout_of(refine) -> Path | None:
+    """The checkout a built REFINE lies in, holding its fixtures and its
+    library, or None for a refine installed elsewhere."""
+    for place in Path(refine).resolve().parents:
+        if (place / "compiler/tests/fixtures").is_dir() and (place / "core").is_dir():
+            return place
+    return None
+
+
 def median(values):
     ordered = sorted(values)
     middle = len(ordered) // 2
@@ -480,12 +492,19 @@ def measure_time(args) -> int:
                 if workload["name"] not in args.skip:
                     work.append((level, profile, workload))
 
+    #  Each side builds the workload from its own checkout's fixture, with
+    #  its own library: across a breaking window the base's library lacks
+    #  what the candidate's fixtures name, and the candidate's has dropped
+    #  what the base's name, so a program pairs with its own tree.
+    base_root = checkout_of(args.base_refine) or ROOT
+
     def built(item):
         level, profile, workload = item
         pair = []
-        for side, refine in (("candidate", args.refine), ("base", args.base_refine)):
+        for side, refine, root in (("candidate", args.refine, ROOT),
+                                   ("base", args.base_refine, base_root)):
             image, _, _ = build(refine, target, level, profile, workload,
-                                out / side, None)
+                                out / side, None, root=root)
             pair.append((image, image_sections(image)[1]))
         return item, pair
 
