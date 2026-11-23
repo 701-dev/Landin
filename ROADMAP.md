@@ -2306,7 +2306,7 @@ gate.
 
 ### R21.30 — Windows debugging
 
-Status: planned
+Status: active
 Depends on: R21.10
 
 CodeView in the objects, PDBs from the linker, and the Windows debugger
