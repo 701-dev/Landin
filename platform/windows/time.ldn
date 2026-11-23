@@ -1,0 +1,43 @@
+--  The clocks, sleeping and the system's random bytes: kernel32's time
+--  calls and bcrypt's `BCryptGenRandom`, raw.
+
+fixed if compiler.os == windows then
+    linker.library("bcrypt")
+
+    --- The wall clock, `GetSystemTimePreciseAsFileTime`: hundreds of
+    --- nanoseconds since 1601 in UTC, as precise as the system keeps it.
+    public extern(c) link(symbol: "GetSystemTimePreciseAsFileTime")
+        system_time: (into: ptr mut file_time) -> none
+
+    --- The performance counter, `QueryPerformanceCounter`: ticks since the
+    --- system started, which never go back, at `performance_frequency` a
+    --- second.  It never fails on a system that runs Windows 10 or later.
+    public extern(c) link(symbol: "QueryPerformanceCounter")
+        performance_counter: (into: ptr mut i64) -> (done: i32)
+
+    --- The performance counter's ticks a second,
+    --- `QueryPerformanceFrequency`, fixed while the system runs.
+    public extern(c) link(symbol: "QueryPerformanceFrequency")
+        performance_frequency: (into: ptr mut i64) -> (done: i32)
+
+    --- Give up the processor for at least `milliseconds`, `Sleep`; zero
+    --- gives up the rest of the thread's turn.
+    public extern(c) link(symbol: "Sleep") sleep: (milliseconds: u32) -> none
+
+    --- `INFINITE`, the wait that does not end by itself.
+    public infinite: u32 = 0xFFFFFFFF
+
+    --- `BCRYPT_USE_SYSTEM_PREFERRED_RNG`: `random` asks the system's own
+    --- generator, with no algorithm handle.
+    public system_preferred_generator: u32 = 2
+
+    --- Fill `count` bytes at `into` from the system's random generator,
+    --- which is fit for keys, `BCryptGenRandom`: zero, or an NTSTATUS that
+    --- says why it did not.
+    public extern(c) link(symbol: "BCryptGenRandom") random:
+        (algorithm: usize, into: ptr mut u8, count: u32, flags: u32)
+        -> (status: i32)
+
+    --- Hundreds of nanoseconds from 1601 to 1970, the Unix epoch.
+    public epoch_difference: u64 = 116444736000000000
+end if

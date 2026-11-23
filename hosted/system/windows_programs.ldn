@@ -1,0 +1,440 @@
+--  Starting a program on Windows, as programs.ldn does over platform/posix:
+--  `start` makes the child's three standard streams, starts it with
+--  `CreateProcessW` and does not wait.  A piped stream is a named pipe
+--  whose parent end is overlapped and carries `pipe_mark`, so that a
+--  provider built over this one reads and writes it through an
+--  overlapped call and waits as its own waiting does (D2272).  The child
+--  inherits exactly its three streams, through the attribute list
+--  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` names, and no other handle.
+
+import core/atomic
+import core/io
+import core/mem
+import core/text
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  A pipe's parent end carries this bit beside its handle.
+    pipe_mark: usize = 0x2000000000000000
+
+    --- Whether `opened` is a pipe end `start` made, which a provider built
+    --- over this one reads and writes with an overlapped call.
+    public is_pipe: (opened: io.file) -> (yes: bool) =
+        yes = (usize(opened) & pipe_mark) <> 0
+    end is_pipe
+
+    --  Each pipe's name is the process's ID and a number no other pipe of
+    --  the process has had.
+    mut pipe_count: atomic.cell(u64) = zeroed
+
+    --  One end of the child's stream: the handle the child is given, the
+    --  parent's end of a pipe, and whether each is open.
+    stream_end: type = struct
+        child_side: windows.handle
+        parent_side: windows.handle
+        piped: bool
+    end stream_end
+
+    --  Keep a failure's code and fail.
+    lost: (self: host, code: u32) -> none ! io.io_failed =
+        record(self, code)
+        fail io.io_failed
+    end lost
+
+    no_end: stream_end = (child_side: windows.no_handle,
+                          parent_side: windows.no_handle, piped: false)
+
+    --  Put `value`'s hexadecimal digits into `into` from `at`, and return
+    --  where they end.
+    hexadecimal: (value: u64, into: []mut u8, at: usize) -> (next: usize) =
+        digits: []u8 = "0123456789abcdef"
+        mut shift: u64 = 64
+        next = at
+        while shift > 0 do
+            shift -= 4
+            into[next] = digits[usize((value >> shift) & 0xF)]
+            inc next
+        end while
+    end hexadecimal
+
+    --  The attributes that make a handle a child may inherit.
+    inheritable: () -> (attributes: windows.security_attributes) =
+        attributes = (length: u32(sizeof windows.security_attributes),
+                      descriptor: 0, inherit: 1)
+    end inheritable
+
+    --  A named pipe the child writes to, `child_writes`, or reads from:
+    --  the parent's end overlapped and not inherited, the child's
+    --  inheritable and plain.
+    pipe: (self: host, child_writes: bool) -> (made: stream_end) ! io.io_failed =
+        mut name_bytes: [64]u8 = zeroed
+        prefix: []u8 = "\\\\.\\pipe\\landin-"
+        for at in usize(0)..<lenof prefix do name_bytes[at] = prefix[at] end for
+        mut length: usize = hexadecimal(u64(windows.current_process_id()),
+                                        name_bytes, lenof prefix)
+        name_bytes[length] = u8('-')
+        number: u64 = atomic.add(item: u64, at: addr pipe_count, value: 1)
+        length = hexadecimal(number, name_bytes, length + 1)
+        mut room: [64]u16 = zeroed
+        name: ptr u16 = windows.terminate(text.os_string_over(name_bytes[0..<length]),
+                                          room) else (problem)
+            try lost(self, windows.code_of(problem))
+            fail io.io_failed
+        end
+        access: u32 = if child_writes then windows.pipe_access_inbound
+                      else windows.pipe_access_outbound end if
+        parent: windows.handle = windows.create_named_pipe(
+            name, access | windows.flag_overlapped | windows.pipe_first_instance,
+            windows.pipe_byte_wait_local, 1, 65536, 65536, 0, 0)
+        if parent == windows.invalid_handle then
+            try lost(self, windows.last_error())
+        end if
+        security: windows.security_attributes = inheritable()
+        child_access: u32 = if child_writes then windows.generic_write
+                            else windows.generic_read
+                                 | windows.file_write_attributes end if
+        child: windows.handle = windows.create_file(
+            name, child_access, 0, usize(addr security), windows.open_existing,
+            0, 0)
+        if child == windows.invalid_handle then
+            code: u32 = windows.last_error()
+            _ = windows.close_handle(parent)
+            try lost(self, code)
+        end if
+        made = (child_side: child, parent_side: parent, piped: true)
+    end pipe
+
+    nul_name: [4]u16 = [78, 85, 76, 0]
+
+    --  The child's end of one stream, as `choice` says; `which` is the
+    --  parent's own standard handle that an inherited stream duplicates.
+    prepared: (self: host, choice: io.stream_choice, which: u32,
+               child_writes: bool) -> (made: stream_end) ! io.io_failed =
+        made = no_end
+        if choice == io.piped then
+            made = try pipe(self, child_writes)
+        elsif choice == io.discarded then
+            security: windows.security_attributes = inheritable()
+            opened: windows.handle = windows.create_file(
+                addr nul_name[0], windows.generic_read | windows.generic_write,
+                windows.share_all, usize(addr security), windows.open_existing,
+                0, 0)
+            if opened == windows.invalid_handle then
+                try lost(self, windows.last_error())
+            end if
+            made = (child_side: opened, parent_side: windows.no_handle,
+                    piped: false)
+        else
+            own: windows.handle = windows.get_std_handle(which)
+            return when own == windows.no_handle or own == windows.invalid_handle
+            self_process: windows.handle = windows.current_process()
+            mut copy: windows.handle = windows.no_handle
+            if windows.duplicate_handle(self_process, own, self_process,
+                                        addr copy, 0, 1,
+                                        windows.duplicate_same_access) == 0 then
+                try lost(self, windows.last_error())
+            end if
+            made = (child_side: copy, parent_side: windows.no_handle,
+                    piped: false)
+        end if
+    end prepared
+
+    --  Close what `made` holds: the child's end always, the parent's too
+    --  when `everything`.
+    dropped: (made: stream_end, everything: bool) -> none =
+        if made.child_side <> windows.no_handle then
+            _ = windows.close_handle(made.child_side)
+        end if
+        if everything and made.parent_side <> windows.no_handle then
+            _ = windows.close_handle(made.parent_side)
+        end if
+    end dropped
+
+    blank_or_quote: (byte: u8) -> (yes: bool) =
+        yes = byte == 32 or byte == 9 or byte == 10 or byte == 11
+              or byte == 34
+    end blank_or_quote
+
+    --  The bytes `quoted` writes for `argument`, at most.
+    quoted_room: (argument: []u8) -> (room: usize) =
+        room = 2 * lenof argument + 3
+    end quoted_room
+
+    --  Write `argument` into `into` from `at` as Microsoft's C runtime
+    --  splits it back, quoted when it is empty or holds a blank or a quote:
+    --  each backslash before a quote or the closing quote doubled, and each
+    --  quote escaped.  A space goes before it unless it is the first.
+    quoted: (argument: []u8, into: []mut u8, at: usize, first: bool)
+            -> (next: usize) =
+        next = at
+        if not first then
+            into[next] = 32
+            inc next
+        end if
+        mut plain: bool = lenof argument > 0
+        for byte in argument do
+            if blank_or_quote(byte) then plain = false end if
+        end for
+        if plain then
+            for byte in argument do
+                into[next] = byte
+                inc next
+            end for
+            return
+        end if
+        into[next] = 34
+        inc next
+        mut slashes: usize = 0
+        for byte in argument do
+            if byte == 92 then
+                inc slashes
+            elsif byte == 34 then
+                while slashes > 0 do
+                    into[next] = 92
+                    into[next + 1] = 92
+                    next += 2
+                    dec slashes
+                end while
+                into[next] = 92
+                into[next + 1] = 34
+                next += 2
+                continue
+            else
+                while slashes > 0 do
+                    into[next] = 92
+                    inc next
+                    dec slashes
+                end while
+            end if
+            if byte <> 92 then
+                into[next] = byte
+                inc next
+            end if
+        end for
+        while slashes > 0 do
+            into[next] = 92
+            into[next + 1] = 92
+            next += 2
+            dec slashes
+        end while
+        into[next] = 34
+        inc next
+    end quoted
+
+    --  Storage taken from the system for one start and given back.
+    block: type = struct
+        address: usize
+        size: usize
+    end block
+
+    taken: (self: host, size: usize) -> (made: block) ! io.io_failed =
+        address: usize = windows.virtual_alloc(0, size,
+                                               windows.mem_reserve
+                                               | windows.mem_commit,
+                                               windows.page_readwrite)
+        if address == 0 then
+            try lost(self, windows.last_error())
+        end if
+        made = (address: address, size: size)
+    end taken
+
+    given_back: (made: block) -> none =
+        _ = windows.virtual_free(made.address, 0, windows.mem_release)
+    end given_back
+
+    bytes_of: (made: block) -> (bytes: []mut u8) =
+        whole: ptr mut [1]u8 = ptr(made.address)
+        bytes = whole.val[0..<0]
+        unchecked begin
+            bytes = whole.val[0..<made.size]
+        end unchecked
+    end bytes_of
+
+    units_of: (made: block) -> (units: []mut u16) =
+        whole: ptr mut [1]u16 = ptr(made.address)
+        units = whole.val[0..<0]
+        unchecked begin
+            units = whole.val[0..<made.size / 2]
+        end unchecked
+    end units_of
+
+    --  The longest command line Windows takes, in units, its NUL counted.
+    longest_line: usize = 32768
+
+    --  The command line: the program's path, then each argument, quoted,
+    --  as units ending in a NUL.  The parent's own name goes first, as a C
+    --  parent gives `argv[0]`.
+    command_line: (self: host, path: text.os_string,
+                  arguments: []text.os_string) -> (made: block) ! io.io_failed =
+        mut size: usize = quoted_room(text.os_string_bytes(path))
+        for argument in arguments do
+            size += quoted_room(text.os_string_bytes(argument))
+        end for
+        if size >= longest_line then
+            try lost(self, windows.error_filename_exceeds_range)
+        end if
+        bytes: block = try taken(self, size + 1)
+        defer given_back(bytes)
+        room: []mut u8 = bytes_of(bytes)
+        mut at: usize = quoted(text.os_string_bytes(path), room, 0, true)
+        for argument in arguments do
+            at = quoted(text.os_string_bytes(argument), room, at, false)
+        end for
+        made = try taken(self, 2 * (at + 1))
+        units: []mut u16 = units_of(made)
+        count: usize = windows.to_units(room[0..<at], units) else (problem)
+            given_back(made)
+            try lost(self, windows.code_of(problem))
+            fail io.io_failed
+        end
+        units[count] = 0
+    end command_line
+
+    --  The environment block: each `name=value` as units ending in a NUL,
+    --  and a NUL after the last, which an empty block holds twice.
+    environment_block: (self: host, environment: []text.os_variable)
+                       -> (made: block) ! io.io_failed =
+        mut size: usize = 2
+        for item in environment do
+            size += lenof text.os_string_bytes(item.name)
+                    + lenof text.os_string_bytes(item.value) + 2
+        end for
+        made = try taken(self, 2 * size)
+        units: []mut u16 = units_of(made)
+        mut at: usize = 0
+        equals: [1]u8 = [61]
+        for item in environment do
+            name: []u8 = text.os_string_bytes(item.name)
+            if lenof name == 0 or mem.find(name[1..<lenof name], u8('=')) < lenof name - 1 then
+                given_back(made)
+                try lost(self, windows.error_invalid_parameter)
+            end if
+            pieces: [3][]u8 = [name, equals[0..<1],
+                               text.os_string_bytes(item.value)]
+            for piece in pieces do
+                at += windows.to_units(piece, units[at..<lenof units]) else (problem)
+                    given_back(made)
+                    try lost(self, windows.code_of(problem))
+                    fail io.io_failed
+                end
+            end for
+            units[at] = 0
+            inc at
+        end for
+        units[at] = 0
+        if at == 0 then units[1] = 0 end if
+    end environment_block
+
+    --  The attribute list's room: one attribute needs about fifty bytes.
+    attribute_room: type = [16]usize
+
+    launched: (self: host, path: text.os_string, arguments: []text.os_string,
+               environment: []text.os_variable, streams: io.child_streams)
+              -> (started: io.child)
+              ! mem.not_found | io.no_access | io.io_failed =
+        mut application: windows.path_room = zeroed
+        program: ptr u16 = windows.terminate(path, application) else (problem)
+            try lost(self, windows.code_of(problem))
+            fail io.io_failed
+        end
+        line: block = try command_line(self, path, arguments)
+        defer given_back(line)
+        variables: block = try environment_block(self, environment)
+        defer given_back(variables)
+        input: stream_end = try prepared(self, streams.input, windows.std_input,
+                                         false)
+        undo dropped(input, true)
+        output: stream_end = try prepared(self, streams.output, windows.std_output,
+                                          true)
+        undo dropped(output, true)
+        errors: stream_end = try prepared(self, streams.errors, windows.std_error,
+                                          true)
+        undo dropped(errors, true)
+        mut handles: [3]windows.handle = zeroed
+        mut count: usize = 0
+        sides: [3]windows.handle = [input.child_side, output.child_side,
+                                    errors.child_side]
+        for side in sides do
+            if side <> windows.no_handle then
+                handles[count] = side
+                inc count
+            end if
+        end for
+        mut list: attribute_room = zeroed
+        mut size: usize = sizeof attribute_room
+        if windows.initialize_attributes(usize(addr list), 1, 0,
+                                         addr size) == 0 then
+            try lost(self, windows.last_error())
+        end if
+        defer windows.delete_attributes(usize(addr list))
+        if count > 0 then
+            if windows.update_attribute(usize(addr list), 0,
+                                        windows.attribute_handle_list,
+                                        usize(addr handles[0]),
+                                        count * sizeof windows.handle,
+                                        0, 0) == 0 then
+                try lost(self, windows.last_error())
+            end if
+        end if
+        mut startup: windows.startup_information = zeroed
+        startup.size = u32(sizeof windows.startup_information)
+        startup.flags = windows.use_std_handles
+        startup.input = input.child_side
+        startup.output = output.child_side
+        startup.errors = errors.child_side
+        startup.attributes = usize(addr list)
+        mut made: windows.process_information = zeroed
+        units: []mut u16 = units_of(line)
+        if windows.create_process(program, addr units[0], 0, 0, 1,
+                                  windows.unicode_environment
+                                  | windows.extended_startup,
+                                  variables.address, 0, addr startup,
+                                  addr made) == 0 then
+            try path_failure(self, windows.last_error())
+        end if
+        _ = windows.close_handle(made.thread)
+        dropped(input, false)
+        dropped(output, false)
+        dropped(errors, false)
+        started = (handle: made.process,
+                   input: io.file(input.parent_side | pipe_mark),
+                   output: io.file(output.parent_side | pipe_mark),
+                   errors: io.file(errors.parent_side | pipe_mark),
+                   input_open: input.piped, output_open: output.piped,
+                   errors_open: errors.piped)
+    end launched
+
+    --- Start the program at `path` as `io.programs`' `spawn` says, and do
+    --- not wait, as on every system. `path` is not looked up on a search
+    --- path and is given no extension. A discarded stream is the system's
+    --- `NUL`; a piped one a named pipe whose parent end is overlapped, which
+    --- `is_pipe` says of it; an inherited one the parent's own standard
+    --- handle, duplicated. The child inherits those three handles and no
+    --- other. It fails `not_found` for a missing program, `no_access` for
+    --- one the caller may not run and `io_failed` for the rest, each Win32
+    --- error kept in the handle's last-error cell. On any failure no child
+    --- was started and nothing `start` made is left open. `io.child`'s
+    --- `handle` is the child's process handle.
+    public start: (handle: host, path: text.os_string,
+                   arguments: []text.os_string,
+                   environment: []text.os_variable, streams: io.child_streams)
+                  -> (started: io.child)
+                  ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(handle, 0)
+        started = try launched(handle, path, arguments, environment, streams)
+    end start
+
+    --- Return the process handle of a child `start` started, for a provider
+    --- to wait for. The provider closes it once the child has ended.
+    public process_of: (started: io.child) -> (child: windows.handle) =
+        child = started.handle
+    end process_of
+
+    --- The portable ending of a child whose exit code a provider built over
+    --- this handle read: Windows ends a process only with a code, so it is
+    --- `exited` with the code's 32 bits, and the last-signal cell is zero.
+    public ended: (handle: host, code: u32) -> (result: io.ending) =
+        keep_signal(handle, 0)
+        result = (how: io.exited(code: i32(code)))
+    end ended
+end if

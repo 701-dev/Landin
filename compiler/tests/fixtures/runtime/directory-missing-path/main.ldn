@@ -1,5 +1,7 @@
 --  A path that names nothing is `not_found` to every directory operation,
---  with ENOENT, 2 on every hosted system, kept as the last errno: opening
+--  with ENOENT, 2 on every POSIX system, kept as the last errno, and with
+--  ERROR_PATH_NOT_FOUND, 3, on Windows, which says so of a missing parent:
+--  opening
 --  it as a directory, making a directory under it, and removing it as a
 --  file or as a directory.  An entry name that is not in an open directory
 --  is `not_found` too, and so is a name no entry can have, which never
@@ -11,6 +13,13 @@ import hosted/blocking
 
 missing: []u8 = "/landin-absent-parent/absent"
 missing_parent: []u8 = "/landin-absent-parent/absent/new"
+
+--  The number a path through a missing parent is kept with.
+fixed if compiler.os == windows then
+    missing_number: i32 = 3
+else
+    missing_number: i32 = 2
+end if
 
 --  Every way a directory operation can fail.
 refusal: type = mem.not_found | io.no_access | io.io_failed | io.already_exists
@@ -25,7 +34,7 @@ opened_absent: (host: blocking.host) -> (yes: bool) =
     path: text.os_string = text.os_string_over(missing)
     mut buffer: [1024]u8 = zeroed
     listing := io.open_directory(host, path, buffer[0..<1024]) else (problem)
-        yes = absent(host, problem, 2)
+        yes = absent(host, problem, missing_number)
         return
     end
     io.close_directory(host, listing) else none
@@ -35,7 +44,7 @@ made_absent: (host: blocking.host) -> (yes: bool) =
     yes = false
     path: text.os_string = text.os_string_over(missing_parent)
     io.make_directory(host, path) else (problem)
-        yes = absent(host, problem, 2)
+        yes = absent(host, problem, missing_number)
     end
 end made_absent
 
@@ -43,7 +52,7 @@ removed_absent: (host: blocking.host, directory: bool) -> (yes: bool) =
     yes = false
     path: text.os_string = text.os_string_over(missing)
     gone(host, path, directory) else (problem)
-        yes = absent(host, problem, 2)
+        yes = absent(host, problem, missing_number)
     end
 end removed_absent
 

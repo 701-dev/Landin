@@ -34,10 +34,9 @@ SPECIALIZED = [('none', 'all'), ('speed', 'all')]
 #  trap instruction a failed check executes, `ud2`, with no handler.
 TRAP_STATUS = 0xC000001D
 #  What the selection must not ask of the lane, each a later item's: a C
-#  peer is the ABI lane's, a C library is none Windows links, and files
-#  and standard input wait for Windows' Io providers.
+#  peer is the ABI lane's, and a C library is none Windows links.
 UNSUPPORTED = ('c-sources', 'c-shared', 'c-archives', 'library-directories',
-               'run_files', 'stdin', 'c-inputs', 'link')
+               'c-inputs', 'link')
 
 
 class Refused(ValueError):
@@ -112,6 +111,21 @@ def build(args, bundle, item):
         ' '.join(argv).encode() + b'\n' + done.stdout + done.stderr)
     require(done.returncode == 0, '%s: refine exited %d: %s' % (
         label, done.returncode, (done.stdout + done.stderr).decode(errors='replace')[:400]))
+    #  The runtime job checks nothing out, so the bundle carries the files
+    #  a fixture is run with, beside its executables, at paths relative to
+    #  the bundle.
+    given = []
+    for one in meta.run_files:
+        copy = Path('inputs', base.name, one)
+        (bundle / copy).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(base / one, bundle / copy)
+        given.append(copy.as_posix())
+    standard_input = ''
+    if meta.get('stdin'):
+        copy = Path('inputs', base.name, meta['stdin'])
+        (bundle / copy).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(base / meta['stdin'], bundle / copy)
+        standard_input = copy.as_posix()
     expected = meta.run_expected(base)
     if expected is None and 'stdout' in meta:
         expected = meta['stdout'].encode()
@@ -120,7 +134,8 @@ def build(args, bundle, item):
     return {'label': label, 'case': 'runtime/' + base.name,
             'optimize': optimize, 'specialize': specialize, 'level': level,
             'executable_sha256': sha(executable),
-            'run_args': meta.run_args,
+            'run_args': meta.run_args, 'run_files': given,
+            'stdin': standard_input,
             'status': meta.status_at(level), 'traps': meta.traps,
             'stream': meta.get('stream', 'merged'),
             'expected': expected is not None,
@@ -202,10 +217,22 @@ def outcome(bundle, result, runner):
     require(sha(executable) == result['executable_sha256'], label + ': executable checksum')
     merged = result['stream'] == 'merged'
     try:
-        done = subprocess.run([*runner, str(executable), *result['run_args']],
-                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT if merged else subprocess.PIPE,
-                              timeout=60, cwd=bundle)
+        given = (open(bundle / result['stdin'], 'rb') if result.get('stdin')
+                 else subprocess.DEVNULL)
+        #  Each outcome runs in a directory of its own, since the profiles
+        #  of one fixture run at once and a fixture may make files where it
+        #  runs.
+        place = bundle / 'work' / label
+        place.mkdir(parents=True, exist_ok=True)
+        files = [str(bundle / one) for one in result.get('run_files', [])]
+        try:
+            done = subprocess.run([*runner, str(executable), *result['run_args'], *files],
+                                  stdin=given, stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT if merged else subprocess.PIPE,
+                                  timeout=60, cwd=place)
+        finally:
+            if given is not subprocess.DEVNULL:
+                given.close()
     except subprocess.TimeoutExpired:
         raise Refused(label + ': did not finish within 60 seconds')
     except OSError as error:

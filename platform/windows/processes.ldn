@@ -1,0 +1,189 @@
+--  Processes, pipes, events and waiting on them: kernel32's calls, raw.
+
+fixed if compiler.os == windows then
+    --- `SECURITY_ATTRIBUTES`, given only to make a handle a child may
+    --- inherit: its size, no descriptor, and `inherit` nonzero.
+    public security_attributes: type = struct
+        length: u32
+        descriptor: usize
+        inherit: i32
+    end security_attributes
+
+    --- `STARTUPINFOEXW`: what `create_process` gives the child's first
+    --- thread, its standard handles among them when `flags` holds
+    --- `use_std_handles`, and the attribute list that names the handles it
+    --- inherits.
+    public startup_information: type = struct
+        size: u32
+        reserved: usize
+        desktop: usize
+        title: usize
+        x: u32
+        y: u32
+        x_size: u32
+        y_size: u32
+        x_count: u32
+        y_count: u32
+        fill: u32
+        flags: u32
+        show: u16
+        reserved_count: u16
+        reserved_data: usize
+        input: handle
+        output: handle
+        errors: handle
+        attributes: usize
+    end startup_information
+
+    --- `STARTF_USESTDHANDLES`.
+    public use_std_handles: u32 = 0x100
+
+    --- What `create_process` fills: `PROCESS_INFORMATION`.
+    public process_information: type = struct
+        process: handle
+        thread: handle
+        process_id: u32
+        thread_id: u32
+    end process_information
+
+    --- `create_process`'s flags: `CREATE_UNICODE_ENVIRONMENT`, the block is
+    --- 16-bit units; `EXTENDED_STARTUPINFO_PRESENT`, the information has an
+    --- attribute list.
+    public unicode_environment: u32 = 0x400
+    public extended_startup: u32 = 0x80000
+
+    --- `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`: the handles a child inherits,
+    --- no other.
+    public attribute_handle_list: usize = 0x20002
+
+    --- Start the program `application` with the command line `line`,
+    --- `CreateProcessW`: nonzero with the child's handles in `started`, or
+    --- zero with the reason in `last_error`.  `application` is not looked up
+    --- on a search path and gets no extension; `line` is changed in place.
+    public extern(c) link(symbol: "CreateProcessW") create_process:
+        (application: ptr u16, line: ptr mut u16, process_security: usize,
+         thread_security: usize, inherit: i32, flags: u32,
+         environment: usize, directory: usize,
+         startup: ptr startup_information,
+         started: ptr mut process_information) -> (done: i32)
+
+    --- Make an attribute list for `count` attributes in `list`'s `size`
+    --- bytes, `InitializeProcThreadAttributeList`; with `list` zero it puts
+    --- the size it needs in `size` and fails.
+    public extern(c) link(symbol: "InitializeProcThreadAttributeList")
+        initialize_attributes:
+        (list: usize, count: u32, flags: u32, size: ptr mut usize)
+        -> (done: i32)
+
+    --- Set the attribute `attribute` of `list` to the `size` bytes at
+    --- `value`, `UpdateProcThreadAttribute`, which `value` must outlive.
+    public extern(c) link(symbol: "UpdateProcThreadAttribute")
+        update_attribute:
+        (list: usize, flags: u32, attribute: usize, value: usize, size: usize,
+         previous: usize, returned: usize) -> (done: i32)
+
+    --- Release what an attribute list holds, `DeleteProcThreadAttributeList`.
+    public extern(c) link(symbol: "DeleteProcThreadAttributeList")
+        delete_attributes: (list: usize) -> none
+
+    --- `WaitForSingleObject`'s and `WaitForMultipleObjects`' answers: the
+    --- object, or the first of several, is signalled; the time ran out; the
+    --- wait failed with the reason in `last_error`.
+    public wait_object_0: u32 = 0
+    public wait_timeout: u32 = 0x102
+    public wait_failed: u32 = 0xFFFFFFFF
+
+    --- Wait up to `milliseconds`, or `infinite`, for `object` to be
+    --- signalled, `WaitForSingleObject`.
+    public extern(c) link(symbol: "WaitForSingleObject") wait_for:
+        (object: handle, milliseconds: u32) -> (result: u32)
+
+    --- Wait up to `milliseconds` for any of the `count` objects at `objects`,
+    --- or all of them when `all` is nonzero, `WaitForMultipleObjects`: the
+    --- answer is `wait_object_0` plus the first signalled one's index.
+    public extern(c) link(symbol: "WaitForMultipleObjects") wait_for_any:
+        (count: u32, objects: ptr handle, all: i32, milliseconds: u32)
+        -> (result: u32)
+
+    --- The exit code of a process that has ended, `GetExitCodeProcess`, or
+    --- `still_active` while it runs.
+    public still_active: u32 = 259
+    public extern(c) link(symbol: "GetExitCodeProcess") exit_code_of:
+        (process: handle, code: ptr mut u32) -> (done: i32)
+
+    --- End `process` with `code`, `TerminateProcess`.
+    public extern(c) link(symbol: "TerminateProcess") terminate_process:
+        (process: handle, code: u32) -> (done: i32)
+
+    --- The calling process's ID, `GetCurrentProcessId`.
+    public extern(c) link(symbol: "GetCurrentProcessId") current_process_id:
+        () -> (id: u32)
+
+    --- The process `process`'s ID, `GetProcessId`.
+    public extern(c) link(symbol: "GetProcessId") process_id_of:
+        (process: handle) -> (id: u32)
+
+    --- The calling process as a handle, `GetCurrentProcess`: the pseudo
+    --- handle all ones less one, which needs no closing.
+    public extern(c) link(symbol: "GetCurrentProcess") current_process:
+        () -> (result: handle)
+
+    --- `DUPLICATE_SAME_ACCESS`.
+    public duplicate_same_access: u32 = 2
+
+    --- Duplicate `source` of `source_process` into `target_process` as
+    --- `target`, `DuplicateHandle`, inheritable when `inherit` is nonzero.
+    public extern(c) link(symbol: "DuplicateHandle") duplicate_handle:
+        (source_process: handle, source: handle, target_process: handle,
+         target: ptr mut handle, access: u32, inherit: i32, options: u32)
+        -> (done: i32)
+
+    --- `HANDLE_FLAG_INHERIT`.
+    public handle_flag_inherit: u32 = 1
+
+    --- Set the flags `mask` selects of `object` to `flags`,
+    --- `SetHandleInformation`.
+    public extern(c) link(symbol: "SetHandleInformation")
+        set_handle_information:
+        (object: handle, mask: u32, flags: u32) -> (done: i32)
+
+    --- `CreateNamedPipeW`'s open mode: inbound, outbound or duplex, each
+    --- with `FILE_FLAG_OVERLAPPED` and `FILE_FLAG_FIRST_PIPE_INSTANCE`.
+    public pipe_access_inbound: u32 = 1
+    public pipe_access_outbound: u32 = 2
+    public pipe_first_instance: u32 = 0x00080000
+
+    --- `CreateNamedPipeW`'s pipe mode: bytes, waiting, remote clients
+    --- refused.
+    public pipe_byte_wait_local: u32 = 0x8
+
+    --- Make the first instance of the named pipe `name`, `CreateNamedPipeW`:
+    --- its server end, or `invalid_handle` with the reason in `last_error`.
+    public extern(c) link(symbol: "CreateNamedPipeW") create_named_pipe:
+        (name: ptr u16, open_mode: u32, pipe_mode: u32, instances: u32,
+         out_size: u32, in_size: u32, timeout: u32, security: usize)
+        -> (result: handle)
+
+    --- What is waiting in the pipe `pipe`, without reading it,
+    --- `PeekNamedPipe`: the bytes available in `available`.
+    public extern(c) link(symbol: "PeekNamedPipe") peek_named_pipe:
+        (pipe: handle, into: usize, size: u32, read: usize,
+         available: ptr mut u32, left: usize) -> (done: i32)
+
+    --- Make an event, `CreateEventW`: reset by hand when `manual` is
+    --- nonzero, signalled at first when `initial` is; its handle or zero.
+    public extern(c) link(symbol: "CreateEventW") create_event:
+        (security: usize, manual: i32, initial: i32, name: usize)
+        -> (result: handle)
+
+    --- Signal and clear an event, `SetEvent` and `ResetEvent`.
+    public extern(c) link(symbol: "SetEvent") set_event: (event: handle)
+                                                         -> (done: i32)
+    public extern(c) link(symbol: "ResetEvent") reset_event: (event: handle)
+                                                             -> (done: i32)
+
+    --- Cancel the overlapped call `record` names on `opened`, or every one
+    --- the process has on it when `record` is zero, `CancelIoEx`.
+    public extern(c) link(symbol: "CancelIoEx") cancel_io:
+        (opened: handle, record: usize) -> (done: i32)
+end if

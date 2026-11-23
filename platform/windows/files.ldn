@@ -221,4 +221,54 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "GetConsoleScreenBufferInfo")
         console_screen_info:
         (console: handle, found: ptr mut console_screen) -> (done: i32)
+
+    --- `FileEndOfFileInfo`, the class `set_file_information` takes to give
+    --- a file a size without moving its position.
+    public file_end_of_file_info: u32 = 6
+
+    --- Set what the information class `class` says of `opened` from the
+    --- `size` bytes at `information`, `SetFileInformationByHandle`.
+    public extern(c) link(symbol: "SetFileInformationByHandle")
+        set_file_information:
+        (opened: handle, class: u32, information: usize, size: u32)
+        -> (done: i32)
+
+    --- The path `opened` was reached by after every link, into `into`'s
+    --- `size` units with a NUL, `GetFinalPathNameByHandleW`: the units
+    --- written, the NUL not counted, in the `\\?\` form; the units it needs
+    --- when they do not fit; or zero with the reason in `last_error`.
+    public extern(c) link(symbol: "GetFinalPathNameByHandleW") final_path:
+        (opened: handle, into: ptr mut u16, size: u32, flags: u32)
+        -> (count: u32)
+
+    --- What `get_file_attributes_ex` fills: `WIN32_FILE_ATTRIBUTE_DATA`.
+    public attribute_data: type = struct
+        attributes: u32
+        created: file_time
+        accessed: file_time
+        written: file_time
+        size_high: u32
+        size_low: u32
+    end attribute_data
+
+    --- Fill `found` with a path's attributes, times and size, not following
+    --- a link it ends in, `GetFileAttributesExW` with
+    --- `GetFileExInfoStandard`: nonzero, or zero with the reason in
+    --- `last_error`.
+    public extern(c) link(symbol: "GetFileAttributesExW")
+        get_file_attributes_ex:
+        (name: ptr u16, level: u32, found: ptr mut attribute_data)
+        -> (done: i32)
+
+    --- `FILE_LIST_DIRECTORY`, the access a directory is opened to list with.
+    public list_directory: u32 = 1
+
+    --- `FILE_APPEND_DATA` and `SYNCHRONIZE`: an open to append, whose every
+    --- write goes to the file's end.
+    public append_data: u32 = 4
+    public synchronize_access: u32 = 0x100000
+
+    --- `IO_REPARSE_TAG_SYMLINK`, the tag `find_data`'s `reserved_0` holds
+    --- for a symbolic link.
+    public reparse_tag_symlink: u32 = 0xA000000C
 end if
