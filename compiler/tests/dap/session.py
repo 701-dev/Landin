@@ -170,13 +170,14 @@ def check(label, actual, expected, checks):
 
 
 def run_session(adapter_argv, program, source, output, label, debugger=None,
-                debugger_path=None, remote=None, cwd=None):
+                debugger_path=None, remote=None, cwd=None, limit=60):
     """One scripted session; returns the checks it made.  Raises
-    AssertionError naming the first that failed."""
+    AssertionError naming the first that failed.  LIMIT is how many
+    seconds the adapter may be silent while an answer is awaited."""
     lines = source_lines(source)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    adapter = Adapter(adapter_argv, output / (label + '.dap.jsonl'))
+    adapter = Adapter(adapter_argv, output / (label + '.dap.jsonl'), limit)
     checks = []
     name = Path(source).name
     try:
