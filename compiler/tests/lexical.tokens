@@ -130046,36 +130046,36 @@ file negative/wildcard-rest-binding/main.ldn tokens 171
   868 871 end
   872 883 named_binds
 file negative/windows-image-past-two-gigabytes/program.ldn tokens 30
-  136 139 mut
-  140 143 far
-  143 144 :
-  145 146 [
-  146 156 2147483648
-  156 157 ]
-  157 159 u8
-  160 166 public
-  167 171 main
-  171 172 :
-  173 174 (
+  100 103 mut
+  104 107 far
+  107 108 :
+  109 110 [
+  110 120 2147483649
+  120 121 ]
+  121 123 u8
+  124 130 public
+  131 135 main
+  135 136 :
+  137 138 (
+  138 139 )
+  140 142 ->
+  143 144 (
+  144 148 code
+  148 149 :
+  150 153 i32
+  153 154 )
+  155 156 =
+  157 161 code
+  162 163 =
+  164 167 i32
+  167 168 (
+  168 171 far
+  171 172 [
+  172 173 1
+  173 174 ]
   174 175 )
-  176 178 ->
-  179 180 (
-  180 184 code
-  184 185 :
-  186 189 i32
-  189 190 )
-  191 192 =
-  193 197 code
-  198 199 =
-  200 203 i32
-  203 204 (
-  204 207 far
-  207 208 [
-  208 209 1
-  209 210 ]
-  210 211 )
-  212 215 end
-  216 220 main
+  176 179 end
+  180 184 main
 file negative/writes-to-an-immutable-binding-report-once/program.ldn tokens 30
   0 5 count
   5 6 :

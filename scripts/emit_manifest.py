@@ -166,6 +166,9 @@ REFUSAL_PAIRS = {
     #  An array of 2**31 - 1 elements is no object of a 32-bit target.
     ("array-longer-than-a-host-natural", "cortex-m0"),
     ("array-longer-than-a-host-natural", "rv32"),
+    #  Nor is its 11 GB zero image part of a Windows image, which holds
+    #  2 GiB of static images in all (D2188).
+    ("array-longer-than-a-host-natural", "windows-x86-64"),
     ("fixed-conditional-cross-file-forward", "cortex-m0"),
     ("fixed-conditional-cross-file-forward", "darwin-arm64"),
     ("fixed-conditional-cross-file-forward", "linux-arm64"),
