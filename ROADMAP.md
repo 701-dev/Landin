@@ -819,7 +819,7 @@ every port and its cycles.
 
 ### R16.30 — Loops that keep their values in registers
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.28 left on the hosted targets, the largest cost measured there:
