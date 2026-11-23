@@ -592,7 +592,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R21.10 — Windows x86-64.**
+**Next roadmap item: R21.20 — Windows' Io and threads (planned).**
 
 ## Questions, bugs and ideas
 
