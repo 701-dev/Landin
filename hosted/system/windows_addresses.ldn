@@ -6,6 +6,7 @@
 import core/net
 import core/text
 import platform/windows
+import platform/windows/sockets
 
 fixed if compiler.os == windows then
     --  Put a 16-bit or 32-bit value into `into` at `at`, the network's
@@ -47,10 +48,10 @@ fixed if compiler.os == windows then
     --- the interface's number and a name looked up with `if_nametoindex`
     --- (D581).  It fails `no_interface` when the zone names none.
     public internet_address: (at: net.address)
-                             -> (made: windows.socket_address) ! no_interface =
+                             -> (made: sockets.socket_address) ! no_interface =
         made = (bytes: zeroed, length: 16)
         if at.family == net.ipv4 then
-            put_u16(made.bytes, 0, u16(windows.af_inet))
+            put_u16(made.bytes, 0, u16(sockets.af_inet))
             put_network_u16(made.bytes, 2, at.port)
             for index in usize(0)..<4 do
                 made.bytes[4 + index] = at.octets[index]
@@ -58,7 +59,7 @@ fixed if compiler.os == windows then
             return
         end if
         made.length = 28
-        put_u16(made.bytes, 0, u16(windows.af_inet6))
+        put_u16(made.bytes, 0, u16(sockets.af_inet6))
         put_network_u16(made.bytes, 2, at.port)
         for index in usize(0)..<16 do
             made.bytes[8 + index] = at.octets[index]
@@ -85,7 +86,7 @@ fixed if compiler.os == windows then
             for index in usize(0)..<length do
                 terminated[index] = name[index]
             end for
-            found: u32 = windows.interface_index(addr terminated[0])
+            found: u32 = sockets.interface_index(addr terminated[0])
             fail no_interface when found == 0
             scope = found
             return
@@ -96,16 +97,16 @@ fixed if compiler.os == windows then
     --- An IPv6 scope becomes its zone: the interface's name, or its number
     --- in decimal when no interface has that number now.  It fails
     --- `no_interface` for a record of another family.
-    public address_of: (at: windows.socket_address)
+    public address_of: (at: sockets.socket_address)
                        -> (result: net.address) ! no_interface =
         family: u16 = get_u16(at.bytes, 0)
         port: u16 = (u16(at.bytes[2]) << 8) | u16(at.bytes[3])
-        if family == u16(windows.af_inet) then
+        if family == u16(sockets.af_inet) then
             result = net.ipv4_address(at.bytes[4], at.bytes[5], at.bytes[6],
                                       at.bytes[7], port)
             return
         end if
-        fail no_interface when family <> u16(windows.af_inet6)
+        fail no_interface when family <> u16(sockets.af_inet6)
         result = net.unspecified(net.ipv6, port)
         for index in usize(0)..<16 do
             result.octets[index] = at.bytes[8 + index]
@@ -121,7 +122,7 @@ fixed if compiler.os == windows then
     zone_named: (scope: u32) -> (zone: [16]u8) =
         zone = zeroed
         mut room: [256]u8 = zeroed
-        if windows.interface_name(scope, addr room[0]) <> 0 then
+        if sockets.interface_name(scope, addr room[0]) <> 0 then
             mut length: usize = 0
             while length < lenof room and room[length] <> 0 do inc length end while
             if length <= net.zone_room then

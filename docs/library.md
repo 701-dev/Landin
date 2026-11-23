@@ -2433,9 +2433,10 @@ and standard streams. They come from the root the hosted entry
 establishes through `platform/posix`'s
 `_landin_host_initialize_arguments`. A C `main` that drives Landin's
 exported functions calls that initializer itself, as "A C `main` that
-calls Landin" below describes. On Windows `platform/windows` defines the
-initializer, and the entry calls it with the vectors it made from the
-command line and the environment block.
+calls Landin" below describes. On Windows the entry keeps the root
+itself, from the vectors it made from the command line and the
+environment block, and defines no initializer, so a program may define
+its own.
 
 The handle borrows nothing, since the root and the descriptors belong to
 the process. Where it keeps its last errno depends on how it was made:
@@ -3459,9 +3460,9 @@ with `linker.library`:
 | `time.ldn` | The wall clock, the performance counter, sleeping and `BCryptGenRandom`. | bcrypt |
 | `threads.ldn` | Threads, and `WaitOnAddress` with its wakes. | synchronization |
 | `memory.ldn` | What `VirtualQuery` says of a region, the page and the 64 KiB unit of reservation. | |
-| `sockets.ldn` | Windows Sockets and the interface names. | ws2_32, iphlpapi |
-| `socket_calls.ldn` | The overlapped Windows Sockets calls, and `ConnectEx` and `AcceptEx` reached through `WSAIoctl`. | |
 | `completion.ldn` | I/O completion ports, the job a child's end is learned through, and the console's control events. | |
+
+Windows Sockets is the module `platform/windows/sockets`, below.
 
 A Windows host string, a `text.os_string`, is WTF-8: UTF-8 for every
 well-formed name, with a lone surrogate as the three bytes UTF-8 would
@@ -3482,6 +3483,26 @@ three streams.
 [Executable example](../compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn)
 
 [Running programs on Windows](../compiler/tests/fixtures/runtime/windows-run-programs/main.ldn)
+
+## platform/windows/sockets
+
+Windows Sockets, ws2_32's calls, and iphlpapi's interface names, raw,
+under the Windows x64 C convention: making, binding, connecting and
+closing sockets, sending and receiving, their options, `select`, and the
+overlapped calls `WSARecv`, `WSASend`, `WSARecvFrom` and `WSASendTo`,
+with `ConnectEx` and `AcceptEx` reached through `WSAIoctl`. A call that
+fails returns `socket_error` or `invalid_socket` and leaves the reason for
+`socket_last_error`; `started` makes the one `WSAStartup` call a process
+needs before its first socket.
+
+It is a module of its own because refine links `platform/windows` into
+every Windows program. Its calls' C names are `send`, `connect` and
+`bind`, which a program may give its own C code, so only a program that
+imports this module, as the hosted network providers do, has them
+declared (D2281). Every hosted system may import it, and off Windows it
+declares nothing.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-echo/main.ldn)
 
 ## platform/c
 

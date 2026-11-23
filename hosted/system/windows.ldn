@@ -82,7 +82,8 @@ fixed if compiler.os == windows then
         result = io.file(opened | socket_mark)
     end socket_of
 
-    --- Whether `opened` is a socket `socket_of` made.
+    --- Whether `opened` is a socket `socket_of` made, which a provider built
+    --- over this one writes by sending.
     public is_socket: (opened: io.file) -> (yes: bool) =
         yes = (usize(opened) & socket_mark) <> 0
     end is_socket
@@ -328,18 +329,31 @@ fixed if compiler.os == windows then
          variable: system_variable,
          variable_named: system_variable_named)
 
-    --- Return a handle to the hosted services that do not wait, as on every
-    --- system: the process's arguments and its three standard handles, which
-    --- a provider built over it reads and writes, and the last-error cell of
-    --- whichever thread calls. Calling this before the entry has
-    --- established the process's arguments traps.
+    --  The standard streams are `GetStdHandle`'s, and the root is
+    --  platform/windows'.
+    --- Return a handle to the hosted services that do not wait. It exposes the
+    --- process arguments and the three standard streams, which a provider
+    --- built over it reads and writes. Regular open-write operations create
+    --- or truncate files; close regular files explicitly. A program that waits
+    --- on anything mints `hosted/blocking`'s `new` instead, which makes this
+    --- handle itself. The handle borrows nothing: the argument root and the
+    --- standard streams belong to the process. Each thread that calls through
+    --- the handle, or through a copy of it, records into a last-error and
+    --- last-signal cell of its own (D503), so threads sharing a handle never
+    --- see each other's failures. Use `over` for a cell of the caller's own.
+    ---
+    --- The arguments are the root that `_landin_host_initialize_arguments`
+    --- established. The hosted entry establishes it before its body runs;
+    --- calling this before any root exists traps.
     public new: () -> (handle: host) =
         _ = windows.arguments()
         handle = (failure: calling_thread, signal: calling_thread)
     end new
 
     --- Fill `state` and return a handle that records its last error there
-    --- rather than in the calling thread's cell, as on every system.
+    --- rather than in the calling thread's cell, whichever thread calls. It
+    --- shares the process's arguments and standard streams like any other
+    --- handle; calling this before any root exists traps, as `new` does.
     public over: (inout state: space) -> (handle: host from state) =
         _ = windows.arguments()
         state = (failure: 0, signal: 0)

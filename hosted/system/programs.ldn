@@ -140,22 +140,22 @@ fixed if compiler.os <> windows then
                    errors_open: errors.piped)
     end launched
 
+    --  On POSIX a discarded stream is the system's `/dev/null`.  A piped one
+    --  is a pipe made closed on exec, whose child end is closed here once the
+    --  child has it.  An inherited one is the parent's own, and is closed in
+    --  the child when the parent has it closed: every descriptor `start`
+    --  makes is above the three standard ones, so none is taken for it.  An
+    --  interrupted spawn is made again, and the code kept is the errno.
     --- Start the program at `path` as `io.programs`' `spawn` says. It is for a
     --- provider built over this handle that supplies `io.programs`: `start`
     --- starts the child and does not wait. The provider itself reads, writes
     --- and closes the parent's ends of the child's pipes, files of this
-    --- provider that `descriptor_of` converts, and waits for the child through
-    --- whatever waiting it does (D479). A discarded stream is the system's
-    --- `/dev/null`. A piped one is a pipe made closed on exec, whose child end
-    --- is closed here once the child has it. An inherited one is the parent's
-    --- own, and is closed in the child when the parent has it closed: every
-    --- descriptor `start` makes is above the three standard ones, so none is
-    --- taken for it. An interrupted spawn is made
-    --- again. It fails `not_found` for a missing program, `no_access` for one
-    --- the caller may not run and `io_failed` for the rest, each errno kept in
-    --- the handle's last-error cell. On any failure no child was started and
-    --- nothing `start` made is left open. `io.child`'s `handle` is the child's
-    --- platform/posix `process_id`.
+    --- provider, and waits for the child through whatever waiting it does
+    --- (D479). It fails `not_found` for a missing program, `no_access` for one
+    --- the caller may not run and `io_failed` for the rest, the system's code
+    --- kept in the handle's last-error cell. On any failure no child was
+    --- started and nothing `start` made is left open. `io.child`'s `handle`
+    --- names the child as `process_of` gives it.
     public start: (handle: host, path: text.os_string,
                    arguments: []text.os_string, environment: []text.os_variable,
                    streams: io.child_streams)

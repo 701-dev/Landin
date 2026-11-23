@@ -11,6 +11,7 @@ import core/text
 import core/time
 import hosted/system
 import platform/windows
+import platform/windows/sockets
 
 fixed if compiler.os == windows then
     --  Keep a failure's code in the system handle's cell.
@@ -59,9 +60,9 @@ fixed if compiler.os == windows then
         mut got: u32 = 0
         count = 0
         if system.is_socket(opened) then
-            received: i32 = windows.receive(made, addr into[0], i32(want), 0)
+            received: i32 = sockets.receive(made, addr into[0], i32(want), 0)
             if received < 0 then
-                record(self, windows.socket_last_error())
+                record(self, sockets.socket_last_error())
                 fail io.io_failed
             end if
             got = u32(received)
@@ -102,9 +103,9 @@ fixed if compiler.os == windows then
         if want > most then want = most end if
         mut put: u32 = 0
         if system.is_socket(opened) then
-            sent: i32 = windows.send(made, addr bytes[0], i32(want), 0)
+            sent: i32 = sockets.send(made, addr bytes[0], i32(want), 0)
             if sent < 0 then
-                record(self, windows.socket_last_error())
+                record(self, sockets.socket_last_error())
                 fail io.io_failed
             end if
             put = u32(sent)

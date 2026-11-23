@@ -33826,11 +33826,12 @@ parent quotes for: the program's name to the next blank or between its
 quotes with no escapes; after it blanks separate arguments, quotes begin
 and end a quoted run, `""` in a run is one quote, and backslashes are
 literal except before a quote, where each pair is one backslash and an odd
-one makes the quote literal. `platform/windows` defines
-`_landin_host_initialize_arguments`, which the hosted entry calls first as
-on every system and a C `main` may call itself, and gives `arguments`,
-`argument`, `environment` and `variable` over the root as `platform/posix`
-does. A variable's name runs to the first `=` after its first unit, so
+one makes the quote literal. The entry keeps the vectors as the root
+itself and defines no `_landin_host_initialize_arguments`: the module is
+linked into every Windows program, so a definition there would collide
+with a program's own, which the hosted entry calls as on every system.
+`platform/windows` gives `arguments`, `argument`, `environment` and
+`variable` over the root as `platform/posix` does. A variable's name runs to the first `=` after its first unit, so
 the hidden `=C:` entries Windows keeps are named so; `variable_named`
 compares names without regard to ASCII case, as Windows does.
 
@@ -33842,8 +33843,10 @@ argument needs anyway.
 
 **Pinned by** `runtime/library-system-arguments`,
 `runtime/example-sum-arguments`, `runtime/hosted-system-alone` and every
-fixture with `run_args` or `run_files` on the Windows lane, and
-`runtime/windows-run-programs`, whose child receives quoted arguments.
+fixture with `run_args` or `run_files` on the Windows lane,
+`runtime/windows-run-programs`, whose child receives quoted arguments, and
+`positive/hosted-initializer-normalized`, whose own initializer the
+determinism manifest emits for windows-x86-64.
 
 ### D2270 — On Windows a hosted file is a handle and a failure a Win32 code
 
@@ -34169,6 +34172,32 @@ not support.
 **Pinned by** `runtime/events-tcp-exchange`,
 `runtime/events-close-wakes-waiter` and `runtime/events-network-limits`
 on the Windows lane.
+
+### D2281 — Windows Sockets is a module beneath platform/windows
+
+**From** D2188 and D2272.
+
+**The discrepancy:** refine links `platform/windows` into every Windows
+program, and a C link symbol has one declaration in a program (L0347).
+Windows Sockets names its calls `send`, `recv`, `connect`, `bind` and
+`select`, names a program declares for its own C code, as
+`positive/c-packed-records` declares `send`; with Windows Sockets in
+`platform/windows`, every such program was refused on Windows.
+
+**Chosen:** Windows Sockets' declarations are the module
+`platform/windows/sockets`, which `hosted/system`, `hosted/blocking` and
+`hosted/events` import for their network and nothing else does, so a
+program that names none of the network's calls may declare those symbols
+itself. kernel32's own names are spelt as Windows spells them,
+`ReadFile` and `CreateProcessW`, and stay in `platform/windows`.
+
+**The alternatives:** link names prefixed by the module, which Windows
+Sockets' import library does not export; and leaving the collision to the
+program, which no rule tells why a declaration that is its own on every
+other system is refused on Windows.
+
+**Pinned by** `positive/c-packed-records`, which the determinism manifest
+emits for windows-x86-64.
 
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 

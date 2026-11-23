@@ -19,8 +19,8 @@ fixed if compiler.os <> windows then
     --- reports.
     public reason: type = posix.errno | failure.reason
 
-    --- A short English phrase for a failure: `posix.words` for an errno and
-    --- `failure.words` for a library failure (D582), in lower case but for a
+    --  `posix.words` words an errno and `failure.words` a library failure.
+    --- A short English phrase for a failure (D582), in lower case but for a
     --- name's own capitals and with no final stop, so that it reads after a
     --- subject and a colon.  The phrase is static text: it borrows nothing and
     --- is never freed.

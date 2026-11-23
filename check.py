@@ -12261,9 +12261,6 @@ LIBRARY_ENTRY_POINTS = {
     "platform/posix._landin_host_initialize_arguments":
         "Landin.Hosted's argument initializer, which the hosted entry, C's"
         " main, calls before the program's body",
-    "platform/windows._landin_host_initialize_arguments":
-        "Landin.Hosted's argument initializer on Windows, which the hosted"
-        " entry calls with the vectors _landin_start made",
 }
 
 #  A generated table is one facility, consumed by the module built on it,

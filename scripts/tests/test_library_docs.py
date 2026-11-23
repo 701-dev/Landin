@@ -367,6 +367,24 @@ public real: atom
             {'core/mem': records('count: u32', 'count: u32')})
         self.assertEqual(name, 'record')
 
+    def test_a_routine_of_each_system_s_types_may_describe_its_own(self):
+        def routines(*parameters):
+            comments = ('Return the descriptor behind a file, for a POSIX call.',
+                        'Return the handle Windows gives, for a call of its own.')
+            return self.items('core/mem', ''.join(
+                'fixed if target.arch == .a%d then\n    --- %s\n'
+                '    public convert: (value: %s) -> (result: u32) =\n'
+                '        result = 0\n    end convert\nend if\n'
+                % (index, comments[index], parameter)
+                for index, parameter in enumerate(parameters)))
+        #  Signatures that differ take different values, and are not
+        #  reported; one signature with two comments is a copy edited alone.
+        self.assertEqual(library.drifting(
+            {'core/mem': routines('i32', 'usize')}), [])
+        ((_, name, _),) = library.drifting(
+            {'core/mem': routines('i32', 'i32')})
+        self.assertEqual(name, 'convert')
+
     def test_the_live_library_s_per_target_comments_are_parallel(self):
         modules, _ = library.collect(ROOT)
         self.assertEqual(library.drift_report(modules), [])

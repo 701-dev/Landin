@@ -140,16 +140,11 @@ class_of: (extent: usize) -> (index: usize, size: usize) =
     end while
 end class_of
 
---  A mapping of `length` readable and writable bytes, or zero.
-map: (length: usize) -> (address: usize) =
-    address = map_pages(length)
-end map
-
 --  A free slot of class `index` and `size`, taken off its list, or zero
 --  when none is free and no chunk could be mapped.
 take_slot: (index: usize, size: usize) -> (slot: usize) =
     if free_slots[index] == 0 then
-        base: usize = map(chunk)
+        base: usize = map_pages(chunk)
         if base == 0 then
             slot = 0
             return
@@ -191,7 +186,7 @@ host_alloc: (size: usize, unit: usize) -> (block: usize) =
     else
         page: usize = page_bytes()
         held = align_up(extent, page)
-        origin = map(held)
+        origin = map_pages(held)
     end if
     if origin == 0 then
         block = 0

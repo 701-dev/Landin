@@ -17,9 +17,11 @@ fixed if compiler.os == windows then
     --- system's own code being `last_errno`'s.
     public reason: type = failure.reason
 
-    --- A short English phrase for a failure, as `failure.words` gives it
-    --- (D582), in lower case and with no final stop.  The phrase is static
-    --- text.
+    --  Every failure is a library one here, which `failure.words` words.
+    --- A short English phrase for a failure (D582), in lower case but for a
+    --- name's own capitals and with no final stop, so that it reads after a
+    --- subject and a colon.  The phrase is static text: it borrows nothing and
+    --- is never freed.
     public words: (problem: reason) -> (phrase: []u8) =
         phrase = failure.words(problem)
     end words

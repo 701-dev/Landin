@@ -3,8 +3,16 @@
 --  fails returns `socket_error` or `invalid_socket` and leaves the reason
 --  for `socket_last_error`.  `started` makes the one `WSAStartup` call a
 --  process needs before its first socket.
+--
+--  It is a module of its own, beneath platform/windows, which refine links
+--  into every Windows program: Windows Sockets names its calls `send`,
+--  `connect` and `bind`, C symbols a program may declare for its own C
+--  code, so only a program that imports this module, as the hosted
+--  network providers do, has them declared (D2281).  Every hosted system
+--  may import it, and off Windows it declares nothing.
 
 import core/atomic
+import platform/windows
 
 fixed if compiler.os == windows then
     linker.library("ws2_32")
@@ -15,7 +23,7 @@ fixed if compiler.os == windows then
     public socket_error: i32 = -1
     --- `INVALID_SOCKET`: what a call that makes a socket gives when it fails,
     --- all ones.
-    public invalid_socket: handle = 0xFFFFFFFFFFFFFFFF
+    public invalid_socket: windows.handle = 0xFFFFFFFFFFFFFFFF
 
     --- The address families, `AF_INET` and `AF_INET6`.
     public af_inet: i32 = 2
@@ -101,11 +109,11 @@ fixed if compiler.os == windows then
     --- or `invalid_socket`.
     public extern(c) link(symbol: "WSASocketW") make_socket:
         (family: i32, kind: i32, protocol: i32, information: usize,
-         group: u32, flags: u32) -> (socket: handle)
+         group: u32, flags: u32) -> (socket: windows.handle)
 
     --- Close a socket, `closesocket`: zero or `socket_error`.
     public extern(c) link(symbol: "closesocket") close_socket:
-        (socket: handle) -> (status: i32)
+        (socket: windows.handle) -> (status: i32)
 
     --- An address of either family as the system lays it out: room for a
     --- `SOCKADDR_IN6`, which is the larger, and its length in bytes.
@@ -118,39 +126,39 @@ fixed if compiler.os == windows then
     --- `accept`: zero or `socket_error`; accept's new socket or
     --- `invalid_socket`, its peer's address in `peer` when it is not zero.
     public extern(c) link(symbol: "bind") bind:
-        (socket: handle, at: ptr u8, length: i32) -> (status: i32)
+        (socket: windows.handle, at: ptr u8, length: i32) -> (status: i32)
     --- Connect `socket` to the address at `to`, `connect`: zero or
     --- `socket_error`.
     public extern(c) link(symbol: "connect") connect:
-        (socket: handle, to: ptr u8, length: i32) -> (status: i32)
+        (socket: windows.handle, to: ptr u8, length: i32) -> (status: i32)
     --- Make `socket` a listener, `listen`: zero or `socket_error`.
     public extern(c) link(symbol: "listen") listen:
-        (socket: handle, backlog: i32) -> (status: i32)
+        (socket: windows.handle, backlog: i32) -> (status: i32)
     --- Take the next connection made to the listener `socket`, `accept`: its
     --- socket or `invalid_socket`; the peer's address goes to `peer` when it
     --- is not zero.
     public extern(c) link(symbol: "accept") accept:
-        (socket: handle, peer: usize, length: usize) -> (result: handle)
+        (socket: windows.handle, peer: usize, length: usize) -> (result: windows.handle)
 
     --- Send and receive on a connected socket, `send` and `recv`: the
     --- bytes moved, zero from `receive` once the peer has finished sending,
     --- or `socket_error`.
     public extern(c) link(symbol: "send") send:
-        (socket: handle, bytes: ptr u8, count: i32, flags: i32) -> (sent: i32)
+        (socket: windows.handle, bytes: ptr u8, count: i32, flags: i32) -> (sent: i32)
     --- Receive on a connected socket, `recv`: the bytes taken, zero once the
     --- peer has finished sending, or `socket_error`.
     public extern(c) link(symbol: "recv") receive:
-        (socket: handle, into: ptr mut u8, count: i32, flags: i32)
+        (socket: windows.handle, into: ptr mut u8, count: i32, flags: i32)
         -> (got: i32)
 
     --- Send a datagram to `to` and receive one with its sender's address,
     --- `sendto` and `recvfrom`.
     public extern(c) link(symbol: "sendto") send_to:
-        (socket: handle, bytes: ptr u8, count: i32, flags: i32, to: ptr u8,
+        (socket: windows.handle, bytes: ptr u8, count: i32, flags: i32, to: ptr u8,
          length: i32) -> (sent: i32)
     --- Receive a datagram and its sender's address, `recvfrom`.
     public extern(c) link(symbol: "recvfrom") receive_from:
-        (socket: handle, into: ptr mut u8, count: i32, flags: i32,
+        (socket: windows.handle, into: ptr mut u8, count: i32, flags: i32,
          sender: ptr mut u8, length: ptr mut i32) -> (got: i32)
 
     --- Stop receiving, sending or both, `shutdown`.
@@ -161,15 +169,15 @@ fixed if compiler.os == windows then
     public sd_both: i32 = 2
     --- Stop receiving, sending or both, `shutdown`.
     public extern(c) link(symbol: "shutdown") shutdown:
-        (socket: handle, how: i32) -> (status: i32)
+        (socket: windows.handle, how: i32) -> (status: i32)
 
     --- The address of a socket's own end and its peer's, `getsockname` and
     --- `getpeername`.
     public extern(c) link(symbol: "getsockname") socket_name:
-        (socket: handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
+        (socket: windows.handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
     --- The address of a connection's peer, `getpeername`.
     public extern(c) link(symbol: "getpeername") peer_name:
-        (socket: handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
+        (socket: windows.handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
 
     --- Socket options, `setsockopt` and `getsockopt`: the level, the option
     --- and its value's bytes.
@@ -190,11 +198,11 @@ fixed if compiler.os == windows then
     public ipv6_only: i32 = 27
     --- Set a socket option, `setsockopt`: zero or `socket_error`.
     public extern(c) link(symbol: "setsockopt") set_option:
-        (socket: handle, level: i32, option: i32, value: ptr u8, length: i32)
+        (socket: windows.handle, level: i32, option: i32, value: ptr u8, length: i32)
         -> (status: i32)
     --- Read a socket option, `getsockopt`: zero or `socket_error`.
     public extern(c) link(symbol: "getsockopt") get_option:
-        (socket: handle, level: i32, option: i32, value: ptr mut u8,
+        (socket: windows.handle, level: i32, option: i32, value: ptr mut u8,
          length: ptr mut i32) -> (status: i32)
 
     --- Set a socket to block or not, `ioctlsocket` with `FIONBIO`.
@@ -202,13 +210,13 @@ fixed if compiler.os == windows then
     --- Set a socket to block, with `value` zero, or not, `ioctlsocket` with
     --- `FIONBIO`.
     public extern(c) link(symbol: "ioctlsocket") control:
-        (socket: handle, command: i32, value: ptr mut u32) -> (status: i32)
+        (socket: windows.handle, command: i32, value: ptr mut u32) -> (status: i32)
 
     --- `fd_set` as Windows Sockets lays it out: a count and the sockets,
     --- room for one here.
     public socket_set: type = struct
         count: u32
-        sockets: [1]handle
+        sockets: [1]windows.handle
     end socket_set
 
     --- `timeval`: seconds and microseconds, 32 bits each.

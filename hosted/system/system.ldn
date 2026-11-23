@@ -386,22 +386,22 @@ fixed if compiler.os <> windows then
          variable: system_variable,
          variable_named: system_variable_named)
 
+    --  The standard streams are descriptors 0, 1 and 2, and the root is
+    --  platform/posix's.
     --- Return a handle to the hosted services that do not wait. It exposes the
-    --- process arguments and the three standard streams, descriptors 0, 1 and
-    --- 2, which a provider built over it reads and writes. Regular open-write
-    --- operations create or truncate files; close regular files explicitly. A
-    --- program that waits on anything mints `hosted/blocking`'s `new` instead,
-    --- which makes this handle itself. The handle borrows nothing: the
-    --- argument root and the descriptors belong to the process. Each thread
-    --- that calls through the handle, or through a copy of it, records into a
-    --- last-error and last-signal cell of its own (D503), so threads sharing a
-    --- handle never see each other's failures. Use `over` for a cell of the
-    --- caller's own.
+    --- process arguments and the three standard streams, which a provider
+    --- built over it reads and writes. Regular open-write operations create
+    --- or truncate files; close regular files explicitly. A program that waits
+    --- on anything mints `hosted/blocking`'s `new` instead, which makes this
+    --- handle itself. The handle borrows nothing: the argument root and the
+    --- standard streams belong to the process. Each thread that calls through
+    --- the handle, or through a copy of it, records into a last-error and
+    --- last-signal cell of its own (D503), so threads sharing a handle never
+    --- see each other's failures. Use `over` for a cell of the caller's own.
     ---
-    --- The arguments are the root that platform/posix's
-    --- `_landin_host_initialize_arguments` established. The hosted entry
-    --- establishes it before its body runs; calling this before any root
-    --- exists traps.
+    --- The arguments are the root that `_landin_host_initialize_arguments`
+    --- established. The hosted entry establishes it before its body runs;
+    --- calling this before any root exists traps.
     public new: () -> (handle: host) =
         _ = posix.arguments()
         handle = (failure: calling_thread, signal: calling_thread)
@@ -409,8 +409,8 @@ fixed if compiler.os <> windows then
 
     --- Fill `state` and return a handle that records its last error there
     --- rather than in the calling thread's cell, whichever thread calls. It
-    --- shares the process's arguments and descriptors like any other handle;
-    --- calling this before any root exists traps, as `new` does.
+    --- shares the process's arguments and standard streams like any other
+    --- handle; calling this before any root exists traps, as `new` does.
     public over: (inout state: space) -> (handle: host from state) =
         _ = posix.arguments()
         state = (failure: 0, signal: 0)

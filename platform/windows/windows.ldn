@@ -12,14 +12,17 @@
 --  No C runtime is linked.  The entry reads the command line and the
 --  environment, converts each to a host string, WTF-8 (D2268), and keeps
 --  them as the process's argument root, which `arguments` and
---  `environment` read as platform/posix's do on a POSIX system.
+--  `environment` read as platform/posix's do on a POSIX system (D2269).
 --
 --  Each facility has a file of its own: this one the entry, the root, the
 --  handles and the calls every other file shares; wide.ldn the conversion
 --  between host strings and the system's 16-bit units; files.ldn files,
 --  directories and the console; processes.ldn pipes and child processes;
 --  time.ldn the clocks; threads.ldn threads, their storage and waiting on
---  an address; memory.ldn the address space; sockets.ldn Windows Sockets.
+--  an address; memory.ldn the address space; completion.ldn completion
+--  ports, jobs and console control events.  Windows Sockets is the module
+--  platform/windows/sockets, which only a program that imports it links,
+--  since its calls' C names are ones a program may give its own (D2281).
 --  A call that fails returns the system's failure value and leaves the
 --  reason for `last_error`, as kernel32 does.
 --
@@ -181,8 +184,8 @@ fixed if compiler.os == windows then
 
     --  C's view of the program's hosted entry: the process entry calls it
     --  as C's runtime would, with the argument and environment tables it
-    --  built, and it gives them to `_landin_host_initialize_arguments`
-    --  before the program's body runs.
+    --  built and has already kept as the root; a program that defines
+    --  `_landin_host_initialize_arguments` is given them there too.
     extern(c) link(symbol: "main") program_main:
         (count: i32, values: ptr ptr u8, environment: ptr ptr u8)
         -> (code: i32)
@@ -400,6 +403,7 @@ fixed if compiler.os == windows then
     --- and ends the process with main's result as the exit code.
     public extern(c) _landin_start: () -> noreturn =
         tables: start_tables = read_start()
+        keep_root(tables)
         code: i32 = program_main(i32(tables.count), tables.values,
                                  tables.environment)
         exit_process(code)
@@ -422,39 +426,16 @@ fixed if compiler.os == windows then
 
     mut root_environment: root_table = no_table
 
-    --- Establish the process's argument root from C's `main` carriers, as
-    --- platform/posix's does on a POSIX system: the hosted entry calls this
-    --- with the vectors `_landin_start` made before the program's body runs,
-    --- and a C `main` that drives Landin exports calls it itself.  The first
-    --- call keeps the triple without copying; repeating it changes nothing;
-    --- a negative count, a null argument table or a different triple traps.
-    --- The published arguments omit the program's name.
-    public extern(c) _landin_host_initialize_arguments:
-        (count: i32, escaping values: ptr ptr u8,
-         escaping environment: ptr ptr u8) -> none =
-        given: usize = usize(values)
-        variables: usize = usize(environment)
-        held: usize = match root_values
-            no_table: usize(0)
-            ptr (table): usize(table)
-        end match
-        if held <> 0 then
-            kept: usize = match root_environment
-                no_table: usize(0)
-                ptr (table): usize(table)
-            end match
-            if count <> root_count or given <> held or variables <> kept then
-                compiler.unreachable()
-            end if
-            return
-        end if
-        if count < 0 or given == 0 then
-            compiler.unreachable()
-        end if
-        root_count = count
-        root_values = values
-        if variables <> 0 then root_environment = environment end if
-    end _landin_host_initialize_arguments
+    --  Keep the vectors the entry made as the process's argument root, for
+    --  good.  The entry keeps them itself rather than defining
+    --  `_landin_host_initialize_arguments`, which this module, linked into
+    --  every Windows program, would then define for a program that defines
+    --  its own (D2269).
+    keep_root: (escaping tables: start_tables) -> none =
+        root_count = i32(tables.count)
+        root_values = tables.values
+        root_environment = tables.environment
+    end keep_root
 
     --- The process's arguments: the vector after the program's name and
     --- their count.  `argument` reads it.

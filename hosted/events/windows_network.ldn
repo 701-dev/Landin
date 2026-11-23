@@ -16,6 +16,7 @@ import core/net
 import core/time
 import hosted/system
 import platform/windows
+import platform/windows/sockets
 
 fixed if compiler.os == windows then
     --  How many connections may wait to be accepted.
@@ -23,28 +24,28 @@ fixed if compiler.os == windows then
 
     --  Whether a code says the system does not have the address here.
     unavailable: (code: u32) -> (yes: bool) =
-        yes = code == windows.wsa_address_unavailable
-              or code == windows.wsa_family_unsupported
+        yes = code == sockets.wsa_address_unavailable
+              or code == sockets.wsa_family_unsupported
     end unavailable
 
     --  Whether a code says the peer has gone.
     gone: (code: u32) -> (yes: bool) =
-        yes = code == windows.wsa_connection_reset
-              or code == windows.wsa_connection_aborted
-              or code == windows.wsa_not_connected
-              or code == windows.wsa_shut_down
-              or code == windows.wsa_network_reset
-              or code == windows.wsa_timed_out
+        yes = code == sockets.wsa_connection_reset
+              or code == sockets.wsa_connection_aborted
+              or code == sockets.wsa_not_connected
+              or code == sockets.wsa_shut_down
+              or code == sockets.wsa_network_reset
+              or code == sockets.wsa_timed_out
     end gone
 
     --  The code the failing call left.
     last: () -> (code: u32) =
-        code = windows.socket_last_error()
+        code = sockets.socket_last_error()
     end last
 
     --  Close a socket no caller is told about.
     quietly_closed: (closing: windows.handle) -> none =
-        _ = windows.close_socket(closing)
+        _ = sockets.close_socket(closing)
     end quietly_closed
 
     --  A new overlapped socket of `family` and `kind` that no child
@@ -52,19 +53,19 @@ fixed if compiler.os == windows then
     --  first.
     family_socket: (family: i32, kind: i32)
                    -> (socket: windows.handle, code: u32) =
-        socket = windows.invalid_socket
-        code = windows.started()
+        socket = sockets.invalid_socket
+        code = sockets.started()
         return when code <> 0
-        socket = windows.make_socket(family, kind, 0, 0, 0,
-                                     windows.wsa_flag_overlapped
-                                     | windows.wsa_flag_no_handle_inherit)
-        if socket == windows.invalid_socket then code = last() end if
+        socket = sockets.make_socket(family, kind, 0, 0, 0,
+                                     sockets.wsa_flag_overlapped
+                                     | sockets.wsa_flag_no_handle_inherit)
+        if socket == sockets.invalid_socket then code = last() end if
     end family_socket
 
     --  The family of socket an address needs.
     family_of: (at: net.address) -> (family: i32) =
-        family = if at.family == net.ipv4 then windows.af_inet
-                 else windows.af_inet6 end if
+        family = if at.family == net.ipv4 then sockets.af_inet
+                 else sockets.af_inet6 end if
     end family_of
 
     --  A socket bound to `at`, a listener when `listening`: the reason it
@@ -78,31 +79,31 @@ fixed if compiler.os == windows then
         return when code <> 0
         if at.family == net.ipv6 then
             on: u32 = 1
-            if windows.set_option(socket, windows.ipproto_ipv6,
-                                  windows.ipv6_only, ptr(usize(addr on)),
+            if sockets.set_option(socket, sockets.ipproto_ipv6,
+                                  sockets.ipv6_only, ptr(usize(addr on)),
                                   4) <> 0 then
                 code = last()
             end if
         end if
         if code == 0 then
-            record_of: windows.socket_address =
+            record_of: sockets.socket_address =
                 system.internet_address(at) else (problem)
                     _ = problem
                     quietly_closed(socket)
-                    socket = windows.invalid_socket
-                    code = windows.wsa_address_unavailable
+                    socket = sockets.invalid_socket
+                    code = sockets.wsa_address_unavailable
                     return
                 end
-            if windows.bind(socket, addr record_of.bytes[0],
+            if sockets.bind(socket, addr record_of.bytes[0],
                             record_of.length) <> 0 then
                 code = last()
-            elsif listening and windows.listen(socket, backlog) <> 0 then
+            elsif listening and sockets.listen(socket, backlog) <> 0 then
                 code = last()
             end if
         end if
         if code <> 0 then
             quietly_closed(socket)
-            socket = windows.invalid_socket
+            socket = sockets.invalid_socket
         end if
     end bound
 
@@ -110,9 +111,9 @@ fixed if compiler.os == windows then
                   -> none ! net.address_in_use | net.address_unavailable
                           | io.no_access | io.io_failed =
         record(self, code)
-        fail net.address_in_use when code == windows.wsa_address_in_use
+        fail net.address_in_use when code == sockets.wsa_address_in_use
         fail net.address_unavailable when unavailable(code)
-        fail io.no_access when code == windows.wsa_access
+        fail io.no_access when code == sockets.wsa_access
         fail io.io_failed
     end bind_failure
 
@@ -120,7 +121,7 @@ fixed if compiler.os == windows then
                    ! net.address_in_use | net.address_unavailable
                    | io.no_access | io.io_failed =
         cleared(self)
-        (socket, code) := bound(at, windows.sock_stream, true)
+        (socket, code) := bound(at, sockets.sock_stream, true)
         if code <> 0 then
             try bind_failure(self, code)
         end if
@@ -131,7 +132,7 @@ fixed if compiler.os == windows then
                           ! net.address_in_use | net.address_unavailable
                           | io.no_access | io.io_failed =
         cleared(self)
-        (socket: made, code) := bound(at, windows.sock_dgram, false)
+        (socket: made, code) := bound(at, sockets.sock_dgram, false)
         if code <> 0 then
             try bind_failure(self, code)
         end if
@@ -151,10 +152,10 @@ fixed if compiler.os == windows then
     limit_of: (socket: windows.handle, sending: bool) -> (deadline: u64) =
         mut value: u32 = 0
         mut length: i32 = 4
-        option: i32 = if sending then windows.so_send_timeout
-                      else windows.so_receive_timeout end if
+        option: i32 = if sending then sockets.so_send_timeout
+                      else sockets.so_receive_timeout end if
         deadline = 0
-        return when windows.get_option(socket, windows.sol_socket, option,
+        return when sockets.get_option(socket, sockets.sol_socket, option,
                                        ptr(usize(addr value)),
                                        addr length) <> 0
         return when value == 0
@@ -181,11 +182,11 @@ fixed if compiler.os == windows then
         mut got: u32 = 0
         mut flags: u32 = 0
         mut code: u32 = 0
-        if windows.socket_overlapped_result(socket, addr entry.val.asked,
+        if sockets.socket_overlapped_result(socket, addr entry.val.asked,
                                             addr got, 0, addr flags) == 0 then
             code = last()
             if answer == expired and code == windows.error_operation_aborted then
-                code = windows.wsa_timed_out
+                code = sockets.wsa_timed_out
             end if
         end if
         result = (moved: got, code: code, answer: answer)
@@ -200,13 +201,13 @@ fixed if compiler.os == windows then
         try joined(self, socket)
         mut want: usize = lenof into
         if want > most_bytes then want = most_bytes end if
-        mut buffer: windows.socket_buffer =
+        mut buffer: sockets.socket_buffer =
             (length: u32(want), reserved: 0, bytes: usize(addr into[0]))
         mut entry: waiting = on_handle(socket, deadline)
         link(self.state, addr entry)
         mut got: u32 = 0
         mut flags: u32 = 0
-        issued: i32 = windows.receive_overlapped(socket, addr buffer, 1,
+        issued: i32 = sockets.receive_overlapped(socket, addr buffer, 1,
                                                  addr got, addr flags,
                                                  usize(addr entry.asked), 0)
         result = socket_completed(self, socket, addr entry, issued)
@@ -218,13 +219,13 @@ fixed if compiler.os == windows then
         try joined(self, socket)
         mut want: usize = lenof bytes
         if want > most_bytes then want = most_bytes end if
-        mut buffer: windows.socket_buffer =
+        mut buffer: sockets.socket_buffer =
             (length: u32(want), reserved: 0, bytes: usize(addr bytes[0]))
         mut entry: waiting = on_handle(socket, deadline)
         entry.output = true
         link(self.state, addr entry)
         mut put: u32 = 0
-        issued: i32 = windows.send_overlapped(socket, addr buffer, 1, addr put,
+        issued: i32 = sockets.send_overlapped(socket, addr buffer, 1, addr put,
                                               0, usize(addr entry.asked), 0)
         result = socket_completed(self, socket, addr entry, issued)
     end sent_once
@@ -234,7 +235,7 @@ fixed if compiler.os == windows then
                         -> none ! net.disconnected | net.timed_out
                                 | io.io_failed =
         record(self, code)
-        fail net.timed_out when code == windows.wsa_timed_out
+        fail net.timed_out when code == sockets.wsa_timed_out
         fail net.disconnected when gone(code)
         fail io.io_failed
     end connection_failure
@@ -288,7 +289,7 @@ fixed if compiler.os == windows then
         mut found: usize = 0
         mut returned: u32 = 0
         address = 0
-        if windows.socket_control(socket, windows.get_extension_function,
+        if sockets.socket_control(socket, sockets.get_extension_function,
                                   addr named[0], 16, addr found,
                                   u32(sizeof usize), addr returned, 0,
                                   0) <> 0 then
@@ -303,11 +304,11 @@ fixed if compiler.os == windows then
                              | net.address_unavailable | net.timed_out
                              | io.io_failed =
         record(self, code)
-        fail net.refused when code == windows.wsa_connection_refused
-        fail net.unreachable when code == windows.wsa_network_unreachable
-          or code == windows.wsa_host_unreachable
+        fail net.refused when code == sockets.wsa_connection_refused
+        fail net.unreachable when code == sockets.wsa_network_unreachable
+          or code == sockets.wsa_host_unreachable
         fail net.address_unavailable when unavailable(code)
-        fail net.timed_out when code == windows.wsa_timed_out
+        fail net.timed_out when code == sockets.wsa_timed_out
         fail io.io_failed
     end connect_failure
 
@@ -322,30 +323,30 @@ fixed if compiler.os == windows then
     --  socket yet, so nothing closes it while the fibre waits.
     connected: (self: host, to: net.address, deadline: u64)
                -> (socket: windows.handle, code: u32) ! io.io_failed =
-        (socket: made, code: given) := bound(anywhere(to), windows.sock_stream,
+        (socket: made, code: given) := bound(anywhere(to), sockets.sock_stream,
                                              false)
         socket = made
         code = given
         return when code <> 0
-        target: windows.socket_address = system.internet_address(to)
+        target: sockets.socket_address = system.internet_address(to)
             else (problem)
             _ = problem
             quietly_closed(socket)
-            socket = windows.invalid_socket
-            code = windows.wsa_address_unavailable
+            socket = sockets.invalid_socket
+            code = sockets.wsa_address_unavailable
             return
         end
-        address: usize = extension(self, socket, windows.connect_extension)
+        address: usize = extension(self, socket, sockets.connect_extension)
         if address == 0 then
             quietly_closed(socket)
-            socket = windows.invalid_socket
+            socket = sockets.invalid_socket
             fail io.io_failed
         end if
         joined(self, socket) else (problem)
             quietly_closed(socket)
             fail problem
         end
-        connect: windows.connect_routine = windows.connect_routine(address)
+        connect: sockets.connect_routine = sockets.connect_routine(address)
         mut entry: waiting = on_handle(socket, deadline)
         entry.output = true
         link(self.state, addr entry)
@@ -357,14 +358,14 @@ fixed if compiler.os == windows then
                                               end if)
         code = ended.code
         if code == 0
-          and windows.set_option(socket, windows.sol_socket,
-                                 windows.so_update_connect_context,
+          and sockets.set_option(socket, sockets.sol_socket,
+                                 sockets.so_update_connect_context,
                                  ptr(usize(addr sent)), 0) <> 0 then
             code = last()
         end if
         if code <> 0 then
             quietly_closed(socket)
-            socket = windows.invalid_socket
+            socket = sockets.invalid_socket
         end if
     end connected
 
@@ -400,8 +401,8 @@ fixed if compiler.os == windows then
     --  The family of the socket `socket`, from its own address.
     family_named: (self: host, socket: windows.handle) -> (family: i32)
                   ! io.io_failed =
-        mut found: windows.socket_address = (bytes: zeroed, length: 28)
-        if windows.socket_name(socket, addr found.bytes[0],
+        mut found: sockets.socket_address = (bytes: zeroed, length: 28)
+        if sockets.socket_name(socket, addr found.bytes[0],
                                addr found.length) <> 0 then
             record(self, last())
             fail io.io_failed
@@ -415,13 +416,13 @@ fixed if compiler.os == windows then
         socket: windows.handle = system.handle_of(listener)
         deadline: u64 = limit_of(socket, false)
         family: i32 = try family_named(self, socket)
-        address: usize = extension(self, socket, windows.accept_extension)
+        address: usize = extension(self, socket, sockets.accept_extension)
         fail io.io_failed when address == 0
-        accept: windows.accept_routine = windows.accept_routine(address)
+        accept: sockets.accept_routine = sockets.accept_routine(address)
         try joined(self, socket)
         loop do
             (socket: made, code: given) := family_socket(family,
-                                                         windows.sock_stream)
+                                                         sockets.sock_stream)
             if given <> 0 then
                 record(self, given)
                 fail io.io_failed
@@ -431,15 +432,15 @@ fixed if compiler.os == windows then
             link(self.state, addr entry)
             mut received: u32 = 0
             done: i32 = accept(socket, made, addr addresses[0], 0,
-                               windows.address_room, windows.address_room,
+                               sockets.address_room, sockets.address_room,
                                addr received, usize(addr entry.asked))
             ended: call_result = socket_completed(self, socket, addr entry,
                                                   if done <> 0 then 0
                                                   else -1 end if)
             mut code: u32 = ended.code
             if code == 0
-              and windows.set_option(made, windows.sol_socket,
-                                     windows.so_update_accept_context,
+              and sockets.set_option(made, sockets.sol_socket,
+                                     sockets.so_update_accept_context,
                                      ptr(usize(addr socket)),
                                      i32(sizeof windows.handle)) <> 0 then
                 code = last()
@@ -452,9 +453,9 @@ fixed if compiler.os == windows then
             --  A connection its peer reset before it was taken is no
             --  connection.
             continue when ended.answer <> failed
-              and code == windows.wsa_connection_reset
+              and code == sockets.wsa_connection_reset
             record(self, code)
-            fail net.timed_out when code == windows.wsa_timed_out
+            fail net.timed_out when code == sockets.wsa_timed_out
             fail io.io_failed
         end loop
     end events_accept
@@ -464,10 +465,10 @@ fixed if compiler.os == windows then
                     ! net.unreachable | net.timed_out | io.io_failed =
         cleared(self)
         made: windows.handle = system.handle_of(socket)
-        target: windows.socket_address = system.internet_address(to)
+        target: sockets.socket_address = system.internet_address(to)
             else (problem)
             _ = problem
-            record(self, windows.wsa_address_unavailable)
+            record(self, sockets.wsa_address_unavailable)
             fail net.unreachable
         end
         fail io.io_failed when lenof bytes > most_bytes
@@ -475,13 +476,13 @@ fixed if compiler.os == windows then
         mut spare: [1]u8 = zeroed
         first: usize = if lenof bytes > 0 then usize(addr bytes[0])
                        else usize(addr spare[0]) end if
-        mut buffer: windows.socket_buffer =
+        mut buffer: sockets.socket_buffer =
             (length: u32(lenof bytes), reserved: 0, bytes: first)
         mut entry: waiting = on_handle(made, limit_of(made, true))
         entry.output = true
         link(self.state, addr entry)
         mut put: u32 = 0
-        issued: i32 = windows.send_to_overlapped(made, addr buffer, 1, addr put,
+        issued: i32 = sockets.send_to_overlapped(made, addr buffer, 1, addr put,
                                                  0, addr target.bytes[0],
                                                  target.length,
                                                  usize(addr entry.asked), 0)
@@ -490,9 +491,9 @@ fixed if compiler.os == windows then
             record(self, ended.code)
             fail io.io_failed when ended.answer == failed
             fail net.unreachable
-                when ended.code == windows.wsa_network_unreachable
-                  or ended.code == windows.wsa_host_unreachable
-            fail net.timed_out when ended.code == windows.wsa_timed_out
+                when ended.code == sockets.wsa_network_unreachable
+                  or ended.code == sockets.wsa_host_unreachable
+            fail net.timed_out when ended.code == sockets.wsa_timed_out
             fail io.io_failed
         end if
         --  A datagram goes whole or not at all.
@@ -505,39 +506,39 @@ fixed if compiler.os == windows then
         cleared(self)
         made: windows.handle = system.handle_of(socket)
         try joined(self, made)
-        mut sender: windows.socket_address = (bytes: zeroed, length: 28)
+        mut sender: sockets.socket_address = (bytes: zeroed, length: 28)
         mut spare: [1]u8 = zeroed
         mut want: usize = lenof into
         if want > most_bytes then want = most_bytes end if
         first: usize = if want > 0 then usize(addr into[0])
                        else usize(addr spare[0]) end if
-        mut buffer: windows.socket_buffer =
+        mut buffer: sockets.socket_buffer =
             (length: u32(want), reserved: 0, bytes: first)
         mut entry: waiting = on_handle(made, limit_of(made, false))
         link(self.state, addr entry)
         mut got: u32 = 0
         mut flags: u32 = 0
-        issued: i32 = windows.receive_from_overlapped(
+        issued: i32 = sockets.receive_from_overlapped(
             made, addr buffer, 1, addr got, addr flags, addr sender.bytes[0],
             addr sender.length, usize(addr entry.asked), 0)
         ended: call_result = socket_completed(self, made, addr entry, issued)
         mut count: usize = usize(ended.moved)
         if ended.code <> 0 then
             --  A datagram longer than `into` is cut to it.
-            if ended.code == windows.wsa_message_size
+            if ended.code == sockets.wsa_message_size
               or ended.code == windows.error_more_data then
                 count = want
             else
                 record(self, ended.code)
                 fail io.io_failed when ended.answer == failed
-                fail net.timed_out when ended.code == windows.wsa_timed_out
+                fail net.timed_out when ended.code == sockets.wsa_timed_out
                 fail io.io_failed
             end if
         end if
         fail io.io_failed when count > lenof into
         from_address: net.address = system.address_of(sender) else (problem)
             _ = problem
-            record(self, windows.wsa_family_unsupported)
+            record(self, sockets.wsa_family_unsupported)
             fail io.io_failed
         end
         taken = (count: count, sender: from_address)
@@ -567,11 +568,11 @@ fixed if compiler.os == windows then
         cleared(self)
         made: windows.handle = system.handle_of(connection)
         how: i32 = match stopping
-            net.receiving: windows.sd_receive
-            net.sending: windows.sd_send
-            net.both_directions: windows.sd_both
+            net.receiving: sockets.sd_receive
+            net.sending: sockets.sd_send
+            net.both_directions: sockets.sd_both
         end match
-        if windows.shutdown(made, how) <> 0 then
+        if sockets.shutdown(made, how) <> 0 then
             record(self, last())
             fail io.io_failed
         end if
@@ -582,12 +583,12 @@ fixed if compiler.os == windows then
     --  other end.
     named: (self: host, socket: io.file, peer: bool) -> (at: net.address)
            ! io.io_failed =
-        mut found: windows.socket_address = (bytes: zeroed, length: 28)
+        mut found: sockets.socket_address = (bytes: zeroed, length: 28)
         status: i32 =
-            if peer then windows.peer_name(system.handle_of(socket),
+            if peer then sockets.peer_name(system.handle_of(socket),
                                            addr found.bytes[0],
                                            addr found.length)
-            else windows.socket_name(system.handle_of(socket),
+            else sockets.socket_name(system.handle_of(socket),
                                      addr found.bytes[0], addr found.length)
             end if
         if status <> 0 then
@@ -596,7 +597,7 @@ fixed if compiler.os == windows then
         end if
         at = system.address_of(found) else (problem)
             _ = problem
-            record(self, windows.wsa_family_unsupported)
+            record(self, sockets.wsa_family_unsupported)
             fail io.io_failed
         end
     end named
@@ -623,11 +624,11 @@ fixed if compiler.os == windows then
         receiving: u32 = milliseconds_of(receive_limit)
         sending: u32 = milliseconds_of(send_limit)
         made: windows.handle = system.handle_of(socket)
-        if windows.set_option(made, windows.sol_socket,
-                              windows.so_receive_timeout,
+        if sockets.set_option(made, sockets.sol_socket,
+                              sockets.so_receive_timeout,
                               ptr(usize(addr receiving)), 4) <> 0
-          or windows.set_option(made, windows.sol_socket,
-                                windows.so_send_timeout,
+          or sockets.set_option(made, sockets.sol_socket,
+                                sockets.so_send_timeout,
                                 ptr(usize(addr sending)), 4) <> 0 then
             record(self, last())
             fail io.io_failed
@@ -638,8 +639,8 @@ fixed if compiler.os == windows then
                          -> none ! io.io_failed =
         cleared(self)
         value: u32 = if on then 1 else 0 end if
-        if windows.set_option(system.handle_of(connection),
-                              windows.ipproto_tcp, windows.tcp_no_delay,
+        if sockets.set_option(system.handle_of(connection),
+                              sockets.ipproto_tcp, sockets.tcp_no_delay,
                               ptr(usize(addr value)), 4) <> 0 then
             record(self, last())
             fail io.io_failed
@@ -652,7 +653,7 @@ fixed if compiler.os == windows then
         cleared(self)
         closing: windows.handle = system.handle_of(socket)
         forget(self, closing)
-        if windows.close_socket(closing) <> 0 then
+        if sockets.close_socket(closing) <> 0 then
             record(self, last())
             fail io.io_failed
         end if
