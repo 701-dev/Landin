@@ -2925,9 +2925,16 @@ def check_project_status(full_run):
         elif (expected is not None
               and (markers[0][1] != marker_kind
                    or markers[0][2] != expected)):
+            #  The whole line is named, since the three kinds differ in
+            #  their wording and not only in the item.
+            line = {"current": "**Current roadmap work: %s.**",
+                    "next": "**Next roadmap item: %s (planned).**",
+                    "endpoint": "**Roadmap endpoint: %s (complete).**"}
             out.append((relative, markers[0][0],
-                        "roadmap status pointer is %s %r, expected %s %r"
-                        % (markers[0][1], markers[0][2], marker_kind, expected)))
+                        "roadmap status pointer is %s %r, expected %s %r;"
+                        " write the line %s"
+                        % (markers[0][1], markers[0][2], marker_kind, expected,
+                           line.get(marker_kind, "%s") % expected)))
 
         #  Possessive status prose is allowed, but it cannot contradict the
         #  durable status. Work paragraph-by-paragraph so an unrelated later

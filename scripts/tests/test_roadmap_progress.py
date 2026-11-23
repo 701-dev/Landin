@@ -321,6 +321,10 @@ Depends on: none
         problems = self.project_status(BETWEEN_ITEMS, marker)
         self.assertTrue(any("roadmap status pointer is endpoint" in problem[2]
                             for problem in problems))
+        #  The refusal writes out the whole line it expects.
+        self.assertTrue(any("write the line **Next roadmap item: " in problem[2]
+                            and problem[2].endswith("(planned).**")
+                            for problem in problems))
 
     def test_a_next_item_pointer_is_refused_after_the_endpoint(self):
         marker = ("**Next roadmap item: " + SECOND + " — Start source debugging "
