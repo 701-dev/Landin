@@ -699,7 +699,14 @@ that calls, since SysV preserves no XMM register across a call. An integer
 constant a backend takes as an immediate stays, except on RV64, whose
 branches compare two registers: there a constant other than zero that a
 loop compares with is moved too. Equal constants moved out of one loop
-share a slot. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone.
+share a slot. An element access that indexes a whole array of plain
+scalars, a frame array that is not a parameter or a module datum, reaches
+it instead through an address slot the preheader fills with the array's
+`Storage_Address`, one slot for each array a loop indexes, within the same
+integer budget. arm64 does this for both, since it forms either address
+with an instruction of its own each time; x86-64 only for a datum, whose
+`leaq` it saves, since it indexes a frame array from rbp in the access
+itself; RV64 measured no better with either. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone.
 The work is linear in the routine plus the blocks each loop spans, and one
 rebuild of the unit adds a load for each moved value and its copy before
 the loop.

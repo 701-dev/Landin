@@ -26,9 +26,18 @@ with Landin.Targets;
 --  is entered, the program computes what it did; a loop entered and left
 --  at its test computes the moved values once without using them.
 --
+--  An element access indexing a whole array of plain scalars, a frame
+--  array that is no parameter or a module datum, may instead reach it
+--  through an address slot the preheader fills with the array's
+--  Storage_Address.  arm64 does so for both, since it forms either
+--  address with instructions of its own in every access; x86-64 only for
+--  a datum, since it indexes a frame array from rbp in the access itself.
+--
 --  An integer constant an instruction takes as its immediate is not worth
---  a register over the loop, and a comparison stays beside the branch
---  that reads its flags.  The work is linear in the routine plus, for
+--  a register over the loop, except on RV64, whose branches compare two
+--  registers; and a comparison stays beside the branch that reads it.
+--  Each loop moves values only while its live slots and moved values fit
+--  the target's registers.  The work is linear in the routine plus, for
 --  each loop, the blocks it spans, and one rebuild of the unit adds a
 --  load in place of each moved value and its copy in the preheader.
 --  Firmware targets and `--optimize none` and `size` are left alone.

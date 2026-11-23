@@ -28,6 +28,10 @@ package body Landin.IR.Hoisting is
       Value : Value_Id := No_Value;
       Slot : Slot_Id := No_Slot;
       Carrier : Slot_Record;
+      --  An address move makes Place's address, which the loop's element
+      --  accesses then reach through Slot, rather than Value.
+      Address : Boolean := False;
+      Place : Storage;
    end record;
    package Move_Vectors is new Ada.Containers.Vectors (Positive, Move);
    package Value_Maps is new Ada.Containers.Vectors (Positive, Value_Id);
@@ -85,6 +89,17 @@ package body Landin.IR.Hoisting is
       Compares_Registers : constant Boolean :=
         Landin.Targets.Architecture_Of (Facts) = Landin.Targets.RV64;
 
+      --  Which arrays' addresses a loop holds.  arm64 forms both a
+      --  frame array's and a module datum's address with instructions of
+      --  their own each time; x86-64 indexes a frame array from rbp in the
+      --  access itself, so only a datum's leaq is worth a register there.
+      --  RV64 measured no better with either.
+      Frame_Bases : constant Boolean :=
+        Landin.Targets.Architecture_Of (Facts) = Landin.Targets.Arm64;
+      Datum_Bases : constant Boolean :=
+        Landin.Targets.Architecture_Of (Facts)
+          in Landin.Targets.Arm64 | Landin.Targets.X86_64;
+
       procedure Hoist;
       procedure Hoist is
          Moves : Move_Vectors.Vector;
@@ -95,6 +110,8 @@ package body Landin.IR.Hoisting is
            Counts.Create (Natural (Into.Code.Length));
          Drop_Owner : constant Flags.Owner :=
            Flags.Create (Natural (Into.Code.Length));
+         Reach_Owner : constant Counts.Owner :=
+           Counts.Create (Natural (Into.Code.Length));
          First_Move_Owner : constant Counts.Owner :=
            Counts.Create (Natural (Into.Blocks.Length));
 
@@ -104,6 +121,7 @@ package body Landin.IR.Hoisting is
               Into.Items.Element (Positive (Item));
             Root : Counts.Elements renames Root_Owner.Data.all;
             Drop : Flags.Elements renames Drop_Owner.Data.all;
+            Reach : Counts.Elements renames Reach_Owner.Data.all;
             First_Move : Counts.Elements renames First_Move_Owner.Data.all;
             Total : constant Natural := Held.Blocks.Count;
             Graph : constant Control_Flow.Graph :=
@@ -162,6 +180,9 @@ package body Landin.IR.Hoisting is
               Counts.Create (Held.Slots.Count);
             Seen : Counts.Elements renames Seen_Owner.Data.all;
             Scan : Natural := 0;
+            Parameter_Owner : constant Flags.Owner :=
+              Flags.Create (Held.Slots.Count);
+            Parameter : Flags.Elements renames Parameter_Owner.Data.all;
             Compared_Owner : constant Flags.Owner :=
               Flags.Create (Held.Values.Count);
             Compared : Flags.Elements renames Compared_Owner.Data.all;
@@ -238,6 +259,58 @@ package body Landin.IR.Hoisting is
                      return False;
                end case;
             end Movable;
+
+            --  Whether Code indexes a whole array of plain scalars, a frame
+            --  slot that is not a parameter or a module datum: the storage,
+            --  and the shape an address slot reaching it has.
+            function Array_Reached
+              (Code : Instruction; Place : out Storage;
+               Shape : out Field_Shape) return Boolean;
+            function Array_Reached
+              (Code : Instruction; Place : out Storage;
+               Shape : out Field_Shape) return Boolean is
+            begin
+               Place := (Kind => Module_Datum, Datum => No_Item);
+               Shape := (others => <>);
+               if Code.Op not in Load_Element | Store_Element
+                 or else Code.Element_Field /= 0 or else Code.Nested.Count /= 0
+                 or else Code.Below_Element.Count /= 0
+                 or else Code.Variant_Case /= 0
+                 or else Code.Variant_Payload_Field /= 0
+                 or else Code.Signature /= No_Signature
+               then
+                  return False;
+               end if;
+               if Code.Slot /= No_Slot then
+                  declare
+                     Slot : constant Slot_Record := Into.Slots.Element
+                       (Held.Slots.First + Positive (Code.Slot));
+                  begin
+                     if not Frame_Bases or else not Slot.Array_Shape
+                       or else Slot.Addressed
+                       or else Parameter (Positive (Code.Slot))
+                     then
+                        return False;
+                     end if;
+                  end;
+                  Place := (Kind => Frame_Slot, Slot => Code.Slot);
+                  Shape := Whole_Slot_Array_Shape (Into, Item, Code.Slot);
+               elsif Datum_Bases and then Code.Named /= No_Item
+                 and then Result_Of (Into, Code.Named)
+                   = Landin.Types.Fixed_Array
+               then
+                  Place := (Kind => Module_Datum, Datum => Code.Named);
+                  Shape := Whole_Array_Shape (Into, Code.Named);
+               else
+                  return False;
+               end if;
+               return Shape.Kind = Array_Field_Shape
+                 and then Shape.Nominal = No_Nominal_Type
+                 and then Shape.Signature = No_Signature
+                 and then Shape.Atoms = No_Atom_Set
+                 and then Shape.Pointee = No_Pointee
+                 and then Shape.Packing.Bits = 0;
+            end Array_Reached;
 
             procedure Analyse (Head : Block_Id);
             procedure Analyse (Head : Block_Id) is
@@ -489,7 +562,9 @@ package body Landin.IR.Hoisting is
                                         Inlined => Into.Blocks.Element
                                           (Held.Blocks.First
                                            + Positive (Block)).Inlined,
-                                        others => <>)));
+                                        others => <>),
+                                     Address => False,
+                                     Place => <>));
                                  Root (At_Code) := Moves.Last_Index;
                               else
                                  for A in 1 .. Code.Args loop
@@ -517,8 +592,69 @@ package body Landin.IR.Hoisting is
                      end if;
                   end;
                end loop;
+               --  An element access to a whole array, in the frame or a
+               --  module datum, reaches it through an address made once.
+               for Index in 1 .. Member_Total loop
+                  declare
+                     Block : constant Block_Id := Members (Index);
+                  begin
+                     if Loop_Of (Positive (Block)) = Head then
+                        for V in Block_Start (Block) + 1
+                          .. Block_Start (Block) + Block_Length (Block)
+                        loop
+                           declare
+                              Code : constant Instruction :=
+                                Code_At (Value_Id (V));
+                              Place : Storage;
+                              Shape : Field_Shape;
+                              Found : Natural := 0;
+                           begin
+                              if Array_Reached (Code, Place, Shape) then
+                                 for M in Loop_Moves + 1
+                                   .. Natural (Moves.Length)
+                                 loop
+                                    if Moves.Element (M).Address
+                                      and then Moves.Element (M).Place = Place
+                                    then
+                                       Found := M;
+                                    end if;
+                                 end loop;
+                                 if Found = 0
+                                   and then Integer_Held < Integer_Budget
+                                 then
+                                    Integer_Held := Integer_Held + 1;
+                                    Added := Added + 1;
+                                    Moves.Append
+                                      (Move'(Item => Item,
+                                             Preheader => Preheader,
+                                             Value => Value_Id (V),
+                                             Slot => Slot_Id
+                                               (Held.Slots.Count + Added),
+                                             Carrier =>
+                                               (Of_Type => Landin.Types.Usize,
+                                                Element => Shape,
+                                                Addressed => True,
+                                                Site => Code.Site,
+                                                Inlined => Into.Blocks.Element
+                                                  (Held.Blocks.First
+                                                   + Positive (Block)).Inlined,
+                                                others => <>),
+                                             Address => True,
+                                             Place => Place));
+                                    Found := Moves.Last_Index;
+                                 end if;
+                                 Reach (Held.Values.First + V) := Found;
+                              end if;
+                           end;
+                        end loop;
+                     end if;
+                  end;
+               end loop;
             end Analyse;
          begin
+            for P in 1 .. Parameter_Count (Into, Item) loop
+               Parameter (Positive (Nth_Parameter (Into, Item, P))) := True;
+            end loop;
             for S in 1 .. Held.Slots.Count loop
                declare
                   Slot : constant Slot_Record :=
@@ -622,6 +758,7 @@ package body Landin.IR.Hoisting is
          procedure Rebuild is
             Root : Counts.Elements renames Root_Owner.Data.all;
             Drop : Flags.Elements renames Drop_Owner.Data.all;
+            Reach : Counts.Elements renames Reach_Owner.Data.all;
             First_Move : Counts.Elements renames First_Move_Owner.Data.all;
             Slots : Slot_Vectors.Vector;
             Code : Code_Vectors.Vector;
@@ -761,7 +898,19 @@ package body Landin.IR.Hoisting is
                                     Moved : constant Move :=
                                       Moves.Element (Scan);
                                     Made : constant Value_Id :=
-                                      Remake (Moved.Value, Was.In_Block);
+                                      (if Moved.Address
+                                       then Append
+                                         (Instruction'
+                                            (Op => Storage_Address,
+                                             Result => Landin.Types.Usize,
+                                             Site =>
+                                               Old_Code (Moved.Value).Site,
+                                             In_Block => Was.In_Block,
+                                             Destination => Moved.Place,
+                                             others => <>),
+                                          Value_Ref_Vectors.Empty_Vector)
+                                       else Remake
+                                         (Moved.Value, Was.In_Block));
                                  begin
                                     if Append
                                       (Instruction'
@@ -802,7 +951,18 @@ package body Landin.IR.Hoisting is
                                  Operands.Append (Map (Positive (Before)));
                               end;
                            end loop;
-                           Map (V) := Append (Was, Operands);
+                           if Reach (At_Code) /= 0 then
+                              declare
+                                 Now : Instruction := Was;
+                              begin
+                                 Now.Slot := Moves.Element
+                                   (Reach (At_Code)).Slot;
+                                 Now.Named := No_Item;
+                                 Map (V) := Append (Now, Operands);
+                              end;
+                           else
+                              Map (V) := Append (Was, Operands);
+                           end if;
                         end if;
                      end;
                   end loop;

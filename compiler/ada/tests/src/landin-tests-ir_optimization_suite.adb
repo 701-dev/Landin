@@ -3224,6 +3224,57 @@ package body Landin.Tests.IR_Optimization_Suite is
          Landin.Testing.Check (Item, In_First = Moved, Why);
       end Expect_Moved;
 
+      --  Whether the first Op in a routine reaches its array through an
+      --  address slot, at speed for Facts.
+      procedure Expect_Address
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Op : IR.Opcode; Expected : Boolean; Why : String);
+
+      procedure Expect_Address
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Op : IR.Opcode; Expected : Boolean; Why : String)
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
+         Found : Boolean := False;
+         Through : Boolean := False;
+      begin
+         Lower (Item, Work, Source);
+         IR.Simplification.Run
+           (Landin.Stages.Code (Work).all, Facts, Opt.Speed);
+         IR.Hoisting.Run (Landin.Stages.Code (Work).all, Facts, Opt.Speed);
+         declare
+            Code : IR.Unit renames Landin.Stages.Code (Work).all;
+         begin
+            for I in 1 .. IR.Item_Count (Code) loop
+               if IR.Kind_Of (Code, IR.Item_Id (I)) = IR.Routine then
+                  for V in 1 .. IR.Value_Count (Code, IR.Item_Id (I)) loop
+                     if not Found
+                       and then IR.Op_Of
+                         (Code, IR.Item_Id (I), IR.Value_Id (V)) = Op
+                     then
+                        Found := True;
+                        Through := IR.Reaches_A_Slot
+                            (Code, IR.Item_Id (I), IR.Value_Id (V))
+                          and then IR.Is_Address
+                            (Code, IR.Item_Id (I),
+                             IR.Slot_Of
+                               (Code, IR.Item_Id (I), IR.Value_Id (V)));
+                     end if;
+                  end loop;
+               end if;
+            end loop;
+         end;
+         Landin.Testing.Check
+           (Item, Found and then Through = Expected, Why);
+      end Expect_Address;
+
+      Filled : constant String :=
+        "public f: (n: u32) -> (r: u32) = mut a: [16]u32 = [of 0] "
+        & "for i in usize(0)..<16 do a[i] = n end for r = a[3] end f";
+      Summed : constant String :=
+        "t: [4]u32 = [1, 2, 3, 4] "
+        & "public f: (n: u32) -> (r: u32) = r = n "
+        & "for i in usize(0)..<4 do r = r +% t[i] end for end f";
       Scaled : constant String :=
         "public f: (n: u32, x: f64) -> (r: f64) = mut a: f64 = x "
         & "mut i: u32 = 0 while i < n do a = a * 2.0 i = i +% 1 "
@@ -3272,6 +3323,18 @@ package body Landin.Tests.IR_Optimization_Suite is
          & "mut j: u32 = k while i < n do r = r +% (j *% 3) j = j +% 1 "
          & "i = i +% 1 end while end f",
          IR.Wrapping_Multiply, False, "a slot the loop stores varies");
+      Expect_Address
+        (Landin.Targets.Linux_Arm64, Filled, IR.Store_Element, True,
+         "arm64 holds a frame array's address over its loop");
+      Expect_Address
+        (Landin.Targets.Linux_X86_64, Filled, IR.Store_Element, False,
+         "x86-64 indexes a frame array from rbp");
+      Expect_Address
+        (Landin.Targets.Linux_Arm64, Summed, IR.Load_Element, True,
+         "arm64 holds a module array's address over its loop");
+      Expect_Address
+        (Landin.Targets.Linux_RV64, Summed, IR.Load_Element, False,
+         "RV64 measured no better holding an array's address");
    end Loop_Invariants;
 
    procedure Register (Into : in out Landin.Testing.Registry) is
