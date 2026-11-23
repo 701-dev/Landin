@@ -940,6 +940,24 @@ candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45192853995) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45197336539).
 
+### R16.33 — Element addresses and products by a constant
+
+Status: planned
+Depends on: R16.10
+
+What R16.31 left as SHA-256's largest cost against gcc on the hosted
+targets, now selection rather than checks: `SR-1704`'s index offsets
+made in registers of their own rather than in the address's
+displacement, the same `4 * t` made four times in one block, and a
+multiplication by a power of two made as a product rather than a shift
+or a scaled index. The schedule spends 31 x86-64 instructions an
+iteration where about 23 would do, the load loop more; 6.90 G on 64 MiB
+against gcc's 4.56 G.
+Exit evidence: SHA-256's schedule and load loops measured with each
+constant offset in the address and each `4 * t` made once and scaled or
+shifted, its instructions lower than R16.31's figures on x86-64 and
+arm64, and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
