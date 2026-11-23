@@ -63,7 +63,7 @@
    "instructions": 352174
   },
   "armv6-m/size-all/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/size-all/mandelbrot": {
    "instructions": 45789971
@@ -81,7 +81,7 @@
    "instructions": 352180
   },
   "armv6-m/size-auto/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/size-auto/mandelbrot": {
    "instructions": 45789971
@@ -99,7 +99,7 @@
    "instructions": 352180
   },
   "armv6-m/size-off/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/size-off/mandelbrot": {
    "instructions": 45789971
@@ -117,7 +117,7 @@
    "instructions": 352465
   },
   "armv6-m/speed-all/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/speed-all/mandelbrot": {
    "instructions": 45790100
@@ -135,7 +135,7 @@
    "instructions": 352465
   },
   "armv6-m/speed-auto/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/speed-auto/mandelbrot": {
    "instructions": 45790100
@@ -153,7 +153,7 @@
    "instructions": 352471
   },
   "armv6-m/speed-off/fannkuch-redux": {
-   "instructions": 3093284
+   "instructions": 3074512
   },
   "armv6-m/speed-off/mandelbrot": {
    "instructions": 45790100
@@ -225,7 +225,7 @@
    "instructions": 344120
   },
   "armv7-m/size-all/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv7-m/size-all/mandelbrot": {
    "instructions": 15392183
@@ -243,7 +243,7 @@
    "instructions": 344127
   },
   "armv7-m/size-auto/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv7-m/size-auto/mandelbrot": {
    "instructions": 15392183
@@ -261,7 +261,7 @@
    "instructions": 344127
   },
   "armv7-m/size-off/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv7-m/size-off/mandelbrot": {
    "instructions": 15392183
@@ -279,7 +279,7 @@
    "instructions": 338265
   },
   "armv7-m/speed-all/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv7-m/speed-all/mandelbrot": {
    "instructions": 15385406
@@ -297,7 +297,7 @@
    "instructions": 338265
   },
   "armv7-m/speed-auto/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv7-m/speed-auto/mandelbrot": {
    "instructions": 15385406
@@ -315,7 +315,7 @@
    "instructions": 338272
   },
   "armv7-m/speed-off/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv7-m/speed-off/mandelbrot": {
    "instructions": 15385406
@@ -387,7 +387,7 @@
    "instructions": 344172
   },
   "armv7e-m+fpv5-d16/size-all/fannkuch-redux": {
-   "instructions": 2759034
+   "instructions": 2741722
   },
   "armv7e-m+fpv5-d16/size-all/mandelbrot": {
    "instructions": 651795
@@ -405,7 +405,7 @@
    "instructions": 344179
   },
   "armv7e-m+fpv5-d16/size-auto/fannkuch-redux": {
-   "instructions": 2759034
+   "instructions": 2741722
   },
   "armv7e-m+fpv5-d16/size-auto/mandelbrot": {
    "instructions": 651795
@@ -423,7 +423,7 @@
    "instructions": 344179
   },
   "armv7e-m+fpv5-d16/size-off/fannkuch-redux": {
-   "instructions": 2759034
+   "instructions": 2741722
   },
   "armv7e-m+fpv5-d16/size-off/mandelbrot": {
    "instructions": 651795
@@ -441,7 +441,7 @@
    "instructions": 338317
   },
   "armv7e-m+fpv5-d16/speed-all/fannkuch-redux": {
-   "instructions": 2725324
+   "instructions": 2708012
   },
   "armv7e-m+fpv5-d16/speed-all/mandelbrot": {
    "instructions": 647066
@@ -459,7 +459,7 @@
    "instructions": 338317
   },
   "armv7e-m+fpv5-d16/speed-auto/fannkuch-redux": {
-   "instructions": 2725324
+   "instructions": 2708012
   },
   "armv7e-m+fpv5-d16/speed-auto/mandelbrot": {
    "instructions": 647066
@@ -477,7 +477,7 @@
    "instructions": 338324
   },
   "armv7e-m+fpv5-d16/speed-off/fannkuch-redux": {
-   "instructions": 2725324
+   "instructions": 2708012
   },
   "armv7e-m+fpv5-d16/speed-off/mandelbrot": {
    "instructions": 647066
@@ -549,7 +549,7 @@
    "instructions": 344120
   },
   "armv8-m.main/size-all/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv8-m.main/size-all/mandelbrot": {
    "instructions": 15392183
@@ -567,7 +567,7 @@
    "instructions": 344127
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv8-m.main/size-auto/mandelbrot": {
    "instructions": 15392183
@@ -585,7 +585,7 @@
    "instructions": 344127
   },
   "armv8-m.main/size-off/fannkuch-redux": {
-   "instructions": 2758982
+   "instructions": 2741670
   },
   "armv8-m.main/size-off/mandelbrot": {
    "instructions": 15392183
@@ -603,7 +603,7 @@
    "instructions": 338265
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv8-m.main/speed-all/mandelbrot": {
    "instructions": 15385406
@@ -621,7 +621,7 @@
    "instructions": 338265
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv8-m.main/speed-auto/mandelbrot": {
    "instructions": 15385406
@@ -639,7 +639,7 @@
    "instructions": 338272
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "instructions": 2725272
+   "instructions": 2707960
   },
   "armv8-m.main/speed-off/mandelbrot": {
    "instructions": 15385406

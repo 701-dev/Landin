@@ -155,7 +155,7 @@
   "armv6-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -199,7 +199,7 @@
   "armv6-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -243,7 +243,7 @@
   "armv6-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -287,7 +287,7 @@
   "armv6-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -331,7 +331,7 @@
   "armv6-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -375,7 +375,7 @@
   "armv6-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 980,
+    ".text": 976,
     ".bss": 8
    }
   },
@@ -554,7 +554,7 @@
   "armv7-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -597,7 +597,7 @@
   "armv7-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -640,7 +640,7 @@
   "armv7-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -683,7 +683,7 @@
   "armv7-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -726,7 +726,7 @@
   "armv7-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -769,7 +769,7 @@
   "armv7-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -947,7 +947,7 @@
   "armv7e-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -990,7 +990,7 @@
   "armv7e-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -1033,7 +1033,7 @@
   "armv7e-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -1076,7 +1076,7 @@
   "armv7e-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -1119,7 +1119,7 @@
   "armv7e-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -1162,7 +1162,7 @@
   "armv7e-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -1340,7 +1340,7 @@
   "armv8-m.main/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -1383,7 +1383,7 @@
   "armv8-m.main/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -1426,7 +1426,7 @@
   "armv8-m.main/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 884,
+    ".text": 880,
     ".bss": 8
    }
   },
@@ -1469,7 +1469,7 @@
   "armv8-m.main/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -1512,7 +1512,7 @@
   "armv8-m.main/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
@@ -1555,7 +1555,7 @@
   "armv8-m.main/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 900,
     ".bss": 8
    }
   },
