@@ -117,9 +117,13 @@ package body Landin.Backend.X86_64.Allocation is
       end case;
    end Name;
 
+   function Number (Register : SSE_Register) return Natural is
+     (if Register in High_SSE then SSE_Register'Pos (Register) + 8
+      else SSE_Register'Pos (Register) - SSE_Register'Pos (XMM1) + 1);
+
    function Name (Register : SSE_Register) return String is
-     ("%xmm" & Natural'Image (SSE_Register'Pos (Register) + 8)
-      (2 .. Natural'Image (SSE_Register'Pos (Register) + 8)'Last));
+     ("%xmm" & Natural'Image (Number (Register))
+      (2 .. Natural'Image (Number (Register))'Last));
 
    function SSE_Count (Of_Plan : Plan) return Natural is
       Count : Natural := 0;
@@ -1146,47 +1150,107 @@ package body Landin.Backend.X86_64.Allocation is
             return 0;
          end Released_By;
 
-         --  D2157: the slot a value's last use stores it into, when that
-         --  slot holds a register over the whole of the value's span,
-         --  nothing loads or stores the slot inside the span and no load
-         --  of it read in its register is read after the value begins:
-         --  the slot's old content is dead there, so the value may be
-         --  computed in that register and the store moves nothing.  The
-         --  span is short, so looking through it costs little; else 0.
+         --  D2157: the slot a value's first store stores it into, or the
+         --  first store of a chain of values each the next one's left
+         --  operand, when
+         --  that slot holds a register over the whole of the value's span,
+         --  nothing else loads or stores the slot inside the span and no
+         --  load of it read in its register is read after the value
+         --  begins: the slot's old content is dead there, so the value may
+         --  be computed in that register, the store moves nothing, and a
+         --  later use reads it there.  The span is short, so looking
+         --  through it costs little; else 0.
          function Overwrites (Value : Positive) return Natural is
             Longest : constant := 32;
-            User : constant Landin.IR.Value_Id :=
-              Landin.IR.Value_Id (Sequence (Lasts (Value)));
+            Store_At : Natural := 0;
+            --  The value of the chain stored: Value, or the last of the
+            --  values each inheriting the one before as its left operand.
+            Current : Positive := Value;
          begin
-            if Has_Assembly or else Lasts (Value) <= Starts (Value)
-              or else Lasts (Value) - Starts (Value) > Longest
-              or else Landin.IR.Op_Of (Of_Unit, Item, User) /= Landin.IR.Store
-              or else Positive (Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
-                /= Value
-            then
+            if Has_Assembly then
                return 0;
             end if;
+            loop
+               if Lasts (Current) <= Starts (Current)
+                 or else Lasts (Current) - Starts (Value) > Longest
+               then
+                  return 0;
+               end if;
+               --  The first store of the value; its uses after it read
+               --  the slot's register, which holds it from there on.
+               for Position in Starts (Current) + 1 .. Lasts (Current) loop
+                  declare
+                     User : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (Position));
+                  begin
+                     if Landin.IR.Op_Of (Of_Unit, Item, User)
+                         = Landin.IR.Store
+                       and then Positive
+                         (Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                         = Current
+                     then
+                        Store_At := Position;
+                        exit;
+                     end if;
+                  end;
+               end loop;
+               exit when Store_At /= 0;
+               declare
+                  User : constant Landin.IR.Value_Id :=
+                    Landin.IR.Value_Id (Sequence (Lasts (Current)));
+               begin
+                  if Inherited (User) /= Current
+                    or else Result.Value (Current).Address_Required
+                  then
+                     return 0;
+                  end if;
+                  Current := Positive (User);
+               end;
+            end loop;
             declare
-               Slot : constant Positive :=
-                 Positive (Landin.IR.Slot_Of (Of_Unit, Item, User));
+               Slot : constant Positive := Positive (Landin.IR.Slot_Of
+                 (Of_Unit, Item, Landin.IR.Value_Id (Sequence (Store_At))));
+               Held : Location renames Result.Slot (Slot);
             begin
                if Interval_Slots (Slot) = 0
-                 or else Result.Slot (Slot).Kind /= GP
+                 or else Held.Kind not in GP | SSE
                  or else Landin.IR.Is_Address
                    (Of_Unit, Item, Landin.IR.Slot_Id (Slot))
                  or else Spans (Slot).First > Starts (Value)
-                 or else Spans (Slot).Last < Lasts (Value)
+                 or else Spans (Slot).Last < Lasts (Current)
                  or else Read_Until (Slot) > Starts (Value)
                then
                   return 0;
                end if;
-               for Position in Starts (Value) + 1 .. Lasts (Value) - 1 loop
+               --  No operand but the left one is read from the register:
+               --  selection computes into it after moving the left one in.
+               for Which in 2 .. Landin.IR.Operand_Count
+                 (Of_Unit, Item, Landin.IR.Value_Id (Value))
+               loop
+                  declare
+                     Other : Location renames Result.Value
+                       (Positive (Landin.IR.Nth_Operand
+                          (Of_Unit, Item, Landin.IR.Value_Id (Value),
+                           Which)));
+                  begin
+                     if Other.Kind = Held.Kind
+                       and then
+                         (if Held.Kind = GP
+                          then Other.Register = Held.Register
+                          else Other.Float_Register = Held.Float_Register)
+                     then
+                        return 0;
+                     end if;
+                  end;
+               end loop;
+               for Position in Starts (Value) + 1 .. Lasts (Current) loop
                   declare
                      Between : constant Landin.IR.Value_Id :=
                        Landin.IR.Value_Id (Sequence (Position));
                   begin
-                     if Landin.IR.Op_Of (Of_Unit, Item, Between)
-                       in Landin.IR.Load | Landin.IR.Store
+                     if Position /= Store_At
+                       and then Landin.IR.Op_Of (Of_Unit, Item, Between)
+                         in Landin.IR.Load | Landin.IR.Store
                        and then Positive
                          (Landin.IR.Slot_Of (Of_Unit, Item, Between)) = Slot
                      then
@@ -1467,6 +1531,22 @@ package body Landin.Backend.X86_64.Allocation is
                            Slot.Float_Register := Register;
                            Result.Used_SSE (Register) := True;
                            exit;
+                        end if;
+                     end loop;
+                     --  D2159: then XMM1..XMM7, where no call lies in the
+                     --  interval at all, its last position included: no
+                     --  value read there is a C call's argument.
+                     for Register in Low_SSE loop
+                        exit when Slot.Kind = SSE
+                          or else Calls_Through
+                            (Natural'Max (Span.Last, 1))
+                            /= (if Span.First <= 1 then 0
+                                else Calls_Through (Span.First - 1));
+                        if not Meets (Placed_SSE (Register), Span) then
+                           Placed_SSE (Register).Insert (Span.First, Index);
+                           Slot.Kind := SSE;
+                           Slot.Float_Register := Register;
+                           Result.Used_SSE (Register) := True;
                         end if;
                      end loop;
                   else
@@ -2026,7 +2106,7 @@ package body Landin.Backend.X86_64.Allocation is
                         if Allocate_SSE and then not Crosses_Call
                           (Position, Last)
                         then
-                           for Register in SSE_Register loop
+                           for Register in High_SSE loop
                               if Clear (Register, Position, Last) then
                                  Slot.Kind := SSE;
                                  Slot.Float_Register := Register;
@@ -2143,6 +2223,7 @@ package body Landin.Backend.X86_64.Allocation is
                         Place.Register :=
                           Result.Slot (Chained (Index)).Register;
                      elsif Overwrites (Index) /= 0
+                       and then Result.Slot (Overwrites (Index)).Kind = GP
                        and then not Named
                          (Result.Slot (Overwrites (Index)).Register)
                      then
@@ -2207,9 +2288,21 @@ package body Landin.Backend.X86_64.Allocation is
                     and then not Place.Address_Required
                     and then not Crosses_Call (Position, Lasts (Index))
                   then
-                     if Left /= 0 and then Result.Value (Left).Kind = SSE
+                     if Overwrites (Index) /= 0
+                       and then Result.Slot (Overwrites (Index)).Kind = SSE
+                     then
+                        --  D2157: the slot's register, as for an integer.
+                        Place.Kind := SSE;
+                        Place.Float_Register :=
+                          Result.Slot (Overwrites (Index)).Float_Register;
+                     elsif Left /= 0 and then Result.Value (Left).Kind = SSE
                        and then Clear (Result.Value (Left).Float_Register,
                                        Position, Lasts (Index))
+                       and then
+                         (Result.Value (Left).Float_Register in High_SSE
+                          or else Calls_Through (Lasts (Index))
+                            = (if Position = 1 then 0
+                               else Calls_Through (Position - 1)))
                      then
                         Place.Kind := SSE;
                         Place.Float_Register :=
@@ -2226,7 +2319,7 @@ package body Landin.Backend.X86_64.Allocation is
                         SSE_Busy_Until (Place.Float_Register) :=
                           Lasts (Index);
                      end if;
-                     for Register in SSE_Register loop
+                     for Register in High_SSE loop
                         exit when Place.Kind = SSE;
                         if Clear (Register, Position, Lasts (Index)) then
                            Place.Kind := SSE;

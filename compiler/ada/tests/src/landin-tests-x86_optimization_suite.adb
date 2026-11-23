@@ -206,6 +206,7 @@ package body Landin.Tests.X86_Optimization_Suite is
    procedure Arithmetic_Shapes (Item : in out Landin.Testing.Context);
    procedure Shifts_Rotate (Item : in out Landin.Testing.Context);
    procedure Operands_In_Place (Item : in out Landin.Testing.Context);
+   procedure Low_Float_Slots (Item : in out Landin.Testing.Context);
    procedure Element_Addressing (Item : in out Landin.Testing.Context);
    function Merging_Moves (Text : String) return Natural;
    procedure Reciprocals_Divide_Exactly
@@ -1826,6 +1827,56 @@ package body Landin.Tests.X86_Optimization_Suite is
       end loop;
    end Operands_In_Place;
 
+   --  D2159: size and speed give a float slot XMM1..XMM7 once XMM8..XMM13
+   --  are taken, where no call lies in its interval, and none where one
+   --  does (size removes the call of an empty routine, speed keeps it).
+   --  None keeps every float in the frame.
+   procedure Low_Float_Slots (Item : in out Landin.Testing.Context) is
+      use type Opt.Objective;
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+
+      function Sums (Name, Body_Text, Ending : String) return String is
+        ("public " & Name & ": (n: u32, a: f64) -> (r: f64) ="
+         & " mut x1: f64 = 0.0 mut x2: f64 = 0.0 mut x3: f64 = 0.0"
+         & " mut x4: f64 = 0.0 mut x5: f64 = 0.0 mut x6: f64 = 0.0"
+         & " mut x7: f64 = 0.0 mut x8: f64 = 0.0 mut i: u32 = 0"
+         & " while i < n do x1 = x1 + a x2 = x2 + x1 x3 = x3 + x2"
+         & " x4 = x4 + x3 x5 = x5 + x4 x6 = x6 + x5 x7 = x7 + x6"
+         & " x8 = x8 + x7 " & Body_Text & " inc i end while"
+         & " r = x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 end " & Ending & " ");
+   begin
+      Lower
+        (Item, Work,
+         "noop: () -> none = end noop "
+         & Sums ("spread", "", "spread")
+         & Sums ("called", "noop()", "called"));
+      for Objective in Opt.Objective loop
+         declare
+            Text : constant String := Emitted (Work, (Objective, Opt.Off));
+            --  Each routine's text, from its label to its size.
+            function Routine (Name : String) return String is
+              (Text (Ada.Strings.Fixed.Index (Text, Name & ":")
+                     .. Ada.Strings.Fixed.Index (Text, ".size " & Name)));
+         begin
+            if Objective = Opt.None then
+               Check_Assembly
+                 (Item, Text, not Contains (Text, "%xmm2"),
+                  "none keeps every float in the frame");
+            else
+               Check_Assembly
+                 (Item, Text,
+                  (not Contains
+                     (Routine ("called"), Character'Val (9) & "call")
+                   or else not Contains (Routine ("called"), "%xmm2"))
+                  and then Contains (Routine ("spread"), "%xmm2"),
+                  "size and speed give a slot XMM1..XMM7 only where no"
+                  & " call lies in its interval");
+            end if;
+         end;
+      end loop;
+   end Low_Float_Slots;
+
    --  Size and speed reach an element as one indexed memory operand
    --  after its bounds check: a frame array from %rbp, a slice element
    --  from its base, an element behind an address slot inside the access
@@ -2538,6 +2589,9 @@ package body Landin.Tests.X86_Optimization_Suite is
         (Into, "x86 opt", "shifts that rotate", Shifts_Rotate'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "operands in place", Operands_In_Place'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "float slots below XMM8",
+         Low_Float_Slots'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "element addressing", Element_Addressing'Access);
       Landin.Testing.Register
