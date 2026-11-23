@@ -880,7 +880,7 @@ figures on x86-64 and arm64, and no other combination over its own.
 
 ### R16.32 — Time the STM32H753 from its tightly coupled memories
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 `SR-1661`'s slowdowns, measured to their cause: the timing image's RAM
