@@ -1967,7 +1967,7 @@ parameter R20.20 reorders.
 
 ### R20.60 — The breaking list applied
 
-Status: planned
+Status: active
 Depends on: R20.20, R20.30, R20.11, R20.40, R20.50, R19.40
 
 The list, applied on R20's own integration branch and promoted alone in
