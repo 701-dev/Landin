@@ -862,6 +862,22 @@ direct port. The candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45151343160) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45156048985).
 
+### R16.31 — A loop's index proves its own checks
+
+Status: planned
+Depends on: R16.10
+
+What R16.30 left as the largest cost against gcc on the hosted targets:
+`SR-1680`'s checks on a loop's own index, which its head's comparison
+already bounds. SHA-256's message schedule subtracts constants from `t`
+and indexes with the results, its load loop indexes `4 * t + k`, and each
+subtraction, multiplication, addition and bounds check is still made:
+960 + 2,112 of about 7,400 x86-64 instructions a block, 7.76 G on 64 MiB
+against gcc's 4.56 G.
+Exit evidence: SHA-256's schedule and load loops measured without the
+checks their index's range proves, its instructions lower than R16.30's
+figures on x86-64 and arm64, and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
