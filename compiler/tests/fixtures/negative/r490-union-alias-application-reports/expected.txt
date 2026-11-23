@@ -53,4 +53,8 @@ error[L0696]: a pointer union holds one atom
   |
 9 | several_atoms: type = unions.with_atoms(ptr u8)
   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  --> ../tests/fixtures/negative/r490-union-alias-application-reports/unions/unions.ldn:5:37
+  |
+5 | public with_atoms: type (t: type) = first | second | t
+  |                                     ^^^^^^^^^^^^^^^^^^ the template's union
   = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer

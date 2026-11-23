@@ -382,9 +382,10 @@ package Landin.Diagnostics.Catalogue is
       --  and wrong for a lexeme that is present and refused.
       Bytes    : Boolean;
       --  The admitted secondary-label interval, Least .. Most.  Every code
-      --  except L0201, L0300, L0304, L0305, L0306 and L0325 has one exact
-      --  count, and the catalogue suite's `rows are whole` names those six:
-      --  a new code whose interval is wider joins its list.
+      --  except L0201, L0300, L0304, L0305, L0306, L0325 and L0696 and the
+      --  parser's two foreign-form codes has one exact count, and the
+      --  catalogue suite's `rows are whole` names them: a new code whose
+      --  interval is wider joins its list.
       Least    : Natural;
       Most     : Natural;
       --  How many notes every occurrence carries.  A report made in a
@@ -1515,7 +1516,7 @@ package Landin.Diagnostics.Catalogue is
       Removed_Form =>
         (Code => "L0696", Level => Error, State => Live,
          Source => True, Bytes => True,
-         Least => 0, Most => 0, Notes => 1, Route => False,
+         Least => 0, Most => 1, Notes => 1, Route => False,
          Fixes => May_Fix, Shown_By => Negative_Fixture,
          Rule => +("D1847: the language removed this form, and the"
                    & " refusal names the one that replaces it")),

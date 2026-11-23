@@ -1,0 +1,10 @@
+class: negative
+summary: io.variable written as a type is refused naming text.os_variable, and the fix writes it and imports core/text once
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696, L0696, L0696
+fixed: main.fixed
+constructs: 1420, 1795
+targets: linux-x86-64
+expect: expected.txt

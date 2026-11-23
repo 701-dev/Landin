@@ -1,0 +1,25 @@
+--  D2182: a function value whose signature differs from its place's in one
+--  part is refused naming that part on each side: here a parameter kept
+--  `escaping into head` where the place's type says `escaping`.
+node: type = struct
+    next: ptr mut node
+end node
+
+link: type = struct
+    first: ptr mut node
+end link
+
+keeper: type = (inout head: link, escaping item: ptr mut node) -> none
+
+push_front: (inout head: link, escaping into head item: ptr mut node)
+            -> none =
+    head.first = item
+end push_front
+
+pick: () -> (chosen: keeper) =
+    chosen = push_front
+end pick
+
+public main: () -> (code: i32) =
+    code = 0
+end main

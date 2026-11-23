@@ -1,0 +1,14 @@
+error[L0696]: `entries` is no longer a parameter of this callable
+  --> ../tests/fixtures/negative/library-label-removed-fibres/main.ldn:14:36
+   |
+14 |                                    entries: entries)
+   |                                    ^^^^^^^
+  = note: D2034: stacks.round_over's `entries` is `fibres`
+  = help: write `fibres`
+error[L0696]: `entries` is no longer a parameter of this callable
+  --> ../tests/fixtures/negative/library-label-removed-fibres/main.ldn:21:36
+   |
+21 |     host := try events.over(space, entries: entries)
+   |                                    ^^^^^^^
+  = note: D2034: events.over's `entries` is `fibres`
+  = help: write `fibres`

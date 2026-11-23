@@ -7,4 +7,4 @@ error[L0301]: this function has a different signature
    |
 10 | state: choice = (kind: some(callback: wrong))
    |                             ^^^^^^^^^^^^^^^ the variant payload field named here
-  = note: [1000]: a function payload keeps its complete structural signature
+  = note: [1000]: a function payload keeps its complete structural signature; the first difference is `x: bool` on one side and `x: i32` on the other

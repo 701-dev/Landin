@@ -1,0 +1,10 @@
+class: negative
+summary: a call of mem.transfer, random.shuffle, stacks.round_over, fake.network_over_turns or the file_system entry make_temporary in its old order is refused naming the new order, and the fix writes the arguments in it
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696, L0696, L0696, L0696, L0696
+fixed: main.fixed
+constructs: 1420, 0980
+targets: linux-x86-64
+expect: expected.txt

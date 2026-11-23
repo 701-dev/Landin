@@ -1,0 +1,8 @@
+class: negative
+summary: a function value whose parameter escapes into another, where its place's type says escaping, is refused naming that parameter as each side writes it
+program: main.ldn
+args: --target=linux-x86-64 ../tests/fixtures/negative/function-value-escaping-into-differs/main.ldn
+codes: L0301
+constructs: 1000, 0800
+targets: linux-x86-64
+expect: expected.txt

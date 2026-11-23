@@ -1,0 +1,89 @@
+--  D2180: a conformance whose function takes `make_temporary`'s
+--  parameters in the order before D1954 is refused naming the new order.
+--  It has no fix: swapping the function's own parameters would put every
+--  direct call of it out of order.
+import core/io
+import core/mem
+import core/text
+
+box: type = struct
+    n: usize
+end box
+
+box_open_read: (self: box, path: text.os_string) -> (opened: io.file)
+               ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
+    fail io.io_failed
+end box_open_read
+box_open_write: (self: box, path: text.os_string) -> (opened: io.file)
+                ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
+    fail io.io_failed
+end box_open_write
+box_same_file: (self: box, left: text.os_string, right: text.os_string)
+               -> (same: bool) ! io.io_failed =
+    fail io.io_failed
+end box_same_file
+box_close: (self: box, sink opened: io.file) -> none ! io.io_failed =
+    fail io.io_failed
+end box_close
+box_open_file: (self: box, path: text.os_string, options: io.open_options)
+               -> (opened: io.file)
+               ! io.already_exists | mem.not_found | io.no_access
+               | io.is_a_directory | io.io_failed =
+    fail io.io_failed
+end box_open_file
+box_rename: (self: box, old: text.os_string, new: text.os_string)
+            -> none ! mem.not_found | io.no_access | io.io_failed =
+    fail io.io_failed
+end box_rename
+box_status_of: (self: box, path: text.os_string, links: io.link_handling)
+               -> (found: io.status) ! mem.not_found | io.no_access | io.io_failed =
+    fail io.io_failed
+end box_status_of
+box_status_of_file: (self: box, opened: io.file) -> (found: io.status)
+                    ! io.io_failed =
+    fail io.io_failed
+end box_status_of_file
+box_set_read_only: (self: box, path: text.os_string, read_only: bool)
+                   -> none ! mem.not_found | io.no_access | io.io_failed =
+    fail io.io_failed
+end box_set_read_only
+box_synchronize: (self: box, opened: io.file, writing: io.synchronizing)
+                 -> none ! io.io_failed =
+    fail io.io_failed
+end box_synchronize
+box_truncate: (self: box, opened: io.file, size: u64) -> none ! io.io_failed =
+    fail io.io_failed
+end box_truncate
+box_read_at: (self: box, opened: io.file, offset: u64, into: []mut u8)
+             -> (count: usize) ! io.io_failed =
+    fail io.io_failed
+end box_read_at
+box_write_at: (self: box, opened: io.file, offset: u64, bytes: []u8)
+              -> none ! io.io_failed =
+    fail io.io_failed
+end box_write_at
+box_make_temporary: (self: box, directory: text.os_string,
+                     names: any io.entropy, into: []mut u8)
+                    -> (made: io.temporary from into)
+                    ! mem.not_found | io.no_access | io.io_failed =
+    fail io.io_failed
+end box_make_temporary
+box_current_directory: (self: box, into: []mut u8)
+                       -> (path: text.os_string from into) ! io.io_failed =
+    fail io.io_failed
+end box_current_directory
+
+box is io.files
+    (open_read: box_open_read, open_write: box_open_write,
+     same_file: box_same_file, close: box_close)
+box is io.file_system
+    (open_file: box_open_file, rename: box_rename,
+     status_of: box_status_of, status_of_file: box_status_of_file,
+     set_read_only: box_set_read_only, synchronize: box_synchronize,
+     truncate: box_truncate, read_at: box_read_at,
+     write_at: box_write_at, make_temporary: box_make_temporary,
+     current_directory: box_current_directory)
+
+public main: () -> (code: i32) =
+    code = 0
+end main

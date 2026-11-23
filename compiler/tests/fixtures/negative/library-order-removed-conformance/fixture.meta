@@ -1,0 +1,9 @@
+class: negative
+summary: a conformance supplying io.file_system's make_temporary with its parameters in the old order is refused naming the new order, with no fix
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696
+constructs: 1240, 0900
+targets: linux-x86-64
+expect: expected.txt

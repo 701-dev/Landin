@@ -820,7 +820,10 @@ such as indexing, slicing, selection or a call applied to a value whose type
 has none [1820], an operator given an operand class it does not admit, a struct of another nominal type [0710], an array of another length
 or element type, a function of another signature [1000], or a reference of
 another permission [0440]. The second label shows where the requirement was
-stated. Change the value, or convert it explicitly where a conversion exists.
+stated. For a function of another signature, the note names the first
+parameter or result that differs, as each side writes it. Where the
+signatures differ in their number of parameters, or the difference is
+elsewhere, it gives both signatures whole (D2182). Change the value, or convert it explicitly where a conversion exists.
 A text literal takes `utf8`, `[]u8`, `utf16` or `cstring` from its context but
 never a pointer; for a `ptr u8` parameter, bind it, `name: []u8 = "..."`, and
 pass `addr name[0]`, since the literal ends in NUL (D442). `utf8` and `[]u8`
@@ -3301,6 +3304,26 @@ because what replaces them changes the program's shape. `map.end_of_entries`
 is gone because `map.next_entry` no longer fails: ask `map.at_end`. Instead
 of `io.writer_of` or `io.lent_writer`, pass the world itself, since an
 `any io.world` converts to `any io.writer`.
+
+Five routines and one concept entry kept their names and took their
+parameters in a new order (D1954): `mem.transfer`, `random.shuffle`,
+`stacks.round_over`, `fake.network_over_turns`, and `make_temporary` of
+`io.file_system`. A call whose arguments are in the old order is refused
+here when their kinds show it, which a literal, an `any(...)` or a name
+whose type is known does; the note names the new order and the fix writes
+the arguments in it (D2180). Where the kinds do not show it, the call is
+refused at the argument out of place, as before. A conformance that
+supplies `make_temporary` with a function whose parameters are in the old
+order is refused with no fix, since swapping that function's parameters
+would put every direct call of it out of order. Three more forms are
+refused with a fix. A call's `entries:` label on `stacks.round_over` or
+`events.over` becomes `fibres:` (D2034). `io.variable` written as a type
+becomes `text.os_variable` (D2033), and the fix imports `core/text` if the
+file does not. `posix.words` given an argument whose atom set holds a
+library atom becomes `system.words` (D2008), and the fix imports
+`hosted/system` the same way. Separately, a pointer union refused at the
+application of a parameterized alias (D1659) names the template's union
+beside the application (D2181).
 
 ```landin
 public main: () -> (code: i32) =

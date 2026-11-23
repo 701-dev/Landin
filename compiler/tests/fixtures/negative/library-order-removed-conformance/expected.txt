@@ -1,0 +1,10 @@
+error[L0696]: this function takes the parameters of `make_temporary` in another order
+  --> ../tests/fixtures/negative/library-order-removed-conformance/main.ldn:79:1
+   |
+79 | box is io.file_system
+   | ^^^^^^^^^^^^^^^^^^^^^
+  --> ../tests/fixtures/negative/library-order-removed-conformance/main.ldn:65:33
+   |
+65 | box_make_temporary: (self: box, directory: text.os_string,
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^ the first parameter out of place
+  = note: D1954: `make_temporary` of `io.file_system` takes `names` before `directory`, then `into`; a capability comes before the inputs

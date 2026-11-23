@@ -7,4 +7,4 @@ error[L0301]: this function has a different signature
    |
 10 | state: box = (callback: infallible)
    |               ^^^^^^^^^^^^^^^^^^^^ the struct field named here
-  = note: [1000]: a function-valued field keeps its complete structural signature
+  = note: [1000]: a function-valued field keeps its complete structural signature; one signature is `() -> none` and the other is `() -> none ! problem`
