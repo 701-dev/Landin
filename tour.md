@@ -5508,7 +5508,7 @@ module, and `code` is the exit status, passed through the system's C ABI.
 
 **Arguments.** The arguments are not parameters. You ask the host for
 them, as `io.argument(host, 0)` does in "Reading a file" at the top:
-the host keeps the argument table and lends each argument as a host string
+the host keeps the argument table and lends each argument as an OS string
 ([1660]). The first argument is the one after the program's own name. C's
 `argc` and `argv` shape could not be indexed in Landin without turning a
 pointer into a slice, which Landin does not do ([0500]).

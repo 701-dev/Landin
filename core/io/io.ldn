@@ -77,7 +77,7 @@ public reader: type = concept (provider: type)
           -> (count: usize) ! io_failed
 end reader
 
---- File lifecycle and identity capability. A path is a host string, as
+--- File lifecycle and identity capability. A path is an OS string, as
 --- the system gives and takes it (`text.os_string`); a literal one is
 --- `text.os_string_over("name")`. A successful open returns a
 --- provider-specific handle; close consumes the handle even when reporting
@@ -107,7 +107,7 @@ public files: type = concept (provider: type)
            -> none ! io_failed
 end files
 
---- Standard streams and argument access. An argument is a host string
+--- Standard streams and argument access. An argument is an OS string
 --- whose storage belongs to the provider; stream identifiers have
 --- provider-specific lifetime and closing rules.
 public process: type = concept (provider: type)
@@ -127,7 +127,7 @@ public process: type = concept (provider: type)
 end process
 
 --- The process's environment: its variables, each a name and a value that
---- are host strings whose storage belongs to the provider, in the order
+--- are OS strings whose storage belongs to the provider, in the order
 --- the provider keeps them.  It is read-only: a process does not change
 --- its own environment, which is not safe beside threads, and gives a
 --- child the one it builds instead (`programs`).  It is a concept of its
@@ -182,7 +182,7 @@ public directory: type = struct
     at_end: bool
 end directory
 
---- One entry of a directory: its name, a host string as the system stores
+--- One entry of a directory: its name, an OS string as the system stores
 --- it, which need not be UTF-8, and what it is.  `read_entry` returns an
 --- entry whose `at_end` is true at the end of the directory, its name then
 --- empty; every other entry's `at_end` is false.
@@ -194,7 +194,7 @@ end entry
 
 --- Directory listing and the names in a tree: open a directory and read its
 --- entries, ask an entry's size, make and remove directories, and remove
---- files.  Paths are host strings, as `files` takes them, and an entry's
+--- files.  Paths are OS strings, as `files` takes them, and an entry's
 --- name is one too, so a name read is given back unconverted.  A listing
 --- leaves out `.` and `..`, which every directory holds and which are no
 --- entries of its own.  It gives its entries in the system's order, and no
@@ -425,7 +425,7 @@ public arguments_length: (provider: type is process, host: provider)
     count = provider.arguments_length(host)
 end arguments_length
 
---- Lend the process argument at `index` as a host string; index zero is the
+--- Lend the process argument at `index` as an OS string; index zero is the
 --- first argument after the program's name, C's `argv[1]`. An index that
 --- names no argument reports `mem.not_found`. The provider's argument backing
 --- must outlive the string's use. Convert it to `utf8` with the checked
@@ -443,7 +443,7 @@ public variables_length: (provider: type is environment, host: provider)
 end variables_length
 
 --- Lend the environment variable at `index`, from zero, its name and value
---- host strings.  Reports `mem.not_found` for an index at or past the count;
+--- OS strings.  Reports `mem.not_found` for an index at or past the count;
 --- the provider's backing must outlive its use.  Every index below
 --- `variables_length` gives one, so a loop over them lists the whole
 --- environment.

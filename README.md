@@ -590,7 +590,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R20.60 — The breaking list applied.**
+**Current roadmap work: R20.61 — Refusals that say what to write.**
 
 ## Questions, bugs and ideas
 

@@ -478,7 +478,7 @@ draws its seed from the system's entropy, and
 is given two words.
 
 There are two ways to walk a map. One starts at `map.entries()` and
-calls `map.next_entry` until the call fails with `map.end_of_entries`;
+asks `map.at_end` before each `map.next_entry`, which never fails;
 the executable example below walks this way. The other is a `for` loop
 over the map,
 [as this program does](../compiler/tests/fixtures/runtime/for-over-map-and-tree/main.ldn). The
@@ -508,7 +508,7 @@ The program keeps three maps over one arena, keyed by `i32`, `[]u8` and
 `utf8`. It inserts keys, replaces one key's item and reads each item
 back. It finds a `[]u8` key through equal bytes at another address. It
 walks the `utf8` map's entries in insertion order until
-`map.end_of_entries`, and it releases every map.
+`map.at_end`, and it releases every map.
 
 ## core/sort
 
@@ -551,7 +551,7 @@ Byte cursors, validated UTF-8 views, positions and searches inside them, a scala
 | `text.format` | Append a template with each `{}` filled in. |
 | `text.format_onto` | Format a template through a buffer, handing the text to an `outlet` as the buffer fills. |
 | `text.parse_u32` and the rest | Read a number from bytes. |
-| `text.os_string_over`, `text.from_os_string` | Make a host string, and check that one is UTF-8. |
+| `text.os_string_over`, `text.from_os_string` | Make an OS string, and check that one is UTF-8. |
 
 ### Views and cursors
 
@@ -654,12 +654,12 @@ pass what follows the offset, `buffer[at..<lenof buffer]`.
   `invalid_scalar`. This refusal comes first, whatever the room.
 - A scalar that does not fit is `mem.out_of_memory`.
 
-### Host strings
+### OS strings
 
-A host string, `os_string`, is a path, a process argument or a
+An OS string, `os_string`, is a path, a process argument or a
 directory entry's name, in the representation its system gives and
 takes. On Linux, Darwin and FreeBSD that representation is bytes, which
-need not be UTF-8. A host string is never converted on the way through,
+need not be UTF-8. An OS string is never converted on the way through,
 so an argument passed on as a path reaches the system as it was given.
 
 | Call | What it does |
@@ -669,7 +669,7 @@ so an argument passed on as a path reaches the system as it was given.
 | `os_string_equal` | Compare it with a literal. |
 | `os_string_over` | Make one over the caller's bytes: `text.os_string_over("input.txt")` for a literal path. |
 
-A host string lends what it was made from. The NUL a C call needs is
+An OS string lends what it was made from. The NUL a C call needs is
 never the caller's: `platform/posix` adds it beneath the provider, and
 refuses a path that holds one.
 
@@ -700,7 +700,7 @@ builder as it was:
 | `append_byte` | one byte |
 | `append_text` | a `utf8` |
 | `append_scalar` | a scalar's UTF-8 bytes, as `encode` writes them, or `invalid_scalar` |
-| `append_os_string` | a host string's bytes |
+| `append_os_string` | an OS string's bytes |
 | `append_u32`, `append_u64`, `append_usize` | decimal |
 | `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
 | `append_hex_u32`, `append_hex_u64`, `append_hex_usize` | lower-case hexadecimal with no `0x` |
@@ -772,7 +772,7 @@ these types, and a program declares it for a type of its own:
 
 - the ten integer types, in decimal;
 - `bool`, as `true` or `false`;
-- `utf8`, `[]u8` and host strings.
+- `utf8`, `[]u8` and OS strings.
 
 Floats, `f32` and `f64`, are not formattable yet.
 
@@ -916,7 +916,7 @@ The table below shows typical use, as in the tour's first program:
 | Print many lines | `mut out := io.buffered_over(host, io.out(host), storage)` makes a buffered writer over your buffer, an array such as `mut storage: [4096]u8 = zeroed`. `defer io.flush(out) else none` writes what waits on the way out. `try io.format(out, "{} of {}\n", [any(addr done), any(addr total)])` fills each `{}` with a value. |
 | Print bytes as they are | `try io.put(out, "done\n")`, through the same writer. |
 | Write straight to a stream | `io.write(host, io.err(host), bytes)` writes all the bytes, or fails with `io_failed`. |
-| Get an argument | `path := try io.argument(host, 0)` lends the first argument after the program's name as a host string, or fails with `mem.not_found`. `io.arguments_length(host)` counts the arguments. |
+| Get an argument | `path := try io.argument(host, 0)` lends the first argument after the program's name as an OS string, or fails with `mem.not_found`. `io.arguments_length(host)` counts the arguments. |
 | Read a file line by line | `file := try io.open_read(host, path)` opens it. `mut lines := io.lines_over(host, file, buffer)` makes a line reader over your buffer. `item := try io.read_line(lines)` gives each line in `item.bytes` until `item.at_end`. `try io.close(host, file)` closes the file. |
 
 ### Providers
@@ -945,14 +945,14 @@ the argument table, as in `io.out(host)`. Standard input is read through
 `reader` like any file, and a read of zero bytes into a nonempty buffer
 is its end.
 
-A path and an argument are both host strings, `text.os_string`, so an
+A path and an argument are both OS strings, `text.os_string`, so an
 argument passed on as a path is never converted.
 
 ### The memory world
 
 `memory_over` makes the memory world, firmware's own:
 
-- It takes each argument as its bytes and lends it back as a host string,
+- It takes each argument as its bytes and lends it back as an OS string,
   so an argument table can be static data.
 - It fills the caller's `memory_space`, whose limits and counters stay
   readable and settable.
@@ -990,10 +990,11 @@ well.
 `directory`. The caller passes that value `inout` to `read_entry`, which
 refills the buffer as entries are read.
 
-- Each entry's name is a host string that need not be UTF-8, lent from
+- Each entry's name is an OS string that need not be UTF-8, lent from
   the directory until the next read. The compiler refuses a name kept
   past that read [0800], so a program copies the names it keeps.
-- An empty name is the end.
+- The entry read after the last one has `at_end` true, and its name is
+  empty.
 - `.` and `..` are never listed, and the order is the system's.
 - `entry_size` asks the open directory for an entry's size by name, as a
   `u64`. It does not follow a symbolic link.
@@ -1020,7 +1021,7 @@ a firmware image that never asks for one.
 - `variable_named` lends the value of the first variable with a name,
   compared as bytes, or reports `mem.not_found`.
 
-Names and values are host strings that need not be UTF-8, lent from the
+Names and values are OS strings that need not be UTF-8, lent from the
 provider for as long as the process lives.
 
 The environment is read-only. A process does not change its own
@@ -1035,7 +1036,7 @@ a table of `NAME=value` byte strings, which firmware can declare as data.
 `programs` is a seventh concept, outside `world`, for running other
 programs.
 
-`spawn` starts the program at a path, a host string:
+`spawn` starts the program at a path, an OS string:
 
 - The path is never looked up on a search path or handed to a shell.
 - The program sees the arguments after its own name, and gets exactly the
@@ -1225,7 +1226,7 @@ writer did not take, so the next flush writes each byte once.
 
 `format` refuses a text larger than the whole buffer with
 `mem.out_of_memory`. Its values are `text.formattable`'s types, as
-`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and host strings.
+`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and OS strings.
 Floats are not formattable yet. To print one, scale it to an integer and
 print the parts, as `append_hundredths` in [core/text](../core/text) does
 for two decimals.
@@ -2410,7 +2411,7 @@ waiting for the child both wait. A provider built over it supplies
 
 ### The provider
 
-`new` makes a handle exposing process arguments, lent as host strings,
+`new` makes a handle exposing process arguments, lent as OS strings,
 and standard streams. They come from the root the hosted entry
 establishes through `platform/posix`'s
 `_landin_host_initialize_arguments`. A C `main` that drives Landin's
@@ -2678,7 +2679,7 @@ Two things the module leaves as the system reports them:
 - An interrupted call fails with `eintr` and is not retried here.
 - A short transfer is returned as it came.
 
-A path or an argument is a host string. The module copies it into a
+A path or an argument is an OS string. The module copies it into a
 buffer of the system's PATH_MAX with the NUL a C call needs. It refuses
 one that holds a NUL with `einval`, and one too long with
 `enametoolong`.

@@ -158,9 +158,9 @@ system's own order. A full `python3 check.py` holds every public routine
 and concept entry to both rules where they are mechanical: an `any C` it
 does not keep, a capability after an input and a `caller` before the
 end. It reads the evidence concepts, `cmp.ordered` and the like, as
-inputs, and any other concept as a capability. The routines the
-library review's breaking list reshapes are the only exceptions it
-allows (D1988).
+inputs, and any other concept as a capability. It allows no
+exceptions: the library review's breaking list reshaped the routines
+that were (D1988).
 
 `core/mem` keeps `allocate_item`/`release_item` for one allocated item and
 `allocate_bytes`/`release_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
@@ -186,13 +186,12 @@ shares are `core/line`, beside the board's own `serial`. A full
 (D1316).
 
 Two atoms serve every core container: `mem.out_of_bounds` for an index past
-the initialized prefix and `mem.empty` for taking from nothing. Key lookups
-keep their own, `mem.not_found` and `mem.not_found`, because a missing key
-is not a bad index. These atoms are the containers'; a provider concept
-that lends by index or by name keeps its own, as `io.argument` fails
-`mem.not_found` and `io.variable` and `io.variable_named` fail
-`mem.not_found`, since a provider has no initialized prefix to be past
-(D269). A second kind of provider in a module whose principal type is a
+the initialized prefix and `mem.empty` for taking from nothing. A key
+lookup fails a third, `mem.not_found`, because a missing key is not a bad
+index. A provider concept that lends by index or by name keeps no atom of
+its own for absence: `io.argument`, `io.variable` and `io.variable_named`
+fail `mem.not_found` too, since a provider has no initialized prefix to
+be past (D269). A second kind of provider in a module whose principal type is a
 concept is named for what it is rather than `new`: `core/cache`'s
 principal type is the `maintenance` concept, and `cache.cacheless(line)`
 makes the provider for memory no cache stands in front of (D1032).
@@ -210,7 +209,7 @@ through `any io.writer` (D268). Every entry takes the provider's
 handle by value, and an erased capability is built from the address of a
 handle binding, `any(addr host)`; dispatch copies the handle from there.
 `process` lends the standard streams `input`, `out` and `err` and the argument
-table, each argument a host string, and its free functions take the handle `in`, as `read` and `write` do,
+table, each argument an OS string, and its free functions take the handle `in`, as `read` and `write` do,
 so two lent arguments, the count and a write through an erased world made
 from the same handle are live at once. `in` is reserved [1760], so the
 standard-input entry is the noun `input`, which reads beside `out` and `err`
@@ -225,7 +224,7 @@ returns, supplies its read buffer, and passes it `inout` to `read_entry`.
 Each entry's name is lent `from` the directory, because the next read
 refills the buffer the name lies in, so a program that keeps a name copies
 it, and keeping one across a read is refused [0800]. Names, paths and
-arguments are host strings, `text.os_string`, as the system stores and
+arguments are OS strings, `text.os_string`, as the system stores and
 takes them, never converted on the way through; `text.from_os_string` validates
 one that should be text, and `text.os_string_over` makes one over the caller's
 bytes. An
@@ -241,7 +240,7 @@ are; its tree is the caller's slots, so it makes and removes nothing.
 `environment` is a sixth concept, outside `world` as `directories` is, so
 that widening `process` does not put an environment into every firmware
 image that streams through a world: it lends each variable, a name and a
-value that are host strings, by index or the first by name, read-only
+value that are OS strings, by index or the first by name, read-only
 because changing a process's own environment is not safe beside threads.
 `programs` is a seventh, also outside `world`, for running another
 program, D293's shape again: the provider is a handle, and a
@@ -333,7 +332,7 @@ into, that conforms to `reader`, `writer`, `files`, `directories` and
 `file_system` alike, and `fake.terminals` over the caller's screens.
 `core/text` builds text: a `builder` over the caller's buffer, or one
 growing through an allocator the caller erases, takes typed pieces, bytes,
-text, host strings, decimals of every width and hexadecimal, each whole or
+text, OS strings, decimals of every width and hexadecimal, each whole or
 not at all, and aligns a piece in a field; `format` fills a template's `{}`
 with values of any type that has `text.formattable` evidence, checked
 against them when it runs, since nothing runs at compile time. Parsing is
@@ -857,3 +856,27 @@ These answers of the library review change what a program writes
 | `map.next_entry` in a `while` to walk a map, and a tree's identifiers counted by ordinal | `for each in m`, which walks the entries in insertion order, each a copy of its key and item, and `for id in t` |
 | an `any fibre.scheduler` made beside an `any fibre.turns` from the same handle | the `any fibre.turns`, which converts to `any fibre.scheduler` where one is wanted |
 | a program's own `site` struct and a check over `compiler.unreachable(where)` | `panic.call_site` and `panic.require(holds)`, from `import core/panic` |
+
+### Migrating to one name for each idea
+
+The library renamed, merged and reshaped names so that each idea has one
+name (D1953, D1954, D2008, D2028 to D2034, D2048, D2050, D2128, D2129).
+The compiler refuses every old name with L0696, naming its replacement,
+and `refine fix` rewrites every mechanical one, adding the module's
+import where the new name lives elsewhere. The complete list is
+[the breaking list](../roadmap/inputs/breaking-list.md).
+
+| Was | Now |
+|---|---|
+| absence under eight names: `map.missing`, `tree.no_such_node`, `io.not_found`, `text.not_found`, `io.no_argument`, `io.no_variable`, `posix.no_account`, `posix.no_symbol`; and `text.past_end` | `mem.not_found`; and `mem.out_of_bounds` (D2028) |
+| out of room: `mem.full`, `text.no_space`, `io.line_too_long` | `mem.out_of_memory` (D2029) |
+| the end of a walk: `map.next_entry` failing `map.end_of_entries`; a directory entry whose name is empty at the end; `finished` on `io.line` and on the directory; `text.done` | ask `map.at_end(value, position)` first, and `next_entry` no longer fails; `entry.at_end`; `at_end`; `text.utf8_at_end`. The map walk and the directory entry are rewritten by hand (D2030) |
+| lengths: `io.argument_count`, `io.variable_count`, `io.pending`, `arena.used`, `text.width`, `try tree.count_leaves(t, id)` | `io.arguments_length`, `io.variables_length`, `io.buffered_length`, `arena.length`, `text.scalar_length`, `tree.leaves(try tree.get(t, id))` (D2031) |
+| giving back: `mem.free`; `mem.new` and `mem.delete`; `mem.new_bytes` and `mem.delete_bytes`; `mem.dispose`; `arena.reset`; `net.close_socket` | `mem.release`; `mem.allocate_item` and `mem.release_item`; `mem.allocate_bytes` and `mem.release_bytes`; `mem.detach`; `arena.release`; `net.close` (D2032) |
+| OS strings: `text.host_string`, `text.host_over`, `text.host_bytes`, `text.host_equal`, `text.from_host`, `text.append_host`; the environment variable record `io.variable` | `text.os_string`, `text.os_string_over`, `text.os_string_bytes`, `text.os_string_equal`, `text.from_os_string`, `text.append_os_string`; `text.os_variable` (D2033, D2008) |
+| one meaning each: `io.argument_at`, `io.variable_at`, `fibre.space`, `map.cursor`, `text.cursor`, the directory's `cursor`, the `entries` parameter of `stacks.round_over` and `events.over` | `io.argument`, `io.variable`, `fibre.record`, `map.position`, `text.from_offset`, `consumed`, `fibres` (D2034) |
+| `mem.transfer_prefix(source, target, n)` | `mem.copy_prefix(target, source, n)` (D2128) |
+| `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and `io.make_temporary` with their arguments in the old order | the subject first and capabilities before inputs (D1954). An old-order call is refused by its argument's type and is swapped by hand |
+| layers: `posix.internet_address`, `posix.address_of`, `posix.reason`; `posix.words` of a library atom | `system.internet_address`, `system.address_of`, `system.reason`; `system.words` (D2008) |
+| `io.writer_of(world)` and `io.lent_writer` | the world itself, since an `any io.world` converts to `any io.writer` (D2050) |
+| a program's own `iterable` | `import core/iter` and `iter.iterable`, which `refine fix` writes (D2048, D2129) |
