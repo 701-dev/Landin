@@ -849,11 +849,21 @@ register. In a routine without assembly, values and compiler temporaries'
 single-block spans may also take rsi, rdi, r8 and r9 wherever no call, copy,
 clear, fill, leave or fail lies in their interval, and for r8 and r9 no
 conversion or field or element operation either; selection uses those
-registers only there. At size and speed (D1625), eligible float slots and
+registers only there. A value whose one use is the next operation, an
+integer operation or a store to a slot, needs no location when no
+register is free for it (D2156): a load is read there as that
+operation's memory operand, as a load used as its right operand always
+is, and anything else stays in the accumulator it was computed in. A
+value stored into a slot held in a register, whose old value is dead
+from that value on, is computed in that register, as are the values
+before it that each become the next one's left operand (D2157), and an
+addition into a register neither operand holds is one `lea` (D2158). At size and speed (D1625), eligible float slots and
 values in routines without inline assembly, among them a float an element,
 field, indirect or datum load produces, use XMM8..XMM15 wherever no call
 falls inside their interval, since SysV preserves no XMM register across
-one; XMM0 remains instruction scratch. A slot loaded and stored in one block
+one; XMM0 remains instruction scratch. A float slot may also take one of
+XMM1..XMM7, which only marshalling a C call writes, over an interval with
+no call at any position, and a value one only as such a slot's (D2159). A slot loaded and stored in one block
 only, which stores it before reading it, and not given a register for its
 interval, may still hold one from that store through its last use, as a
 value does.
