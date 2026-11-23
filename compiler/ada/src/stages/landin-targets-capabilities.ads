@@ -60,8 +60,10 @@ package Landin.Targets.Capabilities is
    type Object_Format is (No_Object_Format, ELF, Mach_O, COFF);
    function Object_Format_Of (Facts : Target_Facts) return Object_Format;
 
+   --  COFF_CodeView: CodeView in the objects and a PDB beside the image.
    type Debug_Format is
-     (No_Debug_Format, ELF_DWARF, Mach_O_DWARF, ELF_DWARF_Lines);
+     (No_Debug_Format, ELF_DWARF, Mach_O_DWARF, ELF_DWARF_Lines,
+      COFF_CodeView);
    function Debug_Format_Of (Facts : Target_Facts) return Debug_Format;
 
    --  Logical external names acquire the platform prefix exactly once.

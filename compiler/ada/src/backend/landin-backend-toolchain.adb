@@ -169,6 +169,12 @@ package body Landin.Backend.Toolchain is
       return Character'Val (9) & ".file ""landin""" & Character'Val (10);
    end File_Symbol;
 
+   function PDB_Path (Output : String) return String is
+     (if Output'Length > 4
+        and then Output (Output'Last - 3 .. Output'Last) = ".exe"
+      then Output (Output'First .. Output'Last - 4) & ".pdb"
+      else Output & ".pdb");
+
    function Debug_Artifacts
      (Output : String; Facts : Landin.Targets.Target_Facts;
       Host : Landin.Platform.Filesystem'Class)
@@ -199,6 +205,11 @@ package body Landin.Backend.Toolchain is
          Existing (Output & ".dSYM/Contents/Resources/DWARF/" & Name);
          Existing (Output & ".dSYM/Contents/Resources/Relocations/aarch64/"
                    & Name & ".yml");
+      elsif Landin.Targets.Capabilities."="
+        (Landin.Targets.Capabilities.Debug_Format_Of (Facts),
+         Landin.Targets.Capabilities.COFF_CodeView)
+      then
+         Result.Append (PDB_Path (Output));
       end if;
       return Result;
    end Debug_Artifacts;
@@ -588,6 +599,15 @@ package body Landin.Backend.Toolchain is
          end loop;
          Landin.Platform.Add (List, "-o");
          Landin.Platform.Add (List, File_Operand (Output));
+         if Full_Debug then
+            --  D2289: LLD writes the objects' CodeView into a PDB beside
+            --  the image, which names it by its file name alone, as
+            --  Microsoft's /PDBALTPATH:%_PDB% does: a debugger looks for
+            --  it beside the image, wherever the image was built.
+            Landin.Platform.Add
+              (List, "-Wl,--pdb=" & File_Operand (PDB_Path (Output)));
+            Landin.Platform.Add (List, "-Wl,-Xlink=/pdbaltpath:%_PDB%");
+         end if;
          Landin.Platform.Add (List, "-fuse-ld=" & (if Linker /= ""
                                                    then Linker else "lld"));
          return List;

@@ -133,9 +133,7 @@ package body Landin.Targets.Capabilities is
    function Debug_Format_Of (Facts : Target_Facts) return Debug_Format is
      (case Backend_For (Facts) is
          when X86_64_ELF => ELF_DWARF,
-         --  A Windows image carries no debugging information until its
-         --  objects carry CodeView.
-         when X86_64_COFF => No_Debug_Format,
+         when X86_64_COFF => COFF_CodeView,
          when Darwin_Arm64_Mach_O => Mach_O_DWARF,
          when Arm64_ELF | RV64_ELF => ELF_DWARF,
          when Cortex_M0_ELF | RV32_ELF | Xtensa_ELF => ELF_DWARF_Lines,

@@ -23,6 +23,7 @@ with Landin.Backend.Reciprocals;
 with Landin.Backend.Trap_Reports;
 with Landin.Backend.Work_Arrays;
 with Landin.Backend.X86_64.Allocation;
+with Landin.Backend.X86_64.Codeview;
 with Landin.Backend.X86_64.Dwarf;
 with Landin.Backend.X86_64.Machine;
 with Landin.Targets.Layouts;
@@ -714,6 +715,18 @@ package body Landin.Backend.X86_64 is
       --  RDI and RSI, then XMM6 to XMM15, which a routine C calls keeps.
       Win64_Save_Bytes : constant Landin.Targets.Byte_Count := 176;
 
+      --  D2288: a COFF object carries CodeView, whose lines the
+      --  assembler's `.cv_loc` records and whose frames Windows' unwind
+      --  tables describe, so it has no DWARF call frame information.
+      CFI : constant Boolean := Debug /= null and then not COFF;
+
+      --  The line Site begins, inside Item.
+      function Line_Of
+        (Item : Landin.IR.Item_Id; Site : Landin.Provenance.Origin)
+         return String
+      is (if COFF then Codeview.Source_Line (Debug.all, Item, Site)
+          else Dwarf.Source_Line (Debug.all, Site));
+
       function Function_Type (Symbol : String) return String
         is (if COFF then "" else ELF.Function_Type (Symbol));
       function Object_Type (Symbol : String) return String
@@ -961,7 +974,7 @@ package body Landin.Backend.X86_64 is
       begin
          Put_Directive (Function_Type (Decode_Entry));
          Put (Decode_Entry & ":");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_startproc");
             Emit (".cfi_def_cfa %rsp, 8");
          end if;
@@ -1014,7 +1027,7 @@ package body Landin.Backend.X86_64 is
          Put (Bad & ":");
          Emit ("stc");
          Emit ("ret");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_endproc");
          end if;
          Put_Directive (Size_To_Here (Decode_Entry));
@@ -3112,13 +3125,13 @@ package body Landin.Backend.X86_64 is
                   Emit ("jmp " & Shared_Epilogue);
                end if;
             else
-               if Debug /= null then
+               if CFI then
                   --  A later block may follow this sole exit in assembly.
                   --  Keep its CFI state while emitting that block.
                   Emit (".cfi_remember_state");
                end if;
                Emit_Epilogue_Body;
-               if Debug /= null then
+               if CFI then
                   Emit (".cfi_restore_state");
                end if;
             end if;
@@ -3132,7 +3145,7 @@ package body Landin.Backend.X86_64 is
                         (Layout, Allocation.Save_Index
                            (Allocation_Plan, Register))) & ", "
                         & Allocation.Name (Register, Landin.Targets.Byte_8));
-                  if Debug /= null then
+                  if CFI then
                      Emit (".cfi_restore " & Trimmed (Natural'Image
                        (Dwarf.Register_Number (Register))));
                   end if;
@@ -3158,7 +3171,7 @@ package body Landin.Backend.X86_64 is
             --  frame pointer is one and MOV is not.
             Emit (if COFF then "leaq (%rbp), %rsp" else "movq %rbp, %rsp");
             Emit ("popq %rbp");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_def_cfa %rsp, 8");
                Emit (".cfi_restore %rbp");
             end if;
@@ -3234,8 +3247,8 @@ package body Landin.Backend.X86_64 is
                      Put (Dwarf.Label_Name
                        (Local_Prefix, "trap", Item, Natural (Trap.Value))
                        & ":");
-                     Put (Dwarf.Source_Line
-                       (Debug.all, Landin.IR.Origin_Of
+                     Put (Line_Of
+                       (Item, Landin.IR.Origin_Of
                           (Of_Unit, Item, Trap.Value)));
                   end if;
                   Put (Trap_Label (Trap.Value, Trap.Reason) & ":");
@@ -7515,10 +7528,15 @@ package body Landin.Backend.X86_64 is
            (Streams (Positive (Item)), Shareable (Positive (Item)));
          Capturing := Item;
          if Debug /= null then
+            if COFF then
+               Put (Codeview.Function_Id (Item));
+            end if;
             Put (Dwarf.Label_Name (Local_Prefix, "begin", Item) & ":");
-            Put (Dwarf.Source_Line
-              (Debug.all, Landin.IR.Origin_Of (Of_Unit, Item)));
-            Emit (".cfi_startproc");
+            Put (Line_Of
+              (Item, Landin.IR.Origin_Of (Of_Unit, Item)));
+            if CFI then
+               Emit (".cfi_startproc");
+            end if;
          end if;
 
          --  A naked routine is its text and nothing else: no frame record
@@ -7529,7 +7547,7 @@ package body Landin.Backend.X86_64 is
            (Of_Unit, Landin.IR.Signature_Of (Of_Unit, Item))
              = Landin.Machine.Naked_Routine
          then
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_undefined %rip");
             end if;
             for Position in 1 .. Landin.IR.Length (Of_Unit, Item, 1) loop
@@ -7540,8 +7558,8 @@ package body Landin.Backend.X86_64 is
                   if Debug /= null then
                      Put (Dwarf.Label_Name
                        (Local_Prefix, "value", Item, Natural (Value)) & ":");
-                     Put (Dwarf.Source_Line
-                       (Debug.all, Landin.IR.Origin_Of
+                     Put (Line_Of
+                       (Item, Landin.IR.Origin_Of
                           (Of_Unit, Item, Value)));
                   end if;
                   if Landin.IR.Op_Of (Of_Unit, Item, Value)
@@ -7561,7 +7579,9 @@ package body Landin.Backend.X86_64 is
             Emit_Verbatim ("ud2");
             if Debug /= null then
                Put (Dwarf.Label_Name (Local_Prefix, "end", Item) & ":");
-               Emit (".cfi_endproc");
+               if CFI then
+                  Emit (".cfi_endproc");
+               end if;
             end if;
             Capturing := Landin.IR.No_Item;
             Statistics (Positive (Item)) :=
@@ -7580,7 +7600,7 @@ package body Landin.Backend.X86_64 is
             Emit (".seh_proc " & Symbol (Item));
          end if;
          Emit ("pushq %rbp");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_def_cfa_offset 16");
             Emit (".cfi_offset %rbp, -16");
          end if;
@@ -7588,7 +7608,7 @@ package body Landin.Backend.X86_64 is
             Emit (".seh_pushreg %rbp");
          end if;
          Emit ("movq %rsp, %rbp");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_def_cfa_register %rbp");
          end if;
          if COFF then
@@ -7654,7 +7674,7 @@ package body Landin.Backend.X86_64 is
                      & ", " & Cell (Save_Offset
                        (Layout, Allocation.Save_Index
                           (Allocation_Plan, Register))));
-               if Debug /= null then
+               if CFI then
                   Emit (".cfi_offset " & Trimmed (Natural'Image
                     (Dwarf.Register_Number (Register))) & ", -"
                     & Trimmed (Landin.Targets.Byte_Count'Image
@@ -7914,8 +7934,8 @@ package body Landin.Backend.X86_64 is
                         Put (Dwarf.Label_Name
                           (Local_Prefix, "value", Item, Natural (Value))
                           & ":");
-                        Put (Dwarf.Source_Line
-                          (Debug.all, Landin.IR.Origin_Of
+                        Put (Line_Of
+                          (Item, Landin.IR.Origin_Of
                             (Of_Unit, Item, Value)));
                      end if;
                      Emit_Instruction (Value);
@@ -7932,11 +7952,11 @@ package body Landin.Backend.X86_64 is
          if Exit_Count > 1 then
             Put (Shared_Epilogue & ":");
             --  The traps after this teardown run in the body's frame.
-            if Debug /= null and then not Traps.Is_Empty then
+            if CFI and then not Traps.Is_Empty then
                Emit (".cfi_remember_state");
             end if;
             Emit_Epilogue_Body;
-            if Debug /= null and then not Traps.Is_Empty then
+            if CFI and then not Traps.Is_Empty then
                Emit (".cfi_restore_state");
             end if;
          end if;
@@ -7948,8 +7968,8 @@ package body Landin.Backend.X86_64 is
          if Limit_Trapped then
             Put (Limit_Trap & ":");
             if Debug /= null then
-               Put (Dwarf.Source_Line
-                 (Debug.all, Landin.IR.Origin_Of (Of_Unit, Item)));
+               Put (Line_Of
+                 (Item, Landin.IR.Origin_Of (Of_Unit, Item)));
             end if;
             Emit ("movq %rbp, %rsp");
             Emit_Panic_At
@@ -7959,7 +7979,9 @@ package body Landin.Backend.X86_64 is
 
          if Debug /= null then
             Put (Dwarf.Label_Name (Local_Prefix, "end", Item) & ":");
-            Emit (".cfi_endproc");
+            if CFI then
+               Emit (".cfi_endproc");
+            end if;
          end if;
          Capturing := Landin.IR.No_Item;
          if Shareable (Positive (Item)) then
@@ -9411,7 +9433,10 @@ package body Landin.Backend.X86_64 is
       end loop;
       Out_Text := Unbounded.Null_Unbounded_String;
       if Debug /= null then
-         Unbounded.Append (Out_Text, Dwarf.Preamble (Debug.all, Local_Prefix));
+         Unbounded.Append
+           (Out_Text,
+            (if COFF then Codeview.Files (Debug.all)
+             else Dwarf.Preamble (Debug.all, Local_Prefix)));
       end if;
       Put (Character'Val (9) & ".text");
 
@@ -9663,12 +9688,12 @@ package body Landin.Backend.X86_64 is
                  & Section (".text.landin_stack", """ax"",@progbits"));
             Put_Directive (Function_Type (Stack_Switcher));
             Put (Stack_Switcher & ":");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_startproc");
             end if;
             for Index in Pushed'Range loop
                Emit ("pushq " & Pushed (Index));
-               if Debug /= null then
+               if CFI then
                   Emit (".cfi_def_cfa_offset "
                         & Trimmed (Natural'Image (8 + 8 * Index)));
                   Emit (".cfi_offset " & Pushed (Index) & ", -"
@@ -9676,32 +9701,32 @@ package body Landin.Backend.X86_64 is
                end if;
             end loop;
             Emit ("pushq " & Limit_Cell);
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_def_cfa_offset 64");
             end if;
             Emit ("movq %rsp, (%rdi)");
             Emit ("movq %rsi, %rsp");
             Emit ("popq " & Limit_Cell);
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_def_cfa_offset 56");
             end if;
             for Index in reverse Pushed'Range loop
                Emit ("popq " & Pushed (Index));
-               if Debug /= null then
+               if CFI then
                   Emit (".cfi_def_cfa_offset "
                         & Trimmed (Natural'Image (8 * Index)));
                   Emit (".cfi_restore " & Pushed (Index));
                end if;
             end loop;
             Emit ("ret");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_endproc");
             end if;
             Put_Directive (Size_To_Here (Stack_Switcher));
 
             Put_Directive (Function_Type (Stack_Start));
             Put (Stack_Start & ":");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_startproc");
                Emit (".cfi_undefined %rip");
             end if;
@@ -9733,7 +9758,7 @@ package body Landin.Backend.X86_64 is
                end;
             end if;
             Emit ("ud2");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_endproc");
             end if;
             Put_Directive (Size_To_Here (Stack_Start));
@@ -9977,7 +10002,7 @@ package body Landin.Backend.X86_64 is
               & Section (".text.landin_trap_report", """ax"",@progbits"));
          Put_Directive (Function_Type (Reporter));
          Put (Reporter & ":");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_startproc");
          end if;
          if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
@@ -9993,7 +10018,7 @@ package body Landin.Backend.X86_64 is
                Emit (".seh_proc " & Reporter);
             end if;
             Emit ("pushq %rbp");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_def_cfa_offset 16");
                Emit (".cfi_offset %rbp, -16");
             end if;
@@ -10001,7 +10026,7 @@ package body Landin.Backend.X86_64 is
                Emit (".seh_pushreg %rbp");
             end if;
             Emit ("movq %rsp, %rbp");
-            if Debug /= null then
+            if CFI then
                Emit (".cfi_def_cfa_register %rbp");
             end if;
             if COFF then
@@ -10067,7 +10092,7 @@ package body Landin.Backend.X86_64 is
             end if;
          end if;
          Emit ("ud2");
-         if Debug /= null then
+         if CFI then
             Emit (".cfi_endproc");
          end if;
          if COFF then
@@ -10104,7 +10129,12 @@ package body Landin.Backend.X86_64 is
          end if;
       end if;
 
-      if Debug /= null then
+      if Debug /= null and then COFF then
+         Unbounded.Append (Out_Text, Codeview.Sections
+           (Of_Unit, Meanings, Names, Facts, Options, Debug.all,
+            Local_Prefix, Symbol'Access, Is_Exported_Item'Access,
+            Cached_Plan'Access, Cached_Frame'Access, Trapped'Access));
+      elsif Debug /= null then
          Unbounded.Append (Out_Text, Dwarf.Sections
            (Of_Unit, Meanings, Names, Facts, Options, Debug.all,
             Local_Prefix, Symbol'Access, Cached_Plan'Access,

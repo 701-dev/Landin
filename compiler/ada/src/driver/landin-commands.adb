@@ -1076,7 +1076,8 @@ package body Landin.Commands is
                  Landin.Targets.Selection.Described (Name);
                Debug : constant String :=
                  (case Caps.Debug_Format_Of (Facts) is
-                     when Caps.ELF_DWARF | Caps.Mach_O_DWARF => "full",
+                     when Caps.ELF_DWARF | Caps.Mach_O_DWARF
+                        | Caps.COFF_CodeView => "full",
                      when Caps.ELF_DWARF_Lines => "lines",
                      when Caps.No_Debug_Format => "none");
             begin
