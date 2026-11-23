@@ -13,8 +13,8 @@ job and a Windows job:
                    file and compiler/tests/fixture_meta.py.
 
 Without either, the lane emits and then executes, natively on Windows or,
-on Linux, through `--runner=wine`.  README.md beside this file says what
-each verdict means.
+on Linux, through `--runner=wine`.  compiler/tests/windows/README.md says
+what each verdict means.
 """
 from concurrent.futures import ThreadPoolExecutor
 import argparse
@@ -267,7 +267,9 @@ def shard(text):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--refine', type=Path, help='the Linux refine that emits')
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    import lane_refine  # the --refine every lane takes
+    lane_refine.argument(parser, required=False, help='the Linux refine that emits')
     parser.add_argument('--output', type=Path, required=True,
                         help='a new directory for the bundle, transcripts and summary.json')
     parser.add_argument('--toolchain', default='x86_64-w64-mingw32-clang',
