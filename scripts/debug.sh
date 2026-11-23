@@ -7,9 +7,27 @@ for Argument do
         -h | --help) Help=yes ;;
     esac
 done
-if [ -z "${Help:-}" ]; then
-    landin_build_lock mode "$@"
+if [ -n "${Help:-}" ]; then
+    cat <<'USAGE'
+usage: scripts/debug.sh [--target=linux-x86-64|linux-arm64|darwin-arm64] [OPTION ...]
+
+Runs the real debugger sessions over code the built refine emits: GDB on
+Linux (linux-arm64 under QEMU from an x86-64 host), LLDB on darwin-arm64.
+It does not build; run ./scripts/dev-build.sh first. dev-test.sh's
+`debugging` suite runs no debugger, so a change to where emitted code keeps
+a variable, or to its line rows, needs this as well.
+
+  --target=T   the lane; default this host's own Linux target. RV64,
+               FreeBSD and cortex-m0 are refused naming the lane that
+               debugs them.
+  LANDIN_GDB, LANDIN_QEMU   the GDB and QEMU to use, passed on as --gdb, --qemu
+
+Every other option goes to compiler/tests/debugging/check.py (Linux) or
+darwin.py (Mac); `python3 compiler/tests/debugging/check.py --help` lists them.
+USAGE
+    exit 0
 fi
+landin_build_lock mode "$@"
 # Target selection is explicit; native checks never fall back to a transport.
 # A target this script has no lane for is refused with the one that debugs
 # it, before anything is built or waited for.

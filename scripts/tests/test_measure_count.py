@@ -155,8 +155,17 @@ class RefusalTest(unittest.TestCase):
             path = Path(directory) / "image.elf"
             arm_image(path, {"main": (0x121, 2)})
             with self.assertRaisesRegex(measure_count.Failure,
-                                        "only linux-rv64 and cortex-m0"):
-                measure_count.count("linux-x86-64", "x86-64-v1", path)
+                                        "linux-arm64 and cortex-m0 are"):
+                measure_count.count("freebsd-x86-64", "x86-64-v1", path)
+
+    def test_each_hosted_linux_target_refuses_another_machine(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "image.elf"
+            arm_image(path, {"main": (0x121, 2)})
+            for target in ("linux-rv64", "linux-x86-64", "linux-arm64"):
+                with self.assertRaisesRegex(measure_count.Failure,
+                                            f"is not a {target} image"):
+                    measure_count.count(target, "any", path)
 
     def test_a_firmware_program_takes_no_arguments(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -192,7 +201,8 @@ class RefusalTest(unittest.TestCase):
                 measure_count.run_built(args, Path("/nonexistent"))
 
         base = ["count", "--level", "armv6-m", "--fixture", "runtime/merge-sort"]
-        refused([*base, "--target", "linux-rv64"], "build Cortex-M programs")
+        refused([*base, "--target", "darwin-arm64"], "not darwin-arm64")
+        refused([*base, "--target", "linux-x86-64"], "need --refine")
         refused([*base, "--target", "cortex-m0", "--refine", "/nonexistent/refine"],
                 "is no file")
         args = measure_count.parse(top, [*base, "--target", "cortex-m0", "--optimize",

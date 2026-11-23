@@ -16,7 +16,8 @@ with Landin.Panics;
 --  writes that register, a parameter the one it arrives in, and a small
 --  routine no callee-saved register at all.  Speed emission also keeps
 --  eligible float slots and values in XMM8..XMM15 wherever no call falls
---  inside their interval, and aligns the head of each loop.
+--  inside their interval, slots in XMM1..XMM7 where no call lies in it at
+--  all (D2159), and aligns the head of each loop.
 --  Scratch registers and failure transport remain reserved; only used GP
 --  callee saves get homes.
 --  The same allocation and target-byte frame planner serve preflight and

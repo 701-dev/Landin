@@ -619,6 +619,17 @@ makes, which those backends select as `rol` and `ror` (D1624); a shift
 nothing reads is then removed, since a shift traps only on a negative
 amount.
 
+Values remain block-local, but a constant reaches across blocks through a
+slot (D2148). A slot that nothing names but its own loads and stores, and
+that has one store, of an integer, bool or atom constant, holds that
+constant wherever the store's block strictly dominates, since every path
+there passed the store and nothing else writes the slot. Each such load
+becomes a copy of the constant, so `for t in usize(0)..<64` compares `t`
+with 64 rather than with a slot carried round the loop, which x86-64
+reloaded from the frame each iteration; the compiler temporary that held
+the end loses its store, and the proofs below see a constant. A float
+constant stays in its slot, where a register can hold it across a loop.
+
 A check can also be proved across blocks. A comparison whose branch is the
 only way into a block bounds there the slots it compared: `at` in
 `while at > 0 do dec at`, `left` and `right` in
@@ -662,6 +673,43 @@ Cortex-M and Xtensa backends select no conditional move: they use the
 condition's own zero or one for a choice of one or zero and branch around
 one load for any other. Xtensa has `moveqz` and `movnez`; the backend does
 not use them.
+
+At speed, `Landin.IR.Hoisting` then makes a hosted target's loop-invariant
+values once before their loop (D2149). A loop is a back edge's natural
+loop, and a value belongs to the innermost loop holding its block; the
+loop qualifies when exactly one block outside it reaches its head, and
+reaches it by a jump, which makes that block its preheader. An operand is
+invariant when it is an integer, bool or atom constant, or a load of a
+private slot that no block of the loop stores; a value is invariant when it
+is a float constant, or an operation over invariant operands that cannot
+trap, call or touch memory: bitwise, wrapping, compared or chosen integers,
+`unchecked` integer arithmetic, unsigned shifts, and float arithmetic, which
+never traps. An invariant number that something staying in the loop reads
+is made again at the end of the preheader, before its jump, and stored in a
+new private slot; the loop loads that slot where it made the value, and
+what made it there and nothing else reads is dropped. Nothing that moved
+can trap, so a loop entered and left at its test has only made a value it
+did not use. A held value takes a register over the whole loop, so each
+loop moves values only while the slots it reads before writing, with the
+values already moved, number fewer than the target's budget: four integer
+and six float registers on x86-64, twelve and sixteen on arm64, ten and
+eight on RV64, whose floats wait in frame homes, where a slot costs one load
+and a pooled constant two instructions. x86-64 moves no float out of a loop
+that calls, since SysV preserves no XMM register across a call. An integer
+constant a backend takes as an immediate stays, except on RV64, whose
+branches compare two registers: there a constant other than zero that a
+loop compares with is moved too. Equal constants moved out of one loop
+share a slot. An element access that indexes a whole array of plain
+scalars, a frame array that is not a parameter or a module datum, reaches
+it instead through an address slot the preheader fills with the array's
+`Storage_Address`, one slot for each array a loop indexes, within the same
+integer budget. arm64 does this for both, since it forms either address
+with an instruction of its own each time; x86-64 only for a datum, whose
+`leaq` it saves, since it indexes a frame array from rbp in the access
+itself; RV64 measured no better with either. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone.
+The work is linear in the routine plus the blocks each loop spans, and one
+rebuild of the unit adds a load for each moved value and its copy before
+the loop.
 
 Under size and speed, `Landin.IR.Layout` then orders a hosted target's
 blocks (D2096). Every backend lays a routine's blocks out in the IR's order,
@@ -801,11 +849,21 @@ register. In a routine without assembly, values and compiler temporaries'
 single-block spans may also take rsi, rdi, r8 and r9 wherever no call, copy,
 clear, fill, leave or fail lies in their interval, and for r8 and r9 no
 conversion or field or element operation either; selection uses those
-registers only there. At size and speed (D1625), eligible float slots and
+registers only there. A value whose one use is the next operation, an
+integer operation or a store to a slot, needs no location when no
+register is free for it (D2156): a load is read there as that
+operation's memory operand, as a load used as its right operand always
+is, and anything else stays in the accumulator it was computed in. A
+value stored into a slot held in a register, whose old value is dead
+from that value on, is computed in that register, as are the values
+before it that each become the next one's left operand (D2157), and an
+addition into a register neither operand holds is one `lea` (D2158). At size and speed (D1625), eligible float slots and
 values in routines without inline assembly, among them a float an element,
 field, indirect or datum load produces, use XMM8..XMM15 wherever no call
 falls inside their interval, since SysV preserves no XMM register across
-one; XMM0 remains instruction scratch. A slot loaded and stored in one block
+one; XMM0 remains instruction scratch. A float slot may also take one of
+XMM1..XMM7, which only marshalling a C call writes, over an interval with
+no call at any position, and a value one only as such a slot's (D2159). A slot loaded and stored in one block
 only, which stores it before reading it, and not given a register for its
 interval, may still hold one from that store through its last use, as a
 value does.
@@ -831,7 +889,10 @@ floats, d18-d31, neither of which costs a save; a parameter keeps the argument r
 Where enough scalar traffic pays for a save, the rest take callee-saved
 registers, which a call leaves alone: a slot over its interval takes one of
 x19-x24, a value or a slot's single-block span any of x19-x28, and a float
-one of d8-d15. Declared assembly registers remain excluded, addressable
+one of d8-d15. At speed a value whose last use stores it into a slot
+already holding a register is made in that register when nothing reads
+the slot's old contents first (D2164), so a loop's `a = t +% c` adds into
+a's register rather than moving the sum there. Declared assembly registers remain excluded, addressable
 values stay in storage, and CFI describes the saved registers. Native Landin
 calls use integer bit carriers, address-based aggregate copies and a
 separate w8 failure carrier. The Darwin C planner maps the same verified

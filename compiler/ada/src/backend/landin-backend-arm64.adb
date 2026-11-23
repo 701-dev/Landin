@@ -408,6 +408,8 @@ package body Landin.Backend.Arm64 is
             return Natural;
          function Stored_Into (Value : Positive; Position : Natural)
             return Natural;
+         function Stored_Late (Value : Positive; Position : Natural)
+            return Natural;
 
          --  Whether a call or assembly block lies at some position from
          --  First through Last: either may change x0-x7 and d18-d31.
@@ -690,6 +692,73 @@ package body Landin.Backend.Arm64 is
             return No_Register;
          end Stored_Into;
 
+         --  D2164: the register of the slot a value's last use stores it
+         --  into, when the slot holds that register over the store and
+         --  nothing from Position up to the store reads what the slot
+         --  held: no load of the slot, and no use of a value sharing its
+         --  register.  The value then replaces the slot's old contents
+         --  where it is made, and the store moves nothing; a loop's
+         --  `e = d +% first` adds into e's register.  Speed only.
+         function Stored_Late (Value : Positive; Position : Natural)
+            return Natural
+         is
+            Store_At : constant Natural := Lasts (Value);
+            User : constant Landin.IR.Value_Id :=
+              Landin.IR.Value_Id (Sequence (Store_At));
+         begin
+            if not Speed or else Has_Assembly
+              or else Landin.IR.Op_Of (Of_Unit, Item, User) /= Landin.IR.Store
+            then
+               return No_Register;
+            end if;
+            declare
+               Slot : constant Positive :=
+                 Positive (Landin.IR.Slot_Of (Of_Unit, Item, User));
+               Number : constant Natural := Result.Slots (Slot).Register;
+               Span : constant Landin.IR.Liveness.Interval := Spans (Slot);
+            begin
+               if Interval_Slots (Slot) /= 1
+                 or else Number = No_Register
+                 or else Span.First > Position
+                 or else Span.Last < Store_At
+               then
+                  return No_Register;
+               end if;
+               for Between in Position + 1 .. Store_At - 1 loop
+                  declare
+                     Reader : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (Between));
+                  begin
+                     if Landin.IR.Op_Of (Of_Unit, Item, Reader)
+                         in Landin.IR.Load
+                       and then Landin.IR.Slot_Of (Of_Unit, Item, Reader)
+                         = Landin.IR.Slot_Id (Slot)
+                     then
+                        return No_Register;
+                     end if;
+                     for Which in 1 .. Landin.IR.Operand_Count
+                       (Of_Unit, Item, Reader)
+                     loop
+                        declare
+                           Operand : constant Landin.IR.Value_Id :=
+                             Landin.IR.Nth_Operand
+                               (Of_Unit, Item, Reader, Which);
+                        begin
+                           if Operand /= Landin.IR.No_Value
+                             and then Positive (Operand) /= Value
+                             and then Result.Values (Positive (Operand))
+                               .Register = Number
+                           then
+                              return No_Register;
+                           end if;
+                        end;
+                     end loop;
+                  end;
+               end loop;
+               return Number;
+            end;
+         end Stored_Late;
+
          --  Whether a value from Position through Last may hold register
          --  Number as far as calls go.  A float may hold d18-d31 when no
          --  call lies strictly inside its interval, since one at its last
@@ -874,6 +943,7 @@ package body Landin.Backend.Arm64 is
                         Share (Read_In_Place (Index));
                         Share (Released_By (Index, Position));
                         Share (Stored_Into (Index, Position));
+                        Share (Stored_Late (Index, Position));
                         if Kind in Landin.Types.Float_Name then
                            Take (Free_Float'First, Free_Float'Last);
                            Take (Saved_Float'First, Saved_Float'Last);
@@ -4764,6 +4834,14 @@ package body Landin.Backend.Arm64 is
                if Op = Landin.IR.Logical_Not then
                   Emit ("eor " & Short (Into) & ", "
                         & Short (Read (Operand (1))) & ", #1");
+                  Deliver (Value, Into, Extended => True);
+               elsif Op = Landin.IR.Complement
+                 and then Landin.Types.Width (Kind (Value), Facts) = 32
+               then
+                  --  A 32-bit complement in the 32-bit view, which
+                  --  zero-extends what it writes (D2165).
+                  Emit ("mvn " & Short (Into) & ", "
+                        & Short (Read (Operand (1))));
                   Deliver (Value, Into, Extended => True);
                elsif Op = Landin.IR.Complement then
                   Emit ("mvn " & Into & ", " & Read (Operand (1)));

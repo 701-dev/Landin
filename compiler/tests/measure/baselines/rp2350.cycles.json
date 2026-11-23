@@ -15,7 +15,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/cmp-siphash-vectors": {
-   "cycles": 865119,
+   "cycles": 865120,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -24,7 +24,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/fannkuch-redux": {
-   "cycles": 8448555,
+   "cycles": 8448564,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -34,7 +34,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-all/mandelbrot": {
-   "cycles": 22472236,
+   "cycles": 22472182,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -44,7 +44,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-all/merge-sort": {
-   "cycles": 10271,
+   "cycles": 10270,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -53,7 +53,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/sieve-of-eratosthenes": {
-   "cycles": 21532,
+   "cycles": 21533,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -80,7 +80,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/fannkuch-redux": {
-   "cycles": 8448555,
+   "cycles": 8448564,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -90,7 +90,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-auto/mandelbrot": {
-   "cycles": 22472236,
+   "cycles": 22472182,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -100,7 +100,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-auto/merge-sort": {
-   "cycles": 10271,
+   "cycles": 10270,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -109,7 +109,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/sieve-of-eratosthenes": {
-   "cycles": 21532,
+   "cycles": 21533,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -136,7 +136,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/fannkuch-redux": {
-   "cycles": 8448555,
+   "cycles": 8448564,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -146,7 +146,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-off/mandelbrot": {
-   "cycles": 22472236,
+   "cycles": 22472182,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -156,7 +156,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-off/merge-sort": {
-   "cycles": 10271,
+   "cycles": 10270,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -165,7 +165,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/sieve-of-eratosthenes": {
-   "cycles": 21532,
+   "cycles": 21533,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -183,16 +183,16 @@
    "runs": 3
   },
   "armv8-m.main/size-all/cmp-siphash-vectors": {
-   "cycles": 352631,
+   "cycles": 352624,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "d6f80663632e47338ca2275bf97a20a41b835d3c1bfcd36cfb63ab9a259184da",
+   "image": "3625001e1d1cc40ea178b09734845e502e3828dc2eeca671d2dd865ce6d2b7e7",
    "runs": 3
   },
   "armv8-m.main/size-all/fannkuch-redux": {
-   "cycles": 3030775,
+   "cycles": 3030767,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -202,12 +202,12 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-all/mandelbrot": {
-   "cycles": 19511789,
+   "cycles": 19511780,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "698b422359f339aabd5a5335663629191087c9c29c89bfd9c1c67846af05996a",
+   "image": "85a5150bdb965e74d2e21fdcd6c75b01c805340cc1eb8111797e2483a24b26bf",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -239,16 +239,16 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
-   "cycles": 352636,
+   "cycles": 352634,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "298aa82260c1fba4e1b4b8fc9885c4671dcd66d54b9dceda791771f456702a87",
+   "image": "b583cad70f16e6e369c6c11f20fcab594d3416af0f56503a70907bff7d1766cd",
    "runs": 3
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
-   "cycles": 3030775,
+   "cycles": 3030767,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -258,12 +258,12 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-auto/mandelbrot": {
-   "cycles": 19511789,
+   "cycles": 19511780,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "698b422359f339aabd5a5335663629191087c9c29c89bfd9c1c67846af05996a",
+   "image": "85a5150bdb965e74d2e21fdcd6c75b01c805340cc1eb8111797e2483a24b26bf",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -295,16 +295,16 @@
    "runs": 3
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
-   "cycles": 352636,
+   "cycles": 352634,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "298aa82260c1fba4e1b4b8fc9885c4671dcd66d54b9dceda791771f456702a87",
+   "image": "b583cad70f16e6e369c6c11f20fcab594d3416af0f56503a70907bff7d1766cd",
    "runs": 3
   },
   "armv8-m.main/size-off/fannkuch-redux": {
-   "cycles": 3030775,
+   "cycles": 3030767,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -314,12 +314,12 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-off/mandelbrot": {
-   "cycles": 19511789,
+   "cycles": 19511780,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "698b422359f339aabd5a5335663629191087c9c29c89bfd9c1c67846af05996a",
+   "image": "85a5150bdb965e74d2e21fdcd6c75b01c805340cc1eb8111797e2483a24b26bf",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -342,25 +342,25 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/binary-search": {
-   "cycles": 1200,
+   "cycles": 1201,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e9687aa19d391ffe69e39ba133cd356bf3924fe31cfe8057f37b10d26133fa56",
+   "image": "c46d6af915b658e2f12baa09646510c636e8b5635400aa9427c87e5cec9a82ca",
    "runs": 3
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "cycles": 345645,
+   "cycles": 345631,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e1b3ab121eaf53d03f84719821b254f980609fdd6c8c2f832354d5712a14caa1",
+   "image": "20c40fd5e70f6f5a864cb11411b6ce1ac058c9ea35e0cda75c7264b0a26832a8",
    "runs": 3
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "cycles": 2987172,
+   "cycles": 2987166,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -375,7 +375,7 @@
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "41668c989700c8e295e22c6a202ffc8ea677971215a120580f0ab24e49e5452d",
+   "image": "255ec93f0b2c9ece54cd29346495ba1f8ac69dd1cdf85cc860a953dcb4fa9176",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -398,25 +398,25 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/binary-search": {
-   "cycles": 1200,
+   "cycles": 1201,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e9687aa19d391ffe69e39ba133cd356bf3924fe31cfe8057f37b10d26133fa56",
+   "image": "c46d6af915b658e2f12baa09646510c636e8b5635400aa9427c87e5cec9a82ca",
    "runs": 3
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "cycles": 345645,
+   "cycles": 345631,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e1b3ab121eaf53d03f84719821b254f980609fdd6c8c2f832354d5712a14caa1",
+   "image": "20c40fd5e70f6f5a864cb11411b6ce1ac058c9ea35e0cda75c7264b0a26832a8",
    "runs": 3
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "cycles": 2987172,
+   "cycles": 2987166,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -431,7 +431,7 @@
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "41668c989700c8e295e22c6a202ffc8ea677971215a120580f0ab24e49e5452d",
+   "image": "255ec93f0b2c9ece54cd29346495ba1f8ac69dd1cdf85cc860a953dcb4fa9176",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -454,25 +454,25 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/binary-search": {
-   "cycles": 1200,
+   "cycles": 1201,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e9687aa19d391ffe69e39ba133cd356bf3924fe31cfe8057f37b10d26133fa56",
+   "image": "c46d6af915b658e2f12baa09646510c636e8b5635400aa9427c87e5cec9a82ca",
    "runs": 3
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
-   "cycles": 345646,
+   "cycles": 345637,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "dd5b8abbb7e4711ab899d8a8c93e86554be78f9be7129ed5d8de224c41fd3b4c",
+   "image": "4d2e830c751494f9ed35921042a9c2748550dbcf97bb91e68f60a2339f24b2b1",
    "runs": 3
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "cycles": 2987172,
+   "cycles": 2987166,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -487,7 +487,7 @@
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "41668c989700c8e295e22c6a202ffc8ea677971215a120580f0ab24e49e5452d",
+   "image": "255ec93f0b2c9ece54cd29346495ba1f8ac69dd1cdf85cc860a953dcb4fa9176",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },

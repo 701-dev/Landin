@@ -1,7 +1,8 @@
 --  Deterministic physical locations for the verified block-local value model
 --  and for slots over their live intervals.  Five otherwise-unused SysV
---  callee-save GP registers, six caller-saved ones and, at speed, eight
---  XMM registers are allocated.  SysV saves no XMM register across a call,
+--  callee-save GP registers, six caller-saved ones and fifteen XMM
+--  registers are allocated, XMM1..XMM7 only to slots over intervals no
+--  call lies in.  SysV saves no XMM register across a call,
 --  so no XMM interval spans one, and no caller-saved location's interval
 --  holds an operation that writes its register.  A small routine takes no
 --  callee-saved register, whose save would cost more than it saves.
@@ -25,8 +26,13 @@ package Landin.Backend.X86_64.Allocation is
    --  probes the stack, holds C transport and masks a packed part, are
    --  offered as %rsi to %r9 are.
    subtype Caller_Saved is Register_Id range RSI .. R11;
+   --  D2159: XMM1..XMM7 follow, offered only to a slot's interval in
+   --  which no call lies at any position, since C marshalling writes
+   --  them; a value takes one only as that slot's.
    type SSE_Register is (XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14,
-                         XMM15);
+                         XMM15, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
+   subtype High_SSE is SSE_Register range XMM8 .. XMM15;
+   subtype Low_SSE is SSE_Register range XMM1 .. XMM7;
    type Location_Kind is (Absent, Stack, GP, SSE);
    type Location is record
       Kind : Location_Kind := Absent;
@@ -42,6 +48,12 @@ package Landin.Backend.X86_64.Allocation is
       --  slot has no home.  Both stay No_Value for a slot whose location
       --  holds everywhere.
       From, Through : Landin.IR.Value_Id := Landin.IR.No_Value;
+      --  D2156: an Absent value no register was free for, whose one use
+      --  is the next operation, one that reads it before writing the
+      --  accumulator or any register its address names.  A load is read
+      --  there as its memory operand, and anything else is left in the
+      --  accumulator, where it was computed, rather than in a home.
+      Forwarded : Boolean := False;
    end record;
    package Location_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Location);
@@ -147,6 +159,8 @@ package Landin.Backend.X86_64.Allocation is
 
    function Name (Register : General_Register; Size : Width) return String;
    function Name (Register : SSE_Register) return String;
+   --  The register's number, N of %xmmN.
+   function Number (Register : SSE_Register) return Natural;
    function Save_Count (Of_Plan : Plan) return Natural;
    function SSE_Count (Of_Plan : Plan) return Natural;
    --  The distinct registers any slot or value location holds, saved or

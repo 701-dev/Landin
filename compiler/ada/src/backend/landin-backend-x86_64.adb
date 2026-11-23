@@ -1692,6 +1692,11 @@ package body Landin.Backend.X86_64 is
          --  memory operand Folded_Address instead.
          Folded_User : Landin.IR.Value_Id := Landin.IR.No_Value;
          Folded_Address : Unbounded.Unbounded_String;
+         --  D2156: the load the allocator forwarded to its one use, the
+         --  next instruction, and the memory operand that use reads it
+         --  through.  Any other forwarded value is in the accumulator.
+         Forwarded_Load : Landin.IR.Value_Id := Landin.IR.No_Value;
+         Forwarded_Operand : Unbounded.Unbounded_String;
          --  Lowering carries a checked address to its access through an
          --  address slot, the access's type witness.  When that slot is a
          --  compiler temporary named by just the one store and the one
@@ -1811,7 +1816,12 @@ package body Landin.Backend.X86_64 is
             Place : Allocation.Location renames
               Allocation_Plan.Value (Positive (Value));
          begin
-            if Optimized and then Place.Kind = Allocation.Absent
+            if Optimized and then Place.Forwarded then
+               --  D2156: where the next instruction reads it.
+               return (if Forwarded_Load = Value
+                       then Unbounded.To_String (Forwarded_Operand)
+                       else Accumulator (Width));
+            elsif Optimized and then Place.Kind = Allocation.Absent
               and then Allocation.Pooled (Of_Unit, Item, Value)
             then
                --  D2092: a float constant every use of which takes a
@@ -1886,7 +1896,10 @@ package body Landin.Backend.X86_64 is
                Emit ((if Held = Landin.Targets.Byte_4 then "movd "
                       else "movq ") & Value_Operand (Value)
                      & ", " & Accumulator (Held));
-            else
+            elsif not Optimized
+              or else not Allocation_Plan.Value (Positive (Value)).Forwarded
+              or else Source_Operand (Value) /= Accumulator (Held)
+            then
                Emit (Move (Held, Source_Operand (Value), Accumulator (Held)));
             end if;
          end Load_Value;
@@ -1947,7 +1960,10 @@ package body Landin.Backend.X86_64 is
             then
                Emit ("movb %ah, %al");
                Emit ("movb %al, " & Value_Operand (Value));
-            else
+            elsif not Optimized
+              or else not Allocation_Plan.Value (Positive (Value)).Forwarded
+              or else From /= Value_Operand (Value)
+            then
                Emit (Move (Held, From, Value_Operand (Value)));
             end if;
          end Store_Value;
@@ -3728,6 +3744,24 @@ package body Landin.Backend.X86_64 is
             --  one indirect access through it, else formed with `leaq`.
             procedure Deliver_Address (Address : String);
 
+            --  A load from From into this instruction's value.  D2156: a
+            --  load the allocator forwarded hands From, a memory operand,
+            --  to its one use, the next instruction, and moves nothing.
+            procedure Deliver_Load (Held : Held_Size; From : String);
+
+            procedure Deliver_Load (Held : Held_Size; From : String) is
+            begin
+               if Optimized
+                 and then Allocation_Plan.Value (Positive (Value)).Forwarded
+                 and then not Is_Register (From)
+               then
+                  Forwarded_Load := Value;
+                  Forwarded_Operand := Unbounded.To_Unbounded_String (From);
+               else
+                  Carry (Held, From, Value_Operand (Value));
+               end if;
+            end Deliver_Load;
+
             --  The memory operand an indirect access reads or writes
             --  through: the address an earlier instruction folded into it,
             --  or at size and speed the register its address lives in, or
@@ -3862,19 +3896,81 @@ package body Landin.Backend.X86_64 is
                  Instruction & Suffix (Held) & " ";
                Immediate_Product : constant Boolean :=
                  Instruction = "imul" and then Right (Right'First) = '$';
-               Clear : constant Boolean := Right /= Into or else Left = Into;
+               --  D2156: a forwarded right operand is the accumulator or a
+               --  memory operand that may name the accumulator, %rcx or
+               --  the register the result lives in.
+               Forwarded : constant Boolean := Optimized
+                 and then Allocation_Plan.Value
+                   (Positive (Operand (2))).Forwarded;
+               Wide_Into : constant String :=
+                 (if In_Place
+                  then Allocation.Name
+                    (Allocation_Plan.Value (Positive (Value)).Register,
+                     Landin.Targets.Byte_8)
+                  else "");
+               Names_Into : constant Boolean := Forwarded and then In_Place
+                 and then not Is_Register (Right)
+                 and then
+                   (Ada.Strings.Fixed.Index (Right, Wide_Into & ",") > 0
+                    or else Ada.Strings.Fixed.Index (Right, Wide_Into & ")")
+                      > 0);
+               Clear : constant Boolean :=
+                 (Right /= Into or else Left = Into)
+                 and then (not Names_Into or else Left = Into);
                Direct : constant Boolean :=
                  In_Place and then (Clear or else Commutes);
                Target : constant String :=
                  (if Direct then Into else Accumulator (Held));
+               --  D2158: an addition no check reads the flags of, into a
+               --  register neither operand is in, of a register and a
+               --  register or an immediate, is one `lea`.
+               Address_Sum : constant Boolean :=
+                 Direct and then Clear and then Instruction = "add"
+                 and then Check = "" and then Left /= Into
+                 and then Held in Landin.Targets.Byte_4
+                                | Landin.Targets.Byte_8
+                 and then Allocation_Plan.Value
+                   (Positive (Operand (1))).Kind = Allocation.GP
+                 and then not Forwarded
+                 and then
+                   (Right (Right'First) = '$'
+                    or else Allocation_Plan.Value
+                      (Positive (Operand (2))).Kind = Allocation.GP);
+
+               function Wide (Of_Operand : Positive) return String is
+                 (Allocation.Name
+                    (Allocation_Plan.Value
+                       (Positive (Operand (Of_Operand))).Register,
+                     Landin.Targets.Byte_8));
             begin
                if Immediate_Product then
                   Emit (Operation & Right & ", " & Left & ", " & Target);
+               elsif Address_Sum then
+                  Emit ("lea" & Suffix (Held) & " "
+                        & (if Right (Right'First) = '$'
+                           then Right (Right'First + 1 .. Right'Last)
+                             & "(" & Wide (1) & ")"
+                           else "(" & Wide (1) & "," & Wide (2) & ")")
+                        & ", " & Into);
                elsif Direct and then Clear then
                   Carry (Held, Left, Into);
                   Emit (Operation & Right & ", " & Into);
+               elsif Direct and then Names_Into then
+                  --  Read the operand into the result's register first,
+                  --  through the address that names it.
+                  Carry (Held, Right, Into);
+                  Emit (Operation & Left & ", " & Into);
                elsif Direct then
                   Emit (Operation & Left & ", " & Into);
+               elsif Forwarded and then Commutes then
+                  --  The accumulator holds the right operand, or takes it
+                  --  before anything writes there.
+                  Carry (Held, Right, Target);
+                  Emit (Operation & Left & ", " & Target);
+               elsif Forwarded then
+                  Carry (Held, Right, Staging (Held));
+                  Load_Value (Operand (1));
+                  Emit (Operation & Staging (Held) & ", " & Target);
                else
                   Load_Value (Operand (1));
                   Emit (Operation & Right & ", " & Target);
@@ -5162,7 +5258,7 @@ package body Landin.Backend.X86_64 is
                   declare
                      Held : constant Held_Size := Size_Of_Value (Value);
                   begin
-                     Carry (Held, Indirect_Operand, Value_Operand (Value));
+                     Deliver_Load (Held, Indirect_Operand);
                   end;
 
                when Landin.IR.Store_Indirect =>
@@ -5178,8 +5274,7 @@ package body Landin.Backend.X86_64 is
                      Slot : constant Landin.IR.Slot_Id :=
                        Landin.IR.Slot_Of (Of_Unit, Item, Value);
                   begin
-                     Carry (Size_Of_Slot (Slot), Slot_Cell (Slot),
-                            Value_Operand (Value));
+                     Deliver_Load (Size_Of_Slot (Slot), Slot_Cell (Slot));
                   end;
 
                when Landin.IR.Store =>
@@ -5756,7 +5851,7 @@ package body Landin.Backend.X86_64 is
                         else Symbol (Datum) & "(%rip)");
                   begin
                      if Op = Landin.IR.Load_Datum then
-                        Carry (Held, Place, Value_Operand (Value));
+                        Deliver_Load (Held, Place);
                      else
                         Carry (Held, Source_Operand (Operand (1)), Place);
                      end if;
@@ -5893,8 +5988,8 @@ package body Landin.Backend.X86_64 is
                                 Index, Length, Stride, Inside);
                         begin
                            if Op = Landin.IR.Load_Element then
-                              Carry
-                                (Held, Access_Operand, Value_Operand (Value));
+                              Deliver_Load
+                                (Held, Access_Operand);
                            else
                               Store_Through
                                 (Held, Source_Operand (Operand (2)),
@@ -6096,9 +6191,8 @@ package body Landin.Backend.X86_64 is
                                    Unbounded.To_Unbounded_String ("(%rcx)");
                               end if;
                               if Op = Landin.IR.Load_Field then
-                                 Carry
-                                   (Held, Unbounded.To_String (Target),
-                                    Value_Operand (Value));
+                                 Deliver_Load
+                                   (Held, Unbounded.To_String (Target));
                               else
                                  Carry
                                    (Held, Source_Operand (Operand (1)),
@@ -6136,7 +6230,7 @@ package body Landin.Backend.X86_64 is
                            Place : constant String := Cell (At_Offset);
                         begin
                            if Op = Landin.IR.Load_Field then
-                              Carry (Held, Place, Value_Operand (Value));
+                              Deliver_Load (Held, Place);
                            else
                               Carry
                                 (Held, Source_Operand (Operand (1)), Place);
@@ -6203,7 +6297,7 @@ package body Landin.Backend.X86_64 is
                         Add_Storage_Offset (At_Offset, "%rcx");
 
                         if Op = Landin.IR.Load_Field then
-                           Carry (Held, "(%rcx)", Value_Operand (Value));
+                           Deliver_Load (Held, "(%rcx)");
                         else
                            Carry
                              (Held, Source_Operand (Operand (1)), "(%rcx)");
@@ -6225,7 +6319,7 @@ package body Landin.Backend.X86_64 is
                              & (if Thread then "" else "(%rip)");
                         begin
                            if Op = Landin.IR.Load_Field then
-                              Carry (Held, Place, Value_Operand (Value));
+                              Deliver_Load (Held, Place);
                            else
                               Carry
                                 (Held, Source_Operand (Operand (1)), Place);
