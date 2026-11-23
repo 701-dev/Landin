@@ -1,0 +1,552 @@
+--  The blocking provider's `net.network` on Windows, over Windows Sockets,
+--  as network.ldn gives it over platform/posix: a socket is a file of
+--  hosted/system's marked as one, so `io.read` and `io.write` take a
+--  connection as they take a file, and every call that waits blocks the
+--  thread.  A socket is made overlapped-capable and not inherited, so
+--  hosted/events may wait on one through its completion port.
+
+import core/io
+import core/net
+import core/time
+import hosted/system
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  How many connections may wait to be accepted.
+    backlog: i32 = 128
+
+    --  Whether a code says the system does not have the address here.
+    unavailable: (code: u32) -> (yes: bool) =
+        yes = code == windows.wsa_address_unavailable
+              or code == windows.wsa_family_unsupported
+    end unavailable
+
+    --  Whether a code says the peer has gone.
+    gone: (code: u32) -> (yes: bool) =
+        yes = code == windows.wsa_connection_reset
+              or code == windows.wsa_connection_aborted
+              or code == windows.wsa_not_connected
+              or code == windows.wsa_shut_down
+              or code == windows.wsa_network_reset
+              or code == windows.wsa_timed_out
+    end gone
+
+    --  The code the failing call left.
+    last: () -> (code: u32) =
+        code = windows.socket_last_error()
+    end last
+
+    --  Close a socket no caller is told about.
+    quietly_closed: (closing: windows.handle) -> none =
+        _ = windows.close_socket(closing)
+    end quietly_closed
+
+    --  A new socket of `at`'s family and `kind`, or the reason there is
+    --  none: Windows Sockets started first.
+    opened_socket: (at: net.address, kind: i32)
+                   -> (socket: windows.handle, code: u32) =
+        socket = windows.invalid_socket
+        code = windows.started()
+        return when code <> 0
+        family: i32 = if at.family == net.ipv4 then windows.af_inet
+                      else windows.af_inet6 end if
+        socket = windows.make_socket(family, kind, 0, 0, 0,
+                                     windows.wsa_flag_overlapped
+                                     | windows.wsa_flag_no_handle_inherit)
+        if socket == windows.invalid_socket then code = last() end if
+    end opened_socket
+
+    --  An IPv6 socket takes IPv6 alone, as on every system.
+    only_ipv6: (socket: windows.handle) -> (code: u32) =
+        code = 0
+        on: u32 = 1
+        if windows.set_option(socket, windows.ipproto_ipv6, windows.ipv6_only,
+                              ptr(usize(addr on)), 4) <> 0 then
+            code = last()
+        end if
+    end only_ipv6
+
+    --  A socket bound to `at`, a listener when `listening`: the reason it
+    --  could not be, or zero.  Windows lets a listener take an address its
+    --  earlier connections still hold without an option, and refuses one
+    --  another socket listens at.
+    bound: (at: net.address, kind: i32, listening: bool)
+           -> (socket: windows.handle, code: u32) =
+        (socket: made, code: given) := opened_socket(at, kind)
+        socket = made
+        code = given
+        return when code <> 0
+        if at.family == net.ipv6 then code = only_ipv6(socket) end if
+        if code == 0 then
+            record: windows.socket_address =
+                system.internet_address(at) else (problem)
+                    _ = problem
+                    quietly_closed(socket)
+                    socket = windows.invalid_socket
+                    code = windows.wsa_address_unavailable
+                    return
+                end
+            if windows.bind(socket, addr record.bytes[0], record.length) <> 0 then
+                code = last()
+            elsif listening and windows.listen(socket, backlog) <> 0 then
+                code = last()
+            end if
+        end if
+        if code <> 0 then
+            quietly_closed(socket)
+            socket = windows.invalid_socket
+        end if
+    end bound
+
+    bind_failure: (self: host, code: u32)
+                  -> none ! net.address_in_use | net.address_unavailable
+                          | io.no_access | io.io_failed =
+        record(self, code)
+        fail net.address_in_use when code == windows.wsa_address_in_use
+        fail net.address_unavailable when unavailable(code)
+        fail io.no_access when code == windows.wsa_access
+        fail io.io_failed
+    end bind_failure
+
+    blocking_listen: (self: host, at: net.address) -> (listener: io.file)
+                     ! net.address_in_use | net.address_unavailable
+                     | io.no_access | io.io_failed =
+        cleared(self)
+        (socket, code) := bound(at, windows.sock_stream, true)
+        if code <> 0 then
+            try bind_failure(self, code)
+        end if
+        listener = system.socket_of(socket)
+    end blocking_listen
+
+    blocking_open_datagram: (self: host, at: net.address) -> (socket: io.file)
+                            ! net.address_in_use | net.address_unavailable
+                            | io.no_access | io.io_failed =
+        cleared(self)
+        (socket: made, code) := bound(at, windows.sock_dgram, false)
+        if code <> 0 then
+            try bind_failure(self, code)
+        end if
+        socket = system.socket_of(made)
+    end blocking_open_datagram
+
+    connect_failure: (self: host, code: u32)
+                     -> none ! net.refused | net.unreachable
+                             | net.address_unavailable | net.timed_out
+                             | io.io_failed =
+        record(self, code)
+        fail net.refused when code == windows.wsa_connection_refused
+        fail net.unreachable when code == windows.wsa_network_unreachable
+          or code == windows.wsa_host_unreachable
+        fail net.address_unavailable when unavailable(code)
+        fail net.timed_out when code == windows.wsa_timed_out
+        fail io.io_failed
+    end connect_failure
+
+    --  Set `socket` to block, or with `waiting` false not to.
+    blocking_mode: (socket: windows.handle, waiting: bool) -> (code: u32) =
+        code = 0
+        mut value: u32 = if waiting then 0 else 1 end if
+        if windows.control(socket, windows.fionbio, addr value) <> 0 then
+            code = last()
+        end if
+    end blocking_mode
+
+    --  The outcome a connection begun without waiting ended with.
+    pending_error: (socket: windows.handle) -> (code: u32) =
+        mut value: u32 = 0
+        mut length: i32 = 4
+        code = 0
+        if windows.get_option(socket, windows.sol_socket, windows.so_error,
+                              ptr(usize(addr value)), addr length) <> 0 then
+            code = last()
+            return
+        end if
+        code = value
+    end pending_error
+
+    --  Connect `socket` to `to`, waiting at most until `deadline` when it is
+    --  not zero: the reason it was not connected, or zero.  A connection
+    --  with a limit is begun without waiting, watched with `select`, and
+    --  the socket made to block again once it is made (D580).
+    connected: (socket: windows.handle, to: net.address, deadline: u64)
+               -> (code: u32) =
+        record: windows.socket_address = system.internet_address(to)
+            else (problem)
+            _ = problem
+            code = windows.wsa_address_unavailable
+            return
+        end
+        if deadline == 0 then
+            code = 0
+            if windows.connect(socket, addr record.bytes[0], record.length) <> 0 then
+                code = last()
+            end if
+            return
+        end if
+        code = blocking_mode(socket, false)
+        return when code <> 0
+        if windows.connect(socket, addr record.bytes[0], record.length) <> 0 then
+            code = last()
+            return when code <> windows.wsa_would_block
+            loop do
+                now: u64 = reading()
+                if now >= deadline then
+                    code = windows.wsa_timed_out
+                    return
+                end if
+                left: u64 = deadline - now
+                mut micro: u64 = (left + 999) / 1000
+                if micro > 2000000000 then micro = 2000000000 end if
+                limit: windows.time_limit =
+                    (seconds: i32(micro / 1000000),
+                     microseconds: i32(micro % 1000000))
+                mut writing: windows.socket_set = (count: 1, sockets: [socket])
+                mut failing: windows.socket_set = (count: 1, sockets: [socket])
+                found: i32 = windows.select(0, 0, usize(addr writing),
+                                            usize(addr failing),
+                                            usize(addr limit))
+                if found == windows.socket_error then
+                    code = last()
+                    return
+                end if
+                break when found > 0
+            end loop
+            code = pending_error(socket)
+            return when code <> 0
+        end if
+        code = blocking_mode(socket, true)
+    end connected
+
+    connect_by: (self: host, to: net.address, deadline: u64)
+                -> (opened: io.file)
+                ! net.refused | net.unreachable | net.address_unavailable
+                | net.timed_out | io.io_failed =
+        cleared(self)
+        (socket, code: made_code) := opened_socket(to, windows.sock_stream)
+        if made_code <> 0 then
+            try connect_failure(self, made_code)
+        end if
+        code: u32 = connected(socket, to, deadline)
+        if code <> 0 then
+            quietly_closed(socket)
+            try connect_failure(self, code)
+        end if
+        opened = system.socket_of(socket)
+    end connect_by
+
+    blocking_connect: (self: host, to: net.address) -> (opened: io.file)
+                      ! net.refused | net.unreachable | net.address_unavailable
+                      | net.timed_out | io.io_failed =
+        opened = try connect_by(self, to, 0)
+    end blocking_connect
+
+    blocking_connect_within: (self: host, to: net.address,
+                              limit: time.duration)
+                             -> (opened: io.file)
+                             ! net.refused | net.unreachable
+                             | net.address_unavailable | net.timed_out
+                             | io.io_failed =
+        if u64(limit) == 0 then
+            opened = try connect_by(self, to, 0)
+            return
+        end if
+        opened = try connect_by(self, to, deadline_after(limit))
+    end blocking_connect_within
+
+    blocking_accept: (self: host, listener: io.file) -> (accepted: io.file)
+                     ! net.timed_out | io.io_failed =
+        cleared(self)
+        loop do
+            try ready_within(self, system.handle_of(listener), false)
+            made: windows.handle = windows.accept(system.handle_of(listener),
+                                                  0, 0)
+            if made == windows.invalid_socket then
+                code: u32 = last()
+                --  A connection its peer reset before it was taken is no
+                --  connection.
+                continue when code == windows.wsa_connection_reset
+                  or code == windows.wsa_interrupted
+                record(self, code)
+                fail net.timed_out when code == windows.wsa_timed_out
+                  or code == windows.wsa_would_block
+                fail io.io_failed
+            end if
+            _ = windows.set_handle_information(made,
+                                               windows.handle_flag_inherit, 0)
+            accepted = system.socket_of(made)
+            return
+        end loop
+    end blocking_accept
+
+    --  The limit `set_timeouts` gave `socket` for receiving, or with
+    --  `sending` for sending, in milliseconds: zero for none.
+    limit_of: (socket: windows.handle, sending: bool) -> (milliseconds: u32) =
+        mut value: u32 = 0
+        mut length: i32 = 4
+        option: i32 = if sending then windows.so_send_timeout
+                      else windows.so_receive_timeout end if
+        milliseconds = 0
+        if windows.get_option(socket, windows.sol_socket, option,
+                              ptr(usize(addr value)), addr length) == 0 then
+            milliseconds = value
+        end if
+    end limit_of
+
+    --  Wait until `socket` can be read, or with `sending` written, within
+    --  the limit `set_timeouts` gave it, measured on the monotonic clock
+    --  and never early, and fail `timed_out` with WSAETIMEDOUT once it has
+    --  passed.  Windows' own limit does not cover `accept`, and a receive
+    --  it ends leaves the socket in no state a later call can rely on, so
+    --  the provider waits the limit out itself and calls only once the
+    --  socket is ready, as platform/posix does for an accept on Darwin.
+    ready_within: (self: host, socket: windows.handle, sending: bool)
+                  -> none ! net.timed_out | io.io_failed =
+        limit: u32 = limit_of(socket, sending)
+        return when limit == 0
+        deadline: u64 = deadline_after(time.milliseconds(u64(limit)))
+        loop do
+            now: u64 = reading()
+            if now >= deadline then
+                record(self, windows.wsa_timed_out)
+                fail net.timed_out
+            end if
+            mut micro: u64 = (deadline - now + 999) / 1000
+            if micro > 2000000000 then micro = 2000000000 end if
+            wait: windows.time_limit = (seconds: i32(micro / 1000000),
+                                        microseconds: i32(micro % 1000000))
+            mut watched: windows.socket_set = (count: 1, sockets: [socket])
+            mut failing: windows.socket_set = (count: 1, sockets: [socket])
+            reading: usize = if sending then 0 else usize(addr watched) end if
+            writing: usize = if sending then usize(addr watched) else 0 end if
+            found: i32 = windows.select(0, reading, writing, usize(addr failing),
+                                        usize(addr wait))
+            if found == windows.socket_error then
+                record(self, last())
+                fail io.io_failed
+            end if
+            return when found > 0
+        end loop
+    end ready_within
+
+    --  The most one call sends or receives, which an int counts.
+    most_bytes: usize = 0x40000000
+
+    blocking_send: (self: host, connection: io.file, bytes: []u8)
+                   -> none ! net.disconnected | net.timed_out | io.io_failed =
+        cleared(self)
+        mut sent: usize = 0
+        while sent < lenof bytes do
+            mut want: usize = lenof bytes - sent
+            if want > most_bytes then want = most_bytes end if
+            ready_within(self, system.handle_of(connection), true) else (problem)
+                fail net.timed_out when problem == net.timed_out
+                fail io.io_failed
+            end
+            accepted: i32 = windows.send(system.handle_of(connection),
+                                         addr bytes[sent], i32(want), 0)
+            if accepted < 0 then
+                code: u32 = last()
+                record(self, code)
+                fail net.timed_out when code == windows.wsa_timed_out
+                fail net.disconnected when gone(code)
+                fail io.io_failed
+            end if
+            fail io.io_failed when accepted == 0 or usize(accepted) > want
+            sent += usize(accepted)
+        end while
+    end blocking_send
+
+    blocking_receive: (self: host, connection: io.file, into: []mut u8)
+                      -> (count: usize)
+                      ! net.disconnected | net.timed_out | io.io_failed =
+        cleared(self)
+        count = 0
+        return when lenof into == 0
+        mut want: usize = lenof into
+        if want > most_bytes then want = most_bytes end if
+        try ready_within(self, system.handle_of(connection), false)
+        got: i32 = windows.receive(system.handle_of(connection), addr into[0],
+                                   i32(want), 0)
+        if got < 0 then
+            code: u32 = last()
+            record(self, code)
+            fail net.timed_out when code == windows.wsa_timed_out
+            fail net.disconnected when gone(code)
+            fail io.io_failed
+        end if
+        count = usize(got)
+    end blocking_receive
+
+    blocking_send_to: (self: host, socket: io.file, bytes: []u8,
+                       to: net.address) -> none
+                      ! net.unreachable | net.timed_out | io.io_failed =
+        cleared(self)
+        target: windows.socket_address = system.internet_address(to)
+            else (problem)
+            _ = problem
+            record(self, windows.wsa_address_unavailable)
+            fail net.unreachable
+        end
+        fail io.io_failed when lenof bytes > most_bytes
+        mut spare: [1]u8 = zeroed
+        first: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                        else addr spare[0] end if
+        accepted: i32 = windows.send_to(system.handle_of(socket), first,
+                                        i32(lenof bytes), 0,
+                                        addr target.bytes[0], target.length)
+        if accepted < 0 then
+            code: u32 = last()
+            record(self, code)
+            fail net.unreachable when code == windows.wsa_network_unreachable
+              or code == windows.wsa_host_unreachable
+            fail net.timed_out when code == windows.wsa_timed_out
+            fail io.io_failed
+        end if
+        fail io.io_failed when usize(accepted) <> lenof bytes
+    end blocking_send_to
+
+    blocking_receive_from: (self: host, socket: io.file, into: []mut u8)
+                           -> (taken: net.datagram)
+                           ! net.timed_out | io.io_failed =
+        cleared(self)
+        mut sender: windows.socket_address = (bytes: zeroed, length: 28)
+        mut spare: [1]u8 = zeroed
+        mut want: usize = lenof into
+        if want > most_bytes then want = most_bytes end if
+        first: ptr mut u8 = if want > 0 then addr into[0] else addr spare[0] end if
+        try ready_within(self, system.handle_of(socket), false)
+        got: i32 = windows.receive_from(system.handle_of(socket), first,
+                                        i32(want), 0, addr sender.bytes[0],
+                                        addr sender.length)
+        mut count: usize = 0
+        if got < 0 then
+            code: u32 = last()
+            --  A datagram longer than `into` is cut to it.
+            if code == windows.wsa_message_size then
+                count = want
+            else
+                record(self, code)
+                fail net.timed_out when code == windows.wsa_timed_out
+                fail io.io_failed
+            end if
+        else
+            count = usize(got)
+        end if
+        from_address: net.address = system.address_of(sender) else (problem)
+            _ = problem
+            record(self, windows.wsa_family_unsupported)
+            fail io.io_failed
+        end
+        taken = (count: count, sender: from_address)
+    end blocking_receive_from
+
+    blocking_shutdown: (self: host, connection: io.file,
+                        stopping: net.direction) -> none ! io.io_failed =
+        cleared(self)
+        how: i32 = match stopping
+            net.receiving: windows.sd_receive
+            net.sending: windows.sd_send
+            net.both_directions: windows.sd_both
+        end match
+        if windows.shutdown(system.handle_of(connection), how) <> 0 then
+            record(self, last())
+            fail io.io_failed
+        end if
+    end blocking_shutdown
+
+    --  The internet address of a socket's own end, or with `peer` of the
+    --  other end.
+    named: (self: host, socket: io.file, peer: bool) -> (at: net.address)
+           ! io.io_failed =
+        mut found: windows.socket_address = (bytes: zeroed, length: 28)
+        status: i32 =
+            if peer then windows.peer_name(system.handle_of(socket),
+                                           addr found.bytes[0], addr found.length)
+            else windows.socket_name(system.handle_of(socket),
+                                     addr found.bytes[0], addr found.length)
+            end if
+        if status <> 0 then
+            record(self, last())
+            fail io.io_failed
+        end if
+        at = system.address_of(found) else (problem)
+            _ = problem
+            record(self, windows.wsa_family_unsupported)
+            fail io.io_failed
+        end
+    end named
+
+    blocking_local_address: (self: host, socket: io.file) -> (at: net.address)
+                            ! io.io_failed =
+        cleared(self)
+        at = try named(self, socket, false)
+    end blocking_local_address
+
+    blocking_peer_address: (self: host, connection: io.file)
+                           -> (at: net.address) ! io.io_failed =
+        cleared(self)
+        at = try named(self, connection, true)
+    end blocking_peer_address
+
+    --  A span as Windows Sockets' milliseconds, rounded up so that a limit
+    --  is never shorter than asked, zero for none.
+    milliseconds_of: (span: time.duration) -> (count: u32) =
+        mut whole: u64 = (u64(span) + 999999) / 1000000
+        if whole > 0x7FFFFFFF then whole = 0x7FFFFFFF end if
+        count = u32(whole)
+    end milliseconds_of
+
+    blocking_set_timeouts: (self: host, socket: io.file,
+                            receive_limit: time.duration,
+                            send_limit: time.duration)
+                           -> none ! io.io_failed =
+        cleared(self)
+        receiving: u32 = milliseconds_of(receive_limit)
+        sending: u32 = milliseconds_of(send_limit)
+        made: windows.handle = system.handle_of(socket)
+        if windows.set_option(made, windows.sol_socket,
+                              windows.so_receive_timeout,
+                              ptr(usize(addr receiving)), 4) <> 0
+           or windows.set_option(made, windows.sol_socket,
+                                 windows.so_send_timeout,
+                                 ptr(usize(addr sending)), 4) <> 0 then
+            record(self, last())
+            fail io.io_failed
+        end if
+    end blocking_set_timeouts
+
+    blocking_set_no_delay: (self: host, connection: io.file, on: bool)
+                           -> none ! io.io_failed =
+        cleared(self)
+        value: u32 = if on then 1 else 0 end if
+        if windows.set_option(system.handle_of(connection), windows.ipproto_tcp,
+                              windows.tcp_no_delay, ptr(usize(addr value)),
+                              4) <> 0 then
+            record(self, last())
+            fail io.io_failed
+        end if
+    end blocking_set_no_delay
+
+    blocking_close_socket: (self: host, sink socket: io.file)
+                           -> none ! io.io_failed =
+        cleared(self)
+        if windows.close_socket(system.handle_of(socket)) <> 0 then
+            record(self, last())
+            fail io.io_failed
+        end if
+    end blocking_close_socket
+
+    host is net.network
+        (connect: blocking_connect, connect_within: blocking_connect_within,
+         listen: blocking_listen,
+         accept: blocking_accept, open_datagram: blocking_open_datagram,
+         send: blocking_send, receive: blocking_receive,
+         send_to: blocking_send_to,
+         receive_from: blocking_receive_from, shutdown: blocking_shutdown,
+         local_address: blocking_local_address,
+         peer_address: blocking_peer_address,
+         set_timeouts: blocking_set_timeouts,
+         set_no_delay: blocking_set_no_delay,
+         close: blocking_close_socket)
+end if
