@@ -252,7 +252,7 @@ def render(version, sha256, url, generated):
               "--  Darwin and FreeBSD it declares nothing.",
               "",
               "compiler.assert(compiler.os == linux or compiler.os == darwin",
-              "                or compiler.os == freebsd)",
+              "                or compiler.os == freebsd or compiler.os == windows)",
               "", "fixed if compiler.os == linux then"]
     for index, ((arch, spoken), _, _, rows) in enumerate(generated):
         keyword = "fixed if" if index == 0 else "elsif"

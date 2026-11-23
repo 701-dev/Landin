@@ -18,7 +18,7 @@
 --  Darwin and FreeBSD it declares nothing.
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
 fixed if compiler.os == linux then
     fixed if compiler.arch == x86_64 then

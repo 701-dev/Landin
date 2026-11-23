@@ -12,1037 +12,1041 @@ import core/text
 import platform/libc
 import platform/linux
 
---- An IPv4 socket, AF_INET.
-public internet: atom
---- An IPv6 socket, AF_INET6.
-public internet6: atom
---- A Unix-domain socket, AF_UNIX, named by a path on this system.
-public local: atom
---- A socket's family: `internet`, `internet6` or `local`.
-public socket_family: type = internet | internet6 | local
+fixed if compiler.os <> windows then
+    --- An IPv4 socket, AF_INET.
+    public internet: atom
+    --- An IPv6 socket, AF_INET6.
+    public internet6: atom
+    --- A Unix-domain socket, AF_UNIX, named by a path on this system.
+    public local: atom
+    --- A socket's family: `internet`, `internet6` or `local`.
+    public socket_family: type = internet | internet6 | local
 
---- A connected byte stream, SOCK_STREAM: TCP over IP.
-public stream: atom
---- Datagrams, SOCK_DGRAM: UDP over IP.
-public datagram: atom
---- A socket's kind: `stream` or `datagram`.
-public socket_kind: type = stream | datagram
+    --- A connected byte stream, SOCK_STREAM: TCP over IP.
+    public stream: atom
+    --- Datagrams, SOCK_DGRAM: UDP over IP.
+    public datagram: atom
+    --- A socket's kind: `stream` or `datagram`.
+    public socket_kind: type = stream | datagram
 
---- Stop receiving, SHUT_RD.
-public shut_reading: atom
---- Stop sending, SHUT_WR: the peer reads the end of the stream.
-public shut_writing: atom
---- Stop both, SHUT_RDWR.
-public shut_both: atom
---- Which side `shutdown` stops.
-public shutdown_side: type = shut_reading | shut_writing | shut_both
+    --- Stop receiving, SHUT_RD.
+    public shut_reading: atom
+    --- Stop sending, SHUT_WR: the peer reads the end of the stream.
+    public shut_writing: atom
+    --- Stop both, SHUT_RDWR.
+    public shut_both: atom
+    --- Which side `shutdown` stops.
+    public shutdown_side: type = shut_reading | shut_writing | shut_both
 
---- A socket address as the system lays it out, C's `struct
---- sockaddr_storage` and the length of the part in use.  Its fields belong
---- to this module: make one with `internet_record` or `unix_address`, and
---- read one with `family_of`, `endpoint_of` and `unix_path`.  `hosted/system`
---- makes one from a `net.address` and reads one back as one (D1951).
-public socket_address: type = struct
-    bytes: [128]u8
-    length: u32
-end socket_address
+    --- A socket address as the system lays it out, C's `struct
+    --- sockaddr_storage` and the length of the part in use.  Its fields belong
+    --- to this module: make one with `internet_record` or `unix_address`, and
+    --- read one with `family_of`, `endpoint_of` and `unix_path`.
+    --- `hosted/system` makes one from a `net.address` and reads one back as
+    --- one (D1951).
+    public socket_address: type = struct
+        bytes: [128]u8
+        length: u32
+    end socket_address
 
---- Two descriptors of one connection, `socket_pair`'s: what is sent on
---- either is received on the other.
-public connected_pair: type = struct
-    first: descriptor
-    second: descriptor
-end connected_pair
+    --- Two descriptors of one connection, `socket_pair`'s: what is sent on
+    --- either is received on the other.
+    public connected_pair: type = struct
+        first: descriptor
+        second: descriptor
+    end connected_pair
 
-fixed if compiler.os == linux then
-    --  The longest Unix-domain path, its NUL included: `sun_path`'s room.
-    unix_path_room: usize = 108
+    fixed if compiler.os == linux then
+        --  The longest Unix-domain path, its NUL included: `sun_path`'s room.
+        unix_path_room: usize = 108
 
-    --  Linux's records begin with the family, a 16-bit number in the
-    --  host's order, which is little-endian everywhere Landin runs Linux.
-    put_family: (inout record: socket_address, family: socket_family)
-                -> none =
-        number: i32 = system_family_number(family)
-        record.bytes[0] = u8(number & 255)
-        record.bytes[1] = u8((number >> 8) & 255)
-    end put_family
+        --  Linux's records begin with the family, a 16-bit number in the
+        --  host's order, which is little-endian everywhere Landin runs Linux.
+        put_family: (inout record: socket_address, family: socket_family)
+                    -> none =
+            number: i32 = system_family_number(family)
+            record.bytes[0] = u8(number & 255)
+            record.bytes[1] = u8((number >> 8) & 255)
+        end put_family
 
-    family_number: (record: socket_address) -> (number: i32) =
-        number = i32(record.bytes[0]) | (i32(record.bytes[1]) << 8)
-    end family_number
-else
-    --  The longest Unix-domain path, its NUL included: `sun_path`'s room.
-    unix_path_room: usize = 104
-
-    --  Darwin's and FreeBSD's records begin with their own length, `sa_len`,
-    --  and then the family, a byte each.
-    put_family: (inout record: socket_address, family: socket_family)
-                -> none =
-        record.bytes[0] = u8(record.length)
-        record.bytes[1] = u8(system_family_number(family))
-    end put_family
-
-    family_number: (record: socket_address) -> (number: i32) =
-        number = i32(record.bytes[1])
-    end family_number
-end if
-
---  Where a Unix-domain record's path begins on every system.
-unix_path_offset: usize = 2
-
---  The longest interface name, without its NUL: C's IFNAMSIZ less one,
---  16 on Linux, Darwin and FreeBSD.
-interface_name_room: usize = 15
-
---- An internet socket's address as numbers, which `internet_record` lays
---- out and `endpoint_of` reads back: the family, `internet` or
---- `internet6`; the address's octets, the first four of them for IPv4;
---- the port; and an IPv6 address's scope, the number of the interface it
---- is reached through, zero for none.  It names no `core/net` type, so
---- this layer sits below the network concepts (D1951).
-public internet_endpoint: type = struct
-    family: socket_family
-    octets: [16]u8
-    port: u16
-    scope: u32
-end internet_endpoint
-
---- Make the system's record of the internet endpoint `at`: C's `struct
---- sockaddr_in`, 16 bytes, for `internet` and `struct sockaddr_in6`, 28
---- bytes, for `internet6`, with its flow label zero.  The port is in
---- network order.  It fails `eafnosupport` for the family `local`, which
---- `unix_address` makes.
-public internet_record:
-    (at: internet_endpoint) -> (made: socket_address) ! errno =
-    made = (bytes: zeroed, length: 16)
-    fail eafnosupport when at.family == local
-    made.bytes[2] = u8(at.port >> 8)
-    made.bytes[3] = u8(at.port & 255)
-    if at.family == internet then
-        put_family(made, internet)
-        for index in usize(0)..<4 do
-            made.bytes[4 + index] = at.octets[index]
-        end for
+        family_number: (record: socket_address) -> (number: i32) =
+            number = i32(record.bytes[0]) | (i32(record.bytes[1]) << 8)
+        end family_number
     else
-        made.length = 28
-        put_family(made, internet6)
-        for index in usize(0)..<16 do
-            made.bytes[8 + index] = at.octets[index]
-        end for
-        --  `sin6_scope_id`, in the host's order, which is little-endian
-        --  on every hosted target.
-        for index in usize(0)..<4 do
-            made.bytes[24 + index] = u8((at.scope >> u32(8 * index)) & 255)
-        end for
+        --  The longest Unix-domain path, its NUL included: `sun_path`'s room.
+        unix_path_room: usize = 104
+
+        --  Darwin's and FreeBSD's records begin with their own length, `sa_len`,
+        --  and then the family, a byte each.
+        put_family: (inout record: socket_address, family: socket_family)
+                    -> none =
+            record.bytes[0] = u8(record.length)
+            record.bytes[1] = u8(system_family_number(family))
+        end put_family
+
+        family_number: (record: socket_address) -> (number: i32) =
+            number = i32(record.bytes[1])
+        end family_number
     end if
-end internet_record
 
---- The number this system gives the network interface named `name`, as
---- C's `if_nametoindex` gives it: `enodev` when no interface has that
---- name.  Linux asks with `SIOCGIFINDEX` on a Unix-domain socket made for
---- the question; Darwin and FreeBSD ask their C library.
-public interface_index:
-    (name: []u8) -> (index: u32) ! errno =
-    fail enodev when lenof name == 0 or lenof name > interface_name_room
-    mut terminated: [16]u8 = zeroed
-    for at in usize(0)..<lenof name do
-        fail enodev when name[at] == 0
-        terminated[at] = name[at]
-    end for
-    index = try system_interface_index(terminated)
-    fail enodev when index == 0
-end interface_index
+    --  Where a Unix-domain record's path begins on every system.
+    unix_path_offset: usize = 2
 
---- The name of the network interface this system numbers `index`, its
---- bytes and zeros after them, as a `net.address` keeps a zone: `enodev`
---- when no interface has that number.  Linux asks with `SIOCGIFNAME`;
---- Darwin and FreeBSD ask their C library's `if_indextoname`.
-public interface_name:
-    (index: u32) -> (name: [16]u8) ! errno =
-    fail enodev when index == 0
-    name = try system_interface_name(index)
-    --  Nothing after the name's NUL, and a NUL in the last byte.
-    mut ended: bool = false
-    for at in usize(0)..<16 do
-        if name[at] == 0 then ended = true end if
-        if ended or at == 15 then name[at] = 0 end if
-    end for
-    fail enodev when name[0] == 0
-end interface_name
+    --  The longest interface name, without its NUL: C's IFNAMSIZ less one,
+    --  16 on Linux, Darwin and FreeBSD.
+    interface_name_room: usize = 15
 
---- The system's record of the Unix-domain socket at `path`, C's `struct
---- sockaddr_un`: `enametoolong` when the path and its NUL do not fit its
---- 108 bytes on Linux or 104 on Darwin and FreeBSD, and `einval` for an
---- empty path or one holding a NUL, which Linux would read as an abstract
---- name.
-public unix_address:
-    (path: text.os_string) -> (made: socket_address) ! errno =
-    bytes: []u8 = text.os_string_bytes(path)
-    fail einval when lenof bytes == 0
-    fail enametoolong when lenof bytes >= unix_path_room
-    made = (bytes: zeroed,
-            length: u32(unix_path_offset + lenof bytes + 1))
-    for index in usize(0)..<lenof bytes do
-        fail einval when bytes[index] == 0
-        made.bytes[unix_path_offset + index] = bytes[index]
-    end for
-    put_family(made, local)
-end unix_address
+    --- An internet socket's address as numbers, which `internet_record` lays
+    --- out and `endpoint_of` reads back: the family, `internet` or
+    --- `internet6`; the address's octets, the first four of them for IPv4;
+    --- the port; and an IPv6 address's scope, the number of the interface it
+    --- is reached through, zero for none.  It names no `core/net` type, so
+    --- this layer sits below the network concepts (D1951).
+    public internet_endpoint: type = struct
+        family: socket_family
+        octets: [16]u8
+        port: u16
+        scope: u32
+    end internet_endpoint
 
---- The family of the socket address `at`: `eafnosupport` for one this
---- module does not name.
-public family_of:
-    (at: socket_address) -> (family: socket_family) ! errno =
-    number: i32 = family_number(at)
-    family = if number == system_family_number(internet) then internet
-             elsif number == system_family_number(internet6) then internet6
-             elsif number == system_family_number(local) then local
-             else internet end if
-    fail eafnosupport when number <> system_family_number(family)
-end family_of
-
---- The internet endpoint the socket address `at` holds: its family,
---- octets, port and, for IPv6, its scope.  It fails `eafnosupport` for a
---- Unix-domain address, or a record too short for its family.
-public endpoint_of:
-    (at: socket_address) -> (result: internet_endpoint) ! errno =
-    family: socket_family = try family_of(at)
-    port: u16 = (u16(at.bytes[2]) << 8) | u16(at.bytes[3])
-    result = (family: internet, octets: zeroed, port: port, scope: 0)
-    if family == internet then
-        fail eafnosupport when at.length < 8
-        for index in usize(0)..<4 do
-            result.octets[index] = at.bytes[4 + index]
-        end for
-    elsif family == internet6 then
-        fail eafnosupport when at.length < 24
-        result.family = internet6
-        for index in usize(0)..<16 do
-            result.octets[index] = at.bytes[8 + index]
-        end for
-        if at.length >= 28 then
+    --- Make the system's record of the internet endpoint `at`: C's `struct
+    --- sockaddr_in`, 16 bytes, for `internet` and `struct sockaddr_in6`, 28
+    --- bytes, for `internet6`, with its flow label zero.  The port is in
+    --- network order.  It fails `eafnosupport` for the family `local`, which
+    --- `unix_address` makes.
+    public internet_record:
+        (at: internet_endpoint) -> (made: socket_address) ! errno =
+        made = (bytes: zeroed, length: 16)
+        fail eafnosupport when at.family == local
+        made.bytes[2] = u8(at.port >> 8)
+        made.bytes[3] = u8(at.port & 255)
+        if at.family == internet then
+            put_family(made, internet)
             for index in usize(0)..<4 do
-                result.scope = result.scope
-                               | (u32(at.bytes[24 + index]) << u32(8 * index))
+                made.bytes[4 + index] = at.octets[index]
+            end for
+        else
+            made.length = 28
+            put_family(made, internet6)
+            for index in usize(0)..<16 do
+                made.bytes[8 + index] = at.octets[index]
+            end for
+            --  `sin6_scope_id`, in the host's order, which is little-endian
+            --  on every hosted target.
+            for index in usize(0)..<4 do
+                made.bytes[24 + index] = u8((at.scope >> u32(8 * index)) & 255)
             end for
         end if
-    else
-        fail eafnosupport
-    end if
-end endpoint_of
+    end internet_record
 
---- The path a Unix-domain socket address names, copied into `room` and
---- lent from it: `eafnosupport` for an internet address, and `erange` when
---- the path does not fit `room`.  A socket bound to no path has an empty
---- one.
-public unix_path:
-    (at: socket_address, room: []mut u8)
-    -> (path: text.os_string from room) ! errno =
-    family: socket_family = try family_of(at)
-    fail eafnosupport when family <> local
-    mut length: usize = 0
-    mut limit: usize = usize(at.length)
-    if limit > 128 then limit = 128 end if
-    while unix_path_offset + length < limit
-      and at.bytes[unix_path_offset + length] <> 0 do
-        inc length
-    end while
-    fail erange when length > lenof room
-    for index in usize(0)..<length do
-        room[index] = at.bytes[unix_path_offset + index]
-    end for
-    path = text.os_string_over(room[0..<length])
-end unix_path
-
---- Make a socket of `family` and `kind`, closed on exec and raising no
---- SIGPIPE: `eafnosupport` when the system does not have the family, as
---- one without IPv6 does not.  On Darwin, which has no SOCK_CLOEXEC, the
---- flag is set just after the socket is made, as `pipe`'s is.
-public socket:
-    (family: socket_family, kind: socket_kind) -> (made: descriptor)
-    ! errno =
-    made = try system_socket(family, kind)
-end socket
-
---- Make a pair of connected Unix-domain sockets of `kind`, each closed on
---- exec and raising no SIGPIPE.
-public socket_pair:
-    (kind: socket_kind) -> (ends: connected_pair) ! errno =
-    ends = try system_socket_pair(kind)
-end socket_pair
-
---- Bind `socket` to the address `at`: `eaddrinuse` when another socket
---- holds it, `eaddrnotavail` when no interface here has it, `eacces` for a
---- port the process may not take.
-public bind:
-    (socket: descriptor, at: socket_address) -> none ! errno =
-    try system_bind(socket, addr at.bytes[0], at.length)
-end bind
-
---- Make the bound stream socket `socket` a listener, with at most `backlog`
---- connections waiting to be accepted, which each system caps at its own
---- limit.
-public listen:
-    (socket: descriptor, backlog: i32) -> none ! errno =
-    try system_listen(socket, backlog)
-end listen
-
---- Wait for the next connection on `listener` and take it as a new socket,
---- closed on exec and raising no SIGPIPE. It fails with the errno: `eagain`
---- when the listener's receive time limit passed first, `econnaborted` for
---- a connection reset before it was taken. Linux limits the wait itself;
---- Darwin and FreeBSD do not, so it is waited out here with `poll` for the
---- limit `receive_timeout` reads. On Darwin the new socket is marked closed
---- on exec just after it is made.
-public accept:
-    (listener: descriptor) -> (accepted: descriptor) ! errno =
-    accepted = try system_accept(listener)
-end accept
-
---- Take the next connection waiting on `listener` as a new socket that is
---- non-blocking from the start, as `set_non_blocking` makes one, closed on
---- exec and raising no SIGPIPE. It fails with the errno: on a non-blocking
---- listener, `eagain` at once when no connection is waiting, which `poll`
---- for `poll_input` on the listener says has changed. It is `accept` for a
---- program that waits for readiness, and no receive limit bounds it. Linux
---- and FreeBSD make the socket non-blocking as they accept it, and Darwin
---- just after it is made.
-public accept_non_blocking:
-    (listener: descriptor) -> (accepted: descriptor) ! errno =
-    accepted = try system_accept_non_blocking(listener)
-end accept_non_blocking
-
---- Connect `socket` to `to`. It fails `econnrefused` when nothing listens
---- there, and `eintr` when a signal came first; the connection then goes
---- on, and its outcome is what `poll` for `poll_output` and then
---- `pending_error` say. A non-blocking socket fails `einprogress` rather
---- than wait for a connection the system cannot make at once, and its
---- outcome is found the same way.
-public connect:
-    (socket: descriptor, to: socket_address) -> none ! errno =
-    try system_connect(socket, addr to.bytes[0], to.length)
-end connect
-
---- Send at most `lenof bytes` bytes on the connected `socket`: the count
---- accepted, which a stream may find short, or the errno, `epipe` once
---- the peer has gone, without SIGPIPE, and `eagain` when the send time
---- limit passed.
-public send:
-    (socket: descriptor, bytes: []u8) -> (count: usize) ! errno =
-    count = try system_send(socket, bytes)
-end send
-
---- Receive at most `lenof into` bytes from the connected `socket`: the
---- count, zero once a stream's peer has finished sending, or the errno,
---- `eagain` when the receive time limit passed and `econnreset` when the
---- peer reset the connection.
-public receive:
-    (socket: descriptor, into: []mut u8) -> (count: usize) ! errno =
-    count = try system_receive(socket, into)
-end receive
-
---- Send `bytes` as one datagram to `to`: the count, which is all of them,
---- or the errno, `emsgsize` for a datagram larger than the system sends.
-public send_to:
-    (socket: descriptor, bytes: []u8, to: socket_address)
-    -> (count: usize) ! errno =
-    count = try system_send_to(socket, bytes, addr to.bytes[0], to.length)
-end send_to
-
---- What one `receive_from` took: the count, and the sender's address.
-public received: type = struct
-    count: usize
-    sender: socket_address
-end received
-
---- Receive the next datagram into `into` and the address of its sender: a
---- datagram longer than `into` is cut to it.
-public receive_from:
-    (socket: descriptor, into: []mut u8) -> (result: received) ! errno =
-    result = (count: 0, sender: (bytes: zeroed, length: 128))
-    result.count = try system_receive_from(socket, into,
-                                           addr result.sender.bytes[0],
-                                           addr result.sender.length)
-end receive_from
-
---- Stop receiving, sending or both on `socket`: `enotconn` when it is not
---- connected.
-public shutdown:
-    (socket: descriptor, side: shutdown_side) -> none ! errno =
-    how: i32 = match side
-        shut_reading: 0
-        shut_writing: 1
-        shut_both: 2
-    end match
-    try system_shutdown(socket, how)
-end shutdown
-
---- The address `socket` is bound to, POSIX's `getsockname`.
-public socket_name:
-    (socket: descriptor) -> (at: socket_address) ! errno =
-    at = (bytes: zeroed, length: 128)
-    try system_socket_name(socket, addr at.bytes[0], addr at.length)
-end socket_name
-
---- The address of the peer `socket` is connected to, POSIX's
---- `getpeername`: `enotconn` when there is none.
-public peer_name:
-    (socket: descriptor) -> (at: socket_address) ! errno =
-    at = (bytes: zeroed, length: 128)
-    try system_peer_name(socket, addr at.bytes[0], addr at.length)
-end peer_name
-
---  The socket options this module sets, each system numbering them its
---  own way.
-reuse_address: atom
-no_delay: atom
-ipv6_only: atom
-receive_limit: atom
-send_limit: atom
-pending: atom
-socket_option: type = reuse_address | no_delay | ipv6_only | receive_limit
-    | send_limit | pending
-
---  Set a flag option.
-flag_set: (socket: descriptor, option: socket_option, on: bool)
-          -> none ! errno =
-    value: i32 = if on then 1 else 0 end if
-    try system_set_number(socket, option, value)
-end flag_set
-
---- Let the listener `socket` bind an address that earlier connections
---- still hold in TIME_WAIT, `SO_REUSEADDR`, never one another listener
---- holds.  Set it before `bind`.
-public set_reuse_address:
-    (socket: descriptor, on: bool) -> none ! errno =
-    try flag_set(socket, reuse_address, on)
-end set_reuse_address
-
---- Send a stream's small writes at once, `TCP_NODELAY`.
-public set_no_delay:
-    (socket: descriptor, on: bool) -> none ! errno =
-    try flag_set(socket, no_delay, on)
-end set_no_delay
-
---- Make an IPv6 socket take IPv6 alone, never IPv4 through mapped
---- addresses, `IPV6_V6ONLY`, which Darwin and FreeBSD do from the start
---- and Linux does not.  Set it before `bind`.
-public set_ipv6_only:
-    (socket: descriptor, on: bool) -> none ! errno =
-    try flag_set(socket, ipv6_only, on)
-end set_ipv6_only
-
---- Limit how long a receive or an `accept` on `socket` waits, `SO_RCVTIMEO`,
---- after which it fails `eagain`; a span of zero waits as long as it takes.
---- The system keeps microseconds, so a part of one counts as a whole one, and
---- Linux keeps its own ticks.  A negative span is `einval`.
-public set_receive_timeout:
-    (socket: descriptor, span: time_value) -> none ! errno =
-    fail einval when span.seconds < 0 or span.nanoseconds >= 1000000000
-    try system_set_time(socket, receive_limit, span)
-end set_receive_timeout
-
---- Limit how long a send on `socket` waits, `SO_SNDTIMEO`, as
---- `set_receive_timeout` limits a receive.
-public set_send_timeout:
-    (socket: descriptor, span: time_value) -> none ! errno =
-    fail einval when span.seconds < 0 or span.nanoseconds >= 1000000000
-    try system_set_time(socket, send_limit, span)
-end set_send_timeout
-
---- How long a receive on `socket` waits, as `set_receive_timeout` set it,
---- zero for no limit, to the microsecond: `unlisted` when the system gives
---- back a record of another size, as QEMU's user emulation does.
-public receive_timeout:
-    (socket: descriptor) -> (span: time_value) ! errno =
-    span = try system_get_time(socket, receive_limit)
-end receive_timeout
-
---- How long a send on `socket` waits, as `set_send_timeout` set it, zero
---- for no limit, as `receive_timeout` reads the receive limit.
-public send_timeout:
-    (socket: descriptor) -> (span: time_value) ! errno =
-    span = try system_get_time(socket, send_limit)
-end send_timeout
-
---- Fail with the error pending on `socket`, `SO_ERROR`, clearing it, or
---- return when there is none. It tells how a connection ended that
---- `connect` began and a signal interrupted.
-public pending_error:
-    (socket: descriptor) -> none ! errno =
-    number: i32 = try system_get_number(socket, pending)
-    fail errno_of(number) when number <> 0
-end pending_error
-
---  A time value as microseconds, a part of one rounded up.
-microseconds_of: (span: time_value) -> (seconds: i64, microseconds: i64) =
-    seconds = span.seconds
-    microseconds = i64((span.nanoseconds + 999) / 1000)
-    if microseconds == 1000000 then
-        inc seconds
-        microseconds = 0
-    end if
-end microseconds_of
-
---  The system's own calls beneath the facility above: Linux's system
---  calls through platform/linux, and the C library through
---  platform/libc on Darwin and FreeBSD, whose system interface it is.
-
-fixed if compiler.os == linux then
-    system_family_number: (family: socket_family) -> (number: i32) =
-        number = match family
-            internet: linux.af_inet
-            internet6: linux.af_inet6
-            local: linux.af_unix
-        end match
-    end system_family_number
-
-    kind_number: (kind: socket_kind) -> (number: i32) =
-        number = match kind
-            stream: linux.sock_stream
-            datagram: linux.sock_dgram
-        end match
-    end kind_number
-
-    system_socket: (family: socket_family, kind: socket_kind)
-                   -> (made: descriptor) ! errno =
-        result: i32 = linux.socket(system_family_number(family),
-                                   kind_number(kind) | linux.sock_cloexec, 0)
-        fail errno_of(-result) when result < 0
-        made = descriptor(result)
-    end system_socket
-
-    system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
-                        ! errno =
-        mut made: [2]i32 = zeroed
-        result: i32 = linux.socketpair(linux.af_unix,
-                                       kind_number(kind) | linux.sock_cloexec,
-                                       0, addr made[0])
-        fail errno_of(-result) when result < 0
-        ends = (first: descriptor(made[0]), second: descriptor(made[1]))
-    end system_socket_pair
-
-    system_bind: (socket: descriptor, address: ptr u8, length: u32)
-                 -> none ! errno =
-        result: i32 = linux.bind(i32(socket), address, length)
-        fail errno_of(-result) when result < 0
-    end system_bind
-
-    system_listen: (socket: descriptor, backlog: i32) -> none ! errno =
-        result: i32 = linux.listen(i32(socket), backlog)
-        fail errno_of(-result) when result < 0
-    end system_listen
-
-    system_accept: (listener: descriptor) -> (accepted: descriptor) ! errno =
-        result: i32 = linux.accept4(i32(listener), linux.no_address,
-                                    linux.no_address, linux.sock_cloexec)
-        fail errno_of(-result) when result < 0
-        accepted = descriptor(result)
-    end system_accept
-
-    system_accept_non_blocking: (listener: descriptor)
-                                -> (accepted: descriptor) ! errno =
-        result: i32 = linux.accept4(i32(listener), linux.no_address,
-                                    linux.no_address,
-                                    linux.sock_cloexec | linux.sock_nonblock)
-        fail errno_of(-result) when result < 0
-        accepted = descriptor(result)
-    end system_accept_non_blocking
-
-    system_connect: (socket: descriptor, address: ptr u8, length: u32)
-                    -> none ! errno =
-        result: i32 = linux.connect(i32(socket), address, length)
-        fail errno_of(-result) when result < 0
-    end system_connect
-
-    --  Every send is MSG_NOSIGNAL's, so a peer that has gone is EPIPE
-    --  whatever SIGPIPE's disposition is.
-    system_send: (socket: descriptor, bytes: []u8) -> (count: usize)
-                 ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = linux.sendto(i32(socket), base, lenof bytes,
-                                     linux.msg_nosignal, linux.no_address,
-                                     0)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_send
-
-    system_receive: (socket: descriptor, into: []mut u8) -> (count: usize)
-                    ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = linux.recvfrom(i32(socket), base, lenof into, 0,
-                                       linux.no_address, linux.no_address)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_receive
-
-    system_send_to: (socket: descriptor, bytes: []u8, address: ptr u8,
-                     length: u32) -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = linux.sendto(i32(socket), base, lenof bytes,
-                                     linux.msg_nosignal, address, length)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_send_to
-
-    system_receive_from: (socket: descriptor, into: []mut u8,
-                          address: ptr mut u8, length: ptr mut u32)
-                         -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = linux.recvfrom(i32(socket), base, lenof into, 0,
-                                       address, length)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_receive_from
-
-    system_shutdown: (socket: descriptor, how: i32) -> none ! errno =
-        result: i32 = linux.shutdown(i32(socket), how)
-        fail errno_of(-result) when result < 0
-    end system_shutdown
-
-    system_socket_name: (socket: descriptor, address: ptr mut u8,
-                         length: ptr mut u32) -> none ! errno =
-        result: i32 = linux.getsockname(i32(socket), address, length)
-        fail errno_of(-result) when result < 0
-    end system_socket_name
-
-    system_peer_name: (socket: descriptor, address: ptr mut u8,
-                       length: ptr mut u32) -> none ! errno =
-        result: i32 = linux.getpeername(i32(socket), address, length)
-        fail errno_of(-result) when result < 0
-    end system_peer_name
-
-    --  An option's level and name.
-    option_of: (option: socket_option) -> (level: i32, name: i32) =
-        level = linux.sol_socket
-        name = match option
-            reuse_address: linux.so_reuseaddr
-            no_delay: linux.tcp_nodelay
-            ipv6_only: linux.ipv6_v6only
-            receive_limit: linux.so_rcvtimeo
-            send_limit: linux.so_sndtimeo
-            pending: linux.so_error
-        end match
-        if option == no_delay then level = linux.ipproto_tcp end if
-        if option == ipv6_only then level = linux.ipproto_ipv6 end if
-    end option_of
-
-    system_set_number: (socket: descriptor, option: socket_option,
-                        value: i32) -> none ! errno =
-        (level, name) := option_of(option)
-        held: i32 = value
-        given: ptr u8 = ptr(usize(addr held))
-        result: i32 = linux.setsockopt(i32(socket), level, name, given, 4)
-        fail errno_of(-result) when result < 0
-    end system_set_number
-
-    system_get_number: (socket: descriptor, option: socket_option)
-                       -> (value: i32) ! errno =
-        (level, name) := option_of(option)
-        mut held: i32 = 0
-        mut length: u32 = 4
-        filled: ptr mut u8 = ptr(usize(addr held))
-        result: i32 = linux.getsockopt(i32(socket), level, name, filled,
-                                       addr length)
-        fail errno_of(-result) when result < 0
-        value = held
-    end system_get_number
-
-    system_set_time: (socket: descriptor, option: socket_option,
-                      span: time_value) -> none ! errno =
-        (level, name) := option_of(option)
-        (seconds, microseconds) := microseconds_of(span)
-        limit: linux.time_limit = (seconds: seconds,
-                                   microseconds: microseconds)
-        given: ptr u8 = ptr(usize(addr limit))
-        result: i32 = linux.setsockopt(i32(socket), level, name, given,
-                                       u32(sizeof linux.time_limit))
-        fail errno_of(-result) when result < 0
-    end system_set_time
-
-    system_get_time: (socket: descriptor, option: socket_option)
-                     -> (span: time_value) ! errno =
-        (level, name) := option_of(option)
-        mut limit: linux.time_limit = zeroed
-        mut length: u32 = u32(sizeof linux.time_limit)
-        filled: ptr mut u8 = ptr(usize(addr limit))
-        result: i32 = linux.getsockopt(i32(socket), level, name, filled,
-                                       addr length)
-        fail errno_of(-result) when result < 0
-        fail unlisted when length <> u32(sizeof linux.time_limit)
-          or limit.microseconds < 0
-          or limit.microseconds >= 1000000
-        span = (seconds: limit.seconds,
-                nanoseconds: u32(limit.microseconds) * 1000)
-    end system_get_time
-
-    --  Ask the system about an interface, as glibc's `if_nametoindex`
-    --  and `if_indextoname` do: an `ioctl` on a socket made for the
-    --  question, which any family's socket answers.
-    interface_asked: (request: u64, inout record: linux.interface_record)
-                     -> none ! errno =
-        asking: i32 = linux.socket(linux.af_unix,
-                                   linux.sock_dgram | linux.sock_cloexec, 0)
-        fail errno_of(-asking) when asking < 0
-        result: i32 = linux.ioctl(asking, request, i64(usize(addr record)))
-        _ = linux.close(asking)
-        fail errno_of(-result) when result < 0
-    end interface_asked
-
-    system_interface_index: (name: [16]u8) -> (index: u32) ! errno =
-        mut record: linux.interface_record = zeroed
-        for at in usize(0)..<16 do
-            record.name[at] = name[at]
+    --- The number this system gives the network interface named `name`, as
+    --- C's `if_nametoindex` gives it: `enodev` when no interface has that
+    --- name.  Linux asks with `SIOCGIFINDEX` on a Unix-domain socket made for
+    --- the question; Darwin and FreeBSD ask their C library.
+    public interface_index:
+        (name: []u8) -> (index: u32) ! errno =
+        fail enodev when lenof name == 0 or lenof name > interface_name_room
+        mut terminated: [16]u8 = zeroed
+        for at in usize(0)..<lenof name do
+            fail enodev when name[at] == 0
+            terminated[at] = name[at]
         end for
-        try interface_asked(linux.siocgifindex, record)
-        index = u32(record.index)
-    end system_interface_index
+        index = try system_interface_index(terminated)
+        fail enodev when index == 0
+    end interface_index
 
-    system_interface_name: (index: u32) -> (name: [16]u8) ! errno =
-        mut record: linux.interface_record = zeroed
-        record.index = i32(index)
-        interface_asked(linux.siocgifname, record) else (problem)
-            fail enodev when problem == enxio or problem == enodev
-            fail problem
-        end
-        name = record.name
-    end system_interface_name
-elsif compiler.os == darwin or compiler.os == freebsd then
-    system_family_number: (family: socket_family) -> (number: i32) =
-        number = match family
-            internet: libc.af_inet
-            internet6: libc.af_inet6
-            local: libc.af_unix
-        end match
-    end system_family_number
+    --- The name of the network interface this system numbers `index`, its
+    --- bytes and zeros after them, as a `net.address` keeps a zone: `enodev`
+    --- when no interface has that number.  Linux asks with `SIOCGIFNAME`;
+    --- Darwin and FreeBSD ask their C library's `if_indextoname`.
+    public interface_name:
+        (index: u32) -> (name: [16]u8) ! errno =
+        fail enodev when index == 0
+        name = try system_interface_name(index)
+        --  Nothing after the name's NUL, and a NUL in the last byte.
+        mut ended: bool = false
+        for at in usize(0)..<16 do
+            if name[at] == 0 then ended = true end if
+            if ended or at == 15 then name[at] = 0 end if
+        end for
+        fail enodev when name[0] == 0
+    end interface_name
 
-    kind_number: (kind: socket_kind) -> (number: i32) =
-        number = match kind
-            stream: libc.sock_stream
-            datagram: libc.sock_dgram
-        end match
-    end kind_number
+    --- The system's record of the Unix-domain socket at `path`, C's `struct
+    --- sockaddr_un`: `enametoolong` when the path and its NUL do not fit its
+    --- 108 bytes on Linux or 104 on Darwin and FreeBSD, and `einval` for an
+    --- empty path or one holding a NUL, which Linux would read as an abstract
+    --- name.
+    public unix_address:
+        (path: text.os_string) -> (made: socket_address) ! errno =
+        bytes: []u8 = text.os_string_bytes(path)
+        fail einval when lenof bytes == 0
+        fail enametoolong when lenof bytes >= unix_path_room
+        made = (bytes: zeroed,
+                length: u32(unix_path_offset + lenof bytes + 1))
+        for index in usize(0)..<lenof bytes do
+            fail einval when bytes[index] == 0
+            made.bytes[unix_path_offset + index] = bytes[index]
+        end for
+        put_family(made, local)
+    end unix_address
 
-    --  A socket of this module's raises no SIGPIPE, whatever its
-    --  disposition: SO_NOSIGPIPE, which both systems keep on the socket,
-    --  covers a `write` to it as well as a `send`.
-    quiet: (made: i32) -> none ! errno =
-        on: i32 = 1
-        given: ptr u8 = ptr(usize(addr on))
-        fail failure() when libc.setsockopt(made, libc.sol_socket,
-                                            libc.so_nosigpipe, given, 4) <> 0
-    end quiet
+    --- The family of the socket address `at`: `eafnosupport` for one this
+    --- module does not name.
+    public family_of:
+        (at: socket_address) -> (family: socket_family) ! errno =
+        number: i32 = family_number(at)
+        family = if number == system_family_number(internet) then internet
+                 elsif number == system_family_number(internet6) then internet6
+                 elsif number == system_family_number(local) then local
+                 else internet end if
+        fail eafnosupport when number <> system_family_number(family)
+    end family_of
 
-    --  Darwin and FreeBSD do not limit `accept` by the receive limit, as
-    --  Linux does, so the wait for a connection is limited here: a poll
-    --  for one for as long as the limit, `eagain` when none came.
-    limit_waited: (listener: descriptor) -> none ! errno =
-        limit: time_value = try system_get_time(listener, receive_limit)
-        return when limit.seconds == 0 and limit.nanoseconds == 0
-        milliseconds: i64 = limit.seconds * 1000
-                            + i64((limit.nanoseconds + 999999) / 1000000)
-        bounded: i32 = if milliseconds > 2147483647 then 2147483647
-                       else i32(milliseconds) end if
-        mut entries: [1]poll_entry = [watch(listener, poll_input)]
-        found: usize = try system_poll(entries[0..<1], bounded)
-        fail eagain when found == 0
-    end limit_waited
-
-    fixed if compiler.os == darwin then
-        --  Darwin has no SOCK_CLOEXEC, so the flag is set just after the
-        --  socket is made, as a pipe's is: a program another thread
-        --  executes in between could inherit it, and `spawn` closes every
-        --  descriptor it does not give the child either way.
-        kept: (made: i32) -> none ! errno =
-            if libc.fcntl(made, libc.f_setfd, libc.fd_cloexec) <> 0 then
-                problem: errno = failure()
-                _ = libc.close(made)
-                fail problem
+    --- The internet endpoint the socket address `at` holds: its family,
+    --- octets, port and, for IPv6, its scope.  It fails `eafnosupport` for a
+    --- Unix-domain address, or a record too short for its family.
+    public endpoint_of:
+        (at: socket_address) -> (result: internet_endpoint) ! errno =
+        family: socket_family = try family_of(at)
+        port: u16 = (u16(at.bytes[2]) << 8) | u16(at.bytes[3])
+        result = (family: internet, octets: zeroed, port: port, scope: 0)
+        if family == internet then
+            fail eafnosupport when at.length < 8
+            for index in usize(0)..<4 do
+                result.octets[index] = at.bytes[4 + index]
+            end for
+        elsif family == internet6 then
+            fail eafnosupport when at.length < 24
+            result.family = internet6
+            for index in usize(0)..<16 do
+                result.octets[index] = at.bytes[8 + index]
+            end for
+            if at.length >= 28 then
+                for index in usize(0)..<4 do
+                    result.scope = result.scope
+                                   | (u32(at.bytes[24 + index]) << u32(8 * index))
+                end for
             end if
-            quiet(made) else (problem)
-                _ = libc.close(made)
-                fail problem
-            end
-        end kept
+        else
+            fail eafnosupport
+        end if
+    end endpoint_of
 
-        system_socket: (family: socket_family, kind: socket_kind)
-                       -> (made: descriptor) ! errno =
-            result: i32 = libc.socket(system_family_number(family),
-                                      kind_number(kind), 0)
-            fail failure() when result < 0
-            try kept(result)
-            made = descriptor(result)
-        end system_socket
+    --- The path a Unix-domain socket address names, copied into `room` and
+    --- lent from it: `eafnosupport` for an internet address, and `erange` when
+    --- the path does not fit `room`.  A socket bound to no path has an empty
+    --- one.
+    public unix_path:
+        (at: socket_address, room: []mut u8)
+        -> (path: text.os_string from room) ! errno =
+        family: socket_family = try family_of(at)
+        fail eafnosupport when family <> local
+        mut length: usize = 0
+        mut limit: usize = usize(at.length)
+        if limit > 128 then limit = 128 end if
+        while unix_path_offset + length < limit
+          and at.bytes[unix_path_offset + length] <> 0 do
+            inc length
+        end while
+        fail erange when length > lenof room
+        for index in usize(0)..<length do
+            room[index] = at.bytes[unix_path_offset + index]
+        end for
+        path = text.os_string_over(room[0..<length])
+    end unix_path
 
-        system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
-                            ! errno =
-            mut made: [2]i32 = zeroed
-            fail failure() when libc.socketpair(libc.af_unix,
-                                                kind_number(kind), 0,
-                                                addr made[0]) <> 0
-            kept(made[0]) else (problem)
-                _ = libc.close(made[1])
-                fail problem
-            end
-            kept(made[1]) else (problem)
-                _ = libc.close(made[0])
-                fail problem
-            end
-            ends = (first: descriptor(made[0]), second: descriptor(made[1]))
-        end system_socket_pair
+    --- Make a socket of `family` and `kind`, closed on exec and raising no
+    --- SIGPIPE: `eafnosupport` when the system does not have the family, as
+    --- one without IPv6 does not.  On Darwin, which has no SOCK_CLOEXEC, the
+    --- flag is set just after the socket is made, as `pipe`'s is.
+    public socket:
+        (family: socket_family, kind: socket_kind) -> (made: descriptor)
+        ! errno =
+        made = try system_socket(family, kind)
+    end socket
 
-        system_accept: (listener: descriptor) -> (accepted: descriptor)
-                       ! errno =
-            try limit_waited(listener)
-            result: i32 = libc.accept(i32(listener), libc.no_address,
-                                      libc.no_address)
-            fail failure() when result < 0
-            try kept(result)
-            accepted = descriptor(result)
-        end system_accept
+    --- Make a pair of connected Unix-domain sockets of `kind`, each closed on
+    --- exec and raising no SIGPIPE.
+    public socket_pair:
+        (kind: socket_kind) -> (ends: connected_pair) ! errno =
+        ends = try system_socket_pair(kind)
+    end socket_pair
 
-        --  Darwin's `accept` gives the new socket the listener's
-        --  O_NONBLOCK; it is set here whatever the listener's is.
-        system_accept_non_blocking: (listener: descriptor)
-                                    -> (accepted: descriptor) ! errno =
-            result: i32 = libc.accept(i32(listener), libc.no_address,
-                                      libc.no_address)
-            fail failure() when result < 0
-            try kept(result)
-            accepted = descriptor(result)
-            set_non_blocking(accepted, true) else (problem)
-                _ = libc.close(result)
-                fail problem
-            end
-        end system_accept_non_blocking
+    --- Bind `socket` to the address `at`: `eaddrinuse` when another socket
+    --- holds it, `eaddrnotavail` when no interface here has it, `eacces` for a
+    --- port the process may not take.
+    public bind:
+        (socket: descriptor, at: socket_address) -> none ! errno =
+        try system_bind(socket, addr at.bytes[0], at.length)
+    end bind
 
-        --  Darwin has no MSG_NOSIGNAL; SO_NOSIGPIPE stands in for it.
-        send_flags: i32 = 0
-    else
-        --  Close a socket just made when it cannot be quietened.
-        quieted: (made: i32) -> none ! errno =
-            quiet(made) else (problem)
-                _ = libc.close(made)
-                fail problem
-            end
-        end quieted
+    --- Make the bound stream socket `socket` a listener, with at most
+    --- `backlog` connections waiting to be accepted, which each system caps at
+    --- its own limit.
+    public listen:
+        (socket: descriptor, backlog: i32) -> none ! errno =
+        try system_listen(socket, backlog)
+    end listen
 
-        system_socket: (family: socket_family, kind: socket_kind)
-                       -> (made: descriptor) ! errno =
-            result: i32 = libc.socket(system_family_number(family),
-                                      kind_number(kind) | libc.sock_cloexec,
-                                      0)
-            fail failure() when result < 0
-            try quieted(result)
-            made = descriptor(result)
-        end system_socket
+    --- Wait for the next connection on `listener` and take it as a new socket,
+    --- closed on exec and raising no SIGPIPE. It fails with the errno:
+    --- `eagain` when the listener's receive time limit passed first,
+    --- `econnaborted` for a connection reset before it was taken. Linux limits
+    --- the wait itself; Darwin and FreeBSD do not, so it is waited out here
+    --- with `poll` for the limit `receive_timeout` reads. On Darwin the new
+    --- socket is marked closed on exec just after it is made.
+    public accept:
+        (listener: descriptor) -> (accepted: descriptor) ! errno =
+        accepted = try system_accept(listener)
+    end accept
 
-        system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
-                            ! errno =
-            mut made: [2]i32 = zeroed
-            fail failure() when libc.socketpair(
-                libc.af_unix, kind_number(kind) | libc.sock_cloexec, 0,
-                addr made[0]) <> 0
-            quieted(made[0]) else (problem)
-                _ = libc.close(made[1])
-                fail problem
-            end
-            quieted(made[1]) else (problem)
-                _ = libc.close(made[0])
-                fail problem
-            end
-            ends = (first: descriptor(made[0]), second: descriptor(made[1]))
-        end system_socket_pair
+    --- Take the next connection waiting on `listener` as a new socket that is
+    --- non-blocking from the start, as `set_non_blocking` makes one, closed on
+    --- exec and raising no SIGPIPE. It fails with the errno: on a non-blocking
+    --- listener, `eagain` at once when no connection is waiting, which `poll`
+    --- for `poll_input` on the listener says has changed. It is `accept` for a
+    --- program that waits for readiness, and no receive limit bounds it. Linux
+    --- and FreeBSD make the socket non-blocking as they accept it, and Darwin
+    --- just after it is made.
+    public accept_non_blocking:
+        (listener: descriptor) -> (accepted: descriptor) ! errno =
+        accepted = try system_accept_non_blocking(listener)
+    end accept_non_blocking
 
-        system_accept: (listener: descriptor) -> (accepted: descriptor)
-                       ! errno =
-            try limit_waited(listener)
-            result: i32 = libc.accept4(i32(listener), libc.no_address,
-                                       libc.no_address, libc.sock_cloexec)
-            fail failure() when result < 0
-            try quieted(result)
-            accepted = descriptor(result)
-        end system_accept
+    --- Connect `socket` to `to`. It fails `econnrefused` when nothing listens
+    --- there, and `eintr` when a signal came first; the connection then goes
+    --- on, and its outcome is what `poll` for `poll_output` and then
+    --- `pending_error` say. A non-blocking socket fails `einprogress` rather
+    --- than wait for a connection the system cannot make at once, and its
+    --- outcome is found the same way.
+    public connect:
+        (socket: descriptor, to: socket_address) -> none ! errno =
+        try system_connect(socket, addr to.bytes[0], to.length)
+    end connect
 
-        system_accept_non_blocking: (listener: descriptor)
-                                    -> (accepted: descriptor) ! errno =
-            result: i32 = libc.accept4(i32(listener), libc.no_address,
-                                       libc.no_address,
-                                       libc.sock_cloexec
-                                       | libc.sock_nonblock)
-            fail failure() when result < 0
-            try quieted(result)
-            accepted = descriptor(result)
-        end system_accept_non_blocking
+    --- Send at most `lenof bytes` bytes on the connected `socket`: the count
+    --- accepted, which a stream may find short, or the errno, `epipe` once
+    --- the peer has gone, without SIGPIPE, and `eagain` when the send time
+    --- limit passed.
+    public send:
+        (socket: descriptor, bytes: []u8) -> (count: usize) ! errno =
+        count = try system_send(socket, bytes)
+    end send
 
-        --  MSG_NOSIGNAL beside SO_NOSIGPIPE, for a socket this module did
-        --  not make.
-        send_flags: i32 = libc.msg_nosignal
-    end if
+    --- Receive at most `lenof into` bytes from the connected `socket`: the
+    --- count, zero once a stream's peer has finished sending, or the errno,
+    --- `eagain` when the receive time limit passed and `econnreset` when the
+    --- peer reset the connection.
+    public receive:
+        (socket: descriptor, into: []mut u8) -> (count: usize) ! errno =
+        count = try system_receive(socket, into)
+    end receive
 
-    system_bind: (socket: descriptor, address: ptr u8, length: u32)
-                 -> none ! errno =
-        fail failure() when libc.bind(i32(socket), address, length) <> 0
-    end system_bind
+    --- Send `bytes` as one datagram to `to`: the count, which is all of them,
+    --- or the errno, `emsgsize` for a datagram larger than the system sends.
+    public send_to:
+        (socket: descriptor, bytes: []u8, to: socket_address)
+        -> (count: usize) ! errno =
+        count = try system_send_to(socket, bytes, addr to.bytes[0], to.length)
+    end send_to
 
-    system_listen: (socket: descriptor, backlog: i32) -> none ! errno =
-        fail failure() when libc.listen(i32(socket), backlog) <> 0
-    end system_listen
+    --- What one `receive_from` took: the count, and the sender's address.
+    public received: type = struct
+        count: usize
+        sender: socket_address
+    end received
 
-    system_connect: (socket: descriptor, address: ptr u8, length: u32)
-                    -> none ! errno =
-        fail failure() when libc.connect(i32(socket), address, length) <> 0
-    end system_connect
+    --- Receive the next datagram into `into` and the address of its sender: a
+    --- datagram longer than `into` is cut to it.
+    public receive_from:
+        (socket: descriptor, into: []mut u8) -> (result: received) ! errno =
+        result = (count: 0, sender: (bytes: zeroed, length: 128))
+        result.count = try system_receive_from(socket, into,
+                                               addr result.sender.bytes[0],
+                                               addr result.sender.length)
+    end receive_from
 
-    system_send: (socket: descriptor, bytes: []u8) -> (count: usize)
-                 ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = libc.send(i32(socket), base, lenof bytes,
-                                  send_flags)
-        fail failure() when result < 0
-        count = usize(result)
-    end system_send
-
-    system_receive: (socket: descriptor, into: []mut u8) -> (count: usize)
-                    ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = libc.recv(i32(socket), base, lenof into, 0)
-        fail failure() when result < 0
-        count = usize(result)
-    end system_receive
-
-    system_send_to: (socket: descriptor, bytes: []u8, address: ptr u8,
-                     length: u32) -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = libc.sendto(i32(socket), base, lenof bytes,
-                                    send_flags, address, length)
-        fail failure() when result < 0
-        count = usize(result)
-    end system_send_to
-
-    system_receive_from: (socket: descriptor, into: []mut u8,
-                          address: ptr mut u8, length: ptr mut u32)
-                         -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = libc.recvfrom(i32(socket), base, lenof into, 0,
-                                      address, length)
-        fail failure() when result < 0
-        count = usize(result)
-    end system_receive_from
-
-    system_shutdown: (socket: descriptor, how: i32) -> none ! errno =
-        fail failure() when libc.shutdown(i32(socket), how) <> 0
-    end system_shutdown
-
-    system_socket_name: (socket: descriptor, address: ptr mut u8,
-                         length: ptr mut u32) -> none ! errno =
-        fail failure() when libc.getsockname(i32(socket), address,
-                                             length) <> 0
-    end system_socket_name
-
-    system_peer_name: (socket: descriptor, address: ptr mut u8,
-                       length: ptr mut u32) -> none ! errno =
-        fail failure() when libc.getpeername(i32(socket), address,
-                                             length) <> 0
-    end system_peer_name
-
-    --  An option's level and name.
-    option_of: (option: socket_option) -> (level: i32, name: i32) =
-        level = libc.sol_socket
-        name = match option
-            reuse_address: libc.so_reuseaddr
-            no_delay: libc.tcp_nodelay
-            ipv6_only: libc.ipv6_v6only
-            receive_limit: libc.so_rcvtimeo
-            send_limit: libc.so_sndtimeo
-            pending: libc.so_error
+    --- Stop receiving, sending or both on `socket`: `enotconn` when it is not
+    --- connected.
+    public shutdown:
+        (socket: descriptor, side: shutdown_side) -> none ! errno =
+        how: i32 = match side
+            shut_reading: 0
+            shut_writing: 1
+            shut_both: 2
         end match
-        if option == no_delay then level = libc.ipproto_tcp end if
-        if option == ipv6_only then level = libc.ipproto_ipv6 end if
-    end option_of
+        try system_shutdown(socket, how)
+    end shutdown
 
-    system_set_number: (socket: descriptor, option: socket_option,
-                        value: i32) -> none ! errno =
-        (level, name) := option_of(option)
-        held: i32 = value
-        given: ptr u8 = ptr(usize(addr held))
-        fail failure() when libc.setsockopt(i32(socket), level, name, given,
-                                            4) <> 0
-    end system_set_number
+    --- The address `socket` is bound to, POSIX's `getsockname`.
+    public socket_name:
+        (socket: descriptor) -> (at: socket_address) ! errno =
+        at = (bytes: zeroed, length: 128)
+        try system_socket_name(socket, addr at.bytes[0], addr at.length)
+    end socket_name
 
-    system_get_number: (socket: descriptor, option: socket_option)
-                       -> (value: i32) ! errno =
-        (level, name) := option_of(option)
-        mut held: i32 = 0
-        mut length: u32 = 4
-        filled: ptr mut u8 = ptr(usize(addr held))
-        fail failure() when libc.getsockopt(i32(socket), level, name, filled,
-                                            addr length) <> 0
-        value = held
-    end system_get_number
+    --- The address of the peer `socket` is connected to, POSIX's
+    --- `getpeername`: `enotconn` when there is none.
+    public peer_name:
+        (socket: descriptor) -> (at: socket_address) ! errno =
+        at = (bytes: zeroed, length: 128)
+        try system_peer_name(socket, addr at.bytes[0], addr at.length)
+    end peer_name
 
-    system_set_time: (socket: descriptor, option: socket_option,
-                      span: time_value) -> none ! errno =
-        (level, name) := option_of(option)
-        (seconds, microseconds) := microseconds_of(span)
-        limit: libc.time_limit = limit_of(seconds, microseconds)
-        given: ptr u8 = ptr(usize(addr limit))
-        fail failure() when libc.setsockopt(i32(socket), level, name, given,
-                                            u32(sizeof libc.time_limit)) <> 0
-    end system_set_time
+    --  The socket options this module sets, each system numbering them its
+    --  own way.
+    reuse_address: atom
+    no_delay: atom
+    ipv6_only: atom
+    receive_limit: atom
+    send_limit: atom
+    pending: atom
+    socket_option: type = reuse_address | no_delay | ipv6_only | receive_limit
+        | send_limit | pending
 
-    fixed if compiler.os == darwin then
-        --  Darwin's microseconds are an `int`.
-        limit_of: (seconds: i64, microseconds: i64)
-                  -> (limit: libc.time_limit) =
-            limit = (seconds: seconds, microseconds: i32(microseconds),
-                     padding: 0)
-        end limit_of
-    else
-        limit_of: (seconds: i64, microseconds: i64)
-                  -> (limit: libc.time_limit) =
-            limit = (seconds: seconds, microseconds: microseconds)
-        end limit_of
+    --  Set a flag option.
+    flag_set: (socket: descriptor, option: socket_option, on: bool)
+              -> none ! errno =
+        value: i32 = if on then 1 else 0 end if
+        try system_set_number(socket, option, value)
+    end flag_set
+
+    --- Let the listener `socket` bind an address that earlier connections
+    --- still hold in TIME_WAIT, `SO_REUSEADDR`, never one another listener
+    --- holds.  Set it before `bind`.
+    public set_reuse_address:
+        (socket: descriptor, on: bool) -> none ! errno =
+        try flag_set(socket, reuse_address, on)
+    end set_reuse_address
+
+    --- Send a stream's small writes at once, `TCP_NODELAY`.
+    public set_no_delay:
+        (socket: descriptor, on: bool) -> none ! errno =
+        try flag_set(socket, no_delay, on)
+    end set_no_delay
+
+    --- Make an IPv6 socket take IPv6 alone, never IPv4 through mapped
+    --- addresses, `IPV6_V6ONLY`, which Darwin and FreeBSD do from the start
+    --- and Linux does not.  Set it before `bind`.
+    public set_ipv6_only:
+        (socket: descriptor, on: bool) -> none ! errno =
+        try flag_set(socket, ipv6_only, on)
+    end set_ipv6_only
+
+    --- Limit how long a receive or an `accept` on `socket` waits,
+    --- `SO_RCVTIMEO`, after which it fails `eagain`; a span of zero waits as
+    --- long as it takes. The system keeps microseconds, so a part of one
+    --- counts as a whole one, and Linux keeps its own ticks.  A negative span
+    --- is `einval`.
+    public set_receive_timeout:
+        (socket: descriptor, span: time_value) -> none ! errno =
+        fail einval when span.seconds < 0 or span.nanoseconds >= 1000000000
+        try system_set_time(socket, receive_limit, span)
+    end set_receive_timeout
+
+    --- Limit how long a send on `socket` waits, `SO_SNDTIMEO`, as
+    --- `set_receive_timeout` limits a receive.
+    public set_send_timeout:
+        (socket: descriptor, span: time_value) -> none ! errno =
+        fail einval when span.seconds < 0 or span.nanoseconds >= 1000000000
+        try system_set_time(socket, send_limit, span)
+    end set_send_timeout
+
+    --- How long a receive on `socket` waits, as `set_receive_timeout` set it,
+    --- zero for no limit, to the microsecond: `unlisted` when the system gives
+    --- back a record of another size, as QEMU's user emulation does.
+    public receive_timeout:
+        (socket: descriptor) -> (span: time_value) ! errno =
+        span = try system_get_time(socket, receive_limit)
+    end receive_timeout
+
+    --- How long a send on `socket` waits, as `set_send_timeout` set it, zero
+    --- for no limit, as `receive_timeout` reads the receive limit.
+    public send_timeout:
+        (socket: descriptor) -> (span: time_value) ! errno =
+        span = try system_get_time(socket, send_limit)
+    end send_timeout
+
+    --- Fail with the error pending on `socket`, `SO_ERROR`, clearing it, or
+    --- return when there is none. It tells how a connection ended that
+    --- `connect` began and a signal interrupted.
+    public pending_error:
+        (socket: descriptor) -> none ! errno =
+        number: i32 = try system_get_number(socket, pending)
+        fail errno_of(number) when number <> 0
+    end pending_error
+
+    --  A time value as microseconds, a part of one rounded up.
+    microseconds_of: (span: time_value) -> (seconds: i64, microseconds: i64) =
+        seconds = span.seconds
+        microseconds = i64((span.nanoseconds + 999) / 1000)
+        if microseconds == 1000000 then
+            inc seconds
+            microseconds = 0
+        end if
+    end microseconds_of
+
+    --  The system's own calls beneath the facility above: Linux's system
+    --  calls through platform/linux, and the C library through
+    --  platform/libc on Darwin and FreeBSD, whose system interface it is.
+
+    fixed if compiler.os == linux then
+        system_family_number: (family: socket_family) -> (number: i32) =
+            number = match family
+                internet: linux.af_inet
+                internet6: linux.af_inet6
+                local: linux.af_unix
+            end match
+        end system_family_number
+
+        kind_number: (kind: socket_kind) -> (number: i32) =
+            number = match kind
+                stream: linux.sock_stream
+                datagram: linux.sock_dgram
+            end match
+        end kind_number
+
+        system_socket: (family: socket_family, kind: socket_kind)
+                       -> (made: descriptor) ! errno =
+            result: i32 = linux.socket(system_family_number(family),
+                                       kind_number(kind) | linux.sock_cloexec, 0)
+            fail errno_of(-result) when result < 0
+            made = descriptor(result)
+        end system_socket
+
+        system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
+                            ! errno =
+            mut made: [2]i32 = zeroed
+            result: i32 = linux.socketpair(linux.af_unix,
+                                           kind_number(kind) | linux.sock_cloexec,
+                                           0, addr made[0])
+            fail errno_of(-result) when result < 0
+            ends = (first: descriptor(made[0]), second: descriptor(made[1]))
+        end system_socket_pair
+
+        system_bind: (socket: descriptor, address: ptr u8, length: u32)
+                     -> none ! errno =
+            result: i32 = linux.bind(i32(socket), address, length)
+            fail errno_of(-result) when result < 0
+        end system_bind
+
+        system_listen: (socket: descriptor, backlog: i32) -> none ! errno =
+            result: i32 = linux.listen(i32(socket), backlog)
+            fail errno_of(-result) when result < 0
+        end system_listen
+
+        system_accept: (listener: descriptor) -> (accepted: descriptor) ! errno =
+            result: i32 = linux.accept4(i32(listener), linux.no_address,
+                                        linux.no_address, linux.sock_cloexec)
+            fail errno_of(-result) when result < 0
+            accepted = descriptor(result)
+        end system_accept
+
+        system_accept_non_blocking: (listener: descriptor)
+                                    -> (accepted: descriptor) ! errno =
+            result: i32 = linux.accept4(i32(listener), linux.no_address,
+                                        linux.no_address,
+                                        linux.sock_cloexec | linux.sock_nonblock)
+            fail errno_of(-result) when result < 0
+            accepted = descriptor(result)
+        end system_accept_non_blocking
+
+        system_connect: (socket: descriptor, address: ptr u8, length: u32)
+                        -> none ! errno =
+            result: i32 = linux.connect(i32(socket), address, length)
+            fail errno_of(-result) when result < 0
+        end system_connect
+
+        --  Every send is MSG_NOSIGNAL's, so a peer that has gone is EPIPE
+        --  whatever SIGPIPE's disposition is.
+        system_send: (socket: descriptor, bytes: []u8) -> (count: usize)
+                     ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = linux.sendto(i32(socket), base, lenof bytes,
+                                         linux.msg_nosignal, linux.no_address,
+                                         0)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_send
+
+        system_receive: (socket: descriptor, into: []mut u8) -> (count: usize)
+                        ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = linux.recvfrom(i32(socket), base, lenof into, 0,
+                                           linux.no_address, linux.no_address)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_receive
+
+        system_send_to: (socket: descriptor, bytes: []u8, address: ptr u8,
+                         length: u32) -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = linux.sendto(i32(socket), base, lenof bytes,
+                                         linux.msg_nosignal, address, length)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_send_to
+
+        system_receive_from: (socket: descriptor, into: []mut u8,
+                              address: ptr mut u8, length: ptr mut u32)
+                             -> (count: usize) ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = linux.recvfrom(i32(socket), base, lenof into, 0,
+                                           address, length)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_receive_from
+
+        system_shutdown: (socket: descriptor, how: i32) -> none ! errno =
+            result: i32 = linux.shutdown(i32(socket), how)
+            fail errno_of(-result) when result < 0
+        end system_shutdown
+
+        system_socket_name: (socket: descriptor, address: ptr mut u8,
+                             length: ptr mut u32) -> none ! errno =
+            result: i32 = linux.getsockname(i32(socket), address, length)
+            fail errno_of(-result) when result < 0
+        end system_socket_name
+
+        system_peer_name: (socket: descriptor, address: ptr mut u8,
+                           length: ptr mut u32) -> none ! errno =
+            result: i32 = linux.getpeername(i32(socket), address, length)
+            fail errno_of(-result) when result < 0
+        end system_peer_name
+
+        --  An option's level and name.
+        option_of: (option: socket_option) -> (level: i32, name: i32) =
+            level = linux.sol_socket
+            name = match option
+                reuse_address: linux.so_reuseaddr
+                no_delay: linux.tcp_nodelay
+                ipv6_only: linux.ipv6_v6only
+                receive_limit: linux.so_rcvtimeo
+                send_limit: linux.so_sndtimeo
+                pending: linux.so_error
+            end match
+            if option == no_delay then level = linux.ipproto_tcp end if
+            if option == ipv6_only then level = linux.ipproto_ipv6 end if
+        end option_of
+
+        system_set_number: (socket: descriptor, option: socket_option,
+                            value: i32) -> none ! errno =
+            (level, name) := option_of(option)
+            held: i32 = value
+            given: ptr u8 = ptr(usize(addr held))
+            result: i32 = linux.setsockopt(i32(socket), level, name, given, 4)
+            fail errno_of(-result) when result < 0
+        end system_set_number
+
+        system_get_number: (socket: descriptor, option: socket_option)
+                           -> (value: i32) ! errno =
+            (level, name) := option_of(option)
+            mut held: i32 = 0
+            mut length: u32 = 4
+            filled: ptr mut u8 = ptr(usize(addr held))
+            result: i32 = linux.getsockopt(i32(socket), level, name, filled,
+                                           addr length)
+            fail errno_of(-result) when result < 0
+            value = held
+        end system_get_number
+
+        system_set_time: (socket: descriptor, option: socket_option,
+                          span: time_value) -> none ! errno =
+            (level, name) := option_of(option)
+            (seconds, microseconds) := microseconds_of(span)
+            limit: linux.time_limit = (seconds: seconds,
+                                       microseconds: microseconds)
+            given: ptr u8 = ptr(usize(addr limit))
+            result: i32 = linux.setsockopt(i32(socket), level, name, given,
+                                           u32(sizeof linux.time_limit))
+            fail errno_of(-result) when result < 0
+        end system_set_time
+
+        system_get_time: (socket: descriptor, option: socket_option)
+                         -> (span: time_value) ! errno =
+            (level, name) := option_of(option)
+            mut limit: linux.time_limit = zeroed
+            mut length: u32 = u32(sizeof linux.time_limit)
+            filled: ptr mut u8 = ptr(usize(addr limit))
+            result: i32 = linux.getsockopt(i32(socket), level, name, filled,
+                                           addr length)
+            fail errno_of(-result) when result < 0
+            fail unlisted when length <> u32(sizeof linux.time_limit)
+              or limit.microseconds < 0
+              or limit.microseconds >= 1000000
+            span = (seconds: limit.seconds,
+                    nanoseconds: u32(limit.microseconds) * 1000)
+        end system_get_time
+
+        --  Ask the system about an interface, as glibc's `if_nametoindex`
+        --  and `if_indextoname` do: an `ioctl` on a socket made for the
+        --  question, which any family's socket answers.
+        interface_asked: (request: u64, inout record: linux.interface_record)
+                         -> none ! errno =
+            asking: i32 = linux.socket(linux.af_unix,
+                                       linux.sock_dgram | linux.sock_cloexec, 0)
+            fail errno_of(-asking) when asking < 0
+            result: i32 = linux.ioctl(asking, request, i64(usize(addr record)))
+            _ = linux.close(asking)
+            fail errno_of(-result) when result < 0
+        end interface_asked
+
+        system_interface_index: (name: [16]u8) -> (index: u32) ! errno =
+            mut record: linux.interface_record = zeroed
+            for at in usize(0)..<16 do
+                record.name[at] = name[at]
+            end for
+            try interface_asked(linux.siocgifindex, record)
+            index = u32(record.index)
+        end system_interface_index
+
+        system_interface_name: (index: u32) -> (name: [16]u8) ! errno =
+            mut record: linux.interface_record = zeroed
+            record.index = i32(index)
+            interface_asked(linux.siocgifname, record) else (problem)
+                fail enodev when problem == enxio or problem == enodev
+                fail problem
+            end
+            name = record.name
+        end system_interface_name
+    elsif compiler.os == darwin or compiler.os == freebsd then
+        system_family_number: (family: socket_family) -> (number: i32) =
+            number = match family
+                internet: libc.af_inet
+                internet6: libc.af_inet6
+                local: libc.af_unix
+            end match
+        end system_family_number
+
+        kind_number: (kind: socket_kind) -> (number: i32) =
+            number = match kind
+                stream: libc.sock_stream
+                datagram: libc.sock_dgram
+            end match
+        end kind_number
+
+        --  A socket of this module's raises no SIGPIPE, whatever its
+        --  disposition: SO_NOSIGPIPE, which both systems keep on the socket,
+        --  covers a `write` to it as well as a `send`.
+        quiet: (made: i32) -> none ! errno =
+            on: i32 = 1
+            given: ptr u8 = ptr(usize(addr on))
+            fail failure() when libc.setsockopt(made, libc.sol_socket,
+                                                libc.so_nosigpipe, given, 4) <> 0
+        end quiet
+
+        --  Darwin and FreeBSD do not limit `accept` by the receive limit, as
+        --  Linux does, so the wait for a connection is limited here: a poll
+        --  for one for as long as the limit, `eagain` when none came.
+        limit_waited: (listener: descriptor) -> none ! errno =
+            limit: time_value = try system_get_time(listener, receive_limit)
+            return when limit.seconds == 0 and limit.nanoseconds == 0
+            milliseconds: i64 = limit.seconds * 1000
+                                + i64((limit.nanoseconds + 999999) / 1000000)
+            bounded: i32 = if milliseconds > 2147483647 then 2147483647
+                           else i32(milliseconds) end if
+            mut entries: [1]poll_entry = [watch(listener, poll_input)]
+            found: usize = try system_poll(entries[0..<1], bounded)
+            fail eagain when found == 0
+        end limit_waited
+
+        fixed if compiler.os == darwin then
+            --  Darwin has no SOCK_CLOEXEC, so the flag is set just after the
+            --  socket is made, as a pipe's is: a program another thread
+            --  executes in between could inherit it, and `spawn` closes every
+            --  descriptor it does not give the child either way.
+            kept: (made: i32) -> none ! errno =
+                if libc.fcntl(made, libc.f_setfd, libc.fd_cloexec) <> 0 then
+                    problem: errno = failure()
+                    _ = libc.close(made)
+                    fail problem
+                end if
+                quiet(made) else (problem)
+                    _ = libc.close(made)
+                    fail problem
+                end
+            end kept
+
+            system_socket: (family: socket_family, kind: socket_kind)
+                           -> (made: descriptor) ! errno =
+                result: i32 = libc.socket(system_family_number(family),
+                                          kind_number(kind), 0)
+                fail failure() when result < 0
+                try kept(result)
+                made = descriptor(result)
+            end system_socket
+
+            system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
+                                ! errno =
+                mut made: [2]i32 = zeroed
+                fail failure() when libc.socketpair(libc.af_unix,
+                                                    kind_number(kind), 0,
+                                                    addr made[0]) <> 0
+                kept(made[0]) else (problem)
+                    _ = libc.close(made[1])
+                    fail problem
+                end
+                kept(made[1]) else (problem)
+                    _ = libc.close(made[0])
+                    fail problem
+                end
+                ends = (first: descriptor(made[0]), second: descriptor(made[1]))
+            end system_socket_pair
+
+            system_accept: (listener: descriptor) -> (accepted: descriptor)
+                           ! errno =
+                try limit_waited(listener)
+                result: i32 = libc.accept(i32(listener), libc.no_address,
+                                          libc.no_address)
+                fail failure() when result < 0
+                try kept(result)
+                accepted = descriptor(result)
+            end system_accept
+
+            --  Darwin's `accept` gives the new socket the listener's
+            --  O_NONBLOCK; it is set here whatever the listener's is.
+            system_accept_non_blocking: (listener: descriptor)
+                                        -> (accepted: descriptor) ! errno =
+                result: i32 = libc.accept(i32(listener), libc.no_address,
+                                          libc.no_address)
+                fail failure() when result < 0
+                try kept(result)
+                accepted = descriptor(result)
+                set_non_blocking(accepted, true) else (problem)
+                    _ = libc.close(result)
+                    fail problem
+                end
+            end system_accept_non_blocking
+
+            --  Darwin has no MSG_NOSIGNAL; SO_NOSIGPIPE stands in for it.
+            send_flags: i32 = 0
+        else
+            --  Close a socket just made when it cannot be quietened.
+            quieted: (made: i32) -> none ! errno =
+                quiet(made) else (problem)
+                    _ = libc.close(made)
+                    fail problem
+                end
+            end quieted
+
+            system_socket: (family: socket_family, kind: socket_kind)
+                           -> (made: descriptor) ! errno =
+                result: i32 = libc.socket(system_family_number(family),
+                                          kind_number(kind) | libc.sock_cloexec,
+                                          0)
+                fail failure() when result < 0
+                try quieted(result)
+                made = descriptor(result)
+            end system_socket
+
+            system_socket_pair: (kind: socket_kind) -> (ends: connected_pair)
+                                ! errno =
+                mut made: [2]i32 = zeroed
+                fail failure() when libc.socketpair(
+                    libc.af_unix, kind_number(kind) | libc.sock_cloexec, 0,
+                    addr made[0]) <> 0
+                quieted(made[0]) else (problem)
+                    _ = libc.close(made[1])
+                    fail problem
+                end
+                quieted(made[1]) else (problem)
+                    _ = libc.close(made[0])
+                    fail problem
+                end
+                ends = (first: descriptor(made[0]), second: descriptor(made[1]))
+            end system_socket_pair
+
+            system_accept: (listener: descriptor) -> (accepted: descriptor)
+                           ! errno =
+                try limit_waited(listener)
+                result: i32 = libc.accept4(i32(listener), libc.no_address,
+                                           libc.no_address, libc.sock_cloexec)
+                fail failure() when result < 0
+                try quieted(result)
+                accepted = descriptor(result)
+            end system_accept
+
+            system_accept_non_blocking: (listener: descriptor)
+                                        -> (accepted: descriptor) ! errno =
+                result: i32 = libc.accept4(i32(listener), libc.no_address,
+                                           libc.no_address,
+                                           libc.sock_cloexec
+                                           | libc.sock_nonblock)
+                fail failure() when result < 0
+                try quieted(result)
+                accepted = descriptor(result)
+            end system_accept_non_blocking
+
+            --  MSG_NOSIGNAL beside SO_NOSIGPIPE, for a socket this module did
+            --  not make.
+            send_flags: i32 = libc.msg_nosignal
+        end if
+
+        system_bind: (socket: descriptor, address: ptr u8, length: u32)
+                     -> none ! errno =
+            fail failure() when libc.bind(i32(socket), address, length) <> 0
+        end system_bind
+
+        system_listen: (socket: descriptor, backlog: i32) -> none ! errno =
+            fail failure() when libc.listen(i32(socket), backlog) <> 0
+        end system_listen
+
+        system_connect: (socket: descriptor, address: ptr u8, length: u32)
+                        -> none ! errno =
+            fail failure() when libc.connect(i32(socket), address, length) <> 0
+        end system_connect
+
+        system_send: (socket: descriptor, bytes: []u8) -> (count: usize)
+                     ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = libc.send(i32(socket), base, lenof bytes,
+                                      send_flags)
+            fail failure() when result < 0
+            count = usize(result)
+        end system_send
+
+        system_receive: (socket: descriptor, into: []mut u8) -> (count: usize)
+                        ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = libc.recv(i32(socket), base, lenof into, 0)
+            fail failure() when result < 0
+            count = usize(result)
+        end system_receive
+
+        system_send_to: (socket: descriptor, bytes: []u8, address: ptr u8,
+                         length: u32) -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = libc.sendto(i32(socket), base, lenof bytes,
+                                        send_flags, address, length)
+            fail failure() when result < 0
+            count = usize(result)
+        end system_send_to
+
+        system_receive_from: (socket: descriptor, into: []mut u8,
+                              address: ptr mut u8, length: ptr mut u32)
+                             -> (count: usize) ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = libc.recvfrom(i32(socket), base, lenof into, 0,
+                                          address, length)
+            fail failure() when result < 0
+            count = usize(result)
+        end system_receive_from
+
+        system_shutdown: (socket: descriptor, how: i32) -> none ! errno =
+            fail failure() when libc.shutdown(i32(socket), how) <> 0
+        end system_shutdown
+
+        system_socket_name: (socket: descriptor, address: ptr mut u8,
+                             length: ptr mut u32) -> none ! errno =
+            fail failure() when libc.getsockname(i32(socket), address,
+                                                 length) <> 0
+        end system_socket_name
+
+        system_peer_name: (socket: descriptor, address: ptr mut u8,
+                           length: ptr mut u32) -> none ! errno =
+            fail failure() when libc.getpeername(i32(socket), address,
+                                                 length) <> 0
+        end system_peer_name
+
+        --  An option's level and name.
+        option_of: (option: socket_option) -> (level: i32, name: i32) =
+            level = libc.sol_socket
+            name = match option
+                reuse_address: libc.so_reuseaddr
+                no_delay: libc.tcp_nodelay
+                ipv6_only: libc.ipv6_v6only
+                receive_limit: libc.so_rcvtimeo
+                send_limit: libc.so_sndtimeo
+                pending: libc.so_error
+            end match
+            if option == no_delay then level = libc.ipproto_tcp end if
+            if option == ipv6_only then level = libc.ipproto_ipv6 end if
+        end option_of
+
+        system_set_number: (socket: descriptor, option: socket_option,
+                            value: i32) -> none ! errno =
+            (level, name) := option_of(option)
+            held: i32 = value
+            given: ptr u8 = ptr(usize(addr held))
+            fail failure() when libc.setsockopt(i32(socket), level, name, given,
+                                                4) <> 0
+        end system_set_number
+
+        system_get_number: (socket: descriptor, option: socket_option)
+                           -> (value: i32) ! errno =
+            (level, name) := option_of(option)
+            mut held: i32 = 0
+            mut length: u32 = 4
+            filled: ptr mut u8 = ptr(usize(addr held))
+            fail failure() when libc.getsockopt(i32(socket), level, name, filled,
+                                                addr length) <> 0
+            value = held
+        end system_get_number
+
+        system_set_time: (socket: descriptor, option: socket_option,
+                          span: time_value) -> none ! errno =
+            (level, name) := option_of(option)
+            (seconds, microseconds) := microseconds_of(span)
+            limit: libc.time_limit = limit_of(seconds, microseconds)
+            given: ptr u8 = ptr(usize(addr limit))
+            fail failure() when libc.setsockopt(i32(socket), level, name, given,
+                                                u32(sizeof libc.time_limit)) <> 0
+        end system_set_time
+
+        fixed if compiler.os == darwin then
+            --  Darwin's microseconds are an `int`.
+            limit_of: (seconds: i64, microseconds: i64)
+                      -> (limit: libc.time_limit) =
+                limit = (seconds: seconds, microseconds: i32(microseconds),
+                         padding: 0)
+            end limit_of
+        else
+            limit_of: (seconds: i64, microseconds: i64)
+                      -> (limit: libc.time_limit) =
+                limit = (seconds: seconds, microseconds: microseconds)
+            end limit_of
+        end if
+
+        system_get_time: (socket: descriptor, option: socket_option)
+                         -> (span: time_value) ! errno =
+            (level, name) := option_of(option)
+            mut limit: libc.time_limit = zeroed
+            mut length: u32 = u32(sizeof libc.time_limit)
+            filled: ptr mut u8 = ptr(usize(addr limit))
+            fail failure() when libc.getsockopt(i32(socket), level, name, filled,
+                                                addr length) <> 0
+            fail unlisted when length <> u32(sizeof libc.time_limit)
+            microseconds: i64 = i64(limit.microseconds)
+            fail unlisted when microseconds < 0 or microseconds >= 1000000
+            span = (seconds: limit.seconds,
+                    nanoseconds: u32(microseconds) * 1000)
+        end system_get_time
+
+        system_interface_index: (name: [16]u8) -> (index: u32) ! errno =
+            index = libc.if_nametoindex(addr name[0])
+        end system_interface_index
+
+        system_interface_name: (index: u32) -> (name: [16]u8) ! errno =
+            name = zeroed
+            found: libc.address_filled = libc.if_indextoname(index, addr name[0])
+            fail enodev when found == libc.no_address
+        end system_interface_name
     end if
-
-    system_get_time: (socket: descriptor, option: socket_option)
-                     -> (span: time_value) ! errno =
-        (level, name) := option_of(option)
-        mut limit: libc.time_limit = zeroed
-        mut length: u32 = u32(sizeof libc.time_limit)
-        filled: ptr mut u8 = ptr(usize(addr limit))
-        fail failure() when libc.getsockopt(i32(socket), level, name, filled,
-                                            addr length) <> 0
-        fail unlisted when length <> u32(sizeof libc.time_limit)
-        microseconds: i64 = i64(limit.microseconds)
-        fail unlisted when microseconds < 0 or microseconds >= 1000000
-        span = (seconds: limit.seconds,
-                nanoseconds: u32(microseconds) * 1000)
-    end system_get_time
-
-    system_interface_index: (name: [16]u8) -> (index: u32) ! errno =
-        index = libc.if_nametoindex(addr name[0])
-    end system_interface_index
-
-    system_interface_name: (index: u32) -> (name: [16]u8) ! errno =
-        name = zeroed
-        found: libc.address_filled = libc.if_indextoname(index, addr name[0])
-        fail enodev when found == libc.no_address
-    end system_interface_name
 end if

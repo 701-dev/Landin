@@ -19,6 +19,7 @@ import core/io
 import core/mem
 import core/text
 import platform/posix
+import platform/windows
 
 --  A file open_write creates gets 0666, which the process umask filters.
 created_mode: u32 = 0o666
@@ -124,292 +125,294 @@ public clear_errno: (handle: host) -> none =
     keep_failure(handle, 0)
 end clear_errno
 
---- Keep `problem` in the handle's last-error cell, which `last_errno` then
---- reports. It is for a provider built over this one, whose own calls fail
---- through the same cell. `unlisted`, which no errno describes, leaves the
---- cell as it is.
-public record_errno: (handle: host, problem: posix.errno) -> none =
-    record(handle, problem)
-end record_errno
+fixed if compiler.os <> windows then
+    --- Keep `problem` in the handle's last-error cell, which `last_errno` then
+    --- reports. It is for a provider built over this one, whose own calls fail
+    --- through the same cell. `unlisted`, which no errno describes, leaves the
+    --- cell as it is.
+    public record_errno: (handle: host, problem: posix.errno) -> none =
+        record(handle, problem)
+    end record_errno
 
---  Keep a failure's errno in the handle's cell; `unlisted`, which no errno
---  describes, leaves the cell at zero.
-record: (self: host, problem: posix.errno) -> none =
-    number: i32 = posix.number(problem)
-    if number > 0 then keep_failure(self, number) end if
-end record
+    --  Keep a failure's errno in the handle's cell; `unlisted`, which no errno
+    --  describes, leaves the cell at zero.
+    record: (self: host, problem: posix.errno) -> none =
+        number: i32 = posix.number(problem)
+        if number > 0 then keep_failure(self, number) end if
+    end record
 
---  A path names nothing when a component is absent, ENOENT, or when a
---  component before the last is not a directory, ENOTDIR: in both cases
---  there is no file at that path for an open to find.
-absent: (problem: posix.errno) -> (yes: bool) =
-    yes = problem == posix.enoent or problem == posix.enotdir
-end absent
+    --  A path names nothing when a component is absent, ENOENT, or when a
+    --  component before the last is not a directory, ENOTDIR: in both cases
+    --  there is no file at that path for an open to find.
+    absent: (problem: posix.errno) -> (yes: bool) =
+        yes = problem == posix.enoent or problem == posix.enotdir
+    end absent
 
---  Whether an errno says the caller may not do what it asked.
-refused: (problem: posix.errno) -> (yes: bool) =
-    yes = problem == posix.eperm or problem == posix.eacces
-          or problem == posix.erofs
-end refused
+    --  Whether an errno says the caller may not do what it asked.
+    refused: (problem: posix.errno) -> (yes: bool) =
+        yes = problem == posix.eperm or problem == posix.eacces
+              or problem == posix.erofs
+    end refused
 
---  Keep a failure about a path in the handle's cell and fail as the
---  concepts say of one: `not_found` for no file there, `no_access` when it
---  is refused, and `io_failed` for the rest.  The one mapping every call
---  on a path uses.
-path_failure: (self: host, problem: posix.errno)
-              -> none ! mem.not_found | io.no_access | io.io_failed =
-    record(self, problem)
-    fail mem.not_found when absent(problem)
-    fail io.no_access when refused(problem)
-    fail io.io_failed
-end path_failure
+    --  Keep a failure about a path in the handle's cell and fail as the
+    --  concepts say of one: `not_found` for no file there, `no_access` when it
+    --  is refused, and `io_failed` for the rest.  The one mapping every call
+    --  on a path uses.
+    path_failure: (self: host, problem: posix.errno)
+                  -> none ! mem.not_found | io.no_access | io.io_failed =
+        record(self, problem)
+        fail mem.not_found when absent(problem)
+        fail io.no_access when refused(problem)
+        fail io.io_failed
+    end path_failure
 
---  A socket carries this bit beside its descriptor, which is never
---  negative and so never has it, so that a provider built over this one
---  sends on it rather than writing when it supplies `io.write`: Linux has
---  no option that keeps a socket's `write` from raising SIGPIPE, and only
---  `send` takes MSG_NOSIGNAL (D322).
-socket_mark: usize = 0x80000000
+    --  A socket carries this bit beside its descriptor, which is never
+    --  negative and so never has it, so that a provider built over this one
+    --  sends on it rather than writing when it supplies `io.write`: Linux has
+    --  no option that keeps a socket's `write` from raising SIGPIPE, and only
+    --  `send` takes MSG_NOSIGNAL (D322).
+    socket_mark: usize = 0x80000000
 
---- Return the platform/posix descriptor behind a file of this provider, for
---- a call the portable concepts do not make: a file's permission bits, a
---- lock, a terminal's raw mode. The file stays this provider's; close it
---- through `io.close`.
-public descriptor_of: (opened: io.file) -> (result: posix.descriptor) =
-    result = posix.descriptor(i32(usize(opened) & (socket_mark - 1)))
-end descriptor_of
+    --- Return the platform/posix descriptor behind a file of this provider,
+    --- for a call the portable concepts do not make: a file's permission bits,
+    --- a lock, a terminal's raw mode. The file stays this provider's; close it
+    --- through `io.close`.
+    public descriptor_of: (opened: io.file) -> (result: posix.descriptor) =
+        result = posix.descriptor(i32(usize(opened) & (socket_mark - 1)))
+    end descriptor_of
 
---- Return a platform/posix descriptor as a file of this provider. This
---- provider's concepts then take a file that platform/posix opened, and so
---- do `io.read`, `io.write` and the rest of a provider built over it. Close
---- it once, through either. A socket converted this way is written with
---- POSIX's `write`, which on Linux raises SIGPIPE when its peer has gone;
---- `socket_of` makes a file whose writes are sends.
-public file_of: (opened: posix.descriptor) -> (result: io.file) =
-    result = io.file(usize(i32(opened)))
-end file_of
+    --- Return a platform/posix descriptor as a file of this provider. This
+    --- provider's concepts then take a file that platform/posix opened, and so
+    --- do `io.read`, `io.write` and the rest of a provider built over it.
+    --- Close it once, through either. A socket converted this way is written
+    --- with POSIX's `write`, which on Linux raises SIGPIPE when its peer has
+    --- gone; `socket_of` makes a file whose writes are sends.
+    public file_of: (opened: posix.descriptor) -> (result: io.file) =
+        result = io.file(usize(i32(opened)))
+    end file_of
 
---- Return a platform/posix socket as a file of this provider. The
---- `io.write` of a provider built over this one sends on such a file as
---- `net.send` does, so a peer that has gone fails the write with EPIPE on
---- every system and raises no SIGPIPE, beside a C handler too.
---- `net.connect`, `net.listen`, `net.accept` and `net.open_datagram` return
---- their sockets this way.
-public socket_of: (opened: posix.descriptor) -> (result: io.file) =
-    result = io.file(usize(i32(opened)) | socket_mark)
-end socket_of
+    --- Return a platform/posix socket as a file of this provider. The
+    --- `io.write` of a provider built over this one sends on such a file as
+    --- `net.send` does, so a peer that has gone fails the write with EPIPE on
+    --- every system and raises no SIGPIPE, beside a C handler too.
+    --- `net.connect`, `net.listen`, `net.accept` and `net.open_datagram`
+    --- return their sockets this way.
+    public socket_of: (opened: posix.descriptor) -> (result: io.file) =
+        result = io.file(usize(i32(opened)) | socket_mark)
+    end socket_of
 
---- Whether `opened` is a socket `socket_of` made, which a provider built
---- over this one writes by sending.
-public is_socket: (opened: io.file) -> (yes: bool) =
-    yes = (usize(opened) & socket_mark) <> 0
-end is_socket
+    --- Whether `opened` is a socket `socket_of` made, which a provider built
+    --- over this one writes by sending.
+    public is_socket: (opened: io.file) -> (yes: bool) =
+        yes = (usize(opened) & socket_mark) <> 0
+    end is_socket
 
---  Open `path` with `options`, a file it creates getting `mode` before the
---  umask: the one open every concept's makes.  open
---  reports EINTR before publishing a descriptor, so the same request is
---  retried; every other errno is kept before it is mapped to the stable
---  atom set, a name an exclusive open finds taken `already_exists`.
---  A directory is `is_a_directory` (D1276): the system refuses one opened
---  to write with EISDIR, and opens one to read and fails each read, so
---  an open to read alone asks what it opened, closes a directory and
---  keeps EISDIR.
-open: (self: host, path: text.os_string, options: posix.open_options,
-       mode: u32) -> (opened: io.file)
-      ! io.already_exists | mem.not_found | io.no_access | io.is_a_directory
-      | io.io_failed =
-    keep_failure(self, 0)
-    loop do
-        made: posix.descriptor =
-            posix.open_at(posix.working_directory, path, options, mode)
-            else (problem)
-                continue when problem == posix.eintr
-                if problem == posix.eexist then
+    --  Open `path` with `options`, a file it creates getting `mode` before the
+    --  umask: the one open every concept's makes.  open
+    --  reports EINTR before publishing a descriptor, so the same request is
+    --  retried; every other errno is kept before it is mapped to the stable
+    --  atom set, a name an exclusive open finds taken `already_exists`.
+    --  A directory is `is_a_directory` (D1276): the system refuses one opened
+    --  to write with EISDIR, and opens one to read and fails each read, so
+    --  an open to read alone asks what it opened, closes a directory and
+    --  keeps EISDIR.
+    open: (self: host, path: text.os_string, options: posix.open_options,
+           mode: u32) -> (opened: io.file)
+          ! io.already_exists | mem.not_found | io.no_access | io.is_a_directory
+          | io.io_failed =
+        keep_failure(self, 0)
+        loop do
+            made: posix.descriptor =
+                posix.open_at(posix.working_directory, path, options, mode)
+                else (problem)
+                    continue when problem == posix.eintr
+                    if problem == posix.eexist then
+                        record(self, problem)
+                        fail io.already_exists
+                    end if
+                    if problem == posix.eisdir then
+                        record(self, problem)
+                        fail io.is_a_directory
+                    end if
+                    try path_failure(self, problem)
+                    fail io.io_failed
+                end
+            opened = file_of(made)
+            if options.access == posix.read_only and not options.directory then
+                found: posix.status = posix.status_of(made) else (problem)
+                    posix.close(made) else none
                     record(self, problem)
-                    fail io.already_exists
-                end if
-                if problem == posix.eisdir then
-                    record(self, problem)
+                    fail io.io_failed
+                end
+                if found.kind == posix.directory then
+                    posix.close(made) else none
+                    record(self, posix.eisdir)
                     fail io.is_a_directory
                 end if
-                try path_failure(self, problem)
-                fail io.io_failed
-            end
-        opened = file_of(made)
-        if options.access == posix.read_only and not options.directory then
-            found: posix.status = posix.status_of(made) else (problem)
-                posix.close(made) else none
+            end if
+            return
+        end loop
+    end open
+
+    system_open_read: (self: host, path: text.os_string)
+                      -> (opened: io.file)
+                      ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
+        opened = open(self, path, posix.reading, created_mode) else (problem)
+            fail mem.not_found when problem == mem.not_found
+            fail io.no_access when problem == io.no_access
+            fail io.is_a_directory when problem == io.is_a_directory
+            fail io.io_failed
+        end
+    end system_open_read
+
+    system_open_write: (self: host, path: text.os_string)
+                       -> (opened: io.file)
+                       ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
+        opened = open(self, path, posix.writing, created_mode) else (problem)
+            fail mem.not_found when problem == mem.not_found
+            fail io.no_access when problem == io.no_access
+            fail io.is_a_directory when problem == io.is_a_directory
+            fail io.io_failed
+        end
+    end system_open_write
+
+    --  A stable-path identity check, not an atomic check-and-open operation.
+    --  Every input lookup failure refuses; only an absent output is allowed.
+    system_same_file: (self: host, left: text.os_string,
+                       right: text.os_string)
+                      -> (same: bool) ! io.io_failed =
+        keep_failure(self, 0)
+        first: posix.status =
+            posix.status_at(posix.working_directory, left, true) else (problem)
                 record(self, problem)
                 fail io.io_failed
             end
-            if found.kind == posix.directory then
-                posix.close(made) else none
-                record(self, posix.eisdir)
-                fail io.is_a_directory
+        same = false
+        second: posix.status =
+            posix.status_at(posix.working_directory, right, true) else (problem)
+                return when absent(problem)
+                record(self, problem)
+                fail io.io_failed
+            end
+        same = first.device == second.device and first.inode == second.inode
+    end system_same_file
+
+    system_close: (self: host, sink opened: io.file)
+                  -> none ! io.io_failed =
+        keep_failure(self, 0)
+        --  A failed close may already have released the descriptor; retrying
+        --  could close an unrelated reused descriptor, so EINTR is
+        --  deliberately terminal here.
+        posix.close(descriptor_of(opened)) else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+    end system_close
+
+    system_input: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(posix.standard_input)
+    end system_input
+
+    system_out: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(posix.standard_output)
+    end system_out
+
+    system_err: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(posix.standard_error)
+    end system_err
+
+    system_arguments_length: (self: host) -> (count: usize) =
+        _ = self.failure
+        table: posix.argument_table = posix.arguments()
+        count = table.count
+    end system_arguments_length
+
+    --  The argument is lent from the process's argument root, storage that
+    --  outlives every handle, which satisfies the concept's `from self`.
+    system_argument: (self: host, index: usize)
+                     -> (value: text.os_string from self) ! mem.not_found =
+        _ = self.failure
+        table: posix.argument_table = posix.arguments()
+        fail mem.not_found when index >= table.count
+        value = posix.argument(table, index)
+    end system_argument
+
+    --  The environment is platform/posix's, read where the process's entry
+    --  left it, and lent from storage that outlives every handle, as an
+    --  argument is.
+    system_variables_length: (self: host) -> (count: usize) =
+        _ = self.failure
+        table: posix.environment_table = posix.environment()
+        count = table.count
+    end system_variables_length
+
+    system_variable: (self: host, index: usize)
+                     -> (item: text.os_variable from self) ! mem.not_found =
+        _ = self.failure
+        table: posix.environment_table = posix.environment()
+        fail mem.not_found when index >= table.count
+        item = posix.variable(table, index)
+    end system_variable
+
+    system_variable_named: (self: host, name: text.os_string)
+                           -> (value: text.os_string from self)
+                           ! mem.not_found =
+        _ = self.failure
+        table: posix.environment_table = posix.environment()
+        wanted: []u8 = text.os_string_bytes(name)
+        for index in usize(0)..<table.count do
+            item: text.os_variable = posix.variable(table, index)
+            found: []u8 = text.os_string_bytes(item.name)
+            if cmp.compare(found, wanted) == cmp.equal then
+                value = item.value
+                return
             end if
-        end if
-        return
-    end loop
-end open
+        end for
+        fail mem.not_found
+    end system_variable_named
 
-system_open_read: (self: host, path: text.os_string)
-                  -> (opened: io.file)
-                  ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
-    opened = open(self, path, posix.reading, created_mode) else (problem)
-        fail mem.not_found when problem == mem.not_found
-        fail io.no_access when problem == io.no_access
-        fail io.is_a_directory when problem == io.is_a_directory
-        fail io.io_failed
-    end
-end system_open_read
+    host is io.files
+        (open_read: system_open_read, open_write: system_open_write,
+         same_file: system_same_file, close: system_close)
+    host is io.process
+        (input: system_input, out: system_out, err: system_err,
+         arguments_length: system_arguments_length, argument: system_argument)
+    host is io.environment
+        (variables_length: system_variables_length,
+         variable: system_variable,
+         variable_named: system_variable_named)
 
-system_open_write: (self: host, path: text.os_string)
-                   -> (opened: io.file)
-                   ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
-    opened = open(self, path, posix.writing, created_mode) else (problem)
-        fail mem.not_found when problem == mem.not_found
-        fail io.no_access when problem == io.no_access
-        fail io.is_a_directory when problem == io.is_a_directory
-        fail io.io_failed
-    end
-end system_open_write
+    --- Return a handle to the hosted services that do not wait. It exposes the
+    --- process arguments and the three standard streams, descriptors 0, 1 and
+    --- 2, which a provider built over it reads and writes. Regular open-write
+    --- operations create or truncate files; close regular files explicitly. A
+    --- program that waits on anything mints `hosted/blocking`'s `new` instead,
+    --- which makes this handle itself. The handle borrows nothing: the
+    --- argument root and the descriptors belong to the process. Each thread
+    --- that calls through the handle, or through a copy of it, records into a
+    --- last-error and last-signal cell of its own (D503), so threads sharing a
+    --- handle never see each other's failures. Use `over` for a cell of the
+    --- caller's own.
+    ---
+    --- The arguments are the root that platform/posix's
+    --- `_landin_host_initialize_arguments` established. The hosted entry
+    --- establishes it before its body runs; calling this before any root
+    --- exists traps.
+    public new: () -> (handle: host) =
+        _ = posix.arguments()
+        handle = (failure: calling_thread, signal: calling_thread)
+    end new
 
---  A stable-path identity check, not an atomic check-and-open operation.
---  Every input lookup failure refuses; only an absent output is allowed.
-system_same_file: (self: host, left: text.os_string,
-                   right: text.os_string)
-                  -> (same: bool) ! io.io_failed =
-    keep_failure(self, 0)
-    first: posix.status =
-        posix.status_at(posix.working_directory, left, true) else (problem)
-            record(self, problem)
-            fail io.io_failed
-        end
-    same = false
-    second: posix.status =
-        posix.status_at(posix.working_directory, right, true) else (problem)
-            return when absent(problem)
-            record(self, problem)
-            fail io.io_failed
-        end
-    same = first.device == second.device and first.inode == second.inode
-end system_same_file
-
-system_close: (self: host, sink opened: io.file)
-              -> none ! io.io_failed =
-    keep_failure(self, 0)
-    --  A failed close may already have released the descriptor; retrying
-    --  could close an unrelated reused descriptor, so EINTR is
-    --  deliberately terminal here.
-    posix.close(descriptor_of(opened)) else (problem)
-        record(self, problem)
-        fail io.io_failed
-    end
-end system_close
-
-system_input: (self: host) -> (stream: io.file) =
-    _ = self.failure
-    stream = file_of(posix.standard_input)
-end system_input
-
-system_out: (self: host) -> (stream: io.file) =
-    _ = self.failure
-    stream = file_of(posix.standard_output)
-end system_out
-
-system_err: (self: host) -> (stream: io.file) =
-    _ = self.failure
-    stream = file_of(posix.standard_error)
-end system_err
-
-system_arguments_length: (self: host) -> (count: usize) =
-    _ = self.failure
-    table: posix.argument_table = posix.arguments()
-    count = table.count
-end system_arguments_length
-
---  The argument is lent from the process's argument root, storage that
---  outlives every handle, which satisfies the concept's `from self`.
-system_argument: (self: host, index: usize)
-                 -> (value: text.os_string from self) ! mem.not_found =
-    _ = self.failure
-    table: posix.argument_table = posix.arguments()
-    fail mem.not_found when index >= table.count
-    value = posix.argument(table, index)
-end system_argument
-
---  The environment is platform/posix's, read where the process's entry
---  left it, and lent from storage that outlives every handle, as an
---  argument is.
-system_variables_length: (self: host) -> (count: usize) =
-    _ = self.failure
-    table: posix.environment_table = posix.environment()
-    count = table.count
-end system_variables_length
-
-system_variable: (self: host, index: usize)
-                 -> (item: text.os_variable from self) ! mem.not_found =
-    _ = self.failure
-    table: posix.environment_table = posix.environment()
-    fail mem.not_found when index >= table.count
-    item = posix.variable(table, index)
-end system_variable
-
-system_variable_named: (self: host, name: text.os_string)
-                       -> (value: text.os_string from self)
-                       ! mem.not_found =
-    _ = self.failure
-    table: posix.environment_table = posix.environment()
-    wanted: []u8 = text.os_string_bytes(name)
-    for index in usize(0)..<table.count do
-        item: text.os_variable = posix.variable(table, index)
-        found: []u8 = text.os_string_bytes(item.name)
-        if cmp.compare(found, wanted) == cmp.equal then
-            value = item.value
-            return
-        end if
-    end for
-    fail mem.not_found
-end system_variable_named
-
-host is io.files
-    (open_read: system_open_read, open_write: system_open_write,
-     same_file: system_same_file, close: system_close)
-host is io.process
-    (input: system_input, out: system_out, err: system_err,
-     arguments_length: system_arguments_length, argument: system_argument)
-host is io.environment
-    (variables_length: system_variables_length,
-     variable: system_variable,
-     variable_named: system_variable_named)
-
---- Return a handle to the hosted services that do not wait. It exposes the
---- process arguments and the three standard streams, descriptors 0, 1 and
---- 2, which a provider built over it reads and writes. Regular open-write
---- operations create or truncate files; close regular files explicitly. A
---- program that waits on anything mints `hosted/blocking`'s `new` instead,
---- which makes this handle itself. The handle borrows nothing: the argument
---- root and the descriptors belong to the process. Each thread that calls
---- through the handle, or through a copy of it, records into a last-error
---- and last-signal cell of its own (D503), so threads sharing a handle
---- never see each other's failures. Use `over` for a cell of the caller's
---- own.
----
---- The arguments are the root that platform/posix's
---- `_landin_host_initialize_arguments` established. The hosted entry
---- establishes it before its body runs; calling this before any root exists
---- traps.
-public new: () -> (handle: host) =
-    _ = posix.arguments()
-    handle = (failure: calling_thread, signal: calling_thread)
-end new
-
---- Fill `state` and return a handle that records its last error there
---- rather than in the calling thread's cell, whichever thread calls. It
---- shares the process's arguments and descriptors like any other handle;
---- calling this before any root exists traps, as `new` does.
-public over: (inout state: space) -> (handle: host from state) =
-    _ = posix.arguments()
-    state = (failure: 0, signal: 0)
-    handle = (failure: addr state.failure, signal: addr state.signal)
-end over
+    --- Fill `state` and return a handle that records its last error there
+    --- rather than in the calling thread's cell, whichever thread calls. It
+    --- shares the process's arguments and descriptors like any other handle;
+    --- calling this before any root exists traps, as `new` does.
+    public over: (inout state: space) -> (handle: host from state) =
+        _ = posix.arguments()
+        state = (failure: 0, signal: 0)
+        handle = (failure: addr state.failure, signal: addr state.signal)
+    end over
+end if

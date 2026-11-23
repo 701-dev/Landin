@@ -9,183 +9,185 @@ import core/mem
 import core/text
 import platform/posix
 
---  One of a child's streams as the spawn makes it: the descriptor the
---  child's stream is made from, the parent's end of its pipe when it is
---  piped, and whether the child's side was made here, a pipe's end or
---  /dev/null, and so is closed in the parent once the child has it.
-stream_end: type = struct
-    child_side: posix.descriptor
-    parent_side: posix.descriptor
-    made: bool
-    piped: bool
-end stream_end
+fixed if compiler.os <> windows then
+    --  One of a child's streams as the spawn makes it: the descriptor the
+    --  child's stream is made from, the parent's end of its pipe when it is
+    --  piped, and whether the child's side was made here, a pipe's end or
+    --  /dev/null, and so is closed in the parent once the child has it.
+    stream_end: type = struct
+        child_side: posix.descriptor
+        parent_side: posix.descriptor
+        made: bool
+        piped: bool
+    end stream_end
 
---  What a discarded stream is: the system's null device, which reads at
---  once to its end and takes every write.
-null_device: []u8 = "/dev/null"
+    --  What a discarded stream is: the system's null device, which reads at
+    --  once to its end and takes every write.
+    null_device: []u8 = "/dev/null"
 
---  A descriptor this spawn made, moved above the standard streams when
---  the system gave it one of their numbers, as it does when this process
---  was started with that stream closed.  Left there, it would be taken
---  for an inherited stream of the same spawn, which is named by its own
---  number and is to stay closed in the child when it is closed here
---  (`posix.standard_streams`): the child would get an end of its own pipe.
-raised: (made: posix.descriptor) -> (result: posix.descriptor) ! posix.errno =
-    result = made
-    return when i32(made) >= 3
-    result = posix.duplicate_above(made, 3) else (problem)
-        quietly_closed(made)
-        fail problem
-    end
-    quietly_closed(made)
-end raised
-
---  Make the child's stream `target` as `choice` says; `output` when the
---  child writes it.  What it makes is above the standard streams.
-prepared: (choice: io.stream_choice, target: posix.descriptor, output: bool)
-          -> (result: stream_end) ! posix.errno =
-    result = (child_side: target, parent_side: target, made: false,
-              piped: false)
-    return when choice == io.inherited
-    if choice == io.discarded then
-        --  The device exists, and is neither created nor truncated.
-        options: posix.open_options =
-            (access: if output then posix.write_only else posix.read_only
-                     end if,
-             create: false, exclusive: false, truncate: false,
-             append: false, directory: false)
-        loop do
-            opened: posix.descriptor =
-                posix.open_at(posix.working_directory,
-                              text.os_string_over(null_device), options,
-                              0) else (problem)
-                    continue when problem == posix.eintr
-                    fail problem
-                end
-            made: posix.descriptor = try raised(opened)
-            result = (child_side: made, parent_side: made, made: true,
-                      piped: false)
-            return
-        end loop
-    end if
-    ends: posix.pipe_ends = try posix.pipe()
-    reading: posix.descriptor = raised(ends.reading) else (problem)
-        quietly_closed(ends.writing)
-        fail problem
-    end
-    writing: posix.descriptor = raised(ends.writing) else (problem)
-        quietly_closed(reading)
-        fail problem
-    end
-    result = if output then (child_side: writing, parent_side: reading,
-                             made: true, piped: true)
-             else (child_side: reading, parent_side: writing, made: true,
-                   piped: true) end if
-end prepared
-
---  Close what the spawn made for a stream: the child's side, which the
---  child has its own copy of, and with `everything` the parent's end too,
---  when no child was started.
-dropped: (given: stream_end, everything: bool) -> none =
-    if given.made then quietly_closed(given.child_side) end if
-    if everything and given.piped then
-        quietly_closed(given.parent_side)
-    end if
-end dropped
-
---  Close a descriptor no caller is told about.
-quietly_closed: (closing: posix.descriptor) -> none =
-    posix.close(closing) else none
-end quietly_closed
-
---  posix.spawn reports a failure only when no child was started, so an
---  interrupted spawn is made again.
-spawned: (path: text.os_string, arguments: []text.os_string,
-          environment: []text.os_variable, streams: posix.standard_streams)
-         -> (child: posix.process_id) ! posix.errno =
-    loop do
-        child = posix.spawn(path, arguments, environment,
-                            streams) else (problem)
-            continue when problem == posix.eintr
+    --  A descriptor this spawn made, moved above the standard streams when
+    --  the system gave it one of their numbers, as it does when this process
+    --  was started with that stream closed.  Left there, it would be taken
+    --  for an inherited stream of the same spawn, which is named by its own
+    --  number and is to stay closed in the child when it is closed here
+    --  (`posix.standard_streams`): the child would get an end of its own pipe.
+    raised: (made: posix.descriptor) -> (result: posix.descriptor) ! posix.errno =
+        result = made
+        return when i32(made) >= 3
+        result = posix.duplicate_above(made, 3) else (problem)
+            quietly_closed(made)
             fail problem
         end
-        return
-    end loop
-end spawned
+        quietly_closed(made)
+    end raised
 
-launched: (path: text.os_string, arguments: []text.os_string,
-           environment: []text.os_variable, streams: io.child_streams)
-          -> (started: io.child) ! posix.errno =
-    input: stream_end = try prepared(streams.input, posix.standard_input,
-                                     false)
-    undo dropped(input, true)
-    output: stream_end = try prepared(streams.output, posix.standard_output,
-                                      true)
-    undo dropped(output, true)
-    errors: stream_end = try prepared(streams.errors, posix.standard_error,
-                                      true)
-    undo dropped(errors, true)
-    child: posix.process_id = try spawned(path, arguments, environment,
-                                          (input: input.child_side,
-                                           output: output.child_side,
-                                           errors: errors.child_side))
-    dropped(input, false)
-    dropped(output, false)
-    dropped(errors, false)
-    started = (handle: usize(i32(child)), input: file_of(input.parent_side),
-               output: file_of(output.parent_side),
-               errors: file_of(errors.parent_side),
-               input_open: input.piped, output_open: output.piped,
-               errors_open: errors.piped)
-end launched
-
---- Start the program at `path` as `io.programs`' `spawn` says. It is for a
---- provider built over this handle that supplies `io.programs`: `start`
---- starts the child and does not wait. The provider itself reads, writes
---- and closes the parent's ends of the child's pipes, files of this
---- provider that `descriptor_of` converts, and waits for the child through
---- whatever waiting it does (D479). A discarded stream is the system's
---- `/dev/null`. A piped one is a pipe made closed on exec, whose child end
---- is closed here once the child has it. An inherited one is the parent's
---- own, and is closed in the child when the parent has it closed: every
---- descriptor `start` makes is above the three standard ones, so none is
---- taken for it. An interrupted spawn is made
---- again. It fails `not_found` for a missing program, `no_access` for one
---- the caller may not run and `io_failed` for the rest, each errno kept in
---- the handle's last-error cell. On any failure no child was started and
---- nothing `start` made is left open. `io.child`'s `handle` is the child's
---- platform/posix `process_id`.
-public start: (handle: host, path: text.os_string,
-               arguments: []text.os_string, environment: []text.os_variable,
-               streams: io.child_streams)
-              -> (started: io.child)
-              ! mem.not_found | io.no_access | io.io_failed =
-    keep_failure(handle, 0)
-    started = launched(path, arguments, environment, streams) else (problem)
-        try path_failure(handle, problem)
-        fail io.io_failed
-    end
-end start
-
---- Return the platform/posix process ID of a child `start` started, for a
---- provider to wait for.
-public process_of: (started: io.child) -> (child: posix.process_id) =
-    child = posix.process_id(i32(started.handle))
-end process_of
-
---- The portable ending of a child whose status a provider built over this
---- handle waited for, keeping the signal that ended it in the handle's
---- last-signal cell, or zero when it exited, which `last_signal` reports.
-public ended: (handle: host, status: posix.child_status)
-              -> (result: io.ending) =
-    match status.how
-        posix.exited(code): begin
-            keep_signal(handle, 0)
-            result = (how: io.exited(code: code))
+    --  Make the child's stream `target` as `choice` says; `output` when the
+    --  child writes it.  What it makes is above the standard streams.
+    prepared: (choice: io.stream_choice, target: posix.descriptor, output: bool)
+              -> (result: stream_end) ! posix.errno =
+        result = (child_side: target, parent_side: target, made: false,
+                  piped: false)
+        return when choice == io.inherited
+        if choice == io.discarded then
+            --  The device exists, and is neither created nor truncated.
+            options: posix.open_options =
+                (access: if output then posix.write_only else posix.read_only
+                         end if,
+                 create: false, exclusive: false, truncate: false,
+                 append: false, directory: false)
+            loop do
+                opened: posix.descriptor =
+                    posix.open_at(posix.working_directory,
+                                  text.os_string_over(null_device), options,
+                                  0) else (problem)
+                        continue when problem == posix.eintr
+                        fail problem
+                    end
+                made: posix.descriptor = try raised(opened)
+                result = (child_side: made, parent_side: made, made: true,
+                          piped: false)
+                return
+            end loop
+        end if
+        ends: posix.pipe_ends = try posix.pipe()
+        reading: posix.descriptor = raised(ends.reading) else (problem)
+            quietly_closed(ends.writing)
+            fail problem
         end
-        posix.signalled(number): begin
-            keep_signal(handle, number)
-            result = (how: io.signalled)
+        writing: posix.descriptor = raised(ends.writing) else (problem)
+            quietly_closed(reading)
+            fail problem
         end
-    end match
-end ended
+        result = if output then (child_side: writing, parent_side: reading,
+                                 made: true, piped: true)
+                 else (child_side: reading, parent_side: writing, made: true,
+                       piped: true) end if
+    end prepared
+
+    --  Close what the spawn made for a stream: the child's side, which the
+    --  child has its own copy of, and with `everything` the parent's end too,
+    --  when no child was started.
+    dropped: (given: stream_end, everything: bool) -> none =
+        if given.made then quietly_closed(given.child_side) end if
+        if everything and given.piped then
+            quietly_closed(given.parent_side)
+        end if
+    end dropped
+
+    --  Close a descriptor no caller is told about.
+    quietly_closed: (closing: posix.descriptor) -> none =
+        posix.close(closing) else none
+    end quietly_closed
+
+    --  posix.spawn reports a failure only when no child was started, so an
+    --  interrupted spawn is made again.
+    spawned: (path: text.os_string, arguments: []text.os_string,
+              environment: []text.os_variable, streams: posix.standard_streams)
+             -> (child: posix.process_id) ! posix.errno =
+        loop do
+            child = posix.spawn(path, arguments, environment,
+                                streams) else (problem)
+                continue when problem == posix.eintr
+                fail problem
+            end
+            return
+        end loop
+    end spawned
+
+    launched: (path: text.os_string, arguments: []text.os_string,
+               environment: []text.os_variable, streams: io.child_streams)
+              -> (started: io.child) ! posix.errno =
+        input: stream_end = try prepared(streams.input, posix.standard_input,
+                                         false)
+        undo dropped(input, true)
+        output: stream_end = try prepared(streams.output, posix.standard_output,
+                                          true)
+        undo dropped(output, true)
+        errors: stream_end = try prepared(streams.errors, posix.standard_error,
+                                          true)
+        undo dropped(errors, true)
+        child: posix.process_id = try spawned(path, arguments, environment,
+                                              (input: input.child_side,
+                                               output: output.child_side,
+                                               errors: errors.child_side))
+        dropped(input, false)
+        dropped(output, false)
+        dropped(errors, false)
+        started = (handle: usize(i32(child)), input: file_of(input.parent_side),
+                   output: file_of(output.parent_side),
+                   errors: file_of(errors.parent_side),
+                   input_open: input.piped, output_open: output.piped,
+                   errors_open: errors.piped)
+    end launched
+
+    --- Start the program at `path` as `io.programs`' `spawn` says. It is for a
+    --- provider built over this handle that supplies `io.programs`: `start`
+    --- starts the child and does not wait. The provider itself reads, writes
+    --- and closes the parent's ends of the child's pipes, files of this
+    --- provider that `descriptor_of` converts, and waits for the child through
+    --- whatever waiting it does (D479). A discarded stream is the system's
+    --- `/dev/null`. A piped one is a pipe made closed on exec, whose child end
+    --- is closed here once the child has it. An inherited one is the parent's
+    --- own, and is closed in the child when the parent has it closed: every
+    --- descriptor `start` makes is above the three standard ones, so none is
+    --- taken for it. An interrupted spawn is made
+    --- again. It fails `not_found` for a missing program, `no_access` for one
+    --- the caller may not run and `io_failed` for the rest, each errno kept in
+    --- the handle's last-error cell. On any failure no child was started and
+    --- nothing `start` made is left open. `io.child`'s `handle` is the child's
+    --- platform/posix `process_id`.
+    public start: (handle: host, path: text.os_string,
+                   arguments: []text.os_string, environment: []text.os_variable,
+                   streams: io.child_streams)
+                  -> (started: io.child)
+                  ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(handle, 0)
+        started = launched(path, arguments, environment, streams) else (problem)
+            try path_failure(handle, problem)
+            fail io.io_failed
+        end
+    end start
+
+    --- Return the platform/posix process ID of a child `start` started, for a
+    --- provider to wait for.
+    public process_of: (started: io.child) -> (child: posix.process_id) =
+        child = posix.process_id(i32(started.handle))
+    end process_of
+
+    --- The portable ending of a child whose status a provider built over this
+    --- handle waited for, keeping the signal that ended it in the handle's
+    --- last-signal cell, or zero when it exited, which `last_signal` reports.
+    public ended: (handle: host, status: posix.child_status)
+                  -> (result: io.ending) =
+        match status.how
+            posix.exited(code): begin
+                keep_signal(handle, 0)
+                result = (how: io.exited(code: code))
+            end
+            posix.signalled(number): begin
+                keep_signal(handle, number)
+                result = (how: io.signalled)
+            end
+        end match
+    end ended
+end if

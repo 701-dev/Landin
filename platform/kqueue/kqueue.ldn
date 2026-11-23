@@ -18,7 +18,7 @@
 import platform/libc
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
 fixed if compiler.os == darwin or compiler.os == freebsd then
     --- Make a kernel event queue: its descriptor, or -1 with the reason in

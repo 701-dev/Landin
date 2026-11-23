@@ -13,50 +13,52 @@ import core/text
 import core/tree
 import platform/posix
 
---- A failure of a program over the hosted services: an errno, or one of
---- the core library's failures, which every provider over them also
---- reports.
-public reason: type = posix.errno | failure.reason
+fixed if compiler.os <> windows then
+    --- A failure of a program over the hosted services: an errno, or one of
+    --- the core library's failures, which every provider over them also
+    --- reports.
+    public reason: type = posix.errno | failure.reason
 
---- A short English phrase for a failure: `posix.words` for an errno and
---- `failure.words` for a library failure (D582), in lower case but for a
---- name's own capitals and with no final stop, so that it reads after a
---- subject and a colon.  The phrase is static text: it borrows nothing and
---- is never freed.
-public words: (problem: reason) -> (phrase: []u8) =
-    --  An arm names one atom, so each library atom has its own, and what
-    --  is left is an errno: an atom added to `failure.reason` without an
-    --  arm here is refused where the rest is passed to `posix.words`.
-    phrase = match problem
-        mem.out_of_bounds: failure.words(mem.out_of_bounds)
-        mem.empty: failure.words(mem.empty)
-        mem.not_empty: failure.words(mem.not_empty)
-        mem.out_of_memory: failure.words(mem.out_of_memory)
-        mem.not_found: failure.words(mem.not_found)
-        tree.invalid_children: failure.words(tree.invalid_children)
-        tree.too_many_nodes: failure.words(tree.too_many_nodes)
-        tree.too_many_leaves: failure.words(tree.too_many_leaves)
-        io.no_access: failure.words(io.no_access)
-        io.io_failed: failure.words(io.io_failed)
-        io.is_a_directory: failure.words(io.is_a_directory)
-        io.already_exists: failure.words(io.already_exists)
-        io.not_a_terminal: failure.words(io.not_a_terminal)
-        net.invalid_address: failure.words(net.invalid_address)
-        net.refused: failure.words(net.refused)
-        net.unreachable: failure.words(net.unreachable)
-        net.address_in_use: failure.words(net.address_in_use)
-        net.address_unavailable: failure.words(net.address_unavailable)
-        net.timed_out: failure.words(net.timed_out)
-        net.disconnected: failure.words(net.disconnected)
-        text.invalid_text: failure.words(text.invalid_text)
-        text.invalid_number: failure.words(text.invalid_number)
-        text.number_overflow: failure.words(text.number_overflow)
-        text.invalid_format: failure.words(text.invalid_format)
-        text.invalid_scalar: failure.words(text.invalid_scalar)
-        cache.misaligned: failure.words(cache.misaligned)
-        cache.bad_line: failure.words(cache.bad_line)
-        line.unsupported_rate: failure.words(line.unsupported_rate)
-        line.unsupported_format: failure.words(line.unsupported_format)
-        _ (rest): posix.words(rest)
-    end match
-end words
+    --- A short English phrase for a failure: `posix.words` for an errno and
+    --- `failure.words` for a library failure (D582), in lower case but for a
+    --- name's own capitals and with no final stop, so that it reads after a
+    --- subject and a colon.  The phrase is static text: it borrows nothing and
+    --- is never freed.
+    public words: (problem: reason) -> (phrase: []u8) =
+        --  An arm names one atom, so each library atom has its own, and what
+        --  is left is an errno: an atom added to `failure.reason` without an
+        --  arm here is refused where the rest is passed to `posix.words`.
+        phrase = match problem
+            mem.out_of_bounds: failure.words(mem.out_of_bounds)
+            mem.empty: failure.words(mem.empty)
+            mem.not_empty: failure.words(mem.not_empty)
+            mem.out_of_memory: failure.words(mem.out_of_memory)
+            mem.not_found: failure.words(mem.not_found)
+            tree.invalid_children: failure.words(tree.invalid_children)
+            tree.too_many_nodes: failure.words(tree.too_many_nodes)
+            tree.too_many_leaves: failure.words(tree.too_many_leaves)
+            io.no_access: failure.words(io.no_access)
+            io.io_failed: failure.words(io.io_failed)
+            io.is_a_directory: failure.words(io.is_a_directory)
+            io.already_exists: failure.words(io.already_exists)
+            io.not_a_terminal: failure.words(io.not_a_terminal)
+            net.invalid_address: failure.words(net.invalid_address)
+            net.refused: failure.words(net.refused)
+            net.unreachable: failure.words(net.unreachable)
+            net.address_in_use: failure.words(net.address_in_use)
+            net.address_unavailable: failure.words(net.address_unavailable)
+            net.timed_out: failure.words(net.timed_out)
+            net.disconnected: failure.words(net.disconnected)
+            text.invalid_text: failure.words(text.invalid_text)
+            text.invalid_number: failure.words(text.invalid_number)
+            text.number_overflow: failure.words(text.number_overflow)
+            text.invalid_format: failure.words(text.invalid_format)
+            text.invalid_scalar: failure.words(text.invalid_scalar)
+            cache.misaligned: failure.words(cache.misaligned)
+            cache.bad_line: failure.words(cache.bad_line)
+            line.unsupported_rate: failure.words(line.unsupported_rate)
+            line.unsupported_format: failure.words(line.unsupported_format)
+            _ (rest): posix.words(rest)
+        end match
+    end words
+end if

@@ -5,17 +5,19 @@
 import core/time
 import platform/posix
 
---  Every hosted system has the realtime clock, and reading it fails only
---  when the process is given a bad address, which no call here gives, so
---  a failure ends the program.
-system_wall_now: (self: host) -> (at: time.wall_time) =
-    _ = self.failure
-    sample: posix.time_value = posix.clock_time(posix.realtime_clock)
-        else (problem)
-        _ = problem
-        compiler.unreachable()
-    end
-    at = (seconds: sample.seconds, nanoseconds: sample.nanoseconds)
-end system_wall_now
+fixed if compiler.os <> windows then
+    --  Every hosted system has the realtime clock, and reading it fails only
+    --  when the process is given a bad address, which no call here gives, so
+    --  a failure ends the program.
+    system_wall_now: (self: host) -> (at: time.wall_time) =
+        _ = self.failure
+        sample: posix.time_value = posix.clock_time(posix.realtime_clock)
+            else (problem)
+            _ = problem
+            compiler.unreachable()
+        end
+        at = (seconds: sample.seconds, nanoseconds: sample.nanoseconds)
+    end system_wall_now
 
-host is time.wall_clock (wall_now: system_wall_now)
+    host is time.wall_clock (wall_now: system_wall_now)
+end if

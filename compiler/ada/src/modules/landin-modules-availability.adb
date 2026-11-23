@@ -28,15 +28,16 @@ package body Landin.Modules.Availability is
            Landin.Targets.Capabilities.No_Hosted_System;
       elsif POSIX_Module (Logical) then
          --  The system's own interfaces and the POSIX layer over them serve
-         --  the hosted POSIX systems, and would not exist on another.
-         return Landin.Targets.Capabilities.Hosted_System_Of (Facts) in
-           Landin.Targets.Capabilities.Linux
-           | Landin.Targets.Capabilities.Darwin
-           | Landin.Targets.Capabilities.FreeBSD;
+         --  the hosted POSIX systems.  On Windows each is imported, so that
+         --  a provider written for every hosted system imports it beside
+         --  platform/windows, and declares nothing there (D439, D2267).
+         return Landin.Targets.Capabilities.Hosted_System_Of (Facts) /=
+           Landin.Targets.Capabilities.No_Hosted_System;
       elsif Under (Logical, "platform/windows") then
-         --  Windows' own interface, kernel32, on Windows alone.
-         return Landin.Targets.Capabilities.Hosted_System_Of (Facts) =
-           Landin.Targets.Capabilities.Windows;
+         --  Windows' own interface, kernel32: declared on Windows alone and
+         --  imported on every hosted system, as the POSIX layer is (D2267).
+         return Landin.Targets.Capabilities.Hosted_System_Of (Facts) /=
+           Landin.Targets.Capabilities.No_Hosted_System;
       elsif Logical = "platform/cortex_m" then
          --  D575: the module itself declares its operations only on an
          --  M-profile target, so a shared program imports it everywhere and
@@ -91,10 +92,11 @@ package body Landin.Modules.Availability is
       if Under (Logical, "hosted") then
          return "D267: hosted modules require a hosted target";
       elsif POSIX_Module (Logical) then
-         return "D267: " & Logical & " requires a hosted POSIX system:"
-           & " Linux, Darwin or FreeBSD";
+         return "D267: " & Logical & " requires a hosted system:"
+           & " Linux, Darwin, FreeBSD or Windows";
       elsif Under (Logical, "platform/windows") then
-         return "D267: " & Logical & " requires a Windows target";
+         return "D267: " & Logical & " requires a hosted system:"
+           & " Linux, Darwin, FreeBSD or Windows";
       elsif Under (Logical, "platform/cortex_m") then
          return "D267: " & Logical & " requires an M-profile target";
       elsif Under (Logical, "platform/riscv") then

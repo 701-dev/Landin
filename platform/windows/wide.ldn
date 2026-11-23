@@ -1,0 +1,189 @@
+--  Host strings and the system's 16-bit units.  A Windows host string is
+--  WTF-8 (D2268): the units the system gave, each scalar value UTF-8
+--  encodes as UTF-8 does, a surrogate pair as its one scalar, and a lone
+--  surrogate as the three bytes UTF-8 would give its value, so every
+--  sequence of units the system names a file or an argument by survives
+--  the trip to bytes and back, and one that is well-formed UTF-16 is
+--  UTF-8 text.  A call that takes a terminated wide string has the units
+--  copied into a buffer of the caller's with a NUL after them, as
+--  platform/posix terminates a path.
+
+import core/text
+
+fixed if compiler.os == windows then
+    --- A host string this module cannot give the system: one holding a NUL
+    --- or bytes WTF-8 does not encode, `ERROR_INVALID_NAME` to the system.
+    public bad_name: atom
+
+    --- A host string whose units and NUL do not fit the buffer given,
+    --- `ERROR_FILENAME_EXCED_RANGE` to the system.
+    public name_too_long: atom
+
+    --- Why a host string could not be given to the system.
+    public name_failure: type = bad_name | name_too_long
+
+    --- The Win32 error code that says the same as `problem`.
+    public code_of: (problem: name_failure) -> (code: u32) =
+        code = match problem
+            bad_name: error_invalid_name
+            name_too_long: error_filename_exceeds_range
+        end match
+    end code_of
+
+    --- Room for a path and its NUL, in units: Windows' long-path limit is
+    --- 32,767, but a path beyond `MAX_PATH`, 260, needs the `\\?\` form
+    --- and a manifest the image does not carry, so this room keeps a frame
+    --- small and still takes every path the system gives an ordinary
+    --- program.
+    public path_room: type = [1024]u16
+
+    leading: (unit: u16) -> (yes: bool) =
+        yes = unit >= 0xD800 and unit <= 0xDBFF
+    end leading
+
+    trailing: (unit: u16) -> (yes: bool) =
+        yes = unit >= 0xDC00 and unit <= 0xDFFF
+    end trailing
+
+    --- How many bytes `to_host` writes for `units`.
+    public host_length: (units: []u16) -> (length: usize) =
+        length = 0
+        mut at: usize = 0
+        while at < lenof units do
+            unit: u16 = units[at]
+            if unit < 0x80 then
+                length += 1
+            elsif unit < 0x800 then
+                length += 2
+            elsif leading(unit) and at + 1 < lenof units
+                  and trailing(units[at + 1]) then
+                length += 4
+                inc at
+            else
+                length += 3
+            end if
+            inc at
+        end while
+    end host_length
+
+    --- Write `units` as WTF-8 into `into`, which has room for `host_length`
+    --- bytes of them, and return how many it wrote.
+    public to_host: (units: []u16, into: []mut u8) -> (count: usize) =
+        count = 0
+        mut at: usize = 0
+        while at < lenof units do
+            mut value: u32 = u32(units[at])
+            if leading(units[at]) and at + 1 < lenof units
+               and trailing(units[at + 1]) then
+                value = 0x10000 + ((value - 0xD800) << 10)
+                        + (u32(units[at + 1]) - 0xDC00)
+                inc at
+            end if
+            inc at
+            if value < 0x80 then
+                into[count] = u8(value)
+                count += 1
+            elsif value < 0x800 then
+                into[count] = u8(0xC0 | (value >> 6))
+                into[count + 1] = u8(0x80 | (value & 0x3F))
+                count += 2
+            elsif value < 0x10000 then
+                into[count] = u8(0xE0 | (value >> 12))
+                into[count + 1] = u8(0x80 | ((value >> 6) & 0x3F))
+                into[count + 2] = u8(0x80 | (value & 0x3F))
+                count += 3
+            else
+                into[count] = u8(0xF0 | (value >> 18))
+                into[count + 1] = u8(0x80 | ((value >> 12) & 0x3F))
+                into[count + 2] = u8(0x80 | ((value >> 6) & 0x3F))
+                into[count + 3] = u8(0x80 | (value & 0x3F))
+                count += 4
+            end if
+        end while
+    end to_host
+
+    continuation: (bytes: []u8, at: usize) -> (value: u32) ! bad_name =
+        fail bad_name when at >= lenof bytes
+        fail bad_name when (bytes[at] & 0xC0) <> 0x80
+        value = u32(bytes[at] & 0x3F)
+    end continuation
+
+    --- Write the units of the WTF-8 `bytes` into `into` and return how many:
+    --- `bad_name` for bytes WTF-8 does not encode or a NUL, `name_too_long`
+    --- when they do not fit.
+    public to_units: (bytes: []u8, into: []mut u16) -> (count: usize)
+                     ! name_failure =
+        count = 0
+        mut at: usize = 0
+        while at < lenof bytes do
+            first: u8 = bytes[at]
+            mut value: u32 = 0
+            if first < 0x80 then
+                value = u32(first)
+                at += 1
+            elsif (first & 0xE0) == 0xC0 then
+                value = (u32(first & 0x1F) << 6) | try continuation(bytes, at + 1)
+                fail bad_name when value < 0x80
+                at += 2
+            elsif (first & 0xF0) == 0xE0 then
+                value = (u32(first & 0x0F) << 12)
+                        | (try continuation(bytes, at + 1) << 6)
+                        | try continuation(bytes, at + 2)
+                fail bad_name when value < 0x800
+                at += 3
+            elsif (first & 0xF8) == 0xF0 then
+                value = (u32(first & 0x07) << 18)
+                        | (try continuation(bytes, at + 1) << 12)
+                        | (try continuation(bytes, at + 2) << 6)
+                        | try continuation(bytes, at + 3)
+                fail bad_name when value < 0x10000 or value > 0x10FFFF
+                at += 4
+            else
+                fail bad_name
+            end if
+            fail bad_name when value == 0
+            if value >= 0x10000 then
+                fail name_too_long when count + 2 > lenof into
+                rest: u32 = value - 0x10000
+                into[count] = u16(0xD800 + (rest >> 10))
+                into[count + 1] = u16(0xDC00 + (rest & 0x3FF))
+                count += 2
+            else
+                fail name_too_long when count + 1 > lenof into
+                into[count] = u16(value)
+                count += 1
+            end if
+        end while
+    end to_units
+
+    --- Copy `name` into `room` as units with a NUL after them, for a call
+    --- that takes a terminated wide string, and return the first unit's
+    --- address: `bad_name` for a name holding a NUL or bytes WTF-8 does not
+    --- encode, `name_too_long` when it and its NUL do not fit.
+    public terminate: (name: text.os_string, room: []mut u16)
+                      -> (terminated: ptr u16 from room) ! name_failure =
+        fail name_too_long when lenof room == 0
+        count: usize = try to_units(text.os_string_bytes(name),
+                                    room[0..<lenof room - 1])
+        room[count] = 0
+        terminated = addr room[0]
+    end terminate
+
+    --- The units at `first` before their NUL, which the system or the caller
+    --- keeps.
+    public terminated_units: (first: ptr u16) -> (units: []u16 from first) =
+        mut length: usize = 0
+        loop do
+            at: ptr u16 = ptr(usize(first) + length * 2)
+            break when at.val == 0
+            inc length
+        end loop
+        whole: ptr [1]u16 = ptr(usize(first))
+        units = whole.val[0..<0]
+        if length > 0 then
+            unchecked begin
+                units = whole.val[0..<length]
+            end unchecked
+        end if
+    end terminated_units
+end if

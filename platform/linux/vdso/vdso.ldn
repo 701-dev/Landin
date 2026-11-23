@@ -18,7 +18,7 @@
 import platform/linux
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
 fixed if compiler.os == linux then
     --- The auxiliary-vector tag of the vDSO's address, AT_SYSINFO_EHDR.

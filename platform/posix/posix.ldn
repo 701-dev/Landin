@@ -31,105 +31,107 @@ import platform/libc
 import platform/linux
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
-descriptor_value: type = distinct i32
+fixed if compiler.os <> windows then
+    descriptor_value: type = distinct i32
 
---- An open file's descriptor: a handle the system gives, which names one
---- open file until it is closed.  It is a handle and not a number to
---- count with; `descriptor(n)` and `i32(d)` convert at a C boundary.
-public descriptor: type = descriptor_value
+    --- An open file's descriptor: a handle the system gives, which names one
+    --- open file until it is closed.  It is a handle and not a number to
+    --- count with; `descriptor(n)` and `i32(d)` convert at a C boundary.
+    public descriptor: type = descriptor_value
 
---- Standard input, descriptor 0.
-public standard_input: descriptor = descriptor_value(0)
+    --- Standard input, descriptor 0.
+    public standard_input: descriptor = descriptor_value(0)
 
---- Standard output, descriptor 1.
-public standard_output: descriptor = descriptor_value(1)
+    --- Standard output, descriptor 1.
+    public standard_output: descriptor = descriptor_value(1)
 
---- Standard error, descriptor 2.
-public standard_error: descriptor = descriptor_value(2)
+    --- Standard error, descriptor 2.
+    public standard_error: descriptor = descriptor_value(2)
 
-fixed if compiler.os == linux then
-    --  PATH_MAX: room for the longest path a call takes, its NUL
-    --  included.
-    path_room: type = [4096]u8
-else
-    --  PATH_MAX: room for the longest path a call takes, its NUL
-    --  included.
-    path_room: type = [1024]u8
-end if
-
---  The `length` bytes at `first`, writable, which this module mapped.
-writable_view: (first: ptr mut u8, length: usize)
-               -> (bytes: []mut u8 from first) =
-    whole: ptr mut [1]u8 = ptr(usize(first))
-    bytes = whole.val[0..<0]
-    if length > 0 then
-        unchecked begin
-            bytes = whole.val[0..<length]
-        end unchecked
+    fixed if compiler.os == linux then
+        --  PATH_MAX: room for the longest path a call takes, its NUL
+        --  included.
+        path_room: type = [4096]u8
+    else
+        --  PATH_MAX: room for the longest path a call takes, its NUL
+        --  included.
+        path_room: type = [1024]u8
     end if
-end writable_view
 
---  The bytes before the first NUL at `first`.
-terminated_length: (first: ptr u8) -> (length: usize) =
-    length = 0
-    loop do
-        at: ptr u8 = ptr(usize(first) + length)
-        break when at.val == 0
-        inc length
-    end loop
-end terminated_length
+    --  The `length` bytes at `first`, writable, which this module mapped.
+    writable_view: (first: ptr mut u8, length: usize)
+                   -> (bytes: []mut u8 from first) =
+        whole: ptr mut [1]u8 = ptr(usize(first))
+        bytes = whole.val[0..<0]
+        if length > 0 then
+            unchecked begin
+                bytes = whole.val[0..<length]
+            end unchecked
+        end if
+    end writable_view
 
---  The `length` bytes at `first`, which the system or the process owns and
---  keeps readable.
-view: (first: ptr u8, length: usize) -> (bytes: []u8 from first) =
-    whole: ptr [1]u8 = ptr(usize(first))
-    bytes = whole.val[0..<0]
-    if length > 0 then
-        unchecked begin
-            bytes = whole.val[0..<length]
-        end unchecked
+    --  The bytes before the first NUL at `first`.
+    terminated_length: (first: ptr u8) -> (length: usize) =
+        length = 0
+        loop do
+            at: ptr u8 = ptr(usize(first) + length)
+            break when at.val == 0
+            inc length
+        end loop
+    end terminated_length
+
+    --  The `length` bytes at `first`, which the system or the process owns and
+    --  keeps readable.
+    view: (first: ptr u8, length: usize) -> (bytes: []u8 from first) =
+        whole: ptr [1]u8 = ptr(usize(first))
+        bytes = whole.val[0..<0]
+        if length > 0 then
+            unchecked begin
+                bytes = whole.val[0..<length]
+            end unchecked
+        end if
+    end view
+
+    --  Copy PATH into ROOM with a NUL after it, for a call that takes a C
+    --  path: `enametoolong` when it and its NUL do not fit, before anything
+    --  is copied, and `einval` when it holds a NUL.
+    terminate: (path: text.os_string, room: []mut u8)
+               -> (terminated: ptr u8 from room) ! errno =
+        bytes: []u8 = text.os_string_bytes(path)
+        fail enametoolong when lenof bytes >= lenof room
+        for at in usize(0)..<lenof bytes do
+            fail einval when bytes[at] == 0
+            room[at] = bytes[at]
+        end for
+        room[lenof bytes] = 0
+        terminated = addr room[0]
+    end terminate
+
+    --  Close a descriptor this module opened when what follows it fails, or a
+    --  file it is done with, whatever the close says: the one close a caller
+    --  is not told about.  A failed close has released the descriptor anyway.
+    forgotten: (opened: descriptor) -> none =
+        close(opened) else none
+    end forgotten
+    --  The system's own calls beneath the facility above: Linux's system
+    --  calls through platform/linux, and the C library through
+    --  platform/libc on Darwin and FreeBSD, whose system interface it is.
+
+    fixed if compiler.os == linux then
+        --- The working directory as the directory an `*_at` call's relative
+        --- path is relative to: C's `AT_FDCWD`, which is no open file.
+        public working_directory: descriptor = descriptor_value(linux.at_fdcwd)
+    elsif compiler.os == darwin or compiler.os == freebsd then
+        --- The working directory as the directory an `*_at` call's relative
+        --- path is relative to: C's `AT_FDCWD`, which is no open file.
+        public working_directory: descriptor = descriptor_value(libc.at_fdcwd)
+
+        --  The errno the calling thread's last failing call left, as an atom.
+        failure: () -> (problem: errno) =
+            cell: ptr mut i32 = libc.errno_cell()
+            problem = errno_of(cell.val)
+        end failure
     end if
-end view
-
---  Copy PATH into ROOM with a NUL after it, for a call that takes a C
---  path: `enametoolong` when it and its NUL do not fit, before anything
---  is copied, and `einval` when it holds a NUL.
-terminate: (path: text.os_string, room: []mut u8)
-           -> (terminated: ptr u8 from room) ! errno =
-    bytes: []u8 = text.os_string_bytes(path)
-    fail enametoolong when lenof bytes >= lenof room
-    for at in usize(0)..<lenof bytes do
-        fail einval when bytes[at] == 0
-        room[at] = bytes[at]
-    end for
-    room[lenof bytes] = 0
-    terminated = addr room[0]
-end terminate
-
---  Close a descriptor this module opened when what follows it fails, or a
---  file it is done with, whatever the close says: the one close a caller
---  is not told about.  A failed close has released the descriptor anyway.
-forgotten: (opened: descriptor) -> none =
-    close(opened) else none
-end forgotten
---  The system's own calls beneath the facility above: Linux's system
---  calls through platform/linux, and the C library through
---  platform/libc on Darwin and FreeBSD, whose system interface it is.
-
-fixed if compiler.os == linux then
-    --- The working directory as the directory an `*_at` call's relative
-    --- path is relative to: C's `AT_FDCWD`, which is no open file.
-    public working_directory: descriptor = descriptor_value(linux.at_fdcwd)
-elsif compiler.os == darwin or compiler.os == freebsd then
-    --- The working directory as the directory an `*_at` call's relative
-    --- path is relative to: C's `AT_FDCWD`, which is no open file.
-    public working_directory: descriptor = descriptor_value(libc.at_fdcwd)
-
-    --  The errno the calling thread's last failing call left, as an atom.
-    failure: () -> (problem: errno) =
-        cell: ptr mut i32 = libc.errno_cell()
-        problem = errno_of(cell.val)
-    end failure
 end if
