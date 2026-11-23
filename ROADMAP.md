@@ -864,7 +864,7 @@ direct port. The candidate passed its
 
 ### R16.31 — A loop's index proves its own checks
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.30 left as the largest cost against gcc on the hosted targets:
