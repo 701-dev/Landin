@@ -315,7 +315,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -323,7 +323,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6340,
+    ".text": 6292,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -333,7 +333,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -341,7 +341,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 10422,
+    ".text": 10386,
     ".rodata": 280,
     ".bss": 28
    }
@@ -350,7 +350,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -358,7 +358,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   },
@@ -366,7 +366,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -374,7 +374,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6340,
+    ".text": 6292,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -384,7 +384,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -392,7 +392,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 10422,
+    ".text": 10386,
     ".rodata": 280,
     ".bss": 28
    }
@@ -401,7 +401,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -409,7 +409,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   },
@@ -417,7 +417,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -425,7 +425,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6284,
+    ".text": 6236,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -435,7 +435,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -443,7 +443,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 10422,
+    ".text": 10386,
     ".rodata": 280,
     ".bss": 28
    }
@@ -452,7 +452,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -460,7 +460,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   },
@@ -777,7 +777,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -785,7 +785,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6340,
+    ".text": 6292,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -795,7 +795,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -803,7 +803,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 12768,
+    ".text": 12732,
     ".rodata": 280,
     ".bss": 28
    }
@@ -812,7 +812,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -820,7 +820,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   },
@@ -828,7 +828,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -836,7 +836,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6340,
+    ".text": 6292,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -846,7 +846,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -854,7 +854,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 12768,
+    ".text": 12732,
     ".rodata": 280,
     ".bss": 28
    }
@@ -863,7 +863,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -871,7 +871,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   },
@@ -879,7 +879,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1512,
+    ".text": 1500,
     ".bss": 24
    }
   },
@@ -887,7 +887,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6284,
+    ".text": 6236,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -897,7 +897,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1524,
+    ".text": 1508,
     ".bss": 28
    }
   },
@@ -905,7 +905,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 12768,
+    ".text": 12732,
     ".rodata": 280,
     ".bss": 28
    }
@@ -914,7 +914,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1796,
+    ".text": 1780,
     ".bss": 24
    }
   },
@@ -922,7 +922,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 1136,
+    ".text": 1120,
     ".bss": 24
    }
   }
