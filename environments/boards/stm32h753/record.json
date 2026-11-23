@@ -1,12 +1,12 @@
 {
   "status": "passed",
-  "image_sha256": "d2eba906097363ce5cf72aa7e7b77ca6bd5c485cef90b704c92f50098bf622a3",
+  "image_sha256": "4e9671d34be640548a2dbc75b0e75e3aab903e7a387060204a5d4bed591efb64",
   "image_name": "board.elf",
   "image": {
     "copied_text": {
-      "end": 18128,
+      "end": 18112,
       "load": 134218640,
-      "sha256": "e6cd04cd3d0ba3a1cfa6c161aa575f5b502c7922c17399f7d5171e795bf5fdf5",
+      "sha256": "2d05e362030c4345e7fb4d8aa240f01afa2c64cc1105258b47d7ac7d472e2504",
       "start": 0
     },
     "float_unit": "passed",
@@ -121,16 +121,16 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 150,
+    "usart_entries": 144,
     "s0ndtr": 229,
     "s0cr": 1049617,
     "itcm": {
       "start": 0,
-      "bytes": 18128,
-      "sha256": "e6cd04cd3d0ba3a1cfa6c161aa575f5b502c7922c17399f7d5171e795bf5fdf5"
+      "bytes": 18112,
+      "sha256": "2d05e362030c4345e7fb4d8aa240f01afa2c64cc1105258b47d7ac7d472e2504"
     }
   },
-  "uart_sha256": "fa6b5b94ea62394683bec286afaabbe8ba39a1986d691aa6943263bc09a2248a",
+  "uart_sha256": "18c5ab4098b794cf7958f9e05d714cd2fff042ee367ba28471ba5ea6b92f04aa",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -142,49 +142,49 @@
       "elf_sha256": "413ac4b4224bcd5083b2bcd10dc429d34623bbfa9222eae4419ae4ae4fb8271d"
     }
   },
-  "seconds": 35.177,
+  "seconds": 35.606,
   "kernel_usb": {
-    "since": 1795439127.6960075,
-    "until": 1795439162.852718,
+    "since": 1795456239.522646,
+    "until": 1795456275.1090388,
     "lines": [
       {
-        "time": 1795439133.424722,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 86"
+        "time": 1795456245.17677,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 63"
       },
       {
-        "time": 1795439135.34867,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 103 using xhci_hcd"
+        "time": 1795456247.14868,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 86 using xhci_hcd"
       },
       {
-        "time": 1795439135.498676,
+        "time": 1795456247.298261,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795439135.502561,
+        "time": 1795456247.302226,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795439135.505683,
+        "time": 1795456247.305335,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       },
       {
-        "time": 1795439159.85693,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 103"
+        "time": 1795456272.116915,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 86"
       },
       {
-        "time": 1795439161.784678,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 104 using xhci_hcd"
+        "time": 1795456274.044684,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 87 using xhci_hcd"
       },
       {
-        "time": 1795439161.934677,
+        "time": 1795456274.194315,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795439161.938646,
+        "time": 1795456274.198241,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795439161.941648,
+        "time": 1795456274.202423,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       }
     ],
@@ -209,8 +209,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "0000405d",
-      "u": "00000096",
+      "m": "00004252",
+      "u": "00000090",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",
@@ -224,6 +224,7 @@
     "flash-readback",
     "hub-status",
     "power-cycle",
+    "hub-wait",
     "hub-wait",
     "swd-handled",
     "swd-recoveries",

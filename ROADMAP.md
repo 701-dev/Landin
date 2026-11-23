@@ -942,7 +942,7 @@ candidate passed its
 
 ### R16.33 — Element addresses and products by a constant
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What R16.31 left as SHA-256's largest cost against gcc on the hosted
@@ -957,6 +957,29 @@ Exit evidence: SHA-256's schedule and load loops measured with each
 constant offset in the address and each `4 * t` made once and scaled or
 shifted, its instructions lower than R16.31's figures on x86-64 and
 arm64, and no other combination over its own.
+
+Done: the simplifier moves a constant left operand of a commutative
+integer operation to the right (D2247) and numbers equal integer
+constants as one class without replacing them (D2248), so SHA-256's four
+`4 * t` are one product. x86-64 puts an index's constant offset in the
+access's displacement (D2252), as it now does a field behind an address
+slot in its home (D2254), compares and scales a slice edge where it
+lives (D2250) and does not widen a byte it loaded again (D2249); a proved
+product by a power of two is `shl` or `lea` on x86-64 and `lsl` on arm64
+(D2251), and arm64 makes a conversion in the register its operand dies
+in (D2253). arm64 has no address with both a register index and a
+displacement, so its schedule keeps a `sub` before each load (`SR-1704`).
+SHA-256's schedule is 23 x86-64 instructions an iteration where it was
+31, and its load loop 25 where it was 52. Against the item's base, at
+speed, x86-64 executes 12.7% fewer instructions on SHA-256 of 64 MiB
+(6.90 G to 6.03 G; gcc's 4.56 G), 9.7% on reverse-complement, 8.0% on
+SipHash-1-3, 6.2% on fasta, 2.3% on fibres, 1.3% on fannkuch-redux and
+0.03% to 0.15% on the rest; arm64 under QEMU 3.7% on reverse-complement,
+3.5% on SHA-256, 2.8% on SipHash-1-3, 1.8% on binary-trees, 1.6% on
+fibres and up to 0.1% on the rest. At size x86-64 executes 0.03% to
+10.6% fewer and arm64 up to 2.5%. Every hosted image's `.text` is
+smaller and every output the same; RV64 executes fewer instructions on
+every workload, and Cortex-M0's one firmware workload 0.6% fewer.
 
 ### The continuous items
 
