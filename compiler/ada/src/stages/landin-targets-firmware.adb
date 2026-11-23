@@ -389,7 +389,8 @@ package body Landin.Targets.Firmware is
                        else Flash_Capacity (Of_Profile)),
        Writable    => (if Of_Profile.Placed (Data) = 0 then 0
                        else Placed_Region (Of_Profile, Data).Length),
-       Reserved    => Maximum_Object_Size (Cortex_M)));
+       Reserved    => Maximum_Object_Size (Cortex_M),
+       Whole       => <>));
 
    function Profile_Name (Of_Profile : Profile) return String is
      (if Of_Profile.Reference then "constrained reference profile"

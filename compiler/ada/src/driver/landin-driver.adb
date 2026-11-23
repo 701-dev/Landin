@@ -5105,6 +5105,9 @@ package body Landin.Driver is
                                     when Images.Reserved =>
                                        Landin.Targets.Name (Facts)
                                        & "'s address space holds",
+                                    when Images.Whole =>
+                                       "a Windows image holds on "
+                                       & Landin.Targets.Name (Facts),
                                     when Images.Writable =>
                                        (if Firmware
                                         then "the RAM of " & Profile

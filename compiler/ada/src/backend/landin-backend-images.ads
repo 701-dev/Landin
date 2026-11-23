@@ -26,7 +26,7 @@ package Landin.Backend.Images is
       Facts   : Landin.Targets.Target_Facts) return Usage;
 
    --  Which part of the budget a usage exceeds, the first in this order.
-   type Excess is (Within, Initialized, Writable, Reserved);
+   type Excess is (Within, Initialized, Writable, Reserved, Whole);
 
    function Exceeded
      (Used : Usage; Budget : Landin.Targets.Image_Budget) return Excess;

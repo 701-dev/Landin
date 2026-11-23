@@ -33461,7 +33461,10 @@ links a C runtime: `--link` is refused for the target, a fixture with
 which is written over them, is too until Windows' providers are written
 over kernel32. The image reserves an eight-megabyte stack, a Linux
 process's customary limit, where Windows would reserve one, so that the
-corpus's recursion runs alike. The report a failed check writes goes to
+corpus's recursion runs alike. A Windows image holds its written and zero
+images together within 2 GiB, which its loader refuses past, so D537's
+budget adds that sum on Windows, and L0505 refuses a program over it
+before emission, where Linux reserves a larger zero image. The report a failed check writes goes to
 standard error through `GetStdHandle` and `WriteFile`.
 
 **The alternatives:** linking a C runtime, MinGW's or Microsoft's, which
@@ -33471,7 +33474,8 @@ promise; and leaving the stack at Windows' default, under which the
 corpus's deepest recursion overflows where it does not on Linux.
 
 **Pinned by** `runtime/target-hosted-system-facts`,
-`toolchain/a Windows link has no C runtime`, and the corpus the gate's
+`toolchain/a Windows link has no C runtime`,
+`negative/windows-image-past-two-gigabytes`, and the corpus the gate's
 `windows-runtime` job runs (`compiler/tests/windows/README.md`).
 
 ### D2189 — Windows links through llvm-mingw's driver: Clang's assembler and LLD

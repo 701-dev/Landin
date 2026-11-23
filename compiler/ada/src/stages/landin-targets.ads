@@ -170,10 +170,14 @@ package Landin.Targets is
    --  loader or the startup clears, which take no object bytes.  A hosted
    --  target's budget is Landin.Targets.Capabilities.Image_Budget_Of; a
    --  firmware image's is its profile's capacities.
+   --  Whole is the written and reserved images together, which a Windows
+   --  image holds within 2 GiB whatever its parts; no other target limits
+   --  the sum beyond its parts.
    type Image_Budget is record
       Initialized : Byte_Count;
       Writable    : Byte_Count;
       Reserved    : Byte_Count;
+      Whole       : Byte_Count := Byte_Count'Last;
    end record;
 
    ---------------------------------------------------------------------

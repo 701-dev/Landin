@@ -1905,11 +1905,13 @@ package body Landin.Diagnostics.Explanations is
                & "odel, Darwin's static image and RV64's AUIPC, 4 GiB unde"
                & "r arm64's ADRP, and the 32-bit address space on Cortex-M"
                & ". Zero images, which take no object bytes, are held only"
-               & " to the address space. The message gives what the images"
-               & " take, the part of the budget they exceed and what sets "
-               & "it. Make the static data smaller, or allocate it when th"
-               & "e program runs; a value that is zero until the program w"
-               & "rites it reserves its bytes rather than writing them.",
+               & " to the address space, except on Windows, whose image ho"
+               & "lds its written and zero images together within 2 GiB. T"
+               & "he message gives what the images take, the part of the b"
+               & "udget they exceed and what sets it. Make the static data"
+               & " smaller, or allocate it when the program runs; a value "
+               & "that is zero until the program writes it reserves its by"
+               & "tes rather than writing them.",
             when Catalogue.Panic_Contract_Invalid =>
                "The panic handler is invalid, or the program has more ch"
                & "eck sites than their identifier space holds [1670]. Decl"

@@ -208,6 +208,9 @@ def outcome(bundle, result, runner):
                               timeout=60, cwd=bundle)
     except subprocess.TimeoutExpired:
         raise Refused(label + ': did not finish within 60 seconds')
+    except OSError as error:
+        #  Windows refusing the image, as it refuses one past 2 GiB.
+        raise Refused('%s: the system did not start it: %s' % (label, error))
     (bundle / (label + '.stdout')).write_bytes(done.stdout)
     if not merged:
         (bundle / (label + '.stderr')).write_bytes(done.stderr)

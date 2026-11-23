@@ -206,7 +206,9 @@ package body Landin.Targets.Capabilities is
      (Reach_Source (Facts) & " on " & Name (Facts));
 
    function Image_Budget_Of (Facts : Target_Facts) return Image_Budget is
-     ((Initialized => Image_Reach (Facts),
+     ((Whole       => (if Backend_For (Facts) = X86_64_COFF then 2 ** 31
+                       else Byte_Count'Last),
+       Initialized => Image_Reach (Facts),
        Writable    => Image_Reach (Facts),
        Reserved    => Maximum_Object_Size (Facts)));
 

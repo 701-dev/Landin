@@ -1,0 +1,2 @@
+error[L0505]: static images write 8 and reserve 2147483648 bytes before section GC, together past the 2147483648 bytes that a Windows image holds on windows-x86-64
+  = note: every image the program lowers counts before section GC; make the static data smaller, or allocate it when the program runs (D537)

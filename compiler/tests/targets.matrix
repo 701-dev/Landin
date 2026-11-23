@@ -1649,6 +1649,7 @@ negative/warning-advisory | linux-x86-64, linux-arm64, darwin-arm64, synthetic-3
 negative/when-on-a-statement-names-the-exits | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/wide-integer-not-enabled | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/wildcard-rest-binding | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/windows-image-past-two-gigabytes | windows-x86-64
 negative/writes-to-an-immutable-binding-report-once | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/written-binding-is-offered-mut | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/written-function-signature-mismatch | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -2355,7 +2356,7 @@ runtime/io-handle-lends-two-arguments | linux-x86-64, linux-arm64, linux-rv64, d
 runtime/io-write-format | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/io-write-format-memory | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
 runtime/kqueue-events | darwin-arm64, freebsd-x86-64, freebsd-arm64
-runtime/large-array-offset-is-addressed | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
+runtime/large-array-offset-is-addressed | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/lenof-array-literal-is-compile-time | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
 runtime/lenof-measures-paths-and-call-results | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
 runtime/lenof-named-fixed-arrays | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
