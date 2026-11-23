@@ -878,6 +878,26 @@ Exit evidence: SHA-256's schedule and load loops measured without the
 checks their index's range proves, its instructions lower than R16.30's
 figures on x86-64 and arm64, and no other combination over its own.
 
+### R16.32 — Time the STM32H753 from its tightly coupled memories
+
+Status: planned
+Depends on: R16.10
+
+`SR-1661`'s slowdowns, measured to their cause: the timing image's RAM
+layout puts the STM32H753's text, data and stack in uncached AXI SRAM,
+where the same code moved 2 bytes at a time runs the sieve at speed in
+7,317 to 10,652 cycles and SipHash in 510,115 to 541,009, with a period
+of 32 bytes, and a load soon after a store to the stack stalls. With
+text in ITCM and data, BSS and stack in DTCM, the layout the board's own
+description boots, the range falls under 0.6% and nine of the ten
+recorded slowdowns are gains or equal, the tenth +0.45%. The maintainer
+chose this layout for the board's timing runs on 2026-11-23.
+Exit evidence: the STM32H753's timing images placed in ITCM and DTCM,
+its cycle baselines recorded again on the rig, its sieve and
+binary-search at speed no slower than their R16.27 figures, and why this
+port's placement differs from the RAM layout's default said in
+`docs/measurement.md`.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
