@@ -33499,10 +33499,32 @@ assembler does not refuse an instruction above the selected level, as GNU
 as does on Linux, and the image carries no level mark: a program built
 above the baseline is the builder's to run on a processor that has it.
 
+Every tool of the chain is free software a user installs without Microsoft's
+compiler or the Windows SDK, which the maintainer requires of a Windows
+toolchain (2026-11-23): llvm-mingw's releases on Linux, macOS and Windows,
+MSYS2's CLANG64 environment on Windows, and on Debian or Ubuntu Clang, LLD
+and the `mingw-w64-x86-64-dev` package, whose import libraries a link
+names. A program needs kernel32's import library alone, which each of those
+gives.
+
+Microsoft's tools are not shut out. The objects are the COFF they link, the
+emitted code calls only through import thunks, and no CRT object is named.
+Supporting them takes three things: the assembly assembled by Clang under
+`--target=x86_64-pc-windows-msvc`, or by `clang-cl`, since Microsoft's
+`ml64` reads MASM syntax and not this one, so either a Clang beside the
+Microsoft linker or a MASM spelling of the x86-64 backend's output;
+the link as `link.exe` or `lld-link` takes it, `/ENTRY:_landin_start
+/SUBSYSTEM:CONSOLE /STACK:8388608 /NODEFAULTLIB` with `kernel32.lib` and each
+`linker.library` as `NAME.lib` searched by `/LIBPATH:`, where the driver
+here passes GNU-style options; and Microsoft's import libraries, from the
+Windows SDK. The toolchain package already names its options per target,
+so this is a second Windows link policy chosen by `--toolchain`.
+
 **The alternatives:** GNU binutils for MinGW, which reads the same
 assembly but has no arm64 Windows target for the arm64 item to follow and
-writes no PDB for the debugging item; and Microsoft's linker, which needs
-Microsoft's import libraries and an assembler of another syntax.
+writes no PDB for the debugging item; and Microsoft's linker as the
+default, which needs Microsoft's import libraries, proprietary and
+installed with the SDK, and an assembler of another syntax.
 
 **Pinned by** `toolchain/a Windows link has no C runtime`, which holds the
 driver's name and the link line, and every Windows executable the gate's
