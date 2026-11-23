@@ -11,6 +11,7 @@ with Landin.Build_Reports;
 with Landin.IR.Control_Flow;
 with Landin.IR.Dominance;
 with Landin.IR.Dump;
+with Landin.IR.Hoisting;
 with Landin.IR.If_Conversion;
 with Landin.IR.In_Place;
 with Landin.IR.Liveness;
@@ -110,6 +111,8 @@ package body Landin.Tests.IR_Optimization_Suite is
      (Item : in out Landin.Testing.Context);
    procedure Branches_Around_Observable_Arms
      (Item : in out Landin.Testing.Context);
+   procedure Constant_Slots (Item : in out Landin.Testing.Context);
+   procedure Loop_Invariants (Item : in out Landin.Testing.Context);
 
    --  Source lowered, simplified and if-converted at Objective: the
    --  branches and choices left, and how many choices take two constants.
@@ -3073,8 +3076,210 @@ package body Landin.Tests.IR_Optimization_Suite is
          "a condition read from the slot the arm stores");
    end Branches_Around_Observable_Arms;
 
+   --  D2148: a slot's one constant store reaches the loads its block
+   --  strictly dominates, so a `for` loop's constant end is compared as
+   --  a constant, and the index the loop bounds is still proved.
+   procedure Constant_Slots (Item : in out Landin.Testing.Context) is
+   begin
+      for Objective in Opt.None .. Opt.Speed loop
+         declare
+            Work : Landin.Stages.Compilation :=
+              Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+            Constant_Tests : Natural := 0;
+            Proved : Natural := 0;
+         begin
+            Lower
+              (Item, Work,
+               "public f: (s: [64]u32) -> (r: u32) = r = 0 "
+               & "for i in usize(0)..<64 do r = r +% s[i] end for end f");
+            IR.Simplification.Run
+              (Landin.Stages.Code (Work).all, Landin.Targets.Linux_X86_64,
+               Objective);
+            declare
+               Code : IR.Unit renames Landin.Stages.Code (Work).all;
+            begin
+               for I in 1 .. IR.Item_Count (Code) loop
+                  for V in 1 .. IR.Value_Count (Code, IR.Item_Id (I)) loop
+                     declare
+                        Op : constant IR.Opcode :=
+                          IR.Op_Of (Code, IR.Item_Id (I), IR.Value_Id (V));
+                     begin
+                        if Op = IR.Less_Than
+                          and then IR.Op_Of
+                            (Code, IR.Item_Id (I),
+                             IR.Nth_Operand
+                               (Code, IR.Item_Id (I), IR.Value_Id (V), 2))
+                            = IR.Number
+                        then
+                           Constant_Tests := Constant_Tests + 1;
+                        elsif Op = IR.Load_Element
+                          and then IR.Is_Unchecked
+                            (Code, IR.Item_Id (I), IR.Value_Id (V))
+                        then
+                           Proved := Proved + 1;
+                        end if;
+                     end;
+                  end loop;
+               end loop;
+            end;
+            Landin.Testing.Check_Equal
+              (Item, Constant_Tests,
+               (if Objective = Opt.None then 0 else 1),
+               "the loop's test compares with 64 at "
+               & Opt.Objective'Image (Objective));
+            Landin.Testing.Check_Equal
+              (Item, Proved, (if Objective = Opt.None then 0 else 1),
+               "s[i] is still proved at "
+               & Opt.Objective'Image (Objective));
+         end;
+      end loop;
+   end Constant_Slots;
+
+   --  D2149: at speed, on a hosted target, a loop's invariant numbers are
+   --  made once before it and read from a slot inside it, as far as the
+   --  target's registers allow; anything that could trap, or reads a slot
+   --  the loop stores, stays.
+   procedure Loop_Invariants (Item : in out Landin.Testing.Context) is
+      --  Of the first value Op makes in a routine: what makes its operand
+      --  at Position, and whether its block is the routine's first.
+      procedure Inspect
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Objective : Opt.Objective; Op : IR.Opcode; Position : Positive;
+         Operand : out IR.Opcode; In_First : out Boolean);
+
+      procedure Inspect
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Objective : Opt.Objective; Op : IR.Opcode; Position : Positive;
+         Operand : out IR.Opcode; In_First : out Boolean)
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
+      begin
+         Operand := IR.Halt;
+         In_First := False;
+         Lower (Item, Work, Source);
+         IR.Simplification.Run
+           (Landin.Stages.Code (Work).all, Facts, Objective);
+         IR.If_Conversion.Run
+           (Landin.Stages.Code (Work).all, Facts, Objective);
+         IR.Hoisting.Run (Landin.Stages.Code (Work).all, Facts, Objective);
+         declare
+            Code : IR.Unit renames Landin.Stages.Code (Work).all;
+         begin
+            for I in 1 .. IR.Item_Count (Code) loop
+               if IR.Kind_Of (Code, IR.Item_Id (I)) = IR.Routine then
+                  for V in 1 .. IR.Value_Count (Code, IR.Item_Id (I)) loop
+                     if IR.Op_Of (Code, IR.Item_Id (I), IR.Value_Id (V)) = Op
+                     then
+                        Operand := IR.Op_Of
+                          (Code, IR.Item_Id (I),
+                           IR.Nth_Operand
+                             (Code, IR.Item_Id (I), IR.Value_Id (V),
+                              Position));
+                        In_First := IR.Block_Of
+                          (Code, IR.Item_Id (I), IR.Value_Id (V))
+                          = IR.First_Block;
+                        return;
+                     end if;
+                  end loop;
+               end if;
+            end loop;
+         end;
+      end Inspect;
+
+      procedure Expect_Operand
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Op : IR.Opcode; Position : Positive;
+         At_Speed, At_Size : IR.Opcode; Why : String);
+
+      procedure Expect_Operand
+        (Facts : Landin.Targets.Target_Facts; Source : String;
+         Op : IR.Opcode; Position : Positive;
+         At_Speed, At_Size : IR.Opcode; Why : String)
+      is
+         Found : IR.Opcode;
+         In_First : Boolean;
+      begin
+         Inspect (Facts, Source, Opt.Speed, Op, Position, Found, In_First);
+         Landin.Testing.Check
+           (Item, Found = At_Speed,
+            Why & " at speed: " & IR.Opcode'Image (Found));
+         Inspect (Facts, Source, Opt.Size, Op, Position, Found, In_First);
+         Landin.Testing.Check
+           (Item, Found = At_Size,
+            Why & " at size: " & IR.Opcode'Image (Found));
+      end Expect_Operand;
+
+      procedure Expect_Moved
+        (Source : String; Op : IR.Opcode; Moved : Boolean; Why : String);
+
+      procedure Expect_Moved
+        (Source : String; Op : IR.Opcode; Moved : Boolean; Why : String)
+      is
+         Found : IR.Opcode;
+         In_First : Boolean;
+      begin
+         Inspect
+           (Landin.Targets.Linux_Arm64, Source, Opt.Speed, Op, 1, Found,
+            In_First);
+         Landin.Testing.Check (Item, In_First = Moved, Why);
+      end Expect_Moved;
+
+      Scaled : constant String :=
+        "public f: (n: u32, x: f64) -> (r: f64) = mut a: f64 = x "
+        & "mut i: u32 = 0 while i < n do a = a * 2.0 i = i +% 1 "
+        & "end while r = a end f";
+      Called : constant String :=
+        "g: (x: f64) -> (r: f64) = r = x end g "
+        & "public f: (n: u32, x: f64) -> (r: f64) = mut a: f64 = x "
+        & "mut i: u32 = 0 while i < n do a = g(a * 2.0) i = i +% 1 "
+        & "end while r = a end f";
+   begin
+      Expect_Operand
+        (Landin.Targets.Linux_X86_64, Scaled, IR.Multiply, 2, IR.Load,
+         IR.Number, "a float constant is read from a slot in the loop");
+      Expect_Operand
+        (Landin.Targets.Linux_Arm64, Scaled, IR.Multiply, 2, IR.Load,
+         IR.Number, "arm64 moves the float constant too");
+      Expect_Operand
+        (Landin.Targets.Linux_X86_64, Called, IR.Multiply, 2, IR.Number,
+         IR.Number, "x86-64 keeps no float in a register across a call");
+      Expect_Operand
+        (Landin.Targets.Linux_Arm64, Called, IR.Multiply, 2, IR.Load,
+         IR.Number, "arm64 saves d8-d15 across a call");
+      Expect_Operand
+        (Landin.Targets.Linux_RV64,
+         "public f: (n: u32) -> (r: u32) = mut i: u32 = 0 "
+         & "while i < 1000 do i = i +% n end while r = i end f",
+         IR.Less_Than, 2, IR.Load, IR.Number,
+         "RV64 holds a compared constant in a register");
+      Expect_Operand
+        (Landin.Targets.Linux_X86_64,
+         "public f: (n: u32) -> (r: u32) = mut i: u32 = 0 "
+         & "while i < 1000 do i = i +% n end while r = i end f",
+         IR.Less_Than, 2, IR.Number, IR.Number,
+         "x86-64 compares with an immediate");
+      Expect_Moved
+        ("public f: (n: u32, k: u32) -> (r: u32) = r = 0 mut i: u32 = 0 "
+         & "while i < n do r = r +% (k *% 3) i = i +% 1 end while end f",
+         IR.Wrapping_Multiply, True,
+         "wrapping arithmetic over a slot the loop leaves alone moves");
+      Expect_Moved
+        ("public f: (n: u32, k: u32) -> (r: u32) = r = 0 mut i: u32 = 0 "
+         & "while i < n do r = r +% (k * 3) i = i +% 1 end while end f",
+         IR.Multiply, False, "a checked multiplication could trap");
+      Expect_Moved
+        ("public f: (n: u32, k: u32) -> (r: u32) = r = 0 mut i: u32 = 0 "
+         & "mut j: u32 = k while i < n do r = r +% (j *% 3) j = j +% 1 "
+         & "i = i +% 1 end while end f",
+         IR.Wrapping_Multiply, False, "a slot the loop stores varies");
+   end Loop_Invariants;
+
    procedure Register (Into : in out Landin.Testing.Registry) is
    begin
+      Landin.Testing.Register
+        (Into, "ir opt", "constant slots", Constant_Slots'Access);
+      Landin.Testing.Register
+        (Into, "ir opt", "loop invariants", Loop_Invariants'Access);
       Landin.Testing.Register
         (Into, "ir opt", "memory events", Memory_Events'Access);
       Landin.Testing.Register

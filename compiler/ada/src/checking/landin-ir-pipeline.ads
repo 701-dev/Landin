@@ -12,8 +12,9 @@ with Landin.Targets;
 package Landin.IR.Pipeline is
 
    --  Specialization, inlining, scalar replacement with simplification,
-   --  if-conversion, in-place parameter reads and block layout, each
-   --  verifying its output.  Report receives specialization's evidence.
+   --  if-conversion, loop-invariant hoisting, in-place parameter reads and
+   --  block layout, each verifying its output.  Report receives
+   --  specialization's evidence.
    procedure Run_On_Verified
      (Into    : in out Unit;
       Facts   : Landin.Targets.Target_Facts;
