@@ -49,7 +49,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2482,
+      "timer_events": 2484,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -111,7 +111,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6973,
+    "entries": 6974,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -122,7 +122,7 @@
     "0x40080404+0x6090",
     "0x3ffb0000+0x28"
   ],
-  "uart_sha256": "cc2e0e5726750dd6ac8700c86bdf096fcfea8a6d8f4420f248615a0beb773ee6",
+  "uart_sha256": "45e82bf25ecc00b384dcf6d6289afe2e2324cdf99e2346f75714eacce8d3089b",
   "mode": "ram",
   "warm_load": {
     "board": "esp32",
@@ -142,12 +142,12 @@
       ],
       "contract": "warm-board-v1",
       "cpu1_stalled": true,
-      "elapsed_us": 23193,
+      "elapsed_us": 23372,
       "final_xtal_divider": 0,
       "initial_xtal_divider": 0,
       "instruction_visibility": {
         "address": 1074267312,
-        "elapsed_us": 22692,
+        "elapsed_us": 22024,
         "method": "cacheless-sram-memw-isync-single-step",
         "operations": [
           "memw",
@@ -218,10 +218,10 @@
     "status": "passed",
     "vector": 1074266112
   },
-  "seconds": 11.593,
+  "seconds": 11.884,
   "kernel_usb": {
-    "since": 1795456429.3562436,
-    "until": 1795456440.9223294,
+    "since": 1795472545.7506871,
+    "until": 1795472557.606707,
     "lines": [],
     "status": "captured"
   },
@@ -245,8 +245,8 @@
       "tag": "t",
       "h": "00000c9a",
       "c": "00000002",
-      "i": "00001b3d",
-      "m": "000010f6",
+      "i": "00001b3e",
+      "m": "000010fa",
       "p": "00018042",
       "q": "00818040",
       "k": "00000064",

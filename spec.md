@@ -28559,10 +28559,10 @@ ABI/stored values are made in slot registers` and
 
 **The tour said** nothing. The RP2350's Cortex-M33 and Hazard3 fetch from
 SRAM a word at a time without a cache, so a 32-bit instruction at a
-halfword address in a loop costs a fetch more each pass. R16.33 took two
-instructions out of firmware fannkuch-redux ahead of its flip loop, the
-loop's `ldrb.w` head and its `bl` moved to halfword addresses, and at
-speed it ran 0.64% slower on the M33 and 0.63% on the Hazard3.
+halfword address in a loop costs a fetch more each pass. D2247 to D2254
+took two instructions out of firmware fannkuch-redux ahead of its flip
+loop, the loop's `ldrb.w` head and its `bl` moved to halfword addresses,
+and at speed it ran 0.64% slower on the M33 and 0.63% on the Hazard3.
 
 **Chosen:** at `speed`, on Thumb-2 levels and at XLEN 32, where all the
 levels compress, a block that begins a loop starts on a word when the

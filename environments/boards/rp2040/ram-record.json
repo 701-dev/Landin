@@ -30,7 +30,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 9890,
+      "timer_events": 9901,
       "echoed": 11202,
       "sent": 11572
     },
@@ -45,7 +45,7 @@
     "usb_events": 1,
     "trans_count": 1094
   },
-  "uart_sha256": "a5b61adfa1ecb4e20d2365625be6fb8c2af3337dcc3cce84736dbf1b45f907ee",
+  "uart_sha256": "6e3ecea199c76347bb9a8d2a020c591cf70fcd1e2dbd8febe11ab50904ed367c",
   "mode": "ram",
   "warm_load": {
     "board": "rp2040",
@@ -73,10 +73,10 @@
     "status": "passed",
     "vector": 536870912
   },
-  "seconds": 16.004,
+  "seconds": 16.092,
   "kernel_usb": {
-    "since": 1795456007.7120378,
-    "until": 1795456023.6963215,
+    "since": 1795472120.3492353,
+    "until": 1795472136.4219806,
     "lines": [],
     "status": "captured"
   },
@@ -93,7 +93,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "000026a2",
+      "m": "000026ad",
       "u": "00000001",
       "p": "00000015",
       "n": "00000446",

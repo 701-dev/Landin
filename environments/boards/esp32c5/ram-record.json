@@ -52,7 +52,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2493,
+      "timer_events": 2498,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -123,7 +123,7 @@
     "0x40800000+0x1c0",
     "0x408001c0+0x5a30"
   ],
-  "uart_sha256": "d792379321a4b39821863dafaadd94cb1fbf58c0f1ea7de553c8d4a738e9d54f",
+  "uart_sha256": "a874d0ed92960bcbdd2716e8c1fd04aac19ad7ff5bd734c2451ef5935b28ec18",
   "mode": "ram",
   "warm_load": {
     "board": "esp32c5",
@@ -161,10 +161,10 @@
     "status": "passed",
     "vector": 1082130688
   },
-  "seconds": 27.955,
+  "seconds": 28.183,
   "kernel_usb": {
-    "since": 1795456340.8106458,
-    "until": 1795456368.7389317,
+    "since": 1795472455.6900005,
+    "until": 1795472483.8491726,
     "lines": [],
     "status": "captured"
   },
