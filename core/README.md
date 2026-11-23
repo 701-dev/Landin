@@ -162,8 +162,8 @@ inputs, and any other concept as a capability. The routines the
 library review's breaking list reshapes are the only exceptions it
 allows (D1988).
 
-`core/mem` keeps `new`/`delete` for one allocated item and `new_bytes`/
-`delete_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
+`core/mem` keeps `allocate_item`/`release_item` for one allocated item and
+`allocate_bytes`/`release_bytes` for a byte buffer; its raw-storage pop is `withdraw`, so that
 `release` never means anything but giving storage back. Names are
 prefixed only where one module holds several types (`io.memory_over`). A
 provider's counters are plural nouns: `pool.allocations`, `pool.frees`,
@@ -187,11 +187,11 @@ shares are `core/line`, beside the board's own `serial`. A full
 
 Two atoms serve every core container: `mem.out_of_bounds` for an index past
 the initialized prefix and `mem.empty` for taking from nothing. Key lookups
-keep their own, `map.missing` and `tree.no_such_node`, because a missing key
+keep their own, `mem.not_found` and `mem.not_found`, because a missing key
 is not a bad index. These atoms are the containers'; a provider concept
-that lends by index or by name keeps its own, as `io.argument_at` fails
-`io.no_argument` and `io.variable_at` and `io.variable_named` fail
-`io.no_variable`, since a provider has no initialized prefix to be past
+that lends by index or by name keeps its own, as `io.argument` fails
+`mem.not_found` and `io.variable` and `io.variable_named` fail
+`mem.not_found`, since a provider has no initialized prefix to be past
 (D269). A second kind of provider in a module whose principal type is a
 concept is named for what it is rather than `new`: `core/cache`'s
 principal type is the `maintenance` concept, and `cache.cacheless(line)`
@@ -225,9 +225,9 @@ returns, supplies its read buffer, and passes it `inout` to `read_entry`.
 Each entry's name is lent `from` the directory, because the next read
 refills the buffer the name lies in, so a program that keeps a name copies
 it, and keeping one across a read is refused [0800]. Names, paths and
-arguments are host strings, `text.host_string`, as the system stores and
-takes them, never converted on the way through; `text.from_host` validates
-one that should be text, and `text.host_over` makes one over the caller's
+arguments are host strings, `text.os_string`, as the system stores and
+takes them, never converted on the way through; `text.from_os_string` validates
+one that should be text, and `text.os_string_over` makes one over the caller's
 bytes. An
 empty name is the end of the directory, as a zero-byte read is the end of a
 file, and `.` and `..` are never entries. The size is a separate
@@ -339,12 +339,13 @@ with values of any type that has `text.formattable` evidence, checked
 against them when it runs, since nothing runs at compile time. Parsing is
 its mirror for every integer width, and no locale is consulted anywhere. A
 program does not write its own digit loop. Over `utf8` it steps positions a
-whole scalar at a time, with `start`, `step`, `done` and `width`, and its
+whole scalar at a time, with `start`, `step`, `utf8_at_end` and
+`scalar_length`, and its
 searches, `find`, `find_scalar` and their `_from` forms, return where a
-match begins or `not_found`, so the text around a match is a range of the
+match begins or `mem.not_found`, so the text around a match is a range of the
 source and nothing is copied. `encode` writes a scalar's bytes into the
 caller's buffer, refusing a surrogate or a value above U+10FFFF with
-`invalid_scalar` and a buffer too short with `no_space`, writing nothing
+`invalid_scalar` and a buffer too short with `mem.out_of_memory`, writing nothing
 either way. A `utf8_builder` from `utf8_over` takes only text, scalars and
 numbers, each call the byte builder's with `utf8_` before it, and cuts back
 only to a scalar's start, so what it holds is always UTF-8 and `utf8_used`
@@ -374,12 +375,12 @@ allocator is hidden in a container or selected implicitly by the target.
 
 | Module | Interface and boundary |
 |---|---|
-| `core/mem` | `allocator` with `alloc`/`grow`/`resize`/`free` taking the handle by value, `allocate`/`resize`/`free`, `relocate` for a provider that resizes by moving, the `aligned_offset` a bump provider advances with, typed `storage`, `new`/`delete` and byte buffers. Byte storage can release its initialized prefix in one typed transition before disposal. Requests and capacities use target `usize`. Raw backing and its lifetime belong to the caller. |
-| `core/arena` | The caller-backed monotonic `arena` over an `arena.space`, made by `over` or `over_unchecked`, with `used` and `reset`. Its state, its backing and their lifetime belong to the caller. A program that imports no provider, `core/arena`'s or another, still builds: an erased allocator call no conformance answers is a trap no value reaches (D377). |
+| `core/mem` | `allocator` with `alloc`/`grow`/`resize`/`free` taking the handle by value, `allocate`/`resize`/`release`, `relocate` for a provider that resizes by moving, the `aligned_offset` a bump provider advances with, typed `storage`, `allocate_item`/`release_item` and byte buffers. Byte storage can release its initialized prefix in one typed transition before disposal. Requests and capacities use target `usize`. Raw backing and its lifetime belong to the caller. |
+| `core/arena` | The caller-backed monotonic `arena` over an `arena.space`, made by `over` or `over_unchecked`, with `length` and `release`. Its state, its backing and their lifetime belong to the caller. A program that imports no provider, `core/arena`'s or another, still builds: an erased allocator call no conformance answers is a trap no value reaches (D377). |
 | `core/vec` | `list`, `new`, `reserve`, `push`/`pop`, initialized views, length/capacity and `release`. Operations receive an allocator explicitly. Growth asks the provider to `resize` the list's block, which grows it in place or moves it; a list without a block allocates one. A refused growth leaves the list as it was. |
 | `core/pool` | A provider handle over a caller's `pool.space`, its bytes and initialized slot metadata. A free-index heap gives lowest-index reuse in logarithmic time; exact frees find their slot by address. A growth or a resize keeps a block in its slot to any extent the slot holds, so a list over a pool grows in place until its slot is full (`runtime/core-pool-grow`, 7.9 KB at size/auto, and `runtime/core-pool-list-grows`, 12.8 KB) (D386). No backing allocation or fallback heap. |
 | `core/sort` | Heapsort and selection sort by `cmp.ordered` evidence, and `sort_by`, heapsort by a comparison given a context, with no allocation; `runtime/core-sort-context`, which sorts records into a shared pool of names with `cmp.compare`, is 5.5 KB at size/auto (D387). |
-| `core/failure` | `failure.words`, a phrase for each of the 39 library failure atoms, linked only into a program that calls it (`runtime/failure-words`, 4.7 KB at size/auto) (D388). |
+| `core/failure` | `failure.words`, a phrase for each of the 29 library failure atoms, linked only into a program that calls it (`runtime/failure-words`, 4.7 KB at size/auto) (D388). |
 | `core/panic` | The canonical five-atom `panic_kind` domain. An entry-module public ordinary `(kind: panic.panic_kind, site: u32) -> noreturn` handler replaces the terminal default; no reporting or allocation dependency is imported. `require(holds)` stops the program as a failed check does when `holds` is false. The stop is reported at the line that called `require`, which its `caller` parameter, a `call_site`, receives (D1959). |
 | `core/text` | A builder over a caller's buffer with byte, text, decimal, hexadecimal and aligned appends, and `format` over `any text.formattable`. At size/auto the bounded builder's core, `over`, `used`, `append`, `append_byte` and the room check, is about 2.0 KB with `mem.copy`; a `u32` decimal adds about 1.0 KB, a signed one 0.5 KB more, an aligned hexadecimal about 1.3 KB, and `format` with two conformances about 2.7 KB (`runtime/core-text-format-firmware`, 10.2 KB in all, 15.1 KB at none/off). One line formatted into a fixed builder through `format` is a 7.0 KB image executing 3,889 instructions, against 4.5 KB and 2,259 through `append`. A growing builder's doubling is reached only through the table `text.growing` builds, so it is linked only into a program that calls `growing`, and no allocator is used unless the program builds a growing builder over its own. Over `utf8`, positions, the searches and the encoder with both builders' scalar appends and a refusal of each, `runtime/library-shared-text`, are 13.4 KB at size/auto and 19.6 KB at none/off, with 664 and 1,472 bytes of stack observed and 4 bytes of static RAM. A console line checked, split at a found `=` and arrow and encoded again, `runtime/core-text-utf8-firmware`, is 12.2 KB and 19.1 KB. |
 | `core/io` | Besides the concepts and the memory world, a buffered writer over the caller's buffer and a line reader, with `mem.copy` and `mem.find` (`runtime/core-io-buffered-writer`, an 11.9 KB image at size/auto, and `runtime/core-io-line-reader`, 13.1 KB). `diag.stream` writing one note through `any io.writer` adds about 3.2 KB and 1,000 instructions to the four writes it makes, most of it the decimal position. |
@@ -397,7 +398,7 @@ Overflow and exhaustion report `out_of_memory` before changing the cursor. A
 zero-byte request still checks alignment/address arithmetic and may consume
 padding; it need not have a distinct address. Arena free does not reclaim
 individual allocations. A pool zero-byte request consumes a slot and must be
-freed with its original size. `new_bytes(0)` instead returns an empty descriptor
+freed with its original size. `allocate_bytes(0)` instead returns an empty descriptor
 without asking the provider. These are deliberately distinct contracts.
 An arena can extend its current top allocation if the larger extent fits;
 other allocations between vector growths force the normal replacement path.

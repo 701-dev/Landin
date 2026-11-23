@@ -108,7 +108,7 @@ routine and datum is local to the image under its own name, on every
 backend, so it can neither collide with nor replace a C library's or a
 linked object's symbol. Inside the one assembly file a program emits, an
 item whose name another item holds and that is not an export takes its
-module-qualified spelling, `core.arena.reset`, as [1975] states (D417);
+module-qualified spelling, `core.arena.release`, as [1975] states (D417);
 symbol allocation is the same in every backend. On ELF a local symbol is
 `STB_LOCAL`, `t` or `d` in `nm`; on Mach-O it lacks `N_EXT`.
 

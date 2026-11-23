@@ -393,14 +393,14 @@ the wait is where the other connection gets the core. [V4] [V9]
 ```landin
 public serve: (inout self: session) -> none ! failure.reason =
     mut connection := self.connection
-    defer net.close_socket(self.network, connection) else none
+    defer net.close(self.network, connection) else none
     mut incoming: [256]u8 = zeroed
     mut lines := io.lines_over(self.network, connection, incoming)
     mut outgoing: [256]u8 = zeroed
     mut out := io.buffered_over(self.network, connection, outgoing)
     loop do
         item: io.line = try io.read_line(lines)
-        break when item.finished
+        break when item.at_end
         asked := protocol.parse(item.bytes) else (problem)
             _ = problem
             try io.put(out, "malformed\n")
@@ -534,7 +534,7 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    defer net.close_socket(network, listener) else none
+    defer net.close(network, listener) else none
 
     server.serve_forever(runs, network, clock, listener) else (problem)
         _ = problem
@@ -618,7 +618,7 @@ board is fibre.turns (start: board_start, finished: board_finished,
 board is time.clock (now: board_now, sleep: board_sleep)
 
 board_now: (self: board) -> (reading: time.instant) = ... end
-board_finished: (self: board, record: fibre.space) -> (yes: bool) = ... end
+board_finished: (self: board, record: fibre.record) -> (yes: bool) = ... end
 board_wait: (self: board) -> none = ... end   -- yields until one has finished
 
 ```
@@ -631,7 +631,7 @@ interrupt, since nothing can change before one arrives. "Nobody did
 anything" is what the yielders say by yielding; the provider cannot tell a
 fibre that yields with work to do from one that polls. [V4]
 ```landin
-board_start: (self: board, escaping record: ptr mut fibre.space,
+board_start: (self: board, escaping record: ptr mut fibre.record,
               escaping stack: []mut u8, escaping work: any fibre.task)
              -> none ! fibre.stack_too_small | fibre.stack_misaligned =
     try fibre.prepare(record, stack, work)

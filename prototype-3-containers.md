@@ -311,9 +311,9 @@ binder, which is invented. [Z1]
 
 The `new_slice`/`drop_slice` sketch below preserves the original pressure, not
 the hosted library's allocation API. Spare capacity has no typed slice image: the private
-raw state and `used` expose only initialized items. `mem.new(state, value)`
-stores a complete value before returning its pointer; `mem.delete` releases
-that object through the same allocator. The byte-specific `mem.new_bytes`
+raw state and `used` expose only initialized items. `mem.allocate_item(state, value)`
+stores a complete value before returning its pointer; `mem.release_item` releases
+that object through the same allocator. The byte-specific `mem.allocate_bytes`
 returns a `byte_buffer` holding the complete allocation extent, initializes
 all requested bytes, and exposes a borrowed slice through `mem.bytes`.
 `mem.drop_bytes` clears that owner and releases its original backing, rather
