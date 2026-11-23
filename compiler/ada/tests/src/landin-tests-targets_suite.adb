@@ -426,6 +426,10 @@ package body Landin.Tests.Targets_Suite is
                     = Linux_Arm64
            and then Selection.Host_Default ("aarch64-unknown-linux-gnu")
                     = Linux_Arm64
+           and then Selection.Host_Default ("x86_64-alpine-linux-musl")
+                    = Linux_X86_64
+           and then Selection.Host_Default ("aarch64-alpine-linux-musl")
+                    = Linux_Arm64
            and then Selection.Host_Default ("aarch64-apple-darwin24.6.0")
                     = Darwin_Arm64
            and then Selection.Host_Default ("aarch64-apple-darwin25.5.0")

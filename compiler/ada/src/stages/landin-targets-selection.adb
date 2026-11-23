@@ -45,8 +45,12 @@ package body Landin.Targets.Selection is
    function Contains (Text, Part : String) return Boolean
      is (Ada.Strings.Fixed.Index (Text, Part) /= 0);
 
+   --  Whatever C library the building GNAT was configured for: a Linux
+   --  program refine emits makes its own system calls, and links a C
+   --  library only when asked.
    function Is_Linux (Triplet : String) return Boolean
-     is (Contains (Triplet, "-linux-gnu"));
+     is (Contains (Triplet, "-linux-gnu")
+         or else Contains (Triplet, "-linux-musl"));
 
    function Is_Darwin (Triplet : String) return Boolean
      is (Contains (Triplet, "-darwin"));
