@@ -67,4 +67,18 @@ package Landin.Backend.Placement is
       Speed : Boolean; Into : in out Usage;
       Debugger_Spans : Boolean := True);
 
+   --  Which blocks begin a loop, by block: a block some block at or after
+   --  it branches back to begins one when control enters it from outside
+   --  that loop, some predecessor being less deeply nested.  A later
+   --  block that only rejoins earlier code is no loop.  A loop tested at
+   --  its foot (D2096) begins where its test branches back to while the
+   --  test's other edge leaves the loop, to a block less deeply nested
+   --  than the test.  Speed aligns these heads on x86-64 and (D2308) on
+   --  Thumb-2 and compressed RV32.  Linear in the routine.
+   procedure Find_Loop_Heads
+     (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
+      Heads : out Home_Mask)
+   with Pre => Heads'First = 1
+     and then Heads'Last = Landin.IR.Block_Count (Of_Unit, Item);
+
 end Landin.Backend.Placement;

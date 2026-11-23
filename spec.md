@@ -28514,6 +28514,101 @@ address slot in a register.
 
 **Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
 
+### D2307 — RISC-V and Cortex-M make a stored value in its slot's register
+
+**The tour said** nothing. arm64 (D2164) and x86-64 (D2157) made a value
+stored into a slot already held in a register in that register; RISC-V
+and Cortex-M made it in a register of its own and moved it, so a loop's
+`i = i +% 1` was `add x15, x17, x14` then `mv x17, x15`. arm64's rule,
+ported as it stood, made RV64 execute 7% to 110% more instructions: the
+value writes the slot's register inside the slot's interval, the check
+of the second emission against the plan (D1503, D1567) refused that
+write, and the routine kept its homes (D2108).
+
+**Chosen:** at `speed`, on RISC-V at either XLEN and on Cortex-M, a value
+whose last use stores it into a slot held in a register over its whole
+interval, from before the value is made through the store, is made in
+that register when nothing in between loads the slot or reads another
+value sharing its register; a pair at XLEN 32 takes the slot's pair. The
+plan marks the value, and the check takes the value's own write at the
+position it is made as the slot's new contents: a slot held there, and a
+value whose last use that position is, the slot's old contents read in
+place, may meet it. Every other write is still refused. The store then
+moves nothing. Selection already reads a result's operands before it
+writes the result, since without optimization a result and its operands
+share x5 or r0. Under QEMU at `speed` RV64 executes 6.4% fewer
+instructions on SipHash-1-3, 6.1% on mandelbrot, 4.5% on fasta, 3.3% on
+fannkuch-redux, 1.3% on SHA-256 and 0.2% to 0.8% on the rest, every
+output the same; the Cortex-M firmware workloads 0.2% to 6.3% fewer at
+Thumb-2 levels, 12.2% on mandelbrot with a float unit, and up to 5.1% at
+Armv6-M. `.text` at `speed` is 0.4% to 1.1% smaller on RV64, 0.1% to
+1.1% on Cortex-M and 0.3% to 1.4% on RV32; `size` and `none` are
+unchanged.
+
+**The alternatives:** dropping the check for such routines, which would
+let a selection scratch write into the slot's register pass unseen; and
+a check that excused any write of a location's register by a value
+holding it, which would miss an allocator that gave two live locations
+one register.
+
+**Pinned by** `backend/RISC-V stores into slot registers`, `cortex
+ABI/stored values are made in slot registers` and
+`compiler/tests/measure/baselines/`.
+
+### D2308 — Thumb-2 and RV32 start a loop's head on a word where nothing falls into it
+
+**The tour said** nothing. The RP2350's Cortex-M33 and Hazard3 fetch from
+SRAM a word at a time without a cache, so a 32-bit instruction at a
+halfword address in a loop costs a fetch more each pass. R16.33 took two
+instructions out of firmware fannkuch-redux ahead of its flip loop, the
+loop's `ldrb.w` head and its `bl` moved to halfword addresses, and at
+speed it ran 0.64% slower on the M33 and 0.63% on the Hazard3.
+
+**Chosen:** at `speed`, on Thumb-2 levels and at XLEN 32, where all the
+levels compress, a block that begins a loop starts on a word when the
+last instruction before it, with only labels between, does not fall
+through: a jump, a return or a trap. The padding, `.balign 4` on Thumb-2
+and `.p2align 2` on RISC-V, which D1405's bound counts, goes before those
+labels and is never executed. A head entered by falling into it, which is
+most of firmware's since it keeps lowering's block order (D2096), stays
+where it is. The loop heads are x86-64's (D2096), found by one routine
+that both backends share with it. Armv6-M, whose code is 16-bit but for
+`bl` and a few system instructions, and RV64, which runs from caches,
+are unchanged.
+
+**The alternatives:** padding a head that is fallen into, whose `nop`
+runs on every entry to the loop; and placing each 32-bit instruction of a
+hot loop on a word, which needs each instruction's encoded size, the
+assembler's choice on both targets.
+
+**Pinned by** `backend/RISC-V stores into slot registers`, `cortex
+ABI/stored values are made in slot registers` and the boards' cycles.
+
+### D2309 — RV32 jumps near where its routine's text is within JAL's reach
+
+**The tour said** nothing. D678 made RV32's jumps JAL's own only where
+every region of the firmware profile is at most 1 MiB, and D1405 gave
+RV64 near jumps where the routine's own text is provably within reach;
+an RV32 board whose profile has a larger region, the RP2350's 4 MiB of
+flash or an ESP32-C3's, wrote every jump as `lla x26` and `jr x26` and
+every branch as its inverse around them, in images that run from a few
+KiB of SRAM. Firmware fannkuch-redux's text on the RP2350's Hazard3 at
+speed was 2,468 bytes with 57 far jumps.
+
+**Chosen:** at XLEN 32, where the profile does not bound every region
+within JAL's reach, a routine's jumps are settled as D1405 settles RV64's:
+written near, and kept near where the routine holds no assembly block
+and its lines provably assemble to less than 1 MiB. The same image is
+1,936 bytes with none. A profile whose regions are all within reach
+emits what it did.
+
+**The alternatives:** D678's profile bound alone, the measured cost; and
+treating a RAM image's text region as the bound, which a boot image in
+the same flash would not share.
+
+**Pinned by** `backend/rv32 lowering is RV64's at XLEN 32` and the boards'
+cycles and records.
+
 ### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
 
 **The tour said** nothing. D1767 left an eight-byte constant, and every

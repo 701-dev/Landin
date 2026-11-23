@@ -31,6 +31,7 @@ with Landin.Backend.RiscV_Instructions;
 with Landin.Backend.X86_64;
 with Landin.Debugging;
 with Landin.IR;
+with Landin.IR.Simplification;
 with Landin.IR.Testing_Support;
 with Landin.IR.Verifier;
 with Landin.Optimization;
@@ -9869,6 +9870,107 @@ package body Landin.Tests.Backend_Suite is
       end loop;
    end RISCV_Keeps_Values_In_Registers;
 
+   --  D2307: at speed RISC-V makes a value whose last use stores it
+   --  into a slot held in a register in that register, so a loop's body
+   --  moves nothing into its slots; D2308: at XLEN 32 the loop's head,
+   --  which the jump to its test does not fall into, starts on a word.
+   procedure RISCV_Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context);
+
+   procedure RISCV_Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context)
+   is
+      Source : constant String :=
+        "mix: (n: u32, k: u32) -> (s: u32) =" & LF
+        & "    mut total: u32 = 0" & LF
+        & "    mut i: u32 = 0" & LF
+        & "    s = 7" & LF
+        & "    return when n == 7" & LF
+        & "    while i < n do" & LF
+        & "        total = total ^ (i +% k)" & LF
+        & "        i = i +% 1" & LF
+        & "    end while" & LF
+        & "    s = total" & LF
+        & "end mix" & LF
+        & "public main: () -> (code: i32) =" & LF
+        & "    code = i32(mix(5, 1) & 1)" & LF
+        & "end main" & LF;
+      type Facts_List is array (1 .. 2) of Landin.Targets.Target_Facts;
+      Walked : constant Facts_List :=
+        [Landin.Targets.Linux_RV64, Landin.Targets.RV32];
+   begin
+      for Which in Walked'Range loop
+         for Objective in Landin.Optimization.Size
+           .. Landin.Optimization.Speed
+         loop
+            declare
+               use type Landin.Optimization.Objective;
+               Facts : constant Landin.Targets.Target_Facts := Walked (Which);
+               Work : Landin.Stages.Compilation :=
+                 Landin.Stages.Create (Facts);
+               Ran : Natural;
+               Report : Landin.Build_Reports.Report;
+               Assembly : Ada.Strings.Unbounded.Unbounded_String;
+               Name : constant String := Landin.Targets.Name (Facts) & " "
+                 & Landin.Optimization.Spelling (Objective);
+            begin
+               Lower (Work, Source, Ran);
+               Landin.Testing.Check_Equal (Item, Ran, 5, "five stages ran");
+               if not Landin.Stages.Failed (Work) then
+                  Landin.IR.Simplification.Run
+                    (Landin.Stages.Code (Work).all, Facts, Objective);
+                  Landin.Backend.RiscV.Emit
+                    (Landin.Stages.Code (Work).all,
+                     Landin.Stages.Meanings (Work).all,
+                     Landin.Stages.Identities (Work).all, Facts,
+                     (Objective, Landin.Optimization.Off), Assembly, Report,
+                     Level => Landin.Targets.Levels.Default_Level (Facts));
+                  declare
+                     Text : constant String :=
+                       Ada.Strings.Unbounded.To_String (Assembly);
+                     Mix : constant Natural := Index (Text, LF & "mix:");
+                     --  The loop's test, which the guard's branch reaches
+                     --  through an empty block, and the jump back to it.
+                     Head : constant Natural :=
+                       (if Mix = 0 then 0
+                        else Ada.Strings.Fixed.Index
+                          (Text, LF & ".L1_3:" & LF & ".L1_4:" & LF, Mix));
+                     Back : constant Natural :=
+                       (if Head = 0 then 0
+                        else Ada.Strings.Fixed.Index
+                          (Text, HT & "j .L1_4" & LF, Head));
+                     Loop_Body : constant String :=
+                       (if Back = 0 then "" else Text (Head .. Back));
+                     Aligned : constant Boolean :=
+                       Head > 11
+                       and then Text (Head - 11 .. Head)
+                         = HT & ".p2align 2" & LF;
+                  begin
+                     if Objective = Landin.Optimization.Speed then
+                        Landin.Testing.Check
+                          (Item, Loop_Body /= ""
+                             and then Index (Loop_Body, HT & "mv ") = 0,
+                           Name & ": the loop's body moves nothing into "
+                           & "its slots");
+                        Landin.Testing.Check
+                          (Item, Aligned = (Which = 2),
+                           Name & ": the loop's head starts on a word at "
+                           & "XLEN 32 alone");
+                     else
+                        Landin.Testing.Check
+                          (Item, Loop_Body /= ""
+                             and then Index (Loop_Body, HT & "mv ") /= 0
+                             and then not Aligned,
+                           Name & ": size moves each value into its slot "
+                           & "and pads nothing");
+                     end if;
+                  end;
+               end if;
+            end;
+         end loop;
+      end loop;
+   end RISCV_Stores_Into_Slot_Registers;
+
    --  D1687, D1688: RISC-V computes a comparison's result with slt, sltu
    --  or seqz, and a checked signed addition its overflow, and no carry,
    --  in x30; a routine that only compares names none of x18-x27, which
@@ -10634,8 +10736,10 @@ package body Landin.Tests.Backend_Suite is
            and then not Has (Base, "fsd"),
          "the switch saves s0-s11 and ra in a 64-byte word frame");
       Landin.Testing.Check
-        (Item, Has (Base, "lla x26, ") and then not Has (Near, "lla x26, "),
-         "inside a profile's 1 MiB regions a jump is JAL's own");
+        (Item, not Has (Base, "lla x26, ")
+           and then not Has (Near, "lla x26, "),
+         "a jump is JAL's own inside a profile's 1 MiB regions, and "
+         & "without one where the routine's text is within reach (D2309)");
       Landin.Testing.Check
         (Item, Has (Near, "(sp)") and then not Has (Near, "0(x5)" & LF
                                                     & HT & "sw x9"),
@@ -11651,6 +11755,9 @@ package body Landin.Tests.Backend_Suite is
       Landin.Testing.Register
         (Into, "backend", "RISC-V keeps values in registers",
          RISCV_Keeps_Values_In_Registers'Access);
+      Landin.Testing.Register
+        (Into, "backend", "RISC-V stores into slot registers",
+         RISCV_Stores_Into_Slot_Registers'Access);
       Landin.Testing.Register
         (Into, "backend", "RISC-V compares without copies",
          RISCV_Compares_Operands_In_Place'Access);
