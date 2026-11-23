@@ -221,6 +221,9 @@ REFUSAL_PAIRS = {
     ("r491-symbolic-c-layout", "rv32"),
     ("r630-memory-scalars", "rv32"),
     ("written-type-c-function", "rv32"),
+    #  The from-c page's examples import platform/posix, which Windows,
+    #  being no POSIX system, does not have (D2188).
+    ("from-c", "windows-x86-64"),
 }
 # Xtensa's firmware surface has the same C-boundary refusals. The default
 # configuration also has no read-modify-write atomics or foreign asm arm.
