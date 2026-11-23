@@ -166,6 +166,67 @@ def refused(board, elf):
     return None
 
 
+# Where a board's timing images run when that is not where the RAM layout
+# puts them (D2227): the STM32H753's RAM layout places its text, data and
+# stack in the AXI SRAM, which the M7 reaches uncached over its AXI port,
+# where one routine 2 bytes longer moved a later loop by up to 46% and a
+# load soon after a store to the stack stalled.  Its timing images run
+# their vectors and text from the ITCM and their data, BSS and stack from
+# the DTCM, the M7's tightly coupled memories, where the code's place does
+# not decide its cost.
+TIMING_REGIONS = dict(stm32h753=dict(text='ITCM', data='DTCM'))
+TEXT_SECTIONS = ('.text', '.ramtext', '.rodata', '.ARM.extab', '.ARM.exidx')
+DATA_SECTIONS = ('.data', '.bss')
+
+
+def timing_script(derived, text, data):
+    """The script a timing image links with: refine's derived RAM script,
+    which places everything in one region, with every executable or
+    read-only section moved to TEXT and initialized data, BSS and the stack
+    to DATA.  The vectors stay where the RAM layout's contract fixes them
+    (D546), read only when the core takes an exception, which a timing run
+    does not.  A derived script of another shape fails here rather than
+    linking an image placed otherwise."""
+    origins = dict(re.findall(r'^  (\w+) \(\w+\) : ORIGIN = (\d+),', derived, re.M))
+    require(text in origins and data in origins, 'the derived script has no %s or %s' % (text, data))
+    require(origins[data] != '0', 'data placed at address zero would hold a null pointer')
+    stack = re.search(r'^_landin_firmware_stack_top = ORIGIN\((\w+)\) \+ LENGTH\(\1\);$', derived, re.M)
+    require(stack, 'the derived script places no stack')
+    ram = stack.group(1)
+    lines, section, moved = [], None, {}
+    for line in derived.split('\n'):
+        opened = re.match(r'^  (\.[\w.]+)\b', line)
+        if opened:
+            section = opened.group(1)
+        place = re.search(r'> (\w+)$', line)
+        if place and section:
+            require(place.group(1) == ram, '%s is placed in %s, not %s' % (section, place.group(1), ram))
+            require(section in TEXT_SECTIONS + DATA_SECTIONS + ('.isr_vector',),
+                    'the derived script places %s' % section)
+            if section == '.isr_vector':
+                section = None
+                lines.append(line)
+                continue
+            target = text if section in TEXT_SECTIONS else data
+            line = line[:place.start()] + '> ' + target
+            if section == '.text' and origins[text] == '0':
+                # A routine at address zero would be a null pointer: its first
+                # eight bytes stay unused, as a derived script leaves them (D1115).
+                line = line.replace('{ *(.text .text.*) }',
+                                    '{ . = . + (ABSOLUTE(.) < 8 ? 8 - ABSOLUTE(.) : 0); *(.text .text.*) }')
+                require('ABSOLUTE(.) < 8' in line, 'the derived .text is not one line: %s' % line)
+            moved[section] = target
+            section = None
+        line = line.replace('_landin_firmware_stack_top = ORIGIN(%s) + LENGTH(%s);' % (ram, ram),
+                            '_landin_firmware_stack_top = ORIGIN(%s) + LENGTH(%s);' % (data, data))
+        lines.append(line.replace('"%s RAM capacity' % ram, '"%s RAM capacity' % data))
+    require(set(moved) == set(TEXT_SECTIONS + DATA_SECTIONS),
+            'the derived script places %s' % ', '.join(sorted(moved)))
+    script = '\n'.join(lines)
+    require(script.count('> %s' % ram) == 1, 'the timing script places more than the vectors in %s' % ram)
+    return script
+
+
 def firmware_workloads(selected=None):
     """The firmware set of workloads.json, each with its fixture's status."""
     sys.path.insert(0, str(ROOT / 'compiler/tests'))
@@ -196,6 +257,17 @@ def sources(workload):
     return [str(directory / meta.get('program'))] + [str(directory / one) for one in meta.with_sources]
 
 
+def compile_command(refine, board, workload, optimize, specialize, emit, output):
+    """refine's command for WORKLOAD's RAM image on BOARD, or what EMIT names."""
+    target, level = BOARDS[board]
+    return [refine, 'compile', '--root=' + str(ROOT / 'devices'),
+            '--root=' + str(ROOT / 'devices/generated'), *sources(workload),
+            str(ROOT / ENTRY), str(ROOT / COUNTERS / (board + '.ldn')),
+            '--target=' + target, *(['--level=' + level] if level else []),
+            '--firmware-entry=start', '--emit=' + emit, '--firmware-layout=ram',
+            '--optimize=' + optimize, '--specialize=' + specialize, '-o', str(output)]
+
+
 def build(args):
     output = args.output.resolve()
     bundle.check_output(output, ROOT)
@@ -212,6 +284,18 @@ def build(args):
         work = output / 'work' / board
         work.mkdir(parents=True)
         images, limits = {}, []
+        script = []
+        if board in TIMING_REGIONS:
+            # One script serves every workload: the derived script names no
+            # routine, and a workload that placed one by region would fail
+            # its contract (D546) rather than link otherwise.
+            derived = work / 'derived.ld'
+            run.command('linker-script-%s' % board, compile_command(
+                refine, board, workloads[0], 'none', 'off', 'linker-script', derived), timeout=300)
+            placed = output / 'scripts' / (board + '.ld')
+            placed.parent.mkdir(parents=True, exist_ok=True)
+            placed.write_text(timing_script(derived.read_text(), **TIMING_REGIONS[board]))
+            script = ['--linker-script=' + str(placed)]
         for workload in workloads:
             status = workload['meta'].status_at(level or 'armv6-m')
             for profile in args.profile or PROFILES:
@@ -219,14 +303,8 @@ def build(args):
                 stem = '%s-%s' % (workload['name'], profile)
                 elf = work / (stem + '.elf')
                 run.command('compile-%s-%s' % (board, stem), [
-                    refine, 'compile', '--root=' + str(ROOT / 'devices'),
-                    '--root=' + str(ROOT / 'devices/generated'), *sources(workload),
-                    str(ROOT / ENTRY), str(ROOT / COUNTERS / (board + '.ldn')),
-                    '--target=' + target, *(['--level=' + level] if level else []),
-                    '--firmware-entry=start', '--emit=exe', '--firmware-layout=ram',
-                    '--optimize=' + optimize, '--specialize=' + specialize,
-                    '--build-report=' + str(work / (stem + '.json')), '-o', str(elf)],
-                    timeout=300)
+                    *compile_command(refine, board, workload, optimize, specialize, 'exe', elf),
+                    *script, '--build-report=' + str(work / (stem + '.json'))], timeout=300)
                 common.validate_ram_image(elf, board)
                 why = refused(board, elf)
                 if why:
@@ -460,9 +538,11 @@ def noise(args):
     record = dict(schema=1, kind='cycles', runner='rig', note=args.note, boards=dict(sorted(boards.items())))
     if Path(args.output).exists():
         # The tolerance set above the spread is a decision, kept across a
-        # new study until it is set again.
+        # new study until it is set again, and a study of some boards keeps
+        # the others' rows.
         kept = json.loads(Path(args.output).read_text())
         record.update({key: kept[key] for key in ('tolerance_rule', 'tolerance') if key in kept})
+        record['boards'] = dict(sorted({**kept.get('boards', {}), **boards}.items()))
     Path(args.output).write_text(json.dumps(record, indent=1) + '\n')
     for board, row in sorted(boards.items()):
         print('%-15s %-11s %-12s largest relative spread %.4f%%' % (
