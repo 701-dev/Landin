@@ -204,7 +204,9 @@ python3 scripts/measure.py count --target cortex-m0 \
 
 A hosted program is built the same way and counted with the arguments
 after `--` and the input `--stdin` names, rather than its fixture's own,
-so that a benchmark runs at the size the question needs:
+so that a benchmark runs at the size the question needs; `--library`
+names the library for a `refine` copied away from its checkout, such as
+a base compiler kept to compare against:
 
 ```sh
 python3 scripts/measure.py count --target linux-arm64 --level armv8-a \

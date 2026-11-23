@@ -467,6 +467,8 @@ def run_built(args, tools: Path) -> int:
     """`count` with --fixture or --source: build each program at --level,
     --optimize and --specialize through the Cortex-M corpus's own
     `--program` path, which counts from `main`, and print each count."""
+    require(not args.library or args.target in USER_MODE, "--library is a hosted"
+            " build's; the Cortex-M corpus finds the library beside --refine")
     require(args.target == "cortex-m0" or args.target in USER_MODE,
             f"--fixture and --source build programs for cortex-m0 and"
             f" {', '.join(USER_MODE)}, not {args.target}")
@@ -524,7 +526,9 @@ def run_built_hosted(args) -> int:
         command = [str(args.refine), "compile", "-q", f"--target={args.target}",
                    f"--level={args.level}", f"--optimize={args.optimize}",
                    f"--specialize={args.specialize}",
-                   *(f"--root={root}" for root in args.root), str(program), "-o", str(image)]
+                   *(f"--root={root}" for root in args.root),
+                   *([f"--library={args.library}"] if args.library else []),
+                   str(program), "-o", str(image)]
         built = subprocess.run(command, capture_output=True, text=True)
         require(built.returncode == 0, f"refine did not build {name}:"
                 f" {' '.join(command)}\n{built.stderr.strip()}")
@@ -742,6 +746,9 @@ def add_commands(commands) -> None:
                           " directory; repeat for more")
     one.add_argument("--root", action="append", default=[],
                      help="a module root --source needs, passed to refine")
+    one.add_argument("--library", type=Path,
+                     help="a hosted build: where core, hosted and platform are, for a"
+                          " refine copied away from its checkout")
     one.add_argument("--optimize", default="speed", choices=("none", "size", "speed"),
                      help="the objective a built program is compiled at")
     one.add_argument("--specialize", default="auto", choices=("off", "auto", "all"),

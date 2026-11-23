@@ -27460,6 +27460,70 @@ faster code.
 `x86 opt/caller-saved slots`, the debugger lanes on linux-x86-64 and
 linux-arm64, and `compiler/tests/measure/baselines/`.
 
+### D2148 — A slot's one constant store reaches the loads it dominates
+
+**The tour said** nothing. Values are block-local, so `for t in
+usize(0)..<64` kept 64 in a slot stored once, and x86-64 reloaded it
+from the frame every round of SHA-256 (`movq -552(%rbp), %r9`).
+
+**Chosen:** at `size` and `speed`, a slot that nothing names but its own
+loads and stores, and whose one store writes an integer, bool or atom
+constant, is read as that constant wherever the store's block strictly
+dominates the load. The temporary then loses its store, and the bounds
+proofs see a constant. A float stays in its slot, where a register holds
+it, rather than being made again from the constant pool. SHA-256 on
+x86-64 falls from 8,495.6 to 8,424.3 million instructions.
+
+**The alternatives:** general constant propagation across blocks, more
+machinery for the same loops; and the same fold in each backend.
+
+**Pinned by** `ir opt/constant slots`.
+
+### D2149 — A loop's invariant values are made once before it
+
+**The tour said** nothing. Every iteration of a loop made again each
+float constant and each invariant computation it used: mandelbrot's
+`in_set` loaded 2.0 and 4.0 from the constant pool every iteration.
+
+**Chosen:** at `speed`, on hosted targets, `Landin.IR.Hoisting` takes
+each natural loop whose head has exactly one predecessor outside the
+loop, reaching it by a jump. A float constant, or arithmetic that cannot
+trap over constants and private slots the loop never stores, is made at
+the end of that predecessor and kept in a new private slot. A loop moves
+values only while its live-in slots and the moved values fit a budget
+of the target's: 4 integer and 6 float on x86-64, 12 and 16 on arm64,
+10 and 8 on RV64. x86-64 moves no float out of a loop that calls, since
+no XMM register survives a call; RV64 also moves a nonzero constant the
+loop compares with, since its branches compare two registers. Firmware
+targets are left alone. Mandelbrot executes 9.0% fewer instructions on
+arm64 and 8.2% on RV64.
+
+**The alternatives:** moving values with no budget, which cost x86-64
+8.9% on mandelbrot and 1.2% on fasta; making a block before a loop with
+several outside predecessors; and hoisting in each backend's register
+allocation.
+
+**Pinned by** `ir opt/loop invariants`.
+
+### D2150 — A loop holds the address of an array it indexes
+
+**The tour said** nothing. arm64 formed a frame array's address
+(`sub x10, x29, #256`) and a module array's (`adrp` and `add`) at every
+access in SHA-256's rounds.
+
+**Chosen:** within D2149's integer budget, an element access that
+indexes a whole array of plain scalars goes through an address slot set
+once before the loop: on arm64 for a frame array that is no parameter
+and for a module datum, on x86-64 for a module datum only, since x86-64
+reaches a frame array from rbp within the access itself. SHA-256 on
+arm64 falls from 466.6 to 437.9 million instructions and
+reverse-complement by 3.2%.
+
+**The alternatives:** frame arrays on x86-64, which cost fannkuch-redux
+0.65%; either kind on RV64, which measured no gain.
+
+**Pinned by** `ir opt/loop invariants`.
+
 ### D2100 — D339 weighs a straight routine as it will run
 
 **The tour said** nothing; D339 bounds a copy at 64 of D211's weighted
