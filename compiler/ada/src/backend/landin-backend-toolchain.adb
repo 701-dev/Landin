@@ -148,6 +148,15 @@ package body Landin.Backend.Toolchain is
          --  It must not consume the constrained firmware's load image.
          return ".section .landin_id,"""",%progbits" & LF
            & ".ascii """ & Build_Id & """" & LF;
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.Windows
+      then
+         --  D2291: a Windows image has no GNU build ID, so a section of
+         --  its own holds the digest, as firmware's does.  LLD keeps a
+         --  section no COMDAT groups; an image's section name has eight
+         --  bytes at most, so it is `.landin`.
+         return ".section .landin,""dr""" & LF
+           & ".ascii """ & Build_Id & """" & LF;
       end if;
       return "";
    end Identity_Section;

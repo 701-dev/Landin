@@ -78,6 +78,8 @@ package body Landin.Backend.Codeview is
    S_UDT : constant := 16#1108#;
    S_LDATA32 : constant := 16#110C#;
    S_GDATA32 : constant := 16#110D#;
+   S_LTHREAD32 : constant := 16#1112#;
+   S_GTHREAD32 : constant := 16#1113#;
    S_FRAMEPROC : constant := 16#1012#;
    S_COMPILE3 : constant := 16#113C#;
    S_LOCAL : constant := 16#113E#;
@@ -1370,14 +1372,16 @@ package body Landin.Backend.Codeview is
            & Symbol (Item) & ", " & L ("end", Item));
       end Routine;
 
-      --  A module datum lives at its symbol for the whole run.
+      --  A module datum lives at its symbol for the whole run; a thread
+      --  variable at its offset in each thread's block of the image's
+      --  thread storage, which the same section-relative pair locates.
       procedure Module_Datum (Item : Item_Id);
       procedure Module_Datum (Item : Item_Id) is
          Typ : Natural;
+         Thread : constant Boolean :=
+           In_Thread_Storage (Of_Unit, Facts, Item);
       begin
-         if In_Thread_Storage (Of_Unit, Facts, Item) then
-            return;
-         elsif Result_Of (Of_Unit, Item) = Landin.Types.Fixed_Array then
+         if Result_Of (Of_Unit, Item) = Landin.Types.Fixed_Array then
             Typ := Shape_Type (Whole_Array_Shape (Of_Unit, Item));
          elsif Result_Of (Of_Unit, Item) = Landin.Types.Aggregate then
             if Nominal_Of (Of_Unit, Item) = No_Nominal_Type then
@@ -1396,7 +1400,9 @@ package body Landin.Backend.Codeview is
          end if;
          declare
             Finish : constant String :=
-              Open (if Exported (Item) then S_GDATA32 else S_LDATA32);
+              Open (if Thread then
+                      (if Exported (Item) then S_GTHREAD32 else S_LTHREAD32)
+                    elsif Exported (Item) then S_GDATA32 else S_LDATA32);
          begin
             Put (HT & ".long " & N (Typ));
             Put (HT & ".secrel32 " & Symbol (Item));
