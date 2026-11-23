@@ -1082,7 +1082,9 @@ process ignores SIGPIPE and gives its children the default back.
   writes that cannot reach it and computes identical operations and checks
   within a block once. Immutable module values fold, a check a dominating
   comparison proves is removed, and a callee reads an aggregate argument
-  where its caller keeps it when nothing can change it. On x86-64 and arm64
+  where its caller keeps it when nothing can change it. A slot stored once
+  with a constant, such as a `for` loop's constant end, is read as that
+  constant wherever the store dominates (D2148). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction (D1624).
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in
@@ -1120,8 +1122,12 @@ process ignores SIGPIPE and gives its children the default back.
   (D2100);
   the build report's `copies` names every call considered and the rule
   that copied or kept it;
-  slices and small structs split into scalars; and a branch whose arms only
-  compute becomes a choice (D338).
+  slices and small structs split into scalars; a branch whose arms only
+  compute becomes a choice (D338); and on a hosted target a loop's float
+  constants, invariant arithmetic and the addresses of arrays it indexes
+  are made once before it, within a register budget of the target's
+  (D2149, D2150). arm64 makes a value stored into a slot's register in
+  that register (D2164).
 - **Reachability.** A program with a public `main` lowers, emits and
   assembles only the routines it can reach, so it pays for the library it
   calls rather than everything it imports, and a firmware image only those
