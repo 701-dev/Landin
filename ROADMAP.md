@@ -858,7 +858,9 @@ once its cost was taken this way; Q-204 asks whether to retire it.
 `SR-1680` files the checks SHA-256's schedule and load loops still spend
 on their own index, the largest cost left against gcc, and `SR-1681`
 D2164 for RISC-V and Cortex-M, whose recorded-writes plan refused a
-direct port.
+direct port. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45151343160) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45156048985).
 
 ### The continuous items
 
