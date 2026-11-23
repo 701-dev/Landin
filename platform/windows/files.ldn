@@ -6,9 +6,13 @@ fixed if compiler.os == windows then
     --- `CreateFileW`'s access rights, `GENERIC_READ` and `GENERIC_WRITE`, and
     --- `FILE_READ_ATTRIBUTES`, which opens a file only to ask about it.
     public generic_read: u32 = 0x80000000
+    --- `GENERIC_WRITE`: the right to write.
     public generic_write: u32 = 0x40000000
+    --- `FILE_READ_ATTRIBUTES`: the right to ask about a file, alone.
     public file_read_attributes: u32 = 0x80
+    --- `FILE_WRITE_ATTRIBUTES`: the right to change what is kept of a file.
     public file_write_attributes: u32 = 0x100
+    --- `DELETE`: the right to remove or rename a file.
     public delete_access: u32 = 0x10000
 
     --- `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE`: other opens
@@ -18,9 +22,13 @@ fixed if compiler.os == windows then
 
     --- `CreateFileW`'s dispositions.
     public create_new: u32 = 1
+    --- `CREATE_ALWAYS`: make the file, or empty one that is there.
     public create_always: u32 = 2
+    --- `OPEN_EXISTING`: open the file only if it is there.
     public open_existing: u32 = 3
+    --- `OPEN_ALWAYS`: open the file, making it when it is not there.
     public open_always: u32 = 4
+    --- `TRUNCATE_EXISTING`: empty the file, which must be there.
     public truncate_existing: u32 = 5
 
     --- `CreateFileW`'s attributes and flags: a plain file,
@@ -29,18 +37,29 @@ fixed if compiler.os == windows then
     --- `FILE_FLAG_OPEN_REPARSE_POINT`, which opens a link rather than what it
     --- names.
     public attribute_normal: u32 = 0x80
+    --- `FILE_FLAG_BACKUP_SEMANTICS`: needed to open a directory.
     public flag_backup_semantics: u32 = 0x02000000
+    --- `FILE_FLAG_OVERLAPPED`: calls on the handle may end later.
     public flag_overlapped: u32 = 0x40000000
+    --- `FILE_FLAG_WRITE_THROUGH`: a write reaches the disk before it ends.
     public flag_write_through: u32 = 0x80000000
+    --- `FILE_FLAG_OPEN_REPARSE_POINT`: open a link, not what it names.
     public flag_open_reparse_point: u32 = 0x00200000
+    --- `FILE_FLAG_DELETE_ON_CLOSE`: remove the file when its last handle
+    --- closes.
     public flag_delete_on_close: u32 = 0x04000000
 
     --- A file's attribute bits: read-only, a directory and a reparse point,
     --- which a symbolic link is; and what `get_file_attributes` gives when it
     --- fails, all ones.
     public attribute_read_only: u32 = 0x1
+    --- `FILE_ATTRIBUTE_DIRECTORY`: the file is a directory.
     public attribute_directory: u32 = 0x10
+    --- `FILE_ATTRIBUTE_REPARSE_POINT`: the file is a link or another reparse
+    --- point.
     public attribute_reparse_point: u32 = 0x400
+    --- `INVALID_FILE_ATTRIBUTES`: what `get_file_attributes` gives when it
+    --- fails.
     public invalid_attributes: u32 = 0xFFFFFFFF
 
     --- Open or make the file `name` names, `CreateFileW`: its handle, or
@@ -52,8 +71,11 @@ fixed if compiler.os == windows then
 
     --- `FILE_TYPE_*`: what `get_file_type` says a handle is.
     public file_type_unknown: u32 = 0
+    --- `FILE_TYPE_DISK`: a file on a disk.
     public file_type_disk: u32 = 1
+    --- `FILE_TYPE_CHAR`: a character device, such as a console.
     public file_type_char: u32 = 2
+    --- `FILE_TYPE_PIPE`: a pipe or a socket.
     public file_type_pipe: u32 = 3
 
     --- What kind of file `opened` is, `GetFileType`.
@@ -115,6 +137,7 @@ fixed if compiler.os == windows then
     --- `MoveFileExW`'s flags: replace a file the new name holds, and do not
     --- return before the move is on the disk.
     public move_replace_existing: u32 = 1
+    --- `MOVEFILE_WRITE_THROUGH`: the move is on the disk when the call ends.
     public move_write_through: u32 = 8
 
     --- Rename `old` to `new`, `MoveFileExW`: nonzero, or zero with the
@@ -133,8 +156,13 @@ fixed if compiler.os == windows then
     --- current position or the end, by `distance`; the new position goes to
     --- `moved` when it is not zero.
     public file_begin: u32 = 0
+    --- `FILE_CURRENT`: `set_file_pointer` moves from the current position.
     public file_current: u32 = 1
+    --- `FILE_END`: `set_file_pointer` moves from the end.
     public file_end: u32 = 2
+    --- Move `opened`'s position by `distance` from where `method` says,
+    --- `SetFilePointerEx`; the new position goes to the `i64` at `moved`
+    --- unless it is zero.
     public extern(c) link(symbol: "SetFilePointerEx") set_file_pointer:
         (opened: handle, distance: i64, moved: usize, method: u32)
         -> (done: i32)
@@ -180,8 +208,8 @@ fixed if compiler.os == windows then
 
     --- Begin a directory's listing, `FindFirstFileW`, with `pattern` such as
     --- `dir\*`: the search's handle, its first entry in `found`, or
-    --- `invalid_handle` with the reason in `last_error`, `error_file_not_found`
-    --- for an empty match.
+    --- `invalid_handle` with the reason in `last_error`,
+    --- `error_file_not_found` for an empty match.
     public extern(c) link(symbol: "FindFirstFileW") find_first_file:
         (pattern: ptr u16, found: ptr mut find_data) -> (search: handle)
 
@@ -266,6 +294,7 @@ fixed if compiler.os == windows then
     --- `FILE_APPEND_DATA` and `SYNCHRONIZE`: an open to append, whose every
     --- write goes to the file's end.
     public append_data: u32 = 4
+    --- `SYNCHRONIZE`: the right to wait for the handle.
     public synchronize_access: u32 = 0x100000
 
     --- `IO_REPARSE_TAG_SYMLINK`, the tag `find_data`'s `reserved_0` holds

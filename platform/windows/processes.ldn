@@ -50,6 +50,7 @@ fixed if compiler.os == windows then
     --- 16-bit units; `EXTENDED_STARTUPINFO_PRESENT`, the information has an
     --- attribute list.
     public unicode_environment: u32 = 0x400
+    --- `EXTENDED_STARTUP_INFO_PRESENT`: the information has an attribute list.
     public extended_startup: u32 = 0x80000
 
     --- `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`: the handles a child inherits,
@@ -90,7 +91,9 @@ fixed if compiler.os == windows then
     --- object, or the first of several, is signalled; the time ran out; the
     --- wait failed with the reason in `last_error`.
     public wait_object_0: u32 = 0
+    --- `WAIT_TIMEOUT`: the time ran out first.
     public wait_timeout: u32 = 0x102
+    --- `WAIT_FAILED`: the wait failed, with the reason in `last_error`.
     public wait_failed: u32 = 0xFFFFFFFF
 
     --- Wait up to `milliseconds`, or `infinite`, for `object` to be
@@ -108,6 +111,8 @@ fixed if compiler.os == windows then
     --- The exit code of a process that has ended, `GetExitCodeProcess`, or
     --- `still_active` while it runs.
     public still_active: u32 = 259
+    --- The exit code of `process`, `GetExitCodeProcess`, or `still_active`
+    --- while it runs.
     public extern(c) link(symbol: "GetExitCodeProcess") exit_code_of:
         (process: handle, code: ptr mut u32) -> (done: i32)
 
@@ -150,7 +155,9 @@ fixed if compiler.os == windows then
     --- `CreateNamedPipeW`'s open mode: inbound, outbound or duplex, each
     --- with `FILE_FLAG_OVERLAPPED` and `FILE_FLAG_FIRST_PIPE_INSTANCE`.
     public pipe_access_inbound: u32 = 1
+    --- `PIPE_ACCESS_OUTBOUND`: the server end writes.
     public pipe_access_outbound: u32 = 2
+    --- `FILE_FLAG_FIRST_PIPE_INSTANCE`: fail if the name is taken.
     public pipe_first_instance: u32 = 0x00080000
 
     --- `CreateNamedPipeW`'s pipe mode: bytes, waiting, remote clients
@@ -179,6 +186,7 @@ fixed if compiler.os == windows then
     --- Signal and clear an event, `SetEvent` and `ResetEvent`.
     public extern(c) link(symbol: "SetEvent") set_event: (event: handle)
                                                          -> (done: i32)
+    --- Clear an event, `ResetEvent`.
     public extern(c) link(symbol: "ResetEvent") reset_event: (event: handle)
                                                              -> (done: i32)
 

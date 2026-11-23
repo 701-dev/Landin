@@ -1,5 +1,5 @@
 --  The provider on Windows: system.ldn's files, standard streams,
---  arguments and environment, over platform/windows (D2269).  A file is
+--  arguments and environment, over platform/windows (D2270).  A file is
 --  the handle Windows gives, kept in `io.file` as its word; a failure
 --  keeps the Win32 error code in the handle's last-error cell, which
 --  `last_errno` reports, and maps it to the concepts' atoms as the POSIX

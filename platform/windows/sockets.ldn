@@ -13,41 +13,65 @@ fixed if compiler.os == windows then
     --- What a failing call returns: `SOCKET_ERROR`, and `INVALID_SOCKET`,
     --- all ones.
     public socket_error: i32 = -1
+    --- `INVALID_SOCKET`: what a call that makes a socket gives when it fails,
+    --- all ones.
     public invalid_socket: handle = 0xFFFFFFFFFFFFFFFF
 
     --- The address families, `AF_INET` and `AF_INET6`.
     public af_inet: i32 = 2
+    --- `AF_INET6`: IPv6.
     public af_inet6: i32 = 23
 
     --- The kinds, `SOCK_STREAM` and `SOCK_DGRAM`.
     public sock_stream: i32 = 1
+    --- `SOCK_DGRAM`: datagrams, UDP.
     public sock_dgram: i32 = 2
 
     --- `WSASocketW`'s flags: the socket may be used with overlapped calls,
     --- and a child does not inherit it.
     public wsa_flag_overlapped: u32 = 0x01
+    --- `WSA_FLAG_NO_HANDLE_INHERIT`: a child does not inherit the socket.
     public wsa_flag_no_handle_inherit: u32 = 0x80
 
     --- The Windows Sockets error codes the providers tell apart: `WSAE*`.
     public wsa_interrupted: u32 = 10004
+    --- `WSAEACCES`.
     public wsa_access: u32 = 10013
+    --- `WSAEINVAL`.
     public wsa_invalid: u32 = 10022
+    --- `WSAEWOULDBLOCK`.
     public wsa_would_block: u32 = 10035
+    --- `WSAEINPROGRESS`.
     public wsa_in_progress: u32 = 10036
+    --- `WSAEMSGSIZE`.
     public wsa_message_size: u32 = 10040
+    --- `WSAEAFNOSUPPORT`.
     public wsa_family_unsupported: u32 = 10047
+    --- `WSAEADDRINUSE`.
     public wsa_address_in_use: u32 = 10048
+    --- `WSAEADDRNOTAVAIL`.
     public wsa_address_unavailable: u32 = 10049
+    --- `WSAENETDOWN`.
     public wsa_network_down: u32 = 10050
+    --- `WSAENETUNREACH`.
     public wsa_network_unreachable: u32 = 10051
+    --- `WSAENETRESET`.
     public wsa_network_reset: u32 = 10052
+    --- `WSAECONNABORTED`.
     public wsa_connection_aborted: u32 = 10053
+    --- `WSAECONNRESET`.
     public wsa_connection_reset: u32 = 10054
+    --- `WSAENOTCONN`.
     public wsa_not_connected: u32 = 10057
+    --- `WSAESHUTDOWN`.
     public wsa_shut_down: u32 = 10058
+    --- `WSAETIMEDOUT`.
     public wsa_timed_out: u32 = 10060
+    --- `WSAECONNREFUSED`.
     public wsa_connection_refused: u32 = 10061
+    --- `WSAEHOSTUNREACH`.
     public wsa_host_unreachable: u32 = 10065
+    --- `WSANOTINITIALISED`.
     public wsa_not_initialised: u32 = 10093
 
     --  `WSADATA`, which `WSAStartup` fills and nothing here reads: room for
@@ -103,10 +127,16 @@ fixed if compiler.os == windows then
     --- `invalid_socket`, its peer's address in `peer` when it is not zero.
     public extern(c) link(symbol: "bind") bind:
         (socket: handle, at: ptr u8, length: i32) -> (status: i32)
+    --- Connect `socket` to the address at `to`, `connect`: zero or
+    --- `socket_error`.
     public extern(c) link(symbol: "connect") connect:
         (socket: handle, to: ptr u8, length: i32) -> (status: i32)
+    --- Make `socket` a listener, `listen`: zero or `socket_error`.
     public extern(c) link(symbol: "listen") listen:
         (socket: handle, backlog: i32) -> (status: i32)
+    --- Take the next connection made to the listener `socket`, `accept`: its
+    --- socket or `invalid_socket`; the peer's address goes to `peer` when it
+    --- is not zero.
     public extern(c) link(symbol: "accept") accept:
         (socket: handle, peer: usize, length: usize) -> (result: handle)
 
@@ -115,6 +145,8 @@ fixed if compiler.os == windows then
     --- or `socket_error`.
     public extern(c) link(symbol: "send") send:
         (socket: handle, bytes: ptr u8, count: i32, flags: i32) -> (sent: i32)
+    --- Receive on a connected socket, `recv`: the bytes taken, zero once the
+    --- peer has finished sending, or `socket_error`.
     public extern(c) link(symbol: "recv") receive:
         (socket: handle, into: ptr mut u8, count: i32, flags: i32)
         -> (got: i32)
@@ -124,14 +156,18 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "sendto") send_to:
         (socket: handle, bytes: ptr u8, count: i32, flags: i32, to: ptr u8,
          length: i32) -> (sent: i32)
+    --- Receive a datagram and its sender's address, `recvfrom`.
     public extern(c) link(symbol: "recvfrom") receive_from:
         (socket: handle, into: ptr mut u8, count: i32, flags: i32,
          sender: ptr mut u8, length: ptr mut i32) -> (got: i32)
 
     --- Stop receiving, sending or both, `shutdown`.
     public sd_receive: i32 = 0
+    --- `SD_SEND`: stop sending.
     public sd_send: i32 = 1
+    --- `SD_BOTH`: stop receiving and sending.
     public sd_both: i32 = 2
+    --- Stop receiving, sending or both, `shutdown`.
     public extern(c) link(symbol: "shutdown") shutdown:
         (socket: handle, how: i32) -> (status: i32)
 
@@ -139,28 +175,40 @@ fixed if compiler.os == windows then
     --- `getpeername`.
     public extern(c) link(symbol: "getsockname") socket_name:
         (socket: handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
+    --- The address of a connection's peer, `getpeername`.
     public extern(c) link(symbol: "getpeername") peer_name:
         (socket: handle, into: ptr mut u8, length: ptr mut i32) -> (status: i32)
 
     --- Socket options, `setsockopt` and `getsockopt`: the level, the option
     --- and its value's bytes.
     public sol_socket: i32 = 0xFFFF
+    --- `SO_ERROR`: the outcome a connection begun without waiting ended with.
     public so_error: i32 = 0x1007
+    --- `SO_SNDTIMEO`: how long a send may wait, in milliseconds.
     public so_send_timeout: i32 = 0x1005
+    --- `SO_RCVTIMEO`: how long a receive may wait, in milliseconds.
     public so_receive_timeout: i32 = 0x1006
+    --- `IPPROTO_TCP`: the level of TCP's options.
     public ipproto_tcp: i32 = 6
+    --- `TCP_NODELAY`: send small writes at once.
     public tcp_no_delay: i32 = 1
+    --- `IPPROTO_IPV6`: the level of IPv6's options.
     public ipproto_ipv6: i32 = 41
+    --- `IPV6_V6ONLY`: an IPv6 socket takes IPv6 alone.
     public ipv6_only: i32 = 27
+    --- Set a socket option, `setsockopt`: zero or `socket_error`.
     public extern(c) link(symbol: "setsockopt") set_option:
         (socket: handle, level: i32, option: i32, value: ptr u8, length: i32)
         -> (status: i32)
+    --- Read a socket option, `getsockopt`: zero or `socket_error`.
     public extern(c) link(symbol: "getsockopt") get_option:
         (socket: handle, level: i32, option: i32, value: ptr mut u8,
          length: ptr mut i32) -> (status: i32)
 
     --- Set a socket to block or not, `ioctlsocket` with `FIONBIO`.
     public fionbio: i32 = -2147195266
+    --- Set a socket to block, with `value` zero, or not, `ioctlsocket` with
+    --- `FIONBIO`.
     public extern(c) link(symbol: "ioctlsocket") control:
         (socket: handle, command: i32, value: ptr mut u32) -> (status: i32)
 
@@ -191,6 +239,8 @@ fixed if compiler.os == windows then
     --- is none.
     public extern(c) link(symbol: "if_nametoindex") interface_index:
         (name: ptr u8) -> (index: u32)
+    --- The name of the interface `index` into `into`, `if_indextoname`: zero
+    --- when there is none.
     public extern(c) link(symbol: "if_indextoname") interface_name:
         (index: u32, into: ptr mut u8) -> (name: usize)
 end if

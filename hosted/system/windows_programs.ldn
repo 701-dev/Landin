@@ -3,7 +3,7 @@
 --  `CreateProcessW` and does not wait.  A piped stream is a named pipe
 --  whose parent end is overlapped and carries `pipe_mark`, so that a
 --  provider built over this one reads and writes it through an
---  overlapped call and waits as its own waiting does (D2272).  The child
+--  overlapped call and waits as its own waiting does (D2271).  The child
 --  inherits exactly its three streams, through the attribute list
 --  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` names, and no other handle.
 
