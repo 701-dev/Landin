@@ -904,7 +904,7 @@ tolerance. The candidate passed its
 
 ### R16.32 — Time the STM32H753 from its tightly coupled memories
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 `SR-1661`'s slowdowns, measured to their cause: the timing image's RAM
@@ -912,8 +912,8 @@ layout puts the STM32H753's text, data and stack in uncached AXI SRAM,
 where the same code moved 2 bytes at a time runs the sieve at speed in
 7,317 to 10,652 cycles and SipHash in 510,115 to 541,009, with a period
 of 32 bytes, and a load soon after a store to the stack stalls. With
-text in ITCM and data, BSS and stack in DTCM, the layout the board's own
-description boots, the range falls under 0.6% and nine of the ten
+text in ITCM, where the board's own description boots it, and data, BSS
+and stack in DTCM, the range falls under 0.6% and nine of the ten
 recorded slowdowns are gains or equal, the tenth +0.45%. The maintainer
 chose this layout for the board's timing runs on 2026-11-23.
 Exit evidence: the STM32H753's timing images placed in ITCM and DTCM,
@@ -921,6 +921,24 @@ its cycle baselines recorded again on the rig, its sieve and
 binary-search at speed no slower than their R16.27 figures, and why this
 port's placement differs from the RAM layout's default said in
 `docs/measurement.md`.
+
+Done: `timing.py build` links the STM32H753's timing images with
+refine's derived RAM script, text and read-only data moved to the ITCM
+past its first eight bytes and data, BSS and stack to the DTCM, the
+vectors left where D546's contract fixes them (D2227); `timing.py
+noise` keeps the boards a study does not cover, and `timing.py images`
+bundles hand-made ELF files for the rig (`SR-1715`). Recorded again on the
+rig, every one of the board's 54 configurations is faster: at speed by
+46.0% to 52.7% but mandelbrot's 2.1%, the sieve 10,646 to 5,261 cycles
+and binary-search 1,787 to 918, against R16.27's 9,295 and 1,737; at
+size by 42.5% to 51.2% but mandelbrot's 2.9%; at `none` by 23.3% to
+42.3%. Its noise study, made again from the TCMs, keeps the port's
+tolerance of 0.5% and 40 cycles. `SR-1661` and `SR-1715` are taken, and
+`SR-1714`, kept, comes from the measurement that found the cause; `SR-1716` files
+the contract's acceptance of text at address zero, met on the way. The
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45211342807) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45217192089).
 
 ### R16.33 — Element addresses and products by a constant
 
