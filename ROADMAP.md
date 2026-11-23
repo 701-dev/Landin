@@ -849,7 +849,7 @@ to 3.9% on the rest; at size 0.4% to 13.4% fewer. arm64 under QEMU
 executes 23.0% fewer on mandelbrot, 11.7% on SHA-256, 13.0% on fasta,
 12.0% on SipHash-1-3, 9.5% on fannkuch-redux and 0.7% to 4.8% on the
 rest; RV64's measured workloads 1.75% fewer at speed. Every hosted image's
-`.text` is smaller; firmware moves by a few bytes. `measure.py count`
+`.text` is smaller; firmware moves by a few bytes, every board's records were made again on the rig, and the boards' cycles hold but for the STM32H753's SipHash, 4.1% slower at speed and 6.7% faster at size for the same instructions, where a shorter `main` moves its loop (`SR-1661`). `measure.py count`
 counts `linux-x86-64` and `linux-arm64` programs and builds hosted
 fixtures, with `--library` for a copied compiler (`SR-1652`), and
 `debug.sh --help` and `dev-test.sh --help` say which runs a debugger

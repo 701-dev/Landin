@@ -178,12 +178,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/size-all/mandelbrot": {
-   "cycles": 33796155,
+   "cycles": 33794045,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f61d9674feb8895c844cc769bfe8bde7f8288c23d85e4a4ed0a0dadffb9f8e5f",
+   "image": "d76ee58f487f4b0ac7c52ecc45c6b3f3bc043ecd5d0e191dc6b3b526d96d9d65",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -228,12 +228,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/size-auto/mandelbrot": {
-   "cycles": 33796155,
+   "cycles": 33794045,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f61d9674feb8895c844cc769bfe8bde7f8288c23d85e4a4ed0a0dadffb9f8e5f",
+   "image": "d76ee58f487f4b0ac7c52ecc45c6b3f3bc043ecd5d0e191dc6b3b526d96d9d65",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -278,12 +278,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/size-off/mandelbrot": {
-   "cycles": 33796155,
+   "cycles": 33794045,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f61d9674feb8895c844cc769bfe8bde7f8288c23d85e4a4ed0a0dadffb9f8e5f",
+   "image": "d76ee58f487f4b0ac7c52ecc45c6b3f3bc043ecd5d0e191dc6b3b526d96d9d65",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -306,12 +306,12 @@
    "runs": 3
   },
   "rv32imc/speed-all/binary-search": {
-   "cycles": 1778,
+   "cycles": 1777,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "574d62d925aedf7db25dfd8c2bbda860688f1871669496cb5f52220670d381ba",
+   "image": "420b3c79c0f3f09f0c127364d0513a925be9c70f9bbcf6fb41295d96de7db1d7",
    "runs": 3
   },
   "rv32imc/speed-all/cmp-siphash-vectors": {
@@ -328,12 +328,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/speed-all/mandelbrot": {
-   "cycles": 33930633,
+   "cycles": 33930955,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c10e8ffa29c577f4e4cfddeca2abfefa7d1e15bf4d393c053b789e60232e11b",
+   "image": "e8f7abfeed96f90db172bad1860ab44e8451b1cdd3c26cb92b1481bbacaa124f",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -356,12 +356,12 @@
    "runs": 3
   },
   "rv32imc/speed-auto/binary-search": {
-   "cycles": 1778,
+   "cycles": 1777,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "574d62d925aedf7db25dfd8c2bbda860688f1871669496cb5f52220670d381ba",
+   "image": "420b3c79c0f3f09f0c127364d0513a925be9c70f9bbcf6fb41295d96de7db1d7",
    "runs": 3
   },
   "rv32imc/speed-auto/cmp-siphash-vectors": {
@@ -378,12 +378,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/speed-auto/mandelbrot": {
-   "cycles": 33930633,
+   "cycles": 33930955,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c10e8ffa29c577f4e4cfddeca2abfefa7d1e15bf4d393c053b789e60232e11b",
+   "image": "e8f7abfeed96f90db172bad1860ab44e8451b1cdd3c26cb92b1481bbacaa124f",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -406,12 +406,12 @@
    "runs": 3
   },
   "rv32imc/speed-off/binary-search": {
-   "cycles": 1778,
+   "cycles": 1777,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "574d62d925aedf7db25dfd8c2bbda860688f1871669496cb5f52220670d381ba",
+   "image": "420b3c79c0f3f09f0c127364d0513a925be9c70f9bbcf6fb41295d96de7db1d7",
    "runs": 3
   },
   "rv32imc/speed-off/cmp-siphash-vectors": {
@@ -428,12 +428,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imc/speed-off/mandelbrot": {
-   "cycles": 33930633,
+   "cycles": 33930955,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "4c10e8ffa29c577f4e4cfddeca2abfefa7d1e15bf4d393c053b789e60232e11b",
+   "image": "e8f7abfeed96f90db172bad1860ab44e8451b1cdd3c26cb92b1481bbacaa124f",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },

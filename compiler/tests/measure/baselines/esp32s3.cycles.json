@@ -183,12 +183,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-all/cmp-siphash-vectors": {
-   "cycles": 403451,
+   "cycles": 403574,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "85025c9a018562ce98e7c354185f6e49475567331fa344fddd648b54e21ac908",
+   "image": "be25556addfbf33676cf82f86808853d667e549e008a580b3502679be9718532",
    "runs": 3
   },
   "xtensa-esp32s3/size-all/fannkuch-redux": {
@@ -202,12 +202,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/size-all/mandelbrot": {
-   "cycles": 16588991,
+   "cycles": 16589087,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f4b0cf4944d6a8010e6a2e0c8c6e8f65263aca3f4f9541e67eb4e6880b3b18a8",
+   "image": "35c71ce8cc521dcdd408c12c44b8fe689ab31230f607e11c3f997e820d9be932",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -239,12 +239,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-auto/cmp-siphash-vectors": {
-   "cycles": 403459,
+   "cycles": 403582,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "b4b47995713eb5af153801510d665e2817cae935c1c544ca67b82ac8fdb52d37",
+   "image": "2c983363f0b9ea36640790fb2e9b8cece0082101bc5fe86dd6cd9b47334fa702",
    "runs": 3
   },
   "xtensa-esp32s3/size-auto/fannkuch-redux": {
@@ -258,12 +258,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/size-auto/mandelbrot": {
-   "cycles": 16588991,
+   "cycles": 16589087,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f4b0cf4944d6a8010e6a2e0c8c6e8f65263aca3f4f9541e67eb4e6880b3b18a8",
+   "image": "35c71ce8cc521dcdd408c12c44b8fe689ab31230f607e11c3f997e820d9be932",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -295,12 +295,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-off/cmp-siphash-vectors": {
-   "cycles": 403459,
+   "cycles": 403582,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "b4b47995713eb5af153801510d665e2817cae935c1c544ca67b82ac8fdb52d37",
+   "image": "2c983363f0b9ea36640790fb2e9b8cece0082101bc5fe86dd6cd9b47334fa702",
    "runs": 3
   },
   "xtensa-esp32s3/size-off/fannkuch-redux": {
@@ -314,12 +314,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/size-off/mandelbrot": {
-   "cycles": 16588991,
+   "cycles": 16589087,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "f4b0cf4944d6a8010e6a2e0c8c6e8f65263aca3f4f9541e67eb4e6880b3b18a8",
+   "image": "35c71ce8cc521dcdd408c12c44b8fe689ab31230f607e11c3f997e820d9be932",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -342,21 +342,21 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/binary-search": {
-   "cycles": 1746,
+   "cycles": 1744,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5a96dfad57962f2c75e624a81d9dcfa68af0d3fb20cbf88133081a03396eb7aa",
+   "image": "800aa152ff20603937044ef94353e66cf5c80b897b0e2de682b3d2896fbf3964",
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/cmp-siphash-vectors": {
-   "cycles": 388585,
+   "cycles": 388708,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "bfb30a0d4323f2a51fe0a8f9e065e6d4a8318139a144a92cb9e815f727d3dce8",
+   "image": "47fde09e3a022f6d76f40b0789e4221fc3a6efe4e36c08eff0c2b3038b980dcf",
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/fannkuch-redux": {
@@ -370,12 +370,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/speed-all/mandelbrot": {
-   "cycles": 16587485,
+   "cycles": 16588605,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "59ee9c70732200d069b4a48442c5af43b28a17707aaf950ffe654b929661434d",
+   "image": "50bf932d8873698240fbba06a38a1423b1ce81b5db37dffb741e44cd468e8d79",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -398,21 +398,21 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/binary-search": {
-   "cycles": 1746,
+   "cycles": 1744,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5a96dfad57962f2c75e624a81d9dcfa68af0d3fb20cbf88133081a03396eb7aa",
+   "image": "800aa152ff20603937044ef94353e66cf5c80b897b0e2de682b3d2896fbf3964",
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/cmp-siphash-vectors": {
-   "cycles": 388585,
+   "cycles": 388708,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "bfb30a0d4323f2a51fe0a8f9e065e6d4a8318139a144a92cb9e815f727d3dce8",
+   "image": "47fde09e3a022f6d76f40b0789e4221fc3a6efe4e36c08eff0c2b3038b980dcf",
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/fannkuch-redux": {
@@ -426,12 +426,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/speed-auto/mandelbrot": {
-   "cycles": 16587485,
+   "cycles": 16588605,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "59ee9c70732200d069b4a48442c5af43b28a17707aaf950ffe654b929661434d",
+   "image": "50bf932d8873698240fbba06a38a1423b1ce81b5db37dffb741e44cd468e8d79",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -454,21 +454,21 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/binary-search": {
-   "cycles": 1746,
+   "cycles": 1744,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "5a96dfad57962f2c75e624a81d9dcfa68af0d3fb20cbf88133081a03396eb7aa",
+   "image": "800aa152ff20603937044ef94353e66cf5c80b897b0e2de682b3d2896fbf3964",
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/cmp-siphash-vectors": {
-   "cycles": 388593,
+   "cycles": 388716,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "544b12fd8fe7207943ca103383d7a91ce470d6bebd89c5b8f642c017fa5ea961",
+   "image": "d923470700a6715369b1f720877c7deb6ff82d44d7e364a7635618ebc4175a27",
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/fannkuch-redux": {
@@ -482,12 +482,12 @@
    "checksum": "0x05b0c76f"
   },
   "xtensa-esp32s3/speed-off/mandelbrot": {
-   "cycles": 16587485,
+   "cycles": 16588605,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "59ee9c70732200d069b4a48442c5af43b28a17707aaf950ffe654b929661434d",
+   "image": "50bf932d8873698240fbba06a38a1423b1ce81b5db37dffb741e44cd468e8d79",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },

@@ -183,12 +183,12 @@
    "runs": 3
   },
   "rv32imac/size-all/cmp-siphash-vectors": {
-   "cycles": 639660,
+   "cycles": 639788,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "d7053b6c989f3ee4f834cdf34103d2020a0f6653bff05017cdf7ff7d78f46b18",
+   "image": "954aa81da5218214fe360e2101056c59f5d39e2574f39f216aff59ed81d0350d",
    "runs": 3
   },
   "rv32imac/size-all/fannkuch-redux": {
@@ -202,12 +202,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/size-all/mandelbrot": {
-   "cycles": 32803422,
+   "cycles": 32802652,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "a58b2060f48f3813e07f0acf2664bc62d9a77dc7c11ed3ba3ae6fc3670501a0f",
+   "image": "79440cf40a3a5d4c29aca90a43b4454cfa7d25cc5af5de745dbcb6abb4ec53ee",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -239,12 +239,12 @@
    "runs": 3
   },
   "rv32imac/size-auto/cmp-siphash-vectors": {
-   "cycles": 639688,
+   "cycles": 639816,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e08ddb842a9cbe778982c3244c4bc9c4c7f92903d1a8f13aae62c914a2aa892c",
+   "image": "d4a274581c482677176effd0576db398a8a2b18ccc400e96b9daec66d8f54565",
    "runs": 3
   },
   "rv32imac/size-auto/fannkuch-redux": {
@@ -258,12 +258,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/size-auto/mandelbrot": {
-   "cycles": 32803422,
+   "cycles": 32802652,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "a58b2060f48f3813e07f0acf2664bc62d9a77dc7c11ed3ba3ae6fc3670501a0f",
+   "image": "79440cf40a3a5d4c29aca90a43b4454cfa7d25cc5af5de745dbcb6abb4ec53ee",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -295,12 +295,12 @@
    "runs": 3
   },
   "rv32imac/size-off/cmp-siphash-vectors": {
-   "cycles": 639688,
+   "cycles": 639816,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "e08ddb842a9cbe778982c3244c4bc9c4c7f92903d1a8f13aae62c914a2aa892c",
+   "image": "d4a274581c482677176effd0576db398a8a2b18ccc400e96b9daec66d8f54565",
    "runs": 3
   },
   "rv32imac/size-off/fannkuch-redux": {
@@ -314,12 +314,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/size-off/mandelbrot": {
-   "cycles": 32803422,
+   "cycles": 32802652,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "a58b2060f48f3813e07f0acf2664bc62d9a77dc7c11ed3ba3ae6fc3670501a0f",
+   "image": "79440cf40a3a5d4c29aca90a43b4454cfa7d25cc5af5de745dbcb6abb4ec53ee",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -347,16 +347,16 @@
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "295e17111e475fa66da6eb4bd408e23b7907b5b009a7a509b1c4772ca6e6dd39",
+   "image": "47160d8315cdf8209e29e11280fa6722ee175d8c515e8867ccb94814fffb12ad",
    "runs": 3
   },
   "rv32imac/speed-all/cmp-siphash-vectors": {
-   "cycles": 603993,
+   "cycles": 603926,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "f08934b4c3217371dca3c77101c1aa2f726dff1d4256f9794013522f3774cf4a",
+   "image": "47e68c48a43ebdeffe472906e04669831dcba8aca87080676e72c53f23da0419",
    "runs": 3
   },
   "rv32imac/speed-all/fannkuch-redux": {
@@ -370,12 +370,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/speed-all/mandelbrot": {
-   "cycles": 32638128,
+   "cycles": 32635182,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "19e0e08696c314d2fa389347d5cb22b5de4a95bbcad5907adf492bc9ebb65d6d",
+   "image": "0d52c10b32b0ce1f6120682b058789c16ca0890f6e38cea2ba762fa01a735a30",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -403,16 +403,16 @@
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "295e17111e475fa66da6eb4bd408e23b7907b5b009a7a509b1c4772ca6e6dd39",
+   "image": "47160d8315cdf8209e29e11280fa6722ee175d8c515e8867ccb94814fffb12ad",
    "runs": 3
   },
   "rv32imac/speed-auto/cmp-siphash-vectors": {
-   "cycles": 603993,
+   "cycles": 603926,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "f08934b4c3217371dca3c77101c1aa2f726dff1d4256f9794013522f3774cf4a",
+   "image": "47e68c48a43ebdeffe472906e04669831dcba8aca87080676e72c53f23da0419",
    "runs": 3
   },
   "rv32imac/speed-auto/fannkuch-redux": {
@@ -426,12 +426,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/speed-auto/mandelbrot": {
-   "cycles": 32638128,
+   "cycles": 32635182,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "19e0e08696c314d2fa389347d5cb22b5de4a95bbcad5907adf492bc9ebb65d6d",
+   "image": "0d52c10b32b0ce1f6120682b058789c16ca0890f6e38cea2ba762fa01a735a30",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
@@ -459,16 +459,16 @@
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "295e17111e475fa66da6eb4bd408e23b7907b5b009a7a509b1c4772ca6e6dd39",
+   "image": "47160d8315cdf8209e29e11280fa6722ee175d8c515e8867ccb94814fffb12ad",
    "runs": 3
   },
   "rv32imac/speed-off/cmp-siphash-vectors": {
-   "cycles": 604012,
+   "cycles": 603945,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "12b6cc52a1cc12c753bb9d6f56df4accc2112848706100eb7c7a6d4ea98cdd59",
+   "image": "dbe4f8cd846b88cdd7c5d1d6e8d453692ff49c917ff4d80fa562eb6c41798697",
    "runs": 3
   },
   "rv32imac/speed-off/fannkuch-redux": {
@@ -482,12 +482,12 @@
    "checksum": "0x05b0c76f"
   },
   "rv32imac/speed-off/mandelbrot": {
-   "cycles": 32638128,
+   "cycles": 32635182,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "19e0e08696c314d2fa389347d5cb22b5de4a95bbcad5907adf492bc9ebb65d6d",
+   "image": "0d52c10b32b0ce1f6120682b058789c16ca0890f6e38cea2ba762fa01a735a30",
    "runs": 3,
    "checksum": "0x6b603ccc"
   },
