@@ -1,0 +1,23 @@
+north: atom
+south: atom
+east: atom
+west: atom
+vertical: type = north | south
+horizontal: type = east | west
+compass: type = vertical | horizontal
+
+climb: (way: vertical) -> none =
+end climb
+
+pick: (way: compass) -> none =
+    match way
+        vertical (part): climb(part)
+        east, west: begin end
+    end match
+end pick
+
+narrow: (way: compass) -> none =
+    if way <> east then
+        climb(way)
+    end if
+end narrow

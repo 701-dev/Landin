@@ -1,0 +1,11 @@
+error[L0303]: `view` is not mutable, so it may not be written
+  --> ../tests/fixtures/negative/inout-mut-slice-parameter-drops-inout/program.ldn:7:10
+  |
+7 |     fill(view)
+  |          ^^^^
+  --> ../tests/fixtures/negative/inout-mut-slice-parameter-drops-inout/program.ldn:6:5
+  |
+6 |     view: []mut f64 = store
+  |     ^^^^ declared here
+  = note: [0900]: `inout` lets the callee replace the caller's slice, so the binding passed must be `mut`. A `[]mut` parameter writes the elements without it: remove `inout` from the parameter, or declare `view` with `mut` if the callee does replace the slice.
+  = help (guess): remove `inout`

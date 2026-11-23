@@ -1,0 +1,9 @@
+north: atom
+south: atom
+missing: atom
+
+pair: type = north | south
+
+look: (way: north | south) -> none ! missing =
+    fail missing when way == north
+end look

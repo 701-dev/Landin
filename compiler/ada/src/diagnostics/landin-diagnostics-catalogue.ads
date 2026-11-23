@@ -336,7 +336,10 @@ package Landin.Diagnostics.Catalogue is
       --  D1847: a form the language removed, refused by the stage that
       --  reads it with its replacement named, and the rewrite as an exact
       --  fix where the rewrite is mechanical.
-      Removed_Form);
+      Removed_Form,
+      --  D2175: an atom set that names one atom, or one set, twice.  A
+      --  warning: the set means what it would with the name once.
+      Atom_Named_Twice);
 
    --  Live, or kept so its number is never reused. A code is retired when
    --  the rule it names stops existing: `No_Frontend` retired when the
@@ -1515,7 +1518,15 @@ package Landin.Diagnostics.Catalogue is
          Least => 0, Most => 0, Notes => 1, Route => False,
          Fixes => May_Fix, Shown_By => Negative_Fixture,
          Rule => +("D1847: the language removed this form, and the"
-                   & " refusal names the one that replaces it"))];
+                   & " refusal names the one that replaces it")),
+      --  D251, as for Mutable_Never_Written: the earlier name is the
+      --  second place.
+      Atom_Named_Twice =>
+        (Code => "L0697", Level => Warning, State => Live,
+         Source => True, Bytes => True,
+         Least => 1, Most => 1, Notes => 1, Route => False,
+         Fixes => May_Fix, Shown_By => Negative_Fixture,
+         Rule => +"D2175: an atom set names one member twice")];
 
    ------------------------------------------------------------------
    --  The columns, read out of the table

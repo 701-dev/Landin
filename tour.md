@@ -2281,6 +2281,9 @@ end area_and_corners
 - `_` is an arm of its own and covers whatever is left of an atom set or a
   pointer union. On an atom set, `_ (rest):` binds the remaining atoms as a
   set of their own, so they can be passed on where only those are wanted.
+  A union of atom sets is split the same way: name one side's atoms, which
+  may share one arm, and end with `_ (rest):`, which binds the other side's
+  as a set. An arm cannot name a set.
 - A variant part takes no `_`: its match names every case, and the cases
   that share what an arm runs are listed on that arm.
 - A number has no identity to name, so you compare it with `if` and

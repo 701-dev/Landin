@@ -1,0 +1,7 @@
+error[L0201]: `util` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/sibling-file-import-is-named/root/app/two.ldn:2:9
+  |
+2 |     n = util.width * 2
+  |         ^^^^
+  = note: [1450]: each file of a module has its own imports, and `one.ldn` imports `util` where this file does not; add `import util` here
+  = help: import `util`

@@ -1,0 +1,10 @@
+class: negative
+summary: D2175 an atom set naming one member twice is the warning L0697 at the second name, in a declared set, a parameter's set and a failure set, and its exact fix removes it with its bar
+program: program.ldn
+codes: L0697, L0697, L0697
+fixed: program.fixed
+status: 0
+constructs: 0640, 0940
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn
+expect: expected.txt

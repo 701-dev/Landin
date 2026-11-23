@@ -1,0 +1,40 @@
+error[L0340]: this argument has a different reference permission or view from its parameter pattern
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:14:17
+   |
+14 |     count_bytes(greeting, 1)
+   |                 ^^^^^^^^
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:1:35
+  |
+1 | count_bytes: (item: type, source: []u8, extra: item) -> none =
+  |                                   ^^^^ the parameter's type, as written
+  = note: D138: an argument to a generic routine is typed on its own, before the parameter is known, and must match the type written for it; only `mut` may relax to read-only; `utf8` and `[]u8` are different types: pass `[]u8(value)`, the text's own bytes and no copy
+error[L0340]: this is `[]u8` and `utf8` belongs here
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:15:16
+   |
+15 |     count_text(raw, 1)
+   |                ^^^
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:4:34
+  |
+4 | count_text: (item: type, source: utf8, extra: item) -> none =
+  |                                  ^^^^ the parameter's type, as written
+  = note: D138: an argument to a generic routine is typed on its own, before the parameter is known, and must match the type written for it; only `mut` may relax to read-only; `utf8` and `[]u8` are different types: pass `text.from_bytes(value)`, which reports `invalid_text` unless the bytes are UTF-8, or `utf8(value)`, which traps instead
+error[L0301]: this reference argument has a different type or insufficient permission
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:16:16
+   |
+16 |     take_bytes(greeting)
+   |                ^^^^^^^^
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:7:14
+  |
+7 | take_bytes: (source: []u8) -> none =
+  |              ^^^^^^^^^^^^ this reference parameter
+  = note: [0430]/[0440]/[0570]: reference permission relaxes only from `mut` to read-only; `utf8` and `[]u8` are different types: pass `[]u8(value)`, the text's own bytes and no copy
+error[L0301]: this reference argument has a different type or insufficient permission
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:17:15
+   |
+17 |     take_text(raw)
+   |               ^^^
+  --> ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn:10:13
+   |
+10 | take_text: (source: utf8) -> none =
+   |             ^^^^^^^^^^^^ this reference parameter
+  = note: [0430]/[0440]/[0570]: reference permission relaxes only from `mut` to read-only; `utf8` and `[]u8` are different types: pass `text.from_bytes(value)`, which reports `invalid_text` unless the bytes are UTF-8, or `utf8(value)`, which traps instead

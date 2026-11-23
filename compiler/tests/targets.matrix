@@ -257,6 +257,8 @@ negative/assignment-to-an-immutable-binding | linux-x86-64, linux-arm64, darwin-
 negative/atom-assignment-not-subset | linux-x86-64, linux-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64
 negative/atom-fact-without-a-comparison | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/atom-match-not-exhaustive | linux-x86-64, linux-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64
+negative/atom-named-twice-in-a-set | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/atom-set-union-is-split-with-rest | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/atom-union-as-a-conformance-target-needs-a-name | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/atom-union-as-a-distinct-base-needs-a-name | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/atom-union-as-a-static-type-argument-needs-a-name | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -487,6 +489,7 @@ negative/escaping-argument-in-if-condition | linux-x86-64, linux-arm64, darwin-a
 negative/escaping-argument-in-nested-argument | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/escaping-argument-in-while-condition | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/escaping-frame-reference | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/escaping-inout-is-spelled-for-an-inout-part | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/escaping-into-function-value | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/escaping-into-later-local | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/escaping-into-node-declared-after-the-list | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -697,6 +700,7 @@ negative/inferred-module-array-repetition-extent-overflow | linux-x86-64, linux-
 negative/inferred-zeroed-not-enabled | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/inline-struct-is-a-struct-block | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/inout-field-beside-a-view-of-its-binding | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/inout-mut-slice-parameter-drops-inout | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/inout-payload-binding-of-read-only-subject | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/inout-pointer-field-is-exact | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/inout-pointer-forwarded-is-exact | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -732,6 +736,8 @@ negative/library-at-live-inout | linux-x86-64, linux-arm64, darwin-arm64, synthe
 negative/library-evidence-collision | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/library-evidence-collision-time-net | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/library-hosted-system-rv32 | rv32
+negative/library-module-concept-prefix-names-its-import | linux-x86-64
+negative/library-module-prefix-names-its-import | linux-x86-64
 negative/library-name-removed-by-hand | linux-x86-64
 negative/library-name-removed-field | linux-x86-64
 negative/library-name-removed-moves | linux-x86-64
@@ -1403,6 +1409,7 @@ negative/shared-type-names-nothing | linux-x86-64, linux-arm64, darwin-arm64, sy
 negative/shift-amount-is-negative | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/shift-amount-is-negative-in-a-body | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/shift-amount-takes-the-left-type | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/sibling-file-import-is-named | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/signals-provider-without-turns | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/sink-computed-index-names-the-local-copy | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/sink-in-zero-or-more-loop | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -1503,6 +1510,7 @@ negative/text-conversion-optional-cstring | linux-x86-64, linux-arm64, darwin-ar
 negative/text-conversion-wrong-from | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/text-empty-conversion-frame | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/text-literal-codepoint-in-byte-context | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/text-literal-for-a-byte-formal-is-bound-first | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/text-literal-malformed-codepoint-escape | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/text-literal-needs-byte-slice | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/text-literal-needs-pointer | linux-x86-64, darwin-arm64, freebsd-x86-64
@@ -1569,6 +1577,7 @@ negative/use-after-sink-across-loop | linux-x86-64, linux-arm64, darwin-arm64, f
 negative/use-after-sink-scalar | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/usize-is-not-u64 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/utf16-indexing-is-not-utf8-indexing | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/utf8-and-bytes-name-their-conversion | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/utf8-index-needs-usize-or-position | linux-x86-64, darwin-arm64, freebsd-x86-64
 negative/utf8-index-position-identity-is-exact | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/utf8-index-result-has-no-address | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64

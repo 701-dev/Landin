@@ -1,0 +1,18 @@
+count_bytes: (item: type, source: []u8, extra: item) -> none =
+end count_bytes
+
+count_text: (item: type, source: utf8, extra: item) -> none =
+end count_text
+
+take_bytes: (source: []u8) -> none =
+end take_bytes
+
+take_text: (source: utf8) -> none =
+end take_text
+
+use: (greeting: utf8, raw: []u8) -> none =
+    count_bytes(greeting, 1)
+    count_text(raw, 1)
+    take_bytes(greeting)
+    take_text(raw)
+end use

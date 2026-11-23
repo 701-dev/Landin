@@ -1,0 +1,3 @@
+public second: () -> (n: i32) =
+    n = util.width * 2
+end second

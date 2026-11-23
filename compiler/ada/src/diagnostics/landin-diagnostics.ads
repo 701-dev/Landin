@@ -144,7 +144,8 @@ package Landin.Diagnostics is
       Name_Function,   --  D1654: an anonymous function is declared
       Import_Whole,    --  D1658: selected names become `m.name`
       Name_Operand,    --  D1662: a positional assembly value is named
-      Library_Name);   --  D2129: a removed library name becomes its successor
+      Library_Name,    --  D2129: a removed library name becomes its successor
+      Add_Import);     --  D2174: the import a qualified name lacked
 
    type Fix is private;
 

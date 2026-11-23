@@ -1,0 +1,11 @@
+class: negative
+summary: D2174 a qualified type name whose prefix is a library module the program reaches and the file does not import is L0201 naming the module, in a parameter's type, a type argument and a failure set, and the first carries its import as an exact fix
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0201, L0201, L0201
+fixed: main.fixed
+constructs: 1420, 1440, 1860
+targets: linux-x86-64
+expect: expected.txt
+status: 1

@@ -7363,6 +7363,37 @@ included; `positive/array-length-facts-at-the-target-width`, which holds
 64-bit targets; and `negative/array-length-refusals-are-reported-once`,
 whose `alignof` of a struct stays L0305.
 
+
+### D2176 — A `utf8` given for `[]u8`, or the reverse, is told the conversion
+
+**The discrepancy:** a `utf8` value passed where `[]u8` is wanted was
+L0340, "a different reference permission or view from its parameter
+pattern", through a generic routine, and L0301 through a plain parameter,
+neither naming the conversion; `[]u8` passed where `utf8` is wanted was
+L0340's "this is a slice and a slice belongs here". A text literal given to
+a type formal an earlier argument made `[]u8`, `vec.push(names, memory,
+"a")` on a `vec.list([]u8)`, is `utf8` under D138 and was told only that
+every argument must decide the same.
+
+**Chosen:** the two codes keep their messages and rules and their notes add
+what to write. For `utf8` where a read-only `[]u8` is wanted, the note names
+`[]u8(value)` [0700], the same bytes with no copy; for `[]u8` where `utf8`
+is wanted, `text.from_bytes(value)`, which reports `invalid_text`, and
+`utf8(value)`, which traps, and L0340's message names both types. For a
+text literal that conflicts with a formal already bound to `[]u8`, L0340's
+note says the literal is `utf8` and to bind it with the type meant, `name:
+[]u8 = "..."`, and pass the name, as L0304 says for a struct literal.
+
+**The alternatives:** typing a text literal from a formal an earlier
+argument bound, as D372 types a numeric one, which changes D138's deduction
+for one literal kind and was not asked for; naming `text.bytes(value)`,
+which needs an import the conversion does not; and a code of its own, which
+would split one rule for a wording reason.
+
+**Pinned by** `negative/utf8-and-bytes-name-their-conversion`, both
+directions through a generic pattern and a plain parameter, and
+`negative/text-literal-for-a-byte-formal-is-bound-first`.
+
 ## DECISIONS: DECLARED TYPES, RANGES AND LAYOUT
 
 The types a program declares for itself, and what a target may do with
@@ -12431,6 +12462,56 @@ unnecessary.
 
 **Pinned by** `runtime/module-variant-images`, on every target.
 
+
+### D2175 — An atom set naming one member twice is warned about
+
+**The discrepancy:** a failure set or atom union that names one atom twice,
+`! mem.not_found | mem.not_found`, was accepted without a word [0640]. R20's
+merged atoms left sets doubled across the corpus, each found by searching.
+
+**Chosen:** L0697, a warning under D251's policy, at the second name of a
+member, atom or declared set, that an earlier member of the same written
+union names; the related label is the first. The set means what it would
+with the name once, so its exact fix removes the second name with the `|`
+before it. Like L0684 it is raised only on a program with no error. Two
+sets that share atoms, `vertical | north`, name no member twice and are not
+warned about.
+
+**The alternatives:** refusing the doubled set, which makes a lint a rule
+of the language against D251; and leaving it to `refine fix`'s removed-name
+rewrites (D2129), which remove a duplicate only for the names R20's list
+renamed.
+
+**Pinned by** `negative/atom-named-twice-in-a-set`, in a declared set, a
+parameter's set and a failure set, whose fixed program compiles with no
+report.
+
+### D2179 — The refusals say how a union of atom sets is split
+
+**The discrepancy:** a `match` arm cannot name a declared atom set, and a
+reader splitting `posix.errno | failure.reason` tried `posix.errno
+(number):`, which was L0333 twice, "an atom arm has no payload to bind" and
+"this atom is not a member of the matched set", neither saying how. A
+comparison does not narrow either (D189, D434): `if problem <>
+report.refused then gave_up(problem) end if` was L0301 with a note naming
+only the widening rule.
+
+**Chosen:** the maintainer's answer to the question: no new form. [1210]
+says a union is split by naming one side's atoms, which may share an arm,
+and ending with `_ (rest):`, which binds the other side's as a set (D434).
+An arm that names a declared atom set is one L0333 whose note says so; the
+set's atoms count as matched, so none is also reported missing. L0301 at an
+atom value whose set has more than one atom and is not inside the one
+required adds to its note that a comparison does not narrow, and that
+`match` with `_ (rest):` does.
+
+**The alternatives:** an arm that names a declared set and binds the
+subject narrowed to it, a language change the maintainer declined until a
+second program wants it; and keeping both refusals, which say what is wrong
+and not what to write.
+
+**Pinned by** `negative/atom-set-union-is-split-with-rest`.
+
 ## DECISIONS: LIFETIME, ESCAPE AND ALLOCATION
 
 Which origin a reference carries, where it may reach, and who owns the
@@ -13299,6 +13380,23 @@ refused names, `negative/escaping-into-function-value` for a call through a
 function value and for two types that differ in the contract, the parser case
 `escaping into names a target`, and the structural grammar's
 `contextual-names` corpus.
+
+
+### D2177 — L0314 spells `escaping inout` for an `inout` parameter
+
+**The discrepancy:** L0314's note said a retained parameter is declared
+`escaping`, and an `inout` parameter whose parts a callee keeps needs both
+words, `escaping inout value:`, which nothing said; it was found by reading
+`core/spill`.
+
+**Chosen:** when the parameter the escaping reference derives from is
+`inout`, L0314's note ends with the spelling, `escaping inout NAME:`
+[0780]/[0900]. The rule and the message are unchanged.
+
+**The alternatives:** a fix inserting `escaping`, which changes the
+function's contract for every caller and so is not a local repair.
+
+**Pinned by** `negative/escaping-inout-is-spelled-for-an-inout-part`.
 
 ## DECISIONS: FUNCTIONS, CALLS AND RETURNS
 
@@ -15076,6 +15174,30 @@ today for a form that has a meaning; and a sentence in the tour alone, which
 the tour now carries as well. The maintainer chose the warning.
 
 **Pinned by** `negative/a-value-after-an-assigned-result`.
+
+
+### D2178 — L0303's repair for a `[]mut` parameter written `inout` drops `inout`
+
+**The discrepancy:** a `[]mut f64` parameter written `inout` makes every
+caller's slice binding need `mut` (L0303), and the offered fix was `mut` on
+the caller's binding, though a `[]mut` parameter writes its elements
+without `inout` [0570]/[0900], which only lets the callee replace the
+caller's slice.
+
+**Chosen:** when the place L0303 refuses is lent to an `inout` parameter
+whose type is a `[]mut` slice, the note says that `inout` lets the callee
+replace the slice and that a `[]mut` parameter writes the elements without
+it, and the guessed fix removes `inout` from the parameter, in whatever
+file declares it. It is a guess, because a callee that does replace the
+slice needs the caller's binding `mut`, which the note also names. The fix
+is not offered for a library parameter, which a program does not edit.
+
+**The alternatives:** keeping `mut` on the binding as the fix, which
+spreads the parameter's mistake to every caller; and an exact fix, which
+would be wrong for a callee that assigns the whole slice.
+
+**Pinned by** `negative/inout-mut-slice-parameter-drops-inout`, whose
+guessed fix the `fixes` suite applies and compiles clean.
 
 ## DECISIONS: CONTROL FLOW
 
@@ -18980,6 +19102,41 @@ declined.
 
 **Pinned by** `negative/module-float-declared-below-is-known` and
 `runtime/module-float-declared-below-is-known`.
+
+
+### D2174 — An unresolved prefix names the import the file is missing
+
+**The discrepancy:** [1450] gives every file of a module its own imports,
+and a file using a name its sibling imports was L0201 with [1860]'s note to
+check the spelling; refine-build met twenty splitting one module in two. A
+qualified name whose module the file does not import, `mem.out_of_memory`
+without `import core/mem`, was L0201 naming `out_of_memory` in a type
+position, or L0304 "this type argument names no type", neither saying that
+`mem` is a module the file could import.
+
+**Chosen:** a prefix of a qualified name that resolves to nothing is asked
+two questions before it is called a misspelling. If another file of the
+same module imports the name, L0201's note says which file and that each
+file has its own imports; if exactly one library module the program
+reaches has the name as its last segment, and the file imports that module
+under no name, the note names it. Either way the message names the prefix,
+the refusal is L0201 also where L0304 stood, and the first such prefix in
+the file carries the import as an exact fix, after the file's last import
+or at its start, so that the fixes of one file never write it twice. The
+answer comes from the module table and the resolution table, without the
+host; a library module the program does not reach is not known, and its
+prefix keeps the misspelling note.
+
+**The alternatives:** reading the library's directories from the checker,
+which would make a stage ask the host; offering the fix at every use, which
+the fixes of one file could not all apply; and keeping L0304 at the type
+argument, whose rule is about a form, not a name.
+
+**Pinned by** `negative/sibling-file-import-is-named`,
+`negative/library-module-prefix-names-its-import`, in a parameter's type, a
+type argument and a failure set, and
+`negative/library-module-concept-prefix-names-its-import`, a prefix the
+resolver reads; each fixed program compiles with no report.
 
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE
 

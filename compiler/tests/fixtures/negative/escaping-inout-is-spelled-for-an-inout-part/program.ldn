@@ -1,0 +1,10 @@
+holder: type = struct
+    view: []u8
+end holder
+
+keep: (escaping bytes: []u8) -> none =
+end keep
+
+pass: (inout box: holder) -> none =
+    keep(box.view)
+end pass

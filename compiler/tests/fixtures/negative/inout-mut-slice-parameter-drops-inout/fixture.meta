@@ -1,0 +1,10 @@
+class: negative
+summary: D2178 a read-only binding lent to a []mut parameter written inout is L0303, whose note and guessed fix drop inout from the parameter rather than make the binding mut
+program: program.ldn
+codes: L0303
+fixed: program.fixed
+constructs: 0570, 0900, 1900
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/inout-mut-slice-parameter-drops-inout/program.ldn
+expect: expected.txt
+status: 1
