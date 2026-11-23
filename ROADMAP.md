@@ -551,7 +551,7 @@ at speed takes no longer. What stays is filed with its measurement:
 rule, `SR-1424` float constants made in each block, `SR-1425` a loop's two
 jumps, `SR-1426` the order D339 copies in, and R551-12 keeps the bounds
 check a loop's end does not name and the calls of `core/atomic`'s cells;
-`SR-1427`, SR-1428 and `SR-1429` record what the work met, and `SR-1430` the
+`SR-1427`, `SR-1428` and `SR-1429` record what the work met, and `SR-1430` the
 STM32H753's binary-search, 9.7% slower at size where the RP2040 and
 RP2350 run every configuration faster. Findings fixed on
 the way: the public exposure above, and a dead shift kept as if it could
@@ -1520,7 +1520,7 @@ or inout parameter; then it builds a temporary and copies it once. Every
 recorded positive program, the library included, lowers as before, so
 `hosted/events/events.ldn:158`, the library's one site, takes no copy.
 Eight runtime fixtures pin the new order, two renamed to
-`reads-old-value`, and a ninth the alias cases. SR-1538 and `SR-1539` were
+`reads-old-value`, and a ninth the alias cases. `SR-1538` and `SR-1539` were
 filed for refusals met on the way.
 
 ### R19.40 — The migration aid
@@ -1616,7 +1616,7 @@ and D1889 how a type argument is told from a fixed actual, which now folds
 what an array length folds (D1663). [1795] and the tree-sitter grammar lost
 the inline body and the `->` lookahead it needed. `refine fix --allow all`
 migrated the corpus, and an L0696-only script the negative fixtures, whose
-own refusals a full `refine fix` would have mended (SR-1558); seventeen
+own refusals a full `refine fix` would have mended (`SR-1558`); seventeen
 fixtures that pinned only a removed form left with it. SR-1568 is filed for
 the anonymous-function paths the stages after the parser still hold.
 
@@ -1886,7 +1886,7 @@ each with a capability after an input; and `mem.transfer`,
 `mem.transfer_prefix` and `random.shuffle`, whose subject is not first,
 which the check cannot see. Reordering `mem.transfer_prefix` leaves the
 old call valid, so R20.60 must refuse the old form some other way.
-A misleading follow-on refusal met on the way joined SR-1538.
+A misleading follow-on refusal met on the way joined `SR-1538`.
 
 ### R20.30 — The concepts
 
@@ -2027,21 +2027,47 @@ without naming the import, which is `SR-1671`.
 
 ### R20.61 — Refusals that say what to write
 
-Status: active
+Status: complete
 Depends on: R20.60
 
 The refusals R20.60's renaming meets next, each made to say what to write
-instead: SR-1406's five refusals met writing refine-build and the three
-since, SR-733's alias spelled by its structure and L0696 at an alias
-application, SR-1538's `-> none` named by neither refusal a newcomer meets,
-and SR-1609's union of atom sets, which Q-183 answered: no new form, but
+instead: `SR-1406`'s five refusals met writing refine-build and the three
+since, `SR-733`'s alias spelled by its structure and L0696 at an alias
+application, `SR-1538`'s `-> none` named by neither refusal a newcomer meets,
+and `SR-1609`'s union of atom sets, which Q-183 answered: no new form, but
 [1210] says a union is split by naming one side's atoms and `_ (rest):`,
 and L0333's note at an arm naming a set and L0301's at a wider atom
-subject say so. SR-1558's `refine fix` gains a selection of the codes
+subject say so. `SR-1558`'s `refine fix` gains a selection of the codes
 whose fixes it applies.
 Exit evidence: a negative fixture for each refusal pinning its new note,
 `docs/diagnostics.md` and the tour sentence agreeing with them, and
 `refine fix` applying one code's fixes alone in a native case.
+Done: each refusal says what to write. A signature followed by `=` names
+`-> none`, `-> ()` is refused with `none` as its exact fix, and a refused
+concept entry no longer leaves the concept "never closed" (D2168, D2169);
+an import segment that is no identifier is refused at the character that
+breaks it (D2170); `lenof` before a text literal says to bind the text
+first (D2171); and a bare `else begin` after a call inside an `if` arm that
+goes on is refused at that `else`, naming `else (problem)` (D2172, [1820]).
+L0201 names a sibling file's import, and a library module the file does
+not import, with the import as its fix (D2174); a set naming one atom twice
+is the warning L0697 with its fix (D2175); `utf8` and `[]u8` name their
+conversions and a text literal for a `[]u8` formal is bound first (D2176);
+L0314 spells `escaping inout` (D2177); L0303 at a `[]mut` parameter written
+`inout` drops the `inout` (D2178); and L0333 at an arm naming a set, L0301
+at a wider atom value and [1210] say a union is split with `_ (rest):`
+(D2179). The old parameter orders, `entries:`, `io.variable` as a type and
+`posix.words` given a library atom are L0696 with their rewrites where the
+argument kinds tell the order apart (D2180); D1659 at an alias application
+names the template (D2181); L0301 at a function value names the part that
+differs (D2182); and L0344 spells a written alias (D2183). `refine fix
+--code=CODE` applies only the named codes' fixes (D2186). This settles
+`SR-1406`, `SR-733`, `SR-1538`, `SR-1558`, `SR-1609`, `SR-1670` and
+`SR-1671`. Fixed on the way: a second refused import was silent after the
+first; check.py's derivable-negative refusal did not name its exemption
+list; L0301 called a concept or function value "something unknown". Filed:
+SR-1693, a library module the program does not reach is still a plain
+misspelling.
 
 ### R20.62 — Tools that know a window
 
