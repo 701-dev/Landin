@@ -1,0 +1,10 @@
+error[L0301]: this function has a different signature
+  --> ../tests/fixtures/negative/function-value-escaping-into-differs/main.ldn:20:14
+   |
+20 |     chosen = push_front
+   |              ^^^^^^^^^^
+  --> ../tests/fixtures/negative/function-value-escaping-into-differs/main.ldn:20:5
+   |
+20 |     chosen = push_front
+   |     ^^^^^^ the function place written here
+  = note: [1000]: function values have the signature written by their type; the first difference is `escaping into head item: ptr mut node` on one side and `escaping item: ptr mut node` on the other

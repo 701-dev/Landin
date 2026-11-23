@@ -1,0 +1,47 @@
+--  D2180: five routines and an entry kept their names in D1954's new
+--  order, subject first and capabilities before inputs.  A call in the
+--  old order whose arguments' kinds show it is refused naming the new
+--  order, and the fix writes the arguments in it.
+import core/fibre
+import core/fibre/stacks
+import core/io
+import core/io/fake
+import core/mem
+import core/random
+import core/text
+
+mix: (inout g: random.generator, values: []mut u32) -> none =
+    random.shuffle(g, values)
+end mix
+
+move: (source: mem.storage(u8), inout target: mem.storage(u8)) -> (n: usize)
+      ! mem.out_of_bounds | mem.out_of_memory =
+    n = try mem.transfer(source, 0, target)
+end move
+
+rounds: () -> none ! mem.out_of_memory =
+    mut state: stacks.round_space = zeroed
+    mut entries: [3]usize = zeroed
+    idler: stacks.spin = zeroed
+    round := try stacks.round_over(state, entries, any(addr idler))
+    _ = round
+end rounds
+
+turning: (runs: any fibre.turns) -> none =
+    mut space: fake.network_space = zeroed
+    mut b0: [16]u8 = zeroed
+    mut sockets: [1]fake.network_socket = [fake.socket_over(b0)]
+    network := fake.network_over_turns(space, sockets, runs)
+    _ = network
+end turning
+
+temporary: (fs: any io.file_system, names: any io.entropy,
+            directory: text.os_string, into: []mut u8) -> none
+           ! mem.not_found | io.no_access | io.io_failed =
+    made := try fs.make_temporary(directory, names, into)
+    _ = made
+end temporary
+
+public main: () -> (code: i32) =
+    code = 0
+end main

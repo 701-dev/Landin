@@ -860,7 +860,8 @@ These answers of the library review change what a program writes
 ### Migrating to one name for each idea
 
 The library renamed, merged and reshaped names so that each idea has one
-name (D1953, D1954, D2008, D2028 to D2034, D2048, D2050, D2128, D2129).
+name (D1953, D1954, D2008, D2028 to D2034, D2048, D2050, D2128, D2129,
+D2180).
 The compiler refuses every old name with L0696, naming its replacement,
 and `refine fix` rewrites every mechanical one, adding the module's
 import where the new name lives elsewhere. The complete list is
@@ -876,7 +877,7 @@ import where the new name lives elsewhere. The complete list is
 | OS strings: `text.host_string`, `text.host_over`, `text.host_bytes`, `text.host_equal`, `text.from_host`, `text.append_host`; the environment variable record `io.variable` | `text.os_string`, `text.os_string_over`, `text.os_string_bytes`, `text.os_string_equal`, `text.from_os_string`, `text.append_os_string`; `text.os_variable` (D2033, D2008) |
 | one meaning each: `io.argument_at`, `io.variable_at`, `fibre.space`, `map.cursor`, `text.cursor`, the directory's `cursor`, the `entries` parameter of `stacks.round_over` and `events.over` | `io.argument`, `io.variable`, `fibre.record`, `map.position`, `text.from_offset`, `consumed`, `fibres` (D2034) |
 | `mem.transfer_prefix(source, target, n)` | `mem.copy_prefix(target, source, n)` (D2128) |
-| `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and `io.make_temporary` with their arguments in the old order | the subject first and capabilities before inputs (D1954). An old-order call is refused by its argument's type and is swapped by hand |
-| layers: `posix.internet_address`, `posix.address_of`, `posix.reason`; `posix.words` of a library atom | `system.internet_address`, `system.address_of`, `system.reason`; `system.words` (D2008) |
+| `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and `io.make_temporary` with their arguments in the old order | the subject first and capabilities before inputs (D1954). An old-order call whose arguments' kinds show it is refused naming the new order, and `refine fix` writes it (D2180); otherwise it is refused by its argument's type and is swapped by hand |
+| layers: `posix.internet_address`, `posix.address_of`, `posix.reason`; `posix.words` of a library atom | `system.internet_address`, `system.address_of`, `system.reason`; `system.words`, which `refine fix` writes where the argument holds a library atom (D2008, D2180) |
 | `io.writer_of(world)` and `io.lent_writer` | the world itself, since an `any io.world` converts to `any io.writer` (D2050) |
 | a program's own `iterable` | `import core/iter` and `iter.iterable`, which `refine fix` writes (D2048, D2129) |

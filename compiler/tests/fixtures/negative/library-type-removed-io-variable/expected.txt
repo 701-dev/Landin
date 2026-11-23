@@ -1,0 +1,33 @@
+error[L0696]: `io.variable` is no longer a type
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/main.ldn:7:21
+  |
+7 | name_length: (item: io.variable) -> (n: usize) =
+  |                     ^^^^^^^^^^^
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/../../../../../core/io/io.ldn:*:1
+  |
+* | public variable: (provider: type is environment, host: provider,
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the routine it names
+  = note: D2033: the record of an environment variable is `text.os_variable`; `io.variable` lends the variable at an index
+  = help: write `text.os_variable`
+error[L0696]: `io.variable` is no longer a type
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/main.ldn:11:14
+   |
+11 | both: (left: io.variable, right: io.variable) -> (same: bool) =
+   |              ^^^^^^^^^^^
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/../../../../../core/io/io.ldn:*:1
+  |
+* | public variable: (provider: type is environment, host: provider,
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the routine it names
+  = note: D2033: the record of an environment variable is `text.os_variable`; `io.variable` lends the variable at an index
+  = help: write `text.os_variable`
+error[L0696]: `io.variable` is no longer a type
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/main.ldn:11:34
+   |
+11 | both: (left: io.variable, right: io.variable) -> (same: bool) =
+   |                                  ^^^^^^^^^^^
+  --> ../tests/fixtures/negative/library-type-removed-io-variable/../../../../../core/io/io.ldn:*:1
+  |
+* | public variable: (provider: type is environment, host: provider,
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the routine it names
+  = note: D2033: the record of an environment variable is `text.os_variable`; `io.variable` lends the variable at an index
+  = help: write `text.os_variable`

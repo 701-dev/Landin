@@ -1,0 +1,10 @@
+class: negative
+summary: posix.words given a system.reason is refused naming system.words, and the fix writes it; posix.words of an errno stays
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0696
+fixed: main.fixed
+constructs: 1420, 0640
+targets: linux-x86-64
+expect: expected.txt

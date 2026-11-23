@@ -7,4 +7,4 @@ error[L0301]: this function argument has a different signature
   |
 5 | accept: (callback: unary) -> none = end accept
   |          ^^^^^^^^^^^^^^^ this function-valued parameter
-  = note: [1000]: a function value's complete signature is its type
+  = note: [1000]: a function value's complete signature is its type; one signature is `(left: i32, right: i32) -> (result: i32)` and the other is `(value: i32) -> (result: i32)`

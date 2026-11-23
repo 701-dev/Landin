@@ -7,4 +7,4 @@ error[L0301]: this function argument has a different signature
    |
 11 | accept: (callback: (caller where: site) -> none) -> none =
    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this function-valued parameter
-  = note: [1000]: a function value's complete signature is its type
+  = note: [1000]: a function value's complete signature is its type; the first difference is `where: site` on one side and `caller where: site` on the other

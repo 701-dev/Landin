@@ -1,0 +1,18 @@
+--  D2180: `posix.words` words an errno alone since D2008, and
+--  `system.words` an errno or a library atom.  Given a `system.reason`,
+--  `posix.words` is refused naming `system.words`, and the fix writes it;
+--  `posix.words` of an errno stays.
+import platform/posix
+import hosted/system
+
+say: (problem: system.reason) -> (phrase: []u8) =
+    phrase = system.words(problem)
+end say
+
+errno_only: (problem: posix.errno) -> (phrase: []u8) =
+    phrase = posix.words(problem)
+end errno_only
+
+public main: () -> (code: i32) =
+    code = 0
+end main

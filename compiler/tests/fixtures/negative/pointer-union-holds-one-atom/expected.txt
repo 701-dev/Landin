@@ -27,6 +27,10 @@ error[L0696]: a pointer union holds one atom
    |
 14 | substituted: type = joined(optional)
    |                     ^^^^^^^^^^^^^^^^
+  --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:13:26
+   |
+13 | joined: type (t: type) = t | denied
+   |                          ^^^^^^^^^^ the template's union
   = note: D1659: a pointer with several states is a one-atom union with an error set, or a struct of a state and a pointer
 error[L0696]: a pointer union holds one atom
   --> ../tests/fixtures/negative/pointer-union-holds-one-atom/program.ldn:16:15

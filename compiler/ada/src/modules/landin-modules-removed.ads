@@ -30,6 +30,20 @@ package Landin.Modules.Removed is
    --  Owner declared by Module, or No_Row.
    function Field (Module, Owner, Name : String) return Row;
 
+   --  The row for the label Label of a call of the routine Name of
+   --  Module, where the list renamed that parameter, or No_Row.
+   function Label (Module, Name, Label : String) return Row;
+
+   --  The row for Name of Module written where a type belongs, where the
+   --  list moved the type away and Name now means something else
+   --  (`io.variable`, now a routine), or No_Row.
+   function Type_Member (Module, Name : String) return Row;
+
+   --  The row for the routine Name of Module given an argument wider than
+   --  it now takes, where the list moved the wider form to another
+   --  routine (`posix.words` of a library atom), or No_Row.
+   function Narrowed (Module, Name : String) return Row;
+
    function Found (Item : Row) return Boolean;
 
    --  Where the replacement is declared: a logical module path, and the
@@ -47,13 +61,64 @@ package Landin.Modules.Removed is
    function Note (Item : Row) return String
      with Pre => Found (Item);
 
+   --  D2180: a routine or concept entry the list reordered under its own
+   --  name (D1954).  A call in the old order is told apart by the kind of
+   --  value at each position, which is all a refusal before the call's
+   --  own matching can see.
+   type Order is private;
+   No_Order : constant Order;
+
+   --  The reordered routine Name of Module when Owner is "", else the
+   --  entry Name of the concept Owner that Module declares; or No_Order.
+   function Reordered (Module, Owner, Name : String) return Order;
+
+   --  The reordered entry Name of a concept Module declares, whichever
+   --  concept: a call through a provider names the entry and not its
+   --  concept.  No_Order when there is none.
+   function Reordered_Entry (Module, Name : String) return Order;
+
+   function Found (Item : Order) return Boolean;
+
+   --  The kinds of value a reordered position holds.
+   type Shape is (Struct_Shape, Slice_Shape, Erased_Shape, Integer_Shape);
+
+   --  How many of the call's last arguments the reorder moves; any before
+   --  them, an entry's provider, keep their places.
+   function Moved (Item : Order) return Positive
+     with Pre => Found (Item);
+
+   --  What the old order puts at Position among the moved arguments.
+   function Old_Shape (Item : Order; Position : Positive) return Shape
+     with Pre => Found (Item) and then Position <= Moved (Item);
+
+   --  What the new order puts there.
+   function New_Shape (Item : Order; Position : Positive) return Shape
+     with Pre => Found (Item) and then Position <= Moved (Item);
+
+   --  Where the argument the old order puts at Position goes.
+   function Goes_To (Item : Order; Position : Positive) return Positive
+     with Pre => Found (Item) and then Position <= Moved (Item);
+
+   --  The decision and the new order, as a note's text.
+   function Note (Item : Order) return String
+     with Pre => Found (Item);
+
 private
+
+   type Table_Kind is (Members_Table, Fields_Table, Labels_Table,
+                       Types_Table, Narrowed_Table);
 
    type Row is record
       Index : Natural := 0;
-      Field : Boolean := False;
+      Table : Table_Kind := Members_Table;
    end record;
 
-   No_Row : constant Row := (Index => 0, Field => False);
+   No_Row : constant Row := (Index => 0, Table => Members_Table);
+
+   type Order is record
+      Index : Natural := 0;
+   end record;
+
+   No_Order : constant Order := (Index => 0);
 
 end Landin.Modules.Removed;

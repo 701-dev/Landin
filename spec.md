@@ -5030,6 +5030,16 @@ subject keeps its type, and no binding is made.
 
 **Pinned by** `negative/pointer-union-holds-one-atom`, which refuses the form written in either order and in a signature, flattened from a one-atom union and reached by applying a parameterized alias, and by `negative/r490-union-alias-application-reports`, whose imported application makes one. The refusal carries no fix: the rewrite is the program's design. Fixtures that used the form in passing hold one atom now: `runtime/match-sink-binding`, `runtime/match-arm-names-several-cases`, whose pointer-union arm names the atom and `ptr` together, `runtime/r720-feature-interactions`, `runtime/pointer-union-atom-comparison`, and the debugging program's union, which GDB and LLDB show as the pointer it is. D235 and D874 are superseded and D429 amended.
 
+### D2181 — A pointer union refused at an application names the template's union
+
+**The discrepancy:** D1659 refuses a pointer union of two or more atoms where a parameterized alias's application makes one, and the refusal stood at the application alone, while the one-pointer refusal beside it names the template's member.
+
+**Chosen:** at an application, L0696's "a pointer union holds one atom" names the template's union as its second place, "the template's union"; written in place, it names none.
+
+**The alternatives:** a note naming the template, which would spell in prose what a label shows.
+
+**Pinned by** `negative/pointer-union-holds-one-atom`, whose application `joined(optional)` names `t | denied`.
+
 ## DECISIONS: ARRAYS, SLICES AND TEXT
 
 Array identity and the contextual storage an array value is formed in,
@@ -8260,6 +8270,16 @@ plain `u32` already did.
 
 **Pinned by** `runtime/distinct-zero-images`, `positive/r490-distinct-zeroable`
 (the negative fixture D213 named, turned) and `negative/distinct-bare-zeroed`.
+
+### D2183 — A refused value's type is spelt by the alias its declaration wrote
+
+**The discrepancy:** a type's descriptor keeps no alias, so a refusal that spelt a value's structural type spelt its structure: an alias `maybe` of `absent | ptr u32` read as that union in L0344, not as the `maybe` the program wrote.
+
+**Chosen:** where the refused value is a name whose declaration writes its type as a non-generic alias of a structural type, a union, a pointer, a slice, an array, an `any` or a function type, the refusal spells the alias as written there. Elsewhere, and for a generic alias's application, the structure is spelt as before.
+
+**The alternatives:** an alias kept in every descriptor, which would make two spellings of one type two descriptors that agreement must equate.
+
+**Pinned by** `negative/r630-optional`, whose L0344 names `maybe`.
 
 ## DECISIONS: STRUCTS, VARIANTS AND NESTING
 
@@ -15076,6 +15096,16 @@ today for a form that has a meaning; and a sentence in the tour alone, which
 the tour now carries as well. The maintainer chose the warning.
 
 **Pinned by** `negative/a-value-after-an-assigned-result`.
+
+### D2182 — A function value of another signature is told which part differs
+
+**The discrepancy:** L0301 refused a function value whose signature differs from its place's, saying only that it differs, so a `from held` against a `from`, or an `escaping into` against an `escaping`, read as identical text on the page.
+
+**Chosen:** the note names what differs. Where both signatures have as many parameters and as many results, it names the first parameter or result that differs in more than its label, which D117's agreement does not compare, as each side writes it; otherwise, or where the difference is in the error set or the return, it gives both signatures whole. A comparison of two function values says the same, the left operand's signature standing where a place's would.
+
+**The alternatives:** both signatures always, which leaves a reader to find one word in two long lines; and the first differing character, which can fall inside a type's name.
+
+**Pinned by** `negative/function-value-escaping-into-differs`, `negative/held-result-refusals`, `negative/caller-parameter-signature-mismatch`, `negative/multiple-result-function-signature-mismatch`, whose results differ in number, and `negative/function-value-signature-mismatch`.
 
 ## DECISIONS: CONTROL FLOW
 
@@ -42557,6 +42587,8 @@ forgets a join, or a second library value is as unsafe to forget.
 
 ### D2129 — A library name the breaking list removed is refused naming its successor
 
+**Amended by D2180.** A routine that kept its name in a new order is refused naming the new order where its arguments' kinds show the old one; elsewhere it is refused as below.
+
 **The discrepancy:** D1847 asks for a refusal that names the replacement of every removed form, and the breaking list (D1948-D2051) removes library names, which the library no longer declares: a program that wrote one would meet only "has no member", with a respelling to whatever name was near.
 
 **Chosen:** the compiler keeps one table of the names the list removed, `Landin.Modules.Removed`, by module and name, and by type or concept and name for a field or concept entry. A qualified name, field, struct value's field or conformance label that resolves to nothing and that the table names is refused with L0696, whose note gives the decision and the replacement. A rename's exact fix writes the new name, and where the successor lives in another module it takes the name the file imports that module as, or adds the module's import after the file's last when nothing in the file binds its name; an atom set that already names the successor, or names an earlier old name of it, loses the member instead, so a merged atom is not named twice. `try tree.count_leaves(v, id)` becomes `tree.leaves(try tree.get(v, id))`, and a call of `mem.transfer_prefix` D2128's call; `count_leaves` under an `else` has no fix, since the `else` recovered a count and `tree.get`'s failure gives none. A program's own module-internal `iterable` written exactly as [1320] wrote it before D1957 is the breaking list's concepts entry: L0348's fix removes it, writes `iter.iterable` for each use in its module and imports `core/iter`. A name whose replacement changes the program's shape, `map.end_of_entries`, `io.writer_of` and `io.lent_writer`, is refused with a note saying what to write and no fix. Only a name that fails to resolve consults the table, so a program's own declaration of an old name keeps its meaning. A routine that kept its name in a new order (D1954) is refused as before, by the type of the argument now out of place.
@@ -42564,6 +42596,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a migration table read by `refine fix` alone, which D1847 declined; and leaving the old names declared beside the new ones for a window, which would give each idea two names, the thing D1953 removed.
 
 **Pinned by** `negative/library-name-removed-renames`, `negative/library-name-removed-moves`, `negative/library-name-removed-field`, `negative/library-name-removed-by-hand` and `negative/for-takes-only-core-iter-iterable`, whose fix conforms to `iter.iterable`.
+
+### D2180 — A breaking-list form that still resolves is refused naming its replacement
+
+**The discrepancy:** D2129 consults the table of removed names only when a name fails to resolve, and four of the breaking list's forms resolve: a routine that kept its name in D1954's new order, `mem.transfer`, `random.shuffle`, `stacks.round_over`, `fake.network_over_turns` and the `io.file_system` entry `make_temporary`; a call's label `entries:` on `stacks.round_over` or `events.over`, which D2034 renamed; `io.variable` written as a type, which D2008 and D2033 moved to `text.os_variable` and which now names a routine; and `posix.words` given a library atom, which D2008 moved to `system.words`. Each was refused by a type mismatch, an unknown label or "not a type", none of which said the list had changed it.
+
+**Chosen:** `Landin.Modules.Removed` keeps each of these beside D2129's rows, and each is refused with L0696, the note naming the decision and what to write. A reordered call is told apart before its arguments are matched, by the kind of value each moved argument is, read only where it is already known without checking: a literal, an `any(...)` or a name whose type is settled, as a struct, a slice or an array, an `any` value or an integer. Every argument whose kind is known must fit the old order, and at least one must not fit the new; the fix then writes the arguments in the new order. A call whose kinds do not show it is refused as before, by the argument out of place. A conformance whose function takes `make_temporary`'s parameters in the old order is refused the same way, with no fix: swapping the function's own parameters would put every direct call of it out of order. The `entries:` label's fix writes `fibres:`. `io.variable` in a type position becomes `text.os_variable`, and the file's first such use adds `import core/text` when nothing binds it. `posix.words` given an atom set wider than `posix.errno` becomes `system.words`; where `hosted/system` is not imported, only the file's first call of `posix.words` carries the import, and a later one has no fix until it is there.
+
+**The alternatives:** a refusal after the call's own matching, which reports the first argument out of place and would need to undo it; reading the kinds by checking each argument, which would check it twice and report its own errors before the order's; and a fix for the conformance that also swaps every direct call, which reaches past the refused declaration.
+
+**Pinned by** `negative/library-order-removed-calls`, whose fix writes each of the five calls in its new order, `negative/library-order-removed-conformance`, `negative/library-label-removed-fibres`, `negative/library-type-removed-io-variable`, whose fix imports `core/text` once for three uses, and `negative/library-words-narrowed`, where `posix.words` of an errno stays.
 
 ### D1954 — A library routine's parameters come subject first, then capabilities, then inputs
 
