@@ -989,6 +989,31 @@ The candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45252688704) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45259337256).
 
+### R16.34 — Stored values in their slots' registers on RISC-V and Cortex-M
+
+Status: planned
+Depends on: R16.10
+
+What R16.33 named as the next cost on the firmware and RISC-V targets:
+`SR-1681`'s stored value, which arm64 (D2164) and x86-64 (D2157) make in
+its slot's register and RISC-V and Cortex-M still make in a register of
+its own and move. On arm64 the rule alone took 5.5% to 14% off every
+hosted workload at speed; a direct port to RISC-V's recorded-writes
+allocator made RV64 execute 7% to 110% more instructions, because the
+plan's check refused the value's write inside the slot's interval and
+the routine fell back to its homes (D1503, D2108). Beside it, since
+every board's records are made again either way, `SR-1726`'s placement:
+on the RP2350, whose M33 and Hazard3 fetch from SRAM without a cache,
+R16.33's two fewer instructions moved fannkuch-redux's flip loop's 32-bit
+head and call to halfword addresses and it ran 0.64% and 0.63% slower at
+speed.
+Exit evidence: RV64, RV32 and Cortex-M make a stored value in its slot's
+register with the plan's check accepting it, RV64's instructions at speed
+and the boards' cycles lower than R16.33's figures; at speed on Thumb-2
+and compressed RV32 a loop's head at a word address, padded only where
+the padding is not executed, the RP2350's fannkuch-redux no slower than
+before R16.33; and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
