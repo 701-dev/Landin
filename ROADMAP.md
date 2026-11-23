@@ -2283,7 +2283,7 @@ their frame records (D2191); a failed check ends with
 says before emission. `utf16` stays, and a Windows host string is not one
 (D2187). The gate's `windows-emit` and `windows-runtime` jobs run 3,314
 outcomes of 732 runtime fixtures natively on `windows-2025`, passed in
-gate run 45190923214; `compiler/tests/windows/check.py` runs them under
+the merged candidate's gate run 45229944797, with boards run 45234631776; `compiler/tests/windows/check.py` runs them under
 Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
 that Wine loaded; the trap after a prepared stack's report dispatched as
 an access violation; a musl-built `refine` named no host target (`SR-1518`
