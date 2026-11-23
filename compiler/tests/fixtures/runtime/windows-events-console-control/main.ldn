@@ -1,0 +1,97 @@
+--  On Windows hosted/events' signals are the console's control events.
+--  The program takes a console of its own, so that the event it sends
+--  reaches no other process, takes back the Ctrl+C that a parent's new
+--  process group would have it ignore, and watches `interrupt`; one fibre
+--  waits for the next signal while another sleeps on the provider's clock
+--  and then sends Ctrl+C to the console.  The control handler, on the system's
+--  thread, puts a packet on the loop's port, and the loop, waiting for the
+--  sleeper's deadline or for packets, answers the watcher with
+--  `interrupt` and the event's code, 0.  `user1`, which Windows does not
+--  send, is refused `io_failed` with `ERROR_NOT_SUPPORTED`, 50, and once
+--  the watching stops a wait for the next signal fails.
+import core/failure
+import core/fibre
+import core/io
+import core/io/signal
+import core/time
+import hosted/events
+import platform/windows
+
+--  Whether the watcher read `interrupt`, and the number it read.
+mut interrupted: bool = false
+mut number: u32 = 0
+
+watcher: type = struct
+    host: events.host
+end watcher
+
+--  Wait for the next signal.
+wait_for_signal: (inout state: watcher) -> none ! failure.reason =
+    heard: signal.event = try signal.next_signal(state.host)
+    interrupted = heard.which == signal.interrupt
+    number = heard.number
+end wait_for_signal
+
+sender: type = struct
+    host: events.host
+end sender
+
+--  Let the watcher wait, then send Ctrl+C to the console.
+send: (inout state: sender) -> none ! failure.reason =
+    time.sleep(state.host, time.milliseconds(20))
+    fail io.io_failed
+        when windows.send_control_event(windows.control_c, 0) == 0
+end send
+
+mut fibre_backing: [2 * 32768]u8 = zeroed
+
+run: (host: events.host) -> none ! failure.reason =
+    mut tasks := try fibre.turns_over(any(addr host), fibre_backing, 2)
+    defer fibre.join(tasks) else none
+    try fibre.admit(tasks, wait_for_signal, watcher(host: host))
+    try fibre.admit(tasks, send, sender(host: host))
+    try fibre.join(tasks)
+end run
+
+public main: () -> (code: i32) =
+    code = 1
+    mut state: events.space = zeroed
+    mut entries: [3]usize = zeroed
+    host := events.over(state, entries) else (problem)
+        _ = problem
+        return
+    end
+    code = 2
+    signal.watch(host, signal.user1) else (problem)
+        _ = problem
+        code = 3
+    end
+    return when code <> 3 or events.last_errno(host) <> 50
+    code = 4
+    _ = windows.free_console()
+    return when windows.allocate_console() == 0
+               or windows.set_control_handler(0, 0) == 0
+    code = 5
+    signal.watch(host, signal.interrupt) else (problem)
+        _ = problem
+        return
+    end
+    code = 6
+    run(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 7
+    return when not interrupted or number <> 0
+    code = 8
+    signal.stop_watching(host) else (problem)
+        _ = problem
+        return
+    end
+    code = 9
+    _ = signal.next_signal(host) else (problem)
+        _ = problem
+        code = 42
+        return
+    end
+end main

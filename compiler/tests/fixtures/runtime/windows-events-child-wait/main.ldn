@@ -1,15 +1,13 @@
---  D479, D487: a child process under hosted/events, which is this
---  program again, started with the argument `child` from the path its
---  first argument names, so that it needs no shell and runs wherever the
---  program does.  The child writes a line, then waits to read one from
---  its input, writes it back to its errors and exits 3.  One fibre reads
---  the child's output and errors and then waits for its end; the other
---  ticks on the provider's clock three times and only then writes the
---  child its line.  The reader's wait for the child's errors cannot be
---  answered before the ticker has written, so the program ends only if
---  waiting on the child's pipes and its end let the other fibre run.  A
---  missing program is `not_found`, with the system's code for a missing
---  file, 2 on every hosted system, for `events.last_errno`.
+--  D479, D487 on Windows: a child process under hosted/events, the
+--  command processor the environment's `ComSpec` names.  It writes a line,
+--  then waits to read one from its input, writes it back to its errors and
+--  exits 3.  One fibre reads the child's output and errors and then waits
+--  for its end; the other ticks on the provider's clock three times and
+--  only then writes the child its line.  The reader's wait for the
+--  child's errors cannot be answered before the ticker has written, so the
+--  program ends only if waiting on the child's pipes, both at once, and on
+--  its end let the other fibre run.  A missing program is `not_found`,
+--  with `ERROR_FILE_NOT_FOUND`, 2, for `events.last_errno`.
 import core/cmp
 import core/failure
 import core/fibre
@@ -77,16 +75,21 @@ tick: (inout state: ticking) -> none ! failure.reason =
         inc seen.val.ticks
         _ = round
     end for
-    try io.write_child(state.host, seen.val.child, "hi\n")
+    try io.write_child(state.host, seen.val.child, "hi\r\n")
     try io.close_input(state.host, seen.val.child)
 end tick
 
 mut backing: [2 * 32768]u8 = zeroed
 
+script: []u8 = "echo out& set /p line=& call echo got %line% 1>&2& exit 3"
+
 run: (host: events.host, inout seen: shared) -> none ! failure.reason =
-    arguments: [1]text.os_string = [text.os_string_over("child")]
+    shell: text.os_string =
+        try io.variable_named(host, text.os_string_over("ComSpec"))
+    arguments: [2]text.os_string = [text.os_string_over("/c"),
+                                    text.os_string_over(script)]
     nothing: []text.os_variable = []
-    seen.child = try io.spawn(host, try io.argument(host, 0), arguments,
+    seen.child = try io.spawn(host, shell, arguments,
                               nothing,
                               (input: io.piped, output: io.piped,
                                errors: io.piped))
@@ -99,31 +102,13 @@ run: (host: events.host, inout seen: shared) -> none ! failure.reason =
     try fibre.join(tasks)
 end run
 
---  The child: write a line, read one, write it back to the errors, and
---  exit 3.
-child: (host: events.host) -> (code: i32) ! failure.reason =
-    try io.write(host, io.out(host), "out\n")
-    mut line: [16]u8 = zeroed
-    mut length: usize = 0
-    loop do
-        got: usize = try io.read(host, io.input(host),
-                                 line[length..<lenof line])
-        break when got == 0
-        length += got
-        break when line[length - 1] == u8('\n') or length == lenof line
-    end loop
-    try io.write(host, io.err(host), "got ")
-    try io.write(host, io.err(host), line[0..<length])
-    code = 3
-end child
-
 --  A program that is not there is `not_found`, keeping 2.
 missing: (host: events.host) -> (yes: bool) =
     arguments: []text.os_string = []
     nothing: []text.os_variable = []
     yes = false
     started: io.child = io.spawn(host,
-                                 text.os_string_over("landin-absent-program"),
+                                 text.os_string_over("C:\\landin-absent.exe"),
                                  arguments, nothing, io.discarding)
         else (problem)
         yes = problem == mem.not_found and events.last_errno(host) == 2
@@ -140,13 +125,6 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    if io.arguments_length(host) > 1 then
-        code = child(host) else (problem)
-            _ = problem
-            code = 9
-        end
-        return
-    end if
     code = 2
     mut seen: shared = zeroed
     run(host, seen) else (problem)
@@ -154,10 +132,10 @@ public main: () -> (code: i32) =
         return
     end
     code = 3
-    return when cmp.compare(seen.output[0..<seen.taken], "out\n")
+    return when cmp.compare(seen.output[0..<seen.taken], "out\r\n")
       <> cmp.equal
     code = 4
-    return when cmp.compare(seen.errors[0..<seen.complained], "got hi\n")
+    return when cmp.compare(seen.errors[0..<seen.complained], "got hi \r\n")
       <> cmp.equal
     code = 5
     return when seen.ticks_at_errors <> 3 or seen.code <> 3

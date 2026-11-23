@@ -1,0 +1,8 @@
+class: runtime
+summary: on Windows hosted/events' signals are the console's control events: a program on a console of its own takes back Ctrl+C and watches interrupt, one fibre waits for the next signal while another sleeps on the provider's clock and sends Ctrl+C, and the control handler's packet on the loop's port answers the watcher with interrupt and the event's code 0; user1 is refused io_failed with ERROR_NOT_SUPPORTED, and a wait after stop_watching fails
+program: main.ldn
+root: ../../../../..
+profiles: specialization
+status: 42
+constructs: 0940, 1380, 1620, 1660, 1910
+targets: windows-x86-64

@@ -84,7 +84,7 @@ fixed if compiler.os == windows then
         atomic.store(item: u64, at: addr control_port,
                      value: u64(state.val.queue))
         if state.val.watched == 0 then
-            if windows.set_control_handler(control_arrived, 1) == 0 then
+            if windows.set_control_handler(usize(control_arrived), 1) == 0 then
                 record(self, windows.last_error())
                 fail io.io_failed
             end if
@@ -123,7 +123,7 @@ fixed if compiler.os == windows then
         mut returned: bool = true
         atomic.store(item: u32, at: addr control_kinds, value: 0)
         if state.val.watched <> 0 then
-            if windows.set_control_handler(control_arrived, 0) == 0 then
+            if windows.set_control_handler(usize(control_arrived), 0) == 0 then
                 record(self, windows.last_error())
                 returned = false
             end if
