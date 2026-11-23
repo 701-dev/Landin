@@ -53,6 +53,7 @@ DAP_SOURCE = Path('/tmp/landin-windows-dap/windows.ldn')
 LANE = ('compiler/tests/windows/debug.py',
         'compiler/tests/debugging/lldb_batch.py',
         'compiler/tests/debugging/switch_frames.py',
+        'compiler/tests/debugging/workload-frames.json',
         'compiler/tests/freebsd/debug.ldn',
         'compiler/tests/dap/session.py',
         'compiler/tests/dap/windows.ldn',
