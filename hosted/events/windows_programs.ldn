@@ -94,7 +94,7 @@ fixed if compiler.os == windows then
         mut got: u32 = 0
         if windows.read_file(output, addr spare[0], 0, addr got,
                              usize(addr first.asked)) == 0
-           and windows.last_error() <> windows.error_io_pending then
+          and windows.last_error() <> windows.error_io_pending then
             --  Refused at once: an ended pipe, read next to find its end.
             unlink(state, addr first)
             return
@@ -102,7 +102,7 @@ fixed if compiler.os == windows then
         link(state, addr second)
         if windows.read_file(errors, addr spare[1], 0, addr got,
                              usize(addr second.asked)) == 0
-           and windows.last_error() <> windows.error_io_pending then
+          and windows.last_error() <> windows.error_io_pending then
             unlink(state, addr second)
             cut_short(addr first, ready)
             _ = answered(self, addr first)
@@ -191,9 +191,9 @@ fixed if compiler.os == windows then
         mut port: windows.job_port = (key: job_key, port: state.val.queue)
         if windows.set_job(made, windows.job_basic_limits, usize(addr limits),
                            u32(sizeof windows.job_limits)) == 0
-           or windows.set_job(made, windows.job_completion_port,
-                              usize(addr port),
-                              u32(sizeof windows.job_port)) == 0 then
+          or windows.set_job(made, windows.job_completion_port,
+                             usize(addr port),
+                             u32(sizeof windows.job_port)) == 0 then
             _ = windows.close_handle(made)
             return
         end if
@@ -220,9 +220,9 @@ fixed if compiler.os == windows then
         return when over_now(child)
         job: windows.handle = job_of(self.state)
         if job == windows.no_handle
-           or windows.assign_to_job(job, child) == 0 then
+          or windows.assign_to_job(job, child) == 0 then
             if windows.wait_for(child, windows.infinite)
-               == windows.wait_failed then
+              == windows.wait_failed then
                 record(self, windows.last_error())
                 fail io.io_failed
             end if

@@ -34,9 +34,9 @@ fixed if compiler.os == windows then
     --  for one that stands for none.
     kind_of_event: (event: u32) -> (index: usize) =
         index = if event == windows.control_c
-                   or event == windows.control_break then 0
+          or event == windows.control_break then 0
                 elsif event == windows.control_logoff
-                      or event == windows.control_shutdown then 1
+                  or event == windows.control_shutdown then 1
                 elsif event == windows.control_close then 2
                 else kinds end if
     end kind_of_event
@@ -53,7 +53,7 @@ fixed if compiler.os == windows then
                                             0) == 0
         handled = 1
         if event == windows.control_close or event == windows.control_logoff
-           or event == windows.control_shutdown then
+          or event == windows.control_shutdown then
             windows.sleep(windows.infinite)
         end if
     end control_arrived

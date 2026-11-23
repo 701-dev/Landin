@@ -178,7 +178,7 @@ fixed if compiler.os == windows then
                 answer_call(state, got.record)
             elsif got.key == job_key then
                 if got.moved == windows.job_exit_process
-                   or got.moved == windows.job_abnormal_exit_process then
+                  or got.moved == windows.job_abnormal_exit_process then
                     answer_child(state, i32(u32(got.record)))
                 end if
             elsif got.key == control_key then

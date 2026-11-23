@@ -265,7 +265,7 @@ fixed if compiler.os == windows then
     --  as units ending in a NUL.  The parent's own name goes first, as a C
     --  parent gives `argv[0]`.
     command_line: (self: host, path: text.os_string,
-                  arguments: []text.os_string) -> (made: block) ! io.io_failed =
+                   arguments: []text.os_string) -> (made: block) ! io.io_failed =
         mut size: usize = quoted_room(text.os_string_bytes(path))
         for argument in arguments do
             size += quoted_room(text.os_string_bytes(argument))

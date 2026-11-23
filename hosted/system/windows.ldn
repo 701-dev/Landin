@@ -123,7 +123,7 @@ fixed if compiler.os == windows then
         if made == windows.invalid_handle then
             code: u32 = windows.last_error()
             if code == windows.error_file_exists
-               or code == windows.error_already_exists then
+              or code == windows.error_already_exists then
                 record(self, code)
                 fail io.already_exists
             end if

@@ -508,9 +508,9 @@ fixed if compiler.os == windows then
         if windows.set_option(made, windows.sol_socket,
                               windows.so_receive_timeout,
                               ptr(usize(addr receiving)), 4) <> 0
-           or windows.set_option(made, windows.sol_socket,
-                                 windows.so_send_timeout,
-                                 ptr(usize(addr sending)), 4) <> 0 then
+          or windows.set_option(made, windows.sol_socket,
+                                windows.so_send_timeout,
+                                ptr(usize(addr sending)), 4) <> 0 then
             record(self, last())
             fail io.io_failed
         end if

@@ -75,7 +75,7 @@ fixed if compiler.os == windows then
     --  reparse point, its tag.
     kind_of: (attributes: u32, tag: u32) -> (named: io.entry_kind) =
         named = if (attributes & windows.attribute_reparse_point) <> 0
-                   and tag == windows.reparse_tag_symlink then io.symbolic_link
+          and tag == windows.reparse_tag_symlink then io.symbolic_link
                 elsif (attributes & windows.attribute_directory) <> 0 then
                     io.subdirectory
                 else io.regular end if
@@ -456,8 +456,8 @@ fixed if compiler.os == windows then
         keep_failure(self, 0)
         mut ending: u64 = size
         if windows.set_file_information(handle_of(opened),
-                                         windows.file_end_of_file_info,
-                                         usize(addr ending), 8) == 0 then
+                                        windows.file_end_of_file_info,
+                                        usize(addr ending), 8) == 0 then
             record_last(self)
             fail io.io_failed
         end if
@@ -583,7 +583,7 @@ fixed if compiler.os == windows then
             fail io.io_failed
         end if
         if usize(got) >= lenof room
-           or windows.host_length(room[0..<usize(got)]) > lenof into then
+          or windows.host_length(room[0..<usize(got)]) > lenof into then
             record(self, windows.error_filename_exceeds_range)
             fail io.io_failed
         end if

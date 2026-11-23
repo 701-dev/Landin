@@ -56,7 +56,7 @@ fixed if compiler.os == windows then
             elsif unit < 0x800 then
                 length += 2
             elsif leading(unit) and at + 1 < lenof units
-                  and trailing(units[at + 1]) then
+              and trailing(units[at + 1]) then
                 length += 4
                 inc at
             else
@@ -74,7 +74,7 @@ fixed if compiler.os == windows then
         while at < lenof units do
             mut value: u32 = u32(units[at])
             if leading(units[at]) and at + 1 < lenof units
-               and trailing(units[at + 1]) then
+              and trailing(units[at + 1]) then
                 value = 0x10000 + ((value - 0xD800) << 10)
                         + (u32(units[at + 1]) - 0xDC00)
                 inc at

@@ -34051,6 +34051,125 @@ optimization phase may measure.
 **Pinned by** `runtime/hosted-heap-provider`, `runtime/hosted-heap-resize`
 and the heap fixtures of the core containers on the Windows lane.
 
+### D2277 — hosted/events waits on Windows through an I/O completion port
+
+**From** D476, D480, D486 and D449.
+
+**The discrepancy:** `hosted/events` waits for readiness through epoll or
+kqueue. Windows has no readiness interface it promises for files, pipes and
+sockets; its waiting interface is completion, which D486 already shaped
+every operation for.
+
+**Chosen:** `over` makes an I/O completion port where POSIX makes its
+queue, and the loop's idle wait is `GetQueuedCompletionStatusEx` for up to
+sixteen packets, limited by the earliest deadline. A waiting record holds
+its call's `OVERLAPPED`; an operation on an overlapped handle, a pipe end
+`system.start` made or a socket, associates the handle with the port on
+its first use, issues the call with the record and parks, and the packet
+naming the record answers it. The system writes into the record and the
+caller's bytes until that packet comes, so a fibre with a call in flight
+never leaves before it: a close through the provider (D449) or a passed
+deadline cancels the call with `CancelIoEx` and is answered by the
+cancelling's packet, and a call that finished first keeps its result. A
+handle opened without overlapping, a file, a console or a pipe the
+process was given, is read and written by a plain call that holds the
+thread, as the POSIX arms do for a regular file. The list of waiting
+records, deadlines, the idler, the round and the conformances stay
+shared; the record, the loop's state and the operations are per system.
+
+**The alternatives:** readiness built from zero-byte reads for every read,
+a completion underneath at one more call each; a thread per blocking call;
+and `WaitForMultipleObjects` over events, limited to 64 handles and with
+no deadline of its own to merge.
+
+**Pinned by** `runtime/events-sleep-answers-now`,
+`runtime/events-stack-past-limit-traps`,
+`runtime/fibre-same-source-any-provider`,
+`runtime/events-close-wakes-waiter` and
+`runtime/windows-events-child-wait` on the Windows lane.
+
+### D2278 — hosted/events learns a Windows child's end from a job
+
+**From** D479, D2271 and D2277.
+
+**The discrepancy:** a waiting provider waits for a child without holding
+the thread. A Windows process handle is waitable, but not through a
+completion port.
+
+**Chosen:** at a child's first wait, if it has not ended, the loop's job,
+made once with `JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK` so that a grandchild
+is not in it, and associated with the port, takes the child, and the
+child is asked again, since one that ended before it was assigned sends
+no message. The fibre parks with the child's ID; the job's exit message
+for that ID answers it, and the child is asked again before the answer is
+believed, so a late message about an earlier child whose ID was reused is
+not taken for this one's end. A child the system will not put in the job
+is waited for by a call that holds the thread. Reading a child with both
+streams open peeks at both, and when neither has anything makes a read of
+no bytes on each and withdraws the loser, as `hosted/blocking` does.
+
+**The alternatives:** `RegisterWaitForSingleObject`, whose callback would
+run Landin code on a pool thread for every wait; polling the process
+handle on a timer.
+
+**Pinned by** `runtime/windows-events-child-wait`.
+
+### D2279 — Windows' signals are the console's control events
+
+**From** D477, D482 and D1126.
+
+**The discrepancy:** `signal.signals` names POSIX's kinds. Windows sends a
+console program control events and has no signals between processes.
+
+**Chosen:** `interrupt` is Ctrl+C and Ctrl+Break, `hangup` the console's
+closing, `terminate` the user's logging off and the system's shutting
+down, and an event's `number` its code; `child`, `user1` and `user2` name
+nothing Windows sends, and watching one fails `io_failed` with
+`ERROR_NOT_SUPPORTED`. Watching adds a handler with
+`SetConsoleCtrlHandler`, which the system calls on a thread of its own and
+which posts a packet to the port of the loop that last began watching. For
+a closing, a logoff or a shutdown the system ends the process once the
+handler returns, so the handler does not return, and the program has the
+system's grace to read the event and end. The handler is the process's, so
+a loop on a `hosted/thread` worker may watch, which Linux refuses (D1126).
+An "ignore Ctrl+C" a parent left the process is kept, as a signal ignored
+at exec is on POSIX.
+
+**The alternatives:** Ctrl+Break as `terminate`; and refusing every kind
+on Windows, which leaves a console program no way to stop cleanly.
+
+**Pinned by** `runtime/windows-events-console-control` and
+`runtime/windows-events-control-in-worker`.
+
+### D2280 — hosted/events' Windows network is overlapped Windows Sockets
+
+**From** D580, D2272 and D2277.
+
+**The discrepancy:** the POSIX arm waits for a socket's readiness and then
+calls; Windows Sockets' overlapped calls complete through the port.
+
+**Chosen:** every socket call that may wait is issued overlapped with its
+record and answered by the port: `WSARecv` and `WSASend`, which
+`io.read` and `io.write` on a socket use too, `WSARecvFrom`, `WSASendTo`,
+and `ConnectEx` and `AcceptEx`, fetched with `WSAIoctl` and called
+through a routine type made from their address, so no `mswsock` import is
+named. `set_timeouts` keeps its limits in the socket's options, as
+`hosted/blocking` does, and each call reads its direction's back as its
+record's deadline; a call past it is cancelled and fails `timed_out`,
+which a receive, an accept and a datagram's receive all take, and the
+connection stays usable. `connect_within`'s limit is its `ConnectEx`'s
+deadline. `shutdown` cancels the calls in flight on the side it shuts,
+each failing `io_failed`, and `close` cancels every one.
+
+**The alternatives:** readiness emulation by `select` or `WSAPoll` on a
+timer, or `WSAEventSelect` beside the port, which are two mechanisms and a
+poll; `ReadFile` and `WriteFile` on a socket, which a layered provider may
+not support.
+
+**Pinned by** `runtime/events-tcp-exchange`,
+`runtime/events-close-wakes-waiter` and `runtime/events-network-limits`
+on the Windows lane.
+
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 
 These were taken while writing `core` and the derived programs, and most

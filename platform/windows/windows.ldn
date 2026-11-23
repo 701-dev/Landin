@@ -359,7 +359,7 @@ fixed if compiler.os == windows then
                 slot: ptr mut usize = ptr(base + index * word)
                 slot.val = base + table_bytes + written
                 written += to_host(strings[begun..<at],
-                                        text_room[written..<lenof text_room])
+                                   text_room[written..<lenof text_room])
                 text_room[written] = 0
                 inc written
                 inc index
