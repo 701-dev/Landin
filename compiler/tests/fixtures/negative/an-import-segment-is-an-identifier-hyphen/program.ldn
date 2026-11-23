@@ -1,0 +1,6 @@
+import tools/refine-build/lines
+import tools/lines-2
+
+public main: () -> (code: i32) =
+    code = 0
+end main

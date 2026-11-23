@@ -1,0 +1,12 @@
+error[L0100]: each segment of an import path is an identifier, and `-` is not part of one
+  --> ../tests/fixtures/negative/an-import-segment-is-an-identifier-hyphen/program.ldn:1:20
+  |
+1 | import tools/refine-build/lines
+  |                    ^
+  = note: [1420]: a segment of an import path is lower-case letters, digits and `_`, beginning with a letter, as in `import refine_build/lines`
+error[L0100]: each segment of an import path is an identifier, and `-` is not part of one
+  --> ../tests/fixtures/negative/an-import-segment-is-an-identifier-hyphen/program.ldn:2:19
+  |
+2 | import tools/lines-2
+  |                   ^
+  = note: [1420]: a segment of an import path is lower-case letters, digits and `_`, beginning with a letter, as in `import refine_build/lines`

@@ -94,6 +94,9 @@ package body Landin.Tokens is
    function Word (Item : Fault) return Landin.Source.Names.Name_Id
      is (Item.Word);
 
+   function In_Import_Path (Item : Fault) return Boolean
+     is (Item.Refused = Kw_Import);
+
    function Source_Of (Of_Stream : Token_Stream)
      return Landin.Source.Source_Id is (Of_Stream.Source);
 

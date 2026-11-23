@@ -1,0 +1,7 @@
+error[L0010]: `type` requires a type declaration or a generic formal
+  --> ../tests/fixtures/negative/a-refused-concept-entry-leaves-the-concept-closed/program.ldn:6:28
+  |
+6 |     pull: (self: t, other: type is drain, s: other) -> none
+  |                            ^^^^
+  = note: the tour describes it at [1290]
+  = note: this is a recorded source-form boundary

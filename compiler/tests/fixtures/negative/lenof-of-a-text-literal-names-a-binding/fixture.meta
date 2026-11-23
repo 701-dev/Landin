@@ -1,0 +1,9 @@
+class: negative
+summary: [0370] `lenof` before a text literal is refused at both, naming the binding to measure instead, in a call's arguments and in a conversion inside one
+program: program.ldn
+codes: L0100, L0100
+constructs: 0370
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+expect: expected.txt
+args: ../tests/fixtures/negative/lenof-of-a-text-literal-names-a-binding/program.ldn
+status: 1

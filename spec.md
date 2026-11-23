@@ -829,6 +829,9 @@ close an enclosing `then` or `elsif` arm: there it divides the `if`, which is
 the one reading `if c then a() else b() end if` can have, and parentheses
 around the recovered call, `(f() else 0)`, recover it in the arm. A refusal
 that meets either reading names this rule and that route.
+A bare `else begin` after a call in the middle of an arm's line, whose arm
+goes on past the block's `end`, is refused there and read as the call's
+recovery (D2172).
 An `if`, exhaustive `match` or bare `begin` block is also a primary; a loop
 is not (D1651). Their
 conditions or subject run first, then exactly the selected block runs in source
@@ -23007,6 +23010,127 @@ conditional form beside `if` that the tour does not have; and a fix
 rewriting the line as an `if`, which spans lines the parser has not read.
 
 **Pinned by** `negative/when-on-a-statement-names-the-exits`.
+
+### D2168 — A routine that returns nothing is named `-> none` by both refusals met on the way
+
+**The discrepancy:** `f: (inout row: [2]u32) =` was L0103, "a signature says
+what it returns after `->`, not `=`", whose note described the returns but
+named no spelling for none; the next try, `f: (inout row: [2]u32) -> () =`,
+was L0100, "a name belongs here", at `)`, with [1760]'s rule for names as
+its note. The spelling, `-> none`, came from grepping the fixtures.
+
+**Chosen:** with `=` where `->` belongs, the L0103 note says to write `->
+none` before `=` for a routine that returns nothing, or to name the returns,
+and the body after `=` is read as before. `-> ()` in a function, a function
+type or a concept entry is L0100, "a routine that returns nothing is written
+`-> none`, not `-> ()`", at the parentheses, read as `none`, with the exact
+fix that writes `none` in their place: empty parentheses can mean nothing
+else.
+
+**The alternatives:** admitting `-> ()` as a second spelling of `none`,
+which [1800]'s one form declines; and a fix inserting `-> none` before `=`,
+which guesses, since a body that assigns returns meant a list.
+
+**Pinned by** `negative/a-signature-without-returns-names-none` and
+`negative/empty-returns-are-written-none`, whose fix `refine fix` applies.
+
+### D2169 — A refused concept entry leaves the concept closed by its own `end`
+
+**The discrepancy:** a concept entry taking a type formal of its own,
+`pull: (self: t, other: type is drain, s: other) -> none`, was L0010 at
+`type`, which is right, and then L0104, "this concept is never closed",
+though the concept's `end` stood on the next line: the refused formal left
+`is drain` unread, and the entry's broken rest ended the concept's entries.
+
+**Chosen:** the L0010 refusal of `type` in a parameter takes the
+constraint after it, `is` and a concept name, as the rest of the refused
+formal, and after an entry that reported, what it left on its line is
+passed over, so the next entry or the concept's `end` begins the next line.
+One report.
+
+**The alternatives:** admitting the entry's type formal, which [1290]
+leaves a recorded boundary; and passing over the rest of the concept after
+any refused entry, which would hide the mistakes of the entries below it.
+
+**Pinned by** `negative/a-refused-concept-entry-leaves-the-concept-closed`.
+
+### D2170 — Each segment of an import path is refused as an identifier
+
+**The discrepancy:** `import tools/refine-build/lines` and `import
+github.com/tools/refine-build/lines` were L0110, "this begins no
+declaration", at the path's rest, with [1740]'s note; `import
+701_dev/pkg/lines` was L0011, "this is not an integer any base spells".
+None said that a segment is an identifier, or which character broke it.
+
+**Chosen:** a `-` or `.` that joins a segment to more on its line is L0100,
+"each segment of an import path is an identifier, and `-` is not part of
+one", at that character; a segment beginning with a digit is L0100, "...
+and this one begins with a digit", at the digit: the scanner, which
+knows from the tokens before it that a number stands in an import's path,
+still records its fault and leaves the wording to the parser, as D528 does
+for a capitalised word. The note says what a segment is, lower-case letters,
+digits and `_` beginning with a letter, as in `import refine_build/lines`.
+The rest of the path is passed over and the import binds nothing. Each
+import reports once for itself, as a declaration's header does, where a
+second refused import had been quiet after the first.
+
+**The alternatives:** admitting hyphens or dots in paths, which a module
+path's mapping onto directories and [1760]'s names decline; and leaving the
+digit to L0011, whose sentence and note are about integers.
+
+**Pinned by** `negative/an-import-segment-is-an-identifier-hyphen`,
+`negative/an-import-segment-is-an-identifier-dot` and
+`negative/an-import-segment-is-an-identifier-digit`.
+
+### D2171 — `lenof` before a text literal names the binding to measure
+
+**The discrepancy:** `f(lenof "abcde")` and `f(usize(lenof "abcde"))` were
+L0103, "a call's arguments are never closed", at the literal, though every
+parenthesis was closed: [0370]'s `lenof` measures what a name begins, so the
+parser read `lenof` as a name and the literal as a second argument with no
+`,`. `f(lenof s)` of a slice `s` was accepted.
+
+**Chosen:** the grammar does not admit it, and it stays out: `lenof` before
+a text or raw literal on its line is L0100, "`lenof` measures what a name
+begins, and a text literal has no name", over both, and its note says to
+bind the text, `word := "abcde"`, and write `lenof word`. The literal is
+read and the expression is an error, so nothing else is said.
+
+**The alternatives:** admitting `lenof` of a text literal, a compile-time
+count that D31 gives only an array literal in parentheses, and that a named
+text already has; and keeping the call's report with a note, which would
+still point at a closed call.
+
+**Pinned by** `negative/lenof-of-a-text-literal-names-a-binding`.
+
+### D2172 — An `else begin` the arm goes on after is the call's, and said at the `else`
+
+**The discrepancy:** inside an `if` arm, `count: usize = text.encode(scalar,
+room) else begin fail bad_escape end` closes the `if` at that `else`, as
+[1820] says, and nothing was reported there: the refusal came later, as
+L0110 "`elsif` continues no branch that is open here" on the next arm, or
+as L0201 on names the arm declared, and none named the `else` or `else
+(problem)`.
+
+**Chosen:** a bare `else begin` after a call, in the middle of an arm's
+line, whose arm goes on past the block's `end` — on a line no shallower
+than the `else`'s, or with the `if`'s `elsif` or `else` — is refused at the
+`else` as L0110, "this `else` recovers the call, and written bare it ends
+the `if` arm it stands in", whose note names `else (problem) ... end` and
+parentheses as the ways to keep it the call's. It is read as the call's
+recovery, so the arm, its names and the `elsif` after it go on as written.
+The block closes on the `else`'s line, or with an `end` alone on a line as
+deep as it. An arm that ends with the block, its `if`'s `end` on the next
+line, is read as [1820] says and not refused: nothing there shows which was
+meant.
+
+**The alternatives:** binding a bare `else begin` to the call in an arm
+always, which makes `if c then a() else begin b() end end if` mean
+something else; refusing every mid-line `else` in a multi-line arm, which
+refuses layouts that show nothing; and attributing the later L0110 or
+L0201 to the `else`, which needs the resolver to know the parser's reading.
+
+**Pinned by** `negative/else-begin-in-an-if-arm-is-said-at-the-else`.
 
 ### D866 — A `_` arm on a variant part is one refusal naming the cases left
 

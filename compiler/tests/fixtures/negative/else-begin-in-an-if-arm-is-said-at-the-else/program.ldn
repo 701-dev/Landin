@@ -1,0 +1,32 @@
+bad_escape: atom
+too_big: atom
+problem: type = bad_escape | too_big
+
+conv: (x: u32) -> (result: usize) ! problem =
+    fail too_big when x > 9
+    result = usize(x)
+end conv
+
+one_line: (x: u32) -> (result: usize) ! problem =
+    result = 0
+    if x > 3 then
+        count: usize = conv(x) else begin fail bad_escape end
+        result = count
+    elsif x > 1 then
+        result = 2
+    end if
+end one_line
+
+below: (x: u32) -> (result: usize) ! problem =
+    result = 0
+    if x > 3 then
+        count: usize = conv(x) else begin
+            fail bad_escape
+        end
+        result = count
+    end if
+end below
+
+public main: () -> (code: i32) =
+    code = i32(one_line(1) else 0) + i32(below(1) else 0)
+end main

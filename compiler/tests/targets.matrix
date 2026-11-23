@@ -135,7 +135,9 @@ negative/a-nested-mistake-after-a-refused-statement-is-reported | linux-x86-64, 
 negative/a-non-type-shadows-a-predeclared-type | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-noreturn-call-is-not-a-value | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-predeclared-type-name-taken | linux-x86-64, synthetic-32
+negative/a-refused-concept-entry-leaves-the-concept-closed | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-refused-write-still-assigns | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/a-signature-without-returns-names-none | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-text-literal-is-not-indexed | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-type-argument-is-offered-by-name | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/a-value-after-an-assigned-result | linux-x86-64, synthetic-32
@@ -148,6 +150,9 @@ negative/aggregate-call-result-not-assigned-on-every-path | linux-x86-64, linux-
 negative/an-applied-type-is-not-called | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/an-array-of-none-is-offered-an-empty-slice | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/an-erased-address-that-is-only-read-needs-no-mut | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/an-import-segment-is-an-identifier-digit | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/an-import-segment-is-an-identifier-dot | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/an-import-segment-is-an-identifier-hyphen | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/an-imported-case-is-offered-qualified | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/an-inout-argument-is-locked-whether-written-or-not | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/an-unknown-applied-name-offers-near-names | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
@@ -468,8 +473,10 @@ negative/duplicate-in-a-body | linux-x86-64, linux-arm64, darwin-arm64, freebsd-
 negative/duplicate-in-a-module | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/duplicate-parameter | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/else-before-an-elsif-divides-nothing | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/else-begin-in-an-if-arm-is-said-at-the-else | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/else-none-on-a-call-that-returns-a-value | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/empty-first-directory-hides-a-later-root | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/empty-returns-are-written-none | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/empty-slice-names-the-declared-type | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/end-before-a-one-line-value | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
 negative/end-before-else-continues-the-branch | linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
@@ -724,6 +731,7 @@ negative/layout-optimal-places-fields-as-written | linux-x86-64, linux-arm64, da
 negative/length-of-a-slice-is-not-a-field | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/lenof-array-literal-element-mismatch | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/lenof-of-a-path-or-call-that-has-no-length | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+negative/lenof-of-a-text-literal-names-a-binding | linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/lenof-scalar | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 negative/lenof-slice-element-frame-escape | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 negative/lenof-slice-range-frame-escape | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64

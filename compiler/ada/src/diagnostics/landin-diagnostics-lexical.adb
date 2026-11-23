@@ -210,7 +210,12 @@ package body Landin.Diagnostics.Lexical is
                   null;
             end case;
 
-            if Kind /= Landin.Tokens.Capitalised_Identifier then
+            --  D2170: a segment of an import path that begins with a digit
+            --  is the parser's to word, as D528's capitalised word is.
+            if Kind /= Landin.Tokens.Capitalised_Identifier
+              and then not (Kind = Landin.Tokens.Malformed_Integer_Run
+                            and then Landin.Tokens.In_Import_Path (Fault))
+            then
                Deliver (Named, Report, Where, Into);
             end if;
          end;

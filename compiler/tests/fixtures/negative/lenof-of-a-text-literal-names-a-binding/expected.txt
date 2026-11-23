@@ -1,0 +1,12 @@
+error[L0100]: `lenof` measures what a name begins, and a text literal has no name
+  --> ../tests/fixtures/negative/lenof-of-a-text-literal-names-a-binding/program.ldn:6:10
+  |
+6 |     take(lenof "abcde")
+  |          ^^^^^^^^^^^^^
+  = note: [0370]: `lenof` takes a binding, a field or element path, a slice of one or a call's result; bind the text first, as in `word := "abcde"`, then write `lenof word`
+error[L0100]: `lenof` measures what a name begins, and a text literal has no name
+  --> ../tests/fixtures/negative/lenof-of-a-text-literal-names-a-binding/program.ldn:7:16
+  |
+7 |     take(usize(lenof "abcde"))
+  |                ^^^^^^^^^^^^^
+  = note: [0370]: `lenof` takes a binding, a field or element path, a slice of one or a call's result; bind the text first, as in `word := "abcde"`, then write `lenof word`
