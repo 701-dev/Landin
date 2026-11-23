@@ -911,7 +911,10 @@ size by 42.5% to 51.2% but mandelbrot's 2.9%; at `none` by 23.3% to
 42.3%. Its noise study, made again from the TCMs, keeps the port's
 tolerance of 0.5% and 40 cycles. `SR-1661` and `SR-1715` are taken, and
 `SR-1714`, kept, comes from the measurement that found the cause; `SR-1716` files
-the contract's acceptance of text at address zero, met on the way.
+the contract's acceptance of text at address zero, met on the way. The
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45192853995) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45197336539).
 
 ### The continuous items
 
