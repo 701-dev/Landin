@@ -56,7 +56,8 @@ LANE = ('compiler/tests/windows/debug.py',
         'compiler/tests/dap/session.py',
         'compiler/tests/dap/windows.ldn',
         'scripts/lane_refine.py', 'scripts/refine_revision.py',
-        'scripts/build_identity.py', 'scripts/build_lock.py')
+        'scripts/build_identity.py', 'scripts/build_lock.py',
+        'environments/pins.sh')
 
 
 class Refused(ValueError):

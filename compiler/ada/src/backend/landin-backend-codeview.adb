@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
@@ -93,6 +94,7 @@ package body Landin.Backend.Codeview is
    LF_ENUMERATE : constant := 16#1502#;
    LF_ARRAY : constant := 16#1503#;
    LF_STRUCTURE : constant := 16#1505#;
+   LF_UNION : constant := 16#1506#;
    LF_ENUM : constant := 16#1507#;
    LF_MEMBER : constant := 16#150D#;
    LF_FUNC_ID : constant := 16#1601#;
@@ -349,21 +351,72 @@ package body Landin.Backend.Codeview is
             when Landin.Types.F64 => 16#41#,
             when Landin.Types.Bool => 16#30#);
 
+      --  A structure or union's kind and names, by its definition's index,
+      --  and its forward reference by its unique name.
+      type Record_Names is record
+         Kind : Natural;
+         Name, Unique : US.Unbounded_String;
+      end record;
+      package Record_Maps is new Ada.Containers.Ordered_Maps
+        (Natural, Record_Names);
+      package Unique_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+        (String, Natural);
+      Definitions_Named : Record_Maps.Map;
+      Forward_Records : Unique_Maps.Map;
+
+      --  A record's forward reference: its kind, its names and no layout.
+      function Forward_Of (Kind : Natural; Name, Unique : String)
+         return Natural;
+      function Forward_Of (Kind : Natural; Name, Unique : String)
+         return Natural is
+      begin
+         if not Forward_Records.Contains (Unique) then
+            Forward_Records.Insert (Unique, Add
+              (Kind, U16 (0) & U16 (Forward_Reference + Unique_Name)
+               & Index_Of (0)
+               & (if Kind = LF_STRUCTURE then Index_Of (0) & Index_Of (0)
+                  else "")
+               & Leaf (0) & Z (Name) & Z (Unique)));
+         end if;
+         return Forward_Records.Element (Unique);
+      end Forward_Of;
+
+      --  A record by its definition and its names.
+      function Define
+        (Kind, Count, Fields : Natural; Size : Landin.Targets.Byte_Count;
+         Name, Unique : String) return Natural;
+      function Define
+        (Kind, Count, Fields : Natural; Size : Landin.Targets.Byte_Count;
+         Name, Unique : String) return Natural
+      is
+         Defined : constant Natural := Add
+           (Kind, U16 (Count) & U16 (Unique_Name) & Index_Of (Fields)
+            & (if Kind = LF_STRUCTURE then Index_Of (0) & Index_Of (0)
+               else "")
+            & Leaf (Long_Long_Integer (Size)) & Z (Name) & Z (Unique));
+      begin
+         Definitions_Named.Insert
+           (Defined, (Kind, US.To_Unbounded_String (Name),
+                      US.To_Unbounded_String (Unique)));
+         return Defined;
+      end Define;
+
+      --  How a member, an element or a referent names a type: a record
+      --  by its forward reference, as Microsoft's and LLVM's compilers
+      --  write it, which a debugger completes from the definition.
+      function Reached (Typ : Natural) return Natural is
+        (if Definitions_Named.Contains (Typ)
+         then Forward_Of
+           (Definitions_Named (Typ).Kind,
+            US.To_String (Definitions_Named (Typ).Name),
+            US.To_String (Definitions_Named (Typ).Unique))
+         else Typ);
+
       function Pointer_To (Referent : Natural; Reference : Boolean := False)
          return Natural is
-        (Add (LF_POINTER, Index_Of (Referent) & Index_Of
+        (Add (LF_POINTER, Index_Of (Reached (Referent)) & Index_Of
            (16#0C# + (if Reference then 16#20# else 0)
             + Natural (Width) * 2 ** 13)));
-
-      --  A structure's name and the unique name a forward reference finds
-      --  it by.
-      function Structure
-        (Count : Natural; Properties : Natural; Fields : Natural;
-         Size : Landin.Targets.Byte_Count; Name, Unique : String)
-         return Natural is
-        (Add (LF_STRUCTURE, U16 (Count) & U16 (Properties + Unique_Name)
-           & Index_Of (Fields) & Index_Of (0) & Index_Of (0)
-           & Leaf (Long_Long_Integer (Size)) & Z (Name) & Z (Unique)));
 
       function Nominal_Unique (Nominal : Nominal_Type_Id) return String is
         ("landin.type." & N (Nominal_Identities.Position (Of_Unit, Nominal)));
@@ -376,8 +429,8 @@ package body Landin.Backend.Codeview is
            Nominal_Identities.Position (Of_Unit, Nominal);
       begin
          if not Forwards.Contains (Key) then
-            Forwards.Insert (Key, Structure
-              (0, Forward_Reference, 0, 0, Nominal_Name (Nominal),
+            Forwards.Insert (Key, Forward_Of
+              (LF_STRUCTURE, Nominal_Name (Nominal),
                Nominal_Unique (Nominal)));
             if Has_Nominal_Shape (Of_Unit, Nominal) then
                Wanted.Append (Normal ((Shape => (Kind => Aggregate_Field_Shape,
@@ -398,7 +451,7 @@ package body Landin.Backend.Codeview is
          Name : String; Typ : Natural; Offset : Landin.Targets.Byte_Count)
       is
          Bytes : constant String := U16 (LF_MEMBER) & U16 (Public)
-           & Index_Of (Typ) & Leaf (Long_Long_Integer (Offset)) & Z (Name);
+           & Index_Of (Reached (Typ)) & Leaf (Long_Long_Integer (Offset)) & Z (Name);
       begin
          US.Append (Fields, Bytes & Pad (Bytes'Length));
          Count := Count + 1;
@@ -459,8 +512,9 @@ package body Landin.Backend.Codeview is
          function Finish
            (Fields : US.Unbounded_String; Count : Natural; Name : String;
             Unique_Name : String) return Natural is
-           (Structure (Count, 0, Add (LF_FIELDLIST, US.To_String (Fields)),
-                       Size, Name, Unique_Name));
+           (Define (LF_STRUCTURE, Count,
+                    Add (LF_FIELDLIST, US.To_String (Fields)), Size, Name,
+                    Unique_Name));
       begin
          if Desc.Source /= Landin.Source.No_Source then
             Tree := Landin.Syntax.Forest.Tree_Of
@@ -587,7 +641,7 @@ package body Landin.Backend.Codeview is
                begin
                   Field_Extent
                     (Of_Unit, Element_Shape, Facts, Element_Size, Alignment);
-                  return Add (LF_ARRAY, Index_Of (Element)
+                  return Add (LF_ARRAY, Index_Of (Reached (Element))
                     & Index_Of (T_UQUAD)
                     & Leaf (Long_Long_Integer (Element_Size)
                             * Long_Long_Integer (Shape.Length))
@@ -656,7 +710,7 @@ package body Landin.Backend.Codeview is
                end;
             when Variant_Field_Shape =>
                --  A tagged overlay, as the DWARF one: the zero-based tag,
-               --  and each case's payload at its offsets.
+               --  and each case's payload at its offsets, as a union.
                declare
                   Fields : US.Unbounded_String;
                   Members : Natural := 0;
@@ -706,8 +760,17 @@ package body Landin.Backend.Codeview is
                                         Unique), 0);
                      end;
                   end loop;
-                  return Finish (Fields, Members,
-                                 Node_Name (Desc.Node, "variant"), Unique);
+                  --  A union, whose members all begin at its start: a
+                  --  structure's may not overlap.
+                  declare
+                     Unique_Text : constant String := Unique;
+                     List : constant Natural :=
+                       Add (LF_FIELDLIST, US.To_String (Fields));
+                  begin
+                     return Define (LF_UNION, Members, List, Size,
+                                    Node_Name (Desc.Node, "variant"),
+                                    Unique_Text);
+                  end;
                end;
          end case;
       end Build;
@@ -970,22 +1033,10 @@ package body Landin.Backend.Codeview is
             return Found;
          end Ranges;
 
-         function Range_Operands (Found : Range_Vectors.Vector)
-            return String;
-         function Range_Operands (Found : Range_Vectors.Vector)
-            return String
-         is
-            Text : US.Unbounded_String;
-         begin
-            for Each of Found loop
-               US.Append (Text, " " & US.To_String (Each.First) & " "
-                 & US.To_String (Each.Last));
-            end loop;
-            return US.To_String (Text);
-         end Range_Operands;
-
-         --  One S_DEFRANGE record per place, which the assembler splits
-         --  where a range is too long and gaps where ranges are apart.
+         --  One S_DEFRANGE record for each range.  The assembler measures
+         --  the gaps between a record's ranges from the first, so ranges
+         --  out of address order, which a block laid out out of its order
+         --  gives, would cover what lies between them.
          procedure Def_Range
            (Found : Range_Vectors.Vector; Where : Place;
             Piece_Offset : Landin.Targets.Byte_Count := 0;
@@ -995,29 +1046,26 @@ package body Landin.Backend.Codeview is
             Piece_Offset : Landin.Targets.Byte_Count := 0;
             Piece : Boolean := False)
          is
-         begin
-            if Found.Is_Empty or else Where.Kind = Nowhere then
-               return;
-            end if;
-            case Where.Kind is
-               when Nowhere =>
-                  null;
-               when In_Register =>
-                  if Piece then
-                     Put (HT & ".cv_def_range" & Range_Operands (Found)
-                       & ", subfield_reg, " & N (Where.Register) & ", "
-                       & N (Natural (Piece_Offset)));
-                  else
-                     Put (HT & ".cv_def_range" & Range_Operands (Found)
-                       & ", reg, " & N (Where.Register));
-                  end if;
-               when In_Memory | By_Reference =>
-                  Put (HT & ".cv_def_range" & Range_Operands (Found)
-                    & ", reg_rel, " & N (Where.Register) & ", "
+            Kind : constant String :=
+              (case Where.Kind is
+                  when Nowhere => "",
+                  when In_Register =>
+                    (if Piece then ", subfield_reg, " & N (Where.Register)
+                       & ", " & N (Natural (Piece_Offset))
+                     else ", reg, " & N (Where.Register)),
+                  when In_Memory | By_Reference =>
+                    ", reg_rel, " & N (Where.Register) & ", "
                     & N (if Piece then 1 + 16 * Natural (Piece_Offset)
                          else 0)
                     & ", " & I (Where.Offset));
-            end case;
+         begin
+            if Where.Kind = Nowhere then
+               return;
+            end if;
+            for Each of Found loop
+               Put (HT & ".cv_def_range " & US.To_String (Each.First) & " "
+                 & US.To_String (Each.Last) & Kind);
+            end loop;
          end Def_Range;
 
          procedure Local

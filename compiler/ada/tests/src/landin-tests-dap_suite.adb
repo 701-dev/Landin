@@ -384,6 +384,9 @@ package body Landin.Tests.Dap_Suite is
         (Item, Sessions.Debugger_For (Mach_O) = Sessions.LLDB,
          "a Mach-O takes LLDB");
       Landin.Testing.Check
+        (Item, Sessions.Debugger_For ("MZ" & ELF_Header) = Sessions.LLDB,
+         "a Windows image takes LLDB, which reads its PDB (D2292)");
+      Landin.Testing.Check
         (Item, Sessions.Debugger_For ("assembly") = Sessions.GDB
          and then Sessions.Debugger_For ("") = Sessions.GDB,
          "anything else takes GDB");
@@ -746,6 +749,64 @@ package body Landin.Tests.Dap_Suite is
       end;
    end LLDB_Is_Relayed;
 
+   --  D2292: a Windows debugger is given a source as the end of the path
+   --  the program recorded, and the path it names a source by is read
+   --  back as this host's.
+   procedure A_Windows_Program_Maps_Its_Paths
+     (Item : in out Landin.Testing.Context);
+   procedure A_Windows_Program_Maps_Its_Paths
+     (Item : in out Landin.Testing.Context)
+   is
+      Files : Fakes.Fake_Filesystem;
+      Debugger : aliased Fake_Debugger;
+      Script : constant String :=
+        Request (1, "initialize", "{""adapterID"":""t""}")
+        & Request (2, "launch", "{""program"":""/work/app.exe"","
+                   & """debuggerPath"":""/x/lldb-dap""}")
+        & Request (3, "setBreakpoints",
+                   "{""source"":{""path"":""/work/main.ldn""},"
+                   & """breakpoints"":[{""line"":3}]}")
+        & Request (4, "configurationDone")
+        & Request (5, "stackTrace", "{""threadId"":7}")
+        & Request (6, "disconnect");
+   begin
+      Debugger.Relay := True;
+      Fakes.Add_File (Files, "/work/app.exe", "MZ windows image");
+      Fakes.Add_File (Files, "/work/main.ldn", "main: () = end main");
+      Answer_With (Debugger, "initialize",
+                   "{""supportsConfigurationDoneRequest"":true}");
+      Answer_With (Debugger, "launch",
+                   LF & "{""seq"":0,""type"":""event"","
+                   & """event"":""initialized""}");
+      Answer_With (Debugger, "setBreakpoints",
+                   "{""breakpoints"":[{""id"":1,""verified"":true,"
+                   & """line"":3,""source"":{""path"":""work/main.ldn""}}]}");
+      Answer_With (Debugger, "stackTrace",
+                   "{""stackFrames"":[{""id"":5,""name"":""add"","
+                   & """line"":3,""source"":{""path"":"
+                   & """D:\\work\\main.ldn""}},{""id"":6,""name"":""k"","
+                   & """source"":{""path"":""C:\\windows\\k.dll""}}]}");
+      declare
+         Said : constant String := Served (Script, Debugger, Files, "1");
+         Sent : constant String := US.To_String (Debugger.Sent);
+      begin
+         Landin.Testing.Check
+           (Item, Contains (Sent, "setBreakpoints {""source"":{""path"":"
+                            & """work/main.ldn""}"),
+            "a source is given as the end of the path it was recorded by");
+         Landin.Testing.Check
+           (Item, Contains (Said, """line"":3,""source"":{""path"":"
+                            & """/work/main.ldn""}}]")
+            and then not Contains (Said, """path"":""work/main.ldn"""),
+            "the breakpoint's source is read back as this host's");
+         Landin.Testing.Check
+           (Item, Contains (Said, """path"":""/work/main.ldn""}},{")
+            and then Contains (Said, """path"":""C:\\windows\\k.dll"""),
+            "a recorded path the debugger put on its drive is this host's;"
+            & " a path of Windows' own stays as it is");
+      end;
+   end A_Windows_Program_Maps_Its_Paths;
+
    procedure Attach_Reaches_A_Stub (Item : in out Landin.Testing.Context);
    procedure Attach_Reaches_A_Stub (Item : in out Landin.Testing.Context) is
       Files : Fakes.Fake_Filesystem;
@@ -865,6 +926,9 @@ package body Landin.Tests.Dap_Suite is
          A_Panic_Names_Its_Site'Access);
       Landin.Testing.Register
         (Into, "dap", "LLDB's adapter is relayed", LLDB_Is_Relayed'Access);
+      Landin.Testing.Register
+        (Into, "dap", "a Windows program maps its paths",
+         A_Windows_Program_Maps_Its_Paths'Access);
       Landin.Testing.Register
         (Into, "dap", "attach reaches a stub", Attach_Reaches_A_Stub'Access);
       Landin.Testing.Register
