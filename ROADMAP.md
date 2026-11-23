@@ -2227,9 +2227,10 @@ gate run 45190923214; `compiler/tests/windows/check.py` runs them under
 Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
 that Wine loaded; the trap after a prepared stack's report dispatched as
 an access violation; a musl-built `refine` named no host target (`SR-1518`
-taken). Rows SR-1694 to SR-1697 record the C peer lane, the start-up level
-check, the TEB bounds a stack switch leaves and the fixture path Git for
-Windows cannot check out; `hosted/heap`, arguments, environment and thread
+taken). Rows SR-1694 to SR-1698 record the C peer lane, the start-up level
+check, the TEB bounds a stack switch leaves, the fixture path Git for
+Windows cannot check out and the measurement no lane takes of a Windows
+image; `hosted/heap`, arguments, environment and thread
 storage moved to R21.20.
 
 ### R21.20 — Windows' Io and threads
