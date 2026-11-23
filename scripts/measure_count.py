@@ -543,7 +543,7 @@ def run_built_hosted(args) -> int:
                   f" {args.level} {args.optimize}-{args.specialize}; status {one['status']}")
     if args.json:
         Path(args.json).write_text(json.dumps(results, indent=1) + "\n")
-    print(f"built under {output}")
+    print(f"built under {output}", file=sys.stderr)
     return 0
 
 

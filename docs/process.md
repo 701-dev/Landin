@@ -56,7 +56,10 @@ arbitrary background session may not launch a debugged process, whatever
 its debugger rights, while the hosted macOS image's runner session may.
 
 For debugger changes, run an affected native workload/profile with
-`scripts/debug.sh` after building this checkout's compiler. A second run
+`scripts/debug.sh` after building this checkout's compiler
+(`--target=linux-arm64` for arm64, under QEMU). `dev-test.sh`'s `debugging`
+suite runs no debugger, so a backend change to where emitted code keeps a
+variable, or to its line rows, needs the sessions too. A second run
 replaces its own earlier output; an `--output` naming any other nonempty
 directory is refused. Full native parity and debugger matrices belong to
 the candidate's gate, rather than every local editing loop.
