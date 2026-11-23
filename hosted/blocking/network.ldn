@@ -2,7 +2,7 @@
 --  platform/posix's, a file of hosted/system's like any other, so `io.read`
 --  and `io.write` take a connection as they take a file, and every call
 --  that waits blocks the thread.  Written once, over platform/posix, like
---  the rest.
+--  the rest; windows_network.ldn is Windows'.
 
 import core/io
 import core/net

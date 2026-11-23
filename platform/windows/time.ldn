@@ -24,9 +24,6 @@ fixed if compiler.os == windows then
     --- gives up the rest of the thread's turn.
     public extern(c) link(symbol: "Sleep") sleep: (milliseconds: u32) -> none
 
-    --- `INFINITE`, the wait that does not end by itself.
-    public infinite: u32 = 0xFFFFFFFF
-
     --- `BCRYPT_USE_SYSTEM_PREFERRED_RNG`: `random` asks the system's own
     --- generator, with no algorithm handle.
     public system_preferred_generator: u32 = 2

@@ -248,8 +248,8 @@ def render(version, sha256, url, generated):
         lines.append("--  %s reads %s" % (spoken, source))
         lines.append("--  with the ABIs %s." % ", ".join(abis))
     lines += ["--",
-              "--  Its scope is platform/linux's, Linux, Darwin and FreeBSD, and on",
-              "--  Darwin and FreeBSD it declares nothing.",
+              "--  Its scope is platform/linux's, every hosted system, and on Darwin,",
+              "--  FreeBSD and Windows it declares nothing.",
               "",
               "compiler.assert(compiler.os == linux or compiler.os == darwin",
               "                or compiler.os == freebsd or compiler.os == windows)",

@@ -12,8 +12,8 @@
 --  Darwin's and FreeBSD's alike (D481).  Everything is declared on those
 --  two only.  Landin has no conditional import, so a provider written once
 --  for every POSIX system imports this module beside platform/linux, and
---  the module's scope is theirs: Linux, Darwin and FreeBSD.  On Linux it
---  declares nothing.
+--  the module's scope is every hosted system's (D2267).  On Linux and
+--  Windows it declares nothing.
 
 import platform/libc
 

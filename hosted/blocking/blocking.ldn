@@ -5,7 +5,8 @@
 --  scheduler in fibre.ldn, running each task to its end.  It is built over
 --  a hosted/system handle and hands it every service that does not wait,
 --  in delegated.ldn, so one handle is an `io.world` and every concept the
---  system supplies.  Written once over platform/posix, like the system.
+--  system supplies.  Written once over platform/posix, like the system,
+--  and again over platform/windows in windows.ldn and windows_network.ldn.
 --  Import this module only at a hosted authority root.
 
 import core/io

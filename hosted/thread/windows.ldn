@@ -51,7 +51,7 @@ fixed if compiler.os == windows then
     --  handle.  A wait the system refuses is a defect of this module,
     --  since only a thread it started is waited for, and once.
     join_system_thread: (record: ptr mut system_thread) -> none =
-        if windows.wait_for_single_object(record.val.handle, windows.infinite)
+        if windows.wait_for(record.val.handle, windows.infinite)
           <> windows.wait_object_0
         then
             compiler.unreachable()

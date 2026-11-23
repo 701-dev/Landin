@@ -3,8 +3,9 @@
 --  Darwin and FreeBSD, whose C library is their system interface,
 --  platform/posix reaches the operating system only through these
 --  declarations; on Linux it makes platform/linux's system calls, and this
---  module serves a program linked with --link=libc.  Its scope is the
---  systems with a C library, Linux, Darwin and FreeBSD.  Every declaration
+--  module serves a program linked with --link=libc.  It declares on the
+--  systems with a C library, Linux, Darwin and FreeBSD, and is imported on
+--  Windows too, where it declares nothing (D2267).  Every declaration
 --  here is bodyless, so a program that names none of them needs no C
 --  library, and a static Linux program that names one is refused before it
 --  links (D280).  This file declares what every system declares alike;

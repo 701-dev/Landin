@@ -3,16 +3,17 @@
 --  streams and arguments, the environment, directories, starting a
 --  program, the rest of the file system and terminals, entropy and the
 --  wall clock, each in a file named as core/io names it, and the
---  last-error and last-signal cells of each thread.  It is not a world: reading and writing can wait,
---  and a provider that decides how to wait, hosted/blocking, is built
---  over a handle of this one and hands it what does not wait.  It is
---  written once, over platform/posix, which reaches Linux through its
---  system calls and Darwin and FreeBSD through their C library: nothing
---  here is written per system.  It adapts that layer to the protocol
+--  last-error and last-signal cells of each thread.  It is not a world:
+--  reading and writing can wait, and a provider that decides how to wait,
+--  hosted/blocking, is built over a handle of this one and hands it what
+--  does not wait.  It is written once over platform/posix, which reaches
+--  Linux through its system calls and Darwin and FreeBSD through their C
+--  library, and once more for Windows over platform/windows, in the files
+--  named windows*.ldn (D2270).  It adapts each layer to the protocol
 --  concepts, which the layer does not import: `internet_address` and
 --  `address_of` turn a `net.address` into the system's record and back,
---  and `words` words an errno or a library failure (D1951).  Import this module, or a provider built
---  over it, only at a hosted authority root.
+--  and `words` words an errno or a library failure (D1951).  Import this
+--  module, or a provider built over it, only at a hosted authority root.
 
 import core/cmp
 import core/io

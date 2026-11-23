@@ -31,18 +31,6 @@ fixed if compiler.os == windows then
     --- `INFINITE`: wait for as long as it takes.
     public infinite: u32 = 0xFFFFFFFF
 
-    --- What `wait_for_single_object` returns: `WAIT_OBJECT_0`, the object
-    --- is signalled, a thread or a process ended among them;
-    --- `WAIT_TIMEOUT`; and `WAIT_FAILED`, the reason in `last_error`.
-    public wait_object_0: u32 = 0
-    public wait_timeout: u32 = 258
-    public wait_failed: u32 = 0xFFFFFFFF
-
-    --- Wait until `object` is signalled or `milliseconds` pass,
-    --- `WaitForSingleObject`.
-    public extern(c) link(symbol: "WaitForSingleObject") wait_for_single_object:
-        (object: handle, milliseconds: u32) -> (outcome: u32)
-
     --- Sleep while the `size` bytes at `address` equal those at `compare`,
     --- `WaitOnAddress`, for at most `milliseconds`: nonzero when woken or
     --- when they already differ, zero with `error_timeout` in `last_error`.
