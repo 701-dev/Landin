@@ -477,6 +477,19 @@
               ln -s ${llvm19.llvm}/bin/llvm-objdump "$out/bin/llvm-objdump-19"
               ln -s ${llvm19.llvm}/bin/llvm-nm "$out/bin/llvm-nm-19"
               ln -s ${llvm19.llvm}/bin/llvm-ar "$out/bin/llvm-ar-19"
+              #  The Windows target's driver under llvm-mingw's name: the
+              #  bare Clang for x86-64 MinGW, LLD as its linker and
+              #  MinGW-w64's import libraries as its sysroot, from which a
+              #  Windows link takes kernel32's.
+              cat > "$out/bin/x86_64-w64-mingw32-clang" <<'SCRIPT'
+              #!${pkgs.runtimeShell}
+              exec ${llvm19.clang-unwrapped}/bin/clang \
+                  -resource-dir=${llvm19.clang}/resource-root \
+                  --target=x86_64-w64-mingw32 \
+                  --sysroot=${pkgs.pkgsCross.mingwW64.windows.mingw_w64} \
+                  --ld-path=${llvm19.lld}/bin/ld.lld "$@"
+              SCRIPT
+              chmod +x "$out/bin/x86_64-w64-mingw32-clang"
             '';
 
           crossTools = lib.optionals pkgs.stdenv.hostPlatform.isLinux (

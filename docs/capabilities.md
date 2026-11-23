@@ -1071,7 +1071,7 @@ process ignores SIGPIPE and gives its children the default back.
 ## Code generation
 
 - **Determinism.** Target code and the build report are byte-identical
-  whatever the build directory, environment or order, on all nine targets, with both Xtensa configurations;
+  whatever the build directory, environment or order, on all ten targets, with both Xtensa configurations;
   a hosted linked image without `--debug` is too, on one host's toolchain
   and under one output name (D810).
 - **Switches.** D209 and D211 specify compact numeric-array arithmetic and

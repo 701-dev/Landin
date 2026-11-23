@@ -102,9 +102,11 @@ package body Landin.Backend.C_ABI is
                  "a tagged variant reached native C classification";
          end case;
       end Visit;
+      Win64 : constant Boolean :=
+        Landin.Targets.C_ABI_Of (Facts) = Landin.Targets.Win64_LLP64;
    begin
       if Landin.Targets.C_ABI_Of (Facts)
-        /= Landin.Targets.SysV_AMD64_LP64
+        not in Landin.Targets.SysV_AMD64_LP64 | Landin.Targets.Win64_LLP64
       then
          raise Compiler_Defect with "no native C ABI for this target";
       end if;
@@ -153,6 +155,14 @@ package body Landin.Backend.C_ABI is
            (Of_Unit, Shape, Facts, Answer.Size, Answer.Alignment);
          if Answer.Size = 0 then
             raise Compiler_Defect with "an empty C aggregate was accepted";
+         elsif Win64 then
+            --  Its bytes as one integer, floats included, or by address.
+            if Answer.Size in 1 | 2 | 4 | 8 then
+               Answer.Count := 1;
+               Answer.Classes (1) := Integer_Class;
+            else
+               Answer.Memory := True;
+            end if;
          elsif Answer.Size > 16 then
             Answer.Memory := True;
          else
@@ -162,6 +172,75 @@ package body Landin.Backend.C_ABI is
       end;
       return Answer;
    end Classify;
+
+   function Assign_Win64
+     (Of_Unit    : Landin.IR.Unit;
+      Parameters : Landin.IR.Signature_Part_Array;
+      Result     : Landin.IR.Signature_Part;
+      Facts      : Landin.Targets.Target_Facts;
+      Maximum : Landin.Targets.Byte_Count) return Plan;
+
+   function Assign_Win64
+     (Of_Unit    : Landin.IR.Unit;
+      Parameters : Landin.IR.Signature_Part_Array;
+      Result     : Landin.IR.Signature_Part;
+      Facts      : Landin.Targets.Target_Facts;
+      Maximum : Landin.Targets.Byte_Count) return Plan
+   is
+      Answer : Plan (Parameters'Length);
+      Position : Natural := 0;
+      Copy_End : Landin.Targets.Byte_Count;
+   begin
+      Answer.Result.Shape := Classify (Of_Unit, Result, Facts);
+      if Answer.Result.Shape.Memory then
+         Answer.GP_Used := 1;
+         Position := 1;
+      elsif Answer.Result.Shape.Count = 1 then
+         Answer.Result.Registers (1) := 1;
+      end if;
+      for Index in Answer.Arguments'Range loop
+         declare
+            Item : Location renames Answer.Arguments (Index);
+         begin
+            Item.Shape := Classify
+              (Of_Unit, Parameters (Parameters'First + Index - 1), Facts);
+            Item.Indirect := Item.Shape.Memory;
+            Position := Position + 1;
+            if Position <= 4 then
+               Item.Registers (1) := Position;
+               if not Item.Indirect
+                 and then Item.Shape.Classes (1) = SSE_Class
+               then
+                  Answer.SSE_Used := Natural'Max (Answer.SSE_Used, Position);
+               else
+                  Answer.GP_Used := Natural'Max (Answer.GP_Used, Position);
+               end if;
+            else
+               Item.On_Stack := True;
+               Item.Stack_At := Stack_Add
+                 (32, Landin.Targets.Byte_Count (Position - 5) * 8, Maximum);
+            end if;
+         end;
+      end loop;
+      --  The shadow area and the stack slots, then each copy.
+      Copy_End := Stack_Align
+        (Stack_Add
+           (32, Landin.Targets.Byte_Count (Natural'Max (Position, 4) - 4)
+              * 8, Maximum), 16, Maximum);
+      for Item of Answer.Arguments loop
+         if Item.Indirect then
+            Item.Copy_At := Stack_Align
+              (Copy_End, Landin.Targets.Byte_Alignment'Max
+                 (16, Item.Shape.Alignment), Maximum);
+            Copy_End := Stack_Add
+              (Item.Copy_At, Stack_Align (Item.Shape.Size, 16, Maximum),
+               Maximum);
+         end if;
+      end loop;
+      Answer.Stack_Bytes := Stack_Align
+        (Copy_End, Landin.Targets.Stack_Alignment (Facts), Maximum);
+      return Answer;
+   end Assign_Win64;
 
    function Assign
      (Of_Unit    : Landin.IR.Unit;
@@ -174,6 +253,9 @@ package body Landin.Backend.C_ABI is
       Answer : Plan (Parameters'Length);
       Stack_End : Landin.Targets.Byte_Count := 0;
    begin
+      if Landin.Targets.C_ABI_Of (Facts) = Landin.Targets.Win64_LLP64 then
+         return Assign_Win64 (Of_Unit, Parameters, Result, Facts, Maximum);
+      end if;
       Answer.Result.Shape := Classify (Of_Unit, Result, Facts);
       if Answer.Result.Shape.Memory then
          Answer.GP_Used := 1;

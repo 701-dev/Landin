@@ -526,7 +526,7 @@ package body Landin.Stages.Configuration is
                begin
                   if Index > 0 then
                      return Options.Element (Index).Value.Kind;
-                  elsif Word in "linux" | "darwin" | "freebsd"
+                  elsif Word in "linux" | "darwin" | "freebsd" | "windows"
                               | "freestanding"
                   then
                      return Operating_System;
@@ -743,7 +743,7 @@ package body Landin.Stages.Configuration is
                   if Option_Index (Syn.Name (Of_Tree, Node)) > 0 then
                      return Evaluate_Option
                        (Option_Index (Syn.Name (Of_Tree, Node)));
-                  elsif Word in "linux" | "darwin" | "freebsd"
+                  elsif Word in "linux" | "darwin" | "freebsd" | "windows"
                               | "freestanding"
                   then
                      return (Kind => Operating_System, System_Value =>
@@ -753,6 +753,8 @@ package body Landin.Stages.Configuration is
                         then Landin.Targets.Capabilities.Darwin
                         elsif Word = "freebsd"
                         then Landin.Targets.Capabilities.FreeBSD
+                        elsif Word = "windows"
+                        then Landin.Targets.Capabilities.Windows
                         else Landin.Targets.Capabilities.No_Hosted_System));
                   elsif Word in "little" | "big" then
                      return (Kind => Byte_Order,

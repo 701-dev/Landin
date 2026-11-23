@@ -57,7 +57,7 @@ package Landin.Targets.Capabilities is
    function C_Records (Facts : Target_Facts) return Boolean;
    function C_Variadic_Calls (Facts : Target_Facts) return Boolean;
 
-   type Object_Format is (No_Object_Format, ELF, Mach_O);
+   type Object_Format is (No_Object_Format, ELF, Mach_O, COFF);
    function Object_Format_Of (Facts : Target_Facts) return Object_Format;
 
    type Debug_Format is
@@ -70,7 +70,7 @@ package Landin.Targets.Capabilities is
 
    type Backend_Kind is
      (No_Backend, X86_64_ELF, Darwin_Arm64_Mach_O, Arm64_ELF, RV64_ELF,
-      Cortex_M0_ELF, RV32_ELF, Xtensa_ELF);
+      Cortex_M0_ELF, RV32_ELF, Xtensa_ELF, X86_64_COFF);
 
    function Backend_For (Facts : Target_Facts) return Backend_Kind;
 
@@ -107,8 +107,10 @@ package Landin.Targets.Capabilities is
    --  `compiler.os` names to source: `platform/libc` selects its errno
    --  function and `open` flags by it.  Neither the object format nor the
    --  C ABI decides it: FreeBSD's objects are ELF and its errno function is
-   --  Darwin's.  A target with no hosted system has none.
-   type Hosted_System is (No_Hosted_System, Linux, Darwin, FreeBSD);
+   --  Darwin's.  Windows has no C library as its system interface: a
+   --  hosted Windows program reaches the system through kernel32.  A
+   --  target with no hosted system has none.
+   type Hosted_System is (No_Hosted_System, Linux, Darwin, FreeBSD, Windows);
 
    function Hosted_System_Of (Facts : Target_Facts) return Hosted_System;
 

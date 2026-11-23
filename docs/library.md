@@ -3389,6 +3389,20 @@ Facts that differ between the two systems:
 
 [Executable example](../compiler/tests/fixtures/runtime/kqueue-events/main.ldn)
 
+## platform/windows
+
+Windows' own interface, kernel32, under the Windows x64 C convention. It
+holds the process entry every Windows executable starts at, which refine
+links into each one whether or not the program imports the module, and it
+names kernel32 with `linker.library`; no C runtime is linked. Windows is
+not POSIX, so a Windows program has no `platform/posix` beneath it, and
+the hosted providers are not yet written over this module: on Windows a
+program reports through its exit status and its failed checks' lines.
+
+| Name | What it is |
+|---|---|
+| `_landin_start` | The process entry: it calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
+
 ## platform/c
 
 C scalar spellings for the target's C ABI, on every target whose C ABI is

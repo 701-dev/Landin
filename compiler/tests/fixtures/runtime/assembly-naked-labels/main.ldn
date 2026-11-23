@@ -4,7 +4,22 @@
 -- import of its symbol (D516).
 public extern(c) link(symbol: "landin_count_down") count_down: (n: u64) -> (rounds: u64)
 
-fixed if compiler.arch == x86_64 then
+fixed if compiler.arch == x86_64 and compiler.c_win64_llp64 then
+    --  Windows x64's C convention passes the argument in RCX.
+    link(symbol: "landin_count_down")
+    extern(naked) count_down_text: () -> none =
+        assembler.block("""
+            xorl %eax, %eax
+            1:
+            testq %rcx, %rcx
+            jz 2f
+            incq %rax       # one more round
+            decq %rcx
+            jmp 1b
+            2: ret
+            """)
+    end count_down_text
+elsif compiler.arch == x86_64 then
     link(symbol: "landin_count_down")
     extern(naked) count_down_text: () -> none =
         assembler.block("""

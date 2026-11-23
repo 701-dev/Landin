@@ -82,6 +82,10 @@ package Landin.Targets is
    function FreeBSD_X86_64 return Target_Facts;
    function FreeBSD_Arm64 return Target_Facts;
 
+   --  Windows on x86-64: LP64's pointer with Microsoft's LLP64 C model,
+   --  whose `long` is 32 bits, and the Windows x64 calling convention.
+   function Windows_X86_64 return Target_Facts;
+
    --  ARMv6-M Thumb, base AAPCS soft-float. The Cortex-M0 backend emits
    --  assembly; C signatures, records and variadic calls remain disabled.
    function Cortex_M return Target_Facts;
@@ -118,7 +122,8 @@ package Landin.Targets is
    --  D920), which is the unit's to say and not the ABI's.
    type C_ABI_Kind is
      (No_C_ABI, SysV_AMD64_LP64, Darwin_AAPCS64_LP64, AAPCS64_LP64,
-      RiscV_LP64D, Arm_AAPCS32_Soft, RiscV_ILP32, Xtensa_Windowed_ILP32);
+      RiscV_LP64D, Arm_AAPCS32_Soft, RiscV_ILP32, Xtensa_Windowed_ILP32,
+      Win64_LLP64);
 
    function C_ABI_Of (Facts : Target_Facts) return C_ABI_Kind;
 

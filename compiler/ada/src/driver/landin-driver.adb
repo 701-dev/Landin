@@ -1587,9 +1587,14 @@ package body Landin.Driver is
          --  is linked into every C program. Checking uses that same graph
          --  when the selected library supplies it; a standalone check with
          --  no such library keeps the loader's existing optional boundary.
+         --  A Windows program starts at platform/windows' `_landin_start`
+         --  in the same way, and links the kernel32 that module names.
          function Implicit_Module return String
-           is (if Static_Link
-               then "platform/linux" else "");
+           is (if Static_Link then "platform/linux"
+               elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+                 = Landin.Targets.Capabilities.Windows
+               then "platform/windows"
+               else "");
 
          function Policy_Report return Landin.Diagnostics.Diagnostic_List;
          function Policy_Report return Landin.Diagnostics.Diagnostic_List is
@@ -4771,6 +4776,10 @@ package body Landin.Driver is
                                 (Facts)
                                 = Landin.Targets.Capabilities.No_Hosted_System
                            then ""
+                           elsif Landin.Targets.Capabilities.Hosted_System_Of
+                                (Facts)
+                                = Landin.Targets.Capabilities.Windows
+                           then "kernel32"
                            elsif Static_Link then "static" else "libc")),
                       Written);
                   if Written /= Landin.Platform.Write_Ok then
@@ -5639,6 +5648,9 @@ package body Landin.Driver is
                     (if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
                           = Landin.Targets.Capabilities.No_Hosted_System
                      then ""
+                     elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+                       = Landin.Targets.Capabilities.Windows
+                     then "kernel32"
                      elsif Static_Link then "static" else "libc")),
                Written);
             if Written /= Landin.Platform.Write_Ok then
@@ -6238,6 +6250,18 @@ package body Landin.Driver is
                     (Code_Unknown_Option,
                      "--link chooses how a hosted executable is linked, and "
                      & Landin.Targets.Name (Facts) & " has no hosted system");
+                  Target_Option_Refused := True;
+               elsif Link_Seen
+                 and then Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+                   = Landin.Targets.Capabilities.Windows
+               then
+                  Bad_Use := True;
+                  Note_Failure
+                    (Code_Unknown_Option,
+                     "--link chooses between Linux's two links, and "
+                     & Landin.Targets.Name (Facts) & " has one: the program"
+                     & " starts at platform/windows and links kernel32,"
+                     & " with no C runtime");
                   Target_Option_Refused := True;
                elsif Link_Mode = Link_Static
                  and then Landin.Targets.Capabilities.Hosted_System_Of (Facts)

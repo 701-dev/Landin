@@ -1,0 +1,41 @@
+--  Windows' own interface, kernel32, declared as extern(c) imports under
+--  the Windows x64 convention, raw.  Windows is not POSIX, so there is no
+--  platform/posix beneath a Windows program: this module is the system's
+--  interface, as platform/linux is Linux's, and a Windows provider builds
+--  on it directly.  A program reaches kernel32, never ntdll, whose calls
+--  Windows does not promise.
+--
+--  The module holds the process entry, `_landin_start`, which every
+--  Windows executable starts at: refine links each one with this module,
+--  whether or not its own imports reach it, as C's startup object is linked
+--  into every C program, and links kernel32, which the module names below.
+--  No C runtime is linked.
+
+compiler.assert(compiler.os == windows)
+
+linker.library("kernel32")
+
+--  End the process with `status` as its exit code, after every DLL's
+--  detach routine has run.  Windows reads the code as a DWORD: a negative
+--  `status` is the same 32 bits, so -1 is 4294967295.
+extern(c) link(symbol: "ExitProcess") exit_process: (status: i32)
+    -> noreturn
+
+--  C's view of the program's hosted entry: the process entry calls it
+--  as C's runtime would, with no arguments and no environment yet.
+extern(c) link(symbol: "main") program_main:
+    (count: i32, values: ptr ptr u8, environment: ptr ptr u8)
+    -> (code: i32)
+
+--  The empty vector the entry gives as both: a null pointer alone.
+no_values: usize = 0
+
+--- The process entry.  Windows starts a process at the image's entry with
+--- the stack aligned as after a call, which a routine's prologue expects,
+--- so the entry is an ordinary routine: it calls the program's `main` and
+--- ends the process with main's result as the exit code.
+public extern(c) _landin_start: () -> noreturn =
+    empty: ptr ptr u8 = ptr(usize(addr no_values))
+    code: i32 = program_main(0, empty, empty)
+    exit_process(code)
+end _landin_start

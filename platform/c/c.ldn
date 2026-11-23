@@ -1,20 +1,22 @@
---  The selected SysV, Darwin, standard AAPCS64, RISC-V LP64D or Cortex-M
---  AAPCS32 C scalar spelling layer. These are ordinary aliases, not distinct
+--  The selected SysV, Darwin, standard AAPCS64, RISC-V LP64D, Cortex-M
+--  AAPCS32 or Windows x64 C scalar spelling layer. These are ordinary aliases, not distinct
 --  scalar kinds: an extern(c) signature keeps the same Landin scalar identity
 --  that its C spelling names.
 --
 --  c_char is the selected ABI's plain char, a numeric byte and never Landin's
 --  Unicode scalar u32: signed i8 under SysV and Apple's arm64 ABI, and
---  unsigned u8 under standard AAPCS64, RISC-V LP64D and AAPCS32.
+--  unsigned u8 under standard AAPCS64, RISC-V LP64D and AAPCS32; signed
+--  under Windows x64 as under SysV.
 --
 --  Four ABIs are LP64, whose long is 64 bits. AAPCS32 is ILP32 (D921): int,
---  long, size_t and pointers are all 32 bits, and long long 64.
+--  long, size_t and pointers are all 32 bits, and long long 64. Windows x64
+--  is LLP64: long is 32 bits beside 64-bit pointers and size_t.
 
 --  landin/compiler is implicit. The ABI fact, not pointer width or
 --  architecture alone, keeps the aliases from crossing data models.
 compiler.assert(compiler.c_sysv_lp64 or compiler.c_darwin_lp64
                 or compiler.c_aapcs64_lp64 or compiler.c_riscv_lp64d
-                or compiler.c_aapcs32)
+                or compiler.c_aapcs32 or compiler.c_win64_llp64)
 
 fixed if compiler.c_aapcs64_lp64 or compiler.c_riscv_lp64d
   or compiler.c_aapcs32 then
@@ -40,19 +42,19 @@ public c_ushort: type = u16
 public c_int: type = i32
 --- Alias for C unsigned int under every supported ABI.
 public c_uint: type = u32
-fixed if compiler.c_aapcs32 then
-    --- Alias for C signed long: 32 bits under AAPCS32's ILP32, 64 under
-    --- the LP64 ABIs.
+fixed if compiler.c_aapcs32 or compiler.c_win64_llp64 then
+    --- Alias for C signed long: 32 bits under AAPCS32's ILP32 and Windows
+    --- x64's LLP64, 64 under the LP64 ABIs.
     public c_long: type = i32
-    --- Alias for C unsigned long: 32 bits under AAPCS32's ILP32, 64 under
-    --- the LP64 ABIs.
+    --- Alias for C unsigned long: 32 bits under AAPCS32's ILP32 and Windows
+    --- x64's LLP64, 64 under the LP64 ABIs.
     public c_ulong: type = u32
 else
-    --- Alias for C signed long: 32 bits under AAPCS32's ILP32, 64 under
-    --- the LP64 ABIs.
+    --- Alias for C signed long: 32 bits under AAPCS32's ILP32 and Windows
+    --- x64's LLP64, 64 under the LP64 ABIs.
     public c_long: type = i64
-    --- Alias for C unsigned long: 32 bits under AAPCS32's ILP32, 64 under
-    --- the LP64 ABIs.
+    --- Alias for C unsigned long: 32 bits under AAPCS32's ILP32 and Windows
+    --- x64's LLP64, 64 under the LP64 ABIs.
     public c_ulong: type = u64
 end if
 --- Alias for C signed long long under every supported ABI.

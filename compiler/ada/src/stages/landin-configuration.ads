@@ -80,11 +80,11 @@ package Landin.Configuration is
       Cache_Line_Fact, C_SysV_LP64_Fact, C_Darwin_LP64_Fact,
       C_AAPCS64_LP64_Fact, C_RiscV_LP64D_Fact, C_AAPCS32_Fact,
       C_RiscV_ILP32_Fact,
-      C_Xtensa_Windowed_ILP32_Fact, C_Runtime_Fact);
+      C_Xtensa_Windowed_ILP32_Fact, C_Win64_LLP64_Fact, C_Runtime_Fact);
    subtype Atom_Fact is Fixed_Fact range Arch_Fact .. Build_Mode_Fact;
    subtype Valued_Fact is Fixed_Fact range Word_Size_Fact .. C_Runtime_Fact;
    subtype C_ABI_Fact is Fixed_Fact
-     range C_SysV_LP64_Fact .. C_Xtensa_Windowed_ILP32_Fact;
+     range C_SysV_LP64_Fact .. C_Win64_LLP64_Fact;
 
    function Fact_Name (Fact : Fixed_Fact) return String
      is (case Fact is
@@ -101,6 +101,7 @@ package Landin.Configuration is
            when C_AAPCS32_Fact => "c_aapcs32",
            when C_RiscV_ILP32_Fact => "c_riscv_ilp32",
            when C_Xtensa_Windowed_ILP32_Fact => "c_xtensa_windowed_ilp32",
+           when C_Win64_LLP64_Fact => "c_win64_llp64",
            when C_Runtime_Fact => "c_runtime");
 
    function Is_Fact_Name (Word : String) return Boolean
@@ -127,12 +128,13 @@ package Landin.Configuration is
            when C_AAPCS32_Fact => Landin.Targets.Arm_AAPCS32_Soft,
            when C_RiscV_ILP32_Fact => Landin.Targets.RiscV_ILP32,
            when C_Xtensa_Windowed_ILP32_Fact =>
-              Landin.Targets.Xtensa_Windowed_ILP32);
+              Landin.Targets.Xtensa_Windowed_ILP32,
+           when C_Win64_LLP64_Fact => Landin.Targets.Win64_LLP64);
 
    --  The configuration atoms that are not an architecture's: a system's,
    --  a byte order's and a build mode's.
    type Fixed_Atom is
-     (Linux_Atom, Darwin_Atom, FreeBSD_Atom, Freestanding_Atom,
+     (Linux_Atom, Darwin_Atom, FreeBSD_Atom, Windows_Atom, Freestanding_Atom,
       Little_Atom, Big_Atom, Debug_Atom, Release_Atom);
 
    function Atom_Name (Atom : Fixed_Atom) return String
@@ -140,6 +142,7 @@ package Landin.Configuration is
            when Linux_Atom => "linux",
            when Darwin_Atom => "darwin",
            when FreeBSD_Atom => "freebsd",
+           when Windows_Atom => "windows",
            when Freestanding_Atom => "freestanding",
            when Little_Atom => "little",
            when Big_Atom => "big",

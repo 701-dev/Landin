@@ -4,5 +4,5 @@ summary: D500 D511 D575 prototype 5's firmware/tick over core/atomic on every ta
 program: main.ldn
 root: ../../../../..
 status: 42
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
 constructs: 0900, 1620

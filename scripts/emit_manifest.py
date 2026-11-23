@@ -145,7 +145,8 @@ import build_lock  # noqa: E402
 import fixture_meta  # noqa: E402
 
 TARGETS = ("linux-x86-64", "linux-arm64", "darwin-arm64", "cortex-m0",
-           "freebsd-x86-64", "freebsd-arm64", "linux-rv64", "rv32", "xtensa")
+           "freebsd-x86-64", "freebsd-arm64", "linux-rv64", "rv32", "xtensa",
+           "windows-x86-64")
 MODES = ("debug", "release")
 OPTIMIZATIONS = ("none", "size", "speed")
 SPECIALIZATIONS = ("off", "auto", "all")
