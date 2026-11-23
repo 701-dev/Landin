@@ -924,7 +924,7 @@ port's placement differs from the RAM layout's default said in
 
 ### R16.33 — Element addresses and products by a constant
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.31 left as SHA-256's largest cost against gcc on the hosted
