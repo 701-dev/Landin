@@ -4470,9 +4470,12 @@ than guessing the answer from the architecture: Linux and Apple arm64
 share `compiler.arch == arm64` and answer the C ABI question differently.
 `compiler.os` is separate from the C ABI because Linux and FreeBSD share a
 calling convention on each architecture but not every libc record layout.
+It is `linux`, `darwin`, `freebsd`, `windows` or, on firmware,
+`freestanding`.
 
 `compiler.c_runtime` is always true on Darwin and FreeBSD, true on Linux
-only when the build asks with `--link=libc`, and never true on firmware. A
+only when the build asks with `--link=libc`, and never true on Windows,
+which links no C runtime, or on firmware. A
 library calls the C library only where this fact says it is there.
 
 **CPU features.** A build assumes a CPU feature level. You choose it with
@@ -4781,7 +4784,7 @@ end add_at
 Nothing can check that code of that type is there, as nothing checks a C
 cast, and the value is yours to call only while the library stays loaded.
 
-**The supported ABIs.** Landin supports five C application binary
+**The supported ABIs.** Landin supports six C application binary
 interfaces (ABIs):
 
 | C ABI | where |
@@ -4791,6 +4794,7 @@ interfaces (ABIs):
 | the standard AAPCS64 | Linux and FreeBSD arm64 |
 | RV64 LP64D | Linux RV64 |
 | AAPCS32 | Cortex-M |
+| the Windows x64 convention, LLP64 | Windows x86-64 |
 
 Under Cortex-M's AAPCS32, floats travel in the float unit's registers when
 the device description has one and in core registers when it has none.
@@ -4798,15 +4802,16 @@ the device description has one and in core registers when it has none.
 **C's types.** `platform/c` names them: the signed and unsigned integer
 widths, `c_size`, `c_ptrdiff`, `c_float`, `c_double` and `c_bool`. It asserts
 `compiler.c_sysv_lp64 or compiler.c_darwin_lp64 or compiler.c_aapcs64_lp64
-or compiler.c_riscv_lp64d or compiler.c_aapcs32`, so it admits exactly
-those five ABIs; another target with the same pointer width, RV32's or
-Xtensa's, is not admitted.
+or compiler.c_riscv_lp64d or compiler.c_aapcs32 or compiler.c_win64_llp64`,
+so it admits exactly those six ABIs; another target with the same pointer
+width, RV32's or Xtensa's, is not admitted.
 
 - The first four are LP64, with a 64-bit `long`. AAPCS32 is ILP32, so
-  there `c_long` is an `i32` and `c_size` a 32-bit `usize`.
+  there `c_long` is an `i32` and `c_size` a 32-bit `usize`. Windows x64 is
+  LLP64: `c_long` is an `i32` beside a 64-bit `c_size`.
 - Plain `c_char` is the ABI's plain `char`, a number and not a Unicode
-  scalar: `i8` under SysV and Apple's ABI, `u8` under the standard
-  AAPCS64, RV64 and AAPCS32.
+  scalar: `i8` under SysV, Apple's ABI and Windows x64, `u8` under the
+  standard AAPCS64, RV64 and AAPCS32.
 
 What crosses the boundary:
 

@@ -3403,6 +3403,11 @@ program reports through its exit status and its failed checks' lines.
 |---|---|
 | `_landin_start` | The process entry: it calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
 
+Every program of the Windows corpus starts here, this one among them,
+which imports nothing and ends with its status.
+
+[Executable example](../compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn)
+
 ## platform/c
 
 C scalar spellings for the target's C ABI, on every target whose C ABI is

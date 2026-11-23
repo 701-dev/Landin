@@ -2150,7 +2150,9 @@ the `utf16` decision in `spec.md`.
 Status: planned
 Depends on: R21.10
 
-Both Io providers and `hosted/thread` over the Windows API.
+Both Io providers and `hosted/thread` over the Windows API, with
+`hosted/heap`, the process's arguments and environment, and Windows'
+thread storage, which R21.10 left to it.
 Exit evidence: the Io and thread suites pass on Windows x86-64 in the
 gate.
 

@@ -652,6 +652,88 @@ package body Landin.Tests.Backend_Plans_Suite is
       end;
    end Stack_Limits_Keep_Defects;
 
+   --  Windows x64 (D2190): each argument takes its position's register in
+   --  whichever bank it belongs to, the fifth and later a stack slot above
+   --  the 32-byte shadow area, and an aggregate of other than one, two,
+   --  four or eight bytes is a copy passed by address or returned through
+   --  a hidden first pointer.
+   procedure Windows_X64_Positions (Item : in out Landin.Testing.Context);
+
+   procedure Windows_X64_Positions (Item : in out Landin.Testing.Context) is
+      use type Backend.C_ABI.Eightbyte_Class;
+      Unit : IR.Unit;
+      Site : Landin.Provenance.Origin;
+      Facts : constant Targets.Target_Facts := Targets.Windows_X86_64;
+      Wide, Word : IR.Nominal_Type_Id;
+      function Scalar (Kind : Landin.Types.Type_Kind)
+        return IR.Signature_Part is (Kind => Kind, others => <>);
+   begin
+      Prepare (Item, Unit, Site);
+      Wide := IR.Add_Nominal_Type (Unit, 1);
+      IR.Set_Nominal_Shape
+        (Unit, Wide,
+         [1 .. 3 => (Element => Landin.Types.U64, others => <>)],
+         Landin.Layouts.C);
+      Word := IR.Add_Nominal_Type (Unit, 2);
+      IR.Set_Nominal_Shape
+        (Unit, Word,
+         [1 .. 2 => (Element => Landin.Types.F32, others => <>)],
+         Landin.Layouts.C);
+      declare
+         Plan : constant Backend.C_ABI.Plan := Backend.C_ABI.Assign
+           (Unit, [Scalar (Landin.Types.I32), Scalar (Landin.Types.F64),
+                   Scalar (Landin.Types.I64), Scalar (Landin.Types.F32),
+                   Scalar (Landin.Types.I64), Scalar (Landin.Types.F64)],
+            Scalar (Landin.Types.F64), Facts);
+      begin
+         Landin.Testing.Check
+           (Item, Plan.Arguments (1).Registers (1) = 1
+              and then Plan.Arguments (2).Registers (1) = 2
+              and then Plan.Arguments (2).Shape.Classes (1)
+                = Backend.C_ABI.SSE_Class
+              and then Plan.Arguments (3).Registers (1) = 3
+              and then Plan.Arguments (4).Registers (1) = 4
+              and then Plan.GP_Used = 3 and then Plan.SSE_Used = 4,
+            "each of the first four arguments takes its position's register");
+         Landin.Testing.Check
+           (Item, Plan.Arguments (5).On_Stack
+              and then Plan.Arguments (5).Stack_At = 32
+              and then Plan.Arguments (6).Stack_At = 40
+              and then Plan.Stack_Bytes = 48,
+            "later arguments sit above the shadow area");
+         Landin.Testing.Check
+           (Item, Plan.Result.Registers (1) = 1
+              and then Plan.Result.Shape.Classes (1)
+                = Backend.C_ABI.SSE_Class,
+            "a float result comes back in XMM0");
+      end;
+      declare
+         Plan : constant Backend.C_ABI.Plan := Backend.C_ABI.Assign
+           (Unit, [(Kind => Landin.Types.Aggregate, Nominal => Word,
+                    others => <>),
+                   (Kind => Landin.Types.Aggregate, Nominal => Wide,
+                    others => <>)],
+            (Kind => Landin.Types.Aggregate, Nominal => Wide,
+             others => <>), Facts);
+      begin
+         Landin.Testing.Check
+           (Item, Plan.Result.Shape.Memory and then Plan.GP_Used = 3,
+            "a 24-byte result is returned through a hidden first pointer");
+         Landin.Testing.Check
+           (Item, not Plan.Arguments (1).Indirect
+              and then Plan.Arguments (1).Registers (1) = 2
+              and then Plan.Arguments (1).Shape.Classes (1)
+                = Backend.C_ABI.Integer_Class,
+            "an eight-byte record of floats travels as one integer");
+         Landin.Testing.Check
+           (Item, Plan.Arguments (2).Indirect
+              and then Plan.Arguments (2).Registers (1) = 3
+              and then Plan.Arguments (2).Copy_At = 32
+              and then Plan.Stack_Bytes = 64,
+            "a 24-byte record is a copy the caller passes by address");
+      end;
+   end Windows_X64_Positions;
+
    procedure Native_Argument_Counts_Stay_Encodable
      (Item : in out Landin.Testing.Context);
 
@@ -1405,6 +1487,9 @@ package body Landin.Tests.Backend_Plans_Suite is
       Landin.Testing.Register
         (Into, "backend plans", "native argument counts stay encodable",
          Native_Argument_Counts_Stay_Encodable'Access);
+      Landin.Testing.Register
+        (Into, "backend plans", "Windows x64 positions",
+         Windows_X64_Positions'Access);
       Landin.Testing.Register
         (Into, "backend plans", "stack limits keep defects",
          Stack_Limits_Keep_Defects'Access);

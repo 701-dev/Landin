@@ -1950,17 +1950,20 @@ The selected hosted ABIs are Linux and FreeBSD x86-64 SysV AMD64 LP64,
 Darwin arm64 AAPCS64 with Apple's platform differences, both conventions with
 signed plain C `char`, and Linux and FreeBSD arm64's standard AAPCS64 LP64,
 whose plain `char` is unsigned, and RV64 Linux LP64D, also with unsigned
-plain `char`. Cortex-M firmware's C ABI is AAPCS32 (D920), ILP32 with an
-unsigned plain `char`, at the base PCS or, with a description's float unit,
-the VFP variant (D616).
+plain `char`, and Windows x86-64's x64 convention, LLP64 with a 32-bit
+`long` and a signed plain `char` (D2190). Cortex-M firmware's C ABI is
+AAPCS32 (D920), ILP32 with an unsigned plain `char`, at the base PCS or,
+with a description's float unit, the VFP variant (D616).
 `compiler.c_sysv_lp64`, `compiler.c_darwin_lp64`, `compiler.c_aapcs64_lp64`,
-`compiler.c_riscv_lp64d` and `compiler.c_aapcs32` are their respective fixed bool configuration facts, each true for its own ABI
+`compiler.c_riscv_lp64d`, `compiler.c_aapcs32` and `compiler.c_win64_llp64`
+are their respective fixed bool configuration facts, each true for its own ABI
 alone, not guesses from pointer width or architecture spelling.
 `compiler.c_runtime` is a fixed bool configuration fact too: true when C's
 runtime starts the program and its library is linked, which on Darwin and
 FreeBSD is always and on Linux only for a request with `--link=libc`, and
 false for every other Linux request, a check that emits nothing among
-them, and on a target with no hosted system. A source selects C library
+them, on Windows, which links no C runtime (D2188), and on a target with no
+hosted system. A source selects C library
 calls by it, so a static Linux program never reaches one. The ordinary
 `platform/c` aliases assert one supported fact before exposing `c_char`, `c_schar`,
 `c_uchar`, `c_short`, `c_ushort`,
@@ -1968,10 +1971,11 @@ calls by it, so a static Linux program never reaches one. The ordinary
 `c_ptrdiff`, `c_float`, `c_double` and `c_bool`. These name existing scalar
 identities: signed/unsigned 8, 16, 32 and 64-bit integers as appropriate,
 `usize`/`isize`, `f32`/`f64` and `bool`; under the LP64 ABIs `long` and
-`long long` are both 64-bit, and under AAPCS32 `long` is 32-bit (D921).
+`long long` are both 64-bit, and under AAPCS32 and Windows x64's LLP64
+`long` is 32-bit (D921, D2190).
 C `char` is the selected ABI's plain `char`, a numeric byte and not a Unicode
-scalar: `i8` under SysV and Darwin, `u8` under standard AAPCS64, RISC-V
-LP64D and AAPCS32; `c_schar` and `c_uchar` keep their signedness everywhere. A described
+scalar: `i8` under SysV, Darwin and Windows x64, `u8` under standard AAPCS64,
+RISC-V LP64D and AAPCS32; `c_schar` and `c_uchar` keep their signedness everywhere. A described
 target's ABI identity
 and widths do not imply that its C boundary is implemented. C signature,
 record-layout and variadic-call capabilities are selected explicitly; neither
@@ -7406,6 +7410,44 @@ would split one rule for a wording reason.
 **Pinned by** `negative/utf8-and-bytes-name-their-conversion`, both
 directions through a generic pattern and a plain parameter, and
 `negative/text-literal-for-a-byte-formal-is-bound-first`.
+
+### D2187 — `utf16` stays a validated text identity, and a Windows host string is not one
+
+**From** [0600] and [1975].
+
+**The discrepancy:** R19's audit found `utf16` unused by the library and
+used by thirteen fixtures, and left whether it stays to the Windows item,
+since Windows' wide calls take UTF-16. Those calls take two kinds of
+string: text, as the console's `WriteConsoleW` writes, and names, paths,
+arguments and environment entries, which Windows keeps as 16-bit units
+without requiring them to be well-formed UTF-16, so a file may be named by
+a lone surrogate that no `utf16` value can hold.
+
+**Chosen:** `utf16` stays as [0600] and D181 to D184 have it: a distinct
+immutable `[]u16` view of valid UTF-16 that a literal, a conversion or a
+slice gives, with traversal and slicing by code unit. It is what a
+conversion from `utf8` produces and what Windows' text calls take. A
+Windows host string, the system's own form of a path, an argument, an
+environment entry or a directory entry's name, is not a `utf16`: it is the
+units the system gave, unconverted and possibly ill-formed, as a Linux one
+is the bytes the system gave, and it reaches the program as an `os_string`
+does, with the checked conversion to text. A call that needs a terminated
+wide string has its platform module copy the units into a buffer and add
+the NUL, as `platform/posix` terminates a path, so no terminated wide
+identity is added.
+
+**The alternatives:** removing `utf16` and leaving `[]u16` with library
+conversions, which is a breaking change outside a breaking window and
+leaves the conversion to UTF-16 with no type saying its result is valid;
+making `utf16` the Windows host string, which refuses names Windows
+accepts, so a directory listing could not name every file in it; and a
+NUL-terminated wide identity beside `cstring`, which only the platform
+layer would use and which a buffer serves.
+
+**Pinned by** `runtime/text-range-slicing` and
+`runtime/utf16-slice-not-boundary-traps`, which the Windows corpus runs,
+`negative/utf16-indexing-is-not-utf8-indexing`, and
+`runtime/target-hosted-system-facts`.
 
 ## DECISIONS: DECLARED TYPES, RANGES AND LAYOUT
 
@@ -33198,6 +33240,178 @@ with a second answer.
 **Pinned by** the commands case `option requirements are one`, which holds
 the commands' parse and the driver to the same answers for a missing
 `--debug` value, `-g`, `-g1` and `-g0`.
+
+### D2188 — Windows x86-64 is a hosted target over kernel32, with no C runtime
+
+**From** [1500], [1550], [1970] and [1975].
+
+**The discrepancy:** the third roadmap adds Windows. Every hosted target
+before it reached its system through a C library or, on Linux, its system
+calls, and C's startup object started every program but a static Linux
+one. Windows' system interface is kernel32's documented calls; its C
+runtimes are several, and none is the system's.
+
+**Chosen:** `windows-x86-64` is a little-endian description with 64-bit
+pointers, 16-byte stack alignment and frame pointers, the x86-64 feature
+levels and the Windows x64 C convention (D2190). `compiler.os` gains
+`windows`; `compiler.c_runtime` is false there. A Windows executable is
+the program and kernel32: refine links `platform/windows` into every one,
+whether or not the program imports it, as a static Linux link takes
+`platform/linux`, and its `_landin_start` calls the program's `main` and
+ends the process with `ExitProcess`, whose 32-bit code is main's result
+unchanged. The module names kernel32 with `linker.library`, and nothing
+links a C runtime: `--link` is refused for the target, a fixture with
+`link: libc` does not name it, and `platform/posix`, `platform/libc`,
+`platform/linux` and `platform/kqueue` are unavailable, so `hosted/`,
+which is written over them, is too until Windows' providers are written
+over kernel32. The image reserves an eight-megabyte stack, a Linux
+process's customary limit, where Windows would reserve one, so that the
+corpus's recursion runs alike. The report a failed check writes goes to
+standard error through `GetStdHandle` and `WriteFile`.
+
+**The alternatives:** linking a C runtime, MinGW's or Microsoft's, which
+puts a second runtime's startup before every program and ties the target to
+one distribution of it; reaching ntdll, whose calls Windows does not
+promise; and leaving the stack at Windows' default, under which the
+corpus's deepest recursion overflows where it does not on Linux.
+
+**Pinned by** `runtime/target-hosted-system-facts`,
+`toolchain/a Windows link has no C runtime`, and the corpus the gate's
+`windows-runtime` job runs (`compiler/tests/windows/README.md`).
+
+### D2189 — Windows links through llvm-mingw's driver: Clang's assembler and LLD
+
+**From** [1550].
+
+**The discrepancy:** [1550] has the platform's assembler and linker finish
+a program, and Windows has two families: Microsoft's, with no assembler for
+the GNU syntax every Landin backend writes, and the MinGW ones, GNU
+binutils or LLVM.
+
+**Chosen:** the driver is `x86_64-w64-mingw32-clang`, the name llvm-mingw
+gives it on Linux, macOS and Windows and MSYS2's CLANG64 environment gives
+it too. It assembles with Clang's integrated assembler and links with LLD
+in its MinGW mode against MinGW-w64's import libraries, `libkernel32.a`
+among them; `--toolchain` names another, a Clang with LLD and those
+libraries serving as well. The objects are COFF: a symbol has no type or
+size directive, each routine and datum is its own `.text$`, `.rdata$`,
+`.data$` or `.bss$` section, and a read-only datum is `.rdata`. The
+assembler does not refuse an instruction above the selected level, as GNU
+as does on Linux, and the image carries no level mark: a program built
+above the baseline is the builder's to run on a processor that has it.
+
+**The alternatives:** GNU binutils for MinGW, which reads the same
+assembly but has no arm64 Windows target for the arm64 item to follow and
+writes no PDB for the debugging item; and Microsoft's linker, which needs
+Microsoft's import libraries and an assembler of another syntax.
+
+**Pinned by** `toolchain/a Windows link has no C runtime`, which holds the
+driver's name and the link line, and every Windows executable the gate's
+`windows-emit` job links.
+
+### D2190 — The Windows x64 convention is planned beside System V's
+
+**From** [1550] and [1700].
+
+**The discrepancy:** D204's C plan is System V's: two register banks
+assigned independently, eightbytes classified, MEMORY records copied onto
+the stack. The Windows x64 convention assigns by position, passes no record
+in two registers and preserves registers System V does not.
+
+**Chosen:** `Landin.Backend.C_ABI` plans Windows x64 in System V's terms.
+The Nth argument takes RCX, RDX, R8 or R9, or XMM0 to XMM3 when it is a
+float, whichever bank its position names; each later one an eight-byte
+slot above the 32-byte shadow area every call reserves. A record of one,
+two, four or eight bytes travels as one integer, floats included; any
+other is copied by the caller into its outgoing area and passed by
+address, and returned through a hidden first pointer, which RAX gives
+back. A variadic call's float goes in the integer register of its position
+too. The C model is LLP64: `c_long` and `c_ulong` are 32 bits and
+`compiler.c_win64_llp64` is the target's fact. A routine C calls keeps RDI,
+RSI and XMM6 to XMM15 below its frame and restores them, since the native
+convention it calls preserves none of them. Landin's native convention is
+unchanged.
+
+**The alternatives:** a second backend for the convention, which would
+split instruction selection for a difference of argument placement alone;
+and changing the native convention to Windows', which would make every
+native call on Windows unlike the same call elsewhere for nothing a Landin
+caller can see.
+
+**Pinned by** `backend plans/Windows x64 positions`,
+`runtime/assembly-naked-labels`, whose naked routine reads its C argument
+from RCX on Windows, and `runtime/target-hosted-system-facts`.
+
+### D2191 — A Windows routine's unwind table describes its frame record
+
+**From** [1550].
+
+**The discrepancy:** Windows walks a stack by each routine's unwind table,
+which the image carries; a routine without one is taken to be a leaf that
+moved no stack pointer, so a debugger, a crash report or the exception
+dispatcher misreads every frame above it.
+
+**Chosen:** each routine with a frame is a `.seh_proc` whose prologue
+pushes RBP and sets it as the frame register, and whose prologue ends
+there; whatever the routine reserves or saves after that, the frame
+register recovers the caller's stack pointer. Its teardown restores the
+stack pointer by LEA from RBP, an epilogue form the unwinder reads. The
+table does not describe the callee-saved registers the routine stores in
+its frame, since no exception unwinds through a Landin frame to need them
+back. A naked routine has no table, as it has no frame.
+
+**The alternatives:** describing each saved register, which needs the
+saves before the end of the prologue and the frame register at an offset
+the frame does not use, for an unwinding no Landin program does; and DWARF
+call frames, which Windows' own unwinder does not read.
+
+**Pinned by** every Windows executable the corpus runs, whose failed checks
+end through the exception dispatcher, which walks these tables.
+
+### D2192 — A failed check ends a Windows program with the trap's exception
+
+**From** [1620] and D232, D361 and D491.
+
+**The discrepancy:** a failed check with no selected handler executes the
+trap instruction, after D361's report. On Windows the instruction raises
+an exception, which the dispatcher handles only on a stack within the
+bounds the thread's TEB records; D491's report runs on a stack of its own
+in a program that prepares one, outside those bounds, where the dispatch
+failed as an access violation instead.
+
+**Chosen:** the trap instruction stays, and with no handler ends the
+process with `STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D, its exit code. The
+report, moving to its own stack, first makes that stack the thread's in the
+TEB, its base at GS:8 and its limit at GS:16, so the trap after it
+dispatches as on the stack the program started on. The Windows lane
+requires that exit code of every fixture that traps and sets the error mode
+its programs inherit, so Windows Error Reporting neither opens a dialog nor
+waits on one.
+
+**The alternatives:** ending the process with `ExitProcess` after the
+report, which a debugger would not stop at; and leaving the TEB alone,
+under which a trap after a prepared stack's report ends with another code.
+
+**Pinned by** `runtime/fibre-stack-past-limit-traps` and every fixture
+with `traps: yes` the Windows corpus runs.
+
+### D2193 — A Windows program has one thread until Windows' threads are written
+
+**From** [1590] and D496.
+
+**The discrepancy:** a thread variable is ELF thread storage on every other
+hosted target, and D471's stack limit is one; Windows' thread storage is
+another mechanism, and no Windows thread can be started yet.
+
+**Chosen:** on Windows a thread variable is module storage, as on a target
+with no threads, and the stack limit's cell is too, until Windows' threads
+and their storage are written over the Windows API.
+
+**The alternatives:** Windows' implicit thread storage through `_tls_index`
+and the TEB's slot array now, which only a second thread would test.
+
+**Pinned by** the fibre fixtures of the Windows corpus, whose prepared
+stacks keep the limit in that cell.
 
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 
