@@ -718,6 +718,7 @@ package body Landin.Commands is
             return
               (case Caps.Hosted_System_Of (Facts) is
                   when Caps.Linux => "static",
+                  when Caps.Windows => "kernel32",
                   when Caps.No_Hosted_System => "none",
                   when others => "libc");
          end;

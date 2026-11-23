@@ -1,0 +1,9 @@
+class: negative
+summary: D2188 holds a Windows program's written and reserved images together to the 2 GiB a Windows image holds, before emission, and the refusal names both counts and the limit
+program: program.ldn
+constructs: 0520, 1640
+targets: windows-x86-64
+codes: L0505
+args: compile --target=windows-x86-64 --emit=asm ../tests/fixtures/negative/windows-image-past-two-gigabytes/program.ldn
+expect: expected.txt
+status: 1

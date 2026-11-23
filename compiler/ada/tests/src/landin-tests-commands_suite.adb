@@ -322,7 +322,7 @@ package body Landin.Tests.Commands_Suite is
               J.Member (Doc, J.Root (Doc), "targets");
          begin
             Landin.Testing.Check_Equal
-              (Item, J.Length (Doc, Rows), 10,
+              (Item, J.Length (Doc, Rows), 11,
                "every described target reports its debug capability");
             for Index in 1 .. J.Length (Doc, Rows) loop
                declare
@@ -331,7 +331,7 @@ package body Landin.Tests.Commands_Suite is
                     J.Text (Doc, J.Member (Doc, Row, "name"));
                   Debug : constant J.Value := J.Member (Doc, Row, "debug");
                   Expected : constant String :=
-                    (if Name = "synthetic-32" then "none"
+                    (if Name in "synthetic-32" | "windows-x86-64" then "none"
                      elsif Name in "cortex-m0" | "rv32" | "xtensa"
                      then "lines" else "full");
                begin

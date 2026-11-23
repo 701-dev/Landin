@@ -87,6 +87,11 @@ package body Landin.Backend.Images is
          return Writable;
       elsif Over (Used.Reserved, Budget.Reserved) then
          return Reserved;
+      elsif Used.Reserved.Past
+        or else Over (Plus (Used.Initialized, Used.Reserved.Bytes),
+                      Budget.Whole)
+      then
+         return Whole;
       else
          return Within;
       end if;
@@ -116,6 +121,11 @@ package body Landin.Backend.Images is
             return "zero static images reserve " & Number (Used.Reserved)
               & " bytes before section GC, past the "
               & Number (Budget.Reserved) & " bytes that " & Holder;
+         when Whole =>
+            return "static images write " & Number (Used.Initialized)
+              & " and reserve " & Number (Used.Reserved)
+              & " bytes before section GC, together past the "
+              & Number (Budget.Whole) & " bytes that " & Holder;
          when Within =>
             raise Compiler_Defect with "a usage within its budget is refused";
       end case;

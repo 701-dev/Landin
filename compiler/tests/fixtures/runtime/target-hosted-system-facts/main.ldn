@@ -17,6 +17,10 @@ elsif compiler.os == linux then
     end if
 elsif compiler.os == darwin then
     compiler.assert(compiler.c_darwin_lp64)
+elsif compiler.os == windows then
+    compiler.assert(compiler.arch == x86_64 and compiler.word_size == 64)
+    compiler.assert(compiler.c_win64_llp64)
+    compiler.assert(not compiler.c_sysv_lp64 and not compiler.c_runtime)
 else
     compiler.assert(compiler.os == freestanding)
     compiler.assert(not compiler.c_sysv_lp64 and not compiler.c_aapcs64_lp64)

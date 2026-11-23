@@ -22,12 +22,23 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 | `darwin-arm64` | hosted executables | natively | LLDB with dSYM |
 | `freebsd-x86-64` | hosted executables, emitted on Linux | a FreeBSD VM under KVM | LLDB in the VM |
 | `freebsd-arm64` | hosted executables, emitted on Linux | an emulated FreeBSD VM | LLDB in the VM |
+| `windows-x86-64` | hosted executables with no hosted providers yet, emitted on Linux | natively, on a GitHub-hosted Windows runner | none yet |
 | `cortex-m0` | Cortex-M firmware, ARMv6-M by default and up to ARMv8-M Mainline by `--level` | the pinned QEMU | GDB, lines and functions |
 | `xtensa` | windowed LX6 and LX7 firmware, ILP32; physical ESP32 and ESP32-S3 RAM and boot ports | Espressif QEMU chip controls and complete corpus on exact CPUs with explicitly virtual RAM | lines with `--debug=lines`; no gate debugger session |
 | `rv32` | RV32IMC and RV32IMAC firmware, ilp32 | Espressif's QEMU, `sifive_e` and `esp32c3` | lines with `--debug=lines`; no gate session |
 
 - **FreeBSD** runs in [architecture-specific VMs](../environments/freebsd/README.md)
   with separate runtime, C ABI and debugger verdicts in the gate.
+- **Windows** builds COFF executables through llvm-mingw's
+  `x86_64-w64-mingw32-clang`, Clang's assembler and LLD, which link
+  kernel32 and no C runtime: `platform/windows`'s `_landin_start` runs
+  `main` and ends the process with its result (D2188, D2189). C calls take
+  the Windows x64 convention, LLP64 (D2190), routines carry unwind tables
+  for their frame records (D2191), and a failed check writes its line to
+  standard error and ends with `STATUS_ILLEGAL_INSTRUCTION` (D2192). A
+  program has one thread and no hosted provider yet, so it reports through
+  its exit status and its failed checks' lines; the runtime corpus that
+  needs no more [runs natively in the gate](../compiler/tests/windows/README.md).
 - **RV64** runs its whole test program and its GDB sessions under QEMU's
   user emulation, which is evidence about its emitted code and none about
   RV64 hardware. Its [physical RISE lanes](../compiler/tests/rv64/README.md),
@@ -1071,7 +1082,7 @@ process ignores SIGPIPE and gives its children the default back.
 ## Code generation
 
 - **Determinism.** Target code and the build report are byte-identical
-  whatever the build directory, environment or order, on all nine targets, with both Xtensa configurations;
+  whatever the build directory, environment or order, on all ten targets, with both Xtensa configurations;
   a hosted linked image without `--debug` is too, on one host's toolchain
   and under one output name (D810).
 - **Switches.** D209 and D211 specify compact numeric-array arithmetic and
@@ -1243,8 +1254,8 @@ Add `--target=darwin-arm64` for native macOS output, then open
 
 ## Where the evidence comes from
 
-The recurring gate runs Linux and macOS programs natively, FreeBSD programs
-in accelerated VMs and Cortex-M firmware under QEMU, with separate runtime,
+The recurring gate runs Linux, macOS and Windows programs natively, FreeBSD
+programs in accelerated VMs and Cortex-M firmware under QEMU, with separate runtime,
 C ABI and debugger verdicts; RV64 Linux runs under QEMU's user emulation, as
 above. On a push to `main`, weekly and by dispatch it also runs all eight
 board ports on the physical rig, each RAM run followed by its boot check.

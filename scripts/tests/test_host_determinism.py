@@ -358,7 +358,7 @@ class Emission(unittest.TestCase):
             'exit 2\n')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(sum(value == "refused:1" for value in manifest.values()), 18)
-        self.assertEqual(sum(len(value) == 64 for value in manifest.values()), 162)
+        self.assertEqual(sum(len(value) == 64 for value in manifest.values()), 180)
 
     def test_every_profile_is_emitted_and_named(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -385,9 +385,10 @@ class Emission(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertIn("unexpected emission result", result.stderr)
             manifest = json.loads(out.read_text())
-            self.assertEqual(len(manifest), 10 * 2 * 3 * 3)
+            self.assertEqual(len(manifest), 11 * 2 * 3 * 3)
             for target in ("linux-x86-64", "linux-arm64", "darwin-arm64", "cortex-m0",
-                           "freebsd-x86-64", "freebsd-arm64", "linux-rv64", "rv32"):
+                           "freebsd-x86-64", "freebsd-arm64", "linux-rv64", "rv32",
+                           "windows-x86-64"):
                 for mode in ("debug", "release"):
                     for optimize in ("none", "size", "speed"):
                         for specialize in ("off", "auto", "all"):
@@ -723,7 +724,7 @@ class OwnTarget(unittest.TestCase):
             "targets: rv32, cortex-m0\nargs: --target=rv32\n")
         self.assertEqual(result.returncode, 1)
         self.assertIn("unexpected emission result", result.stderr)
-        self.assertEqual(len(manifest), 10 * 2 * 3 * 3)
+        self.assertEqual(len(manifest), 11 * 2 * 3 * 3)
 
     def test_the_build_modes_compare_it_on_its_target_alone(self):
         sys.path.insert(0, str(CHECK.parent))

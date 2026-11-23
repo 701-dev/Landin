@@ -237,6 +237,34 @@ package body Landin.Tests.Toolchain_Suite is
          "the libc link of arm64 collects unreached sections too");
    end A_Static_Linux_Link_Has_No_C_Runtime;
 
+   --  D2188/D2189: a Windows executable links kernel32 and no C runtime,
+   --  starts at platform/windows' entry, reserves an eight-megabyte stack
+   --  and links with LLD through llvm-mingw's driver name.
+   procedure A_Windows_Link_Has_No_C_Runtime
+     (Item : in out Landin.Testing.Context);
+
+   procedure A_Windows_Link_Has_No_C_Runtime
+     (Item : in out Landin.Testing.Context)
+   is
+      Libraries : Landin.Platform.Path_List;
+   begin
+      Libraries.Append ("kernel32");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main", "", Libraries => Libraries,
+               Facts => Landin.Targets.Windows_X86_64)),
+         "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
+         & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
+         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "main" & LF
+         & "-fuse-ld=lld" & LF,
+         "Windows links kernel32 alone, through LLD");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Backend.Toolchain.Driver_For
+           (Landin.Targets.Windows_X86_64, ""),
+         "x86_64-w64-mingw32-clang", "Windows names llvm-mingw's driver");
+   end A_Windows_Link_Has_No_C_Runtime;
+
    --  D660: an RV32 level reaches GCC as its ISA string with Zicsr and
    --  Zifencei and the soft-float ILP32 ABI, which together select the
    --  rv32imc or rv32imac multilib, and the firmware link is Cortex-M's
@@ -642,6 +670,9 @@ package body Landin.Tests.Toolchain_Suite is
       Landin.Testing.Register
         (Into, "toolchain", "a static Linux link has no C runtime",
          A_Static_Linux_Link_Has_No_C_Runtime'Access);
+      Landin.Testing.Register
+        (Into, "toolchain", "a Windows link has no C runtime",
+         A_Windows_Link_Has_No_C_Runtime'Access);
       Landin.Testing.Register
         (Into, "toolchain", "RV32 names its level and ABI",
          RV32_Names_Its_Level_And_ABI'Access);

@@ -246,7 +246,8 @@ package body Landin.Backend.Toolchain is
       then
          return "/usr/bin/clang";
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
-        = Landin.Targets.Capabilities.FreeBSD
+        in Landin.Targets.Capabilities.FreeBSD
+         | Landin.Targets.Capabilities.Windows
       then
          return Triplet & "-clang";
       elsif Triplet = "" then
@@ -353,6 +354,17 @@ package body Landin.Backend.Toolchain is
            & " refine is tested with, which gives riscv64-elf-gcc), or name"
            & " a driver with --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.Windows
+      then
+         --  llvm-mingw's toolchain gives the driver by this name on Linux,
+         --  macOS and Windows; MSYS2's CLANG64 environment gives it too.
+         --  A Clang with LLD and MinGW-w64's import libraries serves as
+         --  well, named with --toolchain or linked under this name.
+         return "install llvm-mingw, which gives " & Triplet & "-clang"
+           & " (on Windows, MSYS2's mingw-w64-clang-x86_64-toolchain"
+           & " does too), or name a Clang with LLD and MinGW-w64's"
+           & " import libraries with --toolchain=NAME" & Without;
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Linux
       then
          if Native then
@@ -381,6 +393,13 @@ package body Landin.Backend.Toolchain is
       then
          List.Append ("lib" & Name & ".tbd");
          List.Append ("lib" & Name & ".dylib");
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.Windows
+      then
+         --  LLD's MinGW mode looks for an import library, MinGW's name
+         --  first and Microsoft's second.
+         List.Append ("lib" & Name & ".dll.a");
+         List.Append (Name & ".lib");
       elsif not Landin.Targets.Is_Firmware (Facts) then
          List.Append ("lib" & Name & ".so");
       end if;
@@ -544,6 +563,34 @@ package body Landin.Backend.Toolchain is
                Landin.Platform.Add (List, "-save-temps=obj");
             end if;
          end if;
+      end if;
+      --  A Windows executable is the program and the system's own DLLs:
+      --  no C runtime object and no C library.  The process starts at
+      --  platform/windows' `_landin_start`, kernel32 is linked through
+      --  the linker.library that module names, and the stack reserves
+      --  eight megabytes, a Linux process's customary limit, where a
+      --  Windows image would otherwise reserve one.  The assembler is
+      --  Clang's own, as llvm-mingw's driver has no other, and the
+      --  linker LLD in its MinGW mode.
+      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.Windows
+      then
+         Landin.Platform.Add (List, "-nostdlib");
+         Landin.Platform.Add (List, "-Wl,-e,_landin_start");
+         Landin.Platform.Add (List, "-Wl,--stack,8388608");
+         Landin.Platform.Add (List, "-Wl,--gc-sections");
+         for Directory of Directories loop
+            Landin.Platform.Add (List, "-L" & Directory);
+         end loop;
+         Landin.Platform.Add (List, File_Operand (Assembly));
+         for Library of Libraries loop
+            Landin.Platform.Add (List, "-l" & Library);
+         end loop;
+         Landin.Platform.Add (List, "-o");
+         Landin.Platform.Add (List, File_Operand (Output));
+         Landin.Platform.Add (List, "-fuse-ld=" & (if Linker /= ""
+                                                   then Linker else "lld"));
+         return List;
       end if;
       --  A static Linux executable is the program alone.  No C
       --  runtime object, no C library and no dynamic loader: the process

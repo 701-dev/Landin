@@ -124,6 +124,7 @@ jobs:
             freebsd-amd64-runtime freebsd-amd64-debugger freebsd-amd64-abi \
             freebsd-arm64-runtime-1 freebsd-arm64-runtime-2 \
             freebsd-arm64-debugger freebsd-arm64-abi freebsd-amd64-size freebsd-arm64-size \
+            windows-emit windows-runtime \
             measure-size build-modes-1 build-modes-2 \
             build-modes-3 build-modes-4 rv64-qemu-1 rv64-qemu-2 outside-user-stock \
             linux-release-clean linux-release-compare \
@@ -2424,6 +2425,97 @@ jobs:
           path: ${{ runner.temp }}/freebsd-evidence/measure/size.json
           retention-days: 30
 
+  #  Windows x86-64: Linux refine emits every runtime fixture whose
+  #  targets name windows-x86-64 at every profile, linking with Clang,
+  #  LLD and Ubuntu's MinGW-w64 import libraries under llvm-mingw's driver
+  #  name, and a GitHub-hosted Windows runner executes the bundle and holds
+  #  each outcome to its fixture (compiler/tests/windows/README.md).
+  windows-emit:
+    needs: [inputs, linux-release-build]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LANDIN_BUILD_MODE: release
+      LANDIN_BUILD_REUSE: 'yes'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install the pinned compiler toolchain
+        uses: ./.github/actions/pinned-toolchain
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: linux-release
+          path: ${{ runner.temp }}/linux-release
+      - name: Restore and verify release executables
+        run: |
+          mkdir -p compiler/ada/build/linux-amd64/release
+          tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
+            -C compiler/ada/build/linux-amd64/release
+          ./scripts/build.sh -q
+      - name: Install Clang, LLD and the MinGW-w64 import libraries
+        run: |
+          . ./environments/pins.sh
+          ./scripts/ci_packages.sh \
+            "clang-19=$LANDIN_CLANG_UBUNTU" lld-19 mingw-w64-x86-64-dev
+          test "$(dpkg-query -W -f='${Version}' clang-19)" = "$LANDIN_CLANG_UBUNTU"
+          mkdir -p "$RUNNER_TEMP/bin"
+          printf '%s\n' '#!/bin/sh' \
+            'exec clang-19 --target=x86_64-w64-mingw32 --sysroot=/usr/x86_64-w64-mingw32 "$@"' \
+            > "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
+          chmod +x "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
+      - name: Emit the Windows x86-64 corpus
+        run: |
+          python3 compiler/tests/windows/check.py --prepare-only \
+            --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
+            --toolchain="$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang" \
+            --output="$RUNNER_TEMP/windows-bundle"
+          #  The lane and the scripts it imports, at their own paths: the
+          #  Windows runner checks nothing out, since the tree holds a
+          #  fixture path with a double quote, which Git for Windows
+          #  refuses even outside a sparse checkout.
+          for file in compiler/tests/windows/check.py scripts/lane_refine.py \
+              scripts/refine_revision.py scripts/build_identity.py; do
+            mkdir -p "$RUNNER_TEMP/windows-bundle/lane/$(dirname "$file")"
+            cp "$file" "$RUNNER_TEMP/windows-bundle/lane/$file"
+          done
+      - name: Keep the bundle the Windows runner executes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x86-64-bundle
+          path: |
+            ${{ runner.temp }}/windows-bundle/prepared.json
+            ${{ runner.temp }}/windows-bundle/bundle
+            ${{ runner.temp }}/windows-bundle/lane
+          retention-days: 3
+
+  windows-runtime:
+    needs: [inputs, windows-emit]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-x86-64-bundle
+          path: ${{ runner.temp }}/windows-prepared
+      - name: Execute the Windows x86-64 corpus
+        run: >-
+          python "$env:RUNNER_TEMP/windows-prepared/lane/compiler/tests/windows/check.py"
+          --prepared="$env:RUNNER_TEMP/windows-prepared"
+          --output="$env:RUNNER_TEMP/windows-evidence"
+      - name: Keep each outcome's output, status and the verdicts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x86-64-runtime
+          path: |
+            ${{ runner.temp }}/windows-evidence/summary.json
+            ${{ runner.temp }}/windows-evidence/bundle/*.stdout
+            ${{ runner.temp }}/windows-evidence/bundle/*.status
+          retention-days: 14
+
   #  The RV64 Linux lane under QEMU's user emulation: the release compiler's
   #  whole test program with linux-rv64 as its lane, every executable linked
   #  by Ubuntu's riscv64 cross driver and run by qemu-riscv64.  It is
@@ -2899,6 +2991,7 @@ jobs:
             darwin-parity, arm64-debug-build, arm64-compiler,
             arm64-compiler-checks, arm64-release-build, arm64-release,
             arm64-release-checks, freebsd, rv64-qemu,
+            windows-emit, windows-runtime,
             determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     steps:

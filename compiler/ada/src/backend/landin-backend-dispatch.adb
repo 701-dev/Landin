@@ -12,7 +12,8 @@ package body Landin.Backend.Dispatch is
 
    function Frame_Limit (Facts : Landin.Targets.Target_Facts) return String is
      (case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF =>
+         when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF =>
             "signed 32-bit offsets this backend addresses",
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
            | Landin.Targets.Capabilities.Arm64_ELF =>
@@ -35,7 +36,8 @@ package body Landin.Backend.Dispatch is
       Options : Landin.Optimization.Options) return Boolean is
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF =>
+         when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF =>
             return Landin.Backend.X86_64.Frame_Is_Addressable
               (Of_Unit, Item, Facts, Options);
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
@@ -107,7 +109,8 @@ package body Landin.Backend.Dispatch is
           (48 + (if Float then Landin.Backend.VFP_Switch_Bytes else 0));
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF =>
+         when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF =>
             return (Switch_Bytes => 64, Prepared_Bytes => 64,
                     Entry_Bytes => 0,
                     Report_Bytes => (if Linux then 8 else 24),
@@ -173,7 +176,8 @@ package body Landin.Backend.Dispatch is
          raise Compiler_Defect with "a level of another target's family";
       end if;
       case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF =>
+         when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF =>
             Landin.Backend.X86_64.Emit
               (Of_Unit, Meanings, Names, Facts, Options, Assembly, Report,
                Hosted_Entry, Debug, Panic, Level);

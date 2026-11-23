@@ -1,0 +1,4 @@
+--  A zero image one byte past 2 GiB, which Linux reserves, is more than a
+--  Windows image holds.
+mut far: [2147483649]u8
+public main: () -> (code: i32) = code = i32(far[1]) end main

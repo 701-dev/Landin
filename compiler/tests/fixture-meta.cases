@@ -64,9 +64,10 @@ fixture runtime/every-level
 | levels: x86-64-v3, armv8.1-a, rv64gc_xtheadba, armv7-m, rv32imac, xtensa-esp32, xtensa-esp32s3
 | level_status: rv64gc_xtheadba=8, armv7-m=9, xtensa-esp32s3=10
 | constructs: 1500
-| targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, rv32, xtensa
+| targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, cortex-m0, rv32, xtensa
 field levels@linux-x86-64 = x86-64-v3
 field levels@freebsd-x86-64 = x86-64-v3
+field levels@windows-x86-64 = x86-64-v3
 field levels@linux-arm64 = armv8.1-a
 field levels@darwin-arm64 = armv8.1-a
 field levels@freebsd-arm64 = armv8.1-a

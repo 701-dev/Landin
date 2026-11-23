@@ -8,7 +8,7 @@ package body Landin.Targets.Selection is
          when 3 => "darwin-arm64", when 4 => "freebsd-x86-64",
          when 5 => "freebsd-arm64", when 6 => "linux-rv64",
          when 7 => "cortex-m0", when 8 => "rv32", when 9 => "synthetic-32",
-         when 10 => "xtensa",
+         when 10 => "xtensa", when 11 => "windows-x86-64",
          when others => raise Compiler_Defect);
 
    function Described_At (Index : Positive) return Target_Facts is
@@ -17,7 +17,7 @@ package body Landin.Targets.Selection is
          when 3 => Darwin_Arm64, when 4 => FreeBSD_X86_64,
          when 5 => FreeBSD_Arm64, when 6 => Linux_RV64,
          when 7 => Cortex_M, when 8 => RV32, when 9 => Synthetic_32,
-         when 10 => Xtensa,
+         when 10 => Xtensa, when 11 => Windows_X86_64,
          when others => raise Compiler_Defect);
 
    function Is_Described (Name : String) return Boolean is
@@ -45,8 +45,12 @@ package body Landin.Targets.Selection is
    function Contains (Text, Part : String) return Boolean
      is (Ada.Strings.Fixed.Index (Text, Part) /= 0);
 
+   --  Whatever C library the building GNAT was configured for: a Linux
+   --  program refine emits makes its own system calls, and links a C
+   --  library only when asked.
    function Is_Linux (Triplet : String) return Boolean
-     is (Contains (Triplet, "-linux-gnu"));
+     is (Contains (Triplet, "-linux-gnu")
+         or else Contains (Triplet, "-linux-musl"));
 
    function Is_Darwin (Triplet : String) return Boolean
      is (Contains (Triplet, "-darwin"));

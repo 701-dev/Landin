@@ -12256,6 +12256,8 @@ LIBRARY_ENTRY_POINTS = {
         "called by name from _landin_start's assembly, before main",
     "platform/linux._landin_start_main":
         "called by name from _landin_start's assembly, and calls main",
+    "platform/windows._landin_start":
+        "the process entry, which every Windows link names with -e",
     "platform/posix._landin_host_initialize_arguments":
         "Landin.Hosted's argument initializer, which the hosted entry, C's"
         " main, calls before the program's body",

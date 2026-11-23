@@ -33,6 +33,10 @@ package body Landin.Modules.Availability is
            Landin.Targets.Capabilities.Linux
            | Landin.Targets.Capabilities.Darwin
            | Landin.Targets.Capabilities.FreeBSD;
+      elsif Under (Logical, "platform/windows") then
+         --  Windows' own interface, kernel32, on Windows alone.
+         return Landin.Targets.Capabilities.Hosted_System_Of (Facts) =
+           Landin.Targets.Capabilities.Windows;
       elsif Logical = "platform/cortex_m" then
          --  D575: the module itself declares its operations only on an
          --  M-profile target, so a shared program imports it everywhere and
@@ -66,7 +70,8 @@ package body Landin.Modules.Availability is
                | Landin.Targets.Darwin_AAPCS64_LP64
                | Landin.Targets.AAPCS64_LP64
                | Landin.Targets.RiscV_LP64D
-               | Landin.Targets.Arm_AAPCS32_Soft =>
+               | Landin.Targets.Arm_AAPCS32_Soft
+               | Landin.Targets.Win64_LLP64 =>
                return Landin.Targets.Capabilities.C_Signatures (Facts);
             when Landin.Targets.No_C_ABI
                | Landin.Targets.RiscV_ILP32
@@ -88,6 +93,8 @@ package body Landin.Modules.Availability is
       elsif POSIX_Module (Logical) then
          return "D267: " & Logical & " requires a hosted POSIX system:"
            & " Linux, Darwin or FreeBSD";
+      elsif Under (Logical, "platform/windows") then
+         return "D267: " & Logical & " requires a Windows target";
       elsif Under (Logical, "platform/cortex_m") then
          return "D267: " & Logical & " requires an M-profile target";
       elsif Under (Logical, "platform/riscv") then
@@ -96,8 +103,8 @@ package body Landin.Modules.Availability is
          return "D267: " & Logical & " requires the xtensa target";
       elsif Under (Logical, "platform/c") then
          return "D267: platform/c requires an enabled C ABI: SysV AMD64"
-           & " LP64, Darwin or standard AAPCS64 LP64, RISC-V LP64D, or"
-           & " Cortex-M's AAPCS32 (D920)";
+           & " LP64, Darwin or standard AAPCS64 LP64, RISC-V LP64D,"
+           & " Cortex-M's AAPCS32 (D920) or Windows x64 LLP64";
       else
          return "D1022: " & Logical & " declares no targets, so it is"
            & " available on none; this is a fault of the library, whose"

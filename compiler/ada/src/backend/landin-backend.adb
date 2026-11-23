@@ -1689,6 +1689,7 @@ package body Landin.Backend is
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
          when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF
             | Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
             | Landin.Targets.Capabilities.Arm64_ELF =>
             return 640;
@@ -1726,6 +1727,7 @@ package body Landin.Backend is
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
          when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF
             | Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
             | Landin.Targets.Capabilities.Arm64_ELF
             | Landin.Targets.Capabilities.RV64_ELF
@@ -1748,7 +1750,8 @@ package body Landin.Backend is
    is
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF =>
+         when Landin.Targets.Capabilities.X86_64_ELF
+            | Landin.Targets.Capabilities.X86_64_COFF =>
             return 152;
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
             | Landin.Targets.Capabilities.Arm64_ELF
@@ -1770,7 +1773,8 @@ package body Landin.Backend is
    begin
       case Landin.Targets.Capabilities.Hosted_System_Of (Facts) is
          when Landin.Targets.Capabilities.Darwin
-            | Landin.Targets.Capabilities.FreeBSD =>
+            | Landin.Targets.Capabilities.FreeBSD
+            | Landin.Targets.Capabilities.Windows =>
             return 16_384;
          when Landin.Targets.Capabilities.Linux
             | Landin.Targets.Capabilities.No_Hosted_System =>
@@ -1782,8 +1786,12 @@ package body Landin.Backend is
    is
       use type Landin.Targets.Capabilities.Hosted_System;
    begin
+      --  A Windows program has one thread until its threads are written
+      --  over the Windows API, so a thread variable there is module
+      --  storage, as on a target with no threads.
       return Landin.Targets.Capabilities.Hosted_System_Of (Facts)
-        /= Landin.Targets.Capabilities.No_Hosted_System;
+        not in Landin.Targets.Capabilities.No_Hosted_System
+             | Landin.Targets.Capabilities.Windows;
    end Has_Threads;
 
    function In_Thread_Storage

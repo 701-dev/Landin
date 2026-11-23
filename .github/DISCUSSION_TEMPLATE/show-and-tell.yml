@@ -30,6 +30,7 @@ body:
         - cortex-m0
         - rv32
         - xtensa
+        - windows-x86-64
         - Not applicable
   - type: textarea
     id: hard

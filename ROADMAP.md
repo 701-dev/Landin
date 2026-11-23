@@ -2289,7 +2289,7 @@ R15's proposal rewritten for today's library, second Io and threads.
 
 ### R21.10 — Windows x86-64
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Win64 convention, COFF, unwind tables, a hosted layer over the Windows
@@ -2298,12 +2298,37 @@ to it.
 Exit evidence: the corpus runs on a Windows x86-64 runner in the gate;
 the `utf16` decision in `spec.md`.
 
+Done: `windows-x86-64` builds COFF executables through llvm-mingw's
+`x86_64-w64-mingw32-clang`, Clang's assembler and LLD against MinGW-w64's
+free import libraries, linking kernel32 and no C runtime from
+`platform/windows`'s `_landin_start` (D2188, D2189, which also says what
+Microsoft's tools would take). C calls take the Windows x64 convention,
+LLP64 with `compiler.c_win64_llp64` (D2190); routines carry SEH tables for
+their frame records (D2191); a failed check ends with
+`STATUS_ILLEGAL_INSTRUCTION`, its report's stack made the thread's first
+(D2192); thread variables are module storage until Windows' threads
+(D2193); a Windows image holds its static images within 2 GiB, which L0505
+says before emission. `utf16` stays, and a Windows host string is not one
+(D2187). The gate's `windows-emit` and `windows-runtime` jobs run 3,314
+outcomes of 732 runtime fixtures natively on `windows-2025`, passed in
+the merged candidate's gate run 45229944797, with boards run 45234631776; `compiler/tests/windows/check.py` runs them under
+Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
+that Wine loaded; the trap after a prepared stack's report dispatched as
+an access violation; a musl-built `refine` named no host target (`SR-1518`
+taken). Rows SR-1694 to SR-1698 record the C peer lane, the start-up level
+check, the TEB bounds a stack switch leaves, the fixture path Git for
+Windows cannot check out and the measurement no lane takes of a Windows
+image; `hosted/heap`, arguments, environment and thread
+storage moved to R21.20.
+
 ### R21.20 — Windows' Io and threads
 
 Status: planned
 Depends on: R21.10
 
-Both Io providers and `hosted/thread` over the Windows API.
+Both Io providers and `hosted/thread` over the Windows API, with
+`hosted/heap`, the process's arguments and environment, and Windows'
+thread storage, which R21.10 left to it.
 Exit evidence: the Io and thread suites pass on Windows x86-64 in the
 gate.
 
@@ -2325,6 +2350,23 @@ Depends on: R21.30
 
 Exit evidence: the corpus, the Io and thread suites and the debugger
 sessions on Windows arm64 in the gate.
+
+### R21.50 — Microsoft's toolchain on Windows
+
+Status: planned
+Depends on: R21.10
+
+A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
+D2189 describes: the assembly assembled by Clang for
+`x86_64-pc-windows-msvc` or by `clang-cl`, or a MASM spelling of the
+backend's output if that proves the simpler route; the link by `link.exe`
+or `lld-link` with `/ENTRY:_landin_start /NODEFAULTLIB`; and the Windows
+SDK's `kernel32.lib` and each `linker.library` as a `.lib` found by
+`/LIBPATH:`. A user selects it with `--toolchain`, and llvm-mingw stays
+the default and the only toolchain a Windows build requires.
+Exit evidence: the corpus links with Microsoft's tools and runs on a
+Windows x86-64 runner in the gate, which carries Visual Studio; the
+selection in `docs/capabilities.md`.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
@@ -3195,7 +3237,7 @@ program with the static build natively, 1279 cases. The user image keeps
 Debian's `gcc`, which it needs to link, and takes the static archive
 unchanged. The README records the musl and jemalloc build the spike
 tested, which the project neither builds nor publishes, and what making
-one needs; `SR-1518` holds the host-target refusal it met. Met on the way
+one needs; the host-target refusal it met, `SR-1518`, R21.10 fixed. Met on the way
 and fixed: glibc's static start kills an
 executable naming a run path, which the gate's release lanes built
 without `-R`, so `build.sh` adds it; the reuse check then refused the

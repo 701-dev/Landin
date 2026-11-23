@@ -145,7 +145,8 @@ import build_lock  # noqa: E402
 import fixture_meta  # noqa: E402
 
 TARGETS = ("linux-x86-64", "linux-arm64", "darwin-arm64", "cortex-m0",
-           "freebsd-x86-64", "freebsd-arm64", "linux-rv64", "rv32", "xtensa")
+           "freebsd-x86-64", "freebsd-arm64", "windows-x86-64",
+           "linux-rv64", "rv32", "xtensa")
 MODES = ("debug", "release")
 OPTIMIZATIONS = ("none", "size", "speed")
 SPECIALIZATIONS = ("off", "auto", "all")
@@ -165,6 +166,9 @@ REFUSAL_PAIRS = {
     #  An array of 2**31 - 1 elements is no object of a 32-bit target.
     ("array-longer-than-a-host-natural", "cortex-m0"),
     ("array-longer-than-a-host-natural", "rv32"),
+    #  Nor is its 11 GB zero image part of a Windows image, which holds
+    #  2 GiB of static images in all (D2188).
+    ("array-longer-than-a-host-natural", "windows-x86-64"),
     ("fixed-conditional-cross-file-forward", "cortex-m0"),
     ("fixed-conditional-cross-file-forward", "darwin-arm64"),
     ("fixed-conditional-cross-file-forward", "linux-arm64"),
@@ -220,6 +224,9 @@ REFUSAL_PAIRS = {
     ("r491-symbolic-c-layout", "rv32"),
     ("r630-memory-scalars", "rv32"),
     ("written-type-c-function", "rv32"),
+    #  The from-c page's examples import platform/posix, which Windows,
+    #  being no POSIX system, does not have (D2188).
+    ("from-c", "windows-x86-64"),
 }
 # Xtensa's firmware surface has the same C-boundary refusals. The default
 # configuration also has no read-modify-write atomics or foreign asm arm.

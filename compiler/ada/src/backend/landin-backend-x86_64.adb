@@ -698,11 +698,94 @@ package body Landin.Backend.X86_64 is
       procedure Begin_Item_Section
         (Prefix, Flags : String; Position : Positive);
 
+      --  A COFF object spells what ELF does differently: a symbol has no
+      --  type or size directive, a section's flags are COFF's letters and
+      --  its name groups by `$`, so that the linker gathers `.text$NAME`
+      --  into `.text` and so on.  A read-only datum is `.rdata`, which
+      --  the Windows loader relocates as it relocates any section.
+      COFF : constant Boolean :=
+        Landin.Targets.Capabilities."="
+          (Landin.Targets.Capabilities.Object_Format_Of (Facts),
+           Landin.Targets.Capabilities.COFF);
+      --  Windows x64's C convention, which C_ABI plans.
+      Win64 : constant Boolean :=
+        Landin.Targets."="
+          (Landin.Targets.C_ABI_Of (Facts), Landin.Targets.Win64_LLP64);
+      --  RDI and RSI, then XMM6 to XMM15, which a routine C calls keeps.
+      Win64_Save_Bytes : constant Landin.Targets.Byte_Count := 176;
+
+      function Function_Type (Symbol : String) return String
+        is (if COFF then "" else ELF.Function_Type (Symbol));
+      function Object_Type (Symbol : String) return String
+        is (if COFF then "" else ELF.Object_Type (Symbol));
+      function Size_To_Here (Symbol : String) return String
+        is (if COFF then "" else ELF.Size_To_Here (Symbol));
+      function Symbol_Size (Symbol, Bytes : String) return String
+        is (if COFF then "" else ELF.Size (Symbol, Bytes));
+
+      --  NAME and FLAGS as ELF spells them, `.text.landin_x` and
+      --  `"ax",@progbits`, in the object format's spelling.
+      function Section_Name (Name : String) return String;
+      function Section_Name (Name : String) return String is
+         function Starts (Prefix : String) return Boolean
+           is (Name'Length >= Prefix'Length
+               and then Name (Name'First .. Name'First + Prefix'Length - 1)
+                 = Prefix);
+         function After (Prefix : String) return String
+           is (Name (Name'First + Prefix'Length .. Name'Last));
+      begin
+         if not COFF then
+            return Name;
+         end if;
+         if Starts (".data.rel.ro.local.") then
+            return ".rdata$" & After (".data.rel.ro.local.");
+         elsif Starts (".rodata.cst4.") then
+            return ".rdata$" & After (".rodata.cst4.");
+         elsif Starts (".rodata.cst8.") then
+            return ".rdata$" & After (".rodata.cst8.");
+         elsif Starts (".rodata.str1.1.") then
+            return ".rdata$" & After (".rodata.str1.1.");
+         elsif Starts (".rodata.") then
+            return ".rdata$" & After (".rodata.");
+         elsif Starts (".text.") then
+            return ".text$" & After (".text.");
+         elsif Starts (".data.") then
+            return ".data$" & After (".data.");
+         elsif Starts (".bss.") then
+            return ".bss$" & After (".bss.");
+         end if;
+         raise Compiler_Defect with "no COFF section for " & Name;
+      end Section_Name;
+
+      function Section_Flags (Flags : String) return String
+        is (if not COFF then Flags
+            elsif Ada.Strings.Fixed.Index (Flags, "x") > 0 then """xr"""
+            elsif Ada.Strings.Fixed.Index (Flags, "nobits") > 0
+            then """bw"""
+            elsif Ada.Strings.Fixed.Index (Flags, "w") > 0 then """dw"""
+            else """dr""");
+
+      function Section (Name, Flags : String) return String
+        is (".section " & Section_Name (Name) & "," & Section_Flags (Flags));
+      function Push_Section (Name, Flags : String) return String
+        is (".pushsection " & Section_Name (Name) & ","
+            & Section_Flags (Flags));
+
+      --  A directive line, or nothing when the object format has none.
+      procedure Put_Directive (Directive : String);
+      procedure Put_Directive (Directive : String) is
+      begin
+         if Directive /= "" then
+            Put (Character'Val (9) & Directive);
+         end if;
+      end Put_Directive;
+
       procedure Begin_Item_Section
         (Prefix, Flags : String; Position : Positive) is
       begin
-         Put (Character'Val (9) & ".section " & Prefix
-              & Trimmed (Positive'Image (Position)) & "," & Flags);
+         Put (Character'Val (9)
+              & Section (Prefix & Trimmed (Positive'Image (Position)),
+                         Flags));
       end Begin_Item_Section;
 
       function Is_Forced (Item : Landin.IR.Item_Id) return Boolean
@@ -876,7 +959,7 @@ package body Landin.Backend.X86_64 is
          Zero : constant String := Decode_Entry & "_zero";
          Bad : constant String := Decode_Entry & "_bad";
       begin
-         Put (Character'Val (9) & ".type " & Decode_Entry & ", @function");
+         Put_Directive (Function_Type (Decode_Entry));
          Put (Decode_Entry & ":");
          if Debug /= null then
             Emit (".cfi_startproc");
@@ -934,8 +1017,7 @@ package body Landin.Backend.X86_64 is
          if Debug /= null then
             Emit (".cfi_endproc");
          end if;
-         Put (Character'Val (9) & ".size " & Decode_Entry & ", .-"
-               & Decode_Entry);
+         Put_Directive (Size_To_Here (Decode_Entry));
       end Emit_Float_Decode;
 
       --  Linker identity, not assembly syntax.  This is also available before
@@ -2521,18 +2603,29 @@ package body Landin.Backend.X86_64 is
            is (Landin.Targets.Byte_Count'Min
                  (8, Shape.Size - Landin.Targets.Byte_Count (Index - 1) * 8));
 
+         --  The C convention's Nth integer argument register: System V's
+         --  six, which are the native convention's, or Windows x64's four.
+         function C_Argument (Index : Positive) return String
+           is (if not Win64
+               then Argument_Register (Index, Landin.Targets.Byte_8)
+               else (case Index is
+                        when 1 => "%rcx", when 2 => "%rdx",
+                        when 3 => "%r8", when 4 => "%r9",
+                        when others => raise Compiler_Defect
+                          with "a fifth Windows x64 argument register"));
+
          function C_Register
            (Place : C_ABI.Location;
             Index : Positive;
             Returning : Boolean := False) return String
            is (if Place.Shape.Classes (Index) = C_ABI.SSE_Class
+                 and then not Place.Indirect
                then "%xmm" & Trimmed
                  (Natural'Image (Place.Registers (Index) - 1))
                elsif Returning
                then (if Place.Registers (Index) = 1
                      then "%rax" else "%rdx")
-               else Argument_Register
-                 (Place.Registers (Index), Landin.Targets.Byte_8));
+               else C_Argument (Place.Registers (Index)));
 
          procedure Load_C_Chunk
            (Offset, Bytes : Landin.Targets.Byte_Count);
@@ -2634,8 +2727,7 @@ package body Landin.Backend.X86_64 is
             --  does not become IR state.
             Reserve_Stack (Saved_Bytes, "c_entry");
             for Index in 1 .. Plan.GP_Used loop
-               Emit ("movq "
-                     & Argument_Register (Index, Landin.Targets.Byte_8)
+               Emit ("movq " & C_Argument (Index)
                      & ", " & Displacement
                        (Landin.Targets.Byte_Count (Index - 1) * 8, "%rsp"));
             end loop;
@@ -2662,7 +2754,27 @@ package body Landin.Backend.X86_64 is
                   Slot : constant Landin.IR.Slot_Id :=
                     Landin.IR.Nth_Parameter (Of_Unit, Item, Index + Hidden);
                begin
-                  if Place.On_Stack then
+                  if Place.Indirect then
+                     --  Windows x64: the caller's copy is at the address
+                     --  the position holds.
+                     Emit ("movq " & (if Place.On_Stack
+                                      then Displacement
+                                        (16 + Place.Stack_At, "%rbp")
+                                      else Displacement
+                                        (Landin.Targets.Byte_Count
+                                           (Place.Registers (1) - 1) * 8,
+                                         "%rsp")) & ", %rsi");
+                     Emit ("leaq " & Slot_Address (Slot) & ", %rdi");
+                     if Speed_Unrolled (Place.Shape.Size) then
+                        Emit_Small_Copy (Place.Shape.Size);
+                     else
+                        Emit ("movabsq $" & Trimmed
+                              (Landin.Targets.Byte_Count'Image
+                                 (Place.Shape.Size)) & ", %rcx");
+                        Emit ("cld");
+                        Emit ("rep movsb");
+                     end if;
+                  elsif Place.On_Stack then
                      Emit ("leaq " & Displacement
                            (16 + Place.Stack_At, "%rbp") & ", %rsi");
                      Emit ("leaq " & Slot_Address (Slot) & ", %rdi");
@@ -2727,7 +2839,30 @@ package body Landin.Backend.X86_64 is
                declare
                   Place : C_ABI.Location renames Plan.Arguments (Index);
                begin
-                  if Place.On_Stack then
+                  if Place.Indirect then
+                     --  Windows x64: the callee may write its argument,
+                     --  so it gets a copy, and the copy's address goes
+                     --  in a stack slot now or a register below.
+                     Emit ("movq " & Value_Operand (Argument (Index))
+                           & ", %rsi");
+                     Emit ("leaq " & Displacement (Place.Copy_At, "%rsp")
+                           & ", %rdi");
+                     if Speed_Unrolled (Place.Shape.Size) then
+                        Emit_Small_Copy (Place.Shape.Size);
+                     else
+                        Emit ("movabsq $" & Trimmed
+                              (Landin.Targets.Byte_Count'Image
+                                 (Place.Shape.Size)) & ", %rcx");
+                        Emit ("cld");
+                        Emit ("rep movsb");
+                     end if;
+                     if Place.On_Stack then
+                        Emit ("leaq " & Displacement (Place.Copy_At, "%rsp")
+                              & ", %r10");
+                        Emit ("movq %r10, "
+                              & Displacement (Place.Stack_At, "%rsp"));
+                     end if;
+                  elsif Place.On_Stack then
                      if Place.Shape.Aggregate then
                         Emit ("movq " & Value_Operand (Argument (Index))
                               & ", %rsi");
@@ -2753,13 +2888,19 @@ package body Landin.Backend.X86_64 is
             if Plan.Result.Shape.Memory then
                Emit ("movq " & Value_Operand
                      (Landin.IR.Nth_Operand
-                        (Of_Unit, Item, Value, Offset + 1)) & ", %rdi");
+                        (Of_Unit, Item, Value, Offset + 1)) & ", "
+                     & C_Argument (1));
             end if;
             for Index in Plan.Arguments'Range loop
                declare
                   Place : C_ABI.Location renames Plan.Arguments (Index);
                begin
-                  if not Place.On_Stack then
+                  if Place.Indirect then
+                     if not Place.On_Stack then
+                        Emit ("leaq " & Displacement (Place.Copy_At, "%rsp")
+                              & ", " & C_Register (Place, 1));
+                     end if;
+                  elsif not Place.On_Stack then
                      if Place.Shape.Aggregate then
                         Emit ("movq " & Value_Operand (Argument (Index))
                               & ", %r11");
@@ -2776,11 +2917,24 @@ package body Landin.Backend.X86_64 is
                      else
                         Load_C_Scalar (Argument (Index));
                         Emit ("movq %r10, " & C_Register (Place, 1));
+                        --  Windows x64 passes a variadic call's float in
+                        --  the integer register of its position as well,
+                        --  for a callee that reads it as an integer.
+                        if Win64
+                          and then Landin.IR.Signature_Is_Variadic
+                            (Of_Unit, Signature)
+                          and then Place.Shape.Classes (1) = C_ABI.SSE_Class
+                        then
+                           Emit ("movq %r10, "
+                                 & C_Argument (Place.Registers (1)));
+                        end if;
                      end if;
                   end if;
                end;
             end loop;
-            if Landin.IR.Signature_Is_Variadic (Of_Unit, Signature) then
+            if Landin.IR.Signature_Is_Variadic (Of_Unit, Signature)
+              and then not Win64
+            then
                Emit ("movb $" & Trimmed (Natural'Image (Plan.SSE_Used))
                      & ", %al");
             end if;
@@ -2984,7 +3138,25 @@ package body Landin.Backend.X86_64 is
                   end if;
                end if;
             end loop;
-            Emit ("movq %rbp, %rsp");
+            if Win64 and then Is_C_Item (Item) then
+               declare
+                  Base : constant Landin.Targets.Byte_Count :=
+                    Extent (Layout) + Win64_Save_Bytes;
+               begin
+                  Emit ("movq " & Cell (Base) & ", %rdi");
+                  Emit ("movq " & Cell (Base - 8) & ", %rsi");
+                  for Index in 6 .. 15 loop
+                     Emit ("movups "
+                           & Cell (Base - Landin.Targets.Byte_Count
+                                     (16 * (Index - 5)))
+                           & ", %xmm" & Trimmed (Natural'Image (Index)));
+                  end loop;
+               end;
+            end if;
+            --  Windows' unwinder reads an epilogue only in the forms it
+            --  knows, of which restoring the stack pointer by LEA from the
+            --  frame pointer is one and MOV is not.
+            Emit (if COFF then "leaq (%rbp), %rsp" else "movq %rbp, %rsp");
             Emit ("popq %rbp");
             if Debug /= null then
                Emit (".cfi_def_cfa %rsp, 8");
@@ -7500,7 +7672,7 @@ package body Landin.Backend.X86_64 is
             Put (Character'Val (9) & ".globl " & Symbol (Item));
          end if;
 
-         Put (Character'Val (9) & ELF.Function_Type (Symbol (Item)));
+         Put_Directive (Function_Type (Symbol (Item)));
          Put (Symbol (Item) & ":");
          Machine.Start
            (Streams (Positive (Item)), Shareable (Positive (Item)));
@@ -7557,19 +7729,34 @@ package body Landin.Backend.X86_64 is
             Capturing := Landin.IR.No_Item;
             Statistics (Positive (Item)) :=
               (Item => Item, Naked => True, others => <>);
-            Put (Character'Val (9) & ELF.Size_To_Here (Symbol (Item)));
+            Put_Directive (Size_To_Here (Symbol (Item)));
             return;
          end if;
 
          --  [1550]'s frame pointer, set up before anything reads a cell.
+         --  On Windows the unwind table describes the frame record and no
+         --  more: whatever the routine reserves or saves after it, the
+         --  frame pointer recovers the caller's stack pointer, and no
+         --  exception unwinds through a Landin frame to need a register
+         --  the frame saved.
+         if COFF then
+            Emit (".seh_proc " & Symbol (Item));
+         end if;
          Emit ("pushq %rbp");
          if Debug /= null then
             Emit (".cfi_def_cfa_offset 16");
             Emit (".cfi_offset %rbp, -16");
          end if;
+         if COFF then
+            Emit (".seh_pushreg %rbp");
+         end if;
          Emit ("movq %rsp, %rbp");
          if Debug /= null then
             Emit (".cfi_def_cfa_register %rbp");
+         end if;
+         if COFF then
+            Emit (".seh_setframe %rbp, 0");
+            Emit (".seh_endprologue");
          end if;
 
          --  The hosted entry keeps its source-level no-argument shape.  The
@@ -7607,6 +7794,20 @@ package body Landin.Backend.X86_64 is
             Emit ("jz " & Label (Item, 1) & "_panic_first");
             Emit ("ud2");
             Put (Label (Item, 1) & "_panic_first:");
+         end if;
+
+         --  Windows x64 preserves RDI, RSI and XMM6 to XMM15 across a
+         --  call, which the native convention does not: a routine C calls
+         --  keeps them below its frame, and its teardown puts them back.
+         if Win64 and then Is_C_Item (Item) then
+            Reserve_Stack (Win64_Save_Bytes, "win64_saves");
+            Emit ("movq %rdi, 0(%rsp)");
+            Emit ("movq %rsi, 8(%rsp)");
+            for Index in 6 .. 15 loop
+               Emit ("movups %xmm" & Trimmed (Natural'Image (Index)) & ", "
+                     & Trimmed (Natural'Image (16 * (Index - 5)))
+                     & "(%rsp)");
+            end loop;
          end if;
 
          for Register in Allocation.Saved_Register loop
@@ -7941,8 +8142,14 @@ package body Landin.Backend.X86_64 is
             Counts.Spill_Count := Allocation_Plan.Spill_Homes;
             Counts.Stack_Bytes := 16 + Extent (Layout) + Deepest_Area;
             Counts.Calls_Panic := Calls_Panic;
+            if Win64 and then Is_C_Item (Item) then
+               Counts.Stack_Bytes := Counts.Stack_Bytes + Win64_Save_Bytes;
+            end if;
          end;
-         Put (Character'Val (9) & ELF.Size_To_Here (Symbol (Item)));
+         if COFF then
+            Emit (".seh_endproc");
+         end if;
+         Put_Directive (Size_To_Here (Symbol (Item)));
       end Emit_Routine;
 
       --  The value a datum's block describes.  [1460] says nothing runs
@@ -8972,7 +9179,7 @@ package body Landin.Backend.X86_64 is
          if Is_Exported_Item (Item) then
             Put (Character'Val (9) & ".globl " & Symbol (Item));
          end if;
-         Put (Character'Val (9) & ELF.Object_Type (Symbol (Item)));
+         Put_Directive (Object_Type (Symbol (Item)));
          Put
            (Character'Val (9) & ".align "
             & Trimmed (Landin.Targets.Byte_Alignment'Image (Alignment)));
@@ -8981,7 +9188,7 @@ package body Landin.Backend.X86_64 is
            and then Landin.IR.Layout_Of (Of_Unit, Item) = Landin.Layouts.Packed
          then
             Emit_Packed ((others => <>), (others => <>), Top => True);
-            Put (Character'Val (9) & ELF.Size_To_Here (Symbol (Item)));
+            Put_Directive (Size_To_Here (Symbol (Item)));
             return;
          end if;
 
@@ -9021,7 +9228,7 @@ package body Landin.Backend.X86_64 is
             Emit_Zero (Size - Written);
          end if;
          Put
-           (Character'Val (9) & ELF.Size
+           (Character'Val (9) & Symbol_Size
               (Symbol (Item),
                Trimmed (Landin.Targets.Byte_Count'Image (Size))));
       end Emit_Recursive_Image_Datum;
@@ -9074,12 +9281,12 @@ package body Landin.Backend.X86_64 is
             Put (Character'Val (9) & ".globl " & Symbol (Item));
          end if;
 
-         Put (Character'Val (9) & ELF.Object_Type (Symbol (Item)));
+         Put_Directive (Object_Type (Symbol (Item)));
          Put (Character'Val (9) & ".align "
               & Trimmed (Landin.Targets.Byte_Alignment'Image (Alignment)));
          Put (Symbol (Item) & ":");
          Emit (".zero " & Bytes);
-         Put (Character'Val (9) & ELF.Size (Symbol (Item), Bytes));
+         Put_Directive (Symbol_Size (Symbol (Item), Bytes));
       end Emit_Reserved;
 
       --  [0520]'s array: the element repeated, so its extent is one
@@ -9172,7 +9379,7 @@ package body Landin.Backend.X86_64 is
                Put (Character'Val (9) & ".globl " & Symbol (Item));
             end if;
 
-            Put (Character'Val (9) & ELF.Object_Type (Symbol (Item)));
+            Put_Directive (Object_Type (Symbol (Item)));
             Put (Character'Val (9) & ".align "
                  & Trimmed
                      (Landin.Targets.Byte_Alignment'Image
@@ -9217,7 +9424,7 @@ package body Landin.Backend.X86_64 is
                end loop;
             end if;
 
-            Put (Character'Val (9) & ELF.Size (Symbol (Item), Bytes));
+            Put_Directive (Symbol_Size (Symbol (Item), Bytes));
          end;
       end Emit_Array_Image_Datum;
 
@@ -9234,7 +9441,7 @@ package body Landin.Backend.X86_64 is
          if Is_Exported_Item (Item) then
             Put (Character'Val (9) & ".globl " & Symbol (Item));
          end if;
-         Put (Character'Val (9) & ELF.Object_Type (Symbol (Item)));
+         Put_Directive (Object_Type (Symbol (Item)));
          Put (Character'Val (9) & ".align 8");
          Put (Symbol (Item) & ":");
          declare
@@ -9258,7 +9465,7 @@ package body Landin.Backend.X86_64 is
             & Trimmed
                 (Landin.IR.Element_Total'Image
                    (Landin.IR.Slice_Image_Length (Of_Unit, Item))));
-         Put (Character'Val (9) & ELF.Size (Symbol (Item), "16"));
+         Put_Directive (Symbol_Size (Symbol (Item), "16"));
       end Emit_Slice_Image_Datum;
 
       procedure Emit_Datum (Item : Landin.IR.Item_Id) is
@@ -9284,14 +9491,14 @@ package body Landin.Backend.X86_64 is
             Put (Character'Val (9) & ".globl " & Symbol (Item));
          end if;
 
-         Put (Character'Val (9) & ELF.Object_Type (Symbol (Item)));
+         Put_Directive (Object_Type (Symbol (Item)));
          Put (Character'Val (9) & ".align "
               & Trimmed
                   (Landin.Targets.Byte_Alignment'Image
                      (Landin.Targets.Alignment_Of (Facts, Held))));
          Put (Symbol (Item) & ":");
          Emit (Directive (Held) & " " & Written);
-         Put (Character'Val (9) & ELF.Size (Symbol (Item), Bytes));
+         Put_Directive (Symbol_Size (Symbol (Item), Bytes));
       end Emit_Datum;
 
       Any_Written  : Boolean := False;
@@ -9303,10 +9510,12 @@ package body Landin.Backend.X86_64 is
       --  renderer always spells ELF symbols; dispatch never emits that probe
       --  as a program, nor admits another real target through this seam.
       if Landin.Targets.Capabilities.Backend_For (Facts)
-        /= Landin.Targets.Capabilities.X86_64_ELF
+        not in Landin.Targets.Capabilities.X86_64_ELF
+             | Landin.Targets.Capabilities.X86_64_COFF
         and then Facts /= Landin.Targets.Synthetic_32
       then
-         raise Compiler_Defect with "x86-64 emission needs x86-64 ELF facts";
+         raise Compiler_Defect
+           with "x86-64 emission needs x86-64 ELF or COFF facts";
       end if;
       Validate_Linkage;
       Allocate_Symbols;
@@ -9556,7 +9765,7 @@ package body Landin.Backend.X86_64 is
                   if Is_Exported_Item (Item) then
                      Emit (".globl " & Symbol (Item));
                   end if;
-                  Emit (ELF.Function_Type (Symbol (Item)));
+                  Put_Directive (Function_Type (Symbol (Item)));
                   Emit
                     (".set " & Symbol (Item) & ", "
                      & Symbol (Shared_With (Index)));
@@ -9614,9 +9823,8 @@ package body Landin.Backend.X86_64 is
               ["%rbp", "%rbx", "%r12", "%r13", "%r14", "%r15"];
          begin
             Put (Character'Val (9)
-                 & ".section .text.landin_stack,""ax"",@progbits");
-            Put (Character'Val (9) & ".type " & Stack_Switcher
-                 & ", @function");
+                 & Section (".text.landin_stack", """ax"",@progbits"));
+            Put_Directive (Function_Type (Stack_Switcher));
             Put (Stack_Switcher & ":");
             if Debug /= null then
                Emit (".cfi_startproc");
@@ -9652,10 +9860,9 @@ package body Landin.Backend.X86_64 is
             if Debug /= null then
                Emit (".cfi_endproc");
             end if;
-            Put (Character'Val (9) & ELF.Size_To_Here (Stack_Switcher));
+            Put_Directive (Size_To_Here (Stack_Switcher));
 
-            Put (Character'Val (9) & ".type " & Stack_Start
-                 & ", @function");
+            Put_Directive (Function_Type (Stack_Start));
             Put (Stack_Start & ":");
             if Debug /= null then
                Emit (".cfi_startproc");
@@ -9692,25 +9899,27 @@ package body Landin.Backend.X86_64 is
             if Debug /= null then
                Emit (".cfi_endproc");
             end if;
-            Put (Character'Val (9) & ELF.Size_To_Here (Stack_Start));
+            Put_Directive (Size_To_Here (Stack_Start));
          end;
       end if;
 
       --  D2092's pool, after every routine that reads it.
       for Pattern of Pool_32 loop
-         Put (Character'Val (9) & ".section .rodata.cst4.landin_"
-              & (if True then "f32_" else "f64_")
-              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
-              & ",""aM"",@progbits,4");
+         Put (Character'Val (9) & Section
+              (".rodata.cst4.landin_"
+               & (if True then "f32_" else "f64_")
+               & Trimmed (Landin.Types.Magnitude'Image (Pattern)),
+               """aM"",@progbits,4"));
          Emit (".p2align 2");
          Put (Pool_Label (True, Pattern) & ":");
          Emit (".long " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
       end loop;
       for Pattern of Pool_64 loop
-         Put (Character'Val (9) & ".section .rodata.cst8.landin_"
-              & (if False then "f32_" else "f64_")
-              & Trimmed (Landin.Types.Magnitude'Image (Pattern))
-              & ",""aM"",@progbits,8");
+         Put (Character'Val (9) & Section
+              (".rodata.cst8.landin_"
+               & (if False then "f32_" else "f64_")
+               & Trimmed (Landin.Types.Magnitude'Image (Pattern)),
+               """aM"",@progbits,8"));
          Emit (".p2align 3");
          Put (Pool_Label (False, Pattern) & ":");
          Emit (".quad " & Trimmed (Landin.Types.Magnitude'Image (Pattern)));
@@ -9928,8 +10137,8 @@ package body Landin.Backend.X86_64 is
       --  the terminal instruction follows, as it follows every report.
       if Reports.Count > 0 then
          Put (Character'Val (9)
-              & ".section .text.landin_trap_report,""ax"",@progbits");
-         Put (Character'Val (9) & ".type " & Reporter & ", @function");
+              & Section (".text.landin_trap_report", """ax"",@progbits"));
+         Put_Directive (Function_Type (Reporter));
          Put (Reporter & ":");
          if Debug /= null then
             Emit (".cfi_startproc");
@@ -9943,14 +10152,24 @@ package body Landin.Backend.X86_64 is
             Emit ("movl $1, %eax");
             Emit ("syscall");
          else
+            if COFF then
+               Emit (".seh_proc " & Reporter);
+            end if;
             Emit ("pushq %rbp");
             if Debug /= null then
                Emit (".cfi_def_cfa_offset 16");
                Emit (".cfi_offset %rbp, -16");
             end if;
+            if COFF then
+               Emit (".seh_pushreg %rbp");
+            end if;
             Emit ("movq %rsp, %rbp");
             if Debug /= null then
                Emit (".cfi_def_cfa_register %rbp");
+            end if;
+            if COFF then
+               Emit (".seh_setframe %rbp, 0");
+               Emit (".seh_endprologue");
             end if;
             --  D491: in a program that prepares a stack, the C call runs
             --  on the report's own stack, aligned for C, whatever stack
@@ -9973,40 +10192,73 @@ package body Landin.Backend.X86_64 is
                Emit ("leaq " & Report_Stack & "+"
                      & Trimmed (Landin.Targets.Byte_Count'Image
                        (Report_Stack_Bytes)) & "(%rip), %rsp");
+               if COFF then
+                  --  Windows dispatches the trap's exception only on a
+                  --  stack within the bounds the thread's TEB holds, its
+                  --  base at GS:8 and its limit at GS:16: the report's
+                  --  stack becomes the thread's before anything faults.
+                  Emit ("movq %rsp, %gs:8");
+                  Emit ("leaq " & Report_Stack & "(%rip), %rax");
+                  Emit ("movq %rax, %gs:16");
+               end if;
             else
                Emit ("andq $-16, %rsp");
             end if;
-            Emit ("movq %rsi, %rdx");
-            Emit ("movq %rdi, %rsi");
-            Emit ("movl $2, %edi");
-            Emit ("call " & Landin.Targets.Capabilities.Link_Symbol
-              (Link_Facts, "write"));
+            if COFF then
+               --  Windows: standard error is kernel32's handle -12, and
+               --  WriteFile takes the handle, the bytes, their count,
+               --  where to say how many it wrote and no overlap.  The
+               --  shadow area the convention reserves for four register
+               --  arguments sits below the fifth, and RDI and RSI, which
+               --  hold the line, survive GetStdHandle as the convention
+               --  preserves them.
+               Emit ("subq $48, %rsp");
+               Emit ("movl $-12, %ecx");
+               Emit ("call GetStdHandle");
+               Emit ("movq %rax, %rcx");
+               Emit ("movq %rdi, %rdx");
+               Emit ("movl %esi, %r8d");
+               Emit ("leaq 40(%rsp), %r9");
+               Emit ("movq $0, 32(%rsp)");
+               Emit ("call WriteFile");
+            else
+               Emit ("movq %rsi, %rdx");
+               Emit ("movq %rdi, %rsi");
+               Emit ("movl $2, %edi");
+               Emit ("call " & Landin.Targets.Capabilities.Link_Symbol
+                 (Link_Facts, "write"));
+            end if;
          end if;
          Emit ("ud2");
          if Debug /= null then
             Emit (".cfi_endproc");
          end if;
-         Put (Character'Val (9) & ELF.Size_To_Here (Reporter));
+         if COFF then
+            Emit (".seh_endproc");
+         end if;
+         Put_Directive (Size_To_Here (Reporter));
          --  Each line in a mergeable string section of its own, so the
          --  link keeps only the lines a retained routine reaches.
          for Index in 1 .. Reports.Count loop
-            Put (Character'Val (9) & ".section .rodata.str1.1.landin_trap_"
-                 & Trimmed (Positive'Image (Index))
-                 & ",""aMS"",@progbits,1");
+            Put (Character'Val (9) & Section
+                 (".rodata.str1.1.landin_trap_"
+                  & Trimmed (Positive'Image (Index)),
+                  """aMS"",@progbits,1"));
             Put (Report_Label (Index) & ":");
             Emit (".asciz " & Landin.Backend.Trap_Reports.Quoted
               (Reports.Text (Index)));
          end loop;
          if Prepares and then Report_Stack_Bytes > 0 then
-            Emit (".pushsection .bss.landin_report_stack,""aw"",@nobits");
+            Emit (Push_Section (".bss.landin_report_stack",
+                                """aw"",@nobits"));
             Emit (".balign 16");
             Put (Report_Stack & ":");
             Emit (".zero " & Trimmed (Landin.Targets.Byte_Count'Image
               (Report_Stack_Bytes)));
             Emit (ELF.Pop_Section);
             if Landin.Backend.Report_Claims_Latch (Facts) then
-               Emit (".pushsection .bss.landin_report_latch,""aw"","
-                     & "@nobits");
+               Emit (Push_Section (".bss.landin_report_latch",
+                                   """aw"",@nobits"));
                Emit (".balign 4");
                Put (Report_Latch & ":");
                Emit (".zero 4");
@@ -10021,12 +10273,15 @@ package body Landin.Backend.X86_64 is
             Local_Prefix, Symbol'Access, Cached_Plan'Access,
             Cached_Frame'Access, Trapped'Access));
       end if;
-      Put (Character'Val (9) & ELF.No_Executable_Stack);
+      if not COFF then
+         Put (Character'Val (9) & ELF.No_Executable_Stack);
+      end if;
       if Stack_Used then
          if Landin.Backend.Has_Threads (Facts) then
             Emit (".pushsection .tbss.landin_stack_limit,""awT"",@nobits");
          else
-            Emit (".pushsection .bss.landin_stack_limit,""aw"",@nobits");
+            Emit (Push_Section (".bss.landin_stack_limit",
+                                """aw"",@nobits"));
          end if;
          Emit (".balign 8");
          Put (Stack_Limit & ":");
@@ -10036,7 +10291,7 @@ package body Landin.Backend.X86_64 is
       if Panic /= null and then Landin.Panics.Handler (Panic.all)
         /= Landin.IR.No_Item
       then
-         Emit (ELF.Push_Panic_Flag_Section);
+         Emit (Push_Section (".bss.landin_panic", """aw"",@nobits"));
          Emit (".balign 4");
          Put (Local_Prefix & "landin_panic_active:");
          Emit (".zero 4");
