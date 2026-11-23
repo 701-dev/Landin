@@ -11,6 +11,7 @@ with Landin.Diagnostics.Modules;
 with Landin.Diagnostics.Resolution;
 with Landin.Diagnostics.Suggestions;
 with Landin.Modules;
+with Landin.Modules.Removed;
 with Landin.Provenance;
 with Landin.Resolution;
 with Landin.Source.Names;
@@ -417,6 +418,266 @@ package body Landin.Stages.Resolution is
                  & ", `host` being `blocking.new()` of `hosted/blocking`"
                  & " on a hosted system"
             else Usual);
+
+      --  D2129: the exact fix for a use of a library name a breaking list
+      --  removed, Node the selection `prefix.member` whose member Row
+      --  names.  The member becomes the new name; a successor in another
+      --  module takes the prefix the file binds that module to, or its
+      --  import, added after the file's last, when nothing in the file
+      --  binds the module's name.  No fix when that name is taken, or for
+      --  a shape the rewrite does not know.
+      function Removed_Member_Fixes
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Module  : Landin.Modules.Module_Id;
+         Row     : Landin.Modules.Removed.Row)
+         return Landin.Diagnostics.Fix_List;
+
+      --  The last segment of a logical path, the name a plain import binds.
+      function Short_Name (Path : String) return String;
+      function Short_Name (Path : String) return String is
+      begin
+         for I in reverse Path'Range loop
+            if Path (I) = '/' then
+               return Path (I + 1 .. Path'Last);
+            end if;
+         end loop;
+         return Path;
+      end Short_Name;
+
+      function Removed_Member_Fixes
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Module  : Landin.Modules.Module_Id;
+         Row     : Landin.Modules.Removed.Row)
+         return Landin.Diagnostics.Fix_List
+      is
+         package Gone renames Landin.Modules.Removed;
+         use type Gone.Rewrite;
+         Source_Id : constant Landin.Source.Source_Id :=
+           Syn.Source_Of (Of_Tree);
+         Text : Landin.Source.Snapshot renames
+           Source (Context, Source_Id).Element.all;
+         Prefix : constant Syn.Node_Id := Syn.Target_Of (Of_Tree, Node);
+         Wanted : constant String := Gone.New_Module (Row);
+         Edits : Edit_Vectors.Vector;
+         Bound : Unbounded.Unbounded_String;
+         Taken : Boolean := False;
+         Last_Import : Syn.Node_Id := Syn.No_Node;
+         Enclosing : constant Syn.Node_Id := Syn.Enclosing (Of_Tree, Node);
+         Call : constant Syn.Node_Id :=
+           (if Enclosing /= Syn.No_Node
+              and then Syn.Kind (Of_Tree, Enclosing)
+                in Syn.Call | Syn.Labeled_Application
+              and then Syn.Callee_Of (Of_Tree, Enclosing) = Node
+            then Enclosing else Syn.No_Node);
+      begin
+         if Gone.How (Row) = Gone.By_Hand then
+            return Landin.Diagnostics.No_Fixes;
+         end if;
+         --  An atom set that already names the successor, or an earlier old
+         --  name of it, loses this member rather than naming it twice.
+         if Gone.How (Row) = Gone.Rename
+           and then Enclosing /= Syn.No_Node
+           and then Syn.Kind (Of_Tree, Enclosing) = Syn.Atom_Union_Type
+         then
+            for Index in 1 .. Syn.Atom_Member_Count (Of_Tree, Enclosing) loop
+               declare
+                  Other : constant Syn.Node_Id :=
+                    Syn.Nth_Atom_Member (Of_Tree, Enclosing, Index);
+               begin
+                  exit when Other = Node;
+                  if Syn.Kind (Of_Tree, Other) = Syn.Member_Selection
+                    and then Syn.Kind
+                      (Of_Tree, Syn.Target_Of (Of_Tree, Other))
+                        in Syn.Name_Reference | Syn.Type_Reference
+                  then
+                     declare
+                        Its_Module : constant Landin.Modules.Module_Id :=
+                          Res.Imported_Module_Of
+                            (Meanings.all, Source_Id,
+                             Syn.Name
+                               (Of_Tree, Syn.Target_Of (Of_Tree, Other)));
+                        Its_Path : constant String :=
+                          (if Its_Module = Landin.Modules.No_Module then ""
+                           else Landin.Modules.Logical_Path
+                                  (Graph.all, Its_Module));
+                        Its_Name : constant String :=
+                          Spelled (Syn.Name (Of_Tree, Other));
+                        Its_Row : constant Gone.Row :=
+                          Gone.Member (Its_Path, Its_Name);
+                        Same : constant Boolean :=
+                          Its_Path /= ""
+                          and then
+                            (if Gone.Found (Its_Row)
+                             then Gone.How (Its_Row) = Gone.Rename
+                                  and then Gone.New_Module (Its_Row) = Wanted
+                                  and then Gone.New_Name (Its_Row)
+                                           = Gone.New_Name (Row)
+                             else Its_Path = Wanted
+                                  and then Its_Name = Gone.New_Name (Row));
+                     begin
+                        if Same then
+                           --  Index names an earlier member, so this one
+                           --  has a member before it, whose end begins
+                           --  the ` | old` this deletes.
+                           declare
+                              Previous : Syn.Node_Id := Other;
+                           begin
+                              for K in Index + 1
+                                .. Syn.Atom_Member_Count (Of_Tree, Enclosing)
+                              loop
+                                 exit when Syn.Nth_Atom_Member
+                                   (Of_Tree, Enclosing, K) = Node;
+                                 Previous := Syn.Nth_Atom_Member
+                                   (Of_Tree, Enclosing, K);
+                              end loop;
+                              return [1 => Landin.Diagnostics.Fixes
+                                .Library_Name
+                                  (Short_Name (Wanted) & "."
+                                   & Gone.New_Name (Row),
+                                   [1 => Landin.Diagnostics.Make_Edit
+                                      (Source_Id,
+                                       (First => Syn.Where
+                                          (Of_Tree, Previous).Last,
+                                        Last  => Syn.Where
+                                          (Of_Tree, Node).Last),
+                                       "")])];
+                           end;
+                        end if;
+                     end;
+                  end if;
+               end;
+            end loop;
+         end if;
+         --  The name the file binds the successor's module to, if any.
+         if Wanted /= Landin.Modules.Logical_Path (Graph.all, Module) then
+            for Index in 1 .. Syn.Import_Count (Of_Tree) loop
+               declare
+                  Import : constant Syn.Node_Id :=
+                    Syn.Nth_Import (Of_Tree, Index);
+                  Target : constant Landin.Modules.Module_Id :=
+                    Landin.Modules.Imported_Module
+                      (Graph.all, Source_Id, Import);
+                  Alias : constant Syn.Node_Id :=
+                    Syn.Import_Alias_Of (Of_Tree, Import);
+                  Path : constant String :=
+                    (if Target = Landin.Modules.No_Module then ""
+                     else Landin.Modules.Logical_Path (Graph.all, Target));
+               begin
+                  Last_Import := Import;
+                  if Syn.Import_Selection_Count (Of_Tree, Import) = 0
+                    and then Path /= ""
+                  then
+                     declare
+                        Binds : constant String :=
+                          (if Alias /= Syn.No_Node
+                           then Spelled (Syn.Name (Of_Tree, Alias))
+                           else Short_Name (Path));
+                     begin
+                        if Path = Wanted then
+                           Bound := Unbounded.To_Unbounded_String (Binds);
+                        elsif Binds = Short_Name (Wanted) then
+                           Taken := True;
+                        end if;
+                     end;
+                  end if;
+               end;
+            end loop;
+            if Unbounded.Length (Bound) = 0 then
+               if Taken or else Last_Import = Syn.No_Node then
+                  return Landin.Diagnostics.No_Fixes;
+               end if;
+               Bound := Unbounded.To_Unbounded_String (Short_Name (Wanted));
+               declare
+                  At_End : constant Landin.Source.Byte_Offset :=
+                    Syn.Where (Of_Tree, Last_Import).Last;
+               begin
+                  Edits.Append
+                    (Landin.Diagnostics.Make_Edit
+                       (Source_Id, (First => At_End, Last => At_End),
+                        [ASCII.LF] & "import " & Wanted));
+               end;
+            end if;
+            Edits.Append
+              (Landin.Diagnostics.Make_Edit
+                 (Source_Id, Syn.Where (Of_Tree, Prefix),
+                  Unbounded.To_String (Bound)));
+         else
+            Bound := Unbounded.To_Unbounded_String
+              (Spelled (Syn.Name (Of_Tree, Prefix)));
+         end if;
+
+         case Gone.How (Row) is
+            when Gone.Rename | Gone.By_Hand =>
+               Edits.Append
+                 (Landin.Diagnostics.Make_Edit
+                    (Source_Id, Syn.Anchor (Of_Tree, Node),
+                     Gone.New_Name (Row)));
+            when Gone.Swap_First =>
+               Edits.Append
+                 (Landin.Diagnostics.Make_Edit
+                    (Source_Id, Syn.Anchor (Of_Tree, Node),
+                     Gone.New_Name (Row)));
+               if Call /= Syn.No_Node
+                 and then Syn.Kind (Of_Tree, Call) = Syn.Call
+               then
+                  if Syn.Argument_Count (Of_Tree, Call) < 2 then
+                     return Landin.Diagnostics.No_Fixes;
+                  end if;
+                  declare
+                     First : constant Landin.Source.Span :=
+                       Syn.Where
+                         (Of_Tree, Syn.Nth_Argument (Of_Tree, Call, 1));
+                     Second : constant Landin.Source.Span :=
+                       Syn.Where
+                         (Of_Tree, Syn.Nth_Argument (Of_Tree, Call, 2));
+                  begin
+                     Edits.Append
+                       (Landin.Diagnostics.Make_Edit
+                          (Source_Id, First,
+                           Landin.Source.Slice (Text, Second)));
+                     Edits.Append
+                       (Landin.Diagnostics.Make_Edit
+                          (Source_Id, Second,
+                           Landin.Source.Slice (Text, First)));
+                  end;
+               elsif Call = Syn.No_Node then
+                  --  Passed by name, not called: the order is the reader's.
+                  return Landin.Diagnostics.No_Fixes;
+               end if;
+            when Gone.Leaves_Of =>
+               if Call = Syn.No_Node
+                 or else Syn.Kind (Of_Tree, Call) /= Syn.Call
+                 or else Syn.Argument_Count (Of_Tree, Call) /= 2
+               then
+                  return Landin.Diagnostics.No_Fixes;
+               end if;
+               Edits.Append
+                 (Landin.Diagnostics.Make_Edit
+                    (Source_Id, Syn.Anchor (Of_Tree, Node),
+                     Gone.New_Name (Row) & "("
+                     & Unbounded.To_String (Bound) & ".get"));
+               Edits.Append
+                 (Landin.Diagnostics.Make_Edit
+                    (Source_Id,
+                     (First => Syn.Where (Of_Tree, Call).Last,
+                      Last  => Syn.Where (Of_Tree, Call).Last),
+                     ")"));
+         end case;
+
+         declare
+            List : Landin.Diagnostics.Edit_List
+              (1 .. Natural (Edits.Length));
+         begin
+            for Each in List'Range loop
+               List (Each) := Edits (Each);
+            end loop;
+            return [1 => Landin.Diagnostics.Fixes.Library_Name
+                           (Unbounded.To_String (Bound) & "."
+                            & Gone.New_Name (Row), List)];
+         end;
+      end Removed_Member_Fixes;
 
       --  Whether `Member` is a public declaration of `Module` in some arm of
       --  a fixed conditional, which configuration did not select for this
@@ -1673,6 +1934,32 @@ package body Landin.Stages.Resolution is
                                       & " system does not have, not a"
                                       & " misspelling",
                            Into    => Found);
+                     elsif Member_Name /= Landin.Source.Names.No_Name
+                       and then Landin.Modules.Removed.Found
+                         (Landin.Modules.Removed.Member
+                            (Landin.Modules.Logical_Path
+                               (Graph.all, Imported),
+                             Spelled (Member_Name)))
+                     then
+                        declare
+                           Row : constant Landin.Modules.Removed.Row :=
+                             Landin.Modules.Removed.Member
+                               (Landin.Modules.Logical_Path
+                                  (Graph.all, Imported),
+                                Spelled (Member_Name));
+                        begin
+                           Names.Report
+                             (Item    => Names.Removed_Form,
+                              Source  => Syn.Source_Of (Of_Tree),
+                              Where   => Syn.Anchor (Of_Tree, Node),
+                              Message => "module `" & Spelled (Prefix_Name)
+                                         & "` no longer has `"
+                                         & Spelled (Member_Name) & "`",
+                              Note    => Landin.Modules.Removed.Note (Row),
+                              Fixes   => Removed_Member_Fixes
+                                (Of_Tree, Node, Imported, Row),
+                              Into    => Found);
+                        end;
                      elsif Member_Name /= Landin.Source.Names.No_Name then
                         Names.Report
                           (Item    => Names.Unresolved_Name,

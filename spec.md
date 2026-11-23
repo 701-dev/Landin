@@ -42545,6 +42545,26 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** nothing that runs yet: the change that applies the breaking list refuses each old name with its replacement.
 
+### D2128 — `mem.transfer_prefix` is `mem.copy_prefix`, target first
+
+**The discrepancy:** D1954 by D1988 puts `mem.transfer_prefix`'s target first, as `mem.copy` takes `into` first, and the breaking list noted that its source and target are both `storage(item)`: a call written in the old order would still check, and copy the wrong way, with no refusal to say the order changed.
+
+**Chosen:** the reordered routine takes a new name, `mem.copy_prefix(inout target, source, count)`, which reads as `mem.copy` reads, so a call of the old name is refused as a removed name, and its exact fix renames it and swaps its first two arguments when they are written by position. `mem.transfer` keeps its name in its new order, because its old order is refused as a type mismatch: its index is no storage.
+
+**The alternatives:** keeping the name and refusing the old order by a parameter label the call must write, which every call would carry; and a check that a call's source differs from its target, which no program could satisfy when both are places of one type.
+
+**Pinned by** `negative/library-name-removed-reorders`, whose fix renames the call and swaps its arguments.
+
+### D2129 — A library name the breaking list removed is refused naming its successor
+
+**The discrepancy:** D1847 asks for a refusal that names the replacement of every removed form, and the breaking list (D1948-D2051) removes library names, which the library no longer declares: a program that wrote one would meet only "has no member", with a respelling to whatever name was near.
+
+**Chosen:** the compiler keeps one table of the names the list removed, `Landin.Modules.Removed`, by module and name, and by type or concept and name for a field or concept entry. A qualified name, field, struct value's field or conformance label that resolves to nothing and that the table names is refused with L0696, whose note gives the decision and the replacement. A rename's exact fix writes the new name, and where the successor lives in another module it takes the name the file imports that module as, or adds the module's import after the file's last when nothing in the file binds its name; a merged atom named twice in one failure set is then refused as a duplicate, whose own fix removes it. `tree.count_leaves(v, id)` becomes `tree.leaves(tree.get(v, id))`, and `mem.transfer_prefix` D2128's call. A name whose replacement changes the program's shape, `map.end_of_entries`, `io.writer_of` and `io.lent_writer`, is refused with a note saying what to write and no fix. Only a name that fails to resolve consults the table, so a program's own declaration of an old name keeps its meaning. A routine that kept its name in a new order (D1954) is refused as before, by the type of the argument now out of place.
+
+**The alternatives:** a migration table read by `refine fix` alone, which D1847 declined; and leaving the old names declared beside the new ones for a window, which would give each idea two names, the thing D1953 removed.
+
+**Pinned by** `negative/library-name-removed-renames`, `negative/library-name-removed-moves`, `negative/library-name-removed-field` and `negative/library-name-removed-by-hand`.
+
 ### D1954 — A library routine's parameters come subject first, then capabilities, then inputs
 
 **The tour said** nothing; R13's conventions (D268-D271) fix parameter names but no order, and "subject first" appears only in D945.

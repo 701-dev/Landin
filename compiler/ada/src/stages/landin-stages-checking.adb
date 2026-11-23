@@ -25,6 +25,7 @@ with Landin.Diagnostics.Fixes;
 with Landin.Diagnostics.Resolution;
 with Landin.Diagnostics.Suggestions;
 with Landin.Modules;
+with Landin.Modules.Removed;
 with Landin.Provenance;
 with Landin.Resolution;
 with Landin.Source.Names;
@@ -17480,6 +17481,67 @@ package body Landin.Stages.Checking is
            Landin.Checking.No_Signature)
          return Landin.Diagnostics.Fix_List;
 
+      --  D2129: the breaking list's row for the field Written of the library
+      --  type Wrote names, or No_Row when no list removed it.
+      function Removed_Field
+        (Wrote   : Landin.Checking.Nominal_Type_Id;
+         Written : Landin.Source.Names.Name_Id)
+         return Landin.Modules.Removed.Row;
+
+      function Removed_Field
+        (Wrote   : Landin.Checking.Nominal_Type_Id;
+         Written : Landin.Source.Names.Name_Id)
+         return Landin.Modules.Removed.Row
+      is
+         Template : Res.Declaration_Id;
+      begin
+         if Wrote = Landin.Checking.No_Nominal_Type then
+            return Landin.Modules.Removed.No_Row;
+         end if;
+         Template := Template_Declaration (Wrote);
+         if Template = Res.No_Declaration then
+            return Landin.Modules.Removed.No_Row;
+         end if;
+         return Landin.Modules.Removed.Field
+           (Landin.Modules.Logical_Path
+              (Grouped.all,
+               Landin.Modules.Module_Of
+                 (Grouped.all, Res.Source_Of (Meanings.all, Template))),
+            Spelled (Res.Name_Of (Meanings.all, Template)),
+            Spelled (Written));
+      end Removed_Field;
+
+      --  The refusal of a field or concept entry the list renamed: its new
+      --  name, as an exact fix at Node's anchor, where the name is written.
+      procedure Report_Removed_Field
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Written : Landin.Source.Names.Name_Id);
+
+      procedure Report_Removed_Field
+        (Of_Tree : Syn.Tree;
+         Node    : Syn.Node_Id;
+         Row     : Landin.Modules.Removed.Row;
+         Written : Landin.Source.Names.Name_Id) is
+      begin
+         Bad.Report
+           (Item    => Bad.Removed_Form,
+            Source  => Syn.Source_Of (Of_Tree),
+            Where   => Syn.Anchor (Of_Tree, Node),
+            Message => "the library no longer declares `"
+                       & Spelled (Written) & "` here",
+            Note    => Landin.Modules.Removed.Note (Row),
+            Fixes   =>
+              [1 => Landin.Diagnostics.Fixes.Library_Name
+                      (Landin.Modules.Removed.New_Name (Row),
+                       [1 => Landin.Diagnostics.Make_Edit
+                               (Syn.Source_Of (Of_Tree),
+                                Syn.Anchor (Of_Tree, Node),
+                                Landin.Modules.Removed.New_Name (Row))])],
+            Into    => Found);
+      end Report_Removed_Field;
+
       function Fields_Near
         (Of_Tree : Syn.Tree;
          Where   : Syn.Node_Id;
@@ -20341,6 +20403,33 @@ package body Landin.Stages.Checking is
                               Related => Parent_Site,
                               Because => "the parent concept declared here",
                               Into    => Found);
+                           Valid := False;
+                        elsif not Known
+                          and then Landin.Modules.Removed.Found
+                            (Landin.Modules.Removed.Field
+                               (Landin.Modules.Logical_Path
+                                  (Grouped.all,
+                                   Landin.Modules.Module_Of
+                                     (Grouped.all,
+                                      Syn.Source_Of (Concept_Tree.all))),
+                                Spelled
+                                  (Syn.Name (Concept_Tree.all, Concept_Node)),
+                                Spelled (Syn.Name (Of_Tree, Supplied))))
+                        then
+                           --  D2129: an entry the breaking list renamed.
+                           Report_Removed_Field
+                             (Of_Tree, Supplied,
+                              Landin.Modules.Removed.Field
+                                (Landin.Modules.Logical_Path
+                                   (Grouped.all,
+                                    Landin.Modules.Module_Of
+                                      (Grouped.all,
+                                       Syn.Source_Of (Concept_Tree.all))),
+                                 Spelled
+                                   (Syn.Name
+                                      (Concept_Tree.all, Concept_Node)),
+                                 Spelled (Syn.Name (Of_Tree, Supplied))),
+                              Syn.Name (Of_Tree, Supplied));
                            Valid := False;
                         elsif not Known then
                            Bad.Report
@@ -26229,6 +26318,17 @@ package body Landin.Stages.Checking is
                         return Ty.Ill_Typed;
                      end if;
 
+                     if Which = 0
+                       and then Landin.Modules.Removed.Found
+                         (Removed_Field (Wrote, Syn.Name (Of_Tree, Node)))
+                     then
+                        Report_Removed_Field
+                          (Of_Tree, Node,
+                           Removed_Field (Wrote, Syn.Name (Of_Tree, Node)),
+                           Syn.Name (Of_Tree, Node));
+                        return Kept (Ty.Ill_Typed);
+                     end if;
+
                      if Which = 0 then
                         Bad.Report
                           (Item    => Bad.Unresolved_Field,
@@ -31032,7 +31132,19 @@ package body Landin.Stages.Checking is
                Which : constant Natural :=
                  Field_At (Wrote, Construction_Field_Name (Of_Tree, Field));
             begin
-               if Which = 0 then
+               if Which = 0
+                 and then Landin.Modules.Removed.Found
+                   (Removed_Field
+                      (Wrote, Construction_Field_Name (Of_Tree, Field)))
+               then
+                  Report_Removed_Field
+                    (Of_Tree, Field,
+                     Removed_Field
+                       (Wrote, Construction_Field_Name (Of_Tree, Field)),
+                     Construction_Field_Name (Of_Tree, Field));
+                  Unknown_Fields := Unknown_Fields + 1;
+                  Failed := True;
+               elsif Which = 0 then
                   Bad.Report
                     (Item    => Bad.Unresolved_Field,
                      Source  => Syn.Source_Of (Of_Tree),

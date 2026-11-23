@@ -3251,6 +3251,20 @@ target's alignments (D1928). The positional value of
 doubles every brace in the text, which the operand form reads as `{name}`
 (D1927).
 
+A library name that R20's renaming removed is refused the same way (D2129):
+`mem.free`, `text.no_space`, a directory's `cursor` field and the rest of
+the breaking list. The note names the decision and the name that replaced
+it, and the fix writes that name. Where the new name is in another module,
+such as `mem.not_found` for `map.missing`, the fix also imports that module
+if the file does not. Where a failure set would then name an atom twice, the
+fix removes the second. `tree.count_leaves(v, id)` becomes
+`tree.leaves(tree.get(v, id))`, and `mem.transfer_prefix(source, target, n)`
+becomes `mem.copy_prefix(target, source, n)` (D2128). Three names have no fix,
+because what replaces them changes the program's shape. `map.end_of_entries`
+is gone because `map.next_entry` no longer fails: ask `map.at_end`. Instead
+of `io.writer_of` or `io.lent_writer`, pass the world itself, since an
+`any io.world` converts to `any io.writer`.
+
 ```landin
 public main: () -> (code: i32) =
     code = 0

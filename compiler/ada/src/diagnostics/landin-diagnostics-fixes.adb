@@ -340,6 +340,11 @@ package body Landin.Diagnostics.Fixes is
             & ".name`",
             Edits));
 
+   function Library_Name
+     (Spelling : String;
+      Edits    : Edit_List) return Fix
+     is (With_Edits (Library_Name, "write `" & Spelling & "`", Edits));
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;
