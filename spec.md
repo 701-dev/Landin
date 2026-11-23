@@ -12507,7 +12507,8 @@ renamed.
 
 **Pinned by** `negative/atom-named-twice-in-a-set`, in a declared set, a
 parameter's set and a failure set, whose fixed program compiles with no
-report.
+report; and `positive/parameterized-atom-union`, whose repeated member is
+still accepted and now warned of.
 
 ### D2179 — The refusals say how a union of atom sets is split
 
