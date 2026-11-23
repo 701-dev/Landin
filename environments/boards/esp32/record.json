@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "f384d41536d7794739c835bc2885426dc6b36c33addbca146cf9519400a64b7d",
+  "image_sha256": "32a6839cbac25e95a307d4593466e62e487f422ce75e3f9308e31114ba98f7e6",
   "image_name": "board.elf.bin",
-  "elf_sha256": "7c9d8ecfb88bcf6bb300d4245677c1def41751960f4e2bca44284e771f0310c9",
+  "elf_sha256": "069b5ebb3ad93a3909f4c2f80bce6a4c04ac5b5ed4cf6415bb9977e7ee9b7ca2",
   "image": {
     "chip": 0,
     "revisions": [
@@ -12,12 +12,12 @@
     "entry": "0x40080400",
     "segments": [
       "0x40080000+0x404",
-      "0x40080404+0x6140",
+      "0x40080404+0x6138",
       "0x3ffb0000+0x28",
       "0x3ffb0028+0x58"
     ],
-    "checksum": "0x0e",
-    "sha256": "0cfd96caf94c97fe2a72fd7dc4b17cd7f510414990217fad23f1ebf2bfa0f19f"
+    "checksum": "0xe2",
+    "sha256": "9bde49d2918ba4c796547f517833c70363997d0a7740ec04ea815410fd7fa76e"
   },
   "instructions": [
     "call8",
@@ -34,8 +34,8 @@
     "boot_reason": 1,
     "app_state": 2,
     "timer_events": [
-      813,
-      1230
+      822,
+      1236
     ],
     "trap_count": 0,
     "startup_reset": "CHIP_PU",
@@ -48,7 +48,7 @@
     "boot": "SPI_FAST_FLASH_BOOT",
     "loads": [
       "0x40080000+0x404",
-      "0x40080404+0x6140",
+      "0x40080404+0x6138",
       "0x3ffb0000+0x28",
       "0x3ffb0028+0x58"
     ],
@@ -94,7 +94,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 4764,
+      "timer_events": 4778,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -156,7 +156,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6974,
+    "entries": 6973,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -164,10 +164,10 @@
   },
   "readback": [
     "0x40080000+0x404",
-    "0x40080404+0x6140",
+    "0x40080404+0x6138",
     "0x3ffb0000+0x28"
   ],
-  "uart_sha256": "a91f2436a7058276e3309b7d758c24590ca66faee658af9fbd4ce012a3cd82c1",
+  "uart_sha256": "09c7fcc06154fbf1694b1de21e3a2d56046a5490e95f3d5c2b666dd4824cd0dc",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -187,33 +187,33 @@
       }
     }
   },
-  "seconds": 27.63,
+  "seconds": 27.596,
   "kernel_usb": {
-    "since": 1795392900.604051,
-    "until": 1795392928.2043128,
+    "since": 1795416949.3592298,
+    "until": 1795416976.9269574,
     "lines": [
       {
-        "time": 1795392905.646951,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 59"
+        "time": 1795416954.50697,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 7"
       },
       {
-        "time": 1795392908.220701,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 76 using xhci_hcd"
+        "time": 1795416957.060676,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 24 using xhci_hcd"
       },
       {
-        "time": 1795392908.324704,
+        "time": 1795416957.164753,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       },
       {
-        "time": 1795392924.082808,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 76"
+        "time": 1795416972.815074,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 24"
       },
       {
-        "time": 1795392926.668682,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 77 using xhci_hcd"
+        "time": 1795416975.388696,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 25 using xhci_hcd"
       },
       {
-        "time": 1795392926.772748,
+        "time": 1795416975.492816,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       }
     ],
@@ -239,8 +239,8 @@
       "tag": "t",
       "h": "00000c9a",
       "c": "00000002",
-      "i": "00001b3e",
-      "m": "000019f9",
+      "i": "00001b3d",
+      "m": "000019f0",
       "p": "00018042",
       "q": "00818040",
       "k": "00000064",
