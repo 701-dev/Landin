@@ -1,6 +1,7 @@
 --  The hosted provider whose waiting operations switch fibres over the
 --  system's event mechanism (D476), `host`: epoll and signalfd on Linux,
---  kqueue on Darwin and FreeBSD (D481).  It runs its fibres on a round of
+--  kqueue on Darwin and FreeBSD (D481), and an I/O completion port on
+--  Windows, in windows.ldn.  It runs its fibres on a round of
 --  turns, core/fibre/stacks' `round`, whose wait when nobody can run is
 --  this module's: a wait for events whose time limit is the earliest
 --  deadline any fibre waits for (D480).  Reading and writing are here,
@@ -10,13 +11,13 @@
 --  handle's, in delegated.ldn, as hosted/blocking hands it.
 --
 --  Every operation that waits is completion-shaped (D486): it fills a
---  `waiting` record on its own stack, submits it, and its fibre takes
---  turns until the loop answers it, ready, expired or failed; then it
---  makes the call again.  Readiness is how the loop answers today; a
---  completion interface would answer with the call's own result, behind
---  the same entries.  Nothing here allocates: the round's records and
---  table, the loop's state and the last-error cells are the caller's.
---  Import this module only at a hosted authority root.
+--  `waiting` record on its own stack, submits it, and its fibre takes turns
+--  until the loop answers it, ready, expired or failed; then it makes the call
+--  again.  Readiness is how epoll and kqueue answer; on Windows the completion
+--  port answers with the call's own result, behind the same entries, and the
+--  call is not made again.  Nothing here allocates: the round's records and
+--  table, the loop's state and the last-error cells are the caller's.  Import
+--  this module only at a hosted authority root.
 
 import core/fibre
 import core/fibre/stacks

@@ -3,7 +3,8 @@
 --  until the socket is ready, its limit passes or the socket is shut or
 --  closed through the provider, which fails the call `io_failed` (D449).
 --  A socket is a file of hosted/system's like any other, so `io.read` and
---  `io.write` take a connection as they take a file.
+--  `io.write` take a connection as they take a file.  Windows' network is
+--  in windows_network.ldn.
 
 import core/io
 import core/net

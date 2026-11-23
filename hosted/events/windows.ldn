@@ -25,7 +25,7 @@ fixed if compiler.os == windows then
     --  One operation waiting, kept on the stack of the fibre that waits:
     --  the overlapped record of its call, which the system writes until
     --  the call's packet is queued; the handle it was issued on, zero for
-    --  none; the ID of a child whose end it waits for, zero for none;
+    --  none, and whether the call sends or writes; the ID of a child whose end it waits for, zero for none;
     --  whether it waits for a control event; its deadline, zero for none;
     --  the answer; whether its call is in flight, which only the call's
     --  packet answers; and the answer that packet gives when the call was
@@ -34,6 +34,7 @@ fixed if compiler.os == windows then
         asked: windows.overlapped
         next: usize
         handle: windows.handle
+        output: bool
         child: i32
         signalled: bool
         deadline: u64
@@ -44,14 +45,16 @@ fixed if compiler.os == windows then
 
     --  A record for an overlapped call on `made`, until `deadline`.
     on_handle: (made: windows.handle, deadline: u64) -> (entry: waiting) =
-        entry = (asked: zeroed, next: 0, handle: made, child: 0,
+        entry = (asked: zeroed, next: 0, handle: made, output: false,
+                 child: 0,
                  signalled: false, deadline: deadline, answer: pending,
                  flight: true, cut: pending)
     end on_handle
 
     --  A record that waits for `deadline` alone.
     on_deadline: (deadline: u64) -> (entry: waiting) =
-        entry = (asked: zeroed, next: 0, handle: windows.no_handle, child: 0,
+        entry = (asked: zeroed, next: 0, handle: windows.no_handle,
+                 output: false, child: 0,
                  signalled: false, deadline: deadline, answer: pending,
                  flight: false, cut: pending)
     end on_deadline
@@ -247,12 +250,6 @@ fixed if compiler.os == windows then
     --  How many bytes one call moves at most: what a DWORD counts.
     most: usize = 0x40000000
 
-    --  Whether a handle's call goes through the port: a pipe end
-    --  `system.start` made, or a socket.
-    overlapped_file: (opened: io.file) -> (yes: bool) =
-        yes = system.is_pipe(opened) or system.is_socket(opened)
-    end overlapped_file
-
     --  The end of what a stream gives: a pipe whose writer has gone, or a
     --  file read at its end.
     finished: (code: u32) -> (yes: bool) =
@@ -262,7 +259,8 @@ fixed if compiler.os == windows then
     end finished
 
     --  Read once into `into` from `opened`, waiting as a fibre does when
-    --  the call goes through the port: the count, zero at the end.
+    --  the call goes through the port, a socket's or a child's pipe's: the
+    --  count, zero at the end.
     read_once: (self: host, opened: io.file, into: []mut u8)
                -> (count: usize) ! io.io_failed =
         made: windows.handle = system.handle_of(opened)
@@ -270,7 +268,15 @@ fixed if compiler.os == windows then
         if want > most then want = most end if
         count = 0
         mut got: u32 = 0
-        if overlapped_file(opened) then
+        if system.is_socket(opened) then
+            ended: call_result = try received_once(self, made, into, 0)
+            return when ended.code == 0 and ended.moved == 0
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            got = ended.moved
+        elsif system.is_pipe(opened) then
             try joined(self, made)
             mut entry: waiting = on_handle(made, 0)
             link(self.state, addr entry)
@@ -303,9 +309,17 @@ fixed if compiler.os == windows then
         mut want: usize = lenof bytes
         if want > most then want = most end if
         mut put: u32 = 0
-        if overlapped_file(opened) then
+        if system.is_socket(opened) then
+            ended: call_result = try sent_once(self, made, bytes, 0)
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            put = ended.moved
+        elsif system.is_pipe(opened) then
             try joined(self, made)
             mut entry: waiting = on_handle(made, 0)
+            entry.output = true
             link(self.state, addr entry)
             issued: i32 = windows.write_file(made, addr bytes[0], u32(want),
                                              addr put,

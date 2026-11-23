@@ -5,6 +5,7 @@
 --  waiting for the child's end parks it too: on a pidfd on Linux, and on
 --  kqueue's EVFILT_PROC with `note_exit` on Darwin and FreeBSD.  The child
 --  is then reaped with POSIX's `waitpid`, which no longer waits.
+--  Windows' are in windows_programs.ldn.
 
 import core/io
 import core/mem
