@@ -493,7 +493,7 @@ it names.
 | `refine compile --debug=full ...` | include source debugging for GDB or LLDB |
 | `refine compile --target=linux-arm64 ...` | compile for another target; `refine targets` lists them |
 | `refine fmt main.ldn` | rewrite a source in the one layout; `--check` only reports |
-| `refine fix main.ldn` | apply every exact fix the compiler's report carries, such as a removed form's rewrite; `--check` only reports |
+| `refine fix main.ldn` | apply every exact fix the compiler's report carries, such as a removed form's rewrite; `--code=L0696` applies only that code's fixes; `--check` only reports |
 | `refine explain L0301` | explain a diagnostic code and what to change. It also explains a numbered paragraph of the tour or `spec.md`, `[1760]`, or a decision recorded in `spec.md`, `D275`, which it reads from the `citations.txt` installed with the library |
 | `refine site prog SITE` | name the source line and the failed check of the panic site a program's handler received, from the table `--panic-map` writes beside it |
 | `refine site prog FILE LINE COLUMN` | name the source position of a caller's three coordinates, from the same table |

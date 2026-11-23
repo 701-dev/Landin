@@ -75,6 +75,9 @@ package body Landin.Commands is
       Dry_Run : Boolean := False;
       --  D1847: fix's --check, which the driver's check never sees.
       Fix_Check : Boolean := False;
+      --  D2186: fix's --code, the codes whose fixes it applies; none
+      --  given is every code's.
+      Fix_Codes : Landin.Platform.Path_List;
       Depfile : US.Unbounded_String;
       Policy : WP.Policy := WP.Defaults;
       Forwarded : Landin.Platform.Path_List;
@@ -347,6 +350,8 @@ package body Landin.Commands is
                               Result.Forwarded.Append (C.Name (Flag));
                            end if;
                         when C.Depfile => Result.Depfile := Value;
+                        when C.Fix_Code =>
+                           Result.Fix_Codes.Append (US.To_String (Value));
                         when C.Warnings =>
                            if C.Valid_Value (Flag, US.To_String (Value)) then
                               WP.Set_Base (Result.Policy,
@@ -1356,7 +1361,8 @@ package body Landin.Commands is
                   Result := Fixing.Execute
                     (Forwarded, Host, Tools, Meter, Built_For, Asked.Policy,
                      Asked.Consumed_Response_Files,
-                     Asked.Consumed_Response_Identities, Asked.Fix_Check);
+                     Asked.Consumed_Response_Identities, Asked.Fix_Check,
+                     Asked.Fix_Codes);
                elsif Asked.Verbosity >= 2 then
                   declare
                      Wrapped : Tracing.Runner

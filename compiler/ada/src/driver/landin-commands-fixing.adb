@@ -41,7 +41,10 @@ package body Landin.Commands.Fixing is
       Warnings   : Landin.Diagnostics.Warning_Policy.Policy;
       Protected_Inputs : Landin.Platform.Path_List;
       Protected_Identities : Landin.Platform.Identity_List;
-      Check_Only : Boolean) return Landin.Driver.Outcome
+      Check_Only : Boolean;
+      Codes      : Landin.Platform.Path_List :=
+        Landin.Platform.Path_Vectors.Empty_Vector)
+      return Landin.Driver.Outcome
    is
       Held     : Landin.Platform.Overlays.Overlay (Host'Access);
       Original : Text_Maps.Map;
@@ -89,7 +92,10 @@ package body Landin.Commands.Fixing is
          for Index in 1 .. D.Count (Result.Found) loop
             declare
                Item  : constant D.Diagnostic := D.Get (Result.Found, Index);
-               Which : constant Natural := A.First_Exact (Item);
+               Which : constant Natural :=
+                 (if Codes.Is_Empty
+                    or else (for some Code of Codes => Code = D.Code (Item))
+                  then A.First_Exact (Item) else 0);
             begin
                if Which /= 0 then
                   declare

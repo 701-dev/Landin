@@ -36,7 +36,9 @@ private package Landin.Commands.Fixing is
    --  and status are the last check's: what is left once the fixes are in.
    --  With Check_Only the files are left as they are, the report and the
    --  status are the first check's, and a fix that would be applied makes
-   --  the status Status_Reported.
+   --  the status Status_Reported.  With Codes not empty only the fixes
+   --  of diagnostics whose code it names are applied (D2186); the report
+   --  is still the whole check's, so the fixes left out stay in it.
    function Execute
      (Arguments  : Landin.Platform.Path_List;
       Host       : Landin.Platform.Filesystem'Class;
@@ -46,6 +48,9 @@ private package Landin.Commands.Fixing is
       Warnings   : Landin.Diagnostics.Warning_Policy.Policy;
       Protected_Inputs : Landin.Platform.Path_List;
       Protected_Identities : Landin.Platform.Identity_List;
-      Check_Only : Boolean) return Landin.Driver.Outcome;
+      Check_Only : Boolean;
+      Codes      : Landin.Platform.Path_List :=
+        Landin.Platform.Path_Vectors.Empty_Vector)
+      return Landin.Driver.Outcome;
 
 end Landin.Commands.Fixing;

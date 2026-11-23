@@ -292,6 +292,7 @@ Options:
   --warn VALUE              Enable a warning code or all (repeatable)
   --allow VALUE             Suppress a warning code or all (repeatable)
   --deny VALUE              Enable and promote a warning to an error (repeatable)
+  --code VALUE              Apply only this code's exact fixes (repeatable)
 
 Shared options work before or after the command. Values may use
 a space or '='. Use '--' before literal operands; @FILE reads
@@ -305,6 +306,11 @@ fix, a guess at what was meant, is never applied.
 Each fix applied is listed on standard output, and the
 report is what is left. With --check no file is
 written and the status is 1 if a fix would be applied.
+--code=CODE applies only the exact fixes of
+diagnostics with that code, and may be given again for
+more codes. The report is still the whole check's, so a
+fix that was left out is still reported. A code that is
+unknown, retired or never carries a fix is refused.
 Example: refine fix program.ldn
 
 usage: refine explain [options] [CODE|[NNNN]|DNNN ...]

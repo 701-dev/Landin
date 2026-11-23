@@ -22,7 +22,7 @@ package Landin.Commands.Catalogue is
       Stack_Report, Dry_Run,
       Depfile,
       Format_Check, Format_Stdout, Explain_Full, Stdio, JSON, Warnings, Warn,
-      Allow, Deny);
+      Allow, Deny, Fix_Code);
 
    function Name (Flag : Option) return String;
    function Description (Flag : Option) return String;

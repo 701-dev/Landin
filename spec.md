@@ -21134,6 +21134,37 @@ lists both, leaves a likely respelling unapplied and writes nothing under
 routine that applies edits, shared with the harness; and every fixture's
 pinned fix, which that routine applies.
 
+### D2186 — `refine fix --code` applies only the named codes' fixes
+
+**The discrepancy:** D1847 applies every exact fix a check offers, and
+nothing selects which. Migrating the corpus off a removed form applied the
+fixes of unrelated warnings too, such as removing the unused locals
+`positive/r491-contextual-statements` keeps on purpose (L0349), and
+`--allow all`, which keeps warnings' fixes out, still lets an error's own
+exact fix in, so a negative fixture's refusal would be mended together
+with the removal's rewrite.
+
+**Chosen:** `refine fix` takes `--code=CODE`, repeatable. With any given,
+a pass applies a diagnostic's first exact fix only when its code is one
+named, and the passes end when no named code's fix applies; `--check`
+selects the same way. The report and the status are the check's as
+before, so a fix left out is still reported. A code that is not live in
+the catalogue, or whose diagnostics never carry a fix, is refused as a
+misuse (L0002) naming `refine explain CODE`, so a misspelt code does not
+apply nothing silently.
+
+**The alternatives:** an option selecting removed forms alone (L0696),
+which leaves out the closer and keyword removals refused under other
+codes and every future migration that is no removal; selecting by
+severity, which separates a removal's rewrite from a fixture's own
+refusal no better than `--allow all` does; and a list of codes to skip,
+which a migration that wants one rewrite spells longer.
+
+**Pinned by** the commands case `fix applies exact fixes`, which applies a
+closer's fix alone under `--code=L0109` and leaves the `mut` warning's in
+the report, and refuses `--code=L0002`; and
+`scripts/tests/test_cli_native.py`'s `test_fix_applies_only_the_codes_named`.
+
 ### D360 — A parenthesized operand begins at its parenthesis
 
 **The discrepancy:** the syntax tree keeps no node for parentheses that only

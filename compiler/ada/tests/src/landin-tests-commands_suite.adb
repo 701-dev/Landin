@@ -1324,6 +1324,28 @@ package body Landin.Tests.Commands_Suite is
       Landin.Testing.Check_Equal
         (Item, Host.Write_Count, Writes, "nothing is written for it");
 
+      --  D2186: `--code` applies only the named codes' fixes; the
+      --  closer's is applied and the binding's, a warning's, is left in
+      --  the report.
+      Host.Add_File ("only.ldn", Broken);
+      Result := Landin.Commands.Execute
+        (["fix", "--code=L0109", "only.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, US.To_String (Result.Output),
+         "only.ldn:4:5: L0109: close it with `end f`" & LF,
+         "fix --code applies only that code's fixes");
+      Landin.Testing.Check
+        (Item, Contains (US.To_String (Result.Report), "L0326"),
+         "the fix left out is still reported");
+      Landin.Testing.Check
+        (Item, Contains (Host.Written ("only.ldn"), "mut value"),
+         "and its edit is not written");
+      Result := Landin.Commands.Execute
+        (["fix", "--code=L0002", "only.ldn"], Host, Tools, Meter);
+      Landin.Testing.Check_Equal
+        (Item, Result.Status, Landin.Driver.Status_Misuse,
+         "--code refuses a code that never carries a fix");
+
       Result := Landin.Commands.Execute
         (["check", "--check", "guess.ldn"], Host, Tools, Meter);
       Landin.Testing.Check_Equal
