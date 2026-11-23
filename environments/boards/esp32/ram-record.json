@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "dafe5f0e1b068c131fe65ddc283144ec25e0a8ee6ae293a9aea412ccc2d48649",
+  "image_sha256": "8e19fcbe9b6eb834ce27235e1b4ffaf83e54b0c1a166574fe41a9f1de3ad2647",
   "image_name": "board.elf",
-  "elf_sha256": "dafe5f0e1b068c131fe65ddc283144ec25e0a8ee6ae293a9aea412ccc2d48649",
+  "elf_sha256": "8e19fcbe9b6eb834ce27235e1b4ffaf83e54b0c1a166574fe41a9f1de3ad2647",
   "instructions": [
     "call8",
     "callx8",
@@ -49,7 +49,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2558,
+      "timer_events": 2489,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -111,7 +111,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6973,
+    "entries": 6974,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -119,10 +119,10 @@
   },
   "readback": [
     "0x40080000+0x404",
-    "0x40080404+0x65ac",
+    "0x40080404+0x6118",
     "0x3ffb0000+0x28"
   ],
-  "uart_sha256": "dde2856f97f1a16f6ba30e6d6a2c7a659da9209a8303f37885e5460a8928a1c6",
+  "uart_sha256": "6c31e3975f8bc1abe28ad9f22a68fcb2cded6ac9bbed9ab1f7685be2f7841fd5",
   "mode": "ram",
   "warm_load": {
     "board": "esp32",
@@ -142,12 +142,12 @@
       ],
       "contract": "warm-board-v1",
       "cpu1_stalled": true,
-      "elapsed_us": 25754,
+      "elapsed_us": 23558,
       "final_xtal_divider": 0,
       "initial_xtal_divider": 0,
       "instruction_visibility": {
         "address": 1074267312,
-        "elapsed_us": 24427,
+        "elapsed_us": 23421,
         "method": "cacheless-sram-memw-isync-single-step",
         "operations": [
           "memw",
@@ -185,13 +185,13 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "dafe5f0e1b068c131fe65ddc283144ec25e0a8ee6ae293a9aea412ccc2d48649",
+    "elf_sha256": "8e19fcbe9b6eb834ce27235e1b4ffaf83e54b0c1a166574fe41a9f1de3ad2647",
     "entry": 1074267136,
     "flash_written": false,
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
     "mode": "warm",
-    "previous_pc": 1074269418,
+    "previous_pc": 1074269399,
     "segments": [
       {
         "address": 1074266112,
@@ -200,102 +200,29 @@
       },
       {
         "address": 1074267140,
-        "bytes": 26028,
-        "sha256": "9aa69d379ae524d43104ea65d78965ddeffa4fb8b7d42bd1592fdcc2ed4c318c"
+        "bytes": 24856,
+        "sha256": "9277fd4ab576b8dedd8c3ed532ff0fa6bbbb2f4d237287e0ecc6c8069f5787b5"
       },
       {
         "address": 1073414144,
         "bytes": 40,
-        "sha256": "b87f99c9594cb0db70b33ee01585709799967a5505b8b7639dc8ec926953bb4a"
+        "sha256": "67590e395184839eeade61c09943bea61ba04f6c9cc26e0a93ee90f5512a8ab6"
       },
       {
         "address": 1073414184,
         "bytes": 88,
-        "sha256": "afa282adcc13ac765fc300b76b65d03e6f113a66a7bd5cdacca6eb526b16f41d"
+        "sha256": "8b126ba29020bd5522742079f7286e02804f4047640c01f22fe8792af65f6dd8"
       }
     ],
     "stack": 1073545216,
     "status": "passed",
     "vector": 1074266112
   },
-  "seconds": 123.276,
+  "seconds": 11.76,
   "kernel_usb": {
-    "since": 1795197490.438274,
-    "until": 1795197613.697284,
-    "lines": [
-      {
-        "time": 1795197554.404708,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 22"
-      },
-      {
-        "time": 1795197556.058709,
-        "text": "rigpi kernel: usb 1-1.2.4.3: USB disconnect, device number 20"
-      },
-      {
-        "time": 1795197559.300707,
-        "text": "rigpi kernel: usb 1-1.2.4.3: new full-speed USB device number 48 using xhci_hcd"
-      },
-      {
-        "time": 1795197559.404707,
-        "text": "rigpi kernel: usb 1-1.2.4.3: ch341-uart converter now attached to ttyUSB3"
-      },
-      {
-        "time": 1795197561.050202,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 49 using xhci_hcd"
-      },
-      {
-        "time": 1795197561.156738,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795197567.608717,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 49"
-      },
-      {
-        "time": 1795197567.81276,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 50 using xhci_hcd"
-      },
-      {
-        "time": 1795197567.924692,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795197584.620713,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 50"
-      },
-      {
-        "time": 1795197587.238812,
-        "text": "rigpi kernel: usb 1-1.2.4.3: USB disconnect, device number 48"
-      },
-      {
-        "time": 1795197591.660705,
-        "text": "rigpi kernel: usb 1-1.2.4.3: new full-speed USB device number 51 using xhci_hcd"
-      },
-      {
-        "time": 1795197591.768231,
-        "text": "rigpi kernel: usb 1-1.2.4.3: ch341-uart converter now attached to ttyUSB3"
-      },
-      {
-        "time": 1795197594.692878,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 52 using xhci_hcd"
-      },
-      {
-        "time": 1795197594.792746,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795197599.612698,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 52"
-      },
-      {
-        "time": 1795197599.820665,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 53 using xhci_hcd"
-      },
-      {
-        "time": 1795197599.935517,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      }
-    ],
+    "since": 1795392880.6536942,
+    "until": 1795392892.3906782,
+    "lines": [],
     "status": "captured"
   },
   "sent_sha256": "45f51ce1b772e0ef26e5ae5314047d208256a0b78508c7419e0b54d2eca653a4",
@@ -318,8 +245,8 @@
       "tag": "t",
       "h": "00000c9a",
       "c": "00000002",
-      "i": "00001b3d",
-      "m": "0000110c",
+      "i": "00001b3e",
+      "m": "000010fd",
       "p": "00018042",
       "q": "00818040",
       "k": "00000064",
