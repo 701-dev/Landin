@@ -192,12 +192,12 @@
    "runs": 3
   },
   "armv8-m.main/size-all/fannkuch-redux": {
-   "cycles": 3030756,
+   "cycles": 2976924,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "fdba77c94037beac3ddbece367293f9c6d75dcae413afa05551934e7c96d3249",
+   "image": "1cd315c987043548d95bd84ffea53eb23fff88a8a801fc51c723246c1b987e9f",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -248,12 +248,12 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
-   "cycles": 3030756,
+   "cycles": 2976924,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "fdba77c94037beac3ddbece367293f9c6d75dcae413afa05551934e7c96d3249",
+   "image": "1cd315c987043548d95bd84ffea53eb23fff88a8a801fc51c723246c1b987e9f",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -304,12 +304,12 @@
    "runs": 3
   },
   "armv8-m.main/size-off/fannkuch-redux": {
-   "cycles": 3030756,
+   "cycles": 2976924,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "fdba77c94037beac3ddbece367293f9c6d75dcae413afa05551934e7c96d3249",
+   "image": "1cd315c987043548d95bd84ffea53eb23fff88a8a801fc51c723246c1b987e9f",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -360,12 +360,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "cycles": 2987174,
+   "cycles": 3006385,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "5044c343ff1a85fc59c1d606374ec253c16704aa0cdeaa4ae1338e3fd381d65d",
+   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -416,12 +416,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "cycles": 2987174,
+   "cycles": 3006385,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "5044c343ff1a85fc59c1d606374ec253c16704aa0cdeaa4ae1338e3fd381d65d",
+   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -472,12 +472,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "cycles": 2987174,
+   "cycles": 3006385,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "5044c343ff1a85fc59c1d606374ec253c16704aa0cdeaa4ae1338e3fd381d65d",
+   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },

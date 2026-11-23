@@ -708,6 +708,30 @@ package body Landin.Tests.Arm64_Selection_Suite is
             end if;
          end;
       end loop;
+      --  D2251: a product by a power of two no check reads, a wrapping
+      --  one here as a proved one, is a shift at size and speed, its
+      --  constant made nowhere.
+      declare
+         Wrapping : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_Arm64);
+      begin
+         Lower
+           (Item, Wrapping,
+            "public scaled: (n: u64) -> (r: u64) = r = n *% 8 end scaled");
+         for Objective in Opt.Objective loop
+            declare
+               Text : constant String := Emitted (Wrapping, Objective);
+            begin
+               Landin.Testing.Check
+                 (Item, Objective = Opt.None
+                  or else (Contains (Text, HT & "lsl x")
+                           and then Contains (Text, ", #3" & LF)
+                           and then not Contains (Text, HT & "mul ")),
+                  "a product by eight no check reads is a shift at size "
+                  & "and speed");
+            end;
+         end loop;
+      end;
    end Arithmetic_Shapes;
 
    --  Speed divides by every known divisor without a divide instruction

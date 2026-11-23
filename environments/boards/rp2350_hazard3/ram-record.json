@@ -1,10 +1,10 @@
 {
   "status": "passed",
-  "image_sha256": "b6149516700cc0cd9d7a2a4be3a80600f5c0c0066f31e850eb4c8717dd90bd94",
+  "image_sha256": "3ed6330857cd485452d96ef77e3d0247b797a562e051735cc0eb3add888f6eb2",
   "image_name": "board.elf",
   "amoadd": [
     {
-      "address": "20001b34",
+      "address": "20001af0",
       "function": "add_u32"
     }
   ],
@@ -34,7 +34,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 1627,
+      "timer_events": 1638,
       "echoed": 11202,
       "sent": 11572
     },
@@ -62,7 +62,7 @@
     "reports": 7,
     "trans_count": 1094
   },
-  "uart_sha256": "a3a22f80b2f6e3564370a0c10fd79e27010c6c7493dcd5e59b3446a787fae01b",
+  "uart_sha256": "4e420353499a3c31ad35c42bc2bdef85074ec4ed6c6c4d483ffc9060cbd343ae",
   "mode": "ram",
   "warm_load": {
     "board": "rp2350_hazard3",
@@ -94,7 +94,7 @@
       "rom_reset": false,
       "timer0_debug_pause": 2
     },
-    "elf_sha256": "b6149516700cc0cd9d7a2a4be3a80600f5c0c0066f31e850eb4c8717dd90bd94",
+    "elf_sha256": "3ed6330857cd485452d96ef77e3d0247b797a562e051735cc0eb3add888f6eb2",
     "entry": 536870912,
     "flash_written": false,
     "format_version": 1,
@@ -109,11 +109,11 @@
       },
       {
         "address": 536871696,
-        "bytes": 25184,
-        "sha256": "ae0a1a8c0e30a48f2f1531d9589a5399adef3046578168a2f04c827667ad83c8"
+        "bytes": 25112,
+        "sha256": "45392bc3a7dbbb921288b671d3f965dd335550b581165320cef40e83097ad155"
       },
       {
-        "address": 536896880,
+        "address": 536896808,
         "bytes": 24,
         "sha256": "0baeda3ef5f538e158d6ac7360696feeb17ae6c79c7051b93d129730e8a806e2"
       }
@@ -122,10 +122,10 @@
     "status": "passed",
     "vector": 536871424
   },
-  "seconds": 14.281,
+  "seconds": 14.221,
   "kernel_usb": {
-    "since": 1795438955.221901,
-    "until": 1795438969.483626,
+    "since": 1795456067.6945946,
+    "until": 1795456081.8963273,
     "lines": [],
     "status": "captured"
   },
@@ -143,7 +143,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "0000065b",
+      "m": "00000666",
       "u": "00000001",
       "p": "8000000b",
       "n": "00000446",

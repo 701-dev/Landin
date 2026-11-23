@@ -192,12 +192,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-all/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -248,12 +248,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-auto/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -304,12 +304,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/size-off/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -360,12 +360,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-all/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -416,12 +416,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-auto/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -472,12 +472,12 @@
    "runs": 3
   },
   "xtensa-esp32s3/speed-off/fannkuch-redux": {
-   "cycles": 3287426,
+   "cycles": 3259254,
    "unit": "cycles",
    "counter": "CCOUNT",
    "clock": "xtal-40000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "981b5ab9bdacc4630109890ef9a3463688442d5c3ff50d741f2862117404516d",
+   "image": "2d98abec712eb615b739e037366058cf32cb4c7993468dc123ef8f19a1087f66",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },

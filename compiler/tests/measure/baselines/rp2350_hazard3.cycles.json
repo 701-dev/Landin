@@ -192,12 +192,12 @@
    "runs": 3
   },
   "rv32imac/size-all/fannkuch-redux": {
-   "cycles": 5338321,
+   "cycles": 5209342,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "770fbfdd31bc71c694f41b521bf6d21935b9da375cc9dc658c49b4287f0b7c94",
+   "image": "434aa151afc14fe0a7609823444a336fdd17d5cdb0d2cf1b9609e540738cc541",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -248,12 +248,12 @@
    "runs": 3
   },
   "rv32imac/size-auto/fannkuch-redux": {
-   "cycles": 5338321,
+   "cycles": 5209342,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "770fbfdd31bc71c694f41b521bf6d21935b9da375cc9dc658c49b4287f0b7c94",
+   "image": "434aa151afc14fe0a7609823444a336fdd17d5cdb0d2cf1b9609e540738cc541",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -304,12 +304,12 @@
    "runs": 3
   },
   "rv32imac/size-off/fannkuch-redux": {
-   "cycles": 5338321,
+   "cycles": 5209342,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "770fbfdd31bc71c694f41b521bf6d21935b9da375cc9dc658c49b4287f0b7c94",
+   "image": "434aa151afc14fe0a7609823444a336fdd17d5cdb0d2cf1b9609e540738cc541",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -360,12 +360,12 @@
    "runs": 3
   },
   "rv32imac/speed-all/fannkuch-redux": {
-   "cycles": 5127050,
+   "cycles": 5159398,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "ebaf610035292e80b2851eac99d8c35a92872fb795f24985ac1cff5e146f5dfa",
+   "image": "a53120c97a2ec29217d7675201607d0def9262646580f778c362c574dd303100",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -416,12 +416,12 @@
    "runs": 3
   },
   "rv32imac/speed-auto/fannkuch-redux": {
-   "cycles": 5127050,
+   "cycles": 5159398,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "ebaf610035292e80b2851eac99d8c35a92872fb795f24985ac1cff5e146f5dfa",
+   "image": "a53120c97a2ec29217d7675201607d0def9262646580f778c362c574dd303100",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -472,12 +472,12 @@
    "runs": 3
   },
   "rv32imac/speed-off/fannkuch-redux": {
-   "cycles": 5127050,
+   "cycles": 5159398,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "ebaf610035292e80b2851eac99d8c35a92872fb795f24985ac1cff5e146f5dfa",
+   "image": "a53120c97a2ec29217d7675201607d0def9262646580f778c362c574dd303100",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },

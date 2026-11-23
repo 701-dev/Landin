@@ -406,6 +406,8 @@ package body Landin.Backend.Arm64 is
          function Read_In_Place (Value : Positive) return Natural;
          function Released_By (Value : Positive; Position : Natural)
             return Natural;
+         function Widened_From (Value : Positive; Position : Natural)
+            return Natural;
          function Stored_Into (Value : Positive; Position : Natural)
             return Natural;
          function Stored_Late (Value : Positive; Position : Natural)
@@ -659,6 +661,45 @@ package body Landin.Backend.Arm64 is
             end;
             return No_Register;
          end Released_By;
+
+         --  D2253: the general register of an integer conversion's
+         --  operand that dies at it and leaves the register free, so a
+         --  widening that changes no bits moves nothing; else No_Register.
+         --  Selection reads the operand before it writes the result.
+         function Widened_From (Value : Positive; Position : Natural)
+            return Natural
+         is
+            Code : constant Landin.IR.Value_Id := Landin.IR.Value_Id (Value);
+         begin
+            if Landin.IR.Op_Of (Of_Unit, Item, Code) /= Landin.IR.Conversion
+              or else Landin.IR.Result_Of (Of_Unit, Item, Code)
+                not in Landin.Types.Integer_Name
+            then
+               return No_Register;
+            end if;
+            declare
+               Source : constant Positive := Positive
+                 (Landin.IR.Nth_Operand (Of_Unit, Item, Code, 1));
+               Number : constant Natural := Result.Values (Source).Register;
+            begin
+               if Landin.IR.Result_Of
+                   (Of_Unit, Item, Landin.IR.Value_Id (Source))
+                   in Landin.Types.Integer_Name
+                 and then Number /= No_Register
+                 and then Number not in Float_Register
+                 and then Lasts (Source) = Position
+                 and then not Declared_Set (Number)
+                 and then Busy_Until (Number) <= Position
+                 and then
+                   (not Reservations.Has_Element (Upcoming (Number))
+                    or else Lasts (Value)
+                      < Reservations.Key (Upcoming (Number)))
+               then
+                  return Number;
+               end if;
+            end;
+            return No_Register;
+         end Widened_From;
 
          --  The register of the slot whose placed interval opens at the
          --  store that last uses a value, which the value may hold from
@@ -942,6 +983,7 @@ package body Landin.Backend.Arm64 is
                      then
                         Share (Read_In_Place (Index));
                         Share (Released_By (Index, Position));
+                        Share (Widened_From (Index, Position));
                         Share (Stored_Into (Index, Position));
                         Share (Stored_Late (Index, Position));
                         if Kind in Landin.Types.Float_Name then
@@ -4707,9 +4749,32 @@ package body Landin.Backend.Arm64 is
                      Left := Unbounded.To_Unbounded_String
                        (Read (Left_Value, "x9"));
                      declare
-                        By : constant String := Right ("");
+                        --  D2251: k when the constant is 2 ** k.
+                        function Power return Natural;
+                        function Power return Natural is
+                        begin
+                           if Known then
+                              for K in 1 .. Bits - 1 loop
+                                 if Right_Bits = 2 ** K then
+                                    return K;
+                                 end if;
+                              end loop;
+                           end if;
+                           return 0;
+                        end Power;
+                        Shift : constant Natural :=
+                          (if Checked then 0 else Power);
+                        By : constant String :=
+                          (if Shift /= 0 then "" else Right (""));
                      begin
-                        if not Checked then
+                        if Shift /= 0 then
+                           --  D2251: a product by a power of two no check
+                           --  reads is a shift, and its constant is made
+                           --  nowhere.
+                           Emit ("lsl " & View (Into) & ", " & L & ", #"
+                                 & Trimmed (Natural'Image (Shift)));
+                           Deliver (Value, Into, Extended => True);
+                        elsif not Checked then
                            Emit ("mul " & View (Into) & ", " & L & ", " & By);
                            Deliver (Value, Into, Extended => True);
                         elsif Wide then
