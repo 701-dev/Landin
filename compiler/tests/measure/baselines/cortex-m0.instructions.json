@@ -60,7 +60,7 @@
    "instructions": 1031
   },
   "armv6-m/size-all/cmp-siphash-vectors": {
-   "instructions": 352242
+   "instructions": 352174
   },
   "armv6-m/size-all/fannkuch-redux": {
    "instructions": 3093284
@@ -78,7 +78,7 @@
    "instructions": 1031
   },
   "armv6-m/size-auto/cmp-siphash-vectors": {
-   "instructions": 352248
+   "instructions": 352180
   },
   "armv6-m/size-auto/fannkuch-redux": {
    "instructions": 3093284
@@ -96,7 +96,7 @@
    "instructions": 1031
   },
   "armv6-m/size-off/cmp-siphash-vectors": {
-   "instructions": 352248
+   "instructions": 352180
   },
   "armv6-m/size-off/fannkuch-redux": {
    "instructions": 3093284
@@ -114,7 +114,7 @@
    "instructions": 1060
   },
   "armv6-m/speed-all/cmp-siphash-vectors": {
-   "instructions": 352533
+   "instructions": 352465
   },
   "armv6-m/speed-all/fannkuch-redux": {
    "instructions": 3093284
@@ -132,7 +132,7 @@
    "instructions": 1060
   },
   "armv6-m/speed-auto/cmp-siphash-vectors": {
-   "instructions": 352533
+   "instructions": 352465
   },
   "armv6-m/speed-auto/fannkuch-redux": {
    "instructions": 3093284
@@ -150,7 +150,7 @@
    "instructions": 1060
   },
   "armv6-m/speed-off/cmp-siphash-vectors": {
-   "instructions": 352539
+   "instructions": 352471
   },
   "armv6-m/speed-off/fannkuch-redux": {
    "instructions": 3093284
@@ -222,7 +222,7 @@
    "instructions": 1014
   },
   "armv7-m/size-all/cmp-siphash-vectors": {
-   "instructions": 344124
+   "instructions": 344120
   },
   "armv7-m/size-all/fannkuch-redux": {
    "instructions": 2758982
@@ -240,7 +240,7 @@
    "instructions": 1014
   },
   "armv7-m/size-auto/cmp-siphash-vectors": {
-   "instructions": 344131
+   "instructions": 344127
   },
   "armv7-m/size-auto/fannkuch-redux": {
    "instructions": 2758982
@@ -258,7 +258,7 @@
    "instructions": 1014
   },
   "armv7-m/size-off/cmp-siphash-vectors": {
-   "instructions": 344131
+   "instructions": 344127
   },
   "armv7-m/size-off/fannkuch-redux": {
    "instructions": 2758982
@@ -273,10 +273,10 @@
    "instructions": 8737
   },
   "armv7-m/speed-all/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv7-m/speed-all/cmp-siphash-vectors": {
-   "instructions": 338275
+   "instructions": 338265
   },
   "armv7-m/speed-all/fannkuch-redux": {
    "instructions": 2725272
@@ -291,10 +291,10 @@
    "instructions": 6409
   },
   "armv7-m/speed-auto/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv7-m/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338275
+   "instructions": 338265
   },
   "armv7-m/speed-auto/fannkuch-redux": {
    "instructions": 2725272
@@ -309,10 +309,10 @@
    "instructions": 6409
   },
   "armv7-m/speed-off/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv7-m/speed-off/cmp-siphash-vectors": {
-   "instructions": 338282
+   "instructions": 338272
   },
   "armv7-m/speed-off/fannkuch-redux": {
    "instructions": 2725272
@@ -384,7 +384,7 @@
    "instructions": 1066
   },
   "armv7e-m+fpv5-d16/size-all/cmp-siphash-vectors": {
-   "instructions": 344176
+   "instructions": 344172
   },
   "armv7e-m+fpv5-d16/size-all/fannkuch-redux": {
    "instructions": 2759034
@@ -402,7 +402,7 @@
    "instructions": 1066
   },
   "armv7e-m+fpv5-d16/size-auto/cmp-siphash-vectors": {
-   "instructions": 344183
+   "instructions": 344179
   },
   "armv7e-m+fpv5-d16/size-auto/fannkuch-redux": {
    "instructions": 2759034
@@ -420,7 +420,7 @@
    "instructions": 1066
   },
   "armv7e-m+fpv5-d16/size-off/cmp-siphash-vectors": {
-   "instructions": 344183
+   "instructions": 344179
   },
   "armv7e-m+fpv5-d16/size-off/fannkuch-redux": {
    "instructions": 2759034
@@ -435,10 +435,10 @@
    "instructions": 8789
   },
   "armv7e-m+fpv5-d16/speed-all/binary-search": {
-   "instructions": 1076
+   "instructions": 1077
   },
   "armv7e-m+fpv5-d16/speed-all/cmp-siphash-vectors": {
-   "instructions": 338327
+   "instructions": 338317
   },
   "armv7e-m+fpv5-d16/speed-all/fannkuch-redux": {
    "instructions": 2725324
@@ -453,10 +453,10 @@
    "instructions": 6461
   },
   "armv7e-m+fpv5-d16/speed-auto/binary-search": {
-   "instructions": 1076
+   "instructions": 1077
   },
   "armv7e-m+fpv5-d16/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338327
+   "instructions": 338317
   },
   "armv7e-m+fpv5-d16/speed-auto/fannkuch-redux": {
    "instructions": 2725324
@@ -471,10 +471,10 @@
    "instructions": 6461
   },
   "armv7e-m+fpv5-d16/speed-off/binary-search": {
-   "instructions": 1076
+   "instructions": 1077
   },
   "armv7e-m+fpv5-d16/speed-off/cmp-siphash-vectors": {
-   "instructions": 338334
+   "instructions": 338324
   },
   "armv7e-m+fpv5-d16/speed-off/fannkuch-redux": {
    "instructions": 2725324
@@ -546,7 +546,7 @@
    "instructions": 1014
   },
   "armv8-m.main/size-all/cmp-siphash-vectors": {
-   "instructions": 344124
+   "instructions": 344120
   },
   "armv8-m.main/size-all/fannkuch-redux": {
    "instructions": 2758982
@@ -564,7 +564,7 @@
    "instructions": 1014
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
-   "instructions": 344131
+   "instructions": 344127
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
    "instructions": 2758982
@@ -582,7 +582,7 @@
    "instructions": 1014
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
-   "instructions": 344131
+   "instructions": 344127
   },
   "armv8-m.main/size-off/fannkuch-redux": {
    "instructions": 2758982
@@ -597,10 +597,10 @@
    "instructions": 8737
   },
   "armv8-m.main/speed-all/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "instructions": 338275
+   "instructions": 338265
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
    "instructions": 2725272
@@ -615,10 +615,10 @@
    "instructions": 6409
   },
   "armv8-m.main/speed-auto/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338275
+   "instructions": 338265
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
    "instructions": 2725272
@@ -633,10 +633,10 @@
    "instructions": 6409
   },
   "armv8-m.main/speed-off/binary-search": {
-   "instructions": 1024
+   "instructions": 1025
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
-   "instructions": 338282
+   "instructions": 338272
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
    "instructions": 2725272

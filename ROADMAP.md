@@ -819,7 +819,7 @@ every port and its cycles.
 
 ### R16.30 — Loops that keep their values in registers
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What R16.28 left on the hosted targets, the largest cost measured there:
@@ -832,6 +832,33 @@ count` for the hosted Linux targets.
 Exit evidence: SHA-256 and mandelbrot measured lower than R16.28's
 figures on x86-64 and arm64, no other combination over its own, and the
 counting documented in `docs/measurement.md`.
+
+Done: x86-64 reads a value without a register where its one use lies
+(D2156), makes a stored value in its slot's register (D2157), adds into
+a third register with `lea` (D2158) and gives float slots XMM1-XMM7 over
+call-free intervals (D2159); arm64 makes a stored value in its slot's
+register (D2164) and complements a 32-bit value in its `w` view (D2165);
+a slot's one constant store reaches the loads it dominates (D2148), and
+on hosted targets a loop's float constants, invariant arithmetic and the
+addresses of arrays it indexes are made once before it, within a budget
+of registers (D2149, D2150, `SR-1655`). Against the item's base, at
+speed, x86-64 executes 8.7% fewer instructions on SHA-256 of 64 MiB
+(8.50 G to 7.76 G; gcc's 4.56 G), whose round fell from 58 to 48
+instructions, 8.1% on mandelbrot, 11.4% on reverse-complement and 0.3%
+to 3.9% on the rest; at size 0.4% to 13.4% fewer. arm64 under QEMU
+executes 23.0% fewer on mandelbrot, 11.7% on SHA-256, 13.0% on fasta,
+12.0% on SipHash-1-3, 9.5% on fannkuch-redux and 0.7% to 4.8% on the
+rest; RV64's measured workloads 1.75% fewer at speed. Every hosted image's
+`.text` is smaller; firmware moves by a few bytes. `measure.py count`
+counts `linux-x86-64` and `linux-arm64` programs and builds hosted
+fixtures, with `--library` for a copied compiler (`SR-1652`), and
+`debug.sh --help` and `dev-test.sh --help` say which runs a debugger
+(`SR-1651`). `SR-1650`'s pressure-weighing placement measured no gain
+once its cost was taken this way; Q-204 asks whether to retire it.
+`SR-1680` files the checks SHA-256's schedule and load loops still spend
+on their own index, the largest cost left against gcc, and `SR-1681`
+D2164 for RISC-V and Cortex-M, whose recorded-writes plan refused a
+direct port.
 
 ### The continuous items
 
