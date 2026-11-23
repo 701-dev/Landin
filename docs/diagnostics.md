@@ -756,6 +756,15 @@ A parameter, result or local may hide an import of its own name [1450], so
 diagnostic says so, names the local and the import it hides, and points at
 the local; rename it (D381).
 
+Each file of a module has its own imports [1450]. A qualified name whose
+prefix another file of the module imports, or whose prefix is the last
+segment of a library module the program reaches [1420], is told which import
+this file lacks (D2174), and the exact fix, which `refine fix` applies,
+inserts the line, `import core/mem`. A type argument written with such a
+prefix, `vec.list(mem.allocator)`, is reported the same way. A library
+module no import of the program reaches is not known here, so its name is
+reported as a misspelling.
+
 An option is read only in fixed conditions, option defaults and compiler
 assertions (D202) [1530], so a module value or a routine that reads one is
 told the option is configuration-only. The note gives the way: declare the
@@ -814,7 +823,15 @@ another permission [0440]. The second label shows where the requirement was
 stated. Change the value, or convert it explicitly where a conversion exists.
 A text literal takes `utf8`, `[]u8`, `utf16` or `cstring` from its context but
 never a pointer; for a `ptr u8` parameter, bind it, `name: []u8 = "..."`, and
-pass `addr name[0]`, since the literal ends in NUL (D442). A `[` that begins
+pass `addr name[0]`, since the literal ends in NUL (D442). `utf8` and `[]u8`
+are different types (D2176): `[]u8(value)`, or `core/text`'s
+`text.bytes(value)`, is a `utf8` value's bytes in the same storage, not a
+copy, and for bytes `text.from_bytes(value)` checks that they are UTF-8 and
+reports `invalid_text`, where `utf8(value)` traps instead. An atom value
+widens only into a set that contains its identity [0640], and a comparison
+does not narrow a set (D434), so a value of a wider set is narrowed with
+`match` (D2179): name the atoms the required set lacks and pass on what
+`_ (rest):` binds. A `[` that begins
 a line indexes the value the line above ends with [1750]; when that value is
 no array the report stands on the `[` and says the line was continued, and
 the value in parentheses, `(name)`, lets the `[` begin a value (D1191). A function
@@ -866,7 +883,13 @@ end bad
 A place that may not be written [1900]: an immutable binding, an `in`
 parameter, an atom, a function, or storage reached through a read-only
 reference. When the place is a local or module binding of one name, the
-diagnostic offers `mut` on its declaration as a likely fix. A binding written
+diagnostic offers `mut` on its declaration as a likely fix. An `inout`
+parameter lets the callee replace what the caller passed [0900], so the
+binding passed must be `mut`. A slice parameter written `inout values: []mut
+f64` asks for that only to write elements, which `[]mut` allows without
+`inout`, so for a slice binding that is not `mut` the likely fix removes
+`inout` from the callee's parameter instead (D2178); it is a guess, because a
+callee that does replace the slice needs the `mut` binding. A binding written
 several times is reported once, at its first write, and a refused write still
 counts as assigning the place, so later reads are not reported (D263).
 
@@ -1083,6 +1106,8 @@ be passed to a retaining (`escaping`) call or stored in another origin, even
 if the referenced storage will remain live. If that retention is intended,
 declare the source parameter `escaping`, or `escaping into` the parameter
 whose storage keeps it (D445), and make its callers satisfy that contract.
+The word comes first, and for an `inout` parameter the note spells it,
+`escaping inout box:` (D2177).
 A reference kept `escaping into` a parameter must outlive that argument's
 origin: a frame reference never outlives a parameter's storage, and a local
 only the storage of locals declared after it (D455). Otherwise, keep the use
@@ -1435,16 +1460,19 @@ end first_even
 ### L0333
 
 A `match` arm does not fit its subject [1210]. A subject is an atom set, a
-variant part or a pointer union. Each arm names a case or atom of that
-subject at most once (D77) [0640] [0480], and a name twice is L0311. A `ptr` arm matches only a pointer
-union and binds one read-only pointer, or one `sink` pointer that consumes
-the matched place [1220] (D433); no other binding is `sink`. Atom arms bind
-no payload [0630]. A wildcard arm comes last; on an atom set it may bind one
-read-only name, `_ (rest):`, to the atoms no other arm names, and only when
-some are left (D434). A variant part takes no wildcard arm: its match names
-every case, and the refusal names the cases the `_` was to cover, to be
-listed in one arm, `full, spare:`, with no missing-case report for each
-(D866). Variant payload names are positional and
+variant part or a pointer union. Each arm names a case or atom of that subject
+at most once (D77) [0640] [0480], and a name twice is L0311. A `ptr` arm
+matches only a pointer union and binds one read-only pointer, or one `sink`
+pointer that consumes the matched place [1220] (D433); no other binding is
+`sink`. Atom arms bind no payload [0630]. An arm names atoms and never a
+declared atom set, and there is no arm that binds one (D2179): a union of sets
+is split by naming one side's atoms, which may share one arm, `east, west:`,
+and ending with `_ (rest):`, which binds the other side's. A wildcard arm
+comes last; on an atom set it may bind one read-only name, `_ (rest):`, to the
+atoms no other arm names, and only when some are left (D434). A variant part
+takes no wildcard arm: its match names every case, and the refusal names the
+cases the `_` was to cover, to be listed in one arm, `full, spare:`, with no
+missing-case report for each (D866). Variant payload names are positional and
 complete (D78). Rewrite the arm in the form its subject admits, or compare
 numbers with `if` and `elsif`.
 
@@ -1577,14 +1605,20 @@ duplicated: type = (value: i32, value: bool) -> none
 ### L0340
 
 A generic call cannot deduce and instantiate one concrete routine (D138).
-Deduction matches each runtime argument against its written parameter
-pattern, an untyped literal last, when it takes the type its parameter then
-names (D372); it never uses the return context, conversions or constraints, and
-repeated deductions must agree, and the deduced actuals must give a
-concrete, enabled signature whose fixed values fit their formals. A generic
-template has no function value until it is called. Recursion that keeps changing the actual tuple never ends,
-and a circular error-set dependency cannot be resolved (D215). Give the type
-argument explicitly, pass arguments that agree, or call a concrete routine.
+Deduction matches each runtime argument against its written parameter pattern,
+an untyped literal last, when it takes the type its parameter then names
+(D372); it never uses the return context, conversions or constraints, and
+repeated deductions must agree, and the deduced actuals must give a concrete,
+enabled signature whose fixed values fit their formals. A generic template has
+no function value until it is called. Recursion that keeps changing the actual
+tuple never ends, and a circular error-set dependency cannot be resolved
+(D215). `utf8` and `[]u8` are different types in every call, and here a text
+literal is `utf8` too, since it is typed before its parameter is known, where
+a parameter written `[]u8` would give it that type (D2176): pass `[]u8(value)`
+for a text's bytes, `text.from_bytes(value)` or `utf8(value)` for bytes that
+are text, and bind a literal meant as bytes with its type, `name: []u8 =
+"..."`, and pass the name. Give the type argument explicitly, pass arguments
+that agree, or call a concrete routine.
 
 ```landin
 phantom: (t: type, value: i32) -> (result: i32) = value end phantom
@@ -3277,4 +3311,22 @@ public main: () -> (code: i32) =
         code = code * 2
     end while
 end main
+```
+
+### L0697
+
+An atom set names one member twice, as the failure set `! mem.not_found |
+mem.not_found` or the type `north | south | north` does (D2175). The program
+is accepted: a set holds each atom once [0640], so it means what it would
+with the name written once, and the second name adds nothing. The report
+stands on the second name and points at the first. Its exact fix removes
+the second name with the `|` before it, and `refine fix` applies it. Like
+L0684 it is raised only in a program with no error. `--allow=L0697`
+suppresses the warning; `--deny=L0697` makes it an invocation error.
+
+```landin
+missing: atom
+look: () -> none ! missing | missing =
+    fail missing
+end look
 ```

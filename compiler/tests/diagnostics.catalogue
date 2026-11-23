@@ -152,3 +152,4 @@ L0690  Live     D1292: a site or a caller's file the table does not hold
 L0694  Live     D1384: a split command refine was built with that its installation lacks
 L0695  Live     D1387: an external command whose description refine cannot accept
 L0696  Live     D1847: the language removed this form, and the refusal names the one that replaces it
+L0697  Live     D2175: an atom set names one member twice

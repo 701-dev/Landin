@@ -345,6 +345,18 @@ package body Landin.Diagnostics.Fixes is
       Edits    : Edit_List) return Fix
      is (With_Edits (Library_Name, "write `" & Spelling & "`", Edits));
 
+   function Add_Import
+     (Source : Landin.Source.Source_Id;
+      Where  : Landin.Source.Span;
+      Text   : String;
+      Module : String) return Fix
+   is
+      Result : Fix := Make_Fix (Add_Import, Exact, "import `" & Module & "`");
+   begin
+      Add_Edit (Result, Make_Edit (Source, Where, Text));
+      return Result;
+   end Add_Import;
+
    function Respellings
      (Source  : Landin.Source.Source_Id;
       Where   : Landin.Source.Span;

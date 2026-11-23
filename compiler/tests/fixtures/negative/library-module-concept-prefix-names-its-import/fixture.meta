@@ -1,0 +1,11 @@
+class: negative
+summary: D2174 a prefix the resolver reads, here a concept's, that is a library module the program reaches and the file does not import is L0201 naming the module, with its import as an exact fix
+program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
+codes: L0201
+fixed: main.fixed
+constructs: 1420, 1440, 1860
+targets: linux-x86-64
+expect: expected.txt
+status: 1

@@ -1,0 +1,7 @@
+error[L0201]: `mem` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/library-module-concept-prefix-names-its-import/main.ldn:3:26
+  |
+3 | grow: (provider: type is mem.allocator, list: vec.list(i32), memory: provider)
+  |                          ^^^
+  = note: [1420]: `mem` is the library module `core/mem`, which this file does not import; add `import core/mem`
+  = help: import `core/mem`

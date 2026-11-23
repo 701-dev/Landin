@@ -1,0 +1,10 @@
+error[L0340]: this makes `item` a different type from the one an earlier argument made it
+  --> ../tests/fixtures/negative/text-literal-for-a-byte-formal-is-bound-first/program.ldn:5:17
+  |
+5 |     keep(names, "a")
+  |                 ^^^
+  --> ../tests/fixtures/negative/text-literal-for-a-byte-formal-is-bound-first/program.ldn:5:10
+  |
+5 |     keep(names, "a")
+  |          ^^^^^ this decided it first
+  = note: D138: every argument that decides `item` must decide the same; a text literal is `utf8` here, so bind it with the type meant, `name: []u8 = "..."`, and pass the name

@@ -1,0 +1,6 @@
+import core/vec
+import core/mem
+
+grow: (provider: type is mem.allocator, list: vec.list(i32), memory: provider)
+      -> none =
+end grow

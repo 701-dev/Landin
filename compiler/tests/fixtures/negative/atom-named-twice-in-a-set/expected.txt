@@ -1,0 +1,33 @@
+warning[L0697]: `north` is named twice in this set
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:5:30
+  |
+5 | pair: type = north | south | north
+  |                              ^^^^^
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:5:14
+  |
+5 | pair: type = north | south | north
+  |              ^^^^^ named first here
+  = note: D2175: a set holds each atom once, so the second name adds nothing
+  = help: remove `north`
+warning[L0697]: `south` is named twice in this set
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:7:29
+  |
+7 | look: (way: north | south | south) -> none ! missing | missing =
+  |                             ^^^^^
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:7:21
+  |
+7 | look: (way: north | south | south) -> none ! missing | missing =
+  |                     ^^^^^ named first here
+  = note: D2175: a set holds each atom once, so the second name adds nothing
+  = help: remove `south`
+warning[L0697]: `missing` is named twice in this set
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:7:56
+  |
+7 | look: (way: north | south | south) -> none ! missing | missing =
+  |                                                        ^^^^^^^
+  --> ../tests/fixtures/negative/atom-named-twice-in-a-set/program.ldn:7:46
+  |
+7 | look: (way: north | south | south) -> none ! missing | missing =
+  |                                              ^^^^^^^ named first here
+  = note: D2175: a set holds each atom once, so the second name adds nothing
+  = help: remove `missing`

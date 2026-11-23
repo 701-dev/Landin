@@ -1,0 +1,9 @@
+class: negative
+summary: D2176 a utf8 value given where []u8 is wanted, and []u8 where utf8 is, is told the conversion, through a generic routine's pattern (L0340) and a plain parameter (L0301)
+program: program.ldn
+codes: L0340, L0340, L0301, L0301
+constructs: 0570, 0610, 0700, 1300
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/utf8-and-bytes-name-their-conversion/program.ldn
+expect: expected.txt
+status: 1

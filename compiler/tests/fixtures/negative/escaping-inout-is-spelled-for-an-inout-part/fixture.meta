@@ -1,0 +1,9 @@
+class: negative
+summary: D2177 a part of an inout parameter kept by its callee is L0314, whose note spells the parameter escaping inout
+program: program.ldn
+codes: L0314
+constructs: 0770, 0780, 0900
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/escaping-inout-is-spelled-for-an-inout-part/program.ldn
+expect: expected.txt
+status: 1

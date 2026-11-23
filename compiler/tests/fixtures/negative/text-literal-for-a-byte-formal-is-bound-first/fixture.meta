@@ -1,0 +1,9 @@
+class: negative
+summary: D2176 a text literal given to a type formal an earlier argument made []u8 is utf8, and the note says to bind it with the type meant first
+program: program.ldn
+codes: L0340
+constructs: 0600, 1300
+targets: linux-x86-64, linux-arm64, darwin-arm64, synthetic-32, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/text-literal-for-a-byte-formal-is-bound-first/program.ldn
+expect: expected.txt
+status: 1

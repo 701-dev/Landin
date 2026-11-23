@@ -7,4 +7,4 @@ error[L0301]: this reference argument has a different type or insufficient permi
   |
 1 | take_bytes: (text: []u8) -> none =
   |              ^^^^^^^^^^ this reference parameter
-  = note: [0430]/[0440]/[0570]: reference permission relaxes only from `mut` to read-only
+  = note: [0430]/[0440]/[0570]: reference permission relaxes only from `mut` to read-only; `utf8` and `[]u8` are different types: pass `[]u8(value)`, the text's own bytes and no copy
