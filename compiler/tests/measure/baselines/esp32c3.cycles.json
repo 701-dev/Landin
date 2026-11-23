@@ -168,12 +168,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 7289 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-all/fannkuch-redux": {
-   "cycles": 4669120,
+   "cycles": 4610994,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "7865d54216373d06720ff674dc236a451c193d703c19e67b0b1c34d2a48086ab",
+   "image": "e7bb4d18f55641309cb2a076d6886a2b4a95fd7c1f6855f4a569ff03f5823234",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -218,12 +218,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 7241 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-auto/fannkuch-redux": {
-   "cycles": 4669120,
+   "cycles": 4610994,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "7865d54216373d06720ff674dc236a451c193d703c19e67b0b1c34d2a48086ab",
+   "image": "e7bb4d18f55641309cb2a076d6886a2b4a95fd7c1f6855f4a569ff03f5823234",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -268,12 +268,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 7241 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-off/fannkuch-redux": {
-   "cycles": 4669120,
+   "cycles": 4610994,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "7865d54216373d06720ff674dc236a451c193d703c19e67b0b1c34d2a48086ab",
+   "image": "e7bb4d18f55641309cb2a076d6886a2b4a95fd7c1f6855f4a569ff03f5823234",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -318,12 +318,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 6969 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-all/fannkuch-redux": {
-   "cycles": 4515018,
+   "cycles": 4503896,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "c40ca837a8552ab4e72bfc03c20f92749a4fc6ec737e3ee523eeed971b96b129",
+   "image": "ac274ae89d1486d7b9f328e3f6e18581d4d827c1d5216ca0a3969f29fbe30b1e",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -368,12 +368,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 6969 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-auto/fannkuch-redux": {
-   "cycles": 4515018,
+   "cycles": 4503896,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "c40ca837a8552ab4e72bfc03c20f92749a4fc6ec737e3ee523eeed971b96b129",
+   "image": "ac274ae89d1486d7b9f328e3f6e18581d4d827c1d5216ca0a3969f29fbe30b1e",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -418,12 +418,12 @@
    "limit": "its instruction SRAM segment at 0x40380180 holds 6913 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-off/fannkuch-redux": {
-   "cycles": 4515018,
+   "cycles": 4503896,
    "unit": "cycles",
    "counter": "mpccr",
    "clock": "xtal-20000000hz",
    "placement": "text:iram,data:dram,stack:dram",
-   "image": "c40ca837a8552ab4e72bfc03c20f92749a4fc6ec737e3ee523eeed971b96b129",
+   "image": "ac274ae89d1486d7b9f328e3f6e18581d4d827c1d5216ca0a3969f29fbe30b1e",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },

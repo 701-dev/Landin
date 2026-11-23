@@ -979,7 +979,12 @@ SipHash-1-3, 6.2% on fasta, 2.3% on fibres, 1.3% on fannkuch-redux and
 fibres and up to 0.1% on the rest. At size x86-64 executes 0.03% to
 10.6% fewer and arm64 up to 2.5%. Every hosted image's `.text` is
 smaller and every output the same; RV64 executes fewer instructions on
-every workload, and Cortex-M0's one firmware workload 0.6% fewer.
+every workload, and Cortex-M0's one firmware workload 0.6% fewer. Every
+board's records were made again on the rig. Of the boards' 432 cycle
+configurations, 390 held within tolerance and 36 ran faster, fannkuch-redux
+by 0.25% to 2.4%. At speed it ran 0.64% slower on the RP2350's M33 and
+0.63% on its Hazard3 with two fewer instructions: its flip loop's 32-bit
+head and call moved to halfword addresses. `SR-1726` files that alignment.
 
 ### The continuous items
 
