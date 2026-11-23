@@ -42,6 +42,12 @@ package Landin.Backend.X86_64.Allocation is
       --  slot has no home.  Both stay No_Value for a slot whose location
       --  holds everywhere.
       From, Through : Landin.IR.Value_Id := Landin.IR.No_Value;
+      --  D2156: an Absent value no register was free for, whose one use
+      --  is the next operation, one that reads it before writing the
+      --  accumulator or any register its address names.  A load is read
+      --  there as its memory operand, and anything else is left in the
+      --  accumulator, where it was computed, rather than in a home.
+      Forwarded : Boolean := False;
    end record;
    package Location_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Location);

@@ -724,6 +724,8 @@ package body Landin.Backend.X86_64.Allocation is
          Float_Eligible : Home_Mask renames Float_Data.Data.all;
          Permanent : constant Register_Set := Result.Used;
          Busy_Until : array (General_Register) of Natural := [others => 0];
+         --  The registers a forwarded right operand's address names.
+         Named : array (General_Register) of Boolean := [others => False];
          --  At speed, whether a register last held a source variable and
          --  no value has taken it since: a debugger reads the variable there
          --  until something writes over it, so it is the last offered.
@@ -831,6 +833,9 @@ package body Landin.Backend.X86_64.Allocation is
          function Read_In_Place (Value : Positive) return Boolean;
          function Released_By (Value : Positive) return Natural;
          function Rewrites (Value, Left : Natural) return Natural;
+         function Forwardable (Value : Positive) return Boolean;
+         function Overwrites (Value : Positive) return Natural;
+         function Folds (Value : Positive) return Boolean;
 
          --  The left operand of an operation selection computes where its
          --  result lives, when that operand's last use is this one; else 0.
@@ -1140,6 +1145,169 @@ package body Landin.Backend.X86_64.Allocation is
             end;
             return 0;
          end Released_By;
+
+         --  D2157: the slot a value's last use stores it into, when that
+         --  slot holds a register over the whole of the value's span,
+         --  nothing loads or stores the slot inside the span and no load
+         --  of it read in its register is read after the value begins:
+         --  the slot's old content is dead there, so the value may be
+         --  computed in that register and the store moves nothing.  The
+         --  span is short, so looking through it costs little; else 0.
+         function Overwrites (Value : Positive) return Natural is
+            Longest : constant := 32;
+            User : constant Landin.IR.Value_Id :=
+              Landin.IR.Value_Id (Sequence (Lasts (Value)));
+         begin
+            if Has_Assembly or else Lasts (Value) <= Starts (Value)
+              or else Lasts (Value) - Starts (Value) > Longest
+              or else Landin.IR.Op_Of (Of_Unit, Item, User) /= Landin.IR.Store
+              or else Positive (Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                /= Value
+            then
+               return 0;
+            end if;
+            declare
+               Slot : constant Positive :=
+                 Positive (Landin.IR.Slot_Of (Of_Unit, Item, User));
+            begin
+               if Interval_Slots (Slot) = 0
+                 or else Result.Slot (Slot).Kind /= GP
+                 or else Landin.IR.Is_Address
+                   (Of_Unit, Item, Landin.IR.Slot_Id (Slot))
+                 or else Spans (Slot).First > Starts (Value)
+                 or else Spans (Slot).Last < Lasts (Value)
+                 or else Read_Until (Slot) > Starts (Value)
+               then
+                  return 0;
+               end if;
+               for Position in Starts (Value) + 1 .. Lasts (Value) - 1 loop
+                  declare
+                     Between : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (Position));
+                  begin
+                     if Landin.IR.Op_Of (Of_Unit, Item, Between)
+                       in Landin.IR.Load | Landin.IR.Store
+                       and then Positive
+                         (Landin.IR.Slot_Of (Of_Unit, Item, Between)) = Slot
+                     then
+                        return 0;
+                     end if;
+                  end;
+               end loop;
+               return Slot;
+            end;
+         end Overwrites;
+
+         --  D2156: whether a load from memory is read where it lies by
+         --  its one use, the next operation, as that operation's right
+         --  operand, which then reads the memory operand in place of a
+         --  register: a register would cost a move and hold nothing more.
+         function Folds (Value : Positive) return Boolean is
+            Id : constant Landin.IR.Value_Id := Landin.IR.Value_Id (Value);
+            Op : constant Landin.IR.Opcode :=
+              Landin.IR.Op_Of (Of_Unit, Item, Id);
+         begin
+            return Op in Landin.IR.Load_Datum | Landin.IR.Load_Element
+                       | Landin.IR.Load_Field | Landin.IR.Load_Indirect
+                       | Landin.IR.Load
+              and then (Op /= Landin.IR.Load
+                        or else Result.Slot (Slot_Read (Value)).Kind = Stack)
+              and then Forwardable (Value)
+              and then Landin.IR.Op_Of
+                (Of_Unit, Item, Landin.IR.Value_Id (Sequence (Lasts (Value))))
+                not in Landin.IR.Store | Landin.IR.Rotate_Left
+                  | Landin.IR.Complement
+              and then Positive (Landin.IR.Nth_Operand
+                (Of_Unit, Item,
+                 Landin.IR.Value_Id (Sequence (Lasts (Value))), 2)) = Value;
+         end Folds;
+
+         --  D2156: whether a value no register was free for may live
+         --  nowhere: its one use is the very next operation, which
+         --  selection emits reading it before it writes the accumulator
+         --  or any register the value's memory operand names.  A load
+         --  then hands that operation its memory operand, and an integer
+         --  operation leaves its result in the accumulator, where it
+         --  computes one with no register.  The user is an integer
+         --  operation selection does with Integer_Binary or
+         --  Integer_Unary, or a store to a slot.
+         function Forwardable (Value : Positive) return Boolean is
+            use type Landin.IR.Value_Id;
+            Id : constant Landin.IR.Value_Id := Landin.IR.Value_Id (Value);
+            Op : constant Landin.IR.Opcode :=
+              Landin.IR.Op_Of (Of_Unit, Item, Id);
+         begin
+            if Has_Assembly or else Result.Value (Value).Address_Required
+              or else Landin.IR.Result_Of (Of_Unit, Item, Id)
+                not in Landin.Types.Integer_Name
+              or else Lasts (Value) /= Starts (Value) + 1
+              or else Op not in Landin.IR.Load | Landin.IR.Load_Datum
+                | Landin.IR.Load_Element | Landin.IR.Load_Field
+                | Landin.IR.Load_Indirect | Landin.IR.Add
+                | Landin.IR.Subtract | Landin.IR.Wrapping_Add
+                | Landin.IR.Wrapping_Subtract | Landin.IR.Bitwise_And
+                | Landin.IR.Bitwise_Xor | Landin.IR.Bitwise_Or
+                | Landin.IR.Rotate_Left | Landin.IR.Complement
+              or else (Op in Landin.IR.Load_Element | Landin.IR.Load_Field
+                       and then Packed_Part (Of_Unit, Item, Id))
+            then
+               return False;
+            end if;
+            declare
+               User : constant Landin.IR.Value_Id :=
+                 Landin.IR.Value_Id (Sequence (Lasts (Value)));
+               User_Op : constant Landin.IR.Opcode :=
+                 Landin.IR.Op_Of (Of_Unit, Item, User);
+               Kind : constant Landin.Types.Type_Kind :=
+                 Landin.IR.Result_Of (Of_Unit, Item, User);
+               Reads : Natural := 0;
+            begin
+               if Landin.IR.Block_Of (Of_Unit, Item, User)
+                 /= Landin.IR.Block_Of (Of_Unit, Item, Id)
+               then
+                  return False;
+               end if;
+               for Position in 1 .. Landin.IR.Operand_Count
+                 (Of_Unit, Item, User)
+               loop
+                  if Landin.IR.Nth_Operand (Of_Unit, Item, User, Position)
+                    = Id
+                  then
+                     Reads := Reads + 1;
+                     --  A store's value, a unary operation's one operand.
+                     if User_Op in Landin.IR.Store | Landin.IR.Rotate_Left
+                       | Landin.IR.Complement
+                       and then Position /= 1
+                     then
+                        return False;
+                     end if;
+                  end if;
+               end loop;
+               return Reads = 1
+                 and then
+                   (case User_Op is
+                       when Landin.IR.Store => True,
+                       when Landin.IR.Add | Landin.IR.Subtract
+                          | Landin.IR.Wrapping_Add
+                          | Landin.IR.Wrapping_Subtract
+                          | Landin.IR.Bitwise_And | Landin.IR.Bitwise_Xor
+                          | Landin.IR.Bitwise_Or | Landin.IR.Rotate_Left
+                          | Landin.IR.Complement =>
+                          Kind in Landin.Types.Integer_Name,
+                       --  The forms selection does with `imul`.
+                       when Landin.IR.Multiply =>
+                          Kind in Landin.Types.Integer_Name
+                          and then Landin.Types.Is_Signed
+                            (Landin.Types.Integer_Name (Kind))
+                          and then Size_Of (Kind, Facts)
+                            /= Landin.Targets.Byte_1,
+                       when Landin.IR.Wrapping_Multiply =>
+                          Kind in Landin.Types.Integer_Name
+                          and then Size_Of (Kind, Facts)
+                            /= Landin.Targets.Byte_1,
+                       when others => False);
+            end;
+         end Forwardable;
 
          procedure Pin (Place : Landin.IR.Storage) is
          begin
@@ -1913,6 +2081,36 @@ package body Landin.Backend.X86_64.Allocation is
                end if;
                if Place.Kind /= Absent then
                   Into := Stored_Into (Index);
+                  --  D2156: a load forwarded to this operation as its right
+                  --  operand is read through the registers its own
+                  --  operands hold, so this value takes none of them,
+                  --  which would have to be read into another first.
+                  Named := [others => False];
+                  if Landin.IR.Operand_Count (Of_Unit, Item, Value) >= 2
+                    and then Result.Value (Positive (Landin.IR.Nth_Operand
+                      (Of_Unit, Item, Value, 2))).Forwarded
+                  then
+                     declare
+                        Load : constant Landin.IR.Value_Id :=
+                          Landin.IR.Nth_Operand (Of_Unit, Item, Value, 2);
+                     begin
+                        for Which in 1 .. Landin.IR.Operand_Count
+                          (Of_Unit, Item, Load)
+                        loop
+                           declare
+                              Held : Location renames Result.Value
+                                (Positive (Landin.IR.Nth_Operand
+                                   (Of_Unit, Item, Load, Which)));
+                           begin
+                              if Held.Kind = GP then
+                                 Named (Held.Register) := True;
+                                 Busy_Until (Held.Register) := Natural'Max
+                                   (Busy_Until (Held.Register), Position + 1);
+                              end if;
+                           end;
+                        end loop;
+                     end;
+                  end if;
                   if Read_In_Place (Index) then
                      declare
                         Held : Location renames
@@ -1924,6 +2122,12 @@ package body Landin.Backend.X86_64.Allocation is
                         Read_Until (Slot_Read (Index)) := Natural'Max
                           (Read_Until (Slot_Read (Index)), Lasts (Index));
                      end;
+                  end if;
+                  if Place.Kind = Stack and then Allocate_GP
+                    and then Folds (Index)
+                  then
+                     Place.Kind := Absent;
+                     Place.Forwarded := True;
                   end if;
                   if Place.Kind = Stack
                     and then Allocate_GP and then not Place.Address_Required
@@ -1938,6 +2142,16 @@ package body Landin.Backend.X86_64.Allocation is
                         Place.Kind := GP;
                         Place.Register :=
                           Result.Slot (Chained (Index)).Register;
+                     elsif Overwrites (Index) /= 0
+                       and then not Named
+                         (Result.Slot (Overwrites (Index)).Register)
+                     then
+                        --  The slot's register, whose interval holds on
+                        --  through the store, so the store moves nothing:
+                        --  ahead of the left operand's, which it would.
+                        Place.Kind := GP;
+                        Place.Register :=
+                          Result.Slot (Overwrites (Index)).Register;
                      elsif Left /= 0 and then Result.Value (Left).Kind = GP
                        and then (not Holds_Variable (Left)
                                  or else Landin.IR.Op_Of (Of_Unit, Item, Value)
@@ -2022,6 +2236,12 @@ package body Landin.Backend.X86_64.Allocation is
                            exit;
                         end if;
                      end loop;
+                  end if;
+                  if Place.Kind = Stack and then Allocate_GP
+                    and then Forwardable (Index)
+                  then
+                     Place.Kind := Absent;
+                     Place.Forwarded := True;
                   end if;
                   if Place.Kind = Stack then
                      if Options.Optimize /= Landin.Optimization.None

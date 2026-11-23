@@ -205,6 +205,7 @@ package body Landin.Tests.X86_Optimization_Suite is
      (Item : in out Landin.Testing.Context);
    procedure Arithmetic_Shapes (Item : in out Landin.Testing.Context);
    procedure Shifts_Rotate (Item : in out Landin.Testing.Context);
+   procedure Operands_In_Place (Item : in out Landin.Testing.Context);
    procedure Element_Addressing (Item : in out Landin.Testing.Context);
    function Merging_Moves (Text : String) return Natural;
    procedure Reciprocals_Divide_Exactly
@@ -1746,6 +1747,85 @@ package body Landin.Tests.X86_Optimization_Suite is
       end loop;
    end Shifts_Rotate;
 
+   --  D2156-D2158: size and speed read an element loaded for the next
+   --  operation alone as that operation's memory operand, add two
+   --  registers into a third with one `lea`, and compute a value stored
+   --  into a slot held in a register in that register when the slot's
+   --  old value is dead, so the store moves nothing.  None does neither.
+   procedure Operands_In_Place (Item : in out Landin.Testing.Context) is
+      use type Opt.Objective;
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      HT : constant Character := Character'Val (9);
+
+      --  Whether the line after some `leal` moves its result on.
+      function Moved_On (Text : String) return Boolean;
+
+      function Moved_On (Text : String) return Boolean is
+         At_Lea : Natural := Ada.Strings.Fixed.Index (Text, HT & "leal (");
+      begin
+         while At_Lea /= 0 loop
+            declare
+               Ending : constant Natural :=
+                 Ada.Strings.Fixed.Index (Text (At_Lea .. Text'Last), [LF]);
+               Comma : constant Natural := Ada.Strings.Fixed.Index
+                 (Text (At_Lea .. Ending), ", ", Ada.Strings.Backward);
+               Into : constant String := Text (Comma + 2 .. Ending - 1);
+               Next : constant String := HT & "movl " & Into & ", ";
+            begin
+               if Ending + Next'Length <= Text'Last
+                 and then Text (Ending + 1 .. Ending + Next'Length) = Next
+               then
+                  return True;
+               end if;
+               At_Lea := Ada.Strings.Fixed.Index
+                 (Text (Ending .. Text'Last), HT & "leal (");
+            end;
+         end loop;
+         return False;
+      end Moved_On;
+   begin
+      Lower
+        (Item, Work,
+         "table: [4]u32 = [1, 2, 3, 4] "
+         & "public folds: (a: u32, i: usize) -> (r: u32) ="
+         & " r = a -% table[i] end folds "
+         & "public sums: (a: u32, b: u32) -> (r: u32, s: u32) ="
+         & " r = a +% b s = a ^ b end sums "
+         & "public carries: (a: u32, b: u32, n: usize) -> (r: u32) ="
+         & " mut x: u32 = 0 mut y: u32 = 0 mut t: usize = 0"
+         & " while t < n do y = y ^ x x = a +% b inc t end while"
+         & " r = x ^ y end carries");
+      for Objective in Opt.Objective loop
+         declare
+            Text : constant String := Emitted (Work, (Objective, Opt.Off));
+         begin
+            if Objective = Opt.None then
+               Check_Assembly
+                 (Item, Text,
+                  not Contains (Text, HT & "subl (%")
+                  and then not Contains (Text, HT & "leal ("),
+                  "none loads every element and adds in place");
+            else
+               Check_Assembly
+                 (Item, Text,
+                  Contains (Text, HT & "subl (%")
+                  and then Contains (Text, HT & "leal (%")
+                  and then Contains
+                    (Text (Ada.Strings.Fixed.Index (Text, "carries:")
+                           .. Text'Last),
+                     HT & "leal (%")
+                  and then not Moved_On
+                    (Text (Ada.Strings.Fixed.Index (Text, "carries:")
+                           .. Text'Last)),
+                  "size and speed add the element where it lies, sum"
+                  & " into a third register with lea, and into the slot's"
+                  & " own register");
+            end if;
+         end;
+      end loop;
+   end Operands_In_Place;
+
    --  Size and speed reach an element as one indexed memory operand
    --  after its bounds check: a frame array from %rbp, a slice element
    --  from its base, an element behind an address slot inside the access
@@ -2456,6 +2536,8 @@ package body Landin.Tests.X86_Optimization_Suite is
         (Into, "x86 opt", "arithmetic shapes", Arithmetic_Shapes'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "shifts that rotate", Shifts_Rotate'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "operands in place", Operands_In_Place'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "element addressing", Element_Addressing'Access);
       Landin.Testing.Register
