@@ -342,7 +342,7 @@
    "runs": 3
   },
   "armv6-m/speed-all/binary-search": {
-   "cycles": 135,
+   "cycles": 136,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -380,7 +380,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv6-m/speed-all/merge-sort": {
-   "cycles": 534,
+   "cycles": 535,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -398,7 +398,7 @@
    "runs": 3
   },
   "armv6-m/speed-auto/binary-search": {
-   "cycles": 135,
+   "cycles": 136,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -436,7 +436,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv6-m/speed-auto/merge-sort": {
-   "cycles": 534,
+   "cycles": 535,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -454,7 +454,7 @@
    "runs": 3
   },
   "armv6-m/speed-off/binary-search": {
-   "cycles": 135,
+   "cycles": 136,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -492,7 +492,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv6-m/speed-off/merge-sort": {
-   "cycles": 534,
+   "cycles": 535,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",

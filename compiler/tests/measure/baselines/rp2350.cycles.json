@@ -15,7 +15,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/cmp-siphash-vectors": {
-   "cycles": 865120,
+   "cycles": 865115,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -24,7 +24,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/fannkuch-redux": {
-   "cycles": 8448564,
+   "cycles": 8448571,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -34,7 +34,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-all/mandelbrot": {
-   "cycles": 22472182,
+   "cycles": 22472195,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -44,7 +44,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-all/merge-sort": {
-   "cycles": 10270,
+   "cycles": 10271,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -71,7 +71,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/cmp-siphash-vectors": {
-   "cycles": 865132,
+   "cycles": 865133,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -80,7 +80,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/fannkuch-redux": {
-   "cycles": 8448564,
+   "cycles": 8448571,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -90,7 +90,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-auto/mandelbrot": {
-   "cycles": 22472182,
+   "cycles": 22472195,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -100,7 +100,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-auto/merge-sort": {
-   "cycles": 10270,
+   "cycles": 10271,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -127,7 +127,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/cmp-siphash-vectors": {
-   "cycles": 865132,
+   "cycles": 865133,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -136,7 +136,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/fannkuch-redux": {
-   "cycles": 8448564,
+   "cycles": 8448571,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -146,7 +146,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-off/mandelbrot": {
-   "cycles": 22472182,
+   "cycles": 22472195,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -156,7 +156,7 @@
    "checksum": "0x6b603ccc"
   },
   "armv8-m.main/none-off/merge-sort": {
-   "cycles": 10270,
+   "cycles": 10271,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -192,7 +192,7 @@
    "runs": 3
   },
   "armv8-m.main/size-all/fannkuch-redux": {
-   "cycles": 3030767,
+   "cycles": 3030756,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -202,7 +202,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-all/mandelbrot": {
-   "cycles": 19511780,
+   "cycles": 19511775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -239,7 +239,7 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
-   "cycles": 352634,
+   "cycles": 352633,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -248,7 +248,7 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
-   "cycles": 3030767,
+   "cycles": 3030756,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -258,7 +258,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-auto/mandelbrot": {
-   "cycles": 19511780,
+   "cycles": 19511775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -295,7 +295,7 @@
    "runs": 3
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
-   "cycles": 352634,
+   "cycles": 352633,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -304,7 +304,7 @@
    "runs": 3
   },
   "armv8-m.main/size-off/fannkuch-redux": {
-   "cycles": 3030767,
+   "cycles": 3030756,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -314,7 +314,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/size-off/mandelbrot": {
-   "cycles": 19511780,
+   "cycles": 19511775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -351,7 +351,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "cycles": 345631,
+   "cycles": 345626,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -360,7 +360,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "cycles": 2987166,
+   "cycles": 2987174,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -370,7 +370,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-all/mandelbrot": {
-   "cycles": 19503419,
+   "cycles": 19503418,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -407,7 +407,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "cycles": 345631,
+   "cycles": 345626,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -416,7 +416,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "cycles": 2987166,
+   "cycles": 2987174,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -426,7 +426,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-auto/mandelbrot": {
-   "cycles": 19503419,
+   "cycles": 19503418,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -472,7 +472,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "cycles": 2987166,
+   "cycles": 2987174,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -482,7 +482,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-off/mandelbrot": {
-   "cycles": 19503419,
+   "cycles": 19503418,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",

@@ -895,7 +895,12 @@ same, every image's `.text` smaller and every output the same. What
 SHA-256 still spends against gcc is selection rather than checks: `SR-1704`
 files the index offsets x86-64 makes in registers rather than in the
 address's displacement and the four products of one `4 * t`. Q-204 is
-answered: SR-1650 stays open until it is solved.
+answered: SR-1650 stays open until it is solved. Firmware moved only on
+the STM32H753 and the ESP32-C3 and C5; every board's records were made
+again on the rig, and all 432 board configurations' cycles stayed within
+tolerance. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45184619163) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45192092129).
 
 ### R16.32 — Time the STM32H753 from its tightly coupled memories
 
