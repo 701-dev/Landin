@@ -867,6 +867,35 @@ package body Landin.IR.Simplification is
             end if;
          end Apply_Identity;
 
+         --  D2247: a commutative integer operation with a constant left
+         --  operand and a varying right one takes them the other way
+         --  round, so that the constant is where selection writes an
+         --  immediate and two products of one value by one constant are
+         --  numbered as one whichever way the source wrote them.  A float
+         --  keeps its order: which NaN an operation returns can depend on
+         --  it.  Overflow is the same either way round, and so is its trap.
+         procedure Commute (Code : Instruction);
+         procedure Commute (Code : Instruction) is
+         begin
+            if Plain (Code) and then Code.Args = 2
+              and then Code.Op in Add | Wrapping_Add | Multiply
+                | Wrapping_Multiply | Bitwise_And | Bitwise_Or | Bitwise_Xor
+                | Equal_To | Not_Equal_To
+              and then Integer_Constant (Operand (Code, 1))
+              and then not Integer_Constant (Operand (Code, 2))
+              and then Code_At (Operand (Code, 2)).Result
+                in Landin.Types.Integer_Name
+            then
+               declare
+                  Left : constant Value_Id := Operand (Code, 1);
+               begin
+                  Into.Operands.Replace_Element
+                    (Code.First_Arg + 1, Operand (Code, 2));
+                  Into.Operands.Replace_Element (Code.First_Arg + 2, Left);
+               end;
+            end if;
+         end Commute;
+
          --  `(x << n) | (x >> (w - n))`, or the two shifts the other way
          --  round, or joined by `^` or `+%`, which agree with `|` on bits
          --  no two of them share: x rotated left by n, for an unsigned x
@@ -1310,6 +1339,7 @@ package body Landin.IR.Simplification is
                     (Positive (First_Load (Positive (Code.Slot))));
                else
                   if not Required_Proof (V) then
+                     Commute (Code);
                      Fold (Code);
                      declare
                         Same_As : Value_Id;
@@ -1320,6 +1350,22 @@ package body Landin.IR.Simplification is
                         end if;
                         if Same_As = No_Value and then Numbered (Code) then
                            Same_As := Earlier_Same (V, Code);
+                        elsif Same_As = No_Value
+                          and then Code.Op = Number and then Plain (Code)
+                          and then Code.Result in Landin.Types.Integer_Name
+                        then
+                           --  D2248: equal integer constants are one class,
+                           --  so the operations reading them are numbered
+                           --  as one, while each constant keeps its own
+                           --  value and is made where it is read.
+                           declare
+                              First : constant Value_Id :=
+                                Earlier_Same (V, Code);
+                           begin
+                              if First /= No_Value then
+                                 Class (V) := Class (Positive (First));
+                              end if;
+                           end;
                         end if;
                         if Same_As /= No_Value then
                            Alias (V) := Same_As;

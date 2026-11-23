@@ -37,6 +37,20 @@ package body Landin.Backend.X86_64.Machine is
       return Value <= 2 ** 31 - 1;
    end Fits_Arithmetic_Immediate;
 
+   function Power_Of_Two (Text : String) return Natural is
+   begin
+      for K in 1 .. 30 loop
+         declare
+            Image : constant String := Natural'Image (2 ** K);
+         begin
+            if Text = Image (Image'First + 1 .. Image'Last) then
+               return K;
+            end if;
+         end;
+      end loop;
+      return 0;
+   end Power_Of_Two;
+
    function Selected (Text : String) return String is
       Comma : constant Natural := Ada.Strings.Fixed.Index (Text, ", ");
    begin

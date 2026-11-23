@@ -549,6 +549,19 @@ package body Landin.Tests.IR_Optimization_Suite is
       Check_Count
         ("public f: (a: f64) -> (r: f64) = r = a + 0.0 end f",
          IR.Add, 1, "a float -0.0 plus 0.0 is not -0.0");
+      --  D2247, D2248: equal constants are one class, and a constant
+      --  left operand of a commutative integer operation goes right, so
+      --  `4 * t` written twice, or once each way round, is one product.
+      Check_Count
+        ("public f: (a: i32) -> (r: i32) = "
+         & "r = a * 4 + a * 4 - 4 * a end f",
+         IR.Multiply, 1, "products by one constant are computed once");
+      Check_Count
+        ("public f: (a: i32) -> (r: i32) = r = (a - 4) * (4 - a) end f",
+         IR.Subtract, 2, "a subtraction is not commuted");
+      Check_Count
+        ("public f: (a: f64) -> (r: f64) = r = 2.0 * a + a * 2.0 end f",
+         IR.Multiply, 2, "a float product keeps its order");
    end Block_Value_Numbering;
 
    procedure Static_Dispatch (Item : in out Landin.Testing.Context) is

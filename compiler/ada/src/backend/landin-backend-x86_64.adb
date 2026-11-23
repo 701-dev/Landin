@@ -3388,6 +3388,55 @@ package body Landin.Backend.X86_64 is
             end loop;
          end Emit_Assembly;
 
+         --  D2252: at size and speed an element index that is a value
+         --  plus or minus a constant, proved not to wrap, whose one use is
+         --  the unchecked element access right after it, is not made: the
+         --  access reads the value's register with the constant, scaled,
+         --  in its displacement.  Offset_Folded is that index until the
+         --  access has read it.
+         Offset_Folded : Landin.IR.Value_Id := Landin.IR.No_Value;
+
+         function Immediate_Of (Index : Landin.IR.Value_Id) return String
+           is (Allocation.Immediate
+                 (Of_Unit, Item, Landin.IR.Nth_Operand
+                    (Of_Unit, Item, Index, 2), Facts));
+
+         --  The immediate is written `$n`.
+         function Offset_Of (Index : Landin.IR.Value_Id)
+           return Landin.Types.Folded
+         is (Landin.Types.Folded'Value
+               (Immediate_Of (Index) (Immediate_Of (Index)'First + 1
+                                        .. Immediate_Of (Index)'Last))
+             * (if Landin.IR.Op_Of (Of_Unit, Item, Index)
+                  = Landin.IR.Subtract then -1 else 1));
+
+         function Offset_Folds (Index : Landin.IR.Value_Id) return Boolean;
+
+         function Offset_Folds (Index : Landin.IR.Value_Id) return Boolean
+         is
+            Access_Value : constant Landin.IR.Value_Id := Next_Instruction;
+         begin
+            if not Optimized or else Access_Value = Landin.IR.No_Value
+              or else Landin.IR.Op_Of (Of_Unit, Item, Index)
+                not in Landin.IR.Add | Landin.IR.Subtract
+              or else not Landin.IR.Is_Unchecked (Of_Unit, Item, Index)
+              or else Uses (Positive (Index)) /= 1
+              or else Landin.IR.Op_Of (Of_Unit, Item, Access_Value)
+                not in Landin.IR.Load_Element | Landin.IR.Store_Element
+              or else not Landin.IR.Is_Unchecked
+                (Of_Unit, Item, Access_Value)
+              or else Landin.IR.Nth_Operand
+                (Of_Unit, Item, Access_Value, 1) /= Index
+              or else Allocation.Packed_Part (Of_Unit, Item, Access_Value)
+              or else Allocation_Plan.Value (Positive (Landin.IR.Nth_Operand
+                (Of_Unit, Item, Index, 1))).Kind /= Allocation.GP
+            then
+               return False;
+            end if;
+            return Immediate_Of (Index) /= ""
+              and then abs Offset_Of (Index) <= 2 ** 16;
+         end Offset_Folds;
+
          procedure Emit_Instruction (Value : Landin.IR.Value_Id) is
             Op : constant Landin.IR.Opcode :=
               Landin.IR.Op_Of (Of_Unit, Item, Value);
@@ -3492,12 +3541,28 @@ package body Landin.Backend.X86_64 is
                Inside : Landin.Targets.Byte_Count) return String
             is
                use type Landin.IR.Storage_Kind;
+               --  D2252: the index's own operand, its constant moved into
+               --  the displacement.
+               Folds : constant Boolean :=
+                 Index /= Landin.IR.No_Value and then Index = Offset_Folded;
+               --  A stride so wide that the moved constant would not
+               --  fit a displacement adds the constant in the accumulator.
+               Wide_Stride : constant Boolean :=
+                 Folds and then Stride > 2 ** 12;
+               Moved : constant Landin.Types.Folded :=
+                 (if Folds and then not Wide_Stride
+                  then Offset_Of (Index) * Landin.Types.Folded (Stride)
+                  else 0);
+               Reads : constant Landin.IR.Value_Id :=
+                 (if Folds then Landin.IR.Nth_Operand (Of_Unit, Item, Index, 1)
+                  else Index);
                Own : constant Boolean :=
-                 Allocation_Plan.Value (Positive (Index)).Kind
+                 not Wide_Stride
+                 and then Allocation_Plan.Value (Positive (Reads)).Kind
                    = Allocation.GP;
                Scaled : constant Boolean := Stride in 1 | 2 | 4 | 8;
                Checked : constant String :=
-                 (if Own then Value_Operand (Index) else "%rax");
+                 (if Own then Value_Operand (Reads) else "%rax");
                Plain : constant Boolean :=
                  Nested'Length = 0 and then Payload_Field = 0
                  and then Machine.Fits_Arithmetic_Immediate (Inside);
@@ -3517,14 +3582,23 @@ package body Landin.Backend.X86_64 is
                      Landin.IR.Part_Position (Field), Facts));
                Displacement : constant Landin.Types.Folded :=
                  (if Plain then Landin.Types.Folded (Inside) else 0)
-                 - Landin.Types.Folded (Frame_Offset);
+                 - Landin.Types.Folded (Frame_Offset) + Moved;
                Base : constant String :=
                  (if Frame_Base then "%rbp"
                   elsif Slot_Base then Slot_Cell (Place.Address)
                   else "%rcx");
             begin
+               Offset_Folded := Landin.IR.No_Value;
                if not Own then
-                  Emit ("movq " & Value_Operand (Index) & ", %rax");
+                  Emit ("movq " & Value_Operand (Reads) & ", %rax");
+               end if;
+               if Wide_Stride then
+                  Emit ("addq $" & Trimmed (Landin.Types.Folded'Image
+                          (Offset_Of (Index))) & ", %rax");
+               end if;
+               if Folds and then not Unchecked then
+                  raise Landin.Compiler_Defect with
+                    "a checked element access read a folded offset";
                end if;
                if not Unchecked then
                   Emit_Fixed_Bounds_Check (Length, Checked);
@@ -3657,6 +3731,16 @@ package body Landin.Backend.X86_64 is
                          else Trimmed
                            (Landin.Targets.Byte_Count'Image (Offset)))
                         & "(" & Slot_Cell (Place.Address) & ")");
+                  elsif Place.Kind = Landin.IR.Runtime_Address
+                    and then Offset /= 0
+                    and then Machine.Fits_Arithmetic_Immediate (Offset)
+                  then
+                     --  D2254: an address slot in its home is read into
+                     --  %rcx, and the offset is the access's displacement.
+                     Emit ("movq " & Slot_Cell (Place.Address) & ", %rcx");
+                     Deliver_Address
+                       (Trimmed (Landin.Targets.Byte_Count'Image (Offset))
+                        & "(%rcx)");
                   else
                      Storage_Address (Place, Field, "%rcx", Nested => Nested);
                      Deliver_Address ("(%rcx)");
@@ -3770,8 +3854,33 @@ package body Landin.Backend.X86_64 is
                     (Allocation_Plan.Value
                        (Positive (Operand (Of_Operand))).Register,
                      Landin.Targets.Byte_8));
+               --  D2251: a product no check reads, by 2, 4 or 8 or by
+               --  any power of two in the operand's own register, is a
+               --  shift or a scaled index: `shl` in place, and at speed
+               --  `lea` into another register, a cycle where `imul`
+               --  takes three.
+               Power : constant Natural :=
+                 (if Immediate_Product and then Check = ""
+                    and then Held in Landin.Targets.Byte_4
+                                   | Landin.Targets.Byte_8
+                    and then Direct
+                    and then Allocation_Plan.Value
+                      (Positive (Operand (1))).Kind = Allocation.GP
+                  then Machine.Power_Of_Two
+                    (Right (Right'First + 1 .. Right'Last))
+                  else 0);
             begin
-               if Immediate_Product then
+               if Power /= 0 and then Left = Into then
+                  Emit ("shl" & Suffix (Held) & " $"
+                        & Trimmed (Natural'Image (Power)) & ", " & Into);
+               elsif Power in 1 .. 3
+                 and then Options.Optimize = Landin.Optimization.Speed
+               then
+                  Emit ("lea" & Suffix (Held) & " 0(,"
+                        & Wide (1) & ","
+                        & Trimmed (Natural'Image (2 ** Power)) & "), "
+                        & Into);
+               elsif Immediate_Product then
                   Emit (Operation & Right & ", " & Left & ", " & Target);
                elsif Address_Sum then
                   Emit ("lea" & Suffix (Held) & " "
@@ -4002,6 +4111,10 @@ package body Landin.Backend.X86_64 is
             end Packed_Atom;
          begin
             if Value = Skipped_Store or else Value = Skipped_Load then
+               return;
+            end if;
+            if Offset_Folds (Value) then
+               Offset_Folded := Value;
                return;
             end if;
             case Op is
@@ -4707,6 +4820,26 @@ package body Landin.Backend.X86_64 is
                                     when Landin.Targets.Byte_4 => "movslq ",
                                     when Landin.Targets.Byte_8 => "movq ")
                                  & Value_Operand (Source) & ", " & Work);
+                           elsif Direct
+                             and then From_Size in Landin.Targets.Byte_1
+                               | Landin.Targets.Byte_2
+                             and then Landin.IR.Op_Of (Of_Unit, Item, Source)
+                               in Landin.IR.Load_Indirect
+                                | Landin.IR.Load_Element
+                             and then Allocation_Plan.Value
+                               (Positive (Source)).Kind = Allocation.GP
+                             and then Allocation."="
+                               (Allocation_Plan.Value
+                                  (Positive (Source)).Register,
+                                Allocation_Plan.Value
+                                  (Positive (Value)).Register)
+                           then
+                              --  D2249: a byte or halfword loaded into a
+                              --  register was zero-extended to its
+                              --  doubleword there, which a 32-bit write
+                              --  extends to 64 bits, so widening it in
+                              --  the same register moves nothing.
+                              null;
                            elsif Direct then
                               Emit ((case From_Size is
                                         when Landin.Targets.Byte_1 =>
@@ -4854,76 +4987,106 @@ package body Landin.Backend.X86_64 is
                      --  through this same operation and are marked
                      --  required where they are lowered, so they arrive
                      --  here checked whatever region they sit in.
-                     if not Unchecked then
-                        Emit
-                          ("movq " & Value_Operand (Operand (4)) & ", %rax");
-                        Emit
-                          ("cmpq " & Value_Operand (Operand (2)) & ", %rax");
-                        Trap_On
-                          (if Landin.IR.Slice_Is_Inclusive
-                                (Of_Unit, Item, Value)
-                           then "jae" else "ja");
-                     end if;
-                     Emit ("movq " & Value_Operand (Operand (3)) & ", %rcx");
-                     --  Lower and upper read from one place hold one value,
-                     --  so the lower edge cannot fail: `a[i..i]`, or two
-                     --  values the allocator gave one register.  The upper
-                     --  edge above is still checked.
-                     if not Unchecked
-                       and then Value_Operand (Operand (3))
-                         /= Value_Operand (Operand (4))
-                     then
-                        Emit
-                          ("cmpq " & Value_Operand (Operand (4)) & ", %rcx");
-                        Trap_On ("ja");
-                     end if;
-                     --  Size and speed scale the lower bound in the memory
-                     --  operand when the stride is a scale, from the base
-                     --  where it lives when that is a register.
-                     if Optimized and then Stride in 0 .. 8
-                       and then Stride not in 3 | 5 | 6 | 7
-                     then
-                        declare
-                           Base : constant String :=
-                             (if Allocation_Plan.Value
-                                   (Positive (Operand (1))).Kind
-                                 = Allocation.GP
-                              then Value_Operand (Operand (1)) else "%rax");
-                        begin
-                           if Base = "%rax" then
-                              Emit ("movq " & Value_Operand (Operand (1))
+                     --  D2250: at size and speed an edge held in a
+                     --  register is compared and scaled where it is, not
+                     --  copied into the accumulator and %rcx first.
+                     declare
+                        function In_Register (Edge : Positive) return Boolean
+                          is (Optimized
+                              and then Allocation_Plan.Value
+                                (Positive (Operand (Edge))).Kind
+                                = Allocation.GP);
+                        Upper : constant String :=
+                          (if In_Register (4) then Value_Operand (Operand (4))
+                           else "%rax");
+                        Lower : constant String :=
+                          (if In_Register (3) then Value_Operand (Operand (3))
+                           else "%rcx");
+                     begin
+                        if not Unchecked then
+                           if Upper = "%rax" then
+                              Emit ("movq " & Value_Operand (Operand (4))
                                     & ", %rax");
                            end if;
-                           Deliver_Address
-                             ("(" & Base & ",%rcx"
-                              & (if Stride > 1
-                                 then "," & Trimmed
-                                   (Landin.Targets.Byte_Count'Image (Stride))
-                                 else "")
-                              & ")");
-                        end;
-                        return;
-                     end if;
-                     if Stride > 1 then
-                        if Machine.Fits_Arithmetic_Immediate (Stride) then
                            Emit
-                             ("imulq $"
-                              & Trimmed
-                                  (Landin.Targets.Byte_Count'Image (Stride))
-                              & ", %rcx, %rcx");
-                        else
-                           Emit
-                             ("movabsq $"
-                              & Trimmed
-                                  (Landin.Targets.Byte_Count'Image (Stride))
-                              & ", %rdx");
-                           Emit ("imulq %rdx, %rcx");
+                             ("cmpq " & Value_Operand (Operand (2)) & ", "
+                              & Upper);
+                           Trap_On
+                             (if Landin.IR.Slice_Is_Inclusive
+                                   (Of_Unit, Item, Value)
+                              then "jae" else "ja");
                         end if;
-                     end if;
-                     Emit ("movq " & Value_Operand (Operand (1)) & ", %rax");
-                     Emit ("addq %rcx, %rax");
-                     Carry
-                       (Landin.Targets.Byte_8, "%rax", Value_Operand (Value));
+                        if Lower = "%rcx" then
+                           Emit ("movq " & Value_Operand (Operand (3))
+                                 & ", %rcx");
+                        end if;
+                        --  Lower and upper read from one place hold one value,
+                        --  so the lower edge cannot fail: `a[i..i]`, or two
+                        --  values the allocator gave one register.  The upper
+                        --  edge above is still checked.
+                        if not Unchecked
+                          and then Value_Operand (Operand (3))
+                            /= Value_Operand (Operand (4))
+                        then
+                           Emit
+                             ("cmpq " & Value_Operand (Operand (4)) & ", "
+                              & Lower);
+                           Trap_On ("ja");
+                        end if;
+                        --  Size and speed scale the lower bound in the memory
+                        --  operand when the stride is a scale, from the base
+                        --  where it lives when that is a register.
+                        if Optimized and then Stride in 0 .. 8
+                          and then Stride not in 3 | 5 | 6 | 7
+                        then
+                           declare
+                              Base : constant String :=
+                                (if Allocation_Plan.Value
+                                      (Positive (Operand (1))).Kind
+                                    = Allocation.GP
+                                 then Value_Operand (Operand (1)) else "%rax");
+                           begin
+                              if Base = "%rax" then
+                                 Emit ("movq " & Value_Operand (Operand (1))
+                                       & ", %rax");
+                              end if;
+                              Deliver_Address
+                                ("(" & Base & "," & Lower
+                                 & (if Stride > 1
+                                    then "," & Trimmed
+                                      (Landin.Targets.Byte_Count'Image
+                                         (Stride))
+                                    else "")
+                                 & ")");
+                           end;
+                           return;
+                        end if;
+                        if Lower /= "%rcx" then
+                           Emit ("movq " & Lower & ", %rcx");
+                        end if;
+                        if Stride > 1 then
+                           if Machine.Fits_Arithmetic_Immediate (Stride) then
+                              Emit
+                                ("imulq $"
+                                 & Trimmed
+                                     (Landin.Targets.Byte_Count'Image (Stride))
+                                 & ", %rcx, %rcx");
+                           else
+                              Emit
+                                ("movabsq $"
+                                 & Trimmed
+                                     (Landin.Targets.Byte_Count'Image (Stride))
+                                 & ", %rdx");
+                              Emit ("imulq %rdx, %rcx");
+                           end if;
+                        end if;
+                        Emit ("movq " & Value_Operand (Operand (1))
+                              & ", %rax");
+                        Emit ("addq %rcx, %rax");
+                        Carry
+                          (Landin.Targets.Byte_8, "%rax",
+                           Value_Operand (Value));
+                     end;
                   end;
 
                when Landin.IR.Empty_Slice_Base =>
