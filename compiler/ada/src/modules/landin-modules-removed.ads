@@ -1,10 +1,10 @@
 --  D2129: the library names a breaking list removed, each with what
---  replaces it.  R20's list (roadmap/inputs/breaking-list.md, D1948 to
---  D2051) renamed, merged and reshaped library declarations; a program
---  that still writes an old name is refused naming the new one, and
---  where the rewrite is mechanical the refusal carries it as one exact
---  fix (D1847).  The library declares only the new forms, so the old
---  ones are known here and nowhere else.
+--  replaces it.  R20's breaking list (D1948 to D2051) renamed, merged
+--  and reshaped library declarations; a program that still writes an old
+--  name is refused naming the new one, and where the rewrite is
+--  mechanical the refusal carries it as one exact fix (D1847).  The
+--  library declares only the new forms, so the old ones are known here
+--  and nowhere else.
 --
 --  A row is looked up only once a qualified name, a field or an entry has
 --  failed to resolve, so a name the library still declares never reaches
