@@ -31,7 +31,7 @@ fixed if compiler.os == windows then
     --- Take up to `count` packets off `port` into `into`, waiting up to
     --- `milliseconds`, or `infinite`, for the first,
     --- `GetQueuedCompletionStatusEx`: nonzero with how many in `taken`, or
-    --- zero with the reason in `last_error`, `wait_timeout` when none came.
+    --- zero with the reason in `last_error`, `WAIT_TIMEOUT` when none came.
     --- `alertable` zero.
     public extern(c) link(symbol: "GetQueuedCompletionStatusEx") get_completions:
         (port: handle, into: ptr mut completion_entry, count: u32,
@@ -41,10 +41,6 @@ fixed if compiler.os == windows then
     --- Put a packet of the caller's on `port`, `PostQueuedCompletionStatus`.
     public extern(c) link(symbol: "PostQueuedCompletionStatus") post_completion:
         (port: handle, moved: u32, key: usize, record: usize) -> (done: i32)
-
-    --- `ERROR_NOT_FOUND`: `cancel_io` found no call to cancel, which had
-    --- ended already.
-    public error_not_found: u32 = 1168
 
     --- Make a job without a name, `CreateJobObjectW`: its handle, or zero
     --- with the reason in `last_error`.

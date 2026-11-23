@@ -54,10 +54,6 @@ fixed if compiler.os == windows then
     --- failed, before any other.
     public extern(c) link(symbol: "GetLastError") last_error: () -> (code: u32)
 
-    --- Set the calling thread's last error, `SetLastError`.
-    public extern(c) link(symbol: "SetLastError") set_last_error:
-        (code: u32) -> none
-
     --- Close `object`, `CloseHandle`: nonzero, or zero with the reason in
     --- `last_error`.
     public extern(c) link(symbol: "CloseHandle") close_handle:
@@ -101,12 +97,8 @@ fixed if compiler.os == windows then
     public error_file_not_found: u32 = 2
     --- `ERROR_PATH_NOT_FOUND`.
     public error_path_not_found: u32 = 3
-    --- `ERROR_TOO_MANY_OPEN_FILES`.
-    public error_too_many_open_files: u32 = 4
     --- `ERROR_ACCESS_DENIED`.
     public error_access_denied: u32 = 5
-    --- `ERROR_INVALID_HANDLE`.
-    public error_invalid_handle: u32 = 6
     --- `ERROR_NOT_ENOUGH_MEMORY`.
     public error_not_enough_memory: u32 = 8
     --- `ERROR_INVALID_DRIVE`.
@@ -131,18 +123,12 @@ fixed if compiler.os == windows then
     public error_invalid_parameter: u32 = 87
     --- `ERROR_BROKEN_PIPE`.
     public error_broken_pipe: u32 = 109
-    --- `ERROR_INSUFFICIENT_BUFFER`.
-    public error_insufficient_buffer: u32 = 122
     --- `ERROR_INVALID_NAME`.
     public error_invalid_name: u32 = 123
-    --- `ERROR_DIR_NOT_EMPTY`.
-    public error_dir_not_empty: u32 = 145
     --- `ERROR_ALREADY_EXISTS`.
     public error_already_exists: u32 = 183
     --- `ERROR_FILENAME_EXCED_RANGE`.
     public error_filename_exceeds_range: u32 = 206
-    --- `ERROR_NO_DATA`.
-    public error_no_data: u32 = 232
     --- `ERROR_PIPE_NOT_CONNECTED`.
     public error_pipe_not_connected: u32 = 233
     --- `ERROR_MORE_DATA`.
@@ -153,8 +139,6 @@ fixed if compiler.os == windows then
     public error_operation_aborted: u32 = 995
     --- `ERROR_IO_PENDING`.
     public error_io_pending: u32 = 997
-    --- `ERROR_NOT_A_REPARSE_POINT`.
-    public error_not_a_reparse_point: u32 = 4390
 
     --- Reserve and commit `size` bytes of the address space, readable and
     --- writable and zeroed, `VirtualAlloc` with `MEM_RESERVE | MEM_COMMIT`
@@ -178,8 +162,6 @@ fixed if compiler.os == windows then
     public mem_decommit: u32 = 0x4000
     --- `MEM_RELEASE`: give the memory and the addresses back.
     public mem_release: u32 = 0x8000
-    --- `PAGE_NOACCESS`: the pages may not be touched.
-    public page_noaccess: u32 = 0x01
     --- `PAGE_READWRITE`: the pages may be read and written.
     public page_readwrite: u32 = 0x04
 

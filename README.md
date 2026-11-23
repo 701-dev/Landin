@@ -8,10 +8,9 @@
 macOS and FreeBSD, and firmware builds for Cortex-M, RV32 and windowed Xtensa.**
 
 The language is pre-v1 and still growing. Its compiler, `refine`, runs
-programs on Linux (x86-64, arm64 and RV64), FreeBSD (x86-64 and arm64) and
-macOS (arm64), builds firmware for Cortex-M, 32-bit RISC-V and windowed
-Xtensa, and has begun Windows x86-64, whose programs run without hosted
-I/O so far.
+programs on Linux (x86-64, arm64 and RV64), FreeBSD (x86-64 and arm64),
+macOS (arm64) and Windows (x86-64), and builds firmware for Cortex-M,
+32-bit RISC-V and windowed Xtensa.
 [Current compiler capabilities](#current-compiler-capabilities) lists what
 works today.
 
@@ -534,7 +533,7 @@ Hosted targets:
 | Linux RV64 | hosted executables | under QEMU's user emulation, with GDB |
 | macOS arm64 | hosted executables | natively, with LLDB |
 | FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux | in FreeBSD VMs, with LLDB |
-| Windows x86-64 | hosted executables without hosted I/O yet, emitted on Linux | natively on a Windows runner |
+| Windows x86-64 | hosted executables, emitted on Linux | natively on a Windows runner |
 
 Firmware targets:
 

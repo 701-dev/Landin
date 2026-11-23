@@ -26,11 +26,8 @@ fixed if compiler.os == windows then
         reserved_2: u32
     end memory_information
 
-    --- `memory_information`'s states: `MEM_COMMIT`, `MEM_RESERVE`,
-    --- `MEM_FREE`.
-    public state_committed: u32 = 0x1000
+    --- `MEM_RESERVE`, the state of pages reserved and not committed.
     public state_reserved: u32 = 0x2000
-    public state_free: u32 = 0x10000
 
     --- Describe the pages at `address`, `VirtualQuery`, into `into`: the
     --- bytes written, or zero with the reason in `last_error`.

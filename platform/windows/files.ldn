@@ -12,8 +12,6 @@ fixed if compiler.os == windows then
     public file_read_attributes: u32 = 0x80
     --- `FILE_WRITE_ATTRIBUTES`: the right to change what is kept of a file.
     public file_write_attributes: u32 = 0x100
-    --- `DELETE`: the right to remove or rename a file.
-    public delete_access: u32 = 0x10000
 
     --- `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE`: other opens
     --- may read, write, rename and delete the file while this one is open,
@@ -41,13 +39,8 @@ fixed if compiler.os == windows then
     public flag_backup_semantics: u32 = 0x02000000
     --- `FILE_FLAG_OVERLAPPED`: calls on the handle may end later.
     public flag_overlapped: u32 = 0x40000000
-    --- `FILE_FLAG_WRITE_THROUGH`: a write reaches the disk before it ends.
-    public flag_write_through: u32 = 0x80000000
     --- `FILE_FLAG_OPEN_REPARSE_POINT`: open a link, not what it names.
     public flag_open_reparse_point: u32 = 0x00200000
-    --- `FILE_FLAG_DELETE_ON_CLOSE`: remove the file when its last handle
-    --- closes.
-    public flag_delete_on_close: u32 = 0x04000000
 
     --- A file's attribute bits: read-only, a directory and a reparse point,
     --- which a symbolic link is; and what `get_file_attributes` gives when it
@@ -68,19 +61,6 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "CreateFileW") create_file:
         (name: ptr u16, access: u32, share: u32, security: usize,
          disposition: u32, flags: u32, template: usize) -> (result: handle)
-
-    --- `FILE_TYPE_*`: what `get_file_type` says a handle is.
-    public file_type_unknown: u32 = 0
-    --- `FILE_TYPE_DISK`: a file on a disk.
-    public file_type_disk: u32 = 1
-    --- `FILE_TYPE_CHAR`: a character device, such as a console.
-    public file_type_char: u32 = 2
-    --- `FILE_TYPE_PIPE`: a pipe or a socket.
-    public file_type_pipe: u32 = 3
-
-    --- What kind of file `opened` is, `GetFileType`.
-    public extern(c) link(symbol: "GetFileType") get_file_type:
-        (opened: handle) -> (kind: u32)
 
     --- A time as Windows keeps it: hundreds of nanoseconds since 1601,
     --- `FILETIME`'s two halves.
@@ -136,8 +116,6 @@ fixed if compiler.os == windows then
     --- `MoveFileExW`'s flags: replace a file the new name holds, and do not
     --- return before the move is on the disk.
     public move_replace_existing: u32 = 1
-    --- `MOVEFILE_WRITE_THROUGH`: the move is on the disk when the call ends.
-    public move_write_through: u32 = 8
 
     --- Rename `old` to `new`, `MoveFileExW`: nonzero, or zero with the
     --- reason in `last_error`.
@@ -157,18 +135,12 @@ fixed if compiler.os == windows then
     public file_begin: u32 = 0
     --- `FILE_CURRENT`: `set_file_pointer` moves from the current position.
     public file_current: u32 = 1
-    --- `FILE_END`: `set_file_pointer` moves from the end.
-    public file_end: u32 = 2
     --- Move `opened`'s position by `distance` from where `method` says,
     --- `SetFilePointerEx`; the new position goes to the `i64` at `moved`
     --- unless it is zero.
     public extern(c) link(symbol: "SetFilePointerEx") set_file_pointer:
         (opened: handle, distance: i64, moved: usize, method: u32)
         -> (done: i32)
-
-    --- End `opened` at its position, `SetEndOfFile`.
-    public extern(c) link(symbol: "SetEndOfFile") set_end_of_file:
-        (opened: handle) -> (done: i32)
 
     --- Write what the system holds of `opened` to its disk,
     --- `FlushFileBuffers`.

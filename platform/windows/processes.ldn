@@ -88,8 +88,6 @@ fixed if compiler.os == windows then
     --- object, or the first of several, is signalled; the time ran out; the
     --- wait failed with the reason in `last_error`.
     public wait_object_0: u32 = 0
-    --- `WAIT_TIMEOUT`: the time ran out first.
-    public wait_timeout: u32 = 0x102
     --- `WAIT_FAILED`: the wait failed, with the reason in `last_error`.
     public wait_failed: u32 = 0xFFFFFFFF
 
@@ -105,17 +103,10 @@ fixed if compiler.os == windows then
         (count: u32, objects: ptr handle, all: i32, milliseconds: u32)
         -> (result: u32)
 
-    --- The exit code of a process that has ended, `GetExitCodeProcess`, or
-    --- `still_active` while it runs.
-    public still_active: u32 = 259
-    --- The exit code of `process`, `GetExitCodeProcess`, or `still_active`
-    --- while it runs.
+    --- The exit code of `process`, `GetExitCodeProcess`, or `STILL_ACTIVE`,
+    --- 259, while it runs.
     public extern(c) link(symbol: "GetExitCodeProcess") exit_code_of:
         (process: handle, code: ptr mut u32) -> (done: i32)
-
-    --- End `process` with `code`, `TerminateProcess`.
-    public extern(c) link(symbol: "TerminateProcess") terminate_process:
-        (process: handle, code: u32) -> (done: i32)
 
     --- The calling process's ID, `GetCurrentProcessId`.
     public extern(c) link(symbol: "GetCurrentProcessId") current_process_id:
@@ -178,13 +169,6 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "CreateEventW") create_event:
         (security: usize, manual: i32, initial: i32, name: usize)
         -> (result: handle)
-
-    --- Signal and clear an event, `SetEvent` and `ResetEvent`.
-    public extern(c) link(symbol: "SetEvent") set_event: (event: handle)
-                                                         -> (done: i32)
-    --- Clear an event, `ResetEvent`.
-    public extern(c) link(symbol: "ResetEvent") reset_event: (event: handle)
-                                                             -> (done: i32)
 
     --- Cancel the overlapped call `record` names on `opened`, or every one
     --- the process has on it when `record` is zero, `CancelIoEx`.

@@ -169,21 +169,4 @@ fixed if compiler.os == windows then
         terminated = addr room[0]
     end terminate
 
-    --- The units at `first` before their NUL, which the system or the caller
-    --- keeps.
-    public terminated_units: (first: ptr u16) -> (units: []u16 from first) =
-        mut length: usize = 0
-        loop do
-            at: ptr u16 = ptr(usize(first) + length * 2)
-            break when at.val == 0
-            inc length
-        end loop
-        whole: ptr [1]u16 = ptr(usize(first))
-        units = whole.val[0..<0]
-        if length > 0 then
-            unchecked begin
-                units = whole.val[0..<length]
-            end unchecked
-        end if
-    end terminated_units
 end if

@@ -37,12 +37,8 @@ fixed if compiler.os == windows then
     public wsa_interrupted: u32 = 10004
     --- `WSAEACCES`.
     public wsa_access: u32 = 10013
-    --- `WSAEINVAL`.
-    public wsa_invalid: u32 = 10022
     --- `WSAEWOULDBLOCK`.
     public wsa_would_block: u32 = 10035
-    --- `WSAEINPROGRESS`.
-    public wsa_in_progress: u32 = 10036
     --- `WSAEMSGSIZE`.
     public wsa_message_size: u32 = 10040
     --- `WSAEAFNOSUPPORT`.
@@ -51,8 +47,6 @@ fixed if compiler.os == windows then
     public wsa_address_in_use: u32 = 10048
     --- `WSAEADDRNOTAVAIL`.
     public wsa_address_unavailable: u32 = 10049
-    --- `WSAENETDOWN`.
-    public wsa_network_down: u32 = 10050
     --- `WSAENETUNREACH`.
     public wsa_network_unreachable: u32 = 10051
     --- `WSAENETRESET`.
@@ -71,8 +65,6 @@ fixed if compiler.os == windows then
     public wsa_connection_refused: u32 = 10061
     --- `WSAEHOSTUNREACH`.
     public wsa_host_unreachable: u32 = 10065
-    --- `WSANOTINITIALISED`.
-    public wsa_not_initialised: u32 = 10093
 
     --  `WSADATA`, which `WSAStartup` fills and nothing here reads: room for
     --  the largest it is.

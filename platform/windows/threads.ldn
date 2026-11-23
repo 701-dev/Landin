@@ -33,7 +33,7 @@ fixed if compiler.os == windows then
 
     --- Sleep while the `size` bytes at `address` equal those at `compare`,
     --- `WaitOnAddress`, for at most `milliseconds`: nonzero when woken or
-    --- when they already differ, zero with `error_timeout` in `last_error`.
+    --- when they already differ, zero with `ERROR_TIMEOUT` in `last_error`.
     --- The system compares and sleeps in one step, so a wake after a change
     --- is never lost; it may also return with nobody having woken it.
     --- `size` is 1, 2, 4 or 8.
@@ -46,20 +46,4 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "WakeByAddressSingle") wake_by_address_single:
         (address: usize) -> none
 
-    --- Wake every thread sleeping on `address`, `WakeByAddressAll`.
-    public extern(c) link(symbol: "WakeByAddressAll") wake_by_address_all:
-        (address: usize) -> none
-
-    --- `ERROR_TIMEOUT`, which `wait_on_address` leaves when its time ran
-    --- out.
-    public error_timeout: u32 = 1460
-
-    --- Give the rest of the calling thread's time to another thread ready on
-    --- the same processor, `SwitchToThread`: nonzero when one ran.
-    public extern(c) link(symbol: "SwitchToThread") switch_to_thread:
-        () -> (switched: i32)
-
-    --- The calling thread's identifier, `GetCurrentThreadId`.
-    public extern(c) link(symbol: "GetCurrentThreadId") current_thread_id:
-        () -> (id: u32)
 end if
