@@ -214,7 +214,7 @@ fixed if compiler.os == linux then
 
     system_open_pseudo_terminal: () -> (pair: pseudo_terminal) ! errno =
         controller: descriptor =
-            try open_at(working_directory, text.host_over(ptmx),
+            try open_at(working_directory, text.os_string_over(ptmx),
                         (access: read_write, create: false, exclusive: false,
                          truncate: false, append: false, directory: false),
                         0)
@@ -260,7 +260,7 @@ fixed if compiler.os == linux then
             fail enametoolong
         end
         terminal = try open_at(working_directory,
-                               text.host_over(text.used(path)),
+                               text.os_string_over(text.used(path)),
                                (access: read_write, create: false,
                                 exclusive: false, truncate: false,
                                 append: false, directory: false), 0)
@@ -402,7 +402,7 @@ else
             inc length
         end while
         terminal: descriptor =
-            try open_at(working_directory, text.host_over(name[0..<length]),
+            try open_at(working_directory, text.os_string_over(name[0..<length]),
                         (access: read_write, create: false, exclusive: false,
                          truncate: false, append: false, directory: false),
                         0)

@@ -3,6 +3,7 @@
 --  arguments and the environment it gives it, connects each of the child's
 --  standard streams, reads what the child writes and waits for it to end.
 
+import core/mem
 import core/text
 
 --- A child's standard stream is the parent's own: it reads or writes
@@ -111,12 +112,12 @@ end ending
 public programs: type = concept (provider: type)
     --- Start the program at `path` with `arguments`, which it sees after
     --- its own name, and exactly the variables of `environment`.  A
-    --- missing program is `not_found`, one the caller may not run
+    --- missing program is `mem.not_found`, one the caller may not run
     --- `no_access`; on any failure no child was started.
-    spawn: (self: provider, path: text.host_string,
-            arguments: []text.host_string, environment: []variable,
+    spawn: (self: provider, path: text.os_string,
+            arguments: []text.os_string, environment: []text.os_variable,
             streams: child_streams)
-           -> (started: child) ! not_found | no_access | io_failed
+           -> (started: child) ! mem.not_found | no_access | io_failed
     --- Write all of `bytes` to the child's piped input, waiting while its
     --- pipe is full.
     write_child: (self: provider, inout started: child, bytes: []u8)
@@ -138,9 +139,9 @@ end programs
 --- its standard streams connected as `streams` says.  Wait for every child
 --- started.
 public spawn: (provider: type is programs, host: provider,
-               path: text.host_string, arguments: []text.host_string,
-               environment: []variable, streams: child_streams)
-              -> (started: child) ! not_found | no_access | io_failed =
+               path: text.os_string, arguments: []text.os_string,
+               environment: []text.os_variable, streams: child_streams)
+              -> (started: child) ! mem.not_found | no_access | io_failed =
     started = try provider.spawn(host, path, arguments, environment, streams)
 end spawn
 

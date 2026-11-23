@@ -415,4 +415,4 @@ host is net.network
      local_address: blocking_local_address,
      peer_address: blocking_peer_address,
      set_timeouts: blocking_set_timeouts, set_no_delay: blocking_set_no_delay,
-     close_socket: blocking_close_socket)
+     close: blocking_close_socket)

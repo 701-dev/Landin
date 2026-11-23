@@ -176,8 +176,8 @@ end interface_name
 --- empty path or one holding a NUL, which Linux would read as an abstract
 --- name.
 public unix_address:
-    (path: text.host_string) -> (made: socket_address) ! errno =
-    bytes: []u8 = text.host_bytes(path)
+    (path: text.os_string) -> (made: socket_address) ! errno =
+    bytes: []u8 = text.os_string_bytes(path)
     fail einval when lenof bytes == 0
     fail enametoolong when lenof bytes >= unix_path_room
     made = (bytes: zeroed,
@@ -237,7 +237,7 @@ end endpoint_of
 --- one.
 public unix_path:
     (at: socket_address, room: []mut u8)
-    -> (path: text.host_string from room) ! errno =
+    -> (path: text.os_string from room) ! errno =
     family: socket_family = try family_of(at)
     fail eafnosupport when family <> local
     mut length: usize = 0
@@ -251,7 +251,7 @@ public unix_path:
     for index in usize(0)..<length do
         room[index] = at.bytes[unix_path_offset + index]
     end for
-    path = text.host_over(room[0..<length])
+    path = text.os_string_over(room[0..<length])
 end unix_path
 
 --- Make a socket of `family` and `kind`, closed on exec and raising no

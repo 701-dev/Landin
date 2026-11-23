@@ -26,8 +26,8 @@ end arena_value
 --- recent allocation can grow in place, or give back its tail when it is
 --- resized smaller. A resize that cannot grow in place moves the block to a
 --- new allocation and leaves the old bytes spent. A zero-byte request may
---- consume alignment padding. `reset` gives every allocation back at once;
---- it is the arena's one free that reclaims anything.
+--- consume alignment padding. `release` gives every allocation back at
+--- once; it is the arena's one free that reclaims anything.
 public arena: type = arena_value
 
 --- Fill `state` for an arena over retainable backing and return its handle,
@@ -56,16 +56,16 @@ public over_unchecked: (inout state: space, base: ptr mut u8, size: usize)
 end over_unchecked
 
 --- Return consumed arena bytes, including alignment padding.
-public used: (memory: arena) -> (count: usize) =
+public length: (memory: arena) -> (count: usize) =
     count = memory.state.val.used
-end used
+end length
 
 --- Give every allocation of the arena back at once: the next allocation
 --- starts at its base again.  Every block it gave is then free, and a
 --- program that still uses one has the same obligation as after `free`.
-public reset: (memory: arena) -> none =
+public release: (memory: arena) -> none =
     memory.state.val.used = 0
-end reset
+end release
 
 arena_alloc: (self: arena, size: usize, alignment: usize)
              -> (block: ptr mut u8) ! mem.out_of_memory =

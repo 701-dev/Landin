@@ -18,10 +18,10 @@ import core/mem
 --- when no task runs on the record, before the first start and after a
 --- task has ended; a provider makes it nonzero while one does. Where the
 --- stack ends is in the frames the switch saves, not here (D472).
-public space: type = struct
+public record: type = struct
     saved: usize
     status: u8
-end space
+end record
 
 --- What a provider starts, and what a thread of `hosted/thread` runs: one
 --- entry, no error set, since a fibre's or a thread's first frame has no
@@ -36,18 +36,18 @@ end task
 --- `start`, before returning, and a program written against it must be
 --- right when every task does. `start` fails `mem.out_of_memory` when
 --- `stack` cannot hold the task's first frame. `finished` says whether
---- the task last started on `record` has ended. `wait` returns once one
---- of the provider's fibres has finished, or at once when none is running,
+--- the task last started on the record `slot` has ended. `wait` returns once
+--- one of the provider's fibres has finished, or at once when none is running,
 --- which is how a group waits for a free stack. The provider runs at most
 --- one of its fibres at a time, and its fibres are one execution context
 --- (D446).
 public scheduler: type = concept (provider: type)
-    --- Start `work` on `record` and `stack`, or run it to its end.
-    start: (self: provider, escaping record: ptr mut space,
+    --- Start `work` on the record `slot` and `stack`, or run it to its end.
+    start: (self: provider, escaping slot: ptr mut record,
             escaping stack: []mut u8, escaping work: any task)
            -> none ! mem.out_of_memory
-    --- Whether the task last started on `record` has ended.
-    finished: (self: provider, record: space) -> (yes: bool)
+    --- Whether the task last started on the record `slot` has ended.
+    finished: (self: provider, slot: record) -> (yes: bool)
     --- Wait until one of the provider's fibres has finished.
     wait: (self: provider) -> none
 end scheduler
@@ -77,19 +77,19 @@ public whole: type = struct
     reserved: u32
 end whole
 
-whole_start: (self: whole, escaping record: ptr mut space,
+whole_start: (self: whole, escaping slot: ptr mut record,
               escaping stack: []mut u8, escaping work: any task)
              -> none ! mem.out_of_memory =
     _ = self
     _ = stack
-    record.val.status = 1
+    slot.val.status = 1
     work.run()
-    record.val.status = 0
+    slot.val.status = 0
 end whole_start
 
-whole_finished: (self: whole, record: space) -> (yes: bool) =
+whole_finished: (self: whole, slot: record) -> (yes: bool) =
     _ = self
-    yes = record.status == 0
+    yes = slot.status == 0
 end whole_finished
 
 --  Nothing is ever running when `start` has returned.
@@ -157,7 +157,7 @@ cut: (backing: []mut u8, count: usize)
     kept.val = (failed: false, problem: mem.out_of_memory)
     mut index: usize = 0
     while index < count do
-        record: ptr mut space = ptr(front + ledger_room + index * size)
+        record: ptr mut record = ptr(front + ledger_room + index * size)
         record.val = (saved: 0, status: 0)
         inc index
     end while
@@ -189,7 +189,7 @@ end turns_over
 
 --  Whether the task last started on the group's stack `index` has ended.
 ended: (g: group, index: usize) -> (yes: bool) =
-    record: ptr mut space = record_of(g, index)
+    record: ptr mut record = record_of(g, index)
     yes = g.runs.finished(record.val)
 end ended
 
@@ -225,9 +225,9 @@ keep_first: (kept: usize, problem: failure.reason) -> none =
     end if
 end keep_first
 
-record_of: (g: group, index: usize) -> (record: ptr mut space) =
+record_of: (g: group, index: usize) -> (slot: ptr mut record) =
     --  [0810]: a record is the base of its stack, in the group's backing.
-    record = ptr(g.front + ledger_room + index * g.size)
+    slot = ptr(g.front + ledger_room + index * g.size)
 end record_of
 
 --  The index of a stack whose task has ended, waiting through the
@@ -261,7 +261,7 @@ public admit: (state_type: type, inout g: group,
                escaping into g state: state_type)
               -> none ! mem.out_of_memory =
     index: usize = free_stack(g)
-    record: ptr mut space = record_of(g, index)
+    record: ptr mut record = record_of(g, index)
     low: usize = usize(record) + record_room
     high: usize = usize(record) + g.size
     extent: usize = sizeof bridge(state_type)

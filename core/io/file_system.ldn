@@ -4,6 +4,7 @@
 --  `files` and `directories` and outside `world`; and terminals, another.
 --  A firmware image that never asks for either carries neither.
 
+import core/mem
 import core/text
 import core/time
 
@@ -72,7 +73,7 @@ end status
 --- it, then rename it into place or remove it.
 public temporary: type = struct
     opened: file
-    path: text.host_string
+    path: text.os_string
 end temporary
 
 --  One close for every file, whichever call opened it: spec.md's D357.
@@ -85,34 +86,34 @@ end temporary
 public file_system: type = concept (provider: type) is files
     --- Open the file at `path` as `options` say.  A missing file without
     --- `create`, and a path through something that is not a directory, are
-    --- `not_found`; a file that `exclusive` finds is `already_exists`; a
+    --- `mem.not_found`; a file that `exclusive` finds is `already_exists`; a
     --- file the provider may not open that way is `no_access`; and a path
     --- that names a directory is `is_a_directory`.
-    open_file: (self: provider, path: text.host_string,
+    open_file: (self: provider, path: text.os_string,
                 options: open_options)
                -> (opened: file)
-               ! already_exists | not_found | no_access | is_a_directory
+               ! already_exists | mem.not_found | no_access | is_a_directory
                | io_failed
     --- Give the file at `old` the name `new` in one step, replacing a file
     --- already named `new`; a missing `old` or parent of `new` is
-    --- `not_found`.  A rename does not cross from one file system to
+    --- `mem.not_found`.  A rename does not cross from one file system to
     --- another, which is `io_failed`, and never puts a directory where a
     --- file is or a file where a directory is.
-    rename: (self: provider, old: text.host_string, new: text.host_string)
-            -> none ! not_found | no_access | io_failed
+    rename: (self: provider, old: text.os_string, new: text.os_string)
+            -> none ! mem.not_found | no_access | io_failed
     --- The status of the file at `path`.  When the path ends in a symbolic
     --- link, `following` gives the status of the link's target and
     --- `not_following` that of the link itself.
-    status_of: (self: provider, path: text.host_string,
+    status_of: (self: provider, path: text.os_string,
                 links: link_handling)
-               -> (found: status) ! not_found | no_access | io_failed
+               -> (found: status) ! mem.not_found | no_access | io_failed
     --- The status of an open file.
     status_of_file: (self: provider, opened: file) -> (found: status)
                     ! io_failed
     --- Make the file at `path` read-only, or with `read_only` false
     --- writable by its owner again.
-    set_read_only: (self: provider, path: text.host_string, read_only: bool)
-                   -> none ! not_found | no_access | io_failed
+    set_read_only: (self: provider, path: text.os_string, read_only: bool)
+                   -> none ! mem.not_found | no_access | io_failed
     --- Write what the provider holds of an open file to lasting storage
     --- before returning: its data and its status, or with `data_only` its
     --- data and only the status that reading it back needs.
@@ -137,15 +138,15 @@ public file_system: type = concept (provider: type) is files
     --- file has, is made from bytes of `names` and tried again when it is
     --- taken.  It is made exclusively, so no other program's file is ever
     --- opened in its place, and readable and writable by its owner alone.
-    make_temporary: (self: provider, directory: text.host_string,
-                     names: any entropy, into: []mut u8)
+    make_temporary: (self: provider, names: any entropy,
+                     directory: text.os_string, into: []mut u8)
                     -> (made: temporary from into)
-                    ! not_found | no_access | io_failed
+                    ! mem.not_found | no_access | io_failed
     --- The working directory's path, put in `into`; a path too long for it
     --- is `io_failed`.  Nothing here changes the working directory, which
     --- is the whole process's: make a path from this one instead.
     current_directory: (self: provider, into: []mut u8)
-                       -> (path: text.host_string from into) ! io_failed
+                       -> (path: text.os_string from into) ! io_failed
 end file_system
 
 --- Whether `options` is a combination an open can have: it reads or writes,
@@ -162,9 +163,9 @@ end valid_options
 --- Open the file at `path` as `options` say, through `file_system`
 --- evidence; close it through the same provider's `files`.
 public open_file: (provider: type is file_system, host: provider,
-                   path: text.host_string, options: open_options)
+                   path: text.os_string, options: open_options)
                   -> (opened: file)
-                  ! already_exists | not_found | no_access | is_a_directory
+                  ! already_exists | mem.not_found | no_access | is_a_directory
                   | io_failed =
     opened = try provider.open_file(host, path, options)
 end open_file
@@ -174,8 +175,8 @@ end open_file
 --- to replace a file whole is to write a `make_temporary` file beside it,
 --- `synchronize` it, close it and rename it onto the file.
 public rename: (provider: type is file_system, host: provider,
-                old: text.host_string, new: text.host_string)
-               -> none ! not_found | no_access | io_failed =
+                old: text.os_string, new: text.os_string)
+               -> none ! mem.not_found | no_access | io_failed =
     try provider.rename(host, old, new)
 end rename
 
@@ -183,8 +184,8 @@ end rename
 --- link, `following` gives the status of the link's target and
 --- `not_following` that of the link itself.
 public status_of: (provider: type is file_system, host: provider,
-                   path: text.host_string, links: link_handling)
-                  -> (found: status) ! not_found | no_access | io_failed =
+                   path: text.os_string, links: link_handling)
+                  -> (found: status) ! mem.not_found | no_access | io_failed =
     found = try provider.status_of(host, path, links)
 end status_of
 
@@ -198,8 +199,8 @@ end status_of_file
 --- Opening a read-only file for writing is refused, `no_access`, except for
 --- a process the system lets past every permission, as POSIX's root.
 public set_read_only: (provider: type is file_system, host: provider,
-                       path: text.host_string, read_only: bool)
-                      -> none ! not_found | no_access | io_failed =
+                       path: text.os_string, read_only: bool)
+                      -> none ! mem.not_found | no_access | io_failed =
     try provider.set_read_only(host, path, read_only)
 end set_read_only
 
@@ -243,17 +244,17 @@ end write_at
 --- name that is taken tried again.
 public make_temporary: (provider: type is file_system, host: provider,
                         source: type is entropy, names: source,
-                        directory: text.host_string, into: []mut u8)
+                        directory: text.os_string, into: []mut u8)
                        -> (made: temporary from into)
-                       ! not_found | no_access | io_failed =
+                       ! mem.not_found | no_access | io_failed =
     erased: any entropy = any(addr names)
-    made = try provider.make_temporary(host, directory, erased, into)
+    made = try provider.make_temporary(host, erased, directory, into)
 end make_temporary
 
 --- The working directory's path, put in `into`.
 public current_directory: (provider: type is file_system, host: provider,
                            into: []mut u8)
-                          -> (path: text.host_string from into)
+                          -> (path: text.os_string from into)
                           ! io_failed =
     path = try provider.current_directory(host, into)
 end current_directory
@@ -266,12 +267,12 @@ public temporary_tries: usize = 16
 --- directory, a `/` unless it is empty or ends in one, `.tmp-` and the
 --- bytes as sixteen lower-case hexadecimal digits, put in `into`; a path
 --- that does not fit is `io_failed`.  For a provider in another module.
-public temporary_path: (directory: text.host_string, bytes: [8]u8,
+public temporary_path: (directory: text.os_string, bytes: [8]u8,
                         into: []mut u8)
-                       -> (path: text.host_string from into) ! io_failed =
-    path = text.host_over(into[0..<0])
+                       -> (path: text.os_string from into) ! io_failed =
+    path = text.os_string_over(into[0..<0])
     mut made := text.over(into)
-    folder: []u8 = text.host_bytes(directory)
+    folder: []u8 = text.os_string_bytes(directory)
     text.append(made, folder) else (problem)
         _ = problem
         fail io_failed
@@ -298,7 +299,7 @@ public temporary_path: (directory: text.host_string, bytes: [8]u8,
         end
     end for
     length: usize = text.length(made)
-    path = text.host_over(into[0..<length])
+    path = text.os_string_over(into[0..<length])
 end temporary_path
 
 --- The file is not a terminal.

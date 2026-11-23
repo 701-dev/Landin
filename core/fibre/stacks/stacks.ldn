@@ -41,8 +41,8 @@ first_frame: (argument: usize) -> noreturn =
     --  [0810]: the argument is the address of the stack's `starting`.
     start: ptr mut starting = ptr(argument)
     start.val.work.run()
-    record: ptr mut fibre.space = ptr(start.val.record)
-    after: ptr mut fibre.space = ptr(start.val.after)
+    record: ptr mut fibre.record = ptr(start.val.record)
+    after: ptr mut fibre.record = ptr(start.val.after)
     record.val.status = 0
     switch(record, after)
     compiler.unreachable()
@@ -57,9 +57,9 @@ end first_frame
 --- there. `prepare` fails `mem.out_of_memory` when `stack` is smaller than
 --- 128 words, or 176 with a Cortex-M float unit, plus the few words the
 --- first frame keeps at its top.
-public prepare: (escaping record: ptr mut fibre.space,
+public prepare: (escaping record: ptr mut fibre.record,
                  escaping stack: []mut u8, escaping work: any fibre.task,
-                 escaping after: ptr mut fibre.space)
+                 escaping after: ptr mut fibre.record)
                 -> none ! mem.out_of_memory =
     fail mem.out_of_memory when lenof stack == 0
     low: usize = usize(addr stack[0])
@@ -85,7 +85,7 @@ end prepare
 --- back to `leaving` (D472). A switch is a full compiler memory boundary
 --- (D446). Pointers rather than two `inout` records, because both
 --- commonly sit in one table.
-public switch: (leaving: ptr mut fibre.space, entering: ptr mut fibre.space)
+public switch: (leaving: ptr mut fibre.record, entering: ptr mut fibre.record)
                -> none =
     compiler.stack_switch(addr leaving.val.saved, entering.val.saved)
 end switch
@@ -112,7 +112,7 @@ end spin_idle
 spin is idler (idle: spin_idle)
 
 round_state: type = struct
-    home: fibre.space
+    home: fibre.record
     current: usize
     count: usize
     quiet: usize
@@ -143,23 +143,23 @@ end round_value
 --- only reads.
 public round: type = round_value
 
---- Fill `state` for a round over `entries`, the caller's table of the
+--- Fill `state` for a round over `fibres`, the caller's table of the
 --- records it runs, and return its handle. The table holds entry 0 and
 --- one entry for each fibre that may be unfinished at once, so a group of
 --- `count` stacks needs `count + 1`; `start` fails `mem.out_of_memory`
---- when it is full. `round_over` fails `mem.out_of_memory` when `entries`
+--- when it is full. `round_over` fails `mem.out_of_memory` when `fibres`
 --- holds fewer than two. The table needs no initial value: the round
---- reads only the entries it has written. Keep `state`, `entries` and
---- `when_idle` alive while the round is used.
-public round_over: (inout state: round_space, entries: []mut usize,
-                    when_idle: any idler)
-                   -> (handle: round from state, entries, when_idle)
+--- reads only the entries it has written. Keep `state`, `when_idle` and
+--- `fibres` alive while the round is used.
+public round_over: (inout state: round_space, when_idle: any idler,
+                    fibres: []mut usize)
+                   -> (handle: round from state, when_idle, fibres)
                    ! mem.out_of_memory =
-    fail mem.out_of_memory when lenof entries < 2
+    fail mem.out_of_memory when lenof fibres < 2
     state = (home: (saved: 0, status: 1), current: 0, count: 1,
              quiet: 0, ended: 0)
-    entries[0] = usize(addr state.home)
-    handle = (state: addr state, entries: entries, when_idle: when_idle)
+    fibres[0] = usize(addr state.home)
+    handle = (state: addr state, entries: fibres, when_idle: when_idle)
 end round_over
 
 --  Empty every entry whose fibre has ended since the last sweep, counting
@@ -177,7 +177,7 @@ sweep: (self: round) -> (live: usize) =
         if held <> 0 then
             --  [0810]: an entry is the address of a record the round was
             --  given.
-            record: ptr mut fibre.space = ptr(held)
+            record: ptr mut fibre.record = ptr(held)
             if record.val.status == 0 then
                 self.entries[index] = 0
                 inc state.val.ended
@@ -190,7 +190,7 @@ sweep: (self: round) -> (live: usize) =
     end while
 end sweep
 
-round_start: (self: round, escaping record: ptr mut fibre.space,
+round_start: (self: round, escaping record: ptr mut fibre.record,
               escaping stack: []mut u8, escaping work: any fibre.task)
              -> none ! mem.out_of_memory =
     state: ptr mut round_state = self.state
@@ -201,7 +201,7 @@ round_start: (self: round, escaping record: ptr mut fibre.space,
     end while
     fail mem.out_of_memory when index == lenof self.entries
     --  [0810]: entry 0 is the address of the round's own record.
-    home: ptr mut fibre.space = ptr(self.entries[0])
+    home: ptr mut fibre.record = ptr(self.entries[0])
     try prepare(record, stack, work, home)
     --  The entry is written before it is counted, and only once the
     --  fibre is prepared: a refused start leaves the table as it was, so
@@ -213,7 +213,7 @@ round_start: (self: round, escaping record: ptr mut fibre.space,
     state.val.quiet = 0
 end round_start
 
-round_finished: (self: round, record: fibre.space) -> (yes: bool) =
+round_finished: (self: round, record: fibre.record) -> (yes: bool) =
     _ = self
     yes = record.status == 0
 end round_finished
@@ -243,14 +243,14 @@ round_yield: (self: round) -> none =
             break when next == was or next == 0
             candidate: usize = self.entries[next]
             if candidate <> 0 then
-                waiting: ptr mut fibre.space = ptr(candidate)
+                waiting: ptr mut fibre.record = ptr(candidate)
                 break when waiting.val.status <> 0
             end if
         end loop
         break when next == was
         state.val.current = next
-        leaving: ptr mut fibre.space = ptr(self.entries[was])
-        entering: ptr mut fibre.space = ptr(self.entries[next])
+        leaving: ptr mut fibre.record = ptr(self.entries[was])
+        entering: ptr mut fibre.record = ptr(self.entries[next])
         compiler.stack_switch(addr leaving.val.saved, entering.val.saved)
         --  A fibre that yields names the entry it resumes before it
         --  switches, so this is this entry's turn.

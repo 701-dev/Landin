@@ -11955,17 +11955,13 @@ LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
 LIBRARY_CAPABILITY_NAMES = ("memory", "host")
 
 #  Each routine or concept entry that departs from core/README.md's
-#  conventions for receiving a capability, with the rule it departs from.
-#  Every one is on the breaking list, roadmap/inputs/breaking-list.md,
-#  whose application reshapes it and takes it out of this table; an entry
-#  that no longer departs is refused, so the table empties as the list is
-#  applied.
-LIBRARY_CONVENTION_DEPARTURES = {
-    "core/text.format_onto": "D1948",
-    "core/fibre/stacks.round_over": "D1954",
-    "core/io/fake.network_over_turns": "D1954",
-    "core/io.file_system.make_temporary": "D1954",
-}
+#  conventions for receiving a capability, with the rule it departs from,
+#  "core/text.format_onto": "D1948" for one.  Applying the breaking list,
+#  roadmap/inputs/breaking-list.md, reshaped every departure the table
+#  named, so it is empty: a departure added to the library is refused
+#  unless a decision names it here, and an entry that no longer departs is
+#  refused too.
+LIBRARY_CONVENTION_DEPARTURES = {}
 
 
 def library_parameters(text):
