@@ -203,6 +203,12 @@ package body Landin.Tests.Fixes_Suite is
    procedure Every_Pinned_Fix_Compiles_Clean
      (Item : in out Landin.Testing.Context)
    is
+      type Text_Access is access constant String;
+      Core_Import     : aliased constant String := "import core/";
+      Hosted_Import   : aliased constant String := "import hosted/";
+      Platform_Import : aliased constant String := "import platform/";
+      Library_Imports : constant array (1 .. 3) of Text_Access :=
+        [Core_Import'Access, Hosted_Import'Access, Platform_Import'Access];
       Real      : aliased Landin.Platform.Native.Native_Filesystem;
       Catalogue : Fixtures.Catalogue;
       Pinned    : Natural := 0;
@@ -232,7 +238,49 @@ package body Landin.Tests.Fixes_Suite is
              (Fixtures.Class (Fixture)) & "/" & Label;
          Arguments : Landin.Platform.Path_List;
          Tools     : Landin.Testing.Fakes.Fake_Tool_Runner;
-         Rooted    : constant Boolean := Fixtures.Module_Root (Fixture) /= "";
+         --  A fixture whose program imports the library is checked, with
+         --  its fixes, over the real host, which holds refine's library at
+         --  `../..` from the test program's directory: D2129's refusals are
+         --  of library names, and only the real library lacks them.
+         function Golden_Texts return String;
+
+         --  Every golden result the fixture names, run together.
+         function Golden_Texts return String is
+            Written : constant String := Fixtures.Fixed (Fixture);
+            Result  : Unbounded.Unbounded_String;
+            First   : Integer := Written'First;
+         begin
+            for Index in Written'First .. Written'Last + 1 loop
+               if Index > Written'Last or else Written (Index) = ',' then
+                  declare
+                     Pair  : constant String := Written (First .. Index - 1);
+                     Arrow : constant Natural :=
+                       Ada.Strings.Fixed.Index (Pair, "->");
+                     Named : constant String :=
+                       Trimmed (if Arrow = 0 then Pair
+                                else Pair (Arrow + 2 .. Pair'Last));
+                  begin
+                     if Named /= "" then
+                        Unbounded.Append
+                          (Result, Read (Directory & "/" & Named));
+                     end if;
+                  end;
+                  First := Index + 1;
+               end if;
+            end loop;
+            return Unbounded.To_String (Result);
+         end Golden_Texts;
+
+         Program_Text : constant String :=
+           (if Fixtures.Module_Root (Fixture) = ""
+            then Read (Directory & "/" & Fixtures.Program (Fixture))
+                 & Golden_Texts
+            else "");
+         Imports_Library : constant Boolean :=
+           (for some Namespace of Library_Imports =>
+              Ada.Strings.Fixed.Index (Program_Text, Namespace.all) > 0);
+         Rooted    : constant Boolean :=
+           Fixtures.Module_Root (Fixture) /= "" or else Imports_Library;
 
          --  Which golden file a source's result is, or "" for a source the
          --  fixture says nothing about.
@@ -284,6 +332,9 @@ package body Landin.Tests.Fixes_Suite is
                Description & ": the fixed program reports nothing");
          end Check_Clean;
       begin
+         if Imports_Library then
+            Landin.Platform.Add (Arguments, "--library=../..");
+         end if;
          Fixtures.Append_Module_Arguments (Fixture, Corpus, Arguments);
 
          declare

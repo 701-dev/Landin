@@ -8,3 +8,4 @@ error[L0348]: `bag` has no conformance to core/iter's `iterable`; `for` takes no
 26 |     for each in items do
    |     ^^^^^^^^^^^^^^^^^^^^ the loop that traverses it
   = note: D1957: import core/iter and conform to `iter.iterable` in place of declaring one
+  = help: write `iter.iterable`

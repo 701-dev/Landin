@@ -1,5 +1,5 @@
 class: negative
-summary: a for loop over a program's own concept named iterable is refused, naming core/iter's iterable to conform to instead
+summary: a for loop over a program's own concept named iterable is refused, naming core/iter's iterable to conform to instead, and the fix removes the program's concept and conforms to iter.iterable
 program: main.ldn
 codes: L0348
 constructs: 1150, 1320
@@ -7,3 +7,4 @@ targets: linux-x86-64
 expect: expected.txt
 args: ../tests/fixtures/negative/for-takes-only-core-iter-iterable/main.ldn
 status: 1
+fixed: main.fixed

@@ -1780,8 +1780,10 @@ A `for` source is not something the loop can traverse [1150]. A range
 traversal runs over integers, an array or slice is walked by element, and a
 struct or `any C` source selects its one exact conformance to `core/iter`'s
 `iterable`, with one `Cur` and `Item` pair (D180, D1957); a program's own
-concept named `iterable` is an ordinary concept the loop does not take. An
-ordinary pointer is not a `cstring` (D184). Traverse an integer range or a
+concept named `iterable` is an ordinary concept the loop does not take.
+When that concept is written exactly as [1320] wrote it before D1957 and is
+not public, the fix removes it, writes `iter.iterable` for each use in its
+module and imports `core/iter` (D2129). An ordinary pointer is not a `cstring` (D184). Traverse an integer range or a
 traversable value, or import `core/iter` and declare one conformance to
 `iter.iterable`. Each provider takes a read-only, non-escaping `ptr T` to the
 retained source, with the exact cursor, item, permission and origin contract
@@ -3257,8 +3259,8 @@ the breaking list. The note names the decision and the name that replaced
 it, and the fix writes that name. Where the new name is in another module,
 such as `mem.not_found` for `map.missing`, the fix also imports that module
 if the file does not. Where a failure set would then name an atom twice, the
-fix removes the second. `tree.count_leaves(v, id)` becomes
-`tree.leaves(tree.get(v, id))`, and `mem.transfer_prefix(source, target, n)`
+fix removes the second. `try tree.count_leaves(v, id)` becomes
+`tree.leaves(try tree.get(v, id))`, and `mem.transfer_prefix(source, target, n)`
 becomes `mem.copy_prefix(target, source, n)` (D2128). Three names have no fix,
 because what replaces them changes the program's shape. `map.end_of_entries`
 is gone because `map.next_entry` no longer fails: ask `map.at_end`. Instead

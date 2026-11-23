@@ -454,6 +454,7 @@ package body Landin.Stages.Resolution is
       is
          package Gone renames Landin.Modules.Removed;
          use type Gone.Rewrite;
+         use type Landin.Source.Byte_Offset;
          Source_Id : constant Landin.Source.Source_Id :=
            Syn.Source_Of (Of_Tree);
          Text : Landin.Source.Snapshot renames
@@ -647,23 +648,42 @@ package body Landin.Stages.Resolution is
                   return Landin.Diagnostics.No_Fixes;
                end if;
             when Gone.Leaves_Of =>
-               if Call = Syn.No_Node
-                 or else Syn.Kind (Of_Tree, Call) /= Syn.Call
-                 or else Syn.Argument_Count (Of_Tree, Call) /= 2
-               then
-                  return Landin.Diagnostics.No_Fixes;
-               end if;
-               Edits.Append
-                 (Landin.Diagnostics.Make_Edit
-                    (Source_Id, Syn.Anchor (Of_Tree, Node),
-                     Gone.New_Name (Row) & "("
-                     & Unbounded.To_String (Bound) & ".get"));
-               Edits.Append
-                 (Landin.Diagnostics.Make_Edit
-                    (Source_Id,
-                     (First => Syn.Where (Of_Tree, Call).Last,
-                      Last  => Syn.Where (Of_Tree, Call).Last),
-                     ")"));
+               --  Only `try tree.count_leaves(v, id)` has a mechanical
+               --  rewrite, `tree.leaves(try tree.get(v, id))`: an `else`
+               --  recovers a count, which `get`'s failure cannot give.
+               declare
+                  Tried : constant Syn.Node_Id :=
+                    (if Call = Syn.No_Node then Syn.No_Node
+                     else Syn.Enclosing (Of_Tree, Call));
+               begin
+                  if Call = Syn.No_Node
+                    or else Syn.Kind (Of_Tree, Call) /= Syn.Call
+                    or else Syn.Argument_Count (Of_Tree, Call) /= 2
+                    or else Tried = Syn.No_Node
+                    or else Syn.Kind (Of_Tree, Tried) /= Syn.Try_Expression
+                    or else Syn.Operand_Of (Of_Tree, Tried) /= Call
+                    or else Syn.Where (Of_Tree, Tried).Last
+                              /= Syn.Where (Of_Tree, Call).Last
+                  then
+                     return Landin.Diagnostics.No_Fixes;
+                  end if;
+                  Edits.Clear;
+                  Edits.Append
+                    (Landin.Diagnostics.Make_Edit
+                       (Source_Id, Syn.Where (Of_Tree, Tried),
+                        Unbounded.To_String (Bound) & "."
+                        & Gone.New_Name (Row) & "(try "
+                        & Unbounded.To_String (Bound) & ".get("
+                        & Landin.Source.Slice
+                            (Text,
+                             (First => Syn.Where
+                                (Of_Tree,
+                                 Syn.Nth_Argument (Of_Tree, Call, 1)).First,
+                              Last  => Syn.Where
+                                (Of_Tree,
+                                 Syn.Nth_Argument (Of_Tree, Call, 2)).Last))
+                        & "))"));
+               end;
          end case;
 
          declare
