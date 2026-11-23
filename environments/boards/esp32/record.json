@@ -34,7 +34,7 @@
     "boot_reason": 1,
     "app_state": 2,
     "timer_events": [
-      822,
+      821,
       1236
     ],
     "trap_count": 0,
@@ -91,10 +91,10 @@
       "burst": 300,
       "fifo_overflows": 1,
       "restarts": 2,
-      "timer_interrupts_meanwhile": 100
+      "timer_interrupts_meanwhile": 101
     },
     "stream": {
-      "timer_events": 4778,
+      "timer_events": 4775,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -167,7 +167,7 @@
     "0x40080404+0x6138",
     "0x3ffb0000+0x28"
   ],
-  "uart_sha256": "09c7fcc06154fbf1694b1de21e3a2d56046a5490e95f3d5c2b666dd4824cd0dc",
+  "uart_sha256": "37c2d0099a41e845f280c3eb98848d4a76b661cad72bf51d329e75cc21822f66",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -187,33 +187,33 @@
       }
     }
   },
-  "seconds": 27.596,
+  "seconds": 28.312,
   "kernel_usb": {
-    "since": 1795416949.3592298,
-    "until": 1795416976.9269574,
+    "since": 1795439342.2327368,
+    "until": 1795439370.5156043,
     "lines": [
       {
-        "time": 1795416954.50697,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 7"
+        "time": 1795439347.323627,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 96"
       },
       {
-        "time": 1795416957.060676,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 24 using xhci_hcd"
+        "time": 1795439349.927008,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 113 using xhci_hcd"
       },
       {
-        "time": 1795416957.164753,
+        "time": 1795439350.032686,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       },
       {
-        "time": 1795416972.815074,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 24"
+        "time": 1795439366.374406,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 113"
       },
       {
-        "time": 1795416975.388696,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 25 using xhci_hcd"
+        "time": 1795439368.968681,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 114 using xhci_hcd"
       },
       {
-        "time": 1795416975.492816,
+        "time": 1795439369.072951,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       }
     ],
@@ -240,10 +240,10 @@
       "h": "00000c9a",
       "c": "00000002",
       "i": "00001b3d",
-      "m": "000019f0",
+      "m": "000019eb",
       "p": "00018042",
       "q": "00818040",
-      "k": "00000064",
+      "k": "00000065",
       "l": "0000002c",
       "o": "00000001",
       "e": "00000d9a",
@@ -259,6 +259,7 @@
     "power-off",
     "hub-status",
     "power-on",
+    "hub-wait",
     "hub-wait",
     "jtag-cold-reset-cause",
     "jtag-cold-boot-reason",

@@ -28276,6 +28276,61 @@ leave the same shape written by hand unproved.
 **Pinned by** the IR optimization suite's `proved checks`, with four
 controls, at size and speed.
 
+### D2207 — A counted index proves the arithmetic on it
+
+**The tour said** nothing. A loop's test bounded its index from above,
+but nothing bounded it from below, and no arithmetic carried a bound:
+SHA-256's schedule, `for t in usize(16)..<64` reading `w[t - 15]`, kept
+each subtraction's underflow check and each index's bounds check, and its
+load loop, reading `block[4 * t + k]` for `t` below 16, each
+multiplication's and addition's overflow check, 3,072 of about 7,400
+x86-64 instructions a 64-byte block.
+
+**Chosen:** a checked `x + k`, `x - k` or `x * k`, for a constant `k`
+(at least zero, or above zero for `*`), that did not trap lies within
+`x`'s least and greatest moved by `k`; a checked multiplication by a
+constant is proved when both moved bounds fit its type. A slot that
+nothing names but its own loads and stores is counted when it has two
+stores, a first and a step, the step its own load plus a constant at
+least zero, and the first store's block strictly dominates the step's and
+its load's. Every value it then holds where the first store strictly
+dominates is at least the first value's least, provided the step does not
+wrap. The walk learns that at the step, after the loop's body it bounds,
+so a proof resting on a counted slot's least waits to the walk's end and
+is applied only if the step is checked, and traps rather than wraps, or
+the bounds where it stands leave room for its constant. A first value
+that rests on another counted slot counts nothing, nor does a step
+written in an `unchecked` region the bounds cannot vouch for.
+
+**The alternatives:** a general range analysis to a fixed point over
+the loop, which would bound more and cost a solver where one dominator
+walk now serves; rewriting `for` loops' indices in lowering, which would
+leave the same loop written with `while` unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`, with four
+controls, at size and speed.
+
+### D2208 — x86-64 selects a proved unsigned product as `imul`
+
+**The tour said** nothing. An unsigned checked product needs `mul`'s
+high half for its carry, so x86-64 moved one operand into `%rax`,
+multiplied and moved the low half out, and kept that form when the
+check was proved and removed (D2207): SHA-256's load loop spent four
+instructions on each `4 * t`.
+
+**Chosen:** at size and speed a multiplication the simplifier proved
+cannot overflow is selected as the two- or three-operand `imul`, at
+either signedness, since the low half of the product is the same, as a
+wrapping product already is; a byte's product keeps the one-operand
+form, which `imul` has no other form for.
+
+**The alternatives:** a shift for a power-of-two constant, which reads
+the same as `imul` once the constant is an immediate and is left to the
+selection of immediates.
+
+**Pinned by** SHA-256's measured load loop and the runtime fixtures'
+products at size and speed.
+
 ### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
 
 **The tour said** nothing. D1767 left an eight-byte constant, and every

@@ -864,7 +864,7 @@ direct port. The candidate passed its
 
 ### R16.31 — A loop's index proves its own checks
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 What R16.30 left as the largest cost against gcc on the hosted targets:
@@ -877,6 +877,30 @@ against gcc's 4.56 G.
 Exit evidence: SHA-256's schedule and load loops measured without the
 checks their index's range proves, its instructions lower than R16.30's
 figures on x86-64 and arm64, and no other combination over its own.
+
+Done: a checked `x + k`, `x - k` or `x * k` for a constant carries its
+operand's bounds, a multiplication by a constant is proved when both
+moved bounds fit, and a counted slot, stored with a first value and
+stepped by its own content plus a constant, is never below the first
+value, the proofs resting on it applied once the walk has seen that the
+step cannot wrap (D2207, `SR-1680`); x86-64 selects a product so proved
+as `imul` rather than `mul` (D2208). SHA-256's schedule keeps no check,
+31 x86-64 instructions an iteration where it spent 44, and its load loop
+none but the slice's own length, which is dynamic. Against the item's
+base, at speed, x86-64 executes 11.0% fewer instructions on SHA-256 of
+64 MiB (7.76 G to 6.90 G; gcc's 4.56 G) and 9.1% at size; arm64 under
+QEMU 12.0% fewer at speed and 8.8% at size; binary-trees 0.3% fewer on
+both, reverse-complement 0.2% on x86-64, every other hosted program the
+same, every image's `.text` smaller and every output the same. What
+SHA-256 still spends against gcc is selection rather than checks: `SR-1704`
+files the index offsets x86-64 makes in registers rather than in the
+address's displacement and the four products of one `4 * t`. Q-204 is
+answered: SR-1650 stays open until it is solved. Firmware moved only on
+the STM32H753 and the ESP32-C3 and C5; every board's records were made
+again on the rig, and all 432 board configurations' cycles stayed within
+tolerance. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45184619163) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45192092129).
 
 ### R16.32 — Time the STM32H753 from its tightly coupled memories
 

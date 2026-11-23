@@ -6552,7 +6552,9 @@ package body Landin.Backend.X86_64 is
                         --  two- or three-operand `imul`, whose overflow
                         --  flag is the one-operand form's; an unsigned one
                         --  needs `mul`'s high half, and a byte has neither.
-                        if Optimized and then Signed
+                        --  A product proved not to overflow is the low half
+                        --  at either signedness, `imul`'s too (D2208).
+                        if Optimized and then (Signed or else Unchecked)
                           and then Held /= Landin.Targets.Byte_1
                         then
                            Integer_Binary
