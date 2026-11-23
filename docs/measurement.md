@@ -129,8 +129,23 @@ the hart is halted, so a probe's span carried 130,000 to 190,000 cycles of
 its own against a program's 4,600 to 19,000. The study in
 `compiler/tests/measure/noise/cycles.json` found the ESP32, ESP32-S3,
 ESP32-C3 and Hazard3 exact, the M33 within 0.05%, the C5 within 0.31% and
-the RP2040 within one count; the M7's first run after a load is up to 5%
-high and the runs after it equal, which the lower median of three takes.
+the RP2040 within one count; the M7's first run after a load is up to 10%
+high, the second up to 26 cycles and the runs after it equal, which the
+lower median of three and the port's floor of 40 cycles take.
+
+Every board but one is timed where `--firmware-layout=ram` places its
+image. The STM32H753's RAM layout puts text, data and stack in the AXI
+SRAM, which the M7 reaches uncached, and there the code's place decided
+its cost: the same sieve moved 2 bytes at a time took 7,317 to 10,652
+cycles, with a period of 32 bytes, and a load soon after a store to the
+stack stalled. All ten of its recorded slowdowns with equal or fewer
+instructions were these. So `timing.py build` links its images with
+refine's derived script moved to the M7's tightly coupled memories, text
+and read-only data in the ITCM and data, BSS and stack in the DTCM, where
+the same sweep moves a figure by under 0.6% (D2227); its key's placement
+says so, `text:itcm,data:dtcm,stack:dtcm`. The ITCM is also where the
+board's own description places its text when it boots.
+
 A board's images are identical when their loaded segments and entry are,
 whatever the ELF file's debugging information says.
 

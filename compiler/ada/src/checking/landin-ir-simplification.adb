@@ -69,6 +69,9 @@ package body Landin.IR.Simplification is
    type Storage_Array is array (Positive range <>) of Storage;
    package Highs is new Scratch_Arrays
      (Integer_Value, Integer_Value'Last);
+   package Lows is new Scratch_Arrays
+     (Integer_Value, Integer_Value'First);
+   package Slot_Lists is new Scratch_Arrays (Slot_Id, No_Slot);
    procedure Sort is new Ada.Containers.Generic_Array_Sort
      (Positive, Natural, Counts.Elements);
 
@@ -1511,6 +1514,47 @@ package body Landin.IR.Simplification is
             Checked_List : Counts.Elements renames
               Checked_List_Owner.Data.all;
             Checked_Count : Natural := 0;
+            --  D2207: the least a value can be by what produced it, and the
+            --  counted slot that bound rests on, if any.
+            Value_Lower_Owner : constant Lows.Owner :=
+              Lows.Create (Value_Total);
+            Value_Lower : Lows.Elements renames Value_Lower_Owner.Data.all;
+            Lower_Source_Owner : constant Slot_Lists.Owner :=
+              Slot_Lists.Create (Value_Total);
+            Lower_Source : Slot_Lists.Elements renames
+              Lower_Source_Owner.Data.all;
+            --  D2207: an eligible slot stored twice, once with a first value
+            --  and once with its own content plus a constant k >= 0, is
+            --  counted: it is never below its first value's least, provided
+            --  the step does not wrap.  Proofs resting on that are applied
+            --  once the walk has seen the step and shown it cannot wrap.
+            First_Store_Owner : constant Values.Owner :=
+              Values.Create (Slot_Total);
+            First_Store : Values.Elements renames First_Store_Owner.Data.all;
+            Step_Store_Owner : constant Values.Owner :=
+              Values.Create (Slot_Total);
+            Step_Store : Values.Elements renames Step_Store_Owner.Data.all;
+            Counted_Owner : constant Flags.Owner := Flags.Create (Slot_Total);
+            Counted : Flags.Elements renames Counted_Owner.Data.all;
+            Counted_Low_Owner : constant Lows.Owner :=
+              Lows.Create (Slot_Total);
+            Counted_Low : Lows.Elements renames Counted_Low_Owner.Data.all;
+            Started_Owner : constant Flags.Owner := Flags.Create (Slot_Total);
+            Started : Flags.Elements renames Started_Owner.Data.all;
+            Step_Holds_Owner : constant Flags.Owner :=
+              Flags.Create (Slot_Total);
+            Step_Holds : Flags.Elements renames Step_Holds_Owner.Data.all;
+            --  The counted slot whose least the current question rested on,
+            --  and whether it rested on two.
+            Consulted : Slot_Id := No_Slot;
+            Consulted_Two : Boolean := False;
+            type Pending_Proof is record
+               Value : Value_Id := No_Value;
+               Slot : Slot_Id := No_Slot;
+            end record;
+            package Pending_Vectors is new Ada.Containers.Vectors
+              (Index_Type => Positive, Element_Type => Pending_Proof);
+            Pending : Pending_Vectors.Vector;
 
             type Undo_Entry is record
                Slot : Slot_Id := No_Slot;
@@ -1678,6 +1722,8 @@ package body Landin.IR.Simplification is
 
             function Lower_Of (Value : Value_Id) return Integer_Value;
             function Lower_Of (Value : Value_Id) return Integer_Value is
+               Produced : constant Integer_Value :=
+                 Value_Lower (Positive (Value));
                Result : Integer_Value :=
                  (if Value_Term (Positive (Value)).Kind = Constant_Term
                   then Value_Term (Positive (Value)).Number
@@ -1697,6 +1743,21 @@ package body Landin.IR.Simplification is
                        (Result,
                         (if Fact.Strict and then Limit < Type_High (Value)
                          then Limit + 1 else Limit));
+                  end;
+               end if;
+               if Produced > Result then
+                  Result := Produced;
+                  declare
+                     Source : constant Slot_Id :=
+                       Lower_Source (Positive (Value));
+                  begin
+                     if Source = No_Slot then
+                        null;
+                     elsif Consulted = No_Slot then
+                        Consulted := Source;
+                     elsif Consulted /= Source then
+                        Consulted_Two := True;
+                     end if;
                   end;
                end if;
                return Integer_Value'Min (Type_High (Value), Result);
@@ -1916,10 +1977,37 @@ package body Landin.IR.Simplification is
                Waived : constant Boolean := Code.Unchecked;
                Here : Term;
                Upper : Integer_Value := 0;
+               Lower : Integer_Value := Integer_Value'First;
+               Source : Slot_Id := No_Slot;
                Proved : Boolean := False;
+
+               --  The constant operand of a two-operand V and the other,
+               --  for x + k, k + x, x - k, x * k and k * x.
+               Varying : Value_Id := No_Value;
+               Amount : Integer_Value := 0;
             begin
+               Consulted := No_Slot;
+               Consulted_Two := False;
                if Code.Result in Landin.Types.Integer_Name then
                   Upper := Type_High (V);
+                  if Code.Op in Add | Subtract | Multiply
+                    and then Code.Args = 2
+                  then
+                     if Value_Term (Positive (Operand (Code, 2))).Kind
+                       = Constant_Term
+                     then
+                        Varying := Operand (Code, 1);
+                        Amount := Value_Term
+                          (Positive (Operand (Code, 2))).Number;
+                     elsif Code.Op /= Subtract
+                       and then Value_Term (Positive (Operand (Code, 1))).Kind
+                         = Constant_Term
+                     then
+                        Varying := Operand (Code, 2);
+                        Amount := Value_Term
+                          (Positive (Operand (Code, 1))).Number;
+                     end if;
+                  end if;
                end if;
                case Code.Op is
                   when Number =>
@@ -1958,6 +2046,21 @@ package body Landin.IR.Simplification is
                            end if;
                         end if;
                      end if;
+                     --  D2207: every value a counted slot holds below its
+                     --  first store is at least that store's.
+                     if Code.Slot /= No_Slot
+                       and then Counted (Positive (Code.Slot))
+                       and then Started (Positive (Code.Slot))
+                       and then Code.Result in Landin.Types.Integer_Name
+                       and then Dominance.Strictly_Dominates
+                         (Tree,
+                          Code_At (First_Store (Positive (Code.Slot)))
+                            .In_Block,
+                          Block_Id (Block))
+                     then
+                        Lower := Counted_Low (Positive (Code.Slot));
+                        Source := Code.Slot;
+                     end if;
                   when Load_Field =>
                      if Code.Slot /= No_Slot
                        and then Frozen (Positive (Code.Slot))
@@ -1980,6 +2083,7 @@ package body Landin.IR.Simplification is
                      then
                         Upper := Integer_Value'Min
                           (Upper, Upper_Of (Operand (Code, 1)));
+                        Lower := Lower_Of (Operand (Code, 1));
                      end if;
                   when Bitwise_And | Remainder | Divide | Shift_Right =>
                      if Unsigned (V) and then Code.Args = 2 then
@@ -2012,7 +2116,86 @@ package body Landin.IR.Simplification is
                            end if;
                         end;
                      end if;
+                  when Add | Subtract | Multiply =>
+                     --  D2207: a checked x + k, x - k or x * k, k a
+                     --  constant, that did not trap lies within x's bounds
+                     --  moved by k.  One [1120] waived may have wrapped.
+                     if Varying /= No_Value and then not Waived
+                       and then (Code.Op /= Multiply or else Amount > 0)
+                       and then (Code.Op = Multiply or else Amount >= 0)
+                     then
+                        declare
+                           High : constant Integer_Value :=
+                             Upper_Of (Varying);
+                           Low : constant Integer_Value :=
+                             Lower_Of (Varying);
+                           Most : constant Integer_Value :=
+                             Integer_Value'Last;
+                        begin
+                           case Code.Op is
+                              when Add =>
+                                 if High <= Most - Amount then
+                                    Upper := Integer_Value'Min
+                                      (Upper, High + Amount);
+                                 end if;
+                                 if Low <= Most - Amount then
+                                    Lower := Low + Amount;
+                                 end if;
+                              when Subtract =>
+                                 if High >= Integer_Value'First + Amount then
+                                    Upper := Integer_Value'Min
+                                      (Upper, High - Amount);
+                                 end if;
+                                 if Low >= Integer_Value'First + Amount then
+                                    Lower := Low - Amount;
+                                 end if;
+                              when others =>
+                                 if abs High <= Most / Amount then
+                                    Upper := Integer_Value'Min
+                                      (Upper, High * Amount);
+                                 end if;
+                                 if abs Low <= Most / Amount then
+                                    Lower := Low * Amount;
+                                 end if;
+                           end case;
+                        end;
+                     end if;
                   when Store =>
+                     if Code.Slot /= No_Slot
+                       and then Counted (Positive (Code.Slot))
+                     then
+                        if First_Store (Positive (Code.Slot)) = V then
+                           --  The counted slot's least, when it rests on no
+                           --  other counted slot.
+                           Counted_Low (Positive (Code.Slot)) :=
+                             Lower_Of (Operand (Code, 1));
+                           Started (Positive (Code.Slot)) :=
+                             Consulted = No_Slot;
+                        elsif Step_Store (Positive (Code.Slot)) = V then
+                           --  The step x + k cannot wrap: it is checked, so
+                           --  traps first, or x's bound leaves room for k.
+                           declare
+                              Step : constant Value_Id := Operand (Code, 1);
+                              Step_Code : constant Instruction :=
+                                Code_At (Step);
+                              Count : constant Value_Id :=
+                                (if Code_At (Operand (Step_Code, 1)).Op = Load
+                                 then Operand (Step_Code, 1)
+                                 else Operand (Step_Code, 2));
+                              Other : constant Value_Id :=
+                                (if Count = Operand (Step_Code, 1)
+                                 then Operand (Step_Code, 2)
+                                 else Operand (Step_Code, 1));
+                           begin
+                              Step_Holds (Positive (Code.Slot)) :=
+                                not Step_Code.Unchecked
+                                or else Upper_Of (Count)
+                                  <= Type_High (Step) - Numeric (Other);
+                           end;
+                        end if;
+                        Consulted := No_Slot;
+                        Consulted_Two := False;
+                     end if;
                      if Eligible (Positive (Code.Slot)) then
                         if not Stored_Here (Positive (Code.Slot)) then
                            Stored_Here (Positive (Code.Slot)) := True;
@@ -2046,36 +2229,46 @@ package body Landin.IR.Simplification is
                   Under (Positive (V)) := Operand (Code, 1);
                end if;
                Value_Upper (Positive (V)) := Upper;
+               if Code.Result in Landin.Types.Integer_Name then
+                  if Consulted_Two then
+                     Lower := Integer_Value'First;
+                  elsif Source = No_Slot then
+                     Source := Consulted;
+                  end if;
+                  Value_Lower (Positive (V)) := Lower;
+                  Lower_Source (Positive (V)) :=
+                    (if Lower > Type_Low (V) then Source else No_Slot);
+               end if;
+               Consulted := No_Slot;
+               Consulted_Two := False;
                if Waived or else not Check_Is_Removable (Into, Item, V) then
                   null;
-               elsif Code.Op in Add | Subtract and then Code.Args = 2 then
+               elsif Code.Op in Add | Subtract and then Varying /= No_Value
+               then
+                  --  x + k, with k a constant of x's own type.
                   declare
-                     Left : constant Value_Id := Operand (Code, 1);
-                     Right : constant Value_Id := Operand (Code, 2);
-                     Varying : Value_Id := No_Value;
-                     Amount : Integer_Value := 0;
+                     Moved : constant Integer_Value :=
+                       (if Code.Op = Subtract then -Amount else Amount);
                   begin
-                     if Value_Term (Positive (Right)).Kind = Constant_Term
-                     then
-                        Varying := Left;
-                        Amount := Value_Term (Positive (Right)).Number;
-                     elsif Code.Op = Add
-                       and then Value_Term (Positive (Left)).Kind
-                         = Constant_Term
-                     then
-                        Varying := Right;
-                        Amount := Value_Term (Positive (Left)).Number;
-                     end if;
-                     if Code.Op = Subtract then
-                        Amount := -Amount;
-                     end if;
-                     --  x + k, with k a constant of x's own type.
-                     if Varying /= No_Value then
-                        Proved :=
-                          (if Amount >= 0
-                           then Upper_Of (Varying) <= Type_High (V) - Amount
-                           else Lower_Of (Varying) >= Type_Low (V) - Amount);
-                     end if;
+                     Proved :=
+                       (if Moved >= 0
+                        then Upper_Of (Varying) <= Type_High (V) - Moved
+                        else Lower_Of (Varying) >= Type_Low (V) - Moved);
+                  end;
+               elsif Code.Op = Multiply and then Varying /= No_Value then
+                  --  D2207: x * k, with k a constant: x's bounds times k.
+                  declare
+                     High : constant Integer_Value := Upper_Of (Varying);
+                     Low : constant Integer_Value := Lower_Of (Varying);
+                     Most : constant Integer_Value := Integer_Value'Last;
+                  begin
+                     Proved := Amount = 0
+                       or else (abs High <= Most / abs Amount
+                         and then abs Low <= Most / abs Amount
+                         and then High * Amount
+                           in Type_Low (V) .. Type_High (V)
+                         and then Low * Amount
+                           in Type_Low (V) .. Type_High (V));
                   end;
                elsif Code.Op in Load_Element | Store_Element | Storage_Address
                then
@@ -2109,7 +2302,13 @@ package body Landin.IR.Simplification is
                   Proved := Below
                     (Operand (Code, 3), Operand (Code, 2), Block);
                end if;
-               if Proved then
+               if not Proved or else Consulted_Two then
+                  null;
+               elsif Consulted /= No_Slot then
+                  --  D2207: applied once the counted slot's step is seen.
+                  Pending.Append
+                    (Pending_Proof'(Value => V, Slot => Consulted));
+               else
                   Code.Unchecked := True;
                   Into.Code.Replace_Element (Held.Values.First + Positive (V),
                                              Code);
@@ -2178,6 +2377,78 @@ package body Landin.IR.Simplification is
                         end;
                      end loop;
                   end;
+               end if;
+            end loop;
+            --  D2207: the counted slots, each stored by one first store
+            --  and by one step, its own load plus a constant k >= 0, the
+            --  first store's block strictly dominating the step's and the
+            --  load's, so that every load the step adds to was stored by
+            --  one or the other.
+            for V in 1 .. Value_Total loop
+               if Keep (Held.Values.First + V) then
+                  declare
+                     Code : constant Instruction := Code_At (Value_Id (V));
+                  begin
+                     if Code.Op = Store and then Code.Slot /= No_Slot
+                       and then Eligible (Positive (Code.Slot))
+                       and then Store_Total (Positive (Code.Slot)) = 2
+                     then
+                        declare
+                           S : constant Positive := Positive (Code.Slot);
+                           Step : constant Instruction :=
+                             Code_At (Operand (Code, 1));
+
+                           function Own_Load (X : Value_Id) return Boolean
+                             is (Code_At (X).Op = Load
+                                 and then Code_At (X).Slot = Code.Slot);
+
+                           function Step_Constant (X : Value_Id)
+                             return Boolean
+                             is (Integer_Constant (X)
+                                 and then Numeric (X) >= 0);
+                        begin
+                           if Step.Op = Add and then Step.Args = 2
+                             and then Step.Result in Landin.Types.Integer_Name
+                             and then ((Own_Load (Operand (Step, 1))
+                                        and then Step_Constant
+                                          (Operand (Step, 2)))
+                                       or else (Own_Load (Operand (Step, 2))
+                                         and then Step_Constant
+                                           (Operand (Step, 1))))
+                           then
+                              --  Two steps leave Counted false.
+                              Step_Store (S) := Value_Id (V);
+                              Counted (S) := not Counted (S);
+                           else
+                              First_Store (S) := Value_Id (V);
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end if;
+            end loop;
+            for S in 1 .. Slot_Total loop
+               --  Counted now says the slot had exactly one step.
+               if Counted (S) and then First_Store (S) /= No_Value then
+                  declare
+                     First_Block : constant Block_Id :=
+                       Code_At (First_Store (S)).In_Block;
+                     Step : constant Instruction :=
+                       Code_At (Operand (Code_At (Step_Store (S)), 1));
+                     Count : constant Value_Id :=
+                       (if Code_At (Operand (Step, 1)).Op = Load
+                        then Operand (Step, 1) else Operand (Step, 2));
+                  begin
+                     Counted (S) :=
+                       Dominance.Position (Tree, First_Block) /= 0
+                       and then Dominance.Strictly_Dominates
+                         (Tree, First_Block,
+                          Code_At (Step_Store (S)).In_Block)
+                       and then Dominance.Strictly_Dominates
+                         (Tree, First_Block, Code_At (Count).In_Block);
+                  end;
+               else
+                  Counted (S) := False;
                end if;
             end loop;
             --  Each store's reach, as preorder positions grouped by slot
@@ -2305,6 +2576,21 @@ package body Landin.IR.Simplification is
                     (Scope_Entry'(Last => Dominance.Last_Below (Tree, Block),
                                   Mark => Entered));
                end;
+            end loop;
+            --  D2207: a proof resting on a counted slot's least holds once
+            --  its step was seen not to wrap.
+            for Proof of Pending loop
+               if Step_Holds (Positive (Proof.Slot))
+                 and then Started (Positive (Proof.Slot))
+               then
+                  declare
+                     Code : Instruction := Code_At (Proof.Value);
+                  begin
+                     Code.Unchecked := True;
+                     Into.Code.Replace_Element
+                       (Held.Values.First + Positive (Proof.Value), Code);
+                  end;
+               end if;
             end loop;
          end;
          --  Backward demand marks transitive operands once. Observable

@@ -2,7 +2,7 @@
  "schema": 1,
  "kind": "cycles",
  "runner": "rig",
- "note": "Each port's firmware workloads at size-auto, the compiler's default profile, ten timing runs of each on the rig on 2026-11-18, with environments/boards/timing.py and the SRAM helper as this record's commit has them but for the helper's tests; each board names the compiler that built its images. The RP2350's Arm runs came between its rp2350 and rp2350_hazard3 boot checks. On the STM32H753 the first run after each load is 76 to 181 cycles slower and the nine after it are equal; the ESP32-C5 alternates between two counts.",
+ "note": "Each port's firmware workloads at size-auto, the compiler's default profile, ten timing runs of each on the rig, with environments/boards/timing.py and the SRAM helper as this record's commit has them but for the helper's tests; each board names the compiler that built its images. Every port but the STM32H753 was studied on 2026-11-18; the RP2350's Arm runs came between its rp2350 and rp2350_hazard3 boot checks, and the ESP32-C5 alternates between two counts. The STM32H753 was studied again on 2026-11-23 from its ITCM and DTCM (D2227): the first run after each load is 20 to 192 cycles slower, the second up to 26 cycles, and the runs after it are equal but for mandelbrot's, which alternate between two counts 14 cycles apart.",
  "boards": {
   "esp32": {
    "target": "xtensa",
@@ -804,119 +804,160 @@
    "counter": "DWT_CYCCNT",
    "unit": "cycles",
    "clock": "hsi-64000000hz",
-   "placement": "text:axi-sram,data:axi-sram,stack:axi-sram",
-   "compiler": "fc3f5fcf442e7d27457873eeff1a86e809bcacff40273ce8dadf996fc1a97596",
-   "bundle_source": "8e766ff8e4c1136508fe70f611abdcacf4d962eb7dfc4254bad7922e28cd5b8f",
-   "seconds": 24.739,
+   "placement": "text:itcm,data:dtcm,stack:dtcm",
+   "compiler": "32099d4a168fbe20274aa9d117a654223197f319d81f8293191c030d73ed5515",
+   "bundle_source": "a4280938c46f3a9e061e479b204898aad5f0520a72ed68c3c99d5d2291597d13",
+   "seconds": 30.751,
    "workloads": {
     "sieve-of-eratosthenes": {
-     "digest": "33e61903ce9ee58f5571c6f1e44d38f05d7471068ab70346a8d36215eb0340b8",
+     "digest": "063dfa078af70bef75187c0a2132d6cb7943d1fee655008332bd86d1cf2ff85c",
      "profiles": [
-      "size-off",
-      "size-auto",
-      "size-all"
-     ],
-     "runs": 10,
-     "median": 57261,
-     "minimum": 57261,
-     "maximum": 57363,
-     "spread": 102,
-     "relative_spread": 0.001781,
-     "counts": [
-      57363,
-      57261,
-      57261,
-      57261,
-      57261,
-      57261,
-      57261,
-      57261,
-      57261,
-      57261
-     ]
-    },
-    "merge-sort": {
-     "digest": "81cf85d3949a40637306b4d4f7d1e7aa1f62ee95382b823fbca8242853c47bca",
-     "profiles": [
-      "size-off",
-      "size-auto",
-      "size-all"
-     ],
-     "runs": 10,
-     "median": 27852,
-     "minimum": 27852,
-     "maximum": 28033,
-     "spread": 181,
-     "relative_spread": 0.006499,
-     "counts": [
-      28033,
-      27852,
-      27852,
-      27852,
-      27852,
-      27852,
-      27852,
-      27852,
-      27852,
-      27852
-     ]
-    },
-    "binary-search": {
-     "digest": "d610e04008abfe538c96d254acc56f2b65ddf225bd4f18f80229675ff8277ef8",
-     "profiles": [
-      "size-off",
-      "size-auto",
-      "size-all"
-     ],
-     "runs": 10,
-     "median": 7188,
-     "minimum": 7188,
-     "maximum": 7355,
-     "spread": 167,
-     "relative_spread": 0.023233,
-     "counts": [
-      7355,
-      7188,
-      7188,
-      7188,
-      7188,
-      7188,
-      7188,
-      7188,
-      7188,
-      7188
-     ]
-    },
-    "cmp-siphash-vectors": {
-     "digest": "4b1930a2d4097154749df2c42eb2249f38fb029c5e87a3f00df451e86ef132d4",
-     "profiles": [
-      "size-off",
       "size-auto"
      ],
      "runs": 10,
-     "median": 1407572,
-     "minimum": 1407572,
-     "maximum": 1407648,
-     "spread": 76,
-     "relative_spread": 5.4e-05,
+     "median": 7085,
+     "minimum": 7085,
+     "maximum": 7210,
+     "spread": 125,
+     "relative_spread": 0.017643,
      "counts": [
-      1407648,
-      1407572,
-      1407572,
-      1407572,
-      1407572,
-      1407572,
-      1407572,
-      1407572,
-      1407572,
-      1407572
+      7210,
+      7111,
+      7085,
+      7085,
+      7085,
+      7085,
+      7085,
+      7085,
+      7085,
+      7085
+     ]
+    },
+    "merge-sort": {
+     "digest": "06c0188f59e94f0975fb5d98f80a62c00074c2ac8c2b902f82d37d5581e1f6f9",
+     "profiles": [
+      "size-auto"
+     ],
+     "runs": 10,
+     "median": 3298,
+     "minimum": 3298,
+     "maximum": 3424,
+     "spread": 126,
+     "relative_spread": 0.038205,
+     "counts": [
+      3424,
+      3301,
+      3298,
+      3298,
+      3298,
+      3298,
+      3298,
+      3298,
+      3298,
+      3298
+     ]
+    },
+    "binary-search": {
+     "digest": "860384d2aa3acc68b53a5acee79ed95123bb772b0364a4e77596af32baa71a62",
+     "profiles": [
+      "size-auto"
+     ],
+     "runs": 10,
+     "median": 950,
+     "minimum": 950,
+     "maximum": 1045,
+     "spread": 95,
+     "relative_spread": 0.1,
+     "counts": [
+      1045,
+      950,
+      950,
+      950,
+      950,
+      950,
+      950,
+      950,
+      950,
+      950
+     ]
+    },
+    "cmp-siphash-vectors": {
+     "digest": "57b4a5aa22116fe58046b003e162efc78a807b46650fa74d2e66cd036074e54b",
+     "profiles": [
+      "size-auto"
+     ],
+     "runs": 10,
+     "median": 262508,
+     "minimum": 262508,
+     "maximum": 262554,
+     "spread": 46,
+     "relative_spread": 0.000175,
+     "counts": [
+      262554,
+      262508,
+      262508,
+      262508,
+      262508,
+      262508,
+      262508,
+      262508,
+      262508,
+      262508
+     ]
+    },
+    "fannkuch-redux": {
+     "digest": "5d352d2810041fb7689ae594c741fec68af6a5aea301ccb4ac77b7a8546e5e11",
+     "profiles": [
+      "size-auto"
+     ],
+     "runs": 10,
+     "median": 2463691,
+     "minimum": 2463691,
+     "maximum": 2463711,
+     "spread": 20,
+     "relative_spread": 8e-06,
+     "counts": [
+      2463711,
+      2463691,
+      2463691,
+      2463691,
+      2463691,
+      2463691,
+      2463691,
+      2463691,
+      2463691,
+      2463691
+     ]
+    },
+    "mandelbrot": {
+     "digest": "c2210b87bfb34b45f5d153a1f90ef062e9a80a45e33109c7a271a2b883572ed8",
+     "profiles": [
+      "size-auto"
+     ],
+     "runs": 10,
+     "median": 1745554,
+     "minimum": 1745554,
+     "maximum": 1745746,
+     "spread": 192,
+     "relative_spread": 0.00011,
+     "counts": [
+      1745746,
+      1745554,
+      1745568,
+      1745554,
+      1745568,
+      1745554,
+      1745568,
+      1745554,
+      1745568,
+      1745554
      ]
     }
    },
-   "largest_relative_spread": 0.023233
+   "largest_relative_spread": 0.1
   }
  },
- "tolerance_rule": "A figure, the lower median of a time step's three runs, is its baseline's when it differs from it by no more than the larger of `relative` times the baseline and `absolute` counts; each board's pair is set above the largest spread its warm runs showed here: none on the ESP32, ESP32-S3, ESP32-C3 and Hazard3, 15 cycles on the M33, 13 on the C5, 1 us on the RP2040, none after the first run on the M7, whose first run after a load the lower median of three leaves out.",
+ "tolerance_rule": "A figure, the lower median of a time step's three runs, is its baseline's when it differs from it by no more than the larger of `relative` times the baseline and `absolute` counts; each board's pair is set above the largest spread its warm runs showed here: none on the ESP32, ESP32-S3, ESP32-C3 and Hazard3, 15 cycles on the M33, 13 on the C5, 1 us on the RP2040, 26 cycles after the first run on the M7, whose first run after a load the lower median of three leaves out.",
  "tolerance": {
   "esp32": {
    "relative": 0.002,

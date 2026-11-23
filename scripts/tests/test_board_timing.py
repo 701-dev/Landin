@@ -34,6 +34,57 @@ def elf(segments, entry=0x20000000, tail=b''):
     return bytes(header + programs + body + tail)
 
 
+# The RAM script refine derives for the STM32H753 (--emit=linker-script
+# --firmware-layout=ram), which a timing build rewrites for its TCMs.
+DERIVED_H753 = (
+    'OUTPUT_FORMAT("elf32-littlearm")\n'
+    'OUTPUT_ARCH(arm)\n'
+    'ENTRY(_landin_firmware_reset)\n'
+    'MEMORY {\n'
+    '  FLASH (rx) : ORIGIN = 134217728, LENGTH = 2097152\n'
+    '  ITCM (rwx) : ORIGIN = 0, LENGTH = 65536\n'
+    '  DTCM (rw) : ORIGIN = 536870912, LENGTH = 131072\n'
+    '  AXI_SRAM (rwx) : ORIGIN = 603979776, LENGTH = 524288\n'
+    '  SRAM1 (rw) : ORIGIN = 805306368, LENGTH = 131072\n'
+    '  SRAM2 (rw) : ORIGIN = 805437440, LENGTH = 131072\n'
+    '  SRAM3 (rw) : ORIGIN = 805568512, LENGTH = 32768\n'
+    '  SRAM4 (rw) : ORIGIN = 939524096, LENGTH = 65536\n'
+    '}\n'
+    '_landin_firmware_stack_top = ORIGIN(AXI_SRAM) + LENGTH(AXI_SRAM);\n'
+    '_landin_firmware_stack_bottom = _landin_firmware_stack_top - 16384;\n'
+    'SECTIONS {\n'
+    '  .isr_vector ORIGIN(AXI_SRAM) : { KEEP(*(.isr_vector)) } > AXI_SRAM\n'
+    '  .text : { *(.text .text.*) } > AXI_SRAM\n'
+    '  .ramtext : ALIGN(8) {\n'
+    '    _landin_firmware_ramtext_start = .;\n'
+    '    *(.ramtext.*)\n'
+    '    _landin_firmware_ramtext_end = .;\n'
+    '  } > AXI_SRAM\n'
+    '  .rodata : { *(.rodata .rodata.*) } > AXI_SRAM\n'
+    '  .ARM.extab : { *(.ARM.extab*) } > AXI_SRAM\n'
+    '  .ARM.exidx : { *(.ARM.exidx*) } > AXI_SRAM\n'
+    '  .data : ALIGN(8) {\n'
+    '    _landin_firmware_data_start = .;\n'
+    '    *(.data .data.*)\n'
+    '    _landin_firmware_data_end = .;\n'
+    '  } > AXI_SRAM\n'
+    '  _landin_firmware_data_load = LOADADDR(.data);\n'
+    '  _landin_firmware_ramtext_load = LOADADDR(.ramtext);\n'
+    '  .bss (NOLOAD) : AT(ADDR(.bss)) ALIGN(8) {\n'
+    '    _landin_firmware_bss_start = .;\n'
+    '    *(.bss .bss.* COMMON)\n'
+    '    _landin_firmware_bss_end = .;\n'
+    '  } > AXI_SRAM\n'
+    '  /DISCARD/ : { *(.comment .note.GNU-stack) }\n'
+    '}\n'
+    'ASSERT(ADDR(.isr_vector) == 603979776, "vectors must start at 0x24000000")\n'
+    'ASSERT(SIZEOF(.isr_vector) == 664, "vectors must contain 166 words")\n'
+    'ASSERT((_landin_firmware_stack_top & 7) == 0, "unaligned initial stack")\n'
+    'ASSERT(_landin_firmware_bss_end <= _landin_firmware_stack_bottom,\n'
+    '       "AXI_SRAM RAM capacity exceeded: image overlaps the reserved 16 KiB stack; use --firmware-layout=boot for the board boot check")\n'
+)
+
+
 class Images(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -56,6 +107,48 @@ class Images(unittest.TestCase):
                         elf(code, entry=0x20000002),
                         elf([(0x20000000, b'\x01\x02\x03\x05', 4), code[1]])):
             self.assertNotEqual(one, timing.loaded_digest(self.write('c.elf', changed)))
+
+    def test_the_h753_times_text_from_itcm_and_data_and_stack_from_dtcm(self):
+        """The timing script moves every executable and read-only section to
+        the ITCM past its first eight bytes, data, BSS and the stack to the
+        DTCM, and leaves the vectors where the RAM layout's contract fixes
+        them; a derived script of another shape fails."""
+        script = timing.timing_script(DERIVED_H753, **timing.TIMING_REGIONS['stm32h753'])
+        self.assertIn('.isr_vector ORIGIN(AXI_SRAM) : { KEEP(*(.isr_vector)) } > AXI_SRAM', script)
+        self.assertIn('.text : { . = . + (ABSOLUTE(.) < 8 ? 8 - ABSOLUTE(.) : 0); *(.text .text.*) } > ITCM',
+                      script)
+        for section in ('.rodata', '.ARM.extab', '.ARM.exidx'):
+            self.assertRegex(script, r'%s : .*> ITCM\n' % section.replace('.', r'\.'))
+        self.assertEqual(script.count('> DTCM'), 2)
+        self.assertIn('_landin_firmware_stack_top = ORIGIN(DTCM) + LENGTH(DTCM);', script)
+        self.assertEqual(script.count('> AXI_SRAM'), 1)
+        for broken in (DERIVED_H753.replace('  .rodata :', '  .unknown :'),
+                       DERIVED_H753.replace('*(.rodata .rodata.*) } > AXI_SRAM', '*(.rodata .rodata.*) } > SRAM1'),
+                       DERIVED_H753.replace('_landin_firmware_stack_top = ORIGIN(AXI_SRAM)', 'x = ORIGIN(AXI_SRAM)'),
+                       DERIVED_H753.replace('{ *(.text .text.*) }', '{\n *(.text .text.*)\n }')):
+            with self.assertRaises(common.Failed):
+                timing.timing_script(broken, 'ITCM', 'DTCM')
+
+    def test_hand_made_images_are_a_bundle_held_to_their_workload_s_oracle(self):
+        """`images` names each file's image by the workload and the file,
+        keeps the workload's status, and refuses two files that load the
+        same bytes."""
+        one = self.write('moved-2.elf', elf([(0x00000008, b'\x01\x02\x03\x04', 4)]))
+        two = self.write('moved-4.elf', elf([(0x0000000c, b'\x01\x02\x03\x04', 4)]))
+        arguments = dict(board='stm32h753', workload='sieve-of-eratosthenes', profile='speed-all')
+        with mock.patch.object(common, 'validate_ram_image'), \
+                mock.patch.object(timing, 'placement', return_value='text:itcm,data:dtcm,stack:dtcm'), \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(timing.images(SimpleNamespace(
+                output=self.root / 'bundle', elf=[one, two], **arguments)), 0)
+            with self.assertRaises(common.Failed):
+                timing.images(SimpleNamespace(output=self.root / 'again', elf=[one, one], **arguments))
+        made = timing.read_bundle(self.root / 'bundle')['boards']['stm32h753']['images']
+        self.assertEqual([image['workload'] for image in made],
+                         ['sieve-of-eratosthenes@moved-2', 'sieve-of-eratosthenes@moved-4'])
+        self.assertEqual({image['status'] for image in made}, {
+            timing.firmware_workloads(['sieve-of-eratosthenes'])[0]['meta'].status_at('armv7e-m')})
+        self.assertEqual(made[0]['profiles'], ['speed-all'])
 
     def test_instruction_sram_that_is_not_whole_words_is_refused_before_the_rig(self):
         self.assertIsNone(timing.refused('esp32c3', self.write(
@@ -295,6 +388,26 @@ class Baselines(unittest.TestCase):
                 key=['esp32/xtensa-esp32/none-off/y']))
         self.assertEqual(sorted(json.loads(timing.baseline_path('esp32').read_text())['entries']),
                          ['xtensa-esp32/none-off/x', 'xtensa-esp32/none-off/y'])
+
+    def test_a_study_of_one_board_keeps_the_others_and_the_tolerances(self):
+        output = self.root / 'study.json'
+        output.write_text(json.dumps(dict(boards=dict(esp32=dict(kept=1), rp2040=dict(kept=2)),
+                                          tolerance=dict(esp32=dict(relative=0.002, absolute=8)))))
+        results = self.root / 'results' / 'esp32'
+        results.mkdir(parents=True)
+        image = dict(workload='sieve', digest='d', profiles=['size-auto'], counts=[5] * 10,
+                     counter='CCOUNT', unit='cycles', clock_key='xtal-40000000hz',
+                     placement='text:iram0,data:dram0,stack:dram0')
+        (results / 'result.json').write_text(json.dumps(dict(
+            status='passed', board='esp32', images=[image], compiler=dict(sha256='c'),
+            bundle_source='b', seconds=1)))
+        with redirect_stdout(io.StringIO()):
+            timing.noise(SimpleNamespace(results=[self.root / 'results'], least=10, note='n',
+                                         output=str(output)))
+        study = json.loads(output.read_text())
+        self.assertEqual(study['boards']['rp2040'], dict(kept=2))
+        self.assertEqual(study['boards']['esp32']['workloads']['sieve']['median'], 5)
+        self.assertEqual(study['tolerance'], dict(esp32=dict(relative=0.002, absolute=8)))
 
     def test_the_committed_baselines_cover_every_board_with_a_tolerance(self):
         noise = json.loads((ROOT / 'compiler/tests/measure/noise/cycles.json').read_text())

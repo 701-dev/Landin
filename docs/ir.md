@@ -642,7 +642,18 @@ without passing the block again; otherwise it holds only in the block
 itself, before the block stores to them. A value's type and what produced
 it bound it too. A contradictory comparison is conservatively bounded at
 the type's extremum, without stepping outside its numeric range or requiring
-the pass to prove the branch unreachable. A `u8` widened to `usize` is always inside a `[256]`
+the pass to prove the branch unreachable. A checked `x + k`, `x - k` or
+`x * k`, for a constant `k`, that did not trap lies within `x`'s bounds
+moved by `k`, so `t - 15` for `t` below 64 indexes a `[64]` array and
+`4 * t + 3` for `t` below 16 neither overflows nor needs its own bound
+(D2207). A counted slot, stored once with a first value and once with
+its own content plus a constant at least zero, in a block the first
+store's strictly dominates, is never below the first value's least: `t`
+in `for t in usize(16)..<64` is at least 16, so `t - 15` cannot
+underflow. That holds only if the step cannot wrap, which the walk
+learns when it reaches the step, so a proof resting on it is applied
+after the walk, and only when the step is checked or the bounds there
+leave room for its constant. A `u8` widened to `usize` is always inside a `[256]`
 array, and an index that passed a fixed array's check in a block passes any
 at least as long later in that block. Such a check cannot fail, so its
 instruction keeps its operation and is marked unchecked, which every

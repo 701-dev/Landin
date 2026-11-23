@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "e1a15e9844b59e9ef060daad23e54f9a3e0e6c113ebac9ccc9331eec1edc48b1",
+  "image_sha256": "7cbce5258f7e49c1ba93ba57ef2a47e81a2517131c6d5261658b6e9a99ace8fc",
   "image_name": "board.elf",
-  "elf_sha256": "e1a15e9844b59e9ef060daad23e54f9a3e0e6c113ebac9ccc9331eec1edc48b1",
+  "elf_sha256": "7cbce5258f7e49c1ba93ba57ef2a47e81a2517131c6d5261658b6e9a99ace8fc",
   "instructions": [
     "amoadd.w.aqrl",
     "lr.w.aq",
@@ -52,7 +52,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2505,
+      "timer_events": 2500,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -121,9 +121,9 @@
   },
   "readback": [
     "0x40800000+0x1c0",
-    "0x408001c0+0x5aa8"
+    "0x408001c0+0x5a58"
   ],
-  "uart_sha256": "d8a94414e94356f888c910fef67d5d5ac9c65f9dcaa4892a8bda58f5afdf8a3d",
+  "uart_sha256": "0b07c8d07cc145c1bba959ebe0752db28334c7e30df286dd8f3d1c7a2e965400",
   "mode": "ram",
   "warm_load": {
     "board": "esp32c5",
@@ -133,7 +133,7 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "e1a15e9844b59e9ef060daad23e54f9a3e0e6c113ebac9ccc9331eec1edc48b1",
+    "elf_sha256": "7cbce5258f7e49c1ba93ba57ef2a47e81a2517131c6d5261658b6e9a99ace8fc",
     "entry": 1082130432,
     "flash_written": false,
     "format_version": 1,
@@ -148,11 +148,11 @@
       },
       {
         "address": 1082130880,
-        "bytes": 23208,
-        "sha256": "461455f8b31af09d3e3787bc6702173069a61bab8e6c38ccf21a6e38d2eb5ace"
+        "bytes": 23128,
+        "sha256": "ca95906613997bb30bd5d919dacb8a23af15393172d86c67ced73ca6364561b8"
       },
       {
-        "address": 1082154088,
+        "address": 1082154008,
         "bytes": 104,
         "sha256": "2014e07139a7ff0392b16b42c998eab798455b0340ee6324e518e4de8181f636"
       }
@@ -161,10 +161,10 @@
     "status": "passed",
     "vector": 1082130688
   },
-  "seconds": 28.114,
+  "seconds": 28.227,
   "kernel_usb": {
-    "since": 1795416840.8137648,
-    "until": 1795416868.9026954,
+    "since": 1795439232.1965902,
+    "until": 1795439260.3979187,
     "lines": [],
     "status": "captured"
   },
@@ -193,7 +193,7 @@
       "h": "00000c9a",
       "c": "00000002",
       "i": "00001b8e",
-      "m": "000010c1",
+      "m": "000010b5",
       "p": "b8000011",
       "q": "b8000012",
       "k": "00000064",

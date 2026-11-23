@@ -2427,6 +2427,53 @@ package body Landin.Tests.IR_Optimization_Suite is
             & "inc i end while end f",
             IR.Slice_Address, 0, "a bound stored twice proves nothing",
             Objective);
+         --  D2207: a counted index is never below its first value, and
+         --  its bounds carry through a constant offset or multiple.
+         Check_Proved
+           ("public f: () -> (r: u32) = mut w: [64]u32 = zeroed "
+            & "for t in usize(16)..<64 do w[t] = w[t - 15] +% 1 end for "
+            & "r = w[63] end f",
+            IR.Subtract, 1, "an index counted from 16 less 15", Objective);
+         Check_Proved
+           ("public f: () -> (r: u32) = mut w: [64]u32 = zeroed "
+            & "for t in usize(16)..<64 do w[t] = w[t - 15] +% 1 end for "
+            & "r = w[63] end f",
+            IR.Load_Element, 1, "an index counted below 64 less 15 indexes "
+            & "[64]u32", Objective);
+         Check_Proved
+           ("public f: () -> (r: u32) = mut w: [64]u32 = zeroed "
+            & "for t in usize(14)..<64 do w[t] = w[t - 15] +% 1 end for "
+            & "r = w[63] end f",
+            IR.Subtract, 0, "an index counted from 14 less 15 may trap",
+            Objective);
+         Check_Proved
+           ("public f: () -> (r: usize) = r = 0 mut t: usize = 16 "
+            & "while t < 64 do r += t - 15 inc t inc t end while end f",
+            IR.Subtract, 0, "a slot stepped twice is not counted",
+            Objective);
+         Check_Proved
+           ("public f: () -> (r: usize) = r = 0 mut t: usize = 16 "
+            & "while t > 3 do r +%= t - 15 "
+            & "unchecked begin t = t + 1 end unchecked end while end f",
+            IR.Subtract, 0, "a step that may wrap counts nothing",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: u32) = r = 0 "
+            & "for t in usize(0)..<16 do r +%= u32(s[4 * t + 3]) end for "
+            & "end f",
+            IR.Multiply, 1, "an index below 16 times 4", Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: u32) = r = 0 "
+            & "for t in usize(0)..<16 do r +%= u32(s[4 * t + 3]) end for "
+            & "end f",
+            IR.Add, 2, "an index below 16 times 4 plus 3, and its step",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: u32) = r = 0 "
+            & "for t in usize(0)..<n do r +%= u32(s[4 * t + 3]) end for "
+            & "end f",
+            IR.Multiply, 0, "an index below a parameter times 4 may "
+            & "overflow", Objective);
       end loop;
    end Proved_Checks;
 

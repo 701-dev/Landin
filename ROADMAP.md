@@ -864,7 +864,7 @@ direct port. The candidate passed its
 
 ### R16.31 — A loop's index proves its own checks
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 What R16.30 left as the largest cost against gcc on the hosted targets:
@@ -878,9 +878,33 @@ Exit evidence: SHA-256's schedule and load loops measured without the
 checks their index's range proves, its instructions lower than R16.30's
 figures on x86-64 and arm64, and no other combination over its own.
 
+Done: a checked `x + k`, `x - k` or `x * k` for a constant carries its
+operand's bounds, a multiplication by a constant is proved when both
+moved bounds fit, and a counted slot, stored with a first value and
+stepped by its own content plus a constant, is never below the first
+value, the proofs resting on it applied once the walk has seen that the
+step cannot wrap (D2207, `SR-1680`); x86-64 selects a product so proved
+as `imul` rather than `mul` (D2208). SHA-256's schedule keeps no check,
+31 x86-64 instructions an iteration where it spent 44, and its load loop
+none but the slice's own length, which is dynamic. Against the item's
+base, at speed, x86-64 executes 11.0% fewer instructions on SHA-256 of
+64 MiB (7.76 G to 6.90 G; gcc's 4.56 G) and 9.1% at size; arm64 under
+QEMU 12.0% fewer at speed and 8.8% at size; binary-trees 0.3% fewer on
+both, reverse-complement 0.2% on x86-64, every other hosted program the
+same, every image's `.text` smaller and every output the same. What
+SHA-256 still spends against gcc is selection rather than checks: `SR-1704`
+files the index offsets x86-64 makes in registers rather than in the
+address's displacement and the four products of one `4 * t`. Q-204 is
+answered: SR-1650 stays open until it is solved. Firmware moved only on
+the STM32H753 and the ESP32-C3 and C5; every board's records were made
+again on the rig, and all 432 board configurations' cycles stayed within
+tolerance. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45184619163) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45192092129).
+
 ### R16.32 — Time the STM32H753 from its tightly coupled memories
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 `SR-1661`'s slowdowns, measured to their cause: the timing image's RAM
@@ -888,8 +912,8 @@ layout puts the STM32H753's text, data and stack in uncached AXI SRAM,
 where the same code moved 2 bytes at a time runs the sieve at speed in
 7,317 to 10,652 cycles and SipHash in 510,115 to 541,009, with a period
 of 32 bytes, and a load soon after a store to the stack stalls. With
-text in ITCM and data, BSS and stack in DTCM, the layout the board's own
-description boots, the range falls under 0.6% and nine of the ten
+text in ITCM, where the board's own description boots it, and data, BSS
+and stack in DTCM, the range falls under 0.6% and nine of the ten
 recorded slowdowns are gains or equal, the tenth +0.45%. The maintainer
 chose this layout for the board's timing runs on 2026-11-23.
 Exit evidence: the STM32H753's timing images placed in ITCM and DTCM,
@@ -897,6 +921,42 @@ its cycle baselines recorded again on the rig, its sieve and
 binary-search at speed no slower than their R16.27 figures, and why this
 port's placement differs from the RAM layout's default said in
 `docs/measurement.md`.
+
+Done: `timing.py build` links the STM32H753's timing images with
+refine's derived RAM script, text and read-only data moved to the ITCM
+past its first eight bytes and data, BSS and stack to the DTCM, the
+vectors left where D546's contract fixes them (D2227); `timing.py
+noise` keeps the boards a study does not cover, and `timing.py images`
+bundles hand-made ELF files for the rig (`SR-1715`). Recorded again on the
+rig, every one of the board's 54 configurations is faster: at speed by
+46.0% to 52.7% but mandelbrot's 2.1%, the sieve 10,646 to 5,261 cycles
+and binary-search 1,787 to 918, against R16.27's 9,295 and 1,737; at
+size by 42.5% to 51.2% but mandelbrot's 2.9%; at `none` by 23.3% to
+42.3%. Its noise study, made again from the TCMs, keeps the port's
+tolerance of 0.5% and 40 cycles. `SR-1661` and `SR-1715` are taken, and
+`SR-1714`, kept, comes from the measurement that found the cause; `SR-1716` files
+the contract's acceptance of text at address zero, met on the way. The
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45211342807) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45217192089).
+
+### R16.33 — Element addresses and products by a constant
+
+Status: planned
+Depends on: R16.10
+
+What R16.31 left as SHA-256's largest cost against gcc on the hosted
+targets, now selection rather than checks: `SR-1704`'s index offsets
+made in registers of their own rather than in the address's
+displacement, the same `4 * t` made four times in one block, and a
+multiplication by a power of two made as a product rather than a shift
+or a scaled index. The schedule spends 31 x86-64 instructions an
+iteration where about 23 would do, the load loop more; 6.90 G on 64 MiB
+against gcc's 4.56 G.
+Exit evidence: SHA-256's schedule and load loops measured with each
+constant offset in the address and each `4 * t` made once and scaled or
+shifted, its instructions lower than R16.31's figures on x86-64 and
+arm64, and no other combination over its own.
 
 ### The continuous items
 

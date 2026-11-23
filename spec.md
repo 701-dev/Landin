@@ -27183,6 +27183,44 @@ interval to every figure.
 **Pinned by** `scripts/tests/test_board_timing.py` and
 `compiler/tests/measure/noise/cycles.json`.
 
+### D2227 — The STM32H753 is timed from its tightly coupled memories
+
+**The tour said** nothing; D900's RAM layout places the STM32H753's
+vectors, text, data and stack in the AXI SRAM, its executable data region,
+which the M7 reaches uncached over its AXI port. Timed there, the same
+code moved by 2 bytes at a time ran the sieve at speed in 7,317 to 10,652
+cycles and SipHash in 510,115 to 541,009, repeating every 32 bytes, and a
+load soon after a store to the stack stalled. All ten slowdowns the
+board's baselines recorded with equal or fewer instructions were these.
+
+**Chosen:** the maintainer's choice of 2026-11-23. The board's timing
+images run their text and read-only data from the ITCM, past its first
+eight bytes (D1115), and their data, BSS and stack from the DTCM, both
+single-cycle and never cached. `environments/boards/timing.py build`
+links them with refine's derived RAM script, its sections moved and
+checked against D546's contract; the vectors stay at the RAM layout's
+boot address, read only on an exception. From the TCMs the offset sweep's
+range falls under 0.6%, nine of the ten recorded pairs are gains or
+equal and the tenth, SipHash at `none`, is 0.45% slower, under the
+port's tolerance. The ITCM is where the board's own description places
+its text; the DTCM holds no DMA buffer in a timing image.
+
+**The alternatives:** aligning loop heads or routines on Thumb-2, which
+would have to choose the good 32-byte phase rather than an alignment and
+gains nothing in the TCMs or with the caches on; spacing a load from the
+store before it in selection, which costs instructions everywhere for an
+uncached stack alone; widening the board's tolerance past placement's
+46%, which hides regressions with the artefact; text alone in the ITCM,
+which kept fannkuch-redux 10% slower at `none` from the stack's stalls;
+a description of the board for timing, a second device profile for one
+harness; and changing D900 for every RAM build, which would move DMA
+buffers out of the controllers' reach.
+
+**Pinned by** `scripts/tests/test_board_timing.py`'s
+`test_the_h753_times_text_from_itcm_and_data_and_stack_from_dtcm` and
+`compiler/tests/measure/baselines/stm32h753.cycles.json`, whose keys name
+`text:itcm,data:dtcm,stack:dtcm`.
+
 ### D1403 — Each backend places its own values over one liveness analysis
 
 **The tour said** nothing; D211 leaves where a value lives to the
@@ -28279,6 +28317,61 @@ leave the same shape written by hand unproved.
 
 **Pinned by** the IR optimization suite's `proved checks`, with four
 controls, at size and speed.
+
+### D2207 — A counted index proves the arithmetic on it
+
+**The tour said** nothing. A loop's test bounded its index from above,
+but nothing bounded it from below, and no arithmetic carried a bound:
+SHA-256's schedule, `for t in usize(16)..<64` reading `w[t - 15]`, kept
+each subtraction's underflow check and each index's bounds check, and its
+load loop, reading `block[4 * t + k]` for `t` below 16, each
+multiplication's and addition's overflow check, 3,072 of about 7,400
+x86-64 instructions a 64-byte block.
+
+**Chosen:** a checked `x + k`, `x - k` or `x * k`, for a constant `k`
+(at least zero, or above zero for `*`), that did not trap lies within
+`x`'s least and greatest moved by `k`; a checked multiplication by a
+constant is proved when both moved bounds fit its type. A slot that
+nothing names but its own loads and stores is counted when it has two
+stores, a first and a step, the step its own load plus a constant at
+least zero, and the first store's block strictly dominates the step's and
+its load's. Every value it then holds where the first store strictly
+dominates is at least the first value's least, provided the step does not
+wrap. The walk learns that at the step, after the loop's body it bounds,
+so a proof resting on a counted slot's least waits to the walk's end and
+is applied only if the step is checked, and traps rather than wraps, or
+the bounds where it stands leave room for its constant. A first value
+that rests on another counted slot counts nothing, nor does a step
+written in an `unchecked` region the bounds cannot vouch for.
+
+**The alternatives:** a general range analysis to a fixed point over
+the loop, which would bound more and cost a solver where one dominator
+walk now serves; rewriting `for` loops' indices in lowering, which would
+leave the same loop written with `while` unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`, with four
+controls, at size and speed.
+
+### D2208 — x86-64 selects a proved unsigned product as `imul`
+
+**The tour said** nothing. An unsigned checked product needs `mul`'s
+high half for its carry, so x86-64 moved one operand into `%rax`,
+multiplied and moved the low half out, and kept that form when the
+check was proved and removed (D2207): SHA-256's load loop spent four
+instructions on each `4 * t`.
+
+**Chosen:** at size and speed a multiplication the simplifier proved
+cannot overflow is selected as the two- or three-operand `imul`, at
+either signedness, since the low half of the product is the same, as a
+wrapping product already is; a byte's product keeps the one-operand
+form, which `imul` has no other form for.
+
+**The alternatives:** a shift for a power-of-two constant, which reads
+the same as `imul` once the constant is an immediate and is left to the
+selection of immediates.
+
+**Pinned by** SHA-256's measured load loop and the runtime fixtures'
+products at size and speed.
 
 ### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
 

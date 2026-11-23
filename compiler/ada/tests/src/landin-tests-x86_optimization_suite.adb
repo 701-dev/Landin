@@ -1701,6 +1701,29 @@ package body Landin.Tests.X86_Optimization_Suite is
             end if;
          end;
       end loop;
+      --  D2208: an unsigned product D2207 proved is `imul`'s low half.
+      declare
+         Proved : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Proved,
+            "public gather: (s: [64]u8) -> (r: u32) = r = 0 "
+            & "for t in usize(0)..<16 do r +%= u32(s[4 * t]) end for "
+            & "end gather");
+         for Objective in Opt.Objective loop
+            declare
+               Text : constant String :=
+                 Emitted (Proved, (Objective, Opt.Off));
+            begin
+               Check_Assembly
+                 (Item, Text,
+                  (Objective = Opt.None) = Contains (Text, HT & "mulq "),
+                  "a proved unsigned product is imul at size and speed,"
+                  & " mul at none");
+            end;
+         end loop;
+      end;
    end Arithmetic_Shapes;
 
    --  D1624: two shifts of one unsigned value by constants that sum to its
