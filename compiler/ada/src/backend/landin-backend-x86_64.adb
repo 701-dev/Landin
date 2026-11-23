@@ -10212,11 +10212,15 @@ package body Landin.Backend.X86_64 is
       --  `.tls$zzz` marker's, which every `.tls$NAME` sorts between, the
       --  index the loader writes, no callbacks, and no zeros beyond the
       --  template.  LLD points the image's directory entry at the symbol
-      --  `_tls_used`.  The index is the directory's neighbour in one
-      --  section, so every access, which reads the index, keeps the
-      --  directory through the link's collection; a program whose code
-      --  reaches no thread storage has neither.
-      if Windows_Threads then
+      --  `_tls_used`, which it keeps whether or not anything refers to
+      --  it, so a program with no thread storage has no directory.
+      if Windows_Threads
+        and then (Stack_Used
+                  or else
+                    (for some Index in 1 .. Landin.IR.Item_Count (Of_Unit)
+                     => Landin.Backend.In_Thread_Storage
+                          (Of_Unit, Facts, Landin.IR.Item_Id (Index))))
+      then
          Emit (Push_Section (".data.landin_tls", """aw"",@progbits"));
          Emit (".balign 8");
          Emit (".globl _tls_used");

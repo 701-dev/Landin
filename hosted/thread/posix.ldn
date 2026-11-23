@@ -1,0 +1,43 @@
+--  Starting a thread and waiting for its end on a POSIX system, through
+--  platform/posix, on the start area at the top of the thread's stack.
+
+import core/mem
+import hosted/system
+import platform/posix
+
+fixed if compiler.os <> windows then
+    --  The system's record of one started thread.
+    system_thread: type = posix.thread
+
+    --  The alignment a start area keeps, and its bytes.
+    start_alignment: () -> (bytes: usize) =
+        bytes = posix.thread_start_alignment()
+    end start_alignment
+
+    start_bytes: () -> (bytes: usize) =
+        bytes = posix.thread_start_bytes()
+    end start_bytes
+
+    --  Start a thread on `area` that runs `routine` with `argument`, or
+    --  keep the errno the system refused it with in `host`'s cell and
+    --  fail.
+    start_system_thread:
+        (host: system.host, area: []mut u8, record: ptr mut system_thread,
+         routine: posix.thread_routine, argument: usize)
+        -> none ! mem.out_of_memory =
+        posix.start_thread(area, record, routine, argument) else (problem)
+            system.record_errno(host, problem)
+            fail mem.out_of_memory
+        end
+    end start_system_thread
+
+    --  Wait for the thread `record` describes to end.  A join the system
+    --  refuses is a defect of this module, since only a thread it started
+    --  is joined, and once.
+    join_system_thread: (record: ptr mut system_thread) -> none =
+        posix.join_thread(record) else (problem)
+            _ = problem
+            compiler.unreachable()
+        end
+    end join_system_thread
+end if

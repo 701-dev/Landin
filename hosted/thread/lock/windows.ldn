@@ -1,0 +1,21 @@
+--  Sleeping on a lock's cell and waking a sleeper on Windows, through
+--  `WaitOnAddress` and `WakeByAddressSingle`, which compare and sleep in
+--  one step as a futex does.
+
+import core/atomic
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  Sleep while the cell at `word` holds `expected`, or for nothing.
+    --  The system compares the cell with a copy of `expected`.
+    sleep_while: (word: ptr mut atomic.cell(u32), expected: u32) -> none =
+        compared: u32 = expected
+        _ = windows.wait_on_address(usize(word), usize(addr compared), 4,
+                                    windows.infinite)
+    end sleep_while
+
+    --  Wake one thread sleeping on the cell at `word`, if any is.
+    wake_one: (word: ptr mut atomic.cell(u32)) -> none =
+        windows.wake_by_address_single(usize(word))
+    end wake_one
+end if
