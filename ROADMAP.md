@@ -937,8 +937,8 @@ tolerance of 0.5% and 40 cycles. `SR-1661` and `SR-1715` are taken, and
 `SR-1714`, kept, comes from the measurement that found the cause; `SR-1716` files
 the contract's acceptance of text at address zero, met on the way. The
 candidate passed its
-[gate](https://github.com/701-dev/Landin/actions/runs/45192853995) and
-[boards](https://github.com/701-dev/Landin/actions/runs/45197336539).
+[gate](https://github.com/701-dev/Landin/actions/runs/45211342807) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45217192089).
 
 ### R16.33 — Element addresses and products by a constant
 
