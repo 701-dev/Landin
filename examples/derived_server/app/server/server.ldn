@@ -63,7 +63,7 @@ public serve: (runs: any fibre.scheduler, network: any net.network,
                clock: any time.clock, world: any io.world, listener: io.file)
               -> none ! failure.reason =
     closing: io.file = listener
-    defer net.close_socket(network, closing) else none
+    defer net.close(network, closing) else none
     try announce(world, network, listener)
     try serve_forever(runs, network, clock, listener)
 end serve
@@ -90,7 +90,7 @@ stop_on_terminate: (inout self: stopping) -> none ! failure.reason =
     self.stopped.val = true
     session.shut_all(self.network)
     closing: io.file = self.listener
-    try net.close_socket(self.network, closing)
+    try net.close(self.network, closing)
 end stop_on_terminate
 
 --  Close LISTENER unless the signal waiter already has.
@@ -98,7 +98,7 @@ released: (network: any net.network, listener: io.file, stopped: ptr bool)
           -> none =
     return when stopped.val
     closing: io.file = listener
-    net.close_socket(network, closing) else none
+    net.close(network, closing) else none
 end released
 
 --- Serve on `listener`, which it closes, over a provider that takes turns
@@ -163,7 +163,7 @@ end asking
 --  answer other than `<tag> done` is `io_failed`.
 ask: (inout self: asking) -> none ! failure.reason =
     connection: io.file = try net.connect(self.network, self.to)
-    defer net.close_socket(self.network, connection) else none
+    defer net.close(self.network, connection) else none
     try net.send(self.network, connection, self.line)
     mut reply: [16]u8 = zeroed
     mut got: usize = 0
@@ -177,7 +177,7 @@ ask: (inout self: asking) -> none ! failure.reason =
     end loop
     fail io.io_failed when got < 2 or reply[0] <> self.tag
       or cmp.compare(reply[1..<got], " done\n") <> cmp.equal
-    fail mem.full when self.heard.val.count == 2
+    fail mem.out_of_memory when self.heard.val.count == 2
     self.heard.val.order[self.heard.val.count] = self.tag
     self.heard.val.count += 1
 end ask

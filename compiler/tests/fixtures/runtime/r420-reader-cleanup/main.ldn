@@ -17,11 +17,11 @@ path: []u8 = "f"
 
 acquire: (provider: type is mem.allocator, memory: provider,
           world: any io.world) -> (value: reader)
-         ! io.not_found | io.no_access | io.is_a_directory | io.io_failed
+         ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed
          | mem.out_of_memory =
-    opened: io.file = try world.open_read(text.host_over(path))
+    opened: io.file = try world.open_read(text.os_string_over(path))
     initial: [2]u8 = zeroed
-    buffer: ptr mut [2]u8 = mem.new(memory, initial) else (problem)
+    buffer: ptr mut [2]u8 = mem.allocate_item(memory, initial) else (problem)
         _ = problem
         world.close(opened) else none
         fail mem.out_of_memory
@@ -34,10 +34,10 @@ release_reader: (provider: type is mem.allocator, memory: provider,
                  world: any io.world, sink value: reader)
                 -> none ! io.io_failed =
     world.close(value.opened) else (problem)
-        mem.delete(memory, value.buffer)
+        mem.release_item(memory, value.buffer)
         fail problem
     end
-    mem.delete(memory, value.buffer)
+    mem.release_item(memory, value.buffer)
 end release_reader
 
 consume: (provider: type is mem.allocator, memory: provider,

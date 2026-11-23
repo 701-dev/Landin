@@ -19,7 +19,7 @@ end report
 --  Read the file at `path`, reporting why it cannot be opened.
 opened: (host: blocking.host, path: []u8) -> (yes: bool) =
     yes = false
-    file := io.open_read(host, text.host_over(path)) else (problem)
+    file := io.open_read(host, text.os_string_over(path)) else (problem)
         report(host, path, problem)
         return
     end

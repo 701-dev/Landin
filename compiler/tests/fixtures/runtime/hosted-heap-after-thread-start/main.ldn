@@ -21,7 +21,7 @@ end take
 
 give: (inout state: heap.heap, address: usize, size: usize) -> none =
     block: ptr mut u8 = ptr(address)
-    mem.free(state, block, size)
+    mem.release(state, block, size)
 end give
 
 public main: () -> (code: i32) =
@@ -67,7 +67,7 @@ public main: () -> (code: i32) =
         return
     end
     return when moved.val <> 42
-    mem.free(state, moved, 300000)
+    mem.release(state, moved, 300000)
 
     --  And a slot made larger leaves its class through the lock too.
     code = 6
@@ -81,6 +81,6 @@ public main: () -> (code: i32) =
         return
     end
     return when bigger.val <> 7
-    mem.free(state, bigger, 5000)
+    mem.release(state, bigger, 5000)
     code = 42
 end main

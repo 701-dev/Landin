@@ -38,7 +38,7 @@ public main: () -> (code: i32) =
     end for
 
     path: []u8 = "missing-settings.conf"
-    file := io.open_read(host, text.host_over(path)) else (problem)
+    file := io.open_read(host, text.os_string_over(path)) else (problem)
         report(out, path, problem)
         return
     end

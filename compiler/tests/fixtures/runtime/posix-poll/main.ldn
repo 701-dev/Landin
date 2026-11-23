@@ -5,6 +5,7 @@
 --  failure oracles: a closed descriptor is reported `invalid` rather than
 --  failing the call, and nothing to watch waits out its time and reports
 --  none ready.
+import core/mem
 import core/text
 import platform/posix
 
@@ -22,7 +23,7 @@ end said
 
 --  NAME, `=`, NUMBER in decimal and a line end.
 line_of: (inout line: text.builder, name: []u8, number: u32)
-         -> none ! text.no_space =
+         -> none ! mem.out_of_memory =
     try text.append(line, name)
     try text.append_byte(line, u8('='))
     try text.append_u32(line, number)
@@ -39,7 +40,7 @@ public main: () -> (code: i32) =
     writing: posix.poll_events = posix.poll_output
     closed: posix.descriptor =
         posix.open_at(posix.working_directory,
-                      text.host_over("/dev/null"), posix.reading, 0)
+                      text.os_string_over("/dev/null"), posix.reading, 0)
         else (problem)
             said("open", problem)
             return

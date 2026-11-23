@@ -328,7 +328,7 @@ other pointer-union representation.
 D206 separately refuses known null integer constructions and checks dynamic
 zero after target-width conversion, even in `unchecked`; origin erasure does
 not erase non-nullness. The library's absent backing uses named pointer unions,
-and `dispose` reports `raw_empty` rather than returning an invalid pointer.
+and `detach` reports `raw_empty` rather than returning an invalid pointer.
 
 D203's C convention and variadic flags follow the complete recursive signature,
 not the bodyless import flag or a concrete callee item. Checking admits only

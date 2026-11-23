@@ -67,11 +67,11 @@ end if
 --  Run SCRIPT in /bin/sh, with every stream discarded, and report how it
 --  ended: the code it exited with, or -1 when it was signalled.
 ran: (host: blocking.host, script: []u8) -> (code: i32) ! ... =
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"), value: text.host_over("/bin:/usr/bin"))]
-    child: io.child = try io.spawn(host, text.host_over("/bin/sh"),
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"), value: text.os_string_over("/bin:/usr/bin"))]
+    child: io.child = try io.spawn(host, text.os_string_over("/bin/sh"),
                                    arguments[0..<2], variables[0..<1],
                                    io.discarding)
     ended: io.ending = try io.wait(host, child)

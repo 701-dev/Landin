@@ -30,7 +30,7 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    count := io.argument_count(memory)
+    count := io.arguments_length(memory)
     io.write(memory, io.out(memory), "cd") else (problem)
         _ = problem
         return

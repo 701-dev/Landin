@@ -18,7 +18,7 @@ exercise: () -> (ok: bool) ! mem.out_of_memory =
     second.val = 2
     third.val = 3
     return when first.val <> 1 or second.val <> 2 or third.val <> 3
-    ok = arena.used(memory) == 12
+    ok = arena.length(memory) == 12
 end exercise
 
 public main: () -> (code: i32) =

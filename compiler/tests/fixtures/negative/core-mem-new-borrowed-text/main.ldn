@@ -6,5 +6,5 @@ end filter
 bad: (state: heap.heap, source: utf8)
      -> (result: ptr mut filter) ! mem.out_of_memory =
     initial: filter = (needle: source)
-    result = try mem.new(state, initial)
+    result = try mem.allocate_item(state, initial)
 end bad

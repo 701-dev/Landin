@@ -51,7 +51,7 @@ pool_resizes: () -> (ok: bool) ! mem.out_of_memory =
     --  A zero extent keeps the slot, and the block is freed with it.
     empty := try mem.resize(slab, grown, usize(16), usize(0), usize(1))
     return when usize(empty) <> usize(block)
-    mem.free(slab, empty, usize(0))
+    mem.release(slab, empty, usize(0))
     ok = pool.live(slab) == 0 and pool.frees(slab) == 1
          and pool.rejected_frees(slab) == 0
 end pool_resizes

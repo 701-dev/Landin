@@ -49,12 +49,12 @@ end after
 options: (services: system.host, first: usize) -> (asked: choice) ! bad_option =
     asked = (over: blocking_io, port: 7070)
     mut index: usize = first
-    while index < io.argument_count(services) do
-        given: text.host_string = io.argument_at(services, index) else (problem)
+    while index < io.arguments_length(services) do
+        given: text.os_string = io.argument(services, index) else (problem)
             _ = problem
             fail bad_option
         end
-        word: []u8 = text.host_bytes(given)
+        word: []u8 = text.os_string_bytes(given)
         (found: is_io, rest: provider) := after(word, "--io=")
         (found: is_port, rest: port) := after(word, "--port=")
         if is_io and cmp.compare(provider, "blocking") == cmp.equal then

@@ -20,7 +20,7 @@ end take
 
 give: (inout state: heap.heap, address: usize, size: usize) -> none =
     block: ptr mut u8 = ptr(address)
-    mem.free(state, block, size)
+    mem.release(state, block, size)
 end give
 
 refused: (inout state: heap.heap, size: usize, alignment: usize)
@@ -30,7 +30,7 @@ refused: (inout state: heap.heap, size: usize, alignment: usize)
         yes = problem == mem.out_of_memory
         return
     end
-    mem.free(state, block, size)
+    mem.release(state, block, size)
 end refused
 
 public main: () -> (code: i32) =

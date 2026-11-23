@@ -28,20 +28,20 @@ new_buffers: (provider: type is mem.allocator,
               memory: provider, count: usize)
              -> (first: mem.byte_buffer, second: mem.byte_buffer,
                  third: mem.byte_buffer) ! mem.out_of_memory =
-    first = try mem.new_bytes(memory: memory, count: count)
-    undo mem.delete_bytes(memory, first)
+    first = try mem.allocate_bytes(memory: memory, count: count)
+    undo mem.release_bytes(memory, first)
 
-    second = try mem.new_bytes(memory: memory, count: count)
-    undo mem.delete_bytes(memory, second)
+    second = try mem.allocate_bytes(memory: memory, count: count)
+    undo mem.release_bytes(memory, second)
 
-    third = try mem.new_bytes(memory: memory, count: count)
+    third = try mem.allocate_bytes(memory: memory, count: count)
     -- All three owners are published by the successful return.
 end new_buffers
 
 make_widget: (provider: type is mem.allocator, memory: provider)
              -> (item: any widget) ! mem.out_of_memory =
     initial: button = (text: "OK")
-    b := try mem.new(memory: memory, value: initial)
+    b := try mem.allocate_item(memory: memory, value: initial)
     item = any(b)
 end make_widget
 
@@ -50,7 +50,7 @@ probe: (memory: arena.arena) -> none ! mem.out_of_memory =
     chosen := try make_widget(memory)
     mut target: canvas = (marker: 0)
     chosen.draw(addr target)
-    mem.delete_bytes(memory, buffers.first)
-    mem.delete_bytes(memory, buffers.second)
-    mem.delete_bytes(memory, buffers.third)
+    mem.release_bytes(memory, buffers.first)
+    mem.release_bytes(memory, buffers.second)
+    mem.release_bytes(memory, buffers.third)
 end probe

@@ -135,17 +135,17 @@ public last_signal: (handle: host) -> (number: i32) =
 end last_signal
 
 --- Fill `state` and return a handle to the event provider over it and over
---- `entries`. The provider is made of a round of turns over `entries`, the
+--- `fibres`. The provider is made of a round of turns over `fibres`, the
 --- table of the fibres that may be unfinished at once, one more than a
 --- group's count; an event queue, closed on exec; and a `hosted/system`
 --- handle over the space's own last-error and last-signal cells, which
---- `system.over` fills. It fails `mem.out_of_memory` when `entries` holds
+--- `system.over` fills. It fails `mem.out_of_memory` when `fibres` holds
 --- fewer than two, and `io.io_failed` when the system makes no queue, with
 --- its errno in the space's cell. Calling this before the hosted entry has
 --- established the process's arguments traps, as `hosted/system`'s `over`
 --- does. The queue stays open until the process ends.
-public over: (inout state: space, entries: []mut usize)
-             -> (handle: host from state, entries)
+public over: (inout state: space, fibres: []mut usize)
+             -> (handle: host from state, fibres)
              ! mem.out_of_memory | io.io_failed =
     services: system.host = system.over(state.cells)
     state.events.queue = -1
@@ -157,7 +157,7 @@ public over: (inout state: space, entries: []mut usize)
     state.events.queued = 0
     state.idling = (address: usize(addr state.events))
     round: stacks.round =
-        try stacks.round_over(state.round, entries, any(addr state.idling))
+        try stacks.round_over(state.round, any(addr state.idling), fibres)
     state.events.queue = made_queue() else (problem)
         system.record_errno(services, problem)
         fail io.io_failed

@@ -6,12 +6,12 @@ public main: () -> (code: i32) =
     initial: u8 = 7
     mut empty := mem.empty_storage(item: u8)
     mut absent_refused: bool = false
-    _ = mem.dispose(empty) else (problem)
+    _ = mem.detach(empty) else (problem)
         absent_refused = problem == mem.empty
     end
     mut admit_refused: bool = false
     _ = mem.admit(empty, initial) else (problem)
-        admit_refused = problem == mem.full
+        admit_refused = problem == mem.out_of_memory
         usize(0)
     end
     mut get_refused: bool = false
@@ -34,13 +34,13 @@ public main: () -> (code: i32) =
     mut bytes: [1]u8 = [11]
     base: ptr mut u8 = addr bytes[0]
     mut allocated := mem.storage_over(item: u8, base: base, slots: zero)
-    released: ptr mut u8 = mem.dispose(allocated) else (problem)
+    released: ptr mut u8 = mem.detach(allocated) else (problem)
         _ = problem
         return
     end
     exact: bool = usize(released) == usize(base)
     mut twice_refused: bool = false
-    _ = mem.dispose(allocated) else (problem)
+    _ = mem.detach(allocated) else (problem)
         twice_refused = problem == mem.empty
     end
     disposed_view: bool = begin

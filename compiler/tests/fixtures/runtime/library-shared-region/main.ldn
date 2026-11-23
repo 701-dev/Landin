@@ -14,7 +14,7 @@ exercise: () -> (ok: bool) ! mem.out_of_memory =
     return when address.val <> 42
     _ = mem.allocate(scratch, usize(4), usize(1)) else (problem)
         _ = problem
-        mem.free(scratch, address, usize(4))
+        mem.release(scratch, address, usize(4))
         ok = true
         return
     end

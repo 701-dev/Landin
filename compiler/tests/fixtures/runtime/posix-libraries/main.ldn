@@ -9,6 +9,7 @@
 --  refused while that one's symbols are local and loaded once they are
 --  global.  The harness passes the three objects' paths as the first
 --  arguments: plugin.c's, provider.c's and consumer.c's.
+import core/mem
 import core/text
 import platform/posix
 
@@ -68,9 +69,9 @@ end explained
 checked: () -> none ! ... =
     table: posix.argument_table = posix.arguments()
     fail mismatched when table.count < 3
-    plugin_path: text.host_string = posix.argument(table, 0)
-    provider_path: text.host_string = posix.argument(table, 1)
-    consumer_path: text.host_string = posix.argument(table, 2)
+    plugin_path: text.os_string = posix.argument(table, 0)
+    provider_path: text.os_string = posix.argument(table, 1)
+    consumer_path: text.os_string = posix.argument(table, 2)
 
     --  A function found and called, and a callback into the program.
     reached = 1
@@ -83,7 +84,7 @@ checked: () -> none ! ... =
 
     --  A library that is not there, named in the loader's words.
     reached = 2
-    plugin_bytes: []u8 = text.host_bytes(plugin_path)
+    plugin_bytes: []u8 = text.os_string_bytes(plugin_path)
     suffix: []u8 = ".missing"
     mut missing_room: [4096]u8 = zeroed
     fail mismatched when lenof plugin_bytes + lenof suffix > 4096
@@ -95,7 +96,7 @@ checked: () -> none ! ... =
     end for
     missing: []u8 = missing_room[0..<lenof plugin_bytes + lenof suffix]
     mut refused: bool = false
-    _ = posix.open_library(text.host_over(missing), posix.local_symbols)
+    _ = posix.open_library(text.os_string_over(missing), posix.local_symbols)
         else (problem)
         refused = problem == posix.no_library
         try explained(last_part(missing))
@@ -112,7 +113,7 @@ checked: () -> none ! ... =
     reached = 4
     refused = false
     _ = posix.find_symbol(plugin, "landin_absent_symbol") else (problem)
-        refused = problem == posix.no_symbol
+        refused = problem == mem.not_found
         try explained("landin_absent_symbol")
         0
     end

@@ -112,7 +112,7 @@ clear_reuses_storage: () -> (ok: bool) =
     missing: u8 = mem.get(storage, first) else u8(99)
     reused: usize = mem.admit(storage, u8(41)) else slots
     taken: u8 = mem.withdraw(storage) else u8(0)
-    released: ptr mut u8 = mem.dispose(storage) else (problem)
+    released: ptr mut u8 = mem.detach(storage) else (problem)
         _ = problem
         return
     end
@@ -125,10 +125,10 @@ end clear_reuses_storage
 long_lines: () -> (ok: bool) =
     ok = false
     backing_host := heap.new()
-    mut backing := mem.new_bytes(backing_host, usize(10000)) else (problem) _ = problem
+    mut backing := mem.allocate_bytes(backing_host, usize(10000)) else (problem) _ = problem
         return
     end
-    defer mem.delete_bytes(backing_host, backing)
+    defer mem.release_bytes(backing_host, backing)
     ok = long_lines_in(mem.bytes(backing))
 end long_lines
 
@@ -212,10 +212,10 @@ end count_finite_region
 skipped_long_lines: () -> (ok: bool) =
     ok = false
     host := heap.new()
-    mut source := mem.new_bytes(host, usize(20011)) else (problem) _ = problem
+    mut source := mem.allocate_bytes(host, usize(20011)) else (problem) _ = problem
         return
     end
-    defer mem.delete_bytes(host, source)
+    defer mem.release_bytes(host, source)
     ok = skipped_long_lines_in(mem.bytes(source))
 end skipped_long_lines
 
@@ -344,16 +344,16 @@ end retained_arguments
 messages: () -> (ok: bool) =
     ok = false
     backing_host := heap.new()
-    mut source_owner := mem.new_bytes(backing_host, usize(700)) else (problem)
+    mut source_owner := mem.allocate_bytes(backing_host, usize(700)) else (problem)
         _ = problem
         return
     end
-    defer mem.delete_bytes(backing_host, source_owner)
-    mut output_owner := mem.new_bytes(backing_host, usize(800)) else (problem)
+    defer mem.release_bytes(backing_host, source_owner)
+    mut output_owner := mem.allocate_bytes(backing_host, usize(800)) else (problem)
         _ = problem
         return
     end
-    defer mem.delete_bytes(backing_host, output_owner)
+    defer mem.release_bytes(backing_host, output_owner)
     ok = messages_in(mem.bytes(source_owner), mem.bytes(output_owner))
 end messages
 
@@ -458,17 +458,17 @@ finite_regions: () -> (ok: bool) =
     object: ptr mut u8 = mem.allocate(inner, one, align) else (problem) _ = problem
         return end
     object.val = 42
-    before: usize = arena.used(bump)
+    before: usize = arena.length(bump)
     maximum: usize = 0 -% 1
     mut refused: bool = false
     _ = mem.allocate(inner, maximum, align) else (problem)
         refused = problem == mem.out_of_memory
         object
     end
-    return when not refused or arena.used(bump) <> before or object.val <> 42
+    return when not refused or arena.length(bump) <> before or object.val <> 42
     region.release(inner_ledger, outer)
     region.release(outer_ledger, bump)
-    ok = arena.used(bump) == before
+    ok = arena.length(bump) == before
 end finite_regions
 
 io_failures: () -> (ok: bool) =
@@ -542,7 +542,7 @@ missing_input_preserves_output: () -> (ok: bool) =
     defer region.release(ledger, host)
     mut refused: bool = false
     _ = app.run(program, world, usize(3)) else (problem)
-        refused = problem == io.not_found
+        refused = problem == mem.not_found
         0
     end
     ok = refused and files[0].length == lenof previous
@@ -685,7 +685,7 @@ metadata_exhaustion: () -> (ok: bool) =
     mut ledger: region.growing_space = zeroed
     --  An empty ledger releases without allocating and remains reusable.
     region.release(ledger, bump)
-    return when arena.used(bump) <> 0
+    return when arena.length(bump) <> 0
     program := region.over(ledger, bump)
     mut refused: bool = false
     _ = mem.allocate(program, usize(1), usize(1)) else (problem)
@@ -695,5 +695,5 @@ metadata_exhaustion: () -> (ok: bool) =
     --  The payload fitted; recording its extent did not. Region returned the
     --  payload to its parent, whose monotonic free deliberately keeps it used.
     region.release(ledger, bump)
-    ok = refused and arena.used(bump) == 1
+    ok = refused and arena.length(bump) == 1
 end metadata_exhaustion

@@ -8,7 +8,7 @@ import core/text
 first_byte: (host: io.memory, inout listing: io.directory)
             -> (first: u8) ! io.io_failed =
     item: io.entry = try io.read_entry(host, listing)
-    name: []u8 = text.host_bytes(item.name)
+    name: []u8 = text.os_string_bytes(item.name)
     following: io.entry = try io.read_entry(host, listing)
     _ = following.kind
     first = name[0]

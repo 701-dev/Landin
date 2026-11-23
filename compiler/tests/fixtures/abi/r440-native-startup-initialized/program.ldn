@@ -16,8 +16,8 @@ public extern(c) l_plain: (input: i32, output: i32) -> (ok: bool) =
     mut received: [4]u8 = zeroed
     count: isize = libc.read(input, addr received[0], 4)
     return when count <> 4
-    source: text.host_string = text.host_over(received[0..<usize(count)])
-    bytes: []u8 = text.host_bytes(source)
+    source: text.os_string = text.os_string_over(received[0..<usize(count)])
+    bytes: []u8 = text.os_string_bytes(source)
     ok = libc.write(output, addr bytes[0], lenof bytes) == 4
 end l_plain
 
@@ -29,22 +29,22 @@ extern(c) c_argument_storage: (count: usize, first: ptr u8, second: ptr u8)
 
 arguments_match: (state: ptr blocking.host) -> (ok: bool) =
     ok = false
-    return when io.argument_count(state.val) <> 2
-    first: text.host_string = io.argument_at(state.val, usize(0))
+    return when io.arguments_length(state.val) <> 2
+    first: text.os_string = io.argument(state.val, usize(0))
         else (problem)
         _ = problem
         return
     end
-    second: text.host_string = io.argument_at(state.val, usize(1))
+    second: text.os_string = io.argument(state.val, usize(1))
         else (problem)
         _ = problem
         return
     end
-    word: utf8 = text.from_host(first) else (problem)
+    word: utf8 = text.from_os_string(first) else (problem)
         _ = problem
         return
     end
-    number: utf8 = text.from_host(second) else (problem)
+    number: utf8 = text.from_os_string(second) else (problem)
         _ = problem
         return
     end
@@ -52,17 +52,17 @@ arguments_match: (state: ptr blocking.host) -> (ok: bool) =
     -- Mint a fresh world from the root as well as using the one already
     -- minted. This catches a callback prologue resetting the root.
     fresh: blocking.host = blocking.new()
-    again: text.host_string = io.argument_at(fresh, usize(0)) else (problem)
+    again: text.os_string = io.argument(fresh, usize(0)) else (problem)
         _ = problem
         return
     end
-    first_bytes: []u8 = text.host_bytes(first)
-    second_bytes: []u8 = text.host_bytes(second)
-    again_bytes: []u8 = text.host_bytes(again)
+    first_bytes: []u8 = text.os_string_bytes(first)
+    second_bytes: []u8 = text.os_string_bytes(second)
+    again_bytes: []u8 = text.os_string_bytes(again)
     --  An argument is the process's own storage, lent and never copied.
     return when usize(addr first_bytes[0]) <> usize(addr again_bytes[0])
-      or io.argument_count(fresh) <> 2
-    ok = c_argument_storage(io.argument_count(state.val), addr first_bytes[0],
+      or io.arguments_length(fresh) <> 2
+    ok = c_argument_storage(io.arguments_length(state.val), addr first_bytes[0],
                             addr second_bytes[0])
 end arguments_match
 

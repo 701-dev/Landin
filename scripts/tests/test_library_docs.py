@@ -170,9 +170,9 @@ public after: atom
     def test_alias_continued_on_indented_lines_is_whole(self):
         """core/failure's `reason` lost all but its first line of atoms."""
         text = '''--- Every reason.
-public reason: type = mem.empty | mem.full
-    | io.not_found
-    | text.no_space
+public reason: type = mem.empty | mem.out_of_memory
+    | mem.not_found
+    | mem.out_of_memory
 --- Next line.
 public kind: type =
     one | two
@@ -183,8 +183,8 @@ public after: atom
         result = self.read(text)
         self.assertEqual([i.name for i in result], ['reason', 'kind', 'after'])
         self.assertEqual(result[0].signature,
-                         'public reason: type = mem.empty | mem.full\n'
-                         '    | io.not_found\n    | text.no_space')
+                         'public reason: type = mem.empty | mem.out_of_memory\n'
+                         '    | mem.not_found\n    | mem.out_of_memory')
         self.assertEqual(result[1].signature,
                          'public kind: type =\n    one | two\n    | three')
 

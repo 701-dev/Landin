@@ -3,6 +3,7 @@
 --  empty slice and a stray byte, and a writer refused for room leaving the
 --  buffer as it found it.  usize is 32 bits on Cortex-M and 64 elsewhere,
 --  so its expectations follow `sizeof usize`.
+import core/mem
 import core/text
 
 refusal: type = text.invalid_number | text.number_overflow
@@ -16,7 +17,7 @@ same: (left: []u8, right: []u8) -> (yes: bool) =
     yes = true
 end same
 
-writes: () -> (ok: bool) ! text.no_space =
+writes: () -> (ok: bool) ! mem.out_of_memory =
     ok = false
     mut room: [24]u8 = zeroed
     mut line := text.over(room[0..<24])
@@ -44,11 +45,11 @@ writes: () -> (ok: bool) ! text.no_space =
     mut cramped: [19]u8 = [19 of 33]
     mut short := text.over(cramped[0..<19])
     text.append_u64(short, largest) else (problem)
-        return when problem <> text.no_space or text.length(short) <> 0
+        return when problem <> mem.out_of_memory or text.length(short) <> 0
           or cramped[0] <> 33 or cramped[18] <> 33
         mut tight := text.over(cramped[19..<19])
         text.append_usize(tight, 0) else (full)
-            ok = full == text.no_space
+            ok = full == mem.out_of_memory
             return
         end
         return

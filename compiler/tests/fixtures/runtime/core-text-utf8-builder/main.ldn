@@ -2,6 +2,7 @@
 --  appended whole, refusals that leave it as it was, and cuts that never
 --  split a scalar.  After every step its bytes are valid text.
 import core/cmp
+import core/mem
 import core/text
 
 --  Whether the builder holds exactly `expected`, as text with nothing
@@ -23,7 +24,7 @@ untouched: (buffer: []u8, fill: u8) -> (yes: bool) =
 end untouched
 
 appends: (inout line: text.utf8_builder)
-         -> (yes: bool) ! text.no_space | text.invalid_scalar =
+         -> (yes: bool) ! mem.out_of_memory | text.invalid_scalar =
     yes = false
     try text.utf8_append_text(line, "na\u{ef}ve")
     try text.utf8_append_scalar(line, '\u{2192}')
@@ -62,13 +63,13 @@ refusals: () -> (yes: bool) =
     end
     --  Five bytes held, so a four-byte scalar fits nowhere in three.
     text.utf8_append_scalar(line, '\u{1f600}') else (problem)
-        return when problem <> text.no_space
+        return when problem <> mem.out_of_memory
     end
     text.utf8_append_text(line, "\u{2192}x") else (problem)
-        return when problem <> text.no_space
+        return when problem <> mem.out_of_memory
     end
     text.utf8_append_u32(line, 1234) else (problem)
-        return when problem <> text.no_space
+        return when problem <> mem.out_of_memory
     end
     return when not holds(line, "caf\u{e9}")
       or not untouched(storage[5..<8], 0x55)
@@ -78,7 +79,7 @@ refusals: () -> (yes: bool) =
         return
     end
     text.utf8_append_scalar(line, '!') else (problem)
-        yes = problem == text.no_space and holds(line, "caf\u{e9}\u{2192}")
+        yes = problem == mem.out_of_memory and holds(line, "caf\u{e9}\u{2192}")
         return
     end
 end refusals
@@ -86,7 +87,7 @@ end refusals
 --  A cut inside a scalar keeps only the scalars before it; one on a
 --  boundary keeps what is before it, and one at or past the end nothing
 --  changes.
-cuts: () -> (yes: bool) ! text.no_space | text.invalid_scalar =
+cuts: () -> (yes: bool) ! mem.out_of_memory | text.invalid_scalar =
     yes = false
     mut storage: [16]u8 = zeroed
     mut line := text.utf8_over(storage[0..<16])

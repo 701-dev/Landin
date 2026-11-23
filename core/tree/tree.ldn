@@ -17,8 +17,6 @@ end id
 public ordinal: (value: node_id) -> (number: usize) =
     number = usize(value)
 end ordinal
---- The node identifier is outside the tree's stored node range.
-public no_such_node: atom
 --- The requested child interval is not wholly within already published nodes.
 public invalid_children: atom
 --- Another node identifier cannot be represented in target `usize`.
@@ -151,13 +149,14 @@ public add_branch: (provider: type is mem.allocator, inout value: tree,
     try vec.push(value.nodes, memory, added)
 end add_branch
 
---- Copy the node selected by an identifier. Reports `no_such_node` if absent;
---- the name remains borrowed from its original backing.
+--- Copy the node selected by an identifier. Reports `mem.not_found` when
+--- the identifier is outside the tree's stored node range; the name remains
+--- borrowed from its original backing.
 public get: (value: tree, id: node_id)
-            -> (result: node from held value) ! no_such_node =
+            -> (result: node from held value) ! mem.not_found =
     result = vec.get(value.nodes, usize(id)) else (problem)
         _ = problem
-        fail no_such_node
+        fail mem.not_found
     end
 end get
 
@@ -185,8 +184,9 @@ public kind: (value: node) -> (result: node_kind) =
     end match
 end kind
 
---- The leaves `value` counts: one for a leaf, and a branch's children's
---- total, an empty branch counting zero.
+--- The leaves `value` counts, precomputed, in constant time: one for a
+--- leaf, and a branch's children's total, shared children counting once
+--- per incoming path and an empty branch counting zero.
 public leaves: (value: node) -> (count: usize) =
     count = value.leaves
 end leaves
@@ -205,17 +205,6 @@ public children: (value: node) -> (first: node_id, count: usize) =
         end
     end match
 end children
-
---- Return the node's precomputed leaf total in constant time. Shared children
---- count once per incoming path; an empty branch counts zero.
-public count_leaves: (value: tree, id: node_id)
-                     -> (count: usize) ! no_such_node =
-    selected: node_value = get(value, id) else (problem)
-        _ = problem
-        fail no_such_node
-    end
-    count = selected.leaves
-end count_leaves
 
 --  The tree's conformance to core/iter's `iterable` (D1957): `for id in t`
 --  walks every published node's identifier in the order the nodes were

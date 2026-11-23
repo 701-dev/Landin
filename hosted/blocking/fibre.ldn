@@ -9,7 +9,7 @@
 import core/fibre
 import core/mem
 
-scheduler_start: (self: host, escaping record: ptr mut fibre.space,
+scheduler_start: (self: host, escaping record: ptr mut fibre.record,
                   escaping stack: []mut u8, escaping work: any fibre.task)
                  -> none ! mem.out_of_memory =
     _ = self
@@ -19,7 +19,7 @@ scheduler_start: (self: host, escaping record: ptr mut fibre.space,
     record.val.status = 0
 end scheduler_start
 
-scheduler_finished: (self: host, record: fibre.space) -> (yes: bool) =
+scheduler_finished: (self: host, record: fibre.record) -> (yes: bool) =
     _ = self
     yes = record.status == 0
 end scheduler_finished

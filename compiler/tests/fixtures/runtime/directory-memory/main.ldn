@@ -10,6 +10,7 @@
 --  or remove anything but reports a directory it has as already there.
 import core/io
 import core/io/fake
+import core/mem
 import core/text
 
 tree_name: []u8 = "tree"
@@ -43,16 +44,16 @@ end same
 --  Read the directory at PATH through a buffer of ROOM bytes: the bit of
 --  each one-letter entry `a` to `l` seen, `sub` and `empty` as bits 12 and
 --  13, and bit 15 for anything else or a repeat.
-listed: (host: io.memory, path: text.host_string, room: usize)
-        -> (seen: u32) ! io.not_found | io.no_access | io.io_failed =
+listed: (host: io.memory, path: text.os_string, room: usize)
+        -> (seen: u32) ! mem.not_found | io.no_access | io.io_failed =
     seen = 0
     mut buffer: [16]u8 = zeroed
     mut listing: io.directory =
         try io.open_directory(host, path, buffer[0..<room])
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         mut bit: u32 = 15
         if lenof name == 1 and name[0] >= 97 and name[0] <= 108
           and item.kind == io.regular then
@@ -93,7 +94,7 @@ public main: () -> (code: i32) =
     host := io.memory_over(state, files[0..<17], no_arguments, "",
                            output[0..<1], errors[0..<1])
 
-    tree: text.host_string = text.host_over(tree_name)
+    tree: text.os_string = text.os_string_over(tree_name)
     code = 2
     seen: u32 = listed(host, tree, 16) else 0
     return when seen <> 0x3FFF
@@ -104,7 +105,7 @@ public main: () -> (code: i32) =
     return when whole <> 0
 
     code = 4
-    sub: text.host_string = text.host_over(sub_name)
+    sub: text.os_string = text.os_string_over(sub_name)
     mut small: [16]u8 = zeroed
     mut inner: io.directory =
         io.open_directory(host, sub, small[0..<16]) else (p)
@@ -116,13 +117,13 @@ public main: () -> (code: i32) =
         return
     end
     --  Kept as a copy: the next read refills the buffer it lies in.
-    first_name: []u8 = text.host_bytes(first.name)
+    first_name: []u8 = text.os_string_bytes(first.name)
     kept: u8 = first_name[0]
     second: io.entry = io.read_entry(host, inner) else (p)
         _ = p
         return
     end
-    second_name: []u8 = text.host_bytes(second.name)
+    second_name: []u8 = text.os_string_bytes(second.name)
     return when kept <> 120 or second_name[0] <> 121
     io.close_directory(host, inner) else (p)
         _ = p
@@ -136,14 +137,14 @@ public main: () -> (code: i32) =
             _ = p
             return
         end
-    size_a: u64 = io.entry_size(host, opened, text.host_over("a")) else 99
-    size_b: u64 = io.entry_size(host, opened, text.host_over("b")) else 99
-    size_sub: u64 = io.entry_size(host, opened, text.host_over("sub")) else 99
-    absent: u64 = io.entry_size(host, opened, text.host_over("zz")) else (p)
-        if p == io.not_found then 77 else 99 end if
+    size_a: u64 = io.entry_size(host, opened, text.os_string_over("a")) else 99
+    size_b: u64 = io.entry_size(host, opened, text.os_string_over("b")) else 99
+    size_sub: u64 = io.entry_size(host, opened, text.os_string_over("sub")) else 99
+    absent: u64 = io.entry_size(host, opened, text.os_string_over("zz")) else (p)
+        if p == mem.not_found then 77 else 99 end if
     end
-    slash: u64 = io.entry_size(host, opened, text.host_over("sub/x")) else (p)
-        if p == io.not_found then 77 else 99 end if
+    slash: u64 = io.entry_size(host, opened, text.os_string_over("sub/x")) else (p)
+        if p == mem.not_found then 77 else 99 end if
     end
     return when size_a <> 4 or size_b <> 2 or size_sub <> 0
       or absent <> 77 or slash <> 77
@@ -153,19 +154,19 @@ public main: () -> (code: i32) =
     end
 
     code = 6
-    missing: text.host_string = text.host_over(missing_name)
+    missing: text.os_string = text.os_string_over(missing_name)
     _ = listed(host, missing, 16) else (p)
-        return when p <> io.not_found
+        return when p <> mem.not_found
         0
     end
     code = 7
-    file: text.host_string = text.host_over(file_name)
+    file: text.os_string = text.os_string_over(file_name)
     _ = listed(host, file, 16) else (p)
-        return when p <> io.not_found
+        return when p <> mem.not_found
         0
     end
     code = 8
-    long: text.host_string = text.host_over(long_name)
+    long: text.os_string = text.os_string_over(long_name)
     _ = listed(host, long, 16) else (p)
         return when p <> io.io_failed
         0
@@ -175,18 +176,18 @@ public main: () -> (code: i32) =
     io.make_directory(host, tree) else (p)
         return when p <> io.already_exists
     end
-    made: text.host_string = text.host_over(new_name)
+    made: text.os_string = text.os_string_over(new_name)
     code = 10
     io.make_directory(host, made) else (p)
         return when p <> io.no_access
     end
     code = 11
     io.remove_directory(host, made) else (p)
-        return when p <> io.not_found
+        return when p <> mem.not_found
     end
     code = 12
     io.remove_file(host, made) else (p)
-        return when p <> io.not_found
+        return when p <> mem.not_found
     end
     code = 42
 end main

@@ -6,47 +6,40 @@ import core/cmp
 import core/failure
 import core/io
 import core/line
-import core/map
 import core/mem
 import core/net
 import core/text
 import core/tree
 
-reasons: [38]failure.reason = [mem.out_of_bounds, mem.empty, mem.full,
-                               mem.not_empty, mem.out_of_memory, map.missing,
-                               map.end_of_entries, tree.no_such_node,
+reasons: [29]failure.reason = [mem.out_of_bounds, mem.empty,
+                               mem.not_empty, mem.out_of_memory, mem.not_found,
                                tree.invalid_children, tree.too_many_nodes,
-                               tree.too_many_leaves, io.not_found,
-                               io.no_access, io.io_failed, io.no_argument,
-                               io.already_exists, io.no_variable,
-                               io.line_too_long, io.not_a_terminal,
+                               tree.too_many_leaves, io.no_access,
+                               io.io_failed, io.is_a_directory,
+                               io.already_exists, io.not_a_terminal,
                                net.invalid_address, net.refused,
                                net.unreachable, net.address_in_use,
                                net.address_unavailable, net.timed_out,
-                               net.disconnected, text.past_end,
-                               text.invalid_text, text.invalid_number,
-                               text.number_overflow, text.no_space,
-                               text.invalid_format, text.not_found,
-                               text.invalid_scalar, cache.misaligned,
-                               cache.bad_line, line.unsupported_rate,
-                               line.unsupported_format]
+                               net.disconnected, text.invalid_text,
+                               text.invalid_number, text.number_overflow,
+                               text.invalid_format, text.invalid_scalar,
+                               cache.misaligned, cache.bad_line,
+                               line.unsupported_rate, line.unsupported_format]
 
-phrases: [38][]u8 = ["index out of bounds", "nothing to take",
-                     "no room for another item", "storage still holds items",
-                     "out of memory", "no such key", "no more entries",
-                     "no such node", "children outside the tree",
-                     "too many nodes", "too many leaves", "not found",
+phrases: [29][]u8 = ["index out of bounds", "nothing to take",
+                     "storage still holds items", "out of memory",
+                     "not found", "children outside the tree",
+                     "too many nodes", "too many leaves",
                      "permission denied", "input or output failed",
-                     "no such argument", "already exists", "no such variable",
-                     "line too long", "not a terminal", "invalid address",
-                     "connection refused", "address unreachable",
-                     "address in use", "address not available", "timed out",
-                     "peer disconnected", "past the end", "invalid UTF-8",
-                     "not a number", "number out of range",
-                     "no room for the output",
+                     "is a directory", "already exists", "not a terminal",
+                     "invalid address", "connection refused",
+                     "address unreachable", "address in use",
+                     "address not available", "timed out",
+                     "peer disconnected", "invalid UTF-8", "not a number",
+                     "number out of range",
                      "template does not fit its values",
-                     "not in the text", "not a Unicode scalar value",
-                     "not whole cache lines", "cache line not a power of two",
+                     "not a Unicode scalar value", "not whole cache lines",
+                     "cache line not a power of two",
                      "unsupported line rate", "unsupported frame format"]
 
 --  The phrase in lower case, as it reads after a colon, with no stop.
@@ -58,7 +51,7 @@ end plain
 
 public main: () -> (code: i32) =
     code = 1
-    for at in usize(0)..<usize(38) do
+    for at in usize(0)..<usize(29) do
         phrase: []u8 = failure.words(reasons[at])
         return when cmp.compare(phrase, phrases[at]) <> cmp.equal
           or not plain(phrase)

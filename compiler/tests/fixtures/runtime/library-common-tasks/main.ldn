@@ -7,7 +7,7 @@ import hosted/blocking
 
 --- Write each line of the file at `path` to `out` after its number.
 numbered: (inout out: io.buffered_writer(blocking.host), host: blocking.host,
-           path: text.host_string) -> none ! ... =
+           path: text.os_string) -> none ! ... =
     file := try io.open_read(host, path)
     defer io.close(host, file) else none
     mut buffer: [4096]u8 = zeroed
@@ -15,7 +15,7 @@ numbered: (inout out: io.buffered_writer(blocking.host), host: blocking.host,
     mut number: u64 = 0
     loop do
         item := try io.read_line(lines)
-        break when item.finished
+        break when item.at_end
         inc number
         try io.format(out, "{}: {}\n", [any(addr number), any(addr item.bytes)])
     end loop
@@ -27,12 +27,12 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    path := io.argument_at(host, 0) else begin
+    path := io.argument(host, 0) else begin
         io.write(host, io.err(host), "usage: number FILE\n") else none
         return
     end
     numbered(out, host, path) else (problem)
-        io.write(host, io.err(host), text.host_bytes(path)) else none
+        io.write(host, io.err(host), text.os_string_bytes(path)) else none
         io.write(host, io.err(host), ": ") else none
         io.write(host, io.err(host), failure.words(problem)) else none
         io.write(host, io.err(host), "\n") else none

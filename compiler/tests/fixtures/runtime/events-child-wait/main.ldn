@@ -12,6 +12,7 @@ import core/cmp
 import core/failure
 import core/fibre
 import core/io
+import core/mem
 import core/text
 import core/time
 import hosted/events
@@ -83,10 +84,10 @@ end tick
 mut backing: [2 * 32768]u8 = zeroed
 
 run: (host: events.host, inout seen: shared) -> none ! failure.reason =
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    nothing: []io.variable = []
-    seen.child = try io.spawn(host, text.host_over("/bin/sh"), arguments,
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    nothing: []text.os_variable = []
+    seen.child = try io.spawn(host, text.os_string_over("/bin/sh"), arguments,
                               nothing,
                               (input: io.piped, output: io.piped,
                                errors: io.piped))
@@ -103,10 +104,10 @@ end run
 --  a file that is not there leaves ENOENT, 2 on every hosted system, for
 --  `last_errno`.
 ended_by_signal: (host: events.host) -> (yes: bool) ! failure.reason =
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over("kill -TERM $$")]
-    nothing: []io.variable = []
-    child: io.child = try io.spawn(host, text.host_over("/bin/sh"), arguments,
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over("kill -TERM $$")]
+    nothing: []text.os_variable = []
+    child: io.child = try io.spawn(host, text.os_string_over("/bin/sh"), arguments,
                                    nothing, io.inheriting)
     ended: io.ending = try io.wait(host, child)
     mut signalled: bool = false
@@ -115,9 +116,9 @@ ended_by_signal: (host: events.host) -> (yes: bool) ! failure.reason =
         io.signalled: signalled = true
     end match
     mut missing: bool = false
-    absent: io.file = io.open_read(host, text.host_over("/landin-absent/file"))
+    absent: io.file = io.open_read(host, text.os_string_over("/landin-absent/file"))
         else (problem)
-        missing = problem == io.not_found
+        missing = problem == mem.not_found
         io.file(0)
     end
     _ = absent

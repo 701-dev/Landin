@@ -2,11 +2,6 @@ import core/cmp
 import core/iter
 import core/mem
 
---- No live entry has the requested key.
-public missing: atom
---- The insertion-order cursor has reached the end of the map.
-public end_of_entries: atom
-
 slot_free: atom
 slot_used: atom
 slot_dead: atom
@@ -35,9 +30,9 @@ map_value: type (key: type is cmp.hashable, item: type) = struct
     seed: cmp.hash_seed
 end map_value
 
-cursor_value: type = struct
+position_value: type = struct
     next_slot: usize
-end cursor_value
+end position_value
 
 --  A representation of the module's own: spec.md's D354.
 --- Insertion-ordered hash map over slot metadata and dense key/value
@@ -61,12 +56,12 @@ public map: type (key: type is cmp.hashable, item: type) =
 --- Position in an insertion-order entry walk. Start with `entries`; do not
 --- mutate the map during a walk.
 ---
---- A cursor is a manual live-bucket position, not an ownership or snapshot
+--- A position is a manual live-bucket place, not an ownership or snapshot
 --- token: it has no map identity or generation check and is not
 --- transferable between maps. Any mutation, including insert, remove,
 --- rehash, clear and release, invalidates an active walk; callers must
---- discard its cursor and restart.  Its slot is the module's own.
-public cursor: type = cursor_value
+--- discard its position and restart.  Its slot is the module's own.
+public position: type = position_value
 
 --- A copied key/value pair returned by `next_entry`. References inside either
 --- value still depend on their original backing.
@@ -120,61 +115,86 @@ public slots: (key: type is cmp.hashable, item: type,
     count = mem.capacity(value.buckets)
 end slots
 
---- Create a cursor positioned before the first entry. The walk follows
---- current insertion order.
-public entries: () -> (position: cursor) =
-    --  This marker means "start at the map's head" on the first call. It is
-    --  distinct from every possible bucket capacity and from the exhausted
-    --  marker, which is the capacity of the map being walked.
-    position = (next_slot: 0 -% 1)
+--- Create a position before the first entry. The walk follows current
+--- insertion order.
+public entries: () -> (at: position) =
+    --  This marker means "start at the map's head" until the first
+    --  `next_entry`. It is distinct from every possible bucket capacity and
+    --  from the exhausted marker, which is the capacity of the map being
+    --  walked.
+    at = (next_slot: 0 -% 1)
 end entries
 
---- Copy the next live key/value pair and advance the cursor. Reports
---- `end_of_entries` at the end; keep the map unchanged during the walk.
+--  The slot a position names: the map's head for the marker `entries`
+--  makes.
+position_slot: (key: type is cmp.hashable, item: type,
+                value: map(key, item), at: position) -> (slot: usize) =
+    slot = at.next_slot
+    if slot == 0 -% 1 then
+        slot = value.first_used
+    end if
+end position_slot
+
+--- Whether the walk at `at` has handed out every live entry. While
+--- it is false, `next_entry` hands out the next one; keep the map unchanged
+--- during the walk.
+public at_end: (key: type is cmp.hashable, item: type,
+                value: map(key, item), at: position) -> (yes: bool) =
+    slot: usize = position_slot(value, at)
+    yes = true
+    return when slot >= slots(value)
+    record: bucket = mem.get(value.buckets, slot) else (problem)
+        _ = problem
+        return
+    end
+    yes = record.state <> slot_used
+end at_end
+
+--- Copy the next live key/value pair and advance the position. Call it
+--- only while `at_end` is false: at the end of the walk it stops the
+--- program, as a failed check does. Keep the map unchanged during the walk.
 ---
 --- Each call follows one live link. Across an unmodified walk, every live
---- entry is returned once in insertion order and the walk costs O(count),
---- including the exhausted call. The result is what the map holds, a copy
---- of its key and item, and no view of the map's storage.
+--- entry is returned once in insertion order and the walk costs O(count).
+--- The result is what the map holds, a copy of its key and item, and no
+--- view of the map's storage.
 public next_entry: (key: type is cmp.hashable, item: type,
-                    value: map(key, item), inout position: cursor)
-                   -> (result: entry(key, item) from held value) ! end_of_entries =
-    slots: usize = slots(value)
-    if position.next_slot == 0 -% 1 then
-        position.next_slot = value.first_used
-    end if
-    fail end_of_entries when position.next_slot >= slots
-    record: bucket = mem.get(value.buckets, position.next_slot)
+                    value: map(key, item), inout at: position)
+                   -> (result: entry(key, item) from held value) =
+    at.next_slot = position_slot(value, at)
+    record: bucket = mem.get(value.buckets, at.next_slot)
         else (problem)
         _ = problem
-        fail end_of_entries
+        compiler.unreachable()
     end
-    fail end_of_entries when record.state <> slot_used
-    position.next_slot = record.next_used
+    if record.state <> slot_used then
+        compiler.unreachable()
+    end if
+    at.next_slot = record.next_used
     found_key: key = mem.get(value.keys, record.dense_index)
         else (problem)
         _ = problem
-        fail end_of_entries
+        compiler.unreachable()
     end
     found_item: item = mem.get(value.values, record.dense_index)
         else (problem)
         _ = problem
-        fail end_of_entries
+        compiler.unreachable()
     end
     result = (key: found_key, item: found_item)
 end next_entry
 
 --  The map's conformance to core/iter's `iterable` (D1957): `for entry in
 --  m` walks the live entries in insertion order, as `next_entry` does,
---  each a copy of its key and item.  The cursor is the slot of the entry
+--  each a copy of its key and item.  The position is the slot of the entry
 --  next handed out.
 walk_first: (key: type is cmp.hashable, item: type,
-             s: ptr map_value(key, item)) -> (c: cursor) =
+             s: ptr map_value(key, item)) -> (c: position) =
     c = (next_slot: s.val.first_used)
 end walk_first
 
 walk_at_end: (key: type is cmp.hashable, item: type,
-              s: ptr map_value(key, item), c: cursor) -> (yes: bool) =
+              s: ptr map_value(key, item), c: position) -> (yes: bool) =
     yes = true
     return when c.next_slot >= slots(s.val)
     record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
@@ -185,7 +205,7 @@ walk_at_end: (key: type is cmp.hashable, item: type,
 end walk_at_end
 
 walk_item: (key: type is cmp.hashable, item: type,
-            s: ptr map_value(key, item), c: cursor)
+            s: ptr map_value(key, item), c: position)
            -> (v: entry(key, item)) =
     record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
         _ = problem
@@ -204,7 +224,7 @@ walk_item: (key: type is cmp.hashable, item: type,
 end walk_item
 
 walk_next: (key: type is cmp.hashable, item: type,
-            s: ptr map_value(key, item), c: cursor) -> (c2: cursor) =
+            s: ptr map_value(key, item), c: position) -> (c2: position) =
     record: bucket = mem.get(s.val.buckets, c.next_slot) else (problem)
         _ = problem
         compiler.unreachable()
@@ -213,7 +233,7 @@ walk_next: (key: type is cmp.hashable, item: type,
 end walk_next
 
 (key: type is cmp.hashable, item: type) map_value(key, item) is iter.iterable
-    (cur: cursor, item_type: entry(key, item), first: walk_first,
+    (cur: position, item_type: entry(key, item), first: walk_first,
      at_end: walk_at_end, item: walk_item, next: walk_next)
 
 replace_value: (value: type, inout storage: mem.storage(value),
@@ -543,13 +563,13 @@ rehash: (key: type is cmp.hashable, item: type,
         fail mem.out_of_memory when searched == want
 
         key_dense: usize = mem.transfer
-            (value.keys, old_bucket.dense_index, new_keys)
+            (new_keys, value.keys, old_bucket.dense_index)
             else (problem)
             _ = problem
             fail mem.out_of_memory
         end
         value_dense: usize = mem.transfer
-            (value.values, old_bucket.dense_index, new_values)
+            (new_values, value.values, old_bucket.dense_index)
             else (problem)
             _ = problem
             fail mem.out_of_memory
@@ -645,23 +665,23 @@ end location
 
 locate: (key: type is cmp.hashable, item: type,
          value: map(key, item), wanted: key)
-        -> (found: location) ! missing =
-    fail missing when value.count == 0
+        -> (found: location) ! mem.not_found =
+    fail mem.not_found when value.count == 0
     slots: usize = slots(value)
-    fail missing when slots == 0
+    fail mem.not_found when slots == 0
     mut slot: usize = index_of(wanted, slots, value.seed)
     mut probed: usize = 0
     while probed < slots do
         record: bucket = mem.get(value.buckets, slot) else (problem)
             _ = problem
-            fail missing
+            fail mem.not_found
         end
-        fail missing when record.state == slot_free
+        fail mem.not_found when record.state == slot_free
         if record.state == slot_used then
             existing: key = mem.get(value.keys, record.dense_index)
                 else (problem)
                 _ = problem
-                fail missing
+                fail mem.not_found
             end
             if key.equal(existing, wanted) then
                 found = (slot: slot, dense: record.dense_index)
@@ -671,31 +691,31 @@ locate: (key: type is cmp.hashable, item: type,
         slot = next_index(slot, slots)
         inc probed
     end while
-    fail missing
+    fail mem.not_found
 end locate
 
---- Copy the value associated with a key. Reports `missing` if absent;
+--- Copy the value associated with a key. Reports `mem.not_found` if absent;
 --- references inside the copy retain their origin.
 public get: (key: type is cmp.hashable, item: type,
              value: map(key, item), wanted: key)
-            -> (result: item from held value) ! missing =
+            -> (result: item from held value) ! mem.not_found =
     found: location = try locate(value, wanted)
     result = mem.get(value.values, found.dense) else (problem)
         _ = problem
-        fail missing
+        fail mem.not_found
     end
 end get
 
 --- Lend a writable pointer to the present key's item for in-place update.
---- Reports `missing` if absent. While the result lives the map binding may
---- not be passed inout or sink [0800]; let it end before the next insert,
+--- Reports `mem.not_found` if absent. While the result lives the map binding
+--- may not be passed inout or sink [0800]; let it end before the next insert,
 --- remove or release.
 public at: (key: type is cmp.hashable, item: type,
             inout value: map(key, item), wanted: key)
-           -> (slot: ptr mut item from value) ! missing =
+           -> (slot: ptr mut item from value) ! mem.not_found =
     found: location = try locate(value, wanted)
     view: []mut item = mem.used(value.values)
-    fail missing when found.dense >= lenof view
+    fail mem.not_found when found.dense >= lenof view
     slot = addr view[found.dense]
 end at
 
@@ -710,28 +730,28 @@ public contains: (key: type is cmp.hashable, item: type,
     yes = true
 end contains
 
---- Remove a key/value entry without returning it. Reports `missing` if
+--- Remove a key/value entry without returning it. Reports `mem.not_found` if
 --- absent; preserves the relative order of remaining entries. End existing
---- value pointers and cursors before mutation.
+--- value pointers and positions before mutation.
 public remove: (key: type is cmp.hashable, item: type,
                 inout value: map(key, item), wanted: key)
-               -> none ! missing =
-    fail missing when value.count == 0
+               -> none ! mem.not_found =
+    fail mem.not_found when value.count == 0
     slots: usize = slots(value)
-    fail missing when slots == 0
+    fail mem.not_found when slots == 0
     mut at: usize = index_of(wanted, slots, value.seed)
     mut probed: usize = 0
     while probed < slots do
         record: bucket = mem.get(value.buckets, at) else (problem)
             _ = problem
-            fail missing
+            fail mem.not_found
         end
-        fail missing when record.state == slot_free
+        fail mem.not_found when record.state == slot_free
         if record.state == slot_used then
             existing: key = mem.get(value.keys, record.dense_index)
                 else (problem)
                 _ = problem
-                fail missing
+                fail mem.not_found
             end
             if key.equal(existing, wanted) then
                 if record.previous_used < slots then
@@ -739,13 +759,13 @@ public remove: (key: type is cmp.hashable, item: type,
                         mem.get(value.buckets, record.previous_used)
                         else (problem)
                             _ = problem
-                            fail missing
+                            fail mem.not_found
                         end
                     previous.next_used = record.next_used
                     if not replace_value(value.buckets,
                                          record.previous_used, previous)
                     then
-                        fail missing
+                        fail mem.not_found
                     end if
                 else
                     value.first_used = record.next_used
@@ -755,13 +775,13 @@ public remove: (key: type is cmp.hashable, item: type,
                         mem.get(value.buckets, record.next_used)
                         else (problem)
                             _ = problem
-                            fail missing
+                            fail mem.not_found
                         end
                     next.previous_used = record.previous_used
                     if not replace_value(value.buckets, record.next_used,
                                          next)
                     then
-                        fail missing
+                        fail mem.not_found
                     end if
                 else
                     value.last_used = record.previous_used
@@ -770,7 +790,7 @@ public remove: (key: type is cmp.hashable, item: type,
                     (state: slot_dead, dense_index: record.dense_index,
                      previous_used: slots, next_used: slots)
                 if not replace_value(value.buckets, at, dead_bucket) then
-                    fail missing
+                    fail mem.not_found
                 end if
                 dec value.count
                 inc value.tombstones
@@ -780,7 +800,7 @@ public remove: (key: type is cmp.hashable, item: type,
         at = next_index(at, slots)
         inc probed
     end while
-    fail missing
+    fail mem.not_found
 end remove
 
 --- Discard all entries, free the map's backing through its original provider
@@ -828,7 +848,7 @@ end clear
 --- otherwise left alone.  A rebuild allocates the replacement storage
 --- before committing it.  Allocation failure frees the partial
 --- replacement and preserves every entry; success can invalidate pointers
---- and cursors.
+--- and positions.
 public reserve: (key: type is cmp.hashable, item: type,
                  provider: type is mem.allocator,
                  inout value: map(key, item), memory: provider,

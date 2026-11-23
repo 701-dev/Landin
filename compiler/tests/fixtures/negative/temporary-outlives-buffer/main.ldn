@@ -7,6 +7,6 @@ import core/text
 made: (host: fake.volume, names: fake.entropy)
       -> (result: io.temporary) ! ... =
     mut room: [64]u8 = zeroed
-    result = try io.make_temporary(host, names, text.host_over(""),
+    result = try io.make_temporary(host, names, text.os_string_over(""),
                                    room[0..<64])
 end made

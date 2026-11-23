@@ -342,7 +342,7 @@ parse_entry: (inout p: parser, inout d: any diag.log,
 
     got = false
     initial: value_kind = (name: "", body: group_value(items: []))
-    v = try mem.new(state: a, value: initial)
+    v = try mem.allocate_item(state: a, value: initial)
 
     if p.look.what <> lex.ident then
         d.note(p.look.begins, diag.error, "expected a name")

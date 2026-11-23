@@ -23,7 +23,7 @@ public main: () -> (code: i32) =
     --  successful retry asks its descriptor's status once, leaves no stale
     --  detail, and its fake handle is closed.
     r440_errno_select(1)
-    read_file: io.file = io.open_read(state, text.host_over(read_path)) else (problem)
+    read_file: io.file = io.open_read(state, text.os_string_over(read_path)) else (problem)
         _ = problem
         return
     end
@@ -38,7 +38,7 @@ public main: () -> (code: i32) =
     --  the EINTR retry rather than rebuilding a different request.
     code = 2
     r440_errno_select(2)
-    write_file: io.file = io.open_write(state, text.host_over(write_path)) else (problem)
+    write_file: io.file = io.open_write(state, text.os_string_over(write_path)) else (problem)
         _ = problem
         return
     end

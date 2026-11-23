@@ -52,7 +52,7 @@ growth_case: () -> (ok: bool) =
         value: ptr node = mem.withdraw(short) else addr second
         value.val.value
     end
-    short_freed: ptr mut u8 = mem.dispose(short) else (problem)
+    short_freed: ptr mut u8 = mem.detach(short) else (problem)
         _ = problem
         ok = false
         return
@@ -87,7 +87,7 @@ growth_case: () -> (ok: bool) =
         value: ptr node = mem.withdraw(old) else addr second
         value.val.value
     end
-    old_freed: ptr mut u8 = mem.dispose(old) else (problem)
+    old_freed: ptr mut u8 = mem.detach(old) else (problem)
         _ = problem
         ok = false
         return
@@ -119,7 +119,7 @@ public main: () -> (code: i32) =
     blocked: usize = mem.admit(storage, addr first) else slots
 
     disposal_refused: bool = begin
-        refused: allocation = mem.dispose(storage) else no_allocation
+        refused: allocation = mem.detach(storage) else no_allocation
         is_absent(refused)
     end
     missing_value: i32 = begin
@@ -142,7 +142,7 @@ public main: () -> (code: i32) =
         empty.val.value
     end
 
-    freed: ptr mut u8 = mem.dispose(storage) else (problem)
+    freed: ptr mut u8 = mem.detach(storage) else (problem)
         _ = problem
         code = 9
         return

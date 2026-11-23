@@ -18,9 +18,9 @@ extern(c) identity_record_agrees: (path: cstring, record: ptr u8)
                                   -> (good: bool)
 
 --  The peer's path `which` as a host string, lending the peer's storage.
-path_of: (which: i32) -> (path: text.host_string) =
+path_of: (which: i32) -> (path: text.os_string) =
     named: []u8 = []u8(identity_path(which))
-    path = text.host_over(named)
+    path = text.os_string_over(named)
 end path_of
 
 public main: () -> (code: i32) =

@@ -68,10 +68,10 @@ exercise: (provider: type is mem.allocator, memory: provider)
         _ = problem
         return
     end
-    leaves: usize = tree.count_leaves(value, root) else (problem)
+    leaves: usize = tree.leaves(tree.get(value, root) else (problem)
         _ = problem
         return
-    end
+    end)
     tree.release(value, counted)
     --  The empty tree's first block, then the refused leaf's and branch's
     --  resizes, were refused: three refusals in all.  The first block and

@@ -3,7 +3,7 @@ import hosted/heap
 bad: () -> none =
     state := heap.new()
     mut local: u32 = 23
-    _ = mem.new(state, addr local) else (problem)
+    _ = mem.allocate_item(state, addr local) else (problem)
         _ = problem
     end
 end bad

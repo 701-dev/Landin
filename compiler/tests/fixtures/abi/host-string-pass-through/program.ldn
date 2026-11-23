@@ -20,20 +20,20 @@ extern(c) c_argument_is_argv: (bytes: ptr u8, length: usize) -> (yes: bool)
 public extern(c) l_pass_through: () -> (code: i32) =
     host := blocking.new()
     code = 10
-    return when io.argument_count(host) <> 1
-    argument: text.host_string = io.argument_at(host, usize(0)) else (problem)
+    return when io.arguments_length(host) <> 1
+    argument: text.os_string = io.argument(host, usize(0)) else (problem)
         _ = problem
         return
     end
 
     --  Lent, not copied.
     code = 11
-    bytes: []u8 = text.host_bytes(argument)
+    bytes: []u8 = text.os_string_bytes(argument)
     return when not c_argument_is_argv(addr bytes[0], lenof bytes)
 
     --  Refused by the checked conversion to text.
     code = 12
-    shown: utf8 = text.from_host(argument) else (problem)
+    shown: utf8 = text.from_os_string(argument) else (problem)
         code = if problem == text.invalid_text then 13 else 12 end if
         ""
     end

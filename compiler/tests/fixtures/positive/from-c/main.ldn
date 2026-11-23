@@ -4,7 +4,7 @@ import hosted/blocking
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 2
-    if io.argument_count(host) == 0 then
+    if io.arguments_length(host) == 0 then
         io.write(host, io.err(host), "usage: tool FILE...\n") else none
         return
     end if

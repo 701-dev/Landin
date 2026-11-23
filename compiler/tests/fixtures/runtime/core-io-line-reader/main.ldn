@@ -5,6 +5,7 @@
 import core/cmp
 import core/io
 import core/io/fake
+import core/mem
 
 mut output: [1]u8 = zeroed
 mut errors: [1]u8 = zeroed
@@ -23,17 +24,17 @@ next_is: (inout lines: io.line_reader(io.memory), expected: []u8)
             _ = second
             return
         end
-        yes = not again.finished
+        yes = not again.at_end
               and cmp.compare(again.bytes, expected) == cmp.equal
         return
     end
-    yes = not item.finished and cmp.compare(item.bytes, expected) == cmp.equal
+    yes = not item.at_end and cmp.compare(item.bytes, expected) == cmp.equal
 end next_is
 
 too_long: (inout lines: io.line_reader(io.memory)) -> (yes: bool) =
     yes = false
     _ = io.read_line(lines) else (problem)
-        yes = problem == io.line_too_long
+        yes = problem == mem.out_of_memory
         return
     end
 end too_long
@@ -46,10 +47,10 @@ finished: (inout lines: io.line_reader(io.memory)) -> (yes: bool) =
             _ = second
             return
         end
-        yes = again.finished and lenof again.bytes == 0
+        yes = again.at_end and lenof again.bytes == 0
         return
     end
-    yes = item.finished and lenof item.bytes == 0
+    yes = item.at_end and lenof item.bytes == 0
 end finished
 
 --  Read the input with reads of at most LIMIT bytes, the FAIL_AT'th read
@@ -121,7 +122,7 @@ boundaries: (input: []u8, oversized: bool, limit: usize,
             if problem == io.io_failed then
                 rejected = too_long(lines)
             else
-                rejected = problem == io.line_too_long
+                rejected = problem == mem.out_of_memory
             end if
         end
         ok = rejected and next_is(lines, "after") and finished(lines)
@@ -131,7 +132,7 @@ boundaries: (input: []u8, oversized: bool, limit: usize,
 end boundaries
 
 --  A reader over an empty buffer has room for no line: each read is
---  line_too_long, and none claims the input has ended.
+--  mem.out_of_memory, and none claims the input has ended.
 empty_buffer: () -> (ok: bool) =
     name: []u8 = "unused"
     file: io.memory_file =

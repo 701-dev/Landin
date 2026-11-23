@@ -59,7 +59,7 @@ public writing: open_options = (access: write_only, create: true,
 --- component is not a directory, `eacces` when refused, `eexist` for an
 --- `exclusive` name that is taken, `eintr` when a signal came first.
 public open_at:
-    (at: descriptor, path: text.host_string,
+    (at: descriptor, path: text.os_string,
      options: open_options, permissions: u32)
     -> (opened: descriptor) ! errno =
     mut room: path_room = zeroed
@@ -149,7 +149,7 @@ end status
 --- `at` (or `working_directory`), following a final symbolic link when
 --- `follow` is true and reporting the link itself when it is not.
 public status_at:
-    (at: descriptor, path: text.host_string, follow: bool)
+    (at: descriptor, path: text.os_string, follow: bool)
     -> (result: status) ! errno =
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])
@@ -242,8 +242,8 @@ end synchronize
 --- `eisdir` for a file onto a directory and `enotdir` the other way; and
 --- `einval` for a directory into itself.
 public rename_at:
-    (old_at: descriptor, old: text.host_string, new_at: descriptor,
-     new: text.host_string) -> none ! errno =
+    (old_at: descriptor, old: text.os_string, new_at: descriptor,
+     new: text.os_string) -> none ! errno =
     mut old_room: path_room = zeroed
     old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
     mut new_room: path_room = zeroed
@@ -258,8 +258,8 @@ end rename_at
 --- for a directory, which no system links, and `emlink` for a file with as
 --- many names as it may have.
 public link_at:
-    (old_at: descriptor, old: text.host_string, new_at: descriptor,
-     new: text.host_string) -> none ! errno =
+    (old_at: descriptor, old: text.os_string, new_at: descriptor,
+     new: text.os_string) -> none ! errno =
     mut old_room: path_room = zeroed
     old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
     mut new_room: path_room = zeroed
@@ -272,7 +272,7 @@ end link_at
 --- the link, relative to the link's own directory unless it begins with
 --- `/`, which need not name anything.  `eexist` when `path` is taken.
 public symbolic_link_at:
-    (target: text.host_string, at: descriptor, path: text.host_string)
+    (target: text.os_string, at: descriptor, path: text.os_string)
     -> none ! errno =
     mut target_room: path_room = zeroed
     pointed: ptr u8 = try terminate(target, target_room[0..<lenof target_room])
@@ -286,14 +286,14 @@ end symbolic_link_at
 --- `path` is no symbolic link, and `erange` when the target fills `into`,
 --- since a target as long as the buffer may have been cut.
 public read_link_at:
-    (at: descriptor, path: text.host_string, into: []mut u8)
-    -> (target: text.host_string from into) ! errno =
+    (at: descriptor, path: text.os_string, into: []mut u8)
+    -> (target: text.os_string from into) ! errno =
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])
     fail erange when lenof into == 0
     count: usize = try system_read_link(at, terminated, into)
     fail erange when count >= lenof into
-    target = text.host_over(into[0..<count])
+    target = text.os_string_over(into[0..<count])
 end read_link_at
 
 --- Set the permission bits of the file `path` names, relative to `at`, to
@@ -302,7 +302,7 @@ end read_link_at
 --- `0o7777`, and `eperm` when the process neither owns the file nor may
 --- override that.
 public change_mode_at:
-    (at: descriptor, path: text.host_string, permissions: u32)
+    (at: descriptor, path: text.os_string, permissions: u32)
     -> none ! errno =
     fail einval when permissions > 0o7777
     mut room: path_room = zeroed
@@ -325,7 +325,7 @@ end change_mode
 --- away, and an owner may give it only to a group the owner is in. A system
 --- may clear the set-user-ID and set-group-ID bits as it changes the owner.
 public change_owner_at:
-    (at: descriptor, path: text.host_string, user: user_id, group: group_id,
+    (at: descriptor, path: text.os_string, user: user_id, group: group_id,
      follow: bool) -> none ! errno =
     mut room: path_room = zeroed
     terminated: ptr u8 = try terminate(path, room[0..<lenof room])
@@ -346,7 +346,7 @@ end change_owner
 --- nanoseconds of a second or more; a file system keeping coarser times
 --- rounds them down.
 public set_times_at:
-    (at: descriptor, path: text.host_string, accessed: time_value,
+    (at: descriptor, path: text.os_string, accessed: time_value,
      modified: time_value, follow: bool) -> none ! errno =
     fail einval when accessed.nanoseconds >= 1000000000
       or modified.nanoseconds >= 1000000000
@@ -379,11 +379,11 @@ end status_of
 --- it: beside threads a change would move every relative path at once,
 --- and a path relative to a directory open as `at` serves instead.
 public current_directory:
-    (into: []mut u8) -> (path: text.host_string from into) ! errno =
+    (into: []mut u8) -> (path: text.os_string from into) ! errno =
     fail erange when lenof into == 0
     count: usize = try system_current_directory(into)
     fail erange when count > lenof into
-    path = text.host_over(into[0..<count])
+    path = text.os_string_over(into[0..<count])
 end current_directory
 
 --- A shared lock: any number of holders, none of them exclusive.

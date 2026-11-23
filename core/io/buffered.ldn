@@ -19,7 +19,7 @@ end buffered_value
 --- the writer is dropped, are never written.  Flush before every way out,
 --- with `defer io.flush(out) else ...` as the idiom, and flush again
 --- wherever the bytes must be out before something else happens, as before
---- reading a reply.  `pending` says how many bytes are waiting.
+--- reading a reply.  `buffered_length` says how many bytes are waiting.
 public buffered_writer: type (provider: type) = buffered_value(provider)
 
 --- A buffered writer over the caller's `buffer`, writing to `opened`
@@ -98,17 +98,17 @@ public put: (provider: type is writer, inout out: buffered_writer(provider),
 end put
 
 --- How many bytes are waiting in the buffer for the next flush.
-public pending: (provider: type, out: buffered_writer(provider))
-                -> (count: usize) =
+public buffered_length: (provider: type, out: buffered_writer(provider))
+                        -> (count: usize) =
     count = out.used
-end pending
+end buffered_length
 
 --  The two byte sinks a template is formatted into: spec.md's D355.
 --- Format `template` with `values`, as `text.format` does, straight into
 --- the buffer: the caller needs no builder and nothing is copied.  The text
 --- goes into the room after the waiting bytes; when it does not fit there,
 --- the buffer is flushed and the text goes into the whole buffer.  A text
---- larger than the whole buffer is `text.no_space` and leaves nothing of
+--- larger than the whole buffer is `mem.out_of_memory` and leaves nothing of
 --- itself waiting; a template that does not fit its values is
 --- `text.invalid_format`; a failed flush is the writer's `io_failed`.  The
 --- values are `text.formattable`'s types.  Floats are not formattable yet:
@@ -118,7 +118,7 @@ end pending
 public format: (provider: type is writer,
                 inout out: buffered_writer(provider), template: utf8,
                 values: []any text.formattable)
-               -> none ! text.no_space | text.invalid_format | io_failed =
+               -> none ! mem.out_of_memory | text.invalid_format | io_failed =
     mut line := text.over(out.buffer[out.used..<lenof out.buffer])
     text.format(line, template, values) else (problem)
         fail text.invalid_format when problem == text.invalid_format
@@ -126,7 +126,7 @@ public format: (provider: type is writer,
         mut whole := text.over(out.buffer[0..<lenof out.buffer])
         text.format(whole, template, values) else (again)
             fail text.invalid_format when again == text.invalid_format
-            fail text.no_space
+            fail mem.out_of_memory
         end
         out.used = text.length(whole)
         return

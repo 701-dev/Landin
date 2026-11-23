@@ -23,7 +23,7 @@ transfers: (view: []mut u8) -> (code: i32) ! posix.errno =
     code = 3
     nowhere: posix.descriptor =
         try posix.open_at(posix.working_directory,
-                          text.host_over("/dev/null"),
+                          text.os_string_over("/dev/null"),
                           (access: posix.read_write, create: false,
                            exclusive: false, truncate: false, append: false,
                            directory: false), 0)

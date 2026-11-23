@@ -11,7 +11,7 @@ second: node = (value: 22)
 
 bad_insert: (inout value: map.map(u32, ptr node),
              provider: heap.heap) -> (result: i32)
-            ! mem.out_of_memory | map.missing =
+            ! mem.out_of_memory | mem.not_found =
     slot := try map.at(value, 1)
     replacement_key: u32 = 2
     try map.insert(value, provider, replacement_key, addr second)
@@ -19,7 +19,7 @@ bad_insert: (inout value: map.map(u32, ptr node),
 end bad_insert
 
 bad_release: (inout value: map.map(u32, ptr node),
-              provider: heap.heap) -> (result: i32) ! map.missing =
+              provider: heap.heap) -> (result: i32) ! mem.not_found =
     slot := try map.at(value, 1)
     map.release(value, provider)
     result = slot.val.val.value

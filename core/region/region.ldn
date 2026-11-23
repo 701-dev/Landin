@@ -66,7 +66,7 @@ region_alloc: (provider: type is mem.allocator,
     block = try mem.allocate(self.parent, size, alignment)
     record: allocation = (address: usize(block), extent: size)
     record_allocation(self, record) else (problem)
-        mem.free(self.parent, block, size)
+        mem.release(self.parent, block, size)
         fail problem
     end
 end region_alloc
@@ -208,7 +208,7 @@ public release: (fixed capacity: usize, provider: type is mem.allocator,
             dec remaining
             record: allocation = state.records[remaining]
             block: ptr mut u8 = ptr(record.address)
-            mem.free(parent, block, record.extent)
+            mem.release(parent, block, record.extent)
         end while
     else
         --  Each block's records from the last, then the block itself, whose
@@ -223,12 +223,12 @@ public release: (fixed capacity: usize, provider: type is mem.allocator,
                 kept: ptr allocation =
                     ptr(ledger.address + filled * record_size)
                 payload: ptr mut u8 = ptr(kept.val.address)
-                mem.free(parent, payload, kept.val.extent)
+                mem.release(parent, payload, kept.val.extent)
             end while
             first: ptr allocation = ptr(ledger.address)
             older: allocation = first.val
             held: ptr mut u8 = ptr(ledger.address)
-            mem.free(parent, held, ledger.extent)
+            mem.release(parent, held, ledger.extent)
             ledger = older
             filled = ledger.extent / record_size
         end while

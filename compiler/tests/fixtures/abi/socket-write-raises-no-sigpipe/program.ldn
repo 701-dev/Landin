@@ -29,11 +29,11 @@ public extern(c) l_connection_write: () -> (result: i32) =
         _ = problem
         return
     end
-    net.close_socket(host, listener) else (problem)
+    net.close(host, listener) else (problem)
         _ = problem
         return
     end
-    net.close_socket(host, server) else (problem)
+    net.close(host, server) else (problem)
         _ = problem
         return
     end
@@ -49,7 +49,7 @@ public extern(c) l_connection_write: () -> (result: i32) =
         break when time.now(host) >= deadline
         time.sleep(host, time.milliseconds(10))
     end loop
-    net.close_socket(host, client) else (problem)
+    net.close(host, client) else (problem)
         _ = problem
         result = 5
     end

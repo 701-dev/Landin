@@ -3,6 +3,7 @@
 --  none; the empty text, found where the search begins as `contains`
 --  finds it; the search from a position, which walks every match; and
 --  each answer agreeing with `contains`.
+import core/mem
 import core/text
 
 --  What `offset_of` gives when `find` reports `not_found`: no text here
@@ -13,7 +14,7 @@ nowhere: usize = 1000
 --  `nowhere` when `find` reports `not_found`.
 offset_of: (source: utf8, sought: utf8) -> (offset: usize) =
     found := text.find(source, sought) else (problem)
-        offset = if problem == text.not_found then nowhere else 2000 end if
+        offset = if problem == mem.not_found then nowhere else 2000 end if
         return
     end
     offset = text.offset(found)
@@ -43,7 +44,7 @@ every: (source: utf8, sought: utf8, expected: []usize) -> (yes: bool) =
     mut index: usize = 0
     loop do
         found := text.find_from(source, sought, at) else (problem)
-            yes = problem == text.not_found and index == lenof expected
+            yes = problem == mem.not_found and index == lenof expected
             return
         end
         return when index >= lenof expected
@@ -82,7 +83,7 @@ public main: () -> (code: i32) =
     end
     return when text.offset(from_empty) <> 1
     mut ending := text.start(source)
-    while not text.done(source, ending) do
+    while not text.utf8_at_end(source, ending) do
         ending = text.step(source, ending)
     end while
     at_end := text.find_from(source, "", ending) else begin
@@ -116,13 +117,13 @@ public main: () -> (code: i32) =
       or text.offset(emoji) <> 23 or text.offset(space) <> 14
     code = 7
     _ = text.find_scalar(source, '\u{2191}') else (problem)
-        return when problem <> text.not_found
+        return when problem <> mem.not_found
         _ = text.find_scalar(source, 0xd83d) else (surrogate)
-            return when surrogate <> text.not_found
+            return when surrogate <> mem.not_found
             _ = text.find_scalar_from(source, '\u{1f600}',
                                       text.step(source, emoji))
                 else (past)
-                code = if past == text.not_found then 42 else 8 end if
+                code = if past == mem.not_found then 42 else 8 end if
                 return
             end
             return

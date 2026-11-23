@@ -28,7 +28,7 @@ public main: () -> (code: i32) =
     mut streaming := diag.stream(writer, diagnostic_stream)
     mut logger: any diag.log = any(addr streaming)
     message: []u8 = "bad"
-    where: text.position = text.cursor(message, 7)
+    where: text.position = text.from_offset(message, 7)
     logger.note(where, diag.error, message) else (problem)
         _ = problem
         return

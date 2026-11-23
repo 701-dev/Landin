@@ -19,12 +19,12 @@ list: (host: blocking.host, path: []u8, into: []mut kept)
     count = 0
     mut buffer: [1024]u8 = zeroed
     mut listing: io.directory =
-        try io.open_directory(host, text.host_over(path), buffer)
+        try io.open_directory(host, text.os_string_over(path), buffer)
     defer io.close_directory(host, listing) else none
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         fail too_many when count == lenof into
         fail too_long when lenof name > 255
         try mem.copy(into[count].name[0..<255], name)
@@ -104,7 +104,7 @@ shown: type = struct
 end shown
 
 append_shown: (self: ptr shown, inout into: text.builder)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     escaped(self.val.name, into) else (problem)
         text.truncate(into, start)
@@ -114,7 +114,7 @@ end append_shown
 
 shown is text.formattable (append: append_shown)
 
-escaped: (name: []u8, inout into: text.builder) -> none ! text.no_space =
+escaped: (name: []u8, inout into: text.builder) -> none ! mem.out_of_memory =
     if text.valid(name) then
         try text.append(into, name)
         return
@@ -134,7 +134,7 @@ end escaped
 --- List the directory the first argument names, up to 256 entries.
 list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
             -> none ! ... =
-    path: []u8 = text.host_bytes(try io.argument_at(host, 0))
+    path: []u8 = text.os_string_bytes(try io.argument(host, 0))
     blank: kept = (name: [255 of 0], length: 0, kind: io.special, size: 0)
     mut entries: [256]kept = [256 of blank]
     count: usize = try list(host, path, entries)
@@ -168,7 +168,7 @@ differs: atom
 
 --- The path of `name` in the top directory, or of the top directory itself
 --- when `name` is empty, built in `path`.
-joined: (name: []u8, inout path: text.builder) -> none ! text.no_space =
+joined: (name: []u8, inout path: text.builder) -> none ! mem.out_of_memory =
     text.clear(path)
     try text.append(path, top)
     if lenof name > 0 then
@@ -182,7 +182,7 @@ make_file: (host: blocking.host, name: []u8, contents: []u8) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    opened: io.file = try io.open_write(host, text.host_over(text.used(path)))
+    opened: io.file = try io.open_write(host, text.os_string_over(text.used(path)))
     io.write(host, opened, contents) else (problem)
         io.close(host, opened) else none
         fail problem
@@ -191,7 +191,7 @@ make_file: (host: blocking.host, name: []u8, contents: []u8) -> none ! ... =
 end make_file
 
 --- Remove the file `path` names, or with `directory` the empty directory.
-remove: (host: blocking.host, path: text.host_string, directory: bool)
+remove: (host: blocking.host, path: text.os_string, directory: bool)
         -> none ! ... =
     if directory then
         try io.remove_directory(host, path)
@@ -206,8 +206,8 @@ forget: (host: blocking.host, name: []u8, directory: bool) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    remove(host, text.host_over(text.used(path)), directory) else (problem)
-        fail problem when problem <> io.not_found
+    remove(host, text.os_string_over(text.used(path)), directory) else (problem)
+        fail problem when problem <> mem.not_found
     end
 end forget
 
@@ -239,7 +239,7 @@ make_directory: (host: blocking.host, name: []u8) -> none ! ... =
     mut scratch: [64]u8 = zeroed
     mut path := text.over(scratch)
     try joined(name, path)
-    try io.make_directory(host, text.host_over(text.used(path)))
+    try io.make_directory(host, text.os_string_over(text.used(path)))
 end make_directory
 
 --- Four files, one of them empty and one with a name beyond ASCII, and a
@@ -279,7 +279,7 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.argument_count(host) > 0 then
+    if io.arguments_length(host) > 0 then
         list_named(host, out) else (problem)
             complain(host, problem)
             return

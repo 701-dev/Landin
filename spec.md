@@ -1908,7 +1908,7 @@ an assembly reference to that name would reach the local definition. Each
 such item that is not an export takes its qualified spelling (D417): its
 module's logical path with every `/` replaced by `.`, or `main` for the
 entry module, then `.` and its name, so `core/arena`'s `reset` is
-`core.arena.reset` and an entry-module `read` beside C's is `main.read`. An
+`core.arena.release` and an entry-module `read` beside C's is `main.read`. An
 export keeps its spelling and never yields. An identifier cannot hold `.`,
 so only an explicit link name can hold a qualified spelling as well; then,
 and for every instance of one generic routine after the first, the item takes
@@ -2141,7 +2141,7 @@ pointer; this check remains in `unchecked`. Integer construction still loses
 origin, not non-nullness. Foreign nullable data pointers use a named one-atom
 pointer union and exhaustive `match`. Absent allocator backing uses that same
 ordinary union discipline, never a forged `ptr(0)` or `ptr(1)` allocation.
-`core/mem.dispose` reports `not_empty` for a nonempty prefix and `empty`
+`core/mem.detach` reports `not_empty` for a nonempty prefix and `empty`
 for already absent backing; a successful release clears backing to its atom.
 
 Foreign failure detail is ordinary explicit state. `platform/posix` reads the

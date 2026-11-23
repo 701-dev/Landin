@@ -59,7 +59,7 @@ times_out: (host: blocking.host, at: net.address) -> (yes: bool) ! ... =
     end while
     for index in usize(0)..<held.count do
         closing: io.file = held.files[index]
-        try net.close_socket(host, closing)
+        try net.close(host, closing)
     end for
 end times_out
 
@@ -95,19 +95,19 @@ end if
 --  that accepts them, and a byte sent over the first.
 connects: (host: blocking.host) -> (yes: bool) ! ... =
     listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
-    defer net.close_socket(host, listener) else none
+    defer net.close(host, listener) else none
     at: net.address = try net.local_address(host, listener)
     client: io.file = try net.connect_within(host, at, time.seconds(5))
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     server: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     try net.send(host, client, "!")
     mut buffer: [1]u8 = zeroed
     got: usize = try net.receive(host, server, buffer)
     unlimited: io.file = try net.connect_within(host, at, time.nanoseconds(0))
-    defer net.close_socket(host, unlimited) else none
+    defer net.close(host, unlimited) else none
     other: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, other) else none
+    defer net.close(host, other) else none
     yes = got == 1 and buffer[0] == u8('!')
           and net.same_address(try net.peer_address(host, client), at)
 end connects
@@ -117,7 +117,7 @@ end connects
 refused: (host: blocking.host) -> (yes: bool) ! ... =
     listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
     at: net.address = try net.local_address(host, listener)
-    try net.close_socket(host, listener)
+    try net.close(host, listener)
     yes = false
     start: time.instant = time.now(host)
     made: io.file = net.connect_within(host, at, time.seconds(5))
@@ -126,7 +126,7 @@ refused: (host: blocking.host) -> (yes: bool) ! ... =
               and time.elapsed(start, time.now(host)) < time.seconds(5)
         return
     end
-    try net.close_socket(host, made)
+    try net.close(host, made)
 end refused
 
 public main: () -> (code: i32) =

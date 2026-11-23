@@ -31,18 +31,18 @@ check_position_writes: () -> (ok: bool) =
     writer: any io.writer = any(addr memory)
     mut stream := diag.stream(writer, io.err(memory))
     logger: any diag.log = any(addr stream)
-    logger.note(text.cursor(message_a[0..<2], 0), diag.warning, "A")
+    logger.note(text.from_offset(message_a[0..<2], 0), diag.warning, "A")
         else (problem)
         _ = problem
         return
     end
-    logger.note(text.cursor(message_b[0..<2], 1234567890), diag.error, "B")
+    logger.note(text.from_offset(message_b[0..<2], 1234567890), diag.error, "B")
         else (problem)
         _ = problem
         return
     end
     largest: usize = 0 -% 1
-    logger.note(text.cursor(message_c[0..<2], largest), diag.warning, "C")
+    logger.note(text.from_offset(message_c[0..<2], largest), diag.warning, "C")
         else (problem)
         _ = problem
         return
@@ -238,7 +238,7 @@ public main: () -> (code: i32) =
     --  The argument is lent from the handle while the erased world and
     --  writer made from it are live: using a handle never locks it.
     first_argument: usize = 0
-    path := io.argument_at(host, first_argument)
+    path := io.argument(host, first_argument)
         else (argument_failure)
         _ = argument_failure
         return

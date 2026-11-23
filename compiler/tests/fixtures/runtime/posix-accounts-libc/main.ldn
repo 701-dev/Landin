@@ -3,6 +3,7 @@
 --  /etc/passwd and /etc/group itself.  `compiler.c_runtime` is what
 --  platform/posix chooses the route by, and the lookups and refusals are
 --  runtime/posix-accounts' own.
+import core/mem
 import core/text
 import platform/libc
 import platform/posix
@@ -25,19 +26,19 @@ looked_up: () -> none ! ... =
     mut buffer: [1024]u8 = zeroed
     root: posix.account =
         try posix.account_with_id(posix.user_id(0), buffer[0..<1024])
-    fail mismatched when not text.host_equal(root.name, "root")
+    fail mismatched when not text.os_string_equal(root.name, "root")
       or root.group <> posix.group_id(0)
     mut again: [1024]u8 = zeroed
     named: posix.account =
-        try posix.account_named(text.host_over("root"), again[0..<1024])
+        try posix.account_named(text.os_string_over("root"), again[0..<1024])
     fail mismatched when named.user <> posix.user_id(0)
     mut groups: [1024]u8 = zeroed
     wheel: posix.group_entry =
         try posix.group_with_id(posix.group_id(0), groups[0..<1024])
-    fail mismatched when not text.host_equal(wheel.name, group_zero)
+    fail mismatched when not text.os_string_equal(wheel.name, group_zero)
     mut by_name: [1024]u8 = zeroed
     zero: posix.group_entry =
-        try posix.group_named(text.host_over(text.bytes(group_zero)),
+        try posix.group_named(text.os_string_over(text.bytes(group_zero)),
                               by_name[0..<1024])
     fail mismatched when zero.group <> posix.group_id(0)
     --  A process may run as a user no database names, as a container's
@@ -47,7 +48,7 @@ looked_up: () -> none ! ... =
     found: bool = true
     own: posix.account = posix.account_with_id(me, mine[0..<1024])
         else (problem)
-        fail problem when problem <> posix.no_account
+        fail problem when problem <> mem.not_found
         root
     end
     if own.user == me then
@@ -62,7 +63,7 @@ looked_up: () -> none ! ... =
     mut grouped: [1024]u8 = zeroed
     own_group: posix.group_entry =
         posix.group_with_id(mine_group, grouped[0..<1024]) else (problem)
-            fail problem when problem <> posix.no_account
+            fail problem when problem <> mem.not_found
             wheel
         end
     if own_group.group == mine_group then
@@ -76,21 +77,21 @@ looked_up: () -> none ! ... =
     mut met: bool = false
     _ = posix.account_with_id(posix.user_id(4294967000), buffer[0..<1024])
         else (problem)
-        met = problem == posix.no_account
+        met = problem == mem.not_found
         root
     end
     fail mismatched when not met
     met = false
-    _ = posix.account_named(text.host_over("landin-no-such-account"),
+    _ = posix.account_named(text.os_string_over("landin-no-such-account"),
                             buffer[0..<1024]) else (problem)
-        met = problem == posix.no_account
+        met = problem == mem.not_found
         root
     end
     fail mismatched when not met
     met = false
-    _ = posix.account_named(text.host_over("root:x"), buffer[0..<1024])
+    _ = posix.account_named(text.os_string_over("root:x"), buffer[0..<1024])
         else (problem)
-        met = problem == posix.no_account
+        met = problem == mem.not_found
         root
     end
     fail mismatched when not met
@@ -98,9 +99,9 @@ looked_up: () -> none ! ... =
     --  static route and the C library's alike.
     met = false
     long_name: [300]u8 = [300 of 97]
-    _ = posix.account_named(text.host_over(long_name[0..<300]),
+    _ = posix.account_named(text.os_string_over(long_name[0..<300]),
                             buffer[0..<1024]) else (problem)
-        met = problem == posix.no_account
+        met = problem == mem.not_found
         root
     end
     fail mismatched when not met
@@ -114,7 +115,7 @@ looked_up: () -> none ! ... =
     met = false
     _ = posix.group_with_id(posix.group_id(4294967000), groups[0..<1024])
         else (problem)
-        met = problem == posix.no_account
+        met = problem == mem.not_found
         wheel
     end
     fail mismatched when not met
@@ -142,9 +143,9 @@ copy_size: () -> (size: usize) ! ... =
     mut full: [1024]u8 = zeroed
     entry: posix.group_entry =
         try posix.group_with_id(posix.group_id(0), full[0..<1024])
-    size = lenof text.host_bytes(entry.name)
-           + lenof text.host_bytes(entry.password)
-           + lenof text.host_bytes(entry.members)
+    size = lenof text.os_string_bytes(entry.name)
+           + lenof text.os_string_bytes(entry.password)
+           + lenof text.os_string_bytes(entry.members)
 end copy_size
 
 --  The C library is given the caller's whole buffer, and then what is

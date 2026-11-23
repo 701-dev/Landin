@@ -263,7 +263,7 @@ A recovery on the line after its call
 ==================
 
 clear : () -> none =
-  posix.unlink_at(posix.working_directory, text.host_over(link))
+  posix.unlink_at(posix.working_directory, text.os_string_over(link))
     else (problem)
     _ = problem
   end

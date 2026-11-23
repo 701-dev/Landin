@@ -184,7 +184,7 @@ churn_case: () -> (ok: bool) =
     map.insert(value, memory, colliding(u64(4)), addr n4) else none
     map.insert(value, memory, colliding(u64(5)), addr n5) else none
     map.insert(value, memory, colliding(u64(6)), addr n6) else none
-    before: usize = arena.used(memory)
+    before: usize = arena.length(memory)
     mut departing: colliding = colliding(u64(1))
     mut arriving: colliding = colliding(u64(7))
     mut cycles: usize = 0
@@ -198,7 +198,7 @@ churn_case: () -> (ok: bool) =
             _ = problem
             intact = false
         end
-        intact = intact and arena.used(memory) == before
+        intact = intact and arena.length(memory) == before
                  and map.slots(value) == 8
                  and map.length(value) == 6
                  and has(value, arriving, 77)
@@ -208,7 +208,7 @@ churn_case: () -> (ok: bool) =
         inc cycles
     end while
     map.release(value, memory)
-    ok = intact and arena.used(memory) == before and map.length(value) == 0
+    ok = intact and arena.length(memory) == before and map.length(value) == 0
 end churn_case
 
 public main: () -> (code: i32) =

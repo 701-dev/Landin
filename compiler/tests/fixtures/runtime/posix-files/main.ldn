@@ -8,6 +8,7 @@
 --  directory opened for writing, a closed descriptor, a path holding a NUL
 --  and one longer than PATH_MAX.  The program writes each atom's number
 --  on this system, so a failing lane shows what it met.
+import core/mem
 import core/text
 import platform/posix
 
@@ -29,7 +30,7 @@ end said
 
 --  NAME, `=`, NUMBER in decimal and a line end.
 line_of: (inout line: text.builder, name: []u8, number: u32)
-         -> none ! text.no_space =
+         -> none ! mem.out_of_memory =
     try text.append(line, name)
     try text.append_byte(line, u8('='))
     try text.append_u32(line, number)
@@ -38,13 +39,13 @@ end line_of
 
 --  Remove what an earlier run may have left.
 clear: () -> none =
-    posix.unlink_at(posix.working_directory, text.host_over(inner)) else none
+    posix.unlink_at(posix.working_directory, text.os_string_over(inner)) else none
     posix.remove_directory_at(posix.working_directory,
-                              text.host_over(top)) else none
+                              text.os_string_over(top)) else none
 end clear
 
 --  Whether opening PATH with OPTIONS, relative to AT, fails with WANTED.
-refused: (at: posix.descriptor, path: text.host_string,
+refused: (at: posix.descriptor, path: text.os_string,
           options: posix.open_options, wanted: posix.errno, name: []u8)
          -> (yes: bool) =
     yes = false
@@ -60,14 +61,14 @@ end refused
 public main: () -> (code: i32) =
     clear()
     code = 1
-    posix.make_directory_at(posix.working_directory, text.host_over(top),
+    posix.make_directory_at(posix.working_directory, text.os_string_over(top),
                             0o755) else (problem)
         said("mkdir", problem)
         return
     end
     code = 2
     folder: posix.descriptor =
-        posix.open_at(posix.working_directory, text.host_over(top),
+        posix.open_at(posix.working_directory, text.os_string_over(top),
                       (access: posix.read_only, create: false,
                        exclusive: false, truncate: false, append: false,
                        directory: true), 0) else (problem)
@@ -79,7 +80,7 @@ public main: () -> (code: i32) =
     --  read back through a second descriptor.
     code = 3
     written: posix.descriptor =
-        posix.open_at(folder, text.host_over("data"), posix.writing,
+        posix.open_at(folder, text.os_string_over("data"), posix.writing,
                       0o644) else (problem)
             said("create", problem)
             return
@@ -95,7 +96,7 @@ public main: () -> (code: i32) =
     end
     code = 4
     reading: posix.descriptor =
-        posix.open_at(posix.working_directory, text.host_over(inner),
+        posix.open_at(posix.working_directory, text.os_string_over(inner),
                       posix.reading, 0) else (problem)
             said("open", problem)
             return
@@ -120,25 +121,25 @@ public main: () -> (code: i32) =
     --  path, inside a directory.
     code = 5
     file: posix.status =
-        posix.status_at(folder, text.host_over("data"), false) else (problem)
+        posix.status_at(folder, text.os_string_over("data"), false) else (problem)
             said("stat", problem)
             return
         end
     again: posix.status =
-        posix.status_at(posix.working_directory, text.host_over(inner),
+        posix.status_at(posix.working_directory, text.os_string_over(inner),
                         true) else (problem)
             said("stat", problem)
             return
         end
     holder: posix.status =
-        posix.status_at(posix.working_directory, text.host_over(top),
+        posix.status_at(posix.working_directory, text.os_string_over(top),
                         true) else (problem)
             said("stat", problem)
             return
         end
     --  /dev/null, which every hosted system has, is a character device.
     null: posix.status =
-        posix.status_at(posix.working_directory, text.host_over("/dev/null"),
+        posix.status_at(posix.working_directory, text.os_string_over("/dev/null"),
                         true) else (problem)
             said("stat", problem)
             return
@@ -150,28 +151,28 @@ public main: () -> (code: i32) =
 
     --  The failure oracles.
     code = 6
-    return when not refused(folder, text.host_over("absent"), posix.reading,
+    return when not refused(folder, text.os_string_over("absent"), posix.reading,
                             posix.enoent, "absent")
     code = 7
-    return when not refused(folder, text.host_over("data"),
+    return when not refused(folder, text.os_string_over("data"),
                             (access: posix.write_only, create: true,
                              exclusive: true, truncate: false,
                              append: false, directory: false),
                             posix.eexist, "exclusive")
     code = 8
-    return when not refused(folder, text.host_over("data/below"),
+    return when not refused(folder, text.os_string_over("data/below"),
                             posix.reading, posix.enotdir, "through")
     code = 9
-    return when not refused(posix.working_directory, text.host_over(top),
+    return when not refused(posix.working_directory, text.os_string_over(top),
                             posix.writing, posix.eisdir, "directory")
     code = 10
     return when not refused(posix.working_directory,
-                            text.host_over("posix\x00files"), posix.reading,
+                            text.os_string_over("posix\x00files"), posix.reading,
                             posix.einval, "nul")
     code = 11
     long: [5000]u8 = [5000 of 97]
     return when not refused(posix.working_directory,
-                            text.host_over(long[0..<5000]), posix.reading,
+                            text.os_string_over(long[0..<5000]), posix.reading,
                             posix.enametoolong, "long")
     code = 12
     _ = posix.read(reading, buffer[0..<16]) else (problem)
@@ -185,12 +186,12 @@ public main: () -> (code: i32) =
         said("close", problem)
         return
     end
-    posix.unlink_at(posix.working_directory, text.host_over(inner))
+    posix.unlink_at(posix.working_directory, text.os_string_over(inner))
         else (problem)
         said("unlink", problem)
         return
     end
-    posix.remove_directory_at(posix.working_directory, text.host_over(top))
+    posix.remove_directory_at(posix.working_directory, text.os_string_over(top))
         else (problem)
         said("rmdir", problem)
         return

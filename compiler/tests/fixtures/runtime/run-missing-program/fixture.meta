@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: spawning a path that names nothing is io.not_found with ENOENT kept, a path through a file io.not_found with ENOTDIR, and a directory io.no_access with EACCES, with no child to wait for, while a program that starts leaves the last errno at zero
+summary: spawning a path that names nothing is mem.not_found with ENOENT kept, a path through a file mem.not_found with ENOTDIR, and a directory io.no_access with EACCES, with no child to wait for, while a program that starts leaves the last errno at zero
 program: main.ldn
 root: ../../../../..
 status: 42

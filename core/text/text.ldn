@@ -6,6 +6,7 @@
 --  indexing; a position used that way must begin a codepoint.
 
 import core/cmp
+import core/mem
 
 position_value: type = struct
     offset: usize
@@ -14,9 +15,6 @@ end position_value
 --- Opaque byte offset for scanning. It does not retain or validate a source;
 --- when used to index UTF-8 it must identify a codepoint boundary.
 public position: type = position_value
---- A byte read at or beyond the end of its source, or a prefix longer
---- than the source.
-public past_end: atom
 --- The supplied bytes are not well-formed UTF-8.
 public invalid_text: atom
 --- The bytes are empty or are not the digits the parse reads: a byte
@@ -25,10 +23,6 @@ public invalid_number: atom
 --- The parsed value is outside the type it is parsed into: above its
 --- maximum, or for a signed type below its minimum.
 public number_overflow: atom
---- The destination does not have room for the complete requested output.
-public no_space: atom
---- The sought text or scalar does not occur where it was searched for.
-public not_found: atom
 --- The value is not a Unicode scalar: it is a surrogate, U+D800 to U+DFFF,
 --- or above U+10FFFF, and so has no UTF-8 encoding.
 public invalid_scalar: atom
@@ -63,14 +57,14 @@ public copied: (cursor: position) -> (result: position) =
     result = (offset: cursor.offset)
 end copied
 
---- Construct a cursor at a byte offset into `source`. Does not check bounds
+--- Construct a position at a byte offset into `source`. Does not check bounds
 --- or UTF-8 boundaries; later operations enforce their own requirements. The
 --- source names the coordinate space, although the position stores only the
 --- offset.
-public cursor: (source: []u8, offset: usize) -> (result: position) =
+public from_offset: (source: []u8, offset: usize) -> (result: position) =
     _ = source
     result = (offset: offset)
-end cursor
+end from_offset
 
 --- Return a cursor one byte later. This is byte traversal, not Unicode-scalar
 --- traversal; offset overflow follows ordinary checked arithmetic.
@@ -84,11 +78,11 @@ public advance: (inout cursor: position) -> none =
     inc cursor.offset
 end advance
 
---- Read one source byte at the cursor. Reports `past_end` before reading
---- outside the source.
+--- Read one source byte at the cursor. Reports `mem.out_of_bounds` before
+--- reading outside the source.
 public byte: (source: []u8, cursor: position)
-             -> (value: u8) ! past_end =
-    fail past_end when at_end(source, cursor)
+             -> (value: u8) ! mem.out_of_bounds =
+    fail mem.out_of_bounds when at_end(source, cursor)
     value = source[cursor.offset]
 end byte
 
@@ -218,56 +212,56 @@ end bytes
 --  system that names them in 16-bit units, as Windows does, fixes its own
 --  representation here under `fixed if compiler.os`, and the operations
 --  below keep their meaning over it.
-host_value: type = struct
+os_string_value: type = struct
     bytes: []u8
-end host_value
+end os_string_value
 
 --- A host string: a path, a process argument or a directory entry's name,
 --- in the representation its system gives and takes, and not converted on
 --- the way through.  On Linux, Darwin and FreeBSD it is bytes, which need
---- not be UTF-8.  `from_host` is the checked conversion to `utf8`,
---- `host_bytes` the conversion to bytes, and `host_equal` compares one
---- with a literal.  It lends what it was made from: an argument lends the
---- process's storage, an entry its directory's buffer, and `host_over` the
---- caller's bytes.  A NUL cannot be in a path or an argument, and the
+--- not be UTF-8.  `from_os_string` is the checked conversion to `utf8`,
+--- `os_string_bytes` the conversion to bytes, and `os_string_equal` compares
+--- one with a literal.  It lends what it was made from: an argument lends the
+--- process's storage, an entry its directory's buffer, and `os_string_over`
+--- the caller's bytes.  A NUL cannot be in a path or an argument, and the
 --- system refuses one when it is given a host string holding one.
-public host_string: type = host_value
+public os_string: type = os_string_value
 
 --- A host string over the caller's bytes, which it lends.  Any bytes are
 --- one; the system says whether it accepts them when it is given them.
---- A literal path is `text.host_over("input.txt")`.
-public host_over: (source: []u8) -> (result: host_string from source) =
+--- A literal path is `text.os_string_over("input.txt")`.
+public os_string_over: (source: []u8) -> (result: os_string from source) =
     result = (bytes: source)
-end host_over
+end os_string_over
 
 --- The host string's bytes, as the system gave them, lent.  Nothing is
 --- validated or copied.
-public host_bytes: (source: host_string) -> (result: []u8 from source) =
+public os_string_bytes: (source: os_string) -> (result: []u8 from source) =
     result = source.bytes
-end host_bytes
+end os_string_bytes
 
 --- One environment variable: its name and its value, host strings as the
---- system keeps them.  `core/io` names it `io.variable`, and
+--- system keeps them.  `core/io`'s environments lend it, and
 --- `platform/posix` reads and passes it, which is why it is declared here,
 --- below both (D1951).
-public host_variable: type = struct
-    name: host_string
-    value: host_string
-end host_variable
+public os_variable: type = struct
+    name: os_string
+    value: os_string
+end os_variable
 
 --- The host string as UTF-8 text, lent: the checked conversion, which
 --- reports `invalid_text` when its bytes are not UTF-8, as `from_bytes`
 --- does.  A host string that is not text is still a working path or
 --- argument; it is only not `utf8`.
-public from_host: (source: host_string)
-                  -> (result: utf8 from source) ! invalid_text =
+public from_os_string: (source: os_string)
+                       -> (result: utf8 from source) ! invalid_text =
     result = try from_bytes(source.bytes)
-end from_host
+end from_os_string
 
 --- Whether the host string spells exactly the text `literal`, compared as
 --- the system stores it, with no normalization: `--verbose` against an
 --- argument, for one.
-public host_equal: (value: host_string, literal: utf8) -> (yes: bool) =
+public os_string_equal: (value: os_string, literal: utf8) -> (yes: bool) =
     have: []u8 = value.bytes
     wanted: []u8 = bytes(literal)
     yes = false
@@ -278,7 +272,7 @@ public host_equal: (value: host_string, literal: utf8) -> (yes: bool) =
         inc index
     end while
     yes = true
-end host_equal
+end os_string_equal
 
 --- Compare UTF-8 values by their encoded bytes. Does not normalize Unicode
 --- spelling.
@@ -433,7 +427,7 @@ end first_match
 
 --- The position of the first scalar of `source`, or of its end when it is
 --- empty: byte offset zero.  Step through the text with `step` until
---- `done`, reading each scalar as `source[at]`.
+--- `utf8_at_end`, reading each scalar as `source[at]`.
 public start: (source: utf8) -> (at: position) =
     _ = source
     at = (offset: 0)
@@ -441,57 +435,59 @@ end start
 
 --- Whether no scalar begins at `at`: it is at the end of `source`, or past
 --- it.
-public done: (source: utf8, at: position) -> (yes: bool) =
+public utf8_at_end: (source: utf8, at: position) -> (yes: bool) =
     yes = at.offset >= lenof source
-end done
+end utf8_at_end
 
 --- How many bytes, one to four, encode the scalar at `at`.  Traps at the
 --- end and on a continuation byte, as `source[at]` does.
-public width: (source: utf8, at: position) -> (count: usize) =
+public scalar_length: (source: utf8, at: position) -> (count: usize) =
     count = encoded_width(source[at])
-end width
+end scalar_length
 
 --- The position just past the scalar at `at`: the next scalar's, or the
---- end.  Traps where `width` does, so it never steps into a scalar.
+--- end.  Traps where `scalar_length` does, so it never steps into a
+--- scalar.
 public step: (source: utf8, at: position) -> (after: position) =
-    after = (offset: at.offset + width(source, at))
+    after = (offset: at.offset + scalar_length(source, at))
 end step
 
---- The position where `sought` first occurs in `source`, or `not_found`.
+--- The position where `sought` first occurs in `source`, or `mem.not_found`.
 --- Empty text is found at the start, as `contains` finds it.  The match
 --- begins and ends on scalar boundaries, so `source[text.offset(found)..<
 --- text.offset(found) + lenof sought]` is the match and the parts either
 --- side of it are text too, each a view of `source` with nothing copied.
-public find: (source: utf8, sought: utf8) -> (found: position) ! not_found =
+public find: (source: utf8, sought: utf8)
+             -> (found: position) ! mem.not_found =
     found = try find_from(source, sought, start(source))
 end find
 
 --- The position where `sought` first occurs in `source` at or after `at`,
---- or `not_found`: the match after one `find` returned is found from the
+--- or `mem.not_found`: the match after one `find` returned is found from the
 --- position past it.  Empty text is found at `at`.  A position inside a
 --- scalar or past the end traps, as a range of `source` from it does.
 --- `contains`'s Two-Way search, in time linear in the two lengths and
 --- with no table.
 public find_from: (source: utf8, sought: utf8, at: position)
-                  -> (found: position) ! not_found =
+                  -> (found: position) ! mem.not_found =
     found = try found_from(source, bytes(sought), at)
 end find_from
 
 --- The position of the first scalar of `source` equal to `scalar`, or
---- `not_found`, which a surrogate or a value above U+10FFFF always is,
+--- `mem.not_found`, which a surrogate or a value above U+10FFFF always is,
 --- since no text holds one.
 public find_scalar: (source: utf8, scalar: u32) -> (found: position)
-                    ! not_found =
+                    ! mem.not_found =
     found = try find_scalar_from(source, scalar, start(source))
 end find_scalar
 
 --- The position of the first scalar of `source` equal to `scalar` at or
---- after `at`, or `not_found`.  A position inside a scalar or past the end
+--- after `at`, or `mem.not_found`.  A position inside a scalar or past the end
 --- traps, as `find_from`'s does.
 public find_scalar_from: (source: utf8, scalar: u32, at: position)
-                         -> (found: position) ! not_found =
+                         -> (found: position) ! mem.not_found =
     count: usize = encoded_width(scalar)
-    fail not_found when count == 0
+    fail mem.not_found when count == 0
     mut encoded: [4]u8 = zeroed
     stored(scalar, count, encoded[0..<count])
     found = try found_from(source, encoded[0..<count], at)
@@ -501,13 +497,13 @@ end find_scalar_from
 --  `source` at or after `at`.  A leading byte is never a continuation
 --  byte, so a match begins and ends on scalars of the text.
 found_from: (source: utf8, sought_bytes: []u8, at: position)
-            -> (found: position) ! not_found =
+            -> (found: position) ! mem.not_found =
     rest: []u8 = bytes(source[at.offset..<lenof source])
-    fail not_found when lenof sought_bytes > lenof rest
+    fail mem.not_found when lenof sought_bytes > lenof rest
     found = (offset: at.offset)
     return when lenof sought_bytes == 0
     index: usize = first_match(rest, sought_bytes)
-    fail not_found when index == lenof rest
+    fail mem.not_found when index == lenof rest
     found = (offset: at.offset + index)
 end found_from
 
@@ -556,14 +552,14 @@ end stored
 --- one to four, it took; encode at an offset by passing what follows it,
 --- `buffer[at..<lenof buffer]`.  A surrogate, U+D800 to U+DFFF, or a value
 --- above U+10FFFF reports `invalid_scalar`, before a scalar whose bytes do
---- not fit reports `no_space`; either refusal writes nothing, so `into` is
---- as it was.  The builders' `append_scalar` and `utf8_append_scalar`
---- write the same bytes.
+--- not fit reports `mem.out_of_memory`; either refusal writes nothing, so
+--- `into` is as it was.  The builders' `append_scalar` and
+--- `utf8_append_scalar` write the same bytes.
 public encode: (scalar: u32, into: []mut u8)
-               -> (count: usize) ! invalid_scalar | no_space =
+               -> (count: usize) ! invalid_scalar | mem.out_of_memory =
     count = encoded_width(scalar)
     fail invalid_scalar when count == 0
-    fail no_space when count > lenof into
+    fail mem.out_of_memory when count > lenof into
     stored(scalar, count, into[0..<count])
 end encode
 

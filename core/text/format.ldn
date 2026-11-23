@@ -2,6 +2,8 @@
 --  can write itself into a builder.  Nothing runs at compile time, so the
 --  template is checked against its values when it is formatted.
 
+import core/mem
+
 --- The template does not fit its values: its `{}` placeholders and the
 --- values differ in number, or a brace is neither part of a `{}` nor
 --- doubled.
@@ -18,9 +20,9 @@ public invalid_format: atom
 --- `append` routine, or declare a `distinct` wrapper with its own
 --- conformance [1280].
 public formattable: type = concept (item: type)
-    --- Append the value's text, or report `no_space` and leave the
+    --- Append the value's text, or report `mem.out_of_memory` and leave the
     --- builder as it was.
-    append: (self: ptr item, inout into: builder) -> none ! no_space
+    append: (self: ptr item, inout into: builder) -> none ! mem.out_of_memory
 end formattable
 
 --  Check the template against the number of values: every `{` begins `{}`
@@ -50,7 +52,7 @@ end checked
 --  Write a checked template: each run of plain bytes, one brace of each
 --  doubled pair, and each value where its placeholder stands.
 written: (inout into: builder, source: []u8, values: []any formattable)
-         -> none ! no_space =
+         -> none ! mem.out_of_memory =
     mut run: usize = 0
     mut at: usize = 0
     mut next: usize = 0
@@ -108,8 +110,8 @@ end settled
 --- and `}}` writes `}`.  A placeholder takes nothing else: width, padding
 --- and hexadecimal are the typed `append` and `align` calls.  The template
 --- is checked first, so `invalid_format` writes nothing, and a builder that
---- fills partway is put back as it was before `no_space` is reported.  No
---- locale is consulted: the text is the same everywhere.  The template
+--- fills partway is put back as it was before `mem.out_of_memory` is reported.
+--- No locale is consulted: the text is the same everywhere.  The template
 --- and the values may be views of the builder's own bytes, `text.used(into)`
 --- or parts of it: each is written as it was when the call began, since a
 --- growing builder that moves while the call writes keeps the block they
@@ -120,7 +122,7 @@ end settled
 --- any(addr name)])`.
 public format: (inout into: builder, template: utf8,
                 values: []any formattable)
-               -> none ! no_space | invalid_format =
+               -> none ! mem.out_of_memory | invalid_format =
     source: []u8 = bytes(template)
     try checked(source, lenof values)
     start: usize = length(into)
@@ -144,8 +146,9 @@ end format
 --  the store fills.  So a conformance's `length`, `truncate` and alignment
 --  offsets are the buffer's own for every value the store can hold, and
 --  for a longer one they count what was handed on (D1123).
-streamed_value: (inout into: builder, onto: any outlet,
-                 value: any formattable) -> none ! no_space =
+streamed_value: (provider: type is outlet, inout into: builder,
+                 onto: ptr mut provider, value: any formattable)
+                -> none ! mem.out_of_memory =
     count: usize = fitted(into.buffer, into.used, value) else (problem)
         _ = problem
         try handed(into, onto)
@@ -163,7 +166,7 @@ end streamed_value
 --  Append `value` to a bounded builder over `buffer` after the `used` bytes
 --  already there, and say how many bytes it then holds.
 fitted: (buffer: []mut u8, used: usize, value: any formattable)
-        -> (count: usize) ! no_space =
+        -> (count: usize) ! mem.out_of_memory =
     mut fitting := over(buffer)
     fitting.used = used
     try value.append(fitting)
@@ -173,8 +176,9 @@ end fitted
 --  `written` through a draining builder: each run of plain bytes, which
 --  may be handed on in pieces, and each value as `streamed_value` writes
 --  it.
-streamed: (inout into: builder, onto: any outlet, source: []u8,
-           values: []any formattable) -> none ! no_space =
+streamed: (provider: type is outlet, inout into: builder,
+           onto: ptr mut provider, source: []u8,
+           values: []any formattable) -> none ! mem.out_of_memory =
     mut run: usize = 0
     mut at: usize = 0
     mut next: usize = 0
@@ -204,74 +208,88 @@ end streamed
 --- first, so `invalid_format` hands on nothing.  A value that fits the
 --- store is formatted whole into it; one longer than the whole store is
 --- handed on in pieces as it is written, and a library value's longest
---- piece goes to `onto` as it is.  `no_space` is the outlet's refusal, or
---- a conformance of the program's own asking for more room at once than
---- the store has, or right-aligning a piece that has been handed on
+--- piece goes to `onto` as it is.  `mem.out_of_memory` is the outlet's
+--- refusal, or a conformance of the program's own asking for more room at once
+--- than the store has, or right-aligning a piece that has been handed on
 --- (D1123).  Twenty bytes hold every integer the library formats.
 --- `io.write_format` is this over a file.
-public format_onto: (store: []mut u8, onto: any outlet, template: utf8,
+public format_onto: (provider: type is outlet, store: []mut u8,
+                     onto: provider, template: utf8,
                      values: []any formattable)
-                    -> none ! no_space | invalid_format =
+                    -> none ! mem.out_of_memory | invalid_format =
     source: []u8 = bytes(template)
     try checked(source, lenof values)
-    draining: draining_value = (onto: onto)
+    --  The builder's policy holds the outlet's address for the call alone.
+    mut taking: provider = onto
+    draining: draining_value(provider) = (onto: addr taking)
     policy: any grower = any(addr draining)
     mut line: builder = (buffer: store, used: 0, handed: 0,
                          held: not_allocated, keeping: false, kept: 0,
                          kept_extent: 0, policy: policy, growth: bounded)
-    try streamed(line, onto, source, values)
-    try handed(line, onto)
+    try streamed(line, addr taking, source, values)
+    try handed(line, addr taking)
 end format_onto
 
-append_u8_value: (self: ptr u8, inout into: builder) -> none ! no_space =
+append_u8_value: (self: ptr u8, inout into: builder)
+                 -> none ! mem.out_of_memory =
     try append_u32(into, u32(self.val))
 end append_u8_value
-append_u16_value: (self: ptr u16, inout into: builder) -> none ! no_space =
+append_u16_value: (self: ptr u16, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_u32(into, u32(self.val))
 end append_u16_value
-append_u32_value: (self: ptr u32, inout into: builder) -> none ! no_space =
+append_u32_value: (self: ptr u32, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_u32(into, self.val)
 end append_u32_value
-append_u64_value: (self: ptr u64, inout into: builder) -> none ! no_space =
+append_u64_value: (self: ptr u64, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_u64(into, self.val)
 end append_u64_value
 append_usize_value: (self: ptr usize, inout into: builder)
-                    -> none ! no_space =
+                    -> none ! mem.out_of_memory =
     try append_usize(into, self.val)
 end append_usize_value
-append_i8_value: (self: ptr i8, inout into: builder) -> none ! no_space =
+append_i8_value: (self: ptr i8, inout into: builder)
+                 -> none ! mem.out_of_memory =
     try append_i32(into, i32(self.val))
 end append_i8_value
-append_i16_value: (self: ptr i16, inout into: builder) -> none ! no_space =
+append_i16_value: (self: ptr i16, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_i32(into, i32(self.val))
 end append_i16_value
-append_i32_value: (self: ptr i32, inout into: builder) -> none ! no_space =
+append_i32_value: (self: ptr i32, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_i32(into, self.val)
 end append_i32_value
-append_i64_value: (self: ptr i64, inout into: builder) -> none ! no_space =
+append_i64_value: (self: ptr i64, inout into: builder)
+                  -> none ! mem.out_of_memory =
     try append_i64(into, self.val)
 end append_i64_value
 append_isize_value: (self: ptr isize, inout into: builder)
-                    -> none ! no_space =
+                    -> none ! mem.out_of_memory =
     try append_isize(into, self.val)
 end append_isize_value
-append_bool_value: (self: ptr bool, inout into: builder) -> none ! no_space =
+append_bool_value: (self: ptr bool, inout into: builder)
+                   -> none ! mem.out_of_memory =
     if self.val then
         try append(into, "true")
     else
         try append(into, "false")
     end if
 end append_bool_value
-append_text_value: (self: ptr utf8, inout into: builder) -> none ! no_space =
+append_text_value: (self: ptr utf8, inout into: builder)
+                   -> none ! mem.out_of_memory =
     try append_text(into, self.val)
 end append_text_value
-append_bytes_value: (self: ptr []u8, inout into: builder) -> none ! no_space =
+append_bytes_value: (self: ptr []u8, inout into: builder)
+                    -> none ! mem.out_of_memory =
     try append(into, self.val)
 end append_bytes_value
-append_host_value: (self: ptr host_string, inout into: builder)
-                   -> none ! no_space =
-    try append_host(into, self.val)
-end append_host_value
+append_os_string_value: (self: ptr os_string, inout into: builder)
+                        -> none ! mem.out_of_memory =
+    try append_os_string(into, self.val)
+end append_os_string_value
 
 u8 is formattable (append: append_u8_value)
 u16 is formattable (append: append_u16_value)
@@ -286,4 +304,4 @@ isize is formattable (append: append_isize_value)
 bool is formattable (append: append_bool_value)
 utf8 is formattable (append: append_text_value)
 []u8 is formattable (append: append_bytes_value)
-host_value is formattable (append: append_host_value)
+os_string_value is formattable (append: append_os_string_value)

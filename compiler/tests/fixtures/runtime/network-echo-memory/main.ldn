@@ -33,7 +33,7 @@ serve: (provider: type is net.network, host: provider, connection: io.file)
     lines = 0
     loop do
         item: io.line = try io.read_line(reader)
-        break when item.finished
+        break when item.at_end
         try io.put(writer, item.bytes)
         try io.put(writer, "\n")
         inc lines
@@ -52,22 +52,22 @@ tcp_echo: (provider: type is net.network, host: provider,
            family: net.address_family, inout echoed: text.builder)
           -> (lines: usize) ! ... =
     listener: io.file = try net.listen(host, net.loopback(family, 0))
-    defer net.close_socket(host, listener) else none
+    defer net.close(host, listener) else none
     at: net.address = try net.local_address(host, listener)
     client: io.file = try net.connect(host, at)
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     try net.set_timeouts(host, client, time.seconds(5), time.seconds(5))
     try net.send(host, client, request)
     try net.shutdown(host, client, net.sending)
     server: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     try net.set_timeouts(host, server, time.seconds(5), time.seconds(5))
     lines = try serve(host, server)
     mut incoming: [64]u8 = zeroed
     mut replies := io.lines_over(host, client, incoming)
     loop do
         item: io.line = try io.read_line(replies)
-        break when item.finished
+        break when item.at_end
         try text.append(echoed, item.bytes)
         try text.append_byte(echoed, u8('\n'))
     end loop
@@ -80,9 +80,9 @@ udp_echo: (provider: type is net.network, host: provider,
            family: net.address_family, inout echoed: text.builder)
           -> none ! ... =
     server: io.file = try net.open_datagram(host, net.loopback(family, 0))
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     client: io.file = try net.open_datagram(host, net.loopback(family, 0))
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     try net.set_timeouts(host, server, time.seconds(5), time.seconds(5))
     try net.set_timeouts(host, client, time.seconds(5), time.seconds(5))
     at: net.address = try net.local_address(host, server)
@@ -171,7 +171,7 @@ refusals: (network: fake.network) -> (yes: bool) ! ... =
         io.file(0)
     end
     _ = second
-    try net.close_socket(network, listener)
+    try net.close(network, listener)
     mut refused: bool = false
     connected: io.file = net.connect(network, at) else (problem)
         refused = problem == net.refused
@@ -211,15 +211,15 @@ closed_peer: (network: fake.network) -> (yes: bool) ! ... =
     end
     _ = again
     try net.send(network, server, "bye")
-    try net.close_socket(network, server)
+    try net.close(network, server)
     mut disconnected: bool = false
     net.send(network, client, "anyone?") else (problem)
         disconnected = problem == net.disconnected
     end
     got: usize = try net.receive(network, client, buffer[0..<8])
     ended: usize = try net.receive(network, client, buffer[0..<8])
-    try net.close_socket(network, client)
-    try net.close_socket(network, listener)
+    try net.close(network, client)
+    try net.close(network, listener)
     yes = waited and none_waiting and disconnected and got == 3
           and ended == 0
 end closed_peer
@@ -239,9 +239,9 @@ full_buffer: (network: fake.network) -> (yes: bool) ! ... =
     end
     mut buffer: [80]u8 = zeroed
     got: usize = try net.receive(network, server, buffer[0..<80])
-    try net.close_socket(network, server)
-    try net.close_socket(network, client)
-    try net.close_socket(network, listener)
+    try net.close(network, server)
+    try net.close(network, client)
+    try net.close(network, listener)
     yes = stopped and got == 64
 end full_buffer
 
@@ -256,9 +256,9 @@ no_delay: (network: fake.network, sockets: ptr [3]fake.network_socket)
     try net.set_no_delay(network, client, true)
     yes = sockets.val[usize(client)].no_delay
           and not sockets.val[usize(server)].no_delay
-    try net.close_socket(network, server)
-    try net.close_socket(network, client)
-    try net.close_socket(network, listener)
+    try net.close(network, server)
+    try net.close(network, client)
+    try net.close(network, listener)
 end no_delay
 
 --  The bytes of a datagram one longer than the memory network carries.
@@ -281,7 +281,7 @@ lost_datagram: (network: fake.network, state: ptr fake.network_space)
         refused = problem == io.io_failed
     end
     yes = state.val.losses == before + 2 and refused
-    try net.close_socket(network, socket)
+    try net.close(network, socket)
 end lost_datagram
 
 public main: () -> (code: i32) =

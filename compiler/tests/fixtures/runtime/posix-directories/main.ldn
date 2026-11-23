@@ -7,6 +7,7 @@
 --  it holds a file, a missing directory, a file opened as a directory and
 --  a buffer one byte smaller than `posix.directory_buffer`, which the
 --  listing's own buffer is.
+import core/mem
 import core/text
 import platform/posix
 
@@ -28,7 +29,7 @@ end said
 
 --  NAME, `=`, NUMBER in decimal and a line end.
 line_of: (inout line: text.builder, name: []u8, number: u32)
-         -> none ! text.no_space =
+         -> none ! mem.out_of_memory =
     try text.append(line, name)
     try text.append_byte(line, u8('='))
     try text.append_u32(line, number)
@@ -36,11 +37,11 @@ line_of: (inout line: text.builder, name: []u8, number: u32)
 end line_of
 
 clear: () -> none =
-    posix.unlink_at(posix.working_directory, text.host_over(inside)) else none
+    posix.unlink_at(posix.working_directory, text.os_string_over(inside)) else none
     posix.remove_directory_at(posix.working_directory,
-                              text.host_over(below)) else none
+                              text.os_string_over(below)) else none
     posix.remove_directory_at(posix.working_directory,
-                              text.host_over(top)) else none
+                              text.os_string_over(top)) else none
 end clear
 
 --  The kind of the entry NAME of the directory open as AT, its own when
@@ -58,7 +59,7 @@ end kind_of
 listed: () -> (seen: u32) ! posix.errno =
     seen = 0
     mut stream: posix.directory_stream =
-        try posix.open_directory(posix.working_directory, text.host_over(top))
+        try posix.open_directory(posix.working_directory, text.os_string_over(top))
     mut buffer: [posix.directory_buffer]u8 = zeroed
     loop do
         entry: posix.directory_entry =
@@ -66,15 +67,15 @@ listed: () -> (seen: u32) ! posix.errno =
                 posix.close_directory(stream) else none
                 fail problem
             end
-        name: text.host_string = entry.name
-        spelled: []u8 = text.host_bytes(name)
+        name: text.os_string = entry.name
+        spelled: []u8 = text.os_string_bytes(name)
         break when lenof spelled == 0
         kind: posix.file_kind = try kind_of(stream.descriptor, entry)
-        bit: u32 = if text.host_equal(name, ".") then 1
-                   elsif text.host_equal(name, "..") then 2
-                   elsif text.host_equal(name, "file")
+        bit: u32 = if text.os_string_equal(name, ".") then 1
+                   elsif text.os_string_equal(name, "..") then 2
+                   elsif text.os_string_equal(name, "file")
                      and kind == posix.regular then 4
-                   elsif text.host_equal(name, "below")
+                   elsif text.os_string_equal(name, "below")
                      and kind == posix.directory then 8
                    else 16 end if
         seen = seen | bit
@@ -86,7 +87,7 @@ end listed
 gone: () -> (yes: bool) =
     yes = false
     found: posix.status =
-        posix.status_at(posix.working_directory, text.host_over(top), false)
+        posix.status_at(posix.working_directory, text.os_string_over(top), false)
         else (problem)
             yes = problem == posix.enoent
             return
@@ -97,18 +98,18 @@ end gone
 public main: () -> (code: i32) =
     clear()
     code = 1
-    posix.make_directory_at(posix.working_directory, text.host_over(top),
+    posix.make_directory_at(posix.working_directory, text.os_string_over(top),
                             0o755) else (problem)
         said("mkdir", problem)
         return
     end
-    posix.make_directory_at(posix.working_directory, text.host_over(below),
+    posix.make_directory_at(posix.working_directory, text.os_string_over(below),
                             0o755) else (problem)
         said("mkdir", problem)
         return
     end
     made: posix.descriptor =
-        posix.open_at(posix.working_directory, text.host_over(inside),
+        posix.open_at(posix.working_directory, text.os_string_over(inside),
                       posix.writing, 0o644) else (problem)
             said("create", problem)
             return
@@ -127,21 +128,21 @@ public main: () -> (code: i32) =
 
     --  The failure oracles.
     code = 3
-    posix.make_directory_at(posix.working_directory, text.host_over(below),
+    posix.make_directory_at(posix.working_directory, text.os_string_over(below),
                             0o755) else (problem)
         said("again", problem)
         return when problem <> posix.eexist
     end
     code = 4
     posix.remove_directory_at(posix.working_directory,
-                              text.host_over(top)) else (problem)
+                              text.os_string_over(top)) else (problem)
         said("full", problem)
         return when problem <> posix.enotempty
     end
     code = 5
     absent: posix.directory_stream =
         posix.open_directory(posix.working_directory,
-                             text.host_over("posix-directories-absent"))
+                             text.os_string_over("posix-directories-absent"))
         else (problem)
             said("absent", problem)
             return when problem <> posix.enoent
@@ -152,7 +153,7 @@ public main: () -> (code: i32) =
     code = 6
     as_file: posix.directory_stream =
         posix.open_directory(posix.working_directory,
-                             text.host_over(inside)) else (problem)
+                             text.os_string_over(inside)) else (problem)
             said("file", problem)
             return when problem <> posix.enotdir
             posix.directory_stream(descriptor: posix.standard_input, stream: 0,
@@ -162,7 +163,7 @@ public main: () -> (code: i32) =
     code = 7
     mut stream: posix.directory_stream =
         posix.open_directory(posix.working_directory,
-                             text.host_over(top)) else (problem)
+                             text.os_string_over(top)) else (problem)
             said("open", problem)
             return
         end
@@ -171,7 +172,7 @@ public main: () -> (code: i32) =
                              small[0..<posix.directory_buffer - 1]) else (problem)
         said("small", problem)
         return when problem <> posix.einval
-        posix.directory_entry(name: text.host_over(""),
+        posix.directory_entry(name: text.os_string_over(""),
                               kind: posix.unknown_kind)
     end
     posix.close_directory(stream) else (problem)

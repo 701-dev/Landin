@@ -53,7 +53,7 @@ run: (signals: fake.signals, runs: any fibre.turns, host: blocking.host)
     mut sockets: [5]fake.network_socket =
         [fake.socket_over(b0), fake.socket_over(b1), fake.socket_over(b2),
          fake.socket_over(b3), fake.socket_over(b4)]
-    network := fake.network_over_turns(space, sockets, runs)
+    network := fake.network_over_turns(space, runs, sockets)
     listener: io.file = try net.listen(network, net.loopback(net.ipv4, 0))
     at: net.address = try net.local_address(network, listener)
     mut clock_space: fake.clock_space = zeroed
@@ -83,7 +83,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [8]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

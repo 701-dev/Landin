@@ -4,7 +4,7 @@ import core/fault
 import core/map
 import core/mem
 
-exercise: (allowed: usize) -> (ok: bool) ! mem.out_of_memory | map.missing =
+exercise: (allowed: usize) -> (ok: bool) ! mem.out_of_memory | mem.not_found =
     ok = false
     --  Each case gets fresh backing: the arena deliberately cannot reclaim
     --  an individual temporary allocation, even though the wrapper frees it.

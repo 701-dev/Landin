@@ -44,9 +44,9 @@ timed: (host: blocking.host, family: net.address_family) -> (yes: bool)
     yes = received and got == 0 and waited >= time.milliseconds(limit)
           and accepted and waited_accept >= time.milliseconds(limit)
           and later == 4
-    try net.close_socket(host, server)
-    try net.close_socket(host, client)
-    try net.close_socket(host, listener)
+    try net.close(host, server)
+    try net.close(host, client)
+    try net.close(host, listener)
 end timed
 
 public main: () -> (code: i32) =

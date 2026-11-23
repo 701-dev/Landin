@@ -149,7 +149,7 @@ import hosted/blocking
 public main: () -> (code: i32) =
     host := blocking.new()
     io.write(host, io.out(host), "Hello, world!\\n") else none
-    code = if io.argument_count(host) == 2 then 3 else 1 end if
+    code = if io.arguments_length(host) == 2 then 3 else 1 end if
 end main
 """
 

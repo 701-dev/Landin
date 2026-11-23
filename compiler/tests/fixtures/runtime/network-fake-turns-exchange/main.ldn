@@ -32,7 +32,7 @@ end party
 
 serve: (inout state: party) -> none ! failure.reason =
     connection: io.file = try net.accept(state.network, state.listener)
-    defer net.close_socket(state.network, connection) else none
+    defer net.close(state.network, connection) else none
     mark(u8('a'))
     mut buffer: [8]u8 = zeroed
     got: usize = try net.receive(state.network, connection, buffer)
@@ -43,7 +43,7 @@ end serve
 
 call: (inout state: party) -> none ! failure.reason =
     connection: io.file = try net.connect(state.network, state.to)
-    defer net.close_socket(state.network, connection) else none
+    defer net.close(state.network, connection) else none
     mark(u8('c'))
     try net.send(state.network, connection, "ping")
     mut buffer: [8]u8 = zeroed
@@ -72,9 +72,9 @@ exchange: (runs: any fibre.turns, server_first: bool)
     mut b2: [16]u8 = zeroed
     mut sockets: [3]fake.network_socket =
         [fake.socket_over(b0), fake.socket_over(b1), fake.socket_over(b2)]
-    network := fake.network_over_turns(space, sockets, runs)
+    network := fake.network_over_turns(space, runs, sockets)
     listener: io.file = try net.listen(network, net.loopback(net.ipv4, 0))
-    defer net.close_socket(network, listener) else none
+    defer net.close(network, listener) else none
     at: net.address = try net.local_address(network, listener)
     shared: party = (network: network, listener: listener, to: at)
     mut tasks := try fibre.turns_over(runs, backing, 2)
@@ -95,7 +95,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [3]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

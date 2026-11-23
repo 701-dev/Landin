@@ -46,11 +46,11 @@ public main: () -> (code: i32) =
         view := mem.used(source)
         lenof view == 2 and view[0] == 11 and view[1] == 23
     end
-    missing: usize = mem.transfer(source, two, target) else two
+    missing: usize = mem.transfer(target, source, two) else two
     target_empty: bool = mem.length(target) == 0
-    c: usize = mem.transfer(source, zero, target) else two
-    d: usize = mem.transfer(source, one, target) else two
-    full: usize = mem.transfer(source, zero, target) else two
+    c: usize = mem.transfer(target, source, zero) else two
+    d: usize = mem.transfer(target, source, one) else two
+    full: usize = mem.transfer(target, source, zero) else two
     begin
         view := mem.used(target)
         view[0] = 31
@@ -68,7 +68,7 @@ public main: () -> (code: i32) =
         view[0] == 11 and view[1] == 23
     end
     blocked: bool = begin
-        refused: allocation = mem.dispose(target) else absent
+        refused: allocation = mem.detach(target) else absent
         is_absent(refused)
     end
     tail: u32 = mem.withdraw(target) else 0
@@ -85,13 +85,13 @@ public main: () -> (code: i32) =
     end
     again: usize = mem.admit(target, second) else two
     repeated: u32 = mem.withdraw(target) else 0
-    target_block: ptr mut u8 = mem.dispose(target) else (problem)
+    target_block: ptr mut u8 = mem.detach(target) else (problem)
         _ = problem
         return
     end
     _ = mem.withdraw(source) else 0
     _ = mem.withdraw(source) else 0
-    source_block: ptr mut u8 = mem.dispose(source) else (problem)
+    source_block: ptr mut u8 = mem.detach(source) else (problem)
         _ = problem
         return
     end
@@ -101,8 +101,8 @@ public main: () -> (code: i32) =
     end
     exact: bool = usize(target_block) == usize(other)
                   and usize(source_block) == usize(base)
-    mem.free(allocator, target_block, extent)
-    mem.free(allocator, source_block, extent)
+    mem.release(allocator, target_block, extent)
+    mem.release(allocator, source_block, extent)
     if empty and a == 0 and b == 1 and refused == 2 and replace_refused
       and before and missing == 2 and target_empty and c == 0 and d == 1
       and full == 2 and copied and original and blocked
