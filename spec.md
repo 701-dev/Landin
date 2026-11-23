@@ -33965,8 +33965,7 @@ which holds copies of its files too, since the profiles of one fixture run
 at once and a fixture may build files where it runs.
 
 **The alternatives:** checking the fixtures out on the Windows runner,
-which Git for Windows refuses for the one fixture path with a quote
-(SR-1697).
+which Git for Windows refuses for the one fixture path with a quote.
 
 **Pinned by** the lane's run of every fixture with `run_files` or `stdin`
 that names `windows-x86-64`, `runtime/directory-listing` among them.
@@ -33990,7 +33989,7 @@ the program has thread storage, and none when it has not. D471's prologue
 check adds the frame to the limit, since the block takes the register the
 ELF check computes the stack pointer less the frame in: a sum that carries
 traps as a difference that borrows does. A thread datum has no DWARF
-location on Windows, as before; R21.30's CodeView describes it.
+location on Windows, as before; CodeView describes it.
 
 **The alternatives:** MSVC's form, which takes the executable's
 `_tls_index` to be zero and saves two instructions an access, which Windows

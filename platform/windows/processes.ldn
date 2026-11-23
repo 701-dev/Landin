@@ -71,21 +71,18 @@ fixed if compiler.os == windows then
     --- Make an attribute list for `count` attributes in `list`'s `size`
     --- bytes, `InitializeProcThreadAttributeList`; with `list` zero it puts
     --- the size it needs in `size` and fails.
-    public extern(c) link(symbol: "InitializeProcThreadAttributeList")
-        initialize_attributes:
+    public extern(c) link(symbol: "InitializeProcThreadAttributeList") initialize_attributes:
         (list: usize, count: u32, flags: u32, size: ptr mut usize)
         -> (done: i32)
 
     --- Set the attribute `attribute` of `list` to the `size` bytes at
     --- `value`, `UpdateProcThreadAttribute`, which `value` must outlive.
-    public extern(c) link(symbol: "UpdateProcThreadAttribute")
-        update_attribute:
+    public extern(c) link(symbol: "UpdateProcThreadAttribute") update_attribute:
         (list: usize, flags: u32, attribute: usize, value: usize, size: usize,
          previous: usize, returned: usize) -> (done: i32)
 
     --- Release what an attribute list holds, `DeleteProcThreadAttributeList`.
-    public extern(c) link(symbol: "DeleteProcThreadAttributeList")
-        delete_attributes: (list: usize) -> none
+    public extern(c) link(symbol: "DeleteProcThreadAttributeList") delete_attributes: (list: usize) -> none
 
     --- `WaitForSingleObject`'s and `WaitForMultipleObjects`' answers: the
     --- object, or the first of several, is signalled; the time ran out; the
@@ -148,8 +145,7 @@ fixed if compiler.os == windows then
 
     --- Set the flags `mask` selects of `object` to `flags`,
     --- `SetHandleInformation`.
-    public extern(c) link(symbol: "SetHandleInformation")
-        set_handle_information:
+    public extern(c) link(symbol: "SetHandleInformation") set_handle_information:
         (object: handle, mask: u32, flags: u32) -> (done: i32)
 
     --- `CreateNamedPipeW`'s open mode: inbound, outbound or duplex, each

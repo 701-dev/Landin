@@ -106,8 +106,7 @@ fixed if compiler.os == windows then
     --- Fill `found` with what the system keeps of `opened`,
     --- `GetFileInformationByHandle`: nonzero, or zero with the reason in
     --- `last_error`.
-    public extern(c) link(symbol: "GetFileInformationByHandle")
-        get_file_information:
+    public extern(c) link(symbol: "GetFileInformationByHandle") get_file_information:
         (opened: handle, found: ptr mut file_information) -> (done: i32)
 
     --- A path's attribute bits, `GetFileAttributesW`, or `invalid_attributes`
@@ -246,8 +245,7 @@ fixed if compiler.os == windows then
 
     --- Fill `found` for the console screen buffer `console`,
     --- `GetConsoleScreenBufferInfo`.
-    public extern(c) link(symbol: "GetConsoleScreenBufferInfo")
-        console_screen_info:
+    public extern(c) link(symbol: "GetConsoleScreenBufferInfo") console_screen_info:
         (console: handle, found: ptr mut console_screen) -> (done: i32)
 
     --- `FileEndOfFileInfo`, the class `set_file_information` takes to give
@@ -256,8 +254,7 @@ fixed if compiler.os == windows then
 
     --- Set what the information class `class` says of `opened` from the
     --- `size` bytes at `information`, `SetFileInformationByHandle`.
-    public extern(c) link(symbol: "SetFileInformationByHandle")
-        set_file_information:
+    public extern(c) link(symbol: "SetFileInformationByHandle") set_file_information:
         (opened: handle, class: u32, information: usize, size: u32)
         -> (done: i32)
 
@@ -283,8 +280,7 @@ fixed if compiler.os == windows then
     --- a link it ends in, `GetFileAttributesExW` with
     --- `GetFileExInfoStandard`: nonzero, or zero with the reason in
     --- `last_error`.
-    public extern(c) link(symbol: "GetFileAttributesExW")
-        get_file_attributes_ex:
+    public extern(c) link(symbol: "GetFileAttributesExW") get_file_attributes_ex:
         (name: ptr u16, level: u32, found: ptr mut attribute_data)
         -> (done: i32)
 

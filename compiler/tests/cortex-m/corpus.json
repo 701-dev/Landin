@@ -5479,6 +5479,12 @@
     "runtime/whole-arrays-copy-between-storage": {
       "mode": "execute"
     },
+    "runtime/windows-run-programs": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/word-count": {
       "codes": [
         "L0015"
