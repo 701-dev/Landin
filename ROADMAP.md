@@ -817,6 +817,22 @@ the window's head that holds it its
 [boards](https://github.com/701-dev/Landin/actions/runs/45096506024),
 every port and its cycles.
 
+### R16.30 — Loops that keep their values in registers
+
+Status: planned
+Depends on: R16.10
+
+What R16.28 left on the hosted targets, the largest cost measured there:
+`SR-1650`'s x86-64 slot placement that ignores the pressure inside an
+interval, so SHA-256's round keeps two of its eight words and its bound in
+the frame (8.50 G instructions against gcc's 4.56 G), and `SR-1655`'s
+loop-invariant values remade every iteration, mandelbrot's `4.0` among
+them; with the tool those measurements lacked, `SR-1652`'s `measure.py
+count` for the hosted Linux targets.
+Exit evidence: SHA-256 and mandelbrot measured lower than R16.28's
+figures on x86-64 and arm64, no other combination over its own, and the
+counting documented in `docs/measurement.md`.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
