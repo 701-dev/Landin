@@ -2323,6 +2323,23 @@ Depends on: R21.30
 Exit evidence: the corpus, the Io and thread suites and the debugger
 sessions on Windows arm64 in the gate.
 
+### R21.50 — Microsoft's toolchain on Windows
+
+Status: planned
+Depends on: R21.10
+
+A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
+D2189 describes: the assembly assembled by Clang for
+`x86_64-pc-windows-msvc` or by `clang-cl`, or a MASM spelling of the
+backend's output if that proves the simpler route; the link by `link.exe`
+or `lld-link` with `/ENTRY:_landin_start /NODEFAULTLIB`; and the Windows
+SDK's `kernel32.lib` and each `linker.library` as a `.lib` found by
+`/LIBPATH:`. A user selects it with `--toolchain`, and llvm-mingw stays
+the default and the only toolchain a Windows build requires.
+Exit evidence: the corpus links with Microsoft's tools and runs on a
+Windows x86-64 runner in the gate, which carries Visual Studio; the
+selection in `docs/capabilities.md`.
+
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
 runners.
