@@ -19,7 +19,7 @@ exercise: () -> (ok: bool) ! mem.out_of_bounds | io.io_failed =
     message: []u8 = "ab"
     try log.note(text.first(message), diag.warning, "first")
     return when log.failed()
-    try log.note(text.cursor(message, 1), diag.error, "second")
+    try log.note(text.from_offset(message, 1), diag.error, "second")
     return when not log.failed()
 
     first := try diag.get(addr retained, usize(0))

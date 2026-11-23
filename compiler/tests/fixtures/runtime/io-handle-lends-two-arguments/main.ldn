@@ -14,18 +14,18 @@ public main: () -> (code: i32) =
     mut state: io.memory_space = zeroed
     memory := io.memory_over(state, files, arguments[0..<2], "",
                              output[0..<1], errors[0..<1])
-    first := io.argument_at(memory, usize(0)) else (problem)
+    first := io.argument(memory, usize(0)) else (problem)
         _ = problem
         return
     end
-    second := io.argument_at(memory, usize(1)) else (problem)
+    second := io.argument(memory, usize(1)) else (problem)
         _ = problem
         return
     end
-    count := io.argument_count(memory)
-    word: []u8 = text.host_bytes(first)
+    count := io.arguments_length(memory)
+    word: []u8 = text.os_string_bytes(first)
     return when count <> 2 or lenof word <> 5 or word[4] <> 97
-    digits: []u8 = text.host_bytes(second)
+    digits: []u8 = text.os_string_bytes(second)
     return when lenof digits <> 2
     code = i32(digits[0] - 48) * 10 + i32(digits[1] - 48)
 end main

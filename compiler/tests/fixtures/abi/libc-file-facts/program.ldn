@@ -4,6 +4,7 @@
 --  and record, a terminal's record, modes and requests, the window size,
 --  the account and group records; and what platform/posix writes and reads
 --  of a file, a link and root's account, which the peer reads through C.
+import core/mem
 import core/text
 import platform/libc
 import platform/linux
@@ -168,9 +169,9 @@ end terminated
 --  A file platform/posix makes and gives permission bits and times, and a
 --  link to it, as C's stat and readlink read them.
 written_agrees: () -> (yes: bool) ! posix.errno =
-    posix.unlink_at(posix.working_directory, text.host_over(path)) else none
+    posix.unlink_at(posix.working_directory, text.os_string_over(path)) else none
     made: posix.descriptor =
-        try posix.open_at(posix.working_directory, text.host_over(path),
+        try posix.open_at(posix.working_directory, text.os_string_over(path),
                           posix.writing, 0o600)
     _ = try posix.write(made, "seven b")
     try posix.change_mode(made, 0o640)
@@ -178,7 +179,7 @@ written_agrees: () -> (yes: bool) ! posix.errno =
                         (seconds: 1500000001, nanoseconds: 123456789))
     try posix.close(made)
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(path), false)
+                                              text.os_string_over(path), false)
     mut room: [64]u8 = zeroed
     yes = c_status_agrees(terminated(path, room[0..<64]), found.permissions,
                           i64(found.size), u32(found.user), found.links,
@@ -187,39 +188,39 @@ written_agrees: () -> (yes: bool) ! posix.errno =
           and found.permissions == 0o640 and found.size == 7
           and found.modified.nanoseconds == 123456789
           and found.user == posix.effective_user()
-    posix.unlink_at(posix.working_directory, text.host_over(link)) else none
-    try posix.symbolic_link_at(text.host_over(path), posix.working_directory,
-                               text.host_over(link))
+    posix.unlink_at(posix.working_directory, text.os_string_over(link)) else none
+    try posix.symbolic_link_at(text.os_string_over(path), posix.working_directory,
+                               text.os_string_over(link))
     mut name_room: [64]u8 = zeroed
     mut target_room: [64]u8 = zeroed
     yes = yes and c_link_agrees(terminated(link, name_room[0..<64]),
                                 terminated(path, target_room[0..<64])) == 1
-    try posix.unlink_at(posix.working_directory, text.host_over(link))
-    try posix.unlink_at(posix.working_directory, text.host_over(path))
+    try posix.unlink_at(posix.working_directory, text.os_string_over(link))
+    try posix.unlink_at(posix.working_directory, text.os_string_over(path))
 end written_agrees
 
 --  Root's account and group zero as platform/posix reads them, which an
 --  ABI program does through the C library, as the C library's own lookup
 --  gives them.
-accounts_agree: () -> (yes: bool) ! posix.errno | posix.no_account =
+accounts_agree: () -> (yes: bool) ! posix.errno | mem.not_found =
     mut buffer: [1024]u8 = zeroed
     root: posix.account = try posix.account_with_id(posix.user_id(0),
                                                     buffer[0..<1024])
     mut name: [256]u8 = zeroed
     mut home: [256]u8 = zeroed
     mut shell: [256]u8 = zeroed
-    yes = c_account_agrees(terminated(text.host_bytes(root.name),
+    yes = c_account_agrees(terminated(text.os_string_bytes(root.name),
                                       name[0..<256]),
-                           terminated(text.host_bytes(root.home),
+                           terminated(text.os_string_bytes(root.home),
                                       home[0..<256]),
-                           terminated(text.host_bytes(root.shell),
+                           terminated(text.os_string_bytes(root.shell),
                                       shell[0..<256]),
                            u32(root.group)) == 1
     mut groups: [1024]u8 = zeroed
     zero: posix.group_entry = try posix.group_with_id(posix.group_id(0),
                                                       groups[0..<1024])
     mut group_name: [256]u8 = zeroed
-    yes = yes and c_group_agrees(terminated(text.host_bytes(zero.name),
+    yes = yes and c_group_agrees(terminated(text.os_string_bytes(zero.name),
                                             group_name[0..<256]),
                                  u64(posix.member_count(zero))) == 1
 end accounts_agree

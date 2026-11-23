@@ -39,14 +39,11 @@ stores: (seed: cmp.hash_seed) -> (yes: bool) =
     end for
     mut walk := map.entries()
     mut seen: usize = 0
-    loop do
-        next := map.next_entry(table, walk) else (problem)
-            _ = problem
-            break
-        end
+    while not map.at_end(table, walk) do
+        next := map.next_entry(table, walk)
         return when next.item <> seen
         inc seen
-    end loop
+    end while
     map.release(table, memory)
     yes = seen == lenof paths
 end stores

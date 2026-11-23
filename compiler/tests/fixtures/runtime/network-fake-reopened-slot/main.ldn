@@ -28,13 +28,13 @@ survives: (shuts: bool) -> (ok: bool) ! failure.reason =
     at: net.address = try net.local_address(network, listener)
     client1: io.file = try net.connect(network, at)
     server1: io.file = try net.accept(network, listener)
-    try net.close_socket(network, server1)
+    try net.close(network, server1)
     client2: io.file = try net.connect(network, at)
     server2: io.file = try net.accept(network, listener)
     if shuts then
         try net.shutdown(network, client1, net.sending)
     end if
-    try net.close_socket(network, client1)
+    try net.close(network, client1)
     try net.send(network, client2, "ping")
     try net.send(network, server2, "pong")
     mut into: [8]u8 = zeroed

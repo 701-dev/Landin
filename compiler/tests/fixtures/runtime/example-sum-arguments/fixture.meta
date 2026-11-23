@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: the published sum asks the host how many arguments it was given with io.argument_count, reads each with io.argument_at and text.parse_u64, prints their sum, and would name the first argument that is no number on standard error
+summary: the published sum asks the host how many arguments it was given with io.arguments_length, reads each with io.argument and text.parse_u64, prints their sum, and would name the first argument that is no number on standard error
 program: main.ldn
 root: ../../../../..
 run_args: 3 40 500

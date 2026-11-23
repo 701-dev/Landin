@@ -14,7 +14,7 @@ lost_datagram: (network: fake.network, state: ptr fake.network_space)
     before: usize = state.val.losses
     try net.send_to(network, socket, "anyone?", net.loopback(net.ipv4, 9))
     yes = state.val.losses == before + 1 and state.val.datagrams == 0
-    try net.close_socket(network, socket)
+    try net.close(network, socket)
 end lost_datagram
 
 public main: () -> (code: i32) =
@@ -34,7 +34,7 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    net.close_socket(network, again) else (problem)
+    net.close(network, again) else (problem)
         _ = problem
         return
     end

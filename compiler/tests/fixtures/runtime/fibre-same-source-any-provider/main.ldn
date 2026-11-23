@@ -112,7 +112,7 @@ run: (host: blocking.host) -> none ! failure.reason =
     mut state: stacks.round_space = zeroed
     mut entries: [3]usize = zeroed
     idler: stacks.spin = zeroed
-    round := try stacks.round_over(state, entries, any(addr idler))
+    round := try stacks.round_over(state, any(addr idler), entries)
     taking: turning = (reading: addr reading, runs: any(addr round))
     mut over_round: answers = zeroed
     try ask_both(any(addr round), any(addr taking), over_round)

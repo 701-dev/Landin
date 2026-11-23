@@ -14,7 +14,7 @@ public main: () -> (code: i32) =
          readable: true, writable: false, state: io.closed_slot)
     mut files: [1]io.memory_file
     files[0] = source
-    path: text.host_string = text.host_over(name)
+    path: text.os_string = text.os_string_over(name)
     arguments: [1][]u8 = [name]
     mut state: io.memory_space = zeroed
     memory: io.memory = io.memory_over

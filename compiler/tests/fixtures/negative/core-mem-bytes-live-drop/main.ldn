@@ -3,6 +3,6 @@ import hosted/heap
 bad: (state: heap.heap,
       inout source: mem.byte_buffer) -> (count: usize) =
     view := mem.bytes(source)
-    mem.delete_bytes(state, source)
+    mem.release_bytes(state, source)
     count = lenof view
 end bad

@@ -1,11 +1,12 @@
 --  The builder and format as firmware uses them: a reading formatted into
 --  a fixed line, and the two refusals a bounded line can meet.
 import core/cmp
+import core/mem
 import core/text
 
 --  A temperature reading from channel three, as one line.
 reading: (inout line: text.builder, values: []any text.formattable)
-         -> none ! text.no_space | text.invalid_format =
+         -> none ! mem.out_of_memory | text.invalid_format =
     try text.append_i32(line, -40)
     try text.append(line, " #")
     start: usize = text.length(line)
@@ -29,7 +30,7 @@ public main: () -> (code: i32) =
     code = 3
     held: usize = text.length(line)
     text.append(line, "and more than fits") else (problem)
-        return when problem <> text.no_space or text.length(line) <> held
+        return when problem <> mem.out_of_memory or text.length(line) <> held
         code = 4
         text.format(line, "{}{}{}", [any(addr channel), any(addr unit)])
             else (format)

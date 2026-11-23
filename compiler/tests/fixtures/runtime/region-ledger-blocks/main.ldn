@@ -38,7 +38,7 @@ tally_free: (self: tally, block: ptr mut u8, size: usize) -> none =
     state.val.live = state.val.live -% 1
     state.val.addresses = state.val.addresses -% usize(block)
     state.val.extents = state.val.extents -% size
-    mem.free(state.val.inner, block, size)
+    mem.release(state.val.inner, block, size)
 end tally_free
 
 tally_grow: (self: tally, block: ptr mut u8,

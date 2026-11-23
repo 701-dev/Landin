@@ -111,13 +111,13 @@ arena_case: () -> (ok: bool) =
     return when not fill(bump, values, eight)
     --  The first allocation owns 8 slots, 32 bytes.
     return when vec.capacity(values) <> 8
-      or arena.used(bump) <> 8 * sizeof node_ptr
+      or arena.length(bump) <> 8 * sizeof node_ptr
 
     sixteen: usize = 16
     return when not fill(bump, values, sixteen)
     --  Extending the same block spends only the final 64 bytes.
     return when vec.capacity(values) <> 16
-      or arena.used(bump) <> 16 * sizeof node_ptr
+      or arena.length(bump) <> 16 * sizeof node_ptr
 
     mut exhausted: bool = false
     vec.push(values, bump, entry(sixteen)) else (problem)
@@ -125,12 +125,12 @@ arena_case: () -> (ok: bool) =
     end
     preserved: bool = exhausted and contents_ok(values, sixteen)
                       and vec.capacity(values) == 16
-                      and arena.used(bump) == 16 * sizeof node_ptr
+                      and arena.length(bump) == 16 * sizeof node_ptr
 
     vec.release(values, bump)
     --  The arena's free is a documented no-op, so the offset does not move.
     ok = preserved and vec.length(values) == 0 and vec.capacity(values) == 0
-         and arena.used(bump) == 16 * sizeof node_ptr
+         and arena.length(bump) == 16 * sizeof node_ptr
 end arena_case
 
 --  The ordinary doubling path reaches the full 256-byte backing while
@@ -149,7 +149,7 @@ arena_byte_case: () -> (ok: bool) =
         end
         inc at
     end while
-    return when vec.capacity(values) <> 256 or arena.used(bump) <> 256
+    return when vec.capacity(values) <> 256 or arena.length(bump) <> 256
     mut exhausted: bool = false
     vec.push(values, bump, u8(0)) else (problem)
         exhausted = problem == mem.out_of_memory
@@ -166,7 +166,7 @@ arena_byte_case: () -> (ok: bool) =
         inc at
     end while
     vec.release(values, bump)
-    ok = preserved and arena.used(bump) == 256
+    ok = preserved and arena.length(bump) == 256
          and vec.length(values) == 0 and vec.capacity(values) == 0
 end arena_byte_case
 
@@ -195,7 +195,7 @@ arena_interleaved_case: () -> (ok: bool) =
         _ = problem
         return
     end
-    ok = other.val == 77 and arena.used(bump) == 32
+    ok = other.val == 77 and arena.length(bump) == 32
          and vec.capacity(values) == 16 and vec.length(values) == 9
     at = 0
     while at < 9 do
@@ -312,13 +312,13 @@ arena_any_case: (escaping a: any counter, escaping b: any counter)
 
     eight: usize = 8
     return when not fill_erased(bump, values, eight, a, b)
-    return when vec.capacity(values) <> 8 or arena.used(bump) <> 8 * item_bytes
+    return when vec.capacity(values) <> 8 or arena.length(bump) <> 8 * item_bytes
 
     sixteen: usize = 16
     return when not fill_erased(bump, values, sixteen, a, b)
     --  The second growth extends the same block to sixteen items.
     return when vec.capacity(values) <> 16
-      or arena.used(bump) <> 16 * item_bytes
+      or arena.length(bump) <> 16 * item_bytes
 
     mut exhausted: bool = false
     vec.push(values, bump, a) else (problem)
@@ -327,11 +327,11 @@ arena_any_case: (escaping a: any counter, escaping b: any counter)
     --  Every descriptor still dispatches to the pointee it was built over.
     preserved: bool = exhausted and erased_ok(values, sixteen)
                       and vec.capacity(values) == 16
-                      and arena.used(bump) == 16 * item_bytes
+                      and arena.length(bump) == 16 * item_bytes
 
     vec.release(values, bump)
     ok = preserved and vec.length(values) == 0 and vec.capacity(values) == 0
-         and arena.used(bump) == 16 * item_bytes
+         and arena.length(bump) == 16 * item_bytes
 end arena_any_case
 
 --  The erased item repeats the in-slot growth and its refusal.
@@ -527,9 +527,9 @@ arena_grow_refusals: () -> (ok: bool) =
     return when grow(bump, block, usize(3), usize(8), usize(1))
     return when grow(bump, block, usize(4), usize(32), usize(1))
     return when grow(bump, block, usize(4), usize(4), usize(1))
-    return when arena.used(bump) <> 4 or block.val <> 73
+    return when arena.length(bump) <> 4 or block.val <> 73
     return when not grow(bump, block, usize(4), usize(8), usize(1))
-    return when arena.used(bump) <> 8 or block.val <> 73
+    return when arena.length(bump) <> 8 or block.val <> 73
     maximum: usize = 0 -% 1
     near_end: ptr mut u8 = ptr(maximum - 7)
     mut impossible_space: arena.space = zeroed
@@ -539,5 +539,5 @@ arena_grow_refusals: () -> (ok: bool) =
         else (problem) _ = problem return end
     --  The synthetic address is never dereferenced.
     return when grow(impossible, edge, usize(4), usize(8), usize(1))
-    ok = arena.used(impossible) == 4
+    ok = arena.length(impossible) == 4
 end arena_grow_refusals

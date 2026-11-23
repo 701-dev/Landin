@@ -16,9 +16,9 @@ relisten: (provider: type is net.network, host: provider) -> none ! ... =
     first: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
     at: net.address = try net.local_address(host, first)
     client: io.file = try net.connect(host, at)
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     server: io.file = try net.accept(host, first)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     --  A second listener while the first holds the port is refused.
     mut refused: bool = false
     doubled: io.file = net.listen(host, at) else (problem)
@@ -26,12 +26,12 @@ relisten: (provider: type is net.network, host: provider) -> none ! ... =
         io.file(0)
     end
     if not refused then
-        try net.close_socket(host, doubled)
+        try net.close(host, doubled)
         fail wrong
     end if
-    try net.close_socket(host, first)
+    try net.close(host, first)
     again: io.file = try net.listen(host, at)
-    try net.close_socket(host, again)
+    try net.close(host, again)
 end relisten
 
 public main: () -> (code: i32) =

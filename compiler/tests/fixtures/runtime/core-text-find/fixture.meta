@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: text.find and text.find_from return the byte position of a match at the start, across scalars of different widths, at the end and from a position, periodic sought text included, report text.not_found where text.contains finds nothing, find the empty text where the search begins, and text.find_scalar finds a scalar of each width but never a surrogate
+summary: text.find and text.find_from return the byte position of a match at the start, across scalars of different widths, at the end and from a position, periodic sought text included, report mem.not_found where text.contains finds nothing, find the empty text where the search begins, and text.find_scalar finds a scalar of each width but never a surrogate
 program: main.ldn
 root: ../../../../..
 status: 42

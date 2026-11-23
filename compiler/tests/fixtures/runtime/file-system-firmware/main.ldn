@@ -19,20 +19,20 @@ names: () -> (ok: bool) ! ... =
     mut second: [8]u8 = zeroed
     try io.fill_random(source, second[0..<8])
     mut room: [40]u8 = zeroed
-    plain: text.host_string = try io.temporary_path(text.host_over(""), first,
-                                                    room[0..<40])
+    plain: text.os_string = try io.temporary_path(text.os_string_over(""), first,
+                                                  room[0..<40])
     mut other: [40]u8 = zeroed
-    nested: text.host_string =
-        try io.temporary_path(text.host_over("logs/"), second, other[0..<40])
+    nested: text.os_string =
+        try io.temporary_path(text.os_string_over("logs/"), second, other[0..<40])
     mut small: [8]u8 = zeroed
     mut met: bool = false
-    _ = io.temporary_path(text.host_over("logs"), second, small[0..<8])
+    _ = io.temporary_path(text.os_string_over("logs"), second, small[0..<8])
         else (problem)
         met = problem == io.io_failed
         plain
     end
-    ok = met and text.host_equal(plain, ".tmp-0a0b0c0d0e0f1011")
-         and text.host_equal(nested, "logs/.tmp-00010203040506ff")
+    ok = met and text.os_string_equal(plain, ".tmp-0a0b0c0d0e0f1011")
+         and text.os_string_equal(nested, "logs/.tmp-00010203040506ff")
 end names
 
 public main: () -> (code: i32) =

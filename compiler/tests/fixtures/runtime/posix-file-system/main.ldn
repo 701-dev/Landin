@@ -35,9 +35,9 @@ files: [7][]u8 = ["data", "taken", "second", "link", "loop", "dangling",
 --  Remove what an earlier run may have left.
 clear: (folder: posix.descriptor) -> none =
     for name in files do
-        posix.unlink_at(folder, text.host_over(name)) else none
+        posix.unlink_at(folder, text.os_string_over(name)) else none
     end for
-    posix.remove_directory_at(folder, text.host_over("box")) else none
+    posix.remove_directory_at(folder, text.os_string_over("box")) else none
 end clear
 
 update: posix.open_options = (access: posix.read_write, create: true,
@@ -119,7 +119,7 @@ sizes: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
     return when cut <> 6 or buffer[1] <> 101 or buffer[2] <> 0
       or buffer[5] <> 0
     reading: posix.descriptor =
-        posix.open_at(folder, text.host_over("data"), posix.reading, 0)
+        posix.open_at(folder, text.os_string_over("data"), posix.reading, 0)
         else (problem)
             said("open", problem)
             return
@@ -138,13 +138,13 @@ end sizes
 --  refused.
 renames: (folder: posix.descriptor) -> (ok: bool) =
     ok = false
-    before: posix.status = posix.status_at(folder, text.host_over("data"),
+    before: posix.status = posix.status_at(folder, text.os_string_over("data"),
                                            false) else (problem)
         said("stat", problem)
         return
     end
     made: posix.descriptor =
-        posix.open_at(folder, text.host_over("taken"), update, 0o644)
+        posix.open_at(folder, text.os_string_over("taken"), update, 0o644)
         else (problem)
             said("create", problem)
             return
@@ -153,42 +153,42 @@ renames: (folder: posix.descriptor) -> (ok: bool) =
         said("close", problem)
         return
     end
-    posix.rename_at(folder, text.host_over("data"), folder,
-                    text.host_over("taken")) else (problem)
+    posix.rename_at(folder, text.os_string_over("data"), folder,
+                    text.os_string_over("taken")) else (problem)
         said("rename", problem)
         return
     end
-    after: posix.status = posix.status_at(folder, text.host_over("taken"),
+    after: posix.status = posix.status_at(folder, text.os_string_over("taken"),
                                           false) else (problem)
         said("stat", problem)
         return
     end
     return when after.inode <> before.inode or after.size <> 6
     mut met: bool = false
-    _ = posix.status_at(folder, text.host_over("data"), false) else (problem)
+    _ = posix.status_at(folder, text.os_string_over("data"), false) else (problem)
         met = was("gone", problem, posix.enoent)
         before
     end
     return when not met
     met = false
-    posix.rename_at(folder, text.host_over("data"), folder,
-                    text.host_over("moved")) else (problem)
+    posix.rename_at(folder, text.os_string_over("data"), folder,
+                    text.os_string_over("moved")) else (problem)
         met = was("rename-missing", problem, posix.enoent)
     end
     return when not met
-    posix.make_directory_at(folder, text.host_over("box"), 0o755)
+    posix.make_directory_at(folder, text.os_string_over("box"), 0o755)
         else (problem)
         said("mkdir", problem)
         return
     end
     met = false
-    posix.rename_at(folder, text.host_over("taken"), folder,
-                    text.host_over("box")) else (problem)
+    posix.rename_at(folder, text.os_string_over("taken"), folder,
+                    text.os_string_over("box")) else (problem)
         met = was("rename-onto-directory", problem, posix.eisdir)
     end
     return when not met
-    posix.rename_at(folder, text.host_over("box"), folder,
-                    text.host_over("taken")) else (problem)
+    posix.rename_at(folder, text.os_string_over("box"), folder,
+                    text.os_string_over("taken")) else (problem)
         ok = was("rename-directory-onto-file", problem, posix.enotdir)
         return
     end
@@ -200,39 +200,39 @@ end renames
 --  followed.
 links: (folder: posix.descriptor) -> (ok: bool) =
     ok = false
-    posix.link_at(folder, text.host_over("taken"), folder,
-                  text.host_over("second")) else (problem)
+    posix.link_at(folder, text.os_string_over("taken"), folder,
+                  text.os_string_over("second")) else (problem)
         said("link", problem)
         return
     end
-    first: posix.status = posix.status_at(folder, text.host_over("taken"),
+    first: posix.status = posix.status_at(folder, text.os_string_over("taken"),
                                           false) else (problem)
         said("stat", problem)
         return
     end
-    second: posix.status = posix.status_at(folder, text.host_over("second"),
+    second: posix.status = posix.status_at(folder, text.os_string_over("second"),
                                            false) else (problem)
         said("stat", problem)
         return
     end
     return when first.inode <> second.inode or first.links <> 2
     mut met: bool = false
-    posix.link_at(folder, text.host_over("taken"), folder,
-                  text.host_over("second")) else (problem)
+    posix.link_at(folder, text.os_string_over("taken"), folder,
+                  text.os_string_over("second")) else (problem)
         met = was("link-taken", problem, posix.eexist)
     end
     return when not met
-    posix.symbolic_link_at(text.host_over("taken"), folder,
-                           text.host_over("link")) else (problem)
+    posix.symbolic_link_at(text.os_string_over("taken"), folder,
+                           text.os_string_over("link")) else (problem)
         said("symlink", problem)
         return
     end
-    followed: posix.status = posix.status_at(folder, text.host_over("link"),
+    followed: posix.status = posix.status_at(folder, text.os_string_over("link"),
                                              true) else (problem)
         said("stat", problem)
         return
     end
-    itself: posix.status = posix.status_at(folder, text.host_over("link"),
+    itself: posix.status = posix.status_at(folder, text.os_string_over("link"),
                                            false) else (problem)
         said("lstat", problem)
         return
@@ -240,16 +240,16 @@ links: (folder: posix.descriptor) -> (ok: bool) =
     return when followed.inode <> first.inode
       or itself.kind <> posix.symbolic_link or itself.size <> 5
     mut room: [16]u8 = zeroed
-    target: text.host_string =
-        posix.read_link_at(folder, text.host_over("link"), room[0..<16])
+    target: text.os_string =
+        posix.read_link_at(folder, text.os_string_over("link"), room[0..<16])
         else (problem)
             said("readlink", problem)
             return
         end
-    return when not text.host_equal(target, "taken")
+    return when not text.os_string_equal(target, "taken")
     met = false
     mut short: [5]u8 = zeroed
-    _ = posix.read_link_at(folder, text.host_over("link"), short[0..<5])
+    _ = posix.read_link_at(folder, text.os_string_over("link"), short[0..<5])
         else (problem)
         met = was("readlink-short", problem, posix.erange)
         target
@@ -257,36 +257,36 @@ links: (folder: posix.descriptor) -> (ok: bool) =
     return when not met
     met = false
     mut other: [16]u8 = zeroed
-    _ = posix.read_link_at(folder, text.host_over("taken"), other[0..<16])
+    _ = posix.read_link_at(folder, text.os_string_over("taken"), other[0..<16])
         else (problem)
         met = was("readlink-file", problem, posix.einval)
         target
     end
     return when not met
     met = false
-    posix.symbolic_link_at(text.host_over("elsewhere"), folder,
-                           text.host_over("link")) else (problem)
+    posix.symbolic_link_at(text.os_string_over("elsewhere"), folder,
+                           text.os_string_over("link")) else (problem)
         met = was("symlink-taken", problem, posix.eexist)
     end
     return when not met
-    posix.symbolic_link_at(text.host_over("absent"), folder,
-                           text.host_over("dangling")) else (problem)
+    posix.symbolic_link_at(text.os_string_over("absent"), folder,
+                           text.os_string_over("dangling")) else (problem)
         said("symlink", problem)
         return
     end
     met = false
-    _ = posix.status_at(folder, text.host_over("dangling"), true)
+    _ = posix.status_at(folder, text.os_string_over("dangling"), true)
         else (problem)
         met = was("dangling", problem, posix.enoent)
         itself
     end
     return when not met
-    posix.symbolic_link_at(text.host_over("loop"), folder,
-                           text.host_over("loop")) else (problem)
+    posix.symbolic_link_at(text.os_string_over("loop"), folder,
+                           text.os_string_over("loop")) else (problem)
         said("symlink", problem)
         return
     end
-    _ = posix.status_at(folder, text.host_over("loop"), true) else (problem)
+    _ = posix.status_at(folder, text.os_string_over("loop"), true) else (problem)
         ok = was("loop", problem, posix.eloop)
         return
     end
@@ -296,7 +296,7 @@ end links
 --  bits beyond them are refused.
 modes: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
     ok = false
-    posix.change_mode_at(folder, text.host_over("taken"), 0o640)
+    posix.change_mode_at(folder, text.os_string_over("taken"), 0o640)
         else (problem)
         said("chmod", problem)
         return
@@ -325,7 +325,7 @@ end modes
 --  another user is refused unless the process is root, which may.
 owners: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
     ok = false
-    posix.change_owner_at(folder, text.host_over("taken"),
+    posix.change_owner_at(folder, text.os_string_over("taken"),
                           posix.unchanged_user, posix.unchanged_group, true)
         else (problem)
         said("chown", problem)
@@ -339,17 +339,17 @@ owners: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
     root: bool = posix.effective_user() == posix.user_id(0)
     other: posix.user_id = if root then posix.user_id(1)
                            else posix.user_id(0) end if
-    posix.change_owner_at(folder, text.host_over("link"), other,
+    posix.change_owner_at(folder, text.os_string_over("link"), other,
                           posix.unchanged_group, false) else (problem)
         ok = not root and was("chown-away", problem, posix.eperm)
         return
     end
-    link: posix.status = posix.status_at(folder, text.host_over("link"),
+    link: posix.status = posix.status_at(folder, text.os_string_over("link"),
                                          false) else (problem)
         said("lstat", problem)
         return
     end
-    target: posix.status = posix.status_at(folder, text.host_over("taken"),
+    target: posix.status = posix.status_at(folder, text.os_string_over("taken"),
                                            false) else (problem)
         said("stat", problem)
         return
@@ -364,12 +364,12 @@ times: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
     read_at: posix.time_value = (seconds: 1000000000, nanoseconds: 5)
     written_at: posix.time_value = (seconds: 1000000001,
                                     nanoseconds: 123456789)
-    posix.set_times_at(folder, text.host_over("link"), read_at, written_at,
+    posix.set_times_at(folder, text.os_string_over("link"), read_at, written_at,
                        true) else (problem)
         said("utimensat", problem)
         return
     end
-    target: posix.status = posix.status_at(folder, text.host_over("taken"),
+    target: posix.status = posix.status_at(folder, text.os_string_over("taken"),
                                            false) else (problem)
         said("stat", problem)
         return
@@ -379,17 +379,17 @@ times: (folder: posix.descriptor, data: posix.descriptor) -> (ok: bool) =
       or target.accessed.seconds <> 1000000000
       or target.accessed.nanoseconds <> 5
     own: posix.time_value = (seconds: 1200000000, nanoseconds: 0)
-    posix.set_times_at(folder, text.host_over("link"), own, own, false)
+    posix.set_times_at(folder, text.os_string_over("link"), own, own, false)
         else (problem)
         said("utimensat-link", problem)
         return
     end
-    link: posix.status = posix.status_at(folder, text.host_over("link"),
+    link: posix.status = posix.status_at(folder, text.os_string_over("link"),
                                          false) else (problem)
         said("lstat", problem)
         return
     end
-    unmoved: posix.status = posix.status_at(folder, text.host_over("taken"),
+    unmoved: posix.status = posix.status_at(folder, text.os_string_over("taken"),
                                             false) else (problem)
         said("stat", problem)
         return
@@ -418,12 +418,12 @@ end times
 working: () -> (ok: bool) =
     ok = false
     mut room: [4096]u8 = zeroed
-    path: text.host_string = posix.current_directory(room[0..<4096])
+    path: text.os_string = posix.current_directory(room[0..<4096])
         else (problem)
         said("getcwd", problem)
         return
     end
-    bytes: []u8 = text.host_bytes(path)
+    bytes: []u8 = text.os_string_bytes(path)
     return when lenof bytes == 0 or bytes[0] <> 47
     named: posix.status = posix.status_at(posix.working_directory, path, true)
         else (problem)
@@ -431,7 +431,7 @@ working: () -> (ok: bool) =
         return
     end
     here: posix.status = posix.status_at(posix.working_directory,
-                                         text.host_over("."), true)
+                                         text.os_string_over("."), true)
         else (problem)
         said("stat", problem)
         return
@@ -445,12 +445,12 @@ end working
 
 public main: () -> (code: i32) =
     code = 1
-    posix.make_directory_at(posix.working_directory, text.host_over(top),
+    posix.make_directory_at(posix.working_directory, text.os_string_over(top),
                             0o755) else (problem)
         return when problem <> posix.eexist
     end
     folder: posix.descriptor =
-        posix.open_at(posix.working_directory, text.host_over(top),
+        posix.open_at(posix.working_directory, text.os_string_over(top),
                       (access: posix.read_only, create: false,
                        exclusive: false, truncate: false, append: false,
                        directory: true), 0) else (problem)
@@ -459,7 +459,7 @@ public main: () -> (code: i32) =
         end
     clear(folder)
     data: posix.descriptor =
-        posix.open_at(folder, text.host_over("data"), update, 0o644)
+        posix.open_at(folder, text.os_string_over("data"), update, 0o644)
         else (problem)
             said("create", problem)
             return
@@ -499,7 +499,7 @@ public main: () -> (code: i32) =
         said("close", problem)
         return
     end
-    posix.remove_directory_at(posix.working_directory, text.host_over(top))
+    posix.remove_directory_at(posix.working_directory, text.os_string_over(top))
         else (problem)
         said("rmdir", problem)
         return

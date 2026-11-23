@@ -214,7 +214,7 @@ public extern(c) l_zone_of: (index: u32, into: ptr mut u8) -> none =
 end l_zone_of
 
 unix_record: () -> (record: posix.socket_address) =
-    record = posix.unix_address(text.host_over("/tmp/landin.sock")) else (problem)
+    record = posix.unix_address(text.os_string_over("/tmp/landin.sock")) else (problem)
         _ = problem
         laid_out(net.unspecified(net.ipv4, 0))
     end

@@ -5,6 +5,7 @@
 --  is `not_found` too, and so is a name no entry can have, which never
 --  reaches the system and leaves the last errno at zero.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -12,16 +13,16 @@ missing: []u8 = "/landin-absent-parent/absent"
 missing_parent: []u8 = "/landin-absent-parent/absent/new"
 
 --  Every way a directory operation can fail.
-refusal: type = io.not_found | io.no_access | io.io_failed | io.already_exists
+refusal: type = mem.not_found | io.no_access | io.io_failed | io.already_exists
 
 --  Whether the outcome was `not_found` with errno NUMBER.
 absent: (host: blocking.host, problem: refusal, number: i32) -> (yes: bool) =
-    yes = problem == io.not_found and blocking.last_errno(host) == number
+    yes = problem == mem.not_found and blocking.last_errno(host) == number
 end absent
 
 opened_absent: (host: blocking.host) -> (yes: bool) =
     yes = false
-    path: text.host_string = text.host_over(missing)
+    path: text.os_string = text.os_string_over(missing)
     mut buffer: [1024]u8 = zeroed
     listing := io.open_directory(host, path, buffer[0..<1024]) else (problem)
         yes = absent(host, problem, 2)
@@ -32,7 +33,7 @@ end opened_absent
 
 made_absent: (host: blocking.host) -> (yes: bool) =
     yes = false
-    path: text.host_string = text.host_over(missing_parent)
+    path: text.os_string = text.os_string_over(missing_parent)
     io.make_directory(host, path) else (problem)
         yes = absent(host, problem, 2)
     end
@@ -40,14 +41,14 @@ end made_absent
 
 removed_absent: (host: blocking.host, directory: bool) -> (yes: bool) =
     yes = false
-    path: text.host_string = text.host_over(missing)
+    path: text.os_string = text.os_string_over(missing)
     gone(host, path, directory) else (problem)
         yes = absent(host, problem, 2)
     end
 end removed_absent
 
-gone: (host: blocking.host, path: text.host_string, directory: bool)
-      -> none ! io.not_found | io.no_access | io.io_failed =
+gone: (host: blocking.host, path: text.os_string, directory: bool)
+      -> none ! mem.not_found | io.no_access | io.io_failed =
     if directory then
         try io.remove_directory(host, path)
     else
@@ -60,7 +61,7 @@ end gone
 sized_absent: (host: blocking.host) -> (code: i32) =
     code = 10
     here: []u8 = "."
-    path: text.host_string = text.host_over(here)
+    path: text.os_string = text.os_string_over(here)
     mut buffer: [1024]u8 = zeroed
     listing := io.open_directory(host, path, buffer[0..<1024]) else (problem)
         _ = problem
@@ -69,17 +70,17 @@ sized_absent: (host: blocking.host) -> (code: i32) =
     defer io.close_directory(host, listing) else none
     code = 11
     _ = io.entry_size(host, listing,
-                      text.host_over("landin-absent-entry")) else (problem)
+                      text.os_string_over("landin-absent-entry")) else (problem)
         return when not absent(host, problem, 2)
         0
     end
     code = 12
-    _ = io.entry_size(host, listing, text.host_over("")) else (problem)
+    _ = io.entry_size(host, listing, text.os_string_over("")) else (problem)
         return when not absent(host, problem, 0)
         0
     end
     code = 13
-    _ = io.entry_size(host, listing, text.host_over("a/b")) else (problem)
+    _ = io.entry_size(host, listing, text.os_string_over("a/b")) else (problem)
         return when not absent(host, problem, 0)
         0
     end

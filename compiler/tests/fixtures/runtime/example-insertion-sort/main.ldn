@@ -1,6 +1,7 @@
 --  Insertion sort grows a sorted prefix, moving each new value left past
 --  the larger ones before it.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -19,7 +20,7 @@ end insertion_sort
 --- `label`, then each of `values` after a space, then a newline.
 show: (inout out: io.buffered_writer(blocking.host), label: utf8,
        values: []i32)
-      -> none ! io.io_failed | text.no_space | text.invalid_format =
+      -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     try io.format(out, "{}:", [any(addr label)])
     for value in values do
         try io.format(out, " {}", [any(addr value)])

@@ -54,7 +54,7 @@ named_listener: () -> none ! ... =
         try text.align_right(name, start, 2, u8('0'))
     end for
     try text.append(name, ".sock")
-    path: text.host_string = text.host_over(text.used(name))
+    path: text.os_string = text.os_string_over(text.used(name))
     at: posix.socket_address = try posix.unix_address(path)
     listener: posix.descriptor = try posix.socket(posix.local, posix.stream)
     try posix.bind(listener, at)
@@ -65,8 +65,8 @@ named_listener: () -> none ! ... =
     accepted: posix.descriptor = try posix.accept(listener)
     bound: posix.socket_address = try posix.socket_name(listener)
     mut kept: [128]u8 = zeroed
-    back: text.host_string = try posix.unix_path(bound, kept[0..<128])
-    fail wrong when cmp.compare(text.host_bytes(back), text.used(name))
+    back: text.os_string = try posix.unix_path(bound, kept[0..<128])
+    fail wrong when cmp.compare(text.os_string_bytes(back), text.used(name))
       <> cmp.equal
       or try posix.family_of(bound) <> posix.local
     _ = try posix.send(client, "hello")
@@ -86,18 +86,18 @@ end nowhere
 --  A Unix-domain path that is empty, holds a NUL or does not fit.
 bad_paths: () -> none ! ... =
     mut empty: bool = false
-    _ = posix.unix_address(text.host_over("")) else (problem)
+    _ = posix.unix_address(text.os_string_over("")) else (problem)
         empty = problem == posix.einval
         nowhere()
     end
     mut nul: bool = false
-    _ = posix.unix_address(text.host_over("a\x00b")) else (problem)
+    _ = posix.unix_address(text.os_string_over("a\x00b")) else (problem)
         nul = problem == posix.einval
         nowhere()
     end
     long: [200]u8 = [200 of 97]
     mut too_long: bool = false
-    _ = posix.unix_address(text.host_over(long[0..<200])) else (problem)
+    _ = posix.unix_address(text.os_string_over(long[0..<200])) else (problem)
         too_long = problem == posix.enametoolong
         nowhere()
     end
@@ -116,7 +116,7 @@ records: () -> none ! ... =
           try system.address_of(try system.internet_address(four)), four)
       or try posix.family_of(try system.internet_address(six)) <> posix.internet6
     mut refused: bool = false
-    unix: posix.socket_address = try posix.unix_address(text.host_over("x"))
+    unix: posix.socket_address = try posix.unix_address(text.os_string_over("x"))
     _ = system.address_of(unix) else (problem)
         refused = problem == posix.eafnosupport
         four

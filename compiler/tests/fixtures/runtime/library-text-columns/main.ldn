@@ -1,6 +1,7 @@
 --  A price list in columns: each count right-aligned under its heading,
 --  and each price, a float, with two decimals.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -13,7 +14,7 @@ end item
 --- Append `value` to `line` in decimal, right-aligned in a field `width`
 --- bytes wide.
 append_right: (inout line: text.builder, value: u64, width: usize)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     start: usize = text.length(line)
     try text.append_u64(line, value)
     try text.align_right(line, start, width, u8(' '))
@@ -23,7 +24,7 @@ end append_right
 --- are not formattable, so this scales the value to whole hundredths and
 --- writes the integer part, a point and the two digits after it.
 append_hundredths: (inout line: text.builder, value: f64)
-                   -> none ! text.no_space =
+                   -> none ! mem.out_of_memory =
     mut magnitude: f64 = value
     if value < 0.0 then
         magnitude = -value
@@ -42,7 +43,7 @@ end append_hundredths
 
 --- Write `one` into `line` as a row: its name, then its count and its
 --- price right-aligned under their headings.
-write_row: (inout line: text.builder, one: item) -> none ! text.no_space =
+write_row: (inout line: text.builder, one: item) -> none ! mem.out_of_memory =
     text.clear(line)
     try text.append_text(line, one.name)
     try text.align_left(line, 0, 8, u8(' '))

@@ -51,7 +51,7 @@ exercise: (chosen: case) -> none ! ... =
     for placeholder in usize(0)..<3 do
         _ = placeholder
         _ = try posix.open_at(posix.working_directory,
-                              text.host_over("/dev/null"), posix.reading, 0)
+                              text.os_string_over("/dev/null"), posix.reading, 0)
     end for
     mut parent: [3]posix.descriptor =
         [posix.standard_input, posix.standard_input, posix.standard_input]
@@ -67,12 +67,12 @@ exercise: (chosen: case) -> none ! ... =
     if chosen.closed_errors then try posix.close(posix.standard_error) end if
     _ = try posix.write(parent[chosen.input], "t\n")
     script: []u8 = "read -r line; printf 'o%s' \"$line\"; printf 'e%s' \"$line\" >&2; exit 0"
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"), value: text.host_over("/bin:/usr/bin"))]
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"), value: text.os_string_over("/bin:/usr/bin"))]
     child: posix.process_id =
-        try posix.spawn(text.host_over("/bin/sh"), arguments[0..<2],
+        try posix.spawn(text.os_string_over("/bin/sh"), arguments[0..<2],
                         variables[0..<1],
                         (input: standard(chosen.input),
                          output: standard(chosen.output),

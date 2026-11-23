@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: a utf8 record read from a buffer is split at a found = and at each found arrow into key and field views that share the buffer, its one-, two-, three- and four-byte scalars stepped and found at their offsets and widths, an empty last field, and a record with no = reports text.not_found
+summary: a utf8 record read from a buffer is split at a found = and at each found arrow into key and field views that share the buffer, its one-, two-, three- and four-byte scalars stepped and found at their offsets and widths, an empty last field, and a record with no = reports mem.not_found
 program: main.ldn
 root: ../../../../..
 status: 42

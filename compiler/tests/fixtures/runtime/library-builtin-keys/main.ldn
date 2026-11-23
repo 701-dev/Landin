@@ -12,7 +12,7 @@ import core/time
 --  Spans sort, and maps key by instants and by addresses, a zone telling
 --  two addresses apart as `net.same_address` does.
 timed: (memory: arena.arena) -> (ok: bool)
-       ! mem.out_of_memory | map.missing | net.invalid_address =
+       ! mem.out_of_memory | mem.not_found | net.invalid_address =
     ok = false
     mut spans: [4]time.duration = [time.seconds(1), time.nanoseconds(7),
                                    time.milliseconds(2), time.nanoseconds(0)]
@@ -47,7 +47,7 @@ timed: (memory: arena.arena) -> (ok: bool)
     ok = true
 end timed
 
-exercise: () -> (ok: bool) ! mem.out_of_memory | map.missing | text.invalid_text =
+exercise: () -> (ok: bool) ! mem.out_of_memory | mem.not_found | text.invalid_text =
     ok = false
     mut backing: [3072]u8 = zeroed
     mut space: arena.space = zeroed
@@ -91,18 +91,15 @@ exercise: () -> (ok: bool) ! mem.out_of_memory | map.missing | text.invalid_text
     return when two <> 2
 
     --  A walk visits each live entry once, in insertion order, and ends
-    --  with `end_of_entries`; replacing an item kept "one" first.
+    --  at `map.at_end`; replacing an item kept "one" first.
     mut position := map.entries()
     mut walked: u32 = 0
     mut order: u32 = 0
-    loop do
-        entry: map.entry(utf8, u32) = map.next_entry(words, position) else (problem)
-            _ = problem
-            break
-        end
+    while not map.at_end(words, position) do
+        entry: map.entry(utf8, u32) = map.next_entry(words, position)
         order = order * 100 + entry.item
         inc walked
-    end loop
+    end while
     return when walked <> 2 or order <> 1002
 
     mut texts: [3]utf8 = ["pear", "apple", "fig"]

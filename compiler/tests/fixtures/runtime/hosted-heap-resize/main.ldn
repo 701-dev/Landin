@@ -48,7 +48,7 @@ round_trip: (memory: heap.heap, size: usize, larger: usize,
     ramp(grown, larger)
     shrunk := try mem.resize(memory, grown, larger, size, alignment)
     return when usize(shrunk) <> usize(grown) or not holds_ramp(shrunk, size)
-    mem.free(memory, shrunk, size)
+    mem.release(memory, shrunk, size)
     ok = true
 end round_trip
 
@@ -88,13 +88,13 @@ slots_and_mappings: (memory: heap.heap) -> (ok: bool)
     end
     return when not refused or usize(left) <> usize(smaller)
       or not holds_ramp(smaller, 100)
-    mem.free(memory, smaller, usize(100))
+    mem.release(memory, smaller, usize(100))
     --  A zero extent is a block like any other, grown and shrunk again.
     nothing := try mem.allocate(memory, usize(0), usize(1))
     some := try mem.resize(memory, nothing, usize(0), usize(40), usize(1))
     ramp(some, 40)
     none_again := try mem.resize(memory, some, usize(40), usize(0), usize(1))
-    mem.free(memory, none_again, usize(0))
+    mem.release(memory, none_again, usize(0))
     --  A page's alignment, which moving a mapping keeps, and 24, which it
     --  may not: both are kept, from a slot and from a mapping.
     return when not (try round_trip(memory, usize(9), usize(5000),

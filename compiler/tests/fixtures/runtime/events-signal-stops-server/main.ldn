@@ -40,7 +40,7 @@ stop_on_terminate: (inout state: stopping) -> none ! failure.reason =
       or received.number <> 15
     mark(u8('t'))
     closing: io.file = state.listener
-    try net.close_socket(state.network, closing)
+    try net.close(state.network, closing)
 end stop_on_terminate
 
 serving: type = struct
@@ -55,7 +55,7 @@ serve: (inout state: serving) -> none ! failure.reason =
         if problem == io.io_failed then mark(u8('x')) end if
         return
     end
-    try net.close_socket(state.network, connection)
+    try net.close(state.network, connection)
 end serve
 
 waiting: type = struct

@@ -11,5 +11,5 @@ end make
 
 public main: () -> (code: i32) =
     memory := make()
-    code = i32(arena.used(memory))
+    code = i32(arena.length(memory))
 end main

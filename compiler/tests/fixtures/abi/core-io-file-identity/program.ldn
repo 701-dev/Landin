@@ -9,16 +9,16 @@ extern(c) identity_path: (which: i32) -> (path: cstring)
 extern(c) identity_cleanup: () -> none
 
 --  The peer's path `which` as a host string, lending the peer's storage.
-path_of: (which: i32) -> (path: text.host_string) =
+path_of: (which: i32) -> (path: text.os_string) =
     named: []u8 = []u8(identity_path(which))
-    path = text.host_over(named)
+    path = text.os_string_over(named)
 end path_of
 
 public main: () -> (code: i32) =
     state: blocking.host = blocking.new()
     world: any io.world = any(addr state)
-    left: text.host_string = text.host_over("left")
-    right: text.host_string = text.host_over("right")
+    left: text.os_string = text.os_string_over("left")
+    right: text.os_string = text.os_string_over("right")
     for scenario in i32(1)..<i32(9) do
         code = scenario
         identity_select(scenario)

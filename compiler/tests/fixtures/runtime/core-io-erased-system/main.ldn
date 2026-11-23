@@ -1,4 +1,5 @@
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 import platform/posix
@@ -9,22 +10,22 @@ import platform/posix
 host_string_rules_code: () -> (code: i32) =
     code = 10
     raw: []u8 = "A\xffB"
-    name: text.host_string = text.host_over(raw)
-    bytes: []u8 = text.host_bytes(name)
+    name: text.os_string = text.os_string_over(raw)
+    bytes: []u8 = text.os_string_bytes(name)
     return when lenof bytes <> 3 or usize(addr bytes[0]) <> usize(addr raw[0])
     code = 11
-    shown: utf8 = text.from_host(name) else (problem)
+    shown: utf8 = text.from_os_string(name) else (problem)
         if problem == text.invalid_text then code = 12 end if
         ""
     end
     _ = shown
     return when code <> 12
     code = 13
-    plain: text.host_string = text.host_over("plain")
-    return when not text.host_equal(plain, "plain")
-      or text.host_equal(plain, "plai") or text.host_equal(name, "AB")
+    plain: text.os_string = text.os_string_over("plain")
+    return when not text.os_string_equal(plain, "plain")
+      or text.os_string_equal(plain, "plai") or text.os_string_equal(name, "AB")
     code = 14
-    as_text: utf8 = text.from_host(plain) else (problem)
+    as_text: utf8 = text.from_os_string(plain) else (problem)
         _ = problem
         return
     end
@@ -39,8 +40,8 @@ end host_string_rules_code
 path_rules_code: (state: blocking.host) -> (code: i32) =
     mut opened: io.file = io.out(state)
     code = 32
-    opened = io.open_read(state, text.host_over("")) else (problem)
-        if problem <> io.not_found
+    opened = io.open_read(state, text.os_string_over("")) else (problem)
+        if problem <> mem.not_found
           or blocking.last_errno(state) <> posix.number(posix.enoent)
         then
             return
@@ -50,7 +51,7 @@ path_rules_code: (state: blocking.host) -> (code: i32) =
     end
     return when code <> 33
 
-    opened = io.open_read(state, text.host_over("A\x00B")) else (problem)
+    opened = io.open_read(state, text.os_string_over("A\x00B")) else (problem)
         if problem <> io.io_failed
           or blocking.last_errno(state) <> posix.number(posix.einval)
         then
@@ -62,7 +63,7 @@ path_rules_code: (state: blocking.host) -> (code: i32) =
     return when code <> 34
 
     long: [5000]u8 = [5000 of 97]
-    opened = io.open_read(state, text.host_over(long[0..<5000]))
+    opened = io.open_read(state, text.os_string_over(long[0..<5000]))
         else (problem)
         if problem <> io.io_failed
           or blocking.last_errno(state) <> posix.number(posix.enametoolong)
@@ -77,34 +78,34 @@ end path_rules_code
 no_second_argument: (state: any io.world) -> (yes: bool) =
     second: usize = 1
     unexpected := state.argument(second) else (problem)
-        yes = problem == io.no_argument
+        yes = problem == mem.not_found
         return
     end
-    _ = text.host_bytes(unexpected)
+    _ = text.os_string_bytes(unexpected)
     yes = false
 end no_second_argument
 
-missing_read_is_reported: (state: any io.world, path: text.host_string)
+missing_read_is_reported: (state: any io.world, path: text.os_string)
                           -> (yes: bool) =
     opened := state.open_read(path) else (problem)
-        yes = problem == io.not_found
+        yes = problem == mem.not_found
         return
     end
     state.close(opened) else none
     yes = false
 end missing_read_is_reported
 
-missing_write_is_reported: (state: any io.world, path: text.host_string)
+missing_write_is_reported: (state: any io.world, path: text.os_string)
                            -> (yes: bool) =
     opened := state.open_write(path) else (problem)
-        yes = problem == io.not_found
+        yes = problem == mem.not_found
         return
     end
     state.close(opened) else none
     yes = false
 end missing_write_is_reported
 
-denied_write_is_reported: (state: any io.world, path: text.host_string)
+denied_write_is_reported: (state: any io.world, path: text.os_string)
                           -> (yes: bool) =
     opened := state.open_write(path) else (problem)
         yes = problem == io.no_access
@@ -124,16 +125,16 @@ public main: () -> (code: i32) =
 
     host := blocking.new()
     code = 2
-    if io.argument_count(host) <> 1 then
+    if io.arguments_length(host) <> 1 then
         return
     end if
     direct_index: usize = 0
-    direct_source := io.argument_at(host, direct_index) else (problem)
+    direct_source := io.argument(host, direct_index) else (problem)
         _ = problem
         return
     end
     code = 3
-    direct_bytes: []u8 = text.host_bytes(direct_source)
+    direct_bytes: []u8 = text.os_string_bytes(direct_source)
     if lenof direct_bytes == 0 then
         return
     end if
@@ -144,7 +145,7 @@ public main: () -> (code: i32) =
     end if
     world: any io.world = any(addr host)
     code = 4
-    if world.argument_count() <> 1 then
+    if world.arguments_length() <> 1 then
         return
     end if
 
@@ -155,7 +156,7 @@ public main: () -> (code: i32) =
         return
     end
     code = 6
-    source_bytes: []u8 = text.host_bytes(source)
+    source_bytes: []u8 = text.os_string_bytes(source)
     if lenof source_bytes == 0 then
         return
     end if
@@ -203,8 +204,8 @@ public main: () -> (code: i32) =
     code = 17
 
     generic_host := blocking.new()
-    written_path: text.host_string =
-        text.host_over("/tmp/landin-r420-io-world.out")
+    written_path: text.os_string =
+        text.os_string_over("/tmp/landin-r420-io-world.out")
     code = 18
     output := io.open_write(generic_host, written_path) else (problem)
         _ = problem
@@ -252,18 +253,18 @@ public main: () -> (code: i32) =
     end if
     code = 25
 
-    missing_path: text.host_string =
-        text.host_over("/definitely-not-a-landin-directory-r420/file")
+    missing_path: text.os_string =
+        text.os_string_over("/definitely-not-a-landin-directory-r420/file")
     return when not missing_read_is_reported(world, missing_path)
     code = 26
     return when not missing_write_is_reported(world, missing_path)
     code = 27
 
-    denied_path: text.host_string = text.host_over("/sys/landin-r420-denied")
+    denied_path: text.os_string = text.os_string_over("/sys/landin-r420-denied")
     return when not denied_write_is_reported(world, denied_path)
     code = 28
 
-    full_path: text.host_string = text.host_over("/dev/full")
+    full_path: text.os_string = text.os_string_over("/dev/full")
     full := world.open_write(full_path) else (problem)
         _ = problem
         return

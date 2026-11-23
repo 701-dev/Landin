@@ -6,13 +6,13 @@ public main: () -> (code: i32) =
     argument_host := blocking.new()
     fail_code: i32 = 1
 
-    if io.argument_count(argument_host) <> 1 then
+    if io.arguments_length(argument_host) <> 1 then
         code = fail_code
         return
     end if
 
     first: usize = 0
-    source := io.argument_at(argument_host, first) else (argument_problem)
+    source := io.argument(argument_host, first) else (argument_problem)
         _ = argument_problem
         code = fail_code
         return
@@ -44,8 +44,8 @@ public main: () -> (code: i32) =
         return
     end if
 
-    missing_path: text.host_string =
-        text.host_over("/definitely-not-a-landin-file-r350")
+    missing_path: text.os_string =
+        text.os_string_over("/definitely-not-a-landin-file-r350")
     should_fail := io.open_read(host, missing_path) else begin
         diagnostic: [3]u8 = [79, 75, 10]
         error_stream := io.err(host)

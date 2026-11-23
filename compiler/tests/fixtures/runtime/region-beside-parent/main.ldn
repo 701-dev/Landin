@@ -40,7 +40,7 @@ public main: () -> (code: i32) =
     return when pool.live(parent) <> 3
     region.release(ledger, parent)
     return when pool.live(parent) <> 1 or own.val <> 2
-    mem.free(parent, own, usize(8))
+    mem.release(parent, own, usize(8))
     code = if pool.live(parent) == 0 and pool.frees(parent) == 3 then 42
            else 2 end if
 end main

@@ -35,7 +35,7 @@ end again
 
 --  D1370: each pass declares a new `owner`, so the views of earlier
 --  passes that `parts` keeps do not hold this pass's.
-pieces: () -> (n: usize) ! mem.out_of_memory | mem.full =
+pieces: () -> (n: usize) ! mem.out_of_memory =
     memory := heap.new()
     mut parts: [2][]u8 = [[], []]
     for at in usize(0)..<2 do
@@ -56,11 +56,10 @@ total: (list: vec.list(ptr node)) -> (sum: i32) =
 end total
 
 run: () -> (n: i32)
-     ! mem.out_of_memory | mem.empty | mem.out_of_bounds | mem.full | map.missing
-     | map.end_of_entries =
+     ! mem.out_of_memory | mem.empty | mem.out_of_bounds | mem.not_found =
     memory := heap.new()
     one: node = (v: 1)
-    first: ptr node = try mem.new(memory, one)
+    first: ptr node = try mem.allocate_item(memory, one)
     mut pointers := vec.new(item: ptr node)
     defer vec.release(pointers, memory)
     try vec.push(pointers, memory, first)
@@ -94,7 +93,7 @@ run: () -> (n: i32)
     n += found.val.v
     --  An entry copied out is what the map held: it lives across an insert.
     mut position := map.entries()
-    entry := try map.next_entry(table, position)
+    entry := map.next_entry(table, position)
     try map.insert(table, memory, 9, entry.item)
     n += entry.item.val.v
 

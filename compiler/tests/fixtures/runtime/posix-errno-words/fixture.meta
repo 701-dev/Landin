@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: D582 posix.words gives every errno this system numbers a phrase of its own, in lower case but for a name's capitals and with no final stop, words enoent from a status of a missing path as strerror does, unlisted as an unknown error and ENOTSUP apart from EOPNOTSUPP, and D1951 system.words words an errno through posix.words and a core library failure, io.not_found and net.refused, through failure.words
+summary: D582 posix.words gives every errno this system numbers a phrase of its own, in lower case but for a name's capitals and with no final stop, words enoent from a status of a missing path as strerror does, unlisted as an unknown error and ENOTSUP apart from EOPNOTSUPP, and D1951 system.words words an errno through posix.words and a core library failure, mem.not_found and net.refused, through failure.words
 program: main.ldn
 root: ../../../../..
 status: 42

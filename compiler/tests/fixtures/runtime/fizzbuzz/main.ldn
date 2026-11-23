@@ -1,6 +1,7 @@
 --  The classifier stays independent of presentation; the hosted entry prints
 --  the traditional lines and checks the complete tally for one through 100.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -41,7 +42,7 @@ end tally
 --  A number's line: its decimal digits and a newline, through a builder
 --  over a few bytes of the caller's frame.
 write_number: (inout out: io.buffered_writer(blocking.host), value: u32)
-              -> none ! io.io_failed | text.no_space =
+              -> none ! io.io_failed | mem.out_of_memory =
     mut room: [16]u8 = zeroed
     mut line := text.over(room)
     try text.append_u32(line, value)
@@ -51,7 +52,7 @@ end write_number
 
 write_line: (inout out: io.buffered_writer(blocking.host),
              kind: fizzbuzz_kind, value: u32)
-            -> none ! io.io_failed | text.no_space =
+            -> none ! io.io_failed | mem.out_of_memory =
     match kind
         fizz: try io.put(out, "Fizz\n")
         buzz: try io.put(out, "Buzz\n")
@@ -61,7 +62,7 @@ write_line: (inout out: io.buffered_writer(blocking.host),
 end write_line
 
 run: (inout out: io.buffered_writer(blocking.host))
-     -> (result: counts) ! io.io_failed | text.no_space =
+     -> (result: counts) ! io.io_failed | mem.out_of_memory =
     result = zeroed
     first: u32 = 1
     last: u32 = 100

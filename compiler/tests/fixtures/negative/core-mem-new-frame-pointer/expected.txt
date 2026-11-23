@@ -1,8 +1,8 @@
 error[L0314]: this frame-origin reference cannot be retained beyond the call
-  --> ../tests/fixtures/negative/core-mem-new-frame-pointer/main.ldn:6:24
+  --> ../tests/fixtures/negative/core-mem-new-frame-pointer/main.ldn:6:34
   |
-6 |     _ = mem.new(state, addr local) else (problem)
-  |                        ^^^^^^^^^^
+6 |     _ = mem.allocate_item(state, addr local) else (problem)
+  |                                  ^^^^^^^^^^
   --> ../tests/fixtures/negative/core-mem-new-frame-pointer/main.ldn:5:5
   |
 5 |     mut local: u32 = 23

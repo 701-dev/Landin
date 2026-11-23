@@ -11,7 +11,7 @@ ends: type = struct
     reserved: u32
 end ends
 
-ends_start: (self: ends, escaping record: ptr mut fibre.space,
+ends_start: (self: ends, escaping record: ptr mut fibre.record,
              escaping stack: []mut u8, escaping work: any fibre.task)
             -> none ! mem.out_of_memory =
     _ = self
@@ -21,7 +21,7 @@ ends_start: (self: ends, escaping record: ptr mut fibre.space,
     record.val.status = 0
 end ends_start
 
-ends_finished: (self: ends, record: fibre.space) -> (yes: bool) =
+ends_finished: (self: ends, record: fibre.record) -> (yes: bool) =
     _ = self
     yes = record.status == 0
 end ends_finished

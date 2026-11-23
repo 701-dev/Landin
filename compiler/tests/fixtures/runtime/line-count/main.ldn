@@ -3,12 +3,13 @@
 --  then returns 1.
 import core/failure
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
 --- How many lines the file at `path` holds.  A last line without its
 --- newline counts, and so does a line too long for the buffer.
-count_lines: (host: blocking.host, path: text.host_string)
+count_lines: (host: blocking.host, path: text.os_string)
              -> (lines: u64) ! ... =
     lines = 0
     opened: io.file = try io.open_read(host, path)
@@ -17,11 +18,11 @@ count_lines: (host: blocking.host, path: text.host_string)
     mut reader := io.lines_over(host, opened, buffer)
     loop do
         item: io.line = io.read_line(reader) else (problem)
-            fail problem when problem <> io.line_too_long
+            fail problem when problem <> mem.out_of_memory
             inc lines
             continue
         end
-        break when item.finished
+        break when item.at_end
         inc lines
     end loop
 end count_lines
@@ -38,12 +39,12 @@ end complain
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 1
-    path := io.argument_at(host, 0) else begin
+    path := io.argument(host, 0) else begin
         io.write(host, io.err(host), "usage: count FILE\n") else none
         return
     end
     lines := count_lines(host, path) else (problem)
-        complain(host, text.host_bytes(path), problem)
+        complain(host, text.os_string_bytes(path), problem)
         return
     end
     io.write_format(host, io.out(host), "{} lines\n", [any(addr lines)])

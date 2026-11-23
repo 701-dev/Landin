@@ -1,10 +1,11 @@
 import core/io
 import core/io/fake
+import core/mem
 import core/text
 
 --  An argument is a host string, lent from the world and compared with a
---  literal unconverted; past the last one is `no_argument`.
-exercise: () -> (ok: bool) ! io.no_argument =
+--  literal unconverted; past the last one is `mem.not_found`.
+exercise: () -> (ok: bool) ! mem.not_found =
     ok = false
     arguments: [1][]u8 = ["AB"]
     files: []mut io.memory_file = []
@@ -13,11 +14,11 @@ exercise: () -> (ok: bool) ! io.no_argument =
     mut state: io.memory_space = zeroed
     memory := io.memory_over(state, files, arguments[0..<1], "",
                              output[0..<1], errors[0..<1])
-    first := try io.argument_at(memory, usize(0))
-    return when io.argument_count(memory) <> 1
-      or not text.host_equal(first, "AB")
-    _ = io.argument_at(memory, usize(1)) else (problem)
-        ok = problem == io.no_argument
+    first := try io.argument(memory, usize(0))
+    return when io.arguments_length(memory) <> 1
+      or not text.os_string_equal(first, "AB")
+    _ = io.argument(memory, usize(1)) else (problem)
+        ok = problem == mem.not_found
         return
     end
 end exercise

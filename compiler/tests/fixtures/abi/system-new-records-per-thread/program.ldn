@@ -5,6 +5,7 @@
 --  that runs `main`, which made the handle and failed nothing, reads zero.
 
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -18,9 +19,9 @@ public extern(c) link(symbol: "r1440_fail_open")
 fail_open: (shared: ptr blocking.host, which: i32) -> (failed: i32) =
     failed = 0
     path: []u8 = if which == 0 then absent_path else under_a_file end if
-    opened: io.file = io.open_read(shared.val, text.host_over(path))
+    opened: io.file = io.open_read(shared.val, text.os_string_over(path))
         else (problem)
-        if problem == io.not_found then failed = 1 end if
+        if problem == mem.not_found then failed = 1 end if
         return
     end
     io.close(shared.val, opened) else none

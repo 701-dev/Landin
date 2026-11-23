@@ -42,11 +42,11 @@ end terminate
 --  names, its output piped to the harness.
 start_server: (host: blocking.host, io_word: []u8)
               -> (started: io.child) ! failure.reason =
-    arguments: [3]text.host_string = [text.host_over("serve"),
-                                      text.host_over(io_word),
-                                      text.host_over("--port=0")]
-    variables: [1]io.variable =
-        [(name: text.host_over("PATH"), value: text.host_over("/bin:/usr/bin"))]
+    arguments: [3]text.os_string = [text.os_string_over("serve"),
+                                    text.os_string_over(io_word),
+                                    text.os_string_over("--port=0")]
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("PATH"), value: text.os_string_over("/bin:/usr/bin"))]
     streams: io.child_streams = (input: io.discarded, output: io.piped,
                                  errors: io.inherited)
     started = try io.spawn(host, posix.program_name(), arguments[0..<3],
@@ -116,19 +116,19 @@ asked_both: (host: blocking.host, to: net.address)
     end
     if early then
         order = [u8('b'), u8('a')]
-        try net.close_socket(host, second)
+        try net.close(host, second)
         try answer(host, first, u8('a'))
-        try net.close_socket(host, first)
+        try net.close(host, first)
     else
         order = [u8('a'), u8('b')]
         --  A server that answers one connection at a time serves the
         --  second once the first has ended.
         try answer(host, first, u8('a'))
-        try net.close_socket(host, first)
+        try net.close(host, first)
         try net.set_timeouts(host, second, time.milliseconds(0),
                              time.milliseconds(0))
         try answer(host, second, u8('b'))
-        try net.close_socket(host, second)
+        try net.close(host, second)
     end if
 end asked_both
 
@@ -176,7 +176,7 @@ end exchange
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    if io.argument_count(host) > 0 then
+    if io.arguments_length(host) > 0 then
         code = app.entry(1)
         return
     end if

@@ -11,6 +11,7 @@
 --  the 32 KiB firmware image.
 import core/io
 import core/io/fake
+import core/mem
 import core/text
 
 counts: type = struct
@@ -52,7 +53,7 @@ end count
 --  The three totals in decimal, separated by spaces and ended by a newline,
 --  formatted into LINE.
 render: (totals: counts, inout line: text.builder)
-        -> none ! text.no_space | text.invalid_format =
+        -> none ! mem.out_of_memory | text.invalid_format =
     try text.format(line, "{} {} {}\n",
                     [any(addr totals.lines), any(addr totals.words),
                      any(addr totals.bytes)])
@@ -143,7 +144,7 @@ rendering: () -> (ok: bool) =
     render(small, short) else (problem)
         --  The byte total does not fit: the format is undone whole, and
         --  the line holds nothing of it.
-        ok = problem == text.no_space and text.length(short) == 0
+        ok = problem == mem.out_of_memory and text.length(short) == 0
         return
     end
 end rendering

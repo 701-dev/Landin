@@ -12,20 +12,20 @@ memory_empty: [1]u8 = [0]
 pair_is_expected: (world: any io.world, expected_count: usize)
                   -> (yes: bool) =
     yes = false
-    return when world.argument_count() <> expected_count
-    word_argument: text.host_string = world.argument(0) else (problem)
+    return when world.arguments_length() <> expected_count
+    word_argument: text.os_string = world.argument(0) else (problem)
         _ = problem
         return
     end
-    number_argument: text.host_string = world.argument(1) else (problem)
+    number_argument: text.os_string = world.argument(1) else (problem)
         _ = problem
         return
     end
-    word: utf8 = text.from_host(word_argument) else (problem)
+    word: utf8 = text.from_os_string(word_argument) else (problem)
         _ = problem
         return
     end
-    number: utf8 = text.from_host(number_argument) else (problem)
+    number: utf8 = text.from_os_string(number_argument) else (problem)
         _ = problem
         return
     end
@@ -37,8 +37,8 @@ pair_is_expected: (world: any io.world, expected_count: usize)
 end pair_is_expected
 
 --  Whether ARGUMENT lends exactly the bytes at EXPECTED, not a copy.
-lends: (argument: text.host_string, expected: []u8) -> (yes: bool) =
-    bytes: []u8 = text.host_bytes(argument)
+lends: (argument: text.os_string, expected: []u8) -> (yes: bool) =
+    bytes: []u8 = text.os_string_bytes(argument)
     yes = lenof bytes == lenof expected
           and usize(addr bytes[0]) == usize(addr expected[0])
 end lends
@@ -60,18 +60,18 @@ public main: () -> (code: i32) =
     memory_over: any io.world = any(addr memory)
     return when not pair_is_expected(memory_over, 3)
 
-    lent: text.host_string = memory_over.argument(0) else (problem)
+    lent: text.os_string = memory_over.argument(0) else (problem)
         _ = problem
         return
     end
     return when not lends(lent, memory_word[0..<5])
 
-    empty_argument: text.host_string = memory_over.argument(2) else (problem)
+    empty_argument: text.os_string = memory_over.argument(2) else (problem)
         _ = problem
         return
     end
-    empty_bytes: []u8 = text.host_bytes(empty_argument)
-    empty_text: utf8 = text.from_host(empty_argument) else (problem)
+    empty_bytes: []u8 = text.os_string_bytes(empty_argument)
+    empty_text: utf8 = text.from_os_string(empty_argument) else (problem)
         _ = problem
         return
     end

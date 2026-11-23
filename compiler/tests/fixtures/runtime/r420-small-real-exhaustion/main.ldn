@@ -28,9 +28,9 @@ zero_inline_first_spill: () -> (ok: bool) =
         empty_view = lenof view == 0
     end
     ok = refused and empty_view and spill.length(addr values) == 0
-         and spill.capacity(addr values) == 0 and arena.used(memory) == 0
+         and spill.capacity(addr values) == 0 and arena.length(memory) == 0
     spill.release(values, memory)
-    ok = ok and spill.length(addr values) == 0 and arena.used(memory) == 0
+    ok = ok and spill.length(addr values) == 0 and arena.length(memory) == 0
 end zero_inline_first_spill
 
 --  A nonzero inline arm survives a refused first spill unchanged: the doubled
@@ -53,7 +53,7 @@ inline_arm_survives_first_spill: () -> (ok: bool) =
         return
     end
     --  Both pushes stayed below the inline bound and asked for nothing.
-    return when arena.used(memory) <> 0 or spill.capacity(addr values) <> 2
+    return when arena.length(memory) <> 0 or spill.capacity(addr values) <> 2
 
     mut refused: bool = false
     spill.push(values, memory, 23) else (problem)
@@ -66,7 +66,7 @@ inline_arm_survives_first_spill: () -> (ok: bool) =
     end
     --  No premature variant switch and no free of an arm that never existed.
     ok = refused and kept and spill.length(addr values) == 2
-         and spill.capacity(addr values) == 2 and arena.used(memory) == 0
+         and spill.capacity(addr values) == 2 and arena.length(memory) == 0
     spill.release(values, memory)
     ok = ok and spill.length(addr values) == 0 and spill.capacity(addr values) == 2
 end inline_arm_survives_first_spill
@@ -94,7 +94,7 @@ spilled_arm_survives_growth: () -> (ok: bool) =
     --  Four items: two copied out of the inline arm plus two admitted into
     --  the spare slots the spill reserved. The extent is now consumed.
     return when spill.length(addr values) <> 4 or spill.capacity(addr values) <> 4
-      or arena.used(memory) <> extent
+      or arena.length(memory) <> extent
 
     mut refused: bool = false
     spill.push(values, memory, 35) else (problem)
@@ -107,7 +107,7 @@ spilled_arm_survives_growth: () -> (ok: bool) =
                and view[2] == 33 and view[3] == 34
     end
     ok = refused and kept and spill.length(addr values) == 4
-         and spill.capacity(addr values) == 4 and arena.used(memory) == extent
+         and spill.capacity(addr values) == 4 and arena.length(memory) == extent
 
     tail: i32 = spill.pop(values) else (problem)
         _ = problem
@@ -117,7 +117,7 @@ spilled_arm_survives_growth: () -> (ok: bool) =
     spill.release(values, memory)
     --  The arena's free is a no-op, so the offset does not move.
     ok = ok and spill.length(addr values) == 0 and spill.capacity(addr values) == 2
-         and arena.used(memory) == extent
+         and arena.length(memory) == extent
 end spilled_arm_survives_growth
 
 --  One pool slot lets the spill happen and holds the list's next growth in

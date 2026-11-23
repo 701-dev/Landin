@@ -1,4 +1,5 @@
 import core/io
+import core/mem
 import core/text
 
 --  A small world with one writable stream. Unsupported services refuse;
@@ -36,16 +37,16 @@ read: (self: device, opened: io.file, into: []mut u8)
     fail io.io_failed
 end read
 
-open: (self: device, path: text.host_string)
+open: (self: device, path: text.os_string)
       -> (opened: io.file)
-      ! io.not_found | io.no_access | io.is_a_directory | io.io_failed =
+      ! mem.not_found | io.no_access | io.is_a_directory | io.io_failed =
     _ = self
     _ = path
     fail io.no_access
 end open
 
-same_file: (self: device, left: text.host_string,
-            right: text.host_string)
+same_file: (self: device, left: text.os_string,
+            right: text.os_string)
            -> (same: bool) ! io.io_failed =
     _ = self
     _ = left
@@ -64,16 +65,16 @@ out: (self: device) -> (stream: io.file) =
     stream = io.file(1)
 end out
 
-argument_count: (self: device) -> (count: usize) =
+arguments_length: (self: device) -> (count: usize) =
     _ = self
     count = 0
-end argument_count
+end arguments_length
 
 argument: (self: device, index: usize)
-          -> (value: text.host_string from self) ! io.no_argument =
+          -> (value: text.os_string from self) ! mem.not_found =
     _ = self
     _ = index
-    fail io.no_argument
+    fail mem.not_found
 end argument
 
 device is io.writer (write: write, write_some: write_some)
@@ -81,7 +82,7 @@ device is io.reader (read: read)
 device is io.files (open_read: open, open_write: open,
                     same_file: same_file, close: close)
 device is io.process (input: out, out: out, err: out,
-                      argument_count: argument_count, argument: argument)
+                      arguments_length: arguments_length, argument: argument)
 device is io.world ()
 
 exercise: () -> (ok: bool) ! io.io_failed =

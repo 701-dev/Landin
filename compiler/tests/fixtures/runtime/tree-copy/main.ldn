@@ -24,12 +24,12 @@ import platform/posix
 copy_directory: (host: blocking.host, from_path: []u8, to_path: []u8,
                  inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
-    io.make_directory(host, text.host_over(to_path)) else (problem)
+    io.make_directory(host, text.os_string_over(to_path)) else (problem)
         fail problem when problem <> io.already_exists
         there: posix.status = try posix.status_at(posix.working_directory,
-                                                  text.host_over(to_path),
+                                                  text.os_string_over(to_path),
                                                   false)
         fail in_the_way when there.kind <> posix.directory
     end
@@ -53,7 +53,7 @@ copy_directory: (host: blocking.host, from_path: []u8, to_path: []u8,
             io.special: inc done.skipped
         end match
     end for
-    target: text.host_string = text.host_over(to_path)
+    target: text.os_string = text.os_string_over(to_path)
     if privileged() then
         try posix.change_owner_at(posix.working_directory, target, found.user,
                                   found.group, true)
@@ -70,13 +70,13 @@ end copy_directory
 copy_file: (host: blocking.host, from_path: []u8, to_path: []u8,
             inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
-    input: io.file = try io.open_read(host, text.host_over(from_path))
+    input: io.file = try io.open_read(host, text.os_string_over(from_path))
     defer io.close(host, input) else none
     mut room: [256]u8 = zeroed
     made: io.temporary =
-        try io.make_temporary(host, host, text.host_over(parent_of(to_path)),
+        try io.make_temporary(host, host, text.os_string_over(parent_of(to_path)),
                               room)
     filled(host, input, made.opened, found) else (problem)
         io.close(host, made.opened) else none
@@ -87,7 +87,7 @@ copy_file: (host: blocking.host, from_path: []u8, to_path: []u8,
         dropped(host, made.path)
         fail problem
     end
-    target: text.host_string = text.host_over(to_path)
+    target: text.os_string = text.os_string_over(to_path)
     replacing: bool = try present(host, target)
     io.rename(host, made.path, target) else (problem)
         dropped(host, made.path)
@@ -130,20 +130,20 @@ end filled
 copy_link: (host: blocking.host, from_path: []u8, to_path: []u8,
             inout done: tally) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(from_path),
+                                              text.os_string_over(from_path),
                                               false)
     mut target_room: [256]u8 = zeroed
-    target: text.host_string =
+    target: text.os_string =
         try posix.read_link_at(posix.working_directory,
-                               text.host_over(from_path), target_room)
+                               text.os_string_over(from_path), target_room)
     mut room: [256]u8 = zeroed
-    mut name: text.host_string = text.host_over(room[0..<0])
+    mut name: text.os_string = text.os_string_over(room[0..<0])
     mut made: bool = false
     for attempt in usize(0)..<io.temporary_tries do
         _ = attempt
         mut bytes: [8]u8 = zeroed
         try io.fill_random(host, bytes)
-        name = try io.temporary_path(text.host_over(parent_of(to_path)), bytes,
+        name = try io.temporary_path(text.os_string_over(parent_of(to_path)), bytes,
                                      room)
         posix.symbolic_link_at(target, posix.working_directory, name)
             else (problem)
@@ -161,7 +161,7 @@ copy_link: (host: blocking.host, from_path: []u8, to_path: []u8,
     end if
     try posix.set_times_at(posix.working_directory, name, found.accessed,
                            found.modified, false)
-    destination: text.host_string = text.host_over(to_path)
+    destination: text.os_string = text.os_string_over(to_path)
     replacing: bool = try present(host, destination)
     try io.rename(host, name, destination)
     if replacing then inc done.replaced end if
@@ -213,12 +213,12 @@ entries_of: (host: blocking.host, path: []u8, into: []mut kept)
     count = 0
     mut buffer: [1024]u8 = zeroed
     mut listing: io.directory =
-        try io.open_directory(host, text.host_over(path), buffer)
+        try io.open_directory(host, text.os_string_over(path), buffer)
     defer io.close_directory(host, listing) else none
     loop do
         item: io.entry = try io.read_entry(host, listing)
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         fail too_many when count == lenof into
         fail too_long when lenof name > 255
         into[count] = blank
@@ -233,7 +233,7 @@ end entries_of
 --- The path `name` in `parent`, or `parent` when `name` is empty, built in
 --- `into`.
 joined: (parent: []u8, name: []u8, inout into: text.builder)
-        -> none ! text.no_space =
+        -> none ! mem.out_of_memory =
     text.clear(into)
     try text.append(into, parent)
     separator: []u8 = if lenof name > 0 then "/" else "" end if
@@ -280,17 +280,17 @@ zeros: (bytes: []u8) -> (yes: bool) =
 end zeros
 
 --- Whether anything is at `path`, a link not followed.
-present: (host: blocking.host, path: text.host_string) -> (yes: bool) ! ... =
+present: (host: blocking.host, path: text.os_string) -> (yes: bool) ! ... =
     yes = true
     _ = io.status_of(host, path, io.not_following) else (problem)
-        fail problem when problem <> io.not_found
+        fail problem when problem <> mem.not_found
         yes = false
         return
     end
 end present
 
 --- Forget a temporary file that will not be renamed into place.
-dropped: (host: blocking.host, path: text.host_string) -> none =
+dropped: (host: blocking.host, path: text.os_string) -> none =
     io.remove_file(host, path) else none
 end dropped
 
@@ -301,7 +301,7 @@ end dropped
 outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     source_status: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(from_path), true)
+                            text.os_string_over(from_path), true)
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     mut length: usize = lenof to_path
@@ -311,12 +311,12 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     try text.append(path, to_path[0..<length])
     mut found: posix.status =
         posix.status_at(posix.working_directory,
-                        text.host_over(text.used(path)), true) else (problem)
+                        text.os_string_over(text.used(path)), true) else (problem)
             fail problem when problem <> posix.enoent
             text.clear(path)
             try text.append(path, parent_of(to_path[0..<length]))
             try posix.status_at(posix.working_directory,
-                                text.host_over(text.used(path)), true)
+                                text.os_string_over(text.used(path)), true)
         end
     loop do
         fail inside_source when found.device == source_status.device
@@ -324,7 +324,7 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
         try text.append(path, "/..")
         parent: posix.status =
             try posix.status_at(posix.working_directory,
-                                text.host_over(text.used(path)), true)
+                                text.os_string_over(text.used(path)), true)
         break when parent.device == found.device
           and parent.inode == found.inode
         found = parent
@@ -335,8 +335,8 @@ end outside_source
 --- names, and say what the copy did.
 copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
             -> none ! ... =
-    from_path: []u8 = text.host_bytes(try io.argument_at(host, 0))
-    to_path: []u8 = text.host_bytes(try io.argument_at(host, 1))
+    from_path: []u8 = text.os_string_bytes(try io.argument(host, 0))
+    to_path: []u8 = text.os_string_bytes(try io.argument(host, 1))
     try outside_source(from_path, to_path)
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
@@ -384,13 +384,13 @@ differs: atom
 
 --- Remove the tree at `path`, whatever is in it, if it is there.
 remove_tree: (host: blocking.host, path: []u8) -> none ! ... =
-    found: io.status = io.status_of(host, text.host_over(path), io.not_following)
+    found: io.status = io.status_of(host, text.os_string_over(path), io.not_following)
         else (problem)
-        fail problem when problem <> io.not_found
+        fail problem when problem <> mem.not_found
         return
     end
     if found.kind <> io.subdirectory then
-        try io.remove_file(host, text.host_over(path))
+        try io.remove_file(host, text.os_string_over(path))
         return
     end if
     mut entries: [16]kept = [16 of blank]
@@ -401,7 +401,7 @@ remove_tree: (host: blocking.host, path: []u8) -> none ! ... =
         try joined(path, item.name[0..<item.length], child)
         try remove_tree(host, text.used(child))
     end for
-    try io.remove_directory(host, text.host_over(path))
+    try io.remove_directory(host, text.os_string_over(path))
 end remove_tree
 
 --- Clean up after a failure, reporting why an owned scratch directory
@@ -422,14 +422,14 @@ make_file: (host: blocking.host, name: []u8, contents: []u8,
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    opened: io.file = try io.open_write(host, text.host_over(text.used(path)))
+    opened: io.file = try io.open_write(host, text.os_string_over(text.used(path)))
     io.write(host, opened, contents) else (problem)
         io.close(host, opened) else none
         fail problem
     end
     try io.close(host, opened)
     try posix.change_mode_at(posix.working_directory,
-                             text.host_over(text.used(path)), permissions)
+                             text.os_string_over(text.used(path)), permissions)
 end make_file
 
 --- Make the directory `name` in the source, or the source when it is
@@ -438,9 +438,9 @@ make_folder: (host: blocking.host, name: []u8) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    try io.make_directory(host, text.host_over(text.used(path)))
+    try io.make_directory(host, text.os_string_over(text.used(path)))
     try posix.change_mode_at(posix.working_directory,
-                             text.host_over(text.used(path)), 0o755)
+                             text.os_string_over(text.used(path)), 0o755)
 end make_folder
 
 --- Give the source entry `name` the times `epoch` and `second` seconds,
@@ -451,7 +451,7 @@ stamp: (name: []u8, second: i64) -> none ! ... =
     try joined(source, name, path)
     at: posix.time_value = (seconds: epoch + second, nanoseconds: 0)
     try posix.set_times_at(posix.working_directory,
-                           text.host_over(text.used(path)), at, at, false)
+                           text.os_string_over(text.used(path)), at, at, false)
 end stamp
 
 --- The names the source holds, in the order their times are given:
@@ -469,7 +469,7 @@ make_sparse: (host: blocking.host, name: []u8) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    sparse: text.host_string = text.host_over(text.used(path))
+    sparse: text.os_string = text.os_string_over(text.used(path))
     opened: io.file = try io.open_file(host, sparse, io.creating)
     defer io.close(host, opened) else none
     try io.write_at(host, opened, u64(0), "head")
@@ -483,9 +483,9 @@ make_link: (target: []u8, name: []u8, hard: bool) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(source, name, path)
-    made: text.host_string = text.host_over(text.used(path))
+    made: text.os_string = text.os_string_over(text.used(path))
     if not hard then
-        try posix.symbolic_link_at(text.host_over(target),
+        try posix.symbolic_link_at(text.os_string_over(target),
                                    posix.working_directory, made)
         return
     end if
@@ -493,7 +493,7 @@ make_link: (target: []u8, name: []u8, hard: bool) -> none ! ... =
     mut existing := text.over(other)
     try joined(source, target, existing)
     try posix.link_at(posix.working_directory,
-                      text.host_over(text.used(existing)),
+                      text.os_string_over(text.used(existing)),
                       posix.working_directory, made)
 end make_link
 
@@ -506,10 +506,10 @@ make_socket: (name: []u8) -> none ! ... =
     socket: posix.descriptor = try posix.socket(posix.local, posix.stream)
     defer posix.close(socket) else none
     at: posix.socket_address =
-        try posix.unix_address(text.host_over(text.used(path)))
+        try posix.unix_address(text.os_string_over(text.used(path)))
     try posix.bind(socket, at)
     named: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(text.used(path)),
+                                              text.os_string_over(text.used(path)),
                                               false)
     fail differs when named.kind <> posix.socket_file
 end make_socket
@@ -527,7 +527,7 @@ build: (host: blocking.host) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut locked := text.over(room)
     try joined(source, "locked", locked)
-    try io.set_read_only(host, text.host_over(text.used(locked)), true)
+    try io.set_read_only(host, text.os_string_over(text.used(locked)), true)
     try make_sparse(host, "sparse.bin")
     try make_link("readme", "readme-again", true)
     try make_link("notes", "link-to-notes", false)
@@ -541,7 +541,7 @@ end build
 
 --- Write `permissions` as four octal digits.
 append_mode: (inout into: text.builder, permissions: u32)
-             -> none ! text.no_space =
+             -> none ! mem.out_of_memory =
     shifts: [4]u32 = [9, 6, 3, 0]
     for shift in shifts do
         try text.append_byte(into, u8(48 + ((permissions >> shift) & 7)))
@@ -554,13 +554,13 @@ end append_mode
 line: (path: []u8, name: []u8, kind: io.entry_kind,
        inout into: text.builder) -> none ! ... =
     found: posix.status = try posix.status_at(posix.working_directory,
-                                              text.host_over(path), false)
+                                              text.os_string_over(path), false)
     text.clear(into)
     if kind == io.symbolic_link then
         mut room: [256]u8 = zeroed
-        target: text.host_string =
+        target: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(path), room)
+                                   text.os_string_over(path), room)
         seconds: i64 = found.modified.seconds - epoch
         try text.format(into, "link +{} {} -> {}\n",
                         [any(addr seconds), any(addr name), any(addr target)])
@@ -615,32 +615,32 @@ end show
 same_entry: (host: blocking.host, from_path: []u8, to_path: []u8,
              kind: io.entry_kind) -> none ! ... =
     original: posix.status = try posix.status_at(posix.working_directory,
-                                                 text.host_over(from_path),
+                                                 text.os_string_over(from_path),
                                                  false)
     copied: posix.status = try posix.status_at(posix.working_directory,
-                                               text.host_over(to_path), false)
+                                               text.os_string_over(to_path), false)
     fail differs when original.kind <> copied.kind
       or original.modified.seconds <> copied.modified.seconds
       or original.modified.nanoseconds <> copied.modified.nanoseconds
     if kind == io.symbolic_link then
         mut first_room: [256]u8 = zeroed
-        first: text.host_string =
+        first: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(from_path), first_room)
+                                   text.os_string_over(from_path), first_room)
         mut second_room: [256]u8 = zeroed
-        second: text.host_string =
+        second: text.os_string =
             try posix.read_link_at(posix.working_directory,
-                                   text.host_over(to_path), second_room)
-        fail differs when cmp.compare(text.host_bytes(first),
-                                      text.host_bytes(second)) <> cmp.equal
+                                   text.os_string_over(to_path), second_room)
+        fail differs when cmp.compare(text.os_string_bytes(first),
+                                      text.os_string_bytes(second)) <> cmp.equal
         return
     end if
     fail differs when original.permissions <> copied.permissions
     return when kind <> io.regular
     fail differs when original.size <> copied.size
-    left: io.file = try io.open_read(host, text.host_over(from_path))
+    left: io.file = try io.open_read(host, text.os_string_over(from_path))
     defer io.close(host, left) else none
-    right: io.file = try io.open_read(host, text.host_over(to_path))
+    right: io.file = try io.open_read(host, text.os_string_over(to_path))
     defer io.close(host, right) else none
     mut first_block: [4096]u8 = zeroed
     mut second_block: [4096]u8 = zeroed
@@ -699,7 +699,7 @@ edge_cases: (host: blocking.host) -> none ! ... =
     mut room: [256]u8 = zeroed
     mut path := text.over(room)
     try joined(copy, "locked", path)
-    locked: text.host_string = text.host_over(text.used(path))
+    locked: text.os_string = text.os_string_over(text.used(path))
     found: io.status = try io.status_of(host, locked, io.following)
     fail differs when not found.read_only
     --  A file open only for reading refuses a write whoever writes, root
@@ -735,7 +735,7 @@ edge_cases: (host: blocking.host) -> none ! ... =
     try joined(copy, "sparse.bin", sparse_path)
     sparse: io.file = system.file_of(
         try posix.open_at(posix.working_directory,
-                          text.host_over(text.used(sparse_path)),
+                          text.os_string_over(text.used(sparse_path)),
                           posix.reading, 0))
     defer io.close(host, sparse) else none
     size: io.status = try io.status_of_file(host, sparse)
@@ -750,13 +750,13 @@ edge_cases: (host: blocking.host) -> none ! ... =
     try joined(source, "readme", first_path)
     first: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(text.used(first_path)), false)
+                            text.os_string_over(text.used(first_path)), false)
     mut second_room: [256]u8 = zeroed
     mut second_path := text.over(second_room)
     try joined(copy, "readme", second_path)
     second: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over(text.used(second_path)), false)
+                            text.os_string_over(text.used(second_path)), false)
     fail differs when first.links <> 2 or second.links <> 1
 end edge_cases
 
@@ -765,11 +765,11 @@ end edge_cases
 --- to.  A set-user-ID file is copied with the bit only by a process that
 --- gave the copy its owner.
 guards: (host: blocking.host) -> none ! ... =
-    try io.make_directory(host, text.host_over("tree-copy-scratch/elsewhere"))
-    try io.make_directory(host, text.host_over("tree-copy-scratch/trap"))
-    try posix.symbolic_link_at(text.host_over("../elsewhere"),
+    try io.make_directory(host, text.os_string_over("tree-copy-scratch/elsewhere"))
+    try io.make_directory(host, text.os_string_over("tree-copy-scratch/trap"))
+    try posix.symbolic_link_at(text.os_string_over("../elsewhere"),
                                posix.working_directory,
-                               text.host_over("tree-copy-scratch/trap/notes"))
+                               text.os_string_over("tree-copy-scratch/trap/notes"))
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
     mut refused: bool = false
@@ -783,7 +783,7 @@ guards: (host: blocking.host) -> none ! ... =
                                     entries)
     fail differs when reached <> 0
 
-    tool: text.host_string = text.host_over("tree-copy-scratch/tool")
+    tool: text.os_string = text.os_string_over("tree-copy-scratch/tool")
     opened: io.file = try io.open_write(host, tool)
     try io.close(host, opened)
     try posix.change_mode_at(posix.working_directory, tool, 0o4755)
@@ -793,7 +793,7 @@ guards: (host: blocking.host) -> none ! ... =
                   done)
     copied: posix.status =
         try posix.status_at(posix.working_directory,
-                            text.host_over("tree-copy-scratch/tool-copy"),
+                            text.os_string_over("tree-copy-scratch/tool-copy"),
                             false)
     wanted: u32 = if privileged() then original.permissions
                   else original.permissions & 0o1777 end if
@@ -825,15 +825,15 @@ end report
 --- copy, check the copy, list it to `out` and remove both trees.
 demonstrate: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
              -> none ! ... =
-    try io.make_directory(host, text.host_over(top))
+    try io.make_directory(host, text.os_string_over(top))
     undo abandon(host)
     try build(host)
     try refuses_inside(source, source)
     try refuses_inside(source, "tree-copy-scratch/source/child")
     try refuses_inside(source, "tree-copy-scratch/source/../source/child")
-    try posix.symbolic_link_at(text.host_over("source"),
+    try posix.symbolic_link_at(text.os_string_over("source"),
                                posix.working_directory,
-                               text.host_over("tree-copy-scratch/alias"))
+                               text.os_string_over("tree-copy-scratch/alias"))
     try refuses_inside(source, "tree-copy-scratch/alias/child")
     mut first: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                         replaced: 0)
@@ -860,7 +860,7 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.argument_count(host) == 2 then
+    if io.arguments_length(host) == 2 then
         copy_named(host, out) else (problem)
             complain(host, problem)
             return

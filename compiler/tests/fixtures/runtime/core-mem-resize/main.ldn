@@ -36,10 +36,10 @@ arena_resizes: () -> (ok: bool) ! mem.out_of_memory =
     --  The latest block grows where it is, and gives its tail back when it
     --  shrinks.
     grown := try mem.resize(memory, first, usize(8), usize(24), usize(1))
-    return when usize(grown) <> usize(first) or arena.used(memory) <> 24
+    return when usize(grown) <> usize(first) or arena.length(memory) <> 24
       or not holds_ramp(grown, 8)
     shrunk := try mem.resize(memory, grown, usize(24), usize(12), usize(1))
-    return when usize(shrunk) <> usize(first) or arena.used(memory) <> 12
+    return when usize(shrunk) <> usize(first) or arena.length(memory) <> 12
       or not holds_ramp(shrunk, 8)
     --  Once another block follows it, it moves to the top with its bytes,
     --  and the bytes it leaves stay spent.
@@ -47,17 +47,17 @@ arena_resizes: () -> (ok: bool) ! mem.out_of_memory =
     second := try mem.allocate(memory, usize(4), usize(1))
     moved := try mem.resize(memory, shrunk, usize(12), usize(20), usize(1))
     return when usize(moved) <> usize(second) + 4
-      or arena.used(memory) <> 36 or not holds_ramp(moved, 12)
+      or arena.length(memory) <> 36 or not holds_ramp(moved, 12)
     --  A block that is not the latest shrinks where it is, and the arena
     --  keeps its bytes.
     kept := try mem.resize(memory, second, usize(4), usize(2), usize(1))
-    return when usize(kept) <> usize(second) or arena.used(memory) <> 36
+    return when usize(kept) <> usize(second) or arena.length(memory) <> 36
     --  The latest block shrinks to nothing where it is, and grows from
     --  nothing there again.
     empty := try mem.resize(memory, moved, usize(20), usize(0), usize(1))
-    return when usize(empty) <> usize(moved) or arena.used(memory) <> 16
+    return when usize(empty) <> usize(moved) or arena.length(memory) <> 16
     again := try mem.resize(memory, empty, usize(0), usize(8), usize(1))
-    return when usize(again) <> usize(moved) or arena.used(memory) <> 24
+    return when usize(again) <> usize(moved) or arena.length(memory) <> 24
     --  More than the backing holds is refused with the block, its bytes
     --  and the arena as they were.
     ramp(again, 8)
@@ -69,7 +69,7 @@ arena_resizes: () -> (ok: bool) ! mem.out_of_memory =
         again
     end
     return when not refused or usize(left) <> usize(again)
-      or arena.used(memory) <> 24 or not holds_ramp(again, 8)
+      or arena.length(memory) <> 24 or not holds_ramp(again, 8)
     ok = true
 end arena_resizes
 
@@ -95,7 +95,7 @@ injected_resizes: () -> (ok: bool) ! mem.out_of_memory =
     ok = refused and fault.attempts(budget) == 3
          and fault.delegated(budget) == 2 and fault.successes(budget) == 2
          and fault.injected_failures(budget) == 1
-         and arena.used(memory) == 8 and holds_ramp(grown, 4)
+         and arena.length(memory) == 8 and holds_ramp(grown, 4)
 end injected_resizes
 
 public main: () -> (code: i32) =

@@ -3,8 +3,9 @@
 --  `fail` that raises it labelled; it once reached the lowering, which
 --  found the fail outside the routine's set and stopped as a defect.
 import core/io
+import core/mem
 
-argument: (index: usize) -> (value: usize) ! io.no_argument =
+argument: (index: usize) -> (value: usize) ! mem.not_found =
     _ = index
     fail io.no_access
 end argument

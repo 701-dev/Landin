@@ -6,7 +6,7 @@ import core/spill
 import core/vec
 
 exercise: () -> (ok: bool)
-          ! mem.out_of_memory | mem.out_of_bounds | mem.empty | map.missing =
+          ! mem.out_of_memory | mem.out_of_bounds | mem.empty | mem.not_found =
     ok = false
     mut backing: [1024]u8 = zeroed
     mut space: arena.space = zeroed
@@ -58,7 +58,7 @@ exercise: () -> (ok: bool)
     return when updated <> 70
     refused = false
     _ = map.at(table, u32(8)) else (problem)
-        return when problem <> map.missing
+        return when problem <> mem.not_found
         refused = true
     end
     return when not refused

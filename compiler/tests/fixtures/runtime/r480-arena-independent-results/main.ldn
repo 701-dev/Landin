@@ -31,7 +31,7 @@ arena_alloc: (self: ptr arena.arena, size: usize, alignment: usize)
 end arena_alloc
 arena_free: (self: ptr arena.arena, block: ptr mut u8, size: usize)
             -> none =
-    mem.free(self.val, block, size)
+    mem.release(self.val, block, size)
 end arena_free
 arena.arena is allocator_view (alloc: arena_alloc, free: arena_free)
 
@@ -50,7 +50,7 @@ end invoke
 
 helper: (provider: type is mem.allocator, memory: provider,
          value: u8) -> (result: ptr mut u8) ! mem.out_of_memory =
-    result = try mem.new(memory, value)
+    result = try mem.allocate_item(memory, value)
 end helper
 
 retain: (provider: type is mem.allocator, memory: provider)
@@ -69,7 +69,7 @@ end aggregate
 view: (provider: type is mem.allocator, memory: provider)
       -> (result: []mut u8) ! mem.out_of_memory =
     initial: [2]u8 = [17, 19]
-    storage := try mem.new(memory, initial)
+    storage := try mem.allocate_item(memory, initial)
     result = storage.val[0..<2]
 end view
 

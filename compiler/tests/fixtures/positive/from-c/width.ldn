@@ -1,4 +1,5 @@
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -6,7 +7,7 @@ import hosted/blocking
 --- would: the line is built first, because a template has no widths.
 report_aligned: (inout out: io.buffered_writer(blocking.host), name: utf8,
                  count: u32)
-                -> none ! io.io_failed | text.no_space | text.invalid_format =
+                -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [128]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, "{}: ", [any(addr name)])

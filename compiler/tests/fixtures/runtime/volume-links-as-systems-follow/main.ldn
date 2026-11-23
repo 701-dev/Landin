@@ -50,7 +50,7 @@ end holding
 --  The bytes of the file at PATH, read into INTO.
 read_back: (host: fake.volume, path: []u8, into: []mut u8)
            -> (bytes: []u8 from into) ! ... =
-    opened: io.file = try io.open_read(host, text.host_over(path))
+    opened: io.file = try io.open_read(host, text.os_string_over(path))
     defer io.close(host, opened) else none
     count: usize = try io.read(host, opened, into)
     bytes = into[0..<count]
@@ -59,7 +59,7 @@ end read_back
 --  Writing through the dangling link `d/later` makes `d/target`, its
 --  target read from the link's directory, and leaves the link alone.
 created: (host: fake.volume, nodes: []fake.volume_node) -> none ! ... =
-    opened: io.file = try io.open_write(host, text.host_over("d/later"))
+    opened: io.file = try io.open_write(host, text.os_string_over("d/later"))
     try io.write(host, opened, "made")
     try io.close(host, opened)
     fail wrong when holding(nodes, "d/later") <> 1
@@ -67,7 +67,7 @@ created: (host: fake.volume, nodes: []fake.volume_node) -> none ! ... =
     mut buffer: [8]u8 = zeroed
     bytes: []u8 = try read_back(host, "d/target", buffer[0..<8])
     fail wrong when not same(bytes, "made")
-    itself: io.status = try io.status_of(host, text.host_over("d/later"),
+    itself: io.status = try io.status_of(host, text.os_string_over("d/later"),
                                          io.not_following)
     fail wrong when itself.kind <> io.symbolic_link
 end created
@@ -89,7 +89,7 @@ followed: (host: fake.volume) -> none ! ... =
     fail wrong when not same(through, "inside")
     --  A link before the last part is followed even where the call does
     --  not follow its last part.
-    seen: io.status = try io.status_of(host, text.host_over("into/near"),
+    seen: io.status = try io.status_of(host, text.os_string_over("into/near"),
                                        io.not_following)
     fail wrong when seen.kind <> io.symbolic_link
 end followed
@@ -97,7 +97,7 @@ end followed
 --  A loop of links is io_failed, as ELOOP is.
 looped: (host: fake.volume) -> (yes: bool) =
     yes = false
-    opened: io.file = io.open_read(host, text.host_over("loop")) else (problem)
+    opened: io.file = io.open_read(host, text.os_string_over("loop")) else (problem)
         yes = problem == io.io_failed
         return
     end
@@ -108,11 +108,11 @@ end looped
 --  takes the link and leaves its target.
 removed: (host: fake.volume, nodes: []fake.volume_node) -> none ! ... =
     mut met: bool = false
-    io.remove_directory(host, text.host_over("top")) else (problem)
-        met = problem == io.not_found
+    io.remove_directory(host, text.os_string_over("top")) else (problem)
+        met = problem == mem.not_found
     end
     fail wrong when not met or holding(nodes, "top") <> 1
-    try io.remove_file(host, text.host_over("d/near"))
+    try io.remove_file(host, text.os_string_over("d/near"))
     fail wrong when holding(nodes, "d/near") <> 0
       or holding(nodes, "d/file") <> 1
 end removed
@@ -121,7 +121,7 @@ end removed
 --  with `files`' close, which `file_system` refines.
 reopened: (provider: type is io.file_system, host: provider, path: []u8)
           -> none ! ... =
-    opened: io.file = try io.open_file(host, text.host_over(path),
+    opened: io.file = try io.open_file(host, text.os_string_over(path),
                                        io.updating)
     try io.close(host, opened)
 end reopened

@@ -119,7 +119,7 @@ end once_run
 once is fibre.task (run: once_run)
 
 mut piece: once = zeroed
-mut record: fibre.space = zeroed
+mut record: fibre.record = zeroed
 mut small: [256]u8 = zeroed
 mut large: [16384]u8 = zeroed
 
@@ -131,7 +131,7 @@ unread: () -> (ok: bool) =
     mut state: stacks.round_space = zeroed
     mut entries: [4]usize = [1, 0x1000, 0x1000, 0x1000]
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end
@@ -156,7 +156,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [4]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

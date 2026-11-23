@@ -24,7 +24,7 @@ serve: (network: any net.network, connection: io.file)
     lines = 0
     loop do
         item: io.line = try io.read_line(reader)
-        break when item.finished
+        break when item.at_end
         try io.put(writer, item.bytes)
         try io.put(writer, "\n")
         inc lines
@@ -38,14 +38,14 @@ end serve
 echo: (provider: type is net.network, host: provider, into: []mut u8)
       -> (count: usize) ! ... =
     listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
-    defer net.close_socket(host, listener) else none
+    defer net.close(host, listener) else none
     at: net.address = try net.local_address(host, listener)
     client: io.file = try net.connect(host, at)
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     try net.send(host, client, request)
     try net.shutdown(host, client, net.sending)
     server: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     _ = try serve(host, server)
     count = 0
     loop do

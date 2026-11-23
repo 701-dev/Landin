@@ -1,8 +1,8 @@
 error[L0314]: this parameter is non-escaping, so its reference cannot be retained by the called function
-  --> ../tests/fixtures/negative/core-mem-new-borrowed-text/main.ldn:9:33
+  --> ../tests/fixtures/negative/core-mem-new-borrowed-text/main.ldn:9:43
   |
-9 |     result = try mem.new(state, initial)
-  |                                 ^^^^^^^
+9 |     result = try mem.allocate_item(state, initial)
+  |                                           ^^^^^^^
   --> ../tests/fixtures/negative/core-mem-new-borrowed-text/main.ldn:6:25
   |
 6 | bad: (state: heap.heap, source: utf8)

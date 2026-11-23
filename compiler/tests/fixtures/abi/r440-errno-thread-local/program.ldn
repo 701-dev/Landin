@@ -16,7 +16,7 @@ thread_path: []u8 = "r440-thread"
 public extern(c) link(symbol: "r440_errno_thread_probe") thread_probe:
     (state: ptr blocking.host, expected: i32) -> (result: i32) =
     result = 1
-    opened: io.file = io.open_read(state.val, text.host_over(thread_path))
+    opened: io.file = io.open_read(state.val, text.os_string_over(thread_path))
         else (problem)
         if problem == io.io_failed
           and blocking.last_errno(state.val) == expected

@@ -175,7 +175,7 @@ zeroes: () -> (ok: bool) =
     mut space: arena.space = zeroed
     memory := arena.over_unchecked(space, addr backing[0], 1024)
     for count in usize(1)..40 do
-        buffer := mem.new_bytes(memory, count) else (problem)
+        buffer := mem.allocate_bytes(memory, count) else (problem)
             _ = problem
             return
         end
@@ -184,7 +184,7 @@ zeroes: () -> (ok: bool) =
         for at in usize(0)..<count do
             return when view[at] <> 0
         end for
-        return when backing[arena.used(memory)] <> dirty
+        return when backing[arena.length(memory)] <> dirty
     end for
     ok = true
 end zeroes

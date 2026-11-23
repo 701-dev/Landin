@@ -41,7 +41,7 @@ listen_quietly: (inout state: held) -> none ! failure.reason =
     end
     if got == 0 then
         closing: io.file = state.socket
-        try net.close_socket(state.network, closing)
+        try net.close(state.network, closing)
     end if
 end listen_quietly
 
@@ -76,7 +76,7 @@ end receive_nothing
 --  Close the listener another fibre waits on.
 close_it: (inout state: held) -> none ! failure.reason =
     closing: io.file = state.socket
-    try net.close_socket(state.network, closing)
+    try net.close(state.network, closing)
     mark(u8('k'))
 end close_it
 
@@ -135,7 +135,7 @@ turning: (runs: any fibre.turns) -> (turns: usize) ! failure.reason =
     mut sockets: [5]fake.network_socket =
         [fake.socket_over(b0), fake.socket_over(b1), fake.socket_over(b2),
          fake.socket_over(b3), fake.socket_over(b4)]
-    network := fake.network_over_turns(space, sockets, runs)
+    network := fake.network_over_turns(space, runs, sockets)
     listener: io.file = try net.listen(network, net.loopback(net.ipv4, 0))
     at: net.address = try net.local_address(network, listener)
     client: io.file = try net.connect(network, at)
@@ -151,14 +151,14 @@ turning: (runs: any fibre.turns) -> (turns: usize) ! failure.reason =
     try fibre.admit(tasks, accept_nothing, listening)
     try fibre.admit(tasks, close_it, listening)
     try fibre.join(tasks)
-    try net.close_socket(network, server)
+    try net.close(network, server)
     second: io.file = try net.listen(network, net.loopback(net.ipv4, 0))
-    defer net.close_socket(network, second) else none
+    defer net.close(network, second) else none
     again: net.address = try net.local_address(network, second)
     caller: io.file = try net.connect(network, again)
-    defer net.close_socket(network, caller) else none
+    defer net.close(network, caller) else none
     answerer: io.file = try net.accept(network, second)
-    defer net.close_socket(network, answerer) else none
+    defer net.close(network, answerer) else none
     answering: held = (network: network, socket: answerer)
     try fibre.admit(tasks, receive_nothing, answering)
     try fibre.admit(tasks, shut_it, answering)
@@ -174,7 +174,7 @@ public main: () -> (code: i32) =
     mut state: stacks.round_space = zeroed
     mut entries: [3]usize = zeroed
     idler: stacks.spin = zeroed
-    round := stacks.round_over(state, entries, any(addr idler)) else (problem)
+    round := stacks.round_over(state, any(addr idler), entries) else (problem)
         _ = problem
         return
     end

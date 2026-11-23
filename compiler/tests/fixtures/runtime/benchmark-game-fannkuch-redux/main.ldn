@@ -2,6 +2,7 @@
 --  The order is the program's argument: seven for the correctness output,
 --  twelve for the performance run, and never more than sixteen.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -83,16 +84,16 @@ end fannkuch
 --- The order named by the first argument, one to sixteen.
 order_size: (host: blocking.host)
             -> (n: usize)
-            ! io.no_argument | text.invalid_number | text.number_overflow
+            ! mem.not_found | text.invalid_number | text.number_overflow
             | bad_size =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
     fail bad_size when n < 1 or n > 16
 end order_size
 
 report: (host: blocking.host, n: usize, value: score)
-        -> none ! io.io_failed | text.no_space | text.invalid_format =
+        -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [64]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, "{}\nPfannkuchen({}) = {}\n",

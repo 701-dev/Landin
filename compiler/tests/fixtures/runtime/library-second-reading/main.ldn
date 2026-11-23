@@ -47,10 +47,10 @@ public main: () -> (code: i32) =
         _ = problem
         return
     end
-    return when arena.used(bump) == 0
+    return when arena.length(bump) == 0
     code = 3
-    arena.reset(bump)
-    return when arena.used(bump) <> 0
+    arena.release(bump)
+    return when arena.length(bump) <> 0
     code = 4
     grown(bump) else (problem)
         _ = problem

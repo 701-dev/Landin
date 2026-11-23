@@ -4,6 +4,7 @@
 --  is a character device on Linux, Darwin and FreeBSD alike, and the
 --  missing path's parent does not exist, which gives ENOENT.
 import core/io
+import core/mem
 import core/text
 import hosted/blocking
 
@@ -14,17 +15,17 @@ existing: []u8 = "/dev/null"
 open_refused: (state: blocking.host, path: []u8, writing: bool,
                errno: i32) -> (yes: bool) =
     yes = false
-    named: text.host_string = text.host_over(path)
+    named: text.os_string = text.os_string_over(path)
     mut opened: io.file = io.out(state)
     if writing then
         opened = io.open_write(state, named) else (problem)
-            yes = problem == io.not_found
+            yes = problem == mem.not_found
                   and blocking.last_errno(state) == errno
             return
         end
     else
         opened = io.open_read(state, named) else (problem)
-            yes = problem == io.not_found
+            yes = problem == mem.not_found
                   and blocking.last_errno(state) == errno
             return
         end
@@ -36,8 +37,8 @@ end open_refused
 --  input, whichever way it names nothing.
 absent_output: (state: blocking.host, path: []u8) -> (yes: bool) =
     yes = false
-    same: bool = io.same_file(state, text.host_over(existing),
-                              text.host_over(path)) else (problem)
+    same: bool = io.same_file(state, text.os_string_over(existing),
+                              text.os_string_over(path)) else (problem)
         _ = problem
         return
     end

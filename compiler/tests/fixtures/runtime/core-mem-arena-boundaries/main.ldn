@@ -112,31 +112,31 @@ public main: () -> (code: i32) =
 
     if usize(zero_unaligned) == usize(misaligned_base)
       and usize(aligned) % 8 == 0
-      and arena.used(memory) == usize(aligned) - usize(misaligned_base) + 3
+      and arena.length(memory) == usize(aligned) - usize(misaligned_base) + 3
       and is_absent(impossible_alignment)
       and usize(whole) == usize(exact_base)
-      and arena.used(exact) == 16
+      and arena.length(exact) == 16
       and is_absent(beyond)
       and usize(empty_at_end) == usize(exact_base) + 16
       and usize(first) % 8 == 0
-      and arena.used(limited_arena) == usize(first) - usize(misaligned_base) + 1
+      and arena.length(limited_arena) == usize(first) - usize(misaligned_base) + 1
       and is_absent(size_boundary)
-      and usize(second) == usize(misaligned_base) + arena.used(limited_arena)
+      and usize(second) == usize(misaligned_base) + arena.length(limited_arena)
       and fault.remaining(limited) == 0 and fault.successes(limited) == 2
       and fault.inner_failures(limited) == 1
       and usize(at_top) == maximum
-      and arena.used(top) == maximum - usize(raw_base)
+      and arena.length(top) == maximum - usize(raw_base)
       and is_absent(rounding_past_top)
       and is_absent(past_top)
       and usize(limited_at_top) == maximum
       and is_absent(limited_rounding_past_top)
-      and arena.used(limited_top_arena) == maximum - usize(raw_base)
+      and arena.length(limited_top_arena) == maximum - usize(raw_base)
       and fault.remaining(limited_top) == 0
       and fault.inner_failures(limited_top) == 1
       and fault.successes(limited_top) == 1 and fault.frees(limited_top) == 0
       and usize(odd_first) % three == 0
       and usize(odd_second) % six == 0
-      and arena.used(odd) == usize(odd_second) - usize(misaligned_base) + two
+      and arena.length(odd) == usize(odd_second) - usize(misaligned_base) + two
     then
         code = 42
     else

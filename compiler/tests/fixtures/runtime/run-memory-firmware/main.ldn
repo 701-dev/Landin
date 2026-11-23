@@ -24,17 +24,17 @@ public main: () -> (code: i32) =
           running: false)]
     host := io.scripted_over(world, programs[0..<1])
     environment := io.variables_over(entries[0..<2])
-    name: text.host_string = io.variable_named(environment,
-                                               text.host_over("NAME"))
+    name: text.os_string = io.variable_named(environment,
+                                             text.os_string_over("NAME"))
         else (problem)
         _ = problem
         return
     end
-    return when not text.host_equal(name, "landin")
+    return when not text.os_string_equal(name, "landin")
     code = 2
-    arguments: [1]text.host_string = [text.host_over("--quiet")]
-    variables: [1]io.variable = [(name: text.host_over("NAME"), value: name)]
-    mut child: io.child = io.spawn(host, text.host_over("/bin/tool"),
+    arguments: [1]text.os_string = [text.os_string_over("--quiet")]
+    variables: [1]text.os_variable = [(name: text.os_string_over("NAME"), value: name)]
+    mut child: io.child = io.spawn(host, text.os_string_over("/bin/tool"),
                                    arguments[0..<1], variables[0..<1],
                                    io.capturing) else (problem)
         _ = problem

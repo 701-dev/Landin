@@ -1,3 +1,4 @@
+import core/mem
 import core/text
 
 public main: () -> (code: i32) =
@@ -97,7 +98,7 @@ public main: () -> (code: i32) =
     mut small := text.over(small_storage[1..<3])
     mut refused_write: bool = false
     text.append_u32(small, 999) else (problem)
-        refused_write = problem == text.no_space
+        refused_write = problem == mem.out_of_memory
     end
 
     --  Repeated prefixes used to retry every offset with the old search.

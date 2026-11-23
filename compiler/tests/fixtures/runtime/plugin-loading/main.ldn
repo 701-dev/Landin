@@ -49,7 +49,7 @@ end report
 public main: () -> (code: i32) =
     host := blocking.new()
     code = 1
-    path := io.argument_at(host, 0) else (problem)
+    path := io.argument(host, 0) else (problem)
         _ = problem
         io.write(host, io.err(host), "usage: plugin LIBRARY\n") else none
         return
@@ -59,7 +59,7 @@ public main: () -> (code: i32) =
             refused(host)
         else
             io.write(host, io.err(host), "plugin: ") else none
-            io.write(host, io.err(host), text.host_bytes(path)) else none
+            io.write(host, io.err(host), text.os_string_bytes(path)) else none
             io.write(host, io.err(host), " is not a path the system takes\n")
                 else none
         end if

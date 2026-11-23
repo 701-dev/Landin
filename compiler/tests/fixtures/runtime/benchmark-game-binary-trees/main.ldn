@@ -36,7 +36,7 @@ build: (memory: nodes_region, depth: usize)
         right = try build(memory, depth - 1)
     end if
     shape: node = (left: left, right: right)
-    root = try mem.new(memory, shape)
+    root = try mem.allocate_item(memory, shape)
 end build
 
 --- The nodes of `tree`, counted by walking all of it.
@@ -63,7 +63,7 @@ end checked_tree
 
 --- Write one line of the report.
 say: (host: blocking.host, template: utf8, values: []any text.formattable)
-     -> none ! io.io_failed | text.no_space | text.invalid_format =
+     -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
     mut storage: [96]u8 = zeroed
     mut line := text.over(storage)
     try text.format(line, template, values)
@@ -71,7 +71,7 @@ say: (host: blocking.host, template: utf8, values: []any text.formattable)
 end say
 
 binary_trees: (host: blocking.host, n: usize)
-              -> none ! mem.out_of_memory | io.io_failed | text.no_space
+              -> none ! mem.out_of_memory | io.io_failed
                       | text.invalid_format =
     memory := heap.new()
     max_depth: usize = if n > min_depth + 2 then n else min_depth + 2 end if
@@ -108,11 +108,11 @@ end binary_trees
 --- The depth named by the first argument; above fifty-nine the nodes
 --- counted at depth four would not fit in a usize.
 tree_depth: (host: blocking.host)
-            -> (n: usize) ! io.no_argument | text.invalid_number
+            -> (n: usize) ! mem.not_found | text.invalid_number
                           | text.number_overflow | bad_depth =
     first: usize = 0
-    argument := try io.argument_at(host, first)
-    n = try text.parse_usize(text.host_bytes(argument))
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
     fail bad_depth when n > 59
 end tree_depth
 

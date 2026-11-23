@@ -3,6 +3,7 @@
 
 import core/failure
 import core/io
+import core/mem
 import core/net
 import core/time
 import examples/derived_server/app/protocol
@@ -83,7 +84,7 @@ end shut_all
 --- other connection gets the core (D446).
 public serve: (inout self: session) -> none ! failure.reason =
     connection := self.connection
-    defer net.close_socket(self.network, connection) else none
+    defer net.close(self.network, connection) else none
     slot: usize = entered(connection)
     defer left(slot)
     mut incoming: [256]u8 = zeroed
@@ -92,13 +93,13 @@ public serve: (inout self: session) -> none ! failure.reason =
     mut out := io.buffered_over(self.network, connection, outgoing)
     loop do
         item: io.line = io.read_line(lines) else (problem)
-            if problem == io.line_too_long then
+            if problem == mem.out_of_memory then
                 try protocol.refuse(out)
                 continue
             end if
             fail problem
         end
-        break when item.finished
+        break when item.at_end
         asked := protocol.parse(item.bytes) else (problem)
             _ = problem
             try protocol.refuse(out)

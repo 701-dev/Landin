@@ -10,7 +10,7 @@ public main: () -> (code: i32) =
     return when app.entry() <> 0
     host := blocking.new()
     world: any io.world = any(addr host)
-    opened: io.file = world.open_read(text.host_over(path)) else (problem)
+    opened: io.file = world.open_read(text.os_string_over(path)) else (problem)
         _ = problem
         return
     end

@@ -128,7 +128,7 @@ start: () -> none =
         str r1, [r0]
         """)
     idler: waiter = (reserved: 0)
-    round := stacks.round_over(round_state, round_entries, any(addr idler)) else (problem)
+    round := stacks.round_over(round_state, any(addr idler), round_entries) else (problem)
         _ = problem
         return
     end

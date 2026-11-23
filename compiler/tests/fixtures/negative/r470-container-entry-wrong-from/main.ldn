@@ -5,9 +5,9 @@ node: type = struct
 end node
 
 bad: (source: map.map(u32, ptr node), wrong: map.map(u32, ptr node))
-     -> (result: ptr node from wrong) ! map.end_of_entries =
+     -> (result: ptr node from wrong) =
     mut position := map.entries()
-    selected: map.entry(u32, ptr node) = try map.next_entry(source, position)
+    selected: map.entry(u32, ptr node) = map.next_entry(source, position)
     result = selected.item
 end bad
 

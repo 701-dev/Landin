@@ -11,7 +11,7 @@ public config: type = struct
     leading_level: u8
     to: any dest
     count_only: bool
-    input: text.host_string
+    input: text.os_string
     output_path: []u8
     output: io.file
     owns_output: bool
@@ -35,13 +35,13 @@ public copy_arguments: (provider: type is mem.allocator, memory: provider,
                        -> (arguments: vec.list([]u8))
                        ! bad_argument | mem.out_of_memory =
     arguments = vec.new(item: []u8)
-    count: usize = world.argument_count()
+    count: usize = world.arguments_length()
     for at in usize(0)..<count do
-        arg: text.host_string = world.argument(at) else (problem)
+        arg: text.os_string = world.argument(at) else (problem)
             _ = problem
             fail bad_argument
         end
-        source: []u8 = text.host_bytes(arg)
+        source: []u8 = text.os_string_bytes(arg)
         extent: usize = if lenof source > 0 then lenof source else usize(1) end if
         block: ptr mut u8 = try mem.allocate(memory, extent, alignof u8)
         mut owner := mem.storage_over(item: u8, base: block, slots: extent)
@@ -117,13 +117,13 @@ public prepare_logged: (provider: type is mem.allocator, memory: provider,
                     leading_level = least
                 end if
                 initial: level_filter = (least: least)
-                object := try mem.new(memory, initial)
+                object := try mem.allocate_item(memory, initial)
                 selected: any filter = any(object)
                 try vec.push(chain, memory, selected)
             elsif equal(arg, "--match") then
                 only_levels = false
                 initial: match_filter = (needle: parameter)
-                object := try mem.new(memory, initial)
+                object := try mem.allocate_item(memory, initial)
                 selected: any filter = any(object)
                 try vec.push(chain, memory, selected)
             elsif equal(arg, "--every") then
@@ -147,7 +147,7 @@ public prepare_logged: (provider: type is mem.allocator, memory: provider,
                                  "--every 0 makes no sense, using 1\n")
                 end if
                 initial: sample_filter = (every: every, seen: 0)
-                object := try mem.new(memory, initial)
+                object := try mem.allocate_item(memory, initial)
                 selected: any filter = any(object)
                 try vec.push(chain, memory, selected)
             else
@@ -165,10 +165,10 @@ public prepare_logged: (provider: type is mem.allocator, memory: provider,
     --  Keep the output path until run has opened the input reader. Opening
     --  it here would truncate an existing output on an input-open failure.
     initial: count_dest = zeroed
-    object := try mem.new(memory, initial)
+    object := try mem.allocate_item(memory, initial)
     chosen: any dest = any(object)
     value = (chain: chain, leading_level: leading_level, to: chosen, count_only: lenof output == 0,
-             input: text.host_over(input),
+             input: text.os_string_over(input),
              output_path: output, output: world.out(), owns_output: false,
              warnings: warnings,
              encoding_warnings: encoding_warnings)
@@ -177,15 +177,15 @@ end prepare_logged
 public open_output: (provider: type is mem.allocator, memory: provider,
                      world: any io.world, inout value: config)
                     -> none ! bad_argument | mem.out_of_memory
-                            | io.not_found | io.no_access
+                            | mem.not_found | io.no_access
                             | io.is_a_directory | io.io_failed =
     path: []u8 = value.output_path
     if lenof path > 0 then
-        target: text.host_string = text.host_over(path)
+        target: text.os_string = text.os_string_over(path)
         fail bad_argument when try world.same_file(value.input, target)
         stream: io.file = try world.open_write(target)
         initial: text_dest = (stream: stream)
-        object := mem.new(memory, initial) else (problem)
+        object := mem.allocate_item(memory, initial) else (problem)
             world.close(stream) else none
             fail problem
         end
@@ -198,7 +198,7 @@ end open_output
 public build_logged: (provider: type is mem.allocator, memory: provider,
                       world: any io.world, log: any diag.log) -> (value: config)
                      ! bad_argument | mem.out_of_memory
-                     | io.not_found | io.no_access | io.is_a_directory
+                     | mem.not_found | io.no_access | io.is_a_directory
                      | io.io_failed =
     value = try prepare_logged(memory, world, log)
     try open_output(memory, world, value)
@@ -212,7 +212,7 @@ end close_config
 public build: (provider: type is mem.allocator, memory: provider,
                world: any io.world) -> (value: config)
               ! bad_argument | mem.out_of_memory
-              | io.not_found | io.no_access | io.is_a_directory
+              | mem.not_found | io.no_access | io.is_a_directory
               | io.io_failed =
     writer: any io.writer = world
     mut logger := diag.stream(writer, world.err())

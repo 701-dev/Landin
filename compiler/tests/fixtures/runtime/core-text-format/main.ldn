@@ -5,6 +5,7 @@
 --  through is put back as it was before no_space is reported.
 import core/arena
 import core/cmp
+import core/mem
 import core/text
 
 --  A program's own type writes itself through its own conformance.
@@ -14,7 +15,7 @@ point: type = struct
 end point
 
 append_point: (self: ptr point, inout into: text.builder)
-              -> none ! text.no_space =
+              -> none ! mem.out_of_memory =
     start: usize = text.length(into)
     written(self.val, into) else (problem)
         text.truncate(into, start)
@@ -28,7 +29,7 @@ holds: (line: text.builder, expected: []u8) -> (yes: bool) =
     yes = cmp.compare(text.used(line), expected) == cmp.equal
 end holds
 
-every_kind: () -> (ok: bool) ! text.no_space | text.invalid_format =
+every_kind: () -> (ok: bool) ! mem.out_of_memory | text.invalid_format =
     ok = false
     mut storage: [200]u8 = zeroed
     mut line := text.over(storage[0..<200])
@@ -46,7 +47,7 @@ every_kind: () -> (ok: bool) ! text.no_space | text.invalid_format =
     no: bool = false
     word: utf8 = "naïve"
     raw: []u8 = "bytes"
-    name: text.host_string = text.host_over("host")
+    name: text.os_string = text.os_string_over("host")
     spot: point = (x: 3, y: 0 - 4)
     try text.format(line, "{} {} {} {} {}|{} {} {} {} {}|{} {}|{} {} {}|{}",
                     [any(addr a), any(addr b), any(addr c), any(addr d),
@@ -109,7 +110,7 @@ partway: () -> (ok: bool) =
     end
     big: u64 = 18446744073709551615
     text.format(line, "value {}", [any(addr big)]) else (problem)
-        ok = problem == text.no_space and holds(line, "ab")
+        ok = problem == mem.out_of_memory and holds(line, "ab")
         return
     end
 end partway
@@ -146,7 +147,7 @@ public main: () -> (code: i32) =
 end main
 
 --  The point's text: its coordinates in parentheses.
-written: (spot: point, inout into: text.builder) -> none ! text.no_space =
+written: (spot: point, inout into: text.builder) -> none ! mem.out_of_memory =
     try text.append_byte(into, u8('('))
     try text.append_i32(into, spot.x)
     try text.append(into, ", ")

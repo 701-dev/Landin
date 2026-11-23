@@ -107,9 +107,9 @@ end report
 --- The parent's own PATH, the one variable of its environment it passes
 --- on, or the directories every hosted system keeps `sleep` in when it
 --- has none.
-search_path: (host: blocking.host) -> (path: text.host_string from host) =
-    path = io.variable_named(host, text.host_over("PATH"))
-        else text.host_over("/bin:/usr/bin")
+search_path: (host: blocking.host) -> (path: text.os_string from host) =
+    path = io.variable_named(host, text.os_string_over("PATH"))
+        else text.os_string_over("/bin:/usr/bin")
 end search_path
 
 --- Say on standard error why the shell could not be run or reported.
@@ -125,15 +125,15 @@ public main: () -> (code: i32) =
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    arguments: [2]text.host_string = [text.host_over("-c"),
-                                      text.host_over(script)]
-    variables: [3]io.variable =
-        [(name: text.host_over("NAME"), value: text.host_over("landin")),
-         (name: text.host_over("GREETING"),
-          value: text.host_over("hello, world")),
-         (name: text.host_over("PATH"), value: search_path(host))]
+    arguments: [2]text.os_string = [text.os_string_over("-c"),
+                                    text.os_string_over(script)]
+    variables: [3]text.os_variable =
+        [(name: text.os_string_over("NAME"), value: text.os_string_over("landin")),
+         (name: text.os_string_over("GREETING"),
+          value: text.os_string_over("hello, world")),
+         (name: text.os_string_over("PATH"), value: search_path(host))]
     began: time.instant = time.now(host)
-    started := io.spawn(host, text.host_over("/bin/sh"),
+    started := io.spawn(host, text.os_string_over("/bin/sh"),
                         arguments, variables,
                         io.capturing) else (problem)
         complain(host, problem)

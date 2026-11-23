@@ -37,8 +37,8 @@ closed: (host: blocking.host, family: net.address_family) -> (yes: bool)
     at: net.address = try net.local_address(host, listener)
     client: io.file = try net.connect(host, at)
     server: io.file = try net.accept(host, listener)
-    try net.close_socket(host, listener)
-    try net.close_socket(host, server)
+    try net.close(host, listener)
+    try net.close(host, server)
     mut buffer: [8]u8 = zeroed
     ended: usize = try net.receive(host, client, buffer[0..<8])
     try sent_until_gone(host, client)
@@ -47,7 +47,7 @@ closed: (host: blocking.host, family: net.address_family) -> (yes: bool)
         yes = ended == 0 and problem == io.io_failed
               and blocking.last_errno(host) == posix.number(posix.epipe)
     end
-    try net.close_socket(host, client)
+    try net.close(host, client)
 end closed
 
 public main: () -> (code: i32) =

@@ -18,6 +18,7 @@
 --  loopback's number names it back.
 import core/cmp
 import core/io
+import core/mem
 import core/net
 import core/text
 import core/time
@@ -35,7 +36,7 @@ end if
 
 --  Whether `at` is `fe80::1` at the loopback interface named in its zone,
 --  written `[fe80::1%NAME]:PORT`.
-on_loopback: (at: net.address) -> (yes: bool) ! text.no_space =
+on_loopback: (at: net.address) -> (yes: bool) ! mem.out_of_memory =
     mut room: [48]u8 = zeroed
     mut line := text.over(room[0..<48])
     try text.append(line, "[fe80::1%")
@@ -54,9 +55,9 @@ end on_loopback
 crossed: (host: blocking.host, listener: io.file, to: net.address)
          -> (yes: bool) ! ... =
     client: io.file = try net.connect_within(host, to, time.seconds(5))
-    defer net.close_socket(host, client) else none
+    defer net.close(host, client) else none
     server: io.file = try net.accept(host, listener)
-    defer net.close_socket(host, server) else none
+    defer net.close(host, server) else none
     try net.send(host, client, "z")
     mut buffer: [1]u8 = zeroed
     got: usize = try net.receive(host, server, buffer)
@@ -71,9 +72,9 @@ end crossed
 --  zoned.
 datagram: (host: blocking.host, bound: net.address) -> (yes: bool) ! ... =
     first: io.file = try net.open_datagram(host, bound)
-    defer net.close_socket(host, first) else none
+    defer net.close(host, first) else none
     second: io.file = try net.open_datagram(host, bound)
-    defer net.close_socket(host, second) else none
+    defer net.close(host, second) else none
     to: net.address = try net.local_address(host, second)
     try net.send_to(host, first, "d", to)
     try net.set_timeouts(host, second, time.seconds(5), time.seconds(5))
@@ -112,7 +113,7 @@ refused_here: (host: blocking.host) -> (yes: bool) ! ... =
         io.file(0)
     end
     if not unreachable then
-        try net.close_socket(host, made)
+        try net.close(host, made)
         yes = false
         return
     end if
@@ -128,7 +129,7 @@ refused_here: (host: blocking.host) -> (yes: bool) ! ... =
         io.file(0)
     end
     if not refused then
-        try net.close_socket(host, bare)
+        try net.close(host, bare)
     end if
     yes = refused
 end refused_here
@@ -157,7 +158,7 @@ nowhere: (host: blocking.host) -> (yes: bool) ! ... =
         io.file(0)
     end
     if not yes then
-        try net.close_socket(host, listener)
+        try net.close(host, listener)
         return
     end if
     yes = false
@@ -167,7 +168,7 @@ nowhere: (host: blocking.host) -> (yes: bool) ! ... =
         io.file(0)
     end
     if not yes then
-        try net.close_socket(host, made)
+        try net.close(host, made)
         return
     end if
     yes = false
@@ -175,7 +176,7 @@ nowhere: (host: blocking.host) -> (yes: bool) ! ... =
         yes = problem == net.address_unavailable
         io.file(0)
     end
-    if not yes then try net.close_socket(host, socket) end if
+    if not yes then try net.close(host, socket) end if
 end nowhere
 
 public main: () -> (code: i32) =
@@ -223,7 +224,7 @@ public main: () -> (code: i32) =
             _ = problem
             return
         end
-        net.close_socket(host, listener) else none
+        net.close(host, listener) else none
         return when not yes
     end if
     code = 42

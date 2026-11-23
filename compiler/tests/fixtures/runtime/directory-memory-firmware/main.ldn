@@ -28,7 +28,7 @@ public main: () -> (code: i32) =
     mut state: io.memory_space = zeroed
     host := io.memory_over(state, files[0..<4], no_arguments, "",
                            output[0..<1], errors[0..<1])
-    path: text.host_string = text.host_over("tree")
+    path: text.os_string = text.os_string_over("tree")
     --  A kind byte, a two-byte length and a one-byte name.
     mut buffer: [4]u8 = zeroed
     mut listing: io.directory =
@@ -43,8 +43,8 @@ public main: () -> (code: i32) =
             _ = p
             return
         end
-        name: []u8 = text.host_bytes(item.name)
-        break when lenof name == 0
+        break when item.at_end
+        name: []u8 = text.os_string_bytes(item.name)
         code = 3
         return when lenof name <> 1 or name[0] < 97 or name[0] > 99
           or item.kind <> io.regular

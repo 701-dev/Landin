@@ -6,5 +6,5 @@ extern(c) c_replace_root: (state: ptr blocking.host) -> none
 public extern(c) l_root: () -> (count: usize) =
     state: blocking.host = blocking.new()
     c_replace_root(addr state)
-    count = io.argument_count(state)
+    count = io.arguments_length(state)
 end l_root

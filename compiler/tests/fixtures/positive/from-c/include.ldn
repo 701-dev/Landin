@@ -1,6 +1,6 @@
 import core/text
 
 --- Where the tool reads its settings.
-public config_path: () -> (path: text.host_string) =
-    path = text.host_over("/etc/tool.conf")
+public config_path: () -> (path: text.os_string) =
+    path = text.os_string_over("/etc/tool.conf")
 end config_path

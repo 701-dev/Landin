@@ -14,7 +14,7 @@ exercise: () -> (ok: bool) =
           or random.below(source, 1) <> 0
     end for
     mut values: [3]u8 = [1, 2, 3]
-    random.shuffle(source, values[0..<3])
+    random.shuffle(values[0..<3], source)
     ok = values[0] + values[1] + values[2] == 6
          and values[0] <> values[1] and values[1] <> values[2]
          and values[0] <> values[2]

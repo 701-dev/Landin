@@ -1,8 +1,8 @@
 error[L0315]: this argument is passed `inout`, so the call may change its storage while `view` still views it
-  --> ../tests/fixtures/negative/core-mem-used-live-dispose/main.ldn:4:40
+  --> ../tests/fixtures/negative/core-mem-used-live-dispose/main.ldn:4:39
   |
-4 |     released: ptr mut u8 = mem.dispose(storage) else (problem)
-  |                                        ^^^^^^^
+4 |     released: ptr mut u8 = mem.detach(storage) else (problem)
+  |                                       ^^^^^^^
   --> ../tests/fixtures/negative/core-mem-used-live-dispose/main.ldn:3:5
   |
 3 |     view := mem.used(storage)

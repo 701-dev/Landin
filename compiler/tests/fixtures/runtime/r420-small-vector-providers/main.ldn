@@ -44,9 +44,9 @@ arena_path: () -> (ok: bool) =
     mut values := spill.new(item: i32, inline_slots: 2)
     spill.push(values, memory, 21) else none
     spill.push(values, memory, 22) else none
-    mut inline_free: bool = arena.used(memory) == 0
+    mut inline_free: bool = arena.length(memory) == 0
     spill.push(values, memory, 23) else none
-    spill_extent: usize = arena.used(memory)
+    spill_extent: usize = arena.length(memory)
     mut spill_address: usize = 0
     begin
         view := spill.used(values)
@@ -63,12 +63,12 @@ arena_path: () -> (ok: bool) =
              --  grows to eight in place, without retaining another block.
              and spill_extent == 4 * sizeof i32
              and usize(addr view[0]) == spill_address
-             and arena.used(memory) == 8 * sizeof i32
+             and arena.length(memory) == 8 * sizeof i32
     end
     spill.release(values, memory)
     ok = ok and spill.length(addr values) == 0
          and spill.capacity(addr values) == 2
-         and arena.used(memory) == 8 * sizeof i32
+         and arena.length(memory) == 8 * sizeof i32
 end arena_path
 
 fixed_path: () -> (ok: bool) =
