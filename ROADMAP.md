@@ -812,8 +812,10 @@ and C5 and 0.895 and 0.900 on the ESP32 and S3, SipHash at speed down to
 speed by 14.5%, where one routine's shorter entry moves the unchanged
 loops after it; `SR-1661` records it. The candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45088026461), and
-its [boards](https://github.com/701-dev/Landin/actions/runs/45088038656)
-passed every port, the cycles recorded from them.
+the window's head that holds it its
+[gate](https://github.com/701-dev/Landin/actions/runs/45096482875) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45096506024),
+every port and its cycles.
 
 ### The continuous items
 
