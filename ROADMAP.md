@@ -2027,7 +2027,7 @@ without naming the import, which is `SR-1671`.
 
 ### R20.61 — Refusals that say what to write
 
-Status: planned
+Status: active
 Depends on: R20.60
 
 The refusals R20.60's renaming meets next, each made to say what to write
