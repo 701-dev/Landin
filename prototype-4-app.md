@@ -132,7 +132,8 @@ address arithmetic into `out_of_memory` without consuming allocator state.
 ## core/io  —  the host capability
 
 ```landin
-public not_found: atom
+import core/mem
+
 public no_access: atom
 public io_failed: atom
 public at_end:    atom
@@ -165,7 +166,7 @@ nothing is written back to the slice value and there would be
 nothing to write it back to.
 ```landin
 public world: type = concept (world_type: type)
-    open_read:  (inout h: world_type, path: utf8) -> (f: file) ! not_found | no_access
+    open_read:  (inout h: world_type, path: utf8) -> (f: file) ! mem.not_found | no_access
     open_write: (inout h: world_type, path: utf8) -> (f: file) ! no_access
     close:      (inout h: world_type, sink f: file) -> none
     read:       (inout h: world_type, f: file, into: []mut u8) -> (n: usize) ! io_failed

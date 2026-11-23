@@ -631,8 +631,6 @@ that origin exact; no copy or integer conversion erases it. [Z7]
 ```landin
 import core/mem
 
-public missing: atom
-
 public equatable: type = concept (key_type: type)
     eq: (a: key_type, b: key_type) -> (yes: bool)
 end equatable
@@ -691,9 +689,9 @@ index_of: (key_type: type is hashable, k: key_type, n: usize) -> (i: usize) =
 end index_of
 
 public get: (key_type: type is hashable, value_type: type, m: map(key_type, value_type), k: key_type)
-            -> (v: value_type) ! missing =
+            -> (v: value_type) ! mem.not_found =
     n := lenof m.state
-    fail missing when n == 0
+    fail mem.not_found when n == 0
     mut i := index_of(k, n)
     loop do
         s := m.state[i]
@@ -704,7 +702,7 @@ public get: (key_type: type is hashable, value_type: type, m: map(key_type, valu
         end if
         i = (i + 1) % n
     end loop
-    fail missing
+    fail mem.not_found
 end get
 
 ```
@@ -718,11 +716,12 @@ the live entries against `capacity`; when they reach it, the table is
 rebuilt at the same `slots` while the live entries fit in half its
 `capacity`, and doubled otherwise. A rebuild makes three fallible
 acquisitions and publishes the new table last, so a failure keeps the old
-one. The `entries()` cursor and `next_entry` follow linked live buckets in
-insertion order rather than the dense prefix, which still holds removed
-values. Reference-bearing entries remain `from map`; a scalar copy retains
-no view. A cursor is a manual position: restart it after a mutation and
-never resume it on another map.
+one. The `position` that `entries()` starts and `next_entry` advances follows
+linked live buckets in insertion order rather than the dense prefix, which
+still holds removed values, and `at_end` says the walk is over.
+Reference-bearing entries remain `from map`; a scalar copy retains no view.
+A position is manual: restart it after a mutation and never resume it on
+another map.
 
 ```landin
 crowded: (key_type: type is hashable, value_type: type, m: map(key_type, value_type)) -> (yes: bool) =
@@ -824,13 +823,13 @@ public insert: (key_type: type is hashable, value_type: type, provider: type is 
 end insert
 
 public remove: (key_type: type is hashable, value_type: type, inout m: map(key_type, value_type), k: key_type)
-               -> none ! missing =
+               -> none ! mem.not_found =
     n := lenof m.state
-    fail missing when n == 0
+    fail mem.not_found when n == 0
     mut i := index_of(k, n)
     loop do
         s := m.state[i]
-        fail missing when s == slot_free
+        fail mem.not_found when s == slot_free
         if s == slot_used and key_type.eq(m.keys[i], k) then
             m.state[i] = slot_dead
             dec m.len
