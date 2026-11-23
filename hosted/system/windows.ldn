@@ -67,7 +67,7 @@ fixed if compiler.os == windows then
     --- the portable concepts do not make. The file stays this provider's;
     --- close it through `io.close`.
     public handle_of: (opened: io.file) -> (result: windows.handle) =
-        result = usize(opened) & ~socket_mark
+        result = usize(opened) & ~(socket_mark | pipe_mark)
     end handle_of
 
     --- Return a Windows handle as a file of this provider, which closes it
