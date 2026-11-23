@@ -985,6 +985,9 @@ configurations, 390 held within tolerance and 36 ran faster, fannkuch-redux
 by 0.25% to 2.4%. At speed it ran 0.64% slower on the RP2350's M33 and
 0.63% on its Hazard3 with two fewer instructions: its flip loop's 32-bit
 head and call moved to halfword addresses. `SR-1726` files that alignment.
+The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45252688704) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45259337256).
 
 ### The continuous items
 
