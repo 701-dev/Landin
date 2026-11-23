@@ -1,0 +1,18 @@
+error[L0696]: module `map` no longer has `end_of_entries`
+  --> ../tests/fixtures/negative/library-name-removed-by-hand/main.ldn:8:36
+  |
+8 | walked: (done: bool) -> none ! map.end_of_entries =
+  |                                    ^^^^^^^^^^^^^^
+  = note: D2030: `map.end_of_entries` was removed; `map.next_entry` no longer fails at the end of the walk; ask `map.at_end(value, position)` before taking the next entry, or walk the map with `for entry in value`
+error[L0696]: module `map` no longer has `end_of_entries`
+  --> ../tests/fixtures/negative/library-name-removed-by-hand/main.ldn:9:14
+  |
+9 |     fail map.end_of_entries when done
+  |              ^^^^^^^^^^^^^^
+  = note: D2030: `map.end_of_entries` was removed; `map.next_entry` no longer fails at the end of the walk; ask `map.at_end(value, position)` before taking the next entry, or walk the map with `for entry in value`
+error[L0696]: module `io` no longer has `writer_of`
+  --> ../tests/fixtures/negative/library-name-removed-by-hand/main.ldn:14:32
+   |
+14 |     writer: any io.writer = io.writer_of(host)
+   |                                ^^^^^^^^^
+  = note: D2050: `io.writer_of` was removed; an `any io.world` converts to `any io.writer`; pass the world itself where a writer is wanted

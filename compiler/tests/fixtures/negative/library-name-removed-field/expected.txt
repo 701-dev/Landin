@@ -1,0 +1,21 @@
+error[L0696]: the library no longer declares `finished` here
+  --> ../tests/fixtures/negative/library-name-removed-field/main.ldn:7:17
+  |
+7 |     yes = value.finished
+  |                 ^^^^^^^^
+  = note: D2030: io.line's `finished` is `at_end`
+  = help: write `at_end`
+error[L0696]: the library no longer declares `cursor` here
+  --> ../tests/fixtures/negative/library-name-removed-field/main.ldn:12:24
+   |
+12 |             filled: 0, cursor: 0, finished: false)
+   |                        ^^^^^^
+  = note: D2034: io.directory's `cursor` is `consumed`
+  = help: write `consumed`
+error[L0696]: the library no longer declares `finished` here
+  --> ../tests/fixtures/negative/library-name-removed-field/main.ldn:12:35
+   |
+12 |             filled: 0, cursor: 0, finished: false)
+   |                                   ^^^^^^^^
+  = note: D2030: io.directory's `finished` is `at_end`
+  = help: write `at_end`

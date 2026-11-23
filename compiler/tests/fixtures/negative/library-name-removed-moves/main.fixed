@@ -1,0 +1,23 @@
+--  D2129: an atom that R20's breaking list merged into one in `core/mem`
+--  is refused naming `mem.not_found`; the fix imports `core/mem`, which
+--  this file did not, and names the merged atom once.
+import core/io
+import core/map
+import core/text
+import core/mem
+
+lookup: (found: bool) -> none ! mem.not_found =
+    fail mem.not_found when not found
+end lookup
+
+open_named: (found: bool) -> none ! mem.not_found =
+    fail mem.not_found when not found
+end open_named
+
+public main: () -> (code: i32) =
+    code = 0
+    lookup(true) else (problem)
+        _ = problem
+        code = 1
+    end
+end main

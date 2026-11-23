@@ -1,0 +1,17 @@
+--  D2129: a field of a library type that R20's breaking list renamed is
+--  refused naming its successor, where it is read and where a struct value
+--  names it, and the fix writes the new name.
+import core/io
+
+ended: (value: io.line) -> (yes: bool) =
+    yes = value.at_end
+end ended
+
+fresh: (handle: usize, buffer: []mut u8) -> (made: io.directory from buffer) =
+    made = (handle: handle, stream: 0, position: 0, buffer: buffer,
+            filled: 0, consumed: 0, at_end: false)
+end fresh
+
+public main: () -> (code: i32) =
+    code = 0
+end main

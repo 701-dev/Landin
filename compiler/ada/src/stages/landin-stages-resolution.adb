@@ -445,6 +445,70 @@ package body Landin.Stages.Resolution is
          return Path;
       end Short_Name;
 
+      --  Whether the file imports the module whose logical path is Path.
+      function Imports (Of_Tree : Syn.Tree; Path : String) return Boolean;
+      function Imports (Of_Tree : Syn.Tree; Path : String) return Boolean is
+      begin
+         for Index in 1 .. Syn.Import_Count (Of_Tree) loop
+            declare
+               Target : constant Landin.Modules.Module_Id :=
+                 Landin.Modules.Imported_Module
+                   (Graph.all, Syn.Source_Of (Of_Tree),
+                    Syn.Nth_Import (Of_Tree, Index));
+            begin
+               if Target /= Landin.Modules.No_Module
+                 and then Landin.Modules.Logical_Path (Graph.all, Target)
+                            = Path
+               then
+                  return True;
+               end if;
+            end;
+         end loop;
+         return False;
+      end Imports;
+
+      --  The first selection in the file, in source order, of a removed
+      --  library name whose successor is in the module at Path.
+      function First_Needing
+        (Of_Tree : Syn.Tree; Path : String) return Syn.Node_Id;
+      function First_Needing
+        (Of_Tree : Syn.Tree; Path : String) return Syn.Node_Id
+      is
+         use type Landin.Source.Byte_Offset;
+         Best : Syn.Node_Id := Syn.No_Node;
+      begin
+         for Each in 1 .. Syn.Last_Node (Of_Tree) loop
+            if Syn.Kind (Of_Tree, Each) = Syn.Member_Selection
+              and then Syn.Kind (Of_Tree, Syn.Target_Of (Of_Tree, Each))
+                in Syn.Name_Reference | Syn.Type_Reference
+                 | Syn.Concept_Reference
+            then
+               declare
+                  Its : constant Landin.Modules.Module_Id :=
+                    Res.Imported_Module_Of
+                      (Meanings.all, Syn.Source_Of (Of_Tree),
+                       Syn.Name (Of_Tree, Syn.Target_Of (Of_Tree, Each)));
+                  Row : constant Landin.Modules.Removed.Row :=
+                    (if Its = Landin.Modules.No_Module
+                     then Landin.Modules.Removed.No_Row
+                     else Landin.Modules.Removed.Member
+                       (Landin.Modules.Logical_Path (Graph.all, Its),
+                        Spelled (Syn.Name (Of_Tree, Each))));
+               begin
+                  if Landin.Modules.Removed.Found (Row)
+                    and then Landin.Modules.Removed.New_Module (Row) = Path
+                    and then (Best = Syn.No_Node
+                              or else Syn.Where (Of_Tree, Each).First
+                                < Syn.Where (Of_Tree, Best).First)
+                  then
+                     Best := Each;
+                  end if;
+               end;
+            end if;
+         end loop;
+         return Best;
+      end First_Needing;
+
       function Removed_Member_Fixes
         (Of_Tree : Syn.Tree;
          Node    : Syn.Node_Id;
@@ -597,6 +661,14 @@ package body Landin.Stages.Resolution is
                   return Landin.Diagnostics.No_Fixes;
                end if;
                Bound := Unbounded.To_Unbounded_String (Short_Name (Wanted));
+            end if;
+            --  Only the file's first use of a removed name whose successor
+            --  is in the module adds its import, so two fixes never add
+            --  it twice.
+            if Unbounded.Length (Bound) > 0
+              and then not Imports (Of_Tree, Wanted)
+              and then First_Needing (Of_Tree, Wanted) = Node
+            then
                declare
                   At_End : constant Landin.Source.Byte_Offset :=
                     Syn.Where (Of_Tree, Last_Import).Last;

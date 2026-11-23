@@ -22357,12 +22357,12 @@ package body Landin.Stages.Checking is
             Landin.Checking.Refuse (Types.all, Of_Tree, Source);
          end Report;
 
-         --  D2129, for R20.30's entry: a program's own module-internal
-         --  `iterable` written exactly as [1320] wrote it before D1957
-         --  leaves, each use of it in its module becomes `iter.iterable`,
-         --  and each file that gains one imports core/iter.  No fix for
-         --  another shape, which is a concept of its own, or a public
-         --  one, whose users the rewrite does not reach.
+         --  D2129, for the list's concepts entry: a program's own
+         --  module-internal `iterable` written exactly as [1320] wrote it
+         --  before D1957 leaves, each use of it in its module becomes
+         --  `iter.iterable`, and each file that gains one imports
+         --  core/iter.  No fix for another shape, which is a concept of its
+         --  own, or a public one, whose users the rewrite does not reach.
          function Own_Iterable_Fixes return Landin.Diagnostics.Fix_List;
 
          function Own_Iterable_Fixes return Landin.Diagnostics.Fix_List is

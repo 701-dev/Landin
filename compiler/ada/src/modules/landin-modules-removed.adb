@@ -39,12 +39,12 @@ package body Landin.Modules.Removed is
        Decision => +Decision, Advice => Null_Unbounded_String);
 
    --  R20's breaking list, by its sections, a module's members first.
-   --  The first is how a capability is received (R20.20): D2128 renamed
+   --  The first is how a capability is received (D1954): D2128 renamed
    --  the one reorder that left old calls well typed.
    Members : constant array (Positive range <>) of Entry_Row :=
      [R ("core/mem", "transfer_prefix", "core/mem", "copy_prefix",
          "D2128", Swap_First),
-      --  Layers (R20.40)
+      --  Layers (D2008)
       R ("platform/posix", "internet_address", "hosted/system",
          "internet_address", "D2008"),
       R ("platform/posix", "address_of", "hosted/system", "address_of",
@@ -106,7 +106,7 @@ package body Landin.Modules.Removed is
       R ("core/fibre", "space", "core/fibre", "record", "D2034"),
       R ("core/map", "cursor", "core/map", "position", "D2034"),
       R ("core/text", "cursor", "core/text", "from_offset", "D2034"),
-      --  Concepts (R20.30)
+      --  Concepts (D2050)
       H ("core/io", "writer_of", "D2050",
          "an `any io.world` converts to `any io.writer`; pass the world"
          & " itself where a writer is wanted"),

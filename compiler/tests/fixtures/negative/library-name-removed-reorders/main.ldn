@@ -1,0 +1,21 @@
+--  D2128: `mem.transfer_prefix` took its source first, and its successor
+--  `mem.copy_prefix` takes the target first; an old call would still
+--  check, so the old name is refused, and the fix renames it and swaps the
+--  two arguments.  D2129: `try tree.count_leaves(v, id)` becomes
+--  `tree.leaves(try tree.get(v, id))`.
+import core/mem
+import core/tree
+
+copy_two: (source: mem.storage(u8), inout target: mem.storage(u8)) -> none
+          ! mem.out_of_bounds | mem.not_empty | mem.out_of_memory =
+    try mem.transfer_prefix(source, target, 2)
+end copy_two
+
+leaves_of: (value: tree.tree, id: tree.node_id) -> (n: usize)
+           ! mem.not_found =
+    n = try tree.count_leaves(value, id)
+end leaves_of
+
+public main: () -> (code: i32) =
+    code = 0
+end main
