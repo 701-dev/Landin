@@ -26866,6 +26866,48 @@ registers and loses variables from the debugger outside their intervals.
 scalar homes reuse and promote`, the Darwin LLDB sessions and
 `compiler/tests/measure/baselines/`.
 
+### D2164 — arm64 makes a stored value in its slot's register
+
+**The tour said** nothing. arm64 gave a value its slot's register only
+where the store opened the slot's interval; a value stored into a slot
+already held over a loop was made in a register of its own and moved,
+so SHA-256's round ended `add w24, w19, w23` then `mov x6, x24` for
+each of its three sums.
+
+**Chosen:** at `speed`, a value whose last use stores it into a slot
+that holds a register over the store is made in that register when,
+from the value's definition up to the store, no load of the slot and
+no use of another value sharing the register reads what the slot held,
+and the routine has no assembly block. The store then moves nothing.
+A debugger stepping between the definition and the store sees the
+variable's new value a few instructions early. Under QEMU at armv8-a,
+with D2165, `speed` executes 14.1% fewer instructions on mandelbrot,
+12.0% on SipHash-1-3, 10.4% on fasta, 7.8% on fannkuch-redux and 5.5%
+on SHA-256, and every hosted image's `.text` is 0.5% to 1.6% smaller.
+
+**The alternatives:** a copy-coalescing pass over the whole routine,
+which the allocator's one scan has no place for; and the same rule at
+`size`, whose source variables hold their registers for the whole
+routine for the debugger (D1404).
+
+**Pinned by** `arm64 selection/a stored value is made in its slot` and
+`compiler/tests/measure/baselines/`.
+
+### D2165 — arm64 complements a 32-bit value in its 32-bit view
+
+**The tour said** nothing. `~x` of a `u32` or `i32` was `mvn` of the
+whole register and a `ubfx` to clear the upper half.
+
+**Chosen:** a 32-bit complement is one `mvn` of the `w` views, which
+zero-extends what it writes; narrower and 64-bit complements keep
+their form.
+
+**The alternatives:** folding `~a & b` into `bic`, which needs the
+complement's emission held back for its one use; left for a measured
+need.
+
+**Pinned by** `arm64 selection/a stored value is made in its slot`.
+
 ### D1503 — RISC-V keeps values in registers its emitted text does not write
 
 **The tour said** nothing. RV64 and RV32 gave every slot and value a frame

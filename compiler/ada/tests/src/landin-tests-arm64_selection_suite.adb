@@ -72,6 +72,8 @@ package body Landin.Tests.Arm64_Selection_Suite is
    procedure Frames_Reach_Homes (Item : in out Landin.Testing.Context);
    procedure Size_Keeps_Loops_In_Registers
      (Item : in out Landin.Testing.Context);
+   procedure Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context);
    procedure Slice_Elements_Check_Once
      (Item : in out Landin.Testing.Context);
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context);
@@ -970,6 +972,49 @@ package body Landin.Tests.Arm64_Selection_Suite is
       end loop;
    end Size_Keeps_Loops_In_Registers;
 
+   --  D2164: at speed a value whose last use stores it into a slot
+   --  held in a register is made in that register when nothing reads
+   --  the slot's old contents in between, so a loop's rotation of
+   --  three words adds into one and moves only the others.  D2165: a
+   --  32-bit complement is one `mvn` in the 32-bit view.
+   procedure Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context)
+   is
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_Arm64);
+   begin
+      Lower
+        (Item, Work,
+         "public spin: (n: usize, k: u32) -> (r: u32) = "
+         & "mut a: u32 = k mut b: u32 = 1 mut c: u32 = 2 "
+         & "for i in usize(0)..<n do "
+         & "t: u32 = (a & b) ^ (~a & c) "
+         & "c = b b = a a = t +% c end for r = a +% b +% c end spin");
+      declare
+         Whole : constant String :=
+           Routine (Emitted (Work, Opt.Speed), "spin");
+         --  The loop's body ends by jumping to its step; the line before
+         --  that jump makes a's new value.
+         Jump : constant Natural := Ada.Strings.Fixed.Index
+           (Whole, LF & HT & "b .L1_5" & LF);
+         Line : constant Natural :=
+           (if Jump = 0 then 0
+            else Ada.Strings.Fixed.Index
+              (Whole (Whole'First .. Jump - 1), LF & HT,
+               Going => Ada.Strings.Backward));
+      begin
+         Landin.Testing.Check
+           (Item, Contains (Whole, HT & "mvn w")
+            and then not Contains (Whole, "ubfx"),
+            "a 32-bit complement is one mvn in the 32-bit view");
+         Landin.Testing.Check
+           (Item, Line /= 0
+            and then Whole (Line + 2 .. Line + 6) = "add w",
+            "the sum is made in a's register, not moved into it:" & LF
+            & Whole);
+      end;
+   end Stores_Into_Slot_Registers;
+
    --  A slice element is the inclusive range from its index to itself:
    --  size and speed check the upper edge and leave out the lower one,
    --  the index against itself, which cannot fail.  None checks both.
@@ -1188,6 +1233,9 @@ package body Landin.Tests.Arm64_Selection_Suite is
       Landin.Testing.Register
         (Into, "arm64 selection", "size keeps a loop in registers",
          Size_Keeps_Loops_In_Registers'Access);
+      Landin.Testing.Register
+        (Into, "arm64 selection", "a stored value is made in its slot",
+         Stores_Into_Slot_Registers'Access);
       Landin.Testing.Register
         (Into, "arm64 selection", "slice elements check once",
          Slice_Elements_Check_Once'Access);

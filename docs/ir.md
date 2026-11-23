@@ -831,7 +831,10 @@ floats, d18-d31, neither of which costs a save; a parameter keeps the argument r
 Where enough scalar traffic pays for a save, the rest take callee-saved
 registers, which a call leaves alone: a slot over its interval takes one of
 x19-x24, a value or a slot's single-block span any of x19-x28, and a float
-one of d8-d15. Declared assembly registers remain excluded, addressable
+one of d8-d15. At speed a value whose last use stores it into a slot
+already holding a register is made in that register when nothing reads
+the slot's old contents first (D2164), so a loop's `a = t +% c` adds into
+a's register rather than moving the sum there. Declared assembly registers remain excluded, addressable
 values stay in storage, and CFI describes the saved registers. Native Landin
 calls use integer bit carriers, address-based aggregate copies and a
 separate w8 failure carrier. The Darwin C planner maps the same verified
