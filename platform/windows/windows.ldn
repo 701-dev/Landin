@@ -66,7 +66,9 @@ fixed if compiler.os == windows then
     --- `STD_INPUT_HANDLE`, `STD_OUTPUT_HANDLE` and `STD_ERROR_HANDLE`, what
     --- `get_std_handle` takes.
     public std_input: u32 = 0xFFFFFFF6
+    --- `STD_OUTPUT_HANDLE`.
     public std_output: u32 = 0xFFFFFFF5
+    --- `STD_ERROR_HANDLE`.
     public std_error: u32 = 0xFFFFFFF4
 
     --- One of the process's standard handles, `GetStdHandle`: the handle,
@@ -97,33 +99,61 @@ fixed if compiler.os == windows then
 
     --- The Win32 error codes the providers tell apart: `ERROR_*`.
     public error_file_not_found: u32 = 2
+    --- `ERROR_PATH_NOT_FOUND`.
     public error_path_not_found: u32 = 3
+    --- `ERROR_TOO_MANY_OPEN_FILES`.
     public error_too_many_open_files: u32 = 4
+    --- `ERROR_ACCESS_DENIED`.
     public error_access_denied: u32 = 5
+    --- `ERROR_INVALID_HANDLE`.
     public error_invalid_handle: u32 = 6
+    --- `ERROR_NOT_ENOUGH_MEMORY`.
     public error_not_enough_memory: u32 = 8
+    --- `ERROR_INVALID_DRIVE`.
     public error_invalid_drive: u32 = 15
+    --- `ERROR_NO_MORE_FILES`.
     public error_no_more_files: u32 = 18
+    --- `ERROR_WRITE_PROTECT`.
     public error_write_protect: u32 = 19
+    --- `ERROR_SHARING_VIOLATION`.
     public error_sharing_violation: u32 = 32
+    --- `ERROR_LOCK_VIOLATION`.
     public error_lock_violation: u32 = 33
+    --- `ERROR_HANDLE_EOF`.
     public error_handle_eof: u32 = 38
+    --- `ERROR_NOT_SUPPORTED`.
     public error_not_supported: u32 = 50
+    --- `ERROR_BAD_NETPATH`.
     public error_bad_netpath: u32 = 53
+    --- `ERROR_FILE_EXISTS`.
     public error_file_exists: u32 = 80
+    --- `ERROR_INVALID_PARAMETER`.
     public error_invalid_parameter: u32 = 87
+    --- `ERROR_BROKEN_PIPE`.
     public error_broken_pipe: u32 = 109
+    --- `ERROR_INSUFFICIENT_BUFFER`.
     public error_insufficient_buffer: u32 = 122
+    --- `ERROR_INVALID_NAME`.
     public error_invalid_name: u32 = 123
+    --- `ERROR_DIR_NOT_EMPTY`.
     public error_dir_not_empty: u32 = 145
+    --- `ERROR_ALREADY_EXISTS`.
     public error_already_exists: u32 = 183
+    --- `ERROR_FILENAME_EXCED_RANGE`.
     public error_filename_exceeds_range: u32 = 206
+    --- `ERROR_NO_DATA`.
     public error_no_data: u32 = 232
+    --- `ERROR_PIPE_NOT_CONNECTED`.
     public error_pipe_not_connected: u32 = 233
+    --- `ERROR_MORE_DATA`.
     public error_more_data: u32 = 234
+    --- `ERROR_DIRECTORY`.
     public error_directory: u32 = 267
+    --- `ERROR_OPERATION_ABORTED`.
     public error_operation_aborted: u32 = 995
+    --- `ERROR_IO_PENDING`.
     public error_io_pending: u32 = 997
+    --- `ERROR_NOT_A_REPARSE_POINT`.
     public error_not_a_reparse_point: u32 = 4390
 
     --- Reserve and commit `size` bytes of the address space, readable and
@@ -142,10 +172,15 @@ fixed if compiler.os == windows then
 
     --- `virtual_alloc`'s and `virtual_free`'s kinds and protections.
     public mem_commit: u32 = 0x1000
+    --- `MEM_RESERVE`: reserve addresses.
     public mem_reserve: u32 = 0x2000
+    --- `MEM_DECOMMIT`: give the memory back and keep the addresses.
     public mem_decommit: u32 = 0x4000
+    --- `MEM_RELEASE`: give the memory and the addresses back.
     public mem_release: u32 = 0x8000
+    --- `PAGE_NOACCESS`: the pages may not be touched.
     public page_noaccess: u32 = 0x01
+    --- `PAGE_READWRITE`: the pages may be read and written.
     public page_readwrite: u32 = 0x04
 
     --  The command line as the system keeps it for the process:

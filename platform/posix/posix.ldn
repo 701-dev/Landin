@@ -10,9 +10,10 @@
 --  hosted/system and hosted/heap are written once over it.  It sits below
 --  the protocol concepts: it imports no module that reaches core/io or
 --  core/net, and hosted/system adapts it to them, network addresses and
---  the words for a failure among them (D1951).  A system that is not POSIX, as
---  Windows is not, has no platform/posix: its providers implement the
---  core concepts over its own interface instead.
+--  the words for a failure among them (D1951).  Windows is not POSIX, and
+--  its providers implement the core concepts over platform/windows
+--  instead; the module is imported there too, so that a provider written
+--  for every hosted system imports both, and declares nothing (D2267).
 --
 --  The calls are POSIX's own, not policy: a call interrupted by a signal
 --  fails with `eintr` and is not retried here, a short read or write is

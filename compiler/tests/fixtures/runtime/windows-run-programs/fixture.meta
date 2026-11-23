@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: D2272 on Windows a child is the command processor ComSpec names, given exactly its arguments and variables, its output and errors read through two pipes as they arrive, its piped input ended when the parent closes it, its exit code whole, and a missing program not_found
+summary: D2271 on Windows a child is the command processor ComSpec names, given exactly its arguments and variables, its output and errors read through two pipes as they arrive, its piped input ended when the parent closes it, its exit code whole, and a missing program not_found
 program: main.ldn
 root: ../../../../..
 status: 42

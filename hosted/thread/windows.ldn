@@ -1,0 +1,62 @@
+--  Starting a thread and waiting for its end on Windows.  `CreateThread`
+--  starts a thread only on a stack the system reserves, so the thread
+--  starts on a small one of the system's, 64 KiB reserved and a page
+--  committed, and switches from there to the stack the group cut from
+--  its backing, as a POSIX thread switches from its start area; the
+--  backing keeps no start area.  The system's stack holds only
+--  `begin_thread`'s frame and the frames kernel32 and ntdll start and end
+--  the thread with.
+
+import core/mem
+import hosted/system
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  The thread's handle, which `join_system_thread` waits on and closes.
+    system_thread: type = struct
+        handle: windows.handle
+    end system_thread
+
+    --  What the system's stack for a thread reserves.
+    start_stack: usize = 65536
+
+    start_alignment: () -> (bytes: usize) =
+        bytes = 16
+    end start_alignment
+
+    start_bytes: () -> (bytes: usize) =
+        bytes = 0
+    end start_bytes
+
+    --  Start a thread that runs `routine` with `argument`, or keep the
+    --  Win32 error the system refused it with in `host`'s cell and fail.
+    --  `area` is empty: the system gives the thread its stack.
+    start_system_thread:
+        (host: system.host, area: []mut u8, record: ptr mut system_thread,
+         routine: windows.thread_routine, argument: usize)
+        -> none ! mem.out_of_memory =
+        _ = lenof area
+        mut id: u32 = 0
+        made: windows.handle = windows.create_thread(
+            0, start_stack, routine, argument,
+            windows.stack_size_is_a_reservation, addr id)
+        if made == windows.no_handle then
+            system.record_errno(host, windows.last_error())
+            fail mem.out_of_memory
+        end if
+        record.val.handle = made
+    end start_system_thread
+
+    --  Wait for the thread `record` describes to end, and close its
+    --  handle.  A wait the system refuses is a defect of this module,
+    --  since only a thread it started is waited for, and once.
+    join_system_thread: (record: ptr mut system_thread) -> none =
+        if windows.wait_for(record.val.handle, windows.infinite)
+          <> windows.wait_object_0
+        then
+            compiler.unreachable()
+        end if
+        _ = windows.close_handle(record.val.handle)
+        record.val.handle = windows.no_handle
+    end join_system_thread
+end if

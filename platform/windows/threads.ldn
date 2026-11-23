@@ -1,0 +1,65 @@
+--  Threads and waiting on an address: kernel32's calls, raw, and the
+--  synchronization set Windows 8 added, `WaitOnAddress` and its wakes,
+--  which MinGW-w64 and the Windows SDK both import through the
+--  `synchronization` library, the api-ms-win-core-synch-l1-2-0 set.  A
+--  Windows thread runs on a stack the system reserves for it; a Landin
+--  thread switches from there to a stack of its own (hosted/thread).
+
+fixed if compiler.os == windows then
+    linker.library("synchronization")
+
+    --- The routine a thread runs, `LPTHREAD_START_ROUTINE`: called with the
+    --- argument `create_thread` was given, on the thread's own stack. Its
+    --- result's low 32 bits are the thread's exit code.
+    public thread_routine: type = extern(c) (argument: usize) -> (result: usize)
+
+    --- `STACK_SIZE_PARAM_IS_A_RESERVATION`: `create_thread`'s size is what
+    --- the stack reserves, of which a page is committed, rather than what
+    --- it commits.
+    public stack_size_is_a_reservation: u32 = 0x10000
+
+    --- Start a thread running `routine` with `argument`, `CreateThread`, with
+    --- no security attributes, `stack_size` the stack's size, zero for the
+    --- image's default, and `flags` zero or
+    --- `stack_size_is_a_reservation`: the thread's handle, with its
+    --- identifier in `id` when that is not zero, or `no_handle` with the
+    --- reason in `last_error`.
+    public extern(c) link(symbol: "CreateThread") create_thread:
+        (attributes: usize, stack_size: usize, routine: thread_routine,
+         argument: usize, flags: u32, id: ptr mut u32) -> (thread: handle)
+
+    --- `INFINITE`: wait for as long as it takes.
+    public infinite: u32 = 0xFFFFFFFF
+
+    --- Sleep while the `size` bytes at `address` equal those at `compare`,
+    --- `WaitOnAddress`, for at most `milliseconds`: nonzero when woken or
+    --- when they already differ, zero with `error_timeout` in `last_error`.
+    --- The system compares and sleeps in one step, so a wake after a change
+    --- is never lost; it may also return with nobody having woken it.
+    --- `size` is 1, 2, 4 or 8.
+    public extern(c) link(symbol: "WaitOnAddress") wait_on_address:
+        (address: usize, compare: usize, size: usize, milliseconds: u32)
+        -> (woken: i32)
+
+    --- Wake one thread `wait_on_address` sleeps in on `address`, if any,
+    --- `WakeByAddressSingle`.
+    public extern(c) link(symbol: "WakeByAddressSingle") wake_by_address_single:
+        (address: usize) -> none
+
+    --- Wake every thread sleeping on `address`, `WakeByAddressAll`.
+    public extern(c) link(symbol: "WakeByAddressAll") wake_by_address_all:
+        (address: usize) -> none
+
+    --- `ERROR_TIMEOUT`, which `wait_on_address` leaves when its time ran
+    --- out.
+    public error_timeout: u32 = 1460
+
+    --- Give the rest of the calling thread's time to another thread ready on
+    --- the same processor, `SwitchToThread`: nonzero when one ran.
+    public extern(c) link(symbol: "SwitchToThread") switch_to_thread:
+        () -> (switched: i32)
+
+    --- The calling thread's identifier, `GetCurrentThreadId`.
+    public extern(c) link(symbol: "GetCurrentThreadId") current_thread_id:
+        () -> (id: u32)
+end if
