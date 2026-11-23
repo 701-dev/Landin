@@ -1,0 +1,10 @@
+error[L0102]: an expression belongs here
+  --> ../tests/fixtures/negative/several-names-before-an-empty-value/program.ldn:1:18
+  |
+1 | limit, spare: u8 =
+  |                  ^
+  --> ../tests/fixtures/negative/several-names-before-an-empty-value/program.ldn:1:15
+  |
+1 | limit, spare: u8 =
+  |               ^^ written before it
+  = note: [1820]: a literal, a name, a call or a parenthesised expression

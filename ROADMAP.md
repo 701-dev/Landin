@@ -2065,7 +2065,9 @@ differs (D2182); and L0344 spells a written alias (D2183). `refine fix
 `SR-1406`, `SR-733`, `SR-1538`, `SR-1558`, `SR-1609`, `SR-1670` and
 `SR-1671`. Fixed on the way: a second refused import was silent after the
 first; check.py's derivable-negative refusal did not name its exemption
-list; L0301 called a concept or function value "something unknown". Filed:
+list; L0301 called a concept or function value "something unknown"; and
+the gate's fuzz round met D1656's rewrite raising a parser defect at a
+declaration of several names whose `=` ends the source. Filed:
 SR-1693, a library module the program does not reach is still a plain
 misspelling.
 

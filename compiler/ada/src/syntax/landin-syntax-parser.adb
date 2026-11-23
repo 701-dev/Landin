@@ -7878,6 +7878,9 @@ package body Landin.Syntax.Parser is
                  and then Head > 0 and then Colon > Head
                  and then Typed >= Colon
                  and then Kind_Of (Colon) = Tok.Colon
+                 --  A `=` with no value after it, as at the end of the
+                 --  source, gives no value to copy.
+                 and then (Value_First = 0 or else Value_Last >= Value_First)
                  and then First_Name /= Landin.Source.Names.No_Name
                  and then Begins_Line (Tok.Token_Index (Head))
                  and then (Final >= Natural (Last)

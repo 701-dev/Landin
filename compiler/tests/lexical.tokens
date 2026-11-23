@@ -116957,6 +116957,13 @@ file negative/several-independent-errors/program.ldn tokens 16
   41 47 fourth
   47 48 :
   49 50 4
+file negative/several-names-before-an-empty-value/program.ldn tokens 6
+  0 5 limit
+  5 6 ,
+  7 12 spare
+  12 13 :
+  14 16 u8
+  17 18 =
 file negative/shared-inferred-names-before-a-call-name-the-destructuring/program.ldn tokens 54
   0 4 pair
   4 5 :
