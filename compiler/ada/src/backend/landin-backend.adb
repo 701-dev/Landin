@@ -1786,12 +1786,10 @@ package body Landin.Backend is
    is
       use type Landin.Targets.Capabilities.Hosted_System;
    begin
-      --  A Windows program has one thread until its threads are written
-      --  over the Windows API, so a thread variable there is module
-      --  storage, as on a target with no threads.
+      --  Every hosted system has threads, Windows' storage for them its
+      --  own implicit thread storage, the image's `.tls` template.
       return Landin.Targets.Capabilities.Hosted_System_Of (Facts)
-        not in Landin.Targets.Capabilities.No_Hosted_System
-             | Landin.Targets.Capabilities.Windows;
+        not in Landin.Targets.Capabilities.No_Hosted_System;
    end Has_Threads;
 
    function In_Thread_Storage
