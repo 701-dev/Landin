@@ -2137,6 +2137,26 @@ R20's breaking window: the list reached main in one promotion, so main
 never carries half of it; every removed name refused with its replacement;
 prototypes 3 and 4 reread against the result.
 
+Claimed after R20.61, on `r20-integration` at `ada37f058`, the window's
+one promotion to main, with R16.28's and R16.29's work that landed on the
+branch: every item's work passed a complete gate on that branch, R20.11's
+and R20.20's on the later head that contained them, their own runs having
+been cancelled by a sibling's landing. The window's first boards dispatch
+failed its wall-time jobs: `scripts/measure.py` built the base's images,
+main's, from the candidate's fixtures, which name what main's library
+lacks; R16.30's fix, each side building from its own checkout, was taken
+onto the branch as `ada37f058`. That integrated tree, of which main
+`b6a53edb7` is an ancestor, passed the full
+[pass](https://github.com/701-dev/Landin/actions/runs/45142838943) and a
+[boards dispatch](https://github.com/701-dev/Landin/actions/runs/45142854548). Every name the breaking list removes is
+refused as L0696 naming its successor, from the one table
+`Landin.Modules.Removed`, which R20.60's and R20.61's negative fixtures
+pin, and `refine fix` rewrites the mechanical ones. Prototypes 3 and 4
+were reread against the list: prototype 3's `core/map` sketch, which
+declared its own `missing`, and prototype 4's `core/io` sketch, which
+declared its own `not_found`, now fail `mem.not_found`, and the map's entry
+walk ends at `at_end`; none of their live text names a removed form.
+
 ## R21 — Windows
 
 R15's proposal rewritten for today's library, second Io and threads.
