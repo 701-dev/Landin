@@ -2576,6 +2576,7 @@ jobs:
         with:
           distribution: Ubuntu-24.04
           wsl-version: 1
+          additional-packages: python3
       - name: The refine dap session, from WSL
         shell: wsl-bash {0}
         run: |

@@ -48,7 +48,8 @@ PROFILES = (('none', 'off'), ('size', 'off'), ('size', 'auto'),
 #  path the program recorded.
 DAP_SOURCE = Path('/tmp/landin-windows-dap/windows.ldn')
 #  The files the Windows and WSL stages run from, at their own paths: the
-#  Windows runner checks nothing out (README.md says why).
+#  Windows runner checks nothing out (compiler/tests/windows/README.md
+#  says why).
 LANE = ('compiler/tests/windows/debug.py',
         'compiler/tests/debugging/lldb_batch.py',
         'compiler/tests/debugging/switch_frames.py',
