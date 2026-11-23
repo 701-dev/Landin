@@ -58,3 +58,55 @@ status file and `summary.json` is in the output directory.
 
 On a Windows host with llvm-mingw or MSYS2's CLANG64 toolchain, `refine`
 itself is not yet built for Windows, so emission stays on Linux.
+
+## Debugger sessions
+
+`debug.py` runs the Windows debugger's sessions (D2292): LLDB as
+llvm-mingw's release for Windows ships it, `lldb.exe` and `lldb-dap.exe`,
+over the CodeView and PDB of `--debug=full` images. It compiles
+`compiler/tests/freebsd/debug.ldn` at the four profiles and holds each
+LLDB batch session to `compiler/tests/debugging/lldb_batch.py`'s verdict,
+the one FreeBSD's and Linux's LLDB lanes hold: the source-line stop, the
+frames, the locals and the caller's, the step out and the exit status. It
+compiles `compiler/tests/dap/windows.ldn`, `main.ldn`'s program less its
+first line of output, which needs an Io provider, and runs
+`compiler/tests/dap/session.py`'s session through `refine dap` relaying
+`lldb-dap.exe`.
+
+The gate splits it as it splits the corpus: `windows-emit` adds
+`--prepare-only` and keeps a second bundle, and `windows-debugger` runs it
+on `windows-2025`, the LLDB sessions natively with `--prepared=DIR`, then
+the `refine dap` session from WSL on the same runner with `--prepared=DIR
+--dap`, since `refine` runs on Linux: WSL starts `lldb-dap.exe` as a
+Windows program. The job fetches llvm-mingw's archive and checks it against
+the sha256 `environments/pins.sh` names. The DAP program is compiled from
+`/tmp/landin-windows-dap/windows.ldn`, a path WSL recreates, because a
+debugger finds a breakpoint's source by the path the program recorded.
+
+Locally, Wine runs both, the Windows debugger debugging a Windows program
+under Wine. `--lldb` and `--lldb-dap` take a command, so a wrapper that
+runs the release's executables under Wine serves:
+
+```sh
+nix develop
+dir=$(mktemp -d)
+curl -fsSL -o "$dir/llvm-mingw.zip" \
+  https://github.com/mstorsjo/llvm-mingw/releases/download/20261117/llvm-mingw-20261117-ucrt-x86_64.zip
+sha256sum "$dir/llvm-mingw.zip"   # the sha256 environments/pins.sh names
+unzip -q "$dir/llvm-mingw.zip" -d "$dir"
+wine=$(nix build --no-link --print-out-paths nixpkgs#wine64)/bin/wine
+for tool in lldb lldb-dap; do
+  printf '#!/bin/sh\nexport WINEPREFIX=%s/wine WINEDEBUG=-all\nexec %s %s/llvm-mingw-20261117-ucrt-x86_64/bin/%s.exe "$@"\n' \
+    "$dir" "$wine" "$dir" "$tool" > "$dir/$tool-wine"
+  chmod +x "$dir/$tool-wine"
+done
+python3 compiler/tests/windows/debug.py \
+    --refine="$PWD/compiler/ada/build/$LANDIN_BUILD_TAG/debug/bin/refine" \
+    --lldb="$dir/lldb-wine" --lldb-dap="$dir/lldb-dap-wine" \
+    --output="$dir/debugger"
+```
+
+LLDB's embedded Python writes a traceback at start under Wine, which is
+harmless. Wine puts a recorded POSIX path on its `Z:` drive where Windows
+puts it on the current one; `refine dap` reads either back (D2292). Wine is
+development feedback: the gate's Windows runner is the verdict.

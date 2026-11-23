@@ -451,7 +451,8 @@ package body Landin.Backend.Codeview is
          Name : String; Typ : Natural; Offset : Landin.Targets.Byte_Count)
       is
          Bytes : constant String := U16 (LF_MEMBER) & U16 (Public)
-           & Index_Of (Reached (Typ)) & Leaf (Long_Long_Integer (Offset)) & Z (Name);
+           & Index_Of (Reached (Typ)) & Leaf (Long_Long_Integer (Offset))
+           & Z (Name);
       begin
          US.Append (Fields, Bytes & Pad (Bytes'Length));
          Count := Count + 1;
