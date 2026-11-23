@@ -4,8 +4,10 @@
 --  granularity, 64 KiB, and commits it in pages, 4 KiB on x86-64.
 
 fixed if compiler.os == windows then
-    --- The page `virtual_alloc` commits in, and the unit it reserves in.
+    --- The page `virtual_alloc` commits in.
     public page_bytes: usize = 4096
+
+    --- The unit `virtual_alloc` reserves address space in.
     public allocation_granularity: usize = 65536
 
     --- `MEMORY_BASIC_INFORMATION`: the run of pages from `base` alike in
