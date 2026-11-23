@@ -1089,7 +1089,10 @@ process ignores SIGPIPE and gives its children the default back.
   comparison proves is removed, and a callee reads an aggregate argument
   where its caller keeps it when nothing can change it. A slot stored once
   with a constant, such as a `for` loop's constant end, is read as that
-  constant wherever the store dominates (D2148). On x86-64 and arm64
+  constant wherever the store dominates (D2148). A loop's index is
+  bounded below by its first value and above by its test, and those
+  bounds carry through a constant offset or multiple, so `w[t - 15]` and
+  `4 * t + 3` in SHA-256's loops keep no check (D2207). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction (D1624).
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in

@@ -483,8 +483,10 @@ package body Landin.Backend.X86_64.Allocation is
             return Position = 2;
          when Landin.IR.Multiply =>
             return Position = 2 and then Wide
-              and then Landin.Types.Is_Signed
-                (Landin.Types.Integer_Name (Kind));
+              and then (Landin.Types.Is_Signed
+                          (Landin.Types.Integer_Name (Kind))
+                        or else Landin.IR.Is_Unchecked
+                          (Of_Unit, Item, User));
          when Landin.IR.Wrapping_Multiply =>
             return Position = 2 and then Wide;
          when Landin.IR.Rotate_Left =>
@@ -1361,8 +1363,10 @@ package body Landin.Backend.X86_64.Allocation is
                        --  The forms selection does with `imul`.
                        when Landin.IR.Multiply =>
                           Kind in Landin.Types.Integer_Name
-                          and then Landin.Types.Is_Signed
-                            (Landin.Types.Integer_Name (Kind))
+                          and then (Landin.Types.Is_Signed
+                                      (Landin.Types.Integer_Name (Kind))
+                                    or else Landin.IR.Is_Unchecked
+                                      (Of_Unit, Item, User))
                           and then Size_Of (Kind, Facts)
                             /= Landin.Targets.Byte_1,
                        when Landin.IR.Wrapping_Multiply =>
