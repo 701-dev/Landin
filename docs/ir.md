@@ -619,6 +619,17 @@ makes, which those backends select as `rol` and `ror` (D1624); a shift
 nothing reads is then removed, since a shift traps only on a negative
 amount.
 
+Values remain block-local, but a constant reaches across blocks through a
+slot (D2148). A slot that nothing names but its own loads and stores, and
+that has one store, of an integer, bool or atom constant, holds that
+constant wherever the store's block strictly dominates, since every path
+there passed the store and nothing else writes the slot. Each such load
+becomes a copy of the constant, so `for t in usize(0)..<64` compares `t`
+with 64 rather than with a slot carried round the loop, which x86-64
+reloaded from the frame each iteration; the compiler temporary that held
+the end loses its store, and the proofs below see a constant. A float
+constant stays in its slot, where a register can hold it across a loop.
+
 A check can also be proved across blocks. A comparison whose branch is the
 only way into a block bounds there the slots it compared: `at` in
 `while at > 0 do dec at`, `left` and `right` in
@@ -662,6 +673,43 @@ Cortex-M and Xtensa backends select no conditional move: they use the
 condition's own zero or one for a choice of one or zero and branch around
 one load for any other. Xtensa has `moveqz` and `movnez`; the backend does
 not use them.
+
+At speed, `Landin.IR.Hoisting` then makes a hosted target's loop-invariant
+values once before their loop (D2149). A loop is a back edge's natural
+loop, and a value belongs to the innermost loop holding its block; the
+loop qualifies when exactly one block outside it reaches its head, and
+reaches it by a jump, which makes that block its preheader. An operand is
+invariant when it is an integer, bool or atom constant, or a load of a
+private slot that no block of the loop stores; a value is invariant when it
+is a float constant, or an operation over invariant operands that cannot
+trap, call or touch memory: bitwise, wrapping, compared or chosen integers,
+`unchecked` integer arithmetic, unsigned shifts, and float arithmetic, which
+never traps. An invariant number that something staying in the loop reads
+is made again at the end of the preheader, before its jump, and stored in a
+new private slot; the loop loads that slot where it made the value, and
+what made it there and nothing else reads is dropped. Nothing that moved
+can trap, so a loop entered and left at its test has only made a value it
+did not use. A held value takes a register over the whole loop, so each
+loop moves values only while the slots it reads before writing, with the
+values already moved, number fewer than the target's budget: four integer
+and six float registers on x86-64, twelve and sixteen on arm64, ten and
+eight on RV64, whose floats wait in frame homes, where a slot costs one load
+and a pooled constant two instructions. x86-64 moves no float out of a loop
+that calls, since SysV preserves no XMM register across a call. An integer
+constant a backend takes as an immediate stays, except on RV64, whose
+branches compare two registers: there a constant other than zero that a
+loop compares with is moved too. Equal constants moved out of one loop
+share a slot. An element access that indexes a whole array of plain
+scalars, a frame array that is not a parameter or a module datum, reaches
+it instead through an address slot the preheader fills with the array's
+`Storage_Address`, one slot for each array a loop indexes, within the same
+integer budget. arm64 does this for both, since it forms either address
+with an instruction of its own each time; x86-64 only for a datum, whose
+`leaq` it saves, since it indexes a frame array from rbp in the access
+itself; RV64 measured no better with either. Firmware targets, Cortex-M, RV32 and Xtensa, are left alone.
+The work is linear in the routine plus the blocks each loop spans, and one
+rebuild of the unit adds a load for each moved value and its copy before
+the loop.
 
 Under size and speed, `Landin.IR.Layout` then orders a hosted target's
 blocks (D2096). Every backend lays a routine's blocks out in the IR's order,
