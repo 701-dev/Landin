@@ -2295,7 +2295,7 @@ storage moved to R21.20.
 
 ### R21.20 — Windows' Io and threads
 
-Status: planned
+Status: active
 Depends on: R21.10
 
 Both Io providers and `hosted/thread` over the Windows API, with
