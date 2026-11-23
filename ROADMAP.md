@@ -991,7 +991,7 @@ The candidate passed its
 
 ### R16.34 — Stored values in their slots' registers on RISC-V and Cortex-M
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.33 named as the next cost on the firmware and RISC-V targets:
