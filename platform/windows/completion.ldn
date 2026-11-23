@@ -1,0 +1,135 @@
+--  I/O completion ports, job objects and the console's control events:
+--  kernel32's calls, raw.  hosted/events waits on a port: the overlapped
+--  calls on the handles associated with it, the job its children are
+--  assigned to and its console control handler all end in a packet the
+--  port holds until a wait takes it.
+
+fixed if compiler.os == windows then
+    --- What `get_completions` takes off a port for each packet,
+    --- `OVERLAPPED_ENTRY`: the key the packet's handle was associated with,
+    --- the address of the call's `overlapped` record, the call's status,
+    --- and the bytes it moved.  A packet a job or `post_completion` sent
+    --- carries its own word in `record` and its own count in `moved`.
+    public completion_entry: type = struct
+        key: usize
+        record: usize
+        internal: usize
+        moved: u32
+        reserved: u32
+    end completion_entry
+
+    --- Make a port with `existing` zero and `opened` `invalid_handle`, or
+    --- associate `opened` with the port `existing` under `key`,
+    --- `CreateIoCompletionPort`: the port, or zero with the reason in
+    --- `last_error`.  A handle is associated once, with one port, for as
+    --- long as it is open; asking again fails `error_invalid_parameter`.
+    --- `threads` zero lets as many threads run as there are processors.
+    public extern(c) link(symbol: "CreateIoCompletionPort") completion_port:
+        (opened: handle, existing: handle, key: usize, threads: u32)
+        -> (port: handle)
+
+    --- Take up to `count` packets off `port` into `into`, waiting up to
+    --- `milliseconds`, or `infinite`, for the first,
+    --- `GetQueuedCompletionStatusEx`: nonzero with how many in `taken`, or
+    --- zero with the reason in `last_error`, `wait_timeout` when none came.
+    --- `alertable` zero.
+    public extern(c) link(symbol: "GetQueuedCompletionStatusEx")
+        get_completions:
+        (port: handle, into: ptr mut completion_entry, count: u32,
+         taken: ptr mut u32, milliseconds: u32, alertable: i32)
+        -> (done: i32)
+
+    --- Put a packet of the caller's on `port`, `PostQueuedCompletionStatus`.
+    public extern(c) link(symbol: "PostQueuedCompletionStatus")
+        post_completion:
+        (port: handle, moved: u32, key: usize, record: usize) -> (done: i32)
+
+    --- `ERROR_NOT_FOUND`: `cancel_io` found no call to cancel, which had
+    --- ended already.
+    public error_not_found: u32 = 1168
+
+    --- Make a job without a name, `CreateJobObjectW`: its handle, or zero
+    --- with the reason in `last_error`.
+    public extern(c) link(symbol: "CreateJobObjectW") create_job:
+        (security: usize, name: usize) -> (job: handle)
+
+    --- `SetInformationJobObject`'s classes: the basic limits, and the port
+    --- the job reports to.
+    public job_basic_limits: u32 = 2
+    public job_completion_port: u32 = 7
+
+    --- `JOBOBJECT_BASIC_LIMIT_INFORMATION`, its padding named.
+    public job_limits: type = struct
+        process_time: i64
+        job_time: i64
+        flags: u32
+        pad_0: u32
+        least_working_set: usize
+        most_working_set: usize
+        process_count: u32
+        pad_1: u32
+        affinity: usize
+        priority: u32
+        scheduling: u32
+    end job_limits
+
+    --- `JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK`: a process the job's
+    --- processes start is not in the job.
+    public job_silent_breakaway: u32 = 0x1000
+
+    --- `JOBOBJECT_ASSOCIATE_COMPLETION_PORT`: the port the job sends its
+    --- messages to, under `key`.
+    public job_port: type = struct
+        key: usize
+        port: handle
+    end job_port
+
+    --- The messages a job's packet carries in its `moved`, with the
+    --- process's ID in its `record`: a process ended, and ended with an
+    --- exception's code, `JOB_OBJECT_MSG_EXIT_PROCESS` and
+    --- `JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS`.
+    public job_exit_process: u32 = 7
+    public job_abnormal_exit_process: u32 = 8
+
+    --- Set what the class `class` says of `job` from the `size` bytes at
+    --- `information`, `SetInformationJobObject`.
+    public extern(c) link(symbol: "SetInformationJobObject") set_job:
+        (job: handle, class: u32, information: usize, size: u32)
+        -> (done: i32)
+
+    --- Put `process` in `job`, `AssignProcessToJobObject`.
+    public extern(c) link(symbol: "AssignProcessToJobObject") assign_to_job:
+        (job: handle, process: handle) -> (done: i32)
+
+    --- The console's control events, `CTRL_*_EVENT`: Ctrl+C, Ctrl+Break,
+    --- the console closed, the user logging off and the system shutting
+    --- down.
+    public control_c: u32 = 0
+    public control_break: u32 = 1
+    public control_close: u32 = 2
+    public control_logoff: u32 = 5
+    public control_shutdown: u32 = 6
+
+    --- A routine the system calls on a thread of its own for each control
+    --- event, `PHANDLER_ROUTINE`: nonzero when it handled the event, zero
+    --- to hand it to the next routine, the last of which ends the process.
+    public control_handler: type = extern(c) (event: u32) -> (handled: i32)
+
+    --- Add `routine` to the process's control handlers when `add` is
+    --- nonzero, or remove it, `SetConsoleCtrlHandler`.
+    public extern(c) link(symbol: "SetConsoleCtrlHandler")
+        set_control_handler: (routine: control_handler, add: i32)
+                             -> (done: i32)
+
+    --- Send `event` to the processes of the console's process group
+    --- `group`, every process on the console when zero,
+    --- `GenerateConsoleCtrlEvent`.
+    public extern(c) link(symbol: "GenerateConsoleCtrlEvent")
+        send_control_event: (event: u32, group: u32) -> (done: i32)
+
+    --- Leave the process's console, `FreeConsole`, and make it one of its
+    --- own, `AllocConsole`.
+    public extern(c) link(symbol: "FreeConsole") free_console: () -> (done: i32)
+    public extern(c) link(symbol: "AllocConsole") allocate_console:
+        () -> (done: i32)
+end if

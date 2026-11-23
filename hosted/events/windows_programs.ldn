@@ -1,0 +1,262 @@
+--  The event provider's `io.programs` on Windows (D479, D487): a child is
+--  started by the system handle this provider is built over, which does
+--  not wait, and the parent's ends of its pipes are overlapped already, so
+--  reading and writing them park the fibre on the port as any overlapped
+--  call does.  A read of a child with both streams open asks each with a
+--  read of no bytes, which ends when the pipe has something or has ended,
+--  and reads the one that has; the output when both have.  Waiting for the
+--  child's end parks the fibre too: the child is put in a job whose
+--  messages go to the loop's port, and the job's message that the process
+--  ended answers it.  A child the system will not put in the job, which a
+--  job of the program's own may forbid, is waited for by a wait that holds
+--  the thread, as Linux before `pidfd_open` reaps one.
+
+import core/fibre
+import core/io
+import core/mem
+import core/text
+import hosted/system
+import platform/windows
+
+fixed if compiler.os == windows then
+    events_spawn: (self: host, path: text.os_string,
+                   arguments: []text.os_string,
+                   environment: []text.os_variable, streams: io.child_streams)
+                  -> (started: io.child)
+                  ! mem.not_found | io.no_access | io.io_failed =
+        started = try system.start(self.services, path, arguments,
+                                   environment, streams)
+    end events_spawn
+
+    --  Close one of a child's pipes, waking whoever waits on it first; it
+    --  is closed even when the system reports a failure.
+    close_pipe: (self: host, opened: io.file) -> none ! io.io_failed =
+        closing: windows.handle = system.handle_of(opened)
+        forget(self, closing)
+        if windows.close_handle(closing) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+    end close_pipe
+
+    events_write_child: (self: host, inout started: io.child, bytes: []u8)
+                        -> none ! io.io_failed =
+        cleared(self)
+        fail io.io_failed when not started.input_open
+        try write_all(self, started.input, bytes)
+    end events_write_child
+
+    events_close_input: (self: host, inout started: io.child)
+                        -> none ! io.io_failed =
+        cleared(self)
+        fail io.io_failed when not started.input_open
+        started.input_open = false
+        try close_pipe(self, started.input)
+    end events_close_input
+
+    --  Whether the pipe `made` has something to read, or has ended, now.
+    has_now: (made: windows.handle) -> (yes: bool) =
+        mut available: u32 = 0
+        yes = windows.peek_named_pipe(made, 0, 0, 0, addr available, 0) == 0
+              or available > 0
+    end has_now
+
+    --  Whether a read of no bytes ended with the pipe having something or
+    --  having ended, rather than being cancelled.
+    ended_ready: (made: windows.handle, entry: ptr mut waiting) -> (yes: bool) =
+        mut got: u32 = 0
+        yes = windows.overlapped_result(made, addr entry.val.asked, addr got,
+                                        0) <> 0
+              or windows.last_error() <> windows.error_operation_aborted
+    end ended_ready
+
+    --  Whether the child's errors, and not its output, is what to read
+    --  next, both being open: the output when it has anything, its end
+    --  included, and the errors only when they alone do.  When neither has
+    --  now, each is asked by a read of no bytes, and the fibre waits for
+    --  the first to end; the other is cancelled, and its packet waited for.
+    errors_first: (self: host, started: io.child) -> (yes: bool)
+                  ! io.io_failed =
+        yes = false
+        output: windows.handle = system.handle_of(started.output)
+        errors: windows.handle = system.handle_of(started.errors)
+        return when has_now(output)
+        yes = true
+        return when has_now(errors)
+        yes = false
+        try joined(self, output)
+        try joined(self, errors)
+        mut spare: [2]u8 = zeroed
+        mut first: waiting = on_handle(output, 0)
+        mut second: waiting = on_handle(errors, 0)
+        state: ptr mut loop_state = self.state
+        link(state, addr first)
+        mut got: u32 = 0
+        if windows.read_file(output, addr spare[0], 0, addr got,
+                             usize(addr first.asked)) == 0
+           and windows.last_error() <> windows.error_io_pending then
+            --  Refused at once: an ended pipe, read next to find its end.
+            unlink(state, addr first)
+            return
+        end if
+        link(state, addr second)
+        if windows.read_file(errors, addr spare[1], 0, addr got,
+                             usize(addr second.asked)) == 0
+           and windows.last_error() <> windows.error_io_pending then
+            unlink(state, addr second)
+            cut_short(addr first, ready)
+            _ = answered(self, addr first)
+            yes = not ended_ready(output, addr first)
+            return
+        end if
+        while first.answer == pending and second.answer == pending do
+            fibre.yield(self.round)
+        end while
+        if first.answer == pending then cut_short(addr first, ready) end if
+        if second.answer == pending then cut_short(addr second, ready) end if
+        _ = answered(self, addr first)
+        _ = answered(self, addr second)
+        yes = not ended_ready(output, addr first)
+              and ended_ready(errors, addr second)
+    end errors_first
+
+    events_read_child: (self: host, inout started: io.child, into: []mut u8)
+                       -> (taken: io.child_read) ! io.io_failed =
+        cleared(self)
+        taken = (count: 0, stream: io.child_output,
+                 finished: not started.output_open and not started.errors_open)
+        return when lenof into == 0
+        loop do
+            if not started.output_open and not started.errors_open then
+                taken = (count: 0, stream: io.child_output, finished: true)
+                return
+            end if
+            mut from_errors: bool = not started.output_open
+            if started.output_open and started.errors_open then
+                from_errors = try errors_first(self, started)
+            end if
+            opened: io.file = if from_errors then started.errors
+                              else started.output end if
+            count: usize = try read_once(self, opened, into)
+            if count > 0 then
+                taken = (count: count,
+                         stream: if from_errors then io.child_errors
+                                 else io.child_output end if,
+                         finished: false)
+                return
+            end if
+            if from_errors then
+                started.errors_open = false
+            else
+                started.output_open = false
+            end if
+            try close_pipe(self, opened)
+        end loop
+    end events_read_child
+
+    --  Close every pipe the child still has, keeping the first failure.
+    close_pipes: (self: host, started: io.child) -> (closed: bool) =
+        closed = true
+        if started.input_open then
+            close_pipe(self, started.input) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+        if started.output_open then
+            close_pipe(self, started.output) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+        if started.errors_open then
+            close_pipe(self, started.errors) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+    end close_pipes
+
+    --  The loop's job, made at the first wait for a child: its processes'
+    --  ends go to the port, and a process one of them starts is not in it,
+    --  so only the children this provider started are.  Zero when the
+    --  system makes none.
+    job_of: (state: ptr mut loop_state) -> (job: windows.handle) =
+        job = state.val.job
+        return when job <> windows.no_handle
+        made: windows.handle = windows.create_job(0, 0)
+        return when made == windows.no_handle
+        mut limits: windows.job_limits = zeroed
+        limits.flags = windows.job_silent_breakaway
+        mut port: windows.job_port = (key: job_key, port: state.val.queue)
+        if windows.set_job(made, windows.job_basic_limits, usize(addr limits),
+                           u32(sizeof windows.job_limits)) == 0
+           or windows.set_job(made, windows.job_completion_port,
+                              usize(addr port),
+                              u32(sizeof windows.job_port)) == 0 then
+            _ = windows.close_handle(made)
+            return
+        end if
+        state.val.job = made
+        job = made
+    end job_of
+
+    --  Close the child's handle, whatever the close says.
+    let_go: (child: windows.handle) -> none =
+        _ = windows.close_handle(child)
+    end let_go
+
+    --  Whether `child` has ended.
+    over_now: (child: windows.handle) -> (yes: bool) =
+        yes = windows.wait_for(child, 0) == windows.wait_object_0
+    end over_now
+
+    --  Wait for `child`'s end, taking turns: in the loop's job, or, when it
+    --  cannot be put there, by a wait that holds the thread.  A process that
+    --  ended before it was put in the job sends no message, so the child is
+    --  asked after it is put there; a message about an earlier child whose
+    --  ID it has now is not taken for its own end, since it is asked again.
+    child_ended: (self: host, child: windows.handle) -> none ! io.io_failed =
+        return when over_now(child)
+        job: windows.handle = job_of(self.state)
+        if job == windows.no_handle
+           or windows.assign_to_job(job, child) == 0 then
+            if windows.wait_for(child, windows.infinite)
+               == windows.wait_failed then
+                record(self, windows.last_error())
+                fail io.io_failed
+            end if
+            return
+        end if
+        identity: i32 = i32(windows.process_id_of(child))
+        while not over_now(child) do
+            mut entry: waiting = on_deadline(0)
+            entry.child = identity
+            parked(self, addr entry)
+        end while
+    end child_ended
+
+    --  The pipes are closed before the wait, so a child still writing to
+    --  one meets a closed pipe rather than waiting for a reader that never
+    --  comes.  The child's handle is closed once its code is read.
+    events_wait_child: (self: host, sink started: io.child)
+                       -> (ended: io.ending) ! io.io_failed =
+        cleared(self)
+        closed: bool = close_pipes(self, started)
+        child: windows.handle = system.process_of(started)
+        defer let_go(child)
+        try child_ended(self, child)
+        mut code: u32 = 0
+        if windows.exit_code_of(child, addr code) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        ended = system.ended(self.services, code)
+        fail io.io_failed when not closed
+    end events_wait_child
+
+    host is io.programs
+        (spawn: events_spawn, write_child: events_write_child,
+         close_input: events_close_input, read_child: events_read_child,
+         wait: events_wait_child)
+end if
