@@ -73,13 +73,14 @@ package body Landin.IR.Hoisting is
             when others => 0);
       Float_Budget : constant Natural :=
         (case Landin.Targets.Architecture_Of (Facts) is
-            when Landin.Targets.X86_64 => 6,
+            when Landin.Targets.X86_64 => 13,
             when Landin.Targets.Arm64 => 16,
             when Landin.Targets.RV64 => 8,
             when others => 0);
 
       --  SysV x86-64 preserves no XMM register across a call, so a
-      --  float moved out of a loop that calls would wait in memory.
+      --  float moved out of a loop that calls would wait in memory; a
+      --  loop without one offers its slots XMM1-XMM13 (D2159).
       Float_Lost : constant Boolean :=
         Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64;
 

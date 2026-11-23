@@ -27393,6 +27393,95 @@ take, which cost reverse-complement 2.6% to 6.3%.
 **Pinned by** the runtime corpus at every profile on x86-64 and
 `compiler/tests/measure/baselines/`.
 
+### D2156 — x86-64 reads a value where its one use lies
+
+**The tour said** nothing. With no register free, SHA-256's round moved
+each round constant, schedule word and majority's `a & c` into the
+accumulator, to a frame home and back into an add: three instructions
+where one reads memory.
+
+**Chosen:** at `size` and `speed`, a value whose one use is the next
+operation, an integer operation selection makes with its binary or unary
+forms (add, subtract and their wrapping forms, the bitwise operators,
+`imul`, rotate, complement) or a store to a slot, has no location when
+no register is free for it. A load that is no packed part is read there
+as that operation's memory operand, and any other integer operation
+leaves its result in the accumulator where it computed it. A load that
+is such an operation's right operand is read as its memory operand even
+with a register free. The operation then takes none of the registers
+the folded address names, and selection reads the operand before it
+writes the accumulator or the result's register. At `speed` SHA-256 of
+64 MiB falls from 8.50 G to 8.09 G instructions.
+
+**The alternatives:** offering `%rcx` and `%rdx`, which selection's
+address and shift sequences write; and a peephole over the emitted
+text, which cannot see liveness.
+
+**Pinned by** `x86 opt/operands in place` and
+`compiler/tests/measure/baselines/`.
+
+### D2157 — x86-64 computes a stored value in its slot's register
+
+**The tour said** nothing. A value stored into a slot held in a register
+was computed in a register of its own and moved there: SHA-256's
+`e = d +% first` and `a = first +% second`, and mandelbrot's real and
+imaginary parts, each ended in a `mov`.
+
+**Chosen:** at `size` and `speed`, a value takes the register its slot
+holds when its first store writes it into a slot held in a register over
+the value's whole span, or it starts a chain of values, each the next
+one's left operand, that ends in such a store; the span is at most 32
+positions; nothing else loads or stores the slot within it; no load of
+the slot read in its register is still to be read; and no operand but
+the left one lives in that register. General and XMM slots alike. The
+store then moves nothing, and later uses read the slot's register. With
+D2158 SHA-256 at `speed` falls to 7.88 G instructions, and every other
+hosted workload executes fewer. A debugger shows the variable's new
+value a few instructions before its store.
+
+**The alternatives:** arm64's D2164 form, which requires the store to be
+the value's last use and follows no chain, where mandelbrot reads both
+parts after their stores; and coalescing in a pass of its own.
+
+**Pinned by** `x86 opt/operands in place` and
+`compiler/tests/measure/baselines/`.
+
+### D2158 — An x86-64 add into a third register is one `lea`
+
+**The tour said** nothing. An add into a register holding neither
+operand was a `mov` and an `add`.
+
+**Chosen:** at `size` and `speed`, a 32- or 64-bit add with no overflow
+check reading its flags, of a register and a register or an imm32, into
+a register holding neither operand, is one `lea`.
+
+**The alternatives:** none worth a register: `lea` sets no flags and
+costs what `add` does.
+
+**Pinned by** `x86 opt/operands in place`.
+
+### D2159 — x86-64 float slots take XMM1 to XMM7 over call-free intervals
+
+**The tour said** nothing. Float slots took XMM8 to XMM13 alone, so
+mandelbrot's six slots filled them and left nothing for a constant
+D2149 would hold, while XMM1 to XMM7 went unused.
+
+**Chosen:** at `size` and `speed`, a float slot that finds XMM8 to
+XMM13 taken may take XMM1 to XMM7 when no call or stack switch lies
+anywhere in its interval, its last position included: only a C call's
+setup writes those registers. A value takes one only as such a slot's,
+read in place, by D2157, or inheriting a left operand there when no call
+lies up to its last use. D2149's x86-64 float budget is 13 for a loop
+without a call. Mandelbrot at `speed` falls from 2.331 G to 2.238 G
+instructions and reverse-complement from 2.151 G to 1.910 G. DWARF names
+an XMM register by its number.
+
+**The alternatives:** offering XMM1 to XMM7 to values too, which would
+need the argument moves at a C call made in parallel.
+
+**Pinned by** `x86 opt/float slots below XMM8` and
+`compiler/tests/measure/baselines/`.
+
 ### D2092 — x86-64 reads float constants from a read-only pool
 
 **The tour said** nothing. x86-64 has no load-immediate into an XMM
@@ -27491,7 +27580,7 @@ loop, reaching it by a jump. A float constant, or arithmetic that cannot
 trap over constants and private slots the loop never stores, is made at
 the end of that predecessor and kept in a new private slot. A loop moves
 values only while its live-in slots and the moved values fit a budget
-of the target's: 4 integer and 6 float on x86-64, 12 and 16 on arm64,
+of the target's: 4 integer and 13 float on x86-64 (D2159), 12 and 16 on arm64,
 10 and 8 on RV64. x86-64 moves no float out of a loop that calls, since
 no XMM register survives a call; RV64 also moves a nonzero constant the
 loop compares with, since its branches compare two registers. Firmware
