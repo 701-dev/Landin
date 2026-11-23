@@ -415,6 +415,14 @@ package body Landin.Backend.X86_64 is
         (if Facts = Landin.Targets.Synthetic_32
          then Landin.Targets.Linux_X86_64 else Facts);
       Out_Text : Unbounded.Unbounded_String;
+      --  A COFF object's line not yet written, which Put writes before the
+      --  next instruction (D2288).
+      Pending_Line : Unbounded.Unbounded_String;
+      Defers_Lines : constant Boolean :=
+        Debug /= null
+        and then Landin.Targets.Capabilities."="
+          (Landin.Targets.Capabilities.Object_Format_Of (Facts),
+           Landin.Targets.Capabilities.COFF);
       --  Dense nonzero u32 atom codes, in declaration-identity order; zero
       --  stays available for the successful half of the failing-call
       --  carrier.
@@ -532,7 +540,33 @@ package body Landin.Backend.X86_64 is
       procedure Put (Line : String);
 
       procedure Put (Line : String) is
+         function Starts (Prefix : String) return Boolean is
+           (Line'Length > Prefix'Length
+            and then Line (Line'First .. Line'First + Prefix'Length - 1)
+              = Prefix);
+         HT : constant Character := Character'Val (9);
       begin
+         --  D2288: CodeView keeps every line its assembly names at an
+         --  address, where DWARF keeps the last, and LLDB reads the first;
+         --  so a COFF object names the line of the value whose code is
+         --  next, and none for a value without code.
+         if Defers_Lines then
+            if Starts (HT & ".cv_loc ") then
+               Pending_Line := Unbounded.To_Unbounded_String (Line);
+               return;
+            elsif Starts (HT & ".cv_func_id ")
+              or else Starts (HT & ".seh_endproc")
+            then
+               Pending_Line := Unbounded.Null_Unbounded_String;
+            elsif Line'Length > 0 and then Line (Line'Last) /= ':'
+              and then not Starts (HT & ".seh_")
+              and then Unbounded.Length (Pending_Line) > 0
+            then
+               Unbounded.Append (Out_Text, Pending_Line);
+               Unbounded.Append (Out_Text, LF);
+               Pending_Line := Unbounded.Null_Unbounded_String;
+            end if;
+         end if;
          if Capturing /= Landin.IR.No_Item and then Line'Length > 0
            and then Line (Line'Last) = ':'
          then

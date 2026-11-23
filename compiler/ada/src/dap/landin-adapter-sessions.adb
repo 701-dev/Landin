@@ -1526,7 +1526,9 @@ package body Landin.Adapter.Sessions is
          end;
       elsif Path (Path'First) /= '/' then
          declare
-            Rooted : constant String := "/" & Slashed (Path);
+            Rooted : constant String :=
+              (if Path (Path'First) = '\' then Slashed (Path)
+               else "/" & Slashed (Path));
          begin
             if Starts_With (Rooted, Recorded_Prefix)
               or else Files.Exists (Rooted)
