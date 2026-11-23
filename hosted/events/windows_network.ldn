@@ -248,9 +248,11 @@ fixed if compiler.os == windows then
             ended: call_result = try sent_once(self, socket,
                                                bytes[sent..<lenof bytes],
                                                limit_of(socket, true))
-            fail io.io_failed when ended.answer == failed and ended.code == 0
             if ended.code <> 0 then
-                fail io.io_failed when ended.answer == failed
+                if ended.answer == failed then
+                    record(self, ended.code)
+                    fail io.io_failed
+                end if
                 try connection_failure(self, ended.code)
             end if
             fail io.io_failed when ended.moved == 0
