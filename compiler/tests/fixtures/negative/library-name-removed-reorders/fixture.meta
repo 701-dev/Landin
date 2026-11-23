@@ -1,10 +1,10 @@
 class: negative
 summary: mem.transfer_prefix is refused naming mem.copy_prefix and the fix swaps its first two arguments, and try tree.count_leaves becomes tree.leaves of try tree.get
 program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
 codes: L0696, L0696
 fixed: main.fixed
 constructs: 1420, 0980
 targets: linux-x86-64
 expect: expected.txt
-args: --library=../.. ../tests/fixtures/negative/library-name-removed-reorders/main.ldn
-status: 1

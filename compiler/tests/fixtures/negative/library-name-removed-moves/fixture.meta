@@ -1,10 +1,10 @@
 class: negative
 summary: an atom R20's breaking list merged into core/mem is refused naming mem.not_found, and the fix imports core/mem and names the merged atom once
 program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
 codes: L0696, L0696, L0696, L0696, L0696
 fixed: main.fixed
 constructs: 1420, 0940
 targets: linux-x86-64
 expect: expected.txt
-args: --library=../.. ../tests/fixtures/negative/library-name-removed-moves/main.ldn
-status: 1

@@ -1,10 +1,10 @@
 class: negative
 summary: a library name R20's breaking list renamed in its own module is refused naming its successor, and the fix writes it, taking a merged atom out of a failure set that already names its successor
 program: main.ldn
+root: ../../../../..
+args: --target=linux-x86-64
 codes: L0696, L0696, L0696, L0696
 fixed: main.fixed
 constructs: 1420, 0940
 targets: linux-x86-64
 expect: expected.txt
-args: --library=../.. ../tests/fixtures/negative/library-name-removed-renames/main.ldn
-status: 1
