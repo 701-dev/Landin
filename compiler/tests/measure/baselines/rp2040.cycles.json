@@ -183,7 +183,7 @@
    "runs": 3
   },
   "armv6-m/size-all/cmp-siphash-vectors": {
-   "cycles": 43328,
+   "cycles": 43329,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -239,7 +239,7 @@
    "runs": 3
   },
   "armv6-m/size-auto/cmp-siphash-vectors": {
-   "cycles": 43328,
+   "cycles": 43329,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -295,7 +295,7 @@
    "runs": 3
   },
   "armv6-m/size-off/cmp-siphash-vectors": {
-   "cycles": 43328,
+   "cycles": 43329,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -342,7 +342,7 @@
    "runs": 3
   },
   "armv6-m/speed-all/binary-search": {
-   "cycles": 136,
+   "cycles": 135,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -398,7 +398,7 @@
    "runs": 3
   },
   "armv6-m/speed-auto/binary-search": {
-   "cycles": 136,
+   "cycles": 135,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",
@@ -454,7 +454,7 @@
    "runs": 3
   },
   "armv6-m/speed-off/binary-search": {
-   "cycles": 136,
+   "cycles": 135,
    "unit": "microseconds",
    "counter": "TIMERAWL",
    "clock": "xosc-12000000hz",

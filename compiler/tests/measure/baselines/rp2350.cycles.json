@@ -15,7 +15,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/cmp-siphash-vectors": {
-   "cycles": 865113,
+   "cycles": 865119,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -24,7 +24,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/fannkuch-redux": {
-   "cycles": 8448546,
+   "cycles": 8448555,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -34,7 +34,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-all/mandelbrot": {
-   "cycles": 22472196,
+   "cycles": 22472236,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -53,7 +53,7 @@
    "runs": 3
   },
   "armv8-m.main/none-all/sieve-of-eratosthenes": {
-   "cycles": 21534,
+   "cycles": 21532,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -71,7 +71,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/cmp-siphash-vectors": {
-   "cycles": 865125,
+   "cycles": 865132,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -80,7 +80,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/fannkuch-redux": {
-   "cycles": 8448546,
+   "cycles": 8448555,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -90,7 +90,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-auto/mandelbrot": {
-   "cycles": 22472196,
+   "cycles": 22472236,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -109,7 +109,7 @@
    "runs": 3
   },
   "armv8-m.main/none-auto/sieve-of-eratosthenes": {
-   "cycles": 21534,
+   "cycles": 21532,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -127,7 +127,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/cmp-siphash-vectors": {
-   "cycles": 865125,
+   "cycles": 865132,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -136,7 +136,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/fannkuch-redux": {
-   "cycles": 8448546,
+   "cycles": 8448555,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -146,7 +146,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/none-off/mandelbrot": {
-   "cycles": 22472196,
+   "cycles": 22472236,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -165,7 +165,7 @@
    "runs": 3
   },
   "armv8-m.main/none-off/sieve-of-eratosthenes": {
-   "cycles": 21534,
+   "cycles": 21532,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -183,7 +183,7 @@
    "runs": 3
   },
   "armv8-m.main/size-all/cmp-siphash-vectors": {
-   "cycles": 352629,
+   "cycles": 352631,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -192,7 +192,7 @@
    "runs": 3
   },
   "armv8-m.main/size-all/fannkuch-redux": {
-   "cycles": 3030762,
+   "cycles": 3030775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -239,7 +239,7 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
-   "cycles": 352634,
+   "cycles": 352636,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -248,7 +248,7 @@
    "runs": 3
   },
   "armv8-m.main/size-auto/fannkuch-redux": {
-   "cycles": 3030762,
+   "cycles": 3030775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -295,7 +295,7 @@
    "runs": 3
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
-   "cycles": 352634,
+   "cycles": 352636,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -304,7 +304,7 @@
    "runs": 3
   },
   "armv8-m.main/size-off/fannkuch-redux": {
-   "cycles": 3030762,
+   "cycles": 3030775,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -351,7 +351,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "cycles": 345646,
+   "cycles": 345645,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -360,7 +360,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "cycles": 2987188,
+   "cycles": 2987172,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -370,7 +370,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-all/mandelbrot": {
-   "cycles": 19503406,
+   "cycles": 19503419,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -407,7 +407,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "cycles": 345646,
+   "cycles": 345645,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -416,7 +416,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "cycles": 2987188,
+   "cycles": 2987172,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -426,7 +426,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-auto/mandelbrot": {
-   "cycles": 19503406,
+   "cycles": 19503419,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -463,7 +463,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
-   "cycles": 345651,
+   "cycles": 345646,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -472,7 +472,7 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "cycles": 2987188,
+   "cycles": 2987172,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
@@ -482,7 +482,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv8-m.main/speed-off/mandelbrot": {
-   "cycles": 19503406,
+   "cycles": 19503419,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",

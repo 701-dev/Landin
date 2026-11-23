@@ -202,7 +202,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv7e-m/size-all/mandelbrot": {
-   "cycles": 1797303,
+   "cycles": 1797237,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
@@ -258,7 +258,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv7e-m/size-auto/mandelbrot": {
-   "cycles": 1797303,
+   "cycles": 1797237,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
@@ -314,7 +314,7 @@
    "checksum": "0x05b0c76f"
   },
   "armv7e-m/size-off/mandelbrot": {
-   "cycles": 1797303,
+   "cycles": 1797237,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "hsi-64000000hz",
