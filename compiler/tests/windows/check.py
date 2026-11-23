@@ -160,15 +160,16 @@ def prepare(args):
         return result
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         built = list(pool.map(one, work))
+    #  A build that failed is kept as a verdict beside the rest, so that
+    #  one fixture that does not build hides no other's outcome.
     failed = [str(one).split('\n', 1)[0] for one in built if isinstance(one, BaseException)]
-    require(not failed, '%d of %d builds failed:\n  %s' % (
-        len(failed), len(built), '\n  '.join(failed)))
     manifest = {'target': TARGET,
                 'scope': 'filtered' if args.case else
                          'shard %d of %d' % args.shard if args.shard else 'complete',
                 'revision': os.environ.get('GITHUB_SHA'),
                 'refine_sha256': sha(args.refine),
-                'results': built}
+                'build_failures': failed,
+                'results': [one for one in built if not isinstance(one, BaseException)]}
     (args.output / 'prepared.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
 
@@ -224,6 +225,10 @@ def outcome(bundle, result, runner):
         #  runs.
         place = bundle / 'work' / label
         place.mkdir(parents=True, exist_ok=True)
+        #  The directory holds the fixture's files too, so a program that
+        #  lists where it runs finds something, as it does on Linux.
+        for one in result.get('run_files', []):
+            shutil.copyfile(bundle / one, place / Path(one).name)
         files = [str(bundle / one) for one in result.get('run_files', [])]
         try:
             done = subprocess.run([*runner, str(executable), *result['run_args'], *files],
@@ -272,7 +277,7 @@ def outcome(bundle, result, runner):
 def execute(bundle, manifest, runner, jobs):
     windows_error_mode()
     results = manifest['results']
-    require(results, 'empty prepared fixture selection')
+    require(results or manifest.get('build_failures'), 'empty prepared fixture selection')
 
     def one(result):
         try:
@@ -287,8 +292,12 @@ def execute(bundle, manifest, runner, jobs):
         failures = [one for one in pool.map(one, results) if one]
     print('%s: %d of %d outcomes passed' % (TARGET, len(results) - len(failures), len(results)),
           flush=True)
-    require(not failures, '%d of %d outcomes failed:\n  %s' % (
-        len(failures), len(results), '\n  '.join(sorted(failures))))
+    unbuilt = manifest.get('build_failures', [])
+    require(not failures and not unbuilt, '%s%s' % (
+        '%d builds failed:\n  %s\n' % (len(unbuilt), '\n  '.join(unbuilt)) if unbuilt else '',
+        '%d of %d outcomes failed:\n  %s' % (len(failures), len(results),
+                                              '\n  '.join(sorted(failures)))
+        if failures else ''))
 
 
 def shard(text):
@@ -343,6 +352,9 @@ def main():
             manifest = prepare(args)
             bundle = args.output / 'bundle'
             if args.prepare_only:
+                unbuilt = manifest['build_failures']
+                require(not unbuilt, '%d builds failed:\n  %s' % (
+                    len(unbuilt), '\n  '.join(unbuilt)))
                 summary.update(status='emitted', scope=manifest['scope'],
                                results=manifest['results'])
                 print('%s: %d %s outcomes emitted; execution pending'
