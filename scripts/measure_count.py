@@ -6,7 +6,13 @@ count.c, a QEMU TCG plugin of the repository's own, counts every executed
 instruction whose address lies in the image's executable range.
 
     measure_count.py count --target linux-rv64 --level L IMAGE [-- ARG ...]
-        run IMAGE under QEMU's user emulation with the RV64 lane's QEMU_CPU
+        run IMAGE under QEMU's user emulation with the RV64 lane's QEMU_CPU;
+        --target linux-x86-64 and linux-arm64 run the same way, under QEMU's
+        `max` CPU, which has every level's instructions but AVX-512
+    measure_count.py count --target linux-x86-64 --level L --fixture F
+            [--optimize O] [--specialize S] [--stdin FILE] [-- ARG ...]
+        build a hosted fixture or --source with refine and count it, the
+        same way for each of the three hosted targets
     measure_count.py count --target cortex-m0 --level L IMAGE [--tools DIR]
         run IMAGE on the level's machine, as environments/cortex-m/
         backend.py's LEVELS gives it, under -icount, until it reaches
@@ -259,7 +265,7 @@ def read_count(out: Path) -> dict:
             "reached": fields.get("reached") != "0"}
 
 
-# --- RV64 --------------------------------------------------------------------
+# --- hosted Linux, under QEMU's user emulation ------------------------------
 
 #  A guest address space of QEMU's own reserving, so the guest's mappings
 #  land where they landed last time: without it QEMU places them where the
@@ -271,14 +277,36 @@ def read_count(out: Path) -> dict:
 RESERVED = ["-R", "0x8000000000"]
 
 
+#  Each hosted Linux target counted under user emulation: its ELF machine,
+#  its QEMU and the CPU it runs as.  x86-64's and arm64's lanes run on their
+#  own hardware and time it (docs/measurement.md, Runners); this count is a
+#  contributor's measurement, deterministic where wall time on a shared
+#  host varies by a tenth.  `max` has every level's instructions up to
+#  x86-64-v3 and armv8.1-a.
+USER_MODE = {
+    "linux-rv64": (243, "qemu-riscv64", RV64_CPU),
+    "linux-x86-64": (62, "qemu-x86_64", "max"),
+    "linux-arm64": (183, "qemu-aarch64", "max"),
+}
+
+#  x86-64's guest wants its vsyscall page at the top of its address space,
+#  which a reservation leaves no room for ("Cannot allocate vsyscall page");
+#  a guest of the host's own width is mapped where the host maps it.
+UNRESERVED = {"linux-x86-64"}
+
+
 def count_rv64(image: Image, level: str, arguments=(), stdin=None, start=None,
-               stop=None, qemu="qemu-riscv64", work: Path | None = None) -> dict:
-    """IMAGE run once under QEMU's user emulation, as the RV64 lane runs it."""
-    require(image.machine == 243, f"{image.path} is not a RISC-V image")
+               stop=None, qemu=None, work: Path | None = None,
+               target: str = "linux-rv64") -> dict:
+    """IMAGE run once under QEMU's user emulation, as the RV64 lane runs it,
+    or the other hosted Linux targets the same way."""
+    machine, default_qemu, cpu = USER_MODE[target]
+    qemu = qemu or default_qemu
+    require(image.machine == machine, f"{image.path} is not a {target} image")
     #  The guest's environment is QEMU's own, and the runtime's start walks
     #  it: each variable cost 128 instructions, so the run's environment is
     #  QEMU_CPU alone and a count does not depend on the shell it ran from.
-    env = {"QEMU_CPU": RV64_CPU}
+    env = {"QEMU_CPU": cpu}
     found = shutil.which(qemu)
     require(found is not None, f"no {qemu} on PATH; nix develop provides the pinned one")
     qemu = found
@@ -292,14 +320,14 @@ def count_rv64(image: Image, level: str, arguments=(), stdin=None, start=None,
     last = image.address(stop) if stop else None
     with (open(stdin, "rb") if stdin else open(os.devnull, "rb")) as given:
         done = subprocess.run(
-            [qemu, *RESERVED, "-plugin", plugin_argument(plugin, image, out, first, last),
+            [qemu, *([] if target in UNRESERVED else RESERVED), "-plugin", plugin_argument(plugin, image, out, first, last),
              str(image.path), *arguments], stdin=given, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, env=env, timeout=LIMIT)
     counted = read_count(out)
     require(counted["started"], f"{image.path} never reached --from {start}")
     require(not stop or counted["reached"], f"{image.path} never reached --to {stop}")
-    return {"target": "linux-rv64", "level": level, "emulator": qemu,
-            "cpu": RV64_CPU, "status": done.returncode,
+    return {"target": target, "level": level, "emulator": qemu,
+            "cpu": cpu, "status": done.returncode,
             "output_sha256": hashlib.sha256(done.stdout).hexdigest(),
             **counted}
 
@@ -403,11 +431,12 @@ def count(target: str, level: str, image: Path, arguments=(), stdin=None, start=
     """One counted run of IMAGE at TARGET's LEVEL under its lane's emulator."""
     require(target not in EMULATED_ELSEWHERE, EMULATED_ELSEWHERE.get(target, ""))
     elf = Image(Path(image))
-    if target == "linux-rv64":
+    if target in USER_MODE:
         require(not words, "--word reads a firmware image's datum")
-        return count_rv64(elf, level, arguments, stdin, start, stop, work=work)
+        return count_rv64(elf, level, arguments, stdin, start, stop, work=work,
+                          target=target)
     require(target == "cortex-m0", f"{target} is not counted under emulation: only"
-            " linux-rv64 and cortex-m0 are (docs/measurement.md, Runners)")
+            f" {', '.join(USER_MODE)} and cortex-m0 are (docs/measurement.md, Runners)")
     require(not arguments and not stdin, "a firmware program takes no arguments or input")
     return count_cortex(elf, level, tools, start, stop, words, work=work)
 
@@ -438,12 +467,15 @@ def run_built(args, tools: Path) -> int:
     """`count` with --fixture or --source: build each program at --level,
     --optimize and --specialize through the Cortex-M corpus's own
     `--program` path, which counts from `main`, and print each count."""
-    require(args.target == "cortex-m0", "--fixture and --source build Cortex-M programs;"
-            " build an RV64 image with refine and count it by its path")
+    require(args.target == "cortex-m0" or args.target in USER_MODE,
+            f"--fixture and --source build programs for cortex-m0 and"
+            f" {', '.join(USER_MODE)}, not {args.target}")
     require(args.refine is not None, "--fixture and --source need --refine, or"
             " $LANDIN_REFINE, naming the refine that builds them")
     require(Path(args.refine).is_file(), f"--refine {args.refine} is no file;"
             " ./scripts/dev-build.sh prints the path of the refine it built")
+    if args.target in USER_MODE:
+        return run_built_hosted(args)
     require(not getattr(args, "from") and not args.to and not args.word
             and args.repeat == 1, "--from, --to, --word and --repeat count an image"
             " built already; a built program is counted from `main`, once")
@@ -467,6 +499,44 @@ def run_built(args, tools: Path) -> int:
         print(f"{one['program']}: {one['instructions']} instructions at {args.target}"
               f" {one['level']} {one['optimize']}-{one['specialize']} from main"
               + ("; trapped" if one.get("trapped") else ""))
+    if args.json:
+        Path(args.json).write_text(json.dumps(results, indent=1) + "\n")
+    print(f"built under {output}")
+    return 0
+
+
+def run_built_hosted(args) -> int:
+    """`count` with --fixture or --source for a hosted Linux target: build
+    each program with refine at --level, --optimize and --specialize, and
+    count its whole run under user emulation with the given arguments and
+    --stdin.  A fixture's own arguments and input are not read: a
+    benchmark is counted at the size the command line asks for."""
+    require(not args.word, "--word reads a firmware image's datum")
+    output = Path(args.output) if args.output else Path(
+        tempfile.mkdtemp(prefix="landin-count-build-"))
+    output.mkdir(parents=True, exist_ok=True)
+    programs = ([(one, fixture_program(one)) for one in args.fixture]
+                + [(one, Path(one)) for one in args.source])
+    results = []
+    for name, program in programs:
+        stem = Path(name).name.removesuffix(".ldn")
+        image = output / f"{stem}.{args.level}.{args.optimize}-{args.specialize}"
+        command = [str(args.refine), "compile", "-q", f"--target={args.target}",
+                   f"--level={args.level}", f"--optimize={args.optimize}",
+                   f"--specialize={args.specialize}",
+                   *(f"--root={root}" for root in args.root), str(program), "-o", str(image)]
+        built = subprocess.run(command, capture_output=True, text=True)
+        require(built.returncode == 0, f"refine did not build {name}:"
+                f" {' '.join(command)}\n{built.stderr.strip()}")
+        for index in range(args.repeat):
+            work = output / f"{stem}.run-{index + 1}"
+            work.mkdir(exist_ok=True)
+            one = count(args.target, args.level, image, args.arguments, args.stdin,
+                        getattr(args, "from"), args.to, work=work)
+            one["program"] = name
+            results.append(one)
+            print(f"{name}: {one['instructions']} instructions at {args.target}"
+                  f" {args.level} {args.optimize}-{args.specialize}; status {one['status']}")
     if args.json:
         Path(args.json).write_text(json.dumps(results, indent=1) + "\n")
     print(f"built under {output}")
@@ -657,17 +727,18 @@ def add_commands(commands) -> None:
                               description=__doc__.split("\n\n")[0],
                               formatter_class=argparse.RawDescriptionHelpFormatter,
                               epilog=__doc__.split("\n\n", 1)[1])
-    one.add_argument("--target", required=True, help="linux-rv64 or cortex-m0")
+    one.add_argument("--target", required=True,
+                     help="linux-rv64, linux-x86-64, linux-arm64 or cortex-m0")
     one.add_argument("--level", required=True,
                      help="the image's level, as refine or the Cortex-M lanes name it")
     one.add_argument("image", type=Path, nargs="?",
                      help="a built image; or build one with --fixture or --source")
     one.add_argument("--fixture", action="append", default=[],
-                     help="Cortex-M: build and count this fixture, a directory under"
+                     help="build and count this fixture, a directory under"
                           " compiler/tests/fixtures such as runtime/merge-sort; repeat"
                           " for more")
     one.add_argument("--source", action="append", default=[],
-                     help="Cortex-M: build and count this .ldn file or module"
+                     help="build and count this .ldn file or module"
                           " directory; repeat for more")
     one.add_argument("--root", action="append", default=[],
                      help="a module root --source needs, passed to refine")
@@ -678,7 +749,7 @@ def add_commands(commands) -> None:
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(one, required=False, environment=True)
     one.set_defaults(arguments=[])
-    one.add_argument("--stdin", type=Path, help="RV64: the program's standard input")
+    one.add_argument("--stdin", type=Path, help="a hosted program's standard input")
     one.add_argument("--from", metavar="SYMBOL",
                      help="count from SYMBOL's first execution")
     one.add_argument("--to", metavar="SYMBOL",

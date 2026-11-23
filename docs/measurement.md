@@ -179,7 +179,11 @@ The same counter answers a contributor's question about one routine.
 `scripts/measure.py count` (or `scripts/measure_count.py count`) runs a
 firmware or RV64 program under its
 lane's emulator and prints the instructions executed in all, and between
-two symbols with `--from` and `--to`. The Cortex-M corpus's `--program`
+two symbols with `--from` and `--to`. It counts a `linux-x86-64` or
+`linux-arm64` program the same way, under QEMU's user emulation with its
+`max` CPU: those lanes time their programs on their own hardware, and a
+count is what tells two builds apart on a shared host whose wall time
+varies by a tenth. The Cortex-M corpus's `--program`
 option (`environments/cortex-m/backend_corpus.py`), which runs any `.ldn`
 file or module directory, prints the same count for each program it runs,
 which is what choosing between implementations by their cost on a
@@ -196,6 +200,16 @@ double-precision float unit and runs on that machine:
 python3 scripts/measure.py count --target cortex-m0 \
     --level armv7e-m+fpv5-d16 --fixture runtime/firmware-mandelbrot \
     --optimize speed --refine "$REFINE" --output /tmp/count
+```
+
+A hosted program is built the same way and counted with the arguments
+after `--` and the input `--stdin` names, rather than its fixture's own,
+so that a benchmark runs at the size the question needs:
+
+```sh
+python3 scripts/measure.py count --target linux-arm64 --level armv8-a \
+    --fixture runtime/benchmark-game-mandelbrot --optimize speed \
+    --refine "$REFINE" -- 500
 ```
 
 ## Runners
