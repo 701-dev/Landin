@@ -2136,7 +2136,7 @@ R15's proposal rewritten for today's library, second Io and threads.
 
 ### R21.10 — Windows x86-64
 
-Status: planned
+Status: active
 Depends on: R20
 
 Win64 convention, COFF, unwind tables, a hosted layer over the Windows
