@@ -129,6 +129,27 @@ class Images(unittest.TestCase):
             with self.assertRaises(common.Failed):
                 timing.timing_script(broken, 'ITCM', 'DTCM')
 
+    def test_hand_made_images_are_a_bundle_held_to_their_workload_s_oracle(self):
+        """`images` names each file's image by the workload and the file,
+        keeps the workload's status, and refuses two files that load the
+        same bytes."""
+        one = self.write('moved-2.elf', elf([(0x00000008, b'\x01\x02\x03\x04', 4)]))
+        two = self.write('moved-4.elf', elf([(0x0000000c, b'\x01\x02\x03\x04', 4)]))
+        arguments = dict(board='stm32h753', workload='sieve-of-eratosthenes', profile='speed-all')
+        with mock.patch.object(common, 'validate_ram_image'), \
+                mock.patch.object(timing, 'placement', return_value='text:itcm,data:dtcm,stack:dtcm'), \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(timing.images(SimpleNamespace(
+                output=self.root / 'bundle', elf=[one, two], **arguments)), 0)
+            with self.assertRaises(common.Failed):
+                timing.images(SimpleNamespace(output=self.root / 'again', elf=[one, one], **arguments))
+        made = timing.read_bundle(self.root / 'bundle')['boards']['stm32h753']['images']
+        self.assertEqual([image['workload'] for image in made],
+                         ['sieve-of-eratosthenes@moved-2', 'sieve-of-eratosthenes@moved-4'])
+        self.assertEqual({image['status'] for image in made}, {
+            timing.firmware_workloads(['sieve-of-eratosthenes'])[0]['meta'].status_at('armv7e-m')})
+        self.assertEqual(made[0]['profiles'], ['speed-all'])
+
     def test_instruction_sram_that_is_not_whole_words_is_refused_before_the_rig(self):
         self.assertIsNone(timing.refused('esp32c3', self.write(
             'ok.elf', elf([(0x40380000, bytes(8), 8), (0x3fca0000, bytes(3), 3)]))))

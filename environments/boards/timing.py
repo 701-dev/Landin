@@ -3,6 +3,8 @@
 
     python3 environments/boards/timing.py build --refine REFINE --output NEW_DIRECTORY
         [--board BOARD ...] [--workload NAME ...] [--profile none-off ...]
+    python3 environments/boards/timing.py images --board BOARD --workload NAME --profile PROFILE
+        --output NEW_DIRECTORY ELF ...
     python3 environments/boards/timing.py run --bundle BUNDLE --board BOARD
         --output NEW_DIRECTORY [--repeat N] [--image DIGEST ...] [board options]
     python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY
@@ -18,6 +20,9 @@ compiler/tests/measure/workloads.json at each of the nine profiles as each
 board's RAM image, its own `main` entered through
 compiler/tests/measure/firmware/entry.ldn, and keeps one copy of each
 distinct image, naming every profile that gave it.  It touches no rig.
+`images` makes the same bundle from ELF files made by hand, such as one
+workload's image moved by a few bytes or linked into another RAM, each
+held to the named workload's status and checksum.
 
 `run`, on rigpi, holds the rig lock across one board's whole batch and runs
 each image REPEAT times through the SRAM helper's timing plan: the helper
@@ -337,6 +342,44 @@ def build(args):
     (output / 'commands.json').write_text(json.dumps(run.commands, indent=1) + '\n')
     (output / 'timing.json').write_text(json.dumps(manifest, indent=2) + '\n')
     shutil.rmtree(output / 'work')
+    print('bundle: %s' % output)
+    return 0
+
+
+def images(args):
+    """A bundle of hand-made ELF files: each named file is one image of
+    BOARD, held to WORKLOAD's oracle, its status and checksum, and labelled
+    `WORKLOAD@STEM` by the file's name, so that the same code moved or
+    linked into another RAM is timed as `build`'s images are."""
+    output = args.output.resolve()
+    bundle.check_output(output, ROOT)
+    workload, = firmware_workloads([args.workload])
+    target, level = BOARDS[args.board]
+    output.mkdir(parents=True)
+    found = []
+    for path in args.elf:
+        why = refused(args.board, path)
+        require(why is None, '%s: %s' % (path, why))
+        common.validate_ram_image(path, args.board)
+        digest = loaded_digest(path)
+        require(all(image['digest'] != digest for image in found),
+                '%s loads what an earlier file loads' % path)
+        kept = output / 'images' / args.board / (digest + '.elf')
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, kept)
+        found.append(dict(digest=digest, elf_sha256=bundle.sha(kept),
+                          elf=kept.relative_to(output).as_posix(),
+                          workload='%s@%s' % (workload['name'], Path(path).stem),
+                          fixture=workload['fixture'],
+                          status=workload['meta'].status_at(level or 'armv6-m'),
+                          checksum=workload.get('checksum'), profiles=[args.profile],
+                          placement=placement(args.board, path)))
+    manifest = dict(format=FORMAT, source_identity=bundle.source_identity(ROOT)['sha256'],
+                    compiler=dict(sha256=None, name='hand-made'),
+                    boards={args.board: dict(target=target, level=level, images=found, limits=[])})
+    (output / 'timing.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    for image in found:
+        print('%s %s %s' % (image['digest'][:12], image['workload'], image['placement']))
     print('bundle: %s' % output)
     return 0
 
@@ -820,6 +863,13 @@ def main(argv=None):
     made.add_argument('--board', choices=BOARDS, action='append', help='repeat; default every board')
     made.add_argument('--workload', action='append', help='repeat; default the whole firmware set')
     made.add_argument('--profile', choices=PROFILES, action='append', help='repeat; default all nine')
+    hand = commands.add_parser('images', help='a bundle of hand-made ELF files, without the rig')
+    hand.add_argument('--board', choices=BOARDS, required=True)
+    hand.add_argument('--workload', required=True,
+                      help="the firmware workload whose status and checksum every file's run must give")
+    hand.add_argument('--profile', choices=PROFILES, required=True, help='the profile the files were built at')
+    hand.add_argument('--output', type=Path, required=True, help='a new directory')
+    hand.add_argument('elf', type=Path, nargs='+', help='a RAM image of the board')
     timed = commands.add_parser('run', help="time one board's images, on the rig host")
     timed.add_argument('--bundle', type=Path, required=True)
     timed.add_argument('--board', choices=BOARDS, required=True)
@@ -882,6 +932,8 @@ def main(argv=None):
     if args.command == 'build':
         common.warn_stale_refine(args)  # is it this checkout's?
         return build(args)
+    if args.command == 'images':
+        return images(args)
     if args.command == 'remote':
         return remote(args, board_args)
     require(not board_args, 'run takes no arguments after --')

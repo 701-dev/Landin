@@ -573,6 +573,17 @@ the digest of what is loaded rather than of the ELF file, whose line
 tables differ between them; `timing.json` names every profile each image
 stands for. An image the warm load would refuse, an instruction SRAM
 segment that is not whole words, is kept as a limit with its reason.
+The STM32H753's images link with refine's derived RAM script moved to the
+M7's tightly coupled memories, text in the ITCM and data, BSS and stack in
+the DTCM, since from the uncached AXI SRAM the code's place decided its
+cost (D2227); the bundle keeps that script under `scripts/`.
+
+`images` makes a bundle from ELF files made by hand, such as one
+workload's image moved by a few bytes or linked into another RAM, for
+`remote` and `run` to time as they time `build`'s: each file is one image
+of `--board`, held to `--workload`'s status and checksum and named
+`WORKLOAD@STEM` by its file. A file the warm load would refuse, or one
+that loads what another does, is refused.
 
 `run`, on rigpi, holds the rig lock across one port's images and runs each
 `--repeat` times; `remote` copies the bundle and these tools there and

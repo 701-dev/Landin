@@ -27141,6 +27141,44 @@ interval to every figure.
 **Pinned by** `scripts/tests/test_board_timing.py` and
 `compiler/tests/measure/noise/cycles.json`.
 
+### D2227 — The STM32H753 is timed from its tightly coupled memories
+
+**The tour said** nothing; D900's RAM layout places the STM32H753's
+vectors, text, data and stack in the AXI SRAM, its executable data region,
+which the M7 reaches uncached over its AXI port. Timed there, the same
+code moved by 2 bytes at a time ran the sieve at speed in 7,317 to 10,652
+cycles and SipHash in 510,115 to 541,009, repeating every 32 bytes, and a
+load soon after a store to the stack stalled. All ten slowdowns the
+board's baselines recorded with equal or fewer instructions were these.
+
+**Chosen:** the maintainer's choice of 2026-11-23. The board's timing
+images run their text and read-only data from the ITCM, past its first
+eight bytes (D1115), and their data, BSS and stack from the DTCM, both
+single-cycle and never cached. `environments/boards/timing.py build`
+links them with refine's derived RAM script, its sections moved and
+checked against D546's contract; the vectors stay at the RAM layout's
+boot address, read only on an exception. From the TCMs the offset sweep's
+range falls under 0.6%, nine of the ten recorded pairs are gains or
+equal and the tenth, SipHash at `none`, is 0.45% slower, under the
+port's tolerance. The ITCM is where the board's own description places
+its text; the DTCM holds no DMA buffer in a timing image.
+
+**The alternatives:** aligning loop heads or routines on Thumb-2, which
+would have to choose the good 32-byte phase rather than an alignment and
+gains nothing in the TCMs or with the caches on; spacing a load from the
+store before it in selection, which costs instructions everywhere for an
+uncached stack alone; widening the board's tolerance past placement's
+46%, which hides regressions with the artefact; text alone in the ITCM,
+which kept fannkuch-redux 10% slower at `none` from the stack's stalls;
+a description of the board for timing, a second device profile for one
+harness; and changing D900 for every RAM build, which would move DMA
+buffers out of the controllers' reach.
+
+**Pinned by** `scripts/tests/test_board_timing.py`'s
+`test_the_h753_times_text_from_itcm_and_data_and_stack_from_dtcm` and
+`compiler/tests/measure/baselines/stm32h753.cycles.json`, whose keys name
+`text:itcm,data:dtcm,stack:dtcm`.
+
 ### D1403 — Each backend places its own values over one liveness analysis
 
 **The tour said** nothing; D211 leaves where a value lives to the
