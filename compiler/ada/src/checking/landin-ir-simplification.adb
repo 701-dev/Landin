@@ -1081,6 +1081,96 @@ package body Landin.IR.Simplification is
               --  it carries a signature. Demand still keeps every live use.
               and then (Plain (Code) or else Code.Op = Function_Address);
          end Removable;
+
+         --  D2148: an eligible slot whose one store writes an integer,
+         --  bool or atom constant holds that constant wherever the
+         --  store's block strictly dominates: every path there passed the
+         --  store, and nothing else writes the slot.  Each such load
+         --  becomes a copy of the constant, so `for t in 0..<64`'s end is
+         --  64 in the loop's test rather than a slot carried round it,
+         --  and the bounds proofs below see a constant term.  A load in
+         --  the store's own block is forwarding's.  A float is left in its
+         --  slot, where a register can hold it across a loop, rather than
+         --  reloaded from the constant pool at every use.  Work: two scans
+         --  and, only when a candidate exists, the dominator tree.
+         procedure Propagate_Constants;
+         procedure Propagate_Constants is
+            Store_Total_Owner : constant Counts.Owner :=
+              Counts.Create (Held.Slots.Count);
+            Store_Total : Counts.Elements renames Store_Total_Owner.Data.all;
+            Store_At_Owner : constant Values.Owner :=
+              Values.Create (Held.Slots.Count);
+            Store_At : Values.Elements renames Store_At_Owner.Data.all;
+            Source_Owner : constant Values.Owner :=
+              Values.Create (Held.Slots.Count);
+            Source : Values.Elements renames Source_Owner.Data.all;
+            Any : Boolean := False;
+         begin
+            for V in Alias'Range loop
+               declare
+                  Code : constant Instruction := Code_At (Value_Id (V));
+               begin
+                  if Code.Op = Store and then Eligible (Positive (Code.Slot))
+                  then
+                     Store_Total (Positive (Code.Slot)) :=
+                       Store_Total (Positive (Code.Slot)) + 1;
+                     Store_At (Positive (Code.Slot)) := Value_Id (V);
+                  end if;
+               end;
+            end loop;
+            for S in Source'Range loop
+               if Store_Total (S) = 1 then
+                  declare
+                     Stored_Value : constant Instruction := Code_At
+                       (Into.Operands.Element
+                          (Code_At (Store_At (S)).First_Arg + 1));
+                  begin
+                     if Stored_Value.Op in Number | Truth | Atom
+                       and then Plain (Stored_Value)
+                       and then Stored_Value.Result
+                         not in Landin.Types.Float_Name
+                     then
+                        Source (S) := Into.Operands.Element
+                          (Code_At (Store_At (S)).First_Arg + 1);
+                        Any := True;
+                     end if;
+                  end;
+               end if;
+            end loop;
+            if not Any or else Held.Blocks.Count < 2 then
+               return;
+            end if;
+            declare
+               Graph : constant Control_Flow.Graph :=
+                 Control_Flow.Make (Into, Item);
+               Tree : Dominance.Tree;
+            begin
+               Dominance.Build (Tree, Graph);
+               for V in Alias'Range loop
+                  declare
+                     Code : constant Instruction := Code_At (Value_Id (V));
+                  begin
+                     if Code.Op = Load
+                       and then Source (Positive (Code.Slot)) /= No_Value
+                       and then Dominance.Strictly_Dominates
+                         (Tree,
+                          Code_At (Store_At (Positive (Code.Slot))).In_Block,
+                          Code.In_Block)
+                     then
+                        declare
+                           Made : Instruction :=
+                             Code_At (Source (Positive (Code.Slot)));
+                        begin
+                           Made.In_Block := Code.In_Block;
+                           Made.Site := Code.Site;
+                           Into.Code.Replace_Element
+                             (Held.Values.First + V, Made);
+                        end;
+                     end if;
+                  end;
+               end loop;
+            end;
+         end Propagate_Constants;
       begin
          for S in Eligible'Range loop
             declare
@@ -1150,6 +1240,7 @@ package body Landin.IR.Simplification is
          --  store or a memory event can neither read nor write it.  An
          --  assembly block remains a barrier for every slot: its text is
          --  opaque, and [1630] keeps it ordered against all memory.
+         Propagate_Constants;
          --
          --  A plain local store has no observer before the next store to
          --  that slot in this block.  A load of it, the block boundary or
