@@ -1,14 +1,14 @@
 --  The hosted heap is separate from core/mem's freestanding allocator
 --  protocol and caller-backed providers.  It keeps size classes over
---  memory it maps itself through platform/posix, written once for every
---  hosted system.  It over-allocates so that every usize alignment is
+--  memory it maps itself, written once for every hosted system: posix.ldn
+--  maps it through platform/posix and windows.ldn through Windows'
+--  `VirtualAlloc`.  It over-allocates so that every usize alignment is
 --  honoured, not only the powers of two posix_memalign and aligned_alloc
 --  admit.  Its classes are behind one lock once the program has started a
 --  thread (D502).
 
 import core/mem
 import hosted/thread/lock
-import platform/posix
 
 --  The state carries no information; it is opaque so that only `host` makes
 --  one.
@@ -17,35 +17,36 @@ system_value: type = struct
 end system_value
 
 --- The host heap as an allocator capability. The value is a handle that
---- borrows nothing: the heap belongs to the process, and copies share
---- it. It allocates and frees through size classes over memory it maps
---- through platform/posix. A resize grows a block in place when its slot
---- or mapping holds the new extent or its mapping can grow where it is;
---- otherwise it moves the mapping's pages with Linux's `mremap` or
---- copies the block. Available only on hosted targets. Threads share the
---- heap: once the program has started a thread through hosted/thread,
---- one lock guards its size classes, and a program that has started none
---- never takes it. A block larger than the largest class is a mapping of
---- its own and needs no lock. A C thread calling in under `--link=libc`
---- is no thread of the program's, and two of them may not use it at
---- once.
+--- borrows nothing: the heap belongs to the process, and copies share it. It
+--- allocates and frees through size classes over memory it maps from the
+--- system. A resize grows a block in place when its slot or mapping holds the
+--- new extent or its mapping can grow where it is; otherwise it moves the
+--- mapping's pages with Linux's `mremap` or copies the block. On Windows a
+--- mapping reserves its address space in the system's 64 KiB units and grows
+--- in place into what its reservation holds beyond it. Available only on
+--- hosted targets. Threads share the heap: once the program has started a
+--- thread through hosted/thread, one lock guards its size classes, and a
+--- program that has started none never takes it. A block larger than the
+--- largest class is a mapping of its own and needs no lock. A C thread calling
+--- in under `--link=libc` is no thread of the program's, and two of them may
+--- not use it at once.
 ---
---- Every usize alignment is accepted. Zero and one mean no stricter than
---- byte alignment. A zero-byte request still returns a distinct, non-null,
---- freeable token on success. The provider reserves a header plus at most
---- alignment - 1 bytes and refuses an overflow or an extent above the
---- host's PTRDIFF_MAX before asking the host for memory. Any other failure
---- to obtain memory is reported through mem.out_of_memory, before the
---- provider's own state changes.
+--- Every usize alignment is accepted. Zero and one mean no stricter than byte
+--- alignment. A zero-byte request still returns a distinct, non-null, freeable
+--- token on success. The provider reserves a header plus at most alignment - 1
+--- bytes and refuses an overflow or an extent above the host's PTRDIFF_MAX
+--- before asking the host for memory. Any other failure to obtain memory is
+--- reported through mem.out_of_memory, before the provider's own state
+--- changes.
 ---
---- Freeing trusts the two words this heap keeps before every block: it
---- frees the extent they hold and does not read the `size` passed. So
---- freeing a block this heap did not give, freeing one twice, or writing
---- below a block's first byte is undefined, as it is with C's `free`;
---- nothing here can tell such a block from one of its own. A block larger
---- than the largest class is unmapped when it is freed, and a refusal to
---- unmap, which the system gives only for an address or a length it never
---- mapped, keeps the pages, costing their memory and nothing else.
+--- Freeing trusts the two words this heap keeps before every block: it frees
+--- the extent they hold and does not read the `size` passed. So freeing a
+--- block this heap did not give, freeing one twice, or writing below a block's
+--- first byte is undefined, as it is with C's `free`; nothing here can tell
+--- such a block from one of its own. A block larger than the largest class is
+--- unmapped when it is freed, and a refusal to unmap, which the system gives
+--- only for an address or a length it never mapped, keeps the pages, costing
+--- their memory and nothing else.
 public heap: type = system_value
 
 word: usize = sizeof usize
@@ -141,12 +142,7 @@ end class_of
 
 --  A mapping of `length` readable and writable bytes, or zero.
 map: (length: usize) -> (address: usize) =
-    base: ptr mut u8 = posix.map(length) else (problem)
-        _ = problem
-        address = 0
-        return
-    end
-    address = usize(base)
+    address = map_pages(length)
 end map
 
 --  A free slot of class `index` and `size`, taken off its list, or zero
@@ -193,7 +189,7 @@ host_alloc: (size: usize, unit: usize) -> (block: usize) =
         give_classes(locked)
         held = class_size
     else
-        page: usize = posix.page_size()
+        page: usize = page_bytes()
         held = align_up(extent, page)
         origin = map(held)
     end if
@@ -225,8 +221,7 @@ host_free: (block: usize) -> none =
         --  A refusal means the header no longer holds a mapping of this
         --  heap's, and free has no failure to report it by: the pages, if
         --  any, stay mapped.
-        base: ptr mut u8 = ptr(origin)
-        posix.unmap(base, held) else none
+        release_pages(origin, held)
     end if
 end host_free
 
@@ -284,12 +279,8 @@ end place_of
 extend_mapping: (where: place, ends: usize) -> (grown: bool) =
     grown = false
     return when where.held <= largest_class
-    wanted: usize = align_up(ends, posix.page_size())
-    base: ptr mut u8 = ptr(where.origin)
-    posix.extend(base, where.held, wanted) else (problem)
-        _ = problem
-        return
-    end
+    wanted: usize = align_up(ends, page_bytes())
+    return when not extend_pages(where.origin, where.held, wanted)
     store_word(where.at + word, wanted)
     grown = true
 end extend_mapping
@@ -299,16 +290,12 @@ end extend_mapping
 --  the system can move them: the block's address afterwards, or zero.
 remap_mapping: (block: usize, where: place, ends: usize) -> (moved: usize) =
     moved = 0
-    wanted: usize = align_up(ends, posix.page_size())
-    base: ptr mut u8 = ptr(where.origin)
-    origin: ptr mut u8 = posix.remap(base, where.held, wanted)
-        else (problem)
-        _ = problem
-        return
-    end
-    moved = usize(origin) + (block - where.origin)
+    wanted: usize = align_up(ends, page_bytes())
+    origin: usize = remap_pages(where.origin, where.held, wanted)
+    return when origin == 0
+    moved = origin + (block - where.origin)
     at: usize = header_at(moved)
-    store_word(at, usize(origin))
+    store_word(at, origin)
     store_word(at + word, wanted)
 end remap_mapping
 
@@ -320,13 +307,9 @@ trim_mapping: (where: place, ends: usize) -> none =
     return when where.held <= largest_class
     least: usize = if ends > largest_class then ends else largest_class + 1
                    end if
-    kept: usize = align_up(least, posix.page_size())
+    kept: usize = align_up(least, page_bytes())
     return when kept >= where.held
-    tail: ptr mut u8 = ptr(where.origin + kept)
-    posix.unmap(tail, where.held - kept) else (problem)
-        _ = problem
-        return
-    end
+    return when not return_tail(where.origin + kept, where.held - kept)
     store_word(where.at + word, kept)
 end trim_mapping
 
@@ -353,7 +336,7 @@ host_resize: (block: usize, new_size: usize, unit: usize)
         return
     end if
     if where.held > largest_class then
-        if posix.page_size() % unit == 0 then
+        if page_bytes() % unit == 0 then
             resized = remap_mapping(block, where, ends)
             return when resized <> 0
         else

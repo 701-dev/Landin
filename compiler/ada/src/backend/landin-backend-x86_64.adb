@@ -753,13 +753,20 @@ package body Landin.Backend.X86_64 is
             return ".data$" & After (".data.");
          elsif Starts (".bss.") then
             return ".bss$" & After (".bss.");
+         elsif Starts (".tbss.") then
+            --  The template of Windows' thread storage, between the
+            --  `.tls` and `.tls$zzz` markers the TLS directory names.
+            return ".tls$" & After (".tbss.");
          end if;
          raise Compiler_Defect with "no COFF section for " & Name;
       end Section_Name;
 
+      --  A thread template's zeros are bytes of the image on Windows,
+      --  which copies the template for every thread.
       function Section_Flags (Flags : String) return String
         is (if not COFF then Flags
             elsif Ada.Strings.Fixed.Index (Flags, "x") > 0 then """xr"""
+            elsif Ada.Strings.Fixed.Index (Flags, "T") > 0 then """dw"""
             elsif Ada.Strings.Fixed.Index (Flags, "nobits") > 0
             then """bw"""
             elsif Ada.Strings.Fixed.Index (Flags, "w") > 0 then """dw"""
@@ -907,13 +914,50 @@ package body Landin.Backend.X86_64 is
       Limit_Margin : constant Landin.Targets.Byte_Count :=
         Landin.Backend.Stack_Limit_Margin (Facts);
       Stack_Limit : constant String := Local_Prefix & "landin_stack_limit";
+      --  Windows' thread storage is the image's implicit storage: the
+      --  `.tls` template the loader copies for every thread, whose copy
+      --  for the running thread is the slot `_tls_index` names in the
+      --  array the TEB's ThreadLocalStoragePointer, GS:0x58, points to;
+      --  a datum is at its offset in the `.tls` section from there.
+      Windows_Threads : constant Boolean :=
+        COFF and then Landin.Backend.Has_Threads (Facts);
       --  D497: the cell is the running thread's, a word of ELF thread
-      --  storage the image reaches from %fs in the local-exec model; a
-      --  target with no threads keeps the one cell in module storage.
+      --  storage the image reaches from %fs in the local-exec model, or
+      --  on Windows of the image's thread storage, from the base
+      --  Thread_Base leaves in %r11; a target with no threads keeps the
+      --  one cell in module storage.
       Limit_Cell : constant String :=
-        (if Landin.Backend.Has_Threads (Facts)
+        (if Windows_Threads then Stack_Limit & "@SECREL32(%r11)"
+         elsif Landin.Backend.Has_Threads (Facts)
          then "%fs:" & Stack_Limit & "@tpoff"
          else Stack_Limit & "(%rip)");
+
+      --  The running thread's block of thread storage, in Register: on
+      --  ELF the thread pointer, whose own address is the word there;
+      --  on Windows the image's slot of the TEB's array, which takes one
+      --  register and changes the flags.
+      procedure Thread_Base (Register : String);
+      procedure Thread_Base (Register : String) is
+      begin
+         if Windows_Threads then
+            --  %r11 or %rcx, as their 32-bit names.
+            Emit ("movl _tls_index(%rip), "
+                  & (if Register (Register'Last) in '0' .. '9'
+                     then Register & "d"
+                     else "%e" & Register (Register'First + 2
+                                           .. Register'Last)));
+            Emit ("shlq $3, " & Register);
+            Emit ("addq %gs:88, " & Register);
+            Emit ("movq (" & Register & "), " & Register);
+         else
+            Emit ("movq %fs:0, " & Register);
+         end if;
+      end Thread_Base;
+
+      --  A thread datum's offset from Thread_Base's register.
+      function Thread_Offset (Datum_Symbol : String) return String
+        is (Datum_Symbol & (if Windows_Threads then "@SECREL32"
+                            else "@tpoff"));
       --  D491's stack for the default report's C call, and its bytes.
       Report_Stack : constant String := Local_Prefix & "landin_report_stack";
       --  D498's latch, which the report claims before it moves there.
@@ -2239,9 +2283,9 @@ package body Landin.Backend.X86_64 is
                   if Landin.Backend.In_Thread_Storage
                     (Of_Unit, Facts, Place.Datum)
                   then
-                     Emit ("movq %fs:0, " & Register);
-                     Emit ("leaq " & Symbol (Place.Datum) & "@tpoff("
-                           & Register & "), " & Register);
+                     Thread_Base (Register);
+                     Emit ("leaq " & Thread_Offset (Symbol (Place.Datum))
+                           & "(" & Register & "), " & Register);
                   else
                      Emit ("leaq " & Symbol (Place.Datum) & "(%rip), "
                            & Register);
@@ -3026,7 +3070,22 @@ package body Landin.Backend.X86_64 is
          --  untouched.
          procedure Check_Limit (Bytes : Landin.Targets.Byte_Count) is
          begin
-            if Bytes = 0 then
+            if Windows_Threads then
+               --  The cell's block takes %r11, so the frame is added to
+               --  the limit rather than taken from the stack pointer: a
+               --  sum that carries is above every stack pointer, as a
+               --  difference that borrows is below every limit.
+               Thread_Base ("%r11");
+               if Bytes = 0 then
+                  Emit ("cmpq " & Limit_Cell & ", %rsp");
+               else
+                  Emit ("movq " & Limit_Cell & ", %r11");
+                  Emit ("addq $" & Trimmed
+                        (Landin.Targets.Byte_Count'Image (Bytes)) & ", %r11");
+                  Emit ("jc " & Limit_Trap);
+                  Emit ("cmpq %r11, %rsp");
+               end if;
+            elsif Bytes = 0 then
                Emit ("cmpq " & Limit_Cell & ", %rsp");
             else
                --  A frame larger than the stack pointer's own value
@@ -5843,13 +5902,21 @@ package body Landin.Backend.X86_64 is
                      --  the thread pointer, which the one `%fs`-relative
                      --  operand names in the local-exec model, as D497's
                      --  limit cell is named.
+                     --  On Windows the block's address is formed in
+                     --  %rcx, selection's scratch, first.
                      Thread : constant Boolean :=
                        Landin.Backend.In_Thread_Storage
                          (Of_Unit, Facts, Datum);
                      Place : constant String :=
-                       (if Thread then "%fs:" & Symbol (Datum) & "@tpoff"
+                       (if Thread and then Windows_Threads
+                        then Thread_Offset (Symbol (Datum)) & "(%rcx)"
+                        elsif Thread
+                        then "%fs:" & Symbol (Datum) & "@tpoff"
                         else Symbol (Datum) & "(%rip)");
                   begin
+                     if Thread and then Windows_Threads then
+                        Thread_Base ("%rcx");
+                     end if;
                      if Op = Landin.IR.Load_Datum then
                         Deliver_Load (Held, Place);
                      else
@@ -6288,9 +6355,9 @@ package body Landin.Backend.X86_64 is
                         if Landin.Backend.In_Thread_Storage
                           (Of_Unit, Facts, Datum)
                         then
-                           Emit ("movq %fs:0, %rcx");
-                           Emit ("leaq " & Symbol (Datum)
-                                 & "@tpoff(%rcx), %rcx");
+                           Thread_Base ("%rcx");
+                           Emit ("leaq " & Thread_Offset (Symbol (Datum))
+                                 & "(%rcx), %rcx");
                         else
                            Emit ("leaq " & Symbol (Datum) & "(%rip), %rcx");
                         end if;
@@ -6308,16 +6375,22 @@ package body Landin.Backend.X86_64 is
                              Landin.Backend.In_Thread_Storage
                                (Of_Unit, Facts, Datum);
                            Place : constant String :=
-                             (if Thread then "%fs:" else "")
-                             & Symbol (Datum)
-                             & (if Thread then "@tpoff" else "")
+                             (if Thread and then not Windows_Threads
+                              then "%fs:" else "")
+                             & (if Thread then Thread_Offset (Symbol (Datum))
+                                else Symbol (Datum))
                              & (if At_Offset = 0 then ""
                                 else "+"
                                      & Trimmed
                                          (Landin.Targets.Byte_Count'Image
                                             (At_Offset)))
-                             & (if Thread then "" else "(%rip)");
+                             & (if not Thread then "(%rip)"
+                                elsif Windows_Threads then "(%rcx)"
+                                else "");
                         begin
+                           if Thread and then Windows_Threads then
+                              Thread_Base ("%rcx");
+                           end if;
                            if Op = Landin.IR.Load_Field then
                               Deliver_Load (Held, Place);
                            else
@@ -7614,6 +7687,9 @@ package body Landin.Backend.X86_64 is
          if Checks then
             if Panic /= null and then Item = Landin.Panics.Handler (Panic.all)
             then
+               if Windows_Threads then
+                  Thread_Base ("%r11");
+               end if;
                Emit ("movq $0, " & Limit_Cell);
             elsif not Landin.Backend.Call_Free (Of_Unit, Item)
               or else Extent (Layout) > Unchecked_Bytes
@@ -9675,6 +9751,11 @@ package body Landin.Backend.X86_64 is
                         & Trimmed (Natural'Image (8 + 8 * Index)));
                end if;
             end loop;
+            --  On Windows %r11 keeps the thread's block for the pop: the
+            --  same thread resumes on the other stack.
+            if Windows_Threads then
+               Thread_Base ("%r11");
+            end if;
             Emit ("pushq " & Limit_Cell);
             if Debug /= null then
                Emit (".cfi_def_cfa_offset 64");
@@ -10115,7 +10196,8 @@ package body Landin.Backend.X86_64 is
       end if;
       if Stack_Used then
          if Landin.Backend.Has_Threads (Facts) then
-            Emit (".pushsection .tbss.landin_stack_limit,""awT"",@nobits");
+            Emit (Push_Section (".tbss.landin_stack_limit",
+                                """awT"",@nobits"));
          else
             Emit (Push_Section (".bss.landin_stack_limit",
                                 """aw"",@nobits"));
@@ -10123,6 +10205,44 @@ package body Landin.Backend.X86_64 is
          Emit (".balign 8");
          Put (Stack_Limit & ":");
          Emit (".zero 8");
+         Emit (ELF.Pop_Section);
+      end if;
+      --  Windows' TLS directory, which no C runtime brings (D2188): the
+      --  template's bounds, the `.tls` section's first byte and the
+      --  `.tls$zzz` marker's, which every `.tls$NAME` sorts between, the
+      --  index the loader writes, no callbacks, and no zeros beyond the
+      --  template.  LLD points the image's directory entry at the symbol
+      --  `_tls_used`, which it keeps whether or not anything refers to
+      --  it, so a program with no thread storage has no directory.
+      if Windows_Threads
+        and then (Stack_Used
+                  or else
+                    (for some Index in 1 .. Landin.IR.Item_Count (Of_Unit)
+                     => Landin.Backend.In_Thread_Storage
+                          (Of_Unit, Facts, Landin.IR.Item_Id (Index))))
+      then
+         Emit (Push_Section (".data.landin_tls", """aw"",@progbits"));
+         Emit (".balign 8");
+         Emit (".globl _tls_used");
+         Put ("_tls_used:");
+         Emit (".quad " & Local_Prefix & "landin_tls_start");
+         Emit (".quad " & Local_Prefix & "landin_tls_end");
+         Emit (".quad _tls_index");
+         Emit (".quad " & Local_Prefix & "landin_tls_callbacks");
+         Emit (".long 0");
+         Emit (".long 0");
+         Emit (".globl _tls_index");
+         Put ("_tls_index:");
+         Emit (".long 0");
+         Emit (".balign 8");
+         Put (Local_Prefix & "landin_tls_callbacks:");
+         Emit (".quad 0");
+         Emit (ELF.Pop_Section);
+         Emit (".pushsection .tls,""dw""");
+         Put (Local_Prefix & "landin_tls_start:");
+         Emit (ELF.Pop_Section);
+         Emit (".pushsection .tls$zzz,""dw""");
+         Put (Local_Prefix & "landin_tls_end:");
          Emit (ELF.Pop_Section);
       end if;
       if Panic /= null and then Landin.Panics.Handler (Panic.all)

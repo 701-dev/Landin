@@ -1,0 +1,38 @@
+--  The address space: what `virtual_query` says of a region, beside
+--  windows.ldn's `virtual_alloc` and `virtual_free`, which the entry uses
+--  too.  Windows reserves address space in units of its allocation
+--  granularity, 64 KiB, and commits it in pages, 4 KiB on x86-64.
+
+fixed if compiler.os == windows then
+    --- The page `virtual_alloc` commits in, and the unit it reserves in.
+    public page_bytes: usize = 4096
+    public allocation_granularity: usize = 65536
+
+    --- `MEMORY_BASIC_INFORMATION`: the run of pages from `base` alike in
+    --- state and protection, `size` bytes long, and the reservation
+    --- `allocation_base` that holds them.
+    public memory_information: type = struct
+        base: usize
+        allocation_base: usize
+        allocation_protection: u32
+        partition: u16
+        reserved_1: u16
+        size: usize
+        state: u32
+        protection: u32
+        kind: u32
+        reserved_2: u32
+    end memory_information
+
+    --- `memory_information`'s states: `MEM_COMMIT`, `MEM_RESERVE`,
+    --- `MEM_FREE`.
+    public state_committed: u32 = 0x1000
+    public state_reserved: u32 = 0x2000
+    public state_free: u32 = 0x10000
+
+    --- Describe the pages at `address`, `VirtualQuery`, into `into`: the
+    --- bytes written, or zero with the reason in `last_error`.
+    public extern(c) link(symbol: "VirtualQuery") virtual_query:
+        (address: usize, into: ptr mut memory_information, bytes: usize)
+        -> (written: usize)
+end if
