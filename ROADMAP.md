@@ -2555,7 +2555,7 @@ DAP session that fell silent after its launch, once, in that gate run.
 
 ### R21.51 — Microsoft's toolchain on Windows arm64
 
-Status: planned
+Status: active
 Depends on: R21.40, R21.50
 
 R21.50's toolchain for `windows-arm64` as well, on a Windows host: the
