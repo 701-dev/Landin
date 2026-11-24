@@ -28524,6 +28524,55 @@ does not do and its proofs do not need.
 
 **Pinned by** the IR optimization suite's `proved checks`.
 
+### D2447 — An identity may make the instruction it needs
+
+**The tour said** nothing. SHA-256's majority `(a & b) ^ (a & c) ^ (b &
+c)` and choice `(e & f) ^ (~e & g)` cost x86-64 8 and 6 instructions a
+round where `(a & (b ^ c)) ^ (b & c)` and `(e & (f ^ g)) ^ g` cost 6 and
+4, but each shorter form reads a value the source never computed, and
+simplification rewrote an instruction only in place.
+
+**Chosen:** after simplification, a pass rewrites `(x & y) op (x' & z)`,
+op `^` or `|`, as `x & (y op z)`, and `(x & y) ^ (~x' & z)` as `(x & (y ^
+z)) ^ z`, on every target, where each AND and the complement have no
+other reader and x' is x or a load of the same slot part with nothing
+between the two loads that could write it: no store, call, assembly
+block or control transfer. The later AND becomes `y op z` in place; the
+choice's one new instruction, `x & that`, comes just before the result,
+which the arena rebuild inserts with the instruction it precedes. The
+earlier AND, the complement and a load another load stands for go.
+
+**The alternatives:** writing the identities into value numbering, which
+numbers a value and never reshapes one; reusing a freed instruction's
+position, which serves the majority but not the choice, whose `g` is
+loaded after every position the rewrite frees; and inserting through the
+whole arena per instruction, where one rebuild serves every insertion.
+
+**Pinned by** the IR optimization suite's `bitwise identities` and the
+runtime fixture `bitwise-identities`.
+
+### D2448 — Two rotations joined by a bitwise operation turn one chain
+
+**The tour said** nothing. SHA-256's `big1`, `rotl(e, 26) ^ rotl(e, 21)
+^ rotl(e, 7)`, turns three copies of `e`, so two-address x86-64 copies
+`e` before each rotation: 8 instructions where `rotl(rotl(rotl(e, 5) ^ e,
+14) ^ e, 7)`, a chain over one temporary, takes 6.
+
+**Chosen:** `rotl(a, m) op rotl(b, n)`, op `^`, `|` or `&`, each
+rotation read only there and its amount a constant of its own, is
+`rotl(rotl(a, m - n) op b, n)`, the amount taken modulo the width, and
+`rotl(a op b, n)` when m = n. A rotation commutes with every bitwise
+operation, so the rewrite is exact; it applies where rotations exist,
+x86-64 and arm64 (D1624), and keeps the instruction count but where it
+saves a rotation.
+
+**The alternatives:** leaving the copies to register allocation, which
+cannot remove a copy two-address code needs to keep `e`; and selecting
+x86-64's three-operand `rorx`, which BMI2 alone has.
+
+**Pinned by** the IR optimization suite's `bitwise identities` and the
+runtime fixture `bitwise-identities`.
+
 ### D2208 — x86-64 selects a proved unsigned product as `imul`
 
 **The tour said** nothing. An unsigned checked product needs `mul`'s

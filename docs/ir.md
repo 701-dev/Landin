@@ -623,6 +623,20 @@ makes, which those backends select as `rol` and `ror` (D1624); a shift
 nothing reads is then removed, since a shift traps only on a negative
 amount.
 
+After those rewrites, one pass applies identities that may make an
+instruction the source never computed (D2447). `(x & y) ^ (x & z)` and
+`(x & y) | (x & z)` become `x & (y ^ z)` and `x & (y | z)`, and the
+choice `(x & y) ^ (~x & z)` becomes `(x & (y ^ z)) ^ z`, on every target,
+when the ANDs and the complement have no other reader; the two `x` are
+one value or two loads of one slot part with nothing between them that
+could write it. The later AND is rewritten in place and the choice's new
+AND is inserted before the result by the arena rebuild, which takes a
+list of insertions beside the instructions it keeps. Two rotations joined
+by `^`, `|` or `&`, `rotl(a, m) op rotl(b, n)`, become
+`rotl(rotl(a, m - n) op b, n)`, so SHA-256's three rotations of one value
+turn a single temporary, which x86-64's two-address code then copies
+once rather than three times (D2448).
+
 Values remain block-local, but a constant reaches across blocks through a
 slot (D2148). A slot that nothing names but its own loads and stores, and
 that has one store, of an integer, bool or atom constant, holds that

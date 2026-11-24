@@ -1,0 +1,67 @@
+--  The majority `(a & b) ^ (a & c) ^ (b & c)` is `(a & (b ^ c)) ^ (b & c)`,
+--  `(a & b) | (c & a)` is `a & (b | c)`, the choice `(e & f) ^ (~e & g)`
+--  is `(e & (f ^ g)) ^ g` (D2447), and rotations of one or two values
+--  joined by `^`, `|` or `&` turn one chain (D2448).  Each function is
+--  checked over a thousand generated inputs against a checksum worked out
+--  without the identities, at every profile.
+mut seed: u32 = 0x9e3779b9
+
+majority: (a: u32, b: u32, c: u32) -> (r: u32) =
+    r = (a & b) ^ (a & c) ^ (b & c)
+end majority
+
+choice: (e: u32, f: u32, g: u32) -> (r: u32) =
+    r = (e & f) ^ (~e & g)
+end choice
+
+either: (a: u32, b: u32, c: u32) -> (r: u32) =
+    r = (a & b) | (c & a)
+end either
+
+small: (a: u8, b: u8, c: u8) -> (r: u8) =
+    r = ((a & b) ^ (a & c) ^ (b & c)) +% ((b & a) ^ (~b & c))
+end small
+
+--  The product is read twice, so its two ANDs stay.
+shared: (a: u32, b: u32, c: u32) -> (r: u32) =
+    t: u32 = a & b
+    r = (t ^ (a & c)) +% t
+end shared
+
+turned: (x: u32) -> (r: u32) =
+    r = ((x >> 6) | (x << 26)) ^ ((x >> 11) | (x << 21))
+        ^ ((x >> 25) | (x << 7))
+end turned
+
+wide: (x: u64, y: u64) -> (r: u64) =
+    r = (((x << 9) | (x >> 55)) & ((y << 9) | (y >> 55)))
+        +% (((x << 40) | (x >> 24)) | ((y << 3) | (y >> 61)))
+end wide
+
+public main: () -> (code: i32) =
+    mut x: u32 = seed
+    mut sum: u32 = 0
+    mut long: u64 = 0
+    for i in usize(0)..<1000 do
+        x = x ^ (x << 13)
+        x = x ^ (x >> 17)
+        x = x ^ (x << 5)
+        a: u32 = x
+        b: u32 = (x >> 7) | (x << 25)
+        c: u32 = x *% 2654435761
+        sum = sum *% 31 +% majority(a, b, c)
+        sum = sum *% 31 +% choice(a, b, c)
+        sum = sum *% 31 +% either(a, b, c)
+        least: u8 = small(u8(a & 0xff), u8(b & 0xff), u8(c & 0xff))
+        sum = sum *% 31 +% u32(least)
+        sum = sum *% 31 +% shared(a, b, c)
+        sum = sum *% 31 +% turned(c)
+        high: u64 = (u64(a) << 32) | u64(b)
+        long = long *% 31 +% wide(high, u64(c) *% 0x9e3779b97f4a7c15)
+    end for
+    if sum == 1270365749 and long == 9205134093052162948 then
+        code = 42
+    else
+        code = 1
+    end if
+end main

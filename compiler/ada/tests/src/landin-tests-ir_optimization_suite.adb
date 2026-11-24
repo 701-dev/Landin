@@ -83,6 +83,7 @@ package body Landin.Tests.IR_Optimization_Suite is
    procedure Forwarding_Through_Writes
      (Item : in out Landin.Testing.Context);
    procedure Block_Value_Numbering (Item : in out Landin.Testing.Context);
+   procedure Bitwise_Identities (Item : in out Landin.Testing.Context);
    procedure Memory_Events (Item : in out Landin.Testing.Context);
    procedure Static_Dispatch (Item : in out Landin.Testing.Context);
    procedure Exposed_Evidence (Item : in out Landin.Testing.Context);
@@ -563,6 +564,107 @@ package body Landin.Tests.IR_Optimization_Suite is
         ("public f: (a: f64) -> (r: f64) = r = 2.0 * a + a * 2.0 end f",
          IR.Multiply, 2, "a float product keeps its order");
    end Block_Value_Numbering;
+
+   --  D2447, D2448: the identities, and what keeps each from applying.
+   procedure Bitwise_Identities (Item : in out Landin.Testing.Context) is
+      procedure Check_Count
+        (Source : String;
+         Target : Landin.Targets.Target_Facts;
+         Op : IR.Opcode;
+         Expected : Natural;
+         Why : String);
+
+      procedure Check_Count
+        (Source : String;
+         Target : Landin.Targets.Target_Facts;
+         Op : IR.Opcode;
+         Expected : Natural;
+         Why : String)
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (Target);
+      begin
+         Lower (Item, Work, Source);
+         IR.Simplification.Run
+           (Landin.Stages.Code (Work).all, Target, Opt.Speed);
+         Landin.Testing.Check_Equal
+           (Item, Count (Landin.Stages.Code (Work).all, Op), Expected, Why);
+      end Check_Count;
+
+      --  Rotations whose turned operand is a load: one where the chain
+      --  turns a single temporary.
+      function Loads_Turned (Code : IR.Unit) return Natural;
+      function Loads_Turned (Code : IR.Unit) return Natural is
+         Total : Natural := 0;
+      begin
+         for I in 1 .. IR.Item_Count (Code) loop
+            for V in 1 .. IR.Value_Count (Code, IR.Item_Id (I)) loop
+               if IR.Op_Of (Code, IR.Item_Id (I), IR.Value_Id (V))
+                    = IR.Rotate_Left
+                 and then IR.Op_Of
+                   (Code, IR.Item_Id (I),
+                    IR.Nth_Operand
+                      (Code, IR.Item_Id (I), IR.Value_Id (V), 1)) = IR.Load
+               then
+                  Total := Total + 1;
+               end if;
+            end loop;
+         end loop;
+         return Total;
+      end Loads_Turned;
+
+      Three : constant String :=
+        "public f: (a: u32, b: u32, c: u32) -> (r: u32) = ";
+      X86 : constant Landin.Targets.Target_Facts :=
+        Landin.Targets.Linux_X86_64;
+      Firmware : constant Landin.Targets.Target_Facts :=
+        Landin.Targets.Cortex_M;
+   begin
+      Check_Count
+        (Three & "r = (a & b) ^ (a & c) ^ (b & c) end f",
+         X86, IR.Bitwise_And, 2, "the majority takes one AND fewer");
+      Check_Count
+        (Three & "r = (a & b) ^ (a & c) ^ (b & c) end f",
+         Firmware, IR.Bitwise_And, 2, "on a firmware target too");
+      Check_Count
+        (Three & "r = (a & b) | (c & a) end f",
+         X86, IR.Bitwise_And, 1, "an operand two ANDs share is distributed");
+      Check_Count
+        (Three & "r = (a & b) ^ (~a & c) end f",
+         X86, IR.Complement, 0, "the choice needs no complement");
+      Check_Count
+        (Three & "r = (a & b) ^ (~a & c) end f",
+         X86, IR.Bitwise_And, 1, "the choice takes one AND");
+      Check_Count
+        (Three & "r = (a & b) ^ (~c & a) end f",
+         X86, IR.Complement, 1, "a complement of another value stays");
+      Check_Count
+        (Three & "t: u32 = a & b r = (t ^ (a & c)) +% t end f",
+         X86, IR.Bitwise_And, 2, "an AND read twice stays");
+      Check_Count
+        (Three & "r = (a & b) + (a & c) end f",
+         X86, IR.Bitwise_And, 2, "a sum does not distribute");
+      Check_Count
+        ("public f: (x: u64, y: u64) -> (r: u64) = "
+         & "r = ((x << 9) | (x >> 55)) ^ ((y << 9) | (y >> 55)) end f",
+         X86, IR.Rotate_Left, 1, "two rotations by one amount are one");
+      declare
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (X86);
+      begin
+         Lower
+           (Item, Work,
+            "public f: (x: u32) -> (r: u32) = "
+            & "r = ((x >> 6) | (x << 26)) ^ ((x >> 11) | (x << 21)) "
+            & "^ ((x >> 25) | (x << 7)) end f");
+         IR.Simplification.Run
+           (Landin.Stages.Code (Work).all, X86, Opt.Speed);
+         Landin.Testing.Check_Equal
+           (Item, Count (Landin.Stages.Code (Work).all, IR.Rotate_Left), 3,
+            "three rotations stay three");
+         Landin.Testing.Check_Equal
+           (Item, Loads_Turned (Landin.Stages.Code (Work).all), 1,
+            "and turn one chain from a single load");
+      end;
+   end Bitwise_Identities;
 
    procedure Static_Dispatch (Item : in out Landin.Testing.Context) is
    begin
@@ -3453,6 +3555,8 @@ package body Landin.Tests.IR_Optimization_Suite is
       Landin.Testing.Register
         (Into, "ir opt", "block value numbering",
          Block_Value_Numbering'Access);
+      Landin.Testing.Register
+        (Into, "ir opt", "bitwise identities", Bitwise_Identities'Access);
       Landin.Testing.Register
         (Into, "ir opt", "forwarding through writes",
          Forwarding_Through_Writes'Access);
