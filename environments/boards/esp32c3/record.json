@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "bc07d575c65bc8ccae6ffc2721598d74d87f6142447a9dfaef91a1bfb2f4c3f8",
+  "image_sha256": "429c65a9dc7a4bb4a7fd4fdda1222969fc5184908e7491cb4fe16017d3ddb69b",
   "image_name": "board.elf.bin",
-  "elf_sha256": "7afd7fca9c30c0a7576885deb6443cf6b88cdb1fb935b0c8b7e5fc074c98e294",
+  "elf_sha256": "d026717b7b41ccf96f2c25e7221778cf6cf8ba0f3f77fcc6d0a170e2bb4e9a11",
   "image": {
     "chip": 5,
     "revisions": [
@@ -12,11 +12,11 @@
     "entry": "0x40380000",
     "segments": [
       "0x40380000+0x180",
-      "0x40380180+0x4d70",
-      "0x40384ef0+0x54"
+      "0x40380180+0x4d48",
+      "0x40384ec8+0x54"
     ],
-    "checksum": "0x28",
-    "sha256": "028a3278eb45603883a7ec0daca32305521ab3f7078d9bf8b469beaf63a7e772"
+    "checksum": "0xfd",
+    "sha256": "3996b1cb681d65162fe9e02ac8a221853596404d11c92ac39924116e0f80f9ec"
   },
   "instructions": [],
   "flash": {
@@ -28,8 +28,8 @@
     "boot": "SPI_FAST_FLASH_BOOT",
     "loads": [
       "0x40380000+0x180",
-      "0x40380180+0x4d70",
-      "0x40384ef0+0x54"
+      "0x40380180+0x4d48",
+      "0x40384ec8+0x54"
     ],
     "entry": "0x40380000"
   },
@@ -68,8 +68,8 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 3483,
-      "receive_interrupts": 6343,
+      "timer_events": 3475,
+      "receive_interrupts": 6351,
       "echoed": 3014,
       "sent": 3614
     },
@@ -88,7 +88,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6345,
+    "entries": 6353,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -96,9 +96,9 @@
   },
   "readback": [
     "0x40380000+0x180",
-    "0x40380180+0x4d70"
+    "0x40380180+0x4d48"
   ],
-  "uart_sha256": "89ab055d4a7c3df141abdb6594ed9b4ab59760cb4bfba4649be443197d265a98",
+  "uart_sha256": "50aa2768dfb12181288cfcf881203575f909d36169627614e5741f651f8d14cc",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -110,33 +110,33 @@
       "elf_sha256": "2467faacc5d3eda3b659e77a77992204ab5a20009271ad1fa63c94db9ccab726"
     }
   },
-  "seconds": 27.051,
+  "seconds": 27.646,
   "kernel_usb": {
-    "since": 1795472420.6974316,
-    "until": 1795472447.7202392,
+    "since": 1795507647.6892223,
+    "until": 1795507675.3072553,
     "lines": [
       {
-        "time": 1795472424.720837,
-        "text": "rigpi kernel: usb 1-1.2.3.4.2: USB disconnect, device number 19"
+        "time": 1795507651.684736,
+        "text": "rigpi kernel: usb 1-1.2.3.4.2: USB disconnect, device number 45"
       },
       {
-        "time": 1795472427.664682,
-        "text": "rigpi kernel: usb 1-1.2.3.4.2: new full-speed USB device number 40 using xhci_hcd"
+        "time": 1795507654.604664,
+        "text": "rigpi kernel: usb 1-1.2.3.4.2: new full-speed USB device number 70 using xhci_hcd"
       },
       {
-        "time": 1795472427.768688,
+        "time": 1795507654.721095,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.4.2:1.0: ttyACM4: USB ACM device"
       },
       {
-        "time": 1795472443.604737,
-        "text": "rigpi kernel: usb 1-1.2.3.4.2: USB disconnect, device number 40"
+        "time": 1795507670.664728,
+        "text": "rigpi kernel: usb 1-1.2.3.4.2: USB disconnect, device number 70"
       },
       {
-        "time": 1795472446.56469,
-        "text": "rigpi kernel: usb 1-1.2.3.4.2: new full-speed USB device number 42 using xhci_hcd"
+        "time": 1795507673.632673,
+        "text": "rigpi kernel: usb 1-1.2.3.4.2: new full-speed USB device number 71 using xhci_hcd"
       },
       {
-        "time": 1795472446.664711,
+        "time": 1795507673.73272,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.4.2:1.0: ttyACM4: USB ACM device"
       }
     ],
@@ -159,8 +159,8 @@
       "tag": "t",
       "h": "00000bc7",
       "c": "00000002",
-      "i": "000018c9",
-      "m": "00000dc8",
+      "i": "000018d1",
+      "m": "00000dbf",
       "p": "80000001",
       "q": "80000002",
       "k": "00000064",
@@ -205,6 +205,7 @@
     "hub-wait",
     "hub-status",
     "power-on",
+    "hub-wait",
     "hub-wait",
     "resident-ready"
   ]

@@ -1,12 +1,12 @@
 {
   "status": "passed",
-  "image_sha256": "4e9671d34be640548a2dbc75b0e75e3aab903e7a387060204a5d4bed591efb64",
+  "image_sha256": "76c3abe92d507838a1851eac54a9add0203d4ed25def4cfed1cabd77540fa7f5",
   "image_name": "board.elf",
   "image": {
     "copied_text": {
-      "end": 18112,
+      "end": 18088,
       "load": 134218640,
-      "sha256": "2d05e362030c4345e7fb4d8aa240f01afa2c64cc1105258b47d7ac7d472e2504",
+      "sha256": "1badd7c56f3d549ee25f33c8df4351afe05d94053eb15088a062db801c02854b",
       "start": 0
     },
     "float_unit": "passed",
@@ -121,16 +121,16 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 156,
+    "usart_entries": 148,
     "s0ndtr": 229,
     "s0cr": 1049617,
     "itcm": {
       "start": 0,
-      "bytes": 18112,
-      "sha256": "2d05e362030c4345e7fb4d8aa240f01afa2c64cc1105258b47d7ac7d472e2504"
+      "bytes": 18088,
+      "sha256": "1badd7c56f3d549ee25f33c8df4351afe05d94053eb15088a062db801c02854b"
     }
   },
-  "uart_sha256": "461a6743d048f69e6de20608a02a30b31071e0421950c119a0eebf43e5c338db",
+  "uart_sha256": "88c312fc7d7a226f64322be2c092765248dd63ade9e379f85c1f19ff2b9e58f2",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -142,49 +142,49 @@
       "elf_sha256": "413ac4b4224bcd5083b2bcd10dc429d34623bbfa9222eae4419ae4ae4fb8271d"
     }
   },
-  "seconds": 34.882,
+  "seconds": 34.992,
   "kernel_usb": {
-    "since": 1795472355.3082557,
-    "until": 1795472390.1712844,
+    "since": 1795507581.7497725,
+    "until": 1795507616.723025,
     "lines": [
       {
-        "time": 1795472361.032778,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 17"
+        "time": 1795507587.500689,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 30"
       },
       {
-        "time": 1795472362.940676,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 38 using xhci_hcd"
+        "time": 1795507589.42468,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 68 using xhci_hcd"
       },
       {
-        "time": 1795472363.090654,
+        "time": 1795507589.573881,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795472363.094555,
+        "time": 1795507589.577588,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795472363.096795,
+        "time": 1795507589.580282,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       },
       {
-        "time": 1795472387.180724,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 38"
+        "time": 1795507613.760774,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 68"
       },
       {
-        "time": 1795472389.116697,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 39 using xhci_hcd"
+        "time": 1795507615.672661,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 69 using xhci_hcd"
       },
       {
-        "time": 1795472389.266387,
+        "time": 1795507615.823057,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795472389.270285,
+        "time": 1795507615.826952,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795472389.272994,
+        "time": 1795507615.829497,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       }
     ],
@@ -209,8 +209,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "00003fa1",
-      "u": "0000009c",
+      "m": "00003fea",
+      "u": "00000094",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",
