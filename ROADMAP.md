@@ -2351,7 +2351,7 @@ storage moved to R21.20.
 
 ### R21.20 — Windows' Io and threads
 
-Status: active
+Status: complete
 Depends on: R21.10
 
 Both Io providers and `hosted/thread` over the Windows API, with
@@ -2359,6 +2359,42 @@ Both Io providers and `hosted/thread` over the Windows API, with
 thread storage, which R21.10 left to it.
 Exit evidence: the Io and thread suites pass on Windows x86-64 in the
 gate.
+
+Done: the hosted providers run on Windows over `platform/windows`, which is
+now a module of files beside `platform/windows/sockets`. Every hosted
+system's own interface is imported on all of them and declares nothing
+off its own (D2267), so `hosted/system`, `hosted/blocking`,
+`hosted/events`, `hosted/thread` and `hosted/heap` keep their POSIX bodies
+under `fixed if compiler.os <> windows` and give Windows arms in files of
+their own. A Windows host string is WTF-8 (D2268); the entry splits the
+command line as Microsoft's C runtime does and keeps the root itself
+(D2269); a file is a handle and a failure its Win32 code (D2270); a child
+gets exactly its three streams through named pipes (D2271); the blocking
+network waits a socket's limit out with `select` (D2272); `hosted/events`
+waits on an I/O completion port (D2277), learns a child's end from a job
+(D2278), takes the console's control events as its signals (D2279) and
+runs Windows Sockets overlapped (D2280); thread storage is the image's
+implicit TLS (D2274, D2193 superseded), a thread starts on a system stack
+and switches to its own (D2275), and the heap grows into its reservation
+(D2276). Windows Sockets is a module of its own, since its C names are a
+program's to declare too (D2281). The Windows lane carries fixtures' files
+and runs each outcome apart (D2273), and reports a failed build beside the
+other verdicts, a threads stream's finding. The gate's `windows-runtime`
+job ran 3,682 outcomes of 818 runtime fixtures natively on `windows-2025`,
+the hosted Io and thread corpus among them, all passed, in the merged
+candidate's gate run 45303680058, with boards run 45307040095; under Wine
+two console fixtures end early now and then when several run at once,
+which the native runner has not met. Found and fixed on the way: a
+program's own `send` or argument initializer collided on Windows with the
+library's, which every Windows program links; `handle_of` stripped only
+the socket mark; two names the streams both declared; the library page's
+drift check, which now lets a routine of each system's
+types describe its own. The heap's and lock's per-system helpers grow
+every hosted image at size by about 200 bytes, which the baselines declare
+and `SR-1739` records; `SR-1736` to `SR-1738` and `SR-1740` record the
+Windows link's `-o` without `.exe`, a program's own path, the library
+page's reader and a lane's hung outcome; `SR-1695` and `SR-1696` were
+restated.
 
 ### R21.30 — Windows debugging
 
