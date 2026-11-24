@@ -1096,6 +1096,26 @@ The merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45400339063) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45406894479).
 
+### R16.36 — Firmware loops tested at their foot
+
+Status: planned
+Depends on: R16.10
+
+`SR-1757`: Cortex-M, RV32 and Xtensa keep lowering's block order, since
+D2096 runs `Landin.IR.Layout` for hosted targets alone, so each iteration
+of a firmware loop jumps to its step and the step jumps back to the test
+at its head, and D2308's word alignment, which pads only a head nothing
+falls into, reaches few firmware loops. On x86-64 the hosted layout took
+0.5% to 8.9% off every workload at speed. The item lays firmware loops
+out tested at their foot where that pays, at `size` and `speed`, and
+measures it over the Cortex-M lanes' instructions, every board's cycles
+and every firmware image's size.
+Exit evidence: a benchmark program executing more than 5% fewer
+instructions on a Cortex-M lane, or taking more than 5% fewer cycles on a
+board, than at the item's base; every program's instructions, cycles and
+image size reported against that base; and no other combination over its
+own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
