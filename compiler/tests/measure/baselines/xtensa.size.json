@@ -170,7 +170,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6896,
+    ".text": 6880,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -220,7 +220,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6920,
+    ".text": 6904,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -270,7 +270,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6920,
+    ".text": 6904,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -320,7 +320,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6868,
+    ".text": 6852,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -370,7 +370,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6868,
+    ".text": 6852,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -420,7 +420,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 6892,
+    ".text": 6876,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -626,7 +626,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8580,
+    ".text": 8564,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -676,7 +676,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8604,
+    ".text": 8588,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -726,7 +726,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8604,
+    ".text": 8588,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -776,7 +776,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8552,
+    ".text": 8536,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -826,7 +826,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8552,
+    ".text": 8536,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436
@@ -876,7 +876,7 @@
    "sections": {
     ".isr_vector": 1024,
     ".landin_entry": 4,
-    ".text": 8576,
+    ".text": 8560,
     ".rodata": 516,
     ".data": 36,
     ".bss": 436

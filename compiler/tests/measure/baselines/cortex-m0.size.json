@@ -147,7 +147,7 @@
   "armv6-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3632,
+    ".text": 3596,
     ".rodata": 552,
     ".bss": 4
    }
@@ -191,7 +191,7 @@
   "armv6-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3620,
+    ".text": 3584,
     ".rodata": 552,
     ".bss": 4
    }
@@ -235,7 +235,7 @@
   "armv6-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3620,
+    ".text": 3584,
     ".rodata": 552,
     ".bss": 4
    }
@@ -279,7 +279,7 @@
   "armv6-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3632,
+    ".text": 3596,
     ".rodata": 552,
     ".bss": 4
    }
@@ -323,7 +323,7 @@
   "armv6-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3632,
+    ".text": 3596,
     ".rodata": 552,
     ".bss": 4
    }
@@ -367,7 +367,7 @@
   "armv6-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3620,
+    ".text": 3584,
     ".rodata": 552,
     ".bss": 4
    }
@@ -546,7 +546,7 @@
   "armv7-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3552,
+    ".text": 3536,
     ".rodata": 552,
     ".bss": 4
    }
@@ -589,7 +589,7 @@
   "armv7-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -632,7 +632,7 @@
   "armv7-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -675,7 +675,7 @@
   "armv7-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -718,7 +718,7 @@
   "armv7-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -761,7 +761,7 @@
   "armv7-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3548,
+    ".text": 3532,
     ".rodata": 552,
     ".bss": 4
    }
@@ -939,7 +939,7 @@
   "armv7e-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3552,
+    ".text": 3536,
     ".rodata": 552,
     ".bss": 4
    }
@@ -982,7 +982,7 @@
   "armv7e-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1025,7 +1025,7 @@
   "armv7e-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1068,7 +1068,7 @@
   "armv7e-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1111,7 +1111,7 @@
   "armv7e-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1154,7 +1154,7 @@
   "armv7e-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3548,
+    ".text": 3532,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1332,7 +1332,7 @@
   "armv8-m.main/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3552,
+    ".text": 3536,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1375,7 +1375,7 @@
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1418,7 +1418,7 @@
   "armv8-m.main/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3538,
+    ".text": 3522,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1461,7 +1461,7 @@
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1504,7 +1504,7 @@
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3560,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1547,7 +1547,7 @@
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3548,
+    ".text": 3532,
     ".rodata": 552,
     ".bss": 4
    }
