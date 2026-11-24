@@ -125,7 +125,8 @@ jobs:
             freebsd-arm64-runtime-1 freebsd-arm64-runtime-2 \
             freebsd-arm64-debugger freebsd-arm64-abi freebsd-amd64-size freebsd-arm64-size \
             windows-emit windows-runtime windows-microsoft windows-debugger \
-            windows-arm64-emit windows-arm64-runtime windows-arm64-debugger \
+            windows-arm64-emit windows-arm64-runtime windows-arm64-microsoft \
+            windows-arm64-debugger \
             measure-size build-modes-1 build-modes-2 \
             build-modes-3 build-modes-4 rv64-qemu-1 rv64-qemu-2 outside-user-stock \
             linux-release-clean linux-release-compare \
@@ -2477,17 +2478,8 @@ jobs:
           python3 compiler/tests/windows/check.py --prepare-only --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output="$RUNNER_TEMP/windows-microsoft-bundle"
-          #  The lane and the scripts it imports, at their own paths: the
-          #  Windows runner checks nothing out, since the tree holds a
-          #  fixture path with a double quote, which Git for Windows
-          #  refuses even outside a sparse checkout.
-          for bundle in windows-bundle windows-microsoft-bundle; do
-            for file in compiler/tests/windows/check.py scripts/lane_refine.py \
-                scripts/refine_revision.py scripts/build_identity.py; do
-              mkdir -p "$RUNNER_TEMP/$bundle/lane/$(dirname "$file")"
-              cp "$file" "$RUNNER_TEMP/$bundle/lane/$file"
-            done
-          done
+          #  Each bundle carries its lane under lane/: the Windows runner
+          #  checks nothing out (compiler/tests/windows/check.py).
       - name: Keep the bundle the Windows runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -2701,12 +2693,11 @@ jobs:
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --toolchain="$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang" \
             --output="$RUNNER_TEMP/windows-bundle"
-          #  The lane at its own paths, as windows-emit carries it.
-          for file in compiler/tests/windows/check.py scripts/lane_refine.py \
-              scripts/refine_revision.py scripts/build_identity.py; do
-            mkdir -p "$RUNNER_TEMP/windows-bundle/lane/$(dirname "$file")"
-            cp "$file" "$RUNNER_TEMP/windows-bundle/lane/$file"
-          done
+          #  D2387: Microsoft's link for arm64, as windows-emit keeps
+          #  x86-64's for windows-microsoft.
+          python3 compiler/tests/windows/check.py --prepare-only --target=windows-arm64 \
+            --link=microsoft \
+            --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
       - name: Keep the bundle the Windows arm64 runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -2715,6 +2706,15 @@ jobs:
             ${{ runner.temp }}/windows-bundle/prepared.json
             ${{ runner.temp }}/windows-bundle/bundle
             ${{ runner.temp }}/windows-bundle/lane
+          retention-days: 3
+      - name: Keep the bundle Microsoft's arm64 link takes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-arm64-microsoft-bundle
+          path: |
+            ${{ runner.temp }}/windows-microsoft-bundle/prepared.json
+            ${{ runner.temp }}/windows-microsoft-bundle/bundle
+            ${{ runner.temp }}/windows-microsoft-bundle/lane
           retention-days: 3
       - name: Emit the Windows arm64 debugger sessions
         run: >-
@@ -2757,6 +2757,39 @@ jobs:
             ${{ runner.temp }}/windows-evidence/summary.json
             ${{ runner.temp }}/windows-evidence/bundle/*.stdout
             ${{ runner.temp }}/windows-evidence/bundle/*.status
+          retention-days: 14
+
+  #  D2387: windows-microsoft's link on the arm64 runner, whose Clang
+  #  hands each command windows-arm64-emit kept to Visual Studio's arm64
+  #  link.exe with the Windows SDK's arm64 import libraries.
+  windows-arm64-microsoft:
+    needs: [inputs, windows-arm64-emit]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: windows-11-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-arm64-microsoft-bundle
+          path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Link with Microsoft's arm64 linker and execute the corpus
+        run: >-
+          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
+          --target=windows-arm64
+          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
+          --driver=clang --expect-linker=link.exe
+          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+      - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-arm64-microsoft
+          path: |
+            ${{ runner.temp }}/windows-microsoft-evidence/summary.json
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.link.log
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.stdout
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.status
+            ${{ runner.temp }}/windows-microsoft-evidence/failed
           retention-days: 14
 
   #  D2348: as windows-debugger, on the arm64 runner with llvm-mingw's
@@ -3312,8 +3345,8 @@ jobs:
             arm64-compiler-checks, arm64-release-build, arm64-release,
             arm64-release-checks, freebsd, rv64-qemu,
             windows-emit, windows-runtime, windows-microsoft, windows-debugger,
-            windows-arm64-emit, windows-arm64-runtime, windows-arm64-debugger,
-            determinism, board-bundles, board]
+            windows-arm64-emit, windows-arm64-runtime, windows-arm64-microsoft,
+            windows-arm64-debugger, determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     steps:
       #  The whole history, so the cycles comparison reads its base

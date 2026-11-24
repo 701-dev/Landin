@@ -41,6 +41,12 @@ class Recorder(unittest.TestCase):
             #  refine moves the output into place, so the recorder leaves one.
             self.assertTrue((stage / 'main.exe').is_file())
 
+    def test_names_each_target_for_its_microsoft_triple(self):
+        #  D2387: the name selects Microsoft's link for its own architecture.
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(LANE, 'TARGET', 'windows-arm64'):
+            self.assertEqual(LANE.recorder(Path(tmp)).name, 'aarch64-pc-windows-msvc-clang')
+
     def test_refuses_an_operand_it_cannot_carry(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)

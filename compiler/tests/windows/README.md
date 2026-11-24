@@ -14,7 +14,8 @@ and Ubuntu's MinGW-w64 import libraries (`mingw-w64-x86-64-dev`) under the
 name `x86_64-w64-mingw32-clang`, which is llvm-mingw's; `windows-runtime`
 runs the bundle with `--prepared=DIR` on GitHub's `windows-2025` image, with
 nothing but Python and the bundle, which carries this directory's script and
-the three it imports at their own paths. That job checks nothing out: the
+the three it imports at their own paths under `lane/`, as `--prepare-only`
+writes them. That job checks nothing out: the
 tree holds a fixture path with a double quote, which Git for Windows refuses
 even outside a sparse checkout. An emitted bundle is not an execution
 verdict.
@@ -153,13 +154,16 @@ development feedback: the gate's Windows runner is the verdict.
 
 `--link=microsoft` runs the same corpus through Microsoft's toolchain, the
 optional second one (D2327). refine cannot run where Microsoft's linker
-does, so emission gives refine a recording driver named
-`x86_64-pc-windows-msvc-clang`, the name that selects the policy; it keeps
-each assembly and the link command refine chose, beside the executables'
-places in the bundle. Execution runs each command with `--driver`, a
-Clang, before it runs the program, and writes Clang's account of the link
-to `LABEL.link.log`. In the gate `windows-emit` prepares this bundle too
-and the `windows-microsoft` job runs it on `windows-2025` with the
+does, so emission gives refine a recording driver named for the target's
+Microsoft triple, `x86_64-pc-windows-msvc-clang` or, under
+`--target=windows-arm64`, `aarch64-pc-windows-msvc-clang` (D2387), the
+name that selects the policy; it keeps each assembly and the link command
+refine chose, beside the executables' places in the bundle. Execution runs
+each command with `--driver`, a Clang, before it runs the program, and
+writes Clang's account of the link to `LABEL.link.log`. In the gate
+`windows-emit` and `windows-arm64-emit` prepare this bundle too, and the
+`windows-microsoft` job runs x86-64's on `windows-2025` and
+`windows-arm64-microsoft` arm64's on `windows-11-arm`, each with the
 runner's Clang and `--expect-linker=link.exe`, so a link that reached any
 linker but Visual Studio's fails, and `summary.json` names the driver's
 version and every linker that ran.
@@ -187,4 +191,28 @@ nix shell nixpkgs#wine64 -c env LIB="$lib" python3 compiler/tests/windows/check.
 The names are the `linker.library` lines of `platform/windows`. This
 checks refine's link command, the assembly under Clang's MSVC target and
 the programs, but not Microsoft's linker, which only the gate's Windows
-runner has.
+runner has. For arm64 the same libraries come from llvm-mingw's
+`aarch64-w64-mingw32` directory and the command adds
+`--target=windows-arm64`; the links run, but nothing local runs the
+programs, so the `windows-arm64-microsoft` job is the only verdict.
+
+## On a Windows host
+
+refine runs on Linux, so emission stays there and a Windows machine runs
+the bundles, as the gate's jobs do. Each `--prepare-only` output carries
+its lane under `lane/`; copy the output directory to the Windows machine
+and run, from Windows' own Python:
+
+```sh
+python DIR\lane\compiler\tests\windows\check.py --prepared=DIR --output=EVIDENCE
+```
+
+with `--target=windows-arm64` for an arm64 bundle. A `--link=microsoft`
+bundle also needs `--driver=` a Clang for the MSVC target, LLVM's Windows
+release for instance, `--expect-linker=link.exe`, and Visual Studio's C++
+build tools for the architecture and the Windows SDK, which Clang finds
+without a developer prompt. The debugger bundle runs with
+`debug.py --prepared=DIR --lldb=PATH\lldb.exe`, llvm-mingw's LLDB for
+Windows; its `--dap` step runs in WSL 1, with a Linux `refine` there and
+the bundle and `lldb-dap.exe` at their `/mnt/c` paths, as the gate's
+`windows-debugger` job does.
