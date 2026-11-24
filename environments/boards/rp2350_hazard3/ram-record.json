@@ -1,10 +1,10 @@
 {
   "status": "passed",
-  "image_sha256": "3ed6330857cd485452d96ef77e3d0247b797a562e051735cc0eb3add888f6eb2",
+  "image_sha256": "5ddc2a56f7bc349d24ee3248271e751b083110f9ae284f060f020dc8e765563e",
   "image_name": "board.elf",
   "amoadd": [
     {
-      "address": "20001af0",
+      "address": "20001a10",
       "function": "add_u32"
     }
   ],
@@ -34,7 +34,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 1638,
+      "timer_events": 1629,
       "echoed": 11202,
       "sent": 11572
     },
@@ -62,7 +62,7 @@
     "reports": 7,
     "trans_count": 1094
   },
-  "uart_sha256": "4e420353499a3c31ad35c42bc2bdef85074ec4ed6c6c4d483ffc9060cbd343ae",
+  "uart_sha256": "bae46d0c8b6077fbfad8dd4a65013bf2ce234a2a4b4a29b77a6943e9d894cb8c",
   "mode": "ram",
   "warm_load": {
     "board": "rp2350_hazard3",
@@ -94,7 +94,7 @@
       "rom_reset": false,
       "timer0_debug_pause": 2
     },
-    "elf_sha256": "3ed6330857cd485452d96ef77e3d0247b797a562e051735cc0eb3add888f6eb2",
+    "elf_sha256": "5ddc2a56f7bc349d24ee3248271e751b083110f9ae284f060f020dc8e765563e",
     "entry": 536870912,
     "flash_written": false,
     "format_version": 1,
@@ -105,15 +105,15 @@
       {
         "address": 536870912,
         "bytes": 784,
-        "sha256": "2c62176134012cf61a9f4b37694a432b588484dc2fe82d79a8b10c611e346868"
+        "sha256": "6e786e616e19987f6c8a742cb68f7e4b68bfd19eab8b8af77bf524178860cc9d"
       },
       {
         "address": 536871696,
-        "bytes": 25112,
-        "sha256": "45392bc3a7dbbb921288b671d3f965dd335550b581165320cef40e83097ad155"
+        "bytes": 20200,
+        "sha256": "0a15fefeb20e92e5d2482b1501cccf582c7584f3bb004a76eafdf1328d257eda"
       },
       {
-        "address": 536896808,
+        "address": 536891896,
         "bytes": 24,
         "sha256": "0baeda3ef5f538e158d6ac7360696feeb17ae6c79c7051b93d129730e8a806e2"
       }
@@ -122,10 +122,10 @@
     "status": "passed",
     "vector": 536871424
   },
-  "seconds": 14.221,
+  "seconds": 12.915,
   "kernel_usb": {
-    "since": 1795456067.6945946,
-    "until": 1795456081.8963273,
+    "since": 1795472183.5560355,
+    "until": 1795472196.4535818,
     "lines": [],
     "status": "captured"
   },
@@ -143,7 +143,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "00000666",
+      "m": "0000065d",
       "u": "00000001",
       "p": "8000000b",
       "n": "00000446",

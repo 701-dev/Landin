@@ -335,4 +335,78 @@ package body Landin.Backend.Placement is
       end if;
    end Measure;
 
+   procedure Find_Loop_Heads
+     (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
+      Heads : out Home_Mask)
+   is
+      use type Landin.IR.Block_Id;
+      Graph : constant Landin.IR.Control_Flow.Graph :=
+        Landin.IR.Control_Flow.Make (Of_Unit, Item);
+      Depth : constant Landin.IR.Liveness.Count_Vectors.Vector :=
+        Landin.IR.Liveness.Loop_Depths (Graph);
+      --  Whether a block has been searched as a head, so each is
+      --  searched once.
+      Searched : Home_Mask (Heads'Range) := [others => False];
+
+      procedure Mark (Source, Target : Landin.IR.Block_Id);
+      procedure Mark (Source, Target : Landin.IR.Block_Id) is
+         Head : constant Landin.IR.Block_Id := Target;
+         Edge : Natural :=
+           Landin.IR.Control_Flow.First_Predecessor (Graph, Head);
+      begin
+         if Head > Source or else Depth (Positive (Head)) = 0
+           or else Searched (Positive (Head))
+         then
+            return;
+         end if;
+         Searched (Positive (Head)) := True;
+         while Edge /= 0 loop
+            if Depth (Positive (Landin.IR.Control_Flow.Predecessor
+                                 (Graph, Edge)))
+              < Depth (Positive (Head))
+            then
+               Heads (Positive (Head)) := True;
+               return;
+            end if;
+            Edge := Landin.IR.Control_Flow.Next_Predecessor (Graph, Edge);
+         end loop;
+      end Mark;
+
+      procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id);
+      procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id) is
+      begin
+         if Back <= Test
+           and then Depth (Positive (Back)) = Depth (Positive (Test))
+           and then Depth (Positive (Leaving)) < Depth (Positive (Test))
+         then
+            Heads (Positive (Back)) := True;
+            Searched (Positive (Back)) := True;
+         end if;
+      end Foot;
+   begin
+      Heads := [others => False];
+      for Index in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
+         declare
+            Block : constant Landin.IR.Block_Id := Landin.IR.Block_Id (Index);
+            Last : constant Landin.IR.Value_Id := Landin.IR.Nth_Value
+              (Of_Unit, Item, Block, Landin.IR.Length (Of_Unit, Item, Block));
+         begin
+            case Landin.IR.Op_Of (Of_Unit, Item, Last) is
+               when Landin.IR.Jump =>
+                  Mark (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
+               when Landin.IR.Branch =>
+                  Mark (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
+                  Mark (Block, Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                  Foot (Block,
+                        Landin.IR.Target_Of (Of_Unit, Item, Last),
+                        Landin.IR.Alternative_Of (Of_Unit, Item, Last));
+                  Foot (Block,
+                        Landin.IR.Alternative_Of (Of_Unit, Item, Last),
+                        Landin.IR.Target_Of (Of_Unit, Item, Last));
+               when others => null;
+            end case;
+         end;
+      end loop;
+   end Find_Loop_Heads;
+
 end Landin.Backend.Placement;

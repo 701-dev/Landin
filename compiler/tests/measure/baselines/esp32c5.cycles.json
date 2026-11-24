@@ -351,21 +351,21 @@
    "runs": 3
   },
   "rv32imac/speed-all/cmp-siphash-vectors": {
-   "cycles": 606480,
+   "cycles": 594083,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "5c8b83d42d34f67341f28c7ef80266032e81659eef0bb99208f528e0dd65ee0c",
+   "image": "b6f8121f53c0782ac9b2740f4b99b6b524b33b7aa5e6ba4f43b1d3ca2a338ace",
    "runs": 3
   },
   "rv32imac/speed-all/fannkuch-redux": {
-   "cycles": 4130157,
+   "cycles": 4034778,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "3b325cc4f6416dd49218f2b2827c28a37fa185b7400e373fcebb414e1a648cf8",
+   "image": "54cb50a37b42e7bb8eb27284fc4ce2026e943f3ee05b95fedb3bb2fe46b311c7",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -380,21 +380,21 @@
    "checksum": "0x6b603ccc"
   },
   "rv32imac/speed-all/merge-sort": {
-   "cycles": 5089,
+   "cycles": 5019,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "9f8d6f5c6c0ea85fc7e27a02d96c8e94d5bd0ad9d0236f340f9693b26fe1c4ce",
+   "image": "9b001238921b617d19fc824ce50f4e44201e8cdeccc5df36143364ce3516fc78",
    "runs": 3
   },
   "rv32imac/speed-all/sieve-of-eratosthenes": {
-   "cycles": 9345,
+   "cycles": 8963,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "81d1a67b5e7905280fa576b54a647c804763ac6057f1245ee32972f577646009",
+   "image": "355150bd3ef34a56344a0e94ced25d2699b4c337dbe692ade2ce32f8567a4b5b",
    "runs": 3
   },
   "rv32imac/speed-auto/binary-search": {
@@ -407,21 +407,21 @@
    "runs": 3
   },
   "rv32imac/speed-auto/cmp-siphash-vectors": {
-   "cycles": 606480,
+   "cycles": 594083,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "5c8b83d42d34f67341f28c7ef80266032e81659eef0bb99208f528e0dd65ee0c",
+   "image": "b6f8121f53c0782ac9b2740f4b99b6b524b33b7aa5e6ba4f43b1d3ca2a338ace",
    "runs": 3
   },
   "rv32imac/speed-auto/fannkuch-redux": {
-   "cycles": 4130157,
+   "cycles": 4034778,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "3b325cc4f6416dd49218f2b2827c28a37fa185b7400e373fcebb414e1a648cf8",
+   "image": "54cb50a37b42e7bb8eb27284fc4ce2026e943f3ee05b95fedb3bb2fe46b311c7",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -436,21 +436,21 @@
    "checksum": "0x6b603ccc"
   },
   "rv32imac/speed-auto/merge-sort": {
-   "cycles": 5089,
+   "cycles": 5019,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "9f8d6f5c6c0ea85fc7e27a02d96c8e94d5bd0ad9d0236f340f9693b26fe1c4ce",
+   "image": "9b001238921b617d19fc824ce50f4e44201e8cdeccc5df36143364ce3516fc78",
    "runs": 3
   },
   "rv32imac/speed-auto/sieve-of-eratosthenes": {
-   "cycles": 9345,
+   "cycles": 8963,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "81d1a67b5e7905280fa576b54a647c804763ac6057f1245ee32972f577646009",
+   "image": "355150bd3ef34a56344a0e94ced25d2699b4c337dbe692ade2ce32f8567a4b5b",
    "runs": 3
   },
   "rv32imac/speed-off/binary-search": {
@@ -463,21 +463,21 @@
    "runs": 3
   },
   "rv32imac/speed-off/cmp-siphash-vectors": {
-   "cycles": 606490,
+   "cycles": 594093,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "300bf52457fc2112a2f6ab9dc9512f7e3ea7b1913f787ef7c5a3ad7d6b1cc8d9",
+   "image": "545c868130a9b30c0730f4365632072e6ead5cc88e05388d4e389388ea792f5f",
    "runs": 3
   },
   "rv32imac/speed-off/fannkuch-redux": {
-   "cycles": 4130157,
+   "cycles": 4034778,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "3b325cc4f6416dd49218f2b2827c28a37fa185b7400e373fcebb414e1a648cf8",
+   "image": "54cb50a37b42e7bb8eb27284fc4ce2026e943f3ee05b95fedb3bb2fe46b311c7",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -492,21 +492,21 @@
    "checksum": "0x6b603ccc"
   },
   "rv32imac/speed-off/merge-sort": {
-   "cycles": 5089,
+   "cycles": 5019,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "9f8d6f5c6c0ea85fc7e27a02d96c8e94d5bd0ad9d0236f340f9693b26fe1c4ce",
+   "image": "9b001238921b617d19fc824ce50f4e44201e8cdeccc5df36143364ce3516fc78",
    "runs": 3
   },
   "rv32imac/speed-off/sieve-of-eratosthenes": {
-   "cycles": 9345,
+   "cycles": 8963,
    "unit": "cycles",
    "counter": "mcycle",
    "clock": "xtal-48000000hz",
    "placement": "text:hp-sram,data:hp-sram,stack:hp-sram",
-   "image": "81d1a67b5e7905280fa576b54a647c804763ac6057f1245ee32972f577646009",
+   "image": "355150bd3ef34a56344a0e94ced25d2699b4c337dbe692ade2ce32f8567a4b5b",
    "runs": 3
   }
  }

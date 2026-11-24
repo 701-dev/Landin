@@ -111,58 +111,58 @@
    "instructions": 9345
   },
   "armv6-m/speed-all/binary-search": {
-   "instructions": 1060
+   "instructions": 1055
   },
   "armv6-m/speed-all/cmp-siphash-vectors": {
-   "instructions": 352465
+   "instructions": 350235
   },
   "armv6-m/speed-all/fannkuch-redux": {
-   "instructions": 3074512
+   "instructions": 3003285
   },
   "armv6-m/speed-all/mandelbrot": {
-   "instructions": 45790100
+   "instructions": 45762831
   },
   "armv6-m/speed-all/merge-sort": {
-   "instructions": 4374
+   "instructions": 4302
   },
   "armv6-m/speed-all/sieve-of-eratosthenes": {
-   "instructions": 7921
+   "instructions": 7516
   },
   "armv6-m/speed-auto/binary-search": {
-   "instructions": 1060
+   "instructions": 1055
   },
   "armv6-m/speed-auto/cmp-siphash-vectors": {
-   "instructions": 352465
+   "instructions": 350235
   },
   "armv6-m/speed-auto/fannkuch-redux": {
-   "instructions": 3074512
+   "instructions": 3003285
   },
   "armv6-m/speed-auto/mandelbrot": {
-   "instructions": 45790100
+   "instructions": 45762831
   },
   "armv6-m/speed-auto/merge-sort": {
-   "instructions": 4374
+   "instructions": 4302
   },
   "armv6-m/speed-auto/sieve-of-eratosthenes": {
-   "instructions": 7921
+   "instructions": 7516
   },
   "armv6-m/speed-off/binary-search": {
-   "instructions": 1060
+   "instructions": 1055
   },
   "armv6-m/speed-off/cmp-siphash-vectors": {
-   "instructions": 352471
+   "instructions": 350241
   },
   "armv6-m/speed-off/fannkuch-redux": {
-   "instructions": 3074512
+   "instructions": 3003285
   },
   "armv6-m/speed-off/mandelbrot": {
-   "instructions": 45790100
+   "instructions": 45762831
   },
   "armv6-m/speed-off/merge-sort": {
-   "instructions": 4374
+   "instructions": 4302
   },
   "armv6-m/speed-off/sieve-of-eratosthenes": {
-   "instructions": 7921
+   "instructions": 7516
   },
   "armv7-m/none-all/binary-search": {
    "instructions": 2504
@@ -273,58 +273,58 @@
    "instructions": 8737
   },
   "armv7-m/speed-all/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv7-m/speed-all/cmp-siphash-vectors": {
-   "instructions": 338265
+   "instructions": 335449
   },
   "armv7-m/speed-all/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv7-m/speed-all/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv7-m/speed-all/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv7-m/speed-all/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   },
   "armv7-m/speed-auto/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv7-m/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338265
+   "instructions": 335449
   },
   "armv7-m/speed-auto/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv7-m/speed-auto/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv7-m/speed-auto/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv7-m/speed-auto/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   },
   "armv7-m/speed-off/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv7-m/speed-off/cmp-siphash-vectors": {
-   "instructions": 338272
+   "instructions": 335456
   },
   "armv7-m/speed-off/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv7-m/speed-off/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv7-m/speed-off/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv7-m/speed-off/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   },
   "armv7e-m+fpv5-d16/none-all/binary-search": {
    "instructions": 2556
@@ -435,58 +435,58 @@
    "instructions": 8789
   },
   "armv7e-m+fpv5-d16/speed-all/binary-search": {
-   "instructions": 1077
+   "instructions": 1072
   },
   "armv7e-m+fpv5-d16/speed-all/cmp-siphash-vectors": {
-   "instructions": 338317
+   "instructions": 335501
   },
   "armv7e-m+fpv5-d16/speed-all/fannkuch-redux": {
-   "instructions": 2708012
+   "instructions": 2609618
   },
   "armv7e-m+fpv5-d16/speed-all/mandelbrot": {
-   "instructions": 647066
+   "instructions": 568427
   },
   "armv7e-m+fpv5-d16/speed-all/merge-sort": {
-   "instructions": 4107
+   "instructions": 4035
   },
   "armv7e-m+fpv5-d16/speed-all/sieve-of-eratosthenes": {
-   "instructions": 6461
+   "instructions": 6056
   },
   "armv7e-m+fpv5-d16/speed-auto/binary-search": {
-   "instructions": 1077
+   "instructions": 1072
   },
   "armv7e-m+fpv5-d16/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338317
+   "instructions": 335501
   },
   "armv7e-m+fpv5-d16/speed-auto/fannkuch-redux": {
-   "instructions": 2708012
+   "instructions": 2609618
   },
   "armv7e-m+fpv5-d16/speed-auto/mandelbrot": {
-   "instructions": 647066
+   "instructions": 568427
   },
   "armv7e-m+fpv5-d16/speed-auto/merge-sort": {
-   "instructions": 4107
+   "instructions": 4035
   },
   "armv7e-m+fpv5-d16/speed-auto/sieve-of-eratosthenes": {
-   "instructions": 6461
+   "instructions": 6056
   },
   "armv7e-m+fpv5-d16/speed-off/binary-search": {
-   "instructions": 1077
+   "instructions": 1072
   },
   "armv7e-m+fpv5-d16/speed-off/cmp-siphash-vectors": {
-   "instructions": 338324
+   "instructions": 335508
   },
   "armv7e-m+fpv5-d16/speed-off/fannkuch-redux": {
-   "instructions": 2708012
+   "instructions": 2609618
   },
   "armv7e-m+fpv5-d16/speed-off/mandelbrot": {
-   "instructions": 647066
+   "instructions": 568427
   },
   "armv7e-m+fpv5-d16/speed-off/merge-sort": {
-   "instructions": 4107
+   "instructions": 4035
   },
   "armv7e-m+fpv5-d16/speed-off/sieve-of-eratosthenes": {
-   "instructions": 6461
+   "instructions": 6056
   },
   "armv8-m.main/none-all/binary-search": {
    "instructions": 2504
@@ -597,58 +597,58 @@
    "instructions": 8737
   },
   "armv8-m.main/speed-all/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "instructions": 338265
+   "instructions": 335449
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv8-m.main/speed-all/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv8-m.main/speed-all/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv8-m.main/speed-all/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   },
   "armv8-m.main/speed-auto/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "instructions": 338265
+   "instructions": 335449
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv8-m.main/speed-auto/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv8-m.main/speed-auto/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv8-m.main/speed-auto/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   },
   "armv8-m.main/speed-off/binary-search": {
-   "instructions": 1025
+   "instructions": 1020
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
-   "instructions": 338272
+   "instructions": 335456
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "instructions": 2707960
+   "instructions": 2609566
   },
   "armv8-m.main/speed-off/mandelbrot": {
-   "instructions": 15385406
+   "instructions": 15356953
   },
   "armv8-m.main/speed-off/merge-sort": {
-   "instructions": 4055
+   "instructions": 3983
   },
   "armv8-m.main/speed-off/sieve-of-eratosthenes": {
-   "instructions": 6409
+   "instructions": 6004
   }
  },
  "environment": null

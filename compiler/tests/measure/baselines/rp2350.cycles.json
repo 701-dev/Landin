@@ -351,21 +351,21 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
-   "cycles": 345626,
+   "cycles": 343997,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "20c40fd5e70f6f5a864cb11411b6ce1ac058c9ea35e0cda75c7264b0a26832a8",
+   "image": "366d4c17b8b3f3fb135825caa310b3da664fd3a27862f96ec8e779e9962f7fcf",
    "runs": 3
   },
   "armv8-m.main/speed-all/fannkuch-redux": {
-   "cycles": 3006385,
+   "cycles": 2912328,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
+   "image": "52dd11fe18a951f9a4a3d355770fed73194e846cb7ec18037c8b325735b08794",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -389,12 +389,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-all/sieve-of-eratosthenes": {
-   "cycles": 6983,
+   "cycles": 6677,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d5e8cd303c7854c68b6e5332cbd9805a86540aa9c3ad7fdb15e9d8e9e2eb013",
+   "image": "5ca346c7030461a1281b155ae0abb25049f71c977398cee23e43fa867eee0e07",
    "runs": 3
   },
   "armv8-m.main/speed-auto/binary-search": {
@@ -407,21 +407,21 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
-   "cycles": 345626,
+   "cycles": 343997,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "20c40fd5e70f6f5a864cb11411b6ce1ac058c9ea35e0cda75c7264b0a26832a8",
+   "image": "366d4c17b8b3f3fb135825caa310b3da664fd3a27862f96ec8e779e9962f7fcf",
    "runs": 3
   },
   "armv8-m.main/speed-auto/fannkuch-redux": {
-   "cycles": 3006385,
+   "cycles": 2912328,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
+   "image": "52dd11fe18a951f9a4a3d355770fed73194e846cb7ec18037c8b325735b08794",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -445,12 +445,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-auto/sieve-of-eratosthenes": {
-   "cycles": 6983,
+   "cycles": 6677,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d5e8cd303c7854c68b6e5332cbd9805a86540aa9c3ad7fdb15e9d8e9e2eb013",
+   "image": "5ca346c7030461a1281b155ae0abb25049f71c977398cee23e43fa867eee0e07",
    "runs": 3
   },
   "armv8-m.main/speed-off/binary-search": {
@@ -463,21 +463,21 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
-   "cycles": 345637,
+   "cycles": 344003,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d2e830c751494f9ed35921042a9c2748550dbcf97bb91e68f60a2339f24b2b1",
+   "image": "af96b5c040b9b50039e03a3ff842f4e9b44709b898cdf4b2178b9622614a2d7b",
    "runs": 3
   },
   "armv8-m.main/speed-off/fannkuch-redux": {
-   "cycles": 3006385,
+   "cycles": 2912328,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "1f280ecb3141a190cdf181787c2e9c0b1feb43d713b52dfc63dd448bbadf71b0",
+   "image": "52dd11fe18a951f9a4a3d355770fed73194e846cb7ec18037c8b325735b08794",
    "runs": 3,
    "checksum": "0x05b0c76f"
   },
@@ -501,12 +501,12 @@
    "runs": 3
   },
   "armv8-m.main/speed-off/sieve-of-eratosthenes": {
-   "cycles": 6983,
+   "cycles": 6677,
    "unit": "cycles",
    "counter": "DWT_CYCCNT",
    "clock": "xosc-12000000hz",
    "placement": "text:sram,data:sram,stack:sram",
-   "image": "4d5e8cd303c7854c68b6e5332cbd9805a86540aa9c3ad7fdb15e9d8e9e2eb013",
+   "image": "5ca346c7030461a1281b155ae0abb25049f71c977398cee23e43fa867eee0e07",
    "runs": 3
   }
  }

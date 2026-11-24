@@ -66,7 +66,7 @@
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
     "mode": "warm",
-    "previous_pc": 603988172,
+    "previous_pc": 603990798,
     "segments": [
       {
         "address": 603979776,
@@ -78,10 +78,10 @@
     "status": "passed",
     "vector": 603979776
   },
-  "seconds": 3.464,
+  "seconds": 3.477,
   "kernel_usb": {
-    "since": 1795456228.2304568,
-    "until": 1795456231.6750612,
+    "since": 1795472343.9546967,
+    "until": 1795472347.4127753,
     "lines": [],
     "status": "captured"
   },

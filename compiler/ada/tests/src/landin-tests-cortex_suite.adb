@@ -749,6 +749,108 @@ package body Landin.Tests.Cortex_Suite is
          "reachable array retains its Cortex-M0 frame home");
    end Dead_Array_Slot_Has_No_Frame;
 
+   --  D2307: at speed Cortex-M makes a value whose last use stores it
+   --  into a slot held in a register in that register, so a loop's body
+   --  moves nothing into its slots, where size still moves each; D2308:
+   --  at speed Thumb-2 starts the loop's head, which the guard's return
+   --  does not fall into, on a word, and Armv6-M pads nothing.
+   procedure Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context);
+
+   procedure Stores_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context)
+   is
+      package Opt renames Landin.Optimization;
+      function Emitted
+        (Objective : Opt.Objective; Level : String) return String;
+
+      function Emitted
+        (Objective : Opt.Objective; Level : String) return String
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (T.Cortex_M);
+         Order : Landin.Stages.Pipeline;
+         Written : constant Landin.Source.Source_Id := Landin.Stages.Add_Source
+           (Work, "mix.ldn", "mix: (n: u32, k: u32) -> (s: u32) = "
+            & "mut total: u32 = 0 mut i: u32 = 0 s = 7 "
+            & "return when n == 7 "
+            & "while i < n do total = total ^ (i +% k) i = i +% 1 "
+            & "end while s = total end mix");
+         Assembly : U.Unbounded_String;
+         Report : Landin.Build_Reports.Report;
+      begin
+         pragma Unreferenced (Written);
+         Landin.Stages.Append (Order, Frontend'Access);
+         Landin.Stages.Append (Order, Configurer'Access);
+         Landin.Stages.Append (Order, Resolver'Access);
+         Landin.Stages.Append (Order, Checker'Access);
+         Landin.Stages.Append (Order, Lowerer'Access);
+         Landin.Testing.Check_Equal
+           (Item, Landin.Stages.Run (Order, Work), 5,
+            "the loop reaches IR: " & Landin.Stages.Rendered_Report (Work));
+         if Landin.Stages.Failed (Work) then
+            return "";
+         end if;
+         IR.Simplification.Run
+           (Landin.Stages.Code (Work).all, T.Cortex_M, Objective);
+         Landin.Backend.Cortex_M.Emit
+           (Landin.Stages.Code (Work).all,
+            Landin.Stages.Meanings (Work).all,
+            Landin.Stages.Identities (Work).all, T.Cortex_M,
+            (Objective, Opt.Off), Assembly, Report,
+            Level => Landin.Targets.Levels.Level_Named (T.Cortex_M, Level));
+         return U.To_String (Assembly);
+      end Emitted;
+
+      --  The loop from its test through the jump back to it, and
+      --  whether a word's alignment stands before the test's labels.
+      procedure Inspect
+        (Text : String; Loop_Body : out U.Unbounded_String;
+         Aligned : out Boolean);
+      procedure Inspect
+        (Text : String; Loop_Body : out U.Unbounded_String;
+         Aligned : out Boolean)
+      is
+         Head : constant Natural := Ada.Strings.Fixed.Index
+           (Text, LF & ".L1_3:" & LF & ".L1_4:" & LF);
+         Back : constant Natural :=
+           (if Head = 0 then 0
+            else Ada.Strings.Fixed.Index (Text, HT & "b .L1_4" & LF, Head));
+      begin
+         Loop_Body := U.To_Unbounded_String
+           (if Back = 0 then "" else Text (Head .. Back));
+         Aligned := Head > 10
+           and then Text (Head - 10 .. Head) = HT & ".balign 4" & LF;
+      end Inspect;
+
+      function Moves (Loop_Body : String) return Natural
+        is (Ada.Strings.Fixed.Count (Loop_Body, HT & "mov r"));
+      type Level_List is array (1 .. 2) of U.Unbounded_String;
+      Levels : constant Level_List :=
+        [U.To_Unbounded_String ("armv7-m"),
+         U.To_Unbounded_String ("armv6-m")];
+   begin
+      for Level of Levels loop
+         declare
+            Name : constant String := U.To_String (Level);
+            Fast, Small : U.Unbounded_String;
+            Fast_Aligned, Small_Aligned : Boolean;
+         begin
+            Inspect (Emitted (Opt.Speed, Name), Fast, Fast_Aligned);
+            Inspect (Emitted (Opt.Size, Name), Small, Small_Aligned);
+            Landin.Testing.Check
+              (Item, U.Length (Fast) > 0 and then U.Length (Small) > 0
+                 and then Moves (U.To_String (Fast))
+                   < Moves (U.To_String (Small)),
+               Name & ": speed's loop moves less into its slots than size's");
+            Landin.Testing.Check
+              (Item, Fast_Aligned = (Name = "armv7-m")
+                 and then not Small_Aligned,
+               Name & ": the loop's head starts on a word on Thumb-2 at "
+               & "speed alone");
+         end;
+      end loop;
+   end Stores_Into_Slot_Registers;
+
    procedure Contract (Item : in out Landin.Testing.Context) is
       Unit : IR.Unit;
       Text : U.Unbounded_String;
@@ -5411,6 +5513,9 @@ package body Landin.Tests.Cortex_Suite is
 
    procedure Register (Into : in out Landin.Testing.Registry) is
    begin
+      Landin.Testing.Register
+        (Into, "cortex ABI", "stored values are made in slot registers",
+         Stores_Into_Slot_Registers'Access);
       Landin.Testing.Register
         (Into, "cortex ABI", "RAM custom scripts validate allocated sections",
          RAM_Section_Contract'Access);
