@@ -2419,8 +2419,8 @@ for `lldb-dap`, a PE image taking LLDB and Windows' and WSL's paths
 translated, since `refine` runs on Windows in WSL. The gate's
 `windows-debugger` job runs LLDB's batch session at the four profiles
 natively on `windows-2025` and the DAP session through `refine dap` from
-WSL on the same runner, passed in the candidate's gate run 45290650079
-with boards run 45294696097; `compiler/tests/windows/debug.py` runs
+WSL on the same runner, passed in the merged candidate's gate run
+45324523635 with boards run 45328192419; `compiler/tests/windows/debug.py` runs
 both under Wine locally. Found and fixed on the way: LLVM's `lldb-dap`
 answers `launch` after `configurationDone` and verifies a breakpoint once
 the program is loaded, from release 21, which `compiler/tests/dap/session.py`
