@@ -115,12 +115,16 @@ long long landin_allocated_bytes(void)
     }
     return sum;
 #elif defined(__FreeBSD__)
-    /* FreeBSD's allocator is jemalloc, whose statistics are refreshed by
-       advancing its epoch; stats.allocated is the bytes the program holds,
-       its own caches apart. */
+    /* FreeBSD's allocator is jemalloc.  A block freed into this thread's
+       cache still counts as allocated, and one taken from it is not yet
+       counted, until the cache is flushed; the statistics are refreshed by
+       advancing the epoch, and stats.allocated is then the bytes the
+       program holds.  A thread without a cache refuses the flush, which
+       changes nothing. */
     uint64_t epoch = 1;
     size_t allocated, length = sizeof allocated;
 
+    (void)mallctl("thread.tcache.flush", NULL, NULL, NULL, 0);
     if (mallctl("epoch", NULL, NULL, &epoch, sizeof epoch) != 0
         || mallctl("stats.allocated", &allocated, &length, NULL, 0) != 0)
         return -1;
