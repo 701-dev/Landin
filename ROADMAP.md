@@ -1039,10 +1039,10 @@ RP2040 0.4% to 4.0%; the RP2350's M33 0.5% to 4.4%, fannkuch-redux 3.1%,
 below its figure before R16.33; and the STM32H753 1.5% to 8.8% but for
 SipHash, 1.29% slower for fewer instructions, which placement alone moves
 by 1.2% from the TCMs (`SR-1758`). `SR-1757` files firmware's block
-order, which leaves most firmware loop heads fallen into. The candidate
-passed its
-[gate](https://github.com/701-dev/Landin/actions/runs/45305876900) and
-[boards](https://github.com/701-dev/Landin/actions/runs/45308579148).
+order, which leaves most firmware loop heads fallen into. The merged
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45335016031) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45338343665).
 
 ### The continuous items
 
