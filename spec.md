@@ -28086,7 +28086,12 @@ sort, 1.2% on fannkuch-redux, 0.3% on SipHash and 0.2% on mandelbrot,
 4.7% on mandelbrot with the double-precision float unit, and ARMv6-M,
 with D2407, 6.7%, 3.2%, 2.1%, 1.2%, 0.2% and 0.0%. Every firmware image
 at `size` and `speed` is smaller: Thumb-2 by 0.6% to 5.0%, ARMv6-M by
-0.6% to 5.4%, RV32 by 0.2% to 1.9% and Xtensa by 0.4% to 1.1%.
+0.6% to 5.4%, RV32 by 0.2% to 1.9% and Xtensa by 0.4% to 1.1%. On the
+boards at `speed` the sieve takes 6.7% (ESP32-C3) to 18.7% (ESP32) fewer
+cycles, binary search 3.0% to 16.3% and merge sort 2.5% to 11.1%; the
+ESP32's and ESP32-S3's fannkuch-redux take 1.1% more, the STM32H753's
+SipHash 1.3% more, which moves with its code's placement, and the
+ESP32-C3's and the Hazard3's mandelbrot at `size` 0.3% more.
 
 **The alternatives:** a per-target choice of which loops to turn, which
 the measurements gave no case for; and keeping lowering's order on
