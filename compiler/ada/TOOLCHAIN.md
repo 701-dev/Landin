@@ -125,7 +125,7 @@ which installs them through `environments/pins.sh` and so runs `sha256sum
 -c` before it unpacks anything, and the Linux arm64 rows by
 the gate's `ubuntu-24.04-arm` jobs, which do the same through
 `environments/pins.sh`. A host may build the same versions from source
-instead.
+instead, as FreeBSD does (below).
 
 Each archive installs its compiler driver under its own GNU triplet, which is
 the name `refine` asks for: `x86_64-pc-linux-gnu-gcc` on Linux x86-64 and
@@ -155,6 +155,46 @@ linker; every Darwin host links with Apple's.
 | Linux x86-64 | `gprbuild-x86_64-linux-26.0.0-1.tar.gz` | `e3f27f2515ec04d963f6badade6595993b1c091ba15d1919a7c75aad1b7ed49b` |
 | Linux arm64 | `gnat-aarch64-linux-16.1.0-1.tar.gz` | `8e297497f2d6d6845920a363a277b6ef5bc454e48a66d0d606b89d71e31ee623` |
 | Linux arm64 | `gprbuild-aarch64-linux-26.0.0-1.tar.gz` | `c125424447144944973d24de43a53b3e7008dbda306e0d540db07e635dea24e4` |
+
+### FreeBSD, built from source
+
+GNAT-FSF-builds publishes no FreeBSD archive, and FreeBSD's packages carry
+GNAT 12 to 15 and a GPRbuild that moves with the ports, so a FreeBSD host
+builds the pinned versions from source, as the table above allows.
+`environments/freebsd/gnat.py` boots a fresh guest from the locked
+FreeBSD 14.4 image and runs `environments/freebsd/gnat/build.sh` there:
+
+- GCC `16.1.0` with Ada, from the GNU release tarball, patched with every
+  `files/patch-*` of FreeBSD ports' `lang/gcc16` at the commit
+  `environments/pins.sh` names (`environments/freebsd/gnat/patches/`), and
+  configured as the ports configure it, with binutils' `as` and `ld`. It is
+  built once by the `gnat14` package rather than bootstrapped in three
+  stages, as the ports build each GNAT from the one before it: the
+  compiler and runtime are the pinned version's, in a third of the time.
+  `gnat14` rather than `gnat15`, because `gnat15` cannot build GCC on
+  aarch64, and one recipe serves both architectures.
+- GPRbuild `26.0.0` with XML/Ada and the gprconfig knowledge base of the
+  same tag, built by GPRbuild's own bootstrap script with the new GNAT and the one
+  commit after the tag that GNAT 16 needs, `6421e350274b`
+  (`environments/freebsd/gnat/gprbuild-6421e350274b.patch`): 26.0.0 names
+  a map's `"<"` that GNAT 16 refuses, and `gnat14` lacks a unit 26.0.0
+  uses.
+
+Every source is checked against its sha256 in `environments/pins.sh`
+before it reaches the guest. The result unpacks at `/opt/landin`, whose
+`gnat-16.1.0` and `gprbuild-26.0.0` are `LANDIN_GNAT_HOME` and
+`LANDIN_GPRBUILD_HOME`, and loads the `gmp`, `mpfr`, `mpc` and `isl`
+packages; `gnat.py` keeps it as one archive in `~/.cache/landin/freebsd`
+named by a digest of the pins, the patches, the recipe and the release
+image, and the gate caches it under the same digest. On 16 processors in
+16 GiB it took ten minutes; the archive is 111 MB.
+
+| source | archive | sha256 |
+|---|---|---|
+| GNU | `gcc-16.1.0.tar.xz` | `50efb4d94c3397aff3b0d61a5abd748b4dd31d9d3f2ab7be05b171d36a510f79` |
+| AdaCore, tag `v26.0.0` | `gprbuild-26.0.0.tar.gz` | `4699443c1a97a1527de44e6c3d3505fd95c3904a6533e67cd34c674c408f7d4f` |
+| AdaCore, tag `v26.0.0` | `xmlada-26.0.0.tar.gz` | `26494e57233e8eff9f8339b1520b6dc8188b259a9fccfc808fb19ffe767813aa` |
+| AdaCore, tag `v26.0.0` | `gprconfig_kb-26.0.0.tar.gz` | `d6edeb941ab9df6b6a186180f17d9a89c57d25be1e0acd8a9237c38164d944de` |
 
 ### Xtensa cross tools
 

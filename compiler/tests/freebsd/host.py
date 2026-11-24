@@ -112,20 +112,32 @@ def package(guest, options, environment, log):
     debug = f'landin-{version()}-{platform}-debug.tar.gz'
     binary = f'compiler/ada/build/freebsd-{options.arch}/release/bin/refine'
     say('package ' + asset)
-    smoke = ' && '.join([
-        f'./scripts/package.sh --debug /tmp/landin-package/{debug} {binary}'
-        f' /tmp/landin-package/{asset}',
-        'rm -rf /tmp/landin-unpacked && mkdir /tmp/landin-unpacked',
-        f'tar -xzf /tmp/landin-package/{asset} -C /tmp/landin-unpacked',
-        '/tmp/landin-unpacked/bin/refine --version',
-        'python3 compiler/tests/test_default_target.py --refine /tmp/landin-unpacked/bin/refine',
-        '{ /tmp/landin-unpacked/bin/refine run'
-        ' compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn; test $? = 42; }',
-    ])
-    status = streamed(guest, as_user(f'rm -rf /tmp/landin-package && mkdir /tmp/landin-package'
-                                     f' && cd {CHECKOUT} && {environment} && {smoke}'),
-                      log, 3600)
+    status = streamed(guest, as_user(
+        f'rm -rf /tmp/landin-package && mkdir /tmp/landin-package && cd {CHECKOUT}'
+        f' && {environment} ./scripts/package.sh --debug /tmp/landin-package/{debug}'
+        f' {binary} /tmp/landin-package/{asset}'), log, 3600)
     vm.require(status == 0, 'packaging failed; see ' + str(log))
+    #  The archive must run where no GNAT is: the toolchain is moved away
+    #  while the unpacked refine names its host, compiles and runs a
+    #  program, and says what it loads.
+    guest.checked(f'mv {gnat.PREFIX} {gnat.PREFIX}.away')
+    try:
+        smoke = ' && '.join([
+            'rm -rf /tmp/landin-unpacked && mkdir /tmp/landin-unpacked',
+            f'tar -xzf /tmp/landin-package/{asset} -C /tmp/landin-unpacked',
+            'ldd /tmp/landin-unpacked/bin/refine',
+            '/tmp/landin-unpacked/bin/refine --version',
+            f'cd {CHECKOUT}',
+            'python3 compiler/tests/test_default_target.py'
+            ' --refine /tmp/landin-unpacked/bin/refine',
+            '{ /tmp/landin-unpacked/bin/refine run'
+            ' compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn;'
+            ' test $? = 42; }',
+        ])
+        status = streamed(guest, as_user(smoke), log, 1800)
+    finally:
+        guest.checked(f'mv {gnat.PREFIX}.away {gnat.PREFIX}')
+    vm.require(status == 0, 'the packaged refine failed where no GNAT is; see ' + str(log))
     options.package.mkdir(parents=True, exist_ok=True)
     for name in (asset, debug):
         with (options.package / name).open('wb') as sink:

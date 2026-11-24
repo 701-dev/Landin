@@ -140,7 +140,10 @@ under `lib/landin`, with no top-level directory. Unpack it into a directory of i
 `PATH`.
 
 From the release after 0.2.11, a release publishes two archives for each
-Linux architecture, x86-64 and arm64. macOS has one archive, as before.
+Linux architecture, x86-64 and arm64. macOS has one archive, as before,
+and FreeBSD x86-64 one, `landin-VERSION-x86_64-freebsd.tar.gz`, whose
+`refine` needs only the base system and links with its `cc` and binutils'
+`as` (`pkg install binutils`).
 
 The static archive has the platform's name:
 `landin-VERSION-x86_64-linux.tar.gz` and
@@ -532,7 +535,7 @@ Hosted targets:
 | Linux x86-64, Linux arm64 | hosted executables | natively, with GDB |
 | Linux RV64 | hosted executables | under QEMU's user emulation, with GDB |
 | macOS arm64 | hosted executables | natively, with LLDB |
-| FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux | in FreeBSD VMs, with LLDB |
+| FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux, or on FreeBSD x86-64 by `refine` built there | in FreeBSD VMs, with LLDB |
 | Windows x86-64 and arm64 | hosted executables, emitted on Linux | natively on Windows runners, with LLDB |
 
 Firmware targets:

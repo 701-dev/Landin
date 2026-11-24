@@ -3214,7 +3214,14 @@ package body Landin.Tests.Fixture_Execution_Suite is
             Check_Arm64_Level (Built, Label, Level /= "", Item);
          elsif Lanes.Target_Name = "linux-rv64" and then Level /= "" then
             Check_RV64_Level (Built, Label, Level, Item);
-         elsif Level /= "" then
+         elsif Level /= ""
+           and then Landin.Targets.Capabilities.Hosted_System_Of
+             (Lanes.Target) = Landin.Targets.Capabilities.Linux
+         then
+            --  Only a Linux link writes the level's note (refine passes
+            --  -z LEVEL there alone); FreeBSD's loader reads none, and
+            --  the emitted FreeBSD lane holds its linked images to the
+            --  level's instructions instead.
             declare
                Note : Landin.Platform.Tool_Result;
                Args : Landin.Platform.Path_List;
@@ -3415,7 +3422,13 @@ package body Landin.Tests.Fixture_Execution_Suite is
       Landin.Platform.Add (Driver_Arguments, "-Werror");
       --  x86-64's emitted code addresses data RIP-relative and absolute
       --  alike; arm64's is position-independent, as the driver defaults.
-      if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64 then
+      --  FreeBSD's Clang links x86-64 without it, as refine's own FreeBSD
+      --  link and the emitted FreeBSD lane's do, and under -Werror refuses
+      --  it as unused.
+      if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64
+        and then Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+          = Landin.Targets.Capabilities.Linux
+      then
          Landin.Platform.Add (Driver_Arguments, "-no-pie");
       end if;
       --  Spelled for this lane's linker as every Python lane spells them.
