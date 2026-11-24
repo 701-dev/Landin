@@ -10401,8 +10401,14 @@ package body Landin.Backend.X86_64 is
          Put (Local_Prefix & "landin_tls_callbacks:");
          Emit (".quad 0");
          Emit (ELF.Pop_Section);
+         --  D2327: the start marker holds a byte, as the C runtime's
+         --  `_tls_start` does.  Microsoft's linker folds the template into
+         --  `.rdata` and counts a SECREL32 from the `.tls` contribution,
+         --  and an empty one it drops, so every offset counted from
+         --  `.rdata`'s start instead; LLD counts from the same byte.
          Emit (".pushsection .tls,""dw""");
          Put (Local_Prefix & "landin_tls_start:");
+         Emit (".byte 0");
          Emit (ELF.Pop_Section);
          Emit (".pushsection .tls$zzz,""dw""");
          Put (Local_Prefix & "landin_tls_end:");
