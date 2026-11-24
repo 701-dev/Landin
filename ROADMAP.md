@@ -2362,7 +2362,7 @@ gate.
 
 ### R21.30 — Windows debugging
 
-Status: active
+Status: complete
 Depends on: R21.10
 
 CodeView in the objects, PDBs from the linker, and the Windows debugger
@@ -2383,7 +2383,8 @@ for `lldb-dap`, a PE image taking LLDB and Windows' and WSL's paths
 translated, since `refine` runs on Windows in WSL. The gate's
 `windows-debugger` job runs LLDB's batch session at the four profiles
 natively on `windows-2025` and the DAP session through `refine dap` from
-WSL on the same runner, GATE_RUN; `compiler/tests/windows/debug.py` runs
+WSL on the same runner, passed in the candidate's gate run 45290650079
+with boards run 45294696097; `compiler/tests/windows/debug.py` runs
 both under Wine locally. Found and fixed on the way: LLVM's `lldb-dap`
 answers `launch` after `configurationDone` and verifies a breakpoint once
 the program is loaded, from release 21, which `compiler/tests/dap/session.py`
@@ -2391,7 +2392,9 @@ now allows; a breakpoint on a line whose first value had no code stopped
 past its locals (D2288); and ranges out of address order joined into one.
 Rows SR-1746 to SR-1748 record the inline sites CodeView lacks (D2290),
 the stack-switch session Windows lacks and two `--debug=full` builds that
-differ by their temporary object's name.
+differ by their temporary object's name; SR-1749 the minute the first
+`lldb-dap.exe` WSL starts on a fresh runner has taken to answer, which the
+gate's job routes around by starting it once first.
 
 ### R21.40 — Windows arm64
 
