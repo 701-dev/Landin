@@ -1044,6 +1044,26 @@ candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45335016031) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45338343665).
 
+### R16.35 — What SHA-256 still costs on x86-64
+
+Status: planned
+Depends on: R16.10
+
+What R16.33 left as SHA-256's largest cost against gcc on x86-64, and
+what R16.34 did not touch: SHA-256 of 64 MiB executes 6.03 G instructions
+at speed against gcc 16.1 `-O2`'s 4.56 G. `SR-1650` names the
+compression round, which keeps the word `h` in the frame because slot
+placement gives a slot a register over its whole interval without
+counting the registers the values inside it still need; R16.30 found
+that a register for `h` alone saves two memory accesses a round and no
+instruction (Q-204). Measured first, then taken where the instructions
+are: the round, the message schedule and load loops, and the program's
+own work on each byte.
+Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base, each cost it takes measured, the
+round's against `SR-1650`'s completion, and no other combination over
+its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
