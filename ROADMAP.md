@@ -2344,6 +2344,8 @@ walk ends at `at_end`; none of their live text names a removed form.
 ## R21 — Windows
 
 R15's proposal rewritten for today's library, second Io and threads.
+R21.60 and R21.61, which the maintainer placed here on 2026-11-24, bring
+`refine` itself to FreeBSD, whose programs it already builds.
 
 ### R21.10 — Windows x86-64
 
@@ -2570,9 +2572,49 @@ Exit evidence: the corpus links with Microsoft's tools and runs on a
 Windows arm64 runner in the gate; the selection for both architectures
 in `docs/capabilities.md`.
 
+### R21.60 — refine on FreeBSD x86-64
+
+Status: planned
+Depends on: none
+
+The maintainer decided on 2026-11-24 that `refine` runs natively on
+FreeBSD beside Linux, and placed that work here. FreeBSD's programs are
+emitted on Linux today and run in the gate's FreeBSD guests, which
+compile no Landin. GNAT-FSF-builds publishes no pinned GNAT for FreeBSD,
+and its ports carry GNAT 14, so this item builds the pinned GNAT and
+GPRbuild on FreeBSD x86-64 from source, as `compiler/ada/TOOLCHAIN.md`
+allows a host to, cached by their inputs, and records how. `refine` and
+its commands are built with them; `Landin.Platform`'s native body takes
+FreeBSD in its POSIX arm wherever it differs from Linux and Darwin, as
+it already does for the executable's own path; and `freebsd-x86-64` is a
+FreeBSD x86-64 host's default target, where the host defaults name only
+Linux and Darwin today.
+Exit evidence: the gate's `freebsd` job, whose amd64 guest runs under KVM
+on a GitHub-hosted Linux runner, builds `refine` in that guest, where the
+test program, the native adapter's cases and the hosted corpus compiled
+by that `refine` pass; the host in `docs/capabilities.md` and a release
+archive for it.
+
+### R21.61 — refine on FreeBSD arm64
+
+Status: planned
+Depends on: R21.60
+
+R21.60 on FreeBSD arm64. The gate's arm64 guest is emulated, where
+building a compiler may outlast a job, and the gate runs on no host of
+its own but the lab rig, so the evidence is a run on the maintainer's
+arm64 host.
+Exit evidence: a named run recorded in the item, in the FreeBSD arm64
+guest under KVM on the maintainer's arm64 host, of R21.60's evidence:
+`refine` built there with the pinned GNAT, and the test program, the
+native adapter's cases and the hosted corpus it compiles passing; the
+host in `docs/capabilities.md` and a release archive for it.
+
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
-runners, and the corpus linked by Microsoft's toolchain on both.
+runners, and the corpus linked by Microsoft's toolchain on both; `refine`
+built and tested on FreeBSD x86-64 in the gate and on FreeBSD arm64 in
+R21.61's recorded run.
 
 ## R22 — Library additions
 
@@ -3202,7 +3244,7 @@ none that is quick. These items make the releases that exist reachable:
 they add steps to the release recipe and the flake, and make no release
 and change no version, which stay outside this roadmap. Package
 repositories (apt, rpm, the AUR) and further hosts (Windows, an Intel Mac,
-FreeBSD) are not among them; R21 owns Windows.
+FreeBSD) are not among them; R21 owns Windows and `refine` on FreeBSD.
 
 Their dependencies are inside the phase, so each may start beside the
 serial lane's item, as R17.50 did; while R19 to R22 have an item, the
