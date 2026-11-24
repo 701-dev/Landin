@@ -2557,7 +2557,7 @@ DAP session that fell silent after its launch, once, in that gate run.
 
 ### R21.51 — Microsoft's toolchain on Windows arm64
 
-Status: active
+Status: complete
 Depends on: R21.40, R21.50
 
 R21.50's toolchain for `windows-arm64` as well, on a Windows host: the
@@ -2571,6 +2571,26 @@ a Windows image built on Linux takes llvm-mingw.
 Exit evidence: the corpus links with Microsoft's tools and runs on a
 Windows arm64 runner in the gate; the selection for both architectures
 in `docs/capabilities.md`.
+
+Done: a `--toolchain` driver named for `-windows-msvc` selects
+Microsoft's link on either Windows target, and refine passes the target's
+own Clang triple, `aarch64-pc-windows-msvc` for windows-arm64, and names it
+in its install advice (D2387). refine now passes `-fuse-ld=link` unless
+`--linker` names another (D2388): the `windows-11-arm` image's Clang
+22.1.8 runs `lld-link` by default for the MSVC target, which a probe run
+showed. The gate's `windows-arm64-emit` job records the arm64 link
+commands and the new `windows-arm64-microsoft` job runs them on
+`windows-11-arm`: all 3,674 outcomes of the corpus passed, linked by Visual
+Studio 18's arm64 `link.exe` through Clang 22.1.8, in gate run
+45404993968 with boards run 45412153255. Locally every arm64 outcome links
+under `lld-link` with llvm-mingw's import libraries; nothing local runs
+them. Found and fixed on the way: `check.py --prepare-only` now carries its
+own lane under `lane/`, as `debug.py` does, so the emit jobs copy nothing
+by hand, and the lane's README says how to run the bundles on a Windows
+host, which only `gate.yml` showed. Filed `SR-1797`, the lane's error mode
+not keeping Windows Error Reporting away off GitHub's images, and
+`SR-1798`, `item.py gate --main` listing the branch's runs beside main's;
+`SR-1767` restated for the arm64 job's unpinned Clang.
 
 ### R21.60 — refine on FreeBSD x86-64
 
