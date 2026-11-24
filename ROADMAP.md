@@ -1046,7 +1046,7 @@ candidate passed its
 
 ### R16.35 — What SHA-256 still costs on x86-64
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What R16.33 left as SHA-256's largest cost against gcc on x86-64, and
@@ -1063,6 +1063,30 @@ Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
 instructions than at the item's base, each cost it takes measured, the
 round's against `SR-1650`'s completion, and no other combination over
 its own.
+
+Done: SHA-256's round already executes 48 x86-64 instructions, gcc's
+own count; the rest of what the program spent over gcc was its schedule
+and load loops, which gcc vectorizes, and its own work on each byte. A
+checked integer conversion is proved when its operand's bounds lie in
+the result's range (D2367), so `u8(x & 0xff)` converts unchecked; a load
+of a slot stored once from another slot stored once stands for that
+slot (D2368), so `for i in usize(0)..<lenof bytes` bounds `bytes[i]`
+when scalar replacement split the slice from a call's result; and
+x86-64 narrows an unchecked integer in its own register (D2369). The
+program's byte loop fell from 14 x86-64 instructions to 8. Against the
+item's base, at speed, x86-64 executes 6.7% fewer instructions on
+SHA-256 of 64 MiB (6.03 G to 5.63 G; gcc's 4.56 G) and 0.7% on
+SipHash-1-3, arm64 under QEMU 6.0% and 0.5%, and the rest within
+0.001%; at size SHA-256 3.5% on x86-64 and 2.5% on arm64. Every hosted
+image's `.text` is smaller and every output the same. `SR-1650` stays
+open: its `h` needs a twelfth register, the round holding nine slots and
+three temporaries at once where x86-64 offers eleven, and giving every
+u32 slot `%r8` and `%r9` made SHA-256 23% worse. `SR-1787` files the
+round's majority and choice identities, gcc's, which need the
+simplification to make an instruction of its own, and `SR-1788` a slice
+element's address not folded into its store. The STM32H753's, the
+ESP32-C3's, the ESP32-C5's, the ESP32's and the ESP32-S3's records were
+made again on the rig.
 
 ### The continuous items
 
