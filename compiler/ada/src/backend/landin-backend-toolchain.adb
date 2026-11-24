@@ -662,6 +662,16 @@ package body Landin.Backend.Toolchain is
          end loop;
          Landin.Platform.Add (List, "-o");
          Landin.Platform.Add (List, File_Operand (Output));
+         if Full_Debug then
+            --  D2289 in the linker's own spelling: the objects' CodeView
+            --  in a PDB beside the image, which names it by its file name
+            --  alone.  /DEBUG would turn /OPT:REF off and /INCREMENTAL
+            --  on, which the options above have already said otherwise.
+            Landin.Platform.Add (List, "-Wl,/DEBUG");
+            Landin.Platform.Add
+              (List, "-Wl,/PDB:" & File_Operand (PDB_Path (Output)));
+            Landin.Platform.Add (List, "-Wl,/PDBALTPATH:%_PDB%");
+         end if;
          if Linker /= "" then
             Landin.Platform.Add (List, "-fuse-ld=" & Linker);
          end if;

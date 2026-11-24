@@ -327,6 +327,16 @@ package body Landin.Tests.Toolchain_Suite is
          Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
          & "-fuse-ld=lld" & LF,
          "a Windows path and case still select it, and lld is lld-link");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main.exe", "", Facts => Facts, Full_Debug => True,
+               Level => Landin.Targets.Levels.Default_Level (Facts),
+               Driver => "x86_64-pc-windows-msvc-clang")),
+         Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
+         & "-Wl,/DEBUG" & LF & "-Wl,/PDB:main.pdb" & LF
+         & "-Wl,/PDBALTPATH:%_PDB%" & LF,
+         "a full-debug Microsoft link writes the PDB beside the image");
       Landin.Testing.Check
         (Item, not Landin.Backend.Toolchain.Microsoft_Link
            (Facts, "x86_64-w64-mingw32-clang")

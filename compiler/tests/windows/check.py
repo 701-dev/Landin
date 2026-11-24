@@ -291,7 +291,8 @@ def linked(bundle, result, driver, expect_linker):
     ran = [line.strip() for line in log.decode(errors='replace').splitlines()
            if line.startswith(' "')]
     require(ran, label + ': the driver named no command it ran')
-    linker = ran[-1][1:].split('"', 1)[0]
+    #  Clang doubles each backslash of a quoted path.
+    linker = ran[-1][1:].split('"', 1)[0].replace('\\\\', '\\')
     name = linker.replace('\\', '/').rsplit('/', 1)[-1].lower()
     require(not expect_linker or name == expect_linker.lower(),
             '%s: the link ran %s, not %s' % (label, linker, expect_linker))

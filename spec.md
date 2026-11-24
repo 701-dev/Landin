@@ -33868,7 +33868,12 @@ target, Visual Studio's `link.exe`, which Clang finds with the Windows
 SDK's import libraries; `--linker=lld` passes `-fuse-ld=lld`, which runs
 LLVM's `lld-link` against the import libraries the `LIB` variable names.
 `/Brepro` keeps the time out of the image, so two links of one assembly
-are the same bytes, as llvm-mingw's are. Those libraries are where Clang
+are the same bytes, as llvm-mingw's are. Visual Studio's linker folds the
+image's thread-storage template into `.rdata` and counts each SECREL32
+offset from the template's `.tls` contribution, which it drops when the
+contribution is empty, counting from `.rdata`'s start instead; so the
+`.tls` start marker holds one byte, as the C runtime's `_tls_start` does,
+under both linkers. Those libraries are where Clang
 and the linker find them and not where `-print-file-name` answers, so
 under this link refine asks the driver for no library, and a failed
 link's own text stands where L0509 would name a missing library. No other
@@ -33892,6 +33897,10 @@ what the driver's name already says; and a gate that links with
 `lld-link` on Linux against an SDK fetched there, which tests LLVM's
 linker and not Microsoft's and copies proprietary libraries onto a Linux
 runner.
+
+A program built with `--debug=full` gets its PDB from `/DEBUG
+/PDB:NAME.pdb /PDBALTPATH:%_PDB%`, D2289's in the linker's spelling; the
+gate's debugger sessions run over the default link alone.
 
 **Pinned by** `toolchain/a Microsoft driver selects Microsoft's link`,
 `driver/Microsoft's link leaves the search to its linker`, and the corpus

@@ -77,7 +77,8 @@ class Replay(unittest.TestCase):
             tmp = Path(tmp)
             result = self.prepared(tmp)
             self.run_link(tmp, result, log, 'link.exe')
-            self.assertTrue(result['linker'].endswith('link.exe'))
+            self.assertEqual(result['linker'], 'C:\\Program Files\\Microsoft Visual Studio'
+                             '\\2022\\VC\\bin\\Hostx64\\x64\\link.exe')
             self.assertEqual(result['executable_sha256'], LANE.sha(tmp / 'case.exe'))
             with self.assertRaisesRegex(LANE.Refused, 'not lld-link.exe'):
                 self.run_link(tmp, self.prepared(tmp), log, 'lld-link.exe')
