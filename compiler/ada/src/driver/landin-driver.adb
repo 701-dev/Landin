@@ -4831,6 +4831,8 @@ package body Landin.Driver is
                      Destinations.Append (Path);
                      if Path /= Product_Path & ".o"
                        and then Path /= Product_Path & ".dSYM"
+                       and then Path /= Landin.Backend.Toolchain.PDB_Path
+                         (Product_Path)
                      then
                         Debug_Leaves.Append (Path);
                      end if;
@@ -5709,6 +5711,8 @@ package body Landin.Driver is
                   Destinations.Append (Path);
                   if Path /= Product & ".o"
                     and then Path /= Product & ".dSYM"
+                    and then Path /= Landin.Backend.Toolchain.PDB_Path
+                      (Product)
                   then
                      Debug_Leaves.Append (Path);
                   end if;

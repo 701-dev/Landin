@@ -34005,6 +34005,66 @@ and the TEB's slot array now, which only a second thread would test.
 **Pinned by** the fibre fixtures of the Windows corpus, whose prepared
 stacks keep the limit in that cell.
 
+### D2287 — A Windows program's CodeView presents it as C
+
+**The tour said** nothing; D1291 and the DWARF description present a program through C's display rules, `DW_LANG_C89`.
+
+**Chosen:** with `--debug=full`, a Windows object carries CodeView, `.debug$S` and `.debug$T`, and names its language as C, as the DWARF description does. CodeView has no base type of a program's own naming, so a scalar is C's: `i32` is `int`, `u8` `unsigned char`, `usize` `unsigned __int64` and `bool` `bool`. A struct is a structure of its fields at their offsets; an atom set an enumeration of its atoms with this program's codes (D423); a variant a union of its zero-based tag and each case's payload at its offsets, whose members all begin at its start, since a structure's may not overlap; a slice a structure of its element pointer and length; and a packed type its carrier, as DWARF writes it. A member, an element or a referent names a structure or union by its forward reference, as Microsoft's and LLVM's compilers write it, and the definition carries a unique name the debugger completes it from. A routine is a procedure with its parameters and locals in lexical blocks; a block covers its first range to its last in layout order, since CodeView gives a block one range. A variable's place is the one DWARF describes, from the same availability, as one `S_DEFRANGE` record for each of its ranges: a register, memory at a register's address and an offset, or, for a binding whose storage holds its address in the frame, that storage as a reference to its type, which CodeView has no other way to say. A scalar replacement's pieces are subfields of the whole. A part of a module binding a source alias names, or one reached through an address held in memory, has no place a local can name and is shown as optimized out. A module binding is a global datum, and a thread variable a thread datum at its offset in each thread's storage.
+
+**The alternatives:** DWARF in the PE image, which MinGW's tools read and Microsoft's do not, and which links no PDB (D2289); a language code of Landin's own, which no debugger knows; and named base types through `S_UDT` aliases, which a debugger shows only where a type is looked up by name.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s LLDB sessions over `compiler/tests/freebsd/debug.ldn` at the four profiles, which the gate's `windows-debugger` job runs on Windows.
+
+### D2288 — A COFF object's lines are CodeView's, and name each address once
+
+**The tour said** nothing; D192 makes source matching exact.
+
+**Chosen:** a Windows routine's lines are the assembler's `.cv_loc` directives under its own function identity, with no columns, as Microsoft's tools write none. CodeView keeps every line its assembly names at an address, where DWARF's line program keeps the last, and LLDB reads the first; so a COFF object names the line of the value whose code comes next, and none for a value that emits no code. A COFF object has no DWARF call frame information: Windows' unwind tables describe its frames (D2191).
+
+**The alternatives:** every value's line, as the DWARF objects write them, under which a breakpoint on a line whose first value has no code stopped at the next value's address, past where its locals were described; and keeping the call frame information, which nothing on Windows reads.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s session at `speed`, whose breakpoint and local values failed under the first.
+
+### D2289 — The PDB is linked beside the image, which names it by its file name alone
+
+**The tour said** nothing.
+
+**Chosen:** with `--debug=full`, LLD links the objects' CodeView into a PDB beside the image, `program.pdb` for `program.exe` or for `program`, and the image's debug directory names it by its file name alone, as Microsoft's `/PDBALTPATH:%_PDB%` does: a debugger looks for it beside the image wherever the image was built or copied, and the image holds no path of the build host's. The PDB is a debug artifact of the build's publication, as a dSYM is.
+
+**The alternatives:** the PDB's full path, which names the build's staging directory and every host's own; and DWARF in the image, which the alternatives of D2287 decline.
+
+**Pinned by** `toolchain/a Windows link has no C runtime`, and the gate's `windows-debugger` job, whose images it runs on another host than the one they were linked on.
+
+### D2290 — CodeView describes no inlined copy yet
+
+**The tour said** nothing; D339 describes each inlined copy to DWARF.
+
+**Chosen:** a Windows routine's CodeView describes its own parameters, locals and blocks; an inlined copy's lines belong to the routine it was copied into, and the copy's own variables are not described. The register records the inline sites CodeView would need.
+
+**The alternatives:** writing `S_INLINESITE` records now, whose line directives the backend would name by copy, for a Windows session that does not yet stop in a copy.
+
+**Pinned by** the sessions of `compiler/tests/windows/debug.py`, which call through function values so that no stop is in a copy.
+
+### D2291 — A Windows image carries its build's digest in a `.landin` section
+
+**The tour said** nothing; D1292 holds a source table to the build it was written with.
+
+**Chosen:** a Windows image carries the digest an ELF program carries as its GNU build ID in a read-only section named `.landin`, since a PE section's name has eight bytes at most and LLD gives a Windows image no GNU build ID; LLD keeps a section no COMDAT groups. `refine site`, and `refine dap` with it, read a PE image's identity from that section.
+
+**The alternatives:** the PDB's GUID, which LLD derives from the PDB and which a build without `--debug=full` has none of; and `.landin_id`, which a PE image truncates.
+
+**Pinned by** `compiler/tests/dap/session.py`'s panic stop on Windows, which resolves a site through the program's table.
+
+### D2292 — The Windows debugger is LLVM's LLDB, and `refine dap` relays its adapter
+
+**The tour said** nothing; the roadmap named "the Windows debugger" a backend of D1523's adapter.
+
+**Chosen:** the Windows debugger is LLDB as llvm-mingw's release for Windows ships it, free like the rest of the Windows toolchain (D2189): `lldb.exe`, which reads a PDB with LLVM's own reader, and `lldb-dap.exe`, its adapter, which `refine dap` relays as D1523 relays `lldb-dap`. A program whose header is a PE image's takes LLDB, and the adapter's usual name is `lldb-dap.exe` where the search path has it. `refine` runs on Linux and macOS, so on a Windows machine it runs in WSL, where WSL starts a Windows program and puts Windows' search path after its own: the adapter then writes the program's and the working directory's paths, and the library's, as Windows names them, and reads a Windows path back as WSL mounts it. The adapter shares `refine dap`'s process group, where D1523's debuggers have one of their own: a Windows program WSL starts from a process group other than the terminal's foreground one stalls, which the gate met in about half its runs and in every one of six where a client started the adapter in a group of its own. A program compiled on a POSIX host records POSIX paths, which a Windows debugger puts on a drive of its own choosing, so the adapter gives it a breakpoint's source as the recorded path less its root, which LLDB matches as the end of that path, and reads a path the debugger names on a drive back as this host's when this host has it. The gate runs LLDB's batch sessions natively on a Windows runner and `refine dap`'s session from WSL on the same runner. Microsoft's debuggers read the same PDB; the gate runs none of them.
+
+**The alternatives:** Microsoft's WinDbg or Visual Studio debugger, proprietary and installed with Microsoft's tools; GDB, which reads DWARF and no PDB; a backend of the adapter's own over the Windows debugging API, a second debugger to keep beside LLDB's; and `refine dap` on Linux reaching `lldb-server` on Windows, which two of the gate's hosted runners cannot reach each other to run.
+
+**Pinned by** the dap suite's `the debugger a program takes`, `a Windows program maps its paths` and `LLDB's adapter is relayed`, and `compiler/tests/windows/debug.py`'s sessions in the gate's `windows-debugger` job.
+
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 
 **From** [1650], D1281 and D2188.

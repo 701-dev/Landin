@@ -221,3 +221,13 @@ landin_fetch_alpine() {
         "$Alpine_Sha" \
         "alpine-$LANDIN_ALPINE_VERSION"
 }
+
+#  The Windows debugger the gate's Windows jobs run: LLDB as llvm-mingw's
+#  release for Windows x86-64 ships it, lldb.exe and lldb-dap.exe, which
+#  read a PDB with LLVM's own reader (D2292).  The archive is checked
+#  against this sha256 before anything in it runs;
+#  compiler/tests/windows/README.md runs the same release under Wine.
+#  check.py holds compiler/ada/TOOLCHAIN.md to the checksum.
+LANDIN_LLVM_MINGW_VERSION=20261117
+LANDIN_LLVM_MINGW_RELEASES=https://github.com/mstorsjo/llvm-mingw/releases/download
+LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS=4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412

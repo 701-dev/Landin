@@ -1,5 +1,4 @@
 with Ada.Strings.Fixed;
-with Landin.Backend.Debug_Locations;
 with Landin.Backend.Dwarf;
 
 package body Landin.Backend.X86_64.Dwarf is
@@ -97,12 +96,6 @@ package body Landin.Backend.X86_64.Dwarf is
    --  and the encoder describes the slot at its first address too.  The
    --  next block may be entered from elsewhere, where the register is
    --  already another location's.
-   procedure Narrow
-     (Of_Unit : Unit; Item : Item_Id; Plan : Allocation.Plan;
-      Slot : Slot_Id;
-      Live : in out Landin.Backend.Debug_Locations.Flags.Vector;
-      Overwriter : in out Value_Id);
-
    procedure Narrow
      (Of_Unit : Unit; Item : Item_Id; Plan : Allocation.Plan;
       Slot : Slot_Id;

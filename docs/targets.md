@@ -414,6 +414,38 @@ On either, GDB's backtrace ends at `main` by default; `set backtrace past-main
 on` shows the `_landin_start_main` and `_landin_start` frames below it, as
 the panic sessions do.
 
+### Windows
+
+`refine compile --target=windows-x86-64 --debug=full program.ldn -o
+program.exe` writes `program.exe`, `program.pdb` beside it and
+`program.exe.sources.json`. The objects carry CodeView, and LLD links it
+into the PDB; the image names the PDB by its file name alone, so a debugger
+finds it beside the image wherever the two are copied (D2289). The source
+files are not copied: a program compiled on Linux or in WSL records their
+POSIX paths.
+
+The debugger is LLDB as [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases)
+ships it for Windows, LLVM's own and free (D2292): unpack its
+`ucrt-x86_64` release and run `bin\lldb.exe program.exe`, then
+`breakpoint set -f program.ldn -l 12`, `run`, `bt` and `frame variable`.
+Name a source file by its name or the end of its path: LLDB puts a recorded
+POSIX path on a drive of its own choosing. Microsoft's debuggers read the
+same PDB; the gate runs none of them.
+
+The description is the DWARF one's, in CodeView's terms (D2287): routines,
+parameters and locals in their scopes with the same locations, struct and
+atom set types, a variant as a union of its tag and its cases, and module
+bindings. CodeView names no base type of a program's own, so `i32` shows as
+`int` and `u8` as `unsigned char`. A line is the line of the code at its
+address (D2288). Two limits stand: an inlined copy is no frame of its own,
+its lines belonging to the routine it was copied into and its variables not
+shown (D2290); and the stack switch's routines carry no unwind tables, so a
+backtrace below them is not claimed.
+
+`compiler/tests/windows/debug.py` runs the gate's sessions, and under Wine
+on Linux, as [its README](../compiler/tests/windows/README.md#debugger-sessions)
+says.
+
 ### Debugging from an editor
 
 `refine dap` is a Debug Adapter Protocol server. An editor starts it as its
@@ -429,10 +461,18 @@ program `refine compile --debug=full` wrote:
 
 The editor's console shows what the program writes.
 
-`refine dap` debugs a Linux program with GDB, over GDB/MI. For a macOS or
-FreeBSD program it starts `lldb-dap`, LLVM's own adapter, and relays the
-session to it. It looks for `lldb-dap` on `PATH` and, on macOS, also asks
-`xcrun --find lldb-dap`. Two keys override this: `"debugger"`, `"gdb"` or
+`refine dap` debugs a Linux program with GDB, over GDB/MI. For a macOS,
+FreeBSD or Windows program it starts `lldb-dap`, LLVM's own adapter, and
+relays the session to it. It looks for `lldb-dap` on `PATH` and, on macOS,
+also asks `xcrun --find lldb-dap`.
+
+On a Windows machine `refine` runs in WSL. For a Windows program `refine
+dap` looks for `lldb-dap.exe` from [llvm-mingw](#windows) first, which WSL
+finds on Windows' search path and starts as a Windows program. It gives
+that adapter the program's, the working directory's and the library's
+paths as Windows names them, and shows a path the adapter names as WSL
+mounts it, so an editor whose adapter runs in WSL debugs the program as
+any other (D2292); the paths it sends are WSL's. Two keys override this: `"debugger"`, `"gdb"` or
 `"lldb"`, chooses the debugger, and `"debuggerPath"` names the executable
 to start.
 

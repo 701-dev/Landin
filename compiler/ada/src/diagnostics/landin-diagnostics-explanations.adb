@@ -2254,11 +2254,12 @@ package body Landin.Diagnostics.Explanations is
                & "y its `.landin_id` section, which firmware carries, or i"
                & "ts GNU build ID; a Mach-O program by its `__TEXT,__landi"
                & "n_id` section, and with `--dsym` its dSYM must share its"
-               & " UUID; anything else is read as the assembly of `--emit="
-               & "asm`, whose SHA-256 must be the table's. The message nam"
-               & "es the identity found. Name the program and the table of"
-               & " one compilation: a rebuilt program needs the table writ"
-               & "ten with it.",
+               & " UUID; a Windows program by its `.landin` section (D2291"
+               & "); anything else is read as the assembly of `--emit=asm`"
+               & ", whose SHA-256 must be the table's. The message names t"
+               & "he identity found. Name the program and the table of one"
+               & " compilation: a rebuilt program needs the table written "
+               & "with it.",
             when Catalogue.Site_Unresolved =>
                "`refine site` found the build and its table, and the tab"
                & "le does not hold what was asked (D1292): the site number"

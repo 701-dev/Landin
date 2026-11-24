@@ -331,7 +331,7 @@ package body Landin.Tests.Commands_Suite is
                     J.Text (Doc, J.Member (Doc, Row, "name"));
                   Debug : constant J.Value := J.Member (Doc, Row, "debug");
                   Expected : constant String :=
-                    (if Name in "synthetic-32" | "windows-x86-64" then "none"
+                    (if Name = "synthetic-32" then "none"
                      elsif Name in "cortex-m0" | "rv32" | "xtensa"
                      then "lines" else "full");
                begin

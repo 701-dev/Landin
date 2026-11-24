@@ -2,6 +2,7 @@
 --  No format-specific facts flow back into those authorities.  Version four
 --  supplies the required types and location lists without a second indexed
 --  address/string representation; source matching remains D192's exact map.
+with Landin.Backend.Debug_Locations;
 with Landin.Backend.X86_64.Allocation;
 with Landin.Provenance;
 
@@ -26,6 +27,15 @@ package Landin.Backend.X86_64.Dwarf is
       Site : Landin.Provenance.Origin) return String;
    function Preamble
      (Info : Landin.Debugging.Information; Prefix : String) return String;
+   --  Where a slot the plan holds in a register only over an interval of
+   --  the routine is described: Live loses the rest of the routine, and
+   --  Overwriter names the value that writes over the register while it
+   --  still holds the slot's value (the body says how).
+   procedure Narrow
+     (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
+      Plan : Allocation.Plan; Slot : Landin.IR.Slot_Id;
+      Live : in out Landin.Backend.Debug_Locations.Flags.Vector;
+      Overwriter : in out Landin.IR.Value_Id);
    function Sections
      (Of_Unit : Landin.IR.Unit;
       Meanings : Landin.Resolution.Table;

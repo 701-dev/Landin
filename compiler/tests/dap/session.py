@@ -111,7 +111,16 @@ class Adapter:
             self.held += data
 
     def request(self, command, **arguments):
-        seq = self.send(command, **arguments)
+        return self.response(self.send(command, **arguments), command)
+
+    def response(self, seq, command):
+        """The answer to request SEQ, which may have arrived already."""
+        for index, message in enumerate(self.waiting):
+            if message.get('type') == 'response' \
+                    and message.get('request_seq') == seq:
+                self.waiting.pop(index)
+                assert message.get('command') == command, message
+                return message
         while True:
             message = self.receive()
             if message.get('type') == 'response' \
@@ -158,13 +167,14 @@ def check(label, actual, expected, checks):
 
 
 def run_session(adapter_argv, program, source, output, label, debugger=None,
-                debugger_path=None, remote=None, cwd=None):
+                debugger_path=None, remote=None, cwd=None, limit=60):
     """One scripted session; returns the checks it made.  Raises
-    AssertionError naming the first that failed."""
+    AssertionError naming the first that failed.  LIMIT is how many
+    seconds the adapter may be silent while an answer is awaited."""
     lines = source_lines(source)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    adapter = Adapter(adapter_argv, output / (label + '.dap.jsonl'))
+    adapter = Adapter(adapter_argv, output / (label + '.dap.jsonl'), limit)
     checks = []
     name = Path(source).name
     try:
@@ -181,17 +191,30 @@ def run_session(adapter_argv, program, source, output, label, debugger=None,
             start['debuggerPath'] = debugger_path
         if remote:
             start['remote'] = remote
-        adapter.require('attach' if remote else 'launch', **start)
+        #  An adapter may answer launch or attach only once the
+        #  configuration is done, as the protocol allows and LLVM's
+        #  lldb-dap does from release 21: the answer is collected then.
+        starting = 'attach' if remote else 'launch'
+        started = adapter.send(starting, **start)
         adapter.event('initialized')
         points = adapter.require(
             'setBreakpoints', source={'path': str(source)},
             breakpoints=[{'line': lines['add']}])['breakpoints']
-        check('breakpoint.verified', points[0].get('verified'), True, checks)
         adapter.require('setFunctionBreakpoints',
                         breakpoints=[{'name': 'panic_handler'}])
         adapter.require('configurationDone')
+        answer = adapter.response(started, starting)
+        assert answer.get('success'), (starting, answer)
 
         stop = adapter.event('stopped')['body']
+        #  An adapter may verify a breakpoint only once the program is
+        #  loaded, which LLVM's lldb-dap does from release 21: its
+        #  `breakpoint` event then says so, before the stop.
+        check('breakpoint.verified', points[0].get('verified') or any(
+            message.get('event') == 'breakpoint'
+            and message['body']['breakpoint'].get('id') == points[0].get('id')
+            and message['body']['breakpoint'].get('verified')
+            for message in adapter.seen), True, checks)
         check('stop.reason', stop['reason'], 'breakpoint', checks)
         thread = stop['threadId']
         stack = frames(adapter, thread)
@@ -268,6 +291,14 @@ def main():
                         help='start the debugger NAME as PATH')
     parser.add_argument('--qemu', help='run the program under this QEMU'
                         ' user emulator and attach GDB to its stub')
+    parser.add_argument('--program', type=Path,
+                        help='debug this program, compiled with --debug=full'
+                        ' and --panic-map from --source, rather than'
+                        ' compile one; the Windows lane compiles on Linux')
+    parser.add_argument('--source', type=Path,
+                        help="the source --program was compiled from, at"
+                        " the path it was compiled at; the target's own"
+                        " program by default")
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
     import build_lock
@@ -280,12 +311,17 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     target = args.target or HOST_TARGETS[(platform.system(),
                                           platform.machine())]
-    program = output / 'program'
-    compiled = subprocess.run(
-        [args.refine, 'compile', '--target=' + target, '--debug=full',
-         '--panic-map', str(SOURCE), '-o', str(program)],
-        capture_output=True, text=True)
-    assert compiled.returncode == 0, compiled.stdout + compiled.stderr
+    source = args.source or SOURCE
+    if args.program:
+        program = args.program.resolve()
+    else:
+        program = output / ('program.exe' if target.startswith('windows')
+                            else 'program')
+        compiled = subprocess.run(
+            [args.refine, 'compile', '--target=' + target, '--debug=full',
+             '--panic-map', str(source), '-o', str(program)],
+            capture_output=True, text=True)
+        assert compiled.returncode == 0, compiled.stdout + compiled.stderr
     adapter = [args.adapter] if args.adapter else [args.refine, 'dap']
     paths = dict(item.split('=', 1) for item in args.debugger_path)
     results = {}
@@ -304,7 +340,7 @@ def main():
                     time.sleep(0.02)
                 assert stub.exists(), 'QEMU did not open its GDB socket'
                 remote = str(stub)
-            checks = run_session(adapter, program, SOURCE, output, label,
+            checks = run_session(adapter, program, source, output, label,
                                  debugger=debugger,
                                  debugger_path=paths.get(debugger or ''),
                                  remote=remote)

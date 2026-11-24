@@ -67,6 +67,10 @@ package Landin.Backend.Toolchain is
    --  same bytes.
    function File_Symbol (Facts : Landin.Targets.Target_Facts) return String;
 
+   --  The PDB a Windows image's CodeView is linked into: the image's path
+   --  with `.pdb` in place of `.exe`, or after a name without it.
+   function PDB_Path (Output : String) return String;
+
    --  Auxiliary native-debug outputs and bundle containment, so the driver
    --  can protect source inputs without knowing a platform's packaging.
    function Debug_Artifacts

@@ -12,6 +12,9 @@ fixed if compiler.os == linux then
     stop: (status: i32) -> noreturn =
         linux.exit_group(status)
     end stop
+elsif compiler.os == windows then
+    --  Windows' own end of a process, which kernel32 gives.
+    link(symbol: "ExitProcess") extern(c) stop: (status: i32) -> noreturn
 else
     link(symbol: "_exit") extern(c) stop: (status: i32) -> noreturn
 end if

@@ -44,11 +44,13 @@ procedure Refine_Dap is
      & " sources" & ASCII.LF
      & "must be at the same paths on both machines." & ASCII.LF
      & ASCII.LF
-     & "A Linux program is debugged with GDB.  A macOS or FreeBSD"
-     & " program is" & ASCII.LF
-     & "debugged with lldb-dap, LLVM's own adapter, found on PATH"
-     & " or, on" & ASCII.LF
-     & "macOS, by xcrun --find lldb-dap." & ASCII.LF
+     & "A Linux program is debugged with GDB.  A macOS, FreeBSD or"
+     & " Windows" & ASCII.LF
+     & "program is debugged with lldb-dap, LLVM's own adapter, found on"
+     & " PATH" & ASCII.LF
+     & "or, on macOS, by xcrun --find lldb-dap; a Windows program first"
+     & " with" & ASCII.LF
+     & "lldb-dap.exe, which WSL finds on Windows' search path." & ASCII.LF
      & "  ""debugger"": ""gdb"" or ""lldb""  chooses the other"
      & " debugger" & ASCII.LF
      & "  ""debuggerPath"": ""PATH""       names the executable to"

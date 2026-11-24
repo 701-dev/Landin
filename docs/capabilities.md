@@ -22,7 +22,7 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 | `darwin-arm64` | hosted executables | natively | LLDB with dSYM |
 | `freebsd-x86-64` | hosted executables, emitted on Linux | a FreeBSD VM under KVM | LLDB in the VM |
 | `freebsd-arm64` | hosted executables, emitted on Linux | an emulated FreeBSD VM | LLDB in the VM |
-| `windows-x86-64` | hosted executables, emitted on Linux | natively, on a GitHub-hosted Windows runner | none yet |
+| `windows-x86-64` | hosted executables, emitted on Linux | natively, on a GitHub-hosted Windows runner | LLDB over CodeView and a PDB, natively and through `refine dap` from WSL |
 | `cortex-m0` | Cortex-M firmware, ARMv6-M by default and up to ARMv8-M Mainline by `--level` | the pinned QEMU | GDB, lines and functions |
 | `xtensa` | windowed LX6 and LX7 firmware, ILP32; physical ESP32 and ESP32-S3 RAM and boot ports | Espressif QEMU chip controls and complete corpus on exact CPUs with explicitly virtual RAM | lines with `--debug=lines`; no gate debugger session |
 | `rv32` | RV32IMC and RV32IMAC firmware, ilp32 | Espressif's QEMU, `sifive_e` and `esp32c3` | lines with `--debug=lines`; no gate session |
@@ -44,7 +44,9 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   (D2276). A file is a handle, `last_errno` keeps the Win32 error code
   (D2270) and a host string is WTF-8 (D2268). The hosted corpus
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
-  from the fixtures that need POSIX itself. Microsoft's toolchain is a
+  from the fixtures that need POSIX itself. With `--debug=full` its
+  objects carry CodeView and LLD links a PDB beside the image, which LLVM's
+  LLDB for Windows reads (D2287-D2292). Microsoft's toolchain is a
   second, optional one, selected with
   `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name: it
   assembles the same output and links it with Visual Studio's `link.exe`,
@@ -1195,8 +1197,10 @@ Add `--target=darwin-arm64` for native macOS output, then open
 
 - **Per target.** DWARF and GDB on Linux; native LLDB in both FreeBSD VMs
   for source-line stops, frames, local values and unwinding; LLDB with dSYM
-  and exact Mach-O identity on Darwin; and line and function debugging on
-  Cortex-M0. Under `--debug=lines` a firmware image also names its module
+  and exact Mach-O identity on Darwin; CodeView and a PDB on Windows, which
+  llvm-mingw's LLDB for Windows reads, for the same stops, frames, locals
+  and steps (D2287-D2292); and line and function debugging on Cortex-M0.
+  Under `--debug=lines` a firmware image also names its module
   bindings with their types, so GDB prints one as it is (D1291). FreeBSD's
   LLDB sessions also run against Linux images with the
   development shell's LLDB, `compiler/tests/debugging/lldb_linux.py`, as
@@ -1206,9 +1210,10 @@ Add `--target=darwin-arm64` for native macOS output, then open
   sessions read such locals there.
 - **Stack switches.** A backtrace through a stack switch names the switch
   and start routines, `landin.stack_switch` and `landin.stack_start` (D469),
-  and a scripted session on every target with a native backend steps two
-  switches and holds the leaving and resumed fibres' frames at every
-  instruction.
+  and a scripted session on every target with a native backend but
+  Windows steps two switches and holds the leaving and resumed fibres'
+  frames at every instruction; on Windows the two routines have no unwind
+  tables yet.
 - **Names.** An atom set is described as an enumeration, so a debugger
   prints an atom's name, and a generic instance is a symbol named after its
   routine.
@@ -1217,16 +1222,18 @@ Add `--target=darwin-arm64` for native macOS output, then open
   to the directory `refine version` names.
 - **From an editor.** `refine dap` is a Debug Adapter Protocol server that
   an editor starts as its debug adapter. It debugs Linux programs over
-  GDB/MI. For macOS and FreeBSD programs it starts and relays `lldb-dap`,
-  LLVM's own adapter. It launches a program or attaches to a debugger
+  GDB/MI. For macOS, FreeBSD and Windows programs it starts and relays
+  `lldb-dap`, LLVM's own adapter; for a Windows program `lldb-dap.exe`,
+  which refine started in WSL reaches on Windows' search path (D2292). It launches a program or attaches to a debugger
   stub. It shows the library's files from the installed library. With
   `--panic-map`, it shows a stop in `panic_handler` as an exception at the
   source line of its site (D1523-D1527). The gate scripts a session over
   GDB on Linux x86-64, Linux arm64 and RV64 under QEMU, and over LLDB on
-  macOS and in both FreeBSD VMs. See
+  macOS, in both FreeBSD VMs and on Windows from WSL. See
   [debugging from an editor](targets.md#debugging-from-an-editor).
-- Debug provenance stays independent of DWARF for a possible future PDB
-  emitter; PDB is not implemented.
+- Debug provenance stays independent of its formats: DWARF and CodeView
+  are two serializations of the same source, IR and allocation facts. A
+  Windows image's CodeView describes no inlined copy yet (D2290).
 
 ## Programs that run
 
