@@ -2583,13 +2583,6 @@ jobs:
           set -eu
           mkdir -p "$HOME/refine"
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" -C "$HOME/refine"
-          #  The first Windows program WSL starts on a fresh runner has
-          #  taken more than a minute to answer, which the session's limit
-          #  then reads as a stalled adapter; start lldb-dap.exe once first
-          #  and say how long it took.
-          start=$(date +%s)
-          timeout 600 "$RUNNER_TEMP/llvm-mingw/bin/lldb-dap.exe" --help > /dev/null
-          echo "lldb-dap.exe answered from WSL in $(( $(date +%s) - start )) s"
           python3 "$RUNNER_TEMP/windows-debug/lane/compiler/tests/windows/debug.py" \
             --prepared="$RUNNER_TEMP/windows-debug" --dap \
             --refine="$HOME/refine/bin/refine" \

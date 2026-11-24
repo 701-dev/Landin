@@ -68,6 +68,7 @@ package body Landin.Tests.Dap_Suite is
       Started  : US.Unbounded_String;
       Settings : US.Unbounded_String;
       Pipes    : Boolean := False;
+      Grouped  : Boolean := False;
       Stopped  : Boolean := False;
    end record;
 
@@ -76,7 +77,8 @@ package body Landin.Tests.Dap_Suite is
       Arguments     : P.Path_List;
       Settings      : P.Path_List;
       Program_Pipes : Boolean;
-      Failure       : out US.Unbounded_String);
+      Failure       : out US.Unbounded_String;
+      Own_Group     : Boolean := True);
    overriding function Variable
      (Host : Fake_Debugger; Name : String) return String;
    overriding procedure Wait
@@ -146,11 +148,13 @@ package body Landin.Tests.Dap_Suite is
       Arguments     : P.Path_List;
       Settings      : P.Path_List;
       Program_Pipes : Boolean;
-      Failure       : out US.Unbounded_String) is
+      Failure       : out US.Unbounded_String;
+      Own_Group     : Boolean := True) is
    begin
       Host.Started := US.To_Unbounded_String (P.Joined (Arguments));
       Host.Settings := US.To_Unbounded_String (P.Joined (Settings));
       Host.Pipes := Program_Pipes;
+      Host.Grouped := Own_Group;
       Failure := (if Host.Refuse
                   then US.To_Unbounded_String ("no such program")
                   else US.Null_Unbounded_String);
@@ -709,6 +713,9 @@ package body Landin.Tests.Dap_Suite is
            (Item, US.To_String (Debugger.Started), "/x/lldb-dap" & LF,
             "lldb-dap is started as debuggerPath names it");
          Landin.Testing.Check
+           (Item, Debugger.Grouped,
+            "lldb-dap has a process group of its own");
+         Landin.Testing.Check
            (Item, Contains (Sent, "initialize {""adapterID"":""t""}"),
             "lldb-dap is initialized as the editor initialized refine-dap");
          Landin.Testing.Check
@@ -790,6 +797,9 @@ package body Landin.Tests.Dap_Suite is
          Said : constant String := Served (Script, Debugger, Files, "1");
          Sent : constant String := US.To_String (Debugger.Sent);
       begin
+         Landin.Testing.Check
+           (Item, not Debugger.Grouped,
+            "a Windows program's adapter shares refine dap's process group");
          Landin.Testing.Check
            (Item, Contains (Sent, "setBreakpoints {""source"":{""path"":"
                             & """work/main.ldn""}"),

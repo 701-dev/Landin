@@ -175,16 +175,14 @@ def through_dap(bundle, manifest, refine, lldb_dap, output):
     sys.path.insert(0, str(ROOT / 'scripts'))
     import lane_refine
     #  lldb-dap's own log, which WSL hands the Windows program as a Windows
-    #  path; a Windows program started from WSL has taken more than a
-    #  minute to answer its launch.
+    #  path, kept with the transcripts.
     os.environ['LLDBDAP_LOG'] = str(output / 'lldb-dap.log')
     os.environ['WSLENV'] = ':'.join(
         part for part in (os.environ.get('WSLENV'), 'LLDBDAP_LOG/p') if part)
     try:
         checks = session.run_session(
             lane_refine.command(refine, 'dap'), bundle / 'program.exe',
-            source, output, TARGET + '-lldb', debugger_path=lldb_dap,
-            limit=240)
+            source, output, TARGET + '-lldb', debugger_path=lldb_dap)
     except AssertionError as error:
         raise Refused('the refine dap session: ' + str(error))
     print('%s: refine dap session passed, %d checks' % (TARGET, len(checks)),

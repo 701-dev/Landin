@@ -1939,8 +1939,12 @@ package body Landin.Adapter.Sessions is
                P.Add (Settings, "SHELL=/bin/sh");
             end if;
          end if;
+         --  D2292: a Windows program WSL starts from a process group
+         --  other than the terminal's stalls, so a Windows program's
+         --  debugger shares this one's.
          S.Debugger.Start (Words, Settings,
-                           S.Kind = GDB and then not S.Attached, Failure);
+                           S.Kind = GDB and then not S.Attached, Failure,
+                           Own_Group => not S.Windows);
          if Failure /= "" then
             Respond (S, Seq, Name, False, "cannot start "
                      & (if S.Kind = GDB then "GDB" else "LLDB's adapter")

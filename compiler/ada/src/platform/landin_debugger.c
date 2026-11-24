@@ -28,7 +28,8 @@ extern char **environ;
 enum { LANDIN_DEBUGGER_ABOVE = 10 };
 
 int landin_debugger_start(char *const args[], char *const settings[],
-                          int pipes, int *child, int descriptors[4]);
+                          int pipes, int own_group, int *child,
+                          int descriptors[4]);
 int landin_debugger_wait(const int descriptors[4], int milliseconds,
                          int ready[5]);
 long landin_debugger_read(int descriptor, char *into, long length);
@@ -72,11 +73,13 @@ static int landin_debugger_same_name(const char *entry, const char *setting)
 
 /* Start ARGS[0], found on PATH when it has no slash, with ARGS, in this
    process's environment with each NAME=VALUE of SETTINGS in place of the
-   inherited one.  DESCRIPTORS receives the write end of its standard
+   inherited one, in a process group of its own when OWN_GROUP.
+   DESCRIPTORS receives the write end of its standard
    input, the read end of its standard output and, when PIPES, the read
    ends of the pipes it holds as 3 and 4; else -1.  0, or an errno. */
 int landin_debugger_start(char *const args[], char *const settings[],
-                          int pipes, int *child, int descriptors[4])
+                          int pipes, int own_group, int *child,
+                          int descriptors[4])
 {
     int input[2] = {-1, -1}, output[2] = {-1, -1};
     int program[2] = {-1, -1}, errors[2] = {-1, -1};
@@ -126,13 +129,16 @@ int landin_debugger_start(char *const args[], char *const settings[],
     sigaddset(&defaults, SIGPIPE);
     sigaddset(&defaults, SIGINT);
     error = posix_spawnattr_setsigdefault(&attributes, &defaults);
-    /* Its own process group: a signal meant for refine-dap's group, an
-       editor's interrupt among them, is not the debugger's. */
-    if (error == 0)
+    /* Its own process group when OWN_GROUP: a signal meant for
+       refine-dap's group, an editor's interrupt among them, is not the
+       debugger's.  A Windows program WSL starts in a group of its own
+       stalls (D2292), so a Windows debugger shares refine-dap's. */
+    if (error == 0 && own_group)
         error = posix_spawnattr_setpgroup(&attributes, 0);
     if (error == 0)
         error = posix_spawnattr_setflags
-            (&attributes, POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETPGROUP);
+            (&attributes, POSIX_SPAWN_SETSIGDEF
+                          | (own_group ? POSIX_SPAWN_SETPGROUP : 0));
     if (error == 0)
         error = posix_spawn_file_actions_adddup2(&actions, input[0], 0);
     if (error == 0)

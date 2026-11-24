@@ -2425,12 +2425,13 @@ both under Wine locally. Found and fixed on the way: LLVM's `lldb-dap`
 answers `launch` after `configurationDone` and verifies a breakpoint once
 the program is loaded, from release 21, which `compiler/tests/dap/session.py`
 now allows; a breakpoint on a line whose first value had no code stopped
-past its locals (D2288); and ranges out of address order joined into one.
-Rows SR-1746 to SR-1748 record the inline sites CodeView lacks (D2290),
-the stack-switch session Windows lacks and two `--debug=full` builds that
-differ by their temporary object's name; SR-1749 the minute the first
-`lldb-dap.exe` WSL starts on a fresh runner has taken to answer, which the
-gate's job routes around by starting it once first.
+past its locals (D2288); ranges out of address order joined into one;
+and a Windows program WSL starts from a process group other than the
+terminal's stalls, which a debugger `refine dap` started in a group of its
+own did in about half of the gate's runs, so a Windows adapter now shares
+refine dap's group (D2292). Rows SR-1746 to SR-1748 record the inline
+sites CodeView lacks (D2290), the stack-switch session Windows lacks and
+two `--debug=full` builds that differ by their temporary object's name.
 
 ### R21.40 — Windows arm64
 
