@@ -2553,7 +2553,7 @@ jobs:
           --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
           --driver=clang --expect-linker=link.exe
           --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
-      - name: Keep each link's transcript, each outcome's output and status, and the verdicts
+      - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -2563,6 +2563,7 @@ jobs:
             ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.link.log
             ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.stdout
             ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.status
+            ${{ runner.temp }}/windows-microsoft-evidence/failed
           retention-days: 14
 
   #  The RV64 Linux lane under QEMU's user emulation: the release compiler's

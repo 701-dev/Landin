@@ -377,6 +377,13 @@ def execute(bundle, manifest, runner, jobs, driver=(), expect_linker=''):
         except Refused as error:
             result['verdict'] = 'failed'
             result['failure'] = str(error)
+            #  An image only the Windows job linked is kept apart, so that
+            #  a failed outcome's can be read where it was not linked.
+            image = bundle / (result['label'] + '.exe')
+            if 'link' in result and image.exists():
+                kept = bundle.parent / 'failed'
+                kept.mkdir(exist_ok=True)
+                shutil.copyfile(image, kept / image.name)
             return str(error).split('\n', 1)[0]
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         failures = [one for one in pool.map(one, results) if one]
@@ -475,11 +482,13 @@ def main():
         if manifest.get('link') == 'microsoft':
             summary['link'] = 'microsoft'
             summary['driver'] = driver_version(args.driver.split())
-        execute(bundle, manifest, args.runner.split(), args.jobs,
-                args.driver.split(), args.expect_linker)
-        if manifest.get('link') == 'microsoft':
-            summary['linkers'] = sorted({one['linker'] for one in manifest['results']
-                                         if 'linker' in one})
+        try:
+            execute(bundle, manifest, args.runner.split(), args.jobs,
+                    args.driver.split(), args.expect_linker)
+        finally:
+            if manifest.get('link') == 'microsoft':
+                summary['linkers'] = sorted({one['linker'] for one in manifest['results']
+                                             if 'linker' in one})
         summary['status'] = 'passed'
         print('%s: %d %s outcomes passed' % (TARGET, len(manifest['results']), manifest['scope']))
     except Refused as error:
