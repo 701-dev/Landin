@@ -2085,6 +2085,29 @@ package body Landin.IR.Simplification is
                              in Constant_Term | Fixed_Term
                            then
                               Here := Single_Term (Positive (Code.Slot));
+                           elsif Single_Term (Positive (Code.Slot)).Kind
+                             = Entry_Term
+                           then
+                              --  D2368: the one store copied another
+                              --  eligible slot stored once, whose store
+                              --  ran before the copy: both hold that one
+                              --  value wherever the copy's store
+                              --  dominates, as `for i in 0..<lenof s`
+                              --  keeps its end.
+                              declare
+                                 Copied : constant Positive := Positive
+                                   (Single_Term (Positive (Code.Slot)).Slot);
+                              begin
+                                 if Store_Total (Copied) = 1
+                                   and then Dominance.Strictly_Dominates
+                                     (Tree, Block_Id (Store_Block (Copied)),
+                                      Block_Id (Store_Block
+                                        (Positive (Code.Slot))))
+                                 then
+                                    Here :=
+                                      Single_Term (Positive (Code.Slot));
+                                 end if;
+                              end;
                            end if;
                            if Code.Result in Landin.Types.Integer_Name then
                               Upper := Integer_Value'Min
@@ -2339,6 +2362,12 @@ package body Landin.IR.Simplification is
                         end if;
                      end if;
                   end;
+               elsif Code.Op = Conversion then
+                  --  D2367: an integer converted from a value its bounds
+                  --  already hold within the result's range, as
+                  --  `u8(x & 0xff)`.
+                  Proved := Upper_Of (Operand (Code, 1)) <= Type_High (V)
+                    and then Lower_Of (Operand (Code, 1)) >= Type_Low (V);
                elsif Code.Op = Slice_Address and then Code.Args = 4
                  and then Code.Truth
                  and then Operand (Code, 3) = Operand (Code, 4)

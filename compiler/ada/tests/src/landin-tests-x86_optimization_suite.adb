@@ -1786,6 +1786,31 @@ package body Landin.Tests.X86_Optimization_Suite is
             end;
          end loop;
       end;
+      --  D2367, D2369: a masked byte's conversion, proved, narrows in its
+      --  register rather than through the accumulator, and checks nothing.
+      declare
+         Narrowed : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Narrowed,
+            "public put: (inout v: [4]u8, x: usize) -> none = "
+            & "v[1] = u8((x *% 131 +% 7) & 0xff) end put");
+         for Objective in Opt.Objective loop
+            declare
+               Text : constant String :=
+                 Emitted (Narrowed, (Objective, Opt.Off));
+            begin
+               Check_Assembly
+                 (Item, Text,
+                  Objective = Opt.None
+                  or else (not Contains (Text, "%al,")
+                           and then not Contains (Text, "ja ")),
+                  "a masked byte narrows in its register unchecked at "
+                  & "size and speed");
+            end;
+         end loop;
+      end;
    end Arithmetic_Shapes;
 
    --  D1624: two shifts of one unsigned value by constants that sum to its

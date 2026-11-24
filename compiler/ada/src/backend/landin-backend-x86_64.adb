@@ -4986,6 +4986,16 @@ package body Landin.Backend.X86_64 is
                                  Landin.Targets.Byte_8)
                               else "%rax");
 
+                           --  An unchecked narrowing from a register into a
+                           --  register.
+                           Narrow : constant Boolean :=
+                             Optimized and then Unchecked
+                             and then Into_Size < From_Size
+                             and then Allocation_Plan.Value
+                               (Positive (Value)).Kind = Allocation.GP
+                             and then Allocation_Plan.Value
+                               (Positive (Source)).Kind = Allocation.GP;
+
                            --  Whether a source value may lie below Low, or
                            --  above High: always so at none.
                            function Below
@@ -5019,7 +5029,34 @@ package body Landin.Backend.X86_64 is
                               end if;
                            end Compare_Work;
                         begin
-                           if Landin.Types.Is_Signed (From) then
+                           if Narrow then
+                              --  D2369: an unchecked narrowing keeps the
+                              --  low-order bits its source register holds,
+                              --  as the store through the accumulator did.
+                              declare
+                                 From_Register : constant
+                                   Allocation.Register_Id :=
+                                     Allocation_Plan.Value
+                                       (Positive (Source)).Register;
+                                 Into_Register : constant
+                                   Allocation.Register_Id :=
+                                     Allocation_Plan.Value
+                                       (Positive (Value)).Register;
+                              begin
+                                 if not Allocation."="
+                                   (From_Register, Into_Register)
+                                 then
+                                    Emit ("movl "
+                                      & Allocation.Name
+                                          (From_Register,
+                                           Landin.Targets.Byte_4)
+                                      & ", "
+                                      & Allocation.Name
+                                          (Into_Register,
+                                           Landin.Targets.Byte_4));
+                                 end if;
+                              end;
+                           elsif Landin.Types.Is_Signed (From) then
                               Emit
                                 ((case From_Size is
                                     when Landin.Targets.Byte_1 => "movsbq ",
@@ -5118,7 +5155,7 @@ package body Landin.Backend.X86_64 is
                                  end if;
                               end;
                            end if;
-                           if not Direct then
+                           if not Direct and then not Narrow then
                               Emit ("mov" & Suffix (Into_Size) & " "
                                     & Accumulator (Into_Size) & ", "
                                     & Value_Operand (Value));
