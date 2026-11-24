@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Landin.Targets.Capabilities;
@@ -225,6 +226,33 @@ package body Landin.Backend.Toolchain is
       return False;
    end Debug_Overwrites;
 
+   function Microsoft_Link
+     (Facts : Landin.Targets.Target_Facts; Driver : String) return Boolean
+   is
+      First : Positive := Driver'First;
+   begin
+      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        /= Landin.Targets.Capabilities.Windows
+      then
+         return False;
+      end if;
+      for Index in Driver'Range loop
+         if Driver (Index) in '/' | '\' then
+            First := Index + 1;
+         end if;
+      end loop;
+      declare
+         Name : constant String := Ada.Characters.Handling.To_Lower
+           (Driver (First .. Driver'Last));
+      begin
+         return Ada.Strings.Fixed.Index
+           ((if Name'Length > 4 and then Name (Name'Last - 3 .. Name'Last)
+               = ".exe"
+             then Name (Name'First .. Name'Last - 4) else Name),
+            "-windows-msvc") > 0;
+      end;
+   end Microsoft_Link;
+
    function Driver_For
      (Facts : Landin.Targets.Target_Facts;
       Named : String;
@@ -328,7 +356,17 @@ package body Landin.Backend.Toolchain is
         "; refine check, fmt and lsp, and compile --emit=asm or --emit=ir,"
         & " need no C driver";
    begin
-      if Named /= "" then
+      if Microsoft_Link (Facts, Named) then
+         --  D2327: the driver is a Clang, which runs Microsoft's linker
+         --  found through Visual Studio, or LLVM's under --linker=lld;
+         --  either reads the Windows SDK's import libraries.
+         return "install " & Named & ", a Clang for x86_64-pc-windows-msvc"
+           & " (Visual Studio's C++ Clang tools or LLVM's release, under"
+           & " that name), with Visual Studio's linker and the Windows SDK"
+           & " (--linker=lld uses LLVM's lld-link, with the SDK's import"
+           & " libraries where the LIB variable names them); or leave out"
+           & " --toolchain for the default llvm-mingw link" & Without;
+      elsif Named /= "" then
          return "install " & Named & ", or name another driver with"
            & " --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Backend_For (Facts)
@@ -383,12 +421,16 @@ package body Landin.Backend.Toolchain is
    end Install_Advice;
 
    function Library_Files
-     (Facts : Landin.Targets.Target_Facts; Name : String)
+     (Facts : Landin.Targets.Target_Facts; Name : String;
+      Driver : String := "")
       return Landin.Platform.Path_List
    is
       List : Landin.Platform.Path_List;
    begin
-      if Landin.Targets.Capabilities.Backend_For (Facts)
+      if Microsoft_Link (Facts, Driver) then
+         List.Append (Name & ".lib");
+         return List;
+      elsif Landin.Targets.Capabilities.Backend_For (Facts)
         = Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
       then
          List.Append ("lib" & Name & ".tbd");
@@ -487,7 +529,8 @@ package body Landin.Backend.Toolchain is
       Script : String := "";
       Float : Landin.Targets.Firmware.Float_Unit :=
         Landin.Targets.Firmware.No_Float_Unit;
-      Assembly_Is_Object : Boolean := False)
+      Assembly_Is_Object : Boolean := False;
+      Driver : String := "")
       return Landin.Platform.Path_List
    is
       List : Landin.Platform.Path_List;
@@ -572,7 +615,38 @@ package body Landin.Backend.Toolchain is
       --  Windows image would otherwise reserve one.  The assembler is
       --  Clang's own, as llvm-mingw's driver has no other, and the
       --  linker LLD in its MinGW mode.
-      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+      --  D2327: Microsoft's link of the same program.  Clang assembles
+      --  for the MSVC target and hands the link to `link.exe`, or to
+      --  `lld-link` under `-fuse-ld=lld`, translating `-LDIR` to
+      --  `/LIBPATH:DIR` and `-lNAME` to `NAME.lib`; the rest is the
+      --  linker's own spelling of what the MinGW link says.  `/Brepro`
+      --  keeps the time out of the image, so two links of one assembly
+      --  are the same bytes, and `/INCREMENTAL:NO` keeps `link.exe` from
+      --  padding the image for a later incremental link.
+      if Microsoft_Link (Facts, Driver) then
+         Landin.Platform.Add (List, "--target=x86_64-pc-windows-msvc");
+         Landin.Platform.Add (List, "-nostdlib");
+         Landin.Platform.Add (List, "-Wl,/ENTRY:_landin_start");
+         Landin.Platform.Add (List, "-Wl,/SUBSYSTEM:CONSOLE");
+         Landin.Platform.Add (List, "-Wl,/STACK:8388608");
+         Landin.Platform.Add (List, "-Wl,/NODEFAULTLIB");
+         Landin.Platform.Add (List, "-Wl,/OPT:REF");
+         Landin.Platform.Add (List, "-Wl,/INCREMENTAL:NO");
+         Landin.Platform.Add (List, "-Wl,/Brepro");
+         for Directory of Directories loop
+            Landin.Platform.Add (List, "-L" & Directory);
+         end loop;
+         Landin.Platform.Add (List, File_Operand (Assembly));
+         for Library of Libraries loop
+            Landin.Platform.Add (List, "-l" & Library);
+         end loop;
+         Landin.Platform.Add (List, "-o");
+         Landin.Platform.Add (List, File_Operand (Output));
+         if Linker /= "" then
+            Landin.Platform.Add (List, "-fuse-ld=" & Linker);
+         end if;
+         return List;
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Windows
       then
          Landin.Platform.Add (List, "-nostdlib");
