@@ -188,4 +188,6 @@ two fixtures that name Linux's fault endpoints run with
 commit first; `--runner-ssh` takes an existing guest instead of booting one.
 The gate runs the test program as two shards and the release leg, each in
 its own guest (`freebsd-host-1`, `freebsd-host-2`, `freebsd-host-release`),
-after `freebsd-toolchain` restores or builds the toolchain archive.
+after `freebsd-toolchain` restores or builds the toolchain archive;
+`freebsd-toolchain-main` does the same on every push to main, whose cache
+every branch reads.

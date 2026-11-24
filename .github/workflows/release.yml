@@ -444,6 +444,9 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
+      #  Inlined rather than the freebsd-toolchain action, as the build
+      #  job inlines the pinned toolchain: a tag older than the action does
+      #  not contain it, and a tag with this job has gnat.py.
       - name: The toolchain archive's name
         id: archive
         run: |

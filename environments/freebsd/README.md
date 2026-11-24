@@ -30,7 +30,17 @@ The gate boots these fresh guests itself, one per lane on a GitHub-hosted
 Linux x86-64 job: amd64 under KVM, arm64 under system emulation, since the
 hosted arm64 images expose no KVM. The jobs cache the image and base
 archives under the lock's digests, which `vm.py` verifies on every use;
-they do not compile Landin in FreeBSD.
+the lanes of `compiler/tests/freebsd/check.py` compile no Landin in FreeBSD.
+
+[`gnat.py`](gnat.py) builds the pinned GNAT and GPRbuild from source in
+such a guest, with [`gnat/build.sh`](gnat/build.sh) and the patches beside
+it, and keeps the result as one archive in the cache under a digest of
+its inputs ([the toolchain's record](../../compiler/ada/TOOLCHAIN.md#freebsd-built-from-source)).
+`compiler/tests/freebsd/host.py` unpacks it in another guest, builds
+`refine` there and runs its test program
+([refine on FreeBSD](../../compiler/tests/freebsd/README.md#refine-on-freebsd)).
+`vm.boot` takes the guest's memory, processors and a larger disk for
+those builds; the lanes keep 2 GiB and two processors.
 
 `compiler/tests/freebsd/check.py --prepared --runner-ssh` still executes a
 transferred payload in an existing guest, as the self-hosted controllers

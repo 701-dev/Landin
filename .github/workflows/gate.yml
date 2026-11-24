@@ -2429,60 +2429,43 @@ jobs:
           retention-days: 30
 
   #  refine built on FreeBSD x86-64 and tested there.  GNAT-FSF-builds
-  #  publishes no FreeBSD GNAT, so environments/freebsd/gnat.py builds the
-  #  pinned GNAT and GPRbuild from source in a fresh amd64 guest, which
-  #  takes this job about two hours on four processors, and the archive is
-  #  cached under a digest of its sources, patches and recipe; with the
-  #  cache it takes a minute.  It runs when a verified pass is reused too,
-  #  so that main's push, whose software lanes are reused, saves the
-  #  archive where every branch can restore it: a branch's cache is its
-  #  own, and main's is everyone's.
+  #  publishes no FreeBSD GNAT, so the freebsd-toolchain action restores
+  #  the pinned GNAT and GPRbuild from the cache, under a digest of their
+  #  sources, patches and recipe, or builds them from source in a fresh
+  #  amd64 guest, about two hours on four processors; with the cache it
+  #  takes a minute.  The build's log is kept when it ran.
   freebsd-toolchain:
     needs: [inputs]
-    if: needs.inputs.outputs.software == 'true'
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 330
     outputs:
-      key: ${{ steps.archive.outputs.key }}
-      path: ${{ steps.archive.outputs.path }}
+      key: ${{ steps.toolchain.outputs.key }}
+      path: ${{ steps.toolchain.outputs.path }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: The archive's name, a digest of its inputs
-        id: archive
-        run: |
-          echo "key=$(python3 environments/freebsd/gnat.py --arch=amd64 --key)" >> "$GITHUB_OUTPUT"
-          echo "path=$(python3 environments/freebsd/gnat.py --arch=amd64 --path)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: cache
-        with:
-          path: ${{ steps.archive.outputs.path }}
-          key: freebsd-gnat-amd64-${{ steps.archive.outputs.key }}
-      - name: Install QEMU
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
-      - name: Let the job open KVM
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: sudo chmod 666 /dev/kvm
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          path: |
-            ~/.cache/landin/freebsd/amd64.raw.xz
-            ~/.cache/landin/freebsd/amd64-base.txz
-          key: freebsd-amd64-${{ hashFiles('environments/freebsd/lock.json') }}
-      - name: Build GNAT and GPRbuild from source in a FreeBSD guest
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: >-
-          python3 environments/freebsd/gnat.py --arch=amd64 --memory=12288
-          --output="$RUNNER_TEMP/freebsd-gnat"
+      - uses: ./.github/actions/freebsd-toolchain
+        id: toolchain
       - name: Keep the build's log
-        if: always() && steps.cache.outputs.cache-hit != 'true'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: freebsd-gnat-amd64
-          path: |
-            ${{ runner.temp }}/freebsd-gnat/*.log
+          path: ${{ runner.temp }}/freebsd-gnat/*.log
+          if-no-files-found: ignore
           retention-days: 14
+
+  #  The same on every push to main, whatever the scope, so that the
+  #  archive is in main's cache, which every branch and tag may restore: a
+  #  branch's own cache is its alone, and main's push reuses its candidate's
+  #  pass, which skips freebsd-toolchain.  The gate does not need it.
+  freebsd-toolchain-main:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/freebsd-toolchain
 
   #  The test program on FreeBSD x86-64, built there by the pinned GNAT, in
   #  two shards that together are the complete local native suite: there
@@ -2511,7 +2494,7 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ needs.freebsd-toolchain.outputs.path }}
-          key: freebsd-gnat-amd64-${{ needs.freebsd-toolchain.outputs.key }}
+          key: ${{ needs.freebsd-toolchain.outputs.key }}
           fail-on-cache-miss: true
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

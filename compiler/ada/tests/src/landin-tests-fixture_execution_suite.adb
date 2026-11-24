@@ -3431,6 +3431,21 @@ package body Landin.Tests.Fixture_Execution_Suite is
       then
          Landin.Platform.Add (Driver_Arguments, "-no-pie");
       end if;
+      --  A FreeBSD link takes refine's own FreeBSD options, as the emitted
+      --  lane's does: binutils' as for x86-64's GNU assembly (D475), the
+      --  private labels discarded, and every section nothing retained
+      --  reaches dropped, since an unreached library routine may name
+      --  libthr's pthread_create, which no -lthr provides (D518).
+      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.FreeBSD
+      then
+         if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64
+         then
+            Landin.Platform.Add (Driver_Arguments, "-fno-integrated-as");
+         end if;
+         Landin.Platform.Add (Driver_Arguments, "-Wl,--discard-locals");
+         Landin.Platform.Add (Driver_Arguments, "-Wl,--gc-sections");
+      end if;
       --  Spelled for this lane's linker as every Python lane spells them.
       declare
          Spellings : Unbounded.Unbounded_String;
