@@ -108,6 +108,20 @@ package body Landin.Tests.Newcomer_Suite is
       Landin.Testing.Check_Equal
         (Item, Listed (Landin.Targets.Darwin_Arm64, "", True),
          "/usr/bin/clang" & LF, "Darwin keeps Apple's driver alone");
+      Landin.Testing.Check_Equal
+        (Item, Listed (Landin.Targets.FreeBSD_X86_64, "", True),
+         "x86_64-unknown-freebsd14.4-clang" & LF & "cc" & LF,
+         "FreeBSD's own host links with the base system's cc");
+      Landin.Testing.Check_Equal
+        (Item, Listed (Landin.Targets.FreeBSD_X86_64, "", False),
+         "x86_64-unknown-freebsd14.4-clang" & LF,
+         "FreeBSD cross-compiled keeps the cross driver alone");
+      Landin.Testing.Check
+        (Item, Contains
+           (Landin.Backend.Toolchain.Install_Advice
+              (Landin.Targets.FreeBSD_X86_64, "", True),
+            "pkg install binutils"),
+         "a FreeBSD host is told to install binutils' as");
       --  D532: the pinned bare-metal GCC, then the distributions' name.
       Landin.Testing.Check_Equal
         (Item, Listed (Landin.Targets.Cortex_M, "", False),

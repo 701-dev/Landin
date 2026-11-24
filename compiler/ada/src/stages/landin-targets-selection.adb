@@ -57,8 +57,13 @@ package body Landin.Targets.Selection is
    function Is_Darwin (Triplet : String) return Boolean
      is (Contains (Triplet, "-darwin"));
 
+   --  GNAT names the release it was built on: x86_64-unknown-freebsd14.4.
+   function Is_FreeBSD (Triplet : String) return Boolean
+     is (Contains (Triplet, "-freebsd"));
+
    function Has_Host_Default (Triplet : String) return Boolean
-     is ((Machine_Of (Triplet) = "x86_64" and then Is_Linux (Triplet))
+     is ((Machine_Of (Triplet) = "x86_64"
+          and then (Is_Linux (Triplet) or else Is_FreeBSD (Triplet)))
          or else (Machine_Of (Triplet) = "aarch64"
                   and then (Is_Linux (Triplet) or else Is_Darwin (Triplet))));
 
@@ -66,6 +71,9 @@ package body Landin.Targets.Selection is
    begin
       if Machine_Of (Triplet) = "x86_64" and then Is_Linux (Triplet) then
          return Linux_X86_64;
+      elsif Machine_Of (Triplet) = "x86_64" and then Is_FreeBSD (Triplet)
+      then
+         return FreeBSD_X86_64;
       elsif Machine_Of (Triplet) = "aarch64" and then Is_Linux (Triplet) then
          return Linux_Arm64;
       elsif Machine_Of (Triplet) = "aarch64" and then Is_Darwin (Triplet)

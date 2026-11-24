@@ -2399,6 +2399,7 @@ package body Landin.Tests.Driver_Suite is
          Check ("x86_64-pc-linux-gnu", "linux-x86-64");
          Check ("aarch64-linux-gnu", "linux-arm64");
          Check ("aarch64-apple-darwin24.6.0", "darwin-arm64");
+         Check ("x86_64-unknown-freebsd14.4", "freebsd-x86-64");
          Check ("x86_64-apple-darwin24.6.0", "");
       end;
    end Targets_Have_A_Default;

@@ -433,7 +433,9 @@ package body Landin.Tests.Targets_Suite is
            and then Selection.Host_Default ("aarch64-apple-darwin24.6.0")
                     = Darwin_Arm64
            and then Selection.Host_Default ("aarch64-apple-darwin25.5.0")
-                    = Darwin_Arm64,
+                    = Darwin_Arm64
+           and then Selection.Host_Default ("x86_64-unknown-freebsd14.4")
+                    = FreeBSD_X86_64,
          "each described host defaults to its own description");
       Landin.Testing.Check
         (Item,

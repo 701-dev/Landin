@@ -26,7 +26,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "landin_owned_directory.h"
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <sys/param.h>
 #include <sys/mount.h>
 #endif
 #ifdef __linux__
@@ -632,12 +633,26 @@ static int apple_name_rules(const struct statfs *fs, long sensitive)
     return sensitive < 0 ? -1 : sensitive ? 2 : 0;
 }
 #endif
+#ifdef __FreeBSD__
+/* UFS and tmpfs compare names as bytes.  ZFS may be made case-insensitive
+   per dataset, which no POSIX query reports, so it stays unknown. */
+static int freebsd_name_rules(const struct statfs *fs)
+{
+    if (strcmp(fs->f_fstypename, "ufs") == 0
+        || strcmp(fs->f_fstypename, "tmpfs") == 0) return 1;
+    return -1;
+}
+#endif
 static int name_rules_fd(int fd)
 {
 #ifdef __APPLE__
     struct statfs fs;
     if (fstatfs(fd, &fs) != 0) return -1;
     return apple_name_rules(&fs, fpathconf(fd, _PC_CASE_SENSITIVE));
+#elif defined(__FreeBSD__)
+    struct statfs fs;
+    if (fstatfs(fd, &fs) != 0) return -1;
+    return freebsd_name_rules(&fs);
 #elif defined(__linux__)
     struct statfs fs;
     int result = -1, flags;
@@ -675,6 +690,10 @@ static int name_rules(const char *directory)
     struct statfs fs;
     if (statfs(directory, &fs) != 0) return -1;
     return apple_name_rules(&fs, pathconf(directory, _PC_CASE_SENSITIVE));
+#elif defined(__FreeBSD__)
+    struct statfs fs;
+    if (statfs(directory, &fs) != 0) return -1;
+    return freebsd_name_rules(&fs);
 #elif defined(__linux__)
     int fd = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
     if (fd < 0) return -1;

@@ -2674,8 +2674,9 @@ The maintainer decided on 2026-11-24 that `refine` runs natively on
 FreeBSD beside Linux, and placed that work here. FreeBSD's programs are
 emitted on Linux today and run in the gate's FreeBSD guests, which
 compile no Landin. GNAT-FSF-builds publishes no pinned GNAT for FreeBSD,
-and its ports carry GNAT 14, so this item builds the pinned GNAT and
-GPRbuild on FreeBSD x86-64 from source, as `compiler/ada/TOOLCHAIN.md`
+and its packages carry GNAT 12 to 15 and a GPRbuild that moves with the
+ports, so this item builds the pinned GNAT and GPRbuild on FreeBSD x86-64
+from source, as `compiler/ada/TOOLCHAIN.md`
 allows a host to, cached by their inputs, and records how. `refine` and
 its commands are built with them; `Landin.Platform`'s native body takes
 FreeBSD in its POSIX arm wherever it differs from Linux and Darwin, as

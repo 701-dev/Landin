@@ -74,9 +74,9 @@ link discards them again with `-Wl,--discard-locals`, as `refine`'s own
 FreeBSD link does.
 
 For a complete local lane, install Clang 19, LLD, LLVM object tools, GNU as,
-QEMU system emulators, arm64 UEFI firmware, the iPXE ROMs QEMU's virtio network
-device loads (`ipxe-qemu` on Ubuntu, which installs it only as a recommendation
-for arm64) and bsdtar, then run:
+QEMU system emulators, arm64 UEFI firmware and bsdtar, then run (the arm64
+guest's network device loads no option ROM, since its firmware drives it, so
+Ubuntu's `ipxe-qemu`, which `qemu-system-arm` only recommends, is not needed):
 
 ```sh
 python3 compiler/tests/freebsd/check.py --arch=amd64 --kind=runtime \
