@@ -2502,8 +2502,8 @@ records on Linux each link command refine chooses, and the gate's new
 `windows-microsoft` job runs those commands with the runner's Clang,
 requires that `link.exe` ran each one, and holds every program to its
 fixture: all 3,682 outcomes of the corpus passed, linked by `link.exe` of
-Visual Studio 18 through Clang 20.1.8, in the candidate's gate run
-45336950416 with boards run 45340442875. Locally `lld-link` and MinGW-w64's import libraries
+Visual Studio 18 through Clang 20.1.8, in the merged candidate's gate run
+45350557955 with boards run 45356037718. Locally `lld-link` and MinGW-w64's import libraries
 stand in under Wine, where all 3,682 outcomes passed, and `nix develop` now
 puts `lld-link` beside `clang-19`. Found and fixed on the way: `link.exe`
 folds the thread-storage template into `.rdata` and drops an empty `.tls`
@@ -2517,7 +2517,8 @@ nixpkgs' `clang` wrapper refuses the MSVC target, which the lane's README
 now says. `SR-1767` records the job's unpinned Clang and Visual Studio;
 `SR-1736` and `SR-1748` were restated: Microsoft's link keeps an output
 name without `.exe`, but its debug builds differ just as LLD's MinGW-mode
-ones do.
+ones do. `SR-1768` records the `windows-debugger`
+DAP session that fell silent after its launch, once, in that gate run.
 
 ### R21.51 — Microsoft's toolchain on Windows arm64
 
