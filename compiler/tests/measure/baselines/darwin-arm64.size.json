@@ -304,10 +304,10 @@
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39584,
+    "__TEXT,__text": 39392,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -318,10 +318,10 @@
   },
   "armv8-a/size-all/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28056,
+    "__TEXT,__text": 27776,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -332,10 +332,10 @@
   },
   "armv8-a/size-all/fasta": {
    "sections": {
-    "__TEXT,__text": 23992,
+    "__TEXT,__text": 23832,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -346,11 +346,11 @@
   },
   "armv8-a/size-all/fibre": {
    "sections": {
-    "__TEXT,__text": 42708,
+    "__TEXT,__text": 42516,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -361,10 +361,10 @@
   },
   "armv8-a/size-all/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40596,
+    "__TEXT,__text": 40404,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -375,10 +375,10 @@
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44328,
+    "__TEXT,__text": 44136,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -389,11 +389,11 @@
   },
   "armv8-a/size-all/thread": {
    "sections": {
-    "__TEXT,__text": 56984,
+    "__TEXT,__text": 56792,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -404,10 +404,10 @@
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39584,
+    "__TEXT,__text": 39392,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -418,10 +418,10 @@
   },
   "armv8-a/size-auto/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28056,
+    "__TEXT,__text": 27776,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -432,10 +432,10 @@
   },
   "armv8-a/size-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 23992,
+    "__TEXT,__text": 23832,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -446,11 +446,11 @@
   },
   "armv8-a/size-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 42708,
+    "__TEXT,__text": 42516,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -461,10 +461,10 @@
   },
   "armv8-a/size-auto/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40596,
+    "__TEXT,__text": 40404,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -475,10 +475,10 @@
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44328,
+    "__TEXT,__text": 44136,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -489,11 +489,11 @@
   },
   "armv8-a/size-auto/thread": {
    "sections": {
-    "__TEXT,__text": 56984,
+    "__TEXT,__text": 56792,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -504,10 +504,10 @@
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39608,
+    "__TEXT,__text": 39416,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -518,10 +518,10 @@
   },
   "armv8-a/size-off/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28080,
+    "__TEXT,__text": 27800,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -532,10 +532,10 @@
   },
   "armv8-a/size-off/fasta": {
    "sections": {
-    "__TEXT,__text": 24040,
+    "__TEXT,__text": 23880,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -546,11 +546,11 @@
   },
   "armv8-a/size-off/fibre": {
    "sections": {
-    "__TEXT,__text": 42732,
+    "__TEXT,__text": 42540,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -561,10 +561,10 @@
   },
   "armv8-a/size-off/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40656,
+    "__TEXT,__text": 40464,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -575,10 +575,10 @@
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44400,
+    "__TEXT,__text": 44208,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -589,11 +589,11 @@
   },
   "armv8-a/size-off/thread": {
    "sections": {
-    "__TEXT,__text": 56984,
+    "__TEXT,__text": 56792,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -604,10 +604,10 @@
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33868,
+    "__TEXT,__text": 33676,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -618,10 +618,10 @@
   },
   "armv8-a/speed-all/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24020,
+    "__TEXT,__text": 23740,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -632,10 +632,10 @@
   },
   "armv8-a/speed-all/fasta": {
    "sections": {
-    "__TEXT,__text": 20916,
+    "__TEXT,__text": 20756,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -646,11 +646,11 @@
   },
   "armv8-a/speed-all/fibre": {
    "sections": {
-    "__TEXT,__text": 35060,
+    "__TEXT,__text": 34868,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -661,10 +661,10 @@
   },
   "armv8-a/speed-all/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34684,
+    "__TEXT,__text": 34492,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -675,10 +675,10 @@
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41744,
+    "__TEXT,__text": 41448,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -689,11 +689,11 @@
   },
   "armv8-a/speed-all/thread": {
    "sections": {
-    "__TEXT,__text": 49780,
+    "__TEXT,__text": 49444,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -704,10 +704,10 @@
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33868,
+    "__TEXT,__text": 33676,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -718,10 +718,10 @@
   },
   "armv8-a/speed-auto/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24020,
+    "__TEXT,__text": 23740,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -732,10 +732,10 @@
   },
   "armv8-a/speed-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 20916,
+    "__TEXT,__text": 20756,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -746,11 +746,11 @@
   },
   "armv8-a/speed-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 35060,
+    "__TEXT,__text": 34868,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -761,10 +761,10 @@
   },
   "armv8-a/speed-auto/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34684,
+    "__TEXT,__text": 34492,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -775,10 +775,10 @@
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41744,
+    "__TEXT,__text": 41448,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -789,11 +789,11 @@
   },
   "armv8-a/speed-auto/thread": {
    "sections": {
-    "__TEXT,__text": 49780,
+    "__TEXT,__text": 49444,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -804,10 +804,10 @@
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 34028,
+    "__TEXT,__text": 33836,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -818,10 +818,10 @@
   },
   "armv8-a/speed-off/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24060,
+    "__TEXT,__text": 23780,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -832,10 +832,10 @@
   },
   "armv8-a/speed-off/fasta": {
    "sections": {
-    "__TEXT,__text": 20932,
+    "__TEXT,__text": 20772,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -846,11 +846,11 @@
   },
   "armv8-a/speed-off/fibre": {
    "sections": {
-    "__TEXT,__text": 35100,
+    "__TEXT,__text": 34908,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -861,10 +861,10 @@
   },
   "armv8-a/speed-off/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34768,
+    "__TEXT,__text": 34576,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -875,10 +875,10 @@
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 42060,
+    "__TEXT,__text": 41764,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -889,11 +889,11 @@
   },
   "armv8-a/speed-off/thread": {
    "sections": {
-    "__TEXT,__text": 49868,
+    "__TEXT,__text": 49532,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1204,10 +1204,10 @@
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39552,
+    "__TEXT,__text": 39360,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1218,10 +1218,10 @@
   },
   "armv8.1-a/size-all/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28056,
+    "__TEXT,__text": 27776,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1232,10 +1232,10 @@
   },
   "armv8.1-a/size-all/fasta": {
    "sections": {
-    "__TEXT,__text": 23992,
+    "__TEXT,__text": 23832,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1246,11 +1246,11 @@
   },
   "armv8.1-a/size-all/fibre": {
    "sections": {
-    "__TEXT,__text": 42708,
+    "__TEXT,__text": 42516,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1261,10 +1261,10 @@
   },
   "armv8.1-a/size-all/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40564,
+    "__TEXT,__text": 40372,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1275,10 +1275,10 @@
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44296,
+    "__TEXT,__text": 44104,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1289,11 +1289,11 @@
   },
   "armv8.1-a/size-all/thread": {
    "sections": {
-    "__TEXT,__text": 56964,
+    "__TEXT,__text": 56772,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1304,10 +1304,10 @@
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39552,
+    "__TEXT,__text": 39360,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1318,10 +1318,10 @@
   },
   "armv8.1-a/size-auto/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28056,
+    "__TEXT,__text": 27776,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1332,10 +1332,10 @@
   },
   "armv8.1-a/size-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 23992,
+    "__TEXT,__text": 23832,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1346,11 +1346,11 @@
   },
   "armv8.1-a/size-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 42708,
+    "__TEXT,__text": 42516,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1361,10 +1361,10 @@
   },
   "armv8.1-a/size-auto/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40564,
+    "__TEXT,__text": 40372,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1375,10 +1375,10 @@
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44296,
+    "__TEXT,__text": 44104,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1389,11 +1389,11 @@
   },
   "armv8.1-a/size-auto/thread": {
    "sections": {
-    "__TEXT,__text": 56964,
+    "__TEXT,__text": 56772,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1404,10 +1404,10 @@
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39576,
+    "__TEXT,__text": 39384,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11955,
+    "__TEXT,__cstring": 11683,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1418,10 +1418,10 @@
   },
   "armv8.1-a/size-off/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 28080,
+    "__TEXT,__text": 27800,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9583,
+    "__TEXT,__cstring": 9207,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1432,10 +1432,10 @@
   },
   "armv8.1-a/size-off/fasta": {
    "sections": {
-    "__TEXT,__text": 24040,
+    "__TEXT,__text": 23880,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7042,
+    "__TEXT,__cstring": 6822,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1446,11 +1446,11 @@
   },
   "armv8.1-a/size-off/fibre": {
    "sections": {
-    "__TEXT,__text": 42732,
+    "__TEXT,__text": 42540,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 15574,
+    "__TEXT,__cstring": 15302,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1461,10 +1461,10 @@
   },
   "armv8.1-a/size-off/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 40624,
+    "__TEXT,__text": 40432,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12540,
+    "__TEXT,__cstring": 12268,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1475,10 +1475,10 @@
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44368,
+    "__TEXT,__text": 44176,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 13131,
+    "__TEXT,__cstring": 12873,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1489,11 +1489,11 @@
   },
   "armv8.1-a/size-off/thread": {
    "sections": {
-    "__TEXT,__text": 56964,
+    "__TEXT,__text": 56772,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 20474,
+    "__TEXT,__cstring": 20202,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1504,10 +1504,10 @@
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33836,
+    "__TEXT,__text": 33644,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1518,10 +1518,10 @@
   },
   "armv8.1-a/speed-all/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24020,
+    "__TEXT,__text": 23740,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1532,10 +1532,10 @@
   },
   "armv8.1-a/speed-all/fasta": {
    "sections": {
-    "__TEXT,__text": 20916,
+    "__TEXT,__text": 20756,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1546,11 +1546,11 @@
   },
   "armv8.1-a/speed-all/fibre": {
    "sections": {
-    "__TEXT,__text": 35060,
+    "__TEXT,__text": 34868,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1561,10 +1561,10 @@
   },
   "armv8.1-a/speed-all/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34652,
+    "__TEXT,__text": 34460,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1575,10 +1575,10 @@
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41712,
+    "__TEXT,__text": 41416,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1589,11 +1589,11 @@
   },
   "armv8.1-a/speed-all/thread": {
    "sections": {
-    "__TEXT,__text": 49760,
+    "__TEXT,__text": 49424,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1604,10 +1604,10 @@
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33836,
+    "__TEXT,__text": 33644,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1618,10 +1618,10 @@
   },
   "armv8.1-a/speed-auto/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24020,
+    "__TEXT,__text": 23740,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1632,10 +1632,10 @@
   },
   "armv8.1-a/speed-auto/fasta": {
    "sections": {
-    "__TEXT,__text": 20916,
+    "__TEXT,__text": 20756,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1646,11 +1646,11 @@
   },
   "armv8.1-a/speed-auto/fibre": {
    "sections": {
-    "__TEXT,__text": 35060,
+    "__TEXT,__text": 34868,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1661,10 +1661,10 @@
   },
   "armv8.1-a/speed-auto/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34652,
+    "__TEXT,__text": 34460,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1675,10 +1675,10 @@
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41712,
+    "__TEXT,__text": 41416,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1689,11 +1689,11 @@
   },
   "armv8.1-a/speed-auto/thread": {
    "sections": {
-    "__TEXT,__text": 49760,
+    "__TEXT,__text": 49424,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,
@@ -1704,10 +1704,10 @@
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33996,
+    "__TEXT,__text": 33804,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11714,
+    "__TEXT,__cstring": 11442,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1718,10 +1718,10 @@
   },
   "armv8.1-a/speed-off/fannkuch-redux": {
    "sections": {
-    "__TEXT,__text": 24060,
+    "__TEXT,__text": 23780,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 184,
-    "__TEXT,__cstring": 9379,
+    "__TEXT,__cstring": 9003,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 240,
     "__DATA,__data": 480,
@@ -1732,10 +1732,10 @@
   },
   "armv8.1-a/speed-off/fasta": {
    "sections": {
-    "__TEXT,__text": 20932,
+    "__TEXT,__text": 20772,
     "__TEXT,__stubs": 48,
     "__TEXT,__const": 518,
-    "__TEXT,__cstring": 7020,
+    "__TEXT,__cstring": 6800,
     "__DATA_CONST,__got": 32,
     "__DATA_CONST,__const": 144,
     "__DATA,__data": 672,
@@ -1746,11 +1746,11 @@
   },
   "armv8.1-a/speed-off/fibre": {
    "sections": {
-    "__TEXT,__text": 35100,
+    "__TEXT,__text": 34908,
     "__TEXT,__stubs": 96,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 155,
-    "__TEXT,__cstring": 14123,
+    "__TEXT,__cstring": 13851,
     "__DATA_CONST,__got": 64,
     "__DATA_CONST,__const": 400,
     "__DATA,__data": 480,
@@ -1761,10 +1761,10 @@
   },
   "armv8.1-a/speed-off/mandelbrot": {
    "sections": {
-    "__TEXT,__text": 34736,
+    "__TEXT,__text": 34544,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 172,
-    "__TEXT,__cstring": 12302,
+    "__TEXT,__cstring": 12030,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 480,
@@ -1775,10 +1775,10 @@
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 42028,
+    "__TEXT,__text": 41732,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12942,
+    "__TEXT,__cstring": 12684,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1789,11 +1789,11 @@
   },
   "armv8.1-a/speed-off/thread": {
    "sections": {
-    "__TEXT,__text": 49848,
+    "__TEXT,__text": 49512,
     "__TEXT,__stubs": 192,
     "__TEXT,__init_offsets": 4,
     "__TEXT,__const": 156,
-    "__TEXT,__cstring": 18542,
+    "__TEXT,__cstring": 18270,
     "__DATA_CONST,__got": 128,
     "__DATA_CONST,__const": 528,
     "__DATA,__data": 504,

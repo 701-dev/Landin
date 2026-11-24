@@ -170,7 +170,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6664,
+    ".text": 6644,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -221,7 +221,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6616,
+    ".text": 6596,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -272,7 +272,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6616,
+    ".text": 6596,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -323,7 +323,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6292,
+    ".text": 6272,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -374,7 +374,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6292,
+    ".text": 6272,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -425,7 +425,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6236,
+    ".text": 6216,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -632,7 +632,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6664,
+    ".text": 6644,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -683,7 +683,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6616,
+    ".text": 6596,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -734,7 +734,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6616,
+    ".text": 6596,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -785,7 +785,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6292,
+    ".text": 6272,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -836,7 +836,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6292,
+    ".text": 6272,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24
@@ -887,7 +887,7 @@
    "sections": {
     ".landin_entry": 4,
     ".isr_vector": 64,
-    ".text": 6236,
+    ".text": 6216,
     ".rodata": 513,
     ".data": 36,
     ".bss": 24

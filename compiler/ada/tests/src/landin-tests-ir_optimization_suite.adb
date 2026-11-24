@@ -2487,6 +2487,30 @@ package body Landin.Tests.IR_Optimization_Suite is
             & "end f",
             IR.Multiply, 0, "an index below a parameter times 4 may "
             & "overflow", Objective);
+         --  D2367: a narrowing conversion of a value its bounds hold in
+         --  the result's range.
+         Check_Proved
+           ("public f: (x: usize) -> (r: u8) = r = u8(x & 0xff) end f",
+            IR.Conversion, 1, "a value masked to a byte converts to u8",
+            Objective);
+         Check_Proved
+           ("public f: (x: usize) -> (r: u8) = r = u8(x & 0x1ff) end f",
+            IR.Conversion, 0, "a value masked to nine bits may not fit u8",
+            Objective);
+         Check_Proved
+           ("public f: (x: i32) -> (r: u8) = r = u8(x & 0x7f) end f",
+            IR.Conversion, 0, "a signed value masked may be negative",
+            Objective);
+         --  D2368: a loop's end copied from a length stored once, in a
+         --  block before the copy's, bounds the index into that slice.
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: usize) = r = 0 "
+            & "u: []u8 = s[n..<lenof s] if n > 3 then r = 1 end if "
+            & "for i in usize(0)..<lenof u do r += usize(u[i]) end for "
+            & "end f",
+            IR.Slice_Address, (if Objective = Opt.Speed then 1 else 0),
+            "a copy of a split length stored once bounds the loop",
+            Objective);
       end loop;
    end Proved_Checks;
 

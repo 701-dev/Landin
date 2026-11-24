@@ -28426,6 +28426,49 @@ leave the same loop written with `while` unproved.
 **Pinned by** the IR optimization suite's `proved checks`, with four
 controls, at size and speed.
 
+### D2367 — A conversion is proved by its operand's bounds
+
+**The tour said** nothing. A narrowing integer conversion kept its range
+check wherever its operand's bounds already lay inside the result's
+range: SHA-256's program fills its bytes with `u8((i *% 131 +% 7) &
+0xff)`, and each byte paid a move, a compare and a branch for a check
+that could not fail, 3 of its 14 x86-64 instructions.
+
+**Chosen:** a checked conversion from one integer type to another is
+proved when the least and greatest its operand can be, by what produced
+it and by the facts on its slot, both lie within the result's range. A
+mask by a constant bounds an unsigned value by that constant, so
+`u8(x & 0xff)` and `u16(x % 1000)` convert unchecked; a signed operand's
+least stays its type's, so `u8(i & 0x7f)` of an `i32` keeps its check.
+
+**The alternatives:** proving only masks, which a remainder or a shift
+would have asked for next; and folding the conversion into the mask in
+lowering, which would leave the same value reached another way checked.
+
+**Pinned by** the IR optimization suite's `proved checks`.
+
+### D2368 — A copy of a length stored once is that length
+
+**The tour said** nothing. `for i in usize(0)..<lenof bytes` copies the
+slice's length into the loop's end once, and a slice that scalar
+replacement split, its length stored once from a call's result, gave the
+copy no term naming that length: the end and the length were two
+unrelated slots, and every `bytes[i]` kept its bounds check, 2 of the
+14 instructions above.
+
+**Chosen:** a load of an eligible slot stored once, whose store strictly
+dominates the load, stands for the slot that store copied when that one
+too is eligible, stored once, and its store strictly dominates the
+copy's. Both hold the one value wherever the copy's store dominates, so
+a comparison with the loop's end bounds the index by the length.
+
+**The alternatives:** giving every value a term, which would number what
+value numbering already numbers; and forwarding the length's value into
+the loop's end across blocks, which this pass's per-block forwarding
+does not do and its proofs do not need.
+
+**Pinned by** the IR optimization suite's `proved checks`.
+
 ### D2208 — x86-64 selects a proved unsigned product as `imul`
 
 **The tour said** nothing. An unsigned checked product needs `mul`'s
@@ -28499,6 +28542,23 @@ indirect load put in the same register moves nothing.
 **The alternatives:** tracking which registers hold zero-extended values
 across every operation, which would cover arithmetic results too and is
 left until a measurement asks for it.
+
+**Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
+
+### D2369 — x86-64 narrows an unchecked integer in its register
+
+**The tour said** nothing. A narrowing conversion moved its operand
+into `%rax` and stored the accumulator's low part into the result's
+register, two moves where the operand's register already held the bits.
+
+**Chosen:** at size and speed an unchecked narrowing from a value in a
+general register into one moves nothing when both are one register, and
+is one 32-bit move between them otherwise. The bits above the result's
+width are left as the store through the accumulator left them.
+
+**The alternatives:** clearing the upper bits with `movzbl` or `movzwl`,
+which no reader of a narrow value needs and which would cost the move
+this saves.
 
 **Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
 

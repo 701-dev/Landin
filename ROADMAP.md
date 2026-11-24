@@ -1044,6 +1044,78 @@ candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45335016031) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45338343665).
 
+### R16.35 — What SHA-256 still costs on x86-64
+
+Status: complete
+Depends on: R16.10
+
+What R16.33 left as SHA-256's largest cost against gcc on x86-64, and
+what R16.34 did not touch: SHA-256 of 64 MiB executes 6.03 G instructions
+at speed against gcc 16.1 `-O2`'s 4.56 G. `SR-1650` names the
+compression round, which keeps the word `h` in the frame because slot
+placement gives a slot a register over its whole interval without
+counting the registers the values inside it still need; R16.30 found
+that a register for `h` alone saves two memory accesses a round and no
+instruction (Q-204). Measured first, then taken where the instructions
+are: the round, the message schedule and load loops, and the program's
+own work on each byte.
+Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base, each cost it takes measured, the
+round's against `SR-1650`'s completion, and no other combination over
+its own.
+
+Done: SHA-256's round already executes 48 x86-64 instructions, gcc's
+own count; the rest of what the program spent over gcc was its schedule
+and load loops, which gcc vectorizes, and its own work on each byte. A
+checked integer conversion is proved when its operand's bounds lie in
+the result's range (D2367), so `u8(x & 0xff)` converts unchecked; a load
+of a slot stored once from another slot stored once stands for that
+slot (D2368), so `for i in usize(0)..<lenof bytes` bounds `bytes[i]`
+when scalar replacement split the slice from a call's result; and
+x86-64 narrows an unchecked integer in its own register (D2369). The
+program's byte loop fell from 14 x86-64 instructions to 8. Against the
+item's base, at speed, x86-64 executes 6.7% fewer instructions on
+SHA-256 of 64 MiB (6.03 G to 5.63 G; gcc's 4.56 G) and 0.7% on
+SipHash-1-3, arm64 under QEMU 6.0% and 0.5%, and the rest within
+0.001%; at size SHA-256 3.5% on x86-64 and 2.5% on arm64. Every hosted
+image's `.text` is smaller and every output the same. `SR-1650` stays
+open: its `h` needs a twelfth register, the round holding nine slots and
+three temporaries at once where x86-64 offers eleven, and giving every
+u32 slot `%r8` and `%r9` made SHA-256 23% worse. `SR-1787` files the
+round's majority and choice identities, gcc's, which need the
+simplification to make an instruction of its own, and `SR-1788` a slice
+element's address not folded into its store; `SR-1789` the Windows
+debugger session's stall, met once in the item's gate. The STM32H753's, the
+ESP32-C3's, the ESP32-C5's, the ESP32's and the ESP32-S3's records were
+made again on the rig. Of the boards' 432 cycle configurations, 78 ran
+changed images, all within tolerance: 75 ran 0.01% to 0.76% faster,
+binary-search most, and the ESP32-C5's SipHash at size 0.08% slower; the
+ESP32-C3's SipHash, which its RAM layout cannot time, keeps that limit
+with an instruction segment 16 to 24 bytes smaller.
+The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45400339063) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45406894479).
+
+### R16.36 — Firmware loops tested at their foot
+
+Status: planned
+Depends on: R16.10
+
+`SR-1757`: Cortex-M, RV32 and Xtensa keep lowering's block order, since
+D2096 runs `Landin.IR.Layout` for hosted targets alone, so each iteration
+of a firmware loop jumps to its step and the step jumps back to the test
+at its head, and D2308's word alignment, which pads only a head nothing
+falls into, reaches few firmware loops. On x86-64 the hosted layout took
+0.5% to 8.9% off every workload at speed. The item lays firmware loops
+out tested at their foot where that pays, at `size` and `speed`, and
+measures it over the Cortex-M lanes' instructions, every board's cycles
+and every firmware image's size.
+Exit evidence: a benchmark program executing more than 5% fewer
+instructions on a Cortex-M lane, or taking more than 5% fewer cycles on a
+board, than at the item's base; every program's instructions, cycles and
+image size reported against that base; and no other combination over its
+own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
