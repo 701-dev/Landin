@@ -1140,9 +1140,9 @@ mandelbrot at `size` by 0.3%. Every board's RAM and boot records were made
 again on the rig, and the cycle, size and instruction baselines recorded.
 The smaller images run `runtime/map-seed-spreads-chosen-keys` on Cortex-M0
 at every profile and on RV32 at `size` and `speed`, where it had
-overflowed. `SR-1757` is taken. The candidate passed its
-[gate](https://github.com/701-dev/Landin/actions/runs/45444199804) and
-[boards](https://github.com/701-dev/Landin/actions/runs/45451321729).
+overflowed. `SR-1757` is taken. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45466768478) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45472956351).
 
 ### The continuous items
 
