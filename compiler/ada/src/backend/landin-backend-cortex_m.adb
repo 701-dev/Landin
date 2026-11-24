@@ -3930,12 +3930,16 @@ package body Landin.Backend.Cortex_M is
                         Bound : constant Natural :=
                           4 * (Before (Lines, High + 1)
                                - Before (Lines, Low)) + 8;
+                        Last : constant Positive :=
+                          Site.Last - Routine_Start + Text'First;
+                        Clear : constant Boolean :=
+                          not Crosses
+                            (Assembly_Barriers,
+                             Low - Text'First + Routine_Start,
+                             High - Text'First + Routine_Start)
+                          and then not Crosses (Pools, Low, High);
                      begin
-                        if not Crosses
-                          (Assembly_Barriers,
-                           Low - Text'First + Routine_Start,
-                           High - Text'First + Routine_Start)
-                          and then not Crosses (Pools, Low, High)
+                        if Clear
                           and then Bound <
                             (if Unbounded.Length (Site.Condition) = 0
                              then 2_000 else 240)
@@ -3946,8 +3950,32 @@ package body Landin.Backend.Cortex_M is
                              (Rewritten, Character'Val (9) & "b"
                               & Unbounded.To_String (Site.Condition)
                               & " " & Name & LF);
-                           Cursor := Site.Last - Routine_Start
-                             + Text'First + 1;
+                           Cursor := Last + 1;
+                        elsif Clear
+                          and then Unbounded.Length (Site.Condition) > 0
+                          and then Bound < 2_000
+                        then
+                           --  D2407: past a conditional branch's reach but
+                           --  within B's, the inverted branch over its skip
+                           --  label stays and B replaces the long jump.
+                           declare
+                              Head : constant Natural :=
+                                Ada.Strings.Fixed.Index
+                                  (Text (First .. Last), [1 => LF]);
+                              Tail : constant Natural :=
+                                Ada.Strings.Fixed.Index
+                                  (Text (First .. Last - 1), [1 => LF],
+                                   Ada.Strings.Backward);
+                           begin
+                              Unbounded.Append
+                                (Rewritten, Text (Cursor .. Head));
+                              Unbounded.Append
+                                (Rewritten, Character'Val (9) & "b "
+                                 & Name & LF);
+                              Unbounded.Append
+                                (Rewritten, Text (Tail + 1 .. Last));
+                              Cursor := Last + 1;
+                           end;
                         end if;
                      end;
                   end if;

@@ -1134,32 +1134,32 @@ process ignores SIGPIPE and gives its children the default back.
   caller-saved registers, floating-point values included, at size as at
   speed (D1625); x86-64 offers `%r10` and `%r11` where selection does not
   write them (D2088) and reads float constants from a read-only pool
-  (D2092). On every hosted target a loop is laid out tested at its foot,
-  and no block that only jumps on is emitted (D2096). Both keep each
-  routine's traps after its body, compute into a result's own register with
-  immediate operands, fuse comparisons with their branches and fold indexed
-  accesses into scaled operands, x86-64 with an index's constant offset in
-  the displacement (D2252). RISC-V, RV64 and RV32, places slots and
-  values with arm64's placement in the registers a routine's text, emitted
-  once with every value in a home, does not write over their intervals,
-  checking its second emission against the plan; RV32 holds eight-byte
-  values in register pairs (D1503). Cortex-M does the same over r4-r7, r3
-  and r1 at every level, eight-byte values keeping their homes (D1567),
-  with r12, r8 and r10 at the Thumb-2 levels' speed (D1772) and, with a
-  float unit, floats in d0-d15 (D1771); it makes a word constant where it
-  is read, as an immediate where the operation has one (D1767), reads a
-  frame part in place (D1769), converts between word integers with one
-  comparison (D1770), at the Thumb-2 levels branches directly, builds
-  constants with MOVW and MOVT (D1564), tests zero with CBZ and CBNZ
-  (D1768) and moves packed fields with UBFX and BFI (D1773), and divides
-  by a constant power of two with shifts (D1626). Xtensa places every word of a routine without
-  an assembly block, its selection's scratch words and each scalar value
-  and unaddressed slot, over the routine's own liveness in a2-a6, which a
-  call preserves, and a10-a15, dropping operations nothing reads, folding
-  constants into the operations that read them, dividing by a constant
-  power of two with shifts and masks, and making a comparison's flag and
-  its test one branch (D1627), and fuses a comparison with the branch
-  after it (D1628).
+  (D2092). On every target, firmware's too, a loop is laid out tested at its
+  foot, and no block that only jumps on is emitted (D2096, D2408). x86-64
+  and arm64 keep each routine's traps after its body, compute into a
+  result's own register with immediate operands, fuse comparisons with their
+  branches and fold indexed accesses into scaled operands, x86-64 with an
+  index's constant offset in the displacement (D2252). RISC-V, RV64 and
+  RV32, places slots and values with arm64's placement in the registers a
+  routine's text, emitted once with every value in a home, does not write
+  over their intervals, checking its second emission against the plan; RV32
+  holds eight-byte values in register pairs (D1503). Cortex-M does the same
+  over r4-r7, r3 and r1 at every level, eight-byte values keeping their
+  homes (D1567), with r12, r8 and r10 at the Thumb-2 levels' speed (D1772)
+  and, with a float unit, floats in d0-d15 (D1771); it makes a word constant
+  where it is read, as an immediate where the operation has one (D1767),
+  reads a frame part in place (D1769), converts between word integers with
+  one comparison (D1770), at the Thumb-2 levels branches directly, builds
+  constants with MOVW and MOVT (D1564), tests zero with CBZ and CBNZ (D1768)
+  and moves packed fields with UBFX and BFI (D1773), and divides by a
+  constant power of two with shifts (D1626). Xtensa places every word of a
+  routine without an assembly block, its selection's scratch words and each
+  scalar value and unaddressed slot, over the routine's own liveness in
+  a2-a6, which a call preserves, and a10-a15, dropping operations nothing
+  reads, folding constants into the operations that read them, dividing by a
+  constant power of two with shifts and masks, and making a comparison's
+  flag and its test one branch (D1627), and fuses a comparison with the
+  branch after it (D1628).
 - **At speed** a direct call to a small routine becomes a copy of its body,
   which the debuggers show as an inlined frame of that routine (D339), a
   straight routine weighed as it will run rather than as lowering made it

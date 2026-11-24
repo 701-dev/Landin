@@ -27650,6 +27650,27 @@ and MOVT's eight bytes, declined for one form at every objective.
 consumer, which reads a register's address from a MOVW and MOVT pair as
 from a literal, and `compiler/tests/measure/baselines/`.
 
+### D2407 — ARMv6-M reaches a nearer distant edge with B
+
+**The tour said** nothing. ARMv6-M's conditional branch reaches 256 bytes
+and its B 2 KiB, and an edge past the conditional branch's reach inverted
+the condition over a load of the target's address and a `bx r7`, twelve
+bytes with the address word, wherever it was.
+
+**Chosen:** an edge past a conditional branch's reach but within B's, by
+the same count of emitted lines, four bytes a line, that already chooses
+the direct branch, keeps the inverted branch over its skip label and
+replaces the long jump with B. Laying firmware loops out tested at their
+foot (D2408) put a loop's step after its body, which sent a body's early
+exits to the step from further away, and without this ARMv6-M's images
+grew by up to 1.3% at `size`.
+
+**The alternatives:** the long jump wherever the conditional branch does
+not reach; and exact byte counts, the assembler's own choice of encoding.
+
+**Pinned by** `cortex ABI/local branches` and
+`compiler/tests/measure/baselines/`.
+
 ### D1565 — A Cortex-M call loads its scalar register arguments directly
 
 **The tour said** nothing. Every call stored its register arguments in an
@@ -28032,7 +28053,8 @@ entry. x86-64 aligns the block a foot test branches back to by 32 bytes at
 8.9% (fasta) fewer instructions at `speed` and 0.8% to 8.5% fewer at
 `size`, in a smaller `.text` but for the fibre switches at `speed`, 64
 bytes of padding larger; on arm64 SipHash, SHA-256 and fannkuch-redux
-execute 3% to 5% fewer. Firmware targets keep lowering's order.
+execute 3% to 5% fewer. Firmware targets kept lowering's order until
+D2408.
 
 **The alternatives:** a per-backend layout permutation, which DWARF's range
 and location lists, liveness and loop-head alignment would each have had
@@ -28044,6 +28066,34 @@ faster code.
 **Pinned by** `x86 opt/loop nesting`, `x86 opt/speed places code`,
 `x86 opt/caller-saved slots`, the debugger lanes on linux-x86-64 and
 linux-arm64, and `compiler/tests/measure/baselines/`.
+
+### D2408 — A firmware loop is tested at its foot
+
+**The tour said** nothing. D2096 laid out hosted targets' blocks alone, so
+on Cortex-M, RV32 and Xtensa each iteration of a loop jumped to its step
+and the step back to the test at its head, the head was fallen into on
+entry, and D2308's word alignment, which pads only a head nothing falls
+into, reached few firmware loops.
+
+**Chosen:** at `size` and `speed`, `Landin.IR.Layout` lays out every
+target's blocks, firmware's as hosted's: blocks that only jump on are
+jumped past and dropped, and a loop is tested at its foot. The block a
+foot test branches back to is entered by the jump to the test, so D2308
+puts it on a word on Thumb-2 and compressed RV32 at `speed`. On the
+Cortex-M lanes at `speed` against the item's base, ARMv7-M executes 9.6%
+fewer instructions on the sieve, 4.5% on binary search, 1.9% on merge
+sort, 1.2% on fannkuch-redux, 0.3% on SipHash and 0.2% on mandelbrot,
+4.7% on mandelbrot with the double-precision float unit, and ARMv6-M,
+with D2407, 6.7%, 3.2%, 2.1%, 1.2%, 0.2% and 0.0%. Every firmware image
+at `size` and `speed` is smaller: Thumb-2 by 0.6% to 5.0%, ARMv6-M by
+0.6% to 5.4%, RV32 by 0.2% to 1.9% and Xtensa by 0.4% to 1.1%.
+
+**The alternatives:** a per-target choice of which loops to turn, which
+the measurements gave no case for; and keeping lowering's order on
+ARMv6-M, whose distant edges grew until D2407.
+
+**Pinned by** `cortex ABI/Thumb-2 selection forms`, `cortex ABI/local
+branches`, the boards' cycles and `compiler/tests/measure/baselines/`.
 
 ### D2148 — A slot's one constant store reaches the loads it dominates
 
@@ -28703,10 +28753,10 @@ levels compress, a block that begins a loop starts on a word when the
 last instruction before it, with only labels between, does not fall
 through: a jump, a return or a trap. The padding, `.balign 4` on Thumb-2
 and `.p2align 2` on RISC-V, which D1405's bound counts, goes before those
-labels and is never executed. A head entered by falling into it, which is
-most of firmware's since it keeps lowering's block order (D2096), stays
-where it is. The loop heads are x86-64's (D2096), found by one routine
-that both backends share with it. Armv6-M, whose code is 16-bit but for
+labels and is never executed. A head entered by falling into it, which
+was most of firmware's while it kept lowering's block order (D2096,
+D2408), stays where it is. The loop heads are x86-64's (D2096), found by
+one routine that both backends share with it. Armv6-M, whose code is 16-bit but for
 `bl` and a few system instructions, and RV64, which runs from caches,
 are unchanged.
 

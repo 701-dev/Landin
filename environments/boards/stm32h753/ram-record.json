@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "2c46c22b8c6524789951d488de2c6d4f26168d5cda4ec505945a2d2a8ede22fd",
+  "image_sha256": "7de1d6d41ce2a9804057926f7d99199c4e0e7453c917dd12e57b5c2f91cb58e3",
   "image_name": "board.elf",
   "image": {
     "float_unit": "passed",
@@ -114,11 +114,11 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 142,
+    "usart_entries": 141,
     "s0ndtr": 229,
     "s0cr": 1049617
   },
-  "uart_sha256": "27411820b9b273a9d52c2779a5782a30edca2db7bb62b1d510c1677388350ce5",
+  "uart_sha256": "798167da1c201dc63c8392f0d768c7d4ba3d6fa372363c26aa67f68dd17300a0",
   "mode": "ram",
   "warm_load": {
     "board": "stm32h753",
@@ -128,8 +128,8 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "2c46c22b8c6524789951d488de2c6d4f26168d5cda4ec505945a2d2a8ede22fd",
-    "entry": 603986485,
+    "elf_sha256": "7de1d6d41ce2a9804057926f7d99199c4e0e7453c917dd12e57b5c2f91cb58e3",
+    "entry": 603986429,
     "flash_written": false,
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
@@ -138,18 +138,18 @@
     "segments": [
       {
         "address": 603979776,
-        "bytes": 19148,
-        "sha256": "4329e083d22637b342fcdce33f0b5b55474d296c9e6e47640fb2e6c0e3778a43"
+        "bytes": 19032,
+        "sha256": "343248fbcf7c2a312ff0e5fd2cee1e821e8f47b5d173fe800d05b32a4dbbe448"
       }
     ],
     "stack": 604504064,
     "status": "passed",
     "vector": 603979776
   },
-  "seconds": 21.123,
+  "seconds": 21.041,
   "kernel_usb": {
-    "since": 1795507541.2169363,
-    "until": 1795507562.3221524,
+    "since": 1795532715.966419,
+    "until": 1795532736.9899292,
     "lines": [],
     "status": "captured"
   },
@@ -172,8 +172,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "00003f20",
-      "u": "0000008e",
+      "m": "00003ea6",
+      "u": "0000008d",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",
