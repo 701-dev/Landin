@@ -1143,7 +1143,10 @@ process ignores SIGPIPE and gives its children the default back.
   `4 * t + 3` in SHA-256's loops keep no check (D2207); one product
   written four times is made once (D2247, D2248). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction, and a proved
-  product by a power of two is a shift (D1624, D2251).
+  product by a power of two is a shift (D1624, D2251). SHA-256's majority
+  and choice take gcc's shorter forms on every target, the second with an
+  instruction the source never computed, and rotations of one value
+  joined by a bitwise operation turn one chain (D2447, D2448).
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in
   caller-saved registers, floating-point values included, at size as at

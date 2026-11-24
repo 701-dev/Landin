@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: the majority, the choice and a shared operand of two ANDs are rewritten by the identities that make an instruction, rotations joined by a bitwise operation turn one chain, and an AND read twice stays
+constructs: 0320, 1770, 1890
+program: main.ldn
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

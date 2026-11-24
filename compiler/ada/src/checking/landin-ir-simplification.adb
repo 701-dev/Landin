@@ -4,6 +4,7 @@ with Interfaces;
 with Landin.IR.Control_Flow;
 with Landin.IR.Dominance;
 with Landin.IR.Effects;
+with Landin.IR.Identities;
 with Landin.IR.Rewriting;
 with Landin.IR.Scalar_Replacement;
 with Landin.IR.Scratch_Arrays;
@@ -2707,6 +2708,9 @@ package body Landin.IR.Simplification is
          end loop;
          Rewriting.Compact (Into, Keep);
       end;
+      --  D2447: identities that make an instruction, on what the
+      --  simplification left.
+      Identities.Apply (Into, Facts);
       Verifier.Verify (Into, Facts);
    end Run_On_Verified;
 end Landin.IR.Simplification;
