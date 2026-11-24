@@ -1098,7 +1098,7 @@ The merged candidate passed its
 
 ### R16.36 — Firmware loops tested at their foot
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 `SR-1757`: Cortex-M, RV32 and Xtensa keep lowering's block order, since
