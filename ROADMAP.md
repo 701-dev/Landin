@@ -1146,7 +1146,7 @@ overflowed. `SR-1757` is taken. The merged candidate passed its
 
 ### R16.37 — Identities that make an instruction
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 `SR-1787`: SHA-256's round on x86-64 executes 48 instructions, gcc 16.1
