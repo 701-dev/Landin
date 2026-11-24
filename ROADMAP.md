@@ -1084,7 +1084,8 @@ three temporaries at once where x86-64 offers eleven, and giving every
 u32 slot `%r8` and `%r9` made SHA-256 23% worse. `SR-1787` files the
 round's majority and choice identities, gcc's, which need the
 simplification to make an instruction of its own, and `SR-1788` a slice
-element's address not folded into its store. The STM32H753's, the
+element's address not folded into its store; `SR-1789` the Windows
+debugger session's stall, met once in the item's gate. The STM32H753's, the
 ESP32-C3's, the ESP32-C5's, the ESP32's and the ESP32-S3's records were
 made again on the rig.
 
