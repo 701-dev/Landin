@@ -1,12 +1,12 @@
 with Landin.Optimization;
 with Landin.Targets;
 
---  D2096's block order for a hosted target, under size and speed.  Every
---  native backend lays a routine's blocks out in the IR's order, falling
---  from one block into the next where a jump would only reach the block
---  after it; lowering's order is the order it made the blocks in, which
---  leaves a loop's test at its head and its step after the code that
---  follows the loop.  This pass changes which block comes after which,
+--  D2096's block order on every target (D2408), under size and speed.
+--  Every native backend lays a routine's blocks out in the IR's order,
+--  falling from one block into the next where a jump would only reach
+--  the block after it; lowering's order is the order it made the blocks
+--  in, which leaves a loop's test at its head and its step after the code
+--  that follows the loop.  This pass changes which block comes after which,
 --  and nothing a block does.
 --
 --  First a jump or branch to a block that holds nothing but a jump goes
@@ -33,10 +33,10 @@ with Landin.Targets;
 --  routine's entry, a loop whose blocks do not all follow its head, and
 --  one with no block that jumps straight back stay as they were.
 --
---  Firmware targets, Cortex-M, RV32 and Xtensa, are left alone, and so is
---  `--optimize none`.  The work is linear in the routine for threading
---  and, for placing loops, the blocks each loop spans summed over its
---  loops, so a routine's blocks times its deepest nesting at worst.
+--  `--optimize none` is left alone.  The work is linear in the routine
+--  for threading and, for placing loops, the blocks each loop spans
+--  summed over its loops, so a routine's blocks times its deepest nesting
+--  at worst.
 package Landin.IR.Layout is
    procedure Run
      (Into : in out Unit;

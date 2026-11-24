@@ -1098,7 +1098,7 @@ The merged candidate passed its
 
 ### R16.36 — Firmware loops tested at their foot
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 `SR-1757`: Cortex-M, RV32 and Xtensa keep lowering's block order, since
@@ -1115,6 +1115,53 @@ instructions on a Cortex-M lane, or taking more than 5% fewer cycles on a
 board, than at the item's base; every program's instructions, cycles and
 image size reported against that base; and no other combination over its
 own.
+
+Done: `Landin.IR.Layout` lays out every target's blocks at `size` and
+`speed` (D2408), so Cortex-M, RV32 and Xtensa test a loop at its foot and
+emit no block that only jumps on, and D2308 puts the head a foot test
+branches back to on a word. ARMv6-M's images grew by up to 1.3% at `size`
+until an edge within B's reach took B over the inverted branch in place
+of a long jump through r7 (D2407). Against the item's base, at `speed`,
+the Cortex-M lanes execute 9.6% fewer instructions on the sieve at
+ARMv7-M, 4.5% on binary search, 1.9% on merge sort, 1.2% on
+fannkuch-redux, 0.3% on SipHash and 0.2% on mandelbrot (4.7% with the
+double-precision unit), and ARMv6-M 6.7%, 3.2%, 2.1%, 1.2%, 0.2% and
+0.0%; every firmware image at `size` and `speed` is smaller, Thumb-2 by
+0.6% to 5.0%, ARMv6-M 0.6% to 5.4%, RV32 0.2% to 1.9% and Xtensa 0.4% to
+1.1%, and `none` is unchanged but for ARMv6-M's B. Of the boards' 432
+cycle configurations 240 moved: at `speed` the sieve takes 6.7% to 18.7%
+fewer cycles, the ESP32's most, binary search 3.0% to 16.3%, merge sort
+2.5% to 11.1% but on the STM32H753, fannkuch-redux up to 3.7% and SipHash
+up to 2.6% fewer.
+21 are slower: the ESP32's and ESP32-S3's fannkuch-redux by 1.1%, which
+`SR-1807` files, the STM32H753's SipHash at `speed` by 1.3%, the
+placement `SR-1758` keeps, and the ESP32-C3's and the Hazard3's
+mandelbrot at `size` by 0.3%. Every board's RAM and boot records were made
+again on the rig, and the cycle, size and instruction baselines recorded.
+The smaller images run `runtime/map-seed-spreads-chosen-keys` on Cortex-M0
+at every profile and on RV32 at `size` and `speed`, where it had
+overflowed. `SR-1757` is taken. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45466768478) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45472956351).
+
+### R16.37 — Identities that make an instruction
+
+Status: planned
+Depends on: R16.10
+
+`SR-1787`: SHA-256's round on x86-64 executes 48 instructions, gcc 16.1
+`-O2`'s count, but gcc writes the majority `(a & b) ^ (a & c) ^ (b & c)`
+as `(a & (b ^ c)) ^ (b & c)` and could write the choice `(e & f) ^ (~e &
+g)` as `(e & (f ^ g)) ^ g`, about 6.8% of SHA-256 of 64 MiB at speed.
+Both identities need a value the source never computed, and
+`Landin.IR.Simplification` only rewrites an instruction in place. The
+item lets the simplification make an instruction where an identity needs
+one, applies the two identities on every target, and measures every
+benchmark program against its base.
+Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base, its round measured against gcc's;
+every program's instructions and image size reported against that base;
+and no other combination over its own.
 
 ### The continuous items
 

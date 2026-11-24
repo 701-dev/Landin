@@ -5,14 +5,14 @@
   "armv6-m/none-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1520,
+    ".text": 1480,
     ".bss": 4
    }
   },
   "armv6-m/none-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 6908,
+    ".text": 6872,
     ".rodata": 552,
     ".bss": 4
    }
@@ -20,7 +20,7 @@
   "armv6-m/none-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1908,
+    ".text": 1864,
     ".rodata": 12,
     ".bss": 8
    }
@@ -28,7 +28,7 @@
   "armv6-m/none-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 11076,
+    ".text": 10980,
     ".rodata": 36,
     ".bss": 8
    }
@@ -36,28 +36,28 @@
   "armv6-m/none-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 2484,
+    ".text": 2376,
     ".bss": 4
    }
   },
   "armv6-m/none-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1956,
+    ".text": 1864,
     ".bss": 4
    }
   },
   "armv6-m/none-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1520,
+    ".text": 1480,
     ".bss": 4
    }
   },
   "armv6-m/none-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 6900,
+    ".text": 6864,
     ".rodata": 552,
     ".bss": 4
    }
@@ -65,7 +65,7 @@
   "armv6-m/none-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1908,
+    ".text": 1864,
     ".rodata": 12,
     ".bss": 8
    }
@@ -73,7 +73,7 @@
   "armv6-m/none-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 11076,
+    ".text": 10980,
     ".rodata": 36,
     ".bss": 8
    }
@@ -81,28 +81,28 @@
   "armv6-m/none-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 2484,
+    ".text": 2376,
     ".bss": 4
    }
   },
   "armv6-m/none-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1956,
+    ".text": 1864,
     ".bss": 4
    }
   },
   "armv6-m/none-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1520,
+    ".text": 1480,
     ".bss": 4
    }
   },
   "armv6-m/none-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 6900,
+    ".text": 6864,
     ".rodata": 552,
     ".bss": 4
    }
@@ -110,7 +110,7 @@
   "armv6-m/none-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1908,
+    ".text": 1864,
     ".rodata": 12,
     ".bss": 8
    }
@@ -118,7 +118,7 @@
   "armv6-m/none-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 11076,
+    ".text": 10980,
     ".rodata": 36,
     ".bss": 8
    }
@@ -126,28 +126,28 @@
   "armv6-m/none-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 2484,
+    ".text": 2376,
     ".bss": 4
    }
   },
   "armv6-m/none-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1956,
+    ".text": 1864,
     ".bss": 4
    }
   },
   "armv6-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 860,
     ".bss": 4
    }
   },
   "armv6-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3596,
+    ".text": 3556,
     ".rodata": 552,
     ".bss": 4
    }
@@ -155,14 +155,14 @@
   "armv6-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 976,
+    ".text": 936,
     ".bss": 8
    }
   },
   "armv6-m/size-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9912,
+    ".text": 9836,
     ".rodata": 24,
     ".bss": 8
    }
@@ -170,28 +170,28 @@
   "armv6-m/size-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1272,
+    ".text": 1204,
     ".bss": 4
    }
   },
   "armv6-m/size-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1252,
+    ".text": 1188,
     ".bss": 4
    }
   },
   "armv6-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 860,
     ".bss": 4
    }
   },
   "armv6-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3584,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -199,14 +199,14 @@
   "armv6-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 976,
+    ".text": 936,
     ".bss": 8
    }
   },
   "armv6-m/size-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9912,
+    ".text": 9836,
     ".rodata": 24,
     ".bss": 8
    }
@@ -214,28 +214,28 @@
   "armv6-m/size-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1272,
+    ".text": 1204,
     ".bss": 4
    }
   },
   "armv6-m/size-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1252,
+    ".text": 1188,
     ".bss": 4
    }
   },
   "armv6-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 904,
+    ".text": 860,
     ".bss": 4
    }
   },
   "armv6-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3584,
+    ".text": 3544,
     ".rodata": 552,
     ".bss": 4
    }
@@ -243,14 +243,14 @@
   "armv6-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 976,
+    ".text": 936,
     ".bss": 8
    }
   },
   "armv6-m/size-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9912,
+    ".text": 9836,
     ".rodata": 24,
     ".bss": 8
    }
@@ -258,28 +258,28 @@
   "armv6-m/size-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1272,
+    ".text": 1204,
     ".bss": 4
    }
   },
   "armv6-m/size-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1252,
+    ".text": 1188,
     ".bss": 4
    }
   },
   "armv6-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 944,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv6-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3596,
+    ".text": 3576,
     ".rodata": 552,
     ".bss": 4
    }
@@ -287,14 +287,14 @@
   "armv6-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 932,
     ".bss": 8
    }
   },
   "armv6-m/speed-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9924,
+    ".text": 9856,
     ".rodata": 24,
     ".bss": 8
    }
@@ -302,28 +302,28 @@
   "armv6-m/speed-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1332,
+    ".text": 1264,
     ".bss": 4
    }
   },
   "armv6-m/speed-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1152,
+    ".text": 1100,
     ".bss": 4
    }
   },
   "armv6-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 944,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv6-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3596,
+    ".text": 3576,
     ".rodata": 552,
     ".bss": 4
    }
@@ -331,14 +331,14 @@
   "armv6-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 932,
     ".bss": 8
    }
   },
   "armv6-m/speed-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9924,
+    ".text": 9856,
     ".rodata": 24,
     ".bss": 8
    }
@@ -346,28 +346,28 @@
   "armv6-m/speed-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1332,
+    ".text": 1264,
     ".bss": 4
    }
   },
   "armv6-m/speed-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1152,
+    ".text": 1100,
     ".bss": 4
    }
   },
   "armv6-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 944,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv6-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3584,
+    ".text": 3564,
     ".rodata": 552,
     ".bss": 4
    }
@@ -375,14 +375,14 @@
   "armv6-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 972,
+    ".text": 932,
     ".bss": 8
    }
   },
   "armv6-m/speed-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 9924,
+    ".text": 9856,
     ".rodata": 24,
     ".bss": 8
    }
@@ -390,14 +390,14 @@
   "armv6-m/speed-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1332,
+    ".text": 1264,
     ".bss": 4
    }
   },
   "armv6-m/speed-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1152,
+    ".text": 1100,
     ".bss": 4
    }
   },
@@ -539,14 +539,14 @@
   "armv7-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3536,
+    ".text": 3512,
     ".rodata": 552,
     ".bss": 4
    }
@@ -554,42 +554,42 @@
   "armv7-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7-m/size-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7-m/size-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7-m/size-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -597,42 +597,42 @@
   "armv7-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7-m/size-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7-m/size-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7-m/size-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -640,42 +640,42 @@
   "armv7-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7-m/size-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7-m/size-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7-m/size-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -683,42 +683,42 @@
   "armv7-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7-m/speed-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7-m/speed-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7-m/speed-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv7-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -726,42 +726,42 @@
   "armv7-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7-m/speed-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7-m/speed-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7-m/speed-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv7-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3532,
+    ".text": 3508,
     ".rodata": 552,
     ".bss": 4
    }
@@ -769,28 +769,28 @@
   "armv7-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7-m/speed-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7-m/speed-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7-m/speed-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
@@ -932,14 +932,14 @@
   "armv7e-m/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7e-m/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3536,
+    ".text": 3512,
     ".rodata": 552,
     ".bss": 4
    }
@@ -947,42 +947,42 @@
   "armv7e-m/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7e-m/size-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7e-m/size-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7e-m/size-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7e-m/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7e-m/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -990,42 +990,42 @@
   "armv7e-m/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7e-m/size-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7e-m/size-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7e-m/size-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7e-m/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv7e-m/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1033,42 +1033,42 @@
   "armv7e-m/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv7e-m/size-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv7e-m/size-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv7e-m/size-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv7e-m/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7e-m/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1076,42 +1076,42 @@
   "armv7e-m/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7e-m/speed-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7e-m/speed-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7e-m/speed-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv7e-m/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7e-m/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1119,42 +1119,42 @@
   "armv7e-m/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7e-m/speed-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7e-m/speed-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7e-m/speed-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv7e-m/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv7e-m/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3532,
+    ".text": 3508,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1162,28 +1162,28 @@
   "armv7e-m/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv7e-m/speed-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv7e-m/speed-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv7e-m/speed-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
@@ -1325,14 +1325,14 @@
   "armv8-m.main/size-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv8-m.main/size-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3536,
+    ".text": 3512,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1340,42 +1340,42 @@
   "armv8-m.main/size-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv8-m.main/size-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv8-m.main/size-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv8-m.main/size-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv8-m.main/size-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv8-m.main/size-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1383,42 +1383,42 @@
   "armv8-m.main/size-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv8-m.main/size-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv8-m.main/size-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv8-m.main/size-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv8-m.main/size-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 844,
+    ".text": 832,
     ".bss": 4
    }
   },
   "armv8-m.main/size-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3522,
+    ".text": 3498,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1426,42 +1426,42 @@
   "armv8-m.main/size-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 880,
+    ".text": 856,
     ".bss": 8
    }
   },
   "armv8-m.main/size-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3712,
+    ".text": 3684,
     ".bss": 8
    }
   },
   "armv8-m.main/size-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1172,
+    ".text": 1156,
     ".bss": 4
    }
   },
   "armv8-m.main/size-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 768,
+    ".text": 752,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-all/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-all/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1469,42 +1469,42 @@
   "armv8-m.main/speed-all/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-all/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-all/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-all/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-auto/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-auto/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3544,
+    ".text": 3520,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1512,42 +1512,42 @@
   "armv8-m.main/speed-auto/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-auto/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-auto/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-auto/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-off/binary-search": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 912,
+    ".text": 900,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-off/cmp-siphash-vectors": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3532,
+    ".text": 3508,
     ".rodata": 552,
     ".bss": 4
    }
@@ -1555,28 +1555,28 @@
   "armv8-m.main/speed-off/fannkuch-redux": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 892,
+    ".text": 868,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-off/mandelbrot": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 3756,
+    ".text": 3732,
     ".bss": 8
    }
   },
   "armv8-m.main/speed-off/merge-sort": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 1244,
+    ".text": 1228,
     ".bss": 4
    }
   },
   "armv8-m.main/speed-off/sieve-of-eratosthenes": {
    "sections": {
     ".isr_vector": 192,
-    ".text": 716,
+    ".text": 680,
     ".bss": 4
    }
   }

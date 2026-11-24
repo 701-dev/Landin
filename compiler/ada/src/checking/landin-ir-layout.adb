@@ -424,9 +424,7 @@ package body Landin.IR.Layout is
       Threaded : Boolean := False;
       Placed : Boolean := False;
    begin
-      if Objective = Landin.Optimization.None
-        or else Landin.Targets.Is_Firmware (Facts)
-      then
+      if Objective = Landin.Optimization.None then
          return;
       end if;
       for I in 1 .. Item_Count (Into) loop

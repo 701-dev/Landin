@@ -375,10 +375,12 @@ package body Landin.Tests.Cortex_Suite is
            and then not Contains (Wide, HT & "mov r4, r2" & LF_Text),
          "D1767: a constant divisor is not tested for zero");
       Landin.Testing.Check
-        (Item, Contains (Wide, HT & "cbz r")
+        (Item, (Contains (Wide, HT & "cbz r")
+                or else Contains (Wide, HT & "cbnz r"))
            and then not Contains (Narrow, "cbz")
            and then not Contains (Narrow, "cbnz"),
-         "D1768: Thumb-2 compares with zero and branches in one CBZ");
+         "D1768: Thumb-2 compares with zero and branches in one CBZ"
+         & " or CBNZ");
       Landin.Testing.Check
         (Item, Contains (Wide, HT & "ubfx ")
            and then Contains (Wide, HT & "bfi ")
@@ -1906,8 +1908,12 @@ package body Landin.Tests.Cortex_Suite is
    procedure Local_Branches (Item : in out Landin.Testing.Context);
 
    procedure Local_Branches (Item : in out Landin.Testing.Context) is
+      --  0 adds: a near branch; 80: past a conditional branch's reach,
+      --  within B's (D2407); 400: past B's.
+      type Body_Sizes is array (Positive range <>) of Natural;
+      Sizes : constant Body_Sizes := [0, 80, 400];
    begin
-      for Long_Body in Boolean loop
+      for Adds of Sizes loop
          declare
             Host : Landin.Testing.Fakes.Fake_Filesystem;
             Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
@@ -1915,9 +1921,10 @@ package body Landin.Tests.Cortex_Suite is
             Source : U.Unbounded_String := U.To_Unbounded_String
               ("main: (x: u32) -> (r: u32) = r = 1 "
                & "if x == 0 then ");
+            Long_Body : constant Boolean := Adds > 0;
          begin
             if Long_Body then
-               for N in 1 .. 80 loop
+               for N in 1 .. Adds loop
                   U.Append (Source, "r = r + x ");
                end loop;
             else
@@ -1944,7 +1951,19 @@ package body Landin.Tests.Cortex_Suite is
                   begin
                      --  D1566: the comparison's flags choose the edge, and
                      --  the block laid out next is fallen into.
-                     if Long_Body then
+                     if Adds = 80 then
+                        Landin.Testing.Check
+                          (Item, Ada.Strings.Fixed.Index
+                             (Assembly, Character'Val (9) & "beq .Lcm_step_")
+                           > 0
+                           and then Ada.Strings.Fixed.Index
+                             (Assembly, LF & Character'Val (9) & "b .L1_")
+                             > 0
+                           and then Ada.Strings.Fixed.Index
+                             (Assembly, Character'Val (9) & "bx r7") = 0,
+                           "a nearer distant edge inverts its condition over"
+                           & " a B");
+                     elsif Long_Body then
                         Landin.Testing.Check
                           (Item, Ada.Strings.Fixed.Index
                              (Assembly, Character'Val (9) & "beq .Lcm_step_")
@@ -1956,7 +1975,7 @@ package body Landin.Tests.Cortex_Suite is
                      else
                         Landin.Testing.Check
                           (Item, Ada.Strings.Fixed.Index
-                             (Assembly, Character'Val (9) & "bne .L1_3" & LF
+                             (Assembly, Character'Val (9) & "bne .L1_4" & LF
                               & ".L1_2:") > 0,
                            "near conditional branch is direct and falls"
                            & " through");

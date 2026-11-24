@@ -726,10 +726,10 @@ The work is linear in the routine plus the blocks each loop spans, and one
 rebuild of the unit adds a load for each moved value and its copy before
 the loop.
 
-Under size and speed, `Landin.IR.Layout` then orders a hosted target's
-blocks (D2096). Every backend lays a routine's blocks out in the IR's order,
-and x86-64 and arm64 fall from one block into the next where a jump would
-only reach the block after it, so the order is part of what a loop costs.
+Under size and speed, `Landin.IR.Layout` then orders every target's
+blocks (D2096, D2408). Every backend lays a routine's blocks out in the
+IR's order and falls from one block into the next where a jump would only
+reach the block after it, so the order is part of what a loop costs.
 Lowering's order is the order it made the blocks in: a loop's test at its
 head, the body, the code after the loop, then the step, which the body
 reaches by a jump. The pass first sends a jump or branch to a block that
@@ -750,11 +750,10 @@ around them, and a loop's blocks stay together, so an inlined copy's do
 too. A loop whose head is the routine's entry, has a block before its head
 or has no block jumping straight back to it keeps lowering's order. Block
 identities are renumbered to the new order, so a dump after the pass
-lists blocks as they are laid out. x86-64 at speed aligns a loop tested at
-its foot where its test branches back to, which nothing falls into. Firmware
-targets, Cortex-M, RV32 and Xtensa, keep lowering's order; at speed
-Thumb-2 and RV32 start a loop's head on a word where the instruction
-before it does not fall through, so the padding is never executed (D2308).
+lists blocks as they are laid out. At speed x86-64 aligns a loop tested at
+its foot where its test branches back to, which nothing falls into, and
+Thumb-2 and RV32 start such a head on a word, the instruction before it
+not falling through, so the padding is never executed (D2308).
 
 These passes expose useful facts to the backend while leaving register
 allocation and machine instruction selection there. The current controls and
