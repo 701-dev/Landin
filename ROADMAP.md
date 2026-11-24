@@ -1087,7 +1087,11 @@ simplification to make an instruction of its own, and `SR-1788` a slice
 element's address not folded into its store; `SR-1789` the Windows
 debugger session's stall, met once in the item's gate. The STM32H753's, the
 ESP32-C3's, the ESP32-C5's, the ESP32's and the ESP32-S3's records were
-made again on the rig.
+made again on the rig. Of the boards' 432 cycle configurations, 78 ran
+changed images, all within tolerance: 75 ran 0.01% to 0.76% faster,
+binary-search most, and the ESP32-C5's SipHash at size 0.08% slower; the
+ESP32-C3's SipHash, which its RAM layout cannot time, keeps that limit
+with an instruction segment 16 to 24 bytes smaller.
 
 ### The continuous items
 

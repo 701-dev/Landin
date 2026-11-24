@@ -165,7 +165,7 @@
    "runs": 3
   },
   "rv32imc/size-all/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 7289 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 7273 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-all/fannkuch-redux": {
    "cycles": 4610994,
@@ -215,7 +215,7 @@
    "runs": 3
   },
   "rv32imc/size-auto/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 7241 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 7225 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-auto/fannkuch-redux": {
    "cycles": 4610994,
@@ -265,7 +265,7 @@
    "runs": 3
   },
   "rv32imc/size-off/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 7241 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 7225 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/size-off/fannkuch-redux": {
    "cycles": 4610994,
@@ -315,7 +315,7 @@
    "runs": 3
   },
   "rv32imc/speed-all/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 6921 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 6897 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-all/fannkuch-redux": {
    "cycles": 4405484,
@@ -365,7 +365,7 @@
    "runs": 3
   },
   "rv32imc/speed-auto/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 6921 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 6897 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-auto/fannkuch-redux": {
    "cycles": 4405484,
@@ -415,7 +415,7 @@
    "runs": 3
   },
   "rv32imc/speed-off/cmp-siphash-vectors": {
-   "limit": "its instruction SRAM segment at 0x40380180 holds 6865 bytes, not whole words, which the warm load refuses"
+   "limit": "its instruction SRAM segment at 0x40380180 holds 6841 bytes, not whole words, which the warm load refuses"
   },
   "rv32imc/speed-off/fannkuch-redux": {
    "cycles": 4405484,
