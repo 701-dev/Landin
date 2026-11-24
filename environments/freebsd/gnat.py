@@ -41,6 +41,10 @@ RECIPE = HERE / 'gnat' / 'build.sh'
 PATCHES = HERE / 'gnat' / 'patches'
 #  GPRbuild's own fix for GNAT 16, from its commit after the 26.0.0 tag.
 GPR_PATCH = HERE / 'gnat' / 'gprbuild-6421e350274b.patch'
+#  The packages the built compiler loads at run time, as GCC's own
+#  configure found them in the guest: a guest that unpacks the archive
+#  installs these first.  Their libraries' versions are their sonames.
+RUNTIME_PACKAGES = ('gmp', 'mpfr', 'mpc', 'isl')
 
 
 def pins():
@@ -140,7 +144,9 @@ def stream(guest, source, destination):
 
 
 def install(guest, archive):
-    """Unpack the archive at PREFIX in a guest; returns the two homes."""
+    """Unpack the archive at PREFIX in a guest, with the packages its
+    compiler loads; returns the two homes."""
+    guest.checked('pkg install -qy ' + ' '.join(RUNTIME_PACKAGES), timeout=1800)
     guest.checked('rm -rf ' + PREFIX + ' && mkdir -p ' + PREFIX)
     with archive.open('rb') as f:
         result = subprocess.run([*guest.ssh, 'xz -dc | tar -xf - -C ' + PREFIX],

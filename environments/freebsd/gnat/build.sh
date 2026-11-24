@@ -43,7 +43,9 @@ say() { echo "gnat: $(( $(date +%s) - Started )) s: $*"; }
 
 say "packages"
 env ASSUME_ALWAYS_YES=yes pkg bootstrap -f >/dev/null
-pkg install -qy gnat14 binutils gmake gmp mpfr mpc >/dev/null
+#  GCC's configure finds gmp, mpfr, mpc and isl here, and the compiler it
+#  builds loads them at run time (gnat.py's RUNTIME_PACKAGES).
+pkg install -qy gnat14 binutils gmake gmp mpfr mpc isl >/dev/null
 Boot=/usr/local/gnat14/bin
 
 rm -rf "$Work" "$Gnat" "$Gpr"
