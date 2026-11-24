@@ -2098,7 +2098,8 @@ explicitly.
 
 The provider is written once for every hosted system. It keeps eight size
 classes, of 32 to 4096 bytes, over chunks it maps through
-`platform/posix`:
+`platform/posix`, or on Windows through `platform/windows`'s
+`VirtualAlloc`:
 
 - A freed slot goes back on its class's list and is the next one handed
   out.
@@ -2111,6 +2112,10 @@ A resize takes the first of these that applies:
 - A mapping grows in place where the pages after it are free.
 - On Linux, `mremap` moves a mapping's pages.
 - Anything else is copied.
+
+On Windows a mapping reserves whole 64 KiB units of address space and
+commits the pages it holds. It grows in place into the rest of its
+reservation, and past that it is copied, since Windows moves no pages.
 
 The heap honours every `usize` alignment: it over-allocates and keeps a
 header before the block.
@@ -2146,8 +2151,9 @@ A lock is one `u32` cell of `core/atomic`:
 
 - Taking a free lock is one read-modify-write, and so is giving one
   nobody waits for.
-- A thread that finds the lock held sleeps in `platform/posix`'s wait on
-  the cell's address, and the give wakes it.
+- A thread that finds the lock held sleeps in the system's wait on the
+  cell's address, `platform/posix`'s `wait_on` or on Windows
+  `WaitOnAddress`, and the give wakes it.
 - What the thread that gave the lock did while it held it is visible to
   the thread that takes it next.
 
@@ -2168,15 +2174,16 @@ one.
 The hosted provider whose waiting operations block the thread: what an
 ordinary hosted program imports.
 
-The provider is `host`, made by `new`. The module is written once over
-`platform/posix` and is imported as `blocking`, with no alias.
+The provider is `host`, made by `new`. The module is written over
+`platform/posix`, and on Windows over `platform/windows`, and is imported
+as `blocking`, with no alias.
 
 | Call | What it does |
 |---|---|
 | `blocking.new()` | The process's provider: a `host` handle that borrows nothing. |
 | `blocking.over(space)` | A provider that keeps its last errno in a `space` the caller declares. |
-| `blocking.last_errno(host)` | The errno number of the last failing call. |
-| `blocking.last_signal(host)` | The signal that ended the last child waited for. |
+| `blocking.last_errno(host)` | The errno number of the last failing call; on Windows its Win32 or Windows Sockets error code. |
+| `blocking.last_signal(host)` | The signal that ended the last child waited for; always zero on Windows. |
 
 `host` supplies every concept of `core/io`, `core/time` and `core/net`:
 the shared I/O concepts and so `world`, `directories`, `environment`,
@@ -2203,7 +2210,8 @@ Both report through the system handle's one last-error cell, so
 `last_errno` says the same whichever of them failed.
 
 The provider's files are the system's: `hosted/system`'s
-`descriptor_of`, `file_of` and `socket_of` convert them.
+`descriptor_of`, `file_of` and `socket_of` convert them, and on Windows,
+where a file is a handle, `handle_of` does.
 
 ### What the provider promises
 
@@ -2251,11 +2259,19 @@ When the peer has gone, the call fails:
 
 The process ignores SIGPIPE, so neither ends it.
 
+On Windows `network` runs over Windows Sockets, and a socket is a handle:
+
+- A listener is bound with no option: Windows refuses an address
+  another socket listens at without being asked.
+- A limit `set_timeouts` gave is waited out with `select` before the
+  accept, receive or send, which then finds the socket ready. A call
+  whose limit passes fails `timed_out`, keeping `WSAETIMEDOUT`.
+
 ### The clock
 
 | Call | On the hosted provider |
 |---|---|
-| `now` | `platform/posix`'s monotonic clock, in nanoseconds since the system started. |
+| `now` | `platform/posix`'s monotonic clock, or on Windows the performance counter, in nanoseconds since the system started. |
 | `sleep` | Takes its deadline from the monotonic clock, and asks the system to sleep for what is left until that clock has reached it. |
 
 No hosted system fails to read its clock, so a clock the system cannot
@@ -2382,8 +2398,9 @@ interleave.
 What a hosted program needs that does not wait, the same under either
 waiting provider.
 
-The provider is `host`, made by `new`. The module is written once over
-`platform/posix` and is imported as `system`.
+The provider is `host`, made by `new`. The module is written over
+`platform/posix`, and on Windows over `platform/windows`, and is imported
+as `system`.
 
 `hosted/blocking` and `hosted/events` are each built over it and supply
 what waits, the one by blocking the thread and the other by switching
@@ -2394,9 +2411,9 @@ A program that never reads, writes or sleeps may use it alone.
 |---|---|
 | `system.new()` | The process's services: a `host` handle that borrows nothing. |
 | `system.over(space)` | A handle that keeps its last errno in a `space` the caller declares. |
-| `system.last_errno(host)` | The errno number of the last failing call. |
-| `system.last_signal(host)` | The signal that ended the last child waited for. |
-| `system.descriptor_of(file)`, `system.file_of(descriptor)` | Convert between a provider's file and a `platform/posix` descriptor. |
+| `system.last_errno(host)` | The errno number of the last failing call; on Windows its Win32 or Windows Sockets error code. |
+| `system.last_signal(host)` | The signal that ended the last child waited for; always zero on Windows. |
+| `system.descriptor_of(file)`, `system.file_of(descriptor)` | Convert between a provider's file and a `platform/posix` descriptor. On Windows `system.handle_of(file)` and `system.file_of(handle)` convert between a file and a `platform/windows` handle. |
 | `system.socket_of(descriptor)`, `system.is_socket(file)` | A provider's socket from a socket of `platform/posix`'s, and whether a file is one. |
 | `system.clear_errno(host)`, `system.record_errno(host, errno)` | Clear the last-error cell, or keep an errno in it, for a provider built over this one. |
 | `system.start(host, path, arguments, environment, streams)` | Start a child as `io.spawn` does, for a provider built over this one that supplies `io.programs`. |
@@ -2416,7 +2433,10 @@ and standard streams. They come from the root the hosted entry
 establishes through `platform/posix`'s
 `_landin_host_initialize_arguments`. A C `main` that drives Landin's
 exported functions calls that initializer itself, as "A C `main` that
-calls Landin" below describes.
+calls Landin" below describes. On Windows the entry keeps the root
+itself, from the vectors it made from the command line and the
+environment block, and defines no initializer, so a program may define
+its own.
 
 The handle borrows nothing, since the root and the descriptors belong to
 the process. Where it keeps its last errno depends on how it was made:
@@ -2427,8 +2447,10 @@ the process. Where it keeps its last errno depends on how it was made:
 | `over` | A `space` the caller declares, for a library that keeps its detail apart from the rest of its thread's. |
 
 `last_errno` captures the terminal failing call as provider-specific
-detail: the number of the errno `platform/posix` failed with. It is not a
-portable error type.
+detail: the number of the errno `platform/posix` failed with, or on
+Windows the Win32 or Windows Sockets error code. It is not a portable
+error type. Windows' codes have no atoms, so `system.reason` there is
+`failure.reason` alone.
 
 - A call that succeeds clears it.
 - A failure the provider reports itself, without asking the system, sets
@@ -2436,7 +2458,8 @@ portable error type.
 
 `last_signal` is the number of the signal that ended the child last
 waited for, beside `io.ending`'s `signalled`. After a child that exited
-it is zero.
+it is zero, and on Windows, which ends a process with a code and no
+signal, it is always zero.
 
 ### A C `main` that calls Landin
 
@@ -2487,6 +2510,13 @@ bytes, so that every entry a hosted system gives fits. With a smaller
 buffer, opening the directory fails with `io_failed` before anything is
 opened.
 
+On Windows a file is the handle the system gives, and the standard
+streams are `GetStdHandle`'s. The same failures come from Win32 codes: a
+missing file, path or drive is `mem.not_found`, and denied access, a
+sharing or lock violation and write protection are `io.no_access`. A
+path, an argument and a variable are host strings in WTF-8, converted to
+the system's 16-bit units at each call.
+
 The provider reads a directory through `platform/posix`'s directory
 streams and leaves out `.` and `..`. Where the file system does not
 record an entry's type, the provider asks for it with a status call
@@ -2519,6 +2549,16 @@ over it reads, writes and closes them as its own:
 |---|---|
 | `hosted/blocking` | `read_child` polls both pipes when both are open, and reads the output first when both have something. `wait` closes the child's pipes before it waits, so a child still writing to one meets a closed pipe rather than a parent that never reads. An interrupted poll, read or wait is made again. |
 | `hosted/events` | Sets the parent's ends non-blocking and waits on them, and on the child's end, in its loop. |
+
+On Windows `start` calls `CreateProcessW`:
+
+- The path is the program itself, never searched for and given no
+  extension.
+- A discarded stream is the `NUL` device.
+- A piped stream is a named pipe whose parent end is overlapped.
+- A child inherits exactly its three streams, which an attribute list
+  names, and no other handle.
+- A child's exit code is its whole 32 bits as `exited`.
 
 ### The rest of the file system and terminals
 
@@ -2559,7 +2599,8 @@ nothing to write with.
 ## hosted/thread
 
 Threads: tasks a function starts as a group and waits for before it goes
-on, each on a thread of its own, written once over `platform/posix`.
+on, each on a thread of its own, written over `platform/posix` and, on
+Windows, over `platform/windows`.
 
 | Call | What it does |
 |---|---|
@@ -2615,6 +2656,7 @@ area is the system's:
 | Linux, `--link=libc` | glibc's least: 16 KiB, 128 KiB on arm64 | about 20 KiB, 132 KiB on arm64 |
 | Darwin | 16 KiB, in whole 16 KiB pages | 32 KiB |
 | FreeBSD | 16 KiB | about 20 KiB |
+| Windows | none: the thread starts on a 64 KiB stack the system reserves and switches to its own | about 4 KiB |
 
 A smaller backing fails `group_over` with `mem.out_of_memory`, before
 any thread starts.
@@ -2625,6 +2667,7 @@ How a thread starts and how it is waited for also follow the system:
 |---|---|---|
 | Linux, static | with `clone` | on the word the kernel clears when the thread ends |
 | Linux under `--link=libc`, Darwin, FreeBSD | the C library, with `pthread_create` on the area | with `pthread_join` |
+| Windows | with `CreateThread` | with `WaitForSingleObject` |
 
 A FreeBSD program that starts a thread links libthr.
 
@@ -2643,8 +2686,9 @@ The calls are POSIX's own, not policy. This module is what `hosted/system`,
 uses when it needs a call the portable concepts do not make.
 
 Beneath its interface the module is written twice: over
-`platform/linux`'s system calls, and over `platform/libc`. A system that
-is not POSIX, as Windows is not, has none.
+`platform/linux`'s system calls, and over `platform/libc`. Windows is
+not POSIX: a Windows program may import the module, which declares
+nothing there, and a call to it is refused with L0201.
 
 ### Descriptors, failures and paths
 
@@ -3069,7 +3113,9 @@ auxiliary vector after the initial stack's `envp` too.
 
 The C library's declarations, as ordinary `extern(c)` imports, raw.
 
-Its scope is the systems with a C library: Linux, Darwin and FreeBSD.
+Its declarations are for the systems with a C library: Linux, Darwin
+and FreeBSD. Every hosted system may import it, and on Windows it
+declares nothing.
 
 | System | Who uses this module |
 |---|---|
@@ -3150,9 +3196,9 @@ Linux's system calls with no C library beneath them, and the process
 entry of a static Linux executable, raw.
 
 Every declaration is Linux-only. Landin has no conditional import, so
-`platform/posix` imports this module on every system it serves, and the
-module's scope is theirs: Linux, Darwin and FreeBSD. On Darwin and
-FreeBSD it declares nothing.
+`platform/posix` imports this module on every system, and the module's
+scope is every hosted system. On Darwin, FreeBSD and Windows it declares
+nothing.
 
 | Call | What it does |
 |---|---|
@@ -3294,7 +3340,8 @@ running kernel lacks returns minus ENOSYS.
 
 It is a module of its own, apart from `platform/linux`, so that a program
 making no raw call does not compile a thousand declarations. Its scope is
-`platform/linux`'s, and on Darwin and FreeBSD it declares nothing.
+`platform/linux`'s, and on Darwin, FreeBSD and Windows it declares
+nothing.
 
 The numbers are the kernel's own. `scripts/linux_syscalls.py` reads them
 from each architecture's table, with the ABIs that architecture's 64-bit
@@ -3361,9 +3408,9 @@ it.
 kqueue, the event interface Darwin and FreeBSD share, through their C
 libraries, raw: a failure is -1 with the reason in `libc.errno_cell`.
 
-Every declaration is Darwin's and FreeBSD's. The module's scope is the
-hosted POSIX systems, as `platform/linux`'s is, so a provider written once
-imports both. On Linux it declares nothing (D481).
+Every declaration is Darwin's and FreeBSD's. The module's scope is every
+hosted system, as `platform/linux`'s is, so a provider written once
+imports both. On Linux and Windows it declares nothing (D481, D2267).
 
 | Name | What it is |
 |---|---|
@@ -3391,22 +3438,71 @@ Facts that differ between the two systems:
 
 ## platform/windows
 
-Windows' own interface, kernel32, under the Windows x64 C convention. It
-holds the process entry every Windows executable starts at, which refine
-links into each one whether or not the program imports the module, and it
-names kernel32 with `linker.library`; no C runtime is linked. Windows is
-not POSIX, so a Windows program has no `platform/posix` beneath it, and
-the hosted providers are not yet written over this module: on Windows a
-program reports through its exit status and its failed checks' lines.
+Windows' own interface under the Windows x64 C convention, raw: a call
+that fails returns the system's failure value and leaves the reason for
+`last_error`. It is what the hosted providers are written over on
+Windows, as they are over `platform/posix` elsewhere.
+
+The module holds the process entry every Windows executable starts at,
+which refine links into each one whether or not the program imports the
+module. No C runtime is linked. Every hosted system may import the
+module, and off Windows it declares nothing.
+
+Each facility has a file of its own, which names the library it links
+with `linker.library`:
+
+| File | What it holds | Links |
+|---|---|---|
+| `windows.ldn` | The entry, the argument and environment root, handles, the error codes, `VirtualAlloc` and `VirtualFree`. | kernel32 |
+| `wide.ldn` | The conversion between a host string and the system's 16-bit units, and `terminate`, which makes the terminated wide string a call takes. | |
+| `files.ldn` | Files, directories and the console. | |
+| `processes.ldn` | Child processes, pipes, events and waiting on them. | |
+| `time.ldn` | The wall clock, the performance counter, sleeping and `BCryptGenRandom`. | bcrypt |
+| `threads.ldn` | Threads, and `WaitOnAddress` with its wakes. | synchronization |
+| `memory.ldn` | What `VirtualQuery` says of a region, the page and the 64 KiB unit of reservation. | |
+| `completion.ldn` | I/O completion ports, the job a child's end is learned through, and the console's control events. | |
+
+Windows Sockets is the module `platform/windows/sockets`, below.
+
+A Windows host string, a `text.os_string`, is WTF-8: UTF-8 for every
+well-formed name, with a lone surrogate as the three bytes UTF-8 would
+give its value. So every name the system gives survives the trip to
+bytes and back.
 
 | Name | What it is |
 |---|---|
-| `_landin_start` | The process entry: it calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
+| `_landin_start` | The process entry. It reads `GetCommandLineW` and the environment block, splits the command line as Microsoft's C runtime does, calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
+| `_landin_host_initialize_arguments` | Keeps C vectors as the process's argument root, as `platform/posix`'s does. The entry calls it. |
+| `arguments`, `environment` | What the entry found, read as `platform/posix`'s are. |
 
-Every program of the Windows corpus starts here, this one among them,
-which imports nothing and ends with its status.
+Every program of the Windows corpus starts at the entry, the first
+example among them, which imports nothing and ends with its status. The
+second starts the command processor `ComSpec` names, with pipes for its
+three streams.
 
 [Executable example](../compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn)
+
+[Running programs on Windows](../compiler/tests/fixtures/runtime/windows-run-programs/main.ldn)
+
+## platform/windows/sockets
+
+Windows Sockets, ws2_32's calls, and iphlpapi's interface names, raw,
+under the Windows x64 C convention: making, binding, connecting and
+closing sockets, sending and receiving, their options, `select`, and the
+overlapped calls `WSARecv`, `WSASend`, `WSARecvFrom` and `WSASendTo`,
+with `ConnectEx` and `AcceptEx` reached through `WSAIoctl`. A call that
+fails returns `socket_error` or `invalid_socket` and leaves the reason for
+`socket_last_error`; `started` makes the one `WSAStartup` call a process
+needs before its first socket.
+
+It is a module of its own because refine links `platform/windows` into
+every Windows program. Its calls' C names are `send`, `connect` and
+`bind`, which a program may give its own C code, so only a program that
+imports this module, as the hosted network providers do, has them
+declared (D2281). Every hosted system may import it, and off Windows it
+declares nothing.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-echo/main.ldn)
 
 ## platform/c
 

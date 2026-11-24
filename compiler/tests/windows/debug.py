@@ -9,7 +9,7 @@ stages, which a local run joins and the gate splits between a Linux job,
 a Windows job and WSL on that Windows runner:
 
   --prepare-only   on Linux, compile compiler/tests/freebsd/debug.ldn at
-                   the four profiles and compiler/tests/dap/windows.ldn
+                   the four profiles and compiler/tests/dap/main.ldn
                    with --panic-map, each with --debug=full, and write
                    the images, their PDBs and prepared.json into OUTPUT;
   --prepared=DIR   on Windows, run LLDB's batch session over each
@@ -46,7 +46,7 @@ PROFILES = (('none', 'off'), ('size', 'off'), ('size', 'auto'),
 #  Where the DAP program is compiled from: a path a WSL distribution
 #  recreates, since the debugger matches a breakpoint's source against the
 #  path the program recorded.
-DAP_SOURCE = Path('/tmp/landin-windows-dap/windows.ldn')
+DAP_SOURCE = Path('/tmp/landin-windows-dap/main.ldn')
 #  The files the Windows and WSL stages run from, at their own paths: the
 #  Windows runner checks nothing out (compiler/tests/windows/README.md
 #  says why).
@@ -56,7 +56,7 @@ LANE = ('compiler/tests/windows/debug.py',
         'compiler/tests/debugging/workload-frames.json',
         'compiler/tests/freebsd/debug.ldn',
         'compiler/tests/dap/session.py',
-        'compiler/tests/dap/windows.ldn',
+        'compiler/tests/dap/main.ldn',
         'scripts/lane_refine.py', 'scripts/refine_revision.py',
         'scripts/build_identity.py', 'scripts/build_lock.py',
         'environments/pins.sh')
@@ -109,7 +109,7 @@ def prepare(args):
         sessions.append(dict(built, label=label))
         print(TARGET + ': built ' + label, flush=True)
     DAP_SOURCE.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(ROOT / 'compiler/tests/dap/windows.ldn', DAP_SOURCE)
+    shutil.copyfile(ROOT / 'compiler/tests/dap/main.ldn', DAP_SOURCE)
     dap = compile_one(args, DAP_SOURCE, bundle / 'program.exe',
                       '--panic-map')
     require((bundle / 'program.exe.sources.json').is_file(),
@@ -169,9 +169,9 @@ def through_dap(bundle, manifest, refine, lldb_dap, output):
     verify(bundle, manifest['dap'])
     source = Path(manifest['dap_source'])
     if not source.is_file() or source.read_bytes() != (
-            ROOT / 'compiler/tests/dap/windows.ldn').read_bytes():
+            ROOT / 'compiler/tests/dap/main.ldn').read_bytes():
         source.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / 'compiler/tests/dap/windows.ldn', source)
+        shutil.copyfile(ROOT / 'compiler/tests/dap/main.ldn', source)
     sys.path.insert(0, str(ROOT / 'scripts'))
     import lane_refine
     #  lldb-dap's own log, which WSL hands the Windows program as a Windows

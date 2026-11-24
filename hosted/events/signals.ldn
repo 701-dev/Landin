@@ -5,7 +5,8 @@
 --  gets its default back (D479).  An arrival the loop reports is kept
 --  until a fibre reads it with `next_signal`, which waits as a receive
 --  does, taking turns; two arrivals of one signal before it is read are
---  one event (D488).
+--  one event (D488).  On Windows the signals are the console's control
+--  events, in windows_signals.ldn.
 
 import core/io
 import core/io/signal
@@ -33,83 +34,85 @@ kind_at: (index: usize) -> (which: signal.kind) =
             else signal.user2 end if
 end kind_at
 
---  Keep an arrival of the system's signal `number`, unless one waits to
---  be read already or it is no signal this provider watches.
-arrive: (state: ptr mut loop_state, number: i32) -> none =
-    for index in usize(0)..<kinds do
-        if signal_numbers[index] == number then
-            for at in usize(0)..<state.val.queued do
-                return when usize(state.val.arrived[at]) == index
-            end for
-            state.val.arrived[state.val.queued] = u8(index)
-            inc state.val.queued
-            return
-        end if
-    end for
-end arrive
+fixed if compiler.os <> windows then
+    --  Keep an arrival of the system's signal `number`, unless one waits to
+    --  be read already or it is no signal this provider watches.
+    arrive: (state: ptr mut loop_state, number: i32) -> none =
+        for index in usize(0)..<kinds do
+            if signal_numbers[index] == number then
+                for at in usize(0)..<state.val.queued do
+                    return when usize(state.val.arrived[at]) == index
+                end for
+                state.val.arrived[state.val.queued] = u8(index)
+                inc state.val.queued
+                return
+            end if
+        end for
+    end arrive
 
-events_watch: (self: host, which: signal.kind) -> none ! io.io_failed =
-    cleared(self)
-    state: ptr mut loop_state = self.state
-    number: i32 = signal_numbers[slot(which)]
-    bit: u64 = u64(1) << u64(number - 1)
-    state.val.stopped = false
-    return when (state.val.watched & bit) <> 0
-    --  Named first, so that no child started from now on inherits what
-    --  taking it does to its disposition.
-    posix.default_in_children(number) else (problem)
-        record(self, problem)
-        fail io.io_failed
-    end
-    take_signal(state, number) else (problem)
-        record(self, problem)
-        fail io.io_failed
-    end
-    state.val.watched = state.val.watched | bit
-end events_watch
-
-events_next_signal: (self: host) -> (received: signal.event)
-                    ! io.io_failed =
-    cleared(self)
-    state: ptr mut loop_state = self.state
-    loop do
-        fail io.io_failed when state.val.stopped
-        collect(state)
-        if state.val.queued > 0 then
-            index: usize = usize(state.val.arrived[0])
-            dec state.val.queued
-            for at in usize(0)..<state.val.queued do
-                state.val.arrived[at] = state.val.arrived[at + 1]
-            end for
-            received = (which: kind_at(index),
-                        number: u32(signal_numbers[index]))
-            return
-        end if
-        mut entry: waiting = (next: 0, descriptor: -1, output: false,
-                              child: 0, signalled: true, deadline: 0,
-                              answer: pending)
-        answer: u8 = park(self, addr entry) else (problem)
+    events_watch: (self: host, which: signal.kind) -> none ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        number: i32 = signal_numbers[slot(which)]
+        bit: u64 = u64(1) << u64(number - 1)
+        state.val.stopped = false
+        return when (state.val.watched & bit) <> 0
+        --  Named first, so that no child started from now on inherits what
+        --  taking it does to its disposition.
+        posix.default_in_children(number) else (problem)
             record(self, problem)
             fail io.io_failed
         end
-        fail io.io_failed when answer == failed
-    end loop
-end events_next_signal
+        take_signal(state, number) else (problem)
+            record(self, problem)
+            fail io.io_failed
+        end
+        state.val.watched = state.val.watched | bit
+    end events_watch
 
-events_stop_watching: (self: host) -> none ! io.io_failed =
-    cleared(self)
-    state: ptr mut loop_state = self.state
-    mut returned: bool = true
-    give_signals(state) else (problem)
-        record(self, problem)
-        returned = false
-    end
-    state.val.watched = 0
-    state.val.queued = 0
-    state.val.stopped = true
-    answer_signals(state, failed)
-    fail io.io_failed when not returned
-end events_stop_watching
+    events_next_signal: (self: host) -> (received: signal.event)
+                        ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        loop do
+            fail io.io_failed when state.val.stopped
+            collect(state)
+            if state.val.queued > 0 then
+                index: usize = usize(state.val.arrived[0])
+                dec state.val.queued
+                for at in usize(0)..<state.val.queued do
+                    state.val.arrived[at] = state.val.arrived[at + 1]
+                end for
+                received = (which: kind_at(index),
+                            number: u32(signal_numbers[index]))
+                return
+            end if
+            mut entry: waiting = (next: 0, descriptor: -1, output: false,
+                                  child: 0, signalled: true, deadline: 0,
+                                  answer: pending)
+            answer: u8 = park(self, addr entry) else (problem)
+                record(self, problem)
+                fail io.io_failed
+            end
+            fail io.io_failed when answer == failed
+        end loop
+    end events_next_signal
 
-host is signal.signals (watch: events_watch, next_signal: events_next_signal,
-                        stop_watching: events_stop_watching)
+    events_stop_watching: (self: host) -> none ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        mut returned: bool = true
+        give_signals(state) else (problem)
+            record(self, problem)
+            returned = false
+        end
+        state.val.watched = 0
+        state.val.queued = 0
+        state.val.stopped = true
+        answer_signals(state, failed)
+        fail io.io_failed when not returned
+    end events_stop_watching
+
+    host is signal.signals (watch: events_watch, next_signal: events_next_signal,
+                            stop_watching: events_stop_watching)
+end if

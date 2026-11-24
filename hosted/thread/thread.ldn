@@ -16,9 +16,15 @@
 --  stack's top, the system's least, where the C library, when it starts
 --  the thread, keeps its own frames, and switches from there to the
 --  prepared stack; when the task ends it switches back and the thread
---  ends (D517).  Nothing here allocates and no guard page is mapped: the
---  records, the states and the ledger are the backing's, behind
---  integer-made pointers that stay inside this module [0810].
+--  ends (D517).  Windows starts a thread only on a stack of its own
+--  reserving, so there the thread starts on a small stack the system
+--  reserves and the backing keeps no area for it.  Nothing here
+--  allocates and no guard page is mapped: the records, the states and
+--  the ledger are the backing's, behind integer-made pointers that stay
+--  inside this module [0810].
+--
+--  posix.ldn and windows.ldn start and wait for a thread, each on its own
+--  systems.
 
 import core/atomic
 import core/failure
@@ -26,7 +32,6 @@ import core/fibre
 import core/mem
 import hosted/system
 import hosted/thread/lock
-import platform/posix
 
 --  The record at a stack's base: the system's record of the thread, the
 --  start area's saved stack pointer while the task runs and the prepared
@@ -34,7 +39,7 @@ import platform/posix
 --  whether a thread was started and not yet joined, and when, which only
 --  the group's owner reads and writes.
 slot: type = struct
-    thread: posix.thread
+    thread: system_thread
     home: usize
     prepared: usize
     work: any fibre.task
@@ -104,11 +109,12 @@ end record_of
 --- KiB for the task's own stack, and the area the thread starts on, the
 --- system's least. That area is 2 KiB and the thread's storage on a static
 --- Linux program; glibc's PTHREAD_STACK_MIN under --link=libc, 16 KiB on
---- x86-64 and RV64 and 128 KiB on arm64; and 16 KiB on Darwin and FreeBSD,
---- where Darwin cuts every stack in whole 16 KiB pages (D519).
+--- x86-64 and RV64 and 128 KiB on arm64; 16 KiB on Darwin and FreeBSD,
+--- where Darwin cuts every stack in whole 16 KiB pages (D519); and none on
+--- Windows, which starts the thread on a stack it reserves itself.
 public least_stack: () -> (bytes: usize) =
-    unit: usize = posix.thread_start_alignment()
-    bytes = record_room + least_task + posix.thread_start_bytes()
+    unit: usize = start_alignment()
+    bytes = record_room + least_task + start_bytes()
     bytes += skip_to(bytes, unit)
 end least_stack
 
@@ -120,7 +126,7 @@ end least_stack
 public group_over: (host: system.host, backing: []mut u8, count: usize)
                    -> (g: group from host, backing) ! mem.out_of_memory =
     fail mem.out_of_memory when count == 0 or lenof backing == 0
-    unit: usize = posix.thread_start_alignment()
+    unit: usize = start_alignment()
     lowest: usize = usize(addr backing[0])
     front: usize = lowest + skip_to(lowest, alignment)
     first: usize = front + ledger_room + skip_to(front + ledger_room, unit)
@@ -132,7 +138,7 @@ public group_over: (host: system.host, backing: []mut u8, count: usize)
     kept.val = (claimed: atomic.new(u32(0)), failed: false,
                 problem: mem.out_of_memory, admitted: 0)
     g = (host: host, backing: backing, front: front, first: first,
-         size: size, count: count, area: posix.thread_start_bytes())
+         size: size, count: count, area: start_bytes())
     mut index: usize = 0
     while index < count do
         record: ptr mut slot = record_of(g, index)
@@ -197,10 +203,7 @@ end begin_thread
 --  thread it started is joined, and once.
 finish: (g: group, index: usize) -> none =
     record: ptr mut slot = record_of(g, index)
-    posix.join_thread(addr record.val.thread) else (problem)
-        _ = problem
-        compiler.unreachable()
-    end
+    join_system_thread(addr record.val.thread)
     record.val.running = 0
 end finish
 
@@ -271,25 +274,27 @@ public admit: (state_type: type, inout g: group,
     copy.val = (work: work, keep: keep_first, kept: g.front, state: state)
     bottom: ptr mut [1]u8 = ptr(low)
     mut stack: []mut u8 = bottom.val[0..<1]
-    top: ptr mut [1]u8 = ptr(area)
-    mut start: []mut u8 = top.val[0..<1]
+    mut start: []mut u8 = bottom.val[0..<0]
     unchecked begin
         --  The bytes from `low` to the bridge, and from the area to the
         --  stack's end, are the backing's.
         stack = stack[0..<place - low]
-        start = start[0..<g.area]
     end unchecked
+    if g.area > 0 then
+        top: ptr mut [1]u8 = ptr(area)
+        start = top.val[0..<1]
+        unchecked begin
+            start = start[0..<g.area]
+        end unchecked
+    end if
     record.val.work = any(copy)
     atomic.store_relaxed(addr record.val.ended, u32(0))
     record.val.prepared = compiler.stack_prepare(stack, first_frame,
                                                  usize(record))
     lock.note_start()
     system.clear_errno(g.host)
-    posix.start_thread(start, addr record.val.thread, begin_thread,
-                       usize(record)) else (problem)
-        system.record_errno(g.host, problem)
-        fail mem.out_of_memory
-    end
+    try start_system_thread(g.host, start, addr record.val.thread,
+                            begin_thread, usize(record))
     kept: ptr mut ledger = ptr(g.front)
     kept.val.admitted += 1
     record.val.order = kept.val.admitted

@@ -1,0 +1,629 @@
+--  The provider on Windows, continued: `io.directories`,
+--  `io.file_system`, `io.terminals`, `io.entropy`, the wall clock and the
+--  words for a failure, over platform/windows, as directories.ldn,
+--  file_system.ldn, entropy.ldn, time.ldn and failures.ldn give them over
+--  platform/posix.
+
+import core/failure
+import core/io
+import core/mem
+import core/text
+import core/time
+import platform/windows
+
+fixed if compiler.os == windows then
+    --- A failure of a program over the hosted services: on Windows one of
+    --- the core library's failures, which every provider reports, the
+    --- system's own code being `last_errno`'s.
+    public reason: type = failure.reason
+
+    --  Every failure is a library one here, which `failure.words` words.
+    --- A short English phrase for a failure (D582), in lower case but for a
+    --- name's own capitals and with no final stop, so that it reads after a
+    --- subject and a colon.  The phrase is static text: it borrows nothing and
+    --- is never freed.
+    public words: (problem: reason) -> (phrase: []u8) =
+        phrase = failure.words(problem)
+    end words
+
+    --  A Windows time, hundreds of nanoseconds since 1601, as core/time's
+    --  wall time since 1970.
+    wall_of: (at: windows.file_time) -> (result: time.wall_time) =
+        ticks: u64 = (u64(at.high) << 32) | u64(at.low)
+        if ticks >= windows.epoch_difference then
+            since: u64 = ticks - windows.epoch_difference
+            result = (seconds: i64(since / 10000000),
+                      nanoseconds: u32((since % 10000000) * 100))
+        else
+            before: u64 = windows.epoch_difference - ticks
+            mut seconds: i64 = -i64(before / 10000000)
+            mut rest: u64 = before % 10000000
+            if rest > 0 then
+                seconds = seconds - 1
+                rest = 10000000 - rest
+            end if
+            result = (seconds: seconds, nanoseconds: u32(rest * 100))
+        end if
+    end wall_of
+
+    system_wall_now: (self: host) -> (at: time.wall_time) =
+        _ = self.failure
+        mut sample: windows.file_time = zeroed
+        windows.system_time(addr sample)
+        at = wall_of(sample)
+    end system_wall_now
+
+    host is time.wall_clock (wall_now: system_wall_now)
+
+    system_fill_random: (self: host, into: []mut u8) -> none ! io.io_failed =
+        keep_failure(self, 0)
+        mut filled: usize = 0
+        while filled < lenof into do
+            mut step: usize = lenof into - filled
+            if step > 0x40000000 then step = 0x40000000 end if
+            status: i32 = windows.random(0, addr into[filled], u32(step),
+                                         windows.system_preferred_generator)
+            if status <> 0 then
+                record(self, windows.error_not_supported)
+                fail io.io_failed
+            end if
+            filled += step
+        end while
+    end system_fill_random
+
+    host is io.entropy (fill_random: system_fill_random)
+
+    --  The kind of a file Windows describes by its attributes and, for a
+    --  reparse point, its tag.
+    kind_of: (attributes: u32, tag: u32) -> (named: io.entry_kind) =
+        named = if (attributes & windows.attribute_reparse_point) <> 0
+          and tag == windows.reparse_tag_symlink then io.symbolic_link
+                elsif (attributes & windows.attribute_directory) <> 0 then
+                    io.subdirectory
+                else io.regular end if
+    end kind_of
+
+    --  Room for the directory's own path, from `final_path`, and a name.
+    long_room: type = [2048]u16
+
+    --  Put `opened`'s path into `room` followed by `tail`'s units and a
+    --  NUL, and return the units before the NUL: false when it does not
+    --  fit.
+    under: (opened: windows.handle, tail: []u16, room: []mut u16)
+           -> (count: usize, fits: bool) =
+        count = 0
+        fits = false
+        got: u32 = windows.final_path(opened, addr room[0], u32(lenof room), 0)
+        return when got == 0 or usize(got) >= lenof room
+        count = usize(got)
+        return when count + lenof tail + 1 > lenof room
+        for at in usize(0)..<lenof tail do
+            room[count + at] = tail[at]
+        end for
+        count += lenof tail
+        room[count] = 0
+        fits = true
+    end under
+
+    --  A pending entry: the first, which `find_first_file` read when the
+    --  directory was opened, kept in the directory's buffer until it is
+    --  asked for.  `stream` holds the search's handle, `position` the
+    --  pending entry's kind, one more than its order among the kinds, or
+    --  zero when none is pending.
+    kind_number: (kind: io.entry_kind) -> (number: usize) =
+        number = if kind == io.subdirectory then 1
+                 elsif kind == io.symbolic_link then 2
+                 elsif kind == io.regular then 3
+                 else 4 end if
+    end kind_number
+
+    kind_named: (number: usize) -> (kind: io.entry_kind) =
+        kind = if number == 1 then io.subdirectory
+               elsif number == 2 then io.symbolic_link
+               elsif number == 3 then io.regular
+               else io.special end if
+    end kind_named
+
+    --  The units of a found entry's name, before its NUL.
+    found_name: (found: windows.find_data) -> (length: usize) =
+        length = 0
+        while length < 260 and found.name[length] <> 0 do inc length end while
+    end found_name
+
+    --  Keep a found entry's name, as WTF-8, and kind in the directory.
+    keep_found: (inout opened: io.directory, found: windows.find_data) -> none =
+        length: usize = found_name(found)
+        opened.filled = windows.to_host(found.name[0..<length], opened.buffer)
+        opened.consumed = 0
+        opened.position = kind_number(kind_of(found.attributes,
+                                              found.reserved_0))
+    end keep_found
+
+    star: [2]u16 = [92, 42]
+
+    system_open_directory: (self: host, path: text.os_string,
+                            buffer: []mut u8)
+                           -> (opened: io.directory from buffer)
+                           ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        opened = (handle: windows.invalid_handle, stream: windows.invalid_handle,
+                  position: 0, buffer: buffer, filled: 0, consumed: 0,
+                  at_end: true)
+        fail io.io_failed when lenof buffer < io.directory_buffer
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        made: windows.handle = windows.create_file(
+            name, windows.list_directory | windows.file_read_attributes,
+            windows.share_all, 0, windows.open_existing,
+            windows.flag_backup_semantics, 0)
+        if made == windows.invalid_handle then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+        mut information: windows.file_information = zeroed
+        if windows.get_file_information(made, addr information) == 0 then
+            code: u32 = windows.last_error()
+            _ = windows.close_handle(made)
+            record(self, code)
+            fail io.io_failed
+        end if
+        if (information.attributes & windows.attribute_directory) == 0 then
+            _ = windows.close_handle(made)
+            record(self, windows.error_directory)
+            fail mem.not_found
+        end if
+        mut pattern: long_room = zeroed
+        (count, fits) := under(made, star[0..<2], pattern)
+        _ = count
+        if not fits then
+            _ = windows.close_handle(made)
+            record(self, windows.error_filename_exceeds_range)
+            fail io.io_failed
+        end if
+        mut found: windows.find_data = zeroed
+        search: windows.handle = windows.find_first_file(addr pattern[0],
+                                                         addr found)
+        if search == windows.invalid_handle then
+            code: u32 = windows.last_error()
+            _ = windows.close_handle(made)
+            try path_failure(self, code)
+            fail io.io_failed
+        end if
+        opened = (handle: made, stream: search, position: 0, buffer: buffer,
+                  filled: 0, consumed: 0, at_end: false)
+        keep_found(opened, found)
+    end system_open_directory
+
+    system_read_entry: (self: host, inout opened: io.directory)
+                       -> (item: io.entry from opened) ! io.io_failed =
+        keep_failure(self, 0)
+        loop do
+            if opened.at_end then
+                item = (name: text.os_string_over(opened.buffer[0..<0]),
+                        kind: io.special, at_end: true)
+                return
+            end if
+            if opened.position <> 0 then
+                kind: io.entry_kind = kind_named(opened.position)
+                opened.position = 0
+                name: []u8 = opened.buffer[0..<opened.filled]
+                if not (lenof name > 0 and lenof name <= 2 and name[0] == 46
+                        and (lenof name == 1 or name[1] == 46)) then
+                    item = (name: text.os_string_over(name), kind: kind,
+                            at_end: false)
+                    return
+                end if
+            end if
+            mut found: windows.find_data = zeroed
+            if windows.find_next_file(opened.stream, addr found) == 0 then
+                code: u32 = windows.last_error()
+                if code == windows.error_no_more_files then
+                    opened.at_end = true
+                else
+                    record(self, code)
+                    fail io.io_failed
+                end if
+            else
+                keep_found(opened, found)
+            end if
+        end loop
+    end system_read_entry
+
+    system_entry_size: (self: host, opened: io.directory,
+                        name: text.os_string)
+                       -> (size: u64)
+                       ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        size = 0
+        bytes: []u8 = text.os_string_bytes(name)
+        fail mem.not_found when lenof bytes == 0
+          or lenof bytes >= io.directory_buffer
+        for byte in bytes do
+            fail mem.not_found when byte == 0 or byte == u8('/')
+              or byte == u8('\\')
+        end for
+        mut tail: windows.path_room = zeroed
+        tail[0] = 92
+        count: usize = windows.to_units(bytes, tail[1..<lenof tail])
+            else (problem)
+            _ = problem
+            fail mem.not_found
+        end
+        mut room: long_room = zeroed
+        (count: length, fits) := under(opened.handle, tail[0..<count + 1], room)
+        _ = length
+        if not fits then
+            record(self, windows.error_filename_exceeds_range)
+            fail io.io_failed
+        end if
+        mut found: windows.attribute_data = zeroed
+        if windows.get_file_attributes_ex(addr room[0], 0, addr found) == 0 then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+        size = (u64(found.size_high) << 32) | u64(found.size_low)
+    end system_entry_size
+
+    system_close_directory: (self: host, sink opened: io.directory)
+                            -> none ! io.io_failed =
+        keep_failure(self, 0)
+        searched: i32 = windows.find_close(opened.stream)
+        closed: i32 = windows.close_handle(opened.handle)
+        if searched == 0 or closed == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+    end system_close_directory
+
+    system_make_directory: (self: host, path: text.os_string)
+                           -> none
+                           ! io.already_exists | mem.not_found | io.no_access
+                           | io.io_failed =
+        keep_failure(self, 0)
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        if windows.create_directory(name, 0) == 0 then
+            code: u32 = windows.last_error()
+            record(self, code)
+            fail io.already_exists when code == windows.error_already_exists
+              or code == windows.error_file_exists
+            try path_failure(self, code)
+            fail io.io_failed
+        end if
+    end system_make_directory
+
+    remove: (self: host, path: text.os_string, directory: bool)
+            -> none ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        done: i32 = if directory then windows.remove_directory(name)
+                    else windows.delete_file(name) end if
+        if done == 0 then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+    end remove
+
+    system_remove_file: (self: host, path: text.os_string)
+                        -> none ! mem.not_found | io.no_access | io.io_failed =
+        try remove(self, path, false)
+    end system_remove_file
+
+    system_remove_directory: (self: host, path: text.os_string)
+                             -> none
+                             ! mem.not_found | io.no_access | io.io_failed =
+        try remove(self, path, true)
+    end system_remove_directory
+
+    host is io.directories
+        (open_directory: system_open_directory,
+         read_entry: system_read_entry, entry_size: system_entry_size,
+         close_directory: system_close_directory,
+         make_directory: system_make_directory,
+         remove_file: system_remove_file,
+         remove_directory: system_remove_directory)
+
+    system_open_file: (self: host, path: text.os_string,
+                       options: io.open_options)
+                      -> (opened: io.file)
+                      ! io.already_exists | mem.not_found | io.no_access
+                      | io.is_a_directory | io.io_failed =
+        keep_failure(self, 0)
+        opened = file_of(windows.no_handle)
+        if not io.valid_options(options) then
+            record(self, windows.error_invalid_parameter)
+            fail io.io_failed
+        end if
+        mut access: u32 = 0
+        if options.read then access = access | windows.generic_read end if
+        if options.append and not options.truncate then
+            access = access | windows.append_data | windows.synchronize_access
+                     | windows.file_read_attributes
+        elsif options.write then
+            access = access | windows.generic_write
+        end if
+        disposition: u32 =
+            if options.create and options.exclusive then windows.create_new
+            elsif options.create and options.truncate then windows.create_always
+            elsif options.create then windows.open_always
+            elsif options.truncate then windows.truncate_existing
+            else windows.open_existing end if
+        opened = try open(self, path, access, disposition)
+    end system_open_file
+
+    system_rename: (self: host, old: text.os_string, new: text.os_string)
+                   -> none ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        mut from_room: windows.path_room = zeroed
+        mut to_room: windows.path_room = zeroed
+        source: ptr u16 = try path_in(self, old, from_room)
+        target: ptr u16 = try path_in(self, new, to_room)
+        if windows.move_file(source, target,
+                             windows.move_replace_existing) == 0 then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+    end system_rename
+
+    --  What core/io says of a file Windows describes.
+    status_from: (found: windows.file_information, kind: io.entry_kind)
+                 -> (result: io.status) =
+        result = (size: (u64(found.size_high) << 32) | u64(found.size_low),
+                  kind: kind, modified: wall_of(found.written),
+                  read_only: (found.attributes
+                              & windows.attribute_read_only) <> 0)
+    end status_from
+
+    --  The status of an open handle; `link` when it was opened not
+    --  following a link it ends in.
+    status_of_handle: (self: host, opened: windows.handle, link: bool)
+                      -> (found: io.status) ! io.io_failed =
+        mut information: windows.file_information = zeroed
+        if windows.get_file_information(opened, addr information) == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+        mut kind: io.entry_kind = kind_of(information.attributes, 0)
+        if link and (information.attributes
+                     & windows.attribute_reparse_point) <> 0 then
+            kind = io.symbolic_link
+        end if
+        found = status_from(information, kind)
+    end status_of_handle
+
+    system_status_of: (self: host, path: text.os_string,
+                       links: io.link_handling)
+                      -> (found: io.status)
+                      ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        link: bool = links == io.not_following
+        flags: u32 = if link then windows.flag_backup_semantics
+                                  | windows.flag_open_reparse_point
+                     else windows.flag_backup_semantics end if
+        made: windows.handle = windows.create_file(
+            name, windows.file_read_attributes, windows.share_all, 0,
+            windows.open_existing, flags, 0)
+        if made == windows.invalid_handle then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+        found = status_of_handle(self, made, link) else begin
+            _ = windows.close_handle(made)
+            fail io.io_failed
+        end
+        _ = windows.close_handle(made)
+    end system_status_of
+
+    system_status_of_file: (self: host, opened: io.file)
+                           -> (found: io.status) ! io.io_failed =
+        keep_failure(self, 0)
+        found = try status_of_handle(self, handle_of(opened), false)
+    end system_status_of_file
+
+    system_set_read_only: (self: host, path: text.os_string,
+                           read_only: bool)
+                          -> none ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        given: u32 = windows.get_file_attributes(name)
+        if given == windows.invalid_attributes then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+        bits: u32 = if read_only then given | windows.attribute_read_only
+                    else given & ~windows.attribute_read_only end if
+        if windows.set_file_attributes(name, bits) == 0 then
+            try path_failure(self, windows.last_error())
+            fail io.io_failed
+        end if
+    end system_set_read_only
+
+    system_synchronize: (self: host, opened: io.file,
+                         writing: io.synchronizing)
+                        -> none ! io.io_failed =
+        keep_failure(self, 0)
+        _ = writing
+        if windows.flush_file_buffers(handle_of(opened)) == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+    end system_synchronize
+
+    system_truncate: (self: host, opened: io.file, size: u64)
+                     -> none ! io.io_failed =
+        keep_failure(self, 0)
+        mut ending: u64 = size
+        if windows.set_file_information(handle_of(opened),
+                                        windows.file_end_of_file_info,
+                                        usize(addr ending), 8) == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+    end system_truncate
+
+    --  The handle's position, which `at_offset` keeps across a read or a
+    --  write at an offset: on a handle that does not overlap, such a call
+    --  moves it.
+    position: (opened: windows.handle) -> (at: i64) ! io.io_failed =
+        mut found: i64 = 0
+        if windows.set_file_pointer(opened, 0, usize(addr found),
+                                    windows.file_current) == 0 then
+            fail io.io_failed
+        end if
+        at = found
+    end position
+
+    restore: (opened: windows.handle, at: i64) -> none =
+        _ = windows.set_file_pointer(opened, at, 0, windows.file_begin)
+    end restore
+
+    system_read_at: (self: host, opened: io.file, offset: u64, into: []mut u8)
+                    -> (count: usize) ! io.io_failed =
+        keep_failure(self, 0)
+        count = 0
+        return when lenof into == 0
+        made: windows.handle = handle_of(opened)
+        kept: i64 = position(made) else (problem)
+            _ = problem
+            record_last(self)
+            fail io.io_failed
+        end
+        mut asked: windows.overlapped = zeroed
+        asked.offset_low = u32(offset & 0xFFFFFFFF)
+        asked.offset_high = u32(offset >> 32)
+        mut want: usize = lenof into
+        if want > 0x40000000 then want = 0x40000000 end if
+        mut got: u32 = 0
+        done: i32 = windows.read_file(made, addr into[0], u32(want), addr got,
+                                      usize(addr asked))
+        code: u32 = windows.last_error()
+        restore(made, kept)
+        if done == 0 then
+            return when code == windows.error_handle_eof
+            record(self, code)
+            fail io.io_failed
+        end if
+        count = usize(got)
+    end system_read_at
+
+    system_write_at: (self: host, opened: io.file, offset: u64, bytes: []u8)
+                     -> none ! io.io_failed =
+        keep_failure(self, 0)
+        made: windows.handle = handle_of(opened)
+        kept: i64 = position(made) else (problem)
+            _ = problem
+            record_last(self)
+            fail io.io_failed
+        end
+        mut written: usize = 0
+        while written < lenof bytes do
+            mut asked: windows.overlapped = zeroed
+            at: u64 = offset + u64(written)
+            asked.offset_low = u32(at & 0xFFFFFFFF)
+            asked.offset_high = u32(at >> 32)
+            mut want: usize = lenof bytes - written
+            if want > 0x40000000 then want = 0x40000000 end if
+            mut put: u32 = 0
+            if windows.write_file(made, addr bytes[written], u32(want), addr put,
+                                  usize(addr asked)) == 0 then
+                code: u32 = windows.last_error()
+                restore(made, kept)
+                record(self, code)
+                fail io.io_failed
+            end if
+            if put == 0 then
+                restore(made, kept)
+                fail io.io_failed
+            end if
+            written += usize(put)
+        end while
+        restore(made, kept)
+    end system_write_at
+
+    system_make_temporary: (self: host, names: any io.entropy,
+                            directory: text.os_string, into: []mut u8)
+                           -> (made: io.temporary from into)
+                           ! mem.not_found | io.no_access | io.io_failed =
+        keep_failure(self, 0)
+        made = (opened: file_of(windows.no_handle),
+                path: text.os_string_over(into[0..<0]))
+        mut tries: usize = 0
+        while tries < io.temporary_tries do
+            inc tries
+            mut bytes: [8]u8 = zeroed
+            try names.fill_random(bytes[0..<8])
+            path: text.os_string = try io.temporary_path(directory, bytes, into)
+            opened: io.file =
+                open(self, path, windows.generic_read | windows.generic_write,
+                     windows.create_new)
+                else (problem)
+                    continue when problem == io.already_exists
+                    fail mem.not_found when problem == mem.not_found
+                    fail io.no_access when problem == io.no_access
+                    fail io.io_failed
+                end
+            keep_failure(self, 0)
+            made = (opened: opened, path: path)
+            return
+        end while
+        fail io.io_failed
+    end system_make_temporary
+
+    system_current_directory: (self: host, into: []mut u8)
+                              -> (path: text.os_string from into)
+                              ! io.io_failed =
+        keep_failure(self, 0)
+        path = text.os_string_over(into[0..<0])
+        mut room: long_room = zeroed
+        got: u32 = windows.current_directory(u32(lenof room), addr room[0])
+        if got == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+        if usize(got) >= lenof room
+          or windows.host_length(room[0..<usize(got)]) > lenof into then
+            record(self, windows.error_filename_exceeds_range)
+            fail io.io_failed
+        end if
+        count: usize = windows.to_host(room[0..<usize(got)], into)
+        path = text.os_string_over(into[0..<count])
+    end system_current_directory
+
+    system_is_terminal: (self: host, stream: io.file) -> (yes: bool) =
+        _ = self.failure
+        mut mode: u32 = 0
+        yes = windows.get_console_mode(handle_of(stream), addr mode) <> 0
+    end system_is_terminal
+
+    system_window_size: (self: host, stream: io.file) -> (size: io.window)
+                        ! io.not_a_terminal | io.io_failed =
+        keep_failure(self, 0)
+        size = (rows: 0, columns: 0)
+        mut mode: u32 = 0
+        if windows.get_console_mode(handle_of(stream), addr mode) == 0 then
+            record_last(self)
+            fail io.not_a_terminal
+        end if
+        mut found: windows.console_screen = zeroed
+        if windows.console_screen_info(handle_of(stream), addr found) == 0 then
+            --  An input console has no screen buffer, and no size.
+            return
+        end if
+        size = (rows: u16(i32(found.bottom) - i32(found.top) + 1),
+                columns: u16(i32(found.right) - i32(found.left) + 1))
+    end system_window_size
+
+    host is io.file_system
+        (open_file: system_open_file, rename: system_rename,
+         status_of: system_status_of, status_of_file: system_status_of_file,
+         set_read_only: system_set_read_only, synchronize: system_synchronize,
+         truncate: system_truncate, read_at: system_read_at,
+         write_at: system_write_at, make_temporary: system_make_temporary,
+         current_directory: system_current_directory)
+    host is io.terminals
+        (is_terminal: system_is_terminal, window_size: system_window_size)
+end if

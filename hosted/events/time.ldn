@@ -2,32 +2,61 @@
 --  it, which parks the fibre with a deadline and lets the others run.  The
 --  loop's own wait sleeps until the earliest deadline, so a sleep costs no
 --  descriptor and no timer of the system's (D480).  The wall clock is the
---  system's, in delegated.ldn.
+--  system's, in delegated.ldn.  The clock is POSIX's monotonic clock, and
+--  on Windows the performance counter, as hosted/blocking reads it.
 
 import core/time
 import platform/posix
+import platform/windows
 
 --  A second in nanoseconds.
 second: u64 = 1000000000
 
---  The clock `clock` read now.  Every hosted system has both clocks, and
---  reading one fails only when the process is given a bad address, which
---  no call here gives, so a failure ends the program.
-clock_read: (clock: posix.clock_kind) -> (sample: posix.time_value) =
-    sample = posix.clock_time(clock) else (problem)
-        _ = problem
-        compiler.unreachable()
-    end
-end clock_read
+fixed if compiler.os <> windows then
+    --  The clock `clock` read now.  Every hosted system has both clocks, and
+    --  reading one fails only when the process is given a bad address, which
+    --  no call here gives, so a failure ends the program.
+    clock_read: (clock: posix.clock_kind) -> (sample: posix.time_value) =
+        sample = posix.clock_time(clock) else (problem)
+            _ = problem
+            compiler.unreachable()
+        end
+    end clock_read
 
---  The monotonic clock in nanoseconds since the system started, which no
---  hosted system counts as negative, and never zero, which a waiting
---  record takes for no deadline.
-reading: () -> (at: u64) =
-    sample: posix.time_value = clock_read(posix.monotonic_clock)
-    at = u64(sample.seconds) * second + u64(sample.nanoseconds)
-    if at == 0 then at = 1 end if
-end reading
+    --  The monotonic clock in nanoseconds since the system started, which no
+    --  hosted system counts as negative, and never zero, which a waiting
+    --  record takes for no deadline.
+    reading: () -> (at: u64) =
+        sample: posix.time_value = clock_read(posix.monotonic_clock)
+        at = u64(sample.seconds) * second + u64(sample.nanoseconds)
+        if at == 0 then at = 1 end if
+    end reading
+
+    --  A record that waits for `deadline` alone.
+    on_deadline: (deadline: u64) -> (entry: waiting) =
+        entry = (next: 0, descriptor: -1, output: false, child: 0,
+                 signalled: false, deadline: deadline, answer: pending)
+    end on_deadline
+else
+    --  The performance counter's rate, which is fixed while the system
+    --  runs; Windows 10 and later never fail to give it.
+    frequency: () -> (rate: u64) =
+        mut found: i64 = 0
+        _ = windows.performance_frequency(addr found)
+        rate = if found > 0 then u64(found) else 1 end if
+    end frequency
+
+    --  The performance counter in nanoseconds since the system started,
+    --  and never zero, which a waiting record takes for no deadline.
+    reading: () -> (at: u64) =
+        mut ticks: i64 = 0
+        _ = windows.performance_counter(addr ticks)
+        rate: u64 = frequency()
+        whole: u64 = u64(ticks)
+        at = (whole / rate) * second + ((whole % rate) * second) / rate
+        if at == 0 then at = 1 end if
+    end reading
+end if
 
 --  The instant `span` after now, the clock's last instant when that is
 --  past it.
@@ -48,14 +77,8 @@ end events_now
 events_sleep: (self: host, span: time.duration) -> none =
     deadline: u64 = deadline_after(span)
     while reading() < deadline do
-        mut entry: waiting = (next: 0, descriptor: -1, output: false,
-                              child: 0, signalled: false, deadline: deadline,
-                              answer: pending)
-        --  A record with no descriptor or child is never refused.
-        _ = park(self, addr entry) else (problem)
-            _ = problem
-            return
-        end
+        mut entry: waiting = on_deadline(deadline)
+        parked(self, addr entry)
     end while
 end events_sleep
 

@@ -45,9 +45,6 @@ if sys.flags.optimize:
 HOST_TARGETS = {('Linux', 'x86_64'): 'linux-x86-64',
                 ('Linux', 'aarch64'): 'linux-arm64',
                 ('Darwin', 'arm64'): 'darwin-arm64'}
-#  The program each target debugs: main.ldn, or on Windows, which has no
-#  Io provider yet, windows.ldn, the same program less its output.
-SOURCES = {'windows-x86-64': HERE / 'windows.ldn'}
 
 
 def source_lines(source=SOURCE):
@@ -264,7 +261,7 @@ def run_session(adapter_argv, program, source, output, label, debugger=None,
         adapter.require('continue', threadId=thread)
         check('exit.code', adapter.event('exited')['body']['exitCode'], 42,
               checks)
-        if not remote and 'io.write' in Path(source).read_text():
+        if not remote:
             written = ''.join(message['body']['output'] for message
                               in adapter.waiting + adapter.seen
                               if message.get('event') == 'output'
@@ -314,7 +311,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     target = args.target or HOST_TARGETS[(platform.system(),
                                           platform.machine())]
-    source = args.source or SOURCES.get(target, SOURCE)
+    source = args.source or SOURCE
     if args.program:
         program = args.program.resolve()
     else:

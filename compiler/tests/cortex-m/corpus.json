@@ -2565,6 +2565,12 @@
       "mode": "refuse",
       "reason": "Firmware has no network stack here."
     },
+    "runtime/events-network-limits": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/events-signal-during-sleep": {
       "codes": [
         "L0015"
@@ -5478,6 +5484,30 @@
     },
     "runtime/whole-arrays-copy-between-storage": {
       "mode": "execute"
+    },
+    "runtime/windows-events-child-wait": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/windows-events-console-control": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/windows-events-control-in-worker": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/windows-run-programs": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/word-count": {
       "codes": [

@@ -41,6 +41,13 @@ count: (provider: type is io.reader, source: provider,
     end loop
 end count
 
+--  EBADF, 9 on every POSIX system; Windows says ERROR_INVALID_HANDLE, 6.
+fixed if compiler.os == windows then
+    bad_handle: i32 = 6
+else
+    bad_handle: i32 = 9
+end if
+
 public main: () -> (code: i32) =
     code = 1
     host := blocking.new()
@@ -53,7 +60,7 @@ public main: () -> (code: i32) =
     code = 2
     mut buffer: [16]u8 = zeroed
     totals := count(host, input, buffer[0..<16]) else (problem)
-        if problem == io.io_failed and blocking.last_errno(host) == 9 then
+        if problem == io.io_failed and blocking.last_errno(host) == bad_handle then
             code = 42
         end if
         return

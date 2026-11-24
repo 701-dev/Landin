@@ -3,8 +3,9 @@
 --  Darwin and FreeBSD, whose C library is their system interface,
 --  platform/posix reaches the operating system only through these
 --  declarations; on Linux it makes platform/linux's system calls, and this
---  module serves a program linked with --link=libc.  Its scope is the
---  systems with a C library, Linux, Darwin and FreeBSD.  Every declaration
+--  module serves a program linked with --link=libc.  It declares on the
+--  systems with a C library, Linux, Darwin and FreeBSD, and is imported on
+--  Windows too, where it declares nothing (D2267).  Every declaration
 --  here is bodyless, so a program that names none of them needs no C
 --  library, and a static Linux program that names one is refused before it
 --  links (D280).  This file declares what every system declares alike;
@@ -16,635 +17,637 @@
 --  runtime and ABI fixtures.
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
---- Open the file at the NUL-terminated `path` and return its descriptor, or
---- -1 with the reason in errno.  `flags` is `o_rdonly` or `o_wronly`, or'd
---- with `o_creat` and `o_trunc`; with `o_creat` the one variadic argument
---- is the new file's permission bits as an `i32`, which the process umask
---- filters.
-public extern(c) open: (path: ptr u8, flags: i32, ...) -> (descriptor: i32)
+fixed if compiler.os <> windows then
+    --- Open the file at the NUL-terminated `path` and return its descriptor,
+    --- or -1 with the reason in errno.  `flags` is `o_rdonly` or `o_wronly`,
+    --- or'd with `o_creat` and `o_trunc`; with `o_creat` the one variadic
+    --- argument is the new file's permission bits as an `i32`, which the
+    --- process umask filters.
+    public extern(c) open: (path: ptr u8, flags: i32, ...) -> (descriptor: i32)
 
---- Read at most `length` bytes from `descriptor` into `data`.  The count
---- read, zero at end of file, or -1 with the reason in errno.  EINTR means
---- nothing was transferred.
-public extern(c) read: (descriptor: i32, data: ptr mut u8, length: usize)
-                       -> (count: isize)
+    --- Read at most `length` bytes from `descriptor` into `data`.  The count
+    --- read, zero at end of file, or -1 with the reason in errno.  EINTR means
+    --- nothing was transferred.
+    public extern(c) read: (descriptor: i32, data: ptr mut u8, length: usize)
+                           -> (count: isize)
 
---- Write at most `length` bytes from `data` to `descriptor`.  The count
---- accepted, which may be short, or -1 with the reason in errno.  EINTR
---- means nothing was transferred.
-public extern(c) write: (descriptor: i32, data: ptr u8, length: usize)
-                        -> (count: isize)
+    --- Write at most `length` bytes from `data` to `descriptor`.  The count
+    --- accepted, which may be short, or -1 with the reason in errno.  EINTR
+    --- means nothing was transferred.
+    public extern(c) write: (descriptor: i32, data: ptr u8, length: usize)
+                            -> (count: isize)
 
---- Open `path`, relative to the directory open as `directory` (or
---- `at_fdcwd`), as `open` does: the new descriptor, or -1 with the reason
---- in errno.  With `o_creat` the one variadic argument is the permission
---- bits as an `i32`.
-public extern(c) openat: (directory: i32, path: ptr u8, flags: i32, ...)
-                         -> (descriptor: i32)
+    --- Open `path`, relative to the directory open as `directory` (or
+    --- `at_fdcwd`), as `open` does: the new descriptor, or -1 with the reason
+    --- in errno.  With `o_creat` the one variadic argument is the permission
+    --- bits as an `i32`.
+    public extern(c) openat: (directory: i32, path: ptr u8, flags: i32, ...)
+                             -> (descriptor: i32)
 
---- Close `descriptor`: 0, or -1 with the reason in errno.  The descriptor
---- may be released even when this fails, so a failed close is never
---- retried.
-public extern(c) close: (descriptor: i32) -> (status: i32)
+    --- Close `descriptor`: 0, or -1 with the reason in errno.  The descriptor
+    --- may be released even when this fails, so a failed close is never
+    --- retried.
+    public extern(c) close: (descriptor: i32) -> (status: i32)
 
---- The number of bytes before the first NUL at `text`.
-public extern(c) strlen: (text: ptr u8) -> (length: usize)
+    --- The number of bytes before the first NUL at `text`.
+    public extern(c) strlen: (text: ptr u8) -> (length: usize)
 
---- errno: the operation is not permitted.  The same on every hosted
---- system.
-public eperm: i32 = 1
---- errno: no such file or directory.
-public enoent: i32 = 2
---- errno: interrupted by a signal before anything was transferred.
-public eintr: i32 = 4
---- errno: permission denied.
-public eacces: i32 = 13
---- errno: a path component is not a directory.
-public enotdir: i32 = 20
---- errno: the file system is read-only.
-public erofs: i32 = 30
+    --- errno: the operation is not permitted.  The same on every hosted
+    --- system.
+    public eperm: i32 = 1
+    --- errno: no such file or directory.
+    public enoent: i32 = 2
+    --- errno: interrupted by a signal before anything was transferred.
+    public eintr: i32 = 4
+    --- errno: permission denied.
+    public eacces: i32 = 13
+    --- errno: a path component is not a directory.
+    public enotdir: i32 = 20
+    --- errno: the file system is read-only.
+    public erofs: i32 = 30
 
---- `open` flag: read only.  The same on every hosted system.
-public o_rdonly: i32 = 0
---- `open` flag: write only.  The same on every hosted system.
-public o_wronly: i32 = 1
---- `open` flag: read and write.  The same on every hosted system.
-public o_rdwr: i32 = 2
+    --- `open` flag: read only.  The same on every hosted system.
+    public o_rdonly: i32 = 0
+    --- `open` flag: write only.  The same on every hosted system.
+    public o_wronly: i32 = 1
+    --- `open` flag: read and write.  The same on every hosted system.
+    public o_rdwr: i32 = 2
 
---- `mmap` protection: the pages may be read.  The same on every hosted
---- system.
-public prot_read: i32 = 1
---- `mmap` protection: the pages may be written.
-public prot_write: i32 = 2
---- `mmap` flag: the mapping is private to this process.
-public map_private: i32 = 2
+    --- `mmap` protection: the pages may be read.  The same on every hosted
+    --- system.
+    public prot_read: i32 = 1
+    --- `mmap` protection: the pages may be written.
+    public prot_write: i32 = 2
+    --- `mmap` flag: the mapping is private to this process.
+    public map_private: i32 = 2
 
---- Map `length` bytes, at a place of the system's choosing when `address`
---- is zero: the mapping's address, or `map_failed` with the reason in
---- errno.  With `map_anonymous` the descriptor is -1 and the offset zero.
-public extern(c) mmap: (address: usize, length: usize, protection: i32,
-                        flags: i32, descriptor: i32, offset: i64)
-                       -> (result: usize)
+    --- Map `length` bytes, at a place of the system's choosing when `address`
+    --- is zero: the mapping's address, or `map_failed` with the reason in
+    --- errno.  With `map_anonymous` the descriptor is -1 and the offset zero.
+    public extern(c) mmap: (address: usize, length: usize, protection: i32,
+                            flags: i32, descriptor: i32, offset: i64)
+                           -> (result: usize)
 
---- What `mmap` returns when it fails: C's `MAP_FAILED`, all bits set.
-public map_failed: usize = 0 -% 1
+    --- What `mmap` returns when it fails: C's `MAP_FAILED`, all bits set.
+    public map_failed: usize = 0 -% 1
 
---- Unmap the `length` bytes at `address`: 0, or -1 with the reason in
---- errno.
-public extern(c) munmap: (address: usize, length: usize) -> (status: i32)
+    --- Unmap the `length` bytes at `address`: 0, or -1 with the reason in
+    --- errno.
+    public extern(c) munmap: (address: usize, length: usize) -> (status: i32)
 
---- The size of a page in bytes, 16 KiB on Darwin arm64 and 4 KiB on the
---- others.
-public extern(c) getpagesize: () -> (bytes: i32)
+    --- The size of a page in bytes, 16 KiB on Darwin arm64 and 4 KiB on the
+    --- others.
+    public extern(c) getpagesize: () -> (bytes: i32)
 
---- End the process with `status` at once: no `atexit` handler runs and no
---- C stream is flushed.
-public extern(c) _exit: (status: i32) -> noreturn
+    --- End the process with `status` at once: no `atexit` handler runs and no
+    --- C stream is flushed.
+    public extern(c) _exit: (status: i32) -> noreturn
 
---- One record `poll` reads and fills, C's `struct pollfd`: the descriptor
---- to watch, the events asked about and the events that happened.  A
---- negative descriptor is ignored.  The same on every hosted system.
-public poll_record: type = struct
-    descriptor: i32
-    events: i16
-    returned: i16
-end poll_record
+    --- One record `poll` reads and fills, C's `struct pollfd`: the descriptor
+    --- to watch, the events asked about and the events that happened.  A
+    --- negative descriptor is ignored.  The same on every hosted system.
+    public poll_record: type = struct
+        descriptor: i32
+        events: i16
+        returned: i16
+    end poll_record
 
---- Wait until one of the `count` records at `records` has an event, or
---- `timeout` milliseconds pass, waiting indefinitely when it is negative:
---- the number of records with an event, zero when the time passed first,
---- or -1 with the reason in errno.
-public extern(c) poll: (records: ptr mut poll_record, count: poll_count,
-                        timeout: i32) -> (result: i32)
+    --- Wait until one of the `count` records at `records` has an event, or
+    --- `timeout` milliseconds pass, waiting indefinitely when it is negative:
+    --- the number of records with an event, zero when the time passed first,
+    --- or -1 with the reason in errno.
+    public extern(c) poll: (records: ptr mut poll_record, count: poll_count,
+                            timeout: i32) -> (result: i32)
 
---- C's `struct timespec`: whole seconds and the nanoseconds after them.
-public timespec: type = struct
-    seconds: i64
-    nanoseconds: i64
-end timespec
+    --- C's `struct timespec`: whole seconds and the nanoseconds after them.
+    public timespec: type = struct
+        seconds: i64
+        nanoseconds: i64
+    end timespec
 
---- `clock_gettime` clock: the wall clock.  The same on every hosted
---- system.
-public clock_realtime: i32 = 0
+    --- `clock_gettime` clock: the wall clock.  The same on every hosted
+    --- system.
+    public clock_realtime: i32 = 0
 
---- Fill `into` with the clock `clock`'s time, `clock` a C `clockid_t`,
---- which is an `int` on every hosted system: 0, or -1 with the reason in
---- errno.
-public extern(c) clock_gettime: (clock: i32, into: ptr mut timespec)
-                                -> (status: i32)
+    --- Fill `into` with the clock `clock`'s time, `clock` a C `clockid_t`,
+    --- which is an `int` on every hosted system: 0, or -1 with the reason in
+    --- errno.
+    public extern(c) clock_gettime: (clock: i32, into: ptr mut timespec)
+                                    -> (status: i32)
 
---- Sleep for the time `request` gives: 0 once it has passed, or -1 with
---- the reason in errno, EINTR when a signal came first, with what was
---- left in `remaining`.
-public extern(c) nanosleep: (request: ptr timespec,
-                             remaining: ptr mut timespec) -> (status: i32)
+    --- Sleep for the time `request` gives: 0 once it has passed, or -1 with
+    --- the reason in errno, EINTR when a signal came first, with what was
+    --- left in `remaining`.
+    public extern(c) nanosleep: (request: ptr timespec,
+                                 remaining: ptr mut timespec) -> (status: i32)
 
---- Fill `result` with the status of the file `path` names, following
---- symbolic links: 0, or -1 with the reason in errno.
-public extern(c) stat: (path: ptr u8, result: ptr mut file_status)
-                       -> (status: i32)
-
---- Fill `result` with the status of `path`, relative to the directory
---- open as `directory`: 0, or -1 with the reason in errno.  With
---- `at_symlink_nofollow` in `flags` a symbolic link is reported itself.
-public extern(c) fstatat: (directory: i32, path: ptr u8,
-                           result: ptr mut file_status, flags: i32)
-                          -> (status: i32)
-
---- errno: the name already exists.  The same on every hosted system.
-public eexist: i32 = 17
-
---- A `struct dirent`'s `d_type`: the entry's type is not known, and a
---- status call relative to the directory tells it.  The values are the
---- same on every hosted system.
-public dt_unknown: u8 = 0
---- `d_type`: a directory.
-public dt_dir: u8 = 4
---- `d_type`: a regular file.
-public dt_reg: u8 = 8
---- `d_type`: a symbolic link.
-public dt_lnk: u8 = 10
-
---- A `stat` mode's file-type bits, and the types among them.  The same on
---- every hosted system.
-public s_ifmt: u32 = 0o170000
---- `stat` mode: a directory.
-public s_ifdir: u32 = 0o040000
---- `stat` mode: a regular file.
-public s_ifreg: u32 = 0o100000
---- `stat` mode: a symbolic link.
-public s_iflnk: u32 = 0o120000
-
---- What `fdopendir` gives when it cannot open a directory stream, and
---- `readdir` at the end or on a failure: C's null pointer.
-public no_directory: atom
-
---- An `fdopendir` result: a directory stream, `DIR *`, or `no_directory`.
-public directory_stream: type = no_directory | ptr mut u8
-
---- A `readdir` result: the next record, or `no_directory`.
-public directory_entry: type = no_directory | ptr directory_record
-
---- A directory stream over the directory open as `descriptor`, which the
---- stream then owns and `closedir` closes, or `no_directory` with the
---- reason in errno.
-public extern(c) fdopendir: (descriptor: i32) -> (stream: directory_stream)
-
---- The stream's next record, good until the next `readdir` or `closedir`
---- on it, or `no_directory` at the end and on a failure, which errno tells
---- apart when the caller zeroed it first.  Records include `.` and `..`.
-public extern(c) readdir: (stream: ptr mut u8) -> (record: directory_entry)
-
---- Close a directory stream and its descriptor: 0, or -1 with the reason
---- in errno.  The stream is released either way.
-public extern(c) closedir: (stream: ptr mut u8) -> (status: i32)
-
---- Remove the name `path`, relative to `directory` (or `at_fdcwd`): a
---- file with `flags` zero, an empty directory with `at_removedir`.  0, or
---- -1 with the reason in errno.
-public extern(c) unlinkat: (directory: i32, path: ptr u8, flags: i32)
+    --- Fill `result` with the status of the file `path` names, following
+    --- symbolic links: 0, or -1 with the reason in errno.
+    public extern(c) stat: (path: ptr u8, result: ptr mut file_status)
                            -> (status: i32)
 
---- `fcntl` command: read a descriptor's flags, `fd_cloexec` among them.
---- The same on every hosted system.
-public f_getfd: i32 = 1
---- `fcntl` command: set a descriptor's flags, `fd_cloexec` among them.
---- The same on every hosted system.
-public f_setfd: i32 = 2
---- `fcntl` flag: the descriptor is closed when the process executes a
---- program.  The same on every hosted system.
-public fd_cloexec: i32 = 1
+    --- Fill `result` with the status of `path`, relative to the directory
+    --- open as `directory`: 0, or -1 with the reason in errno.  With
+    --- `at_symlink_nofollow` in `flags` a symbolic link is reported itself.
+    public extern(c) fstatat: (directory: i32, path: ptr u8,
+                               result: ptr mut file_status, flags: i32)
+                              -> (status: i32)
 
---- `fcntl` command: read a descriptor's open-file flags, `o_nonblock`
---- among them, `F_GETFL`.  The same on every hosted system.
-public f_getfl: i32 = 3
---- `fcntl` command: set a descriptor's open-file flags, `F_SETFL`.  The
---- same on every hosted system.
-public f_setfl: i32 = 4
+    --- errno: the name already exists.  The same on every hosted system.
+    public eexist: i32 = 17
 
---- `fcntl(descriptor, command, ...)`, declared variadic as C declares it:
---- for `f_setfd`, `f_setfl` and `f_dupfd_cloexec` the one variadic
---- argument is an `i32`.  Its result, or -1 with the reason in errno.
-public extern(c) fcntl: (descriptor: i32, command: i32, ...)
-                        -> (result: i32)
+    --- A `struct dirent`'s `d_type`: the entry's type is not known, and a
+    --- status call relative to the directory tells it.  The values are the
+    --- same on every hosted system.
+    public dt_unknown: u8 = 0
+    --- `d_type`: a directory.
+    public dt_dir: u8 = 4
+    --- `d_type`: a regular file.
+    public dt_reg: u8 = 8
+    --- `d_type`: a symbolic link.
+    public dt_lnk: u8 = 10
 
---- Make a pipe and put its reading end in `ends[0]` and its writing end in
---- `ends[1]`: 0, or -1 with the reason in errno.  The ends are inherited
---- by a program this process executes unless `fd_cloexec` is set on each;
---- `pipe2`, where there is one, sets it with them.
-public extern(c) pipe: (ends: ptr mut i32) -> (status: i32)
+    --- A `stat` mode's file-type bits, and the types among them.  The same on
+    --- every hosted system.
+    public s_ifmt: u32 = 0o170000
+    --- `stat` mode: a directory.
+    public s_ifdir: u32 = 0o040000
+    --- `stat` mode: a regular file.
+    public s_ifreg: u32 = 0o100000
+    --- `stat` mode: a symbolic link.
+    public s_iflnk: u32 = 0o120000
 
---- Wait for the child `child` to end, or with `options` for less, and put
---- its status in `status`: the child's ID, or -1 with the reason in errno,
---- ECHILD when it is not this process's child.
-public extern(c) waitpid: (child: i32, status: ptr mut i32, options: i32)
-                          -> (result: i32)
+    --- What `fdopendir` gives when it cannot open a directory stream, and
+    --- `readdir` at the end or on a failure: C's null pointer.
+    public no_directory: atom
 
---  Sockets and the SIGPIPE disposition.  Every call is declared on the
---  three systems, whose C signatures agree; the numbers that differ are
---  selected by `compiler.os`.  An address is the system's own `struct
---  sockaddr` record, given as a pointer and a length: platform/posix
---  lays out each system's records, `sin_len` and all.
+    --- An `fdopendir` result: a directory stream, `DIR *`, or `no_directory`.
+    public directory_stream: type = no_directory | ptr mut u8
 
---- `socket` domain: Unix-domain sockets, named by a path, AF_UNIX.  The
---- same on every hosted system.
-public af_unix: i32 = 1
---- `socket` domain: IPv4, AF_INET.  The same on every hosted system.
-public af_inet: i32 = 2
---- `socket` type: a connected byte stream, TCP over IP.  The same on every
---- hosted system.
-public sock_stream: i32 = 1
---- `socket` type: datagrams, UDP over IP.
-public sock_dgram: i32 = 2
---- `setsockopt` level: TCP.  The same on every hosted system.
-public ipproto_tcp: i32 = 6
---- `setsockopt` level: IPv6.
-public ipproto_ipv6: i32 = 41
---- `ipproto_tcp` option, an `i32`: Nagle's algorithm off.  The same on
---- every hosted system.
-public tcp_nodelay: i32 = 1
---- `shutdown` side: no more receives.  The same on every hosted system.
-public shut_rd: i32 = 0
---- `shutdown` side: no more sends; the peer reads the end.
-public shut_wr: i32 = 1
---- `shutdown` side: neither.
-public shut_rdwr: i32 = 2
---- An address record's room on every hosted system, `sizeof (struct
---- sockaddr_storage)`.
-public sockaddr_storage_size: u32 = 128
---- `sizeof (struct sockaddr_in)` on every hosted system.
-public sockaddr_in_size: u32 = 16
---- `sizeof (struct sockaddr_in6)` on every hosted system.
-public sockaddr_in6_size: u32 = 28
+    --- A `readdir` result: the next record, or `no_directory`.
+    public directory_entry: type = no_directory | ptr directory_record
 
---- The signal a write to a pipe or a socket nobody reads raises, SIGPIPE.
---- The same on every hosted system.
-public sigpipe: i32 = 13
---- A signal's disposition: the system's default, C's `SIG_DFL`.
-public sig_dfl: usize = 0
---- A signal's disposition: ignored, C's `SIG_IGN`.
-public sig_ign: usize = 1
+    --- A directory stream over the directory open as `descriptor`, which the
+    --- stream then owns and `closedir` closes, or `no_directory` with the
+    --- reason in errno.
+    public extern(c) fdopendir: (descriptor: i32) -> (stream: directory_stream)
 
---- What a socket call takes for an address it has none of, and
---- `sigaction` for an action it is not given: C's null pointer.
-public no_address: atom
---- An address record a call fills, or `no_address`.
-public address_filled: type = no_address | ptr mut u8
---- The cell a call reads a record's room from and writes its length into,
---- or `no_address`.
-public address_length: type = no_address | ptr mut u32
---- An action `sigaction` sets, or `no_address`.
-public action_given: type = no_address | ptr signal_action
---- Where `sigaction` puts the action it replaces, or `no_address`.
-public action_kept: type = no_address | ptr mut signal_action
+    --- The stream's next record, good until the next `readdir` or `closedir`
+    --- on it, or `no_directory` at the end and on a failure, which errno tells
+    --- apart when the caller zeroed it first.  Records include `.` and `..`.
+    public extern(c) readdir: (stream: ptr mut u8) -> (record: directory_entry)
 
---- Make a socket of `domain` and `kind` for `protocol`, zero for the kind's
---- own: the new descriptor, or -1 with the reason in errno.
-public extern(c) socket: (domain: i32, kind: i32, protocol: i32)
-                         -> (descriptor: i32)
+    --- Close a directory stream and its descriptor: 0, or -1 with the reason
+    --- in errno.  The stream is released either way.
+    public extern(c) closedir: (stream: ptr mut u8) -> (status: i32)
 
---- Make a pair of connected sockets and put them in `ends[0]` and
---- `ends[1]`: 0, or -1 with the reason in errno.
-public extern(c) socketpair: (domain: i32, kind: i32, protocol: i32,
-                              ends: ptr mut i32) -> (status: i32)
+    --- Remove the name `path`, relative to `directory` (or `at_fdcwd`): a
+    --- file with `flags` zero, an empty directory with `at_removedir`.  0, or
+    --- -1 with the reason in errno.
+    public extern(c) unlinkat: (directory: i32, path: ptr u8, flags: i32)
+                               -> (status: i32)
 
---- Give the socket `descriptor` the address in the `length` bytes at
---- `address`: 0, or -1 with the reason in errno.
-public extern(c) bind: (descriptor: i32, address: ptr u8, length: u32)
-                       -> (status: i32)
+    --- `fcntl` command: read a descriptor's flags, `fd_cloexec` among them.
+    --- The same on every hosted system.
+    public f_getfd: i32 = 1
+    --- `fcntl` command: set a descriptor's flags, `fd_cloexec` among them.
+    --- The same on every hosted system.
+    public f_setfd: i32 = 2
+    --- `fcntl` flag: the descriptor is closed when the process executes a
+    --- program.  The same on every hosted system.
+    public fd_cloexec: i32 = 1
 
---- Make a bound stream socket accept connections, at most `backlog`
---- waiting: 0, or -1 with the reason in errno.
-public extern(c) listen: (descriptor: i32, backlog: i32) -> (status: i32)
+    --- `fcntl` command: read a descriptor's open-file flags, `o_nonblock`
+    --- among them, `F_GETFL`.  The same on every hosted system.
+    public f_getfl: i32 = 3
+    --- `fcntl` command: set a descriptor's open-file flags, `F_SETFL`.  The
+    --- same on every hosted system.
+    public f_setfl: i32 = 4
 
---- Take the next connection waiting on `descriptor` as a new socket, and
---- the peer's address in `address` when it is given: the new descriptor,
---- or -1 with the reason in errno.  It is inherited by a program this
---- process executes unless `fd_cloexec` is set on it.
-public extern(c) accept: (descriptor: i32, address: address_filled,
-                          length: address_length) -> (accepted: i32)
+    --- `fcntl(descriptor, command, ...)`, declared variadic as C declares it:
+    --- for `f_setfd`, `f_setfl` and `f_dupfd_cloexec` the one variadic
+    --- argument is an `i32`.  Its result, or -1 with the reason in errno.
+    public extern(c) fcntl: (descriptor: i32, command: i32, ...)
+                            -> (result: i32)
 
---- Connect the socket `descriptor` to the address in the `length` bytes at
---- `address`: 0, or -1 with the reason in errno.
-public extern(c) connect: (descriptor: i32, address: ptr u8, length: u32)
-                          -> (status: i32)
+    --- Make a pipe and put its reading end in `ends[0]` and its writing end in
+    --- `ends[1]`: 0, or -1 with the reason in errno.  The ends are inherited
+    --- by a program this process executes unless `fd_cloexec` is set on each;
+    --- `pipe2`, where there is one, sets it with them.
+    public extern(c) pipe: (ends: ptr mut i32) -> (status: i32)
 
---- Send at most `length` bytes from `data` to the connected peer with
---- `flags`: the count sent, or -1 with the reason in errno.
-public extern(c) send: (descriptor: i32, data: ptr u8, length: usize,
-                        flags: i32) -> (count: isize)
+    --- Wait for the child `child` to end, or with `options` for less, and put
+    --- its status in `status`: the child's ID, or -1 with the reason in errno,
+    --- ECHILD when it is not this process's child.
+    public extern(c) waitpid: (child: i32, status: ptr mut i32, options: i32)
+                              -> (result: i32)
 
---- Receive at most `length` bytes into `data` with `flags`: the count, zero
---- when a stream's peer has finished sending, or -1 with the reason in
---- errno.
-public extern(c) recv: (descriptor: i32, data: ptr mut u8, length: usize,
-                        flags: i32) -> (count: isize)
+    --  Sockets and the SIGPIPE disposition.  Every call is declared on the
+    --  three systems, whose C signatures agree; the numbers that differ are
+    --  selected by `compiler.os`.  An address is the system's own `struct
+    --  sockaddr` record, given as a pointer and a length: platform/posix
+    --  lays out each system's records, `sin_len` and all.
 
---- Send the `length` bytes from `data` to the address in the
---- `address_size` bytes at `address`: the count, or -1 with the reason in
---- errno.
-public extern(c) sendto: (descriptor: i32, data: ptr u8, length: usize,
-                          flags: i32, address: ptr u8, address_size: u32)
-                         -> (count: isize)
+    --- `socket` domain: Unix-domain sockets, named by a path, AF_UNIX.  The
+    --- same on every hosted system.
+    public af_unix: i32 = 1
+    --- `socket` domain: IPv4, AF_INET.  The same on every hosted system.
+    public af_inet: i32 = 2
+    --- `socket` type: a connected byte stream, TCP over IP.  The same on every
+    --- hosted system.
+    public sock_stream: i32 = 1
+    --- `socket` type: datagrams, UDP over IP.
+    public sock_dgram: i32 = 2
+    --- `setsockopt` level: TCP.  The same on every hosted system.
+    public ipproto_tcp: i32 = 6
+    --- `setsockopt` level: IPv6.
+    public ipproto_ipv6: i32 = 41
+    --- `ipproto_tcp` option, an `i32`: Nagle's algorithm off.  The same on
+    --- every hosted system.
+    public tcp_nodelay: i32 = 1
+    --- `shutdown` side: no more receives.  The same on every hosted system.
+    public shut_rd: i32 = 0
+    --- `shutdown` side: no more sends; the peer reads the end.
+    public shut_wr: i32 = 1
+    --- `shutdown` side: neither.
+    public shut_rdwr: i32 = 2
+    --- An address record's room on every hosted system, `sizeof (struct
+    --- sockaddr_storage)`.
+    public sockaddr_storage_size: u32 = 128
+    --- `sizeof (struct sockaddr_in)` on every hosted system.
+    public sockaddr_in_size: u32 = 16
+    --- `sizeof (struct sockaddr_in6)` on every hosted system.
+    public sockaddr_in6_size: u32 = 28
 
---- Receive at most `length` bytes into `data`, and the sender's address in
---- `address` when it is given: the count, or -1 with the reason in errno.
-public extern(c) recvfrom: (descriptor: i32, data: ptr mut u8, length: usize,
-                            flags: i32, address: address_filled,
-                            address_size: address_length) -> (count: isize)
+    --- The signal a write to a pipe or a socket nobody reads raises, SIGPIPE.
+    --- The same on every hosted system.
+    public sigpipe: i32 = 13
+    --- A signal's disposition: the system's default, C's `SIG_DFL`.
+    public sig_dfl: usize = 0
+    --- A signal's disposition: ignored, C's `SIG_IGN`.
+    public sig_ign: usize = 1
 
---- Stop receiving, sending or both on a socket: 0, or -1 with the reason
---- in errno.
-public extern(c) shutdown: (descriptor: i32, side: i32) -> (status: i32)
+    --- What a socket call takes for an address it has none of, and
+    --- `sigaction` for an action it is not given: C's null pointer.
+    public no_address: atom
+    --- An address record a call fills, or `no_address`.
+    public address_filled: type = no_address | ptr mut u8
+    --- The cell a call reads a record's room from and writes its length into,
+    --- or `no_address`.
+    public address_length: type = no_address | ptr mut u32
+    --- An action `sigaction` sets, or `no_address`.
+    public action_given: type = no_address | ptr signal_action
+    --- Where `sigaction` puts the action it replaces, or `no_address`.
+    public action_kept: type = no_address | ptr mut signal_action
 
---- Set the option `name` at `level` to the `length` bytes at `value`: 0,
---- or -1 with the reason in errno.
-public extern(c) setsockopt: (descriptor: i32, level: i32, name: i32,
-                              value: ptr u8, length: u32) -> (status: i32)
+    --- Make a socket of `domain` and `kind` for `protocol`, zero for the
+    --- kind's own: the new descriptor, or -1 with the reason in errno.
+    public extern(c) socket: (domain: i32, kind: i32, protocol: i32)
+                             -> (descriptor: i32)
 
---- Read the option `name` at `level` into `value`, whose room `length`
---- holds and which then holds its length: 0, or -1 with the reason in
---- errno.
-public extern(c) getsockopt: (descriptor: i32, level: i32, name: i32,
-                              value: ptr mut u8, length: ptr mut u32)
+    --- Make a pair of connected sockets and put them in `ends[0]` and
+    --- `ends[1]`: 0, or -1 with the reason in errno.
+    public extern(c) socketpair: (domain: i32, kind: i32, protocol: i32,
+                                  ends: ptr mut i32) -> (status: i32)
+
+    --- Give the socket `descriptor` the address in the `length` bytes at
+    --- `address`: 0, or -1 with the reason in errno.
+    public extern(c) bind: (descriptor: i32, address: ptr u8, length: u32)
+                           -> (status: i32)
+
+    --- Make a bound stream socket accept connections, at most `backlog`
+    --- waiting: 0, or -1 with the reason in errno.
+    public extern(c) listen: (descriptor: i32, backlog: i32) -> (status: i32)
+
+    --- Take the next connection waiting on `descriptor` as a new socket, and
+    --- the peer's address in `address` when it is given: the new descriptor,
+    --- or -1 with the reason in errno.  It is inherited by a program this
+    --- process executes unless `fd_cloexec` is set on it.
+    public extern(c) accept: (descriptor: i32, address: address_filled,
+                              length: address_length) -> (accepted: i32)
+
+    --- Connect the socket `descriptor` to the address in the `length` bytes at
+    --- `address`: 0, or -1 with the reason in errno.
+    public extern(c) connect: (descriptor: i32, address: ptr u8, length: u32)
+                              -> (status: i32)
+
+    --- Send at most `length` bytes from `data` to the connected peer with
+    --- `flags`: the count sent, or -1 with the reason in errno.
+    public extern(c) send: (descriptor: i32, data: ptr u8, length: usize,
+                            flags: i32) -> (count: isize)
+
+    --- Receive at most `length` bytes into `data` with `flags`: the count,
+    --- zero when a stream's peer has finished sending, or -1 with the reason
+    --- in errno.
+    public extern(c) recv: (descriptor: i32, data: ptr mut u8, length: usize,
+                            flags: i32) -> (count: isize)
+
+    --- Send the `length` bytes from `data` to the address in the
+    --- `address_size` bytes at `address`: the count, or -1 with the reason in
+    --- errno.
+    public extern(c) sendto: (descriptor: i32, data: ptr u8, length: usize,
+                              flags: i32, address: ptr u8, address_size: u32)
+                             -> (count: isize)
+
+    --- Receive at most `length` bytes into `data`, and the sender's address in
+    --- `address` when it is given: the count, or -1 with the reason in errno.
+    public extern(c) recvfrom: (descriptor: i32, data: ptr mut u8, length: usize,
+                                flags: i32, address: address_filled,
+                                address_size: address_length) -> (count: isize)
+
+    --- Stop receiving, sending or both on a socket: 0, or -1 with the reason
+    --- in errno.
+    public extern(c) shutdown: (descriptor: i32, side: i32) -> (status: i32)
+
+    --- Set the option `name` at `level` to the `length` bytes at `value`: 0,
+    --- or -1 with the reason in errno.
+    public extern(c) setsockopt: (descriptor: i32, level: i32, name: i32,
+                                  value: ptr u8, length: u32) -> (status: i32)
+
+    --- Read the option `name` at `level` into `value`, whose room `length`
+    --- holds and which then holds its length: 0, or -1 with the reason in
+    --- errno.
+    public extern(c) getsockopt: (descriptor: i32, level: i32, name: i32,
+                                  value: ptr mut u8, length: ptr mut u32)
+                                 -> (status: i32)
+
+    --- Put the address the socket is bound to in `address`, as `accept` puts
+    --- a peer's: 0, or -1 with the reason in errno.
+    public extern(c) getsockname: (descriptor: i32, address: ptr mut u8,
+                                   length: ptr mut u32) -> (status: i32)
+
+    --- Put the address of the socket's connected peer in `address`: 0, or -1
+    --- with the reason in errno, ENOTCONN when there is none.
+    public extern(c) getpeername: (descriptor: i32, address: ptr mut u8,
+                                   length: ptr mut u32) -> (status: i32)
+
+    --- Set the action of `signal` to `action` when it is given, and put the
+    --- one it had in `previous` when that is given: 0, or -1 with the reason
+    --- in errno.
+    public extern(c) sigaction: (signal: i32, action: action_given,
+                                 previous: action_kept) -> (status: i32)
+
+    --- Signal: the terminal hung up, or a daemon is asked to reload, SIGHUP.
+    --- The same on every hosted system.
+    public sighup: i32 = 1
+    --- Signal: interrupted from the terminal, SIGINT.  The same on every
+    --- hosted system.
+    public sigint: i32 = 2
+    --- Signal: asked to end, SIGTERM.  The same on every hosted system.
+    public sigterm: i32 = 15
+
+    --- A signal set `sigprocmask` reads, or `no_address`.
+    public signals_given: type = no_address | ptr signal_set
+    --- Where `sigprocmask` puts the set it replaces, or `no_address`.
+    public signals_kept: type = no_address | ptr mut signal_set
+
+    --- Change the calling thread's mask of blocked signals by `how`,
+    --- `sig_block`, `sig_unblock` or `sig_setmask`, with `set` when it is
+    --- given, and put the mask it had in `previous` when that is given: 0, or
+    --- -1 with the reason in errno.  A blocked signal stays pending until it
+    --- is unblocked; a child copies the mask and an executed program keeps it.
+    public extern(c) sigprocmask: (how: i32, set: signals_given,
+                                   previous: signals_kept) -> (status: i32)
+
+    --- A signal's handler as C declares one, `void (*)(int)`: an `extern(c)`
+    --- function, called with the signal's number on the thread that takes it.
+    --- What it may do is what C allows a handler: read and write atomics,
+    --- and call what the system lists as safe in one.  A `signal_action`
+    --- holds it as its address, `usize(handler)` (D1344), which `handling`
+    --- writes.
+    public signal_handler: type = extern(c) (number: i32) -> none
+
+    --- This process's ID.  It never fails.
+    public extern(c) getpid: () -> (process: i32)
+
+    --- Send `signal` to the process `process`: 0, or -1 with the reason in
+    --- errno, ESRCH when there is no such process.
+    public extern(c) kill: (process: i32, signal: i32) -> (status: i32)
+
+    --  The rest of the file system: positional reads and writes, sizes,
+    --  synchronizing, renaming, links, permission bits, owners, file times,
+    --  locks, the working directory, terminals, and the user and group
+    --  databases.  Every call is declared on the three systems where its C
+    --  signature agrees; a `mode_t` is 16 bits on Darwin and FreeBSD and 32 on
+    --  Linux, so the calls taking one are declared beside the system's.
+
+    --- Read at most `length` bytes from `descriptor` into `data`, starting
+    --- `offset` bytes into the file, without moving its position: the count,
+    --- zero at or past its end, or -1 with the reason in errno.
+    public extern(c) pread: (descriptor: i32, data: ptr mut u8, length: usize,
+                             offset: i64) -> (count: isize)
+
+    --- Write at most `length` bytes from `data` to `descriptor`, starting
+    --- `offset` bytes into the file, without moving its position: the count,
+    --- or -1 with the reason in errno.
+    public extern(c) pwrite: (descriptor: i32, data: ptr u8, length: usize,
+                              offset: i64) -> (count: isize)
+
+    --- Give the file open as `descriptor` the size `length`, cutting it or
+    --- extending it with zeros: 0, or -1 with the reason in errno.
+    public extern(c) ftruncate: (descriptor: i32, length: i64) -> (status: i32)
+
+    --- Hand the file's data and status to its device: 0, or -1 with the reason
+    --- in errno.  On Darwin the device may still hold them in its own cache;
+    --- `fcntl` with `f_fullfsync` asks it to write them.
+    public extern(c) fsync: (descriptor: i32) -> (status: i32)
+
+    --- Put the working directory's absolute path, with a NUL after it, in the
+    --- `length` bytes at `into`: `into`'s address, or zero with the reason in
+    --- errno, ERANGE when it does not fit.
+    public extern(c) getcwd: (into: ptr mut u8, length: usize) -> (result: usize)
+
+    --- Give the file `old`, relative to `old_directory`, the name `new`,
+    --- relative to `new_directory`, replacing a file already named `new` in
+    --- one step: 0, or -1 with the reason in errno.
+    public extern(c) renameat: (old_directory: i32, old: ptr u8,
+                                new_directory: i32, new: ptr u8) -> (status: i32)
+
+    --- Give the file `old` a second name `new`, each relative to its
+    --- directory. A final symbolic link of `old` is followed only when `flags`
+    --- holds `at_symlink_follow`.  0, or -1 with the reason in errno.
+    public extern(c) linkat: (old_directory: i32, old: ptr u8,
+                              new_directory: i32, new: ptr u8, flags: i32)
                              -> (status: i32)
 
---- Put the address the socket is bound to in `address`, as `accept` puts
---- a peer's: 0, or -1 with the reason in errno.
-public extern(c) getsockname: (descriptor: i32, address: ptr mut u8,
-                               length: ptr mut u32) -> (status: i32)
+    --- Make `path`, relative to `directory`, a symbolic link to `target`: 0,
+    --- or -1 with the reason in errno.
+    public extern(c) symlinkat: (target: ptr u8, directory: i32, path: ptr u8)
+                                -> (status: i32)
 
---- Put the address of the socket's connected peer in `address`: 0, or -1
---- with the reason in errno, ENOTCONN when there is none.
-public extern(c) getpeername: (descriptor: i32, address: ptr mut u8,
-                               length: ptr mut u32) -> (status: i32)
+    --- Put the target of the symbolic link `path`, relative to `directory`, in
+    --- at most `length` bytes at `into`, with no NUL: the count, or -1 with
+    --- the reason in errno.
+    public extern(c) readlinkat: (directory: i32, path: ptr u8, into: ptr mut u8,
+                                  length: usize) -> (count: isize)
 
---- Set the action of `signal` to `action` when it is given, and put the one
---- it had in `previous` when that is given: 0, or -1 with the reason in
---- errno.
-public extern(c) sigaction: (signal: i32, action: action_given,
-                             previous: action_kept) -> (status: i32)
+    --- Set the owner and group of the file `path` names, relative to
+    --- `directory`.  Either stays as it is when its argument is `0xFFFFFFFF`.
+    --- With `at_symlink_nofollow` a final symbolic link is not followed.  0,
+    --- or -1 with the reason in errno.
+    public extern(c) fchownat: (directory: i32, path: ptr u8, user: u32,
+                                group: u32, flags: i32) -> (status: i32)
 
---- Signal: the terminal hung up, or a daemon is asked to reload, SIGHUP.
---- The same on every hosted system.
-public sighup: i32 = 1
---- Signal: interrupted from the terminal, SIGINT.  The same on every
---- hosted system.
-public sigint: i32 = 2
---- Signal: asked to end, SIGTERM.  The same on every hosted system.
-public sigterm: i32 = 15
+    --- Set the owner and group of the file open as `descriptor`: 0, or -1 with
+    --- the reason in errno.
+    public extern(c) fchown: (descriptor: i32, user: u32, group: u32)
+                             -> (status: i32)
 
---- A signal set `sigprocmask` reads, or `no_address`.
-public signals_given: type = no_address | ptr signal_set
---- Where `sigprocmask` puts the set it replaces, or `no_address`.
-public signals_kept: type = no_address | ptr mut signal_set
+    --- Set the last access and modification times of the file `path` names,
+    --- relative to `directory`, to the two `timespec`s at `times`, access
+    --- first.  With `at_symlink_nofollow` a final symbolic link's own times
+    --- are set.  0, or -1 with the reason in errno.
+    public extern(c) utimensat: (directory: i32, path: ptr u8, times: ptr timespec,
+                                 flags: i32) -> (status: i32)
 
---- Change the calling thread's mask of blocked signals by `how`,
---- `sig_block`, `sig_unblock` or `sig_setmask`, with `set` when it is
---- given, and put the mask it had in `previous` when that is given: 0, or
---- -1 with the reason in errno.  A blocked signal stays pending until it is
---- unblocked; a child copies the mask and an executed program keeps it.
-public extern(c) sigprocmask: (how: i32, set: signals_given,
-                               previous: signals_kept) -> (status: i32)
+    --- Set the two times of the file open as `descriptor`, as `utimensat`
+    --- does: 0, or -1 with the reason in errno.
+    public extern(c) futimens: (descriptor: i32, times: ptr timespec)
+                               -> (status: i32)
 
---- A signal's handler as C declares one, `void (*)(int)`: an `extern(c)`
---- function, called with the signal's number on the thread that takes it.
---- What it may do is what C allows a handler: read and write atomics,
---- and call what the system lists as safe in one.  A `signal_action`
---- holds it as its address, `usize(handler)` (D1344), which `handling`
---- writes.
-public signal_handler: type = extern(c) (number: i32) -> none
+    --- Take, change or give up the whole-file lock on the open file
+    --- `descriptor` belongs to: `lock_sh` or `lock_ex`, with `lock_nb` not to
+    --- wait, or `lock_un`.  0, or -1 with the reason in errno, EWOULDBLOCK
+    --- when another open file holds it and `lock_nb` was given.
+    public extern(c) flock: (descriptor: i32, operation: i32) -> (status: i32)
 
---- This process's ID.  It never fails.
-public extern(c) getpid: () -> (process: i32)
+    --- `flock` operation: a shared lock.  The same on every hosted system.
+    public lock_sh: i32 = 1
+    --- `flock` operation: an exclusive lock.
+    public lock_ex: i32 = 2
+    --- `flock` flag: fail at once rather than wait.
+    public lock_nb: i32 = 4
+    --- `flock` operation: give the lock up.
+    public lock_un: i32 = 8
 
---- Send `signal` to the process `process`: 0, or -1 with the reason in
---- errno, ESRCH when there is no such process.
-public extern(c) kill: (process: i32, signal: i32) -> (status: i32)
+    --- `ioctl(descriptor, request, ...)`, declared variadic as C declares it,
+    --- its one variadic argument a pointer for the requests here: its result,
+    --- or -1 with the reason in errno.
+    public extern(c) ioctl: (descriptor: i32, request: u64, ...) -> (result: i32)
 
---  The rest of the file system: positional reads and writes, sizes,
---  synchronizing, renaming, links, permission bits, owners, file times,
---  locks, the working directory, terminals, and the user and group
---  databases.  Every call is declared on the three systems where its C
---  signature agrees; a `mode_t` is 16 bits on Darwin and FreeBSD and 32 on
---  Linux, so the calls taking one are declared beside the system's.
+    --- Whether `descriptor` is a terminal: 1, or 0 with the reason in errno,
+    --- ENOTTY for any other open file.
+    public extern(c) isatty: (descriptor: i32) -> (yes: i32)
 
---- Read at most `length` bytes from `descriptor` into `data`, starting
---- `offset` bytes into the file, without moving its position: the count,
---- zero at or past its end, or -1 with the reason in errno.
-public extern(c) pread: (descriptor: i32, data: ptr mut u8, length: usize,
-                         offset: i64) -> (count: isize)
+    --- The number of the network interface named by the NUL-terminated
+    --- `name`, or 0 when no interface has that name.
+    public extern(c) if_nametoindex: (name: ptr u8) -> (index: u32)
 
---- Write at most `length` bytes from `data` to `descriptor`, starting
---- `offset` bytes into the file, without moving its position: the count,
---- or -1 with the reason in errno.
-public extern(c) pwrite: (descriptor: i32, data: ptr u8, length: usize,
-                          offset: i64) -> (count: isize)
+    --- Write the name of the interface numbered `index`, and its NUL, into
+    --- the 16 bytes, IFNAMSIZ, at `name`, and return `name`, or `no_address`
+    --- when no interface has that number.
+    public extern(c) if_indextoname: (index: u32, name: ptr mut u8)
+                                     -> (found: address_filled)
 
---- Give the file open as `descriptor` the size `length`, cutting it or
---- extending it with zeros: 0, or -1 with the reason in errno.
-public extern(c) ftruncate: (descriptor: i32, length: i64) -> (status: i32)
+    --- The process's real user ID.  It cannot fail.
+    public extern(c) getuid: () -> (user: u32)
+    --- The process's effective user ID, which permission checks use.
+    public extern(c) geteuid: () -> (user: u32)
+    --- The process's real group ID.
+    public extern(c) getgid: () -> (group: u32)
+    --- The process's effective group ID.
+    public extern(c) getegid: () -> (group: u32)
 
---- Hand the file's data and status to its device: 0, or -1 with the reason
---- in errno.  On Darwin the device may still hold them in its own cache;
---- `fcntl` with `f_fullfsync` asks it to write them.
-public extern(c) fsync: (descriptor: i32) -> (status: i32)
-
---- Put the working directory's absolute path, with a NUL after it, in the
---- `length` bytes at `into`: `into`'s address, or zero with the reason in
---- errno, ERANGE when it does not fit.
-public extern(c) getcwd: (into: ptr mut u8, length: usize) -> (result: usize)
-
---- Give the file `old`, relative to `old_directory`, the name `new`,
---- relative to `new_directory`, replacing a file already named `new` in
---- one step: 0, or -1 with the reason in errno.
-public extern(c) renameat: (old_directory: i32, old: ptr u8,
-                            new_directory: i32, new: ptr u8) -> (status: i32)
-
---- Give the file `old` a second name `new`, each relative to its directory.
---- A final symbolic link of `old` is followed only when `flags` holds
---- `at_symlink_follow`.  0, or -1 with the reason in errno.
-public extern(c) linkat: (old_directory: i32, old: ptr u8,
-                          new_directory: i32, new: ptr u8, flags: i32)
-                         -> (status: i32)
-
---- Make `path`, relative to `directory`, a symbolic link to `target`: 0,
---- or -1 with the reason in errno.
-public extern(c) symlinkat: (target: ptr u8, directory: i32, path: ptr u8)
+    --- Fill `result` with the status of the file open as `descriptor`: 0, or
+    --- -1 with the reason in errno.
+    public extern(c) fstat: (descriptor: i32, result: ptr mut file_status)
                             -> (status: i32)
 
---- Put the target of the symbolic link `path`, relative to `directory`, in
---- at most `length` bytes at `into`, with no NUL: the count, or -1 with the
---- reason in errno.
-public extern(c) readlinkat: (directory: i32, path: ptr u8, into: ptr mut u8,
-                              length: usize) -> (count: isize)
+    --- `tcsetattr` timing: set the terminal's settings at once.  The same on
+    --- every hosted system.
+    public tcsanow: i32 = 0
+    --- `tcsetattr` timing: once all written output has been sent.
+    public tcsadrain: i32 = 1
+    --- `tcsetattr` timing: once output has been sent, discarding input not yet
+    --- read.
+    public tcsaflush: i32 = 2
 
---- Set the owner and group of the file `path` names, relative to
---- `directory`.  Either stays as it is when its argument is `0xFFFFFFFF`.
---- With `at_symlink_nofollow` a final symbolic link is not followed.  0, or
---- -1 with the reason in errno.
-public extern(c) fchownat: (directory: i32, path: ptr u8, user: u32,
-                            group: u32, flags: i32) -> (status: i32)
+    --- A terminal's size, `struct winsize`: rows and columns, and pixels.  The
+    --- same on every hosted system.
+    public window_record: type = struct
+        rows: u16
+        columns: u16
+        width: u16
+        height: u16
+    end window_record
 
---- Set the owner and group of the file open as `descriptor`: 0, or -1 with
---- the reason in errno.
-public extern(c) fchown: (descriptor: i32, user: u32, group: u32)
-                         -> (status: i32)
+    --- A record lock's start counts from the file's start, `SEEK_SET`.
+    public seek_set: i16 = 0
 
---- Set the last access and modification times of the file `path` names,
---- relative to `directory`, to the two `timespec`s at `times`, access
---- first.  With `at_symlink_nofollow` a final symbolic link's own times are
---- set.  0, or -1 with the reason in errno.
-public extern(c) utimensat: (directory: i32, path: ptr u8, times: ptr timespec,
-                             flags: i32) -> (status: i32)
+    --- C's `struct group`, the same on every hosted system: the group's name,
+    --- password, ID and its members, a null-terminated table of names.
+    public group_record: type = struct
+        name: usize
+        password: usize
+        group: u32
+        padding: u32
+        members: usize
+    end group_record
 
---- Set the two times of the file open as `descriptor`, as `utimensat`
---- does: 0, or -1 with the reason in errno.
-public extern(c) futimens: (descriptor: i32, times: ptr timespec)
-                           -> (status: i32)
+    --- Find the account with user ID `user`.  The call fills `into` with
+    --- pointers into the `length` bytes at `buffer` and puts `into`'s address
+    --- in `found`, or zero when there is none.  0, or the errno, ERANGE when
+    --- the buffer is too small.  The C library asks every database the system
+    --- names, NSS on Linux.
+    public extern(c) getpwuid_r: (user: u32, into: ptr mut account_record,
+                                  buffer: ptr mut u8, length: usize,
+                                  found: ptr mut usize) -> (error: i32)
 
---- Take, change or give up the whole-file lock on the open file
---- `descriptor` belongs to: `lock_sh` or `lock_ex`, with `lock_nb` not to
---- wait, or `lock_un`.  0, or -1 with the reason in errno, EWOULDBLOCK when
---- another open file holds it and `lock_nb` was given.
-public extern(c) flock: (descriptor: i32, operation: i32) -> (status: i32)
+    --- Find the account named `name`, as `getpwuid_r` finds one by ID.
+    public extern(c) getpwnam_r: (name: ptr u8, into: ptr mut account_record,
+                                  buffer: ptr mut u8, length: usize,
+                                  found: ptr mut usize) -> (error: i32)
 
---- `flock` operation: a shared lock.  The same on every hosted system.
-public lock_sh: i32 = 1
---- `flock` operation: an exclusive lock.
-public lock_ex: i32 = 2
---- `flock` flag: fail at once rather than wait.
-public lock_nb: i32 = 4
---- `flock` operation: give the lock up.
-public lock_un: i32 = 8
+    --- Find the group with group ID `group`, as `getpwuid_r` finds an account.
+    public extern(c) getgrgid_r: (group: u32, into: ptr mut group_record,
+                                  buffer: ptr mut u8, length: usize,
+                                  found: ptr mut usize) -> (error: i32)
 
---- `ioctl(descriptor, request, ...)`, declared variadic as C declares it,
---- its one variadic argument a pointer for the requests here: its result,
---- or -1 with the reason in errno.
-public extern(c) ioctl: (descriptor: i32, request: u64, ...) -> (result: i32)
+    --- Find the group named `name`, as `getgrgid_r` finds one by ID.
+    public extern(c) getgrnam_r: (name: ptr u8, into: ptr mut group_record,
+                                  buffer: ptr mut u8, length: usize,
+                                  found: ptr mut usize) -> (error: i32)
 
---- Whether `descriptor` is a terminal: 1, or 0 with the reason in errno,
---- ENOTTY for any other open file.
-public extern(c) isatty: (descriptor: i32) -> (yes: i32)
+    --- What `dlopen` returns when it loads nothing: C's null pointer, with the
+    --- reason in `dlerror`'s text.
+    public not_loaded: atom
 
---- The number of the network interface named by the NUL-terminated
---- `name`, or 0 when no interface has that name.
-public extern(c) if_nametoindex: (name: ptr u8) -> (index: u32)
+    --- A `dlopen` result: the loaded object's handle, or `not_loaded`.
+    public loaded_object: type = not_loaded | ptr mut u8
 
---- Write the name of the interface numbered `index`, and its NUL, into
---- the 16 bytes, IFNAMSIZ, at `name`, and return `name`, or `no_address`
---- when no interface has that number.
-public extern(c) if_indextoname: (index: u32, name: ptr mut u8)
-                                 -> (found: address_filled)
+    --- A `dlsym` or `dlerror` result: an address, or `no_address` for C's
+    --- null pointer when they have nothing.
+    public found_address: type = no_address | ptr u8
 
---- The process's real user ID.  It cannot fail.
-public extern(c) getuid: () -> (user: u32)
---- The process's effective user ID, which permission checks use.
-public extern(c) geteuid: () -> (user: u32)
---- The process's real group ID.
-public extern(c) getgid: () -> (group: u32)
---- The process's effective group ID.
-public extern(c) getegid: () -> (group: u32)
+    --- Load the shared object at the NUL-terminated `path`, or find it by the
+    --- system's search when `path` holds no slash, as `mode` says: its handle,
+    --- or `not_loaded` with the reason in `dlerror`.  Loading an object
+    --- already loaded counts another use of it and returns the same handle.
+    --- In glibc's libc since 2.34, and in libdl before it; in Darwin's and
+    --- FreeBSD's libc.
+    public extern(c) dlopen: (path: ptr u8, mode: i32) -> (handle: loaded_object)
 
---- Fill `result` with the status of the file open as `descriptor`: 0, or
---- -1 with the reason in errno.
-public extern(c) fstat: (descriptor: i32, result: ptr mut file_status)
-                        -> (status: i32)
+    --- The address of the NUL-terminated symbol `name` in the object `handle`
+    --- names or in what it loaded with it, or `no_address` with the reason in
+    --- `dlerror`.  The address has no type: what is there is the caller's to
+    --- know.
+    public extern(c) dlsym: (handle: ptr mut u8, name: ptr u8)
+                            -> (address: found_address)
 
---- `tcsetattr` timing: set the terminal's settings at once.  The same on
---- every hosted system.
-public tcsanow: i32 = 0
---- `tcsetattr` timing: once all written output has been sent.
-public tcsadrain: i32 = 1
---- `tcsetattr` timing: once output has been sent, discarding input not yet
---- read.
-public tcsaflush: i32 = 2
+    --- Count one use of `handle` as over: 0, or nonzero with the reason in
+    --- `dlerror`.  The object may be unloaded once no use is left, and every
+    --- address found in it is then no longer the program's to use.
+    public extern(c) dlclose: (handle: ptr mut u8) -> (status: i32)
 
---- A terminal's size, `struct winsize`: rows and columns, and pixels.  The
---- same on every hosted system.
-public window_record: type = struct
-    rows: u16
-    columns: u16
-    width: u16
-    height: u16
-end window_record
+    --- The text of the last failure of `dlopen`, `dlsym` or `dlclose` on this
+    --- thread, NUL-terminated, or `no_address` when there was none since it
+    --- was last asked.  Asking clears it, and the next of those calls may
+    --- overwrite it, so it is read at once.
+    public extern(c) dlerror: () -> (text: found_address)
 
---- A record lock's start counts from the file's start, `SEEK_SET`.
-public seek_set: i16 = 0
-
---- C's `struct group`, the same on every hosted system: the group's name,
---- password, ID and its members, a null-terminated table of names.
-public group_record: type = struct
-    name: usize
-    password: usize
-    group: u32
-    padding: u32
-    members: usize
-end group_record
-
---- Find the account with user ID `user`.  The call fills `into` with
---- pointers into the `length` bytes at `buffer` and puts `into`'s address
---- in `found`, or zero when there is none.  0, or the errno, ERANGE when
---- the buffer is too small.  The C library asks every database the system
---- names, NSS on Linux.
-public extern(c) getpwuid_r: (user: u32, into: ptr mut account_record,
-                              buffer: ptr mut u8, length: usize,
-                              found: ptr mut usize) -> (error: i32)
-
---- Find the account named `name`, as `getpwuid_r` finds one by ID.
-public extern(c) getpwnam_r: (name: ptr u8, into: ptr mut account_record,
-                              buffer: ptr mut u8, length: usize,
-                              found: ptr mut usize) -> (error: i32)
-
---- Find the group with group ID `group`, as `getpwuid_r` finds an account.
-public extern(c) getgrgid_r: (group: u32, into: ptr mut group_record,
-                              buffer: ptr mut u8, length: usize,
-                              found: ptr mut usize) -> (error: i32)
-
---- Find the group named `name`, as `getgrgid_r` finds one by ID.
-public extern(c) getgrnam_r: (name: ptr u8, into: ptr mut group_record,
-                              buffer: ptr mut u8, length: usize,
-                              found: ptr mut usize) -> (error: i32)
-
---- What `dlopen` returns when it loads nothing: C's null pointer, with the
---- reason in `dlerror`'s text.
-public not_loaded: atom
-
---- A `dlopen` result: the loaded object's handle, or `not_loaded`.
-public loaded_object: type = not_loaded | ptr mut u8
-
---- A `dlsym` or `dlerror` result: an address, or `no_address` for C's
---- null pointer when they have nothing.
-public found_address: type = no_address | ptr u8
-
---- Load the shared object at the NUL-terminated `path`, or find it by the
---- system's search when `path` holds no slash, as `mode` says: its handle,
---- or `not_loaded` with the reason in `dlerror`.  Loading an object
---- already loaded counts another use of it and returns the same handle.
---- In glibc's libc since 2.34, and in libdl before it; in Darwin's and
---- FreeBSD's libc.
-public extern(c) dlopen: (path: ptr u8, mode: i32) -> (handle: loaded_object)
-
---- The address of the NUL-terminated symbol `name` in the object `handle`
---- names or in what it loaded with it, or `no_address` with the reason in
---- `dlerror`.  The address has no type: what is there is the caller's to
---- know.
-public extern(c) dlsym: (handle: ptr mut u8, name: ptr u8)
-                        -> (address: found_address)
-
---- Count one use of `handle` as over: 0, or nonzero with the reason in
---- `dlerror`.  The object may be unloaded once no use is left, and every
---- address found in it is then no longer the program's to use.
-public extern(c) dlclose: (handle: ptr mut u8) -> (status: i32)
-
---- The text of the last failure of `dlopen`, `dlsym` or `dlclose` on this
---- thread, NUL-terminated, or `no_address` when there was none since it was
---- last asked.  Asking clears it, and the next of those calls may overwrite
---- it, so it is read at once.
-public extern(c) dlerror: () -> (text: found_address)
-
---- `dlopen` mode: bind every symbol the object needs as it is loaded.  The
---- same on every hosted system.
-public rtld_now: i32 = 2
+    --- `dlopen` mode: bind every symbol the object needs as it is loaded.  The
+    --- same on every hosted system.
+    public rtld_now: i32 = 2
+end if

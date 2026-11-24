@@ -1,0 +1,413 @@
+--  The blocking provider on Windows: reading and writing, the monotonic
+--  clock and its sleep, and running programs, over platform/windows, as
+--  blocking.ldn, time.ldn and programs.ldn give them over platform/posix.
+--  A file is a Windows handle; a pipe end `system.start` made is read and
+--  written by an overlapped call this thread waits for, and every other
+--  handle by a plain one.
+
+import core/io
+import core/mem
+import core/text
+import core/time
+import hosted/system
+import platform/windows
+import platform/windows/sockets
+
+fixed if compiler.os == windows then
+    --  Keep a failure's code in the system handle's cell.
+    record: (self: host, code: u32) -> none =
+        system.record_errno(self.services, code)
+    end record
+
+    --  The end of what a stream gives: a pipe whose writer has gone, or a
+    --  file read at its end.
+    finished: (code: u32) -> (yes: bool) =
+        yes = code == windows.error_broken_pipe
+              or code == windows.error_handle_eof
+              or code == windows.error_pipe_not_connected
+    end finished
+
+    --  How many bytes one call moves at most: what a DWORD counts, and a
+    --  pipe's buffer for a write.
+    most: usize = 0x40000000
+
+    --  Wait for an overlapped call on `opened` that the system took and did
+    --  not finish, and return what it moved.  With no event in the record,
+    --  the handle itself is signalled when the call ends.
+    --  `code` is zero when it succeeded, and the reason otherwise.
+    overlapped_wait: (opened: windows.handle, record_of: ptr mut windows.overlapped)
+                     -> (moved: u32, code: u32) =
+        mut got: u32 = 0
+        code = 0
+        if windows.overlapped_result(opened, record_of, addr got, 1) == 0 then
+            code = windows.last_error()
+        end if
+        moved = got
+    end overlapped_wait
+
+    --  Close a handle this provider made for one call, whatever the close
+    --  says.
+    let_go: (made: windows.handle) -> none =
+        _ = windows.close_handle(made)
+    end let_go
+
+    --  Read once into `into` from `opened`: the count, zero at the end.
+    read_once: (self: host, opened: io.file, into: []mut u8)
+               -> (count: usize) ! io.io_failed =
+        made: windows.handle = system.handle_of(opened)
+        mut want: usize = lenof into
+        if want > most then want = most end if
+        mut got: u32 = 0
+        count = 0
+        if system.is_socket(opened) then
+            received: i32 = sockets.receive(made, addr into[0], i32(want), 0)
+            if received < 0 then
+                record(self, sockets.socket_last_error())
+                fail io.io_failed
+            end if
+            got = u32(received)
+        elsif system.is_pipe(opened) then
+            mut asked: windows.overlapped = zeroed
+            if windows.read_file(made, addr into[0], u32(want), addr got,
+                                 usize(addr asked)) == 0 then
+                code: u32 = windows.last_error()
+                return when finished(code)
+                if code <> windows.error_io_pending then
+                    record(self, code)
+                    fail io.io_failed
+                end if
+                (moved, code: late) := overlapped_wait(made, addr asked)
+                return when finished(late)
+                if late <> 0 then
+                    record(self, late)
+                    fail io.io_failed
+                end if
+                got = moved
+            end if
+        elsif windows.read_file(made, addr into[0], u32(want), addr got,
+                                0) == 0 then
+            code: u32 = windows.last_error()
+            return when finished(code)
+            record(self, code)
+            fail io.io_failed
+        end if
+        fail io.io_failed when usize(got) > lenof into
+        count = usize(got)
+    end read_once
+
+    --  Write some of `bytes` to `opened` once: the count accepted.
+    write_once: (self: host, opened: io.file, bytes: []u8)
+                -> (count: usize) ! io.io_failed =
+        made: windows.handle = system.handle_of(opened)
+        mut want: usize = lenof bytes
+        if want > most then want = most end if
+        mut put: u32 = 0
+        if system.is_socket(opened) then
+            sent: i32 = sockets.send(made, addr bytes[0], i32(want), 0)
+            if sent < 0 then
+                record(self, sockets.socket_last_error())
+                fail io.io_failed
+            end if
+            put = u32(sent)
+        elsif system.is_pipe(opened) then
+            mut asked: windows.overlapped = zeroed
+            if windows.write_file(made, addr bytes[0], u32(want), addr put,
+                                  usize(addr asked)) == 0 then
+                code: u32 = windows.last_error()
+                if code <> windows.error_io_pending then
+                    record(self, code)
+                    fail io.io_failed
+                end if
+                (moved, code: late) := overlapped_wait(made, addr asked)
+                if late <> 0 then
+                    record(self, late)
+                    fail io.io_failed
+                end if
+                put = moved
+            end if
+        elsif windows.write_file(made, addr bytes[0], u32(want), addr put,
+                                 0) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        fail io.io_failed when usize(put) > want
+        count = usize(put)
+    end write_once
+
+    blocking_read: (self: host, opened: io.file, into: []mut u8)
+                   -> (count: usize) ! io.io_failed =
+        cleared(self)
+        count = 0
+        return when lenof into == 0
+        count = try read_once(self, opened, into)
+    end blocking_read
+
+    write_all: (self: host, opened: io.file, bytes: []u8)
+               -> none ! io.io_failed =
+        mut written: usize = 0
+        while written < lenof bytes do
+            accepted: usize = try write_once(self, opened,
+                                             bytes[written..<lenof bytes])
+            fail io.io_failed when accepted == 0
+            written += accepted
+        end while
+    end write_all
+
+    blocking_write: (self: host, opened: io.file, bytes: []u8)
+                    -> none ! io.io_failed =
+        cleared(self)
+        return when lenof bytes == 0
+        try write_all(self, opened, bytes)
+    end blocking_write
+
+    blocking_write_some: (self: host, opened: io.file, bytes: []u8)
+                         -> (count: usize) ! io.io_failed =
+        cleared(self)
+        count = 0
+        return when lenof bytes == 0
+        mut requested: usize = lenof bytes
+        if requested > 65536 then requested = 65536 end if
+        count = try write_once(self, opened, bytes[0..<requested])
+        fail io.io_failed when count == 0
+    end blocking_write_some
+
+    --  A second in nanoseconds.
+    second: u64 = 1000000000
+
+    --  The performance counter's rate, which is fixed while the system
+    --  runs; Windows 10 and later never fail to give it.
+    frequency: () -> (rate: u64) =
+        mut found: i64 = 0
+        _ = windows.performance_frequency(addr found)
+        rate = if found > 0 then u64(found) else 1 end if
+    end frequency
+
+    --  The monotonic clock in nanoseconds since the system started.
+    reading: () -> (at: u64) =
+        mut ticks: i64 = 0
+        _ = windows.performance_counter(addr ticks)
+        rate: u64 = frequency()
+        whole: u64 = u64(ticks)
+        at = (whole / rate) * second + ((whole % rate) * second) / rate
+    end reading
+
+    --  The instant `span` after now, the clock's last instant when that is
+    --  past it.
+    deadline_after: (span: time.duration) -> (deadline: u64) =
+        start: u64 = reading()
+        room: u64 = (0 -% 1) - start
+        deadline = if u64(span) > room then 0 -% 1
+                   else start + u64(span) end if
+    end deadline_after
+
+    blocking_now: (self: host) -> (at: time.instant) =
+        _ = self.services
+        at = time.instant(reading())
+    end blocking_now
+
+    --  The longest one sleep asks for, in milliseconds, short of `INFINITE`.
+    longest_sleep: u64 = 0x7FFFFFFF
+
+    --  The deadline is taken first, and the system is asked to sleep again
+    --  for what is left, rounded up to its milliseconds, until the clock
+    --  has reached it, so the sleep is never early.
+    blocking_sleep: (self: host, span: time.duration) -> none =
+        _ = self.services
+        deadline: u64 = deadline_after(span)
+        loop do
+            now: u64 = reading()
+            return when now >= deadline
+            mut left: u64 = (deadline - now + 999999) / 1000000
+            if left > longest_sleep then left = longest_sleep end if
+            windows.sleep(u32(left))
+        end loop
+    end blocking_sleep
+
+    host is time.clock (now: blocking_now, sleep: blocking_sleep)
+
+    blocking_spawn: (self: host, path: text.os_string,
+                     arguments: []text.os_string,
+                     environment: []text.os_variable,
+                     streams: io.child_streams)
+                    -> (started: io.child)
+                    ! mem.not_found | io.no_access | io.io_failed =
+        started = try system.start(self.services, path, arguments,
+                                   environment, streams)
+    end blocking_spawn
+
+    --  Close one of a child's pipes, which is closed even when the system
+    --  reports a failure.
+    close_pipe: (self: host, opened: io.file) -> none ! io.io_failed =
+        if windows.close_handle(system.handle_of(opened)) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+    end close_pipe
+
+    blocking_write_child: (self: host, inout started: io.child, bytes: []u8)
+                          -> none ! io.io_failed =
+        cleared(self)
+        fail io.io_failed when not started.input_open
+        try write_all(self, started.input, bytes)
+    end blocking_write_child
+
+    blocking_close_input: (self: host, inout started: io.child)
+                          -> none ! io.io_failed =
+        cleared(self)
+        fail io.io_failed when not started.input_open
+        started.input_open = false
+        try close_pipe(self, started.input)
+    end blocking_close_input
+
+    --  Ask the pipe `opened` to say when it has something: a read of no
+    --  bytes, which ends when there is something to read or the pipe ends,
+    --  and reads nothing.  True when it already has.
+    ask_ready: (opened: windows.handle, asked: ptr mut windows.overlapped,
+                spare: ptr mut u8) -> (ready: bool) =
+        mut got: u32 = 0
+        ready = windows.read_file(opened, spare, 0, addr got, usize(asked)) <> 0
+                or windows.last_error() <> windows.error_io_pending
+    end ask_ready
+
+    --  Withdraw a read of no bytes that has not ended, and wait until the
+    --  system has let it go.
+    withdraw: (opened: windows.handle, asked: ptr mut windows.overlapped)
+              -> none =
+        _ = windows.cancel_io(opened, usize(asked))
+        mut got: u32 = 0
+        _ = windows.overlapped_result(opened, asked, addr got, 1)
+    end withdraw
+
+    --  Whether the child's errors, and not its output, is what to read
+    --  next: the output when it has anything, its end included, and the
+    --  errors only when they alone do.  Each is asked by a read of no bytes,
+    --  with an event of its own, and the wait is for either.
+    errors_first: (self: host, started: io.child) -> (yes: bool)
+                  ! io.io_failed =
+        yes = false
+        output: windows.handle = system.handle_of(started.output)
+        errors: windows.handle = system.handle_of(started.errors)
+        mut spare: [2]u8 = zeroed
+        mut events: [2]windows.handle = zeroed
+        events[0] = windows.create_event(0, 1, 0, 0)
+        events[1] = windows.create_event(0, 1, 0, 0)
+        defer let_go(events[0])
+        defer let_go(events[1])
+        if events[0] == windows.no_handle or events[1] == windows.no_handle then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        mut first: windows.overlapped = zeroed
+        first.event = events[0]
+        return when ask_ready(output, addr first, addr spare[0])
+        mut second: windows.overlapped = zeroed
+        second.event = events[1]
+        if ask_ready(errors, addr second, addr spare[1]) then
+            withdraw(output, addr first)
+            yes = true
+            return
+        end if
+        answer: u32 = windows.wait_for_any(2, addr events[0], 0,
+                                           windows.infinite)
+        if answer == windows.wait_object_0 then
+            withdraw(errors, addr second)
+            mut got: u32 = 0
+            _ = windows.overlapped_result(output, addr first, addr got, 1)
+        elsif answer == windows.wait_object_0 + 1 then
+            withdraw(output, addr first)
+            mut got: u32 = 0
+            _ = windows.overlapped_result(errors, addr second, addr got, 1)
+            yes = true
+        else
+            code: u32 = windows.last_error()
+            withdraw(output, addr first)
+            withdraw(errors, addr second)
+            record(self, code)
+            fail io.io_failed
+        end if
+    end errors_first
+
+    blocking_read_child: (self: host, inout started: io.child, into: []mut u8)
+                         -> (taken: io.child_read) ! io.io_failed =
+        cleared(self)
+        taken = (count: 0, stream: io.child_output,
+                 finished: not started.output_open and not started.errors_open)
+        return when lenof into == 0
+        loop do
+            if not started.output_open and not started.errors_open then
+                taken = (count: 0, stream: io.child_output, finished: true)
+                return
+            end if
+            mut from_errors: bool = not started.output_open
+            if started.output_open and started.errors_open then
+                from_errors = try errors_first(self, started)
+            end if
+            opened: io.file = if from_errors then started.errors
+                              else started.output end if
+            count: usize = try read_once(self, opened, into)
+            if count > 0 then
+                taken = (count: count,
+                         stream: if from_errors then io.child_errors
+                                 else io.child_output end if,
+                         finished: false)
+                return
+            end if
+            if from_errors then
+                started.errors_open = false
+            else
+                started.output_open = false
+            end if
+            try close_pipe(self, opened)
+        end loop
+    end blocking_read_child
+
+    --  Close every pipe the child still has, keeping the first failure.
+    close_pipes: (self: host, started: io.child) -> (closed: bool) =
+        closed = true
+        if started.input_open then
+            close_pipe(self, started.input) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+        if started.output_open then
+            close_pipe(self, started.output) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+        if started.errors_open then
+            close_pipe(self, started.errors) else (problem)
+                _ = problem
+                closed = false
+            end
+        end if
+    end close_pipes
+
+    --  The pipes are closed before the wait, so a child still writing to
+    --  one meets a closed pipe rather than waiting for a reader that never
+    --  comes.  The child's handle is closed once its code is read.
+    blocking_wait: (self: host, sink started: io.child)
+                   -> (ended: io.ending) ! io.io_failed =
+        cleared(self)
+        closed: bool = close_pipes(self, started)
+        child: windows.handle = system.process_of(started)
+        defer let_go(child)
+        if windows.wait_for(child, windows.infinite) == windows.wait_failed then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        mut code: u32 = 0
+        if windows.exit_code_of(child, addr code) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        ended = system.ended(self.services, code)
+        fail io.io_failed when not closed
+    end blocking_wait
+
+    host is io.programs
+        (spawn: blocking_spawn, write_child: blocking_write_child,
+         close_input: blocking_close_input, read_child: blocking_read_child,
+         wait: blocking_wait)
+end if

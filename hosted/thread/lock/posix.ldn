@@ -1,0 +1,17 @@
+--  Sleeping on a lock's cell and waking a sleeper on a POSIX system,
+--  through platform/posix.
+
+import core/atomic
+import platform/posix
+
+fixed if compiler.os <> windows then
+    --  Sleep while the cell at `word` holds `expected`, or for nothing.
+    sleep_while: (word: ptr mut atomic.cell(u32), expected: u32) -> none =
+        posix.wait_on(word, expected)
+    end sleep_while
+
+    --  Wake one thread sleeping on the cell at `word`, if any is.
+    wake_one: (word: ptr mut atomic.cell(u32)) -> none =
+        posix.wake_one(word)
+    end wake_one
+end if

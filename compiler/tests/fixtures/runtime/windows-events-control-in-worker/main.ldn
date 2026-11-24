@@ -1,0 +1,91 @@
+--  On Windows a console control event reaches an event loop on any
+--  thread: the control handler is the process's, and it posts to the port
+--  of the loop that watches, so a loop on a thread of hosted/thread may
+--  watch `interrupt` as the first thread's may, where Linux refuses it
+--  (runtime/thread-signal-watch-in-worker).  The worker makes its own
+--  provider, watches and waits for the next signal; the first thread, on
+--  a console of its own with Ctrl+C taken back, waits until the worker
+--  watches and sends Ctrl+C.  The handler runs on a thread the system
+--  starts, which has no stack limit of the program's.  The program ignores
+--  Ctrl+C until the worker watches, and the worker goes on watching to the
+--  end, so that an event another program sends cannot end it, as one
+--  under Wine's consoles may.
+import core/failure
+import core/io
+import core/io/signal
+import hosted/events
+import hosted/system
+import hosted/thread
+import platform/windows
+
+--  Set when the worker watches; what it heard: 1 for `interrupt` with
+--  Ctrl+C's code, 2 for anything else.
+mut watching: u32 = 0
+mut outcome: u32 = 0
+
+job: type = struct
+    reserved: u32
+end job
+
+listen_here: (inout state: job) -> none ! failure.reason =
+    _ = state.reserved
+    mut space: events.space = zeroed
+    mut entries: [2]usize = zeroed
+    host := events.over(space, entries) else (problem)
+        _ = problem
+        fail io.io_failed
+    end
+    try signal.watch(host, signal.interrupt)
+    compiler.atomic_store(addr watching, u32(1), compiler.release)
+    heard: signal.event = try signal.next_signal(host)
+    outcome = if heard.which == signal.interrupt and heard.number == 0 then 1
+              else 2 end if
+end listen_here
+
+mut backing: [131072]u8 = zeroed
+
+threaded: (host: system.host) -> none ! failure.reason =
+    mut workers := try thread.group_over(host, backing, 1)
+    defer thread.join(workers) else none
+    one: job = (reserved: 0)
+    try thread.admit(workers, listen_here, one)
+    --  The worker gives up after ten seconds rather than hold the join.
+    mut waited: u32 = 0
+    while compiler.atomic_load(addr watching, compiler.acquire) == 0 do
+        fail io.io_failed when waited >= 10000
+        windows.sleep(1)
+        inc waited
+    end while
+    fail io.io_failed when windows.set_control_handler(0, 0) == 0
+    fail io.io_failed
+        when windows.send_control_event(windows.control_c, 0) == 0
+    try thread.join(workers)
+end threaded
+
+--  Whether the new console's screen, `CONOUT$`, opens, which waits until
+--  the console can answer: an event sent before then reaches no console
+--  of the program's.
+console_ready: () -> (yes: bool) =
+    name: [8]u16 = [67, 79, 78, 79, 85, 84, 36, 0]
+    screen: windows.handle =
+        windows.create_file(addr name[0],
+                            windows.generic_read | windows.generic_write,
+                            windows.share_all, 0, windows.open_existing, 0, 0)
+    yes = screen <> windows.invalid_handle
+    if yes then _ = windows.close_handle(screen) end if
+end console_ready
+
+public main: () -> (code: i32) =
+    code = 1
+    return when windows.set_control_handler(0, 1) == 0
+    _ = windows.free_console()
+    return when windows.allocate_console() == 0 or not console_ready()
+    code = 2
+    threaded(system.new()) else (problem)
+        _ = problem
+        return
+    end
+    code = 3
+    return when outcome <> 1
+    code = 42
+end main

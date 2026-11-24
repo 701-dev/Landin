@@ -8,8 +8,9 @@
 --  A lock is one u32 cell of core/atomic: free, taken, or taken with a
 --  thread waiting.  Taking a free lock and giving one nobody waits for are
 --  one read-modify-write each; a thread that finds it taken sleeps in the
---  system's wait on the cell's address, platform/posix's `wait_on`, and
---  the thread that gives it wakes one waiter.  This is the three-state
+--  system's wait on the cell's address, platform/posix's `wait_on` or
+--  Windows' `WaitOnAddress`, which posix.ldn and windows.ldn call, and the
+--  thread that gives it wakes one waiter.  This is the three-state
 --  lock of Drepper's "Futexes Are Tricky", on every hosted system alike.
 --
 --  On Cortex-M0 there is no lock: a context there excludes the interrupt
@@ -18,7 +19,6 @@
 --  lock (D501).  This module is hosted only.
 
 import core/atomic
-import platform/posix
 
 --  What a lock's cell holds.
 free: u32 = 0
@@ -58,7 +58,7 @@ public take: (held: ptr mut lock) -> none =
         seen = atomic.exchange(word, contended)
     end if
     while seen <> free do
-        posix.wait_on(word, contended)
+        sleep_while(word, contended)
         seen = atomic.exchange(word, contended)
     end while
 end take
@@ -75,7 +75,7 @@ end take_if_free
 public give: (held: ptr mut lock) -> none =
     word: ptr mut atomic.cell(u32) = addr held.val.word
     if atomic.exchange(word, free) == contended then
-        posix.wake_one(word)
+        wake_one(word)
     end if
 end give
 

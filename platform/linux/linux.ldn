@@ -25,11 +25,11 @@
 --
 --  Everything here is declared on Linux only.  Landin has no conditional
 --  import, so platform/posix imports this module on every system it
---  serves, and the module's scope is theirs: Linux, Darwin and FreeBSD.
---  On Darwin and FreeBSD it declares nothing.
+--  serves, and the module's scope is every hosted system's (D2267).  On
+--  Darwin, FreeBSD and Windows it declares nothing.
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
 fixed if compiler.os == linux then
     fixed if compiler.arch == x86_64 then
