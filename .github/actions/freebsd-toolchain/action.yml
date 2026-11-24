@@ -2,8 +2,8 @@
 #
 #  GNAT-FSF-builds publishes no FreeBSD archive, so
 #  environments/freebsd/gnat.py builds both from source in a FreeBSD guest
-#  (compiler/ada/TOOLCHAIN.md), about two hours on a hosted runner's four
-#  processors, and names the archive by a digest of its inputs.  This
+#  (compiler/ada/TOOLCHAIN.md), about twenty minutes on a hosted runner's
+#  four processors, and names the archive by a digest of its inputs.  This
 #  restores that archive from the cache, or builds and saves it when the
 #  cache lacks it, and says where it is.  A branch's cache is its own and
 #  main's is every branch's, so main's pushes run this too

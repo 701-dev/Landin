@@ -34197,7 +34197,8 @@ the toolchain moved away.
 three-stage bootstrap, three times the time for a check the pinned
 version's own release made; building through the ports framework, which
 moves with the ports tree; GPRbuild built by `gnat15`, a third compiler in
-the recipe; and building in every job, two hours each on a hosted runner.
+the recipe; and building in every job, twenty minutes each on a hosted
+runner.
 
 **Pinned by** `environments/pins.sh`'s FreeBSD sources and ports commit,
 the gate's `freebsd-toolchain` and `freebsd-host-release` jobs, and

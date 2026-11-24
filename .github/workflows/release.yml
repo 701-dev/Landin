@@ -432,7 +432,7 @@ jobs:
   #  the lane the gate's freebsd-host-release runs, with the pinned GNAT
   #  built from source (environments/freebsd/gnat.py): main's gate leaves
   #  that archive in main's cache, which a tag's run may restore; without it
-  #  this job builds it, about two hours.  The archive links the base
+  #  this job builds it, about twenty minutes.  The archive links the base
   #  system's C library and GCC's runtime into refine, so it runs on any
   #  FreeBSD 14 x86-64 without the GNAT that built it.
   freebsd:

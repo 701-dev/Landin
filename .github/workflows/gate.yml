@@ -2432,7 +2432,7 @@ jobs:
   #  publishes no FreeBSD GNAT, so the freebsd-toolchain action restores
   #  the pinned GNAT and GPRbuild from the cache, under a digest of their
   #  sources, patches and recipe, or builds them from source in a fresh
-  #  amd64 guest, about two hours on four processors; with the cache it
+  #  amd64 guest, about twenty minutes on four processors; with the cache it
   #  takes a minute.  The build's log is kept when it ran.
   freebsd-toolchain:
     needs: [inputs]

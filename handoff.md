@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R21.60 — refine on FreeBSD x86-64.**
+**Next roadmap item: R21.61 — refine on FreeBSD arm64 (planned).**
 
 ## Versions
 
