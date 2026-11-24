@@ -106,7 +106,9 @@ The gate splits it as it splits the corpus: `windows-emit` adds
 on `windows-2025`, the LLDB sessions natively with `--prepared=DIR`, then
 the `refine dap` session from WSL on the same runner with `--prepared=DIR
 --dap`, since `refine` runs on Linux: WSL starts `lldb-dap.exe` as a
-Windows program. The job fetches llvm-mingw's archive and checks it against
+Windows program, which `refine dap` speaks to over a loopback connection,
+since over the standard streams WSL gives it the adapter deadlocks in
+about half of all sessions (D2351). The job fetches llvm-mingw's archive and checks it against
 the sha256 `environments/pins.sh` names. The DAP program is compiled from
 `/tmp/landin-windows-dap/main.ldn`, a path WSL recreates, because a
 debugger finds a breakpoint's source by the path the program recorded.

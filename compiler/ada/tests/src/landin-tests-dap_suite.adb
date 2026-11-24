@@ -69,6 +69,7 @@ package body Landin.Tests.Dap_Suite is
       Settings : US.Unbounded_String;
       Pipes    : Boolean := False;
       Grouped  : Boolean := False;
+      Socket   : Boolean := False;
       Stopped  : Boolean := False;
    end record;
 
@@ -78,7 +79,8 @@ package body Landin.Tests.Dap_Suite is
       Settings      : P.Path_List;
       Program_Pipes : Boolean;
       Failure       : out US.Unbounded_String;
-      Own_Group     : Boolean := True);
+      Own_Group     : Boolean := True;
+      Over_Socket   : Boolean := False);
    overriding function Variable
      (Host : Fake_Debugger; Name : String) return String;
    overriding procedure Wait
@@ -149,12 +151,14 @@ package body Landin.Tests.Dap_Suite is
       Settings      : P.Path_List;
       Program_Pipes : Boolean;
       Failure       : out US.Unbounded_String;
-      Own_Group     : Boolean := True) is
+      Own_Group     : Boolean := True;
+      Over_Socket   : Boolean := False) is
    begin
       Host.Started := US.To_Unbounded_String (P.Joined (Arguments));
       Host.Settings := US.To_Unbounded_String (P.Joined (Settings));
       Host.Pipes := Program_Pipes;
       Host.Grouped := Own_Group;
+      Host.Socket := Over_Socket;
       Failure := (if Host.Refuse
                   then US.To_Unbounded_String ("no such program")
                   else US.Null_Unbounded_String);
@@ -800,6 +804,9 @@ package body Landin.Tests.Dap_Suite is
          Landin.Testing.Check
            (Item, not Debugger.Grouped,
             "a Windows program's adapter shares refine dap's process group");
+         Landin.Testing.Check
+           (Item, Debugger.Socket,
+            "a Windows program's adapter is spoken to over a connection");
          Landin.Testing.Check
            (Item, Contains (Sent, "setBreakpoints {""source"":{""path"":"
                             & """work/main.ldn""}"),

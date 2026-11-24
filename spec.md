@@ -34001,6 +34001,9 @@ stacks keep the limit in that cell.
 
 ### D2292 — The Windows debugger is LLVM's LLDB, and `refine dap` relays its adapter
 
+**Amended by D2351.** `refine dap` speaks to a Windows program's adapter
+over a loopback connection; the process group below stands.
+
 **The tour said** nothing; the roadmap named "the Windows debugger" a backend of D1523's adapter.
 
 **Chosen:** the Windows debugger is LLDB as llvm-mingw's release for Windows ships it, free like the rest of the Windows toolchain (D2189): `lldb.exe`, which reads a PDB with LLVM's own reader, and `lldb-dap.exe`, its adapter, which `refine dap` relays as D1523 relays `lldb-dap`. A program whose header is a PE image's takes LLDB, and the adapter's usual name is `lldb-dap.exe` where the search path has it. `refine` runs on Linux and macOS, so on a Windows machine it runs in WSL, where WSL starts a Windows program and puts Windows' search path after its own: the adapter then writes the program's and the working directory's paths, and the library's, as Windows names them, and reads a Windows path back as WSL mounts it. The adapter shares `refine dap`'s process group, where D1523's debuggers have one of their own: a Windows program WSL starts from a process group other than the terminal's foreground one stalls, which the gate met in about half its runs and in every one of six where a client started the adapter in a group of its own. A program compiled on a POSIX host records POSIX paths, which a Windows debugger puts on a drive of its own choosing, so the adapter gives it a breakpoint's source as the recorded path less its root, which LLDB matches as the end of that path, and reads a path the debugger names on a drive back as this host's when this host has it. The gate runs LLDB's batch sessions natively on a Windows runner and `refine dap`'s session from WSL on the same runner. Microsoft's debuggers read the same PDB; the gate runs none of them.
@@ -34129,6 +34132,40 @@ would differ from the trap every other arm64 target executes.
 **Pinned by** `runtime/fibre-stack-past-limit-traps`, the threads corpus
 and every fixture with `traps: yes` the gate's `windows-arm64-runtime` job
 runs.
+
+### D2351 — `refine dap` speaks to a Windows adapter over a loopback connection
+
+**From** D1523 and D2292.
+
+**The discrepancy:** D2292 relays `lldb-dap.exe` over its standard
+streams, as D1523 relays every adapter. Run from WSL, the adapter
+deadlocked on the streams WSL gives it in about half of all sessions,
+x86-64's and arm64's: having queued `launch`, it wrote nothing until its
+input closed, then failed every write. It did so with or without `refine
+dap` between it and the client, after LLDB's batch sessions or alone, under
+`setsid` or a terminal of its own and with a delayed `launch`; the reading
+is that Windows serialises synchronous I/O on one file object, so a read
+pending on the adapter's input holds its write of the answer.
+
+**Chosen:** for a Windows program's LLDB, `refine dap` takes a loopback
+port nothing listens on, starts the adapter with `--connection
+listen://127.0.0.1:PORT`, LLVM's own option, with its standard streams on
+`/dev/null`, connects within twenty seconds, and relays over the
+connection what it relayed over the streams. A connection not made ends
+the adapter and the request fails as a debugger that did not start does.
+The adapter keeps `refine dap`'s process group (D2292). Every other
+debugger keeps its standard streams.
+
+**The alternatives:** re-running a stalled session, which the gate did;
+a different pipe for each stream, which WSL's interop decides and not
+`refine dap`; and a Unix socket, which a Windows program run from WSL 1
+cannot reach.
+
+**Pinned by** the dap suite's `a Windows program maps its paths`, which
+holds the adapter to a connection, and the gate's `windows-debugger` and
+`windows-arm64-debugger` jobs; on the probe runs 45364098012 to
+45366912659 four of six sessions over the streams stalled and none of six
+over a connection.
 
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 

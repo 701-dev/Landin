@@ -526,15 +526,19 @@ package Landin.Platform is
    --  Start Arguments' first element, found on the search path when it
    --  has no slash, with the rest as its arguments, in the caller's
    --  environment with each NAME=VALUE of Settings in its place, and in a
-   --  process group of its own when Own_Group.  Failure is "" when it
-   --  started, else why not.
+   --  process group of its own when Own_Group.  When Over_Socket it is
+   --  spoken to over a loopback connection rather than its standard
+   --  streams: it is given `--connection listen://127.0.0.1:PORT`, LLVM's
+   --  lldb-dap's spelling, and the debugger stream is the connection
+   --  (D2351).  Failure is "" when it started, else why not.
    procedure Start
      (Host          : in out Debugger_Session;
       Arguments     : Path_List;
       Settings      : Path_List;
       Program_Pipes : Boolean;
       Failure       : out Ada.Strings.Unbounded.Unbounded_String;
-      Own_Group     : Boolean := True)
+      Own_Group     : Boolean := True;
+      Over_Socket   : Boolean := False)
    is abstract;
 
    --  The caller's own value of the variable Name, or "".

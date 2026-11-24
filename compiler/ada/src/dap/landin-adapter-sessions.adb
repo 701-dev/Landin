@@ -1941,10 +1941,13 @@ package body Landin.Adapter.Sessions is
          end if;
          --  D2292: a Windows program WSL starts from a process group
          --  other than the terminal's stalls, so a Windows program's
-         --  debugger shares this one's.
+         --  debugger shares this one's; and lldb-dap.exe deadlocks on the
+         --  standard streams WSL gives it, so it is spoken to over a
+         --  loopback connection (D2351).
          S.Debugger.Start (Words, Settings,
                            S.Kind = GDB and then not S.Attached, Failure,
-                           Own_Group => not S.Windows);
+                           Own_Group => not S.Windows,
+                           Over_Socket => S.Windows and then S.Kind = LLDB);
          if Failure /= "" then
             Respond (S, Seq, Name, False, "cannot start "
                      & (if S.Kind = GDB then "GDB" else "LLDB's adapter")

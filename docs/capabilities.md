@@ -1226,7 +1226,7 @@ Add `--target=darwin-arm64` for native macOS output, then open
   an editor starts as its debug adapter. It debugs Linux programs over
   GDB/MI. For macOS, FreeBSD and Windows programs it starts and relays
   `lldb-dap`, LLVM's own adapter; for a Windows program `lldb-dap.exe`,
-  which refine started in WSL reaches on Windows' search path (D2292). It launches a program or attaches to a debugger
+  which refine started in WSL reaches on Windows' search path (D2292) and speaks to over a loopback connection (D2351). It launches a program or attaches to a debugger
   stub. It shows the library's files from the installed library. With
   `--panic-map`, it shows a stop in `panic_handler` as an exception at the
   source line of its site (D1523-D1527). The gate scripts a session over
