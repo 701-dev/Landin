@@ -2183,7 +2183,10 @@ directory the link searched (D525): not in a directory `-L` or
 directive, every named directory with where it was named, and says that the
 driver's own directories were searched as well. refine looks only after a
 link has failed; a failed link whose libraries are all found stays L0501
-with the linker's own text. Name the directory that holds the library with
+with the linker's own text. Under Microsoft's Windows link (D2327) refine
+does not look: that linker searches the directories `LIB` names and the
+Windows SDK's, which refine cannot see, so its own text stands. Name the
+directory that holds the library with
 `linker.directory("DIR")`, relative to the declaring file, or with
 `-L DIR` when building, or install the library where the C driver finds it.
 

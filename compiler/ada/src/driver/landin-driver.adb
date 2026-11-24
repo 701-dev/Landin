@@ -4047,7 +4047,12 @@ package body Landin.Driver is
                         end if;
                      end loop;
                   end loop;
-                  if not Located then
+                  --  D2327: Clang does not answer -print-file-name from
+                  --  the directories Microsoft's linker searches.
+                  if not Located
+                    and then not Landin.Backend.Toolchain.Microsoft_Link
+                      (Facts, Unbounded.To_String (Toolchain))
+                  then
                      for File of Files loop
                         declare
                            Asked : Landin.Platform.Tool_Result;

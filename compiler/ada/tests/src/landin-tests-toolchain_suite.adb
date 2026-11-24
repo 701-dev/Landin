@@ -7,6 +7,7 @@
 --  toolchain is the runtime fixture, and it is the only place a process is
 --  started.
 
+with Ada.Strings.Fixed;
 with Landin.Backend.Entry_Point;
 with Landin.Backend.Toolchain;
 with Landin.IR;
@@ -264,6 +265,72 @@ package body Landin.Tests.Toolchain_Suite is
            (Landin.Targets.Windows_X86_64, ""),
          "x86_64-w64-mingw32-clang", "Windows names llvm-mingw's driver");
    end A_Windows_Link_Has_No_C_Runtime;
+
+   --  D2327: a driver named for Clang's MSVC target selects Microsoft's
+   --  link, spelled for `link.exe` and `lld-link`, with the libraries as
+   --  `NAME.lib`; a linker is passed only when one is named, and no other
+   --  name, nor any other target, changes the policy.
+   procedure A_Microsoft_Driver_Selects_Microsoft_Link
+     (Item : in out Landin.Testing.Context);
+
+   procedure A_Microsoft_Driver_Selects_Microsoft_Link
+     (Item : in out Landin.Testing.Context)
+   is
+      Libraries : Landin.Platform.Path_List;
+      Directories : Landin.Platform.Path_List;
+      Facts : constant Landin.Targets.Target_Facts :=
+        Landin.Targets.Windows_X86_64;
+      Head : constant String :=
+        "--target=x86_64-pc-windows-msvc" & LF & "-nostdlib" & LF
+        & "-Wl,/ENTRY:_landin_start" & LF & "-Wl,/SUBSYSTEM:CONSOLE" & LF
+        & "-Wl,/STACK:8388608" & LF & "-Wl,/NODEFAULTLIB" & LF
+        & "-Wl,/OPT:REF" & LF & "-Wl,/INCREMENTAL:NO" & LF
+        & "-Wl,/Brepro" & LF;
+   begin
+      Libraries.Append ("kernel32");
+      Libraries.Append ("ws2_32");
+      Directories.Append ("/sdk/lib");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main.exe", "", Libraries => Libraries,
+               Facts => Facts, Level => Landin.Targets.Levels.Default_Level
+                 (Facts),
+               Directories => Directories,
+               Driver => "/opt/llvm/bin/x86_64-pc-windows-msvc-clang")),
+         Head & "-L/sdk/lib" & LF & "main.s" & LF & "-lkernel32" & LF
+         & "-lws2_32" & LF & "-o" & LF & "main.exe" & LF,
+         "Microsoft's link leaves the linker to Clang, link.exe");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main.exe", "lld", Facts => Facts,
+               Level => Landin.Targets.Levels.Default_Level (Facts),
+               Driver => "C:\LLVM\bin\X86_64-PC-Windows-MSVC-Clang.EXE")),
+         Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
+         & "-fuse-ld=lld" & LF,
+         "a Windows path and case still select it, and lld is lld-link");
+      Landin.Testing.Check
+        (Item, not Landin.Backend.Toolchain.Microsoft_Link
+           (Facts, "x86_64-w64-mingw32-clang")
+         and then not Landin.Backend.Toolchain.Microsoft_Link (Facts, "")
+         and then not Landin.Backend.Toolchain.Microsoft_Link
+           (Facts, "/opt/x86_64-pc-windows-msvc/bin/clang")
+         and then not Landin.Backend.Toolchain.Microsoft_Link
+           (Landin.Targets.Linux_X86_64, "x86_64-pc-windows-msvc-clang"),
+         "only the driver's own name, on Windows, selects it");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Library_Files
+              (Facts, "ws2_32", "x86_64-pc-windows-msvc-clang")),
+         "ws2_32.lib" & LF, "Microsoft's link looks for NAME.lib alone");
+      Landin.Testing.Check
+        (Item, Ada.Strings.Fixed.Index
+           (Landin.Backend.Toolchain.Install_Advice
+              (Facts, "x86_64-pc-windows-msvc-clang", False),
+            "--linker=lld") > 0,
+         "a missing Microsoft driver's advice names lld-link's route");
+   end A_Microsoft_Driver_Selects_Microsoft_Link;
 
    --  D660: an RV32 level reaches GCC as its ISA string with Zicsr and
    --  Zifencei and the soft-float ILP32 ABI, which together select the
@@ -673,6 +740,9 @@ package body Landin.Tests.Toolchain_Suite is
       Landin.Testing.Register
         (Into, "toolchain", "a Windows link has no C runtime",
          A_Windows_Link_Has_No_C_Runtime'Access);
+      Landin.Testing.Register
+        (Into, "toolchain", "a Microsoft driver selects Microsoft's link",
+         A_Microsoft_Driver_Selects_Microsoft_Link'Access);
       Landin.Testing.Register
         (Into, "toolchain", "RV32 names its level and ABI",
          RV32_Names_Its_Level_And_ABI'Access);

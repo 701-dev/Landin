@@ -124,7 +124,7 @@ jobs:
             freebsd-amd64-runtime freebsd-amd64-debugger freebsd-amd64-abi \
             freebsd-arm64-runtime-1 freebsd-arm64-runtime-2 \
             freebsd-arm64-debugger freebsd-arm64-abi freebsd-amd64-size freebsd-arm64-size \
-            windows-emit windows-runtime \
+            windows-emit windows-runtime windows-microsoft \
             measure-size build-modes-1 build-modes-2 \
             build-modes-3 build-modes-4 rv64-qemu-1 rv64-qemu-2 outside-user-stock \
             linux-release-clean linux-release-compare \
@@ -2471,14 +2471,21 @@ jobs:
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --toolchain="$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang" \
             --output="$RUNNER_TEMP/windows-bundle"
+          #  D2327: the same corpus under Microsoft's link, whose commands
+          #  refine chooses here and the windows-microsoft job runs.
+          python3 compiler/tests/windows/check.py --prepare-only --link=microsoft \
+            --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
+            --output="$RUNNER_TEMP/windows-microsoft-bundle"
           #  The lane and the scripts it imports, at their own paths: the
           #  Windows runner checks nothing out, since the tree holds a
           #  fixture path with a double quote, which Git for Windows
           #  refuses even outside a sparse checkout.
-          for file in compiler/tests/windows/check.py scripts/lane_refine.py \
-              scripts/refine_revision.py scripts/build_identity.py; do
-            mkdir -p "$RUNNER_TEMP/windows-bundle/lane/$(dirname "$file")"
-            cp "$file" "$RUNNER_TEMP/windows-bundle/lane/$file"
+          for bundle in windows-bundle windows-microsoft-bundle; do
+            for file in compiler/tests/windows/check.py scripts/lane_refine.py \
+                scripts/refine_revision.py scripts/build_identity.py; do
+              mkdir -p "$RUNNER_TEMP/$bundle/lane/$(dirname "$file")"
+              cp "$file" "$RUNNER_TEMP/$bundle/lane/$file"
+            done
           done
       - name: Keep the bundle the Windows runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -2488,6 +2495,15 @@ jobs:
             ${{ runner.temp }}/windows-bundle/prepared.json
             ${{ runner.temp }}/windows-bundle/bundle
             ${{ runner.temp }}/windows-bundle/lane
+          retention-days: 3
+      - name: Keep the bundle Microsoft's link takes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x86-64-microsoft-bundle
+          path: |
+            ${{ runner.temp }}/windows-microsoft-bundle/prepared.json
+            ${{ runner.temp }}/windows-microsoft-bundle/bundle
+            ${{ runner.temp }}/windows-microsoft-bundle/lane
           retention-days: 3
 
   windows-runtime:
@@ -2514,6 +2530,39 @@ jobs:
             ${{ runner.temp }}/windows-evidence/summary.json
             ${{ runner.temp }}/windows-evidence/bundle/*.stdout
             ${{ runner.temp }}/windows-evidence/bundle/*.status
+          retention-days: 14
+
+  #  D2327: Microsoft's toolchain, the optional second one.  The runner's
+  #  Clang runs each link command refine chose in windows-emit, which hands
+  #  the link to Visual Studio's link.exe with the Windows SDK's import
+  #  libraries, and the lane requires that linker before it runs and holds
+  #  each program as windows-runtime does.
+  windows-microsoft:
+    needs: [inputs, windows-emit]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-x86-64-microsoft-bundle
+          path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Link with Microsoft's linker and execute the corpus
+        run: >-
+          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
+          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
+          --driver=clang --expect-linker=link.exe
+          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+      - name: Keep each link's transcript, each outcome's output and status, and the verdicts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x86-64-microsoft
+          path: |
+            ${{ runner.temp }}/windows-microsoft-evidence/summary.json
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.link.log
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.stdout
+            ${{ runner.temp }}/windows-microsoft-evidence/bundle/*.status
           retention-days: 14
 
   #  The RV64 Linux lane under QEMU's user emulation: the release compiler's
@@ -2991,7 +3040,7 @@ jobs:
             darwin-parity, arm64-debug-build, arm64-compiler,
             arm64-compiler-checks, arm64-release-build, arm64-release,
             arm64-release-checks, freebsd, rv64-qemu,
-            windows-emit, windows-runtime,
+            windows-emit, windows-runtime, windows-microsoft,
             determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     steps:

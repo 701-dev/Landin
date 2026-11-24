@@ -44,7 +44,13 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   (D2276). A file is a handle, `last_errno` keeps the Win32 error code
   (D2270) and a host string is WTF-8 (D2268). The hosted corpus
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
-  from the fixtures that need POSIX itself.
+  from the fixtures that need POSIX itself. Microsoft's toolchain is a
+  second, optional one, selected with
+  `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name: it
+  assembles the same output and links it with Visual Studio's `link.exe`,
+  or LLVM's `lld-link` under `--linker=lld`, against the Windows SDK's
+  import libraries (D2327). The gate links the corpus with `link.exe` on
+  its Windows runner and runs it.
 - **RV64** runs its whole test program and its GDB sessions under QEMU's
   user emulation, which is evidence about its emitted code and none about
   RV64 hardware. Its [physical RISE lanes](../compiler/tests/rv64/README.md),

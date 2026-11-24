@@ -70,3 +70,43 @@ failed build after writing the rest. Each transcript, status file and
 
 On a Windows host with llvm-mingw or MSYS2's CLANG64 toolchain, `refine`
 itself is not yet built for Windows, so emission stays on Linux.
+
+## Microsoft's link
+
+`--link=microsoft` runs the same corpus through Microsoft's toolchain, the
+optional second one (D2327). refine cannot run where Microsoft's linker
+does, so emission gives refine a recording driver named
+`x86_64-pc-windows-msvc-clang`, the name that selects the policy; it keeps
+each assembly and the link command refine chose, beside the executables'
+places in the bundle. Execution runs each command with `--driver`, a
+Clang, before it runs the program, and writes Clang's account of the link
+to `LABEL.link.log`. In the gate `windows-emit` prepares this bundle too
+and the `windows-microsoft` job runs it on `windows-2025` with the
+runner's Clang and `--expect-linker=link.exe`, so a link that reached any
+linker but Visual Studio's fails, and `summary.json` names the driver's
+version and every linker that ran.
+
+Locally, LLVM's `lld-link` stands in for `link.exe` and MinGW-w64's
+import libraries for the Windows SDK's. `nix develop` puts `lld-link`
+beside `clang-19`, which is the bare Clang when a command names its
+target, as refine's does here; nixpkgs' `clang` is a wrapper for Linux
+that adds options the MSVC target refuses. `lld-link` reads an import
+library by the name Microsoft gives it, `NAME.lib`, from the directories
+`LIB` names, so a directory of copies serves:
+
+```sh
+nix develop
+lib="$(mktemp -d)"
+for name in kernel32 bcrypt synchronization ws2_32 iphlpapi; do
+    cp "$(x86_64-w64-mingw32-clang -print-file-name=lib$name.a)" "$lib/$name.lib"
+done
+nix shell nixpkgs#wine64 -c env LIB="$lib" python3 compiler/tests/windows/check.py \
+    --refine="$PWD/compiler/ada/build/$LANDIN_BUILD_TAG/debug/bin/refine" \
+    --link=microsoft --linker=lld --driver=clang-19 --runner=wine \
+    --output="$(mktemp -d)/windows-microsoft"
+```
+
+The names are the `linker.library` lines of `platform/windows`. This
+checks refine's link command, the assembly under Clang's MSVC target and
+the programs, but not Microsoft's linker, which only the gate's Windows
+runner has.

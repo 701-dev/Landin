@@ -33842,6 +33842,62 @@ installed with the SDK, and an assembler of another syntax.
 driver's name and the link line, and every Windows executable the gate's
 `windows-emit` job links.
 
+### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
+
+**From** [1550], D2189.
+
+**The discrepancy:** D2189 said what supporting Microsoft's toolchain
+takes, a second Windows link policy chosen by `--toolchain`, but not which
+name chooses it, which assembler reads the GNU syntax the backend writes,
+or how a refine that runs on Linux and macOS is held to a linker that runs
+only on Windows.
+
+**Chosen:** a `--toolchain` driver whose file name, with its directory and
+any `.exe` set aside and case ignored, holds `-windows-msvc` selects
+Microsoft's link, as Clang's own name for its MSVC target,
+`x86_64-pc-windows-msvc-clang`, does. refine passes such a driver
+`--target=x86_64-pc-windows-msvc` as well, so a link or copy of any Clang
+under that name serves. Clang's integrated assembler reads the assembly
+the backend writes for llvm-mingw, unchanged: the code calls only through
+import thunks, holds its own TLS directory and names no CRT object
+(D2189). The link is `-nostdlib` with `/ENTRY:_landin_start
+/SUBSYSTEM:CONSOLE /STACK:8388608 /NODEFAULTLIB /OPT:REF /INCREMENTAL:NO
+/Brepro`, and `-LDIR` and `-lNAME`, which Clang hands the linker as
+`/LIBPATH:DIR` and `NAME.lib`. The linker is Clang's default for the
+target, Visual Studio's `link.exe`, which Clang finds with the Windows
+SDK's import libraries; `--linker=lld` passes `-fuse-ld=lld`, which runs
+LLVM's `lld-link` against the import libraries the `LIB` variable names.
+`/Brepro` keeps the time out of the image, so two links of one assembly
+are the same bytes, as llvm-mingw's are. Those libraries are where Clang
+and the linker find them and not where `-print-file-name` answers, so
+under this link refine asks the driver for no library, and a failed
+link's own text stands where L0509 would name a missing library. No other
+name selects the policy: llvm-mingw stays the default and the only
+toolchain a Windows build needs. The policy covers x86-64; arm64 with
+Microsoft's tools waits for the arm64 target.
+
+refine runs on Linux and macOS and Microsoft's linker on Windows, so the
+gate splits the two. Its `windows-emit` job gives refine a recording
+driver under the selecting name, which keeps each assembly and the command
+refine chose, and its `windows-microsoft` job runs each command with the
+runner's Clang, requires that `link.exe` ran the link, and holds every
+program to its fixture as `windows-runtime` does.
+
+**The alternatives:** a MASM spelling of the backend's output for `ml64`,
+a second assembly syntax for one toolchain where Clang reads the first;
+`clang-cl`, whose MSVC-style options would be a third dialect of the link
+line where the Clang driver takes the GNU-style one refine already
+spells; an option of its own beside `--toolchain`, a second way to name
+what the driver's name already says; and a gate that links with
+`lld-link` on Linux against an SDK fetched there, which tests LLVM's
+linker and not Microsoft's and copies proprietary libraries onto a Linux
+runner.
+
+**Pinned by** `toolchain/a Microsoft driver selects Microsoft's link`,
+`driver/Microsoft's link leaves the search to its linker`, and the corpus
+the gate's `windows-microsoft` job links and runs
+(`compiler/tests/windows/README.md`).
+
 ### D2190 — The Windows x64 convention is planned beside System V's
 
 **From** [1550] and [1700].

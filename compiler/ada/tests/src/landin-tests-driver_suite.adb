@@ -5497,6 +5497,53 @@ package body Landin.Tests.Driver_Suite is
       Link (Cannot_Say);
    end Darwin_Library_Search_Reaches_The_SDK;
 
+   --  D2327: Microsoft's linker searches LIB and the Windows SDK, which
+   --  Clang names it without saying, so neither the inputs' protection
+   --  nor a failed link asks the driver where a library is, and the
+   --  linker's own text stands.
+   procedure Microsoft_Link_Leaves_The_Search_To_Its_Linker
+     (Item : in out Landin.Testing.Context);
+
+   procedure Microsoft_Link_Leaves_The_Search_To_Its_Linker
+     (Item : in out Landin.Testing.Context)
+   is
+      Host : Landin.Testing.Fakes.Fake_Filesystem;
+      Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+   begin
+      Host.Add_File
+        ("main.ldn", "linker.library(""raylib"")" & LF & Entry_Program);
+      Tools.Add_Result
+        (1, "lld-link: error: could not open 'raylib.lib'" & LF);
+      declare
+         Result : constant Landin.Driver.Outcome :=
+           Landin.Driver.Execute
+             (["--target=windows-x86-64", "--emit=exe",
+               "--toolchain=x86_64-pc-windows-msvc-clang", "--linker=lld",
+               "main.ldn"], Host, Tools);
+         Report : constant String := Unbounded.To_String (Result.Report);
+      begin
+         Landin.Testing.Check_Equal
+           (Item, Result.Status, Landin.Driver.Status_Reported,
+            "the link fails: " & Report);
+         Landin.Testing.Check
+           (Item, Contains (Report, "error[L0501]")
+            and then Contains (Report, "could not open 'raylib.lib'")
+            and then not Contains (Report, "L0509"),
+            "the linker's text stands: " & Report);
+         Landin.Testing.Check_Equal
+           (Item, Tools.Run_Count, 1, "the link alone runs");
+         if Tools.Run_Count = 1 then
+            Landin.Testing.Check
+              (Item, Tools.Call_At (1).Arguments.Contains
+                 ("--target=x86_64-pc-windows-msvc")
+               and then Tools.Call_At (1).Arguments.Contains ("-lraylib")
+               and then Tools.Call_At (1).Arguments.Contains
+                 ("-fuse-ld=lld"),
+               "the link is Microsoft's, through lld-link");
+         end if;
+      end;
+   end Microsoft_Link_Leaves_The_Search_To_Its_Linker;
+
    procedure Builtin_Imports_Never_Search_Roots
      (Item : in out Landin.Testing.Context);
 
@@ -10215,6 +10262,9 @@ package body Landin.Tests.Driver_Suite is
       Landin.Testing.Register
         (Into, "driver", "a Darwin library search reaches the SDK",
          Darwin_Library_Search_Reaches_The_SDK'Access);
+      Landin.Testing.Register
+        (Into, "driver", "Microsoft's link leaves the search to its linker",
+         Microsoft_Link_Leaves_The_Search_To_Its_Linker'Access);
       Landin.Testing.Register
         (Into, "driver", "builtin imports never search roots",
          Builtin_Imports_Never_Search_Roots'Access);
