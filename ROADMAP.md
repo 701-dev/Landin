@@ -2443,7 +2443,7 @@ sessions on Windows arm64 in the gate.
 
 ### R21.50 — Microsoft's toolchain on Windows
 
-Status: active
+Status: complete
 Depends on: R21.10
 
 A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
@@ -2457,6 +2457,37 @@ the default and the only toolchain a Windows build requires.
 Exit evidence: the corpus links with Microsoft's tools and runs on a
 Windows x86-64 runner in the gate, which carries Visual Studio; the
 selection in `docs/capabilities.md`.
+
+Done: a `--toolchain` driver whose file name holds `-windows-msvc`, as
+Clang's own `x86_64-pc-windows-msvc-clang` does, selects Microsoft's link
+(D2327). Clang assembles the same assembly for the MSVC target and hands
+the link to Visual Studio's `link.exe`, or to `lld-link` under
+`--linker=lld`, with `/ENTRY:_landin_start /SUBSYSTEM:CONSOLE
+/STACK:8388608 /NODEFAULTLIB /OPT:REF /INCREMENTAL:NO /Brepro`, each
+`linker.library` as `NAME.lib` from the Windows SDK, and under
+`--debug=full` a PDB beside the image. llvm-mingw stays the default and the
+only toolchain a Windows build requires; the item covers x86-64. refine
+cannot run where `link.exe` does, so the Windows lane's `--link=microsoft`
+records on Linux each link command refine chooses, and the gate's new
+`windows-microsoft` job runs those commands with the runner's Clang,
+requires that `link.exe` ran each one, and holds every program to its
+fixture: all 3,682 outcomes of the corpus passed, linked by `link.exe` of
+Visual Studio 18 through Clang 20.1.8, in the candidate's gate run
+45336950416 with boards run 45340442875. Locally `lld-link` and MinGW-w64's import libraries
+stand in under Wine, where all 3,682 outcomes passed, and `nix develop` now
+puts `lld-link` beside `clang-19`. Found and fixed on the way: `link.exe`
+folds the thread-storage template into `.rdata` and drops an empty `.tls`
+contribution, so every thread-storage offset counted from `.rdata`'s start,
+and 54 outcomes, every program with a stack-limit cell, trapped or
+faulted; the template's start marker now holds a byte, as the C runtime's
+`_tls_start` does, under both linkers. Under Microsoft's link refine asks
+the driver about no library: the SDK's directories are invisible to it, so
+the linker's own text stands where L0509 would wrongly name every library.
+nixpkgs' `clang` wrapper refuses the MSVC target, which the lane's README
+now says. `SR-1767` records the job's unpinned Clang and Visual Studio;
+`SR-1736` and `SR-1748` were restated: Microsoft's link keeps an output
+name without `.exe`, but its debug builds differ just as LLD's MinGW-mode
+ones do.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
