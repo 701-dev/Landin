@@ -2465,11 +2465,44 @@ two `--debug=full` builds that differ by their temporary object's name.
 
 ### R21.40 — Windows arm64
 
-Status: active
+Status: complete
 Depends on: R21.30
 
 Exit evidence: the corpus, the Io and thread suites and the debugger
 sessions on Windows arm64 in the gate.
+
+Done: `windows-arm64` builds COFF executables through llvm-mingw's
+`aarch64-w64-mingw32-clang` from the arm64 backend, whose text around the
+instructions is Windows' (D2347-D2350). C calls take Microsoft's variant of
+AAPCS64, LLP64 with `compiler.c_windows_arm64_llp64`, signed plain `char`,
+and a variadic call's every argument passed as integers (D2347); routines
+carry unwind tables for their frame records and CodeView names ARM64's
+registers (D2349); thread storage and a report's stack bounds are reached
+through x18's TEB, and a failed check's `brk #1` ends the process with
+`STATUS_ILLEGAL_INSTRUCTION` as `ud2` does (D2350). The section spellings
+both Windows backends write are `Landin.Backend.COFF`'s. MinGW-w64's arm64
+import libraries come from the pinned llvm-mingw arm64 release, on Linux
+in the development shell and the gate alike (D2348). GitHub's
+`windows-11-arm` runner, which the repository's plan offers, runs the
+gate's new `windows-arm64-runtime` and `windows-arm64-debugger` jobs; WSL
+1 there runs `refine dap` in Ubuntu's arm64 base system, imported from its
+pinned archive, since the WSL setup action's distribution is x86-64's.
+Every fixture naming `windows-x86-64` names `windows-arm64` too but the
+one that selects x86-64's declarations: 3,674 outcomes of 817 runtime
+fixtures, the hosted Io and thread corpus among them, and LLDB's batch
+sessions at the four profiles and the DAP session from WSL all passed in
+the merged candidate's gate run 45381123990, with boards run 45386486954.
+Found and fixed on the way: `lldb-dap.exe` run from WSL deadlocked on its
+standard streams in about half of all sessions on both architectures,
+which probe matrices traced to the streams themselves, with or without
+`refine dap` in between; `refine dap` now speaks to a Windows adapter over a
+loopback connection (D2351), which takes `SR-1768`. The arm64 backend put
+its debug sections before the last line, taking it for a trailer COFF has
+none of; `docs/library.md`'s ABI table and `compiler/tests/README.md`'s
+target list named neither Windows target. Nothing local runs an arm64
+Windows program, which the lane's README says. Nineteen rows the merge and
+the completion aged past ten items were kept and `SR-1696` restated for
+arm64's stack switch.
 
 ### R21.50 — Microsoft's toolchain on Windows
 
