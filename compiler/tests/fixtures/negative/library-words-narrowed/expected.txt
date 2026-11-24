@@ -3,9 +3,9 @@ error[L0696]: `posix.words` words an errno alone
   |
 9 |     phrase = posix.words(problem)
   |                          ^^^^^^^
-  --> ../tests/fixtures/negative/library-words-narrowed/../../../../../platform/posix/errno.ldn:*:16
+  --> ../tests/fixtures/negative/library-words-narrowed/../../../../../platform/posix/errno.ldn:*:20
   |
-* | public words: (problem: errno) -> (phrase: []u8) =
-  |                ^^^^^^^^^^^^^^ this atom-valued parameter
+* |     public words: (problem: errno) -> (phrase: []u8) =
+  |                    ^^^^^^^^^^^^^^ this atom-valued parameter
   = note: D2008: `system.words` of `hosted/system` words an errno or a library atom
   = help: write `system.words`

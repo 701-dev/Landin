@@ -1,0 +1,138 @@
+--  Internet addresses between `core/net` and Windows Sockets' records, as
+--  addresses.ldn turns them into platform/posix's: a `SOCKADDR_IN` or
+--  `SOCKADDR_IN6` laid out from a `net.address`, an IPv6 zone included,
+--  and back.
+
+import core/net
+import core/text
+import platform/windows
+import platform/windows/sockets
+
+fixed if compiler.os == windows then
+    --  Put a 16-bit or 32-bit value into `into` at `at`, the network's
+    --  order or the machine's.
+    put_network_u16: (inout into: [28]u8, at: usize, value: u16) -> none =
+        into[at] = u8(value >> 8)
+        into[at + 1] = u8(value & 0xFF)
+    end put_network_u16
+
+    put_u16: (inout into: [28]u8, at: usize, value: u16) -> none =
+        into[at] = u8(value & 0xFF)
+        into[at + 1] = u8(value >> 8)
+    end put_u16
+
+    put_u32: (inout into: [28]u8, at: usize, value: u32) -> none =
+        for index in usize(0)..<4 do
+            into[at + index] = u8((value >> u32(8 * index)) & 0xFF)
+        end for
+    end put_u32
+
+    get_u16: (from_bytes: [28]u8, at: usize) -> (value: u16) =
+        value = u16(from_bytes[at]) | (u16(from_bytes[at + 1]) << 8)
+    end get_u16
+
+    get_u32: (from_bytes: [28]u8, at: usize) -> (value: u32) =
+        value = 0
+        for index in usize(0)..<4 do
+            value = value | (u32(from_bytes[at + index]) << u32(8 * index))
+        end for
+    end get_u32
+
+    --- The zone of `at` names no interface here, or is a number past 32
+    --- bits.
+    public no_interface: atom
+
+    --- Make Windows Sockets' record of the internet address `at`: a
+    --- `SOCKADDR_IN` for an IPv4 address and a `SOCKADDR_IN6` for an IPv6
+    --- one, whose scope is the interface the zone names, decimal digits as
+    --- the interface's number and a name looked up with `if_nametoindex`
+    --- (D581).  It fails `no_interface` when the zone names none.
+    public internet_address: (at: net.address)
+                             -> (made: sockets.socket_address) ! no_interface =
+        made = (bytes: zeroed, length: 16)
+        if at.family == net.ipv4 then
+            put_u16(made.bytes, 0, u16(sockets.af_inet))
+            put_network_u16(made.bytes, 2, at.port)
+            for index in usize(0)..<4 do
+                made.bytes[4 + index] = at.octets[index]
+            end for
+            return
+        end if
+        made.length = 28
+        put_u16(made.bytes, 0, u16(sockets.af_inet6))
+        put_network_u16(made.bytes, 2, at.port)
+        for index in usize(0)..<16 do
+            made.bytes[8 + index] = at.octets[index]
+        end for
+        put_u32(made.bytes, 24, try scope_of(at))
+    end internet_address
+
+    --  The interface number an IPv6 address's zone names, zero for none.
+    scope_of: (at: net.address) -> (scope: u32) ! no_interface =
+        scope = 0
+        length: usize = net.zone_length(at)
+        return when length == 0
+        name: []u8 = at.zone[0..<length]
+        scope = text.parse_u32(name) else (problem)
+            _ = problem
+            mut digits: bool = true
+            for index in usize(0)..<length do
+                if name[index] < u8('0') or name[index] > u8('9') then
+                    digits = false
+                end if
+            end for
+            fail no_interface when digits
+            mut terminated: [16]u8 = zeroed
+            for index in usize(0)..<length do
+                terminated[index] = name[index]
+            end for
+            found: u32 = sockets.interface_index(addr terminated[0])
+            fail no_interface when found == 0
+            scope = found
+            return
+        end
+    end scope_of
+
+    --- The internet address and port Windows Sockets' record `at` holds.
+    --- An IPv6 scope becomes its zone: the interface's name, or its number
+    --- in decimal when no interface has that number now.  It fails
+    --- `no_interface` for a record of another family.
+    public address_of: (at: sockets.socket_address)
+                       -> (result: net.address) ! no_interface =
+        family: u16 = get_u16(at.bytes, 0)
+        port: u16 = (u16(at.bytes[2]) << 8) | u16(at.bytes[3])
+        if family == u16(sockets.af_inet) then
+            result = net.ipv4_address(at.bytes[4], at.bytes[5], at.bytes[6],
+                                      at.bytes[7], port)
+            return
+        end if
+        fail no_interface when family <> u16(sockets.af_inet6)
+        result = net.unspecified(net.ipv6, port)
+        for index in usize(0)..<16 do
+            result.octets[index] = at.bytes[8 + index]
+        end for
+        scope: u32 = get_u32(at.bytes, 24)
+        if scope <> 0 then
+            result.zone = zone_named(scope)
+        end if
+    end address_of
+
+    --  The zone a received address's scope names: its interface's name, or
+    --  for an interface that has gone its number in decimal.
+    zone_named: (scope: u32) -> (zone: [16]u8) =
+        zone = zeroed
+        mut room: [256]u8 = zeroed
+        if sockets.interface_name(scope, addr room[0]) <> 0 then
+            mut length: usize = 0
+            while length < lenof room and room[length] <> 0 do inc length end while
+            if length <= net.zone_room then
+                for index in usize(0)..<length do
+                    zone[index] = room[index]
+                end for
+                return
+            end if
+        end if
+        mut digits := text.over(zone[0..<net.zone_room])
+        text.append_u32(digits, scope) else none
+    end zone_named
+end if

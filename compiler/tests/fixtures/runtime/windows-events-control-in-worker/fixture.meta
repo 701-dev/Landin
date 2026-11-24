@@ -1,0 +1,8 @@
+class: runtime
+summary: on Windows an event loop on a thread of hosted/thread watches interrupt, which the console's control handler posts to that loop's port, and receives the Ctrl+C the first thread sends to a console of its own, where Linux refuses a watch outside the first thread
+program: main.ldn
+root: ../../../../..
+profiles: standard
+status: 42
+constructs: 0940, 1380, 1620, 1660
+targets: windows-x86-64

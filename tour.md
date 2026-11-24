@@ -2979,7 +2979,7 @@ compiler:
 |---|---|---|
 | `core` | the shared freestanding library: `core/mem`, `core/text`, `core/vec` | every module and interface on every target |
 | `hosted` | hosted providers such as `hosted/heap`, `hosted/system` and `hosted/blocking` | on hosted systems |
-| `platform` | interfaces scoped to a target or a system: `platform/c`, the CPU modules and the POSIX layer | each as the next table says |
+| `platform` | interfaces scoped to a target or a system: `platform/c`, the CPU modules, the POSIX layer and `platform/windows` | each as the next table says |
 | `landin` | the toolchain modules of [1560]: `landin/compiler`, `landin/assembler`, `landin/linker` | everywhere, without an import |
 
 Within `platform`, availability goes by module:
@@ -2988,16 +2988,19 @@ Within `platform`, availability goes by module:
 |---|---|
 | `platform/c` | wherever a C ABI (application binary interface) is enabled: the hosted LP64 targets and Cortex-M's AAPCS32 |
 | a CPU module: `platform/cortex_m`, `platform/riscv` or `platform/xtensa` | everywhere, with its operations, submodules and reference descriptions only on its own targets: Cortex-M at any level, `rv32`, `xtensa` |
-| the POSIX layer: `platform/posix` over `platform/linux`, `platform/libc` and `platform/kqueue` | on Linux, macOS and FreeBSD |
+| the POSIX layer: `platform/posix` over `platform/linux`, `platform/libc` and `platform/kqueue` | on every hosted system, with its declarations only on Linux, macOS and FreeBSD |
+| `platform/windows` | on every hosted system, with its declarations only on Windows |
 | a `platform` module the compiler gives no scope | nowhere |
 
 Fine print:
 
 - An import outside its target's scope is refused by name when the target is
   checked, for example `hosted/heap` in firmware.
-- The POSIX layer is hosted-only and still under `platform`, not `hosted`:
-  it is the system's own interface, which the `hosted` providers are written
-  over, rather than a provider of its own.
+- The POSIX layer and `platform/windows` are hosted-only and still under
+  `platform`, not `hosted`: each is its system's own interface, which the
+  `hosted` providers are written over, rather than a provider of its own.
+  A provider written for every hosted system imports both, and a call to
+  the one that declares nothing on the target is refused.
 - A module that declares nothing on some targets can be imported on all of
   them: a program for every target imports `platform/cortex_m` and calls it
   from a `fixed if compiler.arch == cortex_m0` arm ([1500]).

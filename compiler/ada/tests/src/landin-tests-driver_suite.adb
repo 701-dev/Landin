@@ -8300,6 +8300,41 @@ package body Landin.Tests.Driver_Suite is
                & Unbounded.To_String (Result.Report));
          end;
       end Hosted_Accepted;
+      --  D2267: each hosted system's own interface is imported on every
+      --  hosted system and declares nothing off its own, so a provider
+      --  written for all of them imports platform/posix and
+      --  platform/windows together.
+      procedure System_Module_Accepted (Target, Logical, Leaf : String);
+      procedure System_Module_Accepted (Target, Logical, Leaf : String) is
+         Host : Landin.Testing.Fakes.Fake_Filesystem;
+         Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+         Args : Landin.Platform.Path_List;
+      begin
+         Host.Add_Directory ("root");
+         Host.Add_Directory ("root/app");
+         Host.Add_Directory ("root/platform");
+         Host.Add_Directory ("root/" & Logical);
+         Host.Add_File
+           ("root/" & Logical & "/" & Leaf & ".ldn",
+            "fixed if compiler.os == freestanding then" & LF
+            & "    public answer: u32 = 42" & LF & "end if");
+         Host.Add_File
+           ("root/app/main.ldn", "import " & Logical & LF
+            & "public main: () -> (code: i32) = code = 42 end main");
+         Args.Append ("--root=root");
+         Args.Append ("--target=" & Target);
+         Args.Append ("root/app");
+         declare
+            Result : constant Landin.Driver.Outcome :=
+              Landin.Driver.Execute (Args, Host, Tools);
+         begin
+            Landin.Testing.Check
+              (Item, Result.Status = Landin.Driver.Status_Success
+               and then Unbounded.Length (Result.Report) = 0,
+               Target & " imports " & Logical & ": "
+               & Unbounded.To_String (Result.Report));
+         end;
+      end System_Module_Accepted;
       --  D1022: a platform module the library ships with no scope is
       --  available nowhere, on a hosted target and on firmware alike, and
       --  the refusal says that it declares no targets.
@@ -8382,8 +8417,9 @@ package body Landin.Tests.Driver_Suite is
       C_Accepted ("armv8-m.main");
       C_Refused_Names_The_Enabled ("rv32");
       C_Refused_Names_The_Enabled ("xtensa");
-      --  The POSIX layer and the systems' own interfaces beneath it serve
-      --  the hosted POSIX systems alone.
+      --  The POSIX layer, the systems' own interfaces beneath it and
+      --  Windows' serve the hosted systems: each is imported on all of
+      --  them and declares nothing off its own (D2267).
       Refused ("cortex-m0", "platform/posix", True);
       Refused ("cortex-m0", "platform/posix", False);
       Refused ("cortex-m0", "platform/linux", True, True);
@@ -8392,6 +8428,12 @@ package body Landin.Tests.Driver_Suite is
       Refused ("cortex-m0", "platform/kqueue", True);
       Refused ("synthetic-32", "platform/kqueue", False);
       Refused ("synthetic-32", "platform/posix", True);
+      Refused ("cortex-m0", "platform/windows", True);
+      Refused ("synthetic-32", "platform/windows", False);
+      System_Module_Accepted ("windows-x86-64", "platform/posix", "posix");
+      System_Module_Accepted ("windows-x86-64", "platform/kqueue", "kqueue");
+      System_Module_Accepted ("linux-x86-64", "platform/windows", "windows");
+      System_Module_Accepted ("darwin-arm64", "platform/windows", "windows");
       Hosted_Accepted;
       Refused ("linux-x86-64", "platform/cortex_m/reference", True);
       Refused ("linux-x86-64", "platform/cortex_m/reference", False);

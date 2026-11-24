@@ -1,0 +1,97 @@
+--  Windows Sockets' overlapped calls, raw: sending and receiving with an
+--  `overlapped` record, and the extension functions `ConnectEx` and
+--  `AcceptEx`, which `WSAIoctl` gives as addresses.  Each call that the
+--  system takes and has not finished fails `socket_error` with
+--  `error_io_pending` for `socket_last_error`, and ends in a packet on the
+--  completion port the socket is associated with.
+
+import platform/windows
+
+fixed if compiler.os == windows then
+    --- `WSABUF`: one buffer of a call, its length and its first byte.
+    public socket_buffer: type = struct
+        length: u32
+        reserved: u32
+        bytes: usize
+    end socket_buffer
+
+    --- Receive into the `count` buffers at `buffers`, `WSARecv`, with
+    --- `record` an `overlapped` and no completion routine.
+    public extern(c) link(symbol: "WSARecv") receive_overlapped:
+        (socket: windows.handle, buffers: ptr mut socket_buffer, count: u32,
+         received: ptr mut u32, flags: ptr mut u32, record: usize,
+         routine: usize) -> (result: i32)
+
+    --- Send the `count` buffers at `buffers`, `WSASend`.
+    public extern(c) link(symbol: "WSASend") send_overlapped:
+        (socket: windows.handle, buffers: ptr mut socket_buffer, count: u32,
+         sent: ptr mut u32, flags: u32, record: usize, routine: usize)
+        -> (result: i32)
+
+    --- Receive a datagram into the buffers, its sender's address into the
+    --- `sender_length` bytes at `sender`, `WSARecvFrom`; both must outlive the
+    --- call.
+    public extern(c) link(symbol: "WSARecvFrom") receive_from_overlapped:
+        (socket: windows.handle, buffers: ptr mut socket_buffer, count: u32,
+         received: ptr mut u32, flags: ptr mut u32, sender: ptr mut u8,
+         sender_length: ptr mut i32, record: usize, routine: usize)
+        -> (result: i32)
+
+    --- Send a datagram of the buffers to the address at `to`, `WSASendTo`.
+    public extern(c) link(symbol: "WSASendTo") send_to_overlapped:
+        (socket: windows.handle, buffers: ptr mut socket_buffer, count: u32,
+         sent: ptr mut u32, flags: u32, to: ptr u8, to_length: i32,
+         record: usize, routine: usize) -> (result: i32)
+
+    --- How an overlapped call on `socket` ended,
+    --- `WSAGetOverlappedResult`: nonzero with the bytes it moved, or zero
+    --- with the Windows Sockets code for `socket_last_error`.
+    public extern(c) link(symbol: "WSAGetOverlappedResult") socket_overlapped_result:
+        (socket: windows.handle, record: ptr mut windows.overlapped, moved: ptr mut u32,
+         wait: i32, flags: ptr mut u32) -> (done: i32)
+
+    --- A control call on `socket`, `WSAIoctl`, here only to ask for an
+    --- extension function's address.
+    public extern(c) link(symbol: "WSAIoctl") socket_control:
+        (socket: windows.handle, code: u32, given: ptr u8, given_length: u32,
+         into: ptr mut usize, into_length: u32, returned: ptr mut u32,
+         record: usize, routine: usize) -> (result: i32)
+
+    --- `SIO_GET_EXTENSION_FUNCTION_POINTER`.
+    public get_extension_function: u32 = 0xC8000006
+
+    --- The GUID that names `ConnectEx`, `WSAID_CONNECTEX`, as the 16 bytes
+    --- `socket_control` is given.
+    public connect_extension: [16]u8 =
+        [0xB9, 0x07, 0xA2, 0x25, 0xF3, 0xDD, 0x60, 0x46,
+         0x8E, 0xE9, 0x76, 0xE5, 0x8C, 0x74, 0x06, 0x3E]
+    --- The GUID that names `AcceptEx`, `WSAID_ACCEPTEX`.
+    public accept_extension: [16]u8 =
+        [0xF1, 0x7D, 0x36, 0xB5, 0xAC, 0xCB, 0xCF, 0x11,
+         0x95, 0xCA, 0x00, 0x80, 0x5F, 0x48, 0xA1, 0x92]
+
+    --- `ConnectEx`: connect `socket`, which must be bound, to the address
+    --- at `name`, sending nothing, with `record` an `overlapped`.
+    public connect_routine: type = extern(c)
+        (socket: windows.handle, name: ptr u8, name_length: i32, bytes: usize,
+         count: u32, sent: ptr mut u32, record: usize) -> (done: i32)
+
+    --- `AcceptEx`: accept a connection on `listener` into `accepted`, a
+    --- new socket of its family, receiving nothing, both addresses into
+    --- `addresses`, each given `address_room` bytes.
+    public accept_routine: type = extern(c)
+        (listener: windows.handle, accepted: windows.handle, addresses: ptr mut u8,
+         count: u32, local_room: u32, remote_room: u32,
+         received: ptr mut u32, record: usize) -> (done: i32)
+
+    --- What `AcceptEx` takes for each address: the largest socket address
+    --- and 16 bytes more.
+    public address_room: u32 = 44
+
+    --- The option that gives a socket `ConnectEx` connected the state
+    --- `getpeername`, `shutdown` and the rest expect,
+    --- `SO_UPDATE_CONNECT_CONTEXT`.
+    public so_update_connect_context: i32 = 0x7010
+    --- The same for a socket `AcceptEx` accepted, `SO_UPDATE_ACCEPT_CONTEXT`.
+    public so_update_accept_context: i32 = 0x700B
+end if

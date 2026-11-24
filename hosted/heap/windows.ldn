@@ -1,0 +1,69 @@
+--  The heap's pages on Windows.  A mapping reserves its address space in
+--  the system's allocation granularity, 64 KiB, and commits the pages it
+--  holds; the rest of its reservation is where it grows in place, and
+--  where a trimmed tail goes back to, decommitted.  Windows moves no
+--  pages, so a mapping that cannot grow where it is is copied.
+
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  A mapping of `length` readable and writable bytes, or zero.
+    map_pages: (length: usize) -> (address: usize) =
+        unit: usize = windows.allocation_granularity
+        reserved: usize = (length + (unit - 1)) & (0 -% unit)
+        address = windows.virtual_alloc(0, reserved, windows.mem_reserve,
+                                        windows.page_readwrite)
+        return when address == 0
+        if windows.virtual_alloc(address, length, windows.mem_commit,
+                                 windows.page_readwrite) == 0
+        then
+            _ = windows.virtual_free(address, 0, windows.mem_release)
+            address = 0
+        end if
+    end map_pages
+
+    --  Release the reservation at `origin`, whatever it holds; a refusal
+    --  keeps it.
+    release_pages: (origin: usize, length: usize) -> none =
+        _ = length
+        _ = windows.virtual_free(origin, 0, windows.mem_release)
+    end release_pages
+
+    --  Decommit the `length` bytes at `tail`, the end of a mapping, which
+    --  its reservation keeps for growing, and say whether the system did.
+    return_tail: (tail: usize, length: usize) -> (returned: bool) =
+        returned = windows.virtual_free(tail, length, windows.mem_decommit)
+                   <> 0
+    end return_tail
+
+    --  Commit the reserved pages after the mapping of `length` bytes at
+    --  `origin` up to `wanted`, when its own reservation holds them
+    --  uncommitted, and say whether it did.
+    extend_pages: (origin: usize, length: usize, wanted: usize)
+                  -> (grown: bool) =
+        grown = false
+        mut found: windows.memory_information = zeroed
+        written: usize = windows.virtual_query(origin + length, addr found,
+                                               sizeof windows.memory_information)
+        return when written == 0
+        return when found.allocation_base <> origin
+          or found.state <> windows.state_reserved
+          or found.size < wanted - length
+        grown = windows.virtual_alloc(origin + length, wanted - length,
+                                      windows.mem_commit,
+                                      windows.page_readwrite) <> 0
+    end extend_pages
+
+    --  Windows moves no pages: zero, and the block is copied.
+    remap_pages: (origin: usize, length: usize, wanted: usize)
+                 -> (moved: usize) =
+        _ = origin
+        _ = length
+        _ = wanted
+        moved = 0
+    end remap_pages
+
+    page_bytes: () -> (bytes: usize) =
+        bytes = windows.page_bytes
+    end page_bytes
+end if

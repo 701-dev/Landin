@@ -1,0 +1,8 @@
+class: runtime
+profiles: specialization
+summary: D486 D580 over hosted/events, on 127.0.0.1 and on ::1, a receive on a quiet connection, an accept on a listener nothing connects to and a receive_from on a quiet datagram socket, each limited to 50 ms by net.set_timeouts, wait on the loop and are net.timed_out after at least 50 ms by the provider's clock; the connection then receives what its peer sends, a datagram arrives whole with its sender's port, and a connection to the closed listener's port is refused
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, windows-x86-64

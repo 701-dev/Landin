@@ -1,0 +1,117 @@
+--  hosted/events' network on its own limits and datagrams, as
+--  runtime/network-receive-timeout holds the blocking provider's.  A
+--  receive on a connection whose peer sends nothing, an accept on a
+--  listener nothing connects to and a receive_from on a quiet datagram
+--  socket each wait out a limit of 50 ms and no less, by the provider's
+--  clock, parked on the loop with the limit as their deadline, and fail
+--  `timed_out`; then the peer sends and the receive takes it, so a call a
+--  limit ended leaves its socket usable.  A datagram sent to the other
+--  socket arrives whole with its sender's address, and a connection to a
+--  port nothing listens on, the closed listener's, is refused.
+import core/cmp
+import core/io
+import core/net
+import core/time
+import hosted/events
+
+--  The limit, and what waiting it out takes at the least.
+limit: u64 = 50
+
+--  Whether a receive and an accept each time out after the limit, and the
+--  connection then receives what is sent; then whether a connection to
+--  the closed listener's port is refused.
+timed: (host: events.host, family: net.address_family) -> (yes: bool)
+       ! ... =
+    listener: io.file = try net.listen(host, net.loopback(family, 0))
+    at: net.address = try net.local_address(host, listener)
+    client: io.file = try net.connect(host, at)
+    server: io.file = try net.accept(host, listener)
+    try net.set_timeouts(host, client, time.milliseconds(limit), time.seconds(0))
+    try net.set_timeouts(host, listener, time.milliseconds(limit),
+                         time.seconds(0))
+    mut buffer: [8]u8 = zeroed
+    began: time.instant = time.now(host)
+    mut received: bool = false
+    got: usize = net.receive(host, client, buffer[0..<8]) else (problem)
+        received = problem == net.timed_out
+        0
+    end
+    waited: time.duration = time.elapsed(began, time.now(host))
+    began_accept: time.instant = time.now(host)
+    mut accepted: bool = false
+    other: io.file = net.accept(host, listener) else (problem)
+        accepted = problem == net.timed_out
+        listener
+    end
+    _ = other
+    waited_accept: time.duration = time.elapsed(began_accept, time.now(host))
+    try net.send(host, server, "late")
+    later: usize = try net.receive(host, client, buffer[0..<8])
+    try net.close(host, server)
+    try net.close(host, client)
+    try net.close(host, listener)
+    mut refused: bool = false
+    nobody: io.file = net.connect(host, at) else (problem)
+        refused = problem == net.refused
+        io.file(0)
+    end
+    if not refused then try net.close(host, nobody) end if
+    yes = received and got == 0 and waited >= time.milliseconds(limit)
+          and accepted and waited_accept >= time.milliseconds(limit)
+          and later == 4 and cmp.compare(buffer[0..<4], "late") == cmp.equal
+          and refused
+end timed
+
+--  Whether a receive_from on a quiet socket times out after the limit, and
+--  a datagram then arrives whole with its sender's port.
+datagrams: (host: events.host, family: net.address_family) -> (yes: bool)
+           ! ... =
+    first: io.file = try net.open_datagram(host, net.loopback(family, 0))
+    second: io.file = try net.open_datagram(host, net.loopback(family, 0))
+    from_first: net.address = try net.local_address(host, first)
+    to_second: net.address = try net.local_address(host, second)
+    try net.set_timeouts(host, second, time.milliseconds(limit),
+                         time.seconds(0))
+    mut buffer: [8]u8 = zeroed
+    began: time.instant = time.now(host)
+    mut quiet: bool = false
+    _ = net.receive_from(host, second, buffer[0..<8]) else (problem)
+        quiet = problem == net.timed_out
+        net.datagram(count: 0, sender: from_first)
+    end
+    waited: time.duration = time.elapsed(began, time.now(host))
+    try net.send_to(host, first, "word", to_second)
+    taken: net.datagram = try net.receive_from(host, second, buffer[0..<8])
+    yes = quiet and waited >= time.milliseconds(limit) and taken.count == 4
+          and cmp.compare(buffer[0..<4], "word") == cmp.equal
+          and taken.sender.port == from_first.port
+    try net.close(host, first)
+    try net.close(host, second)
+end datagrams
+
+public main: () -> (code: i32) =
+    code = 1
+    mut state: events.space = zeroed
+    mut entries: [3]usize = zeroed
+    host := events.over(state, entries) else (problem)
+        _ = problem
+        return
+    end
+    code = 2
+    families: [2]net.address_family = [net.ipv4, net.ipv6]
+    for family in families do
+        yes: bool = timed(host, family) else (problem)
+            _ = problem
+            return
+        end
+        return when not yes
+        inc code
+        held: bool = datagrams(host, family) else (problem)
+            _ = problem
+            return
+        end
+        return when not held
+        inc code
+    end for
+    code = 42
+end main

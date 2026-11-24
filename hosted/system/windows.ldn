@@ -1,0 +1,362 @@
+--  The provider on Windows: system.ldn's files, standard streams,
+--  arguments and environment, over platform/windows (D2270).  A file is
+--  the handle Windows gives, kept in `io.file` as its word; a failure
+--  keeps the Win32 error code in the handle's last-error cell, which
+--  `last_errno` reports, and maps it to the concepts' atoms as the POSIX
+--  arm maps an errno.  Paths, arguments and variables are host strings in
+--  WTF-8 (D2268), converted at each call.
+
+import core/cmp
+import core/io
+import core/mem
+import core/text
+import platform/windows
+
+fixed if compiler.os == windows then
+    --- Keep the Win32 error `code` in the handle's last-error cell, which
+    --- `last_errno` then reports. It is for a provider built over this one,
+    --- whose own calls fail through the same cell. Zero leaves the cell as
+    --- it is.
+    public record_errno: (handle: host, code: u32) -> none =
+        record(handle, code)
+    end record_errno
+
+    --  Keep a failure's code in the handle's cell.
+    record: (self: host, code: u32) -> none =
+        if code <> 0 then keep_failure(self, i32(code & 0x7FFFFFFF)) end if
+    end record
+
+    --  Keep the code the failing call just left.
+    record_last: (self: host) -> none =
+        record(self, windows.last_error())
+    end record_last
+
+    --  A path names nothing: no file or no directory on the way, a drive
+    --  that is not there, or a component before the last that is a file.
+    absent: (code: u32) -> (yes: bool) =
+        yes = code == windows.error_file_not_found
+              or code == windows.error_path_not_found
+              or code == windows.error_invalid_drive
+              or code == windows.error_directory
+              or code == windows.error_bad_netpath
+    end absent
+
+    --  The caller may not do what it asked.
+    refused: (code: u32) -> (yes: bool) =
+        yes = code == windows.error_access_denied
+              or code == windows.error_sharing_violation
+              or code == windows.error_lock_violation
+              or code == windows.error_write_protect
+    end refused
+
+    --  Keep a failure about a path and fail as the concepts say of one.
+    path_failure: (self: host, code: u32)
+                  -> none ! mem.not_found | io.no_access | io.io_failed =
+        record(self, code)
+        fail mem.not_found when absent(code)
+        fail io.no_access when refused(code)
+        fail io.io_failed
+    end path_failure
+
+    --  A socket carries this bit beside its handle, which a handle never
+    --  has, so that a provider built over this one sends on it rather than
+    --  writing.
+    socket_mark: usize = 0x4000000000000000
+
+    --- Return the Windows handle behind a file of this provider, for a call
+    --- the portable concepts do not make. The file stays this provider's;
+    --- close it through `io.close`.
+    public handle_of: (opened: io.file) -> (result: windows.handle) =
+        result = usize(opened) & ~(socket_mark | pipe_mark)
+    end handle_of
+
+    --- Return a Windows handle as a file of this provider, which closes it
+    --- with `io.close`.
+    public file_of: (opened: windows.handle) -> (result: io.file) =
+        result = io.file(opened)
+    end file_of
+
+    --- Return a Windows socket as a file of this provider, whose `io.write`
+    --- sends on it as `net.send` does.
+    public socket_of: (opened: windows.handle) -> (result: io.file) =
+        result = io.file(opened | socket_mark)
+    end socket_of
+
+    --- Whether `opened` is a socket `socket_of` made, which a provider built
+    --- over this one writes by sending.
+    public is_socket: (opened: io.file) -> (yes: bool) =
+        yes = (usize(opened) & socket_mark) <> 0
+    end is_socket
+
+    --  Copy `path` into `room` for a call, or keep why it cannot be given.
+    path_in: (self: host, path: text.os_string, room: []mut u16)
+             -> (name: ptr u16 from room) ! io.io_failed =
+        name = windows.terminate(path, room) else (problem)
+            record(self, windows.code_of(problem))
+            fail io.io_failed
+        end
+    end path_in
+
+    --  Whether `path` names a directory.
+    names_directory: (name: ptr u16) -> (yes: bool) =
+        found: u32 = windows.get_file_attributes(name)
+        yes = found <> windows.invalid_attributes
+              and (found & windows.attribute_directory) <> 0
+    end names_directory
+
+    --  Open `path` for `access` with `disposition`: the one open every
+    --  concept's makes.  A directory is `is_a_directory`: an open to read
+    --  takes it with backup semantics, so that it is found, asks what it
+    --  opened and closes it; an open to write is refused access, and asks.
+    open: (self: host, path: text.os_string, access: u32, disposition: u32)
+          -> (opened: io.file)
+          ! io.already_exists | mem.not_found | io.no_access | io.is_a_directory
+          | io.io_failed =
+        keep_failure(self, 0)
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        reading: bool = access == windows.generic_read
+        flags: u32 = if reading then windows.flag_backup_semantics
+                     else windows.attribute_normal end if
+        made: windows.handle = windows.create_file(name, access,
+                                                   windows.share_all, 0,
+                                                   disposition, flags, 0)
+        if made == windows.invalid_handle then
+            code: u32 = windows.last_error()
+            if code == windows.error_file_exists
+              or code == windows.error_already_exists then
+                record(self, code)
+                fail io.already_exists
+            end if
+            if code == windows.error_access_denied and names_directory(name) then
+                record(self, code)
+                fail io.is_a_directory
+            end if
+            try path_failure(self, code)
+            fail io.io_failed
+        end if
+        if reading then
+            mut found: windows.file_information = zeroed
+            if windows.get_file_information(made, addr found) == 0 then
+                code: u32 = windows.last_error()
+                _ = windows.close_handle(made)
+                record(self, code)
+                fail io.io_failed
+            end if
+            if (found.attributes & windows.attribute_directory) <> 0 then
+                _ = windows.close_handle(made)
+                record(self, windows.error_directory)
+                fail io.is_a_directory
+            end if
+        end if
+        opened = file_of(made)
+    end open
+
+    system_open_read: (self: host, path: text.os_string)
+                      -> (opened: io.file)
+                      ! mem.not_found | io.no_access | io.is_a_directory
+                      | io.io_failed =
+        opened = open(self, path, windows.generic_read, windows.open_existing)
+            else (problem)
+            fail mem.not_found when problem == mem.not_found
+            fail io.no_access when problem == io.no_access
+            fail io.is_a_directory when problem == io.is_a_directory
+            fail io.io_failed
+        end
+    end system_open_read
+
+    system_open_write: (self: host, path: text.os_string)
+                       -> (opened: io.file)
+                       ! mem.not_found | io.no_access | io.is_a_directory
+                       | io.io_failed =
+        opened = open(self, path, windows.generic_write, windows.create_always)
+            else (problem)
+            fail mem.not_found when problem == mem.not_found
+            fail io.no_access when problem == io.no_access
+            fail io.is_a_directory when problem == io.is_a_directory
+            fail io.io_failed
+        end
+    end system_open_write
+
+    --  What identifies the file `path` names: its volume and index, which
+    --  an open asking only for its attributes reads.  `absent` says no file
+    --  is there.
+    identity: type = struct
+        volume: u32
+        high: u32
+        low: u32
+    end identity
+
+    no_file: atom
+
+    identity_of: (self: host, path: text.os_string)
+                 -> (found: identity) ! no_file | io.io_failed =
+        mut room: windows.path_room = zeroed
+        name: ptr u16 = try path_in(self, path, room)
+        made: windows.handle = windows.create_file(
+            name, windows.file_read_attributes, windows.share_all, 0,
+            windows.open_existing, windows.flag_backup_semantics, 0)
+        if made == windows.invalid_handle then
+            code: u32 = windows.last_error()
+            fail no_file when absent(code)
+            record(self, code)
+            fail io.io_failed
+        end if
+        mut information: windows.file_information = zeroed
+        done: i32 = windows.get_file_information(made, addr information)
+        code: u32 = windows.last_error()
+        _ = windows.close_handle(made)
+        if done == 0 then
+            record(self, code)
+            fail io.io_failed
+        end if
+        found = (volume: information.volume, high: information.index_high,
+                 low: information.index_low)
+    end identity_of
+
+    --  A stable-path identity check, as the POSIX arm's: every input
+    --  lookup failure refuses; only an absent output is allowed.
+    system_same_file: (self: host, left: text.os_string,
+                       right: text.os_string)
+                      -> (same: bool) ! io.io_failed =
+        keep_failure(self, 0)
+        first: identity = identity_of(self, left) else (problem)
+            if problem == no_file then
+                record(self, windows.error_file_not_found)
+            end if
+            fail io.io_failed
+        end
+        same = false
+        second: identity = identity_of(self, right) else (problem)
+            return when problem == no_file
+            fail io.io_failed
+        end
+        same = first.volume == second.volume and first.high == second.high
+               and first.low == second.low
+    end system_same_file
+
+    system_close: (self: host, sink opened: io.file)
+                  -> none ! io.io_failed =
+        keep_failure(self, 0)
+        if windows.close_handle(handle_of(opened)) == 0 then
+            record_last(self)
+            fail io.io_failed
+        end if
+    end system_close
+
+    system_input: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(windows.get_std_handle(windows.std_input))
+    end system_input
+
+    system_out: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(windows.get_std_handle(windows.std_output))
+    end system_out
+
+    system_err: (self: host) -> (stream: io.file) =
+        _ = self.failure
+        stream = file_of(windows.get_std_handle(windows.std_error))
+    end system_err
+
+    system_arguments_length: (self: host) -> (count: usize) =
+        _ = self.failure
+        table: windows.argument_table = windows.arguments()
+        count = table.count
+    end system_arguments_length
+
+    system_argument: (self: host, index: usize)
+                     -> (value: text.os_string from self) ! mem.not_found =
+        _ = self.failure
+        table: windows.argument_table = windows.arguments()
+        fail mem.not_found when index >= table.count
+        value = windows.argument(table, index)
+    end system_argument
+
+    system_variables_length: (self: host) -> (count: usize) =
+        _ = self.failure
+        table: windows.environment_table = windows.environment()
+        count = table.count
+    end system_variables_length
+
+    system_variable: (self: host, index: usize)
+                     -> (item: text.os_variable from self) ! mem.not_found =
+        _ = self.failure
+        table: windows.environment_table = windows.environment()
+        fail mem.not_found when index >= table.count
+        item = windows.variable(table, index)
+    end system_variable
+
+    --  Windows compares a variable's name without regard to case, as its
+    --  own `GetEnvironmentVariableW` does, ASCII letters folded.
+    folded: (unit: u8) -> (result: u8) =
+        result = if unit >= 97 and unit <= 122 then unit - 32 else unit end if
+    end folded
+
+    same_name: (found: []u8, wanted: []u8) -> (yes: bool) =
+        yes = false
+        return when lenof found <> lenof wanted
+        for index in usize(0)..<lenof found do
+            return when folded(found[index]) <> folded(wanted[index])
+        end for
+        yes = true
+    end same_name
+
+    system_variable_named: (self: host, name: text.os_string)
+                           -> (value: text.os_string from self)
+                           ! mem.not_found =
+        _ = self.failure
+        table: windows.environment_table = windows.environment()
+        wanted: []u8 = text.os_string_bytes(name)
+        for index in usize(0)..<table.count do
+            item: text.os_variable = windows.variable(table, index)
+            if same_name(text.os_string_bytes(item.name), wanted) then
+                value = item.value
+                return
+            end if
+        end for
+        fail mem.not_found
+    end system_variable_named
+
+    host is io.files
+        (open_read: system_open_read, open_write: system_open_write,
+         same_file: system_same_file, close: system_close)
+    host is io.process
+        (input: system_input, out: system_out, err: system_err,
+         arguments_length: system_arguments_length, argument: system_argument)
+    host is io.environment
+        (variables_length: system_variables_length,
+         variable: system_variable,
+         variable_named: system_variable_named)
+
+    --  The standard streams are `GetStdHandle`'s, and the root is
+    --  platform/windows'.
+    --- Return a handle to the hosted services that do not wait. It exposes the
+    --- process arguments and the three standard streams, which a provider
+    --- built over it reads and writes. Regular open-write operations create
+    --- or truncate files; close regular files explicitly. A program that waits
+    --- on anything mints `hosted/blocking`'s `new` instead, which makes this
+    --- handle itself. The handle borrows nothing: the argument root and the
+    --- standard streams belong to the process. Each thread that calls through
+    --- the handle, or through a copy of it, records into a last-error and
+    --- last-signal cell of its own (D503), so threads sharing a handle never
+    --- see each other's failures. Use `over` for a cell of the caller's own.
+    ---
+    --- The arguments are the root that `_landin_host_initialize_arguments`
+    --- established. The hosted entry establishes it before its body runs;
+    --- calling this before any root exists traps.
+    public new: () -> (handle: host) =
+        _ = windows.arguments()
+        handle = (failure: calling_thread, signal: calling_thread)
+    end new
+
+    --- Fill `state` and return a handle that records its last error there
+    --- rather than in the calling thread's cell, whichever thread calls. It
+    --- shares the process's arguments and standard streams like any other
+    --- handle; calling this before any root exists traps, as `new` does.
+    public over: (inout state: space) -> (handle: host from state) =
+        _ = windows.arguments()
+        state = (failure: 0, signal: 0)
+        handle = (failure: addr state.failure, signal: addr state.signal)
+    end over
+end if

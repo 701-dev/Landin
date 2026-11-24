@@ -1,0 +1,61 @@
+--  The heap's pages on a POSIX system: mappings of platform/posix.
+
+import platform/posix
+
+fixed if compiler.os <> windows then
+    --  A mapping of `length` readable and writable bytes, or zero.
+    map_pages: (length: usize) -> (address: usize) =
+        base: ptr mut u8 = posix.map(length) else (problem)
+            _ = problem
+            address = 0
+            return
+        end
+        address = usize(base)
+    end map_pages
+
+    --  Unmap the mapping of `length` bytes at `origin`; a refusal keeps it.
+    release_pages: (origin: usize, length: usize) -> none =
+        base: ptr mut u8 = ptr(origin)
+        posix.unmap(base, length) else none
+    end release_pages
+
+    --  Unmap the `length` bytes at `tail`, the end of a mapping, and say
+    --  whether the system did.
+    return_tail: (tail: usize, length: usize) -> (returned: bool) =
+        base: ptr mut u8 = ptr(tail)
+        returned = true
+        posix.unmap(base, length) else (problem)
+            _ = problem
+            returned = false
+        end
+    end return_tail
+
+    --  Grow the mapping of `length` bytes at `origin` where it is to
+    --  `wanted`, and say whether the system did.
+    extend_pages: (origin: usize, length: usize, wanted: usize)
+                  -> (grown: bool) =
+        base: ptr mut u8 = ptr(origin)
+        grown = true
+        posix.extend(base, length, wanted) else (problem)
+            _ = problem
+            grown = false
+        end
+    end extend_pages
+
+    --  The mapping of `length` bytes at `origin` made `wanted` long, its
+    --  pages moved where the system can move them: its address, or zero.
+    remap_pages: (origin: usize, length: usize, wanted: usize)
+                 -> (moved: usize) =
+        base: ptr mut u8 = ptr(origin)
+        made: ptr mut u8 = posix.remap(base, length, wanted) else (problem)
+            _ = problem
+            moved = 0
+            return
+        end
+        moved = usize(made)
+    end remap_pages
+
+    page_bytes: () -> (bytes: usize) =
+        bytes = posix.page_size()
+    end page_bytes
+end if

@@ -1,0 +1,141 @@
+--  The event provider's `signal.signals` on Windows, which has no signals:
+--  its console's control events stand for the three kinds a console
+--  program is asked to stop by.  Ctrl+C and Ctrl+Break are `interrupt`,
+--  the console's closing `hangup`, as a terminal's hanging up is, and the
+--  user's logging off and the system's shutting down `terminate`.  The
+--  event's code is the `number` `next_signal` gives: 0, 1, 2, 5 or 6.
+--  `child`, `user1` and `user2` name nothing Windows sends, and watching
+--  one fails `io_failed` with `ERROR_NOT_SUPPORTED`.
+--
+--  Watching the first kind adds a control handler to the process, which
+--  the system calls on a thread of its own: for a watched kind it puts a
+--  packet on the loop's port and says the event is handled, and for any
+--  other it hands the event on, to the system's default, which ends the
+--  process.  After the handler returns for a closing, a logging off or a
+--  shutdown the system ends the process anyway, so for those the handler
+--  does not return: the program has until the system's limit, five
+--  seconds for a closing, to read the event and end.  `stop_watching`
+--  removes the handler.  A child inherits no handler.  The handler is the
+--  process's, so the port it posts to is the last that began watching.
+
+import core/atomic
+import core/io
+import core/io/signal
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  The port the control handler posts to, and the kinds it takes, as
+    --  bits by `signal.kind`'s index; the handler reads both on its own
+    --  thread.
+    mut control_port: atomic.cell(u64) = zeroed
+    mut control_kinds: atomic.cell(u32) = zeroed
+
+    --  The index of the kind the control event `event` stands for, `kinds`
+    --  for one that stands for none.
+    kind_of_event: (event: u32) -> (index: usize) =
+        index = if event == windows.control_c
+          or event == windows.control_break then 0
+                elsif event == windows.control_logoff
+                  or event == windows.control_shutdown then 1
+                elsif event == windows.control_close then 2
+                else kinds end if
+    end kind_of_event
+
+    --  The control handler, on the system's thread.
+    extern(c) control_arrived: (event: u32) -> (handled: i32) =
+        handled = 0
+        index: usize = kind_of_event(event)
+        return when index >= kinds
+        bits: u32 = atomic.load(item: u32, at: addr control_kinds)
+        return when (bits & (u32(1) << u32(index))) == 0
+        port: u64 = atomic.load(item: u64, at: addr control_port)
+        return when windows.post_completion(usize(port), event, control_key,
+                                            0) == 0
+        handled = 1
+        if event == windows.control_close or event == windows.control_logoff
+          or event == windows.control_shutdown then
+            windows.sleep(windows.infinite)
+        end if
+    end control_arrived
+
+    --  Keep the control event `event`, unless one of its kind waits to be
+    --  read already or it stands for no kind.
+    arrive: (state: ptr mut loop_state, event: u32) -> none =
+        index: usize = kind_of_event(event)
+        return when index >= kinds
+        for at in usize(0)..<state.val.queued do
+            return when kind_of_event(u32(state.val.arrived[at])) == index
+        end for
+        state.val.arrived[state.val.queued] = u8(event)
+        inc state.val.queued
+    end arrive
+
+    events_watch: (self: host, which: signal.kind) -> none ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        index: usize = slot(which)
+        if index > 2 then
+            record(self, windows.error_not_supported)
+            fail io.io_failed
+        end if
+        bit: u32 = u32(1) << u32(index)
+        state.val.stopped = false
+        return when (state.val.watched & bit) <> 0
+        atomic.store(item: u64, at: addr control_port,
+                     value: u64(state.val.queue))
+        if state.val.watched == 0 then
+            if windows.set_control_handler(usize(control_arrived), 1) == 0 then
+                record(self, windows.last_error())
+                fail io.io_failed
+            end if
+        end if
+        state.val.watched = state.val.watched | bit
+        atomic.store(item: u32, at: addr control_kinds,
+                     value: state.val.watched)
+    end events_watch
+
+    events_next_signal: (self: host) -> (received: signal.event)
+                        ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        loop do
+            fail io.io_failed when state.val.stopped
+            if state.val.queued > 0 then
+                event: u8 = state.val.arrived[0]
+                dec state.val.queued
+                for at in usize(0)..<state.val.queued do
+                    state.val.arrived[at] = state.val.arrived[at + 1]
+                end for
+                received = (which: kind_at(kind_of_event(u32(event))),
+                            number: u32(event))
+                return
+            end if
+            mut entry: waiting = on_deadline(0)
+            entry.signalled = true
+            parked(self, addr entry)
+            fail io.io_failed when entry.answer == failed
+        end loop
+    end events_next_signal
+
+    events_stop_watching: (self: host) -> none ! io.io_failed =
+        cleared(self)
+        state: ptr mut loop_state = self.state
+        mut returned: bool = true
+        atomic.store(item: u32, at: addr control_kinds, value: 0)
+        if state.val.watched <> 0 then
+            if windows.set_control_handler(usize(control_arrived), 0) == 0 then
+                record(self, windows.last_error())
+                returned = false
+            end if
+        end if
+        state.val.watched = 0
+        state.val.queued = 0
+        state.val.stopped = true
+        answer_signals(state, failed)
+        fail io.io_failed when not returned
+    end events_stop_watching
+
+    host is signal.signals
+        (watch: events_watch, next_signal: events_next_signal,
+         stop_watching: events_stop_watching)
+end if

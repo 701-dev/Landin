@@ -7,4 +7,4 @@ run_args: one
 run_files: input.txt
 status: 0
 constructs: 1030, 1650, 1660, 1975
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64

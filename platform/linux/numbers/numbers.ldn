@@ -14,11 +14,11 @@
 --  RV64 reads scripts/syscall.tbl
 --  with the ABIs common, 64, riscv, rlimit, memfd_secret.
 --
---  Its scope is platform/linux's, Linux, Darwin and FreeBSD, and on
---  Darwin and FreeBSD it declares nothing.
+--  Its scope is platform/linux's, every hosted system, and on Darwin,
+--  FreeBSD and Windows it declares nothing.
 
 compiler.assert(compiler.os == linux or compiler.os == darwin
-                or compiler.os == freebsd)
+                or compiler.os == freebsd or compiler.os == windows)
 
 fixed if compiler.os == linux then
     fixed if compiler.arch == x86_64 then

@@ -1,0 +1,111 @@
+--  Windows runs no `/bin/sh`: a child here is the command processor the
+--  environment's `ComSpec` names, given exactly the arguments and the
+--  variables the parent builds.  Its output and its errors come back
+--  through two pipes, read as they arrive; its input is what the parent
+--  writes, ended when the parent closes it; its exit code is its whole
+--  code; and a program that is not there is `not_found`.
+import core/cmp
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+
+--  What a child wrote to each stream, kept, and how it ended.
+outcome: type = struct
+    output: [256]u8
+    output_length: usize
+    errors: [256]u8
+    errors_length: usize
+    code: i32
+end outcome
+
+--  Run the command processor with `/c` and `command`, the variables
+--  `variables`, and `given` on its input when that is not empty.
+ran: (host: blocking.host, shell: text.os_string, command: []u8,
+      variables: []text.os_variable, given: []u8) -> (result: outcome) ! ... =
+    result = (output: zeroed, output_length: 0, errors: zeroed,
+              errors_length: 0, code: -1)
+    arguments: [2]text.os_string = [text.os_string_over("/c"),
+                                    text.os_string_over(command)]
+    streams: io.child_streams =
+        (input: if lenof given > 0 then io.piped else io.discarded end if,
+         output: io.piped, errors: io.piped)
+    mut child: io.child = try io.spawn(host, shell, arguments[0..<2],
+                                       variables, streams)
+    if child.input_open then
+        try io.write_child(host, child, given)
+        try io.close_input(host, child)
+    end if
+    mut buffer: [64]u8 = zeroed
+    loop do
+        taken: io.child_read = try io.read_child(host, child, buffer[0..<64])
+        break when taken.finished
+        part: []u8 = buffer[0..<taken.count]
+        if taken.stream == io.child_output then
+            try mem.copy(result.output[result.output_length..<256], part)
+            result.output_length += lenof part
+        else
+            try mem.copy(result.errors[result.errors_length..<256], part)
+            result.errors_length += lenof part
+        end if
+    end loop
+    ended: io.ending = try io.wait(host, child)
+    result.code = match ended.how
+        io.exited(code): code
+        io.signalled: -2
+    end match
+end ran
+
+same: (left: []u8, right: []u8) -> (yes: bool) =
+    yes = cmp.compare(left, right) == cmp.equal
+end same
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    shell: text.os_string =
+        io.variable_named(host, text.os_string_over("ComSpec")) else (problem)
+            _ = problem
+            return
+        end
+    nothing: []text.os_variable = []
+    code = 2
+    first: outcome = ran(host, shell, "echo out& echo err 1>&2& exit 7",
+                         nothing, "") else (problem)
+        _ = problem
+        return
+    end
+    return when not same(first.output[0..<first.output_length], "out\r\n")
+    code = 3
+    return when not same(first.errors[0..<first.errors_length], "err \r\n")
+    code = 4
+    return when first.code <> 7
+    code = 5
+    variables: [1]text.os_variable =
+        [(name: text.os_string_over("LANDIN_GIVEN"),
+          value: text.os_string_over("given value"))]
+    second: outcome = ran(host, shell, "echo %LANDIN_GIVEN%",
+                          variables[0..<1], "") else (problem)
+        _ = problem
+        return
+    end
+    return when not same(second.output[0..<second.output_length],
+                         "given value\r\n")
+    code = 6
+    third: outcome = ran(host, shell, "set /p line=& call echo read %line%",
+                         nothing, "a line\r\n") else (problem)
+        _ = problem
+        return
+    end
+    return when not same(third.output[0..<third.output_length],
+                         "read a line\r\n")
+    code = 7
+    no_arguments: []text.os_string = []
+    missing := io.spawn(host, text.os_string_over("C:\\landin-absent\\absent.exe"),
+                        no_arguments, nothing,
+                        io.discarding) else (problem)
+        if problem == mem.not_found then code = 42 end if
+        return
+    end
+    _ = io.wait(host, missing) else none
+end main

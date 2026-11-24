@@ -4,7 +4,11 @@
 --  finds them invalid, and the file is removed by them.  Darwin's file
 --  systems store names as UTF-8 and refuse another with EILSEQ, 92, which
 --  the provider reports as `io_failed` and keeps as the last errno, and
---  the directory then lists empty.  The program says which it met.
+--  the directory then lists empty.  Windows names a file in 16-bit units,
+--  and its host string is WTF-8 (D2268), which these bytes are not, so the
+--  provider refuses the name before asking the system, keeping
+--  ERROR_INVALID_NAME, 123, and the directory lists empty there too.  The
+--  program says which it met.
 import core/io
 import core/mem
 import core/text
@@ -16,8 +20,13 @@ invalid: []u8 = "n\xff.txt"
 
 fixed if compiler.os == darwin then
     refuses: bool = true
+    refused_number: i32 = 92
+elsif compiler.os == windows then
+    refuses: bool = true
+    refused_number: i32 = 123
 else
     refuses: bool = false
+    refused_number: i32 = 0
 end if
 
 say: (host: blocking.host, line: []u8) -> none =
@@ -135,9 +144,10 @@ public main: () -> (code: i32) =
         return
     end
     if refuses then
-        --  Refused with EILSEQ, and nothing listed.
+        --  Refused with EILSEQ, or Windows' ERROR_INVALID_NAME, and
+        --  nothing listed.
         code = 5
-        return when taken or number <> 92
+        return when taken or number <> refused_number
         code = 6
         return when count <> 0
     else

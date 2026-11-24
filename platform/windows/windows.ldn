@@ -9,33 +9,539 @@
 --  Windows executable starts at: refine links each one with this module,
 --  whether or not its own imports reach it, as C's startup object is linked
 --  into every C program, and links kernel32, which the module names below.
---  No C runtime is linked.
+--  No C runtime is linked.  The entry reads the command line and the
+--  environment, converts each to a host string, WTF-8 (D2268), and keeps
+--  them as the process's argument root, which `arguments` and
+--  `environment` read as platform/posix's do on a POSIX system (D2269).
+--
+--  Each facility has a file of its own: this one the entry, the root, the
+--  handles and the calls every other file shares; wide.ldn the conversion
+--  between host strings and the system's 16-bit units; files.ldn files,
+--  directories and the console; processes.ldn pipes and child processes;
+--  time.ldn the clocks; threads.ldn threads, their storage and waiting on
+--  an address; memory.ldn the address space; completion.ldn completion
+--  ports, jobs and console control events.  Windows Sockets is the module
+--  platform/windows/sockets, which only a program that imports it links,
+--  since its calls' C names are ones a program may give its own (D2281).
+--  A call that fails returns the system's failure value and leaves the
+--  reason for `last_error`, as kernel32 does.
+--
+--  Its scope is every hosted system, so that a provider written for every
+--  hosted system imports it beside platform/posix; off Windows it declares
+--  nothing (D439, D2267).
 
-compiler.assert(compiler.os == windows)
+import core/mem
+import core/text
 
-linker.library("kernel32")
+compiler.assert(compiler.os == linux or compiler.os == darwin
+                or compiler.os == freebsd or compiler.os == windows)
 
---  End the process with `status` as its exit code, after every DLL's
---  detach routine has run.  Windows reads the code as a DWORD: a negative
---  `status` is the same 32 bits, so -1 is 4294967295.
-extern(c) link(symbol: "ExitProcess") exit_process: (status: i32)
-                                                    -> noreturn
+fixed if compiler.os == windows then
+    linker.library("kernel32")
 
---  C's view of the program's hosted entry: the process entry calls it
---  as C's runtime would, with no arguments and no environment yet.
-extern(c) link(symbol: "main") program_main:
-    (count: i32, values: ptr ptr u8, environment: ptr ptr u8)
-    -> (code: i32)
+    --- A kernel object's handle, `HANDLE`: one word, which names an open
+    --- file, pipe, console, process, thread or event until it is closed.
+    public handle: type = usize
 
---  The empty vector the entry gives as both: a null pointer alone.
-no_values: usize = 0
+    --- `INVALID_HANDLE_VALUE`, what `create_file` and `get_std_handle` give
+    --- when they fail: all ones.
+    public invalid_handle: handle = 0xFFFFFFFFFFFFFFFF
 
---- The process entry.  Windows starts a process at the image's entry with
---- the stack aligned as after a call, which a routine's prologue expects,
---- so the entry is an ordinary routine: it calls the program's `main` and
---- ends the process with main's result as the exit code.
-public extern(c) _landin_start: () -> noreturn =
-    empty: ptr ptr u8 = ptr(usize(addr no_values))
-    code: i32 = program_main(0, empty, empty)
-    exit_process(code)
-end _landin_start
+    --- No handle: the null a call gives when it fails, and what a parent
+    --- that gave a process no standard stream leaves in its place.
+    public no_handle: handle = 0
+
+    --  A Win32 BOOL is 32 bits, nonzero for success.
+    --- The reason the calling thread's last failing call gave, `GetLastError`:
+    --- a Win32 error code, zero for none.  Read it at once after the call that
+    --- failed, before any other.
+    public extern(c) link(symbol: "GetLastError") last_error: () -> (code: u32)
+
+    --- Close `object`, `CloseHandle`: nonzero, or zero with the reason in
+    --- `last_error`.
+    public extern(c) link(symbol: "CloseHandle") close_handle:
+        (object: handle) -> (done: i32)
+
+    --- `STD_INPUT_HANDLE`, `STD_OUTPUT_HANDLE` and `STD_ERROR_HANDLE`, what
+    --- `get_std_handle` takes.
+    public std_input: u32 = 0xFFFFFFF6
+    --- `STD_OUTPUT_HANDLE`.
+    public std_output: u32 = 0xFFFFFFF5
+    --- `STD_ERROR_HANDLE`.
+    public std_error: u32 = 0xFFFFFFF4
+
+    --- One of the process's standard handles, `GetStdHandle`: the handle,
+    --- `no_handle` when the process has none, or `invalid_handle` with the
+    --- reason in `last_error`.
+    public extern(c) link(symbol: "GetStdHandle") get_std_handle:
+        (which: u32) -> (result: handle)
+
+    --- Read up to `count` bytes from `source` into `into`, `ReadFile`, without
+    --- overlapping: nonzero with the count read in `got`, zero at the end of
+    --- a file, or zero with the reason in `last_error`.  `overlapped` is zero
+    --- or an `overlapped` record's address for a handle opened to overlap.
+    public extern(c) link(symbol: "ReadFile") read_file:
+        (source: handle, into: ptr mut u8, count: u32, got: ptr mut u32,
+         overlapped: usize) -> (done: i32)
+
+    --- Write `count` bytes from `bytes` to `to`, `WriteFile`: nonzero with the
+    --- count written in `put`, or zero with the reason in `last_error`.
+    public extern(c) link(symbol: "WriteFile") write_file:
+        (to: handle, bytes: ptr u8, count: u32, put: ptr mut u32,
+         overlapped: usize) -> (done: i32)
+
+    --- End the process with `status` as its exit code, after every DLL's
+    --- detach routine has run.  Windows reads the code as a DWORD: a negative
+    --- `status` is the same 32 bits, so -1 is 4294967295.
+    public extern(c) link(symbol: "ExitProcess") exit_process: (status: i32)
+                                                               -> noreturn
+
+    --- The Win32 error codes the providers tell apart: `ERROR_*`.
+    public error_file_not_found: u32 = 2
+    --- `ERROR_PATH_NOT_FOUND`.
+    public error_path_not_found: u32 = 3
+    --- `ERROR_ACCESS_DENIED`.
+    public error_access_denied: u32 = 5
+    --- `ERROR_NOT_ENOUGH_MEMORY`.
+    public error_not_enough_memory: u32 = 8
+    --- `ERROR_INVALID_DRIVE`.
+    public error_invalid_drive: u32 = 15
+    --- `ERROR_NO_MORE_FILES`.
+    public error_no_more_files: u32 = 18
+    --- `ERROR_WRITE_PROTECT`.
+    public error_write_protect: u32 = 19
+    --- `ERROR_SHARING_VIOLATION`.
+    public error_sharing_violation: u32 = 32
+    --- `ERROR_LOCK_VIOLATION`.
+    public error_lock_violation: u32 = 33
+    --- `ERROR_HANDLE_EOF`.
+    public error_handle_eof: u32 = 38
+    --- `ERROR_NOT_SUPPORTED`.
+    public error_not_supported: u32 = 50
+    --- `ERROR_BAD_NETPATH`.
+    public error_bad_netpath: u32 = 53
+    --- `ERROR_FILE_EXISTS`.
+    public error_file_exists: u32 = 80
+    --- `ERROR_INVALID_PARAMETER`.
+    public error_invalid_parameter: u32 = 87
+    --- `ERROR_BROKEN_PIPE`.
+    public error_broken_pipe: u32 = 109
+    --- `ERROR_INVALID_NAME`.
+    public error_invalid_name: u32 = 123
+    --- `ERROR_ALREADY_EXISTS`.
+    public error_already_exists: u32 = 183
+    --- `ERROR_FILENAME_EXCED_RANGE`.
+    public error_filename_exceeds_range: u32 = 206
+    --- `ERROR_PIPE_NOT_CONNECTED`.
+    public error_pipe_not_connected: u32 = 233
+    --- `ERROR_MORE_DATA`.
+    public error_more_data: u32 = 234
+    --- `ERROR_DIRECTORY`.
+    public error_directory: u32 = 267
+    --- `ERROR_OPERATION_ABORTED`.
+    public error_operation_aborted: u32 = 995
+    --- `ERROR_IO_PENDING`.
+    public error_io_pending: u32 = 997
+
+    --- Reserve and commit `size` bytes of the address space, readable and
+    --- writable and zeroed, `VirtualAlloc` with `MEM_RESERVE | MEM_COMMIT`
+    --- and `PAGE_READWRITE`: their address, or zero with the reason in
+    --- `last_error`.  `wanted` is zero or the address to place them at.
+    public extern(c) link(symbol: "VirtualAlloc") virtual_alloc:
+        (wanted: usize, size: usize, kind: u32, protection: u32)
+        -> (address: usize)
+
+    --- Release, `MEM_RELEASE` with a size of zero, or decommit what
+    --- `virtual_alloc` gave, `VirtualFree`: nonzero, or zero with the reason
+    --- in `last_error`.
+    public extern(c) link(symbol: "VirtualFree") virtual_free:
+        (address: usize, size: usize, kind: u32) -> (done: i32)
+
+    --- `virtual_alloc`'s and `virtual_free`'s kinds and protections.
+    public mem_commit: u32 = 0x1000
+    --- `MEM_RESERVE`: reserve addresses.
+    public mem_reserve: u32 = 0x2000
+    --- `MEM_DECOMMIT`: give the memory back and keep the addresses.
+    public mem_decommit: u32 = 0x4000
+    --- `MEM_RELEASE`: give the memory and the addresses back.
+    public mem_release: u32 = 0x8000
+    --- `PAGE_READWRITE`: the pages may be read and written.
+    public page_readwrite: u32 = 0x04
+
+    --  The command line as the system keeps it for the process:
+    --  `GetCommandLineW`, its units ending in a NUL.
+    extern(c) link(symbol: "GetCommandLineW") command_line: () -> (units: ptr u16)
+
+    --  The environment block, `GetEnvironmentStringsW`: each `NAME=value`
+    --  ending in a NUL, and an empty one after the last.  Zero when the
+    --  system has no memory for the copy it makes.
+    extern(c) link(symbol: "GetEnvironmentStringsW") environment_strings:
+        () -> (block: usize)
+
+    --  Free the copy `environment_strings` made.
+    extern(c) link(symbol: "FreeEnvironmentStringsW") free_environment_strings:
+        (block: usize) -> (done: i32)
+
+    --  C's view of the program's hosted entry: the process entry calls it
+    --  as C's runtime would, with the argument and environment tables it
+    --  built and has already kept as the root; a program that defines
+    --  `_landin_host_initialize_arguments` is given them there too.
+    extern(c) link(symbol: "main") program_main:
+        (count: i32, values: ptr ptr u8, environment: ptr ptr u8)
+        -> (code: i32)
+
+    word: usize = sizeof usize
+
+    --  A unit of the command line.
+    unit_at: (first: ptr u16, index: usize) -> (unit: u16) =
+        at: ptr u16 = ptr(usize(first) + index * 2)
+        unit = at.val
+    end unit_at
+
+    blank: (unit: u16) -> (yes: bool) =
+        yes = unit == 32 or unit == 9
+    end blank
+
+    --  What the command line's arguments take: their count, the program's
+    --  name among them, and the units they hold after quoting is undone.
+    measure: type = struct
+        count: usize
+        units: usize
+    end measure
+
+    --  Walk the command line by the rules Microsoft's C runtime splits it
+    --  by, which every Windows program's parent quotes for: the program's
+    --  name runs to the next blank, or between the quotes it starts with,
+    --  with no escapes; after it blanks separate arguments, a quote begins
+    --  or ends a quoted run in which blanks are kept, `""` inside a run is
+    --  one quote, and backslashes are literal except before a quote, where
+    --  each pair is one backslash and an odd one left over makes the quote
+    --  literal.  With `into` empty it only measures; otherwise it writes
+    --  each argument's units followed by a NUL unit, which `into` has room
+    --  for.
+    split: (line: ptr u16, into: []mut u16) -> (found: measure) =
+        writing: bool = lenof into > 0
+        mut at: usize = 0
+        mut put: usize = 0
+        mut count: usize = 0
+        --  The program's name.
+        if unit_at(line, 0) == 34 then
+            inc at
+            while unit_at(line, at) <> 0 and unit_at(line, at) <> 34 do
+                if writing then into[put] = unit_at(line, at) end if
+                inc put
+                inc at
+            end while
+            if unit_at(line, at) == 34 then inc at end if
+        else
+            while unit_at(line, at) <> 0 and not blank(unit_at(line, at)) do
+                if writing then into[put] = unit_at(line, at) end if
+                inc put
+                inc at
+            end while
+        end if
+        if writing then into[put] = 0 end if
+        inc put
+        inc count
+        loop do
+            while blank(unit_at(line, at)) do inc at end while
+            break when unit_at(line, at) == 0
+            mut quoted: bool = false
+            loop do
+                unit: u16 = unit_at(line, at)
+                break when unit == 0
+                break when blank(unit) and not quoted
+                if unit == 92 then
+                    mut slashes: usize = 0
+                    while unit_at(line, at) == 92 do
+                        inc slashes
+                        inc at
+                    end while
+                    if unit_at(line, at) == 34 then
+                        mut pairs: usize = slashes / 2
+                        while pairs > 0 do
+                            if writing then into[put] = 92 end if
+                            inc put
+                            dec pairs
+                        end while
+                        if slashes % 2 == 1 then
+                            if writing then into[put] = 34 end if
+                            inc put
+                            inc at
+                        end if
+                    else
+                        while slashes > 0 do
+                            if writing then into[put] = 92 end if
+                            inc put
+                            dec slashes
+                        end while
+                    end if
+                elsif unit == 34 then
+                    inc at
+                    if quoted and unit_at(line, at) == 34 then
+                        if writing then into[put] = 34 end if
+                        inc put
+                        inc at
+                    else
+                        quoted = not quoted
+                    end if
+                else
+                    if writing then into[put] = unit end if
+                    inc put
+                    inc at
+                end if
+            end loop
+            if writing then into[put] = 0 end if
+            inc put
+            inc count
+        end loop
+        found = (count: count, units: put)
+    end split
+
+    --  Memory the entry takes for good, or an end with the reason when the
+    --  system has none.
+    taken: (size: usize) -> (address: usize) =
+        address = virtual_alloc(0, size, mem_reserve | mem_commit,
+                                page_readwrite)
+        if address == 0 then exit_process(i32(error_not_enough_memory)) end if
+    end taken
+
+    --  The `count` units at `first`, which the system or the process keeps.
+    units_at: (first: usize, count: usize) -> (units: []u16) =
+        whole: ptr [1]u16 = ptr(first)
+        units = whole.val[0..<0]
+        if count > 0 then
+            unchecked begin
+                units = whole.val[0..<count]
+            end unchecked
+        end if
+    end units_at
+
+    --  The `count` bytes at `first`, writable, which the entry took.
+    bytes_at: (first: usize, count: usize) -> (bytes: []mut u8) =
+        whole: ptr mut [1]u8 = ptr(first)
+        bytes = whole.val[0..<0]
+        if count > 0 then
+            unchecked begin
+                bytes = whole.val[0..<count]
+            end unchecked
+        end if
+    end bytes_at
+
+    --  Units ending in NUL units, one string after another, as a table of
+    --  `count` host strings, each ending in a NUL, and a null entry after
+    --  the last: a C-style vector, which the entry gives `main`.
+    vector: (strings: []u16, count: usize) -> (table: ptr ptr u8) =
+        bytes: usize = host_length(strings)
+        table_bytes: usize = (count + 1) * word
+        base: usize = taken(table_bytes + bytes)
+        text_room: []mut u8 = bytes_at(base + table_bytes, bytes)
+        mut written: usize = 0
+        mut begun: usize = 0
+        mut index: usize = 0
+        for at in usize(0)..<lenof strings do
+            if strings[at] == 0 then
+                slot: ptr mut usize = ptr(base + index * word)
+                slot.val = base + table_bytes + written
+                written += to_host(strings[begun..<at],
+                                   text_room[written..<lenof text_room])
+                text_room[written] = 0
+                inc written
+                inc index
+                begun = at + 1
+            end if
+        end for
+        table = ptr(base)
+    end vector
+
+    --  The arguments and environment as C vectors, and the argument count.
+    start_tables: type = struct
+        count: usize
+        values: ptr ptr u8
+        environment: ptr ptr u8
+    end start_tables
+
+    --  Read the command line and the environment, and convert both to host
+    --  strings in storage the process keeps.
+    read_start: () -> (tables: start_tables) =
+        line: ptr u16 = command_line()
+        size: measure = split(line, no_units[0..<0])
+        room: usize = taken(size.units * 2)
+        whole: ptr mut [1]u16 = ptr(room)
+        mut units: []mut u16 = whole.val[0..<0]
+        unchecked begin
+            units = whole.val[0..<size.units]
+        end unchecked
+        _ = split(line, units)
+        values: ptr ptr u8 = vector(units, size.count)
+        block: usize = environment_strings()
+        mut environment: ptr ptr u8 = ptr(usize(addr no_entries[0]))
+        if block <> 0 then
+            mut length: usize = 0
+            mut entries: usize = 0
+            loop do
+                break when unit_at(ptr(block), length) == 0
+                while unit_at(ptr(block), length) <> 0 do inc length end while
+                inc length
+                inc entries
+            end loop
+            environment = vector(units_at(block, length), entries)
+            _ = free_environment_strings(block)
+        end if
+        tables = (count: size.count, values: values, environment: environment)
+    end read_start
+
+    mut no_units: [1]u16 = [0]
+
+    --  The table of an empty environment: one null entry.
+    no_entries: [1]usize = [0]
+
+    --- The process entry.  Windows starts a process at the image's entry with
+    --- the stack aligned as after a call, which a routine's prologue expects,
+    --- so the entry is an ordinary routine: it reads the command line and the
+    --- environment, calls the program's `main` with them as C's runtime would,
+    --- and ends the process with main's result as the exit code.
+    public extern(c) _landin_start: () -> noreturn =
+        tables: start_tables = read_start()
+        keep_root(tables)
+        code: i32 = program_main(i32(tables.count), tables.values,
+                                 tables.environment)
+        exit_process(code)
+    end _landin_start
+
+    --  What the argument root holds before it is established, and what a
+    --  null pointer is in a vector's entry.
+    no_table: atom
+
+    no_string: atom
+
+    root_table: type = no_table | ptr ptr u8
+
+    argument_string: type = no_string | ptr u8
+
+    --  The argument root, the vectors the entry made, kept without copying.
+    mut root_values: root_table = no_table
+
+    mut root_count: i32
+
+    mut root_environment: root_table = no_table
+
+    --  Keep the vectors the entry made as the process's argument root, for
+    --  good.  The entry keeps them itself rather than defining
+    --  `_landin_host_initialize_arguments`, which this module, linked into
+    --  every Windows program, would then define for a program that defines
+    --  its own (D2269).
+    keep_root: (escaping tables: start_tables) -> none =
+        root_count = i32(tables.count)
+        root_values = tables.values
+        root_environment = tables.environment
+    end keep_root
+
+    --- The process's arguments: the vector after the program's name and
+    --- their count.  `argument` reads it.
+    public argument_table: type = struct
+        values: ptr ptr u8
+        count: usize
+    end argument_table
+
+    --- The process's arguments, the program's name not among them.  It traps
+    --- when no argument root has been established.
+    public arguments: () -> (table: argument_table) =
+        held: ptr ptr u8 = match root_values
+            no_table: compiler.unreachable()
+            ptr (found): found
+        end match
+        first: ptr ptr u8 = ptr(usize(held) + word)
+        table = (values: first,
+                 count: if root_count > 0 then usize(root_count - 1)
+                        else usize(0) end if)
+    end arguments
+
+    --  The bytes before the first NUL at `first`.
+    terminated_length: (first: ptr u8) -> (length: usize) =
+        length = 0
+        loop do
+            at: ptr u8 = ptr(usize(first) + length)
+            break when at.val == 0
+            inc length
+        end loop
+    end terminated_length
+
+    --  The `length` bytes at `first`, which the process keeps.
+    view: (first: ptr u8, length: usize) -> (bytes: []u8 from first) =
+        whole: ptr [1]u8 = ptr(usize(first))
+        bytes = whole.val[0..<0]
+        if length > 0 then
+            unchecked begin
+                bytes = whole.val[0..<length]
+            end unchecked
+        end if
+    end view
+
+    --- The argument `index`, from zero, as a host string lending the
+    --- process's own storage.  An index at or past the table's `count` traps.
+    public argument: (table: argument_table, index: usize)
+                     -> (value: text.os_string from table) =
+        if index >= table.count then
+            compiler.unreachable()
+        end if
+        entry: ptr argument_string = ptr(usize(table.values) + index * word)
+        match entry.val
+            no_string: compiler.unreachable()
+            ptr (data): value = text.os_string_over(view(data,
+                                                         terminated_length(data)))
+        end match
+    end argument
+
+    --- The process's environment as the entry read it, and the count of its
+    --- entries.  `variable` reads it.
+    public environment_table: type = struct
+        values: ptr ptr u8
+        count: usize
+    end environment_table
+
+    --- The process's environment, as the system gave it when the process
+    --- started, in its order: `NAME=value` entries, the hidden `=C:` entries
+    --- that keep each drive's working directory among them.  It traps before
+    --- the argument root exists, as `arguments` does.
+    public environment: () -> (table: environment_table) =
+        _ = arguments()
+        values: ptr ptr u8 = match root_environment
+            no_table: ptr(usize(addr no_entries[0]))
+            ptr (found): found
+        end match
+        mut count: usize = 0
+        loop do
+            entry: ptr usize = ptr(usize(values) + count * word)
+            break when entry.val == 0
+            inc count
+        end loop
+        table = (values: values, count: count)
+    end environment
+
+    --- The variable at `index`, from zero: the units of its entry before the
+    --- first `=` after its first unit as its name and those after it as its
+    --- value, so that a hidden `=C:` entry is named `=C:`.  An index at or
+    --- past the table's `count` traps.
+    public variable: (table: environment_table, index: usize)
+                     -> (item: text.os_variable from table) =
+        if index >= table.count then
+            compiler.unreachable()
+        end if
+        entry: ptr argument_string = ptr(usize(table.values) + index * word)
+        match entry.val
+            no_string: compiler.unreachable()
+            ptr (data): begin
+                whole: []u8 = view(data, terminated_length(data))
+                mut at: usize = 0
+                if lenof whole > 0 then
+                    at = 1 + mem.find(whole[1..<lenof whole], u8('='))
+                end if
+                value: []u8 = if at < lenof whole then whole[at + 1..<lenof whole]
+                              else whole[lenof whole..<lenof whole] end if
+                item = (name: text.os_string_over(whole[0..<at]),
+                        value: text.os_string_over(value))
+            end
+        end match
+    end variable
+end if

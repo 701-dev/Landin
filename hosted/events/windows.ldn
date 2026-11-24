@@ -1,0 +1,400 @@
+--  The event provider on Windows: its loop is an I/O completion port, and
+--  every wait is answered by the packet the system puts on it when the
+--  awaited thing has happened, the completion interface D486 foresaw.
+--  An operation on a pipe end `system.start` made or a socket, the
+--  handles that are opened overlapped, associates the handle with the
+--  port, issues the overlapped call with its `waiting` record's
+--  `overlapped`, and parks its fibre; the loop's wait,
+--  `GetQueuedCompletionStatusEx` limited by the earliest deadline, takes
+--  the call's packet and answers the record, and the fibre asks the call's
+--  result with `GetOverlappedResult`.  The system writes into the record
+--  and the caller's bytes until the packet is queued, so a fibre whose
+--  call is in flight does not return before its packet has come, whatever
+--  else answers it: a close through the provider or a deadline cancels the
+--  call and waits for the packet of its cancelling.  Every other handle, a
+--  file, a console or a pipe the process was given, was opened without
+--  overlapping and is read and written by a plain call that holds the
+--  thread, as a regular file is on the other systems.
+
+import core/fibre
+import core/io
+import hosted/system
+import platform/windows
+
+fixed if compiler.os == windows then
+    --  One operation waiting, kept on the stack of the fibre that waits:
+    --  the overlapped record of its call, which the system writes until
+    --  the call's packet is queued; the handle it was issued on, zero for
+    --  none, and whether the call sends or writes; the ID of a child whose end it waits for, zero for none;
+    --  whether it waits for a control event; its deadline, zero for none;
+    --  the answer; whether its call is in flight, which only the call's
+    --  packet answers; and the answer that packet gives when the call was
+    --  cancelled, `pending` when it was not.
+    waiting: type = struct
+        asked: windows.overlapped
+        next: usize
+        handle: windows.handle
+        output: bool
+        child: i32
+        signalled: bool
+        deadline: u64
+        answer: u8
+        flight: bool
+        cut: u8
+    end waiting
+
+    --  A record for an overlapped call on `made`, until `deadline`.
+    on_handle: (made: windows.handle, deadline: u64) -> (entry: waiting) =
+        entry = (asked: zeroed, next: 0, handle: made, output: false,
+                 child: 0,
+                 signalled: false, deadline: deadline, answer: pending,
+                 flight: true, cut: pending)
+    end on_handle
+
+    --  A record that waits for `deadline` alone.
+    on_deadline: (deadline: u64) -> (entry: waiting) =
+        entry = (asked: zeroed, next: 0, handle: windows.no_handle,
+                 output: false, child: 0,
+                 signalled: false, deadline: deadline, answer: pending,
+                 flight: false, cut: pending)
+    end on_deadline
+
+    --  The keys of the port's packets: an overlapped call's, the job's
+    --  and the control handler's.
+    call_key: usize = 1
+    job_key: usize = 2
+    control_key: usize = 3
+
+    --  The loop: its port, the list of waiting records, whether a fibre
+    --  took a turn of its own since the last wait, the job its children
+    --  are put in, zero until the first child is waited for, and the
+    --  control events: the watched kinds as bits by `signal.kind`'s index,
+    --  whether watching stopped, and the events not yet read, by their
+    --  codes, in arrival order.
+    loop_state: type = struct
+        queue: windows.handle
+        first: usize
+        turned: bool
+        job: windows.handle
+        watched: u32
+        stopped: bool
+        arrived: [6]u8
+        queued: usize
+        reports: [16]windows.completion_entry
+    end loop_state
+
+    --  The loop with nothing in it and no port yet.
+    emptied: (state: ptr mut loop_state) -> none =
+        state.val.queue = windows.no_handle
+        state.val.first = 0
+        state.val.turned = false
+        state.val.job = windows.no_handle
+        state.val.watched = 0
+        state.val.stopped = false
+        state.val.queued = 0
+    end emptied
+
+    --  Make the loop's port, or keep the code of why the system made none.
+    queue_made: (state: ptr mut loop_state, services: system.host)
+                -> none ! io.io_failed =
+        made: windows.handle = windows.completion_port(windows.invalid_handle,
+                                                       windows.no_handle, 0, 1)
+        if made == windows.no_handle then
+            system.record_errno(services, windows.last_error())
+            fail io.io_failed
+        end if
+        state.val.queue = made
+    end queue_made
+
+    --  Keep a failure's Win32 code in the system handle's cell.
+    record: (self: host, code: u32) -> none =
+        system.record_errno(self.services, code)
+    end record
+
+    --  Cancel the call `entry` has in flight, which its packet answers
+    --  with `cut` unless the call ended first.  A call that ended already
+    --  has its packet queued.
+    cut_short: (entry: ptr mut waiting, cut: u8) -> none =
+        if entry.val.cut == pending then entry.val.cut = cut end if
+        _ = windows.cancel_io(entry.val.handle, usize(addr entry.val.asked))
+    end cut_short
+
+    --  Answer every record whose deadline the clock has reached; a call in
+    --  flight is cancelled, and answered `expired` by its packet.
+    answer_expired: (state: ptr mut loop_state, now: u64) -> none =
+        mut at: usize = state.val.first
+        while at <> 0 do
+            here: ptr mut waiting = entry_at(at)
+            at = here.val.next
+            if here.val.deadline <> 0 and here.val.deadline <= now then
+                here.val.deadline = 0
+                if here.val.flight then
+                    cut_short(here, expired)
+                else
+                    settle(state, here, expired)
+                end if
+            end if
+        end while
+    end answer_expired
+
+    --  Answer the record whose call's overlapped record is at `address`;
+    --  a packet of a call no record waits for any longer, one hosted/blocking
+    --  made on a handle the port has, is let go.
+    answer_call: (state: ptr mut loop_state, address: usize) -> none =
+        mut at: usize = state.val.first
+        while at <> 0 do
+            here: ptr mut waiting = entry_at(at)
+            at = here.val.next
+            if here.val.flight and usize(addr here.val.asked) == address then
+                here.val.flight = false
+                settle(state, here, if here.val.cut <> pending then here.val.cut
+                                    else ready end if)
+                return
+            end if
+        end while
+    end answer_call
+
+    --  Wait for packets up to `milliseconds`, forever when negative: how
+    --  many it took.  A wait that fails is a wait that took none; the loop
+    --  looks again.
+    wait_events: (state: ptr mut loop_state, milliseconds: i32)
+                 -> (count: usize) =
+        count = 0
+        limit: u32 = if milliseconds < 0 then windows.infinite
+                     else u32(milliseconds) end if
+        mut taken: u32 = 0
+        return when windows.get_completions(state.val.queue,
+                                            addr state.val.reports[0],
+                                            u32(report_count), addr taken,
+                                            limit, 0) == 0
+        count = usize(taken)
+        if count > report_count then count = report_count end if
+    end wait_events
+
+    dispatch: (state: ptr mut loop_state, count: usize) -> none =
+        for index in usize(0)..<count do
+            got: windows.completion_entry = state.val.reports[index]
+            if got.key == call_key then
+                answer_call(state, got.record)
+            elsif got.key == job_key then
+                if got.moved == windows.job_exit_process
+                  or got.moved == windows.job_abnormal_exit_process then
+                    answer_child(state, i32(u32(got.record)))
+                end if
+            elsif got.key == control_key then
+                arrive(state, got.moved)
+                answer_signals(state, ready)
+            end if
+        end for
+    end dispatch
+
+    --  Take turns until the loop answers `entry`, which is on the list
+    --  and, with a call in flight, stays there until its packet comes.
+    answered: (self: host, entry: ptr mut waiting) -> (answer: u8) =
+        while entry.val.answer == pending do
+            fibre.yield(self.round)
+        end while
+        answer = entry.val.answer
+    end answered
+
+    --  Wait for a record that waits on no call.
+    parked: (self: host, entry: ptr mut waiting) -> none =
+        entry.val.answer = pending
+        link(self.state, entry)
+        _ = answered(self, entry)
+    end parked
+
+    --  Associate `made` with the loop's port, once: a handle associated
+    --  already, with this port or another, is refused as a bad parameter,
+    --  and is taken as associated.
+    joined: (self: host, made: windows.handle) -> none ! io.io_failed =
+        return when windows.completion_port(made, self.state.val.queue,
+                                            call_key, 0) <> windows.no_handle
+        code: u32 = windows.last_error()
+        return when code == windows.error_invalid_parameter
+        record(self, code)
+        fail io.io_failed
+    end joined
+
+    --  What an overlapped call ended with: the bytes it moved, and zero or
+    --  the reason it failed.
+    call_result: type = struct
+        moved: u32
+        code: u32
+        answer: u8
+    end call_result
+
+    --  Wait for the call `entry` records, which the system was given and
+    --  answered `issued` with, and return how it ended.  A call the system
+    --  refused at once queues no packet and is taken off the list.
+    completed: (self: host, made: windows.handle, entry: ptr mut waiting,
+                issued: i32) -> (result: call_result) =
+        if issued == 0 then
+            code: u32 = windows.last_error()
+            if code <> windows.error_io_pending then
+                unlink(self.state, entry)
+                result = (moved: 0, code: code, answer: failed)
+                return
+            end if
+        end if
+        answer: u8 = answered(self, entry)
+        mut got: u32 = 0
+        mut code: u32 = 0
+        if windows.overlapped_result(made, addr entry.val.asked, addr got,
+                                     0) == 0 then
+            code = windows.last_error()
+        end if
+        result = (moved: got, code: code, answer: answer)
+    end completed
+
+    --  How many bytes one call moves at most: what a DWORD counts.
+    most: usize = 0x40000000
+
+    --  The end of what a stream gives: a pipe whose writer has gone, or a
+    --  file read at its end.
+    finished: (code: u32) -> (yes: bool) =
+        yes = code == windows.error_broken_pipe
+              or code == windows.error_handle_eof
+              or code == windows.error_pipe_not_connected
+    end finished
+
+    --  Read once into `into` from `opened`, waiting as a fibre does when
+    --  the call goes through the port, a socket's or a child's pipe's: the
+    --  count, zero at the end.
+    read_once: (self: host, opened: io.file, into: []mut u8)
+               -> (count: usize) ! io.io_failed =
+        made: windows.handle = system.handle_of(opened)
+        mut want: usize = lenof into
+        if want > most then want = most end if
+        count = 0
+        mut got: u32 = 0
+        if system.is_socket(opened) then
+            ended: call_result = try received_once(self, made, into, 0)
+            return when ended.code == 0 and ended.moved == 0
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            got = ended.moved
+        elsif system.is_pipe(opened) then
+            try joined(self, made)
+            mut entry: waiting = on_handle(made, 0)
+            link(self.state, addr entry)
+            issued: i32 = windows.read_file(made, addr into[0], u32(want),
+                                            addr got,
+                                            usize(addr entry.asked))
+            ended: call_result = completed(self, made, addr entry, issued)
+            return when finished(ended.code)
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            got = ended.moved
+        elsif windows.read_file(made, addr into[0], u32(want), addr got,
+                                0) == 0 then
+            code: u32 = windows.last_error()
+            return when finished(code)
+            record(self, code)
+            fail io.io_failed
+        end if
+        fail io.io_failed when usize(got) > lenof into
+        count = usize(got)
+    end read_once
+
+    --  Write some of `bytes` to `opened` once, waiting as a fibre does when
+    --  the call goes through the port: the count accepted.
+    write_once: (self: host, opened: io.file, bytes: []u8)
+                -> (count: usize) ! io.io_failed =
+        made: windows.handle = system.handle_of(opened)
+        mut want: usize = lenof bytes
+        if want > most then want = most end if
+        mut put: u32 = 0
+        if system.is_socket(opened) then
+            ended: call_result = try sent_once(self, made, bytes, 0)
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            put = ended.moved
+        elsif system.is_pipe(opened) then
+            try joined(self, made)
+            mut entry: waiting = on_handle(made, 0)
+            entry.output = true
+            link(self.state, addr entry)
+            issued: i32 = windows.write_file(made, addr bytes[0], u32(want),
+                                             addr put,
+                                             usize(addr entry.asked))
+            ended: call_result = completed(self, made, addr entry, issued)
+            if ended.code <> 0 then
+                record(self, ended.code)
+                fail io.io_failed
+            end if
+            put = ended.moved
+        elsif windows.write_file(made, addr bytes[0], u32(want), addr put,
+                                 0) == 0 then
+            record(self, windows.last_error())
+            fail io.io_failed
+        end if
+        fail io.io_failed when usize(put) > want or put == 0
+        count = usize(put)
+    end write_once
+
+    events_read: (self: host, opened: io.file, into: []mut u8)
+                 -> (count: usize) ! io.io_failed =
+        cleared(self)
+        count = 0
+        return when lenof into == 0
+        count = try read_once(self, opened, into)
+    end events_read
+
+    write_all: (self: host, opened: io.file, bytes: []u8)
+               -> none ! io.io_failed =
+        mut written: usize = 0
+        while written < lenof bytes do
+            written += try write_once(self, opened,
+                                      bytes[written..<lenof bytes])
+        end while
+    end write_all
+
+    events_write: (self: host, opened: io.file, bytes: []u8)
+                  -> none ! io.io_failed =
+        cleared(self)
+        return when lenof bytes == 0
+        try write_all(self, opened, bytes)
+    end events_write
+
+    events_write_some: (self: host, opened: io.file, bytes: []u8)
+                       -> (count: usize) ! io.io_failed =
+        cleared(self)
+        count = 0
+        return when lenof bytes == 0
+        mut requested: usize = lenof bytes
+        if requested > 65536 then requested = 65536 end if
+        count = try write_once(self, opened, bytes[0..<requested])
+    end events_write_some
+
+    --  Wake every fibre waiting on `made`, failing its call: the handle is
+    --  about to be closed through the provider (D449).  A call in flight is
+    --  cancelled, and its fibre wakes when the cancelling's packet comes,
+    --  which the close does not wait for.
+    forget: (self: host, made: windows.handle) -> none =
+        state: ptr mut loop_state = self.state
+        mut at: usize = state.val.first
+        while at <> 0 do
+            here: ptr mut waiting = entry_at(at)
+            at = here.val.next
+            if here.val.handle == made then
+                if here.val.flight then
+                    cut_short(here, failed)
+                else
+                    settle(state, here, failed)
+                end if
+            end if
+        end while
+    end forget
+
+    events_close: (self: host, sink opened: io.file) -> none ! io.io_failed =
+        forget(self, system.handle_of(opened))
+        try io.close(self.services, opened)
+    end events_close
+end if

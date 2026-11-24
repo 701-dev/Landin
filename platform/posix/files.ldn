@@ -12,963 +12,967 @@ import core/text
 import platform/libc
 import platform/linux
 
---- Open for reading only.
-public read_only: atom
+fixed if compiler.os <> windows then
+    --- Open for reading only.
+    public read_only: atom
 
---- Open for writing only.
-public write_only: atom
+    --- Open for writing only.
+    public write_only: atom
 
---- Open for reading and writing.
-public read_write: atom
+    --- Open for reading and writing.
+    public read_write: atom
 
---- How an open file may be used: `read_only`, `write_only` or
---- `read_write`.
-public access: type = read_only | write_only | read_write
+    --- How an open file may be used: `read_only`, `write_only` or
+    --- `read_write`.
+    public access: type = read_only | write_only | read_write
 
---- How `open_at` opens a file: its access, and whether to create it when
---- it is missing, refuse it when it exists (`exclusive`, with `create`),
---- truncate it, append every write to its end, or refuse anything that is
---- not a directory with `enotdir`.
-public open_options: type = struct
-    access: access
-    create: bool
-    exclusive: bool
-    truncate: bool
-    append: bool
-    directory: bool
-end open_options
+    --- How `open_at` opens a file: its access, and whether to create it when
+    --- it is missing, refuse it when it exists (`exclusive`, with `create`),
+    --- truncate it, append every write to its end, or refuse anything that is
+    --- not a directory with `enotdir`.
+    public open_options: type = struct
+        access: access
+        create: bool
+        exclusive: bool
+        truncate: bool
+        append: bool
+        directory: bool
+    end open_options
 
---- The options for reading an existing file.
-public reading: open_options = (access: read_only, create: false,
-                                exclusive: false, truncate: false,
-                                append: false, directory: false)
+    --- The options for reading an existing file.
+    public reading: open_options = (access: read_only, create: false,
+                                    exclusive: false, truncate: false,
+                                    append: false, directory: false)
 
---- The options for writing a file from its start, creating it when it is
---- missing and truncating it when it is not.
-public writing: open_options = (access: write_only, create: true,
-                                exclusive: false, truncate: true,
-                                append: false, directory: false)
+    --- The options for writing a file from its start, creating it when it is
+    --- missing and truncating it when it is not.
+    public writing: open_options = (access: write_only, create: true,
+                                    exclusive: false, truncate: true,
+                                    append: false, directory: false)
 
---- Open the file `path` names, relative to the directory open as `at` (or
---- `working_directory`), with `options`. A file it creates gets the
---- permission bits `permissions`, which the process umask filters. The
---- descriptor is closed when the process executes a program, POSIX's
---- `O_CLOEXEC`, set as it is opened, and a terminal opened never becomes
---- the process's controlling terminal, `O_NOCTTY`. It returns the new
---- descriptor or fails: `enoent` for a missing name, `enotdir` when a
---- component is not a directory, `eacces` when refused, `eexist` for an
---- `exclusive` name that is taken, `eintr` when a signal came first.
-public open_at:
-    (at: descriptor, path: text.os_string,
-     options: open_options, permissions: u32)
-    -> (opened: descriptor) ! errno =
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    opened = try system_open(at, terminated, options, permissions)
-end open_at
+    --- Open the file `path` names, relative to the directory open as `at` (or
+    --- `working_directory`), with `options`. A file it creates gets the
+    --- permission bits `permissions`, which the process umask filters. The
+    --- descriptor is closed when the process executes a program, POSIX's
+    --- `O_CLOEXEC`, set as it is opened, and a terminal opened never becomes
+    --- the process's controlling terminal, `O_NOCTTY`. It returns the new
+    --- descriptor or fails: `enoent` for a missing name, `enotdir` when a
+    --- component is not a directory, `eacces` when refused, `eexist` for an
+    --- `exclusive` name that is taken, `eintr` when a signal came first.
+    public open_at:
+        (at: descriptor, path: text.os_string,
+         options: open_options, permissions: u32)
+        -> (opened: descriptor) ! errno =
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        opened = try system_open(at, terminated, options, permissions)
+    end open_at
 
---- Read at most `lenof into` bytes from `source` into `into`: the count
---- read, zero at the end of a file, or the errno; `eintr` means nothing
---- was read.
-public read:
-    (source: descriptor, into: []mut u8) -> (count: usize) ! errno =
-    count = try system_read(source, into)
-end read
+    --- Read at most `lenof into` bytes from `source` into `into`: the count
+    --- read, zero at the end of a file, or the errno; `eintr` means nothing
+    --- was read.
+    public read:
+        (source: descriptor, into: []mut u8) -> (count: usize) ! errno =
+        count = try system_read(source, into)
+    end read
 
---- Write at most `lenof bytes` bytes of `bytes` to `to`: the count
---- accepted, which may be short, or the errno; `eintr` means nothing was
---- written.
-public write:
-    (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
-    count = try system_write(to, bytes)
-end write
+    --- Write at most `lenof bytes` bytes of `bytes` to `to`: the count
+    --- accepted, which may be short, or the errno; `eintr` means nothing was
+    --- written.
+    public write:
+        (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
+        count = try system_write(to, bytes)
+    end write
 
---- Close `closing`.  The descriptor is released even when this fails, so
---- a failed close is never retried: the number may already name another
---- file.
-public close:
-    (closing: descriptor) -> none ! errno =
-    try system_close(closing)
-end close
+    --- Close `closing`.  The descriptor is released even when this fails, so
+    --- a failed close is never retried: the number may already name another
+    --- file.
+    public close:
+        (closing: descriptor) -> none ! errno =
+        try system_close(closing)
+    end close
 
---- A regular file.
-public regular: atom
+    --- A regular file.
+    public regular: atom
 
---- A directory.
-public directory: atom
+    --- A directory.
+    public directory: atom
 
---- A symbolic link, reported as itself when it is not followed.
-public symbolic_link: atom
+    --- A symbolic link, reported as itself when it is not followed.
+    public symbolic_link: atom
 
---- A FIFO, a named pipe.
-public fifo: atom
+    --- A FIFO, a named pipe.
+    public fifo: atom
 
---- A socket: `socket_file`, since `socket` is the name of a call.
-public socket_file: atom
+    --- A socket: `socket_file`, since `socket` is the name of a call.
+    public socket_file: atom
 
---- A character device.
-public character_device: atom
+    --- A character device.
+    public character_device: atom
 
---- A block device.
-public block_device: atom
+    --- A block device.
+    public block_device: atom
 
---- A kind the system did not say: a directory entry whose file system
---- records none, which `status_at` then tells.
-public unknown_kind: atom
+    --- A kind the system did not say: a directory entry whose file system
+    --- records none, which `status_at` then tells.
+    public unknown_kind: atom
 
---- What a file is.
-public file_kind: type = regular | directory | symbolic_link | fifo
-    | socket_file | character_device | block_device
-    | unknown_kind
+    --- What a file is.
+    public file_kind: type = regular | directory | symbolic_link | fifo
+        | socket_file | character_device | block_device
+        | unknown_kind
 
---- A file's status, POSIX's `stat`: the device and inode that identify
---- it, what it is and its size in bytes; its permission bits, the mode
---- without its type, `0o644` for one its owner may write and everyone
---- read; how many names it has, its owner and group; and when it was last
---- read, last written and last changed in any way, a change of its status
---- included, as the wall clock read then.  On Linux the device is the
---- kernel's major number in the upper 32 bits and its minor in the lower,
---- as `statx` reports them; elsewhere it is the system's `st_dev`.  Two
---- paths name the same file when both identify it alike.  A time the file
---- system does not keep reads as the system gives it, often zero.
-public status: type = struct
-    device: u64
-    inode: u64
-    kind: file_kind
-    size: u64
-    permissions: u32
-    links: u64
-    user: user_id
-    group: group_id
-    accessed: time_value
-    modified: time_value
-    changed: time_value
-end status
+    --- A file's status, POSIX's `stat`: the device and inode that identify
+    --- it, what it is and its size in bytes; its permission bits, the mode
+    --- without its type, `0o644` for one its owner may write and everyone
+    --- read; how many names it has, its owner and group; and when it was last
+    --- read, last written and last changed in any way, a change of its status
+    --- included, as the wall clock read then.  On Linux the device is the
+    --- kernel's major number in the upper 32 bits and its minor in the lower,
+    --- as `statx` reports them; elsewhere it is the system's `st_dev`.  Two
+    --- paths name the same file when both identify it alike.  A time the file
+    --- system does not keep reads as the system gives it, often zero.
+    public status: type = struct
+        device: u64
+        inode: u64
+        kind: file_kind
+        size: u64
+        permissions: u32
+        links: u64
+        user: user_id
+        group: group_id
+        accessed: time_value
+        modified: time_value
+        changed: time_value
+    end status
 
---- The status of the file `path` names, relative to the directory open as
---- `at` (or `working_directory`), following a final symbolic link when
---- `follow` is true and reporting the link itself when it is not.
-public status_at:
-    (at: descriptor, path: text.os_string, follow: bool)
-    -> (result: status) ! errno =
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    result = try system_status(at, terminated, follow)
-end status_at
+    --- The status of the file `path` names, relative to the directory open as
+    --- `at` (or `working_directory`), following a final symbolic link when
+    --- `follow` is true and reporting the link itself when it is not.
+    public status_at:
+        (at: descriptor, path: text.os_string, follow: bool)
+        -> (result: status) ! errno =
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        result = try system_status(at, terminated, follow)
+    end status_at
 
---  What a mode's type bits, the same on all three systems, say a file is.
-kind_of_mode: (mode: u32) -> (kind: file_kind) =
-    bits: u32 = mode & 0o170000
-    kind = if bits == 0o100000 then regular
-           elsif bits == 0o040000 then directory
-           elsif bits == 0o120000 then symbolic_link
-           elsif bits == 0o010000 then fifo
-           elsif bits == 0o140000 then socket_file
-           elsif bits == 0o020000 then character_device
-           elsif bits == 0o060000 then block_device
-           else unknown_kind end if
-end kind_of_mode
+    --  What a mode's type bits, the same on all three systems, say a file is.
+    kind_of_mode: (mode: u32) -> (kind: file_kind) =
+        bits: u32 = mode & 0o170000
+        kind = if bits == 0o100000 then regular
+               elsif bits == 0o040000 then directory
+               elsif bits == 0o120000 then symbolic_link
+               elsif bits == 0o010000 then fifo
+               elsif bits == 0o140000 then socket_file
+               elsif bits == 0o020000 then character_device
+               elsif bits == 0o060000 then block_device
+               else unknown_kind end if
+    end kind_of_mode
 
---  What a directory record's `d_type`, the same on all three systems, says
---  an entry is; DT_UNKNOWN and BSD's whiteout are `unknown_kind`.
-kind_of_type: (type_byte: u8) -> (kind: file_kind) =
-    kind = if type_byte == 8 then regular
-           elsif type_byte == 4 then directory
-           elsif type_byte == 10 then symbolic_link
-           elsif type_byte == 1 then fifo
-           elsif type_byte == 12 then socket_file
-           elsif type_byte == 2 then character_device
-           elsif type_byte == 6 then block_device
-           else unknown_kind end if
-end kind_of_type
+    --  What a directory record's `d_type`, the same on all three systems, says
+    --  an entry is; DT_UNKNOWN and BSD's whiteout are `unknown_kind`.
+    kind_of_type: (type_byte: u8) -> (kind: file_kind) =
+        kind = if type_byte == 8 then regular
+               elsif type_byte == 4 then directory
+               elsif type_byte == 10 then symbolic_link
+               elsif type_byte == 1 then fifo
+               elsif type_byte == 12 then socket_file
+               elsif type_byte == 2 then character_device
+               elsif type_byte == 6 then block_device
+               else unknown_kind end if
+    end kind_of_type
 
-largest_offset: u64 = 0x7FFFFFFFFFFFFFFF
+    largest_offset: u64 = 0x7FFFFFFFFFFFFFFF
 
---- Read at most `lenof into` bytes of `source`, starting `offset` bytes
---- into the file, POSIX's `pread`: the count read, zero at or past the
---- file's end, or the errno, `espipe` for a pipe or a socket and `einval`
---- for an offset past what the system counts.  The file's position, which
---- `read` and `write` use, does not move.
-public read_at:
-    (source: descriptor, offset: u64, into: []mut u8)
-    -> (count: usize) ! errno =
-    fail einval when offset > largest_offset
-    count = try system_read_at(source, offset, into)
-end read_at
+    --- Read at most `lenof into` bytes of `source`, starting `offset` bytes
+    --- into the file, POSIX's `pread`: the count read, zero at or past the
+    --- file's end, or the errno, `espipe` for a pipe or a socket and `einval`
+    --- for an offset past what the system counts.  The file's position, which
+    --- `read` and `write` use, does not move.
+    public read_at:
+        (source: descriptor, offset: u64, into: []mut u8)
+        -> (count: usize) ! errno =
+        fail einval when offset > largest_offset
+        count = try system_read_at(source, offset, into)
+    end read_at
 
---- Write at most `lenof bytes` bytes to `to`, starting `offset` bytes
---- into the file, POSIX's `pwrite`: the count accepted, which may be
---- short, or the errno.  A write past the end extends the file, and the
---- bytes between its old end and `offset` read as zeros, a hole that need
---- take no room on the device.  The position does not move.  On a file
---- opened `append`, Linux writes at the end whatever `offset` says, and
---- Darwin and FreeBSD write at `offset`: do not write at an offset to a
---- file opened to append.
-public write_at:
-    (to: descriptor, offset: u64, bytes: []u8) -> (count: usize) ! errno =
-    fail einval when offset > largest_offset
-    count = try system_write_at(to, offset, bytes)
-end write_at
+    --- Write at most `lenof bytes` bytes to `to`, starting `offset` bytes
+    --- into the file, POSIX's `pwrite`: the count accepted, which may be
+    --- short, or the errno.  A write past the end extends the file, and the
+    --- bytes between its old end and `offset` read as zeros, a hole that need
+    --- take no room on the device.  The position does not move.  On a file
+    --- opened `append`, Linux writes at the end whatever `offset` says, and
+    --- Darwin and FreeBSD write at `offset`: do not write at an offset to a
+    --- file opened to append.
+    public write_at:
+        (to: descriptor, offset: u64, bytes: []u8) -> (count: usize) ! errno =
+        fail einval when offset > largest_offset
+        count = try system_write_at(to, offset, bytes)
+    end write_at
 
---- Give the file open as `opened`, which must be open for writing, the
---- size `size`, POSIX's `ftruncate`: what lies beyond it is cut off, and a
---- larger size extends the file with zeros.  `einval` for a size past what
---- the system counts or a file not open for writing.
-public truncate:
-    (opened: descriptor, size: u64) -> none ! errno =
-    fail einval when size > largest_offset
-    try system_truncate(opened, size)
-end truncate
+    --- Give the file open as `opened`, which must be open for writing, the
+    --- size `size`, POSIX's `ftruncate`: what lies beyond it is cut off, and a
+    --- larger size extends the file with zeros.  `einval` for a size past what
+    --- the system counts or a file not open for writing.
+    public truncate:
+        (opened: descriptor, size: u64) -> none ! errno =
+        fail einval when size > largest_offset
+        try system_truncate(opened, size)
+    end truncate
 
---- Hand what the system holds of the file open as `opened` to its device
---- before returning. Without `data_only` that is its data and its status,
---- POSIX's `fsync`. With `data_only` it is its data and only so much of its
---- status as reading the data back needs, its size among it, `fdatasync`.
---- Darwin's `fsync` leaves what the device caches in the device, so there
---- both also ask the device to write that, `F_FULLFSYNC`, and fall back to
---- `fsync` on a file system that refuses it.
-public synchronize:
-    (opened: descriptor, data_only: bool) -> none ! errno =
-    try system_synchronize(opened, data_only)
-end synchronize
+    --- Hand what the system holds of the file open as `opened` to its device
+    --- before returning. Without `data_only` that is its data and its status,
+    --- POSIX's `fsync`. With `data_only` it is its data and only so much of
+    --- its status as reading the data back needs, its size among it,
+    --- `fdatasync`. Darwin's `fsync` leaves what the device caches in the
+    --- device, so there both also ask the device to write that, `F_FULLFSYNC`,
+    --- and fall back to `fsync` on a file system that refuses it.
+    public synchronize:
+        (opened: descriptor, data_only: bool) -> none ! errno =
+        try system_synchronize(opened, data_only)
+    end synchronize
 
---- Give the file `old` names, relative to `old_at`, the name `new`,
---- relative to `new_at`, in one step, POSIX's `renameat`: no process sees
---- both names or neither. A file already named `new` is replaced in the
---- same step; a directory is replaced only by a directory and only when it
---- is empty. It fails `enoent` when `old` or `new`'s parent is missing;
---- `exdev` when the two are on different file systems, which a rename never
---- crosses; `enotempty` or `eexist` for a directory that is not empty;
---- `eisdir` for a file onto a directory and `enotdir` the other way; and
---- `einval` for a directory into itself.
-public rename_at:
-    (old_at: descriptor, old: text.os_string, new_at: descriptor,
-     new: text.os_string) -> none ! errno =
-    mut old_room: path_room = zeroed
-    old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
-    mut new_room: path_room = zeroed
-    new_path: ptr u8 = try terminate(new, new_room[0..<lenof new_room])
-    try system_rename(old_at, old_path, new_at, new_path)
-end rename_at
+    --- Give the file `old` names, relative to `old_at`, the name `new`,
+    --- relative to `new_at`, in one step, POSIX's `renameat`: no process sees
+    --- both names or neither. A file already named `new` is replaced in the
+    --- same step; a directory is replaced only by a directory and only when it
+    --- is empty. It fails `enoent` when `old` or `new`'s parent is missing;
+    --- `exdev` when the two are on different file systems, which a rename
+    --- never crosses; `enotempty` or `eexist` for a directory that is not
+    --- empty; `eisdir` for a file onto a directory and `enotdir` the other
+    --- way; and `einval` for a directory into itself.
+    public rename_at:
+        (old_at: descriptor, old: text.os_string, new_at: descriptor,
+         new: text.os_string) -> none ! errno =
+        mut old_room: path_room = zeroed
+        old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
+        mut new_room: path_room = zeroed
+        new_path: ptr u8 = try terminate(new, new_room[0..<lenof new_room])
+        try system_rename(old_at, old_path, new_at, new_path)
+    end rename_at
 
---- Give the file `old` names, relative to `old_at`, a second name `new`,
---- relative to `new_at`, POSIX's `linkat`, a hard link: both names are one
---- file. A final symbolic link of `old` is linked itself, not followed. It
---- fails `eexist` when `new` is taken, `exdev` across file systems, `eperm`
---- for a directory, which no system links, and `emlink` for a file with as
---- many names as it may have.
-public link_at:
-    (old_at: descriptor, old: text.os_string, new_at: descriptor,
-     new: text.os_string) -> none ! errno =
-    mut old_room: path_room = zeroed
-    old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
-    mut new_room: path_room = zeroed
-    new_path: ptr u8 = try terminate(new, new_room[0..<lenof new_room])
-    try system_link(old_at, old_path, new_at, new_path)
-end link_at
+    --- Give the file `old` names, relative to `old_at`, a second name `new`,
+    --- relative to `new_at`, POSIX's `linkat`, a hard link: both names are one
+    --- file. A final symbolic link of `old` is linked itself, not followed. It
+    --- fails `eexist` when `new` is taken, `exdev` across file systems,
+    --- `eperm` for a directory, which no system links, and `emlink` for a file
+    --- with as many names as it may have.
+    public link_at:
+        (old_at: descriptor, old: text.os_string, new_at: descriptor,
+         new: text.os_string) -> none ! errno =
+        mut old_room: path_room = zeroed
+        old_path: ptr u8 = try terminate(old, old_room[0..<lenof old_room])
+        mut new_room: path_room = zeroed
+        new_path: ptr u8 = try terminate(new, new_room[0..<lenof new_room])
+        try system_link(old_at, old_path, new_at, new_path)
+    end link_at
 
---- Make `path`, relative to `at`, a symbolic link whose target is
---- `target`, POSIX's `symlinkat`: a path the system follows when it meets
---- the link, relative to the link's own directory unless it begins with
---- `/`, which need not name anything.  `eexist` when `path` is taken.
-public symbolic_link_at:
-    (target: text.os_string, at: descriptor, path: text.os_string)
-    -> none ! errno =
-    mut target_room: path_room = zeroed
-    pointed: ptr u8 = try terminate(target, target_room[0..<lenof target_room])
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    try system_symbolic_link(pointed, at, terminated)
-end symbolic_link_at
+    --- Make `path`, relative to `at`, a symbolic link whose target is
+    --- `target`, POSIX's `symlinkat`: a path the system follows when it meets
+    --- the link, relative to the link's own directory unless it begins with
+    --- `/`, which need not name anything.  `eexist` when `path` is taken.
+    public symbolic_link_at:
+        (target: text.os_string, at: descriptor, path: text.os_string)
+        -> none ! errno =
+        mut target_room: path_room = zeroed
+        pointed: ptr u8 = try terminate(target, target_room[0..<lenof target_room])
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        try system_symbolic_link(pointed, at, terminated)
+    end symbolic_link_at
 
---- The target of the symbolic link `path` names, relative to `at`,
---- POSIX's `readlinkat`, copied into `into` and lent from it: `einval` when
---- `path` is no symbolic link, and `erange` when the target fills `into`,
---- since a target as long as the buffer may have been cut.
-public read_link_at:
-    (at: descriptor, path: text.os_string, into: []mut u8)
-    -> (target: text.os_string from into) ! errno =
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    fail erange when lenof into == 0
-    count: usize = try system_read_link(at, terminated, into)
-    fail erange when count >= lenof into
-    target = text.os_string_over(into[0..<count])
-end read_link_at
+    --- The target of the symbolic link `path` names, relative to `at`, POSIX's
+    --- `readlinkat`, copied into `into` and lent from it: `einval` when `path`
+    --- is no symbolic link, and `erange` when the target fills `into`, since a
+    --- target as long as the buffer may have been cut.
+    public read_link_at:
+        (at: descriptor, path: text.os_string, into: []mut u8)
+        -> (target: text.os_string from into) ! errno =
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        fail erange when lenof into == 0
+        count: usize = try system_read_link(at, terminated, into)
+        fail erange when count >= lenof into
+        target = text.os_string_over(into[0..<count])
+    end read_link_at
 
---- Set the permission bits of the file `path` names, relative to `at`, to
---- `permissions`, POSIX's `fchmodat`, following a final symbolic link,
---- whose own bits no system gives a meaning: `einval` for bits beyond
---- `0o7777`, and `eperm` when the process neither owns the file nor may
---- override that.
-public change_mode_at:
-    (at: descriptor, path: text.os_string, permissions: u32)
-    -> none ! errno =
-    fail einval when permissions > 0o7777
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    try system_change_mode_at(at, terminated, permissions)
-end change_mode_at
+    --- Set the permission bits of the file `path` names, relative to `at`, to
+    --- `permissions`, POSIX's `fchmodat`, following a final symbolic link,
+    --- whose own bits no system gives a meaning: `einval` for bits beyond
+    --- `0o7777`, and `eperm` when the process neither owns the file nor may
+    --- override that.
+    public change_mode_at:
+        (at: descriptor, path: text.os_string, permissions: u32)
+        -> none ! errno =
+        fail einval when permissions > 0o7777
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        try system_change_mode_at(at, terminated, permissions)
+    end change_mode_at
 
---- Set the permission bits of the file open as `opened`, POSIX's
---- `fchmod`, as `change_mode_at` sets a path's.
-public change_mode:
-    (opened: descriptor, permissions: u32) -> none ! errno =
-    fail einval when permissions > 0o7777
-    try system_change_mode(opened, permissions)
-end change_mode
+    --- Set the permission bits of the file open as `opened`, POSIX's
+    --- `fchmod`, as `change_mode_at` sets a path's.
+    public change_mode:
+        (opened: descriptor, permissions: u32) -> none ! errno =
+        fail einval when permissions > 0o7777
+        try system_change_mode(opened, permissions)
+    end change_mode
 
---- Set the owner and group of the file `path` names, relative to `at`,
---- POSIX's `fchownat`. `unchanged_user` and `unchanged_group` keep either
---- as it is. With `follow` false it sets a final symbolic link's own. It
---- fails `eperm` unless the process may: only a privileged one gives a file
---- away, and an owner may give it only to a group the owner is in. A system
---- may clear the set-user-ID and set-group-ID bits as it changes the owner.
-public change_owner_at:
-    (at: descriptor, path: text.os_string, user: user_id, group: group_id,
-     follow: bool) -> none ! errno =
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    try system_change_owner_at(at, terminated, user, group, follow)
-end change_owner_at
+    --- Set the owner and group of the file `path` names, relative to `at`,
+    --- POSIX's `fchownat`. `unchanged_user` and `unchanged_group` keep either
+    --- as it is. With `follow` false it sets a final symbolic link's own. It
+    --- fails `eperm` unless the process may: only a privileged one gives a
+    --- file away, and an owner may give it only to a group the owner is in. A
+    --- system may clear the set-user-ID and set-group-ID bits as it changes
+    --- the owner.
+    public change_owner_at:
+        (at: descriptor, path: text.os_string, user: user_id, group: group_id,
+         follow: bool) -> none ! errno =
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        try system_change_owner_at(at, terminated, user, group, follow)
+    end change_owner_at
 
---- Set the owner and group of the file open as `opened`, POSIX's
---- `fchown`, as `change_owner_at` sets a path's.
-public change_owner:
-    (opened: descriptor, user: user_id, group: group_id) -> none ! errno =
-    try system_change_owner(opened, user, group)
-end change_owner
+    --- Set the owner and group of the file open as `opened`, POSIX's
+    --- `fchown`, as `change_owner_at` sets a path's.
+    public change_owner:
+        (opened: descriptor, user: user_id, group: group_id) -> none ! errno =
+        try system_change_owner(opened, user, group)
+    end change_owner
 
---- Set when the file `path` names, relative to `at`, was last read and last
---- written to `accessed` and `modified`, POSIX's `utimensat`. With `follow`
---- false it sets a final symbolic link's own. The system sets the time it
---- was last changed to now, which nothing else can. It fails `einval` for
---- nanoseconds of a second or more; a file system keeping coarser times
---- rounds them down.
-public set_times_at:
-    (at: descriptor, path: text.os_string, accessed: time_value,
-     modified: time_value, follow: bool) -> none ! errno =
-    fail einval when accessed.nanoseconds >= 1000000000
-      or modified.nanoseconds >= 1000000000
-    mut room: path_room = zeroed
-    terminated: ptr u8 = try terminate(path, room[0..<lenof room])
-    try system_set_times_at(at, terminated, accessed, modified, follow)
-end set_times_at
+    --- Set when the file `path` names, relative to `at`, was last read and
+    --- last written to `accessed` and `modified`, POSIX's `utimensat`. With
+    --- `follow` false it sets a final symbolic link's own. The system sets the
+    --- time it was last changed to now, which nothing else can. It fails
+    --- `einval` for nanoseconds of a second or more; a file system keeping
+    --- coarser times rounds them down.
+    public set_times_at:
+        (at: descriptor, path: text.os_string, accessed: time_value,
+         modified: time_value, follow: bool) -> none ! errno =
+        fail einval when accessed.nanoseconds >= 1000000000
+          or modified.nanoseconds >= 1000000000
+        mut room: path_room = zeroed
+        terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        try system_set_times_at(at, terminated, accessed, modified, follow)
+    end set_times_at
 
---- Set the two times of the file open as `opened`, POSIX's `futimens`, as
---- `set_times_at` sets a path's.
-public set_times:
-    (opened: descriptor, accessed: time_value, modified: time_value)
-    -> none ! errno =
-    fail einval when accessed.nanoseconds >= 1000000000
-      or modified.nanoseconds >= 1000000000
-    try system_set_times(opened, accessed, modified)
-end set_times
+    --- Set the two times of the file open as `opened`, POSIX's `futimens`, as
+    --- `set_times_at` sets a path's.
+    public set_times:
+        (opened: descriptor, accessed: time_value, modified: time_value)
+        -> none ! errno =
+        fail einval when accessed.nanoseconds >= 1000000000
+          or modified.nanoseconds >= 1000000000
+        try system_set_times(opened, accessed, modified)
+    end set_times
 
---- The status of the file open as `opened`, POSIX's `fstat`, as
---- `status_at` gives a path's; `core/io`'s `status_of` takes a path.
-public status_of:
-    (opened: descriptor) -> (result: status) ! errno =
-    result = try system_status_of(opened)
-end status_of
+    --- The status of the file open as `opened`, POSIX's `fstat`, as
+    --- `status_at` gives a path's; `core/io`'s `status_of` takes a path.
+    public status_of:
+        (opened: descriptor) -> (result: status) ! errno =
+        result = try system_status_of(opened)
+    end status_of
 
---- The working directory's absolute path, POSIX's `getcwd`, copied into
---- `into` and lent from it: `erange` when it does not fit with the NUL
---- the system adds, and `enoent` when the directory has been removed.
---- The working directory is the process's, so this module never changes
---- it: beside threads a change would move every relative path at once,
---- and a path relative to a directory open as `at` serves instead.
-public current_directory:
-    (into: []mut u8) -> (path: text.os_string from into) ! errno =
-    fail erange when lenof into == 0
-    count: usize = try system_current_directory(into)
-    fail erange when count > lenof into
-    path = text.os_string_over(into[0..<count])
-end current_directory
+    --- The working directory's absolute path, POSIX's `getcwd`, copied into
+    --- `into` and lent from it: `erange` when it does not fit with the NUL
+    --- the system adds, and `enoent` when the directory has been removed.
+    --- The working directory is the process's, so this module never changes
+    --- it: beside threads a change would move every relative path at once,
+    --- and a path relative to a directory open as `at` serves instead.
+    public current_directory:
+        (into: []mut u8) -> (path: text.os_string from into) ! errno =
+        fail erange when lenof into == 0
+        count: usize = try system_current_directory(into)
+        fail erange when count > lenof into
+        path = text.os_string_over(into[0..<count])
+    end current_directory
 
---- A shared lock: any number of holders, none of them exclusive.
-public shared_lock: atom
---- An exclusive lock: one holder, and no shared one beside it.
-public exclusive_lock: atom
---- What a lock is: `shared_lock` or `exclusive_lock`.
-public lock_kind: type = shared_lock | exclusive_lock
+    --- A shared lock: any number of holders, none of them exclusive.
+    public shared_lock: atom
+    --- An exclusive lock: one holder, and no shared one beside it.
+    public exclusive_lock: atom
+    --- What a lock is: `shared_lock` or `exclusive_lock`.
+    public lock_kind: type = shared_lock | exclusive_lock
 
---- Take a lock of `kind` on the whole file open as `opened`, waiting for
---- it when `wait` is true, BSD's `flock`, which Linux, Darwin and FreeBSD
---- all give: or the errno, `eagain` when another holds a lock in the way
---- and `wait` is false, `eintr` when a signal came while waiting.  The
---- lock is advisory, binding only programs that ask for it, and belongs to
---- the open file `opened` is a descriptor of: a second `open_at` of the
---- same file in the same process is another holder, which it stands in
---- the way of, while a duplicate of `opened`, and a child that inherited
---- it, shares it.  It lasts until `unlock`, or until every descriptor of
---- that open file is closed.  Taking it again changes its kind, and the
---- change is not atomic: another holder may come between.  Use one kind of
---- lock on a file, `lock` or `lock_range`, since how the two see each
---- other differs between systems.
-public lock:
-    (opened: descriptor, kind: lock_kind, wait: bool) -> none ! errno =
-    try system_lock(opened, kind, wait)
-end lock
+    --- Take a lock of `kind` on the whole file open as `opened`, waiting for
+    --- it when `wait` is true, BSD's `flock`, which Linux, Darwin and FreeBSD
+    --- all give: or the errno, `eagain` when another holds a lock in the way
+    --- and `wait` is false, `eintr` when a signal came while waiting.  The
+    --- lock is advisory, binding only programs that ask for it, and belongs to
+    --- the open file `opened` is a descriptor of: a second `open_at` of the
+    --- same file in the same process is another holder, which it stands in
+    --- the way of, while a duplicate of `opened`, and a child that inherited
+    --- it, shares it.  It lasts until `unlock`, or until every descriptor of
+    --- that open file is closed.  Taking it again changes its kind, and the
+    --- change is not atomic: another holder may come between.  Use one kind of
+    --- lock on a file, `lock` or `lock_range`, since how the two see each
+    --- other differs between systems.
+    public lock:
+        (opened: descriptor, kind: lock_kind, wait: bool) -> none ! errno =
+        try system_lock(opened, kind, wait)
+    end lock
 
---- Give up the lock `lock` took on the file open as `opened`.
-public unlock:
-    (opened: descriptor) -> none ! errno =
-    try system_unlock(opened)
-end unlock
+    --- Give up the lock `lock` took on the file open as `opened`.
+    public unlock:
+        (opened: descriptor) -> none ! errno =
+        try system_unlock(opened)
+    end unlock
 
---- Take a lock of `kind` on `length` bytes of the file open as `opened` from
---- `start`; a `length` of zero reaches however far the file ever will. It is
---- POSIX's record lock, `fcntl`'s `F_SETLK`, or `F_SETLKW` with `wait`. It
---- fails `eagain` or `eacces`, as the system chooses, when another process
---- holds one in the way and `wait` is false; `edeadlk` when waiting would
---- deadlock; `ebadf` for a shared lock on a file not open to read or an
---- exclusive one on one not open to write; `einval` past the largest offset.
----
---- A record lock belongs to the process, not to a descriptor: the process
---- never stands in its own way, through any descriptor, and a lock over one
---- it already holds replaces that part of it. Closing any descriptor of the
---- file, even one opened elsewhere in the program for a moment, gives up
---- every record lock the process holds on it. A child does not inherit one.
---- `lock` has none of these hazards and no byte ranges.
-public lock_range:
-    (opened: descriptor, kind: lock_kind, start: u64, length: u64,
-     wait: bool) -> none ! errno =
-    fail einval when start > largest_offset or length > largest_offset
-    try system_lock_range(opened, kind, start, length, wait, true)
-end lock_range
+    --- Take a lock of `kind` on `length` bytes of the file open as `opened`
+    --- from `start`; a `length` of zero reaches however far the file ever
+    --- will. It is POSIX's record lock, `fcntl`'s `F_SETLK`, or `F_SETLKW`
+    --- with `wait`. It fails `eagain` or `eacces`, as the system chooses, when
+    --- another process holds one in the way and `wait` is false; `edeadlk`
+    --- when waiting would deadlock; `ebadf` for a shared lock on a file not
+    --- open to read or an exclusive one on one not open to write; `einval`
+    --- past the largest offset.
+    ---
+    --- A record lock belongs to the process, not to a descriptor: the process
+    --- never stands in its own way, through any descriptor, and a lock over
+    --- one it already holds replaces that part of it. Closing any descriptor
+    --- of the file, even one opened elsewhere in the program for a moment,
+    --- gives up every record lock the process holds on it. A child does not
+    --- inherit one. `lock` has none of these hazards and no byte ranges.
+    public lock_range:
+        (opened: descriptor, kind: lock_kind, start: u64, length: u64,
+         wait: bool) -> none ! errno =
+        fail einval when start > largest_offset or length > largest_offset
+        try system_lock_range(opened, kind, start, length, wait, true)
+    end lock_range
 
---- Give up the process's record locks on `length` bytes of the file open
---- as `opened` from `start`, as `lock_range` counts them.
-public unlock_range:
-    (opened: descriptor, start: u64, length: u64) -> none ! errno =
-    fail einval when start > largest_offset or length > largest_offset
-    try system_lock_range(opened, shared_lock, start, length, false, false)
-end unlock_range
+    --- Give up the process's record locks on `length` bytes of the file open
+    --- as `opened` from `start`, as `lock_range` counts them.
+    public unlock_range:
+        (opened: descriptor, start: u64, length: u64) -> none ! errno =
+        fail einval when start > largest_offset or length > largest_offset
+        try system_lock_range(opened, shared_lock, start, length, false, false)
+    end unlock_range
 
---  The system's own calls beneath the facility above: Linux's system
---  calls through platform/linux, and the C library through
---  platform/libc on Darwin and FreeBSD, whose system interface it is.
+    --  The system's own calls beneath the facility above: Linux's system
+    --  calls through platform/linux, and the C library through
+    --  platform/libc on Darwin and FreeBSD, whose system interface it is.
 
-fixed if compiler.os == linux then
-    --  The flags `openat` takes for `options`.
-    flags_of: (options: open_options) -> (flags: i32) =
-        flags = match options.access
-            read_only: linux.o_rdonly
-            write_only: linux.o_wronly
-            read_write: linux.o_rdwr
-        end match
-        if options.create then flags = flags | linux.o_creat end if
-        if options.exclusive then flags = flags | linux.o_excl end if
-        if options.truncate then flags = flags | linux.o_trunc end if
-        if options.append then flags = flags | linux.o_append end if
-        if options.directory then flags = flags | linux.o_directory end if
-        flags = flags | linux.o_cloexec | linux.o_noctty
-    end flags_of
+    fixed if compiler.os == linux then
+        --  The flags `openat` takes for `options`.
+        flags_of: (options: open_options) -> (flags: i32) =
+            flags = match options.access
+                read_only: linux.o_rdonly
+                write_only: linux.o_wronly
+                read_write: linux.o_rdwr
+            end match
+            if options.create then flags = flags | linux.o_creat end if
+            if options.exclusive then flags = flags | linux.o_excl end if
+            if options.truncate then flags = flags | linux.o_trunc end if
+            if options.append then flags = flags | linux.o_append end if
+            if options.directory then flags = flags | linux.o_directory end if
+            flags = flags | linux.o_cloexec | linux.o_noctty
+        end flags_of
 
-    system_open: (at: descriptor, path: ptr u8, options: open_options,
-                  permissions: u32) -> (opened: descriptor) ! errno =
-        result: i32 = linux.openat(i32(at), path, flags_of(options),
-                                   permissions)
-        fail errno_of(-result) when result < 0
-        opened = descriptor(result)
-    end system_open
+        system_open: (at: descriptor, path: ptr u8, options: open_options,
+                      permissions: u32) -> (opened: descriptor) ! errno =
+            result: i32 = linux.openat(i32(at), path, flags_of(options),
+                                       permissions)
+            fail errno_of(-result) when result < 0
+            opened = descriptor(result)
+        end system_open
 
-    system_read: (source: descriptor, into: []mut u8)
-                 -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = linux.read(i32(source), base, lenof into)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_read
-
-    system_write: (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = linux.write(i32(to), base, lenof bytes)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_write
-
-    system_close: (closing: descriptor) -> none ! errno =
-        result: i32 = linux.close(i32(closing))
-        fail errno_of(-result) when result < 0
-    end system_close
-
-    --  A statx time as POSIX's.
-    time_of: (stamp: linux.statx_time) -> (time: time_value) =
-        time = (seconds: stamp.seconds, nanoseconds: stamp.nanoseconds)
-    end time_of
-
-    --  statx's record is the kernel's own on every architecture, so it
-    --  needs no layout check.  Every basic field is asked for.
-    status_of_record: (record: linux.file_status) -> (result: status) =
-        result = (device: (u64(record.device_major) << 32)
-                          | u64(record.device_minor),
-                  inode: record.inode, kind: kind_of_mode(u32(record.mode)),
-                  size: record.size,
-                  permissions: u32(record.mode) & 0o7777,
-                  links: u64(record.links), user: user_id(record.uid),
-                  group: group_id(record.gid),
-                  accessed: time_of(record.accessed),
-                  modified: time_of(record.modified),
-                  changed: time_of(record.changed))
-    end status_of_record
-
-    system_status: (at: descriptor, path: ptr u8, follow: bool)
-                   -> (result: status) ! errno =
-        mut record: linux.file_status = zeroed
-        flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
-        outcome: i32 = linux.statx(i32(at), path, flags,
-                                   linux.statx_basic_stats, addr record)
-        fail errno_of(-outcome) when outcome < 0
-        result = status_of_record(record)
-    end system_status
-
-    --  The status of an open file: statx of an empty path relative to it.
-    system_status_of: (opened: descriptor) -> (result: status) ! errno =
-        mut record: linux.file_status = zeroed
-        empty: [1]u8 = [0]
-        outcome: i32 = linux.statx(i32(opened), addr empty[0],
-                                   linux.at_empty_path,
-                                   linux.statx_basic_stats, addr record)
-        fail errno_of(-outcome) when outcome < 0
-        result = status_of_record(record)
-    end system_status_of
-
-    system_read_at: (source: descriptor, offset: u64, into: []mut u8)
-                    -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = linux.pread64(i32(source), base, lenof into,
-                                      i64(offset))
-        fail errno_of(i32(-result)) when result < 0
-        fail unlisted when usize(result) > lenof into
-        count = usize(result)
-    end system_read_at
-
-    system_write_at: (to: descriptor, offset: u64, bytes: []u8)
+        system_read: (source: descriptor, into: []mut u8)
                      -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = linux.pwrite64(i32(to), base, lenof bytes,
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = linux.read(i32(source), base, lenof into)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_read
+
+        system_write: (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = linux.write(i32(to), base, lenof bytes)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_write
+
+        system_close: (closing: descriptor) -> none ! errno =
+            result: i32 = linux.close(i32(closing))
+            fail errno_of(-result) when result < 0
+        end system_close
+
+        --  A statx time as POSIX's.
+        time_of: (stamp: linux.statx_time) -> (time: time_value) =
+            time = (seconds: stamp.seconds, nanoseconds: stamp.nanoseconds)
+        end time_of
+
+        --  statx's record is the kernel's own on every architecture, so it
+        --  needs no layout check.  Every basic field is asked for.
+        status_of_record: (record: linux.file_status) -> (result: status) =
+            result = (device: (u64(record.device_major) << 32)
+                              | u64(record.device_minor),
+                      inode: record.inode, kind: kind_of_mode(u32(record.mode)),
+                      size: record.size,
+                      permissions: u32(record.mode) & 0o7777,
+                      links: u64(record.links), user: user_id(record.uid),
+                      group: group_id(record.gid),
+                      accessed: time_of(record.accessed),
+                      modified: time_of(record.modified),
+                      changed: time_of(record.changed))
+        end status_of_record
+
+        system_status: (at: descriptor, path: ptr u8, follow: bool)
+                       -> (result: status) ! errno =
+            mut record: linux.file_status = zeroed
+            flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
+            outcome: i32 = linux.statx(i32(at), path, flags,
+                                       linux.statx_basic_stats, addr record)
+            fail errno_of(-outcome) when outcome < 0
+            result = status_of_record(record)
+        end system_status
+
+        --  The status of an open file: statx of an empty path relative to it.
+        system_status_of: (opened: descriptor) -> (result: status) ! errno =
+            mut record: linux.file_status = zeroed
+            empty: [1]u8 = [0]
+            outcome: i32 = linux.statx(i32(opened), addr empty[0],
+                                       linux.at_empty_path,
+                                       linux.statx_basic_stats, addr record)
+            fail errno_of(-outcome) when outcome < 0
+            result = status_of_record(record)
+        end system_status_of
+
+        system_read_at: (source: descriptor, offset: u64, into: []mut u8)
+                        -> (count: usize) ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = linux.pread64(i32(source), base, lenof into,
+                                          i64(offset))
+            fail errno_of(i32(-result)) when result < 0
+            fail unlisted when usize(result) > lenof into
+            count = usize(result)
+        end system_read_at
+
+        system_write_at: (to: descriptor, offset: u64, bytes: []u8)
+                         -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = linux.pwrite64(i32(to), base, lenof bytes,
+                                           i64(offset))
+            fail errno_of(i32(-result)) when result < 0
+            fail unlisted when usize(result) > lenof bytes
+            count = usize(result)
+        end system_write_at
+
+        system_truncate: (opened: descriptor, size: u64) -> none ! errno =
+            result: i32 = linux.ftruncate(i32(opened), i64(size))
+            fail errno_of(-result) when result < 0
+        end system_truncate
+
+        system_synchronize: (opened: descriptor, data_only: bool)
+                            -> none ! errno =
+            result: i32 = if data_only then linux.fdatasync(i32(opened))
+                          else linux.fsync(i32(opened)) end if
+            fail errno_of(-result) when result < 0
+        end system_synchronize
+
+        system_rename: (old_at: descriptor, old: ptr u8, new_at: descriptor,
+                        new: ptr u8) -> none ! errno =
+            result: i32 = linux.renameat2(i32(old_at), old, i32(new_at), new, 0)
+            fail errno_of(-result) when result < 0
+        end system_rename
+
+        system_link: (old_at: descriptor, old: ptr u8, new_at: descriptor,
+                      new: ptr u8) -> none ! errno =
+            result: i32 = linux.linkat(i32(old_at), old, i32(new_at), new, 0)
+            fail errno_of(-result) when result < 0
+        end system_link
+
+        system_symbolic_link: (target: ptr u8, at: descriptor, path: ptr u8)
+                              -> none ! errno =
+            result: i32 = linux.symlinkat(target, i32(at), path)
+            fail errno_of(-result) when result < 0
+        end system_symbolic_link
+
+        system_read_link: (at: descriptor, path: ptr u8, into: []mut u8)
+                          -> (count: usize) ! errno =
+            result: isize = linux.readlinkat(i32(at), path, addr into[0],
+                                             lenof into)
+            fail errno_of(i32(-result)) when result < 0
+            count = usize(result)
+        end system_read_link
+
+        system_change_mode_at: (at: descriptor, path: ptr u8, permissions: u32)
+                               -> none ! errno =
+            result: i32 = linux.fchmodat(i32(at), path, permissions)
+            fail errno_of(-result) when result < 0
+        end system_change_mode_at
+
+        system_change_mode: (opened: descriptor, permissions: u32)
+                            -> none ! errno =
+            result: i32 = linux.fchmod(i32(opened), permissions)
+            fail errno_of(-result) when result < 0
+        end system_change_mode
+
+        system_change_owner_at: (at: descriptor, path: ptr u8, user: user_id,
+                                 group: group_id, follow: bool)
+                                -> none ! errno =
+            flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
+            result: i32 = linux.fchownat(i32(at), path, u32(user), u32(group),
+                                         flags)
+            fail errno_of(-result) when result < 0
+        end system_change_owner_at
+
+        system_change_owner: (opened: descriptor, user: user_id, group: group_id)
+                             -> none ! errno =
+            result: i32 = linux.fchown(i32(opened), u32(user), u32(group))
+            fail errno_of(-result) when result < 0
+        end system_change_owner
+
+        --  The two times as the kernel's pair of `timespec`s, access first.
+        times_of: (accessed: time_value, modified: time_value)
+                  -> (times: [2]linux.timespec) =
+            times = [(seconds: accessed.seconds,
+                      nanoseconds: i64(accessed.nanoseconds)),
+                     (seconds: modified.seconds,
+                      nanoseconds: i64(modified.nanoseconds))]
+        end times_of
+
+        system_set_times_at: (at: descriptor, path: ptr u8, accessed: time_value,
+                              modified: time_value, follow: bool)
+                             -> none ! errno =
+            times: [2]linux.timespec = times_of(accessed, modified)
+            flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
+            result: i32 = linux.utimensat(i32(at), path, addr times[0], flags)
+            fail errno_of(-result) when result < 0
+        end system_set_times_at
+
+        system_set_times: (opened: descriptor, accessed: time_value,
+                           modified: time_value) -> none ! errno =
+            times: [2]linux.timespec = times_of(accessed, modified)
+            result: i32 = linux.utimensat(i32(opened), linux.no_path,
+                                          addr times[0], 0)
+            fail errno_of(-result) when result < 0
+        end system_set_times
+
+        --  The kernel puts the path and its NUL in the buffer and gives their
+        --  length; a directory outside the process's root comes back as a path
+        --  that does not begin with `/`, which is no path to it.
+        system_current_directory: (into: []mut u8) -> (count: usize) ! errno =
+            result: isize = linux.getcwd(addr into[0], lenof into)
+            fail errno_of(i32(-result)) when result < 0
+            fail unlisted when result == 0 or usize(result) > lenof into
+            fail enoent when into[0] <> u8('/')
+            count = usize(result) - 1
+        end system_current_directory
+
+        system_lock: (opened: descriptor, kind: lock_kind, wait: bool)
+                     -> none ! errno =
+            mut operation: i32 = if kind == shared_lock then linux.lock_sh
+                                 else linux.lock_ex end if
+            if not wait then operation = operation | linux.lock_nb end if
+            result: i32 = linux.flock(i32(opened), operation)
+            fail errno_of(-result) when result < 0
+        end system_lock
+
+        system_unlock: (opened: descriptor) -> none ! errno =
+            result: i32 = linux.flock(i32(opened), linux.lock_un)
+            fail errno_of(-result) when result < 0
+        end system_unlock
+
+        --  Take a record lock of KIND, or with TAKING false give one up.
+        system_lock_range: (opened: descriptor, kind: lock_kind, start: u64,
+                            length: u64, wait: bool, taking: bool)
+                           -> none ! errno =
+            mut record: linux.lock_record = zeroed
+            record.kind = if not taking then linux.f_unlck
+                          elsif kind == shared_lock then linux.f_rdlck
+                          else linux.f_wrlck end if
+            record.start = i64(start)
+            record.length = i64(length)
+            command: i32 = if wait then linux.f_setlkw else linux.f_setlk end if
+            result: i32 = linux.fcntl(i32(opened), command,
+                                      i64(usize(addr record)))
+            fail errno_of(-result) when result < 0
+        end system_lock_range
+    elsif compiler.os == darwin or compiler.os == freebsd then
+        --  The flags `open` takes for `options`.
+        flags_of: (options: open_options) -> (flags: i32) =
+            flags = match options.access
+                read_only: libc.o_rdonly
+                write_only: libc.o_wronly
+                read_write: libc.o_rdwr
+            end match
+            if options.create then flags = flags | libc.o_creat end if
+            if options.exclusive then flags = flags | libc.o_excl end if
+            if options.truncate then flags = flags | libc.o_trunc end if
+            if options.append then flags = flags | libc.o_append end if
+            if options.directory then flags = flags | libc.o_directory end if
+            flags = flags | libc.o_cloexec | libc.o_noctty
+        end flags_of
+
+        --  `open`, or `openat` relative to an open directory, with the
+        --  permission bits as the one variadic argument only when creating.
+        opened_at: (at: descriptor, path: ptr u8, flags: i32, permissions: u32)
+                   -> (result: i32) =
+            if at == working_directory then
+                result = if (flags & libc.o_creat) <> 0
+                         then libc.open(path, flags, i32(permissions))
+                         else libc.open(path, flags) end if
+            else
+                result = if (flags & libc.o_creat) <> 0
+                         then libc.openat(i32(at), path, flags, i32(permissions))
+                         else libc.openat(i32(at), path, flags) end if
+            end if
+        end opened_at
+
+        system_open: (at: descriptor, path: ptr u8, options: open_options,
+                      permissions: u32) -> (opened: descriptor) ! errno =
+            result: i32 = opened_at(at, path, flags_of(options), permissions)
+            fail failure() when result < 0
+            opened = descriptor(result)
+        end system_open
+
+        --  The most one transfer asks of the system: Darwin refuses a read or
+        --  a write of more than INT_MAX bytes with EINVAL rather than making it
+        --  short, so every transfer is bounded here and returns short instead,
+        --  as POSIX lets any transfer.
+        largest_transfer: usize = 0x7FFFFFFF
+
+        --  A transfer of `length` bytes, bounded to what one call asks.
+        bounded: (length: usize) -> (asked: usize) =
+            asked = if length > largest_transfer then largest_transfer
+                    else length end if
+        end bounded
+
+        system_read: (source: descriptor, into: []mut u8)
+                     -> (count: usize) ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = libc.read(i32(source), base, bounded(lenof into))
+            fail failure() when result < 0
+            count = usize(result)
+        end system_read
+
+        system_write: (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = libc.write(i32(to), base, bounded(lenof bytes))
+            fail failure() when result < 0
+            count = usize(result)
+        end system_write
+
+        system_close: (closing: descriptor) -> none ! errno =
+            fail failure() when libc.close(i32(closing)) <> 0
+        end system_close
+
+        --  A C `timespec` as POSIX's time value; one the system could not
+        --  have given reads as zero nanoseconds rather than trapping.
+        time_of: (stamp: libc.timespec) -> (time: time_value) =
+            kept: bool = stamp.nanoseconds >= 0
+                         and stamp.nanoseconds < 1000000000
+            part: u32 = if kept then u32(stamp.nanoseconds) else 0 end if
+            time = (seconds: stamp.seconds, nanoseconds: part)
+        end time_of
+
+        status_of_record: (record: libc.file_status) -> (result: status) =
+            result = (device: u64(record.device), inode: u64(record.inode),
+                      kind: kind_of_mode(u32(record.mode)),
+                      size: u64(record.bytes),
+                      permissions: u32(record.mode) & 0o7777,
+                      links: u64(record.links), user: user_id(record.uid),
+                      group: group_id(record.gid),
+                      accessed: time_of(record.accessed),
+                      modified: time_of(record.modified),
+                      changed: time_of(record.changed))
+        end status_of_record
+
+        --  The record is checked against the native header's size before it
+        --  is used, as abi/core-io-file-identity holds it to that header: a
+        --  disagreement is `unlisted`, which no errno describes.
+        system_status: (at: descriptor, path: ptr u8, follow: bool)
+                       -> (result: status) ! errno =
+            fail unlisted when alignof libc.file_status <> 8
+              or sizeof libc.file_status <> libc.file_status_size
+            mut record: libc.file_status = zeroed
+            outcome: i32 =
+                if at == working_directory and follow
+                then libc.stat(path, addr record)
+                else libc.fstatat(i32(at), path, addr record,
+                                  if follow then 0
+                                  else libc.at_symlink_nofollow end if) end if
+            fail failure() when outcome <> 0
+            result = status_of_record(record)
+        end system_status
+
+        system_status_of: (opened: descriptor) -> (result: status) ! errno =
+            fail unlisted when alignof libc.file_status <> 8
+              or sizeof libc.file_status <> libc.file_status_size
+            mut record: libc.file_status = zeroed
+            fail failure() when libc.fstat(i32(opened), addr record) <> 0
+            result = status_of_record(record)
+        end system_status_of
+
+        system_read_at: (source: descriptor, offset: u64, into: []mut u8)
+                        -> (count: usize) ! errno =
+            mut spare: u8 = 0
+            base: ptr mut u8 = if lenof into > 0 then addr into[0]
+                               else addr spare end if
+            result: isize = libc.pread(i32(source), base, bounded(lenof into),
                                        i64(offset))
-        fail errno_of(i32(-result)) when result < 0
-        fail unlisted when usize(result) > lenof bytes
-        count = usize(result)
-    end system_write_at
+            fail failure() when result < 0
+            fail unlisted when usize(result) > lenof into
+            count = usize(result)
+        end system_read_at
 
-    system_truncate: (opened: descriptor, size: u64) -> none ! errno =
-        result: i32 = linux.ftruncate(i32(opened), i64(size))
-        fail errno_of(-result) when result < 0
-    end system_truncate
+        system_write_at: (to: descriptor, offset: u64, bytes: []u8)
+                         -> (count: usize) ! errno =
+            spare: u8 = 0
+            base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
+                           else addr spare end if
+            result: isize = libc.pwrite(i32(to), base, bounded(lenof bytes),
+                                        i64(offset))
+            fail failure() when result < 0
+            fail unlisted when usize(result) > lenof bytes
+            count = usize(result)
+        end system_write_at
 
-    system_synchronize: (opened: descriptor, data_only: bool)
-                        -> none ! errno =
-        result: i32 = if data_only then linux.fdatasync(i32(opened))
-                      else linux.fsync(i32(opened)) end if
-        fail errno_of(-result) when result < 0
-    end system_synchronize
+        system_truncate: (opened: descriptor, size: u64) -> none ! errno =
+            fail failure() when libc.ftruncate(i32(opened), i64(size)) <> 0
+        end system_truncate
 
-    system_rename: (old_at: descriptor, old: ptr u8, new_at: descriptor,
-                    new: ptr u8) -> none ! errno =
-        result: i32 = linux.renameat2(i32(old_at), old, i32(new_at), new, 0)
-        fail errno_of(-result) when result < 0
-    end system_rename
-
-    system_link: (old_at: descriptor, old: ptr u8, new_at: descriptor,
-                  new: ptr u8) -> none ! errno =
-        result: i32 = linux.linkat(i32(old_at), old, i32(new_at), new, 0)
-        fail errno_of(-result) when result < 0
-    end system_link
-
-    system_symbolic_link: (target: ptr u8, at: descriptor, path: ptr u8)
-                          -> none ! errno =
-        result: i32 = linux.symlinkat(target, i32(at), path)
-        fail errno_of(-result) when result < 0
-    end system_symbolic_link
-
-    system_read_link: (at: descriptor, path: ptr u8, into: []mut u8)
-                      -> (count: usize) ! errno =
-        result: isize = linux.readlinkat(i32(at), path, addr into[0],
-                                         lenof into)
-        fail errno_of(i32(-result)) when result < 0
-        count = usize(result)
-    end system_read_link
-
-    system_change_mode_at: (at: descriptor, path: ptr u8, permissions: u32)
-                           -> none ! errno =
-        result: i32 = linux.fchmodat(i32(at), path, permissions)
-        fail errno_of(-result) when result < 0
-    end system_change_mode_at
-
-    system_change_mode: (opened: descriptor, permissions: u32)
-                        -> none ! errno =
-        result: i32 = linux.fchmod(i32(opened), permissions)
-        fail errno_of(-result) when result < 0
-    end system_change_mode
-
-    system_change_owner_at: (at: descriptor, path: ptr u8, user: user_id,
-                             group: group_id, follow: bool)
-                            -> none ! errno =
-        flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
-        result: i32 = linux.fchownat(i32(at), path, u32(user), u32(group),
-                                     flags)
-        fail errno_of(-result) when result < 0
-    end system_change_owner_at
-
-    system_change_owner: (opened: descriptor, user: user_id, group: group_id)
-                         -> none ! errno =
-        result: i32 = linux.fchown(i32(opened), u32(user), u32(group))
-        fail errno_of(-result) when result < 0
-    end system_change_owner
-
-    --  The two times as the kernel's pair of `timespec`s, access first.
-    times_of: (accessed: time_value, modified: time_value)
-              -> (times: [2]linux.timespec) =
-        times = [(seconds: accessed.seconds,
-                  nanoseconds: i64(accessed.nanoseconds)),
-                 (seconds: modified.seconds,
-                  nanoseconds: i64(modified.nanoseconds))]
-    end times_of
-
-    system_set_times_at: (at: descriptor, path: ptr u8, accessed: time_value,
-                          modified: time_value, follow: bool)
-                         -> none ! errno =
-        times: [2]linux.timespec = times_of(accessed, modified)
-        flags: i32 = if follow then 0 else linux.at_symlink_nofollow end if
-        result: i32 = linux.utimensat(i32(at), path, addr times[0], flags)
-        fail errno_of(-result) when result < 0
-    end system_set_times_at
-
-    system_set_times: (opened: descriptor, accessed: time_value,
-                       modified: time_value) -> none ! errno =
-        times: [2]linux.timespec = times_of(accessed, modified)
-        result: i32 = linux.utimensat(i32(opened), linux.no_path,
-                                      addr times[0], 0)
-        fail errno_of(-result) when result < 0
-    end system_set_times
-
-    --  The kernel puts the path and its NUL in the buffer and gives their
-    --  length; a directory outside the process's root comes back as a path
-    --  that does not begin with `/`, which is no path to it.
-    system_current_directory: (into: []mut u8) -> (count: usize) ! errno =
-        result: isize = linux.getcwd(addr into[0], lenof into)
-        fail errno_of(i32(-result)) when result < 0
-        fail unlisted when result == 0 or usize(result) > lenof into
-        fail enoent when into[0] <> u8('/')
-        count = usize(result) - 1
-    end system_current_directory
-
-    system_lock: (opened: descriptor, kind: lock_kind, wait: bool)
-                 -> none ! errno =
-        mut operation: i32 = if kind == shared_lock then linux.lock_sh
-                             else linux.lock_ex end if
-        if not wait then operation = operation | linux.lock_nb end if
-        result: i32 = linux.flock(i32(opened), operation)
-        fail errno_of(-result) when result < 0
-    end system_lock
-
-    system_unlock: (opened: descriptor) -> none ! errno =
-        result: i32 = linux.flock(i32(opened), linux.lock_un)
-        fail errno_of(-result) when result < 0
-    end system_unlock
-
-    --  Take a record lock of KIND, or with TAKING false give one up.
-    system_lock_range: (opened: descriptor, kind: lock_kind, start: u64,
-                        length: u64, wait: bool, taking: bool)
-                       -> none ! errno =
-        mut record: linux.lock_record = zeroed
-        record.kind = if not taking then linux.f_unlck
-                      elsif kind == shared_lock then linux.f_rdlck
-                      else linux.f_wrlck end if
-        record.start = i64(start)
-        record.length = i64(length)
-        command: i32 = if wait then linux.f_setlkw else linux.f_setlk end if
-        result: i32 = linux.fcntl(i32(opened), command,
-                                  i64(usize(addr record)))
-        fail errno_of(-result) when result < 0
-    end system_lock_range
-elsif compiler.os == darwin or compiler.os == freebsd then
-    --  The flags `open` takes for `options`.
-    flags_of: (options: open_options) -> (flags: i32) =
-        flags = match options.access
-            read_only: libc.o_rdonly
-            write_only: libc.o_wronly
-            read_write: libc.o_rdwr
-        end match
-        if options.create then flags = flags | libc.o_creat end if
-        if options.exclusive then flags = flags | libc.o_excl end if
-        if options.truncate then flags = flags | libc.o_trunc end if
-        if options.append then flags = flags | libc.o_append end if
-        if options.directory then flags = flags | libc.o_directory end if
-        flags = flags | libc.o_cloexec | libc.o_noctty
-    end flags_of
-
-    --  `open`, or `openat` relative to an open directory, with the
-    --  permission bits as the one variadic argument only when creating.
-    opened_at: (at: descriptor, path: ptr u8, flags: i32, permissions: u32)
-               -> (result: i32) =
-        if at == working_directory then
-            result = if (flags & libc.o_creat) <> 0
-                     then libc.open(path, flags, i32(permissions))
-                     else libc.open(path, flags) end if
+        fixed if compiler.os == darwin then
+            --  Darwin's fsync leaves what the device caches in the device;
+            --  F_FULLFSYNC has the device write it, and a file system that
+            --  refuses it gets the fsync it has.
+            system_synchronize: (opened: descriptor, data_only: bool)
+                                -> none ! errno =
+                _ = data_only
+                return when libc.fcntl(i32(opened), libc.f_fullfsync) == 0
+                fail failure() when libc.fsync(i32(opened)) <> 0
+            end system_synchronize
         else
-            result = if (flags & libc.o_creat) <> 0
-                     then libc.openat(i32(at), path, flags, i32(permissions))
-                     else libc.openat(i32(at), path, flags) end if
+            system_synchronize: (opened: descriptor, data_only: bool)
+                                -> none ! errno =
+                result: i32 = if data_only then libc.fdatasync(i32(opened))
+                              else libc.fsync(i32(opened)) end if
+                fail failure() when result <> 0
+            end system_synchronize
         end if
-    end opened_at
 
-    system_open: (at: descriptor, path: ptr u8, options: open_options,
-                  permissions: u32) -> (opened: descriptor) ! errno =
-        result: i32 = opened_at(at, path, flags_of(options), permissions)
-        fail failure() when result < 0
-        opened = descriptor(result)
-    end system_open
+        system_rename: (old_at: descriptor, old: ptr u8, new_at: descriptor,
+                        new: ptr u8) -> none ! errno =
+            fail failure() when libc.renameat(i32(old_at), old, i32(new_at),
+                                              new) <> 0
+        end system_rename
 
-    --  The most one transfer asks of the system: Darwin refuses a read or
-    --  a write of more than INT_MAX bytes with EINVAL rather than making it
-    --  short, so every transfer is bounded here and returns short instead,
-    --  as POSIX lets any transfer.
-    largest_transfer: usize = 0x7FFFFFFF
+        system_link: (old_at: descriptor, old: ptr u8, new_at: descriptor,
+                      new: ptr u8) -> none ! errno =
+            fail failure() when libc.linkat(i32(old_at), old, i32(new_at), new,
+                                            0) <> 0
+        end system_link
 
-    --  A transfer of `length` bytes, bounded to what one call asks.
-    bounded: (length: usize) -> (asked: usize) =
-        asked = if length > largest_transfer then largest_transfer
-                else length end if
-    end bounded
+        system_symbolic_link: (target: ptr u8, at: descriptor, path: ptr u8)
+                              -> none ! errno =
+            fail failure() when libc.symlinkat(target, i32(at), path) <> 0
+        end system_symbolic_link
 
-    system_read: (source: descriptor, into: []mut u8)
-                 -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = libc.read(i32(source), base, bounded(lenof into))
-        fail failure() when result < 0
-        count = usize(result)
-    end system_read
+        system_read_link: (at: descriptor, path: ptr u8, into: []mut u8)
+                          -> (count: usize) ! errno =
+            result: isize = libc.readlinkat(i32(at), path, addr into[0],
+                                            lenof into)
+            fail failure() when result < 0
+            count = usize(result)
+        end system_read_link
 
-    system_write: (to: descriptor, bytes: []u8) -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = libc.write(i32(to), base, bounded(lenof bytes))
-        fail failure() when result < 0
-        count = usize(result)
-    end system_write
+        system_change_mode_at: (at: descriptor, path: ptr u8, permissions: u32)
+                               -> none ! errno =
+            fail failure() when libc.fchmodat(i32(at), path, u16(permissions),
+                                              0) <> 0
+        end system_change_mode_at
 
-    system_close: (closing: descriptor) -> none ! errno =
-        fail failure() when libc.close(i32(closing)) <> 0
-    end system_close
-
-    --  A C `timespec` as POSIX's time value; one the system could not
-    --  have given reads as zero nanoseconds rather than trapping.
-    time_of: (stamp: libc.timespec) -> (time: time_value) =
-        kept: bool = stamp.nanoseconds >= 0
-                     and stamp.nanoseconds < 1000000000
-        part: u32 = if kept then u32(stamp.nanoseconds) else 0 end if
-        time = (seconds: stamp.seconds, nanoseconds: part)
-    end time_of
-
-    status_of_record: (record: libc.file_status) -> (result: status) =
-        result = (device: u64(record.device), inode: u64(record.inode),
-                  kind: kind_of_mode(u32(record.mode)),
-                  size: u64(record.bytes),
-                  permissions: u32(record.mode) & 0o7777,
-                  links: u64(record.links), user: user_id(record.uid),
-                  group: group_id(record.gid),
-                  accessed: time_of(record.accessed),
-                  modified: time_of(record.modified),
-                  changed: time_of(record.changed))
-    end status_of_record
-
-    --  The record is checked against the native header's size before it
-    --  is used, as abi/core-io-file-identity holds it to that header: a
-    --  disagreement is `unlisted`, which no errno describes.
-    system_status: (at: descriptor, path: ptr u8, follow: bool)
-                   -> (result: status) ! errno =
-        fail unlisted when alignof libc.file_status <> 8
-          or sizeof libc.file_status <> libc.file_status_size
-        mut record: libc.file_status = zeroed
-        outcome: i32 =
-            if at == working_directory and follow
-            then libc.stat(path, addr record)
-            else libc.fstatat(i32(at), path, addr record,
-                              if follow then 0
-                              else libc.at_symlink_nofollow end if) end if
-        fail failure() when outcome <> 0
-        result = status_of_record(record)
-    end system_status
-
-    system_status_of: (opened: descriptor) -> (result: status) ! errno =
-        fail unlisted when alignof libc.file_status <> 8
-          or sizeof libc.file_status <> libc.file_status_size
-        mut record: libc.file_status = zeroed
-        fail failure() when libc.fstat(i32(opened), addr record) <> 0
-        result = status_of_record(record)
-    end system_status_of
-
-    system_read_at: (source: descriptor, offset: u64, into: []mut u8)
-                    -> (count: usize) ! errno =
-        mut spare: u8 = 0
-        base: ptr mut u8 = if lenof into > 0 then addr into[0]
-                           else addr spare end if
-        result: isize = libc.pread(i32(source), base, bounded(lenof into),
-                                   i64(offset))
-        fail failure() when result < 0
-        fail unlisted when usize(result) > lenof into
-        count = usize(result)
-    end system_read_at
-
-    system_write_at: (to: descriptor, offset: u64, bytes: []u8)
-                     -> (count: usize) ! errno =
-        spare: u8 = 0
-        base: ptr u8 = if lenof bytes > 0 then addr bytes[0]
-                       else addr spare end if
-        result: isize = libc.pwrite(i32(to), base, bounded(lenof bytes),
-                                    i64(offset))
-        fail failure() when result < 0
-        fail unlisted when usize(result) > lenof bytes
-        count = usize(result)
-    end system_write_at
-
-    system_truncate: (opened: descriptor, size: u64) -> none ! errno =
-        fail failure() when libc.ftruncate(i32(opened), i64(size)) <> 0
-    end system_truncate
-
-    fixed if compiler.os == darwin then
-        --  Darwin's fsync leaves what the device caches in the device;
-        --  F_FULLFSYNC has the device write it, and a file system that
-        --  refuses it gets the fsync it has.
-        system_synchronize: (opened: descriptor, data_only: bool)
+        system_change_mode: (opened: descriptor, permissions: u32)
                             -> none ! errno =
-            _ = data_only
-            return when libc.fcntl(i32(opened), libc.f_fullfsync) == 0
-            fail failure() when libc.fsync(i32(opened)) <> 0
-        end system_synchronize
-    else
-        system_synchronize: (opened: descriptor, data_only: bool)
-                            -> none ! errno =
-            result: i32 = if data_only then libc.fdatasync(i32(opened))
-                          else libc.fsync(i32(opened)) end if
-            fail failure() when result <> 0
-        end system_synchronize
-    end if
+            fail failure() when libc.fchmod(i32(opened), u16(permissions)) <> 0
+        end system_change_mode
 
-    system_rename: (old_at: descriptor, old: ptr u8, new_at: descriptor,
-                    new: ptr u8) -> none ! errno =
-        fail failure() when libc.renameat(i32(old_at), old, i32(new_at),
-                                          new) <> 0
-    end system_rename
+        system_change_owner_at: (at: descriptor, path: ptr u8, user: user_id,
+                                 group: group_id, follow: bool)
+                                -> none ! errno =
+            flags: i32 = if follow then 0 else libc.at_symlink_nofollow end if
+            fail failure() when libc.fchownat(i32(at), path, u32(user),
+                                              u32(group), flags) <> 0
+        end system_change_owner_at
 
-    system_link: (old_at: descriptor, old: ptr u8, new_at: descriptor,
-                  new: ptr u8) -> none ! errno =
-        fail failure() when libc.linkat(i32(old_at), old, i32(new_at), new,
-                                        0) <> 0
-    end system_link
+        system_change_owner: (opened: descriptor, user: user_id, group: group_id)
+                             -> none ! errno =
+            fail failure() when libc.fchown(i32(opened), u32(user),
+                                            u32(group)) <> 0
+        end system_change_owner
 
-    system_symbolic_link: (target: ptr u8, at: descriptor, path: ptr u8)
-                          -> none ! errno =
-        fail failure() when libc.symlinkat(target, i32(at), path) <> 0
-    end system_symbolic_link
+        --  The two times as C's pair of `timespec`s, access first.
+        times_of: (accessed: time_value, modified: time_value)
+                  -> (times: [2]libc.timespec) =
+            times = [(seconds: accessed.seconds,
+                      nanoseconds: i64(accessed.nanoseconds)),
+                     (seconds: modified.seconds,
+                      nanoseconds: i64(modified.nanoseconds))]
+        end times_of
 
-    system_read_link: (at: descriptor, path: ptr u8, into: []mut u8)
-                      -> (count: usize) ! errno =
-        result: isize = libc.readlinkat(i32(at), path, addr into[0],
-                                        lenof into)
-        fail failure() when result < 0
-        count = usize(result)
-    end system_read_link
+        system_set_times_at: (at: descriptor, path: ptr u8, accessed: time_value,
+                              modified: time_value, follow: bool)
+                             -> none ! errno =
+            times: [2]libc.timespec = times_of(accessed, modified)
+            flags: i32 = if follow then 0 else libc.at_symlink_nofollow end if
+            fail failure() when libc.utimensat(i32(at), path, addr times[0],
+                                               flags) <> 0
+        end system_set_times_at
 
-    system_change_mode_at: (at: descriptor, path: ptr u8, permissions: u32)
+        system_set_times: (opened: descriptor, accessed: time_value,
+                           modified: time_value) -> none ! errno =
+            times: [2]libc.timespec = times_of(accessed, modified)
+            fail failure() when libc.futimens(i32(opened), addr times[0]) <> 0
+        end system_set_times
+
+        system_current_directory: (into: []mut u8) -> (count: usize) ! errno =
+            fail failure() when libc.getcwd(addr into[0], lenof into) == 0
+            count = 0
+            while count < lenof into and into[count] <> 0 do
+                inc count
+            end while
+            fail unlisted when count == lenof into
+        end system_current_directory
+
+        system_lock: (opened: descriptor, kind: lock_kind, wait: bool)
+                     -> none ! errno =
+            mut operation: i32 = if kind == shared_lock then libc.lock_sh
+                                 else libc.lock_ex end if
+            if not wait then operation = operation | libc.lock_nb end if
+            fail failure() when libc.flock(i32(opened), operation) <> 0
+        end system_lock
+
+        system_unlock: (opened: descriptor) -> none ! errno =
+            fail failure() when libc.flock(i32(opened), libc.lock_un) <> 0
+        end system_unlock
+
+        --  Take a record lock of KIND, or with TAKING false give one up.
+        system_lock_range: (opened: descriptor, kind: lock_kind, start: u64,
+                            length: u64, wait: bool, taking: bool)
                            -> none ! errno =
-        fail failure() when libc.fchmodat(i32(at), path, u16(permissions),
-                                          0) <> 0
-    end system_change_mode_at
-
-    system_change_mode: (opened: descriptor, permissions: u32)
-                        -> none ! errno =
-        fail failure() when libc.fchmod(i32(opened), u16(permissions)) <> 0
-    end system_change_mode
-
-    system_change_owner_at: (at: descriptor, path: ptr u8, user: user_id,
-                             group: group_id, follow: bool)
-                            -> none ! errno =
-        flags: i32 = if follow then 0 else libc.at_symlink_nofollow end if
-        fail failure() when libc.fchownat(i32(at), path, u32(user),
-                                          u32(group), flags) <> 0
-    end system_change_owner_at
-
-    system_change_owner: (opened: descriptor, user: user_id, group: group_id)
-                         -> none ! errno =
-        fail failure() when libc.fchown(i32(opened), u32(user),
-                                        u32(group)) <> 0
-    end system_change_owner
-
-    --  The two times as C's pair of `timespec`s, access first.
-    times_of: (accessed: time_value, modified: time_value)
-              -> (times: [2]libc.timespec) =
-        times = [(seconds: accessed.seconds,
-                  nanoseconds: i64(accessed.nanoseconds)),
-                 (seconds: modified.seconds,
-                  nanoseconds: i64(modified.nanoseconds))]
-    end times_of
-
-    system_set_times_at: (at: descriptor, path: ptr u8, accessed: time_value,
-                          modified: time_value, follow: bool)
-                         -> none ! errno =
-        times: [2]libc.timespec = times_of(accessed, modified)
-        flags: i32 = if follow then 0 else libc.at_symlink_nofollow end if
-        fail failure() when libc.utimensat(i32(at), path, addr times[0],
-                                           flags) <> 0
-    end system_set_times_at
-
-    system_set_times: (opened: descriptor, accessed: time_value,
-                       modified: time_value) -> none ! errno =
-        times: [2]libc.timespec = times_of(accessed, modified)
-        fail failure() when libc.futimens(i32(opened), addr times[0]) <> 0
-    end system_set_times
-
-    system_current_directory: (into: []mut u8) -> (count: usize) ! errno =
-        fail failure() when libc.getcwd(addr into[0], lenof into) == 0
-        count = 0
-        while count < lenof into and into[count] <> 0 do
-            inc count
-        end while
-        fail unlisted when count == lenof into
-    end system_current_directory
-
-    system_lock: (opened: descriptor, kind: lock_kind, wait: bool)
-                 -> none ! errno =
-        mut operation: i32 = if kind == shared_lock then libc.lock_sh
-                             else libc.lock_ex end if
-        if not wait then operation = operation | libc.lock_nb end if
-        fail failure() when libc.flock(i32(opened), operation) <> 0
-    end system_lock
-
-    system_unlock: (opened: descriptor) -> none ! errno =
-        fail failure() when libc.flock(i32(opened), libc.lock_un) <> 0
-    end system_unlock
-
-    --  Take a record lock of KIND, or with TAKING false give one up.
-    system_lock_range: (opened: descriptor, kind: lock_kind, start: u64,
-                        length: u64, wait: bool, taking: bool)
-                       -> none ! errno =
-        mut record: libc.lock_record = zeroed
-        record.kind = if not taking then libc.f_unlck
-                      elsif kind == shared_lock then libc.f_rdlck
-                      else libc.f_wrlck end if
-        record.whence = libc.seek_set
-        record.start = i64(start)
-        record.length = i64(length)
-        command: i32 = if wait then libc.f_setlkw else libc.f_setlk end if
-        fail failure() when libc.fcntl(i32(opened), command,
-                                       addr record) == -1
-    end system_lock_range
+            mut record: libc.lock_record = zeroed
+            record.kind = if not taking then libc.f_unlck
+                          elsif kind == shared_lock then libc.f_rdlck
+                          else libc.f_wrlck end if
+            record.whence = libc.seek_set
+            record.start = i64(start)
+            record.length = i64(length)
+            command: i32 = if wait then libc.f_setlkw else libc.f_setlk end if
+            fail failure() when libc.fcntl(i32(opened), command,
+                                           addr record) == -1
+        end system_lock_range
+    end if
 end if
