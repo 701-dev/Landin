@@ -2667,7 +2667,7 @@ not keeping Windows Error Reporting away off GitHub's images, and
 
 ### R21.60 — refine on FreeBSD x86-64
 
-Status: planned
+Status: active
 Depends on: none
 
 The maintainer decided on 2026-11-24 that `refine` runs natively on
