@@ -3444,10 +3444,11 @@ jobs:
             darwin-host, darwin-host-release,
             darwin-parity, arm64-debug-build, arm64-compiler,
             arm64-compiler-checks, arm64-release-build, arm64-release,
-            arm64-release-checks, freebsd, freebsd-toolchain, freebsd-host, rv64-qemu,
+            arm64-release-checks, freebsd, rv64-qemu,
             windows-emit, windows-runtime, windows-microsoft, windows-debugger,
             windows-arm64-emit, windows-arm64-runtime, windows-arm64-microsoft,
-            windows-arm64-debugger, determinism, board-bundles, board]
+            windows-arm64-debugger, freebsd-toolchain, freebsd-host,
+            determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     steps:
       #  The whole history, so the cycles comparison reads its base

@@ -34150,8 +34150,9 @@ FreeBSD installation has: the base system's Clang. A cross build from
 another host keeps the triplet's driver alone. `cc` and not `gcc`, which
 FreeBSD does not have, and since D475's `-fno-integrated-as` hands
 x86-64's GNU assembly to `as`, binutils' `as` assembles it; with none
-installed L0500's advice says `pkg install binutils`. arm64 FreeBSD gets
-the same when a compiler is built there.
+installed L0500's advice says `pkg install binutils`. A compiler built
+on FreeBSD arm64 has no default yet, though its own target's link would
+try the same `cc`.
 
 **The alternatives:** naming `--target` on FreeBSD, the cross-compilation
 D257 removed; `clang`, the same compiler under a name the base system

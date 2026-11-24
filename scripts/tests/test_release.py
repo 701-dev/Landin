@@ -221,8 +221,9 @@ class Workflow(unittest.TestCase):
         text = (ROOT / ".github/workflows/release.yml").read_text()
         self.head, jobs = re.split(r"^jobs:\n", text, flags=re.M)
         self.jobs = dict(re.findall(r"^  ([\w-]+):\n((?:(?:    .*)?\n)*)", jobs, flags=re.M))
-        self.assertEqual(sorted(self.jobs), ["build", "contributor-image", "gated",
-                                             "images", "publish", "user-image"])
+        self.assertEqual(sorted(self.jobs), ["build", "contributor-image", "freebsd",
+                                             "gated", "images", "publish",
+                                             "user-image"])
 
     def test_only_the_publishing_job_writes_or_signs(self):
         grants = ("contents: write", "id-token: write", "attestations: write")
@@ -232,7 +233,8 @@ class Workflow(unittest.TestCase):
         self.assertRegex(publish, r"\n    environment: release\n")
         for grant in grants + ("packages: write",):
             self.assertIn("\n      %s\n" % grant, publish)
-        for name in ("gated", "build", "user-image", "contributor-image", "images"):
+        for name in ("gated", "build", "freebsd", "user-image", "contributor-image",
+                     "images"):
             for grant in grants + ("packages: write",):
                 self.assertNotIn(grant, self.jobs[name], name)
             self.assertNotIn("environment:", self.jobs[name], name)
@@ -261,6 +263,16 @@ class Workflow(unittest.TestCase):
         self.assertLess(publish.index("scripts/release.py publish"),
                         publish.index("scripts/container_image.py publish"))
         self.assertEqual(publish.count("push-to-registry: true"), 2)
+
+    def test_the_freebsd_archive_is_built_after_the_tag_and_published_with_the_rest(self):
+        #  Built in a FreeBSD guest by the gate's own lane, named for the
+        #  publishing job's archive-* pattern, and waited for by it.
+        freebsd = self.jobs["freebsd"]
+        self.assertIn("    needs: gated\n", freebsd)
+        self.assertIn("compiler/tests/freebsd/host.py", freebsd)
+        self.assertIn("--mode=release --package=", freebsd)
+        self.assertIn("name: archive-x86_64-freebsd\n", freebsd)
+        self.assertRegex(self.jobs["publish"], r"^    needs: \[[^]]*\bfreebsd\b")
 
     def test_the_tag_is_checked_before_anything_is_built(self):
         gated = self.jobs["gated"]

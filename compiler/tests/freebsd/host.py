@@ -67,7 +67,9 @@ def provision(guest, archive, output):
     guest.checked('service growfs onestart >/dev/null 2>&1 || true')
     guest.checked('env ASSUME_ALWAYS_YES=yes pkg bootstrap -f >/dev/null && pkg update -q'
                   ' && pkg install -qy ' + ' '.join(PACKAGES), timeout=1800)
-    guest.checked(f'pw usershow {USER} >/dev/null 2>&1 || pw useradd {USER} -m -s /bin/sh')
+    #  A login shell, for the user's own HOME, without its login messages.
+    guest.checked(f'pw usershow {USER} >/dev/null 2>&1 || pw useradd {USER} -m -s /bin/sh;'
+                  f' touch {HOME}/.hushlogin')
     say('toolchain ' + archive.name)
     gnat_home, gpr_home = gnat.install(guest, archive)
     (output / 'guest.txt').write_bytes(guest.checked(
