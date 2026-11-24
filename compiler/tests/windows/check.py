@@ -13,6 +13,12 @@ job and a Windows job:
                    fixture, with no compiler and no checkout beyond this
                    file and compiler/tests/fixture_meta.py.
 
+`--link=microsoft` selects Microsoft's link (D2327) in place of
+llvm-mingw's: emission records the link command refine gives a driver
+named for Clang's `x86_64-pc-windows-msvc` target, with the assembly,
+and execution runs that command with `--driver`, a Clang that links with
+`link.exe` on Windows, before it runs the program.
+
 Without either, the lane emits and then executes, natively on Windows or,
 on Linux, through `--runner=wine`.  compiler/tests/windows/README.md says
 what each verdict means.
@@ -107,6 +113,46 @@ def work_items(found, shard):
     return work
 
 
+#  D2327: the driver refine is given under Microsoft's link, which links
+#  nothing.  It keeps the assembly and the command beside the bundle's
+#  executables, the operands spelled as placeholders, so the Windows job
+#  can run the command refine chose with Clang and Microsoft's linker; the
+#  empty file it leaves at the output is refine's to move into place.
+RECORDER = r'''#!%s
+import json, os, shutil, sys
+prefix = os.environ['LANDIN_DEFERRED_LINK']
+command, output = [], False
+for argument in sys.argv[1:]:
+    if output:
+        open(argument, 'wb').close()
+        command.append('{output}')
+        output = False
+    elif argument == '-o':
+        command.append(argument)
+        output = True
+    elif argument.endswith('.s') and not argument.startswith('-'):
+        shutil.copyfile(argument, prefix + '.s')
+        command.append('{assembly}')
+    elif not argument.startswith('-'):
+        sys.exit('the deferred link cannot carry the operand ' + argument)
+    else:
+        command.append(argument)
+with open(prefix + '.link.json', 'w') as file:
+    json.dump(command, file)
+'''
+MICROSOFT_DRIVER = 'x86_64-pc-windows-msvc-clang'
+
+
+def recorder(output):
+    """The recording driver under OUTPUT, whose file name selects
+    Microsoft's link."""
+    path = output / 'driver' / MICROSOFT_DRIVER
+    path.parent.mkdir(parents=True)
+    path.write_text(RECORDER % sys.executable)
+    path.chmod(0o755)
+    return path
+
+
 def build(args, bundle, item):
     base, meta, optimize, specialize, level = item
     label = '-'.join((base.name, optimize, specialize, level or 'default'))
@@ -115,8 +161,11 @@ def build(args, bundle, item):
             '--optimize=' + optimize, '--specialize=' + specialize,
             *(['--level=' + level] if level else []),
             '--toolchain=' + args.toolchain,
+            *(['--linker=' + args.linker] if args.linker else []),
             *meta.source_arguments(base), '--emit=exe', '-o', str(executable)]
-    done = subprocess.run(argv, cwd=ROOT / 'compiler/ada', capture_output=True)
+    environment = dict(os.environ, LANDIN_DEFERRED_LINK=str(bundle / label))
+    done = subprocess.run(argv, cwd=ROOT / 'compiler/ada', capture_output=True,
+                          env=environment)
     (bundle / (label + '.build.log')).write_bytes(
         ' '.join(argv).encode() + b'\n' + done.stdout + done.stderr)
     require(done.returncode == 0, '%s: refine exited %d: %s' % (
@@ -141,9 +190,14 @@ def build(args, bundle, item):
         expected = meta['stdout'].encode()
     if expected is not None:
         (bundle / (label + '.expected')).write_bytes(expected)
+    deferred = args.link == 'microsoft'
+    if deferred:
+        link = json.loads((bundle / (label + '.link.json')).read_text())
+        executable.unlink()
     return {'label': label, 'case': 'runtime/' + base.name,
             'optimize': optimize, 'specialize': specialize, 'level': level,
-            'executable_sha256': sha(executable),
+            **({'link': link, 'assembly_sha256': sha(bundle / (label + '.s'))}
+               if deferred else {'executable_sha256': sha(executable)}),
             'run_args': meta.run_args, 'run_files': given,
             'stdin': standard_input,
             'status': meta.status_at(level), 'traps': meta.traps,
@@ -160,6 +214,8 @@ def prepare(args):
     work = work_items(found, args.shard)
     bundle = args.output / 'bundle'
     bundle.mkdir(parents=True)
+    if args.link == 'microsoft':
+        args.toolchain = str(recorder(args.output))
 
     def one(item):
         try:
@@ -173,7 +229,7 @@ def prepare(args):
     #  A build that failed is kept as a verdict beside the rest, so that
     #  one fixture that does not build hides no other's outcome.
     failed = [str(one).split('\n', 1)[0] for one in built if isinstance(one, BaseException)]
-    manifest = {'target': TARGET,
+    manifest = {'target': TARGET, 'link': args.link,
                 'scope': 'filtered' if args.case else
                          'shard %d of %d' % args.shard if args.shard else 'complete',
                 'revision': os.environ.get('GITHUB_SHA'),
@@ -219,6 +275,39 @@ def without_wine_report(text):
     a Windows process does not."""
     return b''.join(line for line in text.splitlines(keepends=True)
                     if not line.startswith(b'wine: Unhandled '))
+
+
+def linked(bundle, result, driver, expect_linker):
+    """Run the link command refine chose for Microsoft's link, with DRIVER,
+    and say which linker it ran; raise what is wrong."""
+    label = result['label']
+    assembly = bundle / (label + '.s')
+    require(sha(assembly) == result['assembly_sha256'], label + ': assembly checksum')
+    command = [str(assembly) if one == '{assembly}' else
+               str(bundle / (label + '.exe')) if one == '{output}' else one
+               for one in result['link']]
+    #  `-v` makes Clang print each command it runs, the link's last.
+    try:
+        done = subprocess.run([*driver, '-v', *command], cwd=bundle, capture_output=True,
+                              timeout=300)
+    except OSError as error:
+        raise Refused('%s: could not start the driver %s: %s' % (label, driver[0], error))
+    except subprocess.TimeoutExpired:
+        raise Refused(label + ': the link did not finish within 300 seconds')
+    log = done.stdout + done.stderr
+    (bundle / (label + '.link.log')).write_bytes(log)
+    require(done.returncode == 0, '%s: the link exited %d: %s' % (
+        label, done.returncode, log.decode(errors='replace')[-600:]))
+    ran = [line.strip() for line in log.decode(errors='replace').splitlines()
+           if line.startswith(' "')]
+    require(ran, label + ': the driver named no command it ran')
+    #  Clang doubles each backslash of a quoted path.
+    linker = ran[-1][1:].split('"', 1)[0].replace('\\\\', '\\')
+    name = linker.replace('\\', '/').rsplit('/', 1)[-1].lower()
+    require(not expect_linker or name == expect_linker.lower(),
+            '%s: the link ran %s, not %s' % (label, linker, expect_linker))
+    result['linker'] = linker
+    result['executable_sha256'] = sha(bundle / (label + '.exe'))
 
 
 def outcome(bundle, result, runner):
@@ -284,19 +373,28 @@ def outcome(bundle, result, runner):
         require(not done.stderr, label + ': unexpected standard error output')
 
 
-def execute(bundle, manifest, runner, jobs):
+def execute(bundle, manifest, runner, jobs, driver=(), expect_linker=''):
     windows_error_mode()
     results = manifest['results']
     require(results or manifest.get('build_failures'), 'empty prepared fixture selection')
 
     def one(result):
         try:
+            if 'link' in result:
+                linked(bundle, result, driver, expect_linker)
             outcome(bundle, result, runner)
             result['verdict'] = 'passed'
             return None
         except Refused as error:
             result['verdict'] = 'failed'
             result['failure'] = str(error)
+            #  An image only the Windows job linked is kept apart, so that
+            #  a failed outcome's can be read where it was not linked.
+            image = bundle / (result['label'] + '.exe')
+            if 'link' in result and image.exists():
+                kept = bundle.parent / 'failed'
+                kept.mkdir(exist_ok=True)
+                shutil.copyfile(image, kept / image.name)
             return str(error).split('\n', 1)[0]
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         failures = [one for one in pool.map(one, results) if one]
@@ -308,6 +406,16 @@ def execute(bundle, manifest, runner, jobs):
         '%d of %d outcomes failed:\n  %s' % (len(failures), len(results),
                                               '\n  '.join(sorted(failures)))
         if failures else ''))
+
+
+def driver_version(driver):
+    """The first line the driver says of its version, which the summary
+    keeps beside the linker each link ran."""
+    try:
+        done = subprocess.run([*driver, '--version'], capture_output=True, timeout=60)
+    except OSError as error:
+        raise Refused('could not start the driver %s: %s' % (driver[0], error))
+    return (done.stdout.decode(errors='replace').splitlines() or [''])[0]
 
 
 def shard(text):
@@ -331,6 +439,15 @@ def main():
                         help='the Windows target the lane emits and runs')
     parser.add_argument('--toolchain',
                         help="the llvm-mingw driver refine links with; the target's by default")
+    parser.add_argument('--link', choices=('mingw', 'microsoft'), default='mingw',
+                        help="whose link refine chooses: llvm-mingw's, the default, or"
+                        " Microsoft's (D2327), which execution runs with --driver")
+    parser.add_argument('--linker', default='',
+                        help="refine's --linker under Microsoft's link: lld for lld-link")
+    parser.add_argument('--driver', default='clang',
+                        help="the Clang that runs Microsoft's link at execution")
+    parser.add_argument('--expect-linker', default='',
+                        help="the linker Microsoft's link must run, such as link.exe")
     parser.add_argument('--runner', default='',
                         help='a command each executable runs under, such as wine; none on Windows')
     parser.add_argument('--prepare-only', action='store_true',
@@ -378,7 +495,16 @@ def main():
         summary['scope'] = manifest['scope']
         summary['results'] = manifest['results']
         wine_prefix(args.runner.split(), args.output)
-        execute(bundle, manifest, args.runner.split(), args.jobs)
+        if manifest.get('link') == 'microsoft':
+            summary['link'] = 'microsoft'
+            summary['driver'] = driver_version(args.driver.split())
+        try:
+            execute(bundle, manifest, args.runner.split(), args.jobs,
+                    args.driver.split(), args.expect_linker)
+        finally:
+            if manifest.get('link') == 'microsoft':
+                summary['linkers'] = sorted({one['linker'] for one in manifest['results']
+                                             if 'linker' in one})
         summary['status'] = 'passed'
         print('%s: %d %s outcomes passed' % (TARGET, len(manifest['results']), manifest['scope']))
     except Refused as error:

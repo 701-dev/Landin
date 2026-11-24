@@ -121,7 +121,7 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 144,
+    "usart_entries": 156,
     "s0ndtr": 229,
     "s0cr": 1049617,
     "itcm": {
@@ -130,7 +130,7 @@
       "sha256": "2d05e362030c4345e7fb4d8aa240f01afa2c64cc1105258b47d7ac7d472e2504"
     }
   },
-  "uart_sha256": "18c5ab4098b794cf7958f9e05d714cd2fff042ee367ba28471ba5ea6b92f04aa",
+  "uart_sha256": "461a6743d048f69e6de20608a02a30b31071e0421950c119a0eebf43e5c338db",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -142,49 +142,49 @@
       "elf_sha256": "413ac4b4224bcd5083b2bcd10dc429d34623bbfa9222eae4419ae4ae4fb8271d"
     }
   },
-  "seconds": 35.606,
+  "seconds": 34.882,
   "kernel_usb": {
-    "since": 1795456239.522646,
-    "until": 1795456275.1090388,
+    "since": 1795472355.3082557,
+    "until": 1795472390.1712844,
     "lines": [
       {
-        "time": 1795456245.17677,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 63"
+        "time": 1795472361.032778,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 17"
       },
       {
-        "time": 1795456247.14868,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 86 using xhci_hcd"
+        "time": 1795472362.940676,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 38 using xhci_hcd"
       },
       {
-        "time": 1795456247.298261,
+        "time": 1795472363.090654,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795456247.302226,
+        "time": 1795472363.094555,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795456247.305335,
+        "time": 1795472363.096795,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       },
       {
-        "time": 1795456272.116915,
-        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 86"
+        "time": 1795472387.180724,
+        "text": "rigpi kernel: usb 1-1.2.3.2: USB disconnect, device number 38"
       },
       {
-        "time": 1795456274.044684,
-        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 87 using xhci_hcd"
+        "time": 1795472389.116697,
+        "text": "rigpi kernel: usb 1-1.2.3.2: new high-speed USB device number 39 using xhci_hcd"
       },
       {
-        "time": 1795456274.194315,
+        "time": 1795472389.266387,
         "text": "rigpi kernel: usb-storage 1-1.2.3.2:1.1: USB Mass Storage device detected"
       },
       {
-        "time": 1795456274.198241,
+        "time": 1795472389.270285,
         "text": "rigpi kernel: scsi host0: usb-storage 1-1.2.3.2:1.1"
       },
       {
-        "time": 1795456274.202423,
+        "time": 1795472389.272994,
         "text": "rigpi kernel: cdc_acm 1-1.2.3.2:1.2: ttyACM1: USB ACM device"
       }
     ],
@@ -209,8 +209,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "00004252",
-      "u": "00000090",
+      "m": "00003fa1",
+      "u": "0000009c",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",
@@ -224,7 +224,6 @@
     "flash-readback",
     "hub-status",
     "power-cycle",
-    "hub-wait",
     "hub-wait",
     "swd-handled",
     "swd-recoveries",

@@ -47,7 +47,13 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
   from the fixtures that need POSIX itself. With `--debug=full` its
   objects carry CodeView and LLD links a PDB beside the image, which LLVM's
-  LLDB for Windows reads (D2287-D2292). **Windows arm64** is the same
+  LLDB for Windows reads (D2287-D2292). Microsoft's toolchain is a
+  second, optional one, selected with
+  `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name: it
+  assembles the same output and links it with Visual Studio's `link.exe`,
+  or LLVM's `lld-link` under `--linker=lld`, against the Windows SDK's
+  import libraries (D2327). The gate links the corpus with `link.exe` on
+  its Windows runner and runs it. **Windows arm64** is the same
   target on arm64 through `aarch64-w64-mingw32-clang`, whose import
   libraries a Linux host takes from the pinned llvm-mingw release (D2348).
   C calls take Microsoft's variant of AAPCS64, LLP64, whose variadic call

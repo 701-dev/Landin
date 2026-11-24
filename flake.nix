@@ -496,6 +496,9 @@
               SCRIPT
               chmod +x "$out/bin/clang-19"
               ln -s ${llvm19.lld}/bin/ld.lld "$out/bin/ld.lld-19"
+              #  D2327: LLVM's linker for Microsoft's link, which Clang
+              #  runs under -fuse-ld=lld when this directory is on PATH.
+              ln -s ${llvm19.lld}/bin/lld-link "$out/bin/lld-link"
               ln -s ${llvm19.llvm}/bin/llvm-objdump "$out/bin/llvm-objdump-19"
               ln -s ${llvm19.llvm}/bin/llvm-nm "$out/bin/llvm-nm-19"
               ln -s ${llvm19.llvm}/bin/llvm-ar "$out/bin/llvm-ar-19"

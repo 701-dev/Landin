@@ -39,8 +39,8 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2461,
-      "receive_interrupts": 6345,
+      "timer_events": 2462,
+      "receive_interrupts": 6346,
       "echoed": 3014,
       "sent": 3614
     },
@@ -59,7 +59,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6347,
+    "entries": 6348,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -69,7 +69,7 @@
     "0x40380000+0x180",
     "0x40380180+0x4d10"
   ],
-  "uart_sha256": "ecf2488fc0d385792d9a3b2f72640e0406522e8bb37ac1abf78de5681c12e3fb",
+  "uart_sha256": "b8428883be0438ed9f991274f7fdd9f952cf4b832b1dabc32fdd296975c509f8",
   "mode": "ram",
   "warm_load": {
     "board": "esp32c3",
@@ -107,10 +107,10 @@
     "status": "passed",
     "vector": 1077412096
   },
-  "seconds": 14.491,
+  "seconds": 14.673,
   "kernel_usb": {
-    "since": 1795456282.8839118,
-    "until": 1795456297.3494706,
+    "since": 1795472397.9993465,
+    "until": 1795472412.6516414,
     "lines": [],
     "status": "captured"
   },
@@ -131,8 +131,8 @@
       "tag": "t",
       "h": "00000bc7",
       "c": "00000002",
-      "i": "000018cb",
-      "m": "000009c9",
+      "i": "000018cc",
+      "m": "000009ca",
       "p": "80000001",
       "q": "80000002",
       "k": "00000064",

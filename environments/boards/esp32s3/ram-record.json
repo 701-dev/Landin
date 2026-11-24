@@ -49,7 +49,7 @@
       "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 2476,
+      "timer_events": 2472,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -122,7 +122,7 @@
     "0x40378404+0x64e8",
     "0x3fca8000+0x28"
   ],
-  "uart_sha256": "d0735147a87205e26902fe7a26e0f0f70cc55c74e37af0a7fdb098ccca0fab4f",
+  "uart_sha256": "7c3705fd792def0608f8c5daeaa4b3c8f6984590790cd3cd1ed185b65038f3d8",
   "mode": "ram",
   "warm_load": {
     "board": "esp32s3",
@@ -140,12 +140,12 @@
       ],
       "contract": "warm-board-v1",
       "cpu1_stalled": true,
-      "elapsed_us": 10248,
+      "elapsed_us": 10131,
       "final_xtal_divider": 0,
       "initial_xtal_divider": 1,
       "instruction_visibility": {
         "address": 1077380272,
-        "elapsed_us": 13110,
+        "elapsed_us": 11043,
         "method": "cacheless-sram-memw-isync-single-step",
         "operations": [
           "memw",
@@ -216,10 +216,10 @@
     "status": "passed",
     "vector": 1077379072
   },
-  "seconds": 13.322,
+  "seconds": 13.597,
   "kernel_usb": {
-    "since": 1795456485.1656654,
-    "until": 1795456498.4617612,
+    "since": 1795472603.6343622,
+    "until": 1795472617.205552,
     "lines": [],
     "status": "captured"
   },
@@ -244,7 +244,7 @@
       "h": "00000c9a",
       "c": "00000002",
       "i": "00001b51",
-      "m": "000010c3",
+      "m": "000010bd",
       "p": "00018042",
       "q": "00818040",
       "k": "00000064",

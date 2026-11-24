@@ -991,7 +991,7 @@ The candidate passed its
 
 ### R16.34 — Stored values in their slots' registers on RISC-V and Cortex-M
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 What R16.33 named as the next cost on the firmware and RISC-V targets:
@@ -1013,6 +1013,36 @@ and the boards' cycles lower than R16.33's figures; at speed on Thumb-2
 and compressed RV32 a loop's head at a word address, padded only where
 the padding is not executed, the RP2350's fannkuch-redux no slower than
 before R16.33; and no other combination over its own.
+
+Done: at speed RISC-V, at either XLEN, and Cortex-M make a value whose
+last use stores it into a slot held in a register in that register, and
+the recorded-writes check takes the value's own write as the slot's new
+contents, and lets it meet a value dying there, refusing every other write
+(D2307, `SR-1681`). At speed Thumb-2 and RV32 start a loop's head on a
+word where the instruction before it does not fall through, the padding
+never executed (D2308, `SR-1726`), with x86-64's loop-head finder now
+shared from `Landin.Backend.Placement`; and RV32 settles its jumps per
+routine as RV64 does where the firmware profile does not bound them
+(D2309), which every RV32 board's profile does not. Against the item's
+base, at speed, RV64 under QEMU executes 6.4% fewer instructions on
+SipHash-1-3, 6.1% on mandelbrot, 4.5% on fasta, 3.3% on fannkuch-redux,
+1.3% on SHA-256 and 0.2% to 0.8% on the rest, every output the same; the
+Cortex-M lanes 0.2% to 6.3% fewer at Thumb-2 levels, 12.2% on mandelbrot
+with a float unit and up to 5.1% at Armv6-M; `size` and `none` are
+unchanged, and every speed image's `.text` 0.1% to 1.4% smaller. Every
+board's records were made again on the rig. Of the boards' 432 cycle
+configurations, 110 ran faster and one slower: the Hazard3 14.6% to 26.0%
+on binary-search, merge-sort, the sieve and fannkuch-redux at every
+objective, 2.8% to 5.8% on SipHash and 0.3% to 0.8% on mandelbrot; the
+ESP32-C3 and C5 0.4% to 4.1%; the
+RP2040 0.4% to 4.0%; the RP2350's M33 0.5% to 4.4%, fannkuch-redux 3.1%,
+below its figure before R16.33; and the STM32H753 1.5% to 8.8% but for
+SipHash, 1.29% slower for fewer instructions, which placement alone moves
+by 1.2% from the TCMs (`SR-1758`). `SR-1757` files firmware's block
+order, which leaves most firmware loop heads fallen into. The merged
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45335016031) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45338343665).
 
 ### The continuous items
 
@@ -2443,7 +2473,7 @@ sessions on Windows arm64 in the gate.
 
 ### R21.50 — Microsoft's toolchain on Windows
 
-Status: planned
+Status: complete
 Depends on: R21.10
 
 A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
@@ -2458,9 +2488,58 @@ Exit evidence: the corpus links with Microsoft's tools and runs on a
 Windows x86-64 runner in the gate, which carries Visual Studio; the
 selection in `docs/capabilities.md`.
 
+Done: a `--toolchain` driver whose file name holds `-windows-msvc`, as
+Clang's own `x86_64-pc-windows-msvc-clang` does, selects Microsoft's link
+(D2327). Clang assembles the same assembly for the MSVC target and hands
+the link to Visual Studio's `link.exe`, or to `lld-link` under
+`--linker=lld`, with `/ENTRY:_landin_start /SUBSYSTEM:CONSOLE
+/STACK:8388608 /NODEFAULTLIB /OPT:REF /INCREMENTAL:NO /Brepro`, each
+`linker.library` as `NAME.lib` from the Windows SDK, and under
+`--debug=full` a PDB beside the image. llvm-mingw stays the default and the
+only toolchain a Windows build requires; the item covers x86-64. refine
+cannot run where `link.exe` does, so the Windows lane's `--link=microsoft`
+records on Linux each link command refine chooses, and the gate's new
+`windows-microsoft` job runs those commands with the runner's Clang,
+requires that `link.exe` ran each one, and holds every program to its
+fixture: all 3,682 outcomes of the corpus passed, linked by `link.exe` of
+Visual Studio 18 through Clang 20.1.8, in the merged candidate's gate run
+45350557955 with boards run 45356037718. Locally `lld-link` and MinGW-w64's import libraries
+stand in under Wine, where all 3,682 outcomes passed, and `nix develop` now
+puts `lld-link` beside `clang-19`. Found and fixed on the way: `link.exe`
+folds the thread-storage template into `.rdata` and drops an empty `.tls`
+contribution, so every thread-storage offset counted from `.rdata`'s start,
+and 54 outcomes, every program with a stack-limit cell, trapped or
+faulted; the template's start marker now holds a byte, as the C runtime's
+`_tls_start` does, under both linkers. Under Microsoft's link refine asks
+the driver about no library: the SDK's directories are invisible to it, so
+the linker's own text stands where L0509 would wrongly name every library.
+nixpkgs' `clang` wrapper refuses the MSVC target, which the lane's README
+now says. `SR-1767` records the job's unpinned Clang and Visual Studio;
+`SR-1736` and `SR-1748` were restated: Microsoft's link keeps an output
+name without `.exe`, but its debug builds differ just as LLD's MinGW-mode
+ones do. `SR-1768` records the `windows-debugger`
+DAP session that fell silent after its launch, once, in that gate run.
+
+### R21.51 — Microsoft's toolchain on Windows arm64
+
+Status: planned
+Depends on: R21.40, R21.50
+
+R21.50's toolchain for `windows-arm64` as well, on a Windows host: the
+assembly assembled by Clang for `aarch64-pc-windows-msvc`, or an
+armasm64 spelling if that proves the simpler route, and linked by
+`link.exe` or `lld-link` against the Windows SDK's arm64 `.lib` files.
+The toolchain is selected per target, as `--toolchain` already is, so
+one selection serves both Windows architectures, and llvm-mingw stays
+the default on both. Microsoft's tools are not used from a Linux host;
+a Windows image built on Linux takes llvm-mingw.
+Exit evidence: the corpus links with Microsoft's tools and runs on a
+Windows arm64 runner in the gate; the selection for both architectures
+in `docs/capabilities.md`.
+
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
-runners.
+runners, and the corpus linked by Microsoft's toolchain on both.
 
 ## R22 — Library additions
 

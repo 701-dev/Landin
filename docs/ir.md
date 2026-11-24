@@ -752,7 +752,9 @@ or has no block jumping straight back to it keeps lowering's order. Block
 identities are renumbered to the new order, so a dump after the pass
 lists blocks as they are laid out. x86-64 at speed aligns a loop tested at
 its foot where its test branches back to, which nothing falls into. Firmware
-targets, Cortex-M, RV32 and Xtensa, keep lowering's order.
+targets, Cortex-M, RV32 and Xtensa, keep lowering's order; at speed
+Thumb-2 and RV32 start a loop's head on a word where the instruction
+before it does not fall through, so the padding is never executed (D2308).
 
 These passes expose useful facts to the backend while leaving register
 allocation and machine instruction selection there. The current controls and
@@ -937,6 +939,10 @@ the argument register it arrives in. The routine is emitted again with
 that plan and its writes checked against it, and keeps its first emission
 if any meets a held register. Held operands are read in place, and a
 result is computed into its own register where selection writes it last.
+At speed a value whose last use stores it into a slot already holding a
+register is made in that register when nothing reads the slot's old
+contents first, as on arm64, and the check takes that value's own write
+as the slot's new contents (D2307).
 What no register holds reuses nonoverlapping homes, a value's home freed
 once the operation that reads it last has run. The explicit LP64D and
 ilp32 planner assigns C carriers without putting register banks or stack
@@ -944,6 +950,9 @@ positions into the IR. The emitter asks the target its XLEN and serves
 RV32 at 32 (D671): an eight-byte value is a register pair, x10-x11 to
 x16-x17, x18-x19 or x9-x22 where it is held, so the IR does not depend on
 the machine's width, and RV32 takes neither RV64's layout nor its ABI.
+A routine's jumps are JAL's own where the firmware profile bounds every
+region within its reach, and otherwise near where the routine's own text
+is provably within it, at either XLEN (D1405, D2309).
 Instruction helpers select baseline and
 address-generation operations from independent Zba and XTheadBa sets.
 
@@ -964,7 +973,8 @@ size and speed place slots and values as RISC-V does (D1567): the routine
 is emitted once with every value in a home while the registers each
 position writes are recorded, a location takes r4-r7, r3 or r1 only where
 that record writes none of them over its interval, and the second emission
-is checked against the plan. Eight-byte values, and floats where the float
+is checked against the plan, with D2307's stored value made in its slot's
+register at speed. Eight-byte values, and floats where the float
 unit computes them, keep their homes. Routines with
 calls or transient stack changes construct the r11 frame record before
 publishing it; eligible leaves use SP-relative homes and preserve r11 and

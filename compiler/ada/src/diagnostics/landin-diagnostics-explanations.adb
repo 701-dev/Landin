@@ -1970,11 +1970,14 @@ package body Landin.Diagnostics.Explanations is
                & " where it was named, and says that the driver's own dire"
                & "ctories were searched as well. refine looks only after a"
                & " link has failed; a failed link whose libraries are all "
-               & "found stays L0501 with the linker's own text. Name the d"
-               & "irectory that holds the library with `linker.directory("""
-               & "DIR"")`, relative to the declaring file, or with `-L DIR`"
-               & " when building, or install the library where the C drive"
-               & "r finds it.",
+               & "found stays L0501 with the linker's own text. Under Micr"
+               & "osoft's Windows link (D2327) refine does not look: that "
+               & "linker searches the directories `LIB` names and the Wind"
+               & "ows SDK's, which refine cannot see, so its own text stan"
+               & "ds. Name the directory that holds the library with `link"
+               & "er.directory(""DIR"")`, relative to the declaring file, or"
+               & " with `-L DIR` when building, or install the library whe"
+               & "re the C driver finds it.",
             when Catalogue.Linker_Script_Contract =>
                "A firmware image linked with `--linker-script=FILE`, or "
                & "any RAM-layout firmware image, breaks its checked layout"

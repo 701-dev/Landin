@@ -383,6 +383,10 @@ package body Landin.Backend.Cortex_M is
    type Value_Location is record
       Register : Natural := 0;
       Live_From, Live_Through : Natural := 0;
+      --  D2307: the value is made in the register of the slot its last
+      --  use stores it into, so its own operation's write there, at
+      --  Live_From, is the slot's new contents.
+      Replaces : Boolean := False;
    end record;
    package Location_Vectors is new Ada.Containers.Vectors
      (Positive, Value_Location);
@@ -612,6 +616,8 @@ package body Landin.Backend.Cortex_M is
             return Natural;
          function Stored_Into (Value : Positive; Position : Natural)
             return Natural;
+         function Stored_Late (Value : Positive; Position : Natural)
+            return Natural;
          procedure Open_Span (Index : Positive; Position : Natural);
 
          procedure Place_Intervals is
@@ -801,6 +807,75 @@ package body Landin.Backend.Cortex_M is
             return 0;
          end Stored_Into;
 
+         --  D2307, arm64's D2164 here: the register of the slot a value's
+         --  last use stores it into, when the slot holds that register
+         --  over its whole interval, from before Position through the
+         --  store, and nothing from Position up to the store reads what
+         --  the slot held: no load of the slot, and no use of a value
+         --  sharing its register.  The value then replaces the slot's
+         --  old contents where it is made and the store moves nothing;
+         --  Replaces tells Holds that the value's own write there is the
+         --  slot's.  Speed only.
+         function Stored_Late (Value : Positive; Position : Natural)
+            return Natural
+         is
+            Store_At : constant Natural := Lasts (Value);
+            User : constant Landin.IR.Value_Id :=
+              Landin.IR.Value_Id (Sequence (Store_At));
+         begin
+            if not Speed
+              or else Landin.IR.Op_Of (Of_Unit, Item, User) /= Landin.IR.Store
+            then
+               return 0;
+            end if;
+            declare
+               Slot : constant Positive :=
+                 Positive (Landin.IR.Slot_Of (Of_Unit, Item, User));
+               Number : constant Natural := Result.Slots (Slot).Register;
+               Span : constant Landin.IR.Liveness.Interval := Spans (Slot);
+            begin
+               if Interval_Slots (Slot) /= 1
+                 or else Number = 0
+                 or else Span.First > Position
+                 or else Span.Last < Store_At
+               then
+                  return 0;
+               end if;
+               for Between in Position + 1 .. Store_At - 1 loop
+                  declare
+                     Reader : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (Between));
+                  begin
+                     if Landin.IR.Op_Of (Of_Unit, Item, Reader)
+                         in Landin.IR.Load
+                       and then Landin.IR.Slot_Of (Of_Unit, Item, Reader)
+                         = Landin.IR.Slot_Id (Slot)
+                     then
+                        return 0;
+                     end if;
+                     for Which in 1 .. Landin.IR.Operand_Count
+                       (Of_Unit, Item, Reader)
+                     loop
+                        declare
+                           Operand : constant Landin.IR.Value_Id :=
+                             Landin.IR.Nth_Operand
+                               (Of_Unit, Item, Reader, Which);
+                        begin
+                           if Operand /= Landin.IR.No_Value
+                             and then Positive (Operand) /= Value
+                             and then Result.Values (Positive (Operand))
+                               .Register = Number
+                           then
+                              return 0;
+                           end if;
+                        end;
+                     end loop;
+                  end;
+               end loop;
+               return Number;
+            end;
+         end Stored_Late;
+
          --  The span the store at Position that opens a slot's gives it,
          --  through the slot's last use: the stored value's own register
          --  when the value dies there or the slot is never read, so the
@@ -953,6 +1028,10 @@ package body Landin.Backend.Cortex_M is
                         Share (Read_In_Place (Index));
                         Share (Released_By (Index, Position));
                         Share (Stored_Into (Index, Position));
+                        if Place.Register = 0 then
+                           Share (Stored_Late (Index, Position));
+                           Place.Replaces := Place.Register /= 0;
+                        end if;
                         for Number of Offered loop
                            exit when Place.Register /= 0;
                            if Clear (Number, Position + 1, Last)
@@ -970,10 +1049,33 @@ package body Landin.Backend.Cortex_M is
       return Result;
    end Allocate_Registers;
 
+   --  What Writes records less, at each position a value that Replaces
+   --  its slot's contents is made, that value's own register (D2307):
+   --  the writes a slot held over the position, or a value read there
+   --  for the last time, may meet.  The caller frees the result.
+   function Slot_Writes (Plan : Register_Plan; Writes : Write_Masks)
+     return Write_Masks_Access;
+
+   function Slot_Writes (Plan : Register_Plan; Writes : Write_Masks)
+     return Write_Masks_Access
+   is
+      Result : constant Write_Masks_Access := new Write_Masks'(Writes);
+   begin
+      for Place of Plan.Values loop
+         if Place.Replaces and then Place.Live_From in Result'Range then
+            Result (Place.Live_From) :=
+              Result (Place.Live_From) and not Bit (Place.Register);
+         end if;
+      end loop;
+      return Result;
+   end Slot_Writes;
+
    --  Whether no write Writes records meets a register Plan holds over a
    --  position it holds it at.  A value's own operation may write its
    --  register as it computes it there, since selection writes a result
-   --  after it has read every operand.
+   --  after it has read every operand; where the value replaces a slot's
+   --  contents (D2307) that write is the slot's too, and may meet a value
+   --  whose last use it is, the slot's old contents read in place.
    function Holds (Plan : Register_Plan; Writes : Write_Masks)
      return Boolean;
 
@@ -983,14 +1085,29 @@ package body Landin.Backend.Cortex_M is
       package Count_Buffers renames Landin.Backend.Placement.Count_Buffers;
       type Prefix_Table is array (0 .. 31) of
         Count_Buffers.Buffer (Writes'Length + 1);
-      Prefix : Prefix_Table;
+      Into_Slots : Write_Masks_Access := Slot_Writes (Plan, Writes);
+      Prefix, Slot_Prefix : Prefix_Table;
 
       function Clear (Register, First, Last : Natural) return Boolean is
         (Register = 0 or else Last < First
          or else Prefix (Register).Data (Last + 2)
            = Prefix (Register).Data (First + 1));
+
+      function Slot_Clear (Register, First, Last : Natural) return Boolean
+        is (Register = 0 or else Last < First
+            or else Slot_Prefix (Register).Data (Last + 2)
+              = Slot_Prefix (Register).Data (First + 1));
+
+      --  A value's register after the position it is made at, where
+      --  its last use may make a value that replaces a slot's contents.
+      function Value_Clear (Register, From, Through : Natural)
+        return Boolean
+        is (Register = 0 or else Through <= From
+            or else (Clear (Register, From + 1, Through - 1)
+                     and then Slot_Clear (Register, Through, Through)));
    begin
       if Writes'First /= 0 then
+         Free_Masks (Into_Slots);
          return False;
       end if;
       for Register in Prefix'Range loop
@@ -1000,15 +1117,20 @@ package body Landin.Backend.Cortex_M is
                  Prefix (Register).Data (Position + 1)
                  + (if (Writes (Position) and Bit (Register)) /= 0
                     then 1 else 0);
+               Slot_Prefix (Register).Data (Position + 2) :=
+                 Slot_Prefix (Register).Data (Position + 1)
+                 + (if (Into_Slots (Position) and Bit (Register)) /= 0
+                    then 1 else 0);
             end loop;
          end if;
       end loop;
+      Free_Masks (Into_Slots);
       return (for all Place of Plan.Values =>
-                Clear (Place.Register, Place.Live_From + 1,
-                       Place.Live_Through))
+                Value_Clear (Place.Register, Place.Live_From,
+                             Place.Live_Through))
         and then (for all Place of Plan.Slots =>
-                    Clear (Place.Register, Place.Live_From,
-                           Place.Live_Through));
+                    Slot_Clear (Place.Register, Place.Live_From,
+                                Place.Live_Through));
    end Holds;
 
    --  D2108: the register and the position of the first write that
@@ -1023,15 +1145,19 @@ package body Landin.Backend.Cortex_M is
    is
       Found_At : Natural := Natural'Last;
       Found : Natural := 0;
+      Into_Slots : Write_Masks_Access := Slot_Writes (Plan, Writes);
 
-      procedure Scan (Register, First, Last : Natural);
-      procedure Scan (Register, First, Last : Natural) is
+      procedure Scan
+        (Register, First, Last : Natural; Slot : Boolean := False);
+      procedure Scan
+        (Register, First, Last : Natural; Slot : Boolean := False) is
       begin
          if Register /= 0 then
             for Position in First .. Natural'Min (Last, Writes'Last) loop
                exit when Position >= Found_At;
                if Position >= Writes'First
-                 and then (Writes (Position) and Bit (Register)) /= 0
+                 and then ((if Slot then Into_Slots (Position)
+                            else Writes (Position)) and Bit (Register)) /= 0
                then
                   Found_At := Position;
                   Found := Register;
@@ -1042,11 +1168,17 @@ package body Landin.Backend.Cortex_M is
       end Scan;
    begin
       for Place of Plan.Values loop
-         Scan (Place.Register, Place.Live_From + 1, Place.Live_Through);
+         if Place.Live_Through > Place.Live_From then
+            Scan (Place.Register, Place.Live_From + 1,
+                  Place.Live_Through - 1);
+            Scan (Place.Register, Place.Live_Through, Place.Live_Through,
+                  True);
+         end if;
       end loop;
       for Place of Plan.Slots loop
-         Scan (Place.Register, Place.Live_From, Place.Live_Through);
+         Scan (Place.Register, Place.Live_From, Place.Live_Through, True);
       end loop;
+      Free_Masks (Into_Slots);
       Into.Kept_Homes := True;
       if Found_At /= Natural'Last then
          declare
@@ -3246,6 +3378,110 @@ package body Landin.Backend.Cortex_M is
          procedure Epilogue;
          procedure Restore_And_Return;
          procedure Return_From_Routine;
+
+         --  D2308: at speed on Thumb-2, a loop's head starts on a word
+         --  when the last instruction before it, only labels between,
+         --  does not fall through: the padding then goes before those
+         --  labels and is never executed.  A board
+         --  that fetches from SRAM a word at a time, as the RP2350's M33
+         --  does, otherwise takes a 32-bit instruction at the head from
+         --  two words on every pass; fannkuch-redux ran 0.64% slower
+         --  for it.  A head entered by falling into it stays where it is.
+         procedure Align_Loop_Heads;
+         procedure Align_Loop_Heads is
+            Heads : Home_Mask (1 .. Landin.IR.Block_Count (Of_Unit, Item));
+            Text : constant String := Unbounded.Slice
+              (Out_Text, Routine_Start, Unbounded.Length (Out_Text));
+            Kept : Unbounded.Unbounded_String;
+            Start : Positive := Text'First;
+            --  Whether control cannot fall past the last instruction.
+            Transferred : Boolean := False;
+            --  Where in Kept the labels that follow such an instruction
+            --  begin, with no instruction since; zero otherwise.  Every
+            --  way into the head is a jump to one of them, so padding
+            --  before them all is never executed.
+            Run_Start : Natural := 0;
+            Changed : Boolean := False;
+
+            function Is_Head (Line : String) return Boolean;
+            function Is_Head (Line : String) return Boolean is
+            begin
+               for Index in Heads'Range loop
+                  if Heads (Index)
+                    and then Line = Label (Item, Landin.IR.Block_Id (Index))
+                      & ":"
+                  then
+                     return True;
+                  end if;
+               end loop;
+               return False;
+            end Is_Head;
+
+            --  Whether an instruction line never falls through.
+            function Leaves (Line : String) return Boolean;
+            function Leaves (Line : String) return Boolean is
+               Body_Text : constant String :=
+                 Line (Line'First + 1 .. Line'Last);
+               Space : constant Natural :=
+                 Ada.Strings.Fixed.Index (Body_Text, " ");
+               Word : constant String :=
+                 (if Space = 0 then Body_Text
+                  else Body_Text (Body_Text'First .. Space - 1));
+            begin
+               return Word in "b" | "b.n" | "b.w" | "bx" | "udf"
+                 or else (Word = "pop"
+                          and then Ada.Strings.Fixed.Index (Line, "pc") /= 0);
+            end Leaves;
+         begin
+            if not Thumb2
+              or else Landin.Optimization."/="
+                (Options.Optimize, Landin.Optimization.Speed)
+            then
+               return;
+            end if;
+            Landin.Backend.Placement.Find_Loop_Heads (Of_Unit, Item, Heads);
+            if (for all Head of Heads => not Head) then
+               return;
+            end if;
+            for Index in Text'Range loop
+               if Text (Index) = LF then
+                  declare
+                     Line : constant String := Text (Start .. Index - 1);
+                  begin
+                     if Line'Length > 1
+                       and then Line (Line'First) = Character'Val (9)
+                     then
+                        if Line (Line'First + 1) /= '.' then
+                           Transferred := Leaves (Line);
+                           Run_Start := 0;
+                        end if;
+                     elsif Line'Length > 0
+                       and then Line (Line'Last) = ':'
+                     then
+                        if Transferred and then Run_Start = 0 then
+                           Run_Start := Unbounded.Length (Kept) + 1;
+                        end if;
+                        if Run_Start /= 0 and then Is_Head (Line) then
+                           Unbounded.Insert
+                             (Kept, Run_Start,
+                              Character'Val (9) & ".balign 4" & LF);
+                           Changed := True;
+                           Transferred := False;
+                           Run_Start := 0;
+                        end if;
+                     end if;
+                     Unbounded.Append (Kept, Line & LF);
+                  end;
+                  Start := Index + 1;
+               end if;
+            end loop;
+            if Changed then
+               Unbounded.Replace_Slice
+                 (Out_Text, Routine_Start, Unbounded.Length (Out_Text),
+                  Unbounded.To_String (Kept)
+                  & Text (Start .. Text'Last));
+            end if;
+         end Align_Loop_Heads;
 
          procedure Long_Jump (Target : String) is
             Id : constant String := Fresh;
@@ -8679,6 +8915,7 @@ package body Landin.Backend.Cortex_M is
          Shorten_Local_Branches;
          Drop_Unread_Stores;
          Drop_Moves;
+         Align_Loop_Heads;
          declare
             --  The frame is what the prologue reserves below what it
             --  pushes: the laid-out frame, d8-d15's save and the incoming

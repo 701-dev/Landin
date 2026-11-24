@@ -5,8 +5,7 @@ with Ada.Finalization;
 with Ada.Unchecked_Deallocation;
 with Landin.Layouts;
 with Landin.Machine;
-with Landin.IR.Control_Flow;
-with Landin.IR.Liveness;
+with Landin.Backend.Placement;
 with Landin.IR.Shape_Measurement;
 with Landin.Memory;
 with Landin.Provenance;
@@ -3339,89 +3338,19 @@ package body Landin.Backend.X86_64 is
          procedure Find_Loop_Heads;
          procedure Prove_Atom_Loads;
 
-         --  A block some block at or after it branches back to begins a
-         --  loop when control enters it from outside that loop: some
-         --  predecessor is less deeply nested.  A later block that only
-         --  rejoins earlier code is no loop.  A loop tested at its foot
-         --  (D2096) begins where its test branches back to while the
-         --  test's other edge leaves the loop, to a block less deeply
-         --  nested than the test.  Speed aligns a loop's head
-         --  to thirty-two bytes when nothing falls through into it, since
-         --  then no padding is executed: a word counter's loop starting
-         --  sixteen bytes into a line ran a fifth slower than at thirty-two.
-         --  A head that is fallen into is aligned as GCC's -O2 does, to
-         --  sixteen bytes when that pads ten or fewer, else to eight,
-         --  because its padding runs on every entry.  Linear in the
-         --  routine.
+         --  Landin.Backend.Placement finds the loops' heads.  Speed aligns
+         --  a loop's head to thirty-two bytes when nothing falls through
+         --  into it, since then no padding is executed: a word counter's
+         --  loop starting sixteen bytes into a line ran a fifth slower
+         --  than at thirty-two.  A head that is fallen into is aligned as
+         --  GCC's -O2 does, to sixteen bytes when that pads ten or fewer,
+         --  else to eight, because its padding runs on every entry.
          procedure Find_Loop_Heads is
-            Graph : constant Landin.IR.Control_Flow.Graph :=
-              Landin.IR.Control_Flow.Make (Of_Unit, Item);
-            Depth : constant Landin.IR.Liveness.Count_Vectors.Vector :=
-              Landin.IR.Liveness.Loop_Depths (Graph);
-
-            procedure Mark (Source, Target : Landin.IR.Block_Id);
-            procedure Mark (Source, Target : Landin.IR.Block_Id) is
-               Head : constant Landin.IR.Block_Id := Target;
-               Edge : Natural :=
-                 Landin.IR.Control_Flow.First_Predecessor (Graph, Head);
-            begin
-               if Head > Source or else Depth (Positive (Head)) = 0
-                 or else Loop_Heads (Positive (Head)) /= 0
-               then
-                  return;
-               end if;
-               --  Two once found to be no head, so each is searched once.
-               Loop_Heads (Positive (Head)) := 2;
-               while Edge /= 0 loop
-                  if Depth (Positive (Landin.IR.Control_Flow.Predecessor
-                                       (Graph, Edge)))
-                    < Depth (Positive (Head))
-                  then
-                     Loop_Heads (Positive (Head)) := 1;
-                     return;
-                  end if;
-                  Edge := Landin.IR.Control_Flow.Next_Predecessor
-                    (Graph, Edge);
-               end loop;
-            end Mark;
-
-            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id);
-            procedure Foot (Test, Back, Leaving : Landin.IR.Block_Id) is
-            begin
-               if Back <= Test
-                 and then Depth (Positive (Back)) = Depth (Positive (Test))
-                 and then Depth (Positive (Leaving)) < Depth (Positive (Test))
-               then
-                  Loop_Heads (Positive (Back)) := 1;
-               end if;
-            end Foot;
+            Heads : Home_Mask (1 .. Landin.IR.Block_Count (Of_Unit, Item));
          begin
-            for Index in 1 .. Landin.IR.Block_Count (Of_Unit, Item) loop
-               declare
-                  Block : constant Landin.IR.Block_Id :=
-                    Landin.IR.Block_Id (Index);
-                  Last : constant Landin.IR.Value_Id := Landin.IR.Nth_Value
-                    (Of_Unit, Item, Block,
-                     Landin.IR.Length (Of_Unit, Item, Block));
-               begin
-                  case Landin.IR.Op_Of (Of_Unit, Item, Last) is
-                     when Landin.IR.Jump =>
-                        Mark
-                          (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
-                     when Landin.IR.Branch =>
-                        Mark
-                          (Block, Landin.IR.Target_Of (Of_Unit, Item, Last));
-                        Mark (Block,
-                              Landin.IR.Alternative_Of (Of_Unit, Item, Last));
-                        Foot (Block,
-                              Landin.IR.Target_Of (Of_Unit, Item, Last),
-                              Landin.IR.Alternative_Of (Of_Unit, Item, Last));
-                        Foot (Block,
-                              Landin.IR.Alternative_Of (Of_Unit, Item, Last),
-                              Landin.IR.Target_Of (Of_Unit, Item, Last));
-                     when others => null;
-                  end case;
-               end;
+            Landin.Backend.Placement.Find_Loop_Heads (Of_Unit, Item, Heads);
+            for Index in Heads'Range loop
+               Loop_Heads (Index) := (if Heads (Index) then 1 else 0);
             end loop;
          end Find_Loop_Heads;
 
@@ -10422,8 +10351,14 @@ package body Landin.Backend.X86_64 is
          Put (Local_Prefix & "landin_tls_callbacks:");
          Emit (".quad 0");
          Emit (ELF.Pop_Section);
+         --  D2327: the start marker holds a byte, as the C runtime's
+         --  `_tls_start` does.  Microsoft's linker folds the template into
+         --  `.rdata` and counts a SECREL32 from the `.tls` contribution,
+         --  and an empty one it drops, so every offset counted from
+         --  `.rdata`'s start instead; LLD counts from the same byte.
          Emit (".pushsection .tls,""dw""");
          Put (Local_Prefix & "landin_tls_start:");
+         Emit (".byte 0");
          Emit (ELF.Pop_Section);
          Emit (".pushsection .tls$zzz,""dw""");
          Put (Local_Prefix & "landin_tls_end:");
