@@ -2458,9 +2458,26 @@ Exit evidence: the corpus links with Microsoft's tools and runs on a
 Windows x86-64 runner in the gate, which carries Visual Studio; the
 selection in `docs/capabilities.md`.
 
+### R21.51 — Microsoft's toolchain on Windows arm64
+
+Status: planned
+Depends on: R21.40, R21.50
+
+R21.50's toolchain for `windows-arm64` as well, on a Windows host: the
+assembly assembled by Clang for `aarch64-pc-windows-msvc`, or an
+armasm64 spelling if that proves the simpler route, and linked by
+`link.exe` or `lld-link` against the Windows SDK's arm64 `.lib` files.
+The toolchain is selected per target, as `--toolchain` already is, so
+one selection serves both Windows architectures, and llvm-mingw stays
+the default on both. Microsoft's tools are not used from a Linux host;
+a Windows image built on Linux takes llvm-mingw.
+Exit evidence: the corpus links with Microsoft's tools and runs on a
+Windows arm64 runner in the gate; the selection for both architectures
+in `docs/capabilities.md`.
+
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
-runners.
+runners, and the corpus linked by Microsoft's toolchain on both.
 
 ## R22 — Library additions
 
