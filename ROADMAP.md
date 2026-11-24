@@ -1185,6 +1185,30 @@ candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45496244601) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45502295184).
 
+### R16.38 — A growing arena for binary-trees
+
+Status: planned
+Depends on: R16.10
+
+`SR-1432`: binary-trees at depth 21 takes 2.4 times C's time on x86-64
+at speed, and the cost is its allocator, not code generation. A
+`core/region` asks the heap for every node, writes a ledger record of it
+and frees each node back at `release`. At depth 18 the port executes
+46.4 G instructions in 11.7 G cycles; the same program with each tree
+in a `core/arena` over one heap block sized for its depth executes
+20.6 G in 5.1 G cycles, with the same output. No allocator in the
+library both grows and bump-allocates (`SR-1412`), and a port that sizes
+each tree's block from its depth knows more than a program usually
+does. The item adds an allocator that bump-allocates from blocks it
+takes from a parent, grows by taking another, and gives them back when
+it is released through its handle. It puts the port on that allocator
+and measures every benchmark program against its base.
+Exit evidence: binary-trees at speed on x86-64 executing more than 5%
+fewer instructions than at the item's base, measured on arm64 as well;
+`docs/benchmarks.md`'s binary-trees figures measured again; every
+program's instructions and image size reported against that base; and
+no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
