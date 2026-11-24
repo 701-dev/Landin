@@ -3227,7 +3227,8 @@ written with (D1292, D192). A table resolves nothing for another build,
 since a site number means a different line in each. An ELF program is
 matched by its `.landin_id` section, which firmware carries, or its GNU
 build ID; a Mach-O program by its `__TEXT,__landin_id` section, and with
-`--dsym` its dSYM must share its UUID; anything else is read as the assembly
+`--dsym` its dSYM must share its UUID; a Windows program by its `.landin`
+section (D2291); anything else is read as the assembly
 of `--emit=asm`, whose SHA-256 must be the table's. The message names the
 identity found. Name the program and the table of one compilation: a rebuilt
 program needs the table written with it.

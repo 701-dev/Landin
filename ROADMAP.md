@@ -2428,7 +2428,7 @@ restated.
 
 ### R21.30 — Windows debugging
 
-Status: planned
+Status: complete
 Depends on: R21.10
 
 CodeView in the objects, PDBs from the linker, and the Windows debugger
@@ -2436,6 +2436,32 @@ added as a backend of R18.60's adapter, which is shown only against GDB
 and LLDB; it takes nothing from R18.60 but the protocol layer.
 Exit evidence: scripted debugger sessions, directly and through `refine
 dap`, on Windows x86-64 in the gate.
+
+Done: with `--debug=full` a Windows image's objects carry CodeView,
+presented as C as the DWARF description is (D2287), whose lines name each
+address once (D2288), and LLD links a PDB beside the image, which names it
+by its file name alone (D2289); a `.landin` section holds the build's
+digest, so `refine site` and the panic map read a PE image (D2291). The
+Windows debugger is LLVM's LLDB as llvm-mingw's Windows release ships it,
+free, `lldb.exe` and `lldb-dap.exe`, reading the PDB with LLVM's own
+reader (D2292): it joins R18.60's adapter through the relay R18.60 wrote
+for `lldb-dap`, a PE image taking LLDB and Windows' and WSL's paths
+translated, since `refine` runs on Windows in WSL. The gate's
+`windows-debugger` job runs LLDB's batch session at the four profiles
+natively on `windows-2025` and the DAP session through `refine dap` from
+WSL on the same runner, passed in the merged candidate's gate run
+45324523635 with boards run 45328192419; `compiler/tests/windows/debug.py` runs
+both under Wine locally. Found and fixed on the way: LLVM's `lldb-dap`
+answers `launch` after `configurationDone` and verifies a breakpoint once
+the program is loaded, from release 21, which `compiler/tests/dap/session.py`
+now allows; a breakpoint on a line whose first value had no code stopped
+past its locals (D2288); ranges out of address order joined into one;
+and a Windows program WSL starts from a process group other than the
+terminal's stalls, which a debugger `refine dap` started in a group of its
+own did in about half of the gate's runs, so a Windows adapter now shares
+refine dap's group (D2292). Rows SR-1746 to SR-1748 record the inline
+sites CodeView lacks (D2290), the stack-switch session Windows lacks and
+two `--debug=full` builds that differ by their temporary object's name.
 
 ### R21.40 — Windows arm64
 

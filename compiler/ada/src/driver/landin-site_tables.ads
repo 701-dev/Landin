@@ -6,12 +6,13 @@
 --  and keeps the front end (D1423), and this reads what was written.
 --
 --  The artifact is what the compilation wrote: an ELF executable or
---  firmware image, a thin arm64 Mach-O executable, or the assembly of
---  `--emit=asm`.  Its source table is the `.sources.json` beside it
---  unless Map_Path names another.  The table resolves nothing for a
---  build it was not written with: an ELF's identity is its
+--  firmware image, a thin arm64 Mach-O executable, a Windows PE image, or
+--  the assembly of `--emit=asm`.  Its source table is the `.sources.json`
+--  beside it unless Map_Path names another.  The table resolves nothing
+--  for a build it was not written with: an ELF's identity is its
 --  `.landin_id` section or its GNU build ID, a Mach-O's its
---  `__TEXT,__landin_id` section, and assembly's its SHA-256.  Every
+--  `__TEXT,__landin_id` section, a PE image's its `.landin` section
+--  (D2291), and assembly's its SHA-256.  Every
 --  file is read through Host, and nothing is written.
 
 with Ada.Strings.Unbounded;

@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Vectors;
@@ -49,6 +50,10 @@ package body Landin.Adapter.Sessions is
    function Image (Value : Integer) return String is
      (Image (Long_Long_Integer (Value)));
 
+   function Is_Windows_Image (Header : String) return Boolean is
+     (Header'Length >= 2
+      and then Header (Header'First .. Header'First + 1) = "MZ");
+
    function Debugger_For (Header : String) return Debugger_Kind is
       function Byte (Offset : Natural) return Natural is
         (if Header'Length > Offset
@@ -64,6 +69,9 @@ package body Landin.Adapter.Sessions is
         and then Byte (7) = 9
       then
          --  EI_OSABI 9, ELFOSABI_FREEBSD.
+         return LLDB;
+      elsif Is_Windows_Image (Header) then
+         --  D2292: a Windows image's PDB is LLDB's to read.
          return LLDB;
       end if;
       return GDB;
@@ -266,6 +274,10 @@ package body Landin.Adapter.Sessions is
       --  The last stop's panic, or "".
       Panic        : US.Unbounded_String;
       Panic_Kind   : US.Unbounded_String;
+      --  D2292: a Windows program, and where WSL mounts Windows' drives
+      --  when its debugger is a Windows program run from WSL, else "".
+      Windows      : Boolean := False;
+      Mount_Root   : US.Unbounded_String;
    end record;
 
    ---------------------------------------------------------------------
@@ -1448,6 +1460,147 @@ package body Landin.Adapter.Sessions is
       end loop;
    end Await_LLDB;
 
+   ---------------------------------------------------------------------
+   --  A Windows program's paths (D2292)
+   ---------------------------------------------------------------------
+
+   function Slashed (Text : String) return String;
+   function Slashed (Text : String) return String is
+      Result : String := Text;
+   begin
+      for C of Result loop
+         if C = '\' then
+            C := '/';
+         end if;
+      end loop;
+      return Result;
+   end Slashed;
+
+   --  Where a path a Windows debugger names is on this host.  A path the
+   --  program recorded on a POSIX host comes back on the debugger's
+   --  current drive, `D:\tmp\main.ldn` for `/tmp/main.ldn`, and a
+   --  breakpoint's source as the relative path Debugger_Source gave it;
+   --  under WSL, a path on one of Windows' drives is where WSL mounts it
+   --  and one of WSL's own is its path here.
+   function Host_Path
+     (S : Session_State; Files : P.Filesystem'Class; Path : String)
+      return String;
+   function Host_Path
+     (S : Session_State; Files : P.Filesystem'Class; Path : String)
+      return String
+   is
+      Root : constant String := US.To_String (S.Mount_Root);
+   begin
+      if not S.Windows or else Path = "" then
+         return Path;
+      elsif Path'Length >= 3
+        and then Path (Path'First) in 'A' .. 'Z' | 'a' .. 'z'
+        and then Path (Path'First + 1) = ':'
+        and then Path (Path'First + 2) in '/' | '\'
+      then
+         declare
+            Rest : constant String :=
+              Slashed (Path (Path'First + 2 .. Path'Last));
+         begin
+            if Files.Exists (Rest) then
+               return Rest;
+            elsif Root /= "" then
+               return Root & Ada.Characters.Handling.To_Lower
+                 (Path (Path'First)) & Rest;
+            end if;
+         end;
+      elsif Root /= ""
+        and then (Starts_With (Path, "\\wsl.localhost\")
+                  or else Starts_With (Path, "\\wsl$\"))
+      then
+         declare
+            Share : constant Natural := Ada.Strings.Fixed.Index
+              (Path (Path'First + 2 .. Path'Last), "\");
+            Rest : constant Natural :=
+              (if Share = 0 then 0 else Ada.Strings.Fixed.Index
+                 (Path (Share + 1 .. Path'Last), "\"));
+         begin
+            if Rest > 0 then
+               return Slashed (Path (Rest .. Path'Last));
+            end if;
+         end;
+      elsif Path (Path'First) /= '/' then
+         declare
+            Rooted : constant String :=
+              (if Path (Path'First) = '\' then Slashed (Path)
+               else "/" & Slashed (Path));
+         begin
+            if Starts_With (Rooted, Recorded_Prefix)
+              or else Files.Exists (Rooted)
+            then
+               return Local_Path (Rooted, US.To_String (S.Library));
+            end if;
+         end;
+      end if;
+      return Path;
+   end Host_Path;
+
+   --  What a Windows debugger matches a source path against the program's
+   --  record by: the recorded path less its root, which LLDB matches as
+   --  the end of the recorded path on whichever drive it puts that.
+   function Debugger_Source (S : Session_State; Path : String) return String;
+   function Debugger_Source (S : Session_State; Path : String) return String
+   is
+      Recorded : constant String :=
+        Recorded_Path (Path, US.To_String (S.Library));
+   begin
+      if S.Windows and then Recorded'Length > 1
+        and then Recorded (Recorded'First) = '/'
+      then
+         return Recorded (Recorded'First + 1 .. Recorded'Last);
+      end if;
+      return Path;
+   end Debugger_Source;
+
+   --  Item, each string under the key "path" written as Host_Path names
+   --  it, or toward the debugger as Debugger_Source does.
+   procedure Copy_Paths
+     (B : in out J.Builder; D : J.Document; Item : J.Value;
+      S : Session_State; Files : P.Filesystem'Class;
+      Toward_Debugger : Boolean);
+   procedure Copy_Paths
+     (B : in out J.Builder; D : J.Document; Item : J.Value;
+      S : Session_State; Files : P.Filesystem'Class;
+      Toward_Debugger : Boolean)
+   is
+   begin
+      if J.Is_Kind (D, Item, J.Object_Value) then
+         J.Begin_Object (B);
+         for Index in 1 .. J.Length (D, Item) loop
+            declare
+               Key : constant String := J.Key (D, Item, Index);
+               Inner : constant J.Value := J.Member_Value (D, Item, Index);
+            begin
+               J.Name (B, Key);
+               if Key = "path" and then J.Is_Kind (D, Inner, J.String_Value)
+               then
+                  J.Write_String
+                    (B, (if Toward_Debugger
+                         then Debugger_Source (S, J.Text (D, Inner))
+                         else Host_Path (S, Files, J.Text (D, Inner))));
+               else
+                  Copy_Paths (B, D, Inner, S, Files, Toward_Debugger);
+               end if;
+            end;
+         end loop;
+         J.End_Object (B);
+      elsif J.Is_Kind (D, Item, J.Array_Value) then
+         J.Begin_Array (B);
+         for Index in 1 .. J.Length (D, Item) loop
+            Copy_Paths (B, D, J.Element (D, Item, Index), S, Files,
+                        Toward_Debugger);
+         end loop;
+         J.End_Array (B);
+      else
+         J.Copy (B, D, Item);
+      end if;
+   end Copy_Paths;
+
    --  A message of lldb-dap's, renumbered and sent to the editor.
    procedure Relay_To_Client
      (S : in out Session_State; Text : String; Files : P.Filesystem'Class);
@@ -1575,6 +1728,9 @@ package body Landin.Adapter.Sessions is
                   J.Name (B, "text");
                   J.Write_String (B, US.To_String (Description));
                   J.End_Object (B);
+               elsif Key = "body" and then S.Windows then
+                  J.Name (B, Key);
+                  Copy_Paths (B, D, Item, S, Files, Toward_Debugger => False);
                else
                   J.Name (B, Key);
                   J.Copy (B, D, Item);
@@ -1592,10 +1748,10 @@ package body Landin.Adapter.Sessions is
    --  The editor's request Text, relayed to lldb-dap.
    procedure Relay_To_LLDB
      (S : in out Session_State; D : J.Document; Seq : Long_Long_Integer;
-      Name : String);
+      Name : String; Files : P.Filesystem'Class);
    procedure Relay_To_LLDB
      (S : in out Session_State; D : J.Document; Seq : Long_Long_Integer;
-      Name : String)
+      Name : String; Files : P.Filesystem'Class)
    is
       Arguments : constant J.Value := J.Member (D, J.Root (D), "arguments");
       B : J.Builder;
@@ -1605,7 +1761,9 @@ package body Landin.Adapter.Sessions is
          Respond (S, Seq, Name, True, Body_Of => Exception_Body (S));
          return;
       end if;
-      if J.Is_Present (Arguments) then
+      if J.Is_Present (Arguments) and then S.Windows then
+         Copy_Paths (B, D, Arguments, S, Files, Toward_Debugger => True);
+      elsif J.Is_Present (Arguments) then
          J.Copy (B, D, Arguments);
       else
          J.Write_Raw (B, "{}");
@@ -1640,6 +1798,49 @@ package body Landin.Adapter.Sessions is
       when others =>
          return "lldb-dap";
    end Xcode_Find;
+
+   --  `wslpath FLAG PATH`'s answer, or "" when it gives none.
+   function Wsl_Path
+     (Tools : P.Tool_Runner'Class; Flag, Path : String) return String;
+   function Wsl_Path
+     (Tools : P.Tool_Runner'Class; Flag, Path : String) return String
+   is
+      Answer : P.Tool_Result;
+      Words : P.Path_List := P.Arguments (Flag);
+      use type P.Termination;
+   begin
+      P.Add (Words, Path);
+      Tools.Run ("wslpath", Words, Answer, P.Output_Only);
+      if Answer.Ended /= P.Exited or else Answer.Exit_Code /= 0 then
+         return "";
+      end if;
+      return Ada.Strings.Fixed.Trim
+        (US.To_String (Answer.Output), Ada.Strings.Maps.Null_Set,
+         Ada.Strings.Maps.To_Set (ASCII.LF & ASCII.CR));
+   exception
+      when others =>
+         return "";
+   end Wsl_Path;
+
+   --  Path as the debugger names it: Windows' own when the debugger is a
+   --  Windows program run from WSL (D2292), else as it is.
+   function Debugger_Path
+     (S : Session_State; Tools : P.Tool_Runner'Class; Path : String)
+      return String;
+   function Debugger_Path
+     (S : Session_State; Tools : P.Tool_Runner'Class; Path : String)
+      return String
+   is
+   begin
+      if S.Mount_Root = US.Null_Unbounded_String then
+         return Path;
+      end if;
+      declare
+         Translated : constant String := Wsl_Path (Tools, "-w", Path);
+      begin
+         return (if Translated = "" then Path else Translated);
+      end;
+   end Debugger_Path;
 
    procedure Start_Session
      (S : in out Session_State; D : J.Document; Seq : Long_Long_Integer;
@@ -1705,13 +1906,19 @@ package body Landin.Adapter.Sessions is
         (if Named = "gdb" then GDB elsif Named = "lldb" then LLDB
          else Debugger_For
            (US.Slice (Content, 1, Natural'Min (64, US.Length (Content)))));
+      S.Windows := Is_Windows_Image
+        (US.Slice (Content, 1, Natural'Min (2, US.Length (Content))));
 
       declare
          Path : constant String := Text_Of (D, Arguments, "debuggerPath");
          Words : P.Path_List;
          Settings : P.Path_List;
+         --  D2292: a Windows program's adapter is a Windows program,
+         --  which WSL finds on Windows' search path by its full name.
          Default : constant String :=
-           (if S.Kind = GDB then "gdb" else "lldb-dap");
+           (if S.Kind = GDB then "gdb"
+            elsif S.Windows and then Tools.Available ("lldb-dap.exe")
+            then "lldb-dap.exe" else "lldb-dap");
          Found : constant String :=
            (if Path /= "" then Path
             elsif Tools.Available (Default) then Default
@@ -1732,8 +1939,12 @@ package body Landin.Adapter.Sessions is
                P.Add (Settings, "SHELL=/bin/sh");
             end if;
          end if;
+         --  D2292: a Windows program WSL starts from a process group
+         --  other than the terminal's stalls, so a Windows program's
+         --  debugger shares this one's.
          S.Debugger.Start (Words, Settings,
-                           S.Kind = GDB and then not S.Attached, Failure);
+                           S.Kind = GDB and then not S.Attached, Failure,
+                           Own_Group => not S.Windows);
          if Failure /= "" then
             Respond (S, Seq, Name, False, "cannot start "
                      & (if S.Kind = GDB then "GDB" else "LLDB's adapter")
@@ -1742,6 +1953,23 @@ package body Landin.Adapter.Sessions is
             return;
          end if;
          S.Started := True;
+         if S.Windows and then Found'Length > 4
+           and then Ada.Characters.Handling.To_Lower
+             (Found (Found'Last - 3 .. Found'Last)) = ".exe"
+           and then Tools.Available ("wslpath")
+         then
+            --  Where WSL mounts Windows' drives, from where it mounts C:.
+            declare
+               Drive : constant String := Wsl_Path (Tools, "-u", "C:\");
+            begin
+               if Drive'Length > 2
+                 and then Drive (Drive'Last - 1 .. Drive'Last) = "c/"
+               then
+                  S.Mount_Root := US.To_Unbounded_String
+                    (Drive (Drive'First .. Drive'Last - 2));
+               end if;
+            end;
+         end if;
       end;
 
       if S.Kind = GDB then
@@ -1810,7 +2038,7 @@ package body Landin.Adapter.Sessions is
                   Key : constant String := J.Key (D, Arguments, Index);
                begin
                   if Key not in "debugger" | "debuggerPath" | "remote"
-                    | "sourceMap" | "program"
+                    | "sourceMap" | "program" | "cwd"
                   then
                      J.Name (B, Key);
                      J.Copy (B, D, J.Member_Value (D, Arguments, Index));
@@ -1818,14 +2046,19 @@ package body Landin.Adapter.Sessions is
                end;
             end loop;
             J.Name (B, "program");
-            J.Write_String (B, Program);
+            J.Write_String (B, Debugger_Path (S, Tools, Program));
+            if Directory /= "" then
+               J.Name (B, "cwd");
+               J.Write_String (B, Debugger_Path (S, Tools, Directory));
+            end if;
             if Library /= "" then
                J.Name (B, "sourceMap");
                J.Begin_Array (B);
                for Space of Namespaces loop
                   J.Begin_Array (B);
                   J.Write_String (B, Recorded_Prefix & Space.all);
-                  J.Write_String (B, Library & "/" & Space.all);
+                  J.Write_String
+                    (B, Debugger_Path (S, Tools, Library & "/" & Space.all));
                   J.End_Array (B);
                end loop;
                J.End_Array (B);
@@ -1907,7 +2140,7 @@ package body Landin.Adapter.Sessions is
                Start_Session (S, D, Seq, Name, Files, Tools);
             elsif Name = "disconnect" then
                if S.Started and then S.Kind = LLDB then
-                  Relay_To_LLDB (S, D, Seq, Name);
+                  Relay_To_LLDB (S, D, Seq, Name, Files);
                else
                   if S.Started then
                      declare
@@ -1939,7 +2172,7 @@ package body Landin.Adapter.Sessions is
                          else "no program is being debugged: send launch or"
                            & " attach first"));
             elsif S.Kind = LLDB then
-               Relay_To_LLDB (S, D, Seq, Name);
+               Relay_To_LLDB (S, D, Seq, Name, Files);
             else
                Answer_GDB (S, D, Seq, Name, Files);
             end if;

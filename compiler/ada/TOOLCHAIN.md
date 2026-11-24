@@ -78,6 +78,14 @@ set, and records that executable's version. The gate runs the sessions with
 release `refine` and the GDB the pinned GNAT bundles, separately from the
 emitted program's optimization policy.
 
+The Windows debugger is LLDB from llvm-mingw's release `20261117` for
+Windows x86-64, `llvm-mingw-20261117-ucrt-x86_64.zip`, sha256
+`4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412`, which
+`environments/pins.sh` names and the gate's `windows-debugger` job checks
+before anything in it runs: `lldb.exe` and `lldb-dap.exe`, LLVM 23, which
+read a PDB with LLVM's own reader. It debugs; it links nothing, and the
+Windows link stays the Clang 19 and LLD the emission jobs use.
+
 ## The cross lane
 
 Another Linux target's corpus runs on this host under QEMU's user

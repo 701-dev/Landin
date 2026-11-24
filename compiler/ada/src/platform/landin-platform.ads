@@ -525,14 +525,16 @@ package Landin.Platform is
 
    --  Start Arguments' first element, found on the search path when it
    --  has no slash, with the rest as its arguments, in the caller's
-   --  environment with each NAME=VALUE of Settings in its place.  Failure
-   --  is "" when it started, else why not.
+   --  environment with each NAME=VALUE of Settings in its place, and in a
+   --  process group of its own when Own_Group.  Failure is "" when it
+   --  started, else why not.
    procedure Start
      (Host          : in out Debugger_Session;
       Arguments     : Path_List;
       Settings      : Path_List;
       Program_Pipes : Boolean;
-      Failure       : out Ada.Strings.Unbounded.Unbounded_String)
+      Failure       : out Ada.Strings.Unbounded.Unbounded_String;
+      Own_Group     : Boolean := True)
    is abstract;
 
    --  The caller's own value of the variable Name, or "".

@@ -259,6 +259,23 @@ package body Landin.Tests.Toolchain_Suite is
          & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "main" & LF
          & "-fuse-ld=lld" & LF,
          "Windows links kernel32 alone, through LLD");
+      --  D2289: source debugging links the PDB beside the image, which
+      --  the image names by its file name alone.
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "out/main.exe", "", Libraries => Libraries,
+               Facts => Landin.Targets.Windows_X86_64,
+               Full_Debug => True)),
+         "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
+         & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
+         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "out/main.exe"
+         & LF & "-Wl,--pdb=out/main.pdb" & LF
+         & "-Wl,-Xlink=/pdbaltpath:%_PDB%" & LF & "-fuse-ld=lld" & LF,
+         "source debugging links a PDB beside the image");
+      Landin.Testing.Check_Equal
+        (Item, Landin.Backend.Toolchain.PDB_Path ("main"), "main.pdb",
+         "an image named without .exe has its PDB after its name");
       Landin.Testing.Check_Equal
         (Item, Landin.Backend.Toolchain.Driver_For
            (Landin.Targets.Windows_X86_64, ""),

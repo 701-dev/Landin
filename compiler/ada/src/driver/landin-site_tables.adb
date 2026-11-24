@@ -14,7 +14,8 @@ package body Landin.Site_Tables is
    --  A file that ends before what its own headers promise.
    Truncated : exception;
 
-   type Artifact_Kind is (Assembly, ELF, Mach_O_Executable, Mach_O_Symbols);
+   type Artifact_Kind is
+     (Assembly, ELF, Mach_O_Executable, Mach_O_Symbols, PE_Image);
 
    type Identity is record
       Kind     : Artifact_Kind := Assembly;
@@ -228,6 +229,38 @@ package body Landin.Site_Tables is
       return Result;
    end Mach_O_Identity;
 
+   --  D2291: a PE image's `.landin` section, which holds the digest a
+   --  Windows build is given.
+   function PE_Identity (Data : String) return Identity;
+   function PE_Identity (Data : String) return Identity is
+      Header : constant Interfaces.Unsigned_64 := Word (Data, 16#3C#, 4);
+      Count : constant Interfaces.Unsigned_64 := Word (Data, Header + 6, 2);
+      Table : constant Interfaces.Unsigned_64 :=
+        Header + 24 + Word (Data, Header + 20, 2);
+      Result : Identity := (Kind => PE_Image, others => <>);
+   begin
+      if Slice (Data, Header, 4) /= "PE" & Character'Val (0)
+        & Character'Val (0)
+      then
+         raise Truncated;
+      end if;
+      for Section in 0 .. Count - 1 loop
+         declare
+            Entry_At : constant Interfaces.Unsigned_64 :=
+              Table + 40 * Section;
+         begin
+            if Until_Nul (Slice (Data, Entry_At, 8)) = ".landin" then
+               Result.Build_Id := US.To_Unbounded_String (Until_Nul (Slice
+                 (Data, Word (Data, Entry_At + 20, 4),
+                  Interfaces.Unsigned_64'Min
+                    (Word (Data, Entry_At + 8, 4),
+                     Word (Data, Entry_At + 16, 4)))));
+            end if;
+         end;
+      end loop;
+      return Result;
+   end PE_Identity;
+
    function Digest (Data : String) return String;
    function Digest (Data : String) return String is
       Hash : GNAT.SHA256.Context := GNAT.SHA256.Initial_Context;
@@ -247,6 +280,7 @@ package body Landin.Site_Tables is
    end Digest;
 
    ELF_Magic : constant String := Character'Val (16#7F#) & "ELF";
+   PE_Magic : constant String := "MZ";
    Mach_O_Magic : constant String :=
      Character'Val (16#CF#) & Character'Val (16#FA#)
      & Character'Val (16#ED#) & Character'Val (16#FE#);
@@ -310,14 +344,16 @@ package body Landin.Site_Tables is
             return ELF_Identity (Data);
          elsif Starts (Data, Mach_O_Magic) then
             return Mach_O_Identity (Data);
+         elsif Starts (Data, PE_Magic) then
+            return PE_Identity (Data);
          else
             return (Kind => Assembly, others => <>);
          end if;
       exception
          when Truncated =>
             Report (Cat.Site_Build_Mismatch, Path & " is not a complete"
-                    & " little-endian ELF or thin arm64 Mach-O file, so"
-                    & " it names no build");
+                    & " little-endian ELF, thin arm64 Mach-O or PE file,"
+                    & " so it names no build");
             return (Kind => Assembly, others => <>);
       end Identify;
 
@@ -464,8 +500,9 @@ package body Landin.Site_Tables is
                if Digest (Program) /= Text_Member ("assembly_sha256") then
                   Report (Cat.Site_Build_Mismatch, Artifact & " is not the"
                           & " build " & Table_Path & " was written with:"
-                          & " it is neither an ELF or Mach-O file nor the"
-                          & " assembly whose SHA-256 the table records");
+                          & " it is neither an ELF, Mach-O or PE file nor"
+                          & " the assembly whose SHA-256 the table"
+                          & " records");
                   return Result;
                end if;
             when Mach_O_Symbols =>
@@ -473,7 +510,7 @@ package body Landin.Site_Tables is
                        & " DWARF file; name the executable, and this file"
                        & " with --dsym");
                return Result;
-            when ELF | Mach_O_Executable =>
+            when ELF | Mach_O_Executable | PE_Image =>
                if US.To_String (Built.Build_Id) /= Text_Member ("build_id")
                then
                   Report (Cat.Site_Build_Mismatch, Artifact
