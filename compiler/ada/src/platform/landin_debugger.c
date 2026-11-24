@@ -39,6 +39,10 @@ extern char **environ;
 
 enum { LANDIN_DEBUGGER_ABOVE = 10 };
 
+/* 127.0.0.1, which Darwin's headers name INADDR_LOOPBACK only outside
+   strict POSIX. */
+#define LANDIN_DEBUGGER_LOOPBACK 0x7f000001UL
+
 int landin_debugger_start(char *const args[], char *const settings[],
                           int pipes, int own_group, int over_socket,
                           int *child, int descriptors[4]);
@@ -94,7 +98,7 @@ static int landin_debugger_free_port(void)
         return 0;
     memset(&address, 0, sizeof address);
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_addr.s_addr = htonl(LANDIN_DEBUGGER_LOOPBACK);
     if (bind(probe, (struct sockaddr *)&address, sizeof address) == 0
         && getsockname(probe, (struct sockaddr *)&address, &length) == 0)
         port = ntohs(address.sin_port);
@@ -111,7 +115,7 @@ static int landin_debugger_connect(int port)
     int tries;
     memset(&address, 0, sizeof address);
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_addr.s_addr = htonl(LANDIN_DEBUGGER_LOOPBACK);
     address.sin_port = htons((unsigned short)port);
     for (tries = 0; tries < 400; tries++) {
         int made = socket(AF_INET, SOCK_STREAM, 0);
