@@ -1187,7 +1187,7 @@ candidate passed its
 
 ### R16.38 — A growing arena for binary-trees
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 `SR-1432`: binary-trees at depth 21 takes 2.4 times C's time on x86-64
