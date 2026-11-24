@@ -2768,17 +2768,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           wsl -d landin -u root -- sh -c "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3 >/dev/null && python3 --version"
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      #  One line: PowerShell's script ends its lines in CRLF, which a
+      #  multi-line argument would hand bash.
       - name: The refine dap session, from WSL
         run: |
-          wsl -d landin -u root -- bash -euc '
-            mkdir -p "$HOME/refine"
-            tar -xzf "$RUNNER_TEMP/linux-arm64-release/linux-arm64-release.tar.gz" -C "$HOME/refine"
-            python3 "$RUNNER_TEMP/windows-debug/lane/compiler/tests/windows/debug.py" \
-              --target=windows-arm64 \
-              --prepared="$RUNNER_TEMP/windows-debug" --dap \
-              --refine="$HOME/refine/bin/refine" \
-              --lldb-dap="$RUNNER_TEMP/llvm-mingw/bin/lldb-dap.exe" \
-              --output="$RUNNER_TEMP/windows-debugger/dap"'
+          wsl -d landin -u root -- bash -euc 'mkdir -p "$HOME/refine"; tar -xzf "$RUNNER_TEMP/linux-arm64-release/linux-arm64-release.tar.gz" -C "$HOME/refine"; python3 "$RUNNER_TEMP/windows-debug/lane/compiler/tests/windows/debug.py" --target=windows-arm64 --prepared="$RUNNER_TEMP/windows-debug" --dap --refine="$HOME/refine/bin/refine" --lldb-dap="$RUNNER_TEMP/llvm-mingw/bin/lldb-dap.exe" --output="$RUNNER_TEMP/windows-debugger/dap"'
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Keep the transcripts and verdicts
         if: always()
