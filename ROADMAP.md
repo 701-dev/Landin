@@ -1144,6 +1144,25 @@ overflowed. `SR-1757` is taken. The merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45466768478) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45472956351).
 
+### R16.37 — Identities that make an instruction
+
+Status: planned
+Depends on: R16.10
+
+`SR-1787`: SHA-256's round on x86-64 executes 48 instructions, gcc 16.1
+`-O2`'s count, but gcc writes the majority `(a & b) ^ (a & c) ^ (b & c)`
+as `(a & (b ^ c)) ^ (b & c)` and could write the choice `(e & f) ^ (~e &
+g)` as `(e & (f ^ g)) ^ g`, about 6.8% of SHA-256 of 64 MiB at speed.
+Both identities need a value the source never computed, and
+`Landin.IR.Simplification` only rewrites an instruction in place. The
+item lets the simplification make an instruction where an identity needs
+one, applies the two identities on every target, and measures every
+benchmark program against its base.
+Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base, its round measured against gcc's;
+every program's instructions and image size reported against that base;
+and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
