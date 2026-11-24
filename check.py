@@ -10859,8 +10859,8 @@ PROCESS_SECTION_BUDGETS = {
     "Parallel sessions and shared resources": 14600,
     "Command reference": 8400,
     #  Raised when Windows arm64 added its three gate jobs, each a
-    #  row of the job table.
-    "The mechanical gate": 48400,
+    #  row of the job table, and its Microsoft link a fourth.
+    "The mechanical gate": 48700,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

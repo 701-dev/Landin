@@ -82,17 +82,24 @@ package Landin.Backend.Toolchain is
       Host : Landin.Platform.Filesystem'Class) return Boolean;
 
    --  D2327: Windows has a second link policy, Microsoft's, beside
-   --  llvm-mingw's default: a Clang driver for `x86_64-pc-windows-msvc`
-   --  that assembles the same COFF assembly and links it with `link.exe`,
-   --  or with `lld-link` under `--linker=lld`, against the Windows SDK's
-   --  import libraries.  `--toolchain` selects it by naming a driver
-   --  whose file name, with any directory and `.exe` set aside, holds
-   --  that target's `-windows-msvc`, as Clang's own
+   --  llvm-mingw's default: a Clang driver for the target's Microsoft
+   --  triple, `x86_64-pc-windows-msvc` or `aarch64-pc-windows-msvc`
+   --  (D2387), that assembles the same COFF assembly and links it with
+   --  `link.exe`, or with `lld-link` under `--linker=lld`, against the
+   --  Windows SDK's import libraries.  `--toolchain` selects it by
+   --  naming a driver whose file name, with any directory and `.exe` set
+   --  aside, holds the target's `-windows-msvc`, as Clang's own
    --  `x86_64-pc-windows-msvc-clang` does; no other name changes the
    --  policy, so llvm-mingw stays the default and the only toolchain a
    --  Windows build requires.
    function Microsoft_Link
      (Facts : Landin.Targets.Target_Facts; Driver : String) return Boolean;
+
+   --  D2387: the Clang target of Microsoft's link for a Windows target,
+   --  its machine from llvm-mingw's triple: `x86_64-pc-windows-msvc` for
+   --  windows-x86-64, `aarch64-pc-windows-msvc` for windows-arm64.
+   function Microsoft_Triplet
+     (Facts : Landin.Targets.Target_Facts) return String;
 
    function Driver_For
      (Facts : Landin.Targets.Target_Facts;

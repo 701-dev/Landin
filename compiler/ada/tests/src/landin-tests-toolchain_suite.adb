@@ -316,8 +316,9 @@ package body Landin.Tests.Toolchain_Suite is
                Directories => Directories,
                Driver => "/opt/llvm/bin/x86_64-pc-windows-msvc-clang")),
          Head & "-L/sdk/lib" & LF & "main.s" & LF & "-lkernel32" & LF
-         & "-lws2_32" & LF & "-o" & LF & "main.exe" & LF,
-         "Microsoft's link leaves the linker to Clang, link.exe");
+         & "-lws2_32" & LF & "-o" & LF & "main.exe" & LF
+         & "-fuse-ld=link" & LF,
+         "Microsoft's link names Visual Studio's link.exe");
       Landin.Testing.Check_Equal
         (Item, Landin.Platform.Joined
            (Landin.Backend.Toolchain.Link_Arguments
@@ -335,7 +336,7 @@ package body Landin.Tests.Toolchain_Suite is
                Driver => "x86_64-pc-windows-msvc-clang")),
          Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
          & "-Wl,/DEBUG" & LF & "-Wl,/PDB:main.pdb" & LF
-         & "-Wl,/PDBALTPATH:%_PDB%" & LF,
+         & "-Wl,/PDBALTPATH:%_PDB%" & LF & "-fuse-ld=link" & LF,
          "a full-debug Microsoft link writes the PDB beside the image");
       Landin.Testing.Check
         (Item, not Landin.Backend.Toolchain.Microsoft_Link
@@ -357,6 +358,34 @@ package body Landin.Tests.Toolchain_Suite is
               (Facts, "x86_64-pc-windows-msvc-clang", False),
             "--linker=lld") > 0,
          "a missing Microsoft driver's advice names lld-link's route");
+      --  D2387: the same selection on windows-arm64, whose Clang target
+      --  is the arm64 one.
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main.exe", "", Libraries => Libraries,
+               Facts => Landin.Targets.Windows_Arm64,
+               Level => Landin.Targets.Levels.Default_Level
+                 (Landin.Targets.Windows_Arm64),
+               Driver => "aarch64-pc-windows-msvc-clang.exe")),
+         "--target=aarch64-pc-windows-msvc"
+         & Head (Head'First + 31 .. Head'Last) & "main.s" & LF
+         & "-lkernel32" & LF & "-lws2_32" & LF & "-o" & LF & "main.exe"
+         & LF & "-fuse-ld=link" & LF,
+         "windows-arm64's Microsoft link targets aarch64-pc-windows-msvc");
+      Landin.Testing.Check
+        (Item, Landin.Backend.Toolchain.Microsoft_Link
+           (Landin.Targets.Windows_Arm64, "aarch64-pc-windows-msvc-clang")
+         and then Ada.Strings.Fixed.Index
+           (Landin.Backend.Toolchain.Install_Advice
+              (Landin.Targets.Windows_Arm64,
+               "aarch64-pc-windows-msvc-clang", False),
+            "a Clang for aarch64-pc-windows-msvc") > 0
+         and then Ada.Strings.Fixed.Index
+           (Landin.Backend.Toolchain.Install_Advice
+              (Facts, "x86_64-pc-windows-msvc-clang", False),
+            "a Clang for x86_64-pc-windows-msvc") > 0,
+         "each architecture's advice names its own Clang target");
    end A_Microsoft_Driver_Selects_Microsoft_Link;
 
    --  D660: an RV32 level reaches GCC as its ISA string with Zicsr and

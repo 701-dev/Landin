@@ -34054,6 +34054,10 @@ driver's name and the link line, and every Windows executable the gate's
 
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
+**Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
+`aarch64-pc-windows-msvc`, and refine names `link.exe` with
+`-fuse-ld=link` rather than leaving the linker to Clang's default.
+
 **From** [1550], D2189.
 
 **The discrepancy:** D2189 said what supporting Microsoft's toolchain
@@ -34089,7 +34093,7 @@ under this link refine asks the driver for no library, and a failed
 link's own text stands where L0509 would name a missing library. No other
 name selects the policy: llvm-mingw stays the default and the only
 toolchain a Windows build needs. The policy covers x86-64; arm64 with
-Microsoft's tools waits for the arm64 target.
+Microsoft's tools waits for the arm64 target (since D2387, it covers both).
 
 refine runs on Linux and macOS and Microsoft's linker on Windows, so the
 gate splits the two. Its `windows-emit` job gives refine a recording
@@ -34116,6 +34120,67 @@ gate's debugger sessions run over the default link alone.
 `driver/Microsoft's link leaves the search to its linker`, and the corpus
 the gate's `windows-microsoft` job links and runs
 (`compiler/tests/windows/README.md`).
+
+### D2387 — Microsoft's link serves windows-arm64 under its own Clang target
+
+**From** D2327 and D2348.
+
+**The discrepancy:** D2327 covered x86-64 and passed every Microsoft link
+`--target=x86_64-pc-windows-msvc`, and its install advice named that
+target, so a `--toolchain` named for arm64's MSVC target would have
+assembled arm64 code for x86-64.
+
+**Chosen:** the policy is the target's, as `--toolchain` already is: a
+driver whose name holds `-windows-msvc` selects Microsoft's link on either
+Windows target, and refine passes the target's own Microsoft triple, the
+machine of its llvm-mingw triple followed by `-pc-windows-msvc`:
+`x86_64-pc-windows-msvc` for windows-x86-64 and `aarch64-pc-windows-msvc`
+for windows-arm64. The install advice names the same triple. Everything
+else is D2327's: the same options, Clang's integrated assembler over the
+assembly llvm-mingw takes, the one-byte `.tls` start marker the arm64
+backend writes as x86-64's does, and the Windows SDK's import libraries,
+here its arm64 ones. Microsoft's tools are used on a Windows host only; a
+Windows image built on Linux takes llvm-mingw. The gate's
+`windows-arm64-emit` job records the arm64 link commands as `windows-emit`
+does x86-64's, and `windows-arm64-microsoft` runs them on GitHub's
+`windows-11-arm` runner, requiring `link.exe`, and holds every program
+to its fixture.
+
+**The alternatives:** a selection per host, which would make a cross
+build differ from a native one; armasm64 and a second assembly spelling,
+where Clang reads the first; and a separate option naming the
+architecture, which the target already names.
+
+**Pinned by** `toolchain/a Microsoft driver selects Microsoft's link`'s
+arm64 checks, `scripts/tests/test_windows_lane.py`'s recorder name, and
+the corpus the gate's `windows-arm64-microsoft` job links and runs.
+
+### D2388 — Microsoft's link names `link.exe` rather than Clang's default linker
+
+**From** D2327.
+
+**The discrepancy:** D2327 left the linker to the Clang driver's default
+for the MSVC target, which it took to be Visual Studio's `link.exe`. A
+Clang's default linker is its build's choice: LLVM's release for arm64
+Windows, the Clang on GitHub's `windows-11-arm` runner (22.1.8), runs
+`lld-link` by default, so the selection of Microsoft's toolchain would
+have linked with LLVM's.
+
+**Chosen:** under Microsoft's link refine passes `-fuse-ld=link` when no
+`--linker` is given, which every Clang for the MSVC target reads as
+Visual Studio's `link.exe`, found through the Visual Studio installation;
+`--linker=lld` still passes `-fuse-ld=lld`, `lld-link`. The link command
+says which linker it runs, whatever Clang a user has.
+
+**The alternatives:** leaving the default, which makes the linker depend
+on how the Clang was built; and the gate passing `-fuse-ld=link` itself,
+which would pin the runner's behaviour and leave a user's link to chance.
+
+**Pinned by** `toolchain/a Microsoft driver selects Microsoft's link`,
+whose link commands end in `-fuse-ld=link`, and the gate's
+`windows-microsoft` and `windows-arm64-microsoft` jobs, which require
+`link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
+the default reaching `lld-link`.
 
 ### D2190 — The Windows x64 convention is planned beside System V's
 

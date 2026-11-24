@@ -273,6 +273,20 @@ package body Landin.Backend.Toolchain is
       end;
    end Microsoft_Link;
 
+   function Microsoft_Triplet
+     (Facts : Landin.Targets.Target_Facts) return String
+   is
+      Triplet : constant String :=
+        Landin.Targets.Capabilities.Triplet (Facts);
+      Dash : constant Natural := Ada.Strings.Fixed.Index (Triplet, "-");
+   begin
+      if Dash = 0 then
+         raise Compiler_Defect with "a Microsoft link of a target with no"
+           & " triple";
+      end if;
+      return Triplet (Triplet'First .. Dash - 1) & "-pc-windows-msvc";
+   end Microsoft_Triplet;
+
    function Driver_For
      (Facts : Landin.Targets.Target_Facts;
       Named : String;
@@ -380,7 +394,8 @@ package body Landin.Backend.Toolchain is
          --  D2327: the driver is a Clang, which runs Microsoft's linker
          --  found through Visual Studio, or LLVM's under --linker=lld;
          --  either reads the Windows SDK's import libraries.
-         return "install " & Named & ", a Clang for x86_64-pc-windows-msvc"
+         return "install " & Named & ", a Clang for "
+           & Microsoft_Triplet (Facts)
            & " (Visual Studio's C++ Clang tools or LLVM's release, under"
            & " that name), with Visual Studio's linker and the Windows SDK"
            & " (--linker=lld uses LLVM's lld-link, with the SDK's import"
@@ -637,15 +652,17 @@ package body Landin.Backend.Toolchain is
       --  Clang's own, as llvm-mingw's driver has no other, and the
       --  linker LLD in its MinGW mode.
       --  D2327: Microsoft's link of the same program.  Clang assembles
-      --  for the MSVC target and hands the link to `link.exe`, or to
-      --  `lld-link` under `-fuse-ld=lld`, translating `-LDIR` to
-      --  `/LIBPATH:DIR` and `-lNAME` to `NAME.lib`; the rest is the
+      --  for the MSVC target and hands the link to `link.exe` under
+      --  `-fuse-ld=link`, or to `lld-link` under `-fuse-ld=lld`,
+      --  translating `-LDIR` to `/LIBPATH:DIR` and `-lNAME` to
+      --  `NAME.lib`; the rest is the
       --  linker's own spelling of what the MinGW link says.  `/Brepro`
       --  keeps the time out of the image, so two links of one assembly
       --  are the same bytes, and `/INCREMENTAL:NO` keeps `link.exe` from
       --  padding the image for a later incremental link.
       if Microsoft_Link (Facts, Driver) then
-         Landin.Platform.Add (List, "--target=x86_64-pc-windows-msvc");
+         Landin.Platform.Add
+           (List, "--target=" & Microsoft_Triplet (Facts));
          Landin.Platform.Add (List, "-nostdlib");
          Landin.Platform.Add (List, "-Wl,/ENTRY:_landin_start");
          Landin.Platform.Add (List, "-Wl,/SUBSYSTEM:CONSOLE");
@@ -673,9 +690,11 @@ package body Landin.Backend.Toolchain is
               (List, "-Wl,/PDB:" & File_Operand (PDB_Path (Output)));
             Landin.Platform.Add (List, "-Wl,/PDBALTPATH:%_PDB%");
          end if;
-         if Linker /= "" then
-            Landin.Platform.Add (List, "-fuse-ld=" & Linker);
-         end if;
+         --  D2388: Visual Studio's `link.exe` by name, since a Clang's
+         --  default linker is its build's choice: LLVM's arm64 Windows
+         --  release defaults to `lld-link`.
+         Landin.Platform.Add
+           (List, "-fuse-ld=" & (if Linker /= "" then Linker else "link"));
          return List;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Windows

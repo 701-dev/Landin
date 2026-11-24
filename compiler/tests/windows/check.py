@@ -10,14 +10,16 @@ job and a Windows job:
                    `refine` and the llvm-mingw driver, and write the
                    executables and `prepared.json` into OUTPUT;
   --prepared=DIR   execute a prepared bundle and hold each outcome to its
-                   fixture, with no compiler and no checkout beyond this
-                   file and compiler/tests/fixture_meta.py.
+                   fixture, with no compiler and no checkout: the
+                   bundle carries this file and the scripts it imports
+                   under `lane/`, as debug.py's does.
 
 `--link=microsoft` selects Microsoft's link (D2327) in place of
 llvm-mingw's: emission records the link command refine gives a driver
-named for Clang's `x86_64-pc-windows-msvc` target, with the assembly,
-and execution runs that command with `--driver`, a Clang that links with
-`link.exe` on Windows, before it runs the program.
+named for Clang's Microsoft target, `x86_64-pc-windows-msvc` or
+`aarch64-pc-windows-msvc` (D2387), with the assembly, and execution runs
+that command with `--driver`, a Clang that links with `link.exe` on
+Windows, before it runs the program.
 
 Without either, the lane emits and then executes, natively on Windows or,
 on Linux, through `--runner=wine`.  compiler/tests/windows/README.md says
@@ -52,6 +54,13 @@ TRAP_STATUS = 0xC000001D
 #  peer is the ABI lane's, and a C library is none Windows links.
 UNSUPPORTED = ('c-sources', 'c-shared', 'c-archives', 'library-directories',
                'c-inputs', 'link')
+
+
+#  The files a prepared bundle's execution runs, at their own paths under
+#  OUTPUT/lane: the Windows runner checks nothing out, since the tree holds
+#  a fixture path with a double quote, which Git for Windows refuses.
+LANE = ('compiler/tests/windows/check.py', 'scripts/lane_refine.py',
+        'scripts/refine_revision.py', 'scripts/build_identity.py')
 
 
 class Refused(ValueError):
@@ -140,13 +149,15 @@ for argument in sys.argv[1:]:
 with open(prefix + '.link.json', 'w') as file:
     json.dump(command, file)
 '''
-MICROSOFT_DRIVER = 'x86_64-pc-windows-msvc-clang'
+#  D2387: each target's recording driver, named for its Microsoft triple.
+MICROSOFT_DRIVERS = {'windows-x86-64': 'x86_64-pc-windows-msvc-clang',
+                     'windows-arm64': 'aarch64-pc-windows-msvc-clang'}
 
 
 def recorder(output):
     """The recording driver under OUTPUT, whose file name selects
     Microsoft's link."""
-    path = output / 'driver' / MICROSOFT_DRIVER
+    path = output / 'driver' / MICROSOFT_DRIVERS[TARGET]
     path.parent.mkdir(parents=True)
     path.write_text(RECORDER % sys.executable)
     path.chmod(0o755)
@@ -229,6 +240,9 @@ def prepare(args):
     #  A build that failed is kept as a verdict beside the rest, so that
     #  one fixture that does not build hides no other's outcome.
     failed = [str(one).split('\n', 1)[0] for one in built if isinstance(one, BaseException)]
+    for file in LANE:
+        (args.output / 'lane' / file).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / file, args.output / 'lane' / file)
     manifest = {'target': TARGET, 'link': args.link,
                 'scope': 'filtered' if args.case else
                          'shard %d of %d' % args.shard if args.shard else 'complete',
