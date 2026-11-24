@@ -9,8 +9,11 @@
 --  two places: every unnamed argument of a variadic call goes on the stack
 --  in an eight-byte slot, and a named scalar or homogeneous floating
 --  aggregate on the stack takes its natural size and alignment rather than
---  a whole eight-byte slot.  The convention comes from the description's C
---  ABI, never from its architecture.
+--  a whole eight-byte slot.  Microsoft's differs in one: a variadic call
+--  passes every argument, named or not, as integers, a float in an integer
+--  register and a homogeneous floating aggregate as any other composite
+--  (D2347).  The convention comes from the description's C ABI, never from
+--  its architecture.
 with Landin.IR;
 with Landin.Targets;
 
@@ -59,7 +62,8 @@ package Landin.Backend.AAPCS64_ABI is
       Facts      : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count :=
         Landin.Targets.Byte_Count'Last;
-      Fixed_Count : Natural := Natural'Last) return Plan;
+      Fixed_Count : Natural := Natural'Last;
+      Variadic_Callee : Boolean := False) return Plan;
 
    --  Lowering keeps the original fixed signature and promotes scalar tail
    --  actuals.  The logical aggregate destination is not a C argument.

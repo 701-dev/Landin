@@ -455,6 +455,28 @@
           #  clang-19.  This one takes the bare compiler, with the wrapper's
           #  resource directory, when the command names a target or a
           #  sysroot, and the wrapper otherwise.
+          #  The MinGW-w64 import libraries a windows-arm64 link takes, from
+          #  the arm64 release of llvm-mingw environments/pins.sh pins:
+          #  nixpkgs' cache holds no aarch64 MinGW-w64, which it would
+          #  build with a cross compiler of its own.  Data only; nothing in
+          #  the archive runs here.
+          llvmMingwArm64Sysroot =
+            let
+              version = pin "LANDIN_LLVM_MINGW_VERSION";
+              name = "llvm-mingw-${version}-ucrt-aarch64";
+            in
+            pkgs.runCommand "landin-${name}-sysroot" {
+              nativeBuildInputs = [ pkgs.unzip ];
+              src = pkgs.fetchurl {
+                url = "${pin "LANDIN_LLVM_MINGW_RELEASES"}/${version}/${name}.zip";
+                sha256 = pin "LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS";
+              };
+            } ''
+              unzip -q "$src" "${name}/aarch64-w64-mingw32/lib/*"
+              mkdir -p "$out"
+              mv "${name}/aarch64-w64-mingw32/lib" "$out/lib"
+            '';
+
           llvmVersioned =
             let
               llvm19 = pkgs.llvmPackages_19;
@@ -474,6 +496,9 @@
               SCRIPT
               chmod +x "$out/bin/clang-19"
               ln -s ${llvm19.lld}/bin/ld.lld "$out/bin/ld.lld-19"
+              #  D2327: LLVM's linker for Microsoft's link, which Clang
+              #  runs under -fuse-ld=lld when this directory is on PATH.
+              ln -s ${llvm19.lld}/bin/lld-link "$out/bin/lld-link"
               ln -s ${llvm19.llvm}/bin/llvm-objdump "$out/bin/llvm-objdump-19"
               ln -s ${llvm19.llvm}/bin/llvm-nm "$out/bin/llvm-nm-19"
               ln -s ${llvm19.llvm}/bin/llvm-ar "$out/bin/llvm-ar-19"
@@ -493,6 +518,17 @@
                   --ld-path=${llvm19.lld}/bin/ld.lld "$@"
               SCRIPT
               chmod +x "$out/bin/x86_64-w64-mingw32-clang"
+              #  windows-arm64's, the same Clang and LLD over the pinned
+              #  llvm-mingw release's import libraries (D2348).
+              cat > "$out/bin/aarch64-w64-mingw32-clang" <<'SCRIPT'
+              #!${pkgs.runtimeShell}
+              exec ${llvm19.clang-unwrapped}/bin/clang \
+                  -resource-dir=${llvm19.clang}/resource-root \
+                  --target=aarch64-w64-mingw32 \
+                  --sysroot=${llvmMingwArm64Sysroot} \
+                  --ld-path=${llvm19.lld}/bin/ld.lld "$@"
+              SCRIPT
+              chmod +x "$out/bin/aarch64-w64-mingw32-clang"
             '');
 
           crossTools = lib.optionals pkgs.stdenv.hostPlatform.isLinux (

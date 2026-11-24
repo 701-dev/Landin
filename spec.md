@@ -33997,6 +33997,71 @@ installed with the SDK, and an assembler of another syntax.
 driver's name and the link line, and every Windows executable the gate's
 `windows-emit` job links.
 
+### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
+
+**From** [1550], D2189.
+
+**The discrepancy:** D2189 said what supporting Microsoft's toolchain
+takes, a second Windows link policy chosen by `--toolchain`, but not which
+name chooses it, which assembler reads the GNU syntax the backend writes,
+or how a refine that runs on Linux and macOS is held to a linker that runs
+only on Windows.
+
+**Chosen:** a `--toolchain` driver whose file name, with its directory and
+any `.exe` set aside and case ignored, holds `-windows-msvc` selects
+Microsoft's link, as Clang's own name for its MSVC target,
+`x86_64-pc-windows-msvc-clang`, does. refine passes such a driver
+`--target=x86_64-pc-windows-msvc` as well, so a link or copy of any Clang
+under that name serves. Clang's integrated assembler reads the assembly
+the backend writes for llvm-mingw, unchanged: the code calls only through
+import thunks, holds its own TLS directory and names no CRT object
+(D2189). The link is `-nostdlib` with `/ENTRY:_landin_start
+/SUBSYSTEM:CONSOLE /STACK:8388608 /NODEFAULTLIB /OPT:REF /INCREMENTAL:NO
+/Brepro`, and `-LDIR` and `-lNAME`, which Clang hands the linker as
+`/LIBPATH:DIR` and `NAME.lib`. The linker is Clang's default for the
+target, Visual Studio's `link.exe`, which Clang finds with the Windows
+SDK's import libraries; `--linker=lld` passes `-fuse-ld=lld`, which runs
+LLVM's `lld-link` against the import libraries the `LIB` variable names.
+`/Brepro` keeps the time out of the image, so two links of one assembly
+are the same bytes, as llvm-mingw's are. Visual Studio's linker folds the
+image's thread-storage template into `.rdata` and counts each SECREL32
+offset from the template's `.tls` contribution, which it drops when the
+contribution is empty, counting from `.rdata`'s start instead; so the
+`.tls` start marker holds one byte, as the C runtime's `_tls_start` does,
+under both linkers. Those libraries are where Clang
+and the linker find them and not where `-print-file-name` answers, so
+under this link refine asks the driver for no library, and a failed
+link's own text stands where L0509 would name a missing library. No other
+name selects the policy: llvm-mingw stays the default and the only
+toolchain a Windows build needs. The policy covers x86-64; arm64 with
+Microsoft's tools waits for the arm64 target.
+
+refine runs on Linux and macOS and Microsoft's linker on Windows, so the
+gate splits the two. Its `windows-emit` job gives refine a recording
+driver under the selecting name, which keeps each assembly and the command
+refine chose, and its `windows-microsoft` job runs each command with the
+runner's Clang, requires that `link.exe` ran the link, and holds every
+program to its fixture as `windows-runtime` does.
+
+**The alternatives:** a MASM spelling of the backend's output for `ml64`,
+a second assembly syntax for one toolchain where Clang reads the first;
+`clang-cl`, whose MSVC-style options would be a third dialect of the link
+line where the Clang driver takes the GNU-style one refine already
+spells; an option of its own beside `--toolchain`, a second way to name
+what the driver's name already says; and a gate that links with
+`lld-link` on Linux against an SDK fetched there, which tests LLVM's
+linker and not Microsoft's and copies proprietary libraries onto a Linux
+runner.
+
+A program built with `--debug=full` gets its PDB from `/DEBUG
+/PDB:NAME.pdb /PDBALTPATH:%_PDB%`, D2289's in the linker's spelling; the
+gate's debugger sessions run over the default link alone.
+
+**Pinned by** `toolchain/a Microsoft driver selects Microsoft's link`,
+`driver/Microsoft's link leaves the search to its linker`, and the corpus
+the gate's `windows-microsoft` job links and runs
+(`compiler/tests/windows/README.md`).
+
 ### D2190 — The Windows x64 convention is planned beside System V's
 
 **From** [1550] and [1700].
@@ -34156,6 +34221,9 @@ stacks keep the limit in that cell.
 
 ### D2292 — The Windows debugger is LLVM's LLDB, and `refine dap` relays its adapter
 
+**Amended by D2351.** `refine dap` speaks to a Windows program's adapter
+over a loopback connection; the process group below stands.
+
 **The tour said** nothing; the roadmap named "the Windows debugger" a backend of D1523's adapter.
 
 **Chosen:** the Windows debugger is LLDB as llvm-mingw's release for Windows ships it, free like the rest of the Windows toolchain (D2189): `lldb.exe`, which reads a PDB with LLVM's own reader, and `lldb-dap.exe`, its adapter, which `refine dap` relays as D1523 relays `lldb-dap`. A program whose header is a PE image's takes LLDB, and the adapter's usual name is `lldb-dap.exe` where the search path has it. `refine` runs on Linux and macOS, so on a Windows machine it runs in WSL, where WSL starts a Windows program and puts Windows' search path after its own: the adapter then writes the program's and the working directory's paths, and the library's, as Windows names them, and reads a Windows path back as WSL mounts it. The adapter shares `refine dap`'s process group, where D1523's debuggers have one of their own: a Windows program WSL starts from a process group other than the terminal's foreground one stalls, which the gate met in about half its runs and in every one of six where a client started the adapter in a group of its own. A program compiled on a POSIX host records POSIX paths, which a Windows debugger puts on a drive of its own choosing, so the adapter gives it a breakpoint's source as the recorded path less its root, which LLDB matches as the end of that path, and reads a path the debugger names on a drive back as this host's when this host has it. The gate runs LLDB's batch sessions natively on a Windows runner and `refine dap`'s session from WSL on the same runner. Microsoft's debuggers read the same PDB; the gate runs none of them.
@@ -34163,6 +34231,161 @@ stacks keep the limit in that cell.
 **The alternatives:** Microsoft's WinDbg or Visual Studio debugger, proprietary and installed with Microsoft's tools; GDB, which reads DWARF and no PDB; a backend of the adapter's own over the Windows debugging API, a second debugger to keep beside LLDB's; and `refine dap` on Linux reaching `lldb-server` on Windows, which two of the gate's hosted runners cannot reach each other to run.
 
 **Pinned by** the dap suite's `the debugger a program takes`, `a Windows program maps its paths` and `LLDB's adapter is relayed`, and `compiler/tests/windows/debug.py`'s sessions in the gate's `windows-debugger` job.
+
+### D2347 — Windows arm64 is a hosted target with Microsoft's variant of AAPCS64
+
+**From** [1550], [1700], D2188 and D2190.
+
+**The discrepancy:** the roadmap's Windows phase adds arm64 beside x86-64.
+Windows on arm64 calls C by AAPCS64 with Microsoft's differences, which are
+neither the standard convention Linux and FreeBSD use nor Apple's.
+
+**Chosen:** `windows-arm64` is D2188's target on arm64: a little-endian
+description with 64-bit pointers, a 16-byte stack and frame pointers, the
+arm64 feature levels, kernel32 and no C runtime, `platform/windows` linked
+into every program, `compiler.os` `windows`. Its C convention is AAPCS64
+with Microsoft's differences, `compiler.c_windows_arm64_llp64`: the model
+is LLP64, so `c_long` and `c_ulong` are 32 bits, plain `char` is signed,
+x18 is the TEB's and never a location's, which it never was on arm64, and a
+call to a variadic signature passes every argument, named or not, as
+integers: a float in the integer register or stack slot of its position,
+a homogeneous floating aggregate as any other composite, by reference past
+sixteen bytes. A call to a fixed signature is the standard convention's.
+The instruction selection, register allocation and frames are the other
+arm64 targets'; only the text around them is Windows' (D2349, D2350).
+
+**The alternatives:** describing the target with the standard AAPCS64's
+fact, under which `c_long` would be 64 bits and plain `char` unsigned,
+neither of which a Windows C compiler agrees with; and a fact per
+difference, which a program would have to combine to say what one names.
+
+**Pinned by** `targets/Windows arm64 variadic transport`,
+`runtime/target-hosted-system-facts` and the corpus the gate's
+`windows-arm64-runtime` job runs.
+
+### D2348 — Windows arm64 links through llvm-mingw's arm64 driver, and its gate runs on Windows' arm64 runner
+
+**From** [1550] and D2189.
+
+**The discrepancy:** D2189's chain is free on every host for x86-64. For
+arm64 the driver and the assembler are the same Clang and LLD, but no Linux
+distribution's package or nixpkgs' cache holds MinGW-w64's arm64 import
+libraries.
+
+**Chosen:** the driver is `aarch64-w64-mingw32-clang`, llvm-mingw's name, a
+Clang with LLD and those libraries serving as well under `--toolchain`. A
+Linux host takes the import libraries from the `aarch64-w64-mingw32`
+directory of the llvm-mingw release `environments/pins.sh` pins, checked
+against its sha256: the development shell's driver and the gate's
+emission job both do. The corpus and the debugger sessions run natively on
+GitHub's `windows-11-arm` runner, which this repository's plan offers, with
+llvm-mingw's arm64 LLDB (D2292). `refine dap` runs there in WSL 1, in
+Ubuntu's arm64 base system, imported from its pinned archive, since the
+WSL distribution the runner's setup action installs is x86-64's, which WSL
+1 on arm64 does not run.
+
+**The alternatives:** building MinGW-w64 for arm64 from source in the
+development shell, a cross compiler's build for a set of import libraries;
+the import libraries checked into the repository, a binary copy of what a
+pinned release already gives; and emulating Windows arm64 on Linux, for
+which no free emulator runs Windows programs, Wine on arm64 needing an
+arm64 host.
+
+**Pinned by** the gate's `windows-arm64-emit`, `windows-arm64-runtime` and
+`windows-arm64-debugger` jobs, and `toolchain/a Windows link has no C
+runtime`, whose driver names the target's triplet.
+
+### D2349 — A Windows arm64 routine's unwind table describes its frame record, and its CodeView names ARM64's registers
+
+**From** [1550], D2191 and D2287.
+
+**The discrepancy:** D2191 describes an x86-64 frame for Windows' unwinder
+and D2287 an x86-64 frame for CodeView. Windows on arm64 walks a stack by
+ARM64 unwind codes, and CodeView names ARM64's registers by numbers of
+their own.
+
+**Chosen:** as D2191, each routine with a frame record is a `.seh_proc`
+whose prologue pushes x29 and x30 with `.seh_save_fplr_x 16`, points x29
+at them with `.seh_set_fp` and ends there; whatever the routine reserves
+or saves after that, x29 recovers the caller's stack pointer, and the table
+describes no saved register. The trap report and the stack switch routine
+open the same way; the stack's start routine and a naked routine have no
+table. With `--debug=full` the object carries D2287's CodeView with ARM64's
+machine, `CV_CFL_ARM64`, x29 as the frame register, x0 to x28 as CodeView's
+`CV_ARM64_X0` onwards and a float register's value as its `d` register's,
+and no DWARF call frame information.
+
+**The alternatives:** describing every saved register, which needs the
+saves inside the prologue, for an unwinding no Landin program does; packed
+unwind data, which fixes the frame's layout and would have the backend lay
+its frames out for the unwinder's sake.
+
+**Pinned by** every Windows arm64 executable the corpus runs, whose failed
+checks end through the exception dispatcher, which walks these tables, and
+`compiler/tests/windows/debug.py --target=windows-arm64`'s sessions in the
+gate's `windows-arm64-debugger` job.
+
+### D2350 — Windows arm64 reaches its thread's storage and stack bounds through x18
+
+**From** D2192 and D2274.
+
+**The discrepancy:** D2274 reaches a thread's storage on x86-64 through the
+TEB at GS, and D2192 moves a report's stack into the TEB's bounds there.
+On arm64 the TEB is x18's.
+
+**Chosen:** a thread's block of the image's implicit storage is the slot
+`_tls_index` names in the array the TEB's ThreadLocalStoragePointer, the
+word at x18 plus 0x58, points to, and a datum is at its section-relative
+offset from that base, `:secrel_hi12:` and `:secrel_lo12:`; D471's stack
+limit cell is such a datum. The image carries D2274's TLS directory, whose
+`.tls` marker holds a byte so that a linker keeps its contribution. A
+failed check executes `brk #1`, which ends a process with
+`STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D, as `ud2` does on x86-64; the
+report writes its line through `GetStdHandle` and `WriteFile`, and on its
+own stack first makes that stack the thread's at x18 plus 8 and plus 16.
+
+**The alternatives:** `brk #0xf000`, Windows' breakpoint, which ends a
+process with `STATUS_BREAKPOINT` and would differ from x86-64's status for
+the same failure; and `udf`, which ends with the same status as `brk #1` but
+would differ from the trap every other arm64 target executes.
+
+**Pinned by** `runtime/fibre-stack-past-limit-traps`, the threads corpus
+and every fixture with `traps: yes` the gate's `windows-arm64-runtime` job
+runs.
+
+### D2351 — `refine dap` speaks to a Windows adapter over a loopback connection
+
+**From** D1523 and D2292.
+
+**The discrepancy:** D2292 relays `lldb-dap.exe` over its standard
+streams, as D1523 relays every adapter. Run from WSL, the adapter
+deadlocked on the streams WSL gives it in about half of all sessions,
+x86-64's and arm64's: having queued `launch`, it wrote nothing until its
+input closed, then failed every write. It did so with or without `refine
+dap` between it and the client, after LLDB's batch sessions or alone, under
+`setsid` or a terminal of its own and with a delayed `launch`; the reading
+is that Windows serialises synchronous I/O on one file object, so a read
+pending on the adapter's input holds its write of the answer.
+
+**Chosen:** for a Windows program's LLDB, `refine dap` takes a loopback
+port nothing listens on, starts the adapter with `--connection
+listen://127.0.0.1:PORT`, LLVM's own option, with its standard streams on
+`/dev/null`, connects within twenty seconds, and relays over the
+connection what it relayed over the streams. A connection not made ends
+the adapter and the request fails as a debugger that did not start does.
+The adapter keeps `refine dap`'s process group (D2292). Every other
+debugger keeps its standard streams.
+
+**The alternatives:** re-running a stalled session, which the gate did;
+a different pipe for each stream, which WSL's interop decides and not
+`refine dap`; and a Unix socket, which a Windows program run from WSL 1
+cannot reach.
+
+**Pinned by** the dap suite's `a Windows program maps its paths`, which
+holds the adapter to a connection, and the gate's `windows-debugger` and
+`windows-arm64-debugger` jobs; on the probe runs 45364098012 to
+45366912659 four of six sessions over the streams stalled and none of six
+over a connection.
 
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 

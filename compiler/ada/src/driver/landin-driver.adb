@@ -3524,6 +3524,14 @@ package body Landin.Driver is
             SDK_Asked : Boolean := False;
             SDK_Library : Unbounded.Unbounded_String;
 
+            --  D2327: Microsoft's linker searches the directories the LIB
+            --  variable names and the Windows SDK's, which Clang finds and
+            --  passes it without saying, so the search cannot be settled
+            --  here and the linker's own message stands.
+            Microsoft : constant Boolean :=
+              Landin.Backend.Toolchain.Microsoft_Link
+                (Facts, Unbounded.To_String (Toolchain));
+
             function SDK_Holds (File : String) return Boolean;
 
             function SDK_Holds (File : String) return Boolean is
@@ -3583,7 +3591,8 @@ package body Landin.Driver is
                   Name : constant String :=
                     Landin.Configuration.Library_Name (Table, Index);
                   Files : constant Landin.Platform.Path_List :=
-                    Landin.Backend.Toolchain.Library_Files (Facts, Name);
+                    Landin.Backend.Toolchain.Library_Files
+                      (Facts, Name, Unbounded.To_String (Toolchain));
                   Found : Boolean := False;
                begin
                   if not (for some Earlier of Reported => Earlier = Name)
@@ -3597,6 +3606,7 @@ package body Landin.Driver is
                                         (Directory & "/" & File));
                         end loop;
                      end loop;
+                     Found := Found or else Microsoft;
                      for File of Files loop
                         exit when Found;
                         Found := Driver_Holds (File);
@@ -4022,7 +4032,7 @@ package body Landin.Driver is
                   Files : constant Landin.Platform.Path_List :=
                     Landin.Backend.Toolchain.Library_Files
                       (Facts, Landin.Configuration.Library_Name
-                         (Table, Index));
+                         (Table, Index), Unbounded.To_String (Toolchain));
                   Located : Boolean := False;
                begin
                   for Directory of Directories loop
@@ -4037,7 +4047,12 @@ package body Landin.Driver is
                         end if;
                      end loop;
                   end loop;
-                  if not Located then
+                  --  D2327: Clang does not answer -print-file-name from
+                  --  the directories Microsoft's linker searches.
+                  if not Located
+                    and then not Landin.Backend.Toolchain.Microsoft_Link
+                      (Facts, Unbounded.To_String (Toolchain))
+                  then
                      for File of Files loop
                         declare
                            Asked : Landin.Platform.Tool_Result;
@@ -4436,7 +4451,8 @@ package body Landin.Driver is
                           Script => Input_Script,
                           Float => Landin.IR.Firmware_Profile
                             (Landin.Stages.Code (Context).all).Float,
-                          Assembly_Is_Object => Separate_Debug_Object),
+                          Assembly_Is_Object => Separate_Debug_Object,
+                          Driver => Unbounded.To_String (Toolchain)),
                      Result    => Ran,
                      Capture   => Landin.Platform.Merged);
                exception
@@ -5519,7 +5535,8 @@ package body Landin.Driver is
                            Static => Static_Link,
                            Directories => Search_Directories,
                            Float => Landin.IR.Firmware_Profile
-                             (Landin.Stages.Code (Context).all).Float));
+                             (Landin.Stages.Code (Context).all).Float,
+                           Driver => Unbounded.To_String (Toolchain)));
                         if not Keep_Assembly and then not On_Firmware
                           and then not Emit_Map
                         then
@@ -5772,7 +5789,8 @@ package body Landin.Driver is
                      Level => Landin.Stages.Level (Context),
                      Static => Static_Link,
                      Directories => Search_Directories,
-                     Assembly_Is_Object => Separate_Debug_Object));
+                     Assembly_Is_Object => Separate_Debug_Object,
+                     Driver => Unbounded.To_String (Toolchain)));
                   if Separate_Debug_Object then
                      Plan_Tool
                        (Landin.Backend.Toolchain.Debug_Bundle_Arguments

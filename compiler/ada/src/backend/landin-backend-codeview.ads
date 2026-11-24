@@ -34,7 +34,7 @@ package Landin.Backend.Codeview is
 
    type Place is record
       Kind     : Place_Kind := Nowhere;
-      --  CodeView's register number (CV_AMD64_*, cvconst.h).
+      --  CodeView's register number (CV_AMD64_* or CV_ARM64_*, cvconst.h).
       Register : Natural := 0;
       Offset   : Long_Long_Integer := 0;
    end record;
@@ -70,7 +70,8 @@ package Landin.Backend.Codeview is
         (Plan : Placement; Layout : Frame; Slot : Landin.IR.Slot_Id;
          Indirect, Address_Only : Boolean) return Place;
       --  S_FRAMEPROC's code for the frame record's register, the base
-      --  of the locals and the parameters: 2 for x64's RBP.
+      --  of the locals and the parameters: 2 for x64's RBP and ARM64's
+      --  x29.
       Frame_Register : Natural;
       with procedure Narrow
         (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;

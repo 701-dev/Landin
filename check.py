@@ -10858,7 +10858,9 @@ PROCESS_SECTION_BUDGETS = {
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
     "Command reference": 8400,
-    "The mechanical gate": 48000,
+    #  Raised when Windows arm64 added its three gate jobs, each a
+    #  row of the job table.
+    "The mechanical gate": 48400,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

@@ -72,7 +72,8 @@ package body Landin.Modules.Availability is
                | Landin.Targets.AAPCS64_LP64
                | Landin.Targets.RiscV_LP64D
                | Landin.Targets.Arm_AAPCS32_Soft
-               | Landin.Targets.Win64_LLP64 =>
+               | Landin.Targets.Win64_LLP64
+               | Landin.Targets.Windows_AAPCS64_LLP64 =>
                return Landin.Targets.Capabilities.C_Signatures (Facts);
             when Landin.Targets.No_C_ABI
                | Landin.Targets.RiscV_ILP32

@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Next roadmap item: R21.40 — Windows arm64 (planned).**
+**Next roadmap item: R21.51 — Microsoft's toolchain on Windows arm64 (planned).**
 
 ## Versions
 

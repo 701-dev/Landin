@@ -81,6 +81,19 @@ package Landin.Backend.Toolchain is
      (Output, Source : String; Facts : Landin.Targets.Target_Facts;
       Host : Landin.Platform.Filesystem'Class) return Boolean;
 
+   --  D2327: Windows has a second link policy, Microsoft's, beside
+   --  llvm-mingw's default: a Clang driver for `x86_64-pc-windows-msvc`
+   --  that assembles the same COFF assembly and links it with `link.exe`,
+   --  or with `lld-link` under `--linker=lld`, against the Windows SDK's
+   --  import libraries.  `--toolchain` selects it by naming a driver
+   --  whose file name, with any directory and `.exe` set aside, holds
+   --  that target's `-windows-msvc`, as Clang's own
+   --  `x86_64-pc-windows-msvc-clang` does; no other name changes the
+   --  policy, so llvm-mingw stays the default and the only toolchain a
+   --  Windows build requires.
+   function Microsoft_Link
+     (Facts : Landin.Targets.Target_Facts; Driver : String) return Boolean;
+
    function Driver_For
      (Facts : Landin.Targets.Target_Facts;
       Named : String;
@@ -112,9 +125,11 @@ package Landin.Backend.Toolchain is
    --  order the target's linker prefers them in one directory: on Darwin
    --  `libNAME.tbd`, `libNAME.dylib` and `libNAME.a`, on firmware, which
    --  links archives alone (D923), `libNAME.a`, and elsewhere `libNAME.so`
-   --  and `libNAME.a`.  Searched only after a link failed.
+   --  and `libNAME.a`.  Microsoft's link (D2327, Driver) takes `NAME.lib`
+   --  alone.  Searched only after a link failed.
    function Library_Files
-     (Facts : Landin.Targets.Target_Facts; Name : String)
+     (Facts : Landin.Targets.Target_Facts; Name : String;
+      Driver : String := "")
       return Landin.Platform.Path_List;
 
    --  What asks the driver where its own directories hold File.  The
@@ -192,10 +207,13 @@ package Landin.Backend.Toolchain is
       Script : String := "";
       Float : Landin.Targets.Firmware.Float_Unit :=
         Landin.Targets.Firmware.No_Float_Unit;
-      Assembly_Is_Object : Boolean := False)
+      Assembly_Is_Object : Boolean := False;
+      Driver : String := "")
       return Landin.Platform.Path_List
      with Pre => Landin.Targets.Levels.Belongs_To (Level, Facts);
    --  Assembly_Is_Object selects a separately assembled Darwin debug object.
+   --  Driver is the named driver, which selects Microsoft's Windows link
+   --  when Microsoft_Link says so.
    --  Script, when given, is a developer's linker script for a firmware
    --  link (D546), passed where the derived OUTPUT.ld would be.
 

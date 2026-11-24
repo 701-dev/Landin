@@ -241,6 +241,7 @@ python3 scripts/measure.py count --target linux-arm64 --level armv8-a \
 | darwin-arm64 | armv8-a, armv8.1-a | `wall` | `macos-26` |
 | freebsd-arm64 | armv8-a, armv8.1-a | `size-only`: the guest is emulated | — |
 | windows-x86-64 | every level | `limit`: no lane measures a Windows image yet | — |
+| windows-arm64 | every level | `limit`, as x86-64's | — |
 | linux-rv64 | every level | `instructions`, QEMU user mode | `ubuntu-24.04` |
 | cortex-m0 | armv6-m | `instructions` on the micro:bit machine; `cycles` on the RP2040 | `ubuntu-24.04`; the rig |
 | cortex-m0 | armv7-m | `instructions` on MPS2 AN385 | `ubuntu-24.04` |

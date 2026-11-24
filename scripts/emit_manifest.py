@@ -146,7 +146,7 @@ import fixture_meta  # noqa: E402
 
 TARGETS = ("linux-x86-64", "linux-arm64", "darwin-arm64", "cortex-m0",
            "freebsd-x86-64", "freebsd-arm64", "windows-x86-64",
-           "linux-rv64", "rv32", "xtensa")
+           "windows-arm64", "linux-rv64", "rv32", "xtensa")
 MODES = ("debug", "release")
 OPTIMIZATIONS = ("none", "size", "speed")
 SPECIALIZATIONS = ("off", "auto", "all")
@@ -169,30 +169,36 @@ REFUSAL_PAIRS = {
     #  Nor is its 11 GB zero image part of a Windows image, which holds
     #  2 GiB of static images in all (D2188).
     ("array-longer-than-a-host-natural", "windows-x86-64"),
+    ("array-longer-than-a-host-natural", "windows-arm64"),
     ("fixed-conditional-cross-file-forward", "cortex-m0"),
     ("fixed-conditional-cross-file-forward", "darwin-arm64"),
     ("fixed-conditional-cross-file-forward", "linux-arm64"),
     ("fixed-conditional-cross-file-forward", "freebsd-arm64"),
+    ("fixed-conditional-cross-file-forward", "windows-arm64"),
     ("fixed-conditional-cross-file-forward", "linux-rv64"),
     ("fixed-conditional-generic-activity", "cortex-m0"),
     ("fixed-conditional-generic-activity", "darwin-arm64"),
     ("fixed-conditional-generic-activity", "linux-arm64"),
     ("fixed-conditional-generic-activity", "freebsd-arm64"),
+    ("fixed-conditional-generic-activity", "windows-arm64"),
     ("fixed-conditional-generic-activity", "linux-rv64"),
     ("fixed-conditional-nested-inactive", "cortex-m0"),
     ("fixed-conditional-nested-inactive", "darwin-arm64"),
     ("fixed-conditional-nested-inactive", "linux-arm64"),
     ("fixed-conditional-nested-inactive", "freebsd-arm64"),
+    ("fixed-conditional-nested-inactive", "windows-arm64"),
     ("fixed-conditional-nested-inactive", "linux-rv64"),
     ("fixed-conditional-selects-declarations", "cortex-m0"),
     ("fixed-conditional-selects-declarations", "darwin-arm64"),
     ("fixed-conditional-selects-declarations", "linux-arm64"),
     ("fixed-conditional-selects-declarations", "freebsd-arm64"),
+    ("fixed-conditional-selects-declarations", "windows-arm64"),
     ("fixed-conditional-selects-declarations", "linux-rv64"),
     ("r440-c-aliases", "cortex-m0"),
     ("r440-c-aliases", "darwin-arm64"),
     ("r440-c-aliases", "linux-arm64"),
     ("r440-c-aliases", "freebsd-arm64"),
+    ("r440-c-aliases", "windows-arm64"),
     ("r440-c-aliases", "linux-rv64"),
     ("r440-c-signatures", "cortex-m0"),
     ("from-c", "cortex-m0"),
@@ -227,6 +233,7 @@ REFUSAL_PAIRS = {
     #  The from-c page's examples import platform/posix, which Windows,
     #  being no POSIX system, does not have (D2188).
     ("from-c", "windows-x86-64"),
+    ("from-c", "windows-arm64"),
 }
 # Xtensa's firmware surface has the same C-boundary refusals. The default
 # configuration also has no read-modify-write atomics or foreign asm arm.

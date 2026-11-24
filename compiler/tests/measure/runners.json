@@ -12,6 +12,8 @@
                     "limit": "the guest is emulated, its kernel in any count"},
   "windows-x86-64": {"classes": ["limit"], "runner": null,
                      "limit": "no lane measures a Windows image yet"},
+  "windows-arm64": {"classes": ["limit"], "runner": null,
+                    "limit": "no lane measures a Windows image yet"},
   "linux-rv64": {"classes": ["instructions"], "runner": "ubuntu-24.04, QEMU user mode"},
   "cortex-m0": {"runner": "ubuntu-24.04; the rig",
                 "levels": {"armv6-m": {"classes": ["instructions", "cycles"], "machine": "microbit", "board": "rp2040"},

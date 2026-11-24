@@ -16,7 +16,8 @@ package body Landin.Backend.Dispatch is
             | Landin.Targets.Capabilities.X86_64_COFF =>
             "signed 32-bit offsets this backend addresses",
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-           | Landin.Targets.Capabilities.Arm64_ELF =>
+           | Landin.Targets.Capabilities.Arm64_ELF
+           | Landin.Targets.Capabilities.Arm64_COFF =>
             "signed 32-bit frame budget of the arm64 backend",
          when Landin.Targets.Capabilities.RV64_ELF =>
             "signed 32-bit frame budget of the RV64 backend",
@@ -41,7 +42,8 @@ package body Landin.Backend.Dispatch is
             return Landin.Backend.X86_64.Frame_Is_Addressable
               (Of_Unit, Item, Facts, Options);
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-           | Landin.Targets.Capabilities.Arm64_ELF =>
+           | Landin.Targets.Capabilities.Arm64_ELF
+           | Landin.Targets.Capabilities.Arm64_COFF =>
             return Landin.Backend.Arm64.Frame_Is_Addressable
               (Of_Unit, Item, Facts, Options);
          when Landin.Targets.Capabilities.RV64_ELF
@@ -118,7 +120,8 @@ package body Landin.Backend.Dispatch is
                     Limit_Margin => Margin, Unchecked => Unchecked,
                     Handler_Entry => Before);
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-           | Landin.Targets.Capabilities.Arm64_ELF =>
+           | Landin.Targets.Capabilities.Arm64_ELF
+           | Landin.Targets.Capabilities.Arm64_COFF =>
             return (Switch_Bytes => 176, Prepared_Bytes => 176,
                     Entry_Bytes => 0, Report_Bytes => 16,
                     Report_Foreign => not Linux,
@@ -182,7 +185,8 @@ package body Landin.Backend.Dispatch is
               (Of_Unit, Meanings, Names, Facts, Options, Assembly, Report,
                Hosted_Entry, Debug, Panic, Level);
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-           | Landin.Targets.Capabilities.Arm64_ELF =>
+           | Landin.Targets.Capabilities.Arm64_ELF
+           | Landin.Targets.Capabilities.Arm64_COFF =>
             Landin.Backend.Arm64.Emit
               (Of_Unit, Meanings, Names, Facts, Options, Assembly, Report,
                Hosted_Entry, Debug, Panic, Level);

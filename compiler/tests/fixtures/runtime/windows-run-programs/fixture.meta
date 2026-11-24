@@ -5,4 +5,4 @@ program: main.ldn
 root: ../../../../..
 status: 42
 constructs: 0940, 1030, 1660
-targets: windows-x86-64
+targets: windows-x86-64, windows-arm64

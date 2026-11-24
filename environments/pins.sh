@@ -223,11 +223,23 @@ landin_fetch_alpine() {
 }
 
 #  The Windows debugger the gate's Windows jobs run: LLDB as llvm-mingw's
-#  release for Windows x86-64 ships it, lldb.exe and lldb-dap.exe, which
-#  read a PDB with LLVM's own reader (D2292).  The archive is checked
-#  against this sha256 before anything in it runs;
+#  release for Windows x86-64 and for Windows arm64 ships it, lldb.exe and
+#  lldb-dap.exe, which read a PDB with LLVM's own reader (D2292).  The
+#  arm64 release's aarch64-w64-mingw32 directory is also the MinGW-w64
+#  import libraries a windows-arm64 link takes, on Linux as well (D2348),
+#  since neither Ubuntu nor nixpkgs' cache has them.  Each archive is
+#  checked against its sha256 before anything in it runs;
 #  compiler/tests/windows/README.md runs the same release under Wine.
-#  check.py holds compiler/ada/TOOLCHAIN.md to the checksum.
+#  check.py holds compiler/ada/TOOLCHAIN.md to the checksums.
 LANDIN_LLVM_MINGW_VERSION=20261117
 LANDIN_LLVM_MINGW_RELEASES=https://github.com/mstorsjo/llvm-mingw/releases/download
 LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS=4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412
+LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS=c7f56de1d7aca15196c19083a799205390397b8b87a825aec3485e1e4f3c2cdd
+
+#  Ubuntu's arm64 base system, which the gate's windows-arm64-debugger job
+#  imports into WSL 1 to run the Linux arm64 refine dap there: setup-wsl
+#  installs WSL on the Windows arm64 runner, but its distribution is
+#  x86-64's, which WSL 1 on arm64 cannot run.
+LANDIN_WSL_UBUNTU_BASE_VERSION=24.04.5
+LANDIN_WSL_UBUNTU_BASE_RELEASES=https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release
+LANDIN_WSL_UBUNTU_BASE_SHA256_ARM64=a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2

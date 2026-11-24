@@ -417,7 +417,7 @@ the panic sessions do.
 ### Windows
 
 `refine compile --target=windows-x86-64 --debug=full program.ldn -o
-program.exe` writes `program.exe`, `program.pdb` beside it and
+program.exe`, or `--target=windows-arm64`, writes `program.exe`, `program.pdb` beside it and
 `program.exe.sources.json`. The objects carry CodeView, and LLD links it
 into the PDB; the image names the PDB by its file name alone, so a debugger
 finds it beside the image wherever the two are copied (D2289). The source
@@ -426,7 +426,7 @@ POSIX paths.
 
 The debugger is LLDB as [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases)
 ships it for Windows, LLVM's own and free (D2292): unpack its
-`ucrt-x86_64` release and run `bin\lldb.exe program.exe`, then
+`ucrt-x86_64` release, or `ucrt-aarch64` on Windows arm64, and run `bin\lldb.exe program.exe`, then
 `breakpoint set -f program.ldn -l 12`, `run`, `bt` and `frame variable`.
 Name a source file by its name or the end of its path: LLDB puts a recorded
 POSIX path on a drive of its own choosing. Microsoft's debuggers read the

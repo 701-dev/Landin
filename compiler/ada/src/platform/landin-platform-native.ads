@@ -198,7 +198,8 @@ package Landin.Platform.Native is
       Settings      : Path_List;
       Program_Pipes : Boolean;
       Failure       : out Ada.Strings.Unbounded.Unbounded_String;
-      Own_Group     : Boolean := True);
+      Own_Group     : Boolean := True;
+      Over_Socket   : Boolean := False);
 
    overriding function Variable
      (Host : Native_Debugger_Session; Name : String) return String;

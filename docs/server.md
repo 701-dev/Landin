@@ -64,7 +64,7 @@ Build settings choose what `--target=`, `--level=`, `--option=` and
 
 `target` is any name `--target=` takes: `linux-x86-64`, `linux-arm64`,
 `darwin-arm64`, `freebsd-x86-64`, `freebsd-arm64`, `linux-rv64`, `cortex-m0`,
-`rv32`, `synthetic-32`, `xtensa` or `windows-x86-64`. Both read one mapping, and both default
+`rv32`, `synthetic-32`, `xtensa`, `windows-x86-64` or `windows-arm64`. Both read one mapping, and both default
 to the compiler's own host (D257); `refine targets` lists the names and each
 target's CPU feature levels. A server built for a host no
 target describes checks for `synthetic-32` and says, through

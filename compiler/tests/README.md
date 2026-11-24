@@ -1083,8 +1083,9 @@ about a construct no fixture can yet use.
 
 `targets` is required, and `check.py` holds each name to the targets
 [the target applicability register](registers.md#target-applicability-coverage)
-allows: the seven product targets `linux-x86-64`, `linux-arm64`, `darwin-arm64`,
-`freebsd-x86-64`, `freebsd-arm64`, `linux-rv64` and `cortex-m0`; `rv32`,
+allows: the product targets `linux-x86-64`, `linux-arm64`, `darwin-arm64`,
+`freebsd-x86-64`, `freebsd-arm64`, `linux-rv64`, `windows-x86-64`,
+`windows-arm64` and `cortex-m0`; `xtensa`, the Xtensa firmware target; `rv32`,
 the RV32 firmware target, which is no product target (D840); and
 `synthetic-32`, the 32-bit model that preceded the
 Cortex-M backend. A name outside that list is refused, because that is how a

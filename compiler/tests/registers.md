@@ -339,6 +339,6 @@ model used before the Cortex-M backend existed.
 | --- | --- |
 | `prototype-1` | cortex-m0, rv32 |
 | `prototype-2` | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64 |
-| `prototype-3` | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, cortex-m0, rv32, xtensa, synthetic-32 |
+| `prototype-3` | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64, cortex-m0, rv32, xtensa, synthetic-32 |
 | `prototype-4` | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64 |
 | `prototype-5` | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0 |

@@ -23,6 +23,7 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 | `freebsd-x86-64` | hosted executables, emitted on Linux | a FreeBSD VM under KVM | LLDB in the VM |
 | `freebsd-arm64` | hosted executables, emitted on Linux | an emulated FreeBSD VM | LLDB in the VM |
 | `windows-x86-64` | hosted executables, emitted on Linux | natively, on a GitHub-hosted Windows runner | LLDB over CodeView and a PDB, natively and through `refine dap` from WSL |
+| `windows-arm64` | hosted executables, emitted on Linux | natively, on GitHub's Windows 11 arm64 runner | as `windows-x86-64`'s, with llvm-mingw's arm64 LLDB |
 | `cortex-m0` | Cortex-M firmware, ARMv6-M by default and up to ARMv8-M Mainline by `--level` | the pinned QEMU | GDB, lines and functions |
 | `xtensa` | windowed LX6 and LX7 firmware, ILP32; physical ESP32 and ESP32-S3 RAM and boot ports | Espressif QEMU chip controls and complete corpus on exact CPUs with explicitly virtual RAM | lines with `--debug=lines`; no gate debugger session |
 | `rv32` | RV32IMC and RV32IMAC firmware, ilp32 | Espressif's QEMU, `sifive_e` and `esp32c3` | lines with `--debug=lines`; no gate session |
@@ -46,7 +47,20 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
   from the fixtures that need POSIX itself. With `--debug=full` its
   objects carry CodeView and LLD links a PDB beside the image, which LLVM's
-  LLDB for Windows reads (D2287-D2292).
+  LLDB for Windows reads (D2287-D2292). Microsoft's toolchain is a
+  second, optional one, selected with
+  `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name: it
+  assembles the same output and links it with Visual Studio's `link.exe`,
+  or LLVM's `lld-link` under `--linker=lld`, against the Windows SDK's
+  import libraries (D2327). The gate links the corpus with `link.exe` on
+  its Windows runner and runs it. **Windows arm64** is the same
+  target on arm64 through `aarch64-w64-mingw32-clang`, whose import
+  libraries a Linux host takes from the pinned llvm-mingw release (D2348).
+  C calls take Microsoft's variant of AAPCS64, LLP64, whose variadic call
+  passes every argument as integers (D2347); its unwind tables and
+  CodeView are arm64's (D2349), and it reaches thread storage and the
+  stack's bounds through x18 (D2350). Its corpus and debugger sessions run
+  on GitHub's `windows-11-arm` runner.
 - **RV64** runs its whole test program and its GDB sessions under QEMU's
   user emulation, which is evidence about its emitted code and none about
   RV64 hardware. Its [physical RISE lanes](../compiler/tests/rv64/README.md),
@@ -1206,8 +1220,8 @@ Add `--target=darwin-arm64` for native macOS output, then open
   and start routines, `landin.stack_switch` and `landin.stack_start` (D469),
   and a scripted session on every target with a native backend but
   Windows steps two switches and holds the leaving and resumed fibres'
-  frames at every instruction; on Windows the two routines have no unwind
-  tables yet.
+  frames at every instruction; on Windows x86-64 the two routines have no
+  unwind tables yet, and on Windows arm64 the start routine has none.
 - **Names.** An atom set is described as an enumeration, so a debugger
   prints an atom's name, and a generic instance is a symbol named after its
   routine.
@@ -1218,12 +1232,12 @@ Add `--target=darwin-arm64` for native macOS output, then open
   an editor starts as its debug adapter. It debugs Linux programs over
   GDB/MI. For macOS, FreeBSD and Windows programs it starts and relays
   `lldb-dap`, LLVM's own adapter; for a Windows program `lldb-dap.exe`,
-  which refine started in WSL reaches on Windows' search path (D2292). It launches a program or attaches to a debugger
+  which refine started in WSL reaches on Windows' search path (D2292) and speaks to over a loopback connection (D2351). It launches a program or attaches to a debugger
   stub. It shows the library's files from the installed library. With
   `--panic-map`, it shows a stop in `panic_handler` as an exception at the
   source line of its site (D1523-D1527). The gate scripts a session over
   GDB on Linux x86-64, Linux arm64 and RV64 under QEMU, and over LLDB on
-  macOS, in both FreeBSD VMs and on Windows from WSL. See
+  macOS, in both FreeBSD VMs and on Windows x86-64 and arm64 from WSL. See
   [debugging from an editor](targets.md#debugging-from-an-editor).
 - Debug provenance stays independent of its formats: DWARF and CodeView
   are two serializations of the same source, IR and allocation facts. A

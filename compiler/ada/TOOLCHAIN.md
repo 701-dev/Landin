@@ -80,11 +80,21 @@ emitted program's optimization policy.
 
 The Windows debugger is LLDB from llvm-mingw's release `20261117` for
 Windows x86-64, `llvm-mingw-20261117-ucrt-x86_64.zip`, sha256
-`4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412`, which
-`environments/pins.sh` names and the gate's `windows-debugger` job checks
-before anything in it runs: `lldb.exe` and `lldb-dap.exe`, LLVM 23, which
-read a PDB with LLVM's own reader. It debugs; it links nothing, and the
-Windows link stays the Clang 19 and LLD the emission jobs use.
+`4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412`, and
+for Windows arm64, `llvm-mingw-20261117-ucrt-aarch64.zip`, sha256
+`c7f56de1d7aca15196c19083a799205390397b8b87a825aec3485e1e4f3c2cdd`, which
+`environments/pins.sh` names and the gate's Windows debugger jobs check
+before anything in them runs: `lldb.exe` and `lldb-dap.exe`, LLVM 23, which
+read a PDB with LLVM's own reader. It debugs and links nothing: the
+Windows link stays the Clang 19 and LLD the emission jobs use. A
+windows-arm64 link takes the MinGW-w64 import libraries from the arm64
+archive's `aarch64-w64-mingw32` directory, which Ubuntu does not package
+and nixpkgs' cache does not hold; the emission job and the Linux nix shell
+both take them from there. The arm64 runner's DAP session runs the Linux arm64 `refine dap` in
+WSL 1, in Ubuntu's arm64 base system `24.04.5`,
+`ubuntu-base-24.04.5-base-arm64.tar.gz`, sha256
+`a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2`, which
+the job checks before importing it.
 
 ## The cross lane
 

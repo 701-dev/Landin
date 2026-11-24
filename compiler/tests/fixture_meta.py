@@ -77,7 +77,7 @@ FAMILIES = {
 }
 FAMILY_OF = {
     "linux-x86-64": "x86-64", "freebsd-x86-64": "x86-64",
-    "windows-x86-64": "x86-64",
+    "windows-x86-64": "x86-64", "windows-arm64": "arm64",
     "linux-arm64": "arm64", "darwin-arm64": "arm64",
     "freebsd-arm64": "arm64", "linux-rv64": "rv64",
     "cortex-m0": "m-profile", "rv32": "rv32", "synthetic-32": "none",

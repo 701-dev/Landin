@@ -183,8 +183,8 @@ package body Landin.Tests.Fixture_Execution_Suite is
          & " --refine=REFINE --output=DIR, or the gate's freebsd-"
          & (if Target = "freebsd-x86-64" then "amd64" else "arm64")
          & " jobs (compiler/tests/freebsd/README.md)"
-      elsif Target = "windows-x86-64" then
-         "compiler/tests/windows/check.py --case="
+      elsif Target in "windows-x86-64" | "windows-arm64" then
+         "compiler/tests/windows/check.py --target=" & Target & " --case="
          & Label (Ada.Strings.Fixed.Index (Label, "/") + 1 .. Label'Last)
          & " --refine=REFINE --output=DIR on Linux with --runner=wine,"
          & " or the gate's windows jobs (compiler/tests/windows/README.md)"

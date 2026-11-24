@@ -5,4 +5,4 @@ root: ../../../../..
 profiles: standard
 status: 42
 constructs: 0940, 1380, 1620, 1660
-targets: windows-x86-64
+targets: windows-x86-64, windows-arm64

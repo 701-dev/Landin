@@ -1,3 +1,4 @@
+with Landin.Backend.COFF;
 with Landin.Backend.ELF;
 
 package body Landin.Backend.Arm64.Platform is
@@ -7,13 +8,14 @@ package body Landin.Backend.Arm64.Platform is
 
    function Local_Prefix_Seed (Format : Arm64_Format) return String
      is (case Format is
-            when Formats.ELF => Spelling.Local_Prefix,
+            when Formats.ELF | Formats.COFF => Spelling.Local_Prefix,
             when Formats.Mach_O => "L");
 
    function Page (Format : Arm64_Format; Name : String; Imported : Boolean)
      return String
      is (case Format is
             when Formats.ELF => (if Imported then ":got:" & Name else Name),
+            when Formats.COFF => (if Imported then "__imp_" & Name else Name),
             when Formats.Mach_O =>
                Name & (if Imported then "@GOTPAGE" else "@PAGE"));
 
@@ -23,46 +25,59 @@ package body Landin.Backend.Arm64.Platform is
      is (case Format is
             when Formats.ELF =>
                (if Imported then ":got_lo12:" else ":lo12:") & Name,
+            when Formats.COFF =>
+               ":lo12:" & (if Imported then "__imp_" & Name else Name),
             when Formats.Mach_O =>
                Name & (if Imported then "@GOTPAGEOFF" else "@PAGEOFF"));
 
    function Read_Only_Section (Format : Arm64_Format) return String
      is (case Format is
             when Formats.ELF => Spelling.Read_Only_Section,
+            when Formats.COFF => ".section .rdata,""dr""",
             when Formats.Mach_O => ".section __TEXT,__const");
 
    function Relocated_Read_Only_Section (Format : Arm64_Format) return String
      is (case Format is
             when Formats.ELF => Spelling.Relocated_Read_Only_Section,
+            when Formats.COFF => ".section .rdata,""dr""",
             when Formats.Mach_O => ".section __DATA_CONST,__const");
 
    function Begin_Function (Format : Arm64_Format; Symbol : String)
      return String
      is (case Format is
             when Formats.ELF => Spelling.Function_Type (Symbol),
-            when Formats.Mach_O => "");
+            when Formats.Mach_O | Formats.COFF => "");
 
    function End_Function (Format : Arm64_Format; Symbol : String)
      return String
      is (case Format is
             when Formats.ELF => Spelling.Size_To_Here (Symbol),
-            when Formats.Mach_O => "");
+            when Formats.Mach_O | Formats.COFF => "");
 
    function Begin_Object (Format : Arm64_Format; Symbol : String)
      return String
      is (case Format is
             when Formats.ELF => Spelling.Object_Type (Symbol),
-            when Formats.Mach_O => "");
+            when Formats.Mach_O | Formats.COFF => "");
 
    function End_Object
      (Format : Arm64_Format; Symbol : String; Bytes : String) return String
      is (case Format is
             when Formats.ELF => Spelling.Size (Symbol, Bytes),
-            when Formats.Mach_O => "");
+            when Formats.Mach_O | Formats.COFF => "");
 
    function Trailer (Format : Arm64_Format) return String
      is (case Format is
             when Formats.ELF => Spelling.No_Executable_Stack,
-            when Formats.Mach_O => ".subsections_via_symbols");
+            when Formats.Mach_O => ".subsections_via_symbols",
+            when Formats.COFF => "");
+
+   function Sectioned (Format : Arm64_Format; ELF_Directive : String)
+     return String
+     is (case Format is
+            when Formats.ELF => ELF_Directive,
+            when Formats.COFF => Landin.Backend.COFF.Directive (ELF_Directive),
+            when Formats.Mach_O =>
+               raise Compiler_Defect with "no ELF section on Mach-O");
 
 end Landin.Backend.Arm64.Platform;

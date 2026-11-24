@@ -1157,6 +1157,7 @@ package body Landin.Platform.Native is
      (Args, Settings : System.Address;
       Pipes          : Interfaces.C.int;
       Own_Group      : Interfaces.C.int;
+      Over_Socket    : Interfaces.C.int;
       Child          : access Interfaces.C.int;
       Descriptors    : System.Address) return Interfaces.C.int
      with Import, Convention => C, External_Name => "landin_debugger_start";
@@ -1192,7 +1193,8 @@ package body Landin.Platform.Native is
       Settings      : Path_List;
       Program_Pipes : Boolean;
       Failure       : out Ada.Strings.Unbounded.Unbounded_String;
-      Own_Group     : Boolean := True)
+      Own_Group     : Boolean := True;
+      Over_Socket   : Boolean := False)
    is
       use type Interfaces.C.int;
       package Strings renames Interfaces.C.Strings;
@@ -1229,7 +1231,8 @@ package body Landin.Platform.Native is
       Pairs (Pairs'Last) := Strings.Null_Ptr;
       Error := Debugger_Start
         (Words'Address, Pairs'Address, (if Program_Pipes then 1 else 0),
-         (if Own_Group then 1 else 0), Child'Access, Held'Address);
+         (if Own_Group then 1 else 0), (if Over_Socket then 1 else 0),
+         Child'Access, Held'Address);
       for Word of Words loop
          Strings.Free (Word);
       end loop;

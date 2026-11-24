@@ -80,11 +80,12 @@ package Landin.Configuration is
       Cache_Line_Fact, C_SysV_LP64_Fact, C_Darwin_LP64_Fact,
       C_AAPCS64_LP64_Fact, C_RiscV_LP64D_Fact, C_AAPCS32_Fact,
       C_RiscV_ILP32_Fact,
-      C_Xtensa_Windowed_ILP32_Fact, C_Win64_LLP64_Fact, C_Runtime_Fact);
+      C_Xtensa_Windowed_ILP32_Fact, C_Win64_LLP64_Fact,
+      C_Windows_Arm64_LLP64_Fact, C_Runtime_Fact);
    subtype Atom_Fact is Fixed_Fact range Arch_Fact .. Build_Mode_Fact;
    subtype Valued_Fact is Fixed_Fact range Word_Size_Fact .. C_Runtime_Fact;
    subtype C_ABI_Fact is Fixed_Fact
-     range C_SysV_LP64_Fact .. C_Win64_LLP64_Fact;
+     range C_SysV_LP64_Fact .. C_Windows_Arm64_LLP64_Fact;
 
    function Fact_Name (Fact : Fixed_Fact) return String
      is (case Fact is
@@ -102,6 +103,7 @@ package Landin.Configuration is
            when C_RiscV_ILP32_Fact => "c_riscv_ilp32",
            when C_Xtensa_Windowed_ILP32_Fact => "c_xtensa_windowed_ilp32",
            when C_Win64_LLP64_Fact => "c_win64_llp64",
+           when C_Windows_Arm64_LLP64_Fact => "c_windows_arm64_llp64",
            when C_Runtime_Fact => "c_runtime");
 
    function Is_Fact_Name (Word : String) return Boolean
@@ -129,7 +131,9 @@ package Landin.Configuration is
            when C_RiscV_ILP32_Fact => Landin.Targets.RiscV_ILP32,
            when C_Xtensa_Windowed_ILP32_Fact =>
               Landin.Targets.Xtensa_Windowed_ILP32,
-           when C_Win64_LLP64_Fact => Landin.Targets.Win64_LLP64);
+           when C_Win64_LLP64_Fact => Landin.Targets.Win64_LLP64,
+           when C_Windows_Arm64_LLP64_Fact =>
+              Landin.Targets.Windows_AAPCS64_LLP64);
 
    --  The configuration atoms that are not an architecture's: a system's,
    --  a byte order's and a build mode's.

@@ -11,7 +11,38 @@ package body Landin.Backend.AAPCS64_ABI is
    function Is_AAPCS64 (Facts : Landin.Targets.Target_Facts) return Boolean
      is (Landin.Targets.C_ABI_Of (Facts)
            in Landin.Targets.Darwin_AAPCS64_LP64
-            | Landin.Targets.AAPCS64_LP64);
+            | Landin.Targets.AAPCS64_LP64
+            | Landin.Targets.Windows_AAPCS64_LLP64);
+
+   function Is_Windows (Facts : Landin.Targets.Target_Facts) return Boolean
+     is (Landin.Targets.C_ABI_Of (Facts)
+           = Landin.Targets.Windows_AAPCS64_LLP64);
+
+   --  D2347: Microsoft's variadic convention carries a variadic call's
+   --  every argument, named or not, as integers: a float scalar in an
+   --  integer register or stack slot, a homogeneous floating aggregate as
+   --  any other composite, by reference past sixteen bytes.
+   function Without_Floats (Shape : Classification) return Classification;
+   function Without_Floats (Shape : Classification) return Classification
+   is
+      Answer : Classification := Shape;
+   begin
+      if Shape.Float_Bytes = 0 then
+         return Shape;
+      end if;
+      Answer.Float_Bytes := 0;
+      Answer.Classes := [others => No_Class];
+      if Shape.Aggregate and then Shape.Size > 16 then
+         Answer.Indirect := True;
+         Answer.Count := 1;
+      else
+         Answer.Count := Natural ((Shape.Size + 7) / 8);
+      end if;
+      for Index in 1 .. Answer.Count loop
+         Answer.Classes (Index) := Integer_Class;
+      end loop;
+      return Answer;
+   end Without_Floats;
 
    function Is_Apple (Facts : Landin.Targets.Target_Facts) return Boolean
      is (Landin.Targets.C_ABI_Of (Facts)
@@ -140,11 +171,14 @@ package body Landin.Backend.AAPCS64_ABI is
       Facts      : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count :=
         Landin.Targets.Byte_Count'Last;
-      Fixed_Count : Natural := Natural'Last) return Plan
+      Fixed_Count : Natural := Natural'Last;
+      Variadic_Callee : Boolean := False) return Plan
    is
       Answer : Plan (Parameters'Length);
       Stack_End : Landin.Targets.Byte_Count := 0;
       Apple : constant Boolean := Is_Apple (Facts);
+      Integers_Only : constant Boolean :=
+        Variadic_Callee and then Is_Windows (Facts);
    begin
       Answer.Result.Shape := Classify (Of_Unit, Result, Facts);
       --  The indirect result pointer is x8 and consumes no argument register.
@@ -162,6 +196,9 @@ package body Landin.Backend.AAPCS64_ABI is
          begin
             Item.Shape := Classify
               (Of_Unit, Parameters (Parameters'First + Index - 1), Facts);
+            if Integers_Only then
+               Item.Shape := Without_Floats (Item.Shape);
+            end if;
             Bytes := (if Item.Shape.Indirect then 8 else Item.Shape.Size);
             Alignment :=
               (if Item.Shape.Indirect then 8 else Item.Shape.Alignment);
@@ -251,7 +288,8 @@ package body Landin.Backend.AAPCS64_ABI is
                   others => <>));
       end loop;
       return Assign
-        (Of_Unit, Parameters, Result, Facts, Maximum, Fixed);
+        (Of_Unit, Parameters, Result, Facts, Maximum, Fixed,
+         Landin.IR.Signature_Is_Variadic (Of_Unit, Signature));
    end Call_Plan;
 
    function Signature_Plan

@@ -322,7 +322,7 @@ package body Landin.Tests.Commands_Suite is
               J.Member (Doc, J.Root (Doc), "targets");
          begin
             Landin.Testing.Check_Equal
-              (Item, J.Length (Doc, Rows), 11,
+              (Item, J.Length (Doc, Rows), 12,
                "every described target reports its debug capability");
             for Index in 1 .. J.Length (Doc, Rows) loop
                declare
