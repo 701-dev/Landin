@@ -2698,6 +2698,7 @@ jobs:
           python3 compiler/tests/windows/check.py --prepare-only --target=windows-arm64 \
             --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
+            --output="$RUNNER_TEMP/windows-microsoft-bundle"
       - name: Keep the bundle the Windows arm64 runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
