@@ -2654,7 +2654,8 @@ showed. The gate's `windows-arm64-emit` job records the arm64 link
 commands and the new `windows-arm64-microsoft` job runs them on
 `windows-11-arm`: all 3,674 outcomes of the corpus passed, linked by Visual
 Studio 18's arm64 `link.exe` through Clang 22.1.8, in gate run
-45404993968 with boards run 45412153255. Locally every arm64 outcome links
+45404993968, and the merged candidate passed gate run 45447103186 with
+boards run 45453055695. Locally every arm64 outcome links
 under `lld-link` with llvm-mingw's import libraries; nothing local runs
 them. Found and fixed on the way: `check.py --prepare-only` now carries its
 own lane under `lane/`, as `debug.py` does, so the emit jobs copy nothing
