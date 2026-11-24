@@ -991,7 +991,7 @@ The candidate passed its
 
 ### R16.34 — Stored values in their slots' registers on RISC-V and Cortex-M
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 What R16.33 named as the next cost on the firmware and RISC-V targets:
@@ -1013,6 +1013,34 @@ and the boards' cycles lower than R16.33's figures; at speed on Thumb-2
 and compressed RV32 a loop's head at a word address, padded only where
 the padding is not executed, the RP2350's fannkuch-redux no slower than
 before R16.33; and no other combination over its own.
+
+Done: at speed RISC-V, at either XLEN, and Cortex-M make a value whose
+last use stores it into a slot held in a register in that register, and
+the recorded-writes check takes the value's own write as the slot's new
+contents, and lets it meet a value dying there, refusing every other write
+(D2307, `SR-1681`). At speed Thumb-2 and RV32 start a loop's head on a
+word where the instruction before it does not fall through, the padding
+never executed (D2308, `SR-1726`), with x86-64's loop-head finder now
+shared from `Landin.Backend.Placement`; and RV32 settles its jumps per
+routine as RV64 does where the firmware profile does not bound them
+(D2309), which every RV32 board's profile does not. Against the item's
+base, at speed, RV64 under QEMU executes 6.4% fewer instructions on
+SipHash-1-3, 6.1% on mandelbrot, 4.5% on fasta, 3.3% on fannkuch-redux,
+1.3% on SHA-256 and 0.2% to 0.8% on the rest, every output the same; the
+Cortex-M lanes 0.2% to 6.3% fewer at Thumb-2 levels, 12.2% on mandelbrot
+with a float unit and up to 5.1% at Armv6-M; `size` and `none` are
+unchanged, and every speed image's `.text` 0.1% to 1.4% smaller. Every
+board's records were made again on the rig. Of the boards' 432 cycle
+configurations, 110 ran faster and one slower: the Hazard3 14.6% to 26.0%
+on binary-search, merge-sort, the sieve and fannkuch-redux at every
+objective, 2.8% to 5.8% on SipHash and 0.3% to 0.8% on mandelbrot; the
+ESP32-C3 and C5 0.4% to 4.1%; the
+RP2040 0.4% to 4.0%; the RP2350's M33 0.5% to 4.4%, fannkuch-redux 3.1%,
+below its figure before R16.33; and the STM32H753 1.5% to 8.8% but for
+SipHash, 1.29% slower for fewer instructions, which placement alone moves
+by 1.2% from the TCMs (`SR-1758`). `SR-1757` files firmware's block
+order, which leaves most firmware loop heads fallen into. The candidate
+passed its gate and boards.
 
 ### The continuous items
 
