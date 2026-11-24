@@ -4787,7 +4787,7 @@ end add_at
 Nothing can check that code of that type is there, as nothing checks a C
 cast, and the value is yours to call only while the library stays loaded.
 
-**The supported ABIs.** Landin supports six C application binary
+**The supported ABIs.** Landin supports seven C application binary
 interfaces (ABIs):
 
 | C ABI | where |
@@ -4798,6 +4798,7 @@ interfaces (ABIs):
 | RV64 LP64D | Linux RV64 |
 | AAPCS32 | Cortex-M |
 | the Windows x64 convention, LLP64 | Windows x86-64 |
+| Microsoft's arm64 variant of AAPCS64, LLP64 | Windows arm64 |
 
 Under Cortex-M's AAPCS32, floats travel in the float unit's registers when
 the device description has one and in core registers when it has none.
@@ -4805,16 +4806,17 @@ the device description has one and in core registers when it has none.
 **C's types.** `platform/c` names them: the signed and unsigned integer
 widths, `c_size`, `c_ptrdiff`, `c_float`, `c_double` and `c_bool`. It asserts
 `compiler.c_sysv_lp64 or compiler.c_darwin_lp64 or compiler.c_aapcs64_lp64
-or compiler.c_riscv_lp64d or compiler.c_aapcs32 or compiler.c_win64_llp64`,
-so it admits exactly those six ABIs; another target with the same pointer
-width, RV32's or Xtensa's, is not admitted.
+or compiler.c_riscv_lp64d or compiler.c_aapcs32 or compiler.c_win64_llp64
+or compiler.c_windows_arm64_llp64`, so it admits exactly those seven ABIs;
+another target with the same pointer width, RV32's or Xtensa's, is not
+admitted.
 
 - The first four are LP64, with a 64-bit `long`. AAPCS32 is ILP32, so
-  there `c_long` is an `i32` and `c_size` a 32-bit `usize`. Windows x64 is
-  LLP64: `c_long` is an `i32` beside a 64-bit `c_size`.
+  there `c_long` is an `i32` and `c_size` a 32-bit `usize`. Both Windows
+  ABIs are LLP64: `c_long` is an `i32` beside a 64-bit `c_size`.
 - Plain `c_char` is the ABI's plain `char`, a number and not a Unicode
-  scalar: `i8` under SysV, Apple's ABI and Windows x64, `u8` under the
-  standard AAPCS64, RV64 and AAPCS32.
+  scalar: `i8` under SysV, Apple's ABI and both Windows ABIs, `u8` under
+  the standard AAPCS64, RV64 and AAPCS32.
 
 What crosses the boundary:
 

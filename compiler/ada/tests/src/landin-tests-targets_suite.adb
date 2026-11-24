@@ -1582,6 +1582,51 @@ package body Landin.Tests.Targets_Suite is
       end;
    end Darwin_Transport;
 
+   --  D2347: Microsoft's variadic call passes every argument as integers,
+   --  named or not, where the standard AAPCS64 uses the vector bank.
+   procedure Windows_Arm64_Transport (Item : in out Landin.Testing.Context);
+
+   procedure Windows_Arm64_Transport (Item : in out Landin.Testing.Context)
+   is
+      package ABI renames Landin.Backend.AAPCS64_ABI;
+      Unit : Landin.IR.Unit;
+      Arguments : constant Landin.IR.Signature_Part_Array :=
+        [(Kind => Landin.Types.F64, others => <>),
+         (Kind => Landin.Types.I32, others => <>),
+         (Kind => Landin.Types.F32, others => <>)];
+      Variadic : constant ABI.Plan := ABI.Assign
+        (Unit, Arguments, (Kind => Landin.Types.I32, others => <>),
+         Windows_Arm64, Fixed_Count => 1, Variadic_Callee => True);
+      Fixed : constant ABI.Plan := ABI.Assign
+        (Unit, Arguments, (Kind => Landin.Types.I32, others => <>),
+         Windows_Arm64);
+      Standard : constant ABI.Plan := ABI.Assign
+        (Unit, Arguments, (Kind => Landin.Types.I32, others => <>),
+         Linux_Arm64, Fixed_Count => 1, Variadic_Callee => True);
+   begin
+      Landin.Testing.Check
+        (Item, Variadic.FP_Used = 0 and then Variadic.GP_Used = 3
+         and then Variadic.Arguments (1).Registers (1) = 1
+         and then Variadic.Arguments (1).Shape.Float_Bytes = 0
+         and then Variadic.Arguments (3).Registers (1) = 3,
+         "a Windows variadic call carries its floats as integers");
+      Landin.Testing.Check
+        (Item, Fixed.FP_Used = 2 and then Fixed.GP_Used = 1,
+         "a Windows call to a fixed signature keeps both banks");
+      Landin.Testing.Check
+        (Item, Standard.FP_Used = 2 and then Standard.GP_Used = 1,
+         "the standard AAPCS64 keeps both banks for a variadic call");
+      Landin.Testing.Check
+        (Item, Landin.Targets.Capabilities.Object_Format_Of (Windows_Arm64)
+           = Landin.Targets.Capabilities.COFF
+         and then Landin.Targets.Capabilities.Hosted_System_Of
+           (Windows_Arm64) = Landin.Targets.Capabilities.Windows
+         and then Landin.Targets.Capabilities.Triplet (Windows_Arm64)
+           = "aarch64-w64-mingw32"
+         and then Windows_Arm64 /= Linux_Arm64,
+         "windows-arm64 is a COFF image of Windows on its own triplet");
+   end Windows_Arm64_Transport;
+
    procedure Packed_Images (Item : in out Landin.Testing.Context);
 
    procedure Packed_Images (Item : in out Landin.Testing.Context) is
@@ -2963,6 +3008,9 @@ package body Landin.Tests.Targets_Suite is
       Landin.Testing.Register
         (Into, "targets", "Darwin stack and variadic transport",
          Darwin_Transport'Access);
+      Landin.Testing.Register
+        (Into, "targets", "Windows arm64 variadic transport",
+         Windows_Arm64_Transport'Access);
       Landin.Testing.Register
         (Into, "targets", "assembly registers are spelled and chosen",
          Assembly_Registers'Access);

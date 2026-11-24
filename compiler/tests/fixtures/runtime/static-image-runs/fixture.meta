@@ -4,4 +4,4 @@ summary: D536 writes static image runs as .fill, .zero and narrow nested repetit
 constructs: 0520, 0560, 0750, 1940
 program: main.ldn
 status: 42
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64

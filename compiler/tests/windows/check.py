@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Emit the Windows x86-64 corpus on Linux, then execute it on Windows.
+"""Emit a Windows target's corpus on Linux, then execute it on Windows.
 
 Two stages, which a local run joins and the gate splits between a Linux
 job and a Windows job:
 
   --prepare-only   select the runtime fixtures whose `targets:` names
-                   windows-x86-64, compile each at every profile with Linux
+                   the --target, windows-x86-64 by default or windows-arm64,
+                   compile each at every profile with Linux
                    `refine` and the llvm-mingw driver, and write the
                    executables and `prepared.json` into OUTPUT;
   --prepared=DIR   execute a prepared bundle and hold each outcome to its
@@ -27,11 +28,19 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
+#  The lane's target, which --target sets: windows-x86-64 or windows-arm64.
 TARGET = 'windows-x86-64'
+#  Each target's llvm-mingw driver, and the level a fixture's `levels:`
+#  names that the lane builds it at too, with the family's first.
+DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
+           'windows-arm64': 'aarch64-w64-mingw32-clang'}
+LEVELS = {'windows-x86-64': ('x86-64-v1', 'x86-64-v3'),
+          'windows-arm64': ('armv8-a', 'armv8.1-a')}
 PROFILES = [('none', 'off'), ('size', 'off'), ('size', 'auto'), ('speed', 'auto')]
 SPECIALIZED = [('none', 'all'), ('speed', 'all')]
 #  STATUS_ILLEGAL_INSTRUCTION: the exit code of a process ended by the
-#  trap instruction a failed check executes, `ud2`, with no handler.
+#  trap instruction a failed check executes, `ud2` or arm64's `brk #1`,
+#  with no handler.
 TRAP_STATUS = 0xC000001D
 #  What the selection must not ask of the lane, each a later item's: a C
 #  peer is the ABI lane's, and a C library is none Windows links.
@@ -88,8 +97,9 @@ def work_items(found, shard):
     work = []
     for base, meta in found:
         levels = [None]
-        if 'x86-64-v3' in meta.levels_for(TARGET):
-            levels += ['x86-64-v1', 'x86-64-v3']
+        base_level, named = LEVELS[TARGET]
+        if named in meta.levels_for(TARGET):
+            levels += [base_level, named]
         for level in levels:
             for optimize, specialize in PROFILES + (
                     SPECIALIZED if meta.get('profiles') == 'specialization' else []):
@@ -309,6 +319,7 @@ def shard(text):
 
 
 def main():
+    global TARGET
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sys.path.insert(0, str(ROOT / 'scripts'))
@@ -316,8 +327,10 @@ def main():
     lane_refine.argument(parser, required=False, help='the Linux refine that emits')
     parser.add_argument('--output', type=Path, required=True,
                         help='a new directory for the bundle, transcripts and summary.json')
-    parser.add_argument('--toolchain', default='x86_64-w64-mingw32-clang',
-                        help='the llvm-mingw driver refine links with')
+    parser.add_argument('--target', choices=sorted(DRIVERS), default=TARGET,
+                        help='the Windows target the lane emits and runs')
+    parser.add_argument('--toolchain',
+                        help="the llvm-mingw driver refine links with; the target's by default")
     parser.add_argument('--runner', default='',
                         help='a command each executable runs under, such as wine; none on Windows')
     parser.add_argument('--prepare-only', action='store_true',
@@ -330,6 +343,8 @@ def main():
                         help='fixtures I, I+N, ... of the selection; all N together are the lane')
     parser.add_argument('--jobs', type=int, default=os.cpu_count() or 4)
     args = parser.parse_args()
+    TARGET = args.target
+    args.toolchain = args.toolchain or DRIVERS[TARGET]
     args.output = args.output.resolve()
     summary = {'target': TARGET, 'status': 'failed'}
     try:

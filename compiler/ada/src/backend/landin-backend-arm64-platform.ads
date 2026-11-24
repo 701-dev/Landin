@@ -5,6 +5,8 @@
 --  `@PAGE` and `@PAGEOFF`, ELF with `:lo12:`; Mach-O fills zeros with
 --  `.zerofill` into a named section, ELF with `.zero` in `.bss`; Mach-O
 --  wants `.subsections_via_symbols` and ELF a non-executable stack note.
+--  COFF, Windows' format, takes ELF's operands and Landin.Backend.COFF's
+--  sections, and types and sizes nothing.
 --  Each function here returns the directive or operand text alone, and the
 --  backend writes it with its own line discipline.  The operating system's
 --  libc spellings are the library's `platform/libc` and the C transport is
@@ -19,7 +21,7 @@ package Landin.Backend.Arm64.Platform is
    use all type Landin.Targets.Capabilities.Object_Format;
 
    subtype Arm64_Format is Object_Format range
-     Landin.Targets.Capabilities.ELF .. Landin.Targets.Capabilities.Mach_O;
+     Landin.Targets.Capabilities.ELF .. Landin.Targets.Capabilities.COFF;
 
    --  The seed a backend extends until no explicit link spelling begins
    --  with it.  ELF's `.L` stays out of the symbol table; on Mach-O every
@@ -29,7 +31,8 @@ package Landin.Backend.Arm64.Platform is
    --  The two operands of `adrp` and of the instruction that completes the
    --  address: the 4 KiB page holding NAME, and NAME's offset inside it.
    --  Imported names go through the global offset table, whose entry holds
-   --  the address, so the second instruction is a load rather than an add.
+   --  the address, so the second instruction is a load rather than an add;
+   --  on COFF through the `__imp_` pointer the import library gives.
    function Page (Format : Arm64_Format; Name : String; Imported : Boolean)
      return String;
 
@@ -43,7 +46,7 @@ package Landin.Backend.Arm64.Platform is
    function Relocated_Read_Only_Section (Format : Arm64_Format) return String;
 
    --  Directives that open and close a function or an object symbol.  Both
-   --  are empty on Mach-O, which types and sizes nothing.
+   --  are empty on Mach-O and COFF, which type and size nothing.
    function Begin_Function (Format : Arm64_Format; Symbol : String)
      return String;
 
@@ -55,6 +58,12 @@ package Landin.Backend.Arm64.Platform is
 
    function End_Object
      (Format : Arm64_Format; Symbol : String; Bytes : String) return String;
+
+   --  A directive ELF spells, `.section` or `.pushsection`, in the format's
+   --  own spelling: unchanged on ELF and translated on COFF.  Mach-O has
+   --  none and never asks.
+   function Sectioned (Format : Arm64_Format; ELF_Directive : String)
+     return String;
 
    --  The last directive of the unit.
    function Trailer (Format : Arm64_Format) return String;

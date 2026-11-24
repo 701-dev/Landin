@@ -80,6 +80,17 @@ package body Landin.Targets is
       Keeps_Frame      => True,
       Widest_Alignment => 16);
 
+   function Windows_Arm64 return Target_Facts is
+     (Label            => Padded ("windows-arm64"),
+      Machine          => Arm64,
+      C_ABI            => Windows_AAPCS64_LLP64,
+      Pointer          => 64,
+      Pointer_Align    => 8,
+      Stack_Align      => 16,
+      Order            => Little,
+      Keeps_Frame      => True,
+      Widest_Alignment => 16);
+
    function Linux_RV64 return Target_Facts is
      (Label            => Padded ("linux-rv64"),
       Machine          => RV64,

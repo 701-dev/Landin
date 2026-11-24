@@ -4,5 +4,5 @@ program: main.ldn
 profiles: standard
 status: 42
 constructs: 1620
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 levels: armv7-m, armv8-m.main

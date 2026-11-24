@@ -4,4 +4,4 @@ summary: D211 emits literal and configured impossible unsigned branches without 
 program: main.ldn
 status: 42
 constructs: 0150, 0160, 0260, 1030, 1530, 1960
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

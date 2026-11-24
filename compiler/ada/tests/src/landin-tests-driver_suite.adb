@@ -213,7 +213,7 @@ package body Landin.Tests.Driver_Suite is
            (Text,
             "backends: linux-x86-64, linux-arm64, darwin-arm64, "
             & "freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, rv32,"
-            & " xtensa and windows-x86-64 assembly"),
+            & " xtensa, windows-x86-64 and windows-arm64 assembly"),
          "identity names the assembly backend it has");
       Landin.Testing.Check
         (Item,
@@ -8432,6 +8432,7 @@ package body Landin.Tests.Driver_Suite is
       Refused ("synthetic-32", "platform/windows", False);
       System_Module_Accepted ("windows-x86-64", "platform/posix", "posix");
       System_Module_Accepted ("windows-x86-64", "platform/kqueue", "kqueue");
+      System_Module_Accepted ("windows-arm64", "platform/posix", "posix");
       System_Module_Accepted ("linux-x86-64", "platform/windows", "windows");
       System_Module_Accepted ("darwin-arm64", "platform/windows", "windows");
       Hosted_Accepted;

@@ -34009,6 +34009,127 @@ stacks keep the limit in that cell.
 
 **Pinned by** the dap suite's `the debugger a program takes`, `a Windows program maps its paths` and `LLDB's adapter is relayed`, and `compiler/tests/windows/debug.py`'s sessions in the gate's `windows-debugger` job.
 
+### D2347 — Windows arm64 is a hosted target with Microsoft's variant of AAPCS64
+
+**From** [1550], [1700], D2188 and D2190.
+
+**The discrepancy:** the roadmap's Windows phase adds arm64 beside x86-64.
+Windows on arm64 calls C by AAPCS64 with Microsoft's differences, which are
+neither the standard convention Linux and FreeBSD use nor Apple's.
+
+**Chosen:** `windows-arm64` is D2188's target on arm64: a little-endian
+description with 64-bit pointers, a 16-byte stack and frame pointers, the
+arm64 feature levels, kernel32 and no C runtime, `platform/windows` linked
+into every program, `compiler.os` `windows`. Its C convention is AAPCS64
+with Microsoft's differences, `compiler.c_windows_arm64_llp64`: the model
+is LLP64, so `c_long` and `c_ulong` are 32 bits, plain `char` is signed,
+x18 is the TEB's and never a location's, which it never was on arm64, and a
+call to a variadic signature passes every argument, named or not, as
+integers: a float in the integer register or stack slot of its position,
+a homogeneous floating aggregate as any other composite, by reference past
+sixteen bytes. A call to a fixed signature is the standard convention's.
+The instruction selection, register allocation and frames are the other
+arm64 targets'; only the text around them is Windows' (D2349, D2350).
+
+**The alternatives:** describing the target with the standard AAPCS64's
+fact, under which `c_long` would be 64 bits and plain `char` unsigned,
+neither of which a Windows C compiler agrees with; and a fact per
+difference, which a program would have to combine to say what one names.
+
+**Pinned by** `targets/Windows arm64 variadic transport`,
+`runtime/target-hosted-system-facts` and the corpus the gate's
+`windows-arm64-runtime` job runs.
+
+### D2348 — Windows arm64 links through llvm-mingw's arm64 driver, and its gate runs on Windows' arm64 runner
+
+**From** [1550] and D2189.
+
+**The discrepancy:** D2189's chain is free on every host for x86-64. For
+arm64 the driver and the assembler are the same Clang and LLD, but no Linux
+distribution's package or nixpkgs' cache holds MinGW-w64's arm64 import
+libraries.
+
+**Chosen:** the driver is `aarch64-w64-mingw32-clang`, llvm-mingw's name, a
+Clang with LLD and those libraries serving as well under `--toolchain`. A
+Linux host takes the import libraries from the `aarch64-w64-mingw32`
+directory of the llvm-mingw release `environments/pins.sh` pins, checked
+against its sha256: the development shell's driver and the gate's
+emission job both do. The corpus and the debugger sessions run natively on
+GitHub's `windows-11-arm` runner, which this repository's plan offers, with
+llvm-mingw's arm64 LLDB (D2292). `refine dap` runs there in WSL 1, in
+Ubuntu's arm64 base system, imported from its pinned archive, since the
+WSL distribution the runner's setup action installs is x86-64's, which WSL
+1 on arm64 does not run.
+
+**The alternatives:** building MinGW-w64 for arm64 from source in the
+development shell, a cross compiler's build for a set of import libraries;
+the import libraries checked into the repository, a binary copy of what a
+pinned release already gives; and emulating Windows arm64 on Linux, for
+which no free emulator runs Windows programs, Wine on arm64 needing an
+arm64 host.
+
+**Pinned by** the gate's `windows-arm64-emit`, `windows-arm64-runtime` and
+`windows-arm64-debugger` jobs, and `toolchain/a Windows link has no C
+runtime`, whose driver names the target's triplet.
+
+### D2349 — A Windows arm64 routine's unwind table describes its frame record, and its CodeView names ARM64's registers
+
+**From** [1550], D2191 and D2287.
+
+**The discrepancy:** D2191 describes an x86-64 frame for Windows' unwinder
+and D2287 an x86-64 frame for CodeView. Windows on arm64 walks a stack by
+ARM64 unwind codes, and CodeView names ARM64's registers by numbers of
+their own.
+
+**Chosen:** as D2191, each routine with a frame record is a `.seh_proc`
+whose prologue pushes x29 and x30 with `.seh_save_fplr_x 16`, points x29
+at them with `.seh_set_fp` and ends there; whatever the routine reserves
+or saves after that, x29 recovers the caller's stack pointer, and the table
+describes no saved register. The trap report and the stack switch routine
+open the same way; the stack's start routine and a naked routine have no
+table. With `--debug=full` the object carries D2287's CodeView with ARM64's
+machine, `CV_CFL_ARM64`, x29 as the frame register, x0 to x28 as CodeView's
+`CV_ARM64_X0` onwards and a float register's value as its `d` register's,
+and no DWARF call frame information.
+
+**The alternatives:** describing every saved register, which needs the
+saves inside the prologue, for an unwinding no Landin program does; packed
+unwind data, which fixes the frame's layout and would have the backend lay
+its frames out for the unwinder's sake.
+
+**Pinned by** every Windows arm64 executable the corpus runs, whose failed
+checks end through the exception dispatcher, which walks these tables, and
+`compiler/tests/windows/debug.py --target=windows-arm64`'s sessions in the
+gate's `windows-arm64-debugger` job.
+
+### D2350 — Windows arm64 reaches its thread's storage and stack bounds through x18
+
+**From** D2192 and D2274.
+
+**The discrepancy:** D2274 reaches a thread's storage on x86-64 through the
+TEB at GS, and D2192 moves a report's stack into the TEB's bounds there.
+On arm64 the TEB is x18's.
+
+**Chosen:** a thread's block of the image's implicit storage is the slot
+`_tls_index` names in the array the TEB's ThreadLocalStoragePointer, the
+word at x18 plus 0x58, points to, and a datum is at its section-relative
+offset from that base, `:secrel_hi12:` and `:secrel_lo12:`; D471's stack
+limit cell is such a datum. The image carries D2274's TLS directory, whose
+`.tls` marker holds a byte so that a linker keeps its contribution. A
+failed check executes `brk #1`, which ends a process with
+`STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D, as `ud2` does on x86-64; the
+report writes its line through `GetStdHandle` and `WriteFile`, and on its
+own stack first makes that stack the thread's at x18 plus 8 and plus 16.
+
+**The alternatives:** `brk #0xf000`, Windows' breakpoint, which ends a
+process with `STATUS_BREAKPOINT` and would differ from x86-64's status for
+the same failure; and `udf`, which ends with the same status as `brk #1` but
+would differ from the trap every other arm64 target executes.
+
+**Pinned by** `runtime/fibre-stack-past-limit-traps`, the threads corpus
+and every fixture with `traps: yes` the gate's `windows-arm64-runtime` job
+runs.
+
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 
 **From** [1650], D1281 and D2188.

@@ -6,4 +6,4 @@ root: .
 status: 42
 layout: evidence
 constructs: 0010, 0020, 0030, 0090, 0100, 0140, 1410, 1780
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

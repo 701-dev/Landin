@@ -3531,18 +3531,20 @@ width:
 | `linux-arm64`, `freebsd-arm64` | `compiler.c_aapcs64_lp64`: the standard AAPCS64 | `u8` |
 | `linux-rv64` | `compiler.c_riscv_lp64d`: RISC-V LP64D, LP64 with double-precision float registers | `u8` |
 | `cortex-m0`, every level | `compiler.c_aapcs32`: AAPCS32, its VFP variant when the device description has a float unit | `u8` |
+| `windows-x86-64` | `compiler.c_win64_llp64`: the Windows x64 convention, LLP64 | `i8` |
+| `windows-arm64` | `compiler.c_windows_arm64_llp64`: Microsoft's arm64 variant of AAPCS64, LLP64 | `i8` |
 
 Darwin and Linux share `compiler.arch == arm64` and still disagree on
 `char`, which is why the fact names the ABI.
 
 The other aliases differ only in `long`:
 
-| Alias | LP64 | AAPCS32 |
-|---|---|---|
-| `c_int` | `i32` | `i32` |
-| `c_long` | `i64` | `i32` |
-| `c_longlong` | `i64` | `i64` |
-| `c_size` | `usize`, 64 bits | `usize`, 32 bits |
+| Alias | LP64 | AAPCS32 | Windows' LLP64 |
+|---|---|---|---|
+| `c_int` | `i32` | `i32` | `i32` |
+| `c_long` | `i64` | `i32` | `i32` |
+| `c_longlong` | `i64` | `i64` | `i64` |
+| `c_size` | `usize`, 64 bits | `usize`, 32 bits | `usize`, 64 bits |
 
 The aliases keep ordinary Landin scalar identity; `c_char` is a numeric
 byte and never a Unicode scalar.

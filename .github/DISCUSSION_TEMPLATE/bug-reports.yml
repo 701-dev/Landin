@@ -61,6 +61,7 @@ body:
         - rv32
         - xtensa
         - windows-x86-64
+        - windows-arm64
         - Not target-specific
     validations:
       required: true

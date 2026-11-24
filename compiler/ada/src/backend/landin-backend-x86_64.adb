@@ -17,6 +17,7 @@ with Ada.Strings.Fixed;
 with Landin.Targets.Capabilities;
 
 with Landin.Backend.C_ABI;
+with Landin.Backend.COFF;
 with Landin.Backend.ELF;
 with Landin.Backend.Entry_Point;
 with Landin.Backend.Reciprocals;
@@ -733,11 +734,8 @@ package body Landin.Backend.X86_64 is
       procedure Begin_Item_Section
         (Prefix, Flags : String; Position : Positive);
 
-      --  A COFF object spells what ELF does differently: a symbol has no
-      --  type or size directive, a section's flags are COFF's letters and
-      --  its name groups by `$`, so that the linker gathers `.text$NAME`
-      --  into `.text` and so on.  A read-only datum is `.rdata`, which
-      --  the Windows loader relocates as it relocates any section.
+      --  A COFF object spells what ELF does differently, as
+      --  Landin.Backend.COFF says.
       COFF : constant Boolean :=
         Landin.Targets.Capabilities."="
           (Landin.Targets.Capabilities.Object_Format_Of (Facts),
@@ -772,52 +770,11 @@ package body Landin.Backend.X86_64 is
 
       --  NAME and FLAGS as ELF spells them, `.text.landin_x` and
       --  `"ax",@progbits`, in the object format's spelling.
-      function Section_Name (Name : String) return String;
-      function Section_Name (Name : String) return String is
-         function Starts (Prefix : String) return Boolean
-           is (Name'Length >= Prefix'Length
-               and then Name (Name'First .. Name'First + Prefix'Length - 1)
-                 = Prefix);
-         function After (Prefix : String) return String
-           is (Name (Name'First + Prefix'Length .. Name'Last));
-      begin
-         if not COFF then
-            return Name;
-         end if;
-         if Starts (".data.rel.ro.local.") then
-            return ".rdata$" & After (".data.rel.ro.local.");
-         elsif Starts (".rodata.cst4.") then
-            return ".rdata$" & After (".rodata.cst4.");
-         elsif Starts (".rodata.cst8.") then
-            return ".rdata$" & After (".rodata.cst8.");
-         elsif Starts (".rodata.str1.1.") then
-            return ".rdata$" & After (".rodata.str1.1.");
-         elsif Starts (".rodata.") then
-            return ".rdata$" & After (".rodata.");
-         elsif Starts (".text.") then
-            return ".text$" & After (".text.");
-         elsif Starts (".data.") then
-            return ".data$" & After (".data.");
-         elsif Starts (".bss.") then
-            return ".bss$" & After (".bss.");
-         elsif Starts (".tbss.") then
-            --  The template of Windows' thread storage, between the
-            --  `.tls` and `.tls$zzz` markers the TLS directory names.
-            return ".tls$" & After (".tbss.");
-         end if;
-         raise Compiler_Defect with "no COFF section for " & Name;
-      end Section_Name;
-
-      --  A thread template's zeros are bytes of the image on Windows,
-      --  which copies the template for every thread.
+      function Section_Name (Name : String) return String
+        is (if COFF then Landin.Backend.COFF.Section_Name (Name) else Name);
       function Section_Flags (Flags : String) return String
-        is (if not COFF then Flags
-            elsif Ada.Strings.Fixed.Index (Flags, "x") > 0 then """xr"""
-            elsif Ada.Strings.Fixed.Index (Flags, "T") > 0 then """dw"""
-            elsif Ada.Strings.Fixed.Index (Flags, "nobits") > 0
-            then """bw"""
-            elsif Ada.Strings.Fixed.Index (Flags, "w") > 0 then """dw"""
-            else """dr""");
+        is (if COFF then Landin.Backend.COFF.Section_Flags (Flags)
+            else Flags);
 
       function Section (Name, Flags : String) return String
         is (".section " & Section_Name (Name) & "," & Section_Flags (Flags));

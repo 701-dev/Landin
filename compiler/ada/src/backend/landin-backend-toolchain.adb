@@ -381,9 +381,10 @@ package body Landin.Backend.Toolchain is
          --  A Clang with LLD and MinGW-w64's import libraries serves as
          --  well, named with --toolchain or linked under this name.
          return "install llvm-mingw, which gives " & Triplet & "-clang"
-           & " (on Windows, MSYS2's mingw-w64-clang-x86_64-toolchain"
-           & " does too), or name a Clang with LLD and MinGW-w64's"
-           & " import libraries with --toolchain=NAME" & Without;
+           & " (on Windows, MSYS2's mingw-w64-clang-"
+           & (if Machine = "aarch64" then "aarch64" else "x86_64")
+           & "-toolchain does too), or name a Clang with LLD and"
+           & " MinGW-w64's import libraries with --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Linux
       then

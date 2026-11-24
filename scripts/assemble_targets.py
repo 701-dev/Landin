@@ -84,6 +84,7 @@ ASSEMBLERS = {
     "rv32": ("riscv64-elf-gcc", "-march=rv32imc_zicsr_zifencei",
              "-mabi=ilp32", "-Wa,--fatal-warnings") + OBJECT,
     "windows-x86-64": ("x86_64-w64-mingw32-clang",) + OBJECT,
+    "windows-arm64": ("aarch64-w64-mingw32-clang",) + OBJECT,
     ("xtensa", "xtensa-esp32"): (
         "xtensa-esp32-elf-gcc", "-mabi=windowed", "-Wa,--abi-windowed",
         "-Wa,--auto-litpools", "-Wa,--longcalls",

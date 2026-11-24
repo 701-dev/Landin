@@ -1492,9 +1492,12 @@ package body Landin.Backend.Codeview is
          declare
             Compiler : constant String := Open (S_COMPILE3);
          begin
-            --  C, as the DWARF description says (D2287), on x64.
+            --  C, as the DWARF description says (D2287), on x64 or
+            --  ARM64 (CV_CFL_X64, CV_CFL_ARM64).
             Put (HT & ".long 0");
-            Put (HT & ".short 0xd0");
+            Put (HT & (case Landin.Targets.Architecture_Of (Facts) is
+                          when Landin.Targets.Arm64 => ".short 0xf6",
+                          when others => ".short 0xd0"));
             for Version in 1 .. 8 loop
                Put (HT & ".short 0");
             end loop;

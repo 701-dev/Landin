@@ -1691,7 +1691,8 @@ package body Landin.Backend is
          when Landin.Targets.Capabilities.X86_64_ELF
             | Landin.Targets.Capabilities.X86_64_COFF
             | Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-            | Landin.Targets.Capabilities.Arm64_ELF =>
+            | Landin.Targets.Capabilities.Arm64_ELF
+            | Landin.Targets.Capabilities.Arm64_COFF =>
             return 640;
          --  D675: RV32's frames are RV64's with every word halved and
          --  eight-byte homes kept, so RV64's figure holds them with room
@@ -1730,6 +1731,7 @@ package body Landin.Backend is
             | Landin.Targets.Capabilities.X86_64_COFF
             | Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
             | Landin.Targets.Capabilities.Arm64_ELF
+            | Landin.Targets.Capabilities.Arm64_COFF
             | Landin.Targets.Capabilities.RV64_ELF
             | Landin.Targets.Capabilities.Cortex_M0_ELF
             | Landin.Targets.Capabilities.RV32_ELF =>
@@ -1755,6 +1757,7 @@ package body Landin.Backend is
             return 152;
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
             | Landin.Targets.Capabilities.Arm64_ELF
+            | Landin.Targets.Capabilities.Arm64_COFF
             | Landin.Targets.Capabilities.RV64_ELF
             | Landin.Targets.Capabilities.RV32_ELF =>
             return 144;

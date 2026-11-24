@@ -86,6 +86,11 @@ package Landin.Targets is
    --  whose `long` is 32 bits, and the Windows x64 calling convention.
    function Windows_X86_64 return Target_Facts;
 
+   --  Windows on arm64: the same LLP64 model with Microsoft's variant of
+   --  AAPCS64, which keeps x18 for the thread's TEB and passes a variadic
+   --  call's arguments in the integer registers (D2347).
+   function Windows_Arm64 return Target_Facts;
+
    --  ARMv6-M Thumb, base AAPCS soft-float. The Cortex-M0 backend emits
    --  assembly; C signatures, records and variadic calls remain disabled.
    function Cortex_M return Target_Facts;
@@ -116,14 +121,15 @@ package Landin.Targets is
      is (Architecture_Of (Facts) in Cortex_M0 | RV32 | Xtensa);
 
    --  Named by convention rather than operating system: the standard
-   --  AAPCS64 is Linux's and FreeBSD's alike, and Apple's is a variant.
+   --  AAPCS64 is Linux's and FreeBSD's alike, and Apple's and Microsoft's
+   --  are variants of it.
    --  Arm_AAPCS32_Soft is Cortex-M's AAPCS32 at both of its variants: the
    --  base PCS, and the VFP one a description's float unit selects (D616,
    --  D920), which is the unit's to say and not the ABI's.
    type C_ABI_Kind is
      (No_C_ABI, SysV_AMD64_LP64, Darwin_AAPCS64_LP64, AAPCS64_LP64,
       RiscV_LP64D, Arm_AAPCS32_Soft, RiscV_ILP32, Xtensa_Windowed_ILP32,
-      Win64_LLP64);
+      Win64_LLP64, Windows_AAPCS64_LLP64);
 
    function C_ABI_Of (Facts : Target_Facts) return C_ABI_Kind;
 

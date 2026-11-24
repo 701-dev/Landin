@@ -533,7 +533,7 @@ Hosted targets:
 | Linux RV64 | hosted executables | under QEMU's user emulation, with GDB |
 | macOS arm64 | hosted executables | natively, with LLDB |
 | FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux | in FreeBSD VMs, with LLDB |
-| Windows x86-64 | hosted executables, emitted on Linux | natively on a Windows runner |
+| Windows x86-64 and arm64 | hosted executables, emitted on Linux | natively on Windows runners, with LLDB |
 
 Firmware targets:
 

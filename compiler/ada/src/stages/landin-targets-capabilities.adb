@@ -80,7 +80,7 @@ package body Landin.Targets.Capabilities is
    function Stack_Switching (Facts : Target_Facts) return Boolean is
      (case Backend_For (Facts) is
          when X86_64_ELF | Darwin_Arm64_Mach_O | Arm64_ELF | RV64_ELF
-            | Cortex_M0_ELF | RV32_ELF | X86_64_COFF => True,
+            | Cortex_M0_ELF | RV32_ELF | X86_64_COFF | Arm64_COFF => True,
          when Xtensa_ELF => True,
          when No_Backend => False);
 
@@ -91,13 +91,15 @@ package body Landin.Targets.Capabilities is
    function C_Signatures (Facts : Target_Facts) return Boolean is
      (case C_ABI_Of (Facts) is
          when SysV_AMD64_LP64 | Darwin_AAPCS64_LP64 | AAPCS64_LP64
-            | RiscV_LP64D | Arm_AAPCS32_Soft | Win64_LLP64 => True,
+            | RiscV_LP64D | Arm_AAPCS32_Soft | Win64_LLP64
+            | Windows_AAPCS64_LLP64 => True,
          when No_C_ABI | RiscV_ILP32 | Xtensa_Windowed_ILP32 => False);
 
    function C_Records (Facts : Target_Facts) return Boolean is
      (case C_ABI_Of (Facts) is
          when SysV_AMD64_LP64 | Darwin_AAPCS64_LP64 | AAPCS64_LP64
-            | RiscV_LP64D | Arm_AAPCS32_Soft | Win64_LLP64 => True,
+            | RiscV_LP64D | Arm_AAPCS32_Soft | Win64_LLP64
+            | Windows_AAPCS64_LLP64 => True,
          when No_C_ABI | RiscV_ILP32 | Xtensa_Windowed_ILP32 => False);
 
    --  D922: AAPCS32's planner places a variadic call, but no firmware
@@ -105,7 +107,7 @@ package body Landin.Targets.Capabilities is
    function C_Variadic_Calls (Facts : Target_Facts) return Boolean is
      (case C_ABI_Of (Facts) is
          when SysV_AMD64_LP64 | Darwin_AAPCS64_LP64 | AAPCS64_LP64
-            | RiscV_LP64D | Win64_LLP64 => True,
+            | RiscV_LP64D | Win64_LLP64 | Windows_AAPCS64_LLP64 => True,
          when No_C_ABI | Arm_AAPCS32_Soft | RiscV_ILP32
             | Xtensa_Windowed_ILP32 => False);
 
@@ -113,7 +115,7 @@ package body Landin.Targets.Capabilities is
    begin
       if Facts = Linux_X86_64 or else Facts = FreeBSD_X86_64 then
          return ELF;
-      elsif Facts = Windows_X86_64 then
+      elsif Facts = Windows_X86_64 or else Facts = Windows_Arm64 then
          return COFF;
       elsif Facts = Darwin_Arm64 then
          return Mach_O;
@@ -133,7 +135,7 @@ package body Landin.Targets.Capabilities is
    function Debug_Format_Of (Facts : Target_Facts) return Debug_Format is
      (case Backend_For (Facts) is
          when X86_64_ELF => ELF_DWARF,
-         when X86_64_COFF => COFF_CodeView,
+         when X86_64_COFF | Arm64_COFF => COFF_CodeView,
          when Darwin_Arm64_Mach_O => Mach_O_DWARF,
          when Arm64_ELF | RV64_ELF => ELF_DWARF,
          when Cortex_M0_ELF | RV32_ELF | Xtensa_ELF => ELF_DWARF_Lines,
@@ -158,6 +160,8 @@ package body Landin.Targets.Capabilities is
          return X86_64_ELF;
       elsif Facts = Windows_X86_64 then
          return X86_64_COFF;
+      elsif Facts = Windows_Arm64 then
+         return Arm64_COFF;
       elsif Facts = Darwin_Arm64 then
          return Darwin_Arm64_Mach_O;
       elsif Facts = Linux_Arm64 or else Facts = FreeBSD_Arm64 then
@@ -182,6 +186,9 @@ package body Landin.Targets.Capabilities is
      (case Backend_For (Facts) is
          when X86_64_ELF | Darwin_Arm64_Mach_O | RV64_ELF | X86_64_COFF =>
             2 ** 31,
+         --  A Windows image is held within 2 GiB, which its loader
+         --  refuses past, whatever ADRP would reach.
+         when Arm64_COFF => 2 ** 31,
          when Arm64_ELF => 2 ** 32,
          when Cortex_M0_ELF | RV32_ELF | Xtensa_ELF =>
             Maximum_Object_Size (Facts),
@@ -194,6 +201,7 @@ package body Landin.Targets.Capabilities is
             "x86-64's small code model reaches",
          when Darwin_Arm64_Mach_O => "a Darwin static image holds",
          when Arm64_ELF => "arm64's ADRP reaches",
+         when Arm64_COFF => "a Windows image holds",
          when RV64_ELF => "RV64's AUIPC reaches",
          when Cortex_M0_ELF | RV32_ELF | Xtensa_ELF =>
             "the 32-bit address space holds",
@@ -204,7 +212,8 @@ package body Landin.Targets.Capabilities is
      (Reach_Source (Facts) & " on " & Name (Facts));
 
    function Image_Budget_Of (Facts : Target_Facts) return Image_Budget is
-     ((Whole       => (if Backend_For (Facts) = X86_64_COFF then 2 ** 31
+     ((Whole       => (if Backend_For (Facts) in X86_64_COFF | Arm64_COFF
+                       then 2 ** 31
                        else Byte_Count'Last),
        Initialized => Image_Reach (Facts),
        Writable    => Image_Reach (Facts),
@@ -223,7 +232,7 @@ package body Landin.Targets.Capabilities is
          return Darwin;
       elsif Facts = FreeBSD_X86_64 or else Facts = FreeBSD_Arm64 then
          return FreeBSD;
-      elsif Facts = Windows_X86_64 then
+      elsif Facts = Windows_X86_64 or else Facts = Windows_Arm64 then
          return Windows;
       else
          return No_Hosted_System;
@@ -240,6 +249,8 @@ package body Landin.Targets.Capabilities is
          return "x86_64-pc-linux-gnu";
       elsif Facts = Windows_X86_64 then
          return "x86_64-w64-mingw32";
+      elsif Facts = Windows_Arm64 then
+         return "aarch64-w64-mingw32";
       elsif Facts = Darwin_Arm64 then
          return "arm64-apple-darwin";
       elsif Facts = Linux_Arm64 then

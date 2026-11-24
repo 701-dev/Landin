@@ -4,4 +4,4 @@ summary: reaching compiler.unreachable() on a prepared stack hands the selected 
 program: main.ldn
 status: 42
 constructs: 1560, 1670, 1960, 1995
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

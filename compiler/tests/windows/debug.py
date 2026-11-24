@@ -40,7 +40,11 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'compiler/tests/debugging'))
 import lldb_batch  # noqa: E402
 
+#  The lane's target, which --target sets: windows-x86-64 or windows-arm64,
+#  each with its llvm-mingw driver.
 TARGET = 'windows-x86-64'
+DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
+           'windows-arm64': 'aarch64-w64-mingw32-clang'}
 PROFILES = (('none', 'off'), ('size', 'off'), ('size', 'auto'),
             ('speed', 'auto'))
 #  Where the DAP program is compiled from: a path a WSL distribution
@@ -190,6 +194,7 @@ def through_dap(bundle, manifest, refine, lldb_dap, output):
 
 
 def main():
+    global TARGET
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sys.path.insert(0, str(ROOT / 'scripts'))
@@ -200,8 +205,11 @@ def main():
     parser.add_argument('--output', type=Path, required=True,
                         help='a new directory for the bundle, transcripts'
                         ' and summary.json')
-    parser.add_argument('--toolchain', default='x86_64-w64-mingw32-clang',
-                        help='the llvm-mingw driver refine links with')
+    parser.add_argument('--target', choices=sorted(DRIVERS), default=TARGET,
+                        help='the Windows target the sessions debug')
+    parser.add_argument('--toolchain',
+                        help="the llvm-mingw driver refine links with; the"
+                        " target's by default")
     parser.add_argument('--lldb', default='lldb.exe',
                         help="the command that runs llvm-mingw's lldb.exe")
     parser.add_argument('--lldb-dap',
@@ -215,6 +223,8 @@ def main():
     parser.add_argument('--dap', action='store_true',
                         help='with --prepared, the refine dap session alone')
     args = parser.parse_args()
+    TARGET = args.target
+    args.toolchain = args.toolchain or DRIVERS[TARGET]
     args.output = args.output.resolve()
     summary = {'target': TARGET, 'status': 'failed'}
     try:

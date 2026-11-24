@@ -4,4 +4,4 @@ summary: D1074 a program the grammar derives is read by the grammar: a function'
 constructs: 1080, 1120, 1750, 1800, 1810
 program: main.ldn
 status: 127
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

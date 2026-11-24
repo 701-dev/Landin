@@ -4,5 +4,5 @@ summary: Small shared core/line consumer computes every board port's 115200 divi
 program: main.ldn
 root: ../../../../..
 status: 42
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 constructs: 0350, 0900, 1000, 1030
