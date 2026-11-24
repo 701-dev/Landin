@@ -1046,7 +1046,7 @@ candidate passed its
 
 ### R16.35 — What SHA-256 still costs on x86-64
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 What R16.33 left as SHA-256's largest cost against gcc on x86-64, and
