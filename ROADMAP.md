@@ -2435,7 +2435,7 @@ two `--debug=full` builds that differ by their temporary object's name.
 
 ### R21.40 — Windows arm64
 
-Status: planned
+Status: active
 Depends on: R21.30
 
 Exit evidence: the corpus, the Io and thread suites and the debugger
