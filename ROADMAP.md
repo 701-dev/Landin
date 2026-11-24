@@ -2417,7 +2417,7 @@ sessions on Windows arm64 in the gate.
 
 ### R21.50 — Microsoft's toolchain on Windows
 
-Status: planned
+Status: active
 Depends on: R21.10
 
 A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
