@@ -3453,8 +3453,16 @@
     },
     "runtime/map-seed-spreads-chosen-keys": {
       "mode": "execute",
-      "profile_limit": "selected-image",
-      "reason": "A populated map with SipHash-1-3 keys over an 8 KiB arena needs about 48 to 58 KB of flash on the RV32 maps, at every profile, where the selected profile has 32 KiB, and Cortex-M0's is the same; the M7 and Xtensa lanes execute it. runtime/cmp-siphash-vectors runs the keyed hash on Cortex-M0 and RV32; this image limit is not runtime evidence."
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: since D2407 and D2408 the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs IRAM 50824 of this lane's 32 KiB, over by 18056."
+        },
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: since D2407 and D2408 the Cortex-M0 image fits the reference's 32 KiB at every profile, and RV32's at size and speed; at none/off RV32's needs FLASH 50328 of this lane's 32 KiB, over by 17560."
+        }
+      }
     },
     "runtime/map-seeded-from-entropy": {
       "codes": [

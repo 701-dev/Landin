@@ -1138,7 +1138,9 @@ up to 2.6% fewer.
 placement `SR-1758` keeps, and the ESP32-C3's and the Hazard3's
 mandelbrot at `size` by 0.3%. Every board's RAM and boot records were made
 again on the rig, and the cycle, size and instruction baselines recorded.
-`SR-1757` is taken.
+The smaller images run `runtime/map-seed-spreads-chosen-keys` on Cortex-M0
+at every profile and on RV32 at `size` and `speed`, where it had
+overflowed. `SR-1757` is taken.
 
 ### The continuous items
 
