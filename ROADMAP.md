@@ -1146,7 +1146,7 @@ overflowed. `SR-1757` is taken. The merged candidate passed its
 
 ### R16.37 — Identities that make an instruction
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 `SR-1787`: SHA-256's round on x86-64 executes 48 instructions, gcc 16.1
@@ -1162,6 +1162,28 @@ Exit evidence: SHA-256 at speed on x86-64 executing more than 5% fewer
 instructions than at the item's base, its round measured against gcc's;
 every program's instructions and image size reported against that base;
 and no other combination over its own.
+
+Done: `Landin.IR.Identities`, simplification's last step, rewrites
+`(x & y) ^ (x & z)`, and the same with `|`, as `x & (y ^ z)`, and the
+choice `(x & y) ^ (~x & z)` as `(x & (y ^ z)) ^ z`, on every target; the
+choice's new AND is inserted by the arena rebuild, which now takes
+instructions to place before those it keeps (D2447). Those two took 4.8%
+off SHA-256 at speed, four instructions a round where `SR-1787`
+estimated six, so two rotations joined by a bitwise operation now turn
+one chain, `rotl(rotl(a, m - n) op b, n)`, which x86-64's two-address
+code copies once where it copied three times (D2448). Against the
+item's base, at speed, SHA-256 of 64 MiB executes 11.3% fewer x86-64
+instructions (5.63 G to 4.99 G; gcc 16.1 `-O2` 4.56 G) and 2.6% fewer
+on arm64 under QEMU, at size 7.7% and 1.7%; its round is 40 x86-64
+instructions to gcc's 48. Every other benchmark program executes within
+0.001% of its base, and every output is the same. No measured hosted or
+firmware image changed, so no size, instruction or cycle baseline and no
+board record was made again. `SR-1787` is taken; `SR-1827` and
+`SR-1828` file what R16.36 met timing boards by hand, one run where the
+gate takes three and the RP2350's boot check needed first. The
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45496244601) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45502295184).
 
 ### The continuous items
 
