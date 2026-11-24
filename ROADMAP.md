@@ -1092,6 +1092,9 @@ changed images, all within tolerance: 75 ran 0.01% to 0.76% faster,
 binary-search most, and the ESP32-C5's SipHash at size 0.08% slower; the
 ESP32-C3's SipHash, which its RAM layout cannot time, keeps that limit
 with an instruction segment 16 to 24 bytes smaller.
+The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45400339063) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45406894479).
 
 ### The continuous items
 
