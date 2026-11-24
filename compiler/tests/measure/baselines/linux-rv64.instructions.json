@@ -3,7 +3,7 @@
  "target": "linux-rv64",
  "entries": {
   "rv64gc/none-all/binary-trees": {
-   "instructions": 392007270
+   "instructions": 392002172
   },
   "rv64gc/none-all/fannkuch-redux": {
    "instructions": 7790079
@@ -15,16 +15,16 @@
    "instructions": 5692167
   },
   "rv64gc/none-all/mandelbrot": {
-   "instructions": 170080698
+   "instructions": 170080126
   },
   "rv64gc/none-all/reverse-complement": {
-   "instructions": 3021956
+   "instructions": 3021910
   },
   "rv64gc/none-all/thread": {
-   "instructions": 5703699
+   "instructions": 5703120
   },
   "rv64gc/none-auto/binary-trees": {
-   "instructions": 392007270
+   "instructions": 392002172
   },
   "rv64gc/none-auto/fannkuch-redux": {
    "instructions": 7790079
@@ -36,16 +36,16 @@
    "instructions": 5692167
   },
   "rv64gc/none-auto/mandelbrot": {
-   "instructions": 170080698
+   "instructions": 170080126
   },
   "rv64gc/none-auto/reverse-complement": {
-   "instructions": 3021956
+   "instructions": 3021910
   },
   "rv64gc/none-auto/thread": {
-   "instructions": 5703699
+   "instructions": 5703120
   },
   "rv64gc/none-off/binary-trees": {
-   "instructions": 392419831
+   "instructions": 392424929
   },
   "rv64gc/none-off/fannkuch-redux": {
    "instructions": 7790082
@@ -57,142 +57,142 @@
    "instructions": 5692170
   },
   "rv64gc/none-off/mandelbrot": {
-   "instructions": 170080703
+   "instructions": 170080131
   },
   "rv64gc/none-off/reverse-complement": {
-   "instructions": 3021961
+   "instructions": 3021915
   },
   "rv64gc/none-off/thread": {
-   "instructions": 5703704
+   "instructions": 5703125
   },
   "rv64gc/size-all/binary-trees": {
-   "instructions": 299604274
+   "instructions": 299604272
   },
   "rv64gc/size-all/fannkuch-redux": {
-   "instructions": 3751094
+   "instructions": 3716091
   },
   "rv64gc/size-all/fasta": {
-   "instructions": 3756726
+   "instructions": 3754982
   },
   "rv64gc/size-all/fibre": {
    "instructions": 3759526
   },
   "rv64gc/size-all/mandelbrot": {
-   "instructions": 55110064
+   "instructions": 55109964
   },
   "rv64gc/size-all/reverse-complement": {
-   "instructions": 1499754
+   "instructions": 1497951
   },
   "rv64gc/size-all/thread": {
-   "instructions": 3767075
+   "instructions": 3766819
   },
   "rv64gc/size-auto/binary-trees": {
-   "instructions": 299604274
+   "instructions": 299604272
   },
   "rv64gc/size-auto/fannkuch-redux": {
-   "instructions": 3751094
+   "instructions": 3716091
   },
   "rv64gc/size-auto/fasta": {
-   "instructions": 3756726
+   "instructions": 3754982
   },
   "rv64gc/size-auto/fibre": {
    "instructions": 3759526
   },
   "rv64gc/size-auto/mandelbrot": {
-   "instructions": 55110064
+   "instructions": 55109964
   },
   "rv64gc/size-auto/reverse-complement": {
-   "instructions": 1499754
+   "instructions": 1497951
   },
   "rv64gc/size-auto/thread": {
-   "instructions": 3767075
+   "instructions": 3766819
   },
   "rv64gc/size-off/binary-trees": {
-   "instructions": 301691353
+   "instructions": 301691349
   },
   "rv64gc/size-off/fannkuch-redux": {
-   "instructions": 3751109
+   "instructions": 3716106
   },
   "rv64gc/size-off/fasta": {
-   "instructions": 3758085
+   "instructions": 3756339
   },
   "rv64gc/size-off/fibre": {
    "instructions": 3759541
   },
   "rv64gc/size-off/mandelbrot": {
-   "instructions": 55110530
+   "instructions": 55110430
   },
   "rv64gc/size-off/reverse-complement": {
-   "instructions": 1500487
+   "instructions": 1498684
   },
   "rv64gc/size-off/thread": {
-   "instructions": 3767100
+   "instructions": 3766844
   },
   "rv64gc/speed-all/binary-trees": {
-   "instructions": 232506273
+   "instructions": 232506272
   },
   "rv64gc/speed-all/fannkuch-redux": {
-   "instructions": 3617151
+   "instructions": 3582435
   },
   "rv64gc/speed-all/fasta": {
-   "instructions": 2925283
+   "instructions": 2924411
   },
   "rv64gc/speed-all/fibre": {
    "instructions": 3515481
   },
   "rv64gc/speed-all/mandelbrot": {
-   "instructions": 50034535
+   "instructions": 50034485
   },
   "rv64gc/speed-all/reverse-complement": {
-   "instructions": 1252199
+   "instructions": 1251282
   },
   "rv64gc/speed-all/thread": {
-   "instructions": 3523840
+   "instructions": 3523567
   },
   "rv64gc/speed-auto/binary-trees": {
-   "instructions": 232506273
+   "instructions": 232506272
   },
   "rv64gc/speed-auto/fannkuch-redux": {
-   "instructions": 3617151
+   "instructions": 3582435
   },
   "rv64gc/speed-auto/fasta": {
-   "instructions": 2925283
+   "instructions": 2924411
   },
   "rv64gc/speed-auto/fibre": {
    "instructions": 3515481
   },
   "rv64gc/speed-auto/mandelbrot": {
-   "instructions": 50034535
+   "instructions": 50034485
   },
   "rv64gc/speed-auto/reverse-complement": {
-   "instructions": 1252199
+   "instructions": 1251282
   },
   "rv64gc/speed-auto/thread": {
-   "instructions": 3523840
+   "instructions": 3523567
   },
   "rv64gc/speed-off/binary-trees": {
-   "instructions": 233633309
+   "instructions": 233633307
   },
   "rv64gc/speed-off/fannkuch-redux": {
-   "instructions": 3617168
+   "instructions": 3582452
   },
   "rv64gc/speed-off/fasta": {
-   "instructions": 2925980
+   "instructions": 2925108
   },
   "rv64gc/speed-off/fibre": {
    "instructions": 3515498
   },
   "rv64gc/speed-off/mandelbrot": {
-   "instructions": 50035447
+   "instructions": 50035397
   },
   "rv64gc/speed-off/reverse-complement": {
-   "instructions": 1252908
+   "instructions": 1251991
   },
   "rv64gc/speed-off/thread": {
-   "instructions": 3523865
+   "instructions": 3523592
   },
   "rv64gc_xtheadba/none-all/binary-trees": {
-   "instructions": 391297684
+   "instructions": 391302782
   },
   "rv64gc_xtheadba/none-all/fannkuch-redux": {
    "instructions": 7760482
@@ -204,16 +204,16 @@
    "instructions": 5692167
   },
   "rv64gc_xtheadba/none-all/mandelbrot": {
-   "instructions": 170080120
+   "instructions": 170080692
   },
   "rv64gc_xtheadba/none-all/reverse-complement": {
-   "instructions": 3021956
+   "instructions": 3021910
   },
   "rv64gc_xtheadba/none-all/thread": {
-   "instructions": 5703699
+   "instructions": 5703120
   },
   "rv64gc_xtheadba/none-auto/binary-trees": {
-   "instructions": 391297684
+   "instructions": 391302782
   },
   "rv64gc_xtheadba/none-auto/fannkuch-redux": {
    "instructions": 7760482
@@ -225,16 +225,16 @@
    "instructions": 5692167
   },
   "rv64gc_xtheadba/none-auto/mandelbrot": {
-   "instructions": 170080120
+   "instructions": 170080692
   },
   "rv64gc_xtheadba/none-auto/reverse-complement": {
-   "instructions": 3021956
+   "instructions": 3021910
   },
   "rv64gc_xtheadba/none-auto/thread": {
-   "instructions": 5703699
+   "instructions": 5703120
   },
   "rv64gc_xtheadba/none-off/binary-trees": {
-   "instructions": 391720441
+   "instructions": 391715343
   },
   "rv64gc_xtheadba/none-off/fannkuch-redux": {
    "instructions": 7760485
@@ -246,142 +246,142 @@
    "instructions": 5692170
   },
   "rv64gc_xtheadba/none-off/mandelbrot": {
-   "instructions": 170080125
+   "instructions": 170080697
   },
   "rv64gc_xtheadba/none-off/reverse-complement": {
-   "instructions": 3021961
+   "instructions": 3021915
   },
   "rv64gc_xtheadba/none-off/thread": {
-   "instructions": 5703704
+   "instructions": 5703125
   },
   "rv64gc_xtheadba/size-all/binary-trees": {
-   "instructions": 298898570
+   "instructions": 298898566
   },
   "rv64gc_xtheadba/size-all/fannkuch-redux": {
-   "instructions": 3721497
+   "instructions": 3686494
   },
   "rv64gc_xtheadba/size-all/fasta": {
-   "instructions": 3756726
+   "instructions": 3754982
   },
   "rv64gc_xtheadba/size-all/fibre": {
    "instructions": 3759526
   },
   "rv64gc_xtheadba/size-all/mandelbrot": {
-   "instructions": 55109679
+   "instructions": 55109579
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
-   "instructions": 1499754
+   "instructions": 1497951
   },
   "rv64gc_xtheadba/size-all/thread": {
-   "instructions": 3767075
+   "instructions": 3766819
   },
   "rv64gc_xtheadba/size-auto/binary-trees": {
-   "instructions": 298898570
+   "instructions": 298898566
   },
   "rv64gc_xtheadba/size-auto/fannkuch-redux": {
-   "instructions": 3721497
+   "instructions": 3686494
   },
   "rv64gc_xtheadba/size-auto/fasta": {
-   "instructions": 3756726
+   "instructions": 3754982
   },
   "rv64gc_xtheadba/size-auto/fibre": {
    "instructions": 3759526
   },
   "rv64gc_xtheadba/size-auto/mandelbrot": {
-   "instructions": 55109679
+   "instructions": 55109579
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
-   "instructions": 1499754
+   "instructions": 1497951
   },
   "rv64gc_xtheadba/size-auto/thread": {
-   "instructions": 3767075
+   "instructions": 3766819
   },
   "rv64gc_xtheadba/size-off/binary-trees": {
-   "instructions": 300988081
+   "instructions": 300988079
   },
   "rv64gc_xtheadba/size-off/fannkuch-redux": {
-   "instructions": 3721512
+   "instructions": 3686509
   },
   "rv64gc_xtheadba/size-off/fasta": {
-   "instructions": 3758085
+   "instructions": 3756339
   },
   "rv64gc_xtheadba/size-off/fibre": {
    "instructions": 3759541
   },
   "rv64gc_xtheadba/size-off/mandelbrot": {
-   "instructions": 55110903
+   "instructions": 55110803
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
-   "instructions": 1500487
+   "instructions": 1498684
   },
   "rv64gc_xtheadba/size-off/thread": {
-   "instructions": 3767100
+   "instructions": 3766844
   },
   "rv64gc_xtheadba/speed-all/binary-trees": {
-   "instructions": 231801187
+   "instructions": 231801784
   },
   "rv64gc_xtheadba/speed-all/fannkuch-redux": {
-   "instructions": 3587554
+   "instructions": 3552838
   },
   "rv64gc_xtheadba/speed-all/fasta": {
-   "instructions": 2925283
+   "instructions": 2924411
   },
   "rv64gc_xtheadba/speed-all/fibre": {
    "instructions": 3515481
   },
   "rv64gc_xtheadba/speed-all/mandelbrot": {
-   "instructions": 50034621
+   "instructions": 50034479
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
-   "instructions": 1252199
+   "instructions": 1251282
   },
   "rv64gc_xtheadba/speed-all/thread": {
-   "instructions": 3523840
+   "instructions": 3523567
   },
   "rv64gc_xtheadba/speed-auto/binary-trees": {
-   "instructions": 231801187
+   "instructions": 231801784
   },
   "rv64gc_xtheadba/speed-auto/fannkuch-redux": {
-   "instructions": 3587554
+   "instructions": 3552838
   },
   "rv64gc_xtheadba/speed-auto/fasta": {
-   "instructions": 2925283
+   "instructions": 2924411
   },
   "rv64gc_xtheadba/speed-auto/fibre": {
    "instructions": 3515481
   },
   "rv64gc_xtheadba/speed-auto/mandelbrot": {
-   "instructions": 50034621
+   "instructions": 50034479
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
-   "instructions": 1252199
+   "instructions": 1251282
   },
   "rv64gc_xtheadba/speed-auto/thread": {
-   "instructions": 3523840
+   "instructions": 3523567
   },
   "rv64gc_xtheadba/speed-off/binary-trees": {
-   "instructions": 232929419
+   "instructions": 232928819
   },
   "rv64gc_xtheadba/speed-off/fannkuch-redux": {
-   "instructions": 3587571
+   "instructions": 3552855
   },
   "rv64gc_xtheadba/speed-off/fasta": {
-   "instructions": 2925980
+   "instructions": 2925108
   },
   "rv64gc_xtheadba/speed-off/fibre": {
    "instructions": 3515498
   },
   "rv64gc_xtheadba/speed-off/mandelbrot": {
-   "instructions": 50035349
+   "instructions": 50035391
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
-   "instructions": 1252908
+   "instructions": 1251991
   },
   "rv64gc_xtheadba/speed-off/thread": {
-   "instructions": 3523865
+   "instructions": 3523592
   },
   "rv64gc_zba/none-all/binary-trees": {
-   "instructions": 391303294
+   "instructions": 391298196
   },
   "rv64gc_zba/none-all/fannkuch-redux": {
    "instructions": 7761566
@@ -393,16 +393,16 @@
    "instructions": 5692708
   },
   "rv64gc_zba/none-all/mandelbrot": {
-   "instructions": 170081204
+   "instructions": 170080632
   },
   "rv64gc_zba/none-all/reverse-complement": {
-   "instructions": 3022468
+   "instructions": 3022422
   },
   "rv64gc_zba/none-all/thread": {
-   "instructions": 5704240
+   "instructions": 5703661
   },
   "rv64gc_zba/none-auto/binary-trees": {
-   "instructions": 391303294
+   "instructions": 391298196
   },
   "rv64gc_zba/none-auto/fannkuch-redux": {
    "instructions": 7761566
@@ -414,16 +414,16 @@
    "instructions": 5692708
   },
   "rv64gc_zba/none-auto/mandelbrot": {
-   "instructions": 170081204
+   "instructions": 170080632
   },
   "rv64gc_zba/none-auto/reverse-complement": {
-   "instructions": 3022468
+   "instructions": 3022422
   },
   "rv64gc_zba/none-auto/thread": {
-   "instructions": 5704240
+   "instructions": 5703661
   },
   "rv64gc_zba/none-off/binary-trees": {
-   "instructions": 391715855
+   "instructions": 391720953
   },
   "rv64gc_zba/none-off/fannkuch-redux": {
    "instructions": 7761569
@@ -435,142 +435,142 @@
    "instructions": 5692711
   },
   "rv64gc_zba/none-off/mandelbrot": {
-   "instructions": 170081209
+   "instructions": 170080637
   },
   "rv64gc_zba/none-off/reverse-complement": {
-   "instructions": 3022473
+   "instructions": 3022427
   },
   "rv64gc_zba/none-off/thread": {
-   "instructions": 5704245
+   "instructions": 5703666
   },
   "rv64gc_zba/size-all/binary-trees": {
-   "instructions": 298898994
+   "instructions": 298898990
   },
   "rv64gc_zba/size-all/fannkuch-redux": {
-   "instructions": 3721921
+   "instructions": 3686918
   },
   "rv64gc_zba/size-all/fasta": {
-   "instructions": 3757150
+   "instructions": 3755406
   },
   "rv64gc_zba/size-all/fibre": {
    "instructions": 3759973
   },
   "rv64gc_zba/size-all/mandelbrot": {
-   "instructions": 55110103
+   "instructions": 55110003
   },
   "rv64gc_zba/size-all/reverse-complement": {
-   "instructions": 1500178
+   "instructions": 1498375
   },
   "rv64gc_zba/size-all/thread": {
-   "instructions": 3767522
+   "instructions": 3767266
   },
   "rv64gc_zba/size-auto/binary-trees": {
-   "instructions": 298898994
+   "instructions": 298898990
   },
   "rv64gc_zba/size-auto/fannkuch-redux": {
-   "instructions": 3721921
+   "instructions": 3686918
   },
   "rv64gc_zba/size-auto/fasta": {
-   "instructions": 3757150
+   "instructions": 3755406
   },
   "rv64gc_zba/size-auto/fibre": {
    "instructions": 3759973
   },
   "rv64gc_zba/size-auto/mandelbrot": {
-   "instructions": 55110103
+   "instructions": 55110003
   },
   "rv64gc_zba/size-auto/reverse-complement": {
-   "instructions": 1500178
+   "instructions": 1498375
   },
   "rv64gc_zba/size-auto/thread": {
-   "instructions": 3767522
+   "instructions": 3767266
   },
   "rv64gc_zba/size-off/binary-trees": {
-   "instructions": 300988505
+   "instructions": 300988503
   },
   "rv64gc_zba/size-off/fannkuch-redux": {
-   "instructions": 3721936
+   "instructions": 3686933
   },
   "rv64gc_zba/size-off/fasta": {
-   "instructions": 3758509
+   "instructions": 3756763
   },
   "rv64gc_zba/size-off/fibre": {
    "instructions": 3759988
   },
   "rv64gc_zba/size-off/mandelbrot": {
-   "instructions": 55111327
+   "instructions": 55111227
   },
   "rv64gc_zba/size-off/reverse-complement": {
-   "instructions": 1500911
+   "instructions": 1499108
   },
   "rv64gc_zba/size-off/thread": {
-   "instructions": 3767547
+   "instructions": 3767291
   },
   "rv64gc_zba/speed-all/binary-trees": {
-   "instructions": 231801462
+   "instructions": 231802059
   },
   "rv64gc_zba/speed-all/fannkuch-redux": {
-   "instructions": 3587829
+   "instructions": 3553113
   },
   "rv64gc_zba/speed-all/fasta": {
-   "instructions": 2925558
+   "instructions": 2924686
   },
   "rv64gc_zba/speed-all/fibre": {
    "instructions": 3515768
   },
   "rv64gc_zba/speed-all/mandelbrot": {
-   "instructions": 50034896
+   "instructions": 50034754
   },
   "rv64gc_zba/speed-all/reverse-complement": {
-   "instructions": 1252474
+   "instructions": 1251557
   },
   "rv64gc_zba/speed-all/thread": {
-   "instructions": 3524127
+   "instructions": 3523854
   },
   "rv64gc_zba/speed-auto/binary-trees": {
-   "instructions": 231801462
+   "instructions": 231802059
   },
   "rv64gc_zba/speed-auto/fannkuch-redux": {
-   "instructions": 3587829
+   "instructions": 3553113
   },
   "rv64gc_zba/speed-auto/fasta": {
-   "instructions": 2925558
+   "instructions": 2924686
   },
   "rv64gc_zba/speed-auto/fibre": {
    "instructions": 3515768
   },
   "rv64gc_zba/speed-auto/mandelbrot": {
-   "instructions": 50034896
+   "instructions": 50034754
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
-   "instructions": 1252474
+   "instructions": 1251557
   },
   "rv64gc_zba/speed-auto/thread": {
-   "instructions": 3524127
+   "instructions": 3523854
   },
   "rv64gc_zba/speed-off/binary-trees": {
-   "instructions": 232929694
+   "instructions": 232929094
   },
   "rv64gc_zba/speed-off/fannkuch-redux": {
-   "instructions": 3587846
+   "instructions": 3553130
   },
   "rv64gc_zba/speed-off/fasta": {
-   "instructions": 2926255
+   "instructions": 2925383
   },
   "rv64gc_zba/speed-off/fibre": {
    "instructions": 3515785
   },
   "rv64gc_zba/speed-off/mandelbrot": {
-   "instructions": 50035624
+   "instructions": 50035666
   },
   "rv64gc_zba/speed-off/reverse-complement": {
-   "instructions": 1253183
+   "instructions": 1252266
   },
   "rv64gc_zba/speed-off/thread": {
-   "instructions": 3524152
+   "instructions": 3523879
   },
   "rv64gc_zba_xtheadba/none-all/binary-trees": {
-   "instructions": 391303294
+   "instructions": 391298196
   },
   "rv64gc_zba_xtheadba/none-all/fannkuch-redux": {
    "instructions": 7761566
@@ -582,16 +582,16 @@
    "instructions": 5692708
   },
   "rv64gc_zba_xtheadba/none-all/mandelbrot": {
-   "instructions": 170081204
+   "instructions": 170080632
   },
   "rv64gc_zba_xtheadba/none-all/reverse-complement": {
-   "instructions": 3022468
+   "instructions": 3022422
   },
   "rv64gc_zba_xtheadba/none-all/thread": {
-   "instructions": 5704240
+   "instructions": 5703661
   },
   "rv64gc_zba_xtheadba/none-auto/binary-trees": {
-   "instructions": 391303294
+   "instructions": 391298196
   },
   "rv64gc_zba_xtheadba/none-auto/fannkuch-redux": {
    "instructions": 7761566
@@ -603,16 +603,16 @@
    "instructions": 5692708
   },
   "rv64gc_zba_xtheadba/none-auto/mandelbrot": {
-   "instructions": 170081204
+   "instructions": 170080632
   },
   "rv64gc_zba_xtheadba/none-auto/reverse-complement": {
-   "instructions": 3022468
+   "instructions": 3022422
   },
   "rv64gc_zba_xtheadba/none-auto/thread": {
-   "instructions": 5704240
+   "instructions": 5703661
   },
   "rv64gc_zba_xtheadba/none-off/binary-trees": {
-   "instructions": 391715855
+   "instructions": 391720953
   },
   "rv64gc_zba_xtheadba/none-off/fannkuch-redux": {
    "instructions": 7761569
@@ -624,139 +624,139 @@
    "instructions": 5692711
   },
   "rv64gc_zba_xtheadba/none-off/mandelbrot": {
-   "instructions": 170081209
+   "instructions": 170080637
   },
   "rv64gc_zba_xtheadba/none-off/reverse-complement": {
-   "instructions": 3022473
+   "instructions": 3022427
   },
   "rv64gc_zba_xtheadba/none-off/thread": {
-   "instructions": 5704245
+   "instructions": 5703666
   },
   "rv64gc_zba_xtheadba/size-all/binary-trees": {
-   "instructions": 298898994
+   "instructions": 298898990
   },
   "rv64gc_zba_xtheadba/size-all/fannkuch-redux": {
-   "instructions": 3721921
+   "instructions": 3686918
   },
   "rv64gc_zba_xtheadba/size-all/fasta": {
-   "instructions": 3757150
+   "instructions": 3755406
   },
   "rv64gc_zba_xtheadba/size-all/fibre": {
    "instructions": 3759973
   },
   "rv64gc_zba_xtheadba/size-all/mandelbrot": {
-   "instructions": 55110103
+   "instructions": 55110003
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
-   "instructions": 1500178
+   "instructions": 1498375
   },
   "rv64gc_zba_xtheadba/size-all/thread": {
-   "instructions": 3767522
+   "instructions": 3767266
   },
   "rv64gc_zba_xtheadba/size-auto/binary-trees": {
-   "instructions": 298898994
+   "instructions": 298898990
   },
   "rv64gc_zba_xtheadba/size-auto/fannkuch-redux": {
-   "instructions": 3721921
+   "instructions": 3686918
   },
   "rv64gc_zba_xtheadba/size-auto/fasta": {
-   "instructions": 3757150
+   "instructions": 3755406
   },
   "rv64gc_zba_xtheadba/size-auto/fibre": {
    "instructions": 3759973
   },
   "rv64gc_zba_xtheadba/size-auto/mandelbrot": {
-   "instructions": 55110103
+   "instructions": 55110003
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
-   "instructions": 1500178
+   "instructions": 1498375
   },
   "rv64gc_zba_xtheadba/size-auto/thread": {
-   "instructions": 3767522
+   "instructions": 3767266
   },
   "rv64gc_zba_xtheadba/size-off/binary-trees": {
-   "instructions": 300988505
+   "instructions": 300988503
   },
   "rv64gc_zba_xtheadba/size-off/fannkuch-redux": {
-   "instructions": 3721936
+   "instructions": 3686933
   },
   "rv64gc_zba_xtheadba/size-off/fasta": {
-   "instructions": 3758509
+   "instructions": 3756763
   },
   "rv64gc_zba_xtheadba/size-off/fibre": {
    "instructions": 3759988
   },
   "rv64gc_zba_xtheadba/size-off/mandelbrot": {
-   "instructions": 55111327
+   "instructions": 55111227
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
-   "instructions": 1500911
+   "instructions": 1499108
   },
   "rv64gc_zba_xtheadba/size-off/thread": {
-   "instructions": 3767547
+   "instructions": 3767291
   },
   "rv64gc_zba_xtheadba/speed-all/binary-trees": {
-   "instructions": 231801462
+   "instructions": 231802059
   },
   "rv64gc_zba_xtheadba/speed-all/fannkuch-redux": {
-   "instructions": 3587829
+   "instructions": 3553113
   },
   "rv64gc_zba_xtheadba/speed-all/fasta": {
-   "instructions": 2925558
+   "instructions": 2924686
   },
   "rv64gc_zba_xtheadba/speed-all/fibre": {
    "instructions": 3515768
   },
   "rv64gc_zba_xtheadba/speed-all/mandelbrot": {
-   "instructions": 50034896
+   "instructions": 50034754
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
-   "instructions": 1252474
+   "instructions": 1251557
   },
   "rv64gc_zba_xtheadba/speed-all/thread": {
-   "instructions": 3524127
+   "instructions": 3523854
   },
   "rv64gc_zba_xtheadba/speed-auto/binary-trees": {
-   "instructions": 231801462
+   "instructions": 231802059
   },
   "rv64gc_zba_xtheadba/speed-auto/fannkuch-redux": {
-   "instructions": 3587829
+   "instructions": 3553113
   },
   "rv64gc_zba_xtheadba/speed-auto/fasta": {
-   "instructions": 2925558
+   "instructions": 2924686
   },
   "rv64gc_zba_xtheadba/speed-auto/fibre": {
    "instructions": 3515768
   },
   "rv64gc_zba_xtheadba/speed-auto/mandelbrot": {
-   "instructions": 50034896
+   "instructions": 50034754
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
-   "instructions": 1252474
+   "instructions": 1251557
   },
   "rv64gc_zba_xtheadba/speed-auto/thread": {
-   "instructions": 3524127
+   "instructions": 3523854
   },
   "rv64gc_zba_xtheadba/speed-off/binary-trees": {
-   "instructions": 232929694
+   "instructions": 232929094
   },
   "rv64gc_zba_xtheadba/speed-off/fannkuch-redux": {
-   "instructions": 3587846
+   "instructions": 3553130
   },
   "rv64gc_zba_xtheadba/speed-off/fasta": {
-   "instructions": 2926255
+   "instructions": 2925383
   },
   "rv64gc_zba_xtheadba/speed-off/fibre": {
    "instructions": 3515785
   },
   "rv64gc_zba_xtheadba/speed-off/mandelbrot": {
-   "instructions": 50035624
+   "instructions": 50035666
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
-   "instructions": 1253183
+   "instructions": 1252266
   },
   "rv64gc_zba_xtheadba/speed-off/thread": {
-   "instructions": 3524152
+   "instructions": 3523879
   }
  },
  "environment": null

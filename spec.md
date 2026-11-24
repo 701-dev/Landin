@@ -28447,6 +28447,147 @@ selection of immediates.
 **Pinned by** SHA-256's measured load loop and the runtime fixtures'
 products at size and speed.
 
+### D2247 — A constant left operand of a commutative integer operation goes right
+
+**The tour said** nothing. Lowering keeps the source's order, so `4 * t`
+reached selection with its constant on the left, where no backend writes
+an immediate: x86-64 and arm64 made the 4 in a register first, and the
+same product written `t * 4` elsewhere was numbered apart.
+
+**Chosen:** at size and speed the simplifier swaps the operands of an
+integer `+`, `+%`, `*`, `*%`, `&`, `|`, `^`, `==` or `!=` whose left
+operand is a constant and whose right is not. Overflow, and so its trap,
+is the same either way round. A float keeps its order, since which NaN
+an operation returns can depend on it, and so does every operation that
+does not commute.
+
+**The alternatives:** teaching each backend to commute at selection,
+which arm64 already did and x86-64 did only for registers, and which
+leaves the numbering below seeing two operations.
+
+**Pinned by** the IR optimization suite's `block value numbering`, with a
+subtraction and a float product as controls.
+
+### D2248 — Equal integer constants are one class to block numbering
+
+**The tour said** nothing. Block value numbering compared operations by
+the classes of their operands, and every constant was a class of its
+own, so SHA-256's load loop, writing `4 * t` four times, kept four
+products of one value.
+
+**Chosen:** an integer constant with the type and value of an earlier one
+in the same block takes that one's class, so operations reading them are
+numbered as one. The constant itself is not replaced: each stays where it
+is read, made there or written as an immediate, so no register holds a
+constant across the block for this.
+
+**The alternatives:** numbering constants like any operation, which
+would replace them and stretch one constant's interval over the block on
+targets where it needs a register.
+
+**Pinned by** the IR optimization suite's `block value numbering`.
+
+### D2249 — x86-64 widens a loaded byte where it was loaded
+
+**The tour said** nothing. At size and speed a byte or halfword loaded
+into a register is zero-extended there (`movzbl`, `movzwl`), and a
+32-bit write clears the upper half, yet `u32(s[i])` extended it again.
+
+**Chosen:** an unsigned widening of a byte or halfword that an element or
+indirect load put in the same register moves nothing.
+
+**The alternatives:** tracking which registers hold zero-extended values
+across every operation, which would cover arithmetic results too and is
+left until a measurement asks for it.
+
+**Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
+
+### D2250 — x86-64 compares and scales a slice edge where it lives
+
+**The tour said** nothing. A slice element's address copied its upper
+edge into `%rax` to compare it with the length, and its lower edge into
+`%rcx` to scale it, both already in registers at size and speed: two
+moves an access.
+
+**Chosen:** at size and speed an edge held in a register is compared and
+used as the address's index in that register.
+
+**The alternatives:** none worth keeping; the copies bought nothing.
+
+**Pinned by** the runtime fixtures and the measured hosted programs at
+size and speed.
+
+### D2251 — A proved product by a power of two is a shift
+
+**The tour said** nothing. A product the simplifier proved cannot
+overflow was `imul` on x86-64 (D2208) and `mul` on arm64, the latter with
+its constant made in a register first.
+
+**Chosen:** at size and speed such a product, or a wrapping one, by 2 to
+the k: on x86-64 `shl` when the result is in the operand's register, and
+at speed `lea` with a scale of 2, 4 or 8 into another, which takes a
+cycle where `imul` takes three; on arm64 `lsl`, with no constant made.
+
+**The alternatives:** a shift in the IR, which would need a new constant
+value and a shift rule that no target's checked shift has.
+
+**Pinned by** the x86-64 optimization suite's and the arm64 selection
+suite's `arithmetic shapes`.
+
+### D2252 — x86-64 puts an index's constant offset in the displacement
+
+**The tour said** nothing. SHA-256's schedule reads `w[t - 15]`,
+`w[t - 2]`, `w[t - 16]` and `w[t - 7]`; once D2207 proved them, each was
+still a `movq` and a `subq` into a register of its own before the load,
+eight instructions of 31 an iteration.
+
+**Chosen:** at size and speed an element index that is a value plus or
+minus a constant, proved not to wrap, whose one use is the proved element
+access right after it, is not made: the access reads the value's register
+and adds the constant, times the stride, to its displacement. A stride
+too wide for that adds the constant in the accumulator instead. arm64 has
+no address with both a register index and a displacement, and keeps its
+two instructions, its array's base being in a register already (D2150).
+
+**The alternatives:** an IR element access carrying a constant offset,
+which every backend and the verifier would have to learn for one target's
+address form.
+
+**Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
+
+### D2253 — arm64 widens a value in the register its operand leaves
+
+**The tour said** nothing. An integer conversion that changes no bits,
+`u32(b)` of a loaded byte, was given a register of its own, so it was a
+`mov` from the one its operand died in.
+
+**Chosen:** at size and speed an integer conversion takes the general
+register its operand dies in, when nothing else holds that register from
+there through the conversion's last use. Selection reads the operand
+before it writes the result, so the widening moves nothing.
+
+**The alternatives:** the same preference for every operation whose
+operand dies, which the x86-64 allocator has for a left operand and which
+arm64's selection does not uniformly allow.
+
+**Pinned by** the measured hosted programs on arm64 at size and speed.
+
+### D2254 — x86-64 reads a field behind an address slot in its home at its displacement
+
+**The tour said** nothing. A field or constant element behind an address
+slot the allocator left in its frame home, SHA-256's `words[k]` of an
+`inout` array, was reached as `movq` of the address, `addq` of the offset
+and an access through the sum, though the access it was folded into takes
+a displacement.
+
+**Chosen:** at size and speed the address is read into `%rcx` and the
+offset is the folded access's displacement, as it already was for an
+address slot in a register.
+
+**The alternatives:** none; the addition bought nothing.
+
+**Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
+
 ### D2120 — Cortex-M makes an eight-byte constant or widening where it is read
 
 **The tour said** nothing. D1767 left an eight-byte constant, and every

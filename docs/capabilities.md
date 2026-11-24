@@ -1109,8 +1109,10 @@ process ignores SIGPIPE and gives its children the default back.
   constant wherever the store dominates (D2148). A loop's index is
   bounded below by its first value and above by its test, and those
   bounds carry through a constant offset or multiple, so `w[t - 15]` and
-  `4 * t + 3` in SHA-256's loops keep no check (D2207). On x86-64 and arm64
-  two shifts that rotate a value are one rotate instruction (D1624).
+  `4 * t + 3` in SHA-256's loops keep no check (D2207); one product
+  written four times is made once (D2247, D2248). On x86-64 and arm64
+  two shifts that rotate a value are one rotate instruction, and a proved
+  product by a power of two is a shift (D1624, D2251).
 - **Register allocation.** The x86-64 and arm64 allocators give slots
   registers over their live intervals, small routines' among them in
   caller-saved registers, floating-point values included, at size as at
@@ -1120,7 +1122,8 @@ process ignores SIGPIPE and gives its children the default back.
   and no block that only jumps on is emitted (D2096). Both keep each
   routine's traps after its body, compute into a result's own register with
   immediate operands, fuse comparisons with their branches and fold indexed
-  accesses into scaled operands. RISC-V, RV64 and RV32, places slots and
+  accesses into scaled operands, x86-64 with an index's constant offset in
+  the displacement (D2252). RISC-V, RV64 and RV32, places slots and
   values with arm64's placement in the registers a routine's text, emitted
   once with every value in a home, does not write over their intervals,
   checking its second emission against the plan; RV32 holds eight-byte

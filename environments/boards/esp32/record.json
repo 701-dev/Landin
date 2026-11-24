@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "image_sha256": "32a6839cbac25e95a307d4593466e62e487f422ce75e3f9308e31114ba98f7e6",
+  "image_sha256": "94dc6b5a200114547e619229ed800000b9b87b460fa2628cf75094238b8bd51a",
   "image_name": "board.elf.bin",
-  "elf_sha256": "069b5ebb3ad93a3909f4c2f80bce6a4c04ac5b5ed4cf6415bb9977e7ee9b7ca2",
+  "elf_sha256": "b7529c28668d37b8cd7cf577286bf2f3850fc76e03c388ae1850db17a6a7417e",
   "image": {
     "chip": 0,
     "revisions": [
@@ -12,12 +12,12 @@
     "entry": "0x40080400",
     "segments": [
       "0x40080000+0x404",
-      "0x40080404+0x6138",
+      "0x40080404+0x60c0",
       "0x3ffb0000+0x28",
       "0x3ffb0028+0x58"
     ],
-    "checksum": "0xe2",
-    "sha256": "9bde49d2918ba4c796547f517833c70363997d0a7740ec04ea815410fd7fa76e"
+    "checksum": "0x8e",
+    "sha256": "4a6016f384853f5e9719ea5b29256c6843e4a4583008a312ee0eed845699ba07"
   },
   "instructions": [
     "call8",
@@ -34,8 +34,8 @@
     "boot_reason": 1,
     "app_state": 2,
     "timer_events": [
-      821,
-      1236
+      834,
+      1251
     ],
     "trap_count": 0,
     "startup_reset": "CHIP_PU",
@@ -48,7 +48,7 @@
     "boot": "SPI_FAST_FLASH_BOOT",
     "loads": [
       "0x40080000+0x404",
-      "0x40080404+0x6138",
+      "0x40080404+0x60c0",
       "0x3ffb0000+0x28",
       "0x3ffb0028+0x58"
     ],
@@ -91,10 +91,10 @@
       "burst": 300,
       "fifo_overflows": 1,
       "restarts": 2,
-      "timer_interrupts_meanwhile": 101
+      "timer_interrupts_meanwhile": 100
     },
     "stream": {
-      "timer_events": 4775,
+      "timer_events": 4809,
       "receive_interrupts": 6630,
       "echoed": 3014,
       "sent": 3614
@@ -156,7 +156,7 @@
     "recoveries": 2,
     "dropped": 44,
     "overflows": 1,
-    "entries": 6973,
+    "entries": 6974,
     "boot_reason": 1,
     "byte_cell": 116,
     "half_cell": 29789,
@@ -164,10 +164,10 @@
   },
   "readback": [
     "0x40080000+0x404",
-    "0x40080404+0x6138",
+    "0x40080404+0x60c0",
     "0x3ffb0000+0x28"
   ],
-  "uart_sha256": "37c2d0099a41e845f280c3eb98848d4a76b661cad72bf51d329e75cc21822f66",
+  "uart_sha256": "2ec39830b67d902a40690b4c8f9c7c8e39916f2d5c4f9e0fe4b79ef0952d8422",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -187,33 +187,33 @@
       }
     }
   },
-  "seconds": 28.312,
+  "seconds": 27.655,
   "kernel_usb": {
-    "since": 1795439342.2327368,
-    "until": 1795439370.5156043,
+    "since": 1795456449.350194,
+    "until": 1795456476.9754412,
     "lines": [
       {
-        "time": 1795439347.323627,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 96"
+        "time": 1795456454.43091,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 79"
       },
       {
-        "time": 1795439349.927008,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 113 using xhci_hcd"
+        "time": 1795456456.984691,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 96 using xhci_hcd"
       },
       {
-        "time": 1795439350.032686,
+        "time": 1795456457.089274,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       },
       {
-        "time": 1795439366.374406,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 113"
+        "time": 1795456472.870858,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 96"
       },
       {
-        "time": 1795439368.968681,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 114 using xhci_hcd"
+        "time": 1795456475.436685,
+        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 97 using xhci_hcd"
       },
       {
-        "time": 1795439369.072951,
+        "time": 1795456475.538576,
         "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
       }
     ],
@@ -239,11 +239,11 @@
       "tag": "t",
       "h": "00000c9a",
       "c": "00000002",
-      "i": "00001b3d",
-      "m": "000019eb",
+      "i": "00001b3e",
+      "m": "00001a26",
       "p": "00018042",
       "q": "00818040",
-      "k": "00000065",
+      "k": "00000064",
       "l": "0000002c",
       "o": "00000001",
       "e": "00000d9a",
@@ -259,7 +259,6 @@
     "power-off",
     "hub-status",
     "power-on",
-    "hub-wait",
     "hub-wait",
     "jtag-cold-reset-cause",
     "jtag-cold-boot-reason",

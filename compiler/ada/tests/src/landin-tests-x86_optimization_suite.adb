@@ -901,7 +901,7 @@ package body Landin.Tests.X86_Optimization_Suite is
         & "g: i64, h: i64) -> (r: i64) = r = a+b+c+d+e+f+g+h end consume "
         & "public pressure: (x: i64) -> (r: i64) = "
         & "r = consume(x+1,x+2,x+3,x+4,x+5,x+6,x+7,x+8) "
-        & "+ consume(x+2,x+3,x+4,x+5,x+6,x+7,x+8,x+9) end pressure";
+        & "+ consume(x+11,x+12,x+13,x+14,x+15,x+16,x+17,x+18) end pressure";
       C_Work : Landin.Stages.Compilation :=
         Landin.Stages.Create (Landin.Targets.Linux_X86_64);
    begin
@@ -1721,6 +1721,68 @@ package body Landin.Tests.X86_Optimization_Suite is
                   (Objective = Opt.None) = Contains (Text, HT & "mulq "),
                   "a proved unsigned product is imul at size and speed,"
                   & " mul at none");
+               --  D2251: at speed a proved product by 4 is a scaled
+               --  index; D2249: a loaded byte is widened where it was
+               --  loaded.
+               Check_Assembly
+                 (Item, Text,
+                  Objective /= Opt.Speed
+                  or else not Contains (Text, "imulq $4,"),
+                  "a proved product by four is no imul at speed");
+               Check_Assembly
+                 (Item, Text,
+                  Objective = Opt.None
+                  or else not Contains (Text, "movzbl %"),
+                  "a loaded byte is not widened again");
+            end;
+         end loop;
+      end;
+      --  D2252: an index less a constant, proved, has the constant in
+      --  the element's displacement at size and speed.
+      declare
+         Offset : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Offset,
+            "public schedule: () -> (r: u32) = mut w: [64]u32 = zeroed "
+            & "for t in usize(16)..<64 do w[t] = w[t - 15] +% 1 end for "
+            & "r = w[63] end schedule");
+         for Objective in Opt.Objective loop
+            declare
+               Text : constant String :=
+                 Emitted (Offset, (Objective, Opt.Off));
+            begin
+               Check_Assembly
+                 (Item, Text,
+                  (Objective = Opt.None) = Contains (Text, "$15"),
+                  "an index's constant offset is in the displacement at "
+                  & "size and speed");
+            end;
+         end loop;
+      end;
+      --  D2254: a constant element behind an address slot is read at
+      --  its displacement, the slot in a register or its home.
+      declare
+         Behind : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Behind,
+            "public total: (inout words: [8]u32) -> (r: u32) = "
+            & "r = words[1] +% words[2] +% words[3] end total");
+         for Objective in Opt.Objective loop
+            declare
+               Text : constant String :=
+                 Emitted (Behind, (Objective, Opt.Off));
+            begin
+               Check_Assembly
+                 (Item, Text,
+                  Objective = Opt.None
+                  or else (not Contains (Text, "addq $4, %")
+                           and then not Contains (Text, "addq $8, %")),
+                  "an element behind an address slot is at its "
+                  & "displacement at size and speed");
             end;
          end loop;
       end;

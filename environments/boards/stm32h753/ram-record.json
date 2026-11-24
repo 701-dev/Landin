@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "52b568dde7ebaca2e767fee84c53025b54f1cae5285723e64c430788cc6692fd",
+  "image_sha256": "d1a694ee0f0f2f78c9f9c487284e016439c69404c18eb7e2f5de239b881b96b5",
   "image_name": "board.elf",
   "image": {
     "float_unit": "passed",
@@ -114,11 +114,11 @@
     "handled": 12014,
     "recoveries": 3,
     "dma_entries": 47,
-    "usart_entries": 144,
+    "usart_entries": 141,
     "s0ndtr": 229,
     "s0cr": 1049617
   },
-  "uart_sha256": "6a83bccdacd4ffa98899192d51e5527efc3365f3fbf135c6f1fa7af62bb4e0dd",
+  "uart_sha256": "85fd15efa0e1c1e5f36844845f4099095b4b18961dc4fb169b89fdcda304e36f",
   "mode": "ram",
   "warm_load": {
     "board": "stm32h753",
@@ -128,28 +128,28 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "52b568dde7ebaca2e767fee84c53025b54f1cae5285723e64c430788cc6692fd",
-    "entry": 603986525,
+    "elf_sha256": "d1a694ee0f0f2f78c9f9c487284e016439c69404c18eb7e2f5de239b881b96b5",
+    "entry": 603986505,
     "flash_written": false,
     "format_version": 1,
     "helper_source_sha256": "fc2f5b5081e7f4778195e621b04081bd05ac04dee304934a44bab3475aff0880",
     "mode": "warm",
-    "previous_pc": 722,
+    "previous_pc": 22,
     "segments": [
       {
         "address": 603979776,
-        "bytes": 19188,
-        "sha256": "55b64f6760b6f750cfe5852a4094ca3b8cc055bc5f522d22d45cd9852e1b09bf"
+        "bytes": 19164,
+        "sha256": "14e6f7eb74b13c169750156130a644197e518055e71d23626420de7fe968caba"
       }
     ],
     "stack": 604504064,
     "status": "passed",
     "vector": 603979776
   },
-  "seconds": 21.328,
+  "seconds": 21.198,
   "kernel_usb": {
-    "since": 1795439087.0728354,
-    "until": 1795439108.3833184,
+    "since": 1795456199.252525,
+    "until": 1795456220.4341505,
     "lines": [],
     "status": "captured"
   },
@@ -172,8 +172,8 @@
       "d": "00000002",
       "w": "0000002f",
       "k": "0000002f",
-      "m": "00003fd9",
-      "u": "00000090",
+      "m": "00003f73",
+      "u": "0000008d",
       "p": "00000037",
       "n": "000000e5",
       "e": "0000001b",

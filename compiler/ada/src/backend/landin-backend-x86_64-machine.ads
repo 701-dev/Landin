@@ -35,6 +35,10 @@ package Landin.Backend.X86_64.Machine is
    function Fits_Arithmetic_Immediate
      (Value : Landin.Targets.Byte_Count) return Boolean;
 
+   --  D2251: k when Text is the decimal image of 2 ** k for k in 1 .. 30,
+   --  the products an imm32 multiplies by that a shift makes, else 0.
+   function Power_Of_Two (Text : String) return Natural;
+
 
 private
 

@@ -942,7 +942,7 @@ candidate passed its
 
 ### R16.33 — Element addresses and products by a constant
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
 What R16.31 left as SHA-256's largest cost against gcc on the hosted
@@ -957,6 +957,62 @@ Exit evidence: SHA-256's schedule and load loops measured with each
 constant offset in the address and each `4 * t` made once and scaled or
 shifted, its instructions lower than R16.31's figures on x86-64 and
 arm64, and no other combination over its own.
+
+Done: the simplifier moves a constant left operand of a commutative
+integer operation to the right (D2247) and numbers equal integer
+constants as one class without replacing them (D2248), so SHA-256's four
+`4 * t` are one product. x86-64 puts an index's constant offset in the
+access's displacement (D2252), as it now does a field behind an address
+slot in its home (D2254), compares and scales a slice edge where it
+lives (D2250) and does not widen a byte it loaded again (D2249); a proved
+product by a power of two is `shl` or `lea` on x86-64 and `lsl` on arm64
+(D2251), and arm64 makes a conversion in the register its operand dies
+in (D2253). arm64 has no address with both a register index and a
+displacement, so its schedule keeps a `sub` before each load (`SR-1704`).
+SHA-256's schedule is 23 x86-64 instructions an iteration where it was
+31, and its load loop 25 where it was 52. Against the item's base, at
+speed, x86-64 executes 12.7% fewer instructions on SHA-256 of 64 MiB
+(6.90 G to 6.03 G; gcc's 4.56 G), 9.7% on reverse-complement, 8.0% on
+SipHash-1-3, 6.2% on fasta, 2.3% on fibres, 1.3% on fannkuch-redux and
+0.03% to 0.15% on the rest; arm64 under QEMU 3.7% on reverse-complement,
+3.5% on SHA-256, 2.8% on SipHash-1-3, 1.8% on binary-trees, 1.6% on
+fibres and up to 0.1% on the rest. At size x86-64 executes 0.03% to
+10.6% fewer and arm64 up to 2.5%. Every hosted image's `.text` is
+smaller and every output the same; RV64 executes fewer instructions on
+every workload, and Cortex-M0's one firmware workload 0.6% fewer. Every
+board's records were made again on the rig. Of the boards' 432 cycle
+configurations, 390 held within tolerance and 36 ran faster, fannkuch-redux
+by 0.25% to 2.4%. At speed it ran 0.64% slower on the RP2350's M33 and
+0.63% on its Hazard3 with two fewer instructions: its flip loop's 32-bit
+head and call moved to halfword addresses. `SR-1726` files that alignment.
+The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45252688704) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45259337256).
+
+### R16.34 — Stored values in their slots' registers on RISC-V and Cortex-M
+
+Status: planned
+Depends on: R16.10
+
+What R16.33 named as the next cost on the firmware and RISC-V targets:
+`SR-1681`'s stored value, which arm64 (D2164) and x86-64 (D2157) make in
+its slot's register and RISC-V and Cortex-M still make in a register of
+its own and move. On arm64 the rule alone took 5.5% to 14% off every
+hosted workload at speed; a direct port to RISC-V's recorded-writes
+allocator made RV64 execute 7% to 110% more instructions, because the
+plan's check refused the value's write inside the slot's interval and
+the routine fell back to its homes (D1503, D2108). Beside it, since
+every board's records are made again either way, `SR-1726`'s placement:
+on the RP2350, whose M33 and Hazard3 fetch from SRAM without a cache,
+R16.33's two fewer instructions moved fannkuch-redux's flip loop's 32-bit
+head and call to halfword addresses and it ran 0.64% and 0.63% slower at
+speed.
+Exit evidence: RV64, RV32 and Cortex-M make a stored value in its slot's
+register with the plan's check accepting it, RV64's instructions at speed
+and the boards' cycles lower than R16.33's figures; at speed on Thumb-2
+and compressed RV32 a loop's head at a word address, padded only where
+the padding is not executed, the RP2350's fannkuch-redux no slower than
+before R16.33; and no other combination over its own.
 
 ### The continuous items
 
@@ -2322,6 +2378,23 @@ Depends on: R21.30
 
 Exit evidence: the corpus, the Io and thread suites and the debugger
 sessions on Windows arm64 in the gate.
+
+### R21.50 — Microsoft's toolchain on Windows
+
+Status: planned
+Depends on: R21.10
+
+A second, optional Windows x86-64 toolchain beside llvm-mingw, the one
+D2189 describes: the assembly assembled by Clang for
+`x86_64-pc-windows-msvc` or by `clang-cl`, or a MASM spelling of the
+backend's output if that proves the simpler route; the link by `link.exe`
+or `lld-link` with `/ENTRY:_landin_start /NODEFAULTLIB`; and the Windows
+SDK's `kernel32.lib` and each `linker.library` as a `.lib` found by
+`/LIBPATH:`. A user selects it with `--toolchain`, and llvm-mingw stays
+the default and the only toolchain a Windows build requires.
+Exit evidence: the corpus links with Microsoft's tools and runs on a
+Windows x86-64 runner in the gate, which carries Visual Studio; the
+selection in `docs/capabilities.md`.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
