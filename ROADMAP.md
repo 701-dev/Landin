@@ -2753,7 +2753,8 @@ execution compiles, links and runs the hosted corpus with that `refine`,
 and `freebsd-host-release` packages `landin-VERSION-x86_64-freebsd.tar.gz`,
 whose `refine` loads only `libthr` and `libc` and ran with the GNAT moved
 away; the release workflow publishes it. All 1,294 cases passed in a local
-guest, and the gate run 45492635094 passed. The test program's native lane
+guest, and the merged candidate passed gate run 45500877717 with boards
+run 45506023110. The test program's native lane
 learned FreeBSD (D2429): its C driver is the one `refine` would take, a level
 is confirmed by the emitted lane's CPUID probe, the two fixtures that name
 Linux's fault endpoints run with that lane's endpoints preloaded, the level
