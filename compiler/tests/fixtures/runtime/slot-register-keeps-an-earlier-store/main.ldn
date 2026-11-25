@@ -1,0 +1,36 @@
+--  D2157: a value computed in its slot's register must find no other
+--  value still there.  `r`'s first value is stored into `r` and then read
+--  directly, not through `r`, after `x * u` begins; `x * u` starts the
+--  chain that is stored into `r` next, so it would take `r`'s register
+--  while the first value still lived in it.  x86-64 at `size` gave 11.
+kernel: (x: i64) -> (result: i64) =
+    mut r: i64 = 1 + x
+    t := 2 + x
+    u := 3 + x
+    r = (x * u) + (t + r)
+    result = r
+end kernel
+
+kernel_f64: (x: f64) -> (result: f64) =
+    mut r: f64 = 1.0 + x
+    t := 2.0 + x
+    u := 3.0 + x
+    r = (x * u) + (t + r)
+    result = r
+end kernel_f64
+
+kernel_f32: (x: f32) -> (result: f32) =
+    mut r: f32 = 1.0 + x
+    t := 2.0 + x
+    u := 3.0 + x
+    r = (x * u) + (t + r)
+    result = r
+end kernel_f32
+
+public main: () -> (code: i32) =
+    one: f64 = 1.0
+    code = 1
+    if kernel(1) == 9 and kernel_f64(one) == 9.0 and kernel_f32(f32(one)) == 9.0 then
+        code = 42
+    end if
+end main
