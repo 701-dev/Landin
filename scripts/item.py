@@ -65,7 +65,18 @@ not an ancestor of, since promotion would refuse that tree; `--unmerged`
 dispatches anyway, for board feedback before the final merge.  After a
 boards run whose board legs passed and whose only failures were timing
 jobs, `boards --rerun-failed` re-runs only the failed jobs of that run.
-`push` refuses a stale `citations.txt` before pushing.
+`push` refuses a stale `citations.txt` before pushing, then runs the cheap
+checks the changed paths select (the formatting case, the lowering suite,
+the debugger workloads' closures, the library's comments, the whole
+`check.py` after a merge), refusing on the first that fails unless
+`--no-check`; `--boards` dispatches the boards beside the gate.
+
+A train: `merge-main HOLDER --with OTHER` merges other items' gated
+candidates into the token holder's final merge, which then lands them all
+on its own gate and boards.  A member rides until then: it refuses to push,
+merge, wait for the token or promote, and `promote HOLDER` writes it as
+promoted with the holder's runs, so its `finish` follows main's gate as any
+promoted item's does.  `--drop OTHER` rebuilds the train without one.
 
 A phase that declares a breaking window, a line `Window: BRANCH` in its
 opening paragraphs, keeps its serial items on that integration branch
