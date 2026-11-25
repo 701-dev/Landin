@@ -182,6 +182,29 @@ class RecordHints(unittest.TestCase):
         self.assertIn("name ./scripts/dev-test.sh --record=WHAT", said[0])
 
 
+class PortablePaths(unittest.TestCase):
+    """Every tracked path is one a Windows checkout can hold."""
+
+    def test_ordinary_names_pass(self):
+        self.assertEqual(faults(checker.check_portable_paths, written={
+            "compiler/tests/debugging/caller-path.ldn": "x\n",
+            "platform/linux/auxiliary.ldn": "x\n"}), [])
+
+    def test_a_name_windows_refuses_is_reported(self):
+        for name in ('caller"\\path.ldn', "a:b.ldn", "aux.ldn",
+                     "trailing.", "what?.md"):
+            said = reasons(checker.check_portable_paths,
+                           written={"docs/" + name: "x\n"})
+            self.assertEqual(len(said), 1, (name, said))
+            self.assertIn("write it at run time", said[0])
+
+    def test_names_differing_only_in_case_are_reported(self):
+        said = reasons(checker.check_portable_paths, written={
+            "docs/Guide.md": "x\n", "docs/guide.md": "y\n"})
+        self.assertEqual(len(said), 1, said)
+        self.assertIn("only in case", said[0])
+
+
 class NamedFiles(unittest.TestCase):
     """A document that names a repository file names one that exists."""
 

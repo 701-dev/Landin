@@ -1,0 +1,9 @@
+class: runtime
+profiles: standard
+summary: D2475 a Windows image's entry holds the processor to its CPU feature level before it reads anything, and each level names the first feature injected words lack
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 1500, 1510, 1630
+targets: windows-x86-64, windows-arm64
+levels: x86-64-v3, armv8.1-a

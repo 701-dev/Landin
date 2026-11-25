@@ -257,7 +257,8 @@ package body Landin.Tests.Toolchain_Suite is
                Facts => Landin.Targets.Windows_X86_64)),
          "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
          & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
-         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "main" & LF
+         & "-Wl,-Xlink=-Brepro" & LF & "main.s" & LF & "-lkernel32" & LF
+         & "-o" & LF & "main" & LF
          & "-fuse-ld=lld" & LF,
          "Windows links kernel32 alone, through LLD");
       --  D2289: source debugging links the PDB beside the image, which
@@ -267,16 +268,44 @@ package body Landin.Tests.Toolchain_Suite is
            (Landin.Backend.Toolchain.Link_Arguments
               ("main.s", "out/main.exe", "", Libraries => Libraries,
                Facts => Landin.Targets.Windows_X86_64,
-               Full_Debug => True)),
+               Level => Landin.Targets.Levels.Default_Level
+                 (Landin.Targets.Windows_X86_64),
+               Full_Debug => True,
+               Compilation_Directory => "/home/a,b")),
          "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
          & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
-         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "out/main.exe"
+         & "-Wl,-Xlink=-Brepro" & LF & "main.s" & LF & "-lkernel32" & LF
+         & "-o" & LF & "out/main.exe"
          & LF & "-Wl,--pdb=out/main.pdb" & LF
-         & "-Wl,-Xlink=/pdbaltpath:%_PDB%" & LF & "-fuse-ld=lld" & LF,
-         "source debugging links a PDB beside the image");
+         & "-Wl,-Xlink=/pdbaltpath:%_PDB%" & LF
+         --  D2486: the object under a fixed name where the link runs, and
+         --  the compilation directory in that one's place, whole.
+         & "-save-temps=cwd" & LF & "-Xlinker" & LF
+         & "-Xlink=/pdbsourcepath:/home/a,b" & LF
+         & "-fuse-ld=lld" & LF,
+         "source debugging links a PDB beside the image, reproducibly");
       Landin.Testing.Check_Equal
         (Item, Landin.Backend.Toolchain.PDB_Path ("main"), "main.pdb",
          "an image named without .exe has its PDB after its name");
+      --  D2485: llvm-mingw's driver adds `.exe` to a name without an
+      --  extension, and Microsoft's Clang does not.
+      Landin.Testing.Check
+        (Item, Landin.Backend.Toolchain.Linked_Image
+           ("out/main", Landin.Targets.Windows_X86_64, "") = "out/main.exe"
+         and then Landin.Backend.Toolchain.Linked_Image
+           ("out.d/main", Landin.Targets.Windows_Arm64,
+            "aarch64-w64-mingw32-clang") = "out.d/main.exe"
+         and then Landin.Backend.Toolchain.Linked_Image
+           ("out/main.exe", Landin.Targets.Windows_X86_64, "")
+             = "out/main.exe"
+         and then Landin.Backend.Toolchain.Linked_Image
+           ("main.bin", Landin.Targets.Windows_X86_64, "") = "main.bin"
+         and then Landin.Backend.Toolchain.Linked_Image
+           ("main", Landin.Targets.Windows_X86_64,
+            "x86_64-pc-windows-msvc-clang") = "main"
+         and then Landin.Backend.Toolchain.Linked_Image
+           ("main", Landin.Targets.Linux_X86_64, "") = "main",
+         "the MinGW link of a name without an extension writes NAME.exe");
       Landin.Testing.Check_Equal
         (Item, Landin.Backend.Toolchain.Driver_For
            (Landin.Targets.Windows_X86_64, ""),
@@ -336,8 +365,25 @@ package body Landin.Tests.Toolchain_Suite is
                Driver => "x86_64-pc-windows-msvc-clang")),
          Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
          & "-Wl,/DEBUG" & LF & "-Wl,/PDB:main.pdb" & LF
-         & "-Wl,/PDBALTPATH:%_PDB%" & LF & "-fuse-ld=link" & LF,
+         & "-Wl,/PDBALTPATH:%_PDB%" & LF & "-save-temps=cwd" & LF
+         & "-fuse-ld=link" & LF,
          "a full-debug Microsoft link writes the PDB beside the image");
+      --  D2486: `lld-link` is told the fixed directory, and `link.exe`,
+      --  which has no such option, is not.
+      Landin.Testing.Check_Equal
+        (Item, Landin.Platform.Joined
+           (Landin.Backend.Toolchain.Link_Arguments
+              ("main.s", "main.exe", "/opt/llvm/bin/lld", Facts => Facts,
+               Full_Debug => True,
+               Level => Landin.Targets.Levels.Default_Level (Facts),
+               Driver => "x86_64-pc-windows-msvc-clang",
+               Compilation_Directory => "/home/a")),
+         Head & "main.s" & LF & "-o" & LF & "main.exe" & LF
+         & "-Wl,/DEBUG" & LF & "-Wl,/PDB:main.pdb" & LF
+         & "-Wl,/PDBALTPATH:%_PDB%" & LF & "-save-temps=cwd" & LF
+         & "-Xlinker" & LF & "/PDBSOURCEPATH:/home/a" & LF
+         & "-fuse-ld=/opt/llvm/bin/lld" & LF,
+         "a full-debug lld-link link names the compilation directory");
       Landin.Testing.Check
         (Item, not Landin.Backend.Toolchain.Microsoft_Link
            (Facts, "x86_64-w64-mingw32-clang")

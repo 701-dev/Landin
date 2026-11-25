@@ -1,0 +1,181 @@
+--  The CPU feature level (D255) a Windows image was built for, and the
+--  check the process entry makes of it before anything else (D2475): a
+--  processor without a feature of the level gets one line on standard
+--  error naming the level and the feature, and the process ends with
+--  status 127, as a static Linux executable's does (D284).  The checks
+--  test constant masks against the words the processor or the system
+--  gives, so they use no instruction the level adds, and the baseline's
+--  check is empty.
+--
+--  On x86-64 the words are the processor's own, `cpuid` and `xgetbv`, and
+--  platform/x86_64 reads them and holds D255's tables, for Linux's entry
+--  as for this one (D2476).  On arm64 Windows reads no ID register for a
+--  program and has no auxiliary vector: `IsProcessorFeaturePresent`
+--  answers for LSE and CRC32, and nothing Windows documents answers for
+--  RDM, so armv8.1-a's third feature is not among what an image is held
+--  to (D2477).
+
+import platform/x86_64
+
+fixed if compiler.os == windows then
+    fixed if compiler.arch == x86_64 then
+        --- What the processor says of itself, as platform/x86_64 reads it.
+        public cpu_words: type = x86_64.cpu_words
+
+        --- The words this processor gives.
+        public read_cpu_words:
+            () -> (words: cpu_words) =
+            words = x86_64.read_cpu_words()
+        end read_cpu_words
+
+        --- The level this executable was built for.
+        public level:
+            () -> (name: []u8) =
+            name = x86_64.level()
+        end level
+
+        --- The first feature of this executable's level that `words`
+        --- lacks, by the name `compiler.feature` gives it, or "" when
+        --- the level is all there.
+        public missing_feature:
+            (words: cpu_words) -> (name: []u8) =
+            name = x86_64.missing_feature(words)
+        end missing_feature
+
+        --  Every level above the family's baseline has POPCNT (D255).
+        fixed if compiler.feature.popcnt then
+            --  Hold the processor to this level before `main` runs.  It
+            --  calls platform/x86_64 itself rather than this module's names
+            --  for it: refine inlines only at `--optimize speed`, so a call
+            --  through them would put three more routines in every image.
+            check_level: () -> none =
+                missing: []u8 =
+                    x86_64.missing_feature(x86_64.read_cpu_words())
+                return when lenof missing == 0
+                tell("landin: this executable needs ")
+                tell(x86_64.level())
+                tell(", and the processor lacks ")
+                tell(missing)
+                tell("\n")
+                exit_process(refused_status)
+            end check_level
+        else
+            --  The family's baseline needs no check, and runs none.
+            check_level: () -> none =
+            end check_level
+        end if
+    else
+        --- What the system says of the processor: bit N is set when
+        --- `IsProcessorFeaturePresent` answers yes for feature N, for
+        --- the features a level is held to, 31 (CRC32) and 34 (the
+        --- ARMv8.1 atomics, LSE), and clear otherwise.
+        public cpu_words: type = struct
+            present: u64
+        end cpu_words
+
+        --  `IsProcessorFeaturePresent`: nonzero when the processor has
+        --  `feature`, a `PF_*` number.
+        extern(c) link(symbol: "IsProcessorFeaturePresent")
+        processor_feature_present: (feature: u32) -> (present: i32)
+
+        --  `PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE` and
+        --  `PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE`.
+        crc32_feature: u32 = 31
+
+        atomics_feature: u32 = 34
+
+        --  Feature N's bit, when the system says the processor has it.
+        asked: (feature: u32) -> (bit: u64) =
+            bit = 0
+            if processor_feature_present(feature) <> 0 then
+                bit = u64(1) << u64(feature)
+            end if
+        end asked
+
+        --- The words this processor gives.
+        public read_cpu_words:
+            () -> (words: cpu_words) =
+            words = (present: asked(crc32_feature) | asked(atomics_feature))
+        end read_cpu_words
+
+        fixed if compiler.feature.lse then
+            --- The level this executable was built for.
+            public level:
+                () -> (name: []u8) =
+                name = "armv8.1-a"
+            end level
+
+            --  Hold the processor to this level before the entry reads
+            --  anything.
+            check_level: () -> none =
+                hold_level()
+            end check_level
+
+            --- The first feature of this executable's level that `words`
+            --- lacks, by the name `compiler.feature` gives it, or "" when
+            --- the level is all there.
+            public missing_feature:
+                (words: cpu_words) -> (name: []u8) =
+                --  RDM is not asked: nothing Windows documents reports it.
+                present: u64 = words.present
+                name = if (present & 0x400000000) == 0 then "lse"
+                       elsif (present & 0x80000000) == 0 then "crc32"
+                       else "" end if
+            end missing_feature
+        else
+            --- The level this executable was built for.
+            public level:
+                () -> (name: []u8) =
+                name = "armv8-a"
+            end level
+
+            --  The family's baseline needs no check, and runs none.
+            check_level: () -> none =
+            end check_level
+
+            --- The first feature of this executable's level that `words`
+            --- lacks, by the name `compiler.feature` gives it, or "" when
+            --- the level is all there.
+            public missing_feature:
+                (words: cpu_words) -> (name: []u8) =
+                _ = words
+                name = ""
+            end missing_feature
+        end if
+    end if
+
+    --  The status a static Linux executable ends with when it refuses its
+    --  processor, glibc's loader's (D284), so one program built for both
+    --  systems ends alike on one machine; Windows' own loader checks no
+    --  level and has no status for it, and STATUS_ILLEGAL_INSTRUCTION is
+    --  what a failed check and an unchecked image end with.
+    refused_status: i32 = 127
+
+    --  Write `text` to standard error, as far as the process has one.
+    tell: (text: []u8) -> none =
+        stream: handle = get_std_handle(std_error)
+        return when stream == no_handle or stream == invalid_handle
+        mut sent: usize = 0
+        while sent < lenof text do
+            mut put: u32 = 0
+            data: ptr u8 = ptr(usize(addr text[0]) + sent)
+            done: i32 = write_file(stream, data, u32(lenof text - sent),
+                                   addr put, 0)
+            return when done == 0 or put == 0
+            sent += usize(put)
+        end while
+    end tell
+
+    --  Hold the processor to the executable's level, or say which feature
+    --  it lacks on standard error and end the process.
+    hold_level: () -> none =
+        missing: []u8 = missing_feature(read_cpu_words())
+        return when lenof missing == 0
+        tell("landin: this executable needs ")
+        tell(level())
+        tell(", and the processor lacks ")
+        tell(missing)
+        tell("\n")
+        exit_process(refused_status)
+    end hold_level
+end if

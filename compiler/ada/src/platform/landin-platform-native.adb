@@ -820,14 +820,25 @@ package body Landin.Platform.Native is
          return Interfaces.C.int
         with Import, Convention => C,
              External_Name => "landin_move_file_noreplace";
+      function Stage_Move
+        (Source, Destination : Interfaces.C.char_array)
+         return Interfaces.C.int
+        with Import, Convention => C,
+             External_Name => "landin_publication_stage_move";
       Result : Interfaces.C.int;
    begin
       if not Nameable (From) or else not Nameable (To) then
          Status := (if Nameable (To) then Move_Source_Absent else Not_Movable);
          return;
       end if;
-      Result := Move_No_Replace
-        (Interfaces.C.To_C (From), Interfaces.C.To_C (To));
+      --  D2485: a move inside a publication's stage goes by the arena's
+      --  descriptor, as every other write there does, and a staged path
+      --  never falls back to its spelling.
+      Result := Stage_Move (Interfaces.C.To_C (From), Interfaces.C.To_C (To));
+      if Result = -2 then
+         Result := Move_No_Replace
+           (Interfaces.C.To_C (From), Interfaces.C.To_C (To));
+      end if;
       Status := (if Result = 1 then Moved
                  elsif Result = 0 then Move_Source_Absent
                  else Not_Movable);

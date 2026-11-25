@@ -1,5 +1,6 @@
 --  The CodeView description of an x86-64 COFF object: Landin.Backend.
 --  Codeview's encoder over this backend's allocation plans and frames.
+with Landin.Backend.Codeview;
 with Landin.Backend.X86_64.Dwarf;
 with Landin.Provenance;
 
@@ -30,6 +31,10 @@ package Landin.Backend.X86_64.Codeview is
         (Item : Landin.IR.Item_Id) return Dwarf.Frame_Access := null;
       Trapped : access function
         (Item : Landin.IR.Item_Id; Value : Landin.IR.Value_Id)
-         return Boolean := null) return String;
+         return Boolean := null;
+      Stack_Switch, Stack_Start : String := "") return String;
+
+   function Routine_End (Prefix, Symbol : String) return String
+     renames Landin.Backend.Codeview.Routine_End;
 
 end Landin.Backend.X86_64.Codeview;

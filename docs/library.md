@@ -3555,6 +3555,7 @@ with `linker.library`:
 | File | What it holds | Links |
 |---|---|---|
 | `windows.ldn` | The entry, the argument and environment root, handles, the error codes, `VirtualAlloc` and `VirtualFree`. | kernel32 |
+| `level.ldn` | The CPU feature level the entry holds the processor to: `level`, `read_cpu_words` and `missing_feature`. | |
 | `wide.ldn` | The conversion between a host string and the system's 16-bit units, and `terminate`, which makes the terminated wide string a call takes. | |
 | `files.ldn` | Files, directories and the console. | |
 | `processes.ldn` | Child processes, pipes, events and waiting on them. | |
@@ -3572,9 +3573,18 @@ bytes and back.
 
 | Name | What it is |
 |---|---|
-| `_landin_start` | The process entry. It reads `GetCommandLineW` and the environment block, splits the command line as Microsoft's C runtime does, calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
-| `_landin_host_initialize_arguments` | Keeps C vectors as the process's argument root, as `platform/posix`'s does. The entry calls it. |
+| `_landin_start` | The process entry. It holds the processor to the image's level, reads `GetCommandLineW` and the environment block, splits the command line as Microsoft's C runtime does, keeps the vectors as the process's argument root, calls the program's `main` and ends the process with `ExitProcess`, main's result the exit code's 32 bits. |
 | `arguments`, `environment` | What the entry found, read as `platform/posix`'s are. |
+| `level`, `read_cpu_words`, `missing_feature` | The CPU feature check, as `platform/linux`'s. |
+
+An image built above its family's baseline level checks the processor
+before anything else. One without a feature of the level writes
+`landin: this executable needs LEVEL, and the processor lacks FEATURE`
+to standard error and ends with status 127, as a static Linux executable
+does. On x86-64 the check reads `cpuid` through `platform/x86_64`. On
+arm64 `IsProcessorFeaturePresent` answers for LSE and CRC32; nothing
+Windows documents reports RDM, armv8.1-a's third feature, so it is not
+checked.
 
 Every program of the Windows corpus starts at the entry, the first
 example among them, which imports nothing and ends with its status. The
@@ -3736,6 +3746,22 @@ Waiting and barriers:
   completed.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-platform-xtensa/main.ldn)
+
+## platform/x86_64
+
+What an x86-64 processor says of itself, `cpuid` and `xgetbv`, and each
+CPU feature level's features, declared on `x86_64` alone. The Linux and
+Windows process entries hold the processor to the executable's level
+with it, and each gives the same names itself.
+
+| Name | What it is |
+|---|---|
+| `cpu_words` | `cpuid` leaf 1's ecx, leaf 7's ebx and leaf 0x80000001's ecx, and XCR0's low half when the level needs AVX state. |
+| `read_cpu_words` | The words this processor gives. |
+| `level` | The level the executable was built for: `x86-64-v1` to `x86-64-v4`. |
+| `missing_feature` | The first of the level's features the words lack, or `""`. |
+
+[Executable example](../compiler/tests/fixtures/runtime/linux-level-check/main.ldn)
 
 ## platform/riscv/hazard3
 

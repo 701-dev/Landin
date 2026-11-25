@@ -273,6 +273,31 @@ package body Landin.Backend.Toolchain is
       end;
    end Microsoft_Link;
 
+   function Linked_Image
+     (Output : String; Facts : Landin.Targets.Target_Facts;
+      Driver : String) return String
+   is
+      Leaf : Positive := Output'First;
+   begin
+      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        /= Landin.Targets.Capabilities.Windows
+        or else Microsoft_Link (Facts, Driver)
+      then
+         return Output;
+      end if;
+      for Index in Output'Range loop
+         if Output (Index) = '/' then
+            Leaf := Index + 1;
+         end if;
+      end loop;
+      --  Clang's MinGW toolchain asks whether the name has an extension,
+      --  which is whether its last component holds a `.` at all.
+      if Ada.Strings.Fixed.Index (Output (Leaf .. Output'Last), ".") > 0 then
+         return Output;
+      end if;
+      return Output & ".exe";
+   end Linked_Image;
+
    function Microsoft_Triplet
      (Facts : Landin.Targets.Target_Facts) return String
    is
@@ -584,7 +609,8 @@ package body Landin.Backend.Toolchain is
       Float : Landin.Targets.Firmware.Float_Unit :=
         Landin.Targets.Firmware.No_Float_Unit;
       Assembly_Is_Object : Boolean := False;
-      Driver : String := "")
+      Driver : String := "";
+      Compilation_Directory : String := "")
       return Landin.Platform.Path_List
    is
       List : Landin.Platform.Path_List;
@@ -707,6 +733,22 @@ package body Landin.Backend.Toolchain is
             Landin.Platform.Add
               (List, "-Wl,/PDB:" & File_Operand (PDB_Path (Output)));
             Landin.Platform.Add (List, "-Wl,/PDBALTPATH:%_PDB%");
+            --  D2486: the object under a fixed name in the directory the
+            --  link runs in, and, for `lld-link`, the compilation
+            --  directory in that one's place.  `link.exe` has no such
+            --  option.
+            Landin.Platform.Add (List, "-save-temps=cwd");
+            if Compilation_Directory /= ""
+              and then Ada.Strings.Fixed.Index
+                (Linker (Natural'Max
+                           (Linker'First, Ada.Strings.Fixed.Index
+                              (Linker, "/", Ada.Strings.Backward) + 1)
+                         .. Linker'Last), "lld") > 0
+            then
+               Landin.Platform.Add (List, "-Xlinker");
+               Landin.Platform.Add
+                 (List, "/PDBSOURCEPATH:" & Compilation_Directory);
+            end if;
          end if;
          --  D2388: Visual Studio's `link.exe` by name, since a Clang's
          --  default linker is its build's choice: LLVM's arm64 Windows
@@ -721,6 +763,11 @@ package body Landin.Backend.Toolchain is
          Landin.Platform.Add (List, "-Wl,-e,_landin_start");
          Landin.Platform.Add (List, "-Wl,--stack,8388608");
          Landin.Platform.Add (List, "-Wl,--gc-sections");
+         --  D2487: LLD writes the time of the link into the COFF header and
+         --  the debug directory, which `--build-id` gives every image,
+         --  unless SOURCE_DATE_EPOCH names one; `/Brepro` writes a hash of
+         --  the image in its place, as Microsoft's link does (D2327).
+         Landin.Platform.Add (List, "-Wl,-Xlink=-Brepro");
          for Directory of Directories loop
             Landin.Platform.Add (List, "-L" & Directory);
          end loop;
@@ -738,6 +785,24 @@ package body Landin.Backend.Toolchain is
             Landin.Platform.Add
               (List, "-Wl,--pdb=" & File_Operand (PDB_Path (Output)));
             Landin.Platform.Add (List, "-Wl,-Xlink=/pdbaltpath:%_PDB%");
+            --  D2486: LLD names each object in the PDB by its path, and
+            --  each relative path, a source's among them, against the
+            --  directory the link ran in.  The driver's own object was a
+            --  temporary file with a random name, and the directory is the
+            --  publication's private one, random too, so two links of one
+            --  program gave different PDBs and, through the PDB's GUID,
+            --  different images.  `-save-temps=cwd` assembles to the
+            --  assembly's own name with `.o` in the directory the link runs
+            --  in, which the publication removes (Landin.Platform's Run),
+            --  and `/pdbsourcepath:` puts the compilation directory, DWARF's
+            --  `comp_dir`, in that one's place.  `-Xlinker` keeps a comma
+            --  in it, where `-Wl` would split there.
+            Landin.Platform.Add (List, "-save-temps=cwd");
+            if Compilation_Directory /= "" then
+               Landin.Platform.Add (List, "-Xlinker");
+               Landin.Platform.Add
+                 (List, "-Xlink=/pdbsourcepath:" & Compilation_Directory);
+            end if;
          end if;
          Landin.Platform.Add (List, "-fuse-ld=" & (if Linker /= ""
                                                    then Linker else "lld"));

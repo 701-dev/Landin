@@ -80,9 +80,11 @@ def check_source(text, lines, label):
             label + ": final execution status missing")
 
 
-def switch_commands(instructions):
-    """The stack switch's session, stepping INSTRUCTIONS through each switch."""
-    return switch_frames.lldb_commands(switch_frames.fibre_line(), instructions)
+def switch_commands(instructions, pdb=False):
+    """The stack switch's session, stepping INSTRUCTIONS through each switch,
+    over an image with a PDB when PDB says so."""
+    return switch_frames.lldb_commands(switch_frames.fibre_line(), instructions,
+                                       pdb)
 
 
 def check_switch(text, label, target):

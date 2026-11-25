@@ -6,6 +6,13 @@ package body Landin.Backend.Arm64.Platform is
    package Spelling renames Landin.Backend.ELF;
    package Formats renames Landin.Targets.Capabilities;
 
+   --  A COFF import's pointer, `__imp_NAME`, with a quoted name's prefix
+   --  inside its quotes.
+   function Imported_Name (Name : String) return String
+     is (if Name'Length > 0 and then Name (Name'First) = '"'
+         then """__imp_" & Name (Name'First + 1 .. Name'Last)
+         else "__imp_" & Name);
+
    function Local_Prefix_Seed (Format : Arm64_Format) return String
      is (case Format is
             when Formats.ELF | Formats.COFF => Spelling.Local_Prefix,
@@ -15,7 +22,8 @@ package body Landin.Backend.Arm64.Platform is
      return String
      is (case Format is
             when Formats.ELF => (if Imported then ":got:" & Name else Name),
-            when Formats.COFF => (if Imported then "__imp_" & Name else Name),
+            when Formats.COFF =>
+               (if Imported then Imported_Name (Name) else Name),
             when Formats.Mach_O =>
                Name & (if Imported then "@GOTPAGE" else "@PAGE"));
 
@@ -26,7 +34,7 @@ package body Landin.Backend.Arm64.Platform is
             when Formats.ELF =>
                (if Imported then ":got_lo12:" else ":lo12:") & Name,
             when Formats.COFF =>
-               ":lo12:" & (if Imported then "__imp_" & Name else Name),
+               ":lo12:" & (if Imported then Imported_Name (Name) else Name),
             when Formats.Mach_O =>
                Name & (if Imported then "@GOTPAGEOFF" else "@PAGEOFF"));
 

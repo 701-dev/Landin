@@ -829,6 +829,14 @@ package Landin.IR is
    function Has_C_Layout
      (Of_Unit : Unit; Id : Nominal_Type_Id) return Boolean;
 
+   --  A `distinct` type's nominal, whose one field is its base: C passes
+   --  it as the base, where a one-field record may be passed otherwise, as
+   --  Win64 passes a record of one float in an integer register.
+   procedure Mark_Distinct (Into : in out Unit; Id : Nominal_Type_Id)
+     with Pre => Holds (Into, Id) and then Has_Nominal_Shape (Into, Id);
+   function Is_Distinct
+     (Of_Unit : Unit; Id : Nominal_Type_Id) return Boolean;
+
    function Nominal_Field_Count
      (Of_Unit : Unit; Id : Nominal_Type_Id) return Natural;
 
@@ -4524,6 +4532,7 @@ private
       Present  : Boolean := False;
       Policy   : Landin.Layouts.Policy := Landin.Layouts.Natural;
       Fields   : Run;
+      Distinct : Boolean := False;
    end record;
 
    package Nominal_Shape_Vectors is new Ada.Containers.Vectors

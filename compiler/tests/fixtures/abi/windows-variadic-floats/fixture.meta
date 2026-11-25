@@ -1,0 +1,10 @@
+class: abi
+profiles: standard
+summary: promoted integer and floating tails of C variadic calls, direct and through a pointer, past the four register slots, where Windows passes a variadic float in an integer register or slot
+program: program.ldn
+c-sources: peer.c
+c-args: -O2
+status: 42
+constructs: 1570, 1580, 1600
+targets: windows-x86-64, windows-arm64
+run_expect: expected.txt

@@ -2382,11 +2382,14 @@ package body Landin.Tests.Targets_Suite is
    end Assembly_Tabs;
 
    --  D255's table is stated three times: in spec.md, in the compiler's
-   --  level model and in `platform/linux`, whose entry check restates each
-   --  level's name and, in D255's order, the features it holds a processor
-   --  to.  Nothing else ties the three, so this reads the first and the
-   --  third from this checkout, on the real host, and holds the compiler
-   --  and the library to the specification's table.
+   --  level model and in the library's entry checks, which restate each
+   --  level's name and, in D255's order, the features they hold a
+   --  processor to: x86-64's in `platform/x86_64`, which Linux's and
+   --  Windows' entries share (D2476), arm64's and RV64's in
+   --  `platform/linux`, and Windows arm64's in `platform/windows`'s
+   --  level.ldn.  Nothing else ties the three, so this reads the first and
+   --  the third from this checkout, on the real host, and holds the
+   --  compiler and the library to the specification's table.
    procedure Levels_Agree_With_D255 (Item : in out Landin.Testing.Context);
 
    procedure Levels_Agree_With_D255 (Item : in out Landin.Testing.Context)
@@ -2396,8 +2399,10 @@ package body Landin.Tests.Targets_Suite is
       use type Unbounded.Unbounded_String;
 
       Host : Landin.Platform.Native.Native_Filesystem;
-      Spec_Text, Library_Text : Unbounded.Unbounded_String;
-      Spec_Status, Library_Status : Landin.Platform.Read_Status;
+      Spec_Text, Library_Text, X86_Text, Windows_Text :
+        Unbounded.Unbounded_String;
+      Spec_Status, Library_Status, X86_Status, Windows_Status :
+        Landin.Platform.Read_Status;
 
       type Row is record
          Family, Level : Unbounded.Unbounded_String;
@@ -2504,12 +2509,20 @@ package body Landin.Tests.Targets_Suite is
       Host.Read_File ("../../spec.md", Spec_Text, Spec_Status);
       Host.Read_File
         ("../../platform/linux/linux.ldn", Library_Text, Library_Status);
+      Host.Read_File
+        ("../../platform/x86_64/x86_64.ldn", X86_Text, X86_Status);
+      Host.Read_File
+        ("../../platform/windows/level.ldn", Windows_Text, Windows_Status);
       if Spec_Status /= Landin.Platform.Read_Ok
         or else Library_Status /= Landin.Platform.Read_Ok
+        or else X86_Status /= Landin.Platform.Read_Ok
+        or else Windows_Status /= Landin.Platform.Read_Ok
       then
          Landin.Testing.Fail
-           (Item, "spec.md and platform/linux/linux.ldn are read from the"
-            & " checkout this program runs in, compiler/ada");
+           (Item, "spec.md, platform/linux/linux.ldn,"
+            & " platform/x86_64/x86_64.ldn and platform/windows/level.ldn"
+            & " are read from the checkout this program runs in,"
+            & " compiler/ada");
          return;
       end if;
 
@@ -2613,9 +2626,14 @@ package body Landin.Tests.Targets_Suite is
       end loop;
 
       --  The library names every hosted Linux family's levels, and checks
-      --  the features each one adds in D255's order.
+      --  the features each one adds in D255's order.  A level a module
+      --  names by calling another's, as platform/linux's x86-64 `level`
+      --  calls platform/x86_64's, is counted where it is spelt.
       declare
-         Library : constant String := Unbounded.To_String (Library_Text);
+         X86 : constant String := Unbounded.To_String (X86_Text);
+         Windows : constant String := Unbounded.To_String (Windows_Text);
+         Library : constant String :=
+           Unbounded.To_String (Library_Text) & LF & X86;
          Section : constant Natural :=
            Ada.Strings.Fixed.Index (Library, "The CPU feature level (D255)");
          Arm64 : constant String :=
@@ -2633,6 +2651,12 @@ package body Landin.Tests.Targets_Suite is
          loop
             From := Ada.Strings.Fixed.Index (Library, "public level:", From);
             exit when From = 0;
+            if Ada.Strings.Fixed.Index
+                 (Between (Library, "public level:", "end level", From),
+                  "name = """) = 0
+            then
+               goto Next_Level;
+            end if;
             declare
                Spelled : constant String := Named_Features
                  (Between (Library, "name = """, [1 => LF], From));
@@ -2647,6 +2671,7 @@ package body Landin.Tests.Targets_Suite is
                   "platform/linux's level " & Spelled
                   & " is a hosted level of D255's table");
             end;
+            <<Next_Level>>
             From := From + 1;
          end loop;
          Landin.Testing.Check_Equal
@@ -2658,10 +2683,10 @@ package body Landin.Tests.Targets_Suite is
             begin
                Landin.Testing.Check_Equal
                  (Item, Named_Features
-                    (Between (Library, "missing_v" & Image & ": (",
+                    (Between (X86, "missing_v" & Image & ": (",
                               "end missing_v" & Image)),
                   Added ("x86-64-v" & Image),
-                  "platform/linux checks x86-64-v" & Image
+                  "platform/x86_64 checks x86-64-v" & Image
                   & "'s features in D255's order");
             end;
          end loop;
@@ -2671,6 +2696,18 @@ package body Landin.Tests.Targets_Suite is
                         "end missing_feature")),
             Added ("armv8.1-a"),
             "platform/linux checks armv8.1-a's features in D255's order");
+         --  D2477: Windows reports no RDM, so its check stops short of it.
+         Landin.Testing.Check_Equal
+           (Item,
+            Named_Features
+              (Between (Windows, "public missing_feature:",
+                        "end missing_feature",
+                        Ada.Strings.Fixed.Index
+                          (Windows, "fixed if compiler.feature.lse")))
+            & " rdm",
+            Added ("armv8.1-a"),
+            "platform/windows checks armv8.1-a's features in D255's order,"
+            & " all but RDM");
          Landin.Testing.Check
            (Item, Riscv /= ""
               and then Named_Features
