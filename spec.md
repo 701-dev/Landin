@@ -22873,6 +22873,9 @@ description checks of `negative/description-unknown-core`.
 **Amended by D2427.** A compiler built on FreeBSD x86-64 defaults to
 `freebsd-x86-64`.
 
+**Amended by D2469.** A compiler built on FreeBSD arm64 defaults to
+`freebsd-arm64`.
+
 **From** [1500] and [1550].
 
 **The discrepancy:** [1550] says Landin relies on the assembler and linker of
@@ -34236,6 +34239,9 @@ the default reaching `lld-link`.
 
 ### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
 
+**Amended by D2469.** A compiler built on FreeBSD arm64 defaults to
+`freebsd-arm64`.
+
 **From** D257 and D364.
 
 **The discrepancy:** D257 gives a build that names no target the
@@ -34342,6 +34348,63 @@ the one `refine` runs with.
 **Pinned by** the gate's `freebsd-host-1` and `freebsd-host-2` jobs, the
 complete local native suite on FreeBSD x86-64, and the Linux shards,
 which run the same cases unchanged.
+
+### D2469 — A FreeBSD arm64 compiler builds for its own host
+
+**From** D257 and D2427.
+
+**The discrepancy:** D2427 gave a compiler built on FreeBSD x86-64 its own
+host's target and left one built on FreeBSD arm64 with none, so a
+`refine` built there refused every build without
+`--target=freebsd-arm64`, though its link already tried the base system's
+`cc` for that target.
+
+**Chosen:** a compiler GNAT built for a triplet whose machine is
+`aarch64` and whose system holds `-freebsd`, as
+`aarch64-unknown-freebsd14.4` does, defaults to `freebsd-arm64`. Its own
+target links with the triplet's Clang and then `cc`, D2427's candidates,
+and the base system's Clang assembles arm64's assembly itself, so no
+binutils `as` is needed, though binutils' `ld` is the one the pinned GNAT
+links `refine` with (D2428). A FreeBSD build for any other machine has no
+default.
+
+**The alternatives:** naming `--target` there, the cross-compilation D257
+removed; and waiting for a gate job, which GitHub's arm64 runners cannot
+give a FreeBSD guest under KVM (D2470).
+
+**Pinned by** `targets/names select their descriptions`,
+`driver/targets have a default`, `compiler/tests/test_default_target.py`
+and the named run of the FreeBSD host lane in an arm64 guest, where a
+`refine` built on FreeBSD arm64 compiles, links and runs the hosted corpus
+with no `--target`.
+
+### D2470 — FreeBSD arm64's host evidence is a named run in a guest under KVM
+
+**From** D2428 and the maintainer's rule that CI stays off his machines.
+
+**The discrepancy:** D2428's `gnat.py` and `host.py` boot their own guest,
+and an arm64 one boots under emulation wherever the host is not arm64
+with KVM, which no GitHub-hosted runner is: building the pinned GCC there
+outlasts a job. The arm64 machines that do have KVM are the maintainer's,
+which no gate job may use.
+
+**Chosen:** `gnat.py` takes `--runner-ssh`, as `host.py` already did, and
+builds the toolchain in an existing guest booted fresh from the same locked
+image; the archive's digest is the same inputs' either way. `refine` on
+FreeBSD arm64 is held by a named run recorded with the work that changes it, the toolchain
+built and the complete local native suite and the release leg run by
+`host.py` in such a guest under KVM on an arm64 host, rather than by a
+gate job; the gate keeps FreeBSD arm64's emitted lanes. How a release gets the arm64
+archive is a question the maintainer holds; until it is answered no release
+publishes it.
+
+**The alternatives:** a gate job under emulation, six hours or more for
+the toolchain alone; a self-hosted arm64 runner, which the maintainer's
+rule refuses; and FreeBSD's own `aarch64` build of GCC through the ports,
+which is not the pinned version (D2428).
+
+**Pinned by** that named run and `compiler/tests/freebsd/README.md`'s
+recipe.
 
 ### D2190 — The Windows x64 convention is planned beside System V's
 

@@ -187,7 +187,10 @@ before it reaches the guest. The result unpacks at `/opt/landin`, whose
 packages; `gnat.py` keeps it as one archive in `~/.cache/landin/freebsd`
 named by a digest of the pins, the patches, the recipe and the release
 image, and the gate caches it under the same digest. On 16 processors in
-16 GiB it took ten minutes; the archive is 111 MB.
+16 GiB it took ten minutes; the archive is 111 MB. The arm64 archive is
+built the same way with `--runner-ssh` in a guest under KVM on an arm64
+host, since no gate runner gives one KVM: ten minutes on 20 processors in
+8 GiB, 104 MB.
 
 | source | archive | sha256 |
 |---|---|---|

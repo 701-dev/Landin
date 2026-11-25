@@ -21,7 +21,7 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 | `linux-rv64` | hosted executables, LP64D | QEMU's user emulation | GDB, through QEMU's stub |
 | `darwin-arm64` | hosted executables | natively | LLDB with dSYM |
 | `freebsd-x86-64` | hosted executables, emitted on Linux or by `refine` on FreeBSD x86-64 | a FreeBSD VM under KVM, emitted there too | LLDB in the VM |
-| `freebsd-arm64` | hosted executables, emitted on Linux | an emulated FreeBSD VM | LLDB in the VM |
+| `freebsd-arm64` | hosted executables, emitted on Linux or by `refine` on FreeBSD arm64 | an emulated FreeBSD VM; emitted and run under KVM on an arm64 host | LLDB in the VM |
 | `windows-x86-64` | hosted executables, emitted on Linux | natively, on a GitHub-hosted Windows runner | LLDB over CodeView and a PDB, natively and through `refine dap` from WSL |
 | `windows-arm64` | hosted executables, emitted on Linux | natively, on GitHub's Windows 11 arm64 runner | as `windows-x86-64`'s, with llvm-mingw's arm64 LLDB |
 | `cortex-m0` | Cortex-M firmware, ARMv6-M by default and up to ARMv8-M Mainline by `--level` | the pinned QEMU | GDB, lines and functions |
@@ -30,13 +30,15 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 
 - **FreeBSD** runs in [architecture-specific VMs](../environments/freebsd/README.md)
   with separate runtime, C ABI and debugger verdicts in the gate.
-  `refine` also runs on FreeBSD x86-64, built there with the pinned GNAT
-  and GPRbuild, which a FreeBSD guest builds from source
+  `refine` also runs on FreeBSD x86-64 and arm64, built there with the
+  pinned GNAT and GPRbuild, which a FreeBSD guest builds from source
   ([the toolchain's record](../compiler/ada/TOOLCHAIN.md#freebsd-built-from-source)).
-  There `freebsd-x86-64` is its own target, and a program links with the
-  base system's `cc` and binutils' `as`. The gate builds it in an amd64
-  guest and runs the whole test program there, the hosted corpus compiled,
-  linked and run by that `refine` ([the host lane](../compiler/tests/freebsd/README.md#refine-on-freebsd)).
+  There the host's own FreeBSD target is the default, and a program links
+  with the base system's `cc`, and on x86-64 binutils' `as`. The gate
+  builds it in an amd64 guest and runs the whole test program there, the
+  hosted corpus compiled, linked and run by that `refine` ([the host lane](../compiler/tests/freebsd/README.md#refine-on-freebsd));
+  arm64's is a named run of the same lane in a guest under KVM on an arm64
+  host, since GitHub's arm64 runners have no KVM.
 - **Windows** builds COFF executables through llvm-mingw's
   `x86_64-w64-mingw32-clang`, Clang's assembler and LLD, which link
   kernel32, the system libraries `platform/windows`'s files name and no C
@@ -281,7 +283,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   after 0.2.11 also one for FreeBSD x86-64,
   `landin-VERSION-x86_64-freebsd.tar.gz`, built in a FreeBSD guest, whose
   `refine` needs only the base system to start and which is unpacked by
-  hand, since `install.sh` does not serve FreeBSD yet. Homebrew's
+  hand, since `install.sh` does not serve FreeBSD yet. The host lane makes
+  the FreeBSD arm64 one, `landin-VERSION-aarch64-freebsd.tar.gz`, in an
+  arm64 guest, but no release publishes it yet. Homebrew's
   `janhaan/tap/landin`, the flake's default package and the one-line
   `install.sh` the site serves install a Linux or macOS one, the flake's
   `nix run` runs it,
