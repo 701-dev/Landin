@@ -43,7 +43,7 @@
   (unless (fboundp 'treesit-install-language-grammar)
     (user-error "This Emacs does not provide tree-sitter grammar installation"))
   (add-to-list 'treesit-language-source-alist
-               `(landin "https://github.com/JanHaan/Landin"
+               `(landin "https://github.com/701-dev/Landin"
                         ,landin-treesit-revision "highlight/tree-sitter"))
   (treesit-install-language-grammar 'landin))
 

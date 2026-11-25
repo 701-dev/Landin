@@ -2,7 +2,8 @@
 
 > **Retired.** This describes the exact-revision gate that approved every
 > revision through 0.2.0. Nothing submits it now and no revision is accepted;
-> `scripts/ci/` was removed with it and survives only in the history. Kept
+> `scripts/ci/` was removed with it, and later the Compose override and the
+> Git installer this page names; all survive only in the history. Kept
 > because it is the operational record of how those approvals were produced.
 > `.github/workflows/gate.yml` replaced it: every target on full gate runs,
 > with artifacts kept but no acceptance record. The
@@ -122,8 +123,8 @@ configuration evidence; no deliberate OOM workload is needed to verify it.
 
 The existing deployment uses Docker Compose. Its local deployment notes live
 in the main worktree's `.scratch/ci-hosts/`; its `runner` and `tailscale`
-services share networking but keep separate containers. The tracked
-`environments/native-ci/compose.resources.yaml` overrides only the runner's
+services share networking but keep separate containers. The
+Compose override `compose.resources.yaml`, once tracked here, overrode only the runner's
 memory settings. Docker's `memswap_limit` counts memory plus swap, so setting
 it equal to `mem_limit` disables swap; see the
 [Compose service reference](https://docs.docker.com/reference/compose-file/services/#memswap_limit).
@@ -200,7 +201,7 @@ For an existing runner image without Git, the repository supplies a user-owned
 Debian package installation, leaving the installed runner and toolchain intact:
 
 ```sh
-ssh landin@landin-ci-x86-64 sh -s < environments/native-ci/setup-user-tools.sh
+ssh landin@landin-ci-x86-64 sh -s < setup-user-tools.sh   # since removed
 ```
 
 It downloads Debian's Git package into `~/work/.ci-tools` on the persistent
