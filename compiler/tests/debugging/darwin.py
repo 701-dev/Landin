@@ -296,7 +296,7 @@ def main():
                'registers': register_results,
                'panic': panic_evidence,
                'switch': switch_results,
-               'sources': {str(s.relative_to(ROOT)): digest(s) for s in all_sources}}
+               'sources': {os.path.relpath(s, ROOT): digest(s) for s in all_sources}}
     (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
 
 

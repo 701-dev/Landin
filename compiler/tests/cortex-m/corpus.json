@@ -1302,8 +1302,8 @@
     },
     "abi/windows-c-entry-saves": {
       "mode": "restriction",
-      "reason": "Its C peer is Win64 assembly that sets and checks x86-64's callee-saved registers by name, so it compiles for no Arm M-profile core.",
-      "stops": "c-source",
+      "reason": "Its C peer includes stdio.h, which the freestanding Cortex-M build has none of, and is Win64 assembly that sets and checks x86-64's callee-saved registers by name, so it compiles for no Arm M-profile core.",
+      "stops": "c-headers",
       "lanes": {
         "esp32c3": {
           "mode": "refuse",
