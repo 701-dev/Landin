@@ -88,7 +88,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.25, R22.26, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -3171,6 +3171,71 @@ Gibbons' spigot over R22.13's integers, with no GMP.
 
 Exit evidence: the game's output for 30 digits as a runtime fixture,
 pinned and published as R22.21's are; 10,000 digits timed.
+
+### R22.24 — Tools that say what they need
+
+Status: planned
+Depends on: none
+
+The process and measurement tools' refusals and defaults that sent their
+users to the source, scheduled by the register sweep of 2026-11-25:
+`SR-1756`'s `item.py push` that checks no register age and `merge-main`
+that takes a continuous item to main alone; `SR-1798`'s `item.py gate
+--main` listing that does not say which run is main's; `SR-1653`'s cited
+decision number `spec.md` does not define and the `citations.txt` every
+stream regenerates; `SR-1660`'s copied `refine` that does not find its
+library in `measure.py count` and the corpora; `SR-1827`'s and
+`SR-1828`'s `timing.py`, which takes one run where the gate takes three
+and needs a boot check nothing names; `SR-1829`'s `add_fixture.py` and
+"Adding a module", which name the corpus's formatting case and not the
+library's; and `SR-1738`'s library page reader, which refuses an extern
+whose name stands on the next line, one line at a time. Placed here so
+that no phase gate waits for it; it depends on no other item.
+
+Exit evidence: each script's or check's tests pinning its change, and the
+documents that name a step saying the new one.
+
+### R22.25 — What Windows still lacks
+
+Status: planned
+Depends on: none
+
+The gaps R21's items recorded on Windows, scheduled by the register sweep
+of 2026-11-25: `SR-1697`'s debugger case whose file name Git for Windows
+refuses, so that a Windows runner checks the repository out; `SR-1694`'s
+C peers, which run against no Windows image; `SR-1695`'s entry, which
+checks no processor level; `SR-1696`'s stack switch, which leaves the
+TEB's bounds naming the first stack, and `SR-1747`'s switch and start
+routines without the unwind tables a Windows debugger walks; `SR-1698`'s
+images, which no lane measures; `SR-1736`'s executable named without
+`.exe` and the private directory a failed link leaves; `SR-1748`'s two
+`--debug=full` builds that differ; and `SR-1797`'s lane, which keeps
+Windows Error Reporting away only where the image has disabled it.
+Placed here so that R21's gate does not wait for it; it depends on no
+other item.
+
+Exit evidence: each row's completion on both Windows architectures where
+it names one, in the gate's Windows jobs, and switch_frames.py's session
+in the Windows debugger lane.
+
+### R22.26 — What refine-build wanted from the library
+
+Status: planned
+Depends on: none
+
+The hosted and allocator calls that writing refine-build, the contributed
+build command, routed around, scheduled by the register sweep of
+2026-11-25 against the library R20 left: `SR-1408`'s child started in a
+directory, a PATH search with an executable bit and the program's own
+name on every hosted system; `SR-1409`'s copy of bytes into the caller's
+allocator that returns the `[]u8`; `SR-1414`'s heap and process memory
+readable from a program; and `SR-1412`'s region whose single free gives
+nothing back and says nothing, and `core/README.md` naming `core/zone`
+(Q-274) as the allocator a nested lifetime takes.
+
+Exit evidence: each call with a runtime fixture on every hosted target and
+its fake where the concept has one, `docs/library.md` saying where a
+reader looks, and refine-build's workaround for each removed or named.
 
 ### R22.30 — Text and Unicode
 
