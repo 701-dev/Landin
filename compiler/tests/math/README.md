@@ -21,9 +21,11 @@ come from here:
 - **`exhaustive`**, every one of the 2^32 inputs of a one-argument `f32`
   routine, checked the same way.
 
-The results are the same bits on every target, since the routines use
-only IEEE arithmetic, which every target rounds alike, and the fixtures
-check that on each.
+The results are the same bits on every target, save which NaN a NaN
+result is, since the routines use only IEEE arithmetic, which every target
+rounds alike; the fixtures check the values on each, and `digest` compares
+all 2^32 `f32` results of a routine between targets bit for bit, every NaN
+counted as one.
 
 ## Files
 

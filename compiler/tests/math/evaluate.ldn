@@ -53,6 +53,17 @@ from_32: (bits: u64) -> (x: f32) =
     x = view.val
 end from_32
 
+--  A NaN's bits are the target's own [0240], so every NaN is written
+--  as one pattern: what `digest` compares between targets is the value.
+canonical_64: (bits: u64) -> (result: u64) =
+    result = if bits & 0x7fffffffffffffff > 0x7ff0000000000000 then 0x7ff8000000000000
+             else bits end if
+end canonical_64
+
+canonical_32: (bits: u64) -> (result: u64) =
+    result = if bits & 0x7fffffff > 0x7f800000 then 0x7fc00000 else bits end if
+end canonical_32
+
 take_64: (record: []u8, index: usize) -> (bits: u64) =
     bits = 0
     for k in 0..<usize(8) do
@@ -73,157 +84,236 @@ put: (into: []mut u8, at: usize, bits: u64, bytes: usize) -> none =
     end for
 end put
 
-result_64: (name: []u8, record: []u8) -> (result: u64) =
-    result = 0
+--  The function's number, its place in the list, so that each input is
+--  dispatched by comparing integers rather than names.
+number: (name: []u8) -> (which: u32) =
+    which = 0
     if same(name, "sqrt") then
-        result = bits_64(math.sqrt(from_64(take_64(record, 0))))
+        which = 1
     elsif same(name, "cbrt") then
-        result = bits_64(math.cbrt(from_64(take_64(record, 0))))
+        which = 2
     elsif same(name, "hypot") then
-        result = bits_64(math.hypot(from_64(take_64(record, 0)), from_64(take_64(record, 1))))
+        which = 3
     elsif same(name, "fma") then
-        result = bits_64(math.fma(from_64(take_64(record, 0)), from_64(take_64(record, 1)), from_64(take_64(record, 2))))
+        which = 4
     elsif same(name, "floor") then
-        result = bits_64(math.floor(from_64(take_64(record, 0))))
+        which = 5
     elsif same(name, "ceil") then
-        result = bits_64(math.ceil(from_64(take_64(record, 0))))
+        which = 6
     elsif same(name, "trunc") then
-        result = bits_64(math.trunc(from_64(take_64(record, 0))))
+        which = 7
     elsif same(name, "round") then
-        result = bits_64(math.round(from_64(take_64(record, 0))))
+        which = 8
     elsif same(name, "round_even") then
-        result = bits_64(math.round_even(from_64(take_64(record, 0))))
+        which = 9
     elsif same(name, "remainder") then
-        result = bits_64(math.remainder(from_64(take_64(record, 0)), from_64(take_64(record, 1))))
+        which = 10
     elsif same(name, "remainder_nearest") then
-        result = bits_64(math.remainder_nearest(from_64(take_64(record, 0)), from_64(take_64(record, 1))))
+        which = 11
     elsif same(name, "exp") then
-        result = bits_64(math.exp(from_64(take_64(record, 0))))
+        which = 12
     elsif same(name, "exp2") then
-        result = bits_64(math.exp2(from_64(take_64(record, 0))))
+        which = 13
     elsif same(name, "expm1") then
-        result = bits_64(math.expm1(from_64(take_64(record, 0))))
+        which = 14
     elsif same(name, "log") then
-        result = bits_64(math.log(from_64(take_64(record, 0))))
+        which = 15
     elsif same(name, "log2") then
-        result = bits_64(math.log2(from_64(take_64(record, 0))))
+        which = 16
     elsif same(name, "log10") then
-        result = bits_64(math.log10(from_64(take_64(record, 0))))
+        which = 17
     elsif same(name, "log1p") then
-        result = bits_64(math.log1p(from_64(take_64(record, 0))))
+        which = 18
     elsif same(name, "pow") then
-        result = bits_64(math.pow(from_64(take_64(record, 0)), from_64(take_64(record, 1))))
+        which = 19
     elsif same(name, "sin") then
-        result = bits_64(math.sin(from_64(take_64(record, 0))))
+        which = 20
     elsif same(name, "cos") then
-        result = bits_64(math.cos(from_64(take_64(record, 0))))
+        which = 21
     elsif same(name, "tan") then
-        result = bits_64(math.tan(from_64(take_64(record, 0))))
+        which = 22
     elsif same(name, "asin") then
-        result = bits_64(math.asin(from_64(take_64(record, 0))))
+        which = 23
     elsif same(name, "acos") then
-        result = bits_64(math.acos(from_64(take_64(record, 0))))
+        which = 24
     elsif same(name, "atan") then
-        result = bits_64(math.atan(from_64(take_64(record, 0))))
+        which = 25
     elsif same(name, "atan2") then
-        result = bits_64(math.atan2(from_64(take_64(record, 0)), from_64(take_64(record, 1))))
+        which = 26
     elsif same(name, "sinh") then
-        result = bits_64(math.sinh(from_64(take_64(record, 0))))
+        which = 27
     elsif same(name, "cosh") then
-        result = bits_64(math.cosh(from_64(take_64(record, 0))))
+        which = 28
     elsif same(name, "tanh") then
-        result = bits_64(math.tanh(from_64(take_64(record, 0))))
+        which = 29
     elsif same(name, "asinh") then
-        result = bits_64(math.asinh(from_64(take_64(record, 0))))
+        which = 30
     elsif same(name, "acosh") then
-        result = bits_64(math.acosh(from_64(take_64(record, 0))))
+        which = 31
     elsif same(name, "atanh") then
-        result = bits_64(math.atanh(from_64(take_64(record, 0))))
+        which = 32
     elsif same(name, "erf") then
-        result = bits_64(math.erf(from_64(take_64(record, 0))))
+        which = 33
     elsif same(name, "erfc") then
-        result = bits_64(math.erfc(from_64(take_64(record, 0))))
+        which = 34
     elsif same(name, "gamma") then
-        result = bits_64(math.gamma(from_64(take_64(record, 0))))
+        which = 35
     elsif same(name, "log_gamma") then
-        result = bits_64(math.log_gamma(from_64(take_64(record, 0))))
+        which = 36
+    end if
+end number
+
+result_64: (which: u32, record: []u8) -> (result: u64) =
+    result = 0
+    if which == 1 then
+        result = canonical_64(bits_64(math.sqrt(from_64(take_64(record, 0)))))
+    elsif which == 2 then
+        result = canonical_64(bits_64(math.cbrt(from_64(take_64(record, 0)))))
+    elsif which == 3 then
+        result = canonical_64(bits_64(math.hypot(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+    elsif which == 4 then
+        result = canonical_64(bits_64(math.fma(from_64(take_64(record, 0)), from_64(take_64(record, 1)), from_64(take_64(record, 2)))))
+    elsif which == 5 then
+        result = canonical_64(bits_64(math.floor(from_64(take_64(record, 0)))))
+    elsif which == 6 then
+        result = canonical_64(bits_64(math.ceil(from_64(take_64(record, 0)))))
+    elsif which == 7 then
+        result = canonical_64(bits_64(math.trunc(from_64(take_64(record, 0)))))
+    elsif which == 8 then
+        result = canonical_64(bits_64(math.round(from_64(take_64(record, 0)))))
+    elsif which == 9 then
+        result = canonical_64(bits_64(math.round_even(from_64(take_64(record, 0)))))
+    elsif which == 10 then
+        result = canonical_64(bits_64(math.remainder(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+    elsif which == 11 then
+        result = canonical_64(bits_64(math.remainder_nearest(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+    elsif which == 12 then
+        result = canonical_64(bits_64(math.exp(from_64(take_64(record, 0)))))
+    elsif which == 13 then
+        result = canonical_64(bits_64(math.exp2(from_64(take_64(record, 0)))))
+    elsif which == 14 then
+        result = canonical_64(bits_64(math.expm1(from_64(take_64(record, 0)))))
+    elsif which == 15 then
+        result = canonical_64(bits_64(math.log(from_64(take_64(record, 0)))))
+    elsif which == 16 then
+        result = canonical_64(bits_64(math.log2(from_64(take_64(record, 0)))))
+    elsif which == 17 then
+        result = canonical_64(bits_64(math.log10(from_64(take_64(record, 0)))))
+    elsif which == 18 then
+        result = canonical_64(bits_64(math.log1p(from_64(take_64(record, 0)))))
+    elsif which == 19 then
+        result = canonical_64(bits_64(math.pow(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+    elsif which == 20 then
+        result = canonical_64(bits_64(math.sin(from_64(take_64(record, 0)))))
+    elsif which == 21 then
+        result = canonical_64(bits_64(math.cos(from_64(take_64(record, 0)))))
+    elsif which == 22 then
+        result = canonical_64(bits_64(math.tan(from_64(take_64(record, 0)))))
+    elsif which == 23 then
+        result = canonical_64(bits_64(math.asin(from_64(take_64(record, 0)))))
+    elsif which == 24 then
+        result = canonical_64(bits_64(math.acos(from_64(take_64(record, 0)))))
+    elsif which == 25 then
+        result = canonical_64(bits_64(math.atan(from_64(take_64(record, 0)))))
+    elsif which == 26 then
+        result = canonical_64(bits_64(math.atan2(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+    elsif which == 27 then
+        result = canonical_64(bits_64(math.sinh(from_64(take_64(record, 0)))))
+    elsif which == 28 then
+        result = canonical_64(bits_64(math.cosh(from_64(take_64(record, 0)))))
+    elsif which == 29 then
+        result = canonical_64(bits_64(math.tanh(from_64(take_64(record, 0)))))
+    elsif which == 30 then
+        result = canonical_64(bits_64(math.asinh(from_64(take_64(record, 0)))))
+    elsif which == 31 then
+        result = canonical_64(bits_64(math.acosh(from_64(take_64(record, 0)))))
+    elsif which == 32 then
+        result = canonical_64(bits_64(math.atanh(from_64(take_64(record, 0)))))
+    elsif which == 33 then
+        result = canonical_64(bits_64(math.erf(from_64(take_64(record, 0)))))
+    elsif which == 34 then
+        result = canonical_64(bits_64(math.erfc(from_64(take_64(record, 0)))))
+    elsif which == 35 then
+        result = canonical_64(bits_64(math.gamma(from_64(take_64(record, 0)))))
+    elsif which == 36 then
+        result = canonical_64(bits_64(math.log_gamma(from_64(take_64(record, 0)))))
     end if
 end result_64
 
-result_32: (name: []u8, record: []u8) -> (result: u64) =
+result_32: (which: u32, record: []u8) -> (result: u64) =
     result = 0
-    if same(name, "sqrt") then
-        result = bits_32(math.sqrt(from_32(take_32(record, 0))))
-    elsif same(name, "cbrt") then
-        result = bits_32(math.cbrt(from_32(take_32(record, 0))))
-    elsif same(name, "hypot") then
-        result = bits_32(math.hypot(from_32(take_32(record, 0)), from_32(take_32(record, 1))))
-    elsif same(name, "fma") then
-        result = bits_32(math.fma(from_32(take_32(record, 0)), from_32(take_32(record, 1)), from_32(take_32(record, 2))))
-    elsif same(name, "floor") then
-        result = bits_32(math.floor(from_32(take_32(record, 0))))
-    elsif same(name, "ceil") then
-        result = bits_32(math.ceil(from_32(take_32(record, 0))))
-    elsif same(name, "trunc") then
-        result = bits_32(math.trunc(from_32(take_32(record, 0))))
-    elsif same(name, "round") then
-        result = bits_32(math.round(from_32(take_32(record, 0))))
-    elsif same(name, "round_even") then
-        result = bits_32(math.round_even(from_32(take_32(record, 0))))
-    elsif same(name, "remainder") then
-        result = bits_32(math.remainder(from_32(take_32(record, 0)), from_32(take_32(record, 1))))
-    elsif same(name, "remainder_nearest") then
-        result = bits_32(math.remainder_nearest(from_32(take_32(record, 0)), from_32(take_32(record, 1))))
-    elsif same(name, "exp") then
-        result = bits_32(math.exp(from_32(take_32(record, 0))))
-    elsif same(name, "exp2") then
-        result = bits_32(math.exp2(from_32(take_32(record, 0))))
-    elsif same(name, "expm1") then
-        result = bits_32(math.expm1(from_32(take_32(record, 0))))
-    elsif same(name, "log") then
-        result = bits_32(math.log(from_32(take_32(record, 0))))
-    elsif same(name, "log2") then
-        result = bits_32(math.log2(from_32(take_32(record, 0))))
-    elsif same(name, "log10") then
-        result = bits_32(math.log10(from_32(take_32(record, 0))))
-    elsif same(name, "log1p") then
-        result = bits_32(math.log1p(from_32(take_32(record, 0))))
-    elsif same(name, "pow") then
-        result = bits_32(math.pow(from_32(take_32(record, 0)), from_32(take_32(record, 1))))
-    elsif same(name, "sin") then
-        result = bits_32(math.sin(from_32(take_32(record, 0))))
-    elsif same(name, "cos") then
-        result = bits_32(math.cos(from_32(take_32(record, 0))))
-    elsif same(name, "tan") then
-        result = bits_32(math.tan(from_32(take_32(record, 0))))
-    elsif same(name, "asin") then
-        result = bits_32(math.asin(from_32(take_32(record, 0))))
-    elsif same(name, "acos") then
-        result = bits_32(math.acos(from_32(take_32(record, 0))))
-    elsif same(name, "atan") then
-        result = bits_32(math.atan(from_32(take_32(record, 0))))
-    elsif same(name, "atan2") then
-        result = bits_32(math.atan2(from_32(take_32(record, 0)), from_32(take_32(record, 1))))
-    elsif same(name, "sinh") then
-        result = bits_32(math.sinh(from_32(take_32(record, 0))))
-    elsif same(name, "cosh") then
-        result = bits_32(math.cosh(from_32(take_32(record, 0))))
-    elsif same(name, "tanh") then
-        result = bits_32(math.tanh(from_32(take_32(record, 0))))
-    elsif same(name, "asinh") then
-        result = bits_32(math.asinh(from_32(take_32(record, 0))))
-    elsif same(name, "acosh") then
-        result = bits_32(math.acosh(from_32(take_32(record, 0))))
-    elsif same(name, "atanh") then
-        result = bits_32(math.atanh(from_32(take_32(record, 0))))
-    elsif same(name, "erf") then
-        result = bits_32(math.erf(from_32(take_32(record, 0))))
-    elsif same(name, "erfc") then
-        result = bits_32(math.erfc(from_32(take_32(record, 0))))
-    elsif same(name, "gamma") then
-        result = bits_32(math.gamma(from_32(take_32(record, 0))))
-    elsif same(name, "log_gamma") then
-        result = bits_32(math.log_gamma(from_32(take_32(record, 0))))
+    if which == 1 then
+        result = canonical_32(bits_32(math.sqrt(from_32(take_32(record, 0)))))
+    elsif which == 2 then
+        result = canonical_32(bits_32(math.cbrt(from_32(take_32(record, 0)))))
+    elsif which == 3 then
+        result = canonical_32(bits_32(math.hypot(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+    elsif which == 4 then
+        result = canonical_32(bits_32(math.fma(from_32(take_32(record, 0)), from_32(take_32(record, 1)), from_32(take_32(record, 2)))))
+    elsif which == 5 then
+        result = canonical_32(bits_32(math.floor(from_32(take_32(record, 0)))))
+    elsif which == 6 then
+        result = canonical_32(bits_32(math.ceil(from_32(take_32(record, 0)))))
+    elsif which == 7 then
+        result = canonical_32(bits_32(math.trunc(from_32(take_32(record, 0)))))
+    elsif which == 8 then
+        result = canonical_32(bits_32(math.round(from_32(take_32(record, 0)))))
+    elsif which == 9 then
+        result = canonical_32(bits_32(math.round_even(from_32(take_32(record, 0)))))
+    elsif which == 10 then
+        result = canonical_32(bits_32(math.remainder(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+    elsif which == 11 then
+        result = canonical_32(bits_32(math.remainder_nearest(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+    elsif which == 12 then
+        result = canonical_32(bits_32(math.exp(from_32(take_32(record, 0)))))
+    elsif which == 13 then
+        result = canonical_32(bits_32(math.exp2(from_32(take_32(record, 0)))))
+    elsif which == 14 then
+        result = canonical_32(bits_32(math.expm1(from_32(take_32(record, 0)))))
+    elsif which == 15 then
+        result = canonical_32(bits_32(math.log(from_32(take_32(record, 0)))))
+    elsif which == 16 then
+        result = canonical_32(bits_32(math.log2(from_32(take_32(record, 0)))))
+    elsif which == 17 then
+        result = canonical_32(bits_32(math.log10(from_32(take_32(record, 0)))))
+    elsif which == 18 then
+        result = canonical_32(bits_32(math.log1p(from_32(take_32(record, 0)))))
+    elsif which == 19 then
+        result = canonical_32(bits_32(math.pow(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+    elsif which == 20 then
+        result = canonical_32(bits_32(math.sin(from_32(take_32(record, 0)))))
+    elsif which == 21 then
+        result = canonical_32(bits_32(math.cos(from_32(take_32(record, 0)))))
+    elsif which == 22 then
+        result = canonical_32(bits_32(math.tan(from_32(take_32(record, 0)))))
+    elsif which == 23 then
+        result = canonical_32(bits_32(math.asin(from_32(take_32(record, 0)))))
+    elsif which == 24 then
+        result = canonical_32(bits_32(math.acos(from_32(take_32(record, 0)))))
+    elsif which == 25 then
+        result = canonical_32(bits_32(math.atan(from_32(take_32(record, 0)))))
+    elsif which == 26 then
+        result = canonical_32(bits_32(math.atan2(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+    elsif which == 27 then
+        result = canonical_32(bits_32(math.sinh(from_32(take_32(record, 0)))))
+    elsif which == 28 then
+        result = canonical_32(bits_32(math.cosh(from_32(take_32(record, 0)))))
+    elsif which == 29 then
+        result = canonical_32(bits_32(math.tanh(from_32(take_32(record, 0)))))
+    elsif which == 30 then
+        result = canonical_32(bits_32(math.asinh(from_32(take_32(record, 0)))))
+    elsif which == 31 then
+        result = canonical_32(bits_32(math.acosh(from_32(take_32(record, 0)))))
+    elsif which == 32 then
+        result = canonical_32(bits_32(math.atanh(from_32(take_32(record, 0)))))
+    elsif which == 33 then
+        result = canonical_32(bits_32(math.erf(from_32(take_32(record, 0)))))
+    elsif which == 34 then
+        result = canonical_32(bits_32(math.erfc(from_32(take_32(record, 0)))))
+    elsif which == 35 then
+        result = canonical_32(bits_32(math.gamma(from_32(take_32(record, 0)))))
+    elsif which == 36 then
+        result = canonical_32(bits_32(math.log_gamma(from_32(take_32(record, 0)))))
     end if
 end result_32
 
@@ -241,6 +331,7 @@ public main: () -> (code: i32) =
     width := argument_number(host, 1)
     bytes: usize = if width == 64 then 8 else 4 end if
     inputs := arity(name)
+    which := number(name)
     record_bytes := (inputs + 1) * bytes
     mut buffer: [32768]u8 = zeroed
     mut output: [65536]u8 = zeroed
@@ -254,7 +345,7 @@ public main: () -> (code: i32) =
             while filled < per_block and done < count do
                 at := filled * record_bytes
                 put(output, at, first + done, 4)
-                result := result_32(name, output[at..<at + record_bytes])
+                result := result_32(which, output[at..<at + record_bytes])
                 put(output, at + 4, result, 4)
                 filled = filled + 1
                 done = done + 1
@@ -277,8 +368,8 @@ public main: () -> (code: i32) =
                 output[to + k] = buffer[at + k]
             end for
             record := buffer[at..<at + input_bytes]
-            result := if width == 64 then result_64(name, record)
-                      else result_32(name, record) end if
+            result := if width == 64 then result_64(which, record)
+                      else result_32(which, record) end if
             put(output, to + input_bytes, result, bytes)
         end for
         io.write(host, io.out(host), output[0..<whole * record_bytes]) else begin return end

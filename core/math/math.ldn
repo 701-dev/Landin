@@ -1,6 +1,7 @@
 --  The elementary functions of C's <math.h> that most programs use, over
 --  f32 and f64, written in Landin from FreeBSD's msun, so that a result is
---  the same bits on every target, Cortex-M0's soft float included.  Every
+--  the same on every target, Cortex-M0's soft float included: the same
+--  bits, save which NaN a NaN result is, which is the target's own.  Every
 --  routine is generic over `floating`, which f32 and f64 meet, so one name
 --  serves both widths; the evidence below names each width's own routine,
 --  in the module's other files by subject.
@@ -363,7 +364,8 @@ public sqrt: (item: type is floating, x: item) -> (result: item) =
     result = item.sqrt(x)
 end sqrt
 
---- The cube root of `x`.  C's `cbrt`.
+--- The cube root of `x`: within 0.667 ulp at f64, and correctly rounded
+--- at f32.  C's `cbrt`.
 public cbrt: (item: type is floating, x: item) -> (result: item) =
     result = item.cbrt(x)
 end cbrt

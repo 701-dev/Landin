@@ -1807,8 +1807,9 @@ a password comes from `io.fill_random` directly.
 ## core/math
 
 The functions of C's `<math.h>` that most programs use, over `f32` and
-`f64`, written in Landin so that a result is the same bits on every
-target, Cortex-M0's soft float included.
+`f64`, written in Landin so that a result is the same on every target,
+Cortex-M0's soft float included: the same bits, save which NaN a NaN
+result is, which is the target's own.
 
 | Call | What it does |
 |---|---|
