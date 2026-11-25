@@ -156,26 +156,26 @@ class Fetchers(unittest.TestCase):
                                      r' [0-9a-f]{64}, not the pinned [0-9a-f]{64}')
         self.assertEqual((opener.calls, waits), (1, []))
 
-    def test_setup_takes_a_package_that_left_the_pool_from_the_snapshot(self):
-        item = dict(self.item(), url=setup.POOL + 'pool/main/o/openssl/libssl3t64_1_amd64.deb')
-        asked = []
-        def opener(url, timeout):
-            asked.append(url)
-            return Scripted([404] if url.startswith(setup.POOL) else [])(url, timeout)
-        self.assertEqual(self.setup_fetch(opener, item), (GOOD, []))
-        self.assertEqual(asked, [item['url'],
-                                 setup.SNAPSHOT + 'pool/main/o/openssl/libssl3t64_1_amd64.deb'])
-
-    def test_setup_asks_no_snapshot_for_another_server_or_status(self):
-        for url, status in (('https://example.invalid/control.tar.xz', 404),
-                            (setup.POOL + 'pool/main/a/a/a.deb', 403)):
+    def test_setup_takes_a_package_the_pool_fails_from_its_snapshot_url(self):
+        pool = 'https://deb.debian.org/debian/pool/main/o/openssl/libssl3t64_1_amd64.deb'
+        snapshot = 'https://snapshot.debian.org/file/' + '0' * 40
+        for status in (404, 403):
             asked = []
             def opener(url, timeout, status=status):
                 asked.append(url)
-                return Scripted([status])(url, timeout)
-            error, _ = self.setup_fetch(opener, dict(self.item(), url=url))
-            self.assertIsInstance(error, SystemExit)
-            self.assertEqual(asked, [url])
+                return Scripted([status] if url == pool else [])(url, timeout)
+            item = dict(self.item(), url=pool, snapshot=snapshot)
+            self.assertEqual(self.setup_fetch(opener, item), (GOOD, []))
+            self.assertEqual(asked, [pool, snapshot])
+
+    def test_setup_asks_no_other_server_for_an_entry_without_a_snapshot_url(self):
+        asked = []
+        def opener(url, timeout):
+            asked.append(url)
+            return Scripted([404])(url, timeout)
+        error, _ = self.setup_fetch(opener, self.item())
+        self.assertIsInstance(error, SystemExit)
+        self.assertEqual(asked, [self.item()['url']])
 
 
 class Server:
