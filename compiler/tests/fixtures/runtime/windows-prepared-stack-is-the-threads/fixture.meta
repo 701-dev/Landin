@@ -5,4 +5,4 @@ profiles: specialization
 traps: yes
 constructs: 0890, 1560, 1580, 1670, 1995
 targets: windows-x86-64, windows-arm64
-trap_report: main.ldn:41:9: trap: unreachable
+trap_report: main.ldn:43:9: trap: unreachable

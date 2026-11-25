@@ -1241,11 +1241,12 @@ Add `--target=darwin-arm64` for native macOS output, then open
   its last use until the register is written over, and the GDB and LLDB
   sessions read such locals there.
 - **Stack switches.** A backtrace through a stack switch names the switch
-  and start routines, `landin.stack_switch` and `landin.stack_start` (D469),
-  and a scripted session on every target with a native backend but
-  Windows steps two switches and holds the leaving and resumed fibres'
-  frames at every instruction; on Windows x86-64 the two routines have no
-  unwind tables yet, and on Windows arm64 the start routine has none.
+  and start routines, `landin.stack_switch` and `landin.stack_start` (D469;
+  on Windows procedures of the PDB, D2481), and a scripted session on every
+  target with a native backend steps two switches and holds the leaving and
+  resumed fibres' frames at every instruction. On Windows both routines
+  carry unwind tables, a fibre's walk ends at the start routine (D2480),
+  and a prepared stack is the thread's in its TEB while it runs (D2479).
 - **Names.** An atom set is described as an enumeration, so a debugger
   prints an atom's name, and a generic instance is a symbol named after its
   routine.

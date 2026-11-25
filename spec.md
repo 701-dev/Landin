@@ -24721,6 +24721,8 @@ helper opens the graph`.
 
 ### D469 — The switch and start routines have names a debugger shows
 
+**Amended by D2481.** On Windows, whose images carry no symbol table, the two routines are CodeView procedures of the PDB; the rest stands.
+
 **The tour said** nothing. D447 has a debugger's walk pass through a
 switch and end at a fibre's first frame, and D450's backends emitted the
 two routines that carry it, one switch routine and one start routine per
@@ -34641,6 +34643,8 @@ runtime`, whose driver names the target's triplet.
 
 ### D2349 — A Windows arm64 routine's unwind table describes its frame record, and its CodeView names ARM64's registers
 
+**Amended by D2480.** The stack switch's table describes its epilogue too, and the start routine has one; the rest stands.
+
 **From** [1550], D2191 and D2287.
 
 **The discrepancy:** D2191 describes an x86-64 frame for Windows' unwinder
@@ -34730,6 +34734,118 @@ holds the adapter to a connection, and the gate's `windows-debugger` and
 `windows-arm64-debugger` jobs; on the probe runs 45364098012 to
 45366912659 four of six sessions over the streams stalled and none of six
 over a connection.
+
+### D2479 — A Windows stack switch carries the TEB's stack bounds
+
+**From** D450, D472, D2192 and D2350.
+
+**The discrepancy:** Windows keeps a thread's stack bounds in its TEB, the
+base at GS:8 and the limit at GS:16 on x86-64 and at x18 plus 8 and 16 on
+arm64, with the lowest address of its reservation, DeallocationStack, at
+0x1478. The exception dispatcher walks only frames within the base and the
+limit, `__chkstk` probes the pages from the limit down to a stack pointer
+below it, and kernel32's
+`GetCurrentThreadStackLimits` answers with them. D450's switch left them
+naming the stack the thread started on while code ran on a prepared stack,
+so for as long as it ran the thread's stack was, to Windows, another one;
+only D2192's report made its own stack the thread's before its trap.
+
+**Chosen:** on Windows the switch saves the TEB's base, limit and
+deallocation base with D472's limit on the stack it leaves, and puts back
+those the resumed stack saved, as the limit is put back; and
+`compiler.stack_prepare` lays into a prepared stack's first frame its own
+bounds: the aligned top as the base, and the slice's base as both the limit
+and the deallocation base, since the whole slice is committed memory. A
+Windows thread (D2275), which runs on a stack cut from its group's backing,
+then has that stack's bounds there, and its system stack's again when it
+switches back before it ends. On x86-64 the switch saves the four words in
+an area it allocates below its six pushes, which makes a first frame of 104
+bytes and a switch of 88; on arm64 the three bounds take the frame's spare
+word and two more below its frame record, a first frame of 208 bytes and a
+switch of 192. Every other target's frames are unchanged.
+
+**The alternatives:** saving the base and limit alone, under which
+`GetCurrentThreadStackLimits` would answer with the base of the stack the
+thread started on and a prepared stack's top; Windows' own fibres,
+`ConvertThreadToFiber` and `SwitchToFiber`, which save the same words and
+more but allocate their stacks and contexts themselves, where D450's caller
+supplies them; and the TEB left alone, as before.
+
+**Pinned by** `runtime/windows-prepared-stack-is-the-threads`, which on
+both Windows architectures reads kernel32's bounds on a prepared stack, on
+main's stack and back on the prepared one, reads address zero through
+`IsBadReadPtr`, whose access violation is dispatched on the prepared stack
+to kernel32's own handler, and traps there; and `stack report/a switch
+costs its frame`. Before the change its bounds checks failed on both
+architectures' Windows hosts.
+
+### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
+
+**From** D447, D2191 and D2349.
+
+**The discrepancy:** Windows unwinds a frame by its routine's table in the
+image, and a debugger on Windows does too, where every other target reads
+D447's call frame information. On x86-64 the switch and start routines had
+no table, so an unwinder took each for a leaf that moved no stack pointer;
+on arm64 the switch's table described its frame record but not its
+epilogue, and the start routine had none.
+
+**Chosen:** on x86-64 the switch's table describes its six pushes and the
+allocation of the four words D2479 saves, and its prologue ends there;
+every instruction up to the allocation's release runs with all of them on
+the stack, which both stacks hold alike, and what follows is the epilogue
+Windows' unwinder reads, an addition to RSP, pops and RET, so one table is
+right on either side of the load of RSP. On arm64 the switch's table also
+describes its epilogue, the release of the saved registers and the frame
+record's pop. A prepared first frame lays two zero words above the start
+routine's return address, below which the start routine calls the entry.
+On x86-64 the start routine's table describes no prologue, so an unwinder
+takes the return address its frame holds, zero; on arm64 its table reads
+its opening nop, never run, as the push of a frame record, which every
+return address in the routine is past, so an unwinder restores x29 and x30
+as the zero pair. A return address of zero ends a walk on Windows, as the
+thread's own first frame ends it.
+
+**The alternatives:** the TEB's base alone ending the dispatcher's walk,
+which a debugger does not read; and a table claiming a frame record for
+the x86-64 start routine, which has none.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s stack switch sessions
+(D2481), whose backtrace in a fibre ends at the start routine, and
+`runtime/windows-prepared-stack-is-the-threads`, whose access violation is
+dispatched through these tables.
+
+### D2481 — On Windows the switch and start routines are procedures of the PDB
+
+**From** D469 and D2287.
+
+**The discrepancy:** D469 names the two routines by local function symbols,
+which a debugger reads from an ELF or Mach-O image. A Windows image carries
+no symbol table: a debugger names a frame from the PDB, whose procedures
+are the routines with CodeView descriptions, and its publics, which are
+external symbols. A backtrace through a Windows switch named neither
+routine.
+
+**Chosen:** with `--debug=full` each of the two routines is a CodeView
+procedure, `S_LPROC32_ID`, of its symbol's name, `landin.stack_switch` or
+`landin.stack_start`, with no parameters, lines or variables, so that LLDB
+names their frames and breaks on them by name. `compiler/tests/windows/
+debug.py` runs D469's session, switch_frames.py's, on both Windows
+architectures at the four profiles, as FreeBSD's lane does: plain LLDB
+commands stepping a switch by the count of its instructions, counted in the
+assembly `--debug=full` keeps beside the image, since a PE image's symbols
+are its PDB's. LLDB finds a PDB's routine by its name and not by a pattern,
+and shows the instruction at a stop in a routine it has a description of
+only when told to, so the Windows session breaks on the switch by name and
+asks for the instruction at every stop.
+
+**The alternatives:** external symbols, which the PDB's publics would
+carry, and which D469 declined; and CodeView line records, which would
+claim source the routines do not have.
+
+**Pinned by** the gate's `windows-debugger` and `windows-arm64-debugger`
+jobs, whose LLDB sessions hold the frames at every instruction of the
+switch to `compiler/tests/debugging/switch_frames.py`.
 
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 

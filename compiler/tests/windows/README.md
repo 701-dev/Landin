@@ -102,6 +102,18 @@ compiles `compiler/tests/dap/main.ldn`, the program every DAP lane debugs,
 and runs `compiler/tests/dap/session.py`'s session through `refine dap`
 relaying `lldb-dap.exe`, the program's own output among its checks.
 
+It compiles the stack switch's workload, `runtime/stack-switch-frames`, at
+the same profiles and runs `compiler/tests/debugging/switch_frames.py`'s
+session over each, as FreeBSD's lane does: plain LLDB commands that stop in
+the second fibre, then step two switches an instruction at a time and hold
+the leaving and resumed fibres' frames at every instruction (D469). The
+count of the switch routine's instructions comes from the assembly
+`--debug=full` keeps beside the image, `NAME.exe.s`, since a PE image's
+symbols are in its PDB; the session breaks on the routine by name, which is
+how LLDB finds a PDB's procedure, and asks for the instruction at every stop
+(D2481). Each session's verdict is in `switch-frames.json` beside the
+transcripts.
+
 The gate splits it as it splits the corpus: `windows-emit` adds
 `--prepare-only` and keeps a second bundle, and `windows-debugger` runs it
 on `windows-2025`, the LLDB sessions natively with `--prepared=DIR`, then

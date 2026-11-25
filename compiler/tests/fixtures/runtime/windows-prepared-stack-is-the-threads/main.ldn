@@ -9,6 +9,8 @@
 --  they are its own; there it fails a check, which ends the program with
 --  the trap's exception (D2192).  A check that does not hold resumes main,
 --  which ends with 1.
+compiler.assert(compiler.os == windows)
+
 extern(c) link(symbol: "GetCurrentThreadStackLimits") stack_limits:
     (low: ptr mut usize, high: ptr mut usize) -> none
 extern(c) link(symbol: "IsBadReadPtr") is_bad_read:

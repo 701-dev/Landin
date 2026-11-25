@@ -2738,6 +2738,7 @@ jobs:
           name: windows-x86-64-debugger
           path: |
             ${{ runner.temp }}/windows-debugger/*/summary.json
+            ${{ runner.temp }}/windows-debugger/*/switch-frames.json
             ${{ runner.temp }}/windows-debugger/*/*.transcript
             ${{ runner.temp }}/windows-debugger/*/*.jsonl
             ${{ runner.temp }}/windows-debugger/*/*.log
@@ -2965,6 +2966,7 @@ jobs:
           name: windows-arm64-debugger
           path: |
             ${{ runner.temp }}/windows-debugger/*/summary.json
+            ${{ runner.temp }}/windows-debugger/*/switch-frames.json
             ${{ runner.temp }}/windows-debugger/*/*.transcript
             ${{ runner.temp }}/windows-debugger/*/*.jsonl
             ${{ runner.temp }}/windows-debugger/*/*.log
