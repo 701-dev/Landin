@@ -1146,7 +1146,9 @@ process ignores SIGPIPE and gives its children the default back.
   constant wherever the store dominates (D2148). A loop's index is
   bounded below by its first value and above by its test, and those
   bounds carry through a constant offset or multiple, so `w[t - 15]` and
-  `4 * t + 3` in SHA-256's loops keep no check (D2207); one product
+  `4 * t + 3` in SHA-256's loops keep no check (D2207); an index counted
+  down from a slice's length, as reverse-complement's, keeps none either
+  (D2491, D2492); one product
   written four times is made once (D2247, D2248). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction, and a proved
   product by a power of two is a shift (D1624, D2251). SHA-256's majority

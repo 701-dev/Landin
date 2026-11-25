@@ -2572,6 +2572,52 @@ package body Landin.Tests.IR_Optimization_Suite is
             & "unchecked begin t = t + 1 end unchecked end while end f",
             IR.Subtract, 0, "a step that may wrap counts nothing",
             Objective);
+         --  D2491: a slot counted down from a length, its step a
+         --  decrement that cannot wrap, indexes below that length.
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 "
+            & "mut at: usize = lenof s "
+            & "while at > 0 do dec at r +%= usize(s[at]) end while end f",
+            IR.Slice_Address, 1, "an index counted down from the length",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 "
+            & "mut at: usize = lenof s "
+            & "while at > 0 do r +%= usize(s[at - 1]) dec at end while "
+            & "end f",
+            IR.Slice_Address, 1, "a counted-down index less one",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, t: []u8) -> (r: usize) = r = 0 "
+            & "mut at: usize = lenof t "
+            & "while at > 0 do dec at r +%= usize(s[at]) end while end f",
+            IR.Slice_Address, 0, "counted down from another slice's length",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: usize) = r = 0 "
+            & "mut at: usize = n "
+            & "while at > 0 do dec at r +%= usize(s[at]) end while end f",
+            IR.Slice_Address, 0, "counted down from a parameter", Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 "
+            & "mut at: usize = lenof s "
+            & "while at > 1 do dec at dec at r +%= usize(s[at]) end while "
+            & "end f",
+            IR.Slice_Address, 0, "a slot stepped down twice is not counted",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = r = 0 "
+            & "mut at: usize = lenof s "
+            & "while at > 0 do r +%= usize(s[at - 1]) "
+            & "unchecked begin at = at - 2 end unchecked end while end f",
+            IR.Slice_Address, 0, "a step down that may wrap counts nothing",
+            Objective);
+         Check_Proved
+           ("public f: () -> (r: u32) = r = 0 mut w: [64]u32 = zeroed "
+            & "mut t: usize = 63 "
+            & "while t > 0 do dec t r +%= w[t - 15] end while end f",
+            IR.Subtract, 1, "a slot counted down has no least of its first",
+            Objective);
          Check_Proved
            ("public f: (s: []u8) -> (r: u32) = r = 0 "
             & "for t in usize(0)..<16 do r +%= u32(s[4 * t + 3]) end for "
