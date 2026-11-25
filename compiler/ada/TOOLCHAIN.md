@@ -437,11 +437,20 @@ release the host GNAT comes from, GCC `16.1.0` with GNU Binutils
 `LANDIN_GNAT_ARM_ELF_VERSION` `16.1.0-1` with a checksum per host, which
 `environments/cortex-m/setup.py` and the nix shell read; its multilibs
 cover ARMv6-M through Armv8.1-M with MVE. Its GDB is built without Python,
-which the debugger sessions run, so QEMU and `gdb-multiarch` stay pinned
-in `environments/cortex-m/tools.lock.json`. The
-[profile guide](../../environments/cortex-m/README.md) gives exact versions,
-options and reproduction on any glibc 2.38 Linux x86-64 host. None of them
-is an Ada bootstrap dependency.
+which the debugger sessions run, so QEMU and GDB are pinned in
+`environments/cortex-m/tools.lock.json`, each an archive that
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages) built from
+upstream's source and serves from its cache with the sources it was built
+from (D2572):
+
+| tool | archive | sha256 |
+|---|---|---|
+| QEMU 10.0.13, `arm-softmmu`, microbit and MPS2 machines, TCG plugins | `qemu-arm-10.0.13-x86_64-linux.tar.xz` | `e6d296decd5abee0855ed706a91c153c72e7a0e0cb933cbe059e2e800c36a093` |
+| GDB 16.3 for Arm and RISC-V, Python 3.13, static | `gdb-16.3-x86_64-linux.tar.xz` | `9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba` |
+
+The [profile guide](../../environments/cortex-m/README.md) gives exact
+versions, options and reproduction on any glibc 2.35 Linux x86-64 host.
+None of them is an Ada bootstrap dependency.
 
 `refine` itself looks for `arm-eabi-gcc` and then `arm-none-eabi-gcc`, the
 name Debian, Ubuntu, Fedora, Homebrew and Arm's own releases give the same

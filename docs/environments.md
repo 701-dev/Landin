@@ -427,9 +427,11 @@ AGENTS.md asks of related commands anyway.
 
 On Linux x86-64 it holds `landin-fhs`, an FHS environment of the store's
 glibc and libstdc++, which the Cortex-M, RV32 and Xtensa lanes run
-themselves again inside on NixOS, whose stub loader refuses the Debian and
-release binaries `environments/cortex-m/tools.lock.json` locks; with
-`dpkg-deb`, `setup.py` installs those binaries from the shell too. See the
+themselves again inside on NixOS, whose stub loader refuses the cross
+compilers' release binaries `environments/cortex-m/setup.py` installs; the
+emulators and GDB that `environments/cortex-m/tools.lock.json` locks need
+nothing of the host's, and `setup.py` installs everything from the shell
+too. See the
 [lanes' guide](../environments/cortex-m/README.md#on-nixos).
 
 On Linux the shell also holds LLDB, LLVM 19's from the same package set,

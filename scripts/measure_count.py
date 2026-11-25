@@ -365,11 +365,10 @@ def count_cortex(image: Image, level: str, tools: Path, start=None, stop=None,
         start = "main"
     first = image.address(start) if start else None
     last = image.address(stop)
-    usr = tools / "root/usr"
-    libraries = usr / "lib/x86_64-linux-gnu"
-    env = {**os.environ, "LC_ALL": "C", "LANG": "C",
-           "LD_LIBRARY_PATH": str(libraries)}
-    qemu = str(usr / "bin/qemu-system-arm")
+    sys.path.insert(0, str(CORTEX))
+    from setup import GDB, QEMU_ARM  # noqa: E402
+    env = {**os.environ, "LC_ALL": "C", "LANG": "C"}
+    qemu = str(tools / QEMU_ARM / "bin/qemu-system-arm")
     plugin = plugin_for((qemu, "-M", "none", "-display", "none"),
                         tuple(sorted(env.items())))
     work = work or Path(tempfile.mkdtemp(prefix="landin-count-run-"))
@@ -398,7 +397,7 @@ def count_cortex(image: Image, level: str, tools: Path, start=None, stop=None,
                                        pass_fds=(listener.fileno(),))
         try:
             session = subprocess.run(
-                [str(usr / "bin/gdb-multiarch"), "-q", "-nx", "-batch", "-x", str(script),
+                [str(tools / GDB / "bin/gdb"), "-q", "-nx", "-batch", "-x", str(script),
                  str(image.path)], cwd=work, env=env, capture_output=True, text=True,
                 timeout=LIMIT)
             (work / "count-gdb.log").write_text(session.stdout + session.stderr)
@@ -442,8 +441,9 @@ def count(target: str, level: str, image: Path, arguments=(), stdin=None, start=
 
 
 def nixos_route() -> None:
-    """The Cortex-M lanes' Debian QEMU and GDB start on NixOS only inside
-    the flake's FHS environment; run this again there, as the lanes do."""
+    """The Cortex-M lanes' cross compilers, glibc release binaries, start on
+    NixOS only inside the flake's FHS environment; run this again there, as
+    the lanes do."""
     sys.path.insert(0, str(CORTEX))
     from setup import nixos_route as route  # noqa: E402
     route()

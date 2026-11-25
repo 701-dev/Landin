@@ -18,7 +18,7 @@ import threading
 import time
 
 from gdb_server import GdbServer
-from setup import (AREAS, DEFAULT, ESPRESSIF, HERE, RISCV, arm_archive, installed_tools,
+from setup import (AREAS, DEFAULT, ESPRESSIF, GDB, HERE, QEMU_ARM, RISCV, arm_archive, installed_tools,
                    inventory, probe_inputs, riscv_archive, sha, supported_host)
 
 #  The GDB every session on one thread shares; `Run.debug` starts it.  One
@@ -124,10 +124,11 @@ class Run:
         self.out, self.tools = output, tools
         self.commands = []
         self.env = dict(os.environ, LC_ALL='C', LANG='C')
-        #  Debian's QEMU and GDB load the installation's libraries; the
-        #  Espressif QEMU is a static build and loads none (D2551).
-        self.env['LD_LIBRARY_PATH'] = str(tools / 'root/usr/lib/x86_64-linux-gnu')
-        self.bin = tools / 'root/usr/bin'
+        #  Every locked emulator and the GDB need no library path: the
+        #  Espressif QEMU and GDB are static, and the Cortex-M QEMU's
+        #  launcher names the libraries it carries (D2551, D2572).
+        self.bin = tools / QEMU_ARM / 'bin'
+        self.gdb = tools / GDB / 'bin/gdb'
         self.arm = tools / 'gnat-arm-elf/bin'
         self.riscv = tools / RISCV / 'bin'
         self.espressif = tools / ESPRESSIF / 'bin'
@@ -137,19 +138,19 @@ class Run:
 
         The session runs in the process-wide GDB server rather than a GDB of
         its own; see gdb_server.py.  Its record, log and failure are this
-        run's, exactly as a batch `gdb-multiarch -x SCRIPT ELF` would leave
+        run's, exactly as a batch `gdb -x SCRIPT ELF` would leave
         them.
         """
         server = getattr(SERVERS, 'server', None)
-        if server is not None and (server.gdb, server.env) != (self.bin / 'gdb-multiarch', self.env):
+        if server is not None and (server.gdb, server.env) != (self.gdb, self.env):
             server.stop()
             server = None
         if server is None:
-            server = SERVERS.server = GdbServer(self.bin / 'gdb-multiarch', self.env, self.out)
+            server = SERVERS.server = GdbServer(self.gdb, self.env, self.out)
             atexit.register(server.stop)
         server.cwd = self.out
         tick = time.monotonic()
-        record = {'name': name, 'argv': [str(self.bin / 'gdb-multiarch'), '-q', '-nx',
+        record = {'name': name, 'argv': [str(self.gdb), '-q', '-nx',
                                          '-batch', str(elf), '-x', str(script)],
                   'timeout_seconds': timeout, 'server': True}
         self.commands.append(record)
@@ -389,7 +390,7 @@ class Run:
             ('riscv-binutils-version', self.riscv / 'riscv64-elf-as', '2.46.1'),
             ('espressif-qemu-version', self.espressif / 'qemu-system-riscv32',
              '9.2.2 (esp_develop_9.2.2_20260417)'),
-            ('gdb-version', self.bin / 'gdb-multiarch', '16.3')]:
+            ('gdb-version', self.gdb, '16.3')]:
             require(expected in self.command(name, [tool, '--version']), name + ' mismatch')
         selected = selection(lanes)
         needing = [name for name in selected if name in NEEDS_REFINE]

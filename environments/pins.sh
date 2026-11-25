@@ -81,7 +81,7 @@ LANDIN_CROSS_GCC_NIX=15.3.0
 #  the release the host GNAT comes from, whose driver is `arm-eabi-gcc`.
 #  environments/cortex-m/setup.py installs the Linux x86-64 one and the nix
 #  shell its own system's; QEMU and the GDB whose Python the debugger
-#  sessions run stay in environments/cortex-m/tools.lock.json.
+#  sessions run are nix-packages archives in environments/cortex-m/tools.lock.json.
 LANDIN_GNAT_ARM_ELF_VERSION=16.1.0-1
 
 #  The RV32 lanes' GCC and binutils: GNAT's riscv64-elf archive from the

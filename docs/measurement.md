@@ -168,8 +168,9 @@ arm64 runs as a whole system under emulation, its kernel and timer in any
 count, and records size alone.
 
 The plugin, `compiler/tests/measure/qemu/count.c`, declares the dozen
-calls it makes rather than including QEMU's header, which needs glib's and
-which the Cortex-M lanes' Debian QEMU does not ship; `scripts/measure_count.py`
+calls it makes rather than including QEMU's header, which needs glib's
+headers and which not every QEMU ships (the Cortex-M lanes' archive has it
+under `include/`, D2572; D1379); `scripts/measure_count.py`
 builds it for the plugin interface the running QEMU accepts, the version
 the two in use differ by, and its `check-header` holds the declarations to
 a QEMU's own header.

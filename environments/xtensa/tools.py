@@ -38,7 +38,7 @@ class Tools:
                     ' (environments/xtensa/README.md)' % (qemu, selected, qemu))
             self.qemu = selected
             #  The locked QEMU is a static build from 701-dev/nix-packages
-            #  and needs no library of the installation's Debian root.
+            #  and needs no library of the installation's.
             os.environ['PATH'] = str(self.root / XTENSA / 'bin') + os.pathsep + os.environ['PATH']
         elif qemu is not None:
             self.qemu = Path(qemu).resolve()
@@ -65,7 +65,7 @@ class Tools:
         result = subprocess.run([str(path), *arguments], text=True, capture_output=True, timeout=30)
         said = (result.stdout + result.stderr).strip()
         if result.returncode:
-            #  NixOS's stub loader refuses the locked Debian binaries; a run
+            #  NixOS's stub loader refuses the pinned glibc binaries; a run
             #  with --tools runs itself again inside landin-fhs, and one with
             #  --qemu alone runs the binary it is given as it is.
             raise RuntimeError('%s did not run: %s exited %d: %s%s' % (
