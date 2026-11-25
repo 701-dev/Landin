@@ -9,35 +9,52 @@ The core names LX6 and LX7 identify configurable processor families; the
 selected levels describe the actual ESP32 and ESP32-S3 configurations.
 
 Build `refine` in the [pinned environment](../../docs/process.md#local-agent-feedback)
-and install the [shared cross-target tools](../cortex-m/README.md).
+and install the [shared cross-target tools](../cortex-m/README.md). Every
+command below takes `--refine REFINE`, the binary that build wrote. Its
+directory depends on the environment: the gate runs
+`compiler/ada/build/linux-amd64/release/bin/refine`, while in `nix develop`
+on Linux x86-64 the same build is
+`compiler/ada/build/nix-x86_64-linux/release/bin/refine`, and `echo
+$LANDIN_BUILD_TAG` there names the tag in place of `nix-x86_64-linux`.
+
 `--tools DIRECTORY` names the installation and selects its QEMU and wrappers.
 A corpus run is `COMPLETE` only with that argument. The runner verifies the lock,
 archive pin, whole installation hashes before and after execution, binary
 versions and both configuration multilibs. Other runs may
 instead pass `--qemu PATH` and use wrappers from `PATH`; they record those
 actual tool hashes and versions, and a whole corpus run that way reports
-`UNLOCKED` rather than `COMPLETE`. Output directories must
+`UNLOCKED` rather than `COMPLETE`. A run with both is refused unless they
+name the same QEMU. Output directories must
 be new; every command, assembly image, linker script, helper-library hash,
 disassembly, remote-protocol transcript and verdict stays in that directory.
-On NixOS, run them from `nix develop`: with `--tools`, a runner on
-NixOS's stub loader runs itself again inside the flake's `landin-fhs`, as
-the [Cortex-M lanes](../cortex-m/README.md#on-nixos) do, and QEMU loads the
-installation's runtime libraries there. A run with `--qemu` alone
-runs the QEMU it is given as it is, so on NixOS the installation's QEMU
-runs only under `landin-fhs`, with the installation's libraries named, as
-`--tools` would name them:
+
+The locked QEMU is Espressif's fork at tag `esp-develop-9.2.2-20260417`,
+built from source as a static binary by
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages) and
+downloaded from its cache as an archive the lock pins by SHA-256. Any
+`--qemu` must answer `--version` with Espressif's package string,
+`QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)`; a build of
+the same source without `--with-pkgversion=esp_develop_9.2.2_20260417`
+says only `9.2.2` and is refused as a version mismatch. Nix users get
+the same build as `github:701-dev/nix-packages#qemu-espressif-static`.
+
+On NixOS, run them from `nix develop`, which puts both Xtensa compiler
+configurations on `PATH`. With `--tools`, a runner on NixOS's stub loader
+runs itself again inside the flake's `landin-fhs`, as the
+[Cortex-M lanes](../cortex-m/README.md#on-nixos) do, because the
+installation's compiler archive is built for an FHS distribution. A run
+with `--qemu` alone needs no FHS environment: the installation's QEMU is
+static and runs as it is, and so does the Nix package:
 
 ```sh
-export PATH="$TOOLS/xtensa-esp-elf/bin:$PATH"
-export LD_LIBRARY_PATH="$TOOLS/root/usr/lib/x86_64-linux-gnu:$TOOLS/root/usr/lib/x86_64-linux-gnu/pulseaudio"
-landin-fhs python3 environments/xtensa/corpus.py \
+nix develop -c python3 environments/xtensa/corpus.py \
   --refine "$REFINE" --qemu "$TOOLS/qemu-xtensa/bin/qemu-system-xtensa" \
   --output "$OUT/unlocked" --chip esp32 --all
 ```
 
-A tool that cannot start is refused as one that did not run, naming that
-route when NixOS's stub loader refused it; one that runs and answers with
-another version is a version mismatch.
+A tool that cannot start is refused as one that did not run, naming the
+`landin-fhs` route when NixOS's stub loader refused it; one that runs and
+answers with another version is a version mismatch.
 
 Run selected native controls, including an independent nonzero-status
 control and an intentional trap control:

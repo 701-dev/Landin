@@ -1232,7 +1232,6 @@ jobs:
         if: matrix.shard == 1
         run: |
           export PATH="$RUNNER_TEMP/embedded/xtensa-esp-elf/bin:$PATH"
-          export LD_LIBRARY_PATH="$RUNNER_TEMP/embedded/root/usr/lib/x86_64-linux-gnu"
           python3 environments/xtensa/backend.py --tools "$RUNNER_TEMP/embedded" \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --qemu "$RUNNER_TEMP/embedded/qemu-xtensa/bin/qemu-system-xtensa" \
@@ -1254,7 +1253,6 @@ jobs:
       - name: One of three shards of the complete freestanding corpus
         run: |
           export PATH="$RUNNER_TEMP/embedded/xtensa-esp-elf/bin:$PATH"
-          export LD_LIBRARY_PATH="$RUNNER_TEMP/embedded/root/usr/lib/x86_64-linux-gnu"
           python3 environments/xtensa/corpus.py --all --shard="${{ matrix.shard }}/3" \
             --tools "$RUNNER_TEMP/embedded" \
             --memory-profile=sim \

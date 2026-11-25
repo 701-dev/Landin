@@ -819,9 +819,9 @@
     "into": "qemu-espressif"
   },
   {
-    "url": "https://github.com/espressif/qemu/releases/download/esp-develop-9.2.2-20260417/qemu-xtensa-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz",
-    "file": "qemu-xtensa-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz",
-    "sha256": "0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8a547e35",
+    "url": "https://701-nix-packages.nbg1.your-objectstorage.com/exports/qemu-espressif-9.2.2-20260417-x86_64-linux/qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz",
+    "file": "qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz",
+    "sha256": "cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d",
     "kind": "tar.xz",
     "into": "qemu-xtensa"
   }

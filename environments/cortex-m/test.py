@@ -1895,10 +1895,13 @@ class RV32Lanes(unittest.TestCase):
         self.assertEqual([item['into'] for item in archives], [ESPRESSIF, ESPRESSIF_XTENSA])
         self.assertIn(ESPRESSIF, AREAS)
         self.assertIn(ESPRESSIF_XTENSA, AREAS)
-        for item in archives:
-            self.assertIn('esp_develop_9.2.2_20260417', item['file'])
+        self.assertIn('esp_develop_9.2.2_20260417', archives[0]['file'])
+        #  The Xtensa QEMU is nix-packages' static build of the same tag.
+        self.assertEqual(archives[1]['file'], 'qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz')
+        self.assertTrue(archives[1]['url'].startswith(
+            'https://701-nix-packages.nbg1.your-objectstorage.com/exports/'))
         self.assertEqual(archives[1]['sha256'],
-                         '0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8a547e35')
+                         'cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d')
         for item in lock:
             self.assertRegex(item['sha256'], '^[0-9a-f]{64}$')
         files = [item['file'] for item in lock]

@@ -38147,6 +38147,41 @@ the packages in a release of the project's own, a second store to keep.
 `test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash`
 and `test_every_locked_debian_package_has_its_snapshot_url`.
 
+### D2551 — The Xtensa lanes' QEMU is a static build of Espressif's tag from 701-dev/nix-packages
+
+**The discrepancy:** the locked `qemu-xtensa` area held Espressif's own
+release binary of `esp-develop-9.2.2-20260417`. It is linked to SDL2 and
+the rest of a graphical stack, so the lock carried Debian packages no
+lane uses (`-nographic` throughout), every Xtensa job set
+`LD_LIBRARY_PATH` to the installation's Debian root, and on NixOS the
+emulator started only under `landin-fhs`, which a run with `--qemu`
+alone did not go through.
+
+**Chosen:** the lock's Xtensa QEMU entry names the archive
+`qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz` from the binary
+cache of 701-dev/nix-packages, the project's repository of tools built
+from source with Nix: the same tag, headless, `xtensa-softmmu` and
+`riscv32-softmmu` only, statically linked against musl, with
+Espressif's ROM images and its `--with-pkgversion`, so `--version` still
+answers `9.2.2 (esp_develop_9.2.2_20260417)`. `setup.py` fetches and
+holds it to its SHA-256 like any locked archive, and the cache keeps the
+sources of every path in its build beside it. The binary needs no
+library, so `environments/xtensa/tools.py` and the gate's Xtensa jobs no
+longer set `LD_LIBRARY_PATH`, and it starts on NixOS as it is. The
+lock's check and the `--tools`/`--qemu` rules are unchanged.
+
+**The alternatives:** keeping Espressif's binary, with the graphical
+stack it drags in; Espressif's binary with a stub `libSDL2` of our own,
+whose symbol list follows each Espressif release; a dynamic build linked
+to the lock's Debian libraries, which keeps the FHS route on NixOS; and
+the Nix package taken through a flake input, which needs Nix in the
+Xtensa jobs, the later stage of moving CI onto Nix. The RV32 lanes'
+`qemu-espressif` area keeps Espressif's binary until they move the same
+way, so the SDL2 packages stay in the lock for now.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_unpacks_espressif_qemu_into_its_own_area`.
+
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 
 **The tour said** nothing; the `rv32imc` level has no A, and the C3 has

@@ -31,11 +31,15 @@ class Tools:
             unchanged(self.root, self.installed, self.before)
             selected = self.root / ESPRESSIF_XTENSA / 'bin/qemu-system-xtensa'
             if qemu is not None and Path(qemu).resolve() != selected.resolve():
-                raise RuntimeError('--qemu differs from the locked --tools QEMU')
+                raise RuntimeError(
+                    '--qemu %s is not the locked QEMU %s that --tools selects.  Leave out'
+                    ' --qemu to run the locked one, or leave out --tools to run %s; that'
+                    ' run records it and reports UNLOCKED rather than COMPLETE'
+                    ' (environments/xtensa/README.md)' % (qemu, selected, qemu))
             self.qemu = selected
+            #  The locked QEMU is a static build from 701-dev/nix-packages
+            #  and needs no library of the installation's Debian root.
             os.environ['PATH'] = str(self.root / XTENSA / 'bin') + os.pathsep + os.environ['PATH']
-            libraries = self.root / 'root/usr/lib/x86_64-linux-gnu'
-            os.environ['LD_LIBRARY_PATH'] = str(libraries) + ':' + str(libraries / 'pulseaudio')
         elif qemu is not None:
             self.qemu = Path(qemu).resolve()
         else:
