@@ -1,0 +1,8 @@
+class: runtime
+summary: D2479 on Windows a prepared stack is the thread's while it runs: on the fibre's stack kernel32's stack bounds hold its local within the backing and IsBadReadPtr's access violation is dispatched there to kernel32's own handler, on main's stack the bounds are main's again, and back on the fibre's stack they are its own, where a failed check ends the program with the trap's exception
+program: main.ldn
+profiles: specialization
+traps: yes
+constructs: 0890, 1560, 1580, 1670, 1995
+targets: windows-x86-64, windows-arm64
+trap_report: main.ldn:41:9: trap: unreachable

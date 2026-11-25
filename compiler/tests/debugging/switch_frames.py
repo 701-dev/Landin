@@ -21,9 +21,9 @@ A session stops three ways:
 - at the switch from the first fibre back to main, the same, the resumed
   frames being main's and whatever the target puts beneath it.
 
-GDB's sessions (Linux, RV64 and Cortex-M) and LLDB's (Darwin and FreeBSD)
-produce the same stops, read by `gdb_stops` and `lldb_stops`, and `check`
-holds them to the record.  Nothing here runs a debugger: each lane starts
+GDB's sessions (Linux, RV64 and Cortex-M) and LLDB's (Darwin, FreeBSD and
+Windows) produce the same stops, read by `gdb_stops` and `lldb_stops`, and
+`check` holds them to the record.  Nothing here runs a debugger: each lane starts
 its own, through its own transport, with the commands made here.
 """
 from __future__ import annotations
@@ -62,13 +62,14 @@ SWITCHES = (
 #  above the switch routine, as GDB and LLDB print it: the one that loads
 #  the resumed stack pointer.  On arm64 it is the one that points x29 at
 #  the resumed stack's frame record, just before sp follows, since the
-#  switch's unwind rule follows its frame record (D475).  On Cortex-M0
+#  switch's unwind rule follows its frame record (D475), at 176 on Windows,
+#  where the TEB's bounds are saved below it (D2479).  On Cortex-M0
 #  that is the write of MSP or PSP when the selection does not change,
 #  and of CONTROL when it does (D460); the ISB after CONTROL makes it architecturally current, which
 #  an emulator may already have.
 SWAP = {
     "x86-64": r"\bmov[a-z]*\s+%rsi,\s*%rsp\b",
-    "arm64": r"\badd\s+x29,\s*x10,\s*#(?:160|0xa0)\b",
+    "arm64": r"\badd\s+x29,\s*x10,\s*#(?:160|0xa0|176|0xb0)\b",
     "rv64": r"\bmv\s+sp,\s*(?:a1|x11)\b",
     "cortex-m0": r"\b(?:msr\s+(?:msp|psp|control|MSP|PSP|CONTROL)\b|isb\b)",
 }
@@ -108,7 +109,8 @@ def fibre_line() -> int:
 ARCH = {"linux-x86-64": "x86-64", "freebsd-x86-64": "x86-64",
         "linux-arm64": "arm64", "darwin-arm64": "arm64",
         "freebsd-arm64": "arm64", "linux-rv64": "rv64",
-        "cortex-m0": "cortex-m0"}
+        "cortex-m0": "cortex-m0", "windows-x86-64": "x86-64",
+        "windows-arm64": "arm64"}
 
 
 @dataclass
@@ -402,6 +404,25 @@ def shadowing_symbols(listing: str, object_format: str = "elf") -> list[str]:
         problems.append(f"{len(private)} private labels at code addresses,"
                         f" such as {', '.join(private[:3])}")
     return problems
+
+
+def assembly_instruction_count(assembly: str) -> int:
+    """The instructions of the switch routine, from the assembly an image
+    was linked from: a PE image's symbols are in its PDB, which no
+    disassembler of the lane reads.  The routine is straight-line and ends
+    at its unwind table's end."""
+    lines = assembly.splitlines()
+    starts = [i for i, line in enumerate(lines) if line.strip() == SWITCH + ":"]
+    require(len(starts) == 1, f"the assembly has no single {SWITCH}")
+    count = 0
+    for line in lines[starts[0] + 1:]:
+        text = line.strip()
+        if text in (".seh_endproc", ".cfi_endproc"):
+            break
+        if text and not text.startswith(".") and not text.endswith(":"):
+            count += 1
+    require(count > 0, f"no instructions in {SWITCH}")
+    return count
 
 
 def instruction_count(listing: str) -> int:

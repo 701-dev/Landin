@@ -972,7 +972,20 @@ package body Landin.Backend.X86_64 is
       Stack_Start : constant String := Routine_Prefix & "stack_start";
       Stack_Entered : constant String :=
         Local_Prefix & "landin_stack_entered";
-      Stack_First_Frame : constant := 64;
+      --  D2479: on Windows the first frame also holds the stack's bounds
+      --  for the thread's TEB, three words after the limit, and above
+      --  the start routine's return address a zero word, the return
+      --  address of the start routine's own frame, and a word that keeps
+      --  the entry's call aligned; elsewhere it is the eight words D450
+      --  lays.
+      TEB_Words : constant Natural := (if COFF then 3 else 0);
+      Stack_First_Frame : constant Natural := (if COFF then 104 else 64);
+      --  The offset in the first frame of its word Index after the limit
+      --  and the TEB's words: r15, r14, r13, r12, rbx and rbp, the start
+      --  routine as the return address and, on Windows, the two words
+      --  above it.
+      function Frame_Slot (Index : Natural) return String
+        is (Trimmed (Natural'Image (8 * (1 + TEB_Words + Index))));
 
       function Float_Decode_Label
         (From : Landin.Types.Float_Name) return String
@@ -5326,15 +5339,18 @@ package body Landin.Backend.X86_64 is
                         --  length, the entry and its argument.  The top is
                         --  aligned down to sixteen and the first frame laid
                         --  below it as the switch routine's pops read it:
-                        --  the stack's limit (D472), r15, r14, r13 (the
-                        --  argument), r12 (the entry), rbx, rbp (zero), then
-                        --  the start routine as the return address, so the
-                        --  entry is called with the stack aligned at the
-                        --  top.  The limit is the base and the margin.  A
-                        --  slice that cannot hold those 64 bytes and the
-                        --  margin traps stack_exhausted (D451); the
-                        --  difference is signed, since aligning a short
-                        --  slice's top may take it below the base.
+                        --  the stack's limit (D472), on Windows the TEB's
+                        --  base, limit and deallocation base for the stack
+                        --  (D2479), r15, r14, r13 (the argument), r12 (the
+                        --  entry), rbx, rbp (zero), then the start routine
+                        --  as the return address, so the entry is called
+                        --  with the stack aligned at the top, on Windows
+                        --  sixteen bytes below it, past two zero words.
+                        --  The limit is the base and the margin.  A slice
+                        --  that cannot hold the first frame and the margin
+                        --  traps stack_exhausted (D451); the difference is
+                        --  signed, since aligning a short slice's top may
+                        --  take it below the base.
                         Emit ("movq " & Value_Operand (Operand (1))
                               & ", %rax");
                         Emit ("movq " & Value_Operand (Operand (2))
@@ -5344,7 +5360,8 @@ package body Landin.Backend.X86_64 is
                         Emit ("subq %rax, %rcx");
                         Emit ("cmpq $" & Trimmed
                           (Landin.Targets.Byte_Count'Image
-                             (Stack_First_Frame + Limit_Margin))
+                             (Landin.Targets.Byte_Count (Stack_First_Frame)
+                              + Limit_Margin))
                           & ", %rcx");
                         Trap_On ("jl");
                         Emit ("leaq " & Trimmed
@@ -5353,20 +5370,39 @@ package body Landin.Backend.X86_64 is
                         Emit ("addq %rcx, %rax");
                         Emit ("subq $" & Trimmed (Natural'Image
                           (Stack_First_Frame)) & ", %rax");
+                        if COFF then
+                           --  D2479: the TEB's base is the aligned top,
+                           --  and its limit and deallocation base the
+                           --  slice's base, the limit less its margin.
+                           Emit ("leaq " & Trimmed (Natural'Image
+                             (Stack_First_Frame)) & "(%rax), %rcx");
+                           Emit ("movq %rcx, 8(%rax)");
+                           Emit ("leaq -" & Trimmed
+                             (Landin.Targets.Byte_Count'Image
+                                (Limit_Margin)) & "(%r11), %rcx");
+                           Emit ("movq %rcx, 16(%rax)");
+                           Emit ("movq %rcx, 24(%rax)");
+                        end if;
                         Emit ("movq %r11, (%rax)");
                         Emit ("movq " & Value_Operand (Operand (4))
                               & ", %rdx");
-                        Emit ("movq %rdx, 24(%rax)");
+                        Emit ("movq %rdx, " & Frame_Slot (2) & "(%rax)");
                         Emit ("movq " & Value_Operand (Operand (3))
                               & ", %rdx");
-                        Emit ("movq %rdx, 32(%rax)");
+                        Emit ("movq %rdx, " & Frame_Slot (3) & "(%rax)");
                         Emit ("xorl %edx, %edx");
-                        Emit ("movq %rdx, 8(%rax)");
-                        Emit ("movq %rdx, 16(%rax)");
-                        Emit ("movq %rdx, 40(%rax)");
-                        Emit ("movq %rdx, 48(%rax)");
+                        for Index in 0 .. 5 loop
+                           if Index not in 2 | 3 then
+                              Emit ("movq %rdx, " & Frame_Slot (Index)
+                                    & "(%rax)");
+                           end if;
+                        end loop;
+                        if COFF then
+                           Emit ("movq %rdx, " & Frame_Slot (7) & "(%rax)");
+                           Emit ("movq %rdx, " & Frame_Slot (8) & "(%rax)");
+                        end if;
                         Emit ("leaq " & Stack_Entered & "(%rip), %rdx");
-                        Emit ("movq %rdx, 56(%rax)");
+                        Emit ("movq %rdx, " & Frame_Slot (6) & "(%rax)");
                         Stack_Used := True;
                         Store_Value (Value, "%rax");
                      elsif M = Stack_Switch then
@@ -9863,7 +9899,8 @@ package body Landin.Backend.X86_64 is
       --  %rsp plus what remains pushed, is right at every instruction:
       --  stopped before the store, a debugger unwinds into the leaving
       --  fibre's frames, and after the load into the resumed fibre's.
-      --  Every caller-saved register is left changed, as by a call.
+      --  Every caller-saved register is left changed, as by a call.  On
+      --  Windows the routine is Emit_Windows_Switch's, below.
       --
       --  The start routine is the return address of a prepared stack's
       --  first frame: the switch's pops leave the entry in %r12, its
@@ -9879,49 +9916,111 @@ package body Landin.Backend.X86_64 is
          declare
             Pushed : constant array (1 .. 6) of String (1 .. 4) :=
               ["%rbp", "%rbx", "%r12", "%r13", "%r14", "%r15"];
+
+            --  D2479 and D2480: Windows' switch saves the limit and the
+            --  TEB's base, limit and deallocation base for the stack it
+            --  leaves, in that order above the stack pointer it stores, and
+            --  puts back those the resumed stack saved, before the same
+            --  six registers.  Its table describes the six pushes and the
+            --  four words' allocation, every instruction until the
+            --  allocation is undone runs with all of them on the stack, and
+            --  what follows is an epilogue Windows' unwinder reads, ADD to
+            --  RSP, pops and RET; both stacks hold the same words at the
+            --  switch, so one table is right on either side of the load of
+            --  RSP.
+            procedure Emit_Windows_Switch;
+            procedure Emit_Windows_Switch is
+               subtype Word_Index is Natural range 0 .. 3;
+               Area : constant String :=
+                 Trimmed (Natural'Image (8 * (1 + TEB_Words)));
+               --  The limit's cell, then the TEB's StackBase, StackLimit
+               --  and DeallocationStack.
+               function Saved (Index : Word_Index) return String
+                 is (case Index is
+                       when 0 => Limit_Cell,
+                       when 1 => "%gs:8",
+                       when 2 => "%gs:16",
+                       when 3 => "%gs:5240");
+               function At_Slot (Index : Natural) return String
+                 is ((if Index = 0 then ""
+                      else Trimmed (Natural'Image (8 * Index)))
+                     & "(%rsp)");
+            begin
+               Emit (".seh_proc " & Stack_Switcher);
+               for Index in Pushed'Range loop
+                  Emit ("pushq " & Pushed (Index));
+                  Emit (".seh_pushreg " & Pushed (Index));
+               end loop;
+               Emit ("subq $" & Area & ", %rsp");
+               Emit (".seh_stackalloc " & Area);
+               Emit (".seh_endprologue");
+               --  %r11 keeps the thread's block for the cell: the same
+               --  thread resumes on the other stack.
+               if Windows_Threads then
+                  Thread_Base ("%r11");
+               end if;
+               for Index in Word_Index loop
+                  Emit ("movq " & Saved (Index) & ", %rax");
+                  Emit ("movq %rax, " & At_Slot (Index));
+               end loop;
+               Emit ("movq %rsp, (%rdi)");
+               Emit ("movq %rsi, %rsp");
+               for Index in Word_Index loop
+                  Emit ("movq " & At_Slot (Index) & ", %rax");
+                  Emit ("movq %rax, " & Saved (Index));
+               end loop;
+               Emit ("addq $" & Area & ", %rsp");
+               for Index in reverse Pushed'Range loop
+                  Emit ("popq " & Pushed (Index));
+               end loop;
+               Emit ("ret");
+               Emit (".seh_endproc");
+            end Emit_Windows_Switch;
          begin
             Put (Character'Val (9)
                  & Section (".text.landin_stack", """ax"",@progbits"));
             Put_Directive (Function_Type (Stack_Switcher));
             Put (Stack_Switcher & ":");
-            if CFI then
-               Emit (".cfi_startproc");
-            end if;
-            for Index in Pushed'Range loop
-               Emit ("pushq " & Pushed (Index));
+            if COFF then
+               Emit_Windows_Switch;
+            else
                if CFI then
-                  Emit (".cfi_def_cfa_offset "
-                        & Trimmed (Natural'Image (8 + 8 * Index)));
-                  Emit (".cfi_offset " & Pushed (Index) & ", -"
-                        & Trimmed (Natural'Image (8 + 8 * Index)));
+                  Emit (".cfi_startproc");
                end if;
-            end loop;
-            --  On Windows %r11 keeps the thread's block for the pop: the
-            --  same thread resumes on the other stack.
-            if Windows_Threads then
-               Thread_Base ("%r11");
-            end if;
-            Emit ("pushq " & Limit_Cell);
-            if CFI then
-               Emit (".cfi_def_cfa_offset 64");
-            end if;
-            Emit ("movq %rsp, (%rdi)");
-            Emit ("movq %rsi, %rsp");
-            Emit ("popq " & Limit_Cell);
-            if CFI then
-               Emit (".cfi_def_cfa_offset 56");
-            end if;
-            for Index in reverse Pushed'Range loop
-               Emit ("popq " & Pushed (Index));
+               for Index in Pushed'Range loop
+                  Emit ("pushq " & Pushed (Index));
+                  if CFI then
+                     Emit (".cfi_def_cfa_offset "
+                           & Trimmed (Natural'Image (8 + 8 * Index)));
+                     Emit (".cfi_offset " & Pushed (Index) & ", -"
+                           & Trimmed (Natural'Image (8 + 8 * Index)));
+                  end if;
+               end loop;
+               Emit ("pushq " & Limit_Cell);
                if CFI then
-                  Emit (".cfi_def_cfa_offset "
-                        & Trimmed (Natural'Image (8 * Index)));
-                  Emit (".cfi_restore " & Pushed (Index));
+                  Emit (".cfi_def_cfa_offset 64");
                end if;
-            end loop;
-            Emit ("ret");
-            if CFI then
-               Emit (".cfi_endproc");
+               Emit ("movq %rsp, (%rdi)");
+               Emit ("movq %rsi, %rsp");
+               Emit ("popq " & Limit_Cell);
+               if CFI then
+                  Emit (".cfi_def_cfa_offset 56");
+               end if;
+               for Index in reverse Pushed'Range loop
+                  Emit ("popq " & Pushed (Index));
+                  if CFI then
+                     Emit (".cfi_def_cfa_offset "
+                           & Trimmed (Natural'Image (8 * Index)));
+                     Emit (".cfi_restore " & Pushed (Index));
+                  end if;
+               end loop;
+               Emit ("ret");
+               if CFI then
+                  Emit (".cfi_endproc");
+               end if;
+            end if;
+            if COFF and then Debug /= null then
+               Put (Codeview.Routine_End (Local_Prefix, Stack_Switcher) & ":");
             end if;
             Put_Directive (Size_To_Here (Stack_Switcher));
 
@@ -9930,6 +10029,14 @@ package body Landin.Backend.X86_64 is
             if CFI then
                Emit (".cfi_startproc");
                Emit (".cfi_undefined %rip");
+            end if;
+            --  D2480: on Windows the start routine's table describes no
+            --  prologue, so an unwinder takes its return address from the
+            --  stack, the zero word the first frame laid, which ends its
+            --  walk there.
+            if COFF then
+               Emit (".seh_proc " & Stack_Start);
+               Emit (".seh_endprologue");
             end if;
             Emit ("nop");
             Put (Stack_Entered & ":");
@@ -9961,6 +10068,12 @@ package body Landin.Backend.X86_64 is
             Emit ("ud2");
             if CFI then
                Emit (".cfi_endproc");
+            end if;
+            if COFF then
+               Emit (".seh_endproc");
+            end if;
+            if COFF and then Debug /= null then
+               Put (Codeview.Routine_End (Local_Prefix, Stack_Start) & ":");
             end if;
             Put_Directive (Size_To_Here (Stack_Start));
          end;
@@ -10334,7 +10447,9 @@ package body Landin.Backend.X86_64 is
          Unbounded.Append (Out_Text, Codeview.Sections
            (Of_Unit, Meanings, Names, Facts, Options, Debug.all,
             Local_Prefix, Symbol'Access, Is_Exported_Item'Access,
-            Cached_Plan'Access, Cached_Frame'Access, Trapped'Access));
+            Cached_Plan'Access, Cached_Frame'Access, Trapped'Access,
+            Stack_Switch => (if Stack_Used then Stack_Switcher else ""),
+            Stack_Start => (if Stack_Used then Stack_Start else "")));
       elsif Debug /= null then
          Unbounded.Append (Out_Text, Dwarf.Sections
            (Of_Unit, Meanings, Names, Facts, Options, Debug.all,

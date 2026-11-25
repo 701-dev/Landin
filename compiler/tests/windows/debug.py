@@ -8,13 +8,15 @@ reader, and `lldb-dap.exe`, the adapter `refine dap` relays.  Three
 stages, which a local run joins and the gate splits between a Linux job,
 a Windows job and WSL on that Windows runner:
 
-  --prepare-only   on Linux, compile compiler/tests/freebsd/debug.ldn at
-                   the four profiles and compiler/tests/dap/main.ldn
-                   with --panic-map, each with --debug=full, and write
-                   the images, their PDBs and prepared.json into OUTPUT;
-  --prepared=DIR   on Windows, run LLDB's batch session over each
-                   debug.ldn image and hold its transcript to
-                   compiler/tests/debugging/lldb_batch.py's verdict;
+  --prepare-only   on Linux, compile compiler/tests/freebsd/debug.ldn and
+                   the stack switch's workload (D469) at the four
+                   profiles and compiler/tests/dap/main.ldn with
+                   --panic-map, each with --debug=full, and write the
+                   images, their PDBs and prepared.json into OUTPUT;
+  --prepared=DIR   on Windows, run LLDB's batch sessions over each
+                   debug.ldn image and each switch image and hold their
+                   transcripts to compiler/tests/debugging/lldb_batch.py's
+                   verdicts, the second switch_frames.py's;
   --dap            with --prepared, on Linux or in WSL, run
                    compiler/tests/dap/session.py's scripted session
                    through `refine dap` (--refine) over the Windows
@@ -39,6 +41,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'compiler/tests/debugging'))
 import lldb_batch  # noqa: E402
+import switch_frames  # noqa: E402
 
 #  The lane's target, which --target sets: windows-x86-64 or windows-arm64,
 #  each with its llvm-mingw driver.
@@ -112,6 +115,25 @@ def prepare(args):
             '\n'.join(lldb_batch.source_commands(lines)) + '\n')
         sessions.append(dict(built, label=label))
         print(TARGET + ': built ' + label, flush=True)
+    #  The stack switch's session (D469).  LLDB steps a switch by a count,
+    #  as FreeBSD's does, the instructions of the straight-line switch
+    #  routine, counted in the assembly the image was linked from, which
+    #  --debug=full keeps beside it: the image's symbols are in its PDB.
+    switches = []
+    for optimize, specialize in PROFILES:
+        label = 'switch-%s-%s' % (optimize, specialize)
+        image = bundle / (label + '.exe')
+        built = compile_one(args, switch_frames.FIXTURE, image,
+                            '--optimize=' + optimize,
+                            '--specialize=' + specialize,
+                            '--root=' + str(ROOT))
+        assembly = image.with_name(image.name + '.s')
+        require(assembly.is_file(), label + ': no assembly beside the image')
+        count = switch_frames.assembly_instruction_count(assembly.read_text())
+        (bundle / (label + '.lldb')).write_text(
+            '\n'.join(lldb_batch.switch_commands(count)) + '\n')
+        switches.append(dict(built, label=label, switch_instructions=count))
+        print(TARGET + ': built ' + label, flush=True)
     DAP_SOURCE.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / 'compiler/tests/dap/main.ldn', DAP_SOURCE)
     dap = compile_one(args, DAP_SOURCE, bundle / 'program.exe',
@@ -124,7 +146,7 @@ def prepare(args):
         shutil.copyfile(ROOT / file, args.output / 'lane' / file)
     manifest = {'target': TARGET, 'revision': os.environ.get('GITHUB_SHA'),
                 'refine_sha256': sha(args.refine), 'lines': lines,
-                'sessions': sessions, 'dap': dap,
+                'sessions': sessions, 'switches': switches, 'dap': dap,
                 'dap_source': str(DAP_SOURCE)}
     (args.output / 'prepared.json').write_text(json.dumps(manifest, indent=2)
                                                + '\n')
@@ -139,10 +161,12 @@ def verify(bundle, built):
 
 
 def direct(bundle, manifest, lldb, output):
-    """LLDB's batch session over each debug.ldn image; the failures."""
+    """LLDB's batch sessions over each debug.ldn image and each switch
+    image; the failures."""
     failures = []
     lines = {key: int(value) for key, value in manifest['lines'].items()}
-    for built in manifest['sessions']:
+    summary = {}
+    for built in manifest['sessions'] + manifest['switches']:
         label = built['label']
         try:
             verify(bundle, built)
@@ -156,13 +180,19 @@ def direct(bundle, manifest, lldb, output):
             text = (done.stdout + done.stderr).decode(errors='replace')
             (output / (label + '.transcript')).write_text(text)
             try:
-                lldb_batch.check_source(text, lines, label)
+                if 'switch_instructions' in built:
+                    summary[label] = lldb_batch.check_switch(
+                        text, label, TARGET)
+                else:
+                    lldb_batch.check_source(text, lines, label)
             except lldb_batch.Mismatch as error:
                 raise Refused(str(error))
             print('%s: LLDB session passed %s' % (TARGET, label), flush=True)
         except Refused as error:
             failures.append(str(error))
             print('%s: %s' % (TARGET, error), file=sys.stderr, flush=True)
+    (output / 'switch-frames.json').write_text(json.dumps(summary, indent=2)
+                                               + '\n')
     return failures
 
 
@@ -254,7 +284,8 @@ def main():
                 summary['status'] = 'emitted'
                 print('%s: %d LLDB sessions and the refine dap session'
                       ' emitted; running them is pending'
-                      % (TARGET, len(manifest['sessions'])))
+                      % (TARGET, len(manifest['sessions'])
+                         + len(manifest['switches'])))
                 return
         failures = []
         if not args.dap:
