@@ -200,6 +200,9 @@ RUNNING_EXAMPLES = [
     ("Greatest common divisor",
      "compiler/tests/fixtures/runtime/example-greatest-common-divisor/"
      "main.ldn"),
+    ("Great-circle distance",
+     "compiler/tests/fixtures/runtime/example-great-circle-distance/"
+     "main.ldn"),
     ("Insertion sort",
      "compiler/tests/fixtures/runtime/example-insertion-sort/main.ldn"),
     ("Binary search",

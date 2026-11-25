@@ -2645,6 +2645,12 @@
       "mode": "refuse",
       "reason": "Firmware has no standard output to print to. runtime/buffered-writer-format formats into a buffered writer here."
     },
+    "runtime/example-great-circle-distance": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-greatest-common-divisor": {
       "codes": [
         "L0015"
