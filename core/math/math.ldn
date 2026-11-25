@@ -7,9 +7,10 @@
 --  in the module's other files by subject.
 --
 --  Each routine's error is stated in units in the last place of the exact
---  result, and pinned against MPFR's correctly rounded values by the
---  `math-*` runtime fixtures on every target and by the larger sets
---  compiler/tests/math/README.md describes.  Results are rounded to
+--  result: the largest MPFR measured, over every input of a one-argument
+--  f32 routine and over a million random inputs otherwise, rounded up.
+--  The `math-*` runtime fixtures pin it against MPFR's correctly rounded
+--  values on every target, as compiler/tests/math/README.md describes.  Results are rounded to
 --  nearest; the float unit's other rounding modes and its exception
 --  flags are neither read nor set.
 --
@@ -385,85 +386,97 @@ public fma: (item: type is floating, x: item, y: item, z: item)
     result = item.fma(x, y, z)
 end fma
 
---- e to the power `x`.  C's `exp`.
+--- e to the power `x`.  Within 0.86 ulp at f64 and 0.92 at f32.  C's
+--- `exp`.
 public exp: (item: type is floating, x: item) -> (result: item) =
     result = item.exp(x)
 end exp
 
---- 2 to the power `x`.  C's `exp2`.
+--- 2 to the power `x`.  Within 0.87 ulp at f64 and 0.90 at f32.  C's
+--- `exp2`.
 public exp2: (item: type is floating, x: item) -> (result: item) =
     result = item.exp2(x)
 end exp2
 
---- e to the power `x`, less one, accurate where `x` is near zero.  C's
---- `expm1`.
+--- e to the power `x`, less one, accurate where `x` is near zero.  Within
+--- 0.84 ulp at f64 and 0.82 at f32.  C's `expm1`.
 public expm1: (item: type is floating, x: item) -> (result: item) =
     result = item.expm1(x)
 end expm1
 
---- The natural logarithm of `x`: -infinity at zero, NaN below it.  C's
---- `log`.
+--- The natural logarithm of `x`: -infinity at zero, NaN below it.  Within
+--- 0.88 ulp at f64 and 0.89 at f32.  C's `log`.
 public log: (item: type is floating, x: item) -> (result: item) =
     result = item.log(x)
 end log
 
---- The base-2 logarithm of `x`.  C's `log2`.
+--- The base-2 logarithm of `x`.  Within 0.80 ulp at f64 and 0.87 at f32.
+--- C's `log2`.
 public log2: (item: type is floating, x: item) -> (result: item) =
     result = item.log2(x)
 end log2
 
---- The base-10 logarithm of `x`.  C's `log10`.
+--- The base-10 logarithm of `x`.  Within 0.67 ulp at f64 and 0.84 at
+--- f32.  C's `log10`.
 public log10: (item: type is floating, x: item) -> (result: item) =
     result = item.log10(x)
 end log10
 
 --- The natural logarithm of `1 + x`, accurate where `x` is near zero.
---- C's `log1p`.
+--- Within 0.80 ulp at f64 and 0.84 at f32.  C's `log1p`.
 public log1p: (item: type is floating, x: item) -> (result: item) =
     result = item.log1p(x)
 end log1p
 
 --- `x` to the power `y`, with C's special cases: `pow(x, 0)` and
 --- `pow(1, y)` are 1 even for NaN, and a negative `x` has a power only
---- for an integer `y`.  C's `pow`.
+--- for an integer `y`.  Within 0.82 ulp at f64 and 0.84 at f32 on the
+--- random sets.  C's `pow`.
 public pow: (item: type is floating, x: item, y: item) -> (result: item) =
     result = item.pow(x, y)
 end pow
 
 --- The sine of `x` radians, with the argument reduced exactly, so a
---- large `x` keeps its accuracy.  C's `sin`.
+--- large `x` keeps its accuracy.  Within 0.76 ulp at f64 and 0.51 at
+--- f32.  C's `sin`.
 public sin: (item: type is floating, x: item) -> (result: item) =
     result = item.sin(x)
 end sin
 
---- The cosine of `x` radians.  C's `cos`.
+--- The cosine of `x` radians.  Within 0.75 ulp at f64 and 0.51 at f32.
+--- C's `cos`.
 public cos: (item: type is floating, x: item) -> (result: item) =
     result = item.cos(x)
 end cos
 
---- The tangent of `x` radians.  C's `tan`.
+--- The tangent of `x` radians.  Within 0.81 ulp at f64 and 0.80 at f32.
+--- C's `tan`.
 public tan: (item: type is floating, x: item) -> (result: item) =
     result = item.tan(x)
 end tan
 
---- The arcsine of `x`, in [-π/2, π/2]; NaN outside [-1, 1].  C's `asin`.
+--- The arcsine of `x`, in [-π/2, π/2]; NaN outside [-1, 1].  Within 0.85
+--- ulp at f64 and 0.68 at f32.  C's `asin`.
 public asin: (item: type is floating, x: item) -> (result: item) =
     result = item.asin(x)
 end asin
 
---- The arccosine of `x`, in [0, π]; NaN outside [-1, 1].  C's `acos`.
+--- The arccosine of `x`, in [0, π]; NaN outside [-1, 1].  Within 0.87
+--- ulp at f64 and 0.90 at f32.  C's `acos`.
 public acos: (item: type is floating, x: item) -> (result: item) =
     result = item.acos(x)
 end acos
 
---- The arctangent of `x`, in [-π/2, π/2].  C's `atan`.
+--- The arctangent of `x`, in [-π/2, π/2].  Within 0.82 ulp at f64 and
+--- 0.86 at f32.  C's `atan`.
 public atan: (item: type is floating, x: item) -> (result: item) =
     result = item.atan(x)
 end atan
 
 --- The angle of the point (`x`, `y`) from the positive x axis, in
---- [-π, π], with C's signed zeros and infinities.  C's `atan2`, whose
---- argument order it keeps.
+--- [-π, π], with C's signed zeros and infinities.  Within 1.4 ulp at
+--- both widths, as msun's own routine is: it rounds `y / x` before
+--- taking the arctangent.  C's `atan2`, whose argument order it keeps.
 public atan2: (item: type is floating, y: item, x: item) -> (result: item) =
     result = item.atan2(y, x)
 end atan2
