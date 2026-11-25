@@ -316,8 +316,8 @@
   },
   "rv64gc/size-all/reverse-complement": {
    "sections": {
-    ".text": 58952,
-    ".rodata": 18872,
+    ".text": 58900,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -400,8 +400,8 @@
   },
   "rv64gc/size-auto/reverse-complement": {
    "sections": {
-    ".text": 58952,
-    ".rodata": 18872,
+    ".text": 58900,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -484,8 +484,8 @@
   },
   "rv64gc/size-off/reverse-complement": {
    "sections": {
-    ".text": 59064,
-    ".rodata": 18872,
+    ".text": 59012,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 304,
@@ -568,8 +568,8 @@
   },
   "rv64gc/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55572,
-    ".rodata": 18518,
+    ".text": 55520,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -652,8 +652,8 @@
   },
   "rv64gc/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55572,
-    ".rodata": 18518,
+    ".text": 55520,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -736,8 +736,8 @@
   },
   "rv64gc/speed-off/reverse-complement": {
    "sections": {
-    ".text": 55792,
-    ".rodata": 18518,
+    ".text": 55740,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 304,
@@ -1072,8 +1072,8 @@
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 58932,
-    ".rodata": 18872,
+    ".text": 58880,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -1156,8 +1156,8 @@
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 58932,
-    ".rodata": 18872,
+    ".text": 58880,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -1240,8 +1240,8 @@
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 59044,
-    ".rodata": 18872,
+    ".text": 58992,
+    ".rodata": 18836,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 304,
@@ -1324,8 +1324,8 @@
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55556,
-    ".rodata": 18518,
+    ".text": 55504,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -1408,8 +1408,8 @@
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55556,
-    ".rodata": 18518,
+    ".text": 55504,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 384,
@@ -1492,8 +1492,8 @@
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 55776,
-    ".rodata": 18518,
+    ".text": 55724,
+    ".rodata": 18482,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 304,
@@ -1828,8 +1828,8 @@
   },
   "rv64gc_zba/size-all/reverse-complement": {
    "sections": {
-    ".text": 60444,
-    ".rodata": 19370,
+    ".text": 60392,
+    ".rodata": 19334,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -1912,8 +1912,8 @@
   },
   "rv64gc_zba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 60444,
-    ".rodata": 19370,
+    ".text": 60392,
+    ".rodata": 19334,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -1996,8 +1996,8 @@
   },
   "rv64gc_zba/size-off/reverse-complement": {
    "sections": {
-    ".text": 60556,
-    ".rodata": 19370,
+    ".text": 60504,
+    ".rodata": 19334,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 344,
@@ -2080,8 +2080,8 @@
   },
   "rv64gc_zba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 56860,
-    ".rodata": 18960,
+    ".text": 56808,
+    ".rodata": 18924,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -2164,8 +2164,8 @@
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 56860,
-    ".rodata": 18960,
+    ".text": 56808,
+    ".rodata": 18924,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -2248,8 +2248,8 @@
   },
   "rv64gc_zba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 57080,
-    ".rodata": 18960,
+    ".text": 57028,
+    ".rodata": 18924,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 344,
@@ -2584,8 +2584,8 @@
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
    "sections": {
-    ".text": 60444,
-    ".rodata": 19379,
+    ".text": 60392,
+    ".rodata": 19343,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -2668,8 +2668,8 @@
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
    "sections": {
-    ".text": 60444,
-    ".rodata": 19379,
+    ".text": 60392,
+    ".rodata": 19343,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -2752,8 +2752,8 @@
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
    "sections": {
-    ".text": 60556,
-    ".rodata": 19379,
+    ".text": 60504,
+    ".rodata": 19343,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 344,
@@ -2836,8 +2836,8 @@
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
    "sections": {
-    ".text": 56860,
-    ".rodata": 18969,
+    ".text": 56808,
+    ".rodata": 18933,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -2920,8 +2920,8 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 56860,
-    ".rodata": 18969,
+    ".text": 56808,
+    ".rodata": 18933,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 424,
@@ -3004,8 +3004,8 @@
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
    "sections": {
-    ".text": 57080,
-    ".rodata": 18969,
+    ".text": 57028,
+    ".rodata": 18933,
     ".tbss": 4,
     ".data.rel.ro": 232,
     ".got": 344,

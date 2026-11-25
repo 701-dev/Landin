@@ -375,10 +375,10 @@
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44136,
+    "__TEXT,__text": 44108,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -475,10 +475,10 @@
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44136,
+    "__TEXT,__text": 44108,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -575,10 +575,10 @@
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44208,
+    "__TEXT,__text": 44180,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -675,10 +675,10 @@
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41448,
+    "__TEXT,__text": 41420,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -775,10 +775,10 @@
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41448,
+    "__TEXT,__text": 41420,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -875,10 +875,10 @@
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41764,
+    "__TEXT,__text": 41736,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1275,10 +1275,10 @@
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44104,
+    "__TEXT,__text": 44076,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1375,10 +1375,10 @@
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44104,
+    "__TEXT,__text": 44076,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1475,10 +1475,10 @@
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 44176,
+    "__TEXT,__text": 44148,
     "__TEXT,__stubs": 132,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12873,
+    "__TEXT,__cstring": 12837,
     "__DATA_CONST,__got": 88,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1575,10 +1575,10 @@
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41416,
+    "__TEXT,__text": 41388,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1675,10 +1675,10 @@
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41416,
+    "__TEXT,__text": 41388,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
@@ -1775,10 +1775,10 @@
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    "__TEXT,__text": 41732,
+    "__TEXT,__text": 41704,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 263,
-    "__TEXT,__cstring": 12684,
+    "__TEXT,__cstring": 12648,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 344,
     "__DATA,__data": 520,
