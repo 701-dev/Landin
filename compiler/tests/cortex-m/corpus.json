@@ -2159,6 +2159,9 @@
       ],
       "mode": "refuse"
     },
+    "runtime/core-zone-blocks": {
+      "mode": "execute"
+    },
     "runtime/cstring-conversion-truncated-traps": {
       "mode": "restriction",
       "reason": "Its C signature compiles on Cortex-M0 since D920, but the program calls the C library's strdup, and firmware links no C library.",
@@ -3330,6 +3333,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-vec": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-zone": {
       "mode": "execute"
     },
     "runtime/library-system-arguments": {

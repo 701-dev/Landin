@@ -1,0 +1,233 @@
+--  A growing bump allocator: it takes blocks from a parent, hands out the
+--  bytes of the newest one in order and takes another, twice as large, when
+--  that one is full.  Individual frees do nothing.  `reset` gives every
+--  allocation back at once and keeps the newest block for the next round;
+--  `release` gives every block back to the parent.  The caller holds the
+--  state; the handle holds a copy of the parent's handle and a pointer to
+--  the state.
+
+import core/mem
+
+--  Where a block starts: the block before it, zero for the first, and that
+--  block's extent.  The region's own bytes follow.
+link: type = struct
+    address: usize
+    extent: usize
+end link
+
+--  The newest block, zero when there is none, its extent and the bytes of
+--  it in use, its link included.
+zone_state: type = struct
+    block: usize
+    extent: usize
+    used: usize
+end zone_state
+
+--- The caller's state of a zone: where its newest block is and how much
+--- of that block is in use. Declare it `zeroed` and give it to `over`,
+--- which fills it. It must outlive the zone's handle. `release` empties it.
+public space: type = zone_state
+
+zone_value: type (provider: type) = struct
+    parent: provider
+    state: ptr mut zone_state
+end zone_value
+
+--- A bump allocator that grows by taking blocks from a parent allocator.
+--- The value is a handle, so copies share one zone. Freeing a single
+--- allocation reclaims nothing. `reset` gives every allocation back at
+--- once, and `release` returns the blocks to the parent. Only the most
+--- recent allocation grows in place or gives back its tail. Growing any
+--- other moves it, and its old bytes are not reclaimed.
+public zone: type (provider: type) = zone_value(provider)
+
+--- Fill `state` for a zone over `parent` and return the zone's handle.
+--- Nothing is allocated. The handle holds a copy of the parent's handle,
+--- and the parent must outlive the zone.
+public over: (provider: type is mem.allocator, inout state: space,
+              parent: provider)
+             -> (handle: zone(provider) from state, parent) =
+    state = (block: 0, extent: 0, used: 0)
+    handle = (parent: parent, state: addr state)
+end over
+
+link_size: usize = sizeof link
+
+--  A parent's own header beside each block, two words in hosted/heap: a
+--  block of a power of two less this fills a size class or whole pages.
+slack: usize = 2 * sizeof usize
+
+--  The first block, and the one after a block of `extent`: twice as large.
+first_extent: usize = 1024 - slack
+
+next_extent: (extent: usize) -> (next: usize) =
+    maximum: usize = 0 -% 1
+    next = extent
+    if extent < (maximum - slack) / 2 - slack then
+        next = 2 * (extent + slack) - slack
+    end if
+end next_extent
+
+--  The address of a fresh block of `extent` bytes from the parent, or zero
+--  when the parent refuses it.
+take_block: (provider: type is mem.allocator, self: zone(provider),
+             extent: usize) -> (address: usize) =
+    address = 0
+    fresh: ptr mut u8 = mem.allocate(self.parent, extent, alignof link)
+        else (problem)
+        _ = problem
+        return
+    end
+    address = usize(fresh)
+end take_block
+
+--  Put a block that holds `size` bytes at `alignment` in front of the
+--  chain: the next block's extent, or just enough when the parent refuses
+--  that.  A failure leaves the zone as it was.
+add_block: (provider: type is mem.allocator, self: zone(provider),
+            size: usize, alignment: usize) -> none ! mem.out_of_memory =
+    state: ptr mut zone_state = self.state
+    maximum: usize = 0 -% 1
+    mut padding: usize = 0
+    if alignment > 1 then
+        padding = alignment - 1
+    end if
+    fail mem.out_of_memory when padding > maximum - link_size
+    fail mem.out_of_memory when size > maximum - link_size - padding
+    needed: usize = link_size + padding + size
+    mut extent: usize = first_extent
+    if state.val.block <> 0 then
+        extent = next_extent(state.val.extent)
+    end if
+    if extent < needed then
+        extent = needed
+    end if
+    mut address: usize = take_block(self, extent)
+    if address == 0 and extent > needed then
+        extent = needed
+        address = take_block(self, extent)
+    end if
+    fail mem.out_of_memory when address == 0
+    head: ptr mut link = ptr(address)
+    head.val = (address: state.val.block, extent: state.val.extent)
+    state.val.block = address
+    state.val.extent = extent
+    state.val.used = link_size
+end add_block
+
+--  The offset of `size` bytes at `alignment` in the newest block, or the
+--  largest `usize` when it has no room for them.
+room: (state: ptr mut zone_state, size: usize, alignment: usize)
+      -> (offset: usize) =
+    offset = 0 -% 1
+    return when state.val.block == 0
+    base: ptr mut u8 = ptr(state.val.block)
+    offset = mem.aligned_offset(base, state.val.used, state.val.extent,
+                                size, alignment) else 0 -% 1
+end room
+
+zone_alloc: (provider: type is mem.allocator, self: zone(provider),
+             size: usize, alignment: usize)
+            -> (block: ptr mut u8) ! mem.out_of_memory =
+    state: ptr mut zone_state = self.state
+    mut offset: usize = room(state, size, alignment)
+    if offset == 0 -% 1 then
+        try add_block(self, size, alignment)
+        offset = room(state, size, alignment)
+    end if
+    --  The block a fresh link starts always holds the request.
+    state.val.used = offset + size
+    --  [0810]: the block borrows nothing, as an arena's does; its lifetime
+    --  is the zone's blocks', which `reset` and `release` end.
+    block = ptr(state.val.block + offset)
+end zone_alloc
+
+zone_free: (provider: type, self: zone(provider), block: ptr mut u8,
+            size: usize) -> none =
+    _ = self.state
+    _ = block
+    _ = size
+end zone_free
+
+--  Only the newest allocation of the newest block grows, where it is.
+zone_grow: (provider: type, self: zone(provider), block: ptr mut u8,
+            old_size: usize, new_size: usize, alignment: usize)
+           -> (grown: bool) =
+    grown = false
+    state: ptr mut zone_state = self.state
+    return when state.val.block == 0 or new_size <= old_size
+    address: usize = usize(block)
+    return when address < state.val.block
+    offset: usize = address - state.val.block
+    return when offset > state.val.used or old_size <> state.val.used - offset
+    return when alignment > 1 and address % alignment <> 0
+    return when new_size > state.val.extent - offset
+    state.val.used = offset + new_size
+    grown = true
+end zone_grow
+
+--  A smaller extent keeps the block where it is, and the newest allocation
+--  gives its tail back; a larger one grows in place when `zone_grow` can,
+--  and otherwise moves the block to a fresh allocation.
+zone_resize: (provider: type is mem.allocator, self: zone(provider),
+              block: ptr mut u8, old_size: usize, new_size: usize,
+              alignment: usize)
+             -> (moved: ptr mut u8) ! mem.out_of_memory =
+    --  [0810]: the block borrows nothing, as an allocation does.
+    moved = ptr(usize(block))
+    if new_size <= old_size then
+        state: ptr mut zone_state = self.state
+        address: usize = usize(block)
+        return when state.val.block == 0 or address < state.val.block
+        offset: usize = address - state.val.block
+        if offset <= state.val.used and old_size == state.val.used - offset
+        then
+            state.val.used = offset + new_size
+        end if
+        return
+    end if
+    return when zone_grow(self, block, old_size, new_size, alignment)
+    moved = try mem.relocate(self, block, old_size, new_size, alignment)
+end zone_resize
+
+(provider: type is mem.allocator) zone_value(provider) is mem.allocator
+    (alloc: zone_alloc, grow: zone_grow, resize: zone_resize,
+     free: zone_free)
+
+--- Give every allocation of the zone back at once. The newest block,
+--- which is the largest, stays for the allocations that follow. Every
+--- older block goes back to the parent. Every allocation the zone made is
+--- then free, and a program must not use one, just as after `free`.
+public reset: (provider: type is mem.allocator, memory: zone(provider))
+              -> none =
+    state: ptr mut zone_state = memory.state
+    return when state.val.block == 0
+    newest: ptr mut link = ptr(state.val.block)
+    mut older: link = newest.val
+    while older.address <> 0 do
+        held: ptr link = ptr(older.address)
+        before: link = held.val
+        bytes: ptr mut u8 = ptr(older.address)
+        mem.release(memory.parent, bytes, older.extent)
+        older = before
+    end while
+    newest.val = (address: 0, extent: 0)
+    state.val.used = link_size
+end reset
+
+--- Return every block to `parent`, which must be the parent the zone was
+--- made over. `state` is then empty and may be given to `over` again. End
+--- every use of the zone's allocations first. The checker refuses the call
+--- while the zone's handle is still used.
+public release: (provider: type is mem.allocator, inout state: space,
+                 parent: provider) -> none =
+    mut current: link = (address: state.block, extent: state.extent)
+    while current.address <> 0 do
+        held: ptr link = ptr(current.address)
+        before: link = held.val
+        bytes: ptr mut u8 = ptr(current.address)
+        mem.release(parent, bytes, current.extent)
+        current = before
+    end while
+    state = (block: 0, extent: 0, used: 0)
+end release

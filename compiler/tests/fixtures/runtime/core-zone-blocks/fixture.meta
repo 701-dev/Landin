@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: a zone over a counting parent takes a first block, then one twice as large when the newest is full, or just enough when the parent refuses that; it grows and shrinks only its newest allocation in place, moves any other, reports out_of_memory unchanged when the parent refuses every block, gives older blocks back at reset and keeps the newest, and gives every block back at release
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0430, 0470, 0940, 1230, 1360
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

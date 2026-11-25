@@ -909,7 +909,9 @@ injector as arguments, as providers.
   `text.append` and `text.format` accept the container's own bytes
   (D1122); `core/mem`'s `reserve_admit_copy` is the growth that copies them
   before the old block is released. An arena is an ordinary
-  allocator, not syntax (D212).
+  allocator, not syntax (D212). A zone is a bump allocator that grows
+  by taking blocks from another allocator. `zone.reset` gives its
+  allocations back through the handle (D2449).
 - **Comparison.** The comparison concepts are a module of their own,
   `core/cmp`, with library-supplied evidence for integer keys and ordering,
   Boolean and byte slice keys, and UTF-8 keys and ordering. Every shipped

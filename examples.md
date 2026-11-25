@@ -4079,9 +4079,11 @@ GTTGGCCAGGCTGGTCTCGAACTCCTGACCTCAGGTGATCCGCCCGCCTCGGCCTCCCAA
 
 [binary-trees](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/binarytrees.html)
 builds, walks and frees many perfect binary trees. A missing child is an
-atom rather than a null pointer [0480], and each tree's nodes come from a
-`core/region` over the hosted heap, so releasing the region frees the tree
-in one step [1360]. The correctness input is 10 and the performance input 21.
+atom rather than a null pointer [0480]. The nodes come from a `core/zone`
+over the hosted heap. The zone takes blocks from the heap and hands out
+their bytes in order. Resetting the zone gives a whole tree back in one
+step and keeps the largest block for the next tree [1360]. The
+correctness input is 10 and the performance input 21.
 
 Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-binary-trees/main.ldn`.
 
@@ -4089,12 +4091,13 @@ Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-binary-trees/mai
 --  A direct single-threaded implementation of the Benchmark Game workload.
 --  The maximum depth is the program's argument: ten for the correctness
 --  output and twenty-one for the performance run.  Every node is its own
---  allocation, made through a region over the host heap; a tree is given
---  back by releasing its region, which frees each node through the heap.
+--  allocation, made from a zone over the host heap, which takes blocks
+--  from the heap and hands their bytes out in order; a tree is given back
+--  by resetting its zone, which keeps the largest block for the next tree.
 import core/io
 import core/mem
-import core/region
 import core/text
+import core/zone
 import hosted/blocking
 import hosted/heap
 
@@ -4110,12 +4113,12 @@ node: type = struct
     right: child
 end node
 
-nodes_region: type = region.region(heap.heap)
+nodes_zone: type = zone.zone(heap.heap)
 
 min_depth: usize = 4
 
 --- A perfect tree with `depth` levels below its root.
-build: (memory: nodes_region, depth: usize)
+build: (memory: nodes_zone, depth: usize)
        -> (root: ptr mut node) ! mem.out_of_memory =
     mut left: child = leaf
     mut right: child = leaf
@@ -4139,13 +4142,11 @@ check_child: (branch: child) -> (count: usize) =
     end match
 end check_child
 
---- Build a tree of `depth` in a region of its own, check it and free it.
-checked_tree: (memory: heap.heap, depth: usize)
+--- Build a tree of `depth` in `memory`, check it and give it back.
+checked_tree: (memory: nodes_zone, depth: usize)
               -> (count: usize) ! mem.out_of_memory =
-    mut ledger: region.growing_space = zeroed
-    nodes := region.over(ledger, memory)
-    defer region.release(ledger, memory)
-    tree: ptr mut node = try build(nodes, depth)
+    defer zone.reset(memory)
+    tree: ptr mut node = try build(memory, depth)
     count = check(tree)
 end checked_tree
 
@@ -4165,14 +4166,24 @@ binary_trees: (host: blocking.host, n: usize)
     max_depth: usize = if n > min_depth + 2 then n else min_depth + 2 end if
 
     stretch_depth: usize = max_depth + 1
-    stretch_check: usize = try checked_tree(memory, stretch_depth)
+    mut stretch_space: zone.space = zeroed
+    stretch := zone.over(stretch_space, memory)
+    stretch_check: usize = checked_tree(stretch, stretch_depth) else (problem)
+        zone.release(stretch_space, memory)
+        fail problem
+    end
+    zone.release(stretch_space, memory)
     try say(host, "stretch tree of depth {}\t check: {}\n",
             [any(addr stretch_depth), any(addr stretch_check)])
 
-    mut long_ledger: region.growing_space = zeroed
-    long_lived := region.over(long_ledger, memory)
-    defer region.release(long_ledger, memory)
+    mut long_space: zone.space = zeroed
+    long_lived := zone.over(long_space, memory)
+    defer zone.release(long_space, memory)
     long_tree: ptr mut node = try build(long_lived, max_depth)
+
+    mut trees_space: zone.space = zeroed
+    trees := zone.over(trees_space, memory)
+    defer zone.release(trees_space, memory)
 
     mut depth: usize = min_depth
     while depth <= max_depth do
@@ -4180,7 +4191,7 @@ binary_trees: (host: blocking.host, n: usize)
         mut total: usize = 0
         mut made: usize = 0
         while made < iterations do
-            total += try checked_tree(memory, depth)
+            total += try checked_tree(trees, depth)
             inc made
         end while
         try say(host, "{}\t trees of depth {}\t check: {}\n",

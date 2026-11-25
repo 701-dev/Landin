@@ -1704,6 +1704,31 @@ End all payload uses before releasing the region.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-region/main.ldn)
 
+## core/zone
+
+A bump allocator that grows by taking blocks from a parent allocator.
+
+| Call | What it does |
+|---|---|
+| `zone.over` | Fill the caller's `zone.space`, declared `zeroed`, and return the handle, a `zone.zone(provider)`, `from` it. The handle holds a copy of the parent's handle. Nothing is allocated. |
+| `zone.reset` | Give every allocation back at once, through the handle. Every block except the newest goes back to the parent. |
+| `zone.release` | Take the space and the same parent and return every block. It is refused while the handle is still used. |
+
+The zone hands out the newest block's bytes in address order. When they
+run out, it takes a new block from the parent, twice as large as the
+last. A request too large for that block, or a parent that refuses it,
+gets a block just large enough. If the parent refuses that too, the
+allocation fails with `out_of_memory` and the zone is unchanged.
+
+An individual free reclaims nothing. Only the latest allocation grows
+in place or gives back its tail; growing any other moves it.
+
+The newest block is the largest, and `reset` keeps it. So a loop that
+resets the zone after each round settles on one block that holds a
+whole round.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-zone/main.ldn)
+
 ## core/fault
 
 Deterministic allocation-failure injection over any allocator, with cumulative counters.

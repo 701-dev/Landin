@@ -1,0 +1,161 @@
+--  A zone over a counting parent.  The first allocation takes a block of
+--  1024 bytes less the parent's two-word header, and one that does not fit
+--  the newest block takes another twice as large, or just enough when the
+--  parent refuses that.  Only the newest allocation grows or shrinks in
+--  place; any other moves.  When the parent refuses every block the zone
+--  reports out_of_memory and is unchanged.  A reset gives the older blocks
+--  back and keeps the newest for what follows; a release gives every block
+--  back, with the extent it was taken with.
+import core/arena
+import core/mem
+import core/zone
+
+--  A parent over an arena that refuses any block larger than `limit` and
+--  counts the blocks it gives and takes back and their bytes.
+counts: type = struct
+    limit: usize
+    allocations: usize
+    refusals: usize
+    allocated: usize
+    last: usize
+    frees: usize
+    freed: usize
+end counts
+
+counting: type = struct
+    state: ptr mut counts
+    inner: arena.arena
+end counting
+
+counting_alloc: (self: counting, size: usize, alignment: usize)
+                -> (block: ptr mut u8) ! mem.out_of_memory =
+    if size > self.state.val.limit then
+        inc self.state.val.refusals
+        fail mem.out_of_memory
+    end if
+    block = try mem.allocate(self.inner, size, alignment)
+    inc self.state.val.allocations
+    self.state.val.allocated += size
+    self.state.val.last = size
+end counting_alloc
+
+counting_grow: (self: counting, block: ptr mut u8,
+                old_size: usize, new_size: usize, alignment: usize)
+               -> (grown: bool) =
+    _ = self.state
+    _ = block
+    _ = old_size
+    _ = new_size
+    _ = alignment
+    grown = false
+end counting_grow
+
+counting_resize: (self: counting, block: ptr mut u8,
+                  old_size: usize, new_size: usize, alignment: usize)
+                 -> (moved: ptr mut u8) ! mem.out_of_memory =
+    moved = try mem.relocate(self, block, old_size, new_size, alignment)
+end counting_resize
+
+counting_free: (self: counting, block: ptr mut u8, size: usize) -> none =
+    inc self.state.val.frees
+    self.state.val.freed += size
+    mem.release(self.inner, block, size)
+end counting_free
+
+counting is mem.allocator (alloc: counting_alloc, grow: counting_grow,
+                           resize: counting_resize, free: counting_free)
+
+word: usize = sizeof usize
+
+--  The parent's bytes, in the image rather than the frame, which on
+--  Cortex-M0 is 4 KiB.
+mut backing: [6144]u8
+
+zone_blocks: () -> (ok: bool) ! mem.out_of_memory =
+    ok = false
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], 6144)
+    mut tally: counts = (limit: 6144, allocations: 0, refusals: 0,
+                         allocated: 0, last: 0, frees: 0, freed: 0)
+    parent: counting = (state: addr tally, inner: memory)
+    first_extent: usize = 1024 - 2 * word
+    second_extent: usize = 2048 - 2 * word
+
+    mut state: zone.space = zeroed
+    scratch := zone.over(state, parent)
+    return when tally.allocations <> 0
+
+    --  The first allocation takes the first block, aligned as asked.
+    small := try mem.allocate(scratch, usize(100), usize(8))
+    return when tally.allocations <> 1 or tally.last <> first_extent
+      or usize(small) % 8 <> 0
+    next := try mem.allocate(scratch, usize(8), usize(1))
+    return when usize(next) <> usize(small) + 100 or tally.allocations <> 1
+
+    --  What the first block cannot hold takes one twice as large.
+    large := try mem.allocate(scratch, usize(960), usize(1))
+    return when tally.allocations <> 2 or tally.last <> second_extent
+
+    --  The newest allocation grows and shrinks where it is.
+    return when not mem.grow(scratch, large, usize(960), usize(1000),
+                             usize(1))
+    shrunk := try mem.resize(scratch, large, usize(1000), usize(400),
+                             usize(1))
+    return when usize(shrunk) <> usize(large)
+    after := try mem.allocate(scratch, usize(4), usize(1))
+    return when usize(after) <> usize(large) + 400
+
+    --  An older one does not grow; a resize moves it, keeping its bytes.
+    small.val = 7
+    return when mem.grow(scratch, small, usize(100), usize(120), usize(8))
+    moved := try mem.resize(scratch, small, usize(100), usize(120),
+                            usize(8))
+    return when usize(moved) == usize(small) or moved.val <> 7
+      or usize(moved) % 8 <> 0 or tally.allocations <> 2
+
+    --  When the parent refuses the next block, a block just large enough
+    --  holds the request.
+    tally.limit = 3000
+    big := try mem.allocate(scratch, usize(1800), usize(16))
+    return when tally.allocations <> 3 or tally.refusals <> 1
+      or tally.last <> 2 * word + 15 + 1800 or usize(big) % 16 <> 0
+
+    --  When it refuses every block, the zone reports out_of_memory and the
+    --  newest block still serves what fits.  That is one byte: the block
+    --  was made for the request and 15 bytes of alignment, and the
+    --  alignment its address needed may have taken all but a word of them.
+    tally.limit = 0
+    mut refused: bool = false
+    _ = mem.allocate(scratch, usize(4000), usize(1)) else (problem)
+        _ = problem
+        refused = true
+        big
+    end
+    return when not refused or tally.allocations <> 3
+    tail := try mem.allocate(scratch, usize(1), usize(1))
+    return when usize(tail) <> usize(big) + 1800
+
+    --  A reset keeps the newest block and gives the two before it back.
+    zone.reset(scratch)
+    return when tally.frees <> 2
+      or tally.freed <> first_extent + second_extent
+    reused := try mem.allocate(scratch, usize(8), usize(1))
+    return when usize(reused) > usize(big) or usize(big) - usize(reused) > 15
+    return when tally.allocations <> 3
+
+    --  A release gives every block back, and the state can start again.
+    zone.release(state, parent)
+    return when tally.frees <> 3 or tally.freed <> tally.allocated
+    tally.limit = 6144
+    again := zone.over(state, parent)
+    _ = try mem.allocate(again, usize(1), usize(1))
+    return when tally.allocations <> 4
+    zone.release(state, parent)
+    ok = tally.frees == 4 and tally.freed == tally.allocated
+end zone_blocks
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not (zone_blocks() else false)
+    code = 42
+end main

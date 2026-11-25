@@ -41550,6 +41550,52 @@ on every target, Cortex-M0 among them, `runtime/core-pool-resize`,
 `runtime/r420-reference-provider-matrix`, `runtime/r420-tree-real-exhaustion`,
 `runtime/core-tree-provider-failures` and `runtime/derived-containers`.
 
+### D2449 — A zone bump-allocates from blocks it takes from a parent
+
+**The tour said** at [1360] that one allocator concept serves a fixed
+buffer, a heap or an arena, and the library had no provider that both
+grows and bump-allocates: `core/arena` hands out caller bytes and cannot
+grow, and `core/region` asks its parent for every payload and frees each
+back at `release`. binary-trees, one region per tree over `hosted/heap`,
+spent 77% of its time in those two modules, executing 46.4 G
+instructions at depth 18 on x86-64 at speed where a hand-sized arena per
+tree executed 20.6 G.
+
+**Chosen:** `core/zone`, a provider over a parent like the region,
+`zone.over(space, parent)` filling a caller's `zone.space`. It hands out
+the newest block's bytes in order, aligned by the address as the arena
+aligns them, and when they run out takes a block from the parent twice
+the size of the one before, starting at 1024 bytes. Each size is a power
+of two less two words, so that with a parent's two-word header a block
+fills a size class or whole pages. A block too small for the request is
+made just large enough, and when the parent refuses the doubled block
+the zone asks once more for just enough, so a small parent still serves
+it; a refusal of that leaves the zone unchanged. Each block begins with
+the address and extent of the one before it, so the chain needs no
+ledger. An individual free does nothing; only the newest allocation
+grows, or gives back its tail, in place, and growing any other moves the
+block, as the arena's do. `zone.reset(handle)` gives every allocation
+back at once and every block but the newest, the largest, back to the
+parent, so a loop that resets keeps one block that fits its round.
+`zone.release(space, parent)` takes the state `inout`, as the region's
+does, so the checker refuses it while the handle is still used, and gives
+every block back. binary-trees on a zone per lifetime, reset after each
+tree, executes 21.0 G instructions at depth 18 and runs depth 21 in
+about two fifths of the region port's time.
+
+**The alternatives:** a region that bump-allocates from blocks, which
+changes what its bounded ledger and its parent's resize promise to every
+program that has one; a growing form inside `core/arena`, which needs
+names of its own for `over`, the reset and the release where the library
+has no overloading; blocks of a fixed size, which take a parent
+call per block for a large lifetime and leave a reset nothing that fits
+it; and a reset that keeps every block, which keeps a lifetime's largest
+round for good.
+
+**Pinned by** `runtime/core-zone-blocks` and `runtime/library-shared-zone`
+on every target, Cortex-M0 among them, and
+`runtime/benchmark-game-binary-trees`.
+
 ### D387 — `core/sort` takes a comparison with a context
 
 **The tour said** at [1290] that a generic function takes a type as an

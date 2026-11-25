@@ -205,6 +205,25 @@ measured at `a4f9138d8` in October, had 2.22. 0.2.9, measured on the same
 day, gave 2.73 and 0.2.10 2.84, so what widened the gap came before 0.2.9;
 its cause has not been found.
 
+#### binary-trees on a zone
+
+The cause was its allocator, not its code. A `core/region` asked the heap
+for every node, recorded it and freed each one back. The port now takes
+its nodes from a `core/zone`, which takes blocks from the heap and hands
+out their bytes in order, and resets the zone after each tree. Measured
+on 25 November 2026 the same way, with `--only binary-trees`, on core 15
+of the same host, its load average 1.8 to 3.3:
+
+| | binary-trees 21 | peak resident memory |
+|---|---|---|
+| main at c543c5a43, a region | 32.4 (2.18) | 385 MB |
+| the zone | 12.8 (0.85) | 128 MB |
+| C | 14.9 and 15.1 | 258 MB |
+
+At depth 15 under QEMU the port's own code executes 54.8% fewer
+instructions on x86-64 at `speed` and 56.7% fewer on arm64. Its image is
+362 bytes larger. The other four programs' images are unchanged.
+
 #### Targets this host cannot time
 
 The figures below were not measured in that session. They come from the
@@ -273,8 +292,9 @@ The programs differ in ways that matter to their times:
   last flip.
 - In binary-trees, C, Ada and Rust allocate and free each node through
   `malloc`; Zig bump-allocates in one arena per tree; Go, Node.js and Python
-  use their collectors; Landin uses one `core/region` per tree over
-  `hosted/heap`.
+  use their collectors; Landin took one `core/region` per tree over
+  `hosted/heap` until 25 November 2026, and since then takes its trees
+  from a `core/zone` over the heap, reset after each tree.
 
 ## Where Landin's time went
 

@@ -21,7 +21,7 @@ import lane_refine  # noqa: E402
 MODULES = tuple('core/'+name for name in
                 ('arena', 'atomic', 'cache', 'cmp', 'diag', 'failure', 'fault', 'fibre',
                  'io', 'iter', 'line', 'map', 'mem', 'net', 'panic', 'pool', 'random',
-                 'region', 'sort', 'spill', 'text', 'time', 'tree', 'vec')) + ('platform/cortex_m',)
+                 'region', 'sort', 'spill', 'text', 'time', 'tree', 'vec', 'zone')) + ('platform/cortex_m',)
 
 
 def imports(program):
