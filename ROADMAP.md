@@ -1234,7 +1234,7 @@ merged candidate passed its
 
 ### R16.39 — An index counted down proves its own checks
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 reverse-complement spends 70% of its x86-64 instructions at speed in
