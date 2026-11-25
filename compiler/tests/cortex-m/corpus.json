@@ -3488,34 +3488,34 @@
     "runtime/match-sink-binding": {
       "mode": "execute"
     },
-    "runtime/math-exp": {
+    "runtime/math-cbrt": {
       "mode": "execute"
     },
-    "runtime/math-exp2": {
+    "runtime/math-floor": {
       "mode": "execute"
     },
-    "runtime/math-expm1": {
+    "runtime/math-fma-f32": {
       "mode": "execute"
     },
-    "runtime/math-log": {
+    "runtime/math-fma-f64": {
       "mode": "execute"
     },
-    "runtime/math-log10": {
+    "runtime/math-hypot-f32": {
       "mode": "execute"
     },
-    "runtime/math-log1p": {
+    "runtime/math-hypot-f64": {
       "mode": "execute"
     },
-    "runtime/math-log2": {
+    "runtime/math-remainder": {
       "mode": "execute"
     },
-    "runtime/math-pow": {
+    "runtime/math-remainder-nearest": {
       "mode": "execute"
     },
-    "runtime/math-roots": {
+    "runtime/math-round": {
       "mode": "execute"
     },
-    "runtime/math-rounding": {
+    "runtime/math-sqrt": {
       "mode": "execute"
     },
     "runtime/measure-fibre-switches": {
@@ -5065,6 +5065,9 @@
       "mode": "execute"
     },
     "runtime/slice-place-in-value-arm": {
+      "mode": "execute"
+    },
+    "runtime/slot-register-keeps-an-earlier-store": {
       "mode": "execute"
     },
     "runtime/spawn-inherited-closed-stream": {

@@ -27940,8 +27940,10 @@ writes the accumulator or the result's register. At `speed` SHA-256 of
 address and shift sequences write; and a peephole over the emitted
 text, which cannot see liveness.
 
-**Pinned by** `x86 opt/operands in place` and
-`compiler/tests/measure/baselines/`.
+**Pinned by** `x86 opt/operands in place`,
+`compiler/tests/measure/baselines/` and
+`runtime/slot-register-keeps-an-earlier-store`, which gave 11 for 9 at
+`size` before the last condition was written.
 
 ### D2157 — x86-64 computes a stored value in its slot's register
 
@@ -27955,8 +27957,11 @@ holds when its first store writes it into a slot held in a register over
 the value's whole span, or it starts a chain of values, each the next
 one's left operand, that ends in such a store; the span is at most 32
 positions; nothing else loads or stores the slot within it; no load of
-the slot read in its register is still to be read; and no operand but
-the left one lives in that register. General and XMM slots alike. The
+the slot read in its register is still to be read; no operand but
+the left one lives in that register; and no other value still holds the
+register, as one stored into the slot earlier and read directly, not
+through the slot, after this one begins would. General and XMM slots
+alike. The
 store then moves nothing, and later uses read the slot's register. With
 D2158 SHA-256 at `speed` falls to 7.88 G instructions, and every other
 hosted workload executes fewer. A debugger shows the variable's new
@@ -27966,8 +27971,10 @@ value a few instructions before its store.
 the value's last use and follows no chain, where mandelbrot reads both
 parts after their stores; and coalescing in a pass of its own.
 
-**Pinned by** `x86 opt/operands in place` and
-`compiler/tests/measure/baselines/`.
+**Pinned by** `x86 opt/operands in place`,
+`compiler/tests/measure/baselines/` and
+`runtime/slot-register-keeps-an-earlier-store`, which gave 11 for 9 at
+`size` before the last condition was written.
 
 ### D2158 — An x86-64 add into a third register is one `lea`
 
@@ -45035,3 +45042,43 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a logging routine in `core/diag` taking a `caller`, which would put a site in every log entry where a text position already is; and `core/failure`, which is the registry of failure atoms. Both were declined.
 
 **Pinned by** `runtime/panic-require-reports-its-caller`, whose trap is reported at the wrapper's call on every hosted product target.
+
+### D2551 — `core/math` takes the square root and fused multiply-add from the float unit in assembly, and computes them elsewhere
+
+**The tour said** at [1560] that an operation such as the square root is reached through assembly, and D630 refused a builtin for it. The roadmap left the choice between a builtin and an assembly block per target to `core/math`.
+
+**Chosen:** `core/math` reaches the float unit's square root and fused multiply-add through `assembler.block`, one arm of a `fixed if` per target: x86-64's `sqrtsd`, `sqrtss` and, at `x86-64-v3`, `vfmadd231sd`; arm64's `fsqrt` and `fmadd`; RV64's `fsqrt` and `fmadd`; a Cortex-M float unit's `vsqrt` and `vfma` at the precisions `compiler.feature.fp` and `fp_dp` say it has. Every other target computes both from the bits in Landin: the square root digit by digit and the fused multiply-add with its product and sum exact in 128 bits for `f64`, and exact in `f64` with Knuth's two-sum for `f32`. IEEE 754 makes both operations exact, so the two ways give the same bits, which the fixtures check on every target. The language gains nothing.
+
+**The alternatives:** a builtin, `compiler.square_root` and the like, which the compiler could fold and keep in registers across the call; and the software routines alone, which give Cortex-M0's results everywhere at many times the cost. A builtin stays open for when a measurement shows the block's cost.
+
+**Pinned by** `runtime/math-sqrt` and `runtime/math-fma`, whose results are MPFR's correctly rounded ones on every target, the software routines on Cortex-M0, RV32 and Xtensa, and the exhaustive check of the software `f32` square root against MPFR that compiler/tests/math/README.md describes.
+
+### D2552 — `core/math` is one generic routine per function over `math.floating`
+
+**The tour said** nothing about a mathematical library. The library review left `core/math`'s names and shape to its first item, with D1948's rule that a routine is generic over a concept rather than erased, and D1953's one name per idea.
+
+**Chosen:** `core/math` declares the concept `floating`, which `f32` and `f64` meet, with an entry for each function; each public routine is generic over it, `math.sin(x)`, so one name serves both widths and a call is specialised to the width's own routine. The routines keep C's names where C's name is the mathematics' own (`sqrt`, `cbrt`, `hypot`, `fma`, `exp`, `exp2`, `expm1`, `log`, `log2`, `log10`, `log1p`, `pow`, the trigonometric and hyperbolic functions and their inverses, `erf`, `erfc`, `floor`, `ceil`, `trunc`, `round`, `min`, `max`), so a reader of a formula or of C finds each where it expects it. The others are named for what they do: `abs` for `fabs`, `copy_sign`, `next_after`, `scale` for `ldexp` and `scalbn`, `split` for `frexp`, `whole_and_fraction` for `modf`, `round_even` for `roundeven`, `rint` and `nearbyint`, `remainder` for `fmod`, which truncates as Landin's integer `%` does, `remainder_nearest` for IEEE's `remainder`, `gamma` for `tgamma` and `log_gamma` for `lgamma`, `classify`, `is_nan`, `is_infinite`, `is_finite`, `is_normal` and `is_negative`. The constants are `f64` module values, `math.pi` among them; each converts with `f32()` to the `f32` nearest the real number. A bare float literal is `f32` by [0210], so `math.sqrt(2.0)` is the `f32` root, and an `f64` call gives its argument a type.
+
+**The alternatives:** one routine per width, `sqrt` and `sqrtf` or `sqrt_f32`, as C and the integer parsers do, which doubles every name; two modules, one per width; and C's names throughout, which keep `fmod` beside an integer `%` it does not resemble and `tgamma`'s "true" against a `gamma` that has no rival here.
+
+**Pinned by** the `math-*` runtime fixtures, which call every routine generically at both widths.
+
+### D2553 — `core/math` states each routine's error and pins it against MPFR on every target
+
+**The tour said** nothing. The roadmap asks that each routine's error in units in the last place be stated and pinned against an oracle computed outside the program.
+
+**Chosen:** each routine's doc comment states its error bound in units in the last place of the exact result, 0 for an exact or correctly rounded one. The `math-*` runtime fixtures, written by `scripts/math_oracle.py` from compiler/tests/math/cases, hold inputs and MPFR's correctly rounded results: special values, random inputs and the hardest to round of a larger random pool. Each exits 42 on a target only when every result there is within its table's bound, counted in representable floats, 0 for an exact routine and 1 for one below an ulp, so the gate checks the bound on every target it runs, the firmware lanes included. The largest error, to a hundredth of an ulp, is measured on the host: on a million random inputs per routine and width, and on every one of the 2^32 inputs of each one-argument `f32` routine, as compiler/tests/math/README.md describes. Every routine uses IEEE arithmetic in a fixed order, which Landin never contracts or reassociates, so its results are the same bits on every target.
+
+**The alternatives:** a table of outputs recorded from one target and compared bit for bit elsewhere, which would show agreement and not accuracy; and MPFR in the gate, which would need it in every lane's environment and hours of time per run.
+
+**Pinned by** every `runtime/math-*` fixture, on every target its metadata names.
+
+### D2554 — `core/math` ports only msun code under Sun's notice
+
+**The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
+
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. It is the default of a question the maintainer has not yet answered.
+
+**The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
+
+**Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.

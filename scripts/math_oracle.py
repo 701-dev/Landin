@@ -50,8 +50,8 @@ FIXTURES = ROOT / 'compiler/tests/fixtures/runtime'
 
 #  Every target a runtime fixture runs on; the Cortex-M, RV32 and Xtensa
 #  firmware lanes take theirs from compiler/tests/cortex-m/corpus.json.
-TARGETS = ('linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, '
-           'freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, '
+TARGETS = ('linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, '
+           'freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, '
            'windows-arm64')
 
 #  The functions the oracle knows, with their arity.
@@ -265,32 +265,42 @@ end within_32
 '''
 
 
-def runner(table, index):
-    """The routine that runs table INDEX, counting the results past its
-    bound."""
-    fn, width = table['fn'], table['width']
-    arity = ARITY[fn]
-    stride = arity + 1
-    name = 'cases_%d' % index
+def runner(width, arity):
+    """The routine that runs a table of WIDTH and ARITY through a routine
+    given as a value, counting the results past the bound."""
     kind = 'f%d' % width
-    reads = '\n'.join('        %s := from_%d(%s[at + %d])' % (p, width, name, k)
-                      for k, p in enumerate(PARAMETERS[arity]))
-    call = 'math.%s(%s)' % (fn, ', '.join(PARAMETERS[arity]))
+    parameters = PARAMETERS[arity]
+    signature = ', '.join('%s: %s' % (p, kind) for p in parameters)
+    reads = '\n'.join('        %s := from_%d(cases[at + %d])' % (p, width, k)
+                      for k, p in enumerate(parameters))
     return '''\
-run_{index}: () -> (failures: u32) =
-    --  {fn} at {kind}, within {bound} of the correctly rounded result
+run_{width}_{arity}: (cases: []u{width}, routine: ({signature}) -> (result: {kind}),
+               bound: u{width}) -> (failures: u32) =
     failures = 0
     mut at: usize = 0
-    while at < lenof {name} do
+    while at < lenof cases do
 {reads}
-        if not within_{width}({call}, {name}[at + {arity}], {bound}) then
+        if not within_{width}(routine({arguments}), cases[at + {arity}], bound) then
             failures = failures + 1
         end if
         at = at + {stride}
     end while
-end run_{index}
-'''.format(index=index, fn=fn, kind=kind, bound=table['bound'], name=name,
-           reads=reads, width=width, call=call, arity=arity, stride=stride)
+end run_{width}_{arity}
+'''.format(width=width, arity=arity, signature=signature, kind=kind, reads=reads,
+           arguments=', '.join(parameters), stride=arity + 1)
+
+
+def wrapper(table, index):
+    """The routine value table INDEX is run through: one width's call."""
+    arity = ARITY[table['fn']]
+    kind = 'f%d' % table['width']
+    parameters = PARAMETERS[arity]
+    return '''\
+call_{index}: ({signature}) -> (result: {kind}) =
+    result = math.{fn}({arguments})
+end call_{index}
+'''.format(index=index, signature=', '.join('%s: %s' % (p, kind) for p in parameters),
+           kind=kind, fn=table['fn'], arguments=', '.join(parameters))
 
 
 def fixture_program(name, fixture, oracle):
@@ -316,12 +326,15 @@ import core/math
                      ' to round of %d\n' % (table['fn'], width, table.get('random', 0),
                                             table.get('hard', 0), table.get('pool', 20000)))
         parts.append(landin_array('cases_%d' % index, 'u%d' % width, words, width))
-        parts.append(runner(table, index))
+        parts.append(wrapper(table, index))
+    for width, arity in sorted({(t['width'], ARITY[t['fn']]) for t in tables}):
+        parts.append(runner(width, arity))
     calls = '\n'.join('''\
-    if run_{i}() <> 0 and code == 42 then
+    if run_{width}_{arity}(cases_{i}, call_{i}, {bound}) <> 0 and code == 42 then
         code = {status}
-    end if'''.format(i=i, status=i if i < 42 else i + 1)
-                      for i in range(1, len(tables) + 1))
+    end if'''.format(i=i, width=t['width'], arity=ARITY[t['fn']], bound=t['bound'],
+                 status=i if i < 42 else i + 1)
+                      for i, t in enumerate(tables, start=1))
     parts.append('''\
 public main: () -> (code: i32) =
     code = 42

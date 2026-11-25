@@ -2230,6 +2230,12 @@ package body Landin.Backend.X86_64.Allocation is
                        and then Result.Slot (Overwrites (Index)).Kind = GP
                        and then not Named
                          (Result.Slot (Overwrites (Index)).Register)
+                       --  No other value still holds the register: one
+                       --  stored into the slot earlier may be read after
+                       --  this one begins, not through the slot.
+                       and then Busy_Until
+                         (Result.Slot (Overwrites (Index)).Register)
+                         <= Position
                      then
                         --  The slot's register, whose interval holds on
                         --  through the store, so the store moves nothing:
@@ -2294,6 +2300,9 @@ package body Landin.Backend.X86_64.Allocation is
                   then
                      if Overwrites (Index) /= 0
                        and then Result.Slot (Overwrites (Index)).Kind = SSE
+                       and then SSE_Busy_Until
+                         (Result.Slot (Overwrites (Index)).Float_Register)
+                         <= Position
                      then
                         --  D2157: the slot's register, as for an integer.
                         Place.Kind := SSE;

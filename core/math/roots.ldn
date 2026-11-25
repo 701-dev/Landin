@@ -61,10 +61,11 @@ sqrt_soft_f64: (x: f64) -> (result: f64) =
         pair = pair - 1
     end while
     rounded := (root >> 1) + (root & 1)
-    --  The result is rounded * 2^((power - 54) / 2), its exponent field
-    --  the power of its leading bit; a carry out of the significand
-    --  passes into the exponent.
-    field := (power - 54) / 2 + 52 + 1023
+    --  The root is root * 2^((power - 54) / 2), so the 53 bits kept are
+    --  rounded * 2^((power - 54) / 2 + 1), and the exponent field is the
+    --  power of their leading bit; a carry out of the significand passes
+    --  into the exponent.
+    field := ((power - 54) >> 1) + 1 + 52 + 1023
     result = from_bits_f64((u64(field) << 52) + (rounded - 0x10000000000000))
 end sqrt_soft_f64
 
@@ -89,17 +90,19 @@ sqrt_soft_f32: (x: f32) -> (result: f32) =
     else
         significand = significand | 0x800000
     end if
+    --  x = significand * 2^power; make power - 25 even, and take the
+    --  root of the 50-bit radicand significand * 2^25, in [2^24, 2^25).
     mut power: i32 = exponent - 150
-    if power & 1 <> 0 then
+    if power & 1 == 0 then
         significand = significand << 1
         power = power - 1
     end if
+    radicand := significand << 25
     mut root: u64 = 0
     mut rest: u64 = 0
     mut pair: i32 = 24
     while pair >= 0 do
-        shift := 2 * pair - 25
-        next: u64 = if shift >= 0 then (significand >> u64(shift)) & 3 else 0 end if
+        next := (radicand >> u64(2 * pair)) & 3
         rest = (rest << 2) | next
         trial := (root << 2) | 1
         if rest >= trial then
@@ -111,7 +114,7 @@ sqrt_soft_f32: (x: f32) -> (result: f32) =
         pair = pair - 1
     end while
     rounded := u32((root >> 1) + (root & 1))
-    field := (power - 25) / 2 + 23 + 127
+    field := ((power - 25) >> 1) + 1 + 23 + 127
     result = from_bits_f32((u32(field) << 23) + (rounded - 0x800000))
 end sqrt_soft_f32
 
