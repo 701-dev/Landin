@@ -1,0 +1,161 @@
+--  A program starts itself by the name it was run by, in another working
+--  directory, on every hosted system.  `io.program_name` gives the name,
+--  `io.find_program` finds it as a shell would, on the search path when
+--  it is a bare name, and a relative path is made whole from the working
+--  directory, since a child's relative program is found from the child's
+--  own.  Started with `io.spawn`, the child reports the parent's working
+--  directory; started with `io.spawn_in` and the directory above, it
+--  reports that one, and the parent's own has not changed.  A directory
+--  that is not there, and an empty one, are not_found and start nothing,
+--  as is a program no entry of the search path holds.
+import core/cmp
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+
+--  What the child does: write its working directory and end with 7.
+child: (host: blocking.host) -> (code: i32) =
+    code = 1
+    mut room: [1024]u8 = zeroed
+    here: text.os_string = io.current_directory(host, room) else (problem)
+        _ = problem
+        return
+    end
+    io.write(host, io.out(host), text.os_string_bytes(here)) else (problem)
+        _ = problem
+        return
+    end
+    code = 7
+end child
+
+--  Whether `byte` divides a path's parts here.
+divides: (byte: u8) -> (yes: bool) =
+    yes = byte == u8('/') or byte == u8('\\')
+end divides
+
+--  The program's whole path, put in `into`: found as a shell finds it, and
+--  joined to the working directory `here` when that leaves it relative.
+whole_program: (host: blocking.host, here: []u8, into: []mut u8)
+               -> (length: usize) ! ... =
+    length = 0
+    name: text.os_string = io.program_name(host)
+    search: text.os_string = io.variable_named(host,
+                                               text.os_string_over("PATH"))
+        else text.os_string_over("")
+    mut found_room: [1024]u8 = zeroed
+    found: []u8 = text.os_string_bytes(try io.find_program(host, name, search,
+                                                           found_room))
+    rooted: bool = (lenof found > 0 and divides(found[0]))
+                   or (lenof found > 1 and found[1] == u8(':'))
+    if rooted then
+        try mem.copy(into[0..<lenof found], found)
+        length = lenof found
+        return
+    end if
+    try mem.copy(into[0..<lenof here], here)
+    windows_style: bool = mem.find(here, u8('\\')) < lenof here
+    into[lenof here] = if windows_style then u8('\\') else u8('/') end if
+    length = lenof here + 1
+    try mem.copy(into[length..<length + lenof found], found)
+    length += lenof found
+end whole_program
+
+--  Start the program at `program` with the argument `child`, in
+--  `directory` when that is not empty, and read what it writes into
+--  `into`: its length, or a failure when it did not end with 7.
+reported: (host: blocking.host, directory: []u8, program: []u8,
+           into: []mut u8) -> (length: usize) ! ... =
+    length = 0
+    arguments: [1]text.os_string = [text.os_string_over("child")]
+    mut started: io.child = if lenof directory == 0 then
+                                try io.spawn(host, text.os_string_over(program), arguments[0..<1],
+                                             [], io.capturing)
+                            else
+                                try io.spawn_in(host, text.os_string_over(directory),
+                                                text.os_string_over(program), arguments[0..<1],
+                                                [], io.capturing)
+                            end if
+    loop do
+        part: io.child_read = try io.read_child(host, started,
+                                                into[length..<lenof into])
+        break when part.finished
+        if part.stream == io.child_output then length += part.count end if
+    end loop
+    ended: io.ending = try io.wait(host, started)
+    match ended.how
+        io.exited(code): fail io.io_failed when code <> 7
+        io.signalled: fail io.io_failed
+    end match
+end reported
+
+same: (left: []u8, right: []u8) -> (yes: bool) =
+    yes = cmp.compare(left, right) == cmp.equal
+end same
+
+--  Whether starting the program in `directory` is not_found.
+refused: (host: blocking.host, directory: []u8, program: []u8) -> (yes: bool) =
+    yes = false
+    arguments: [1]text.os_string = [text.os_string_over("child")]
+    started: io.child = io.spawn_in(host, text.os_string_over(directory),
+                                    text.os_string_over(program),
+                                    arguments[0..<1], [],
+                                    io.discarding) else (problem)
+        yes = problem == mem.not_found
+        return
+    end
+    _ = io.wait(host, started) else (problem)
+        _ = problem
+        return
+    end
+end refused
+
+parent: (host: blocking.host) -> (code: i32) ! ... =
+    code = 1
+    mut here_room: [1024]u8 = zeroed
+    here: []u8 = text.os_string_bytes(try io.current_directory(host,
+                                                               here_room))
+    mut program_room: [2048]u8 = zeroed
+    program_length: usize = try whole_program(host, here, program_room)
+    program: []u8 = program_room[0..<program_length]
+    code = 2
+    mut said: [1024]u8 = zeroed
+    plain: usize = try reported(host, "", program, said)
+    return when not same(said[0..<plain], here)
+    code = 3
+    mut above: usize = lenof here
+    while above > 0 and not divides(here[above - 1]) do above -= 1 end while
+    return when above < 2
+    upper: []u8 = here[0..<above - 1]
+    moved: usize = try reported(host, upper, program, said)
+    return when not same(said[0..<moved], upper)
+    code = 4
+    mut again_room: [1024]u8 = zeroed
+    again: []u8 = text.os_string_bytes(try io.current_directory(host,
+                                                                again_room))
+    return when not same(again, here)
+    code = 5
+    return when not refused(host, "no-such-directory-of-this-test", program)
+    return when not refused(host, "", program)
+    code = 6
+    mut missing_room: [256]u8 = zeroed
+    missing: text.os_string = io.find_program(host,
+                                              text.os_string_over("no-such-program-of-this-test"),
+                                              text.os_string_over("/bin"), missing_room) else (problem)
+        if problem == mem.not_found then code = 42 end if
+        return
+    end
+    _ = missing
+end parent
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    if io.arguments_length(host) > 0 then
+        code = child(host)
+        return
+    end if
+    code = parent(host) else (problem)
+        _ = problem
+        99
+    end
+end main

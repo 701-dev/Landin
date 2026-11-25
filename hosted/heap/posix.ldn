@@ -58,4 +58,8 @@ fixed if compiler.os <> windows then
     page_bytes: () -> (bytes: usize) =
         bytes = posix.page_size()
     end page_bytes
+
+    resident_peak: () -> (bytes: usize) =
+        bytes = posix.peak_resident() else 0
+    end resident_peak
 end if

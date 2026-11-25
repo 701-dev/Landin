@@ -273,12 +273,13 @@ public main: () -> (code: i32) =
                             complained[0..<64])
     mut kept: [32]u8 = zeroed
     mut programs: [2]io.scripted_program =
-        [(path: "/bin/sh", output: said, errors: "something went wrong\n",
+        [(path: "/bin/sh", directory: "", output: said,
+          errors: "something went wrong\n",
           ending: (how: io.exited(code: 3)), input: kept[0..<32],
           input_length: 0,
           starts: 0, arguments: 0, variables: 0, output_read: 0,
           errors_read: 0, running: false),
-         (path: "/bin/false", output: "", errors: "",
+         (path: "/bin/false", directory: "", output: "", errors: "",
           ending: (how: io.signalled), input: kept[0..<0], input_length: 0,
           starts: 0,
           arguments: 0, variables: 0, output_read: 0, errors_read: 0,

@@ -14,7 +14,9 @@ import core/time
 --- caller gives each node room for a path, `path`, and for a file's bytes
 --- or a link's target, `contents`, sets `path_length` to zero for a node
 --- the volume may use for a new file, and gives the others their path,
---- `length`, `kind`, `read_only` and `modified`.  A path has no leading
+--- `length`, `kind`, `read_only`, `executable` and `modified`; a regular
+--- file is executable, a program `io.find_program` finds, when
+--- `executable` says so, and nothing else is.  A path has no leading
 --- `./`, no trailing `/`, and no `.` or `..` part; its directory must be
 --- a node too, or the root, `.`.  The volume keeps the fields as files
 --- change; a test reads them.
@@ -25,6 +27,7 @@ public volume_node: type = struct
     length: usize
     kind: io.entry_kind
     read_only: bool
+    executable: bool
     modified: time.wall_time
 end volume_node
 
@@ -357,6 +360,7 @@ volume_make: (self: volume, path: []u8, kind: io.entry_kind)
     node.val.length = 0
     node.val.kind = kind
     node.val.read_only = false
+    node.val.executable = false
     node.val.modified = volume_now(self)
     volume_touch_parent(self, path)
 end volume_make
@@ -838,7 +842,9 @@ volume_status_of_node: (self: volume, index: usize) -> (found: io.status) =
     found = (size: if node.val.kind == io.subdirectory then 0
                    else u64(node.val.length) end if,
              kind: node.val.kind, modified: node.val.modified,
-             read_only: node.val.read_only)
+             read_only: node.val.read_only,
+             executable: node.val.kind == io.regular
+                         and node.val.executable)
 end volume_status_of_node
 
 volume_status_of: (self: volume, path: text.os_string,
@@ -847,7 +853,7 @@ volume_status_of: (self: volume, path: text.os_string,
     try volume_call(self)
     wanted: []u8 = text.os_string_bytes(path)
     found = (size: 0, kind: io.subdirectory, modified: volume_now(self),
-             read_only: false)
+             read_only: false, executable: false)
     mut room: [256]u8 = zeroed
     length: usize = volume_walk(self, wanted, links == io.following,
                                 room[0..<256]) else (problem)

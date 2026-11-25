@@ -273,6 +273,11 @@ fixed if compiler.os == windows then
         value = windows.argument(table, index)
     end system_argument
 
+    system_program_name: (self: host) -> (name: text.os_string from self) =
+        _ = self.failure
+        name = windows.program_name()
+    end system_program_name
+
     system_variables_length: (self: host) -> (count: usize) =
         _ = self.failure
         table: windows.environment_table = windows.environment()
@@ -323,7 +328,8 @@ fixed if compiler.os == windows then
          same_file: system_same_file, close: system_close)
     host is io.process
         (input: system_input, out: system_out, err: system_err,
-         arguments_length: system_arguments_length, argument: system_argument)
+         arguments_length: system_arguments_length, argument: system_argument,
+         program_name: system_program_name)
     host is io.environment
         (variables_length: system_variables_length,
          variable: system_variable,

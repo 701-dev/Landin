@@ -39,6 +39,12 @@ several of the tasks together.
 | Print a formatted line | `io.write_format(host, io.out(host), "{} lines\n", [any(addr count)])` | [core/io](../core/io) |
 | Print many lines | `io.buffered_over(host, io.out(host), storage)` once, then `io.format(out, "{} lines\n", [any(addr count)])` for each line, and `io.flush(out)`, checked, before reporting success | [core/io](../core/io) |
 | Get a command-line argument | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
+| Get the name the program was run by, `argv[0]` | `io.program_name(host)` | [core/io](../core/io) |
+| Find a program on the search path, as a shell does | `io.variable_named(host, text.os_string_over("PATH"))`, then `io.find_program(host, name, search, buffer)` | [core/io](../core/io) |
+| Run a program in another directory | `io.spawn_in(host, directory, path, arguments, variables, io.inheriting)`, then `io.wait(host, child)` | [core/io](../core/io) |
+| Keep a copy of bytes you were only lent | `mem.allocate_copy(memory, bytes)`, and `mem.release_copy(memory, copied)` when done | [core/mem](../core/mem) |
+| Give a shorter lifetime inside a region its own memory | `zone.over(space, parent)` over the region's parent, and `zone.reset(scratch)` after each round | [core/zone](../core/zone) |
+| Measure the program's own memory | `heap.in_use(memory)`, `heap.peak_in_use(memory)` and `heap.peak_resident(memory)` | [hosted/heap](../hosted/heap) |
 | Read a file line by line | `io.open_read(host, path)`, `io.lines_over(host, file, buffer)`, then `io.read_line(lines)` until `item.at_end`, and `io.close(host, file)` | [core/io](../core/io) |
 | Read a whole file into memory | `io.open_read(host, path)`, then `io.read(host, file, chunk)` until it gives 0, adding each piece to a builder with `text.append(whole, chunk[0..<got])`, and `io.close(host, file)`. The two kinds of builder are compared after this table | [core/io](../core/io), [core/text](../core/text) |
 | Write straight to standard error | `io.write(host, io.err(host), bytes)` | [core/io](../core/io) |
@@ -281,6 +287,7 @@ Memory providers and typed storage: the foundation for allocation, initialized p
 | Call | What it does |
 |---|---|
 | `mem.allocate`, `mem.release` | Take a block from a provider, and give it back through the same provider with the same extent. |
+| `mem.allocate_copy`, `mem.release_copy` | Copy lent bytes into a block from a provider, returning the copy as a `[]mut u8` that outlives its source, and give that copy back. |
 | `mem.resize` | Give a block a new extent, larger or smaller, in place or by moving it. |
 | `mem.storage_over` | Make typed storage over the caller's bytes. |
 | `mem.copy`, `mem.fill`, `mem.find` | Copy, set and search byte blocks. |
@@ -297,6 +304,13 @@ place answers with `relocate`, which allocates, copies and frees. A bump
 provider of your own needs the arithmetic in `aligned_offset`.
 
 `storage_over` does not establish ownership or prove alias lifetimes.
+
+`allocate_copy` is how a program keeps bytes past their lender when it
+was only lent them, such as a line a reader refills or an argument. The
+copy borrows nothing. An empty copy asks the provider for nothing, and a
+refusal is `out_of_memory` with nothing taken. `allocate_bytes` is
+different: its `byte_buffer`'s view is lent from the binding, so it is
+for bytes used where they were made.
 
 Byte blocks are slices, with their lengths checked:
 
@@ -893,7 +907,7 @@ The capabilities are concepts, and a program names only the ones it uses:
 |---|---|---|
 | `reader`, `writer` | `read`, `write`, `write_some` | yes |
 | `files` | `open_read`, `open_write`, `same_file`, `close` | yes |
-| `process` | the standard streams `input`, `out` and `err`, and the arguments | yes |
+| `process` | the standard streams `input`, `out` and `err`, the arguments and the program's name | yes |
 | `directories` | listing, making and removing directories | no |
 | `environment` | the process's variables | no |
 | `programs` | running other programs | no |
@@ -941,7 +955,12 @@ An erased capability is built from the address of a handle binding:
 Providers retain authority over files and arguments.
 
 `process` lends the three standard streams, `input`, `out` and `err`, and
-the argument table, as in `io.out(host)`. Standard input is read through
+the argument table, as in `io.out(host)`. `io.program_name(host)` lends
+the name the program was run by, C's `argv[0]`, which no argument index
+reaches. It is often the path the program was started by, but it is
+whatever the parent chose. So it is the name for a usage line, or for
+starting the program again through `find_program`, and not proof of
+where its file is. Standard input is read through
 `reader` like any file, and a read of zero bytes into a nonempty buffer
 is its end.
 
@@ -978,7 +997,8 @@ It behaves so that a test gets the same answer every run:
 - `written` and `written_errors` lend what was written to standard output
   and standard error.
 - Its arguments, like the system provider's, never include the program's
-  own name, `argv[0]`.
+  own name, `argv[0]`. It has no name unless `memory_named(world, name)`
+  gives it one, which `program_name` then lends.
 
 ### Directories
 
@@ -1039,6 +1059,7 @@ programs.
 `spawn` starts the program at a path, an OS string:
 
 - The path is never looked up on a search path or handed to a shell.
+  `find_program`, below, looks a name up.
 - The program sees the arguments after its own name, and gets exactly the
   variables the caller builds.
 - A missing program is `mem.not_found`, and one the caller may not run is
@@ -1055,6 +1076,34 @@ Each of the program's three standard streams is connected as
 
 `inheriting`, `capturing` and `discarding` are the common three
 combinations.
+
+`spawn_in` is `spawn` with one more argument before the path, a working
+directory for the child:
+
+- The child changes to the directory before its program runs, so a
+  relative path is found from there, as `env -C` finds one.
+- The parent's own directory never changes.
+- A missing directory is `mem.not_found`. So is an empty one, which names
+  none. One the caller may not enter is `no_access`.
+
+`find_program(host, name, search, buffer)` finds a program by name as a
+shell does, without starting it, and puts its path in the buffer for
+`spawn`:
+
+- `search` is a `PATH` value, which `variable_named` reads. Its entries
+  divide at `:`, or `;` on Windows.
+- The first entry holding an executable regular file of that name wins.
+  `executable` is the `status` flag below.
+- An empty entry is passed over, never read as the current directory.
+- A name holding a `/`, or on Windows a `\` or a drive, is checked where
+  it is, not searched for.
+- On Windows a name whose last part has no extension is looked for with
+  `.exe` after it, as `CreateProcessW` looks for it.
+- Nothing found is `mem.not_found`; a path too long for the buffer is
+  `io_failed`.
+
+It works over `file_system`, so the volume fake's executable nodes are
+what it finds in a test.
 
 `spawn` returns a `child`: a value the caller keeps, whose fields are the
 provider's. These calls take it:
@@ -1085,7 +1134,8 @@ memory world's are not.
 `scripted_over` makes `scripted_programs`: a programs provider beside a
 memory world, over the caller's `scripted_program` records. It is a
 provider of its own, so a world that runs no program carries none of its
-code. A scripted program at a given path:
+code. A scripted program at a given path and in a given directory, which
+is its record's `directory` and is empty for the parent's own:
 
 - writes the given output and errors when it starts, as each stream
   says, an inherited one into the world's own standard output or error;
@@ -1135,7 +1185,10 @@ beside it, `synchronize` it, close it and rename it onto the old one.
   directory onto a file or of a file onto a directory.
 
 A `status` holds the size, its `entry_kind`, the last modification as a
-`wall_time` and whether it is `read_only`. `status_of` follows a final
+`wall_time`, whether it is `read_only`, and whether it is `executable`.
+An executable entry is a regular file that some permission bit lets
+someone run. Windows has no such bit, so there it is a regular file
+whose name ends in `.exe` or `.com`. `status_of` follows a final
 symbolic link or not, as asked.
 
 `platform/posix` uses the name differently: its `status_of` takes an open
@@ -1298,8 +1351,8 @@ system's, so it stays in `core/io` as `io.memory`.
 `reader`, `writer`, `files` and `directories` over the same files. It is
 a file system in memory over two things the caller supplies:
 
-- `volume_node` records, each a path, a kind and room for a file's bytes
-  or a link's target;
+- `volume_node` records, each a path, a kind, room for a file's bytes or
+  a link's target, and whether a regular file is `executable`;
 - a `volume_space` the caller declares `zeroed`.
 
 How it behaves:
@@ -1691,8 +1744,18 @@ An allocator scope that records allocations through a parent and releases them t
 | zero | grows through the parent; `growing_space` names it |
 | positive | a fixed caller ledger |
 
-Individual frees do nothing. Every allocation consumes a ledger entry
-until release, whether or not its payload is still live.
+Individual frees do nothing, and nothing says so at the call. Every
+allocation consumes a ledger entry until release, whether or not its
+payload is still live. So:
+
+- Code moved from the heap onto a region runs unchanged, but keeps every
+  temporary it frees until the region ends. What a `vec.release` frees is
+  one, and a list made afresh each round of a loop is another.
+- A region over a region reclaims nothing before the outer one is
+  released.
+
+For a shorter lifetime inside a region, make a [zone](#corezone) over
+the region's parent instead, and reset it at the end of each round.
 
 A resize of the newest allocation goes to the parent, and its entry
 follows the block. A resize of any other block moves it into a new entry,
@@ -2150,11 +2213,24 @@ Threads share the heap:
 - Once the program has started a thread, the size classes are behind one
   lock of `hosted/thread/lock`. A program that has started none never
   takes it.
-- A mapping of its own takes no lock.
+- A mapping of its own is made and unmapped without the lock. The heap
+  takes the lock only to count the mapping's bytes.
 - A C thread calling in under `--link=libc` is none of the program's, and
   two of them may not use the heap at once.
 
 When the heap refuses a request, it refuses before any state changes.
+
+A program measures its own memory with three calls on the handle:
+
+| Call | What it gives |
+|---|---|
+| `heap.in_use(memory)` | The bytes the heap holds for blocks not yet freed. Each block counts as its size class, or as the pages of its own mapping, so the total is at least what was asked for. |
+| `heap.peak_in_use(memory)` | The most `in_use` has been since the program started. |
+| `heap.peak_resident(memory)` | The process's peak resident size in bytes as the system counts it, which is every page it touched. This is `getrusage`'s maximum resident set, or Windows' peak working set. It is zero when the system does not say. |
+
+To test that repeated work keeps nothing, read `in_use` before and after
+the work, [as this program does](../compiler/tests/fixtures/runtime/heap-in-use/main.ldn).
+Blocks a C library allocated are not in the heap's counts.
 
 [Executable example](../compiler/tests/fixtures/runtime/hosted-heap-provider/main.ldn)
 

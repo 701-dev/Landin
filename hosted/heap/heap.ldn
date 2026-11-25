@@ -27,9 +27,10 @@ end system_value
 --- hosted targets. Threads share the heap: once the program has started a
 --- thread through hosted/thread, one lock guards its size classes, and a
 --- program that has started none never takes it. A block larger than the
---- largest class is a mapping of its own and needs no lock. A C thread calling
---- in under `--link=libc` is no thread of the program's, and two of them may
---- not use it at once.
+--- largest class is a mapping of its own, made and unmapped without the
+--- lock, which it takes only to count its bytes in `in_use`. A C thread
+--- calling in under `--link=libc` is no thread of the program's, and two of
+--- them may not use it at once.
 ---
 --- Every usize alignment is accepted. Zero and one mean no stricter than byte
 --- alignment. A zero-byte request still returns a distinct, non-null, freeable
@@ -107,6 +108,28 @@ chunk: usize = 65536
 --  storage, which `class_lock` serialises once a thread has started.
 mut free_slots: [8]usize
 
+--  The bytes the heap holds for blocks not yet freed, each block's slot or
+--  mapping counted whole, and the most it has held at once.  Both are
+--  changed and read under `class_lock` once a thread has started.
+mut held_now: usize
+mut held_most: usize
+
+--  Count `added` bytes more and `taken` fewer as held, keeping the most;
+--  the caller holds the classes' lock when a thread has started.
+note_held: (added: usize, taken: usize) -> none =
+    held_now = held_now + added - taken
+    if held_now > held_most then held_most = held_now end if
+end note_held
+
+--  `note_held` under the classes' lock, for a mapping, whose own change
+--  takes no lock.
+account: (added: usize, taken: usize) -> none =
+    locked: bool = lock.threads_started()
+    take_classes(locked)
+    note_held(added, taken)
+    give_classes(locked)
+end account
+
 --  The lock over every class's list and over mapping a class's chunk
 --  (D502).  A program that has started no thread skips it: the thread
 --  facility records the start before it makes the thread, and the
@@ -181,12 +204,14 @@ host_alloc: (size: usize, unit: usize) -> (block: usize) =
         locked: bool = lock.threads_started()
         take_classes(locked)
         origin = take_slot(index, class_size)
+        if origin <> 0 then note_held(class_size, 0) end if
         give_classes(locked)
         held = class_size
     else
         page: usize = page_bytes()
         held = align_up(extent, page)
         origin = map_pages(held)
+        if origin <> 0 then account(held, 0) end if
     end if
     if origin == 0 then
         block = 0
@@ -211,8 +236,10 @@ host_free: (block: usize) -> none =
         link: ptr mut usize = ptr(origin)
         link.val = free_slots[index]
         free_slots[index] = origin
+        note_held(0, held)
         give_classes(locked)
     else
+        account(0, held)
         --  A refusal means the header no longer holds a mapping of this
         --  heap's, and free has no failure to report it by: the pages, if
         --  any, stay mapped.
@@ -277,6 +304,7 @@ extend_mapping: (where: place, ends: usize) -> (grown: bool) =
     wanted: usize = align_up(ends, page_bytes())
     return when not extend_pages(where.origin, where.held, wanted)
     store_word(where.at + word, wanted)
+    account(wanted, where.held)
     grown = true
 end extend_mapping
 
@@ -292,6 +320,7 @@ remap_mapping: (block: usize, where: place, ends: usize) -> (moved: usize) =
     at: usize = header_at(moved)
     store_word(at, origin)
     store_word(at + word, wanted)
+    account(wanted, where.held)
 end remap_mapping
 
 --  Give the pages of the mapping `where` describes past `ends` bytes from
@@ -306,6 +335,7 @@ trim_mapping: (where: place, ends: usize) -> none =
     return when kept >= where.held
     return when not return_tail(where.origin + kept, where.held - kept)
     store_word(where.at + word, kept)
+    account(0, where.held - kept)
 end trim_mapping
 
 --  Whether the block at `block` can hold `size` bytes where it is: in its
@@ -366,6 +396,41 @@ end system_resize
 
 heap is mem.allocator (alloc: system_alloc, grow: system_grow,
                        resize: system_resize, free: system_free)
+
+--- The bytes the heap holds for blocks not yet freed: for each, the size
+--- class its slot is, or the pages of its own mapping, its header and
+--- alignment included, so at least the extent asked for. It counts every
+--- handle's blocks, which share the one heap, and every thread's, and it
+--- is what a test reads before and after repeated work to show that the
+--- work keeps nothing. A block a C library allocated is not among them.
+public in_use: (memory: heap) -> (bytes: usize) =
+    _ = memory.reserved
+    locked: bool = lock.threads_started()
+    take_classes(locked)
+    bytes = held_now
+    give_classes(locked)
+end in_use
+
+--- The most bytes `in_use` has reported, or would have, at any moment since
+--- the program started: the heap's peak.
+public peak_in_use: (memory: heap) -> (bytes: usize) =
+    _ = memory.reserved
+    locked: bool = lock.threads_started()
+    take_classes(locked)
+    bytes = held_most
+    give_classes(locked)
+end peak_in_use
+
+--- The most memory the process has held resident at once since it
+--- started, in bytes, as the system counts it: every page it touched, the
+--- heap's, the C library's, its code and its stacks among them, where
+--- `peak_in_use` counts the heap's blocks alone. It is POSIX's
+--- `getrusage` maximum resident set and Windows' peak working set, and
+--- zero when the system does not say.
+public peak_resident: (memory: heap) -> (bytes: usize) =
+    _ = memory.reserved
+    bytes = resident_peak()
+end peak_resident
 
 --- Return a handle to the host heap. Making one does not allocate; callers
 --- retain and free each successful allocation explicitly.

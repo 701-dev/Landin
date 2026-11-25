@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: the fakes of starting a program by name, on every target, a memory world run by a name lending it through io.program_name and one made without a name lending none, the memory volume's executable files being what io.find_program finds on a search path past an empty entry, a directory, a file not executable and an entry without the name, and a scripted program starting in the directory its record names and no other, io.spawn_in refusing an empty directory
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0570, 0680, 0900, 1030, 1210, 1680
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

@@ -1,0 +1,46 @@
+--  A program measures its own memory: the heap's bytes in use rise by at
+--  least what a block asks for and fall back when it is freed, so work
+--  repeated a hundred times that frees what it takes leaves them where
+--  they were; the heap's peak keeps the most it held, a mapping of its
+--  own among it; and the process's peak resident size, which the system
+--  counts, is at least that peak.
+import core/mem
+import hosted/heap
+
+--  Take and free a small block and a large one, as a round of work.
+round: (memory: heap.heap) -> none ! mem.out_of_memory =
+    small: ptr mut u8 = try mem.allocate(memory, usize(100), usize(8))
+    large: ptr mut u8 = try mem.allocate(memory, usize(100000), usize(8))
+    mem.release(memory, large, 100000)
+    mem.release(memory, small, 100)
+end round
+
+public main: () -> (code: i32) =
+    memory := heap.new()
+    code = 1
+    before: usize = heap.in_use(memory)
+    block: ptr mut u8 = mem.allocate(memory, usize(1000), usize(8)) else (problem)
+        _ = problem
+        return
+    end
+    held: usize = heap.in_use(memory)
+    return when held < before + 1000
+    code = 2
+    mem.release(memory, block, 1000)
+    return when heap.in_use(memory) <> before
+    code = 3
+    for times in usize(0)..<100 do
+        _ = times
+        round(memory) else (problem)
+            _ = problem
+            return
+        end
+    end for
+    return when heap.in_use(memory) <> before
+    code = 4
+    peak: usize = heap.peak_in_use(memory)
+    return when peak < before + 100100
+    code = 5
+    return when heap.peak_resident(memory) < peak
+    code = 42
+end main

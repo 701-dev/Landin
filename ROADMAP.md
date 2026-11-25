@@ -3249,7 +3249,7 @@ documents that name a step saying the new one.
 
 ### R22.26 — What refine-build wanted from the library
 
-Status: active
+Status: complete
 Depends on: none
 
 The hosted and allocator calls that writing refine-build, the contributed
@@ -3265,6 +3265,34 @@ nothing back and says nothing, and `core/README.md` naming `core/zone`
 Exit evidence: each call with a runtime fixture on every hosted target and
 its fake where the concept has one, `docs/library.md` saying where a
 reader looks, and refine-build's workaround for each removed or named.
+
+Done: a child's working directory is the spawn's (D2534): `io.spawn_in`
+names one, and `programs`' `spawn` entry, `posix.spawn_in` and
+`system.start` take it, a relative program found from the child's
+directory on every system, `chdir` in Linux's cloned child,
+`posix_spawn_file_actions_addchdir_np` on Darwin and FreeBSD, and on
+Windows `CreateProcessW`'s directory with a relative program joined to
+it. `io.status` says `executable` and `io.find_program` finds a name on a
+`PATH` value as a shell does, passing empty entries over (D2535);
+`io.program_name` lends `argv[0]` on every hosted system, Windows' parsed
+command line among them, and `io.memory_named` names the memory world
+(D2536). `mem.allocate_copy` keeps lent bytes as a `[]mut u8` (D2532).
+`heap.in_use`, `heap.peak_in_use` and `heap.peak_resident`, the last
+`getrusage` or `K32GetProcessMemoryInfo` (D2533). The region's type,
+`vec.release`, `core/README.md` and `docs/library.md` say that a free
+into a region gives nothing back and that a nested lifetime takes a zone
+(D2531). Pinned by `runtime/run-itself-in-directory` and
+`runtime/heap-in-use` on every hosted target and
+`runtime/programs-by-name-memory` and `runtime/mem-allocate-copy` on
+every target, the scripted programs, the volume and the memory world
+their fakes. refine-build's workarounds, each named here and left to its
+own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
+`files/files.ldn` is `io.find_program`; the name written into its
+`--describe` is `io.program_name`; `strings.keep` is
+`mem.allocate_copy`; the heap handed beside a region is a zone over the
+region's parent; and `time -f %M` is `heap.in_use` and
+`heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
+SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 
