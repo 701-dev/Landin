@@ -3188,9 +3188,10 @@ library in `measure.py count` and the corpora; `SR-1827`'s and
 `SR-1828`'s `timing.py`, which takes one run where the gate takes three
 and needs a boot check nothing names; `SR-1829`'s `add_fixture.py` and
 "Adding a module", which name the corpus's formatting case and not the
-library's; and `SR-1738`'s library page reader, which refuses an extern
-whose name stands on the next line, one line at a time. Placed here so
-that no phase gate waits for it; it depends on no other item.
+library's; `SR-1738`'s library page reader, which refuses an extern
+whose name stands on the next line, one line at a time; and `SR-1849`'s
+promotion token, for which work that is no item cannot wait in line.
+Placed here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
