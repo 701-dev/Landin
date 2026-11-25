@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/math's asin and acos are within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0170, 0290
