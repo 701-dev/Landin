@@ -256,7 +256,12 @@ note, which no loader reads, and `platform/linux`'s entry refuses it instead,
 before `main`, with status 127 and one line on standard error (D284). Linux
 arm64 and RV64 executables carry no note: a static build is held to its
 level by the entry, through AT_HWCAP and `riscv_hwprobe` (XTheadBa
-excepted), and a libc build is not held to it.
+excepted), and a libc build is not held to it. A Windows image carries no
+level mark (D2189), and `platform/windows`' entry holds it to its level the
+same way before it reads the command line: on x86-64 through
+`platform/x86_64`, the `cpuid` reading Linux's entry uses too, and on arm64
+through `IsProcessorFeaturePresent`, which reports LSE and CRC32 and nothing
+for RDM (D2475 to D2477).
 Darwin's lowest processor, Apple's M1, has more than `armv8-a`; the default
 assumes less than any Mac has, which is sound, and a build for Apple silicon
 may select `armv8.1-a`. Each test lane runs the levels a runtime fixture's
@@ -423,6 +428,17 @@ into the PDB; the image names the PDB by its file name alone, so a debugger
 finds it beside the image wherever the two are copied (D2289). The source
 files are not copied: a program compiled on Linux or in WSL records their
 POSIX paths.
+
+Two such builds of one program from one directory are the same bytes,
+image and PDB (D2486). LLD names each object in the PDB by its path, and
+each relative path against the directory the link ran in, which is the
+publication's private working directory, so the link assembles to the
+assembly's own name with `.o` there (`-save-temps=cwd`) and names the
+directory refine ran in, DWARF's `comp_dir`, in its place
+(`/pdbsourcepath:`). Microsoft's link does the same under `lld-link`;
+`link.exe` has no such option and is not claimed reproducible.
+`-o program` without `.exe` writes `program`, as asked, although
+llvm-mingw's driver adds the suffix itself (D2485).
 
 The debugger is LLDB as [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases)
 ships it for Windows, LLVM's own and free (D2292): unpack its
@@ -672,6 +688,7 @@ and in what order they run.
 | `--debug=full`, `--debug=lines` assembly | equivalent closures with the compilation directory and source spelling fixed | DWARF `comp_dir` and `.file`, a library file's under `/landin-library/` (D422), and the build identity hashed over them |
 | Cortex-M device fixture ELF, object, assembly, linker script and linker map | paired builds with fixed source-path spelling in [`devices.py`](../environments/cortex-m/devices.py) | — |
 | hosted linked executable without `--debug` | equivalent closures with the output file name and the host's toolchain fixed | a file symbol named `landin` on an ELF target (D810) |
+| Windows linked executable and PDB with `--debug=full` | equivalent closures with the compilation directory, the output name, the source spelling and the host's toolchain fixed, under llvm-mingw's link or `lld-link` | the sources' paths, and the compilation directory as the link's (D2486) |
 
 The last row was measured before it was claimed. On the pinned Linux
 toolchain two links of one unchanged assembly differed in six bytes, in the

@@ -34109,6 +34109,46 @@ installed with the SDK, and an assembler of another syntax.
 driver's name and the link line, and every Windows executable the gate's
 `windows-emit` job links.
 
+### D2485 — A Windows image named without `.exe` keeps the name asked for
+
+**From** D2189 and D907.
+
+**The discrepancy:** llvm-mingw's driver, as GCC's does since GCC 8, adds
+`.exe` to an output named without an extension, so
+`refine compile --target=windows-x86-64 FILE --emit=exe -o out` linked
+`out.exe` beside the staged `out` the publication had prepared. refine
+then refused with L0501, "reported success but produced no executable at
+out", which did not say to add `.exe`, and the publication's cleanup failed
+on the stage the unexplained file kept, with L0005, leaving its private
+directory in the output's.
+
+**Chosen:** the image is written under the name asked for. A MinGW link of
+a name whose last component holds no `.` is given the staged name with
+`.exe` after it, which the driver leaves as it is, and refine moves the
+file the link wrote to the staged name before it reads how the link ended,
+so a failed link's partial image goes with the stage and no private
+directory is left. The move is the publication's, by the arena's
+descriptor, never replacing an entry, as every other write in a stage is;
+`Landin.Platform`'s `Move_File` takes it for a staged path. Microsoft's
+link, whose Clang hands the linker the name unchanged (D2327), and a name
+with any extension, which the driver keeps, link under the staged name
+itself.
+
+**The alternatives:** refusing a Windows executable named without `.exe`
+before compiling, which gives a reader a rule a POSIX host does not have
+for a name the toolchain can write; publishing `out.exe` as well, an
+output nobody asked for that may replace a file of that name; overriding
+the driver's `-o` with the linker's own, which leaves the driver believing
+it wrote another file; and a stage leaf named apart from its destination,
+a change to every record the publication journals.
+
+**Pinned by** `driver/a Windows image keeps the name asked for`, on both
+Windows targets and both links, `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink` cases `test_an_image_without_exe_keeps_its_name` and
+`test_a_failed_link_leaves_nothing`, which link with llvm-mingw's drivers
+where they are on PATH, and the publication native control
+`staged_move`.
+
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
 **Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
@@ -34544,6 +34584,161 @@ stacks keep the limit in that cell.
 **The alternatives:** the PDB's full path, which names the build's staging directory and every host's own; and DWARF in the image, which the alternatives of D2287 decline.
 
 **Pinned by** `toolchain/a Windows link has no C runtime`, and the gate's `windows-debugger` job, whose images it runs on another host than the one they were linked on.
+
+### D2486 — Two full-debug Windows links of one program are the same bytes
+
+**From** D2289 and D2327.
+
+**The discrepancy:** two `--debug=full` builds of one Windows program into
+one directory gave different PDBs and, through the PDB's GUID, which the
+image carries, different images. LLD names each object in the PDB by its
+path, and the object was the driver's temporary file, `/tmp/NAME-XXXXXX.o`,
+whose name is random; and it names the directory the link ran in, and
+each relative path against it, the PDB's and a source named relatively
+among them, and that directory is the publication's private working
+directory, whose name is random too. `/Brepro` reaches neither.
+
+**Chosen:** a full-debug Windows link passes `-save-temps=cwd`, so the
+driver assembles to the assembly's own name with `.o` in the directory the
+link runs in, and `/pdbsourcepath:` with the compilation directory, the
+directory refine ran in, which DWARF records as `comp_dir`, so LLD names
+that directory in the private one's place and every relative path against
+it. A source named relatively is then named where it is, where before it
+was named in a directory that was gone. The object's name and the PDB's
+name in the linker's own record are the link's relative names against it,
+which name no file: the object is gone with the working directory, and the
+image names the PDB by its file name alone (D2289). The link runs in the
+publication's private working directory, which `Landin.Platform`'s `Run`
+now states and which the publication removes with the object in it. So two
+links are the same bytes under the relation DWARF's debug assembly is held
+to: one compilation directory and one source spelling. The same holds under
+Microsoft's link with `lld-link`, where the option is `/PDBSOURCEPATH:`;
+`link.exe` has no such option, is given none, and is not claimed
+reproducible, having no host here to compare.
+
+**The alternatives:** assembling to an object refine stages, as Darwin's
+debug object is (D907), which publishes a file a Windows build does not
+need; a fixed directory name in the private one's place, which would make
+links in different directories the same bytes but names a relative source
+where it is not; and a tool runner that starts a link in a directory the
+driver names, a second working directory for one link to need.
+
+**Pinned by** `toolchain/a Windows link has no C runtime` and
+`toolchain/a Microsoft driver selects Microsoft's link`, which hold the
+options, and `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink.test_two_debug_builds_are_the_same_bytes`, which links
+twice with llvm-mingw's drivers where they are on PATH and compares the
+images and PDBs.
+
+### D2471 — An imported function's address on COFF is its `__imp_` pointer
+
+**From** D2190 and D2348.
+
+**The discrepancy:** x86-64 took an imported function's address as ELF's
+PIE does, `movq NAME@GOTPCREL(%rip)`. COFF has no GOT, and Clang's COFF
+assembler takes the suffix as a plain RIP-relative operand, so the load
+read the function's first eight bytes of code as its address, and every
+C peer handed a Landin pointer to a C function crashed there.
+arm64's COFF address already took `__imp_NAME`, but put the prefix
+outside a name that needs quotes, which the assembler refuses.
+
+**Chosen:** on COFF an imported function's address is loaded from
+`__imp_NAME`, the pointer a DLL import fills and the MinGW link makes for
+a definition it links in, on both architectures, with the prefix inside a
+quoted name's quotes. A routine the program defines stays `leaq NAME`.
+
+**The alternatives:** `leaq NAME`, which names a DLL function's import
+thunk rather than the function, so two addresses of one function could
+differ; and a GOT the program builds, which COFF's linkers do not.
+
+**Pinned by** the ABI fixtures `c-function-to-address`,
+`r440-native-callbacks` and `r440-native-dollar-link` in the Windows ABI
+kind on both architectures.
+
+### D2472 — A distinct type crosses Win64's C boundary as its base
+
+**From** D2190 and D213, whose transparent representation this keeps at the C boundary.
+
+**The discrepancy:** a `distinct` type is lowered as a one-field C-layout
+record, which SysV classifies by its field and so as the base. Win64
+passes a record of 1, 2, 4 or 8 bytes as one integer, floats included,
+so a `distinct f32` went in RCX where C passes the float in XMM0, and a
+C peer read garbage.
+
+**Chosen:** the IR marks a distinct nominal (`Mark_Distinct`), and the
+Win64 classifier gives a distinct record of one scalar field its base's
+register class, and unwraps a distinct record of one record to that
+record. The value stays the aggregate the emitter holds it as.
+
+**The alternatives:** lowering a distinct scalar as its scalar at the C
+boundary alone, which gives one type two representations in the IR; and
+classifying every one-field record as its field, which Win64 C does not
+do for a `struct { float x; }`.
+
+**Pinned by** `backend plans/Windows x64 positions` and the ABI fixture
+`r490-distinct-c-roundtrip` in the Windows ABI kind.
+
+### D2473 — Windows ABI fixtures link their C peers where llvm-mingw's Clang runs
+
+**From** D2189 and D2348.
+
+**The discrepancy:** a C peer is a C program, its `main` the C runtime's,
+and the flake's MinGW drivers have the import libraries but neither C
+headers nor a C runtime, so no lane compiled a peer for a Windows image
+and the Windows C plan had met no C code.
+
+**Chosen:** `compiler/tests/windows/check.py --kind=abi` emits each ABI
+fixture's assembly with refine on Linux and copies its peer's sources;
+execution compiles each peer with `--cc`, the pinned llvm-mingw release's
+Clang for Windows, with every lane's C flags and the fixture's `c-args`,
+and links it with the assembly, llvm-mingw's C runtime and the import
+libraries `platform/windows` names, dropping what nothing reaches, then
+holds the program to its fixture. A peer's text-mode output's CR LF reads
+as LF. A complete selection holds FreeBSD's required peers, variadic
+floats past the register slots and, on x86-64, every register Win64 makes
+a callee save, both halves of XMM6 to XMM15 among them, across a callback
+C enters. A peer's own assembly is SysV's or ELF's, or it includes a
+POSIX header, names no Windows target.
+
+**The alternatives:** a MinGW sysroot with headers and a C runtime in the
+flake for Linux, a second copy of what the Windows release carries, with
+compiler-rt's builtins for MinGW besides; MSYS2 on the runner, which no
+other lane needs; and the Microsoft C runtime, which `--link=microsoft`'s
+programs do not link.
+
+**Pinned by** the gate's `windows-runtime` and `windows-arm64-runtime`
+jobs and the fixtures `windows-variadic-floats` and
+`windows-c-entry-saves`.
+
+### D2474 — The Windows lane keeps Windows Error Reporting away with a job object
+
+**From** D2192.
+
+**The discrepancy:** the lane set the error mode its programs inherit and
+said that kept WER's dialog and wait away. On a Windows 11 host with WER
+on, run over SSH, 14 of 3,682 `windows-runtime` and 32 of 3,682
+`windows-microsoft` outcomes, every one a trap, did not finish within
+their 60 seconds: with several traps at once most still started a
+`WerFault` that ran for seconds. Measured with 24 trapping images twelve
+at a time, the error mode alone let 17 and 18 reach WER, the per-user
+`Disabled` value 6 and 14, and a job object none, twice.
+
+**Chosen:** besides the error mode, the lane's process joins a job object
+with `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, which every program it
+starts joins with it: an exception that ends a program ends it with the
+exception's code, as before, and WER is not asked. The whole corpus with
+WER on then passed 3,690 of 3,694 outcomes; the four others, one
+fixture's, timed out under a host load near 100 and passed alone, twice
+through the lane and 32 at once.
+
+**The alternatives:** the per-user `Disabled` value, which keeps only
+some reports away and is a setting the lane would leave changed; a README
+naming WER as a requirement and a lane that refuses a host where it is
+on, which leaves every contributor's machine to change; and
+`WerAddExcludedApplication` for each image, which needs every image's
+path before it runs and changes the user's settings.
+
+**Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
 ### D2290 — CodeView describes no inlined copy yet
 
@@ -35238,6 +35433,92 @@ other system is refused on Windows.
 
 **Pinned by** `positive/c-packed-records`, which the determinism manifest
 emits for windows-x86-64.
+
+### D2475 — A Windows image holds the processor to its level in the entry
+
+**From** D255, D284 and D2189.
+
+**The discrepancy:** D2189's image carries no level mark and Windows'
+loader checks none, so a Windows program built above its family's baseline
+ran `main` on any processor and ended with `STATUS_ILLEGAL_INSTRUCTION` at
+the first instruction the processor lacked, as a failed check ends, with no
+word saying why; D284 had given a static Linux executable the check.
+
+**Chosen:** `platform/windows`'s `_landin_start` calls `check_level` before
+it reads the command line, so nothing the entry runs before the check can
+need the level beyond what Linux's entry needs. `level.ldn` gives
+`level`, `read_cpu_words` and `missing_feature` on both architectures, as
+`platform/linux` does, selects each level's check with `fixed if` on the
+`compiler.feature` facts, and leaves the baseline's empty. A processor
+without a feature writes `landin: this executable needs LEVEL, and the
+processor lacks FEATURE` to the standard error handle, when the process
+has one, and ends the process with `ExitProcess(127)`, the status D284
+chose, so one program built for Linux and Windows ends alike on one
+machine and a script reads both refusals as one.
+
+**The alternatives:** no check, which leaves the refusal indistinguishable
+from a failed check; `STATUS_ILLEGAL_INSTRUCTION` or another NTSTATUS,
+which reads as a crash and is exactly what the unchecked image ended with;
+and a message box, which a console program and a test lane cannot read.
+
+**Pinned by** `runtime/windows-level-check` at the default level,
+`x86-64-v3` and `armv8.1-a` in the Windows runtime lanes; under Wine, an
+`x86-64-v4` build of it on a processor without AVX-512 wrote the line and
+ended with 127.
+
+### D2476 — x86-64's processor reading is platform/x86_64, which every system's entry shares
+
+**From** D284, D687 and D2475.
+
+**The discrepancy:** D284's `cpuid` and `xgetbv` reading and its copy of
+D255's per-level feature tables were `platform/linux`'s, and Windows'
+entry needs the same reading: the processor answers it, not the system.
+
+**Chosen:** the reading and the tables are the module `platform/x86_64`,
+which is available on every target and declares everything on `x86_64`
+alone, as `platform/riscv` does on rv32, so `platform/linux` and
+`platform/windows` import it on every system they serve. Each keeps its
+own `cpu_words`, `read_cpu_words`, `level` and `missing_feature`, the type
+an alias of the module's and the routines calls of its, so a program
+names the check through its system's interface on every architecture.
+How a refusal is told and the process ended stay each system's.
+
+**The alternatives:** a copy in `platform/windows`, two tables of D255 to
+keep in step; `platform/windows` importing `platform/linux` for it, which
+would make Windows' interface depend on Linux's; and the tables in the
+compiler, which D284 already declined.
+
+**Pinned by** `runtime/linux-level-check`, unchanged, and
+`runtime/windows-level-check` on x86-64, and the driver case `source
+namespaces enforce target availability`, which imports the module on
+windows-arm64 and linux-rv64.
+
+### D2477 — Windows arm64 asks IsProcessorFeaturePresent, which reports no RDM
+
+**From** D255, D284 and D2475.
+
+**The discrepancy:** D284 reads arm64's features from AT_HWCAP, which
+Windows does not have, and Windows does not let a program read the
+processor's ID registers.
+
+**Chosen:** `read_cpu_words` asks kernel32's `IsProcessorFeaturePresent`
+for `PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE` (34) and
+`PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE` (31) and keeps each answer as
+that bit of `present`, and `armv8.1-a`'s check requires LSE, then CRC32.
+No `PF_*` number, through the Windows SDK of llvm-mingw 20261117, reports
+RDM, armv8.1-a's third feature, so it is not checked, as no Linux
+interface reports XTheadBa on RV64; refine's code selects no RDM
+instruction, so only an `assembler.block` using one can still end with
+`STATUS_ILLEGAL_INSTRUCTION`.
+
+**The alternatives:** the `CP 4030` value under the registry's
+`HARDWARE\DESCRIPTION\System\CentralProcessor\0`, which holds
+ID_AA64ISAR0_EL1 but which Windows does not document, and which would link
+advapi32 into every armv8.1-a image; and refusing RDM's absence as
+unconfirmed, which would refuse every armv8.1-a image on every processor.
+
+**Pinned by** `runtime/windows-level-check` at `armv8.1-a` on the
+windows-arm64 runtime lane, whose injected words lack LSE, then CRC32.
 
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 

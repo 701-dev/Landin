@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -60,7 +61,8 @@ def main():
     # Preserve original source identities and odd filename bytes. The compilation
     # reads the repository snapshots, whose exact bytes are retained separately.
     scalar_source = HERE / 'darwin-scalars.ldn'
-    all_sources = (*linux.SOURCES, scalar_source, linux.REGISTER_SOURCE)
+    compiled = linux.stage_sources(output / 'staged')
+    all_sources = (*compiled, scalar_source, linux.REGISTER_SOURCE)
     for source in all_sources:
         shutil.copyfile(source, sources / source.name)
     results = []
@@ -110,7 +112,7 @@ def main():
         if args.profile and args.profile != key:
             continue
         executable = output / key
-        compile_args = [args.refine.resolve(), 'compile', *[str(s.relative_to(ROOT)) for s in linux.SOURCES],
+        compile_args = [args.refine.resolve(), 'compile', *[os.path.relpath(s, ROOT) for s in compiled],
                         '--target=darwin-arm64', '--debug=full', '--emit=exe', '-o', executable,
                         '--optimize=' + opt, '--specialize=' + spec,
                         '--build-report=' + str(executable) + '.report.json']
@@ -124,7 +126,8 @@ def main():
         table_path = Path(str(executable) + '.sources.json')
         table = json.loads(table_path.read_text())
         linux.check_source_map(table_path, table['build_id'],
-                               tuple(str(s.relative_to(ROOT)) for s in linux.SOURCES), assembly)
+                               tuple(os.path.relpath(s, ROOT) for s in compiled), assembly,
+                               compiled)
         identity = macho_identity.match(table, executable, dsym)
         verified = run(key + '-verify', [tools['dwarfdump']['path'], '--verify', dsym])
         assert 'No errors.' in verified and 'error:' not in verified
@@ -169,7 +172,7 @@ def main():
         assert macho_identity.match(table, stripped, dsym) == identity
         assert b'__debug_info' not in stripped.read_bytes()
         #  D361: names only in trap reports, and only logical ones.
-        deployed = linux.deployed_source_names(stripped.read_bytes(), linux.SOURCES)
+        deployed = linux.deployed_source_names(stripped.read_bytes(), compiled)
         assert not deployed, deployed
         #  D1292: `refine site` holds the stripped executable to the table
         #  by `__TEXT,__landin_id` and its dSYM to it by UUID.
@@ -177,7 +180,7 @@ def main():
         lookup = [*site, '--map=' + str(table_path), '--dsym=' + str(dsym),
                   stripped, '2', str(linux.CALLER_LINE), str(linux.CALLER_COLUMN)]
         resolved = run(key + '-lookup', lookup)
-        assert resolved == str(linux.ODD_SOURCE.relative_to(ROOT)) + f':{linux.CALLER_LINE}:{linux.CALLER_COLUMN}\n'
+        assert resolved == os.path.relpath(compiled[1], ROOT) + f':{linux.CALLER_LINE}:{linux.CALLER_COLUMN}\n'
         wrong = dict(table, build_id='0' * 64)
         mismatch = output / (key + '-wrong.sources.json')
         mismatch.write_text(json.dumps(wrong))
@@ -233,9 +236,9 @@ def main():
     # none must produce identical compiler assembly and caller-only maps.
     identity_sources = output / "identity-sources"
     identity_sources.mkdir()
-    for source in linux.SOURCES:
+    for source in compiled:
         shutil.copyfile(source, identity_sources / source.name)
-    copied = [identity_sources / s.name for s in linux.SOURCES]
+    copied = [identity_sources / s.name for s in compiled]
     plain = output / 'plain'
     plain_args = [args.refine.resolve(), 'compile', *copied, '--target=darwin-arm64',
                   '--emit=exe', '-o', plain]

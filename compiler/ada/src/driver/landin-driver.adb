@@ -4243,6 +4243,12 @@ package body Landin.Driver is
                   then Absolute (Unbounded.To_String (Linker))
                   else Unbounded.To_String (Linker));
                Staged_Product : constant String := Private_Path (Product_Path);
+               --  D2485: where the toolchain driver writes the image, which
+               --  is the staged name with `.exe` after it when llvm-mingw's
+               --  driver adds one.
+               Linked_Product : constant String :=
+                 Landin.Backend.Toolchain.Linked_Image
+                   (Staged_Product, Facts, Unbounded.To_String (Toolchain));
                Prior_Identity : constant Landin.Platform.File_Identity :=
                  Host.Identity_Of (Product_Path);
                Ran : Landin.Platform.Tool_Result;
@@ -4431,7 +4437,7 @@ package body Landin.Driver is
                         end;
                      end if;
                   end if;
-                  Tools.Prepare_Output (Host, Staged_Product);
+                  Tools.Prepare_Output (Host, Linked_Product);
                   Tools.Run
                     (Program   => Driver,
                      Arguments =>
@@ -4439,7 +4445,7 @@ package body Landin.Driver is
                          (Assembly => (if Separate_Debug_Object
                                        then Staged_Product & ".o"
                                        else Input_Assembly),
-                          Output   => Staged_Product,
+                          Output   => Linked_Product,
                           Linker   => Selected_Linker,
                           Build_Id => Map_Id,
                           Full_Debug => Debug_Enabled,
@@ -4452,7 +4458,8 @@ package body Landin.Driver is
                           Float => Landin.IR.Firmware_Profile
                             (Landin.Stages.Code (Context).all).Float,
                           Assembly_Is_Object => Separate_Debug_Object,
-                          Driver => Unbounded.To_String (Toolchain)),
+                          Driver => Unbounded.To_String (Toolchain),
+                          Compilation_Directory => Host.Working_Directory),
                      Result    => Ran,
                      Capture   => Landin.Platform.Merged);
                exception
@@ -4478,6 +4485,29 @@ package body Landin.Driver is
                      end;
                      return;
                end;
+
+               --  D2485: the image goes to the name its publication was
+               --  prepared for, however the link ended, so that a failed
+               --  link's partial image is discarded with the stage rather
+               --  than left in it under a name no record explains.
+               if Linked_Product /= Staged_Product
+                 and then Host.Exists (Linked_Product)
+               then
+                  declare
+                     use type Landin.Platform.Move_Status;
+                     Status : Landin.Platform.Move_Status;
+                  begin
+                     Host.Move_File (Linked_Product, Staged_Product, Status);
+                     if Status /= Landin.Platform.Moved then
+                        Note_Failure
+                          (Code_Toolchain_Failed,
+                           Driver & " wrote the image as " & Target_Path
+                           & ".exe, which could not be given the name "
+                           & Target_Path & "; name the output with .exe");
+                        return;
+                     end if;
+                  end;
+               end if;
 
                --  How the run ended is asked before what it returned,
                --  because a tool a signal killed has no status and the
@@ -5536,7 +5566,8 @@ package body Landin.Driver is
                            Directories => Search_Directories,
                            Float => Landin.IR.Firmware_Profile
                              (Landin.Stages.Code (Context).all).Float,
-                           Driver => Unbounded.To_String (Toolchain)));
+                           Driver => Unbounded.To_String (Toolchain),
+                           Compilation_Directory => Host.Working_Directory));
                         if not Keep_Assembly and then not On_Firmware
                           and then not Emit_Map
                         then
@@ -5790,7 +5821,8 @@ package body Landin.Driver is
                      Static => Static_Link,
                      Directories => Search_Directories,
                      Assembly_Is_Object => Separate_Debug_Object,
-                     Driver => Unbounded.To_String (Toolchain)));
+                     Driver => Unbounded.To_String (Toolchain),
+                     Compilation_Directory => Host.Working_Directory));
                   if Separate_Debug_Object then
                      Plan_Tool
                        (Landin.Backend.Toolchain.Debug_Bundle_Arguments

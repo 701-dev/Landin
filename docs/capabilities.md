@@ -44,7 +44,10 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   kernel32, the system libraries `platform/windows`'s files name and no C
   runtime: `platform/windows`'s `_landin_start` runs `main` and ends the
   process with its result (D2188, D2189). C calls take
-  the Windows x64 convention, LLP64 (D2190), routines carry unwind tables
+  the Windows x64 convention, LLP64 (D2190), held against independently
+  compiled C peers, which the gate's Windows runners compile and link with
+  llvm-mingw's Clang and C runtime on both architectures (D2471-D2473),
+  routines carry unwind tables
   for their frame records (D2191), and a failed check writes its line to
   standard error and ends with `STATUS_ILLEGAL_INSTRUCTION` (D2192). A
   program has the hosted providers, written over `platform/windows`:
@@ -56,7 +59,9 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
   from the fixtures that need POSIX itself. With `--debug=full` its
   objects carry CodeView and LLD links a PDB beside the image, which LLVM's
-  LLDB for Windows reads (D2287-D2292). Microsoft's toolchain is a
+  LLDB for Windows reads (D2287-D2292); two such builds of one program in
+  one directory give the same image and PDB (D2486). An image named
+  without `.exe` keeps the name asked for (D2485). Microsoft's toolchain is a
   second, optional one on a Windows host, selected with
   `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name, or
   `aarch64-pc-windows-msvc-clang` for Windows arm64: it assembles the same
@@ -269,6 +274,11 @@ what each selects.
   fact reads the same way (D437).
 - The assembler holds an assembly block to the level, and a level runs only
   on a processor that confirms it; an unconfirmed level fails as unverified.
+- A static Linux executable and every Windows image built above the
+  baseline check the processor before `main`: one without a feature of the
+  level writes one line naming the level and the feature to standard error
+  and ends with status 127 (D284, D2475). Linux RV64 does not check
+  XTheadBa and Windows arm64 not RDM, which neither system reports.
 
 ## The command line
 

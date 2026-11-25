@@ -52,9 +52,10 @@ checksum in a named word that the emulator and the probe read after the run.
 ## Size
 
 Size is the byte count of each allocated section of the linked image, read
-from the image by `scripts/measure.py`'s own ELF and Mach-O readers. Debug
+from the image by `scripts/measure.py`'s own ELF, Mach-O and PE readers. Debug
 sections, symbol and string tables, `.comment` and notes are not allocated
-and not counted. For a firmware image the build report's `flash_used`, the
+and not counted; a PE section counts its size in memory, and the DWARF
+sections a MinGW link keeps under long names are left out. For a firmware image the build report's `flash_used`, the
 load segments' extent, is kept beside the sections. The report's routine
 counters count emission sites, not bytes, and are not compared.
 
@@ -240,8 +241,8 @@ python3 scripts/measure.py count --target linux-arm64 --level armv8-a \
 | linux-arm64 | armv8-a, armv8.1-a | `wall` | `ubuntu-24.04-arm` |
 | darwin-arm64 | armv8-a, armv8.1-a | `wall` | `macos-26` |
 | freebsd-arm64 | armv8-a, armv8.1-a | `size-only`: the guest is emulated | — |
-| windows-x86-64 | every level | `limit`: no lane measures a Windows image yet | — |
-| windows-arm64 | every level | `limit`, as x86-64's | — |
+| windows-x86-64 | every level | `size-only`: sections measured from the llvm-mingw link on Linux; no lane times an image | — |
+| windows-arm64 | every level | `size-only`, as x86-64's | — |
 | linux-rv64 | every level | `instructions`, QEMU user mode | `ubuntu-24.04` |
 | cortex-m0 | armv6-m | `instructions` on the micro:bit machine; `cycles` on the RP2040 | `ubuntu-24.04`; the rig |
 | cortex-m0 | armv7-m | `instructions` on MPS2 AN385 | `ubuntu-24.04` |

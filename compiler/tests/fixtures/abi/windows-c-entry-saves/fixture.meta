@@ -1,0 +1,9 @@
+class: abi
+profiles: specialization
+summary: a Landin routine C calls through a pointer keeps every register Win64 makes the callee save, rbx rbp rdi rsi r12 to r15 and both halves of xmm6 to xmm15, across a body that wants them all and calls C again
+program: program.ldn
+c-sources: peer.c
+c-args: -O2
+status: 42
+constructs: 1570, 1580, 1600, 1610
+targets: windows-x86-64

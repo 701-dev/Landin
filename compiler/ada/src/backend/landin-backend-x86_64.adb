@@ -7346,11 +7346,32 @@ package body Landin.Backend.X86_64 is
                   begin
                      --  A PIE cannot use a PC32 address relocation to an
                      --  imported definition. The GOT supplies its address.
-                     Emit
-                       ((if Imported then "movq " else "leaq ")
-                        & Symbol (Callee)
-                        & (if Imported then "@GOTPCREL" else "")
-                        & "(%rip), %rax");
+                     --  COFF has no GOT, and Clang assembles `@GOTPCREL`
+                     --  there as a plain load from the function, which
+                     --  read its first instructions as the address
+                     --  (D2471): the import's address is its `__imp_`
+                     --  pointer, which a DLL's import fills and the
+                     --  MinGW link makes for a definition it links in,
+                     --  as arm64's COFF address takes it.
+                     if Imported and then COFF then
+                        --  A quoted name keeps the prefix inside its quotes.
+                        declare
+                           Name : constant String := Symbol (Callee);
+                        begin
+                           Emit ("movq "
+                                 & (if Name (Name'First) = '"'
+                                    then """__imp_"
+                                      & Name (Name'First + 1 .. Name'Last)
+                                    else "__imp_" & Name)
+                                 & "(%rip), %rax");
+                        end;
+                     else
+                        Emit
+                          ((if Imported then "movq " else "leaq ")
+                           & Symbol (Callee)
+                           & (if Imported then "@GOTPCREL" else "")
+                           & "(%rip), %rax");
+                     end if;
                   end;
                   Emit ("movq %rax, " & Value_Operand (Value));
 
