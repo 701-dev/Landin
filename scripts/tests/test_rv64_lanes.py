@@ -19,7 +19,7 @@ LANE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(LANE)
 
 # Native GDB's successful observations from the physical RISE session in
-# https://github.com/JanHaan/Landin/actions/runs/37670349340 .
+# https://github.com/701-dev/Landin/actions/runs/37670349340 .
 # The shared DWARF does not make finish print a C return-value message.
 GDB_TRACE = '''Breakpoint 1, inner (argument=40) at debug.ldn:3
 #0  inner (argument=40) at debug.ldn:3
