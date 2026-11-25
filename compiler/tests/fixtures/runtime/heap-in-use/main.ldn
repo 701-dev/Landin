@@ -3,9 +3,15 @@
 --  repeated a hundred times that frees what it takes leaves them where
 --  they were; the heap's peak keeps the most it held, a mapping of its
 --  own among it; and the process's peak resident size, which the system
---  counts, is at least that peak.
+--  counts in the pages a program touched, is at least the mebibyte this
+--  one fills.  FreeBSD reads its peak at the statistics clock, so a
+--  program as short as this may not be seen at its largest there, and the
+--  size is only read.
 import core/mem
 import hosted/heap
+
+--  Whether the system reads the peak at a clock rather than as it grows.
+sampled: bool = compiler.os == freebsd
 
 --  Take and free a small block and a large one, as a round of work.
 round: (memory: heap.heap) -> none ! mem.out_of_memory =
@@ -41,6 +47,15 @@ public main: () -> (code: i32) =
     peak: usize = heap.peak_in_use(memory)
     return when peak < before + 100100
     code = 5
-    return when heap.peak_resident(memory) < peak
+    whole: usize = 1048576
+    touched: ptr mut u8 = mem.allocate(memory, whole, usize(8)) else (problem)
+        _ = problem
+        return
+    end
+    filled: ptr mut [1048576]u8 = ptr(usize(touched))
+    mem.fill(filled.val[0..<whole], 1)
+    resident: usize = heap.peak_resident(memory)
+    return when resident < whole and not sampled
+    mem.release(memory, touched, whole)
     code = 42
 end main

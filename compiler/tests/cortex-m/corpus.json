@@ -2754,6 +2754,9 @@
     "runtime/file-system-firmware": {
       "mode": "execute"
     },
+    "runtime/find-program-volume": {
+      "mode": "execute"
+    },
     "runtime/firmware-fannkuch-redux": {
       "mode": "execute"
     },

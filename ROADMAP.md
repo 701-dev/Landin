@@ -3282,10 +3282,10 @@ command line among them, and `io.memory_named` names the memory world
 `vec.release`, `core/README.md` and `docs/library.md` say that a free
 into a region gives nothing back and that a nested lifetime takes a zone
 (D2531). Pinned by `runtime/run-itself-in-directory` and
-`runtime/heap-in-use` on every hosted target and
-`runtime/programs-by-name-memory` and `runtime/mem-allocate-copy` on
-every target, the scripted programs, the volume and the memory world
-their fakes. refine-build's workarounds, each named here and left to its
+`runtime/heap-in-use` and `runtime/find-program-volume` on every hosted
+target and `runtime/programs-by-name-memory` and
+`runtime/mem-allocate-copy` on every target, the scripted programs, the
+volume and the memory world their fakes. refine-build's workarounds, each named here and left to its
 own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
 `files/files.ldn` is `io.find_program`; the name written into its
 `--describe` is `io.program_name`; `strings.keep` is

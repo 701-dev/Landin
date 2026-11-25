@@ -327,21 +327,22 @@ runs: (provider: type is file_system, host: provider, path: []u8)
     yes = found.kind == regular and found.executable
 end runs
 
---- Find the program `name` as a shell finds a command, without starting
---- it, and put its path in `into`: the first entry of the search path
---- `search` holding an executable regular file of that name, joined to it
---- with the system's separator, which `spawn` then starts. `search` is a
---- `PATH` value, which `variable_named` reads, its entries divided by `:`
---- on POSIX and by `;` on Windows; an empty entry is passed over rather
---- than read as the current directory, so a program in it is never run by
---- accident. A `name` that holds a `/`, or on Windows a `\` or a drive,
---- names its own place and is not searched for: it is put in `into` when
---- it is executable. On Windows, which runs only programs whose names end
---- in `.exe` or `.com`, a name whose last part has no extension is looked
---- for with `.exe` after it, as CreateProcessW looks for it. It reports
---- `mem.not_found` when no entry holds the program, `name` is empty, or
---- the place it names is not executable, and `io_failed` when a path to
---- try does not fit in `into`. A file is executable as `status` says.
+--- Find the program `name` as a shell finds a command, without starting it,
+--- and put its path in `into` for `spawn` to start: the first entry of the
+--- search path `search` holding an executable regular file of that name,
+--- joined to it with the separator the entry writes its parts with, `/` unless
+--- it is a Windows entry written with `\`. `search` is a `PATH` value, which
+--- `variable_named` reads, its entries divided by `:` on POSIX and by `;` on
+--- Windows; an empty entry is passed over rather than read as the current
+--- directory, so a program in it is never run by accident. A `name` that holds
+--- a `/`, or on Windows a `\` or a drive, names its own place and is not
+--- searched for: it is put in `into` when it is executable. On Windows, which
+--- runs only programs whose names end in `.exe` or `.com`, a name whose last
+--- part has no extension is looked for with `.exe` after it, as CreateProcessW
+--- looks for it. It reports `mem.not_found` when no entry holds the program,
+--- `name` is empty, or the place it names is not executable, and `io_failed`
+--- when a path to try does not fit in `into`. A file is executable as `status`
+--- says.
 public find_program: (provider: type is file_system, host: provider,
                       name: text.os_string, search: text.os_string,
                       into: []mut u8)
@@ -359,7 +360,6 @@ public find_program: (provider: type is file_system, host: provider,
         return
     end if
     entries: []u8 = text.os_string_bytes(search)
-    divider: [1]u8 = [path_separator]
     mut start: usize = 0
     while start <= lenof entries do
         rest: []u8 = entries[start..<lenof entries]
@@ -369,6 +369,11 @@ public find_program: (provider: type is file_system, host: provider,
         if lenof entry > 0 then
             ends_divided: bool = entry[lenof entry - 1] == path_separator
                                  or entry[lenof entry - 1] == u8('/')
+            --  The separator the entry writes its own parts with: Windows'
+            --  `\` where it has one, and `/` otherwise, which Windows takes
+            --  too.
+            divider: [1]u8 = [if mem.find(entry, path_separator) < lenof entry
+                              then path_separator else u8('/') end if]
             between: []u8 = if ends_divided then "" else divider[0..<1] end if
             (length, fits) := put_parts(into, [entry, between, wanted, suffix])
             fail io_failed when not fits

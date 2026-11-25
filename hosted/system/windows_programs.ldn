@@ -449,19 +449,20 @@ fixed if compiler.os == windows then
     --  it; an inherited one the parent's own standard handle, duplicated.
     --  The child inherits those three handles and no other, and the code
     --  kept is the Win32 error.
+    --  A relative `path` is joined to `directory` with a `\`, so that it
+    --  is found from the child's directory, as on POSIX, where
+    --  CreateProcessW would find it from the parent's.
     --- Start the program at `path` in `directory`, or in this process's own
-    --- directory when that is empty, as `io.programs`' `spawn` says: a
-    --- relative `path` is joined to `directory` with a `\`, so that it is
-    --- found from the child's directory, as on POSIX. It is for a provider
-    --- built over this handle that supplies `io.programs`: `start` starts the
-    --- child and does not wait. The provider itself reads, writes and closes
-    --- the parent's ends of the child's pipes, files of this provider, and
-    --- waits for the child through whatever waiting it does (D479). It fails
-    --- `not_found` for a missing program, `no_access` for one the caller may
-    --- not run and `io_failed` for the rest, the system's code kept in the
-    --- handle's last-error cell. On any failure no child was started and
-    --- nothing `start` made is left open. `io.child`'s `handle` names the
-    --- child as `process_of` gives it.
+    --- directory when that is empty, as `io.programs`' `spawn` says. It is for
+    --- a provider built over this handle that supplies `io.programs`: `start`
+    --- starts the child and does not wait. The provider itself reads, writes
+    --- and closes the parent's ends of the child's pipes, files of this
+    --- provider, and waits for the child through whatever waiting it does
+    --- (D479). It fails `not_found` for a missing program, `no_access` for one
+    --- the caller may not run and `io_failed` for the rest, the system's code
+    --- kept in the handle's last-error cell. On any failure no child was
+    --- started and nothing `start` made is left open. `io.child`'s `handle`
+    --- names the child as `process_of` gives it.
     public start: (handle: host, directory: text.os_string,
                    path: text.os_string, arguments: []text.os_string,
                    environment: []text.os_variable, streams: io.child_streams)

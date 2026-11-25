@@ -42626,7 +42626,9 @@ directory never is. `io.find_program(host, name, search, into)`, over
 `file_system`, finds a name as a shell does and puts its path in the
 caller's buffer: the first entry of `search`, a `PATH` value the caller
 reads through `environment`, holding an executable regular file of that
-name, after following links. Entries divide at `:`, on Windows at `;`,
+name, after following links, joined to the entry with the separator the
+entry writes, `\` for a Windows entry that has one and `/` otherwise,
+which Windows takes too. Entries divide at `:`, on Windows at `;`,
 where a name whose last part has no extension is looked for with `.exe`
 after it as `CreateProcessW` looks. An empty entry is passed over rather
 than read as the current directory, so a program there never runs by
@@ -42642,8 +42644,9 @@ need two concepts and a fake of both; reading an empty entry as `.`, as
 POSIX's shells do, which runs a program from wherever the caller stands;
 and `access(X_OK)`, which asks about this process and is not a status.
 
-**Pinned by** `runtime/run-itself-in-directory` on every hosted target and
-`runtime/programs-by-name-memory` on every target.
+**Pinned by** `runtime/run-itself-in-directory` and
+`runtime/find-program-volume`, the search over the volume fake, on every
+hosted target.
 
 ### D2536 — A program reads the name it was run by
 
@@ -43573,6 +43576,10 @@ process's peak resident size in bytes as the system counts it: POSIX's
 `getrusage` maximum resident set, KiB on Linux and FreeBSD and bytes on
 Darwin, through the new `posix.peak_resident`, and Windows' peak working
 set through `K32GetProcessMemoryInfo`; zero when the system does not say.
+It counts the pages a program touched, so it may be less than the heap's
+peak, whose mapped pages need not all be touched, and FreeBSD reads it at
+its statistics clock, so a program shorter than a tick may not be seen at
+its largest.
 
 **The alternatives:** counting the bytes asked for, which the heap does
 not keep, since a free trusts its header and not the size passed; atomic

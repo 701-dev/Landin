@@ -1,0 +1,104 @@
+--  `io.find_program` over the memory volume, the fake of `file_system`:
+--  the volume's executable files are what it finds on a search path,
+--  passing over an empty entry, a directory, a file that is not
+--  executable and an entry that does not hold the name; a name holding a
+--  `/` is checked where it is, not searched for; and an empty name is
+--  not_found.  On Windows the entries divide at `;` and a name with no
+--  extension is looked for as `.exe`, so the volume holds `tool.exe`
+--  there; the entries are written with `/`, which joins them.
+import core/cmp
+import core/io
+import core/io/fake
+import core/mem
+import core/text
+
+fixed if compiler.os == windows then
+    program: []u8 = "tool.exe"
+    found_path: []u8 = "local/tool.exe"
+    bare_path: []u8 = "bin/tool.exe"
+    search_list: []u8 = ";;bin;tools;none;local/"
+    first_two: []u8 = "bin;tools"
+else
+    program: []u8 = "tool"
+    found_path: []u8 = "local/tool"
+    bare_path: []u8 = "bin/tool"
+    search_list: []u8 = "::bin:tools:none:local/"
+    first_two: []u8 = "bin:tools"
+end if
+
+--  Rooms for the volume's paths, its nodes and the paths found, kept out
+--  of the frames so that a firmware image's stack holds the volume's walk.
+mut paths: [6][32]u8 = zeroed
+mut nodes: [6]fake.volume_node =
+    [6 of (path: [], path_length: 0, contents: [], length: 0,
+           kind: io.regular, read_only: false, executable: false,
+           modified: (seconds: 0, nanoseconds: 0))]
+mut room: [64]u8 = zeroed
+
+--  The node at INDEX, a file or directory at DIRECTORY, followed by NAME
+--  when that is not empty.
+node: (index: usize, directory: []u8, name: []u8, kind: io.entry_kind,
+       executable: bool) -> (made: fake.volume_node) =
+    length: usize = if lenof name == 0 then lenof directory
+                    else lenof directory + 1 + lenof name end if
+    made = (path: paths[index][0..<32], path_length: length, contents: [],
+            length: 0, kind: kind, read_only: false, executable: executable,
+            modified: (seconds: 0, nanoseconds: 0))
+    mem.copy(paths[index][0..<lenof directory], directory) else none
+    if lenof name > 0 then
+        paths[index][lenof directory] = u8('/')
+        mem.copy(paths[index][lenof directory + 1..<length], name) else none
+    end if
+end node
+
+same: (left: []u8, right: []u8) -> (yes: bool) =
+    yes = cmp.compare(left, right) == cmp.equal
+end same
+
+--  What `find_program` finds for NAME on SEARCH, or "" when it is
+--  not_found.
+found: (host: fake.volume, name: []u8, search: []u8, into: []mut u8)
+       -> (path: []u8 from into) ! io.io_failed =
+    path = into[0..<0]
+    at: text.os_string = io.find_program(host, text.os_string_over(name),
+                                         text.os_string_over(search),
+                                         into) else (problem)
+        return when problem == mem.not_found
+        fail io.io_failed
+    end
+    path = text.os_string_bytes(at)
+end found
+
+exercise: () -> (code: i32) ! ... =
+    code = 1
+    nodes = [node(0, "bin", "", io.subdirectory, false),
+             node(1, "bin", program, io.regular, false),
+             node(2, "tools", "", io.subdirectory, false),
+             node(3, "tools", program, io.subdirectory, true),
+             node(4, "local", "", io.subdirectory, false),
+             node(5, "local", program, io.regular, true)]
+    mut volume_state: fake.volume_space = zeroed
+    volume := fake.volume_over(volume_state, nodes[0..<6], "/volume")
+    return when not same(try found(volume, "tool", search_list, room),
+                         found_path)
+    code = 2
+    return when not same(try found(volume, "tool", first_two, room), "")
+    code = 3
+    return when not same(try found(volume, found_path, "", room), found_path)
+    return when not same(try found(volume, bare_path, "local", room), "")
+    code = 4
+    return when not same(try found(volume, "", "local", room), "")
+    code = 5
+    mut small: [8]u8 = zeroed
+    _ = found(volume, "tool", "local", small) else (problem)
+        if problem == io.io_failed then code = 42 end if
+        return
+    end
+end exercise
+
+public main: () -> (code: i32) =
+    code = exercise() else (problem)
+        _ = problem
+        99
+    end
+end main

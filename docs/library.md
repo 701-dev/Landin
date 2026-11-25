@@ -1754,7 +1754,7 @@ payload is still live. So:
 - A region over a region reclaims nothing before the outer one is
   released.
 
-For a shorter lifetime inside a region, make a [zone](#corezone) over
+For a shorter lifetime inside a region, make a [zone](../core/zone) over
 the region's parent instead, and reset it at the end of each round.
 
 A resize of the newest allocation goes to the parent, and its entry
@@ -2226,7 +2226,7 @@ A program measures its own memory with three calls on the handle:
 |---|---|
 | `heap.in_use(memory)` | The bytes the heap holds for blocks not yet freed. Each block counts as its size class, or as the pages of its own mapping, so the total is at least what was asked for. |
 | `heap.peak_in_use(memory)` | The most `in_use` has been since the program started. |
-| `heap.peak_resident(memory)` | The process's peak resident size in bytes as the system counts it, which is every page it touched. This is `getrusage`'s maximum resident set, or Windows' peak working set. It is zero when the system does not say. |
+| `heap.peak_resident(memory)` | The process's peak resident size in bytes as the system counts it, which is every page it touched. This is `getrusage`'s maximum resident set, or Windows' peak working set. It is zero when the system does not say. FreeBSD reads it at its statistics clock, so a program that ends within a few milliseconds may not be seen at its largest. |
 
 To test that repeated work keeps nothing, read `in_use` before and after
 the work, [as this program does](../compiler/tests/fixtures/runtime/heap-in-use/main.ldn).

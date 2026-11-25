@@ -1,45 +1,18 @@
---  The fakes of what starting a program by name needs, the same on every
---  target, firmware included: a memory world run by a name lends it
---  through `io.program_name`, and one made without a name lends none; the
---  memory volume's executable files are what `io.find_program` finds on a
---  search path, passing over an empty entry, a directory, a file that is
---  not executable and an entry that does not hold the name; and a scripted
---  program is started in the directory its record names and not in
---  another, `io.spawn_in` refusing an empty directory before it asks.
+--  The fakes of starting a program by name, the same on every target,
+--  firmware included: a memory world run by a name lends it through
+--  `io.program_name`, and one made without a name lends none; and a
+--  scripted program is started in the directory its record names and not
+--  in another, `io.spawn_in` refusing an empty directory before it asks.
+--  runtime/find-program-volume is the search over the volume, which does
+--  not fit a firmware image.
 import core/cmp
 import core/io
-import core/io/fake
 import core/mem
 import core/text
-
---  Rooms for the volume's paths.
-mut paths: [6][32]u8 = zeroed
-
---  The node at INDEX, a file or directory at PATH.
-node: (index: usize, path: []u8, kind: io.entry_kind, executable: bool)
-      -> (made: fake.volume_node) =
-    made = (path: paths[index][0..<32], path_length: lenof path,
-            contents: [], length: 0, kind: kind, read_only: false,
-            executable: executable, modified: (seconds: 0, nanoseconds: 0))
-    mem.copy(paths[index][0..<lenof path], path) else none
-end node
 
 same: (left: []u8, right: []u8) -> (yes: bool) =
     yes = cmp.compare(left, right) == cmp.equal
 end same
-
---  What `find_program` finds for NAME on SEARCH, or "" when it is not_found.
-found: (host: fake.volume, name: []u8, search: []u8, into: []mut u8)
-       -> (path: []u8 from into) ! io.io_failed =
-    path = into[0..<0]
-    at: text.os_string = io.find_program(host, text.os_string_over(name),
-                                         text.os_string_over(search),
-                                         into) else (problem)
-        return when problem == mem.not_found
-        fail io.io_failed
-    end
-    path = text.os_string_bytes(at)
-end found
 
 --  Start the program at PATH in DIRECTORY and say how it went: its exit
 --  code, or -1 when it was not_found.
@@ -71,24 +44,6 @@ exercise: () -> (code: i32) ! ... =
     return when not same(text.os_string_bytes(io.program_name(named)),
                          "refine-build")
     code = 2
-    mut nodes: [6]fake.volume_node =
-        [node(0, "bin", io.subdirectory, false),
-         node(1, "bin/tool", io.regular, false),
-         node(2, "tools", io.subdirectory, false),
-         node(3, "tools/tool", io.subdirectory, true),
-         node(4, "local", io.subdirectory, false),
-         node(5, "local/tool", io.regular, true)]
-    mut volume_state: fake.volume_space = zeroed
-    volume := fake.volume_over(volume_state, nodes[0..<6], "/volume")
-    mut room: [64]u8 = zeroed
-    return when not same(try found(volume, "tool", "::bin:tools:none:local/",
-                                   room), "local/tool")
-    return when not same(try found(volume, "tool", "bin:tools", room), "")
-    return when not same(try found(volume, "local/tool", "", room),
-                         "local/tool")
-    return when not same(try found(volume, "bin/tool", "local", room), "")
-    return when not same(try found(volume, "", "local", room), "")
-    code = 3
     mut programs: [2]io.scripted_program =
         [(path: "./configure", directory: "source", output: "", errors: "",
           ending: (how: io.exited(code: 5)), input: [], input_length: 0,

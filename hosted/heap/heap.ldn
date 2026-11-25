@@ -424,9 +424,11 @@ end peak_in_use
 --- The most memory the process has held resident at once since it
 --- started, in bytes, as the system counts it: every page it touched, the
 --- heap's, the C library's, its code and its stacks among them, where
---- `peak_in_use` counts the heap's blocks alone. It is POSIX's
---- `getrusage` maximum resident set and Windows' peak working set, and
---- zero when the system does not say.
+--- `peak_in_use` counts the heap's blocks alone, mapped pages it never
+--- touched not among them. It is POSIX's `getrusage` maximum resident set
+--- and Windows' peak working set, and zero when the system does not say.
+--- FreeBSD reads it at its statistics clock, every few milliseconds, so a
+--- program that ends sooner may not be seen at its largest there.
 public peak_resident: (memory: heap) -> (bytes: usize) =
     _ = memory.reserved
     bytes = resident_peak()
