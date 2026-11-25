@@ -57,8 +57,7 @@ UNSUPPORTED = ('c-sources', 'c-shared', 'c-archives', 'library-directories',
 
 
 #  The files a prepared bundle's execution runs, at their own paths under
-#  OUTPUT/lane: the Windows runner checks nothing out, since the tree holds
-#  a fixture path with a double quote, which Git for Windows refuses.
+#  OUTPUT/lane, so that a Windows host runs a bundle with no checkout.
 LANE = ('compiler/tests/windows/check.py', 'scripts/lane_refine.py',
         'scripts/refine_revision.py', 'scripts/build_identity.py')
 
@@ -255,12 +254,63 @@ def prepare(args):
 
 
 def windows_error_mode():
-    """Keep Windows Error Reporting's dialog and its wait away from a
-    program a trap ends: the mode is inherited by every child."""
-    if sys.platform == 'win32':
-        import ctypes
-        #  SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX
-        ctypes.windll.kernel32.SetErrorMode(0x8003)
+    """Keep Windows Error Reporting away from a program a trap ends.
+
+    The error mode, which every child inherits, keeps WER's dialog away
+    but not WER itself: with several traps at once, most of them still
+    start a WerFault that runs for seconds, enough to push an outcome
+    past its limit on a host where WER is on (SR-1797; GitHub's images
+    turn it off).  The lane's process therefore joins a job object that
+    says JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION: a process of the
+    job that an exception ends is ended with the exception's code as
+    its status, as before, and WER is never asked.  Every child joins
+    the job with its parent, and a job inside the runner's own is
+    allowed.  WER's per-user `Disabled` value was measured too and keeps
+    only some reports away."""
+    if sys.platform != 'win32':
+        return
+    import ctypes
+    from ctypes import wintypes
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    #  SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX
+    kernel32.SetErrorMode(0x8003)
+
+    class Basic(ctypes.Structure):
+        _fields_ = [('PerProcessUserTimeLimit', ctypes.c_int64),
+                    ('PerJobUserTimeLimit', ctypes.c_int64),
+                    ('LimitFlags', wintypes.DWORD),
+                    ('MinimumWorkingSetSize', ctypes.c_size_t),
+                    ('MaximumWorkingSetSize', ctypes.c_size_t),
+                    ('ActiveProcessLimit', wintypes.DWORD),
+                    ('Affinity', ctypes.c_size_t),
+                    ('PriorityClass', wintypes.DWORD),
+                    ('SchedulingClass', wintypes.DWORD)]
+
+    class Extended(ctypes.Structure):
+        _fields_ = [('BasicLimitInformation', Basic),
+                    ('IoInfo', ctypes.c_uint64 * 6),
+                    ('ProcessMemoryLimit', ctypes.c_size_t),
+                    ('JobMemoryLimit', ctypes.c_size_t),
+                    ('PeakProcessMemoryUsed', ctypes.c_size_t),
+                    ('PeakJobMemoryUsed', ctypes.c_size_t)]
+
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    kernel32.SetInformationJobObject.argtypes = [
+        wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    job = kernel32.CreateJobObjectW(None, None)
+    require(job, 'CreateJobObjectW failed: %d' % ctypes.get_last_error())
+    limits = Extended()
+    #  JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION
+    limits.BasicLimitInformation.LimitFlags = 0x400
+    #  JobObjectExtendedLimitInformation
+    require(kernel32.SetInformationJobObject(job, 9, ctypes.byref(limits),
+                                             ctypes.sizeof(limits)),
+            'SetInformationJobObject failed: %d' % ctypes.get_last_error())
+    require(kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess()),
+            'AssignProcessToJobObject failed: %d' % ctypes.get_last_error())
 
 
 def wine_prefix(runner, output):

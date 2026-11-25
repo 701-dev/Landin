@@ -935,8 +935,8 @@ jobs:
 
   #  The size of the code refine emits (docs/measurement.md): every
   #  measured workload at every level `refine targets` gives and all nine
-  #  profiles, for the Linux, RV64 and firmware targets, linked by the
-  #  pinned environment's own linkers and held to the base commit's
+  #  profiles, for the Linux, RV64, Windows and firmware targets, linked
+  #  by the pinned environment's own linkers and held to the base commit's
   #  baselines.  Darwin's sizes are measured on its runner and FreeBSD's
   #  beside its lanes, each by the same script.
   measure-size:
@@ -966,6 +966,7 @@ jobs:
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --target linux-x86-64 --target linux-arm64 --target linux-rv64 \
             --target cortex-m0 --target rv32 --target xtensa \
+            --target windows-x86-64 --target windows-arm64 \
             --host linux-x86-64 --environment nix \
             --output "$RUNNER_TEMP/measure-size"
           #  Both classes are compared whatever the first says, so a run
