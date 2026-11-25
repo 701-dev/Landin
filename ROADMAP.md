@@ -272,15 +272,15 @@ every target, level and profile, to committed baselines exactly, and the
 instructions of 468 under QEMU, RV64's and Cortex-M's; the schedule and
 any dispatch time the hosted workloads in pairs on one processor and the
 firmware set by each board's counter. The candidate `25159f4a8` passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44255590398) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44259826354),
+[gate](https://github.com/701-dev/Landin/actions/runs/44255590398) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44259826354),
 timing included, and
-[main's gate](https://github.com/JanHaan/Landin/actions/runs/44265284174);
+[main's gate](https://github.com/701-dev/Landin/actions/runs/44265284174);
 two never-promoted branches cut from it failed: a larger image
-([run](https://github.com/JanHaan/Landin/actions/runs/44265298161)) on every
+([run](https://github.com/701-dev/Landin/actions/runs/44265298161)) on every
 size key of Linux, firmware and FreeBSD and every instruction count, and a
-slower one ([run](https://github.com/JanHaan/Landin/actions/runs/44265297675),
-[dispatch](https://github.com/JanHaan/Landin/actions/runs/44265301923)) on
+slower one ([run](https://github.com/701-dev/Landin/actions/runs/44265297675),
+[dispatch](https://github.com/701-dev/Landin/actions/runs/44265301923)) on
 the same and on wall time, 126 of 126 pairs on x86-64, 84 of 84 on arm64 and
 62 of 66 on Darwin. Its board legs never ran, since `board-bundles` refuses
 a changed image on record drift first; a named rig run timed it on the
@@ -336,8 +336,8 @@ binary-trees 0.66. RV64 jumps near within a routine provably inside JAL's
 reach (D1405): `.text` 19.9% smaller at `speed`, counted instructions 9.5%
 to 20% fewer. No firmware, x86-64 or arm64 `speed` image changed; the build
 modes agree and the scaling bound holds. The candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44407003576) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44413857908).
+[gate](https://github.com/701-dev/Landin/actions/runs/44407003576) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44413857908).
 R16.21 to R16.24 took the other backends and their rows, `SR-586` and
 `SR-1302` among them. Findings fixed on the way: LLDB's `GetValueAsSigned`
 read a zero-extended `i32` in a register whole, so the Darwin sessions read
@@ -390,8 +390,8 @@ soft-float helpers dominate. Their six records were made again on the rig.
 The RV64 GDB sessions, the RV32 lanes and RV64's fixtures pass, the build
 modes agree and the scaling bound holds on the host and on RV64. The
 candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44452396582) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44459720484).
+[gate](https://github.com/701-dev/Landin/actions/runs/44452396582) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44459720484).
 Findings fixed on the way: the RV64 GDB session's source still assumed a
 dead argument stays readable, and is now the LLDB lanes' source, whose
 argument is read after the call; `runtime/directory-memory` now fits the
@@ -446,8 +446,8 @@ twelve runtime fixtures whose images did not fit it run on Cortex-M0 at
 every profile. The seven Cortex-M board records were made again on the rig.
 The programs and corpus lanes, the unit suites and the fixtures pass, the
 build modes agree and the scaling bound holds. The candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44578956148) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44584549572). R16.27
+[gate](https://github.com/701-dev/Landin/actions/runs/44578956148) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44584549572). R16.27
 takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, `SR-869` and `SR-231`,
 each with today's figures. Findings fixed on the way: the devices lane's
 cached consumer read a register's address only from literal words; and
@@ -795,8 +795,8 @@ kept for `core/atomic`'s cell calls, which follow how D339 copies.
 `SR-1578`'s case returns built from IR, and `measure.py count` builds and
 counts a fixture at a chosen level, objective and description
 (`SR-1505`), documented in `docs/measurement.md`. `SR-231` is retired as
-not worth an IR terminator: the atom `match` chain tests its subject
-once and spends 6 bytes an arm, a table about 4, about 56 bytes over
+not worth an IR terminator, which the maintainer confirmed on 2026-11-25:
+the atom `match` chain tests its subject once and spends 6 bytes an arm, a table about 4, about 56 bytes over
 `failure.words`. `compiler/tests/measure/findings.md` has each figure.
 Fixed on the way: `measure.py compare` takes the directory `size` writes
 (met by two streams). `SR-1660` files a copied `refine` that cannot
@@ -3942,7 +3942,7 @@ and are cited by those numbers here and in `spec.md`.
 | --- | --- |
 | RP1 | Integer indexing of UTF-8 text by codepoint ordinal, linear, for ergonomics [0610]; reopen only with program or measurement evidence. |
 | RP2 | No weak conformances and no orphan rule: a collision is an error, answered with `distinct` or an explicit function [1280], because a weak conformance lets an application silently change a generic library's behaviour; reopen on ecosystem-scale evidence. |
-| RP3 | No compile-time execution and no macros; generated source comes from programs the build runs [1540]. Reviewed when the third kind of generated source appeared, and held for now: SVD modules, C bindings and `platform/linux/numbers` are each generated by a program run outside compilation, `refine svd`, `refine bindings` and `scripts/linux_syscalls.py`; none needed compile-time execution or a macro, and each generated file is checked in and held current by a check. The build-tool suggestion in [the roadmap discussion](https://github.com/JanHaan/Landin/discussions/2#discussioncomment-19264955) may bring a generalized source-generator stage, which would be reviewed against this position. |
+| RP3 | No compile-time execution and no macros; generated source comes from programs the build runs [1540]. Reviewed when the third kind of generated source appeared, and held for now: SVD modules, C bindings and `platform/linux/numbers` are each generated by a program run outside compilation, `refine svd`, `refine bindings` and `scripts/linux_syscalls.py`; none needed compile-time execution or a macro, and each generated file is checked in and held current by a check. The build-tool suggestion in [the roadmap discussion](https://github.com/701-dev/Landin/discussions/2#discussioncomment-19264955) may bring a generalized source-generator stage, which would be reviewed against this position. |
 | RP4 | `escaping` and `from` are written, not inferred, to keep checking local and because an allocator is a counterexample to inferred `from` [0790] [0900]. |
 | RP5 | Landin's own backends emitting assembly; not LLVM, a dependency larger than the language, and not C, which loses the calling convention, the traps and the debug information [1550]. |
 | RP6 | One version of a package name per program: 32 KB of flash, nominal types and one conformance register [1470]. |

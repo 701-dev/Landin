@@ -48,7 +48,8 @@ mandelbrot, so Landin ran with the defaults.
 
 ## Time
 
-Seconds, and in brackets the multiple of C's time.
+Seconds, and in brackets the multiple of C's time, C built with gcc 15.2.0
+as the table above says.
 
 | | fannkuch-redux 12 | mandelbrot 16000 | fasta 25,000,000 | reverse-complement, fasta's 25,000,000 | binary-trees 21 |
 |---|---|---|---|---|---|
@@ -71,8 +72,8 @@ register is copied with `movapd`; the slice element's self-comparison was
 dropped; a result may take its dying operand's register; routine-wide
 registers are chosen by loop depth; jumps are threaded past empty blocks;
 and `hosted/heap` and `core/region` were reworked. The same five sources, rebuilt and run the same way
-on the same core with no build running beside them, produced the same
-output:
+on the same core with no build running beside them, C's still with gcc
+15.2.0, produced the same output:
 
 | | fannkuch-redux 12 | mandelbrot 16000 | fasta 25,000,000 | reverse-complement, fasta's 25,000,000 | binary-trees 21 |
 |---|---|---|---|---|---|
@@ -115,7 +116,7 @@ first match.
 Copying an unchanged executable moved its time by up to half, with where its
 code landed in physical memory, so these times are the median of three
 fresh copies of each executable, C's re-measured the same way in the same
-session:
+session, still with gcc 15.2.0:
 
 | | fannkuch-redux 12 | mandelbrot 16000 | fasta 25,000,000 | reverse-complement, fasta's 25,000,000 | binary-trees 21 |
 |---|---|---|---|---|---|
@@ -167,8 +168,8 @@ pinned to core 15 and took a fresh copy of its image; each figure is the
 median of three runs, interleaved. The host was shared with other work: its
 load average was 10.6 before the session and 3.4 after. Landin was built
 with `--optimize speed` at the default x86-64-v1 level, static and without a
-C library. C was built with gcc 16.1.0, a newer compiler than the earlier
-tables used, with `-pipe -Wall -O3 -fomit-frame-pointer -march=native`, and
+C library. C was built with gcc 16.1.0, where the tables before this section
+used gcc 15.2.0, with `-pipe -Wall -O3 -fomit-frame-pointer -march=native`, and
 linked dynamically against glibc. Every output was byte-identical to C's.
 
 Time in seconds, with the multiple of C's in parentheses:
@@ -211,8 +212,8 @@ The cause was its allocator, not its code. A `core/region` asked the heap
 for every node, recorded it and freed each one back. The port now takes
 its nodes from a `core/zone`, which takes blocks from the heap and hands
 out their bytes in order, and resets the zone after each tree. Measured
-on 25 November 2026 the same way, with `--only binary-trees`, on core 15
-of the same host, its load average 1.8 to 3.3:
+on 25 November 2026 the same way, C with gcc 16.1.0, with `--only
+binary-trees`, on core 15 of the same host, its load average 1.8 to 3.3:
 
 | | binary-trees 21 | peak resident memory |
 |---|---|---|

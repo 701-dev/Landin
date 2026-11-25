@@ -2055,6 +2055,64 @@ class RV32Lanes(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'archive hash mismatch: control.tar.xz'):
                     setup.fetch(root, item)
 
+    def test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash(self):
+        import hashlib
+        import io
+        import urllib.error
+        import setup
+        from unittest.mock import patch
+        body = b'a superseded Debian package'
+        pool, snapshot = 'https://invalid.example/pool/p.deb', 'https://invalid.example/file/0'
+        item = {'file': 'p.deb', 'url': pool, 'snapshot': snapshot, 'kind': 'deb',
+                'sha256': hashlib.sha256(body).hexdigest()}
+
+        def answer(responses):
+            asked = []
+
+            def urlopen(url, timeout):
+                asked.append(url)
+                found = responses[url]
+                if isinstance(found, int):
+                    raise urllib.error.HTTPError(url, found, 'Not Found', {}, io.BytesIO())
+                return io.BytesIO(found)
+            return asked, urlopen
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            asked, urlopen = answer({pool: body, snapshot: 404})
+            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen):
+                self.assertEqual(setup.fetch(root, item).read_bytes(), body)
+            self.assertEqual(asked, [pool], 'the pool is asked first and enough')
+            asked, urlopen = answer({pool: 404, snapshot: body})
+            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
+                    patch.object(setup.sys, 'stderr', io.StringIO()) as said:
+                self.assertEqual(setup.fetch(root, item).read_bytes(), body)
+            self.assertEqual(asked, [pool, snapshot])
+            self.assertIn('HTTP 404 Not Found; trying ' + snapshot, said.getvalue())
+            asked, urlopen = answer({pool: 404, snapshot: body + b'changed'})
+            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
+                    patch.object(setup.sys, 'stderr', io.StringIO()):
+                with self.assertRaisesRegex(RuntimeError, 'p.deb from %s has SHA-256' % snapshot):
+                    setup.fetch(root, item)
+            asked, urlopen = answer({pool: 404, snapshot: 404})
+            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
+                    patch.object(setup.sys, 'stderr', io.StringIO()):
+                with self.assertRaises(SystemExit) as refused:
+                    setup.fetch(root, item)
+            self.assertIn('cannot fetch %s: HTTP 404' % pool, str(refused.exception))
+            self.assertIn('and then p.deb: cannot fetch %s: HTTP 404' % snapshot,
+                          str(refused.exception))
+
+    def test_every_locked_debian_package_has_its_snapshot_url(self):
+        from lock_snapshot import FILE_URL, LOCK, missing
+        lock = json.loads(LOCK.read_text())
+        self.assertEqual(missing(lock), [])
+        for item in lock:
+            if item['kind'] == 'deb':
+                self.assertRegex(item['snapshot'], FILE_URL)
+                self.assertTrue(item['url'].startswith('https://deb.debian.org/debian/pool/'))
+            else:
+                self.assertNotIn('snapshot', item)
+
     def test_the_atomics_probes_name_every_refused_use(self):
         from rv32_controls import READ_MODIFY_WRITE, REFUSED_USES, WIDE
         source = READ_MODIFY_WRITE.read_text()

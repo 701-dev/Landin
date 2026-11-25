@@ -228,44 +228,33 @@ def compile_gdb_python(root):
         raise RuntimeError('compiling GDB\'s Python failed: ' + completed.stdout + completed.stderr)
 
 
-#  Debian's pool keeps only a suite's current packages, so a locked one
-#  leaves it when a point release or a security update supersedes it, as
-#  libssl3t64 and libpcre2-8-0 did after 2026-11-04.  snapshot.debian.org
-#  keeps every package at every time; this is when the lock was made, at
-#  which every locked package was in the pool.  A lock made again names
-#  its own time here.
-POOL = 'https://deb.debian.org/debian/'
-SNAPSHOT = 'https://snapshot.debian.org/archive/debian/20261104T123239Z/'
-
-
 def fetch(packages, item, sleep=time.sleep):
-    """ITEM's archive downloaded into PACKAGES and verified before anything
-    unpacks it: a Debian package the pool no longer has, from the snapshot
-    of the lock's time."""
+    """ITEM's archive downloaded into PACKAGES and verified before anything unpacks it."""
     dest = packages / item['file']
 
     def store(src):
         with dest.open('wb') as out:
             shutil.copyfileobj(src, out)
-
-    def get(url):
-        #  urlopen is named here at each call, so a control can replace it.
-        download.download(url, item['file'], store, sleep=sleep,
-                          opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
-                          report=lambda line: print(line, file=sys.stderr, flush=True))
-    url = item['url']
-    try:
+    #  A Debian package leaves deb.debian.org's pool once Debian supersedes
+    #  it, while the lock still names it; snapshot.debian.org keeps the same
+    #  file for good, and the SHA-256 below holds either source to the pin
+    #  (D2489).  The pool is asked first: it is the faster, and it spares
+    #  the archive that keeps everything.
+    sources = [item['url']] + ([item['snapshot']] if 'snapshot' in item else [])
+    failures = []
+    for url in sources:
         try:
-            get(url)
+            #  urlopen is named here at each call, so a control can replace it.
+            download.download(url, item['file'], store, sleep=sleep,
+                              opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
+                              report=lambda line: print(line, file=sys.stderr, flush=True))
+            break
         except download.DownloadError as error:
-            if error.status != 404 or not url.startswith(POOL):
-                raise
-            url = SNAPSHOT + url[len(POOL):]
-            print('setup.py: %s has left Debian\'s pool; taking it from %s'
-                  % (item['file'], url), file=sys.stderr, flush=True)
-            get(url)
-    except download.DownloadError as error:
-        raise SystemExit('setup.py: ' + str(error)) from error
+            failures.append(str(error))
+            if url != sources[-1]:
+                print('setup.py: %s; trying %s' % (error, sources[-1]), file=sys.stderr, flush=True)
+    else:
+        raise SystemExit('setup.py: ' + '; and then '.join(failures))
     #  Never asked again: the bytes arrived and are not the pinned ones.
     found = sha(dest)
     if found != item['sha256']:
