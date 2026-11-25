@@ -1,41 +1,1051 @@
---  The error and gamma functions.  Not yet ported: each routine returns NaN.
+--  The error and gamma functions.  erf, erfc and log_gamma are msun's
+--  s_erf.c, s_erff.c, e_lgamma_r.c and e_lgammaf_r.c, with the sine and
+--  cosine kernels of k_sin.c, k_cos.c, k_sinf.c and k_cosf.c for
+--  log_gamma's sin(πx), under Sun's notice in math.ldn.  gamma is this
+--  module's own: msun's tgamma is under another licence.
+
+--  For erf and erfc (s_erf.c): on [0, 0.84375] erf(x) = x + x*P/Q in x^2;
+--  on [0.84375, 1.25] erf(1+s) = erx + P1(s)/Q1(s), erx = 0.84506291151
+--  rounded to 24 bits; on [1.25, 28] erfc(x) = exp(-x*x - 0.5625 +
+--  R/S)/x in 1/x^2; beyond, erf is ±(1 - tiny) and erfc tiny*tiny or
+--  2 - tiny.
+erf_tiny: f64 = 0x1.56e1fc2f8f359p-997
+erf_erx: f64 = 0x1.b0ac16p-1
+erf_efx: f64 = 0x1.06eba8214db69p-3
+erf_efx8: f64 = 0x1.06eba8214db69p0
+erf_pp0: f64 = 0x1.06eba8214db68p-3
+erf_pp1: f64 = -0x1.4cd7d691cb913p-2
+erf_pp2: f64 = -0x1.d2a51dbd7194fp-6
+erf_pp3: f64 = -0x1.7a291236668e4p-8
+erf_pp4: f64 = -0x1.8ead6120016acp-16
+erf_qq1: f64 = 0x1.97779cddadc09p-2
+erf_qq2: f64 = 0x1.0a54c5536cebap-4
+erf_qq3: f64 = 0x1.4d022c4d36b0fp-8
+erf_qq4: f64 = 0x1.15dc9221c1a1p-13
+erf_qq5: f64 = -0x1.09c4342a2612p-18
+erf_pa0: f64 = -0x1.359b8bef77538p-9
+erf_pa1: f64 = 0x1.a8d00ad92b34dp-2
+erf_pa2: f64 = -0x1.7d240fbb8c3f1p-2
+erf_pa3: f64 = 0x1.45fca805120e4p-2
+erf_pa4: f64 = -0x1.c63983d3e28ecp-4
+erf_pa5: f64 = 0x1.22a36599795ebp-5
+erf_pa6: f64 = -0x1.1bf380a96073fp-9
+erf_qa1: f64 = 0x1.b3e6618eee323p-4
+erf_qa2: f64 = 0x1.14af092eb6f33p-1
+erf_qa3: f64 = 0x1.2635cd99fe9a7p-4
+erf_qa4: f64 = 0x1.02660e763351fp-3
+erf_qa5: f64 = 0x1.bedc26b51dd1cp-7
+erf_qa6: f64 = 0x1.88b545735151dp-7
+erf_ra0: f64 = -0x1.43412600d6435p-7
+erf_ra1: f64 = -0x1.63416e4ba736p-1
+erf_ra2: f64 = -0x1.51e0441b0e726p3
+erf_ra3: f64 = -0x1.f300ae4cba38dp5
+erf_ra4: f64 = -0x1.44cb184282266p7
+erf_ra5: f64 = -0x1.7135cebccabb2p7
+erf_ra6: f64 = -0x1.4526557e4d2f2p6
+erf_ra7: f64 = -0x1.3a0efc69ac25cp3
+erf_sa1: f64 = 0x1.3a6b9bd707687p4
+erf_sa2: f64 = 0x1.1350c526ae721p7
+erf_sa3: f64 = 0x1.b290dd58a1a71p8
+erf_sa4: f64 = 0x1.42b1921ec2868p9
+erf_sa5: f64 = 0x1.ad02157700314p8
+erf_sa6: f64 = 0x1.b28a3ee48ae2cp6
+erf_sa7: f64 = 0x1.a47ef8e484a93p2
+erf_sa8: f64 = -0x1.eeff2ee749a62p-5
+erf_rb0: f64 = -0x1.4341239e86f4ap-7
+erf_rb1: f64 = -0x1.993ba70c285dep-1
+erf_rb2: f64 = -0x1.1c209555f995ap4
+erf_rb3: f64 = -0x1.4145d43c5ed98p7
+erf_rb4: f64 = -0x1.3ec881375f228p9
+erf_rb5: f64 = -0x1.004616a2e5992p10
+erf_rb6: f64 = -0x1.e384e9bdc383fp8
+erf_sb1: f64 = 0x1.e568b261d519p4
+erf_sb2: f64 = 0x1.45cae221b9f0ap8
+erf_sb3: f64 = 0x1.802eb189d5118p10
+erf_sb4: f64 = 0x1.8ffb7688c246ap11
+erf_sb5: f64 = 0x1.3f219cedf3be6p11
+erf_sb6: f64 = 0x1.da874e79fe763p8
+erf_sb7: f64 = -0x1.670e242712d62p4
+
+erff_tiny: f32 = 0x1.4484cp-100
+erff_erx: f32 = 0x1.af76p-1
+erff_efx: f32 = 0x1.06eba8p-3
+erff_efx8: f32 = 0x1.06eba8p0
+erff_pp0: f32 = 0x1.06eba8p-3
+erff_pp1: f32 = -0x1.58185ap-2
+erff_pp2: f32 = -0x1.e845e8p-10
+erff_qq1: f32 = 0x1.3fd1f2p-2
+erff_qq2: f32 = 0x1.62028p-6
+erff_qq3: f32 = -0x1.04a622p-9
+erff_pa0: f32 = 0x1.e9f326p-19
+erff_pa1: f32 = 0x1.a9126ap-2
+erff_pa2: f32 = -0x1.acd7aap-3
+erff_pa3: f32 = 0x1.636696p-4
+erff_qa1: f32 = 0x1.fb7456p-2
+erff_qa2: f32 = 0x1.7c2892p-2
+erff_qa3: f32 = 0x1.4184cep-5
+erff_ra0: f32 = -0x1.43cc98p-7
+erff_ra1: f32 = -0x1.165a64p-1
+erff_ra2: f32 = -0x1.ab149ap0
+erff_ra3: f32 = -0x1.621364p-1
+erff_sa1: f32 = 0x1.1f179ap2
+erff_sa2: f32 = 0x1.06e956p2
+erff_sa3: f32 = 0x1.1b92e8p-1
+erff_rb0: f32 = -0x1.43415cp-7
+erff_rb1: f32 = -0x1.1899fcp-1
+erff_rb2: f32 = -0x1.d7560ep0
+erff_sb1: f32 = 0x1.37c3d4p2
+erff_sb2: f32 = 0x1.8660bcp1
+erff_sb3: f32 = -0x1.8617d8p-1
+
+--  For log_gamma (e_lgamma_r.c): Γ(1+s) = sΓ(s) reduces 0 < x < 8 to
+--  [1.5, 2.5]-ish intervals: near the minimum ymin = 1.4616... lgamma(x)
+--  = tf + z^2*poly(z), z = x - ymin; on [2, 3] lgamma(2+s) = 0.5*s +
+--  s*P(s)/Q(s); for x >= 8 Stirling's series, lgamma(x) ~ (x-0.5)*(log(x)
+--  - 1) + w(1/x); and for x < 0 the reflection lgamma(x) = log(π/|x
+--  sin(πx)|) - lgamma(-x).
+lgamma_a0: f64 = 0x1.3c467e37db0c8p-4
+lgamma_a1: f64 = 0x1.4a34cc4a60fadp-2
+lgamma_a2: f64 = 0x1.13e001a5562a7p-4
+lgamma_a3: f64 = 0x1.51322ac92547bp-6
+lgamma_a4: f64 = 0x1.e404fb68fefe8p-8
+lgamma_a5: f64 = 0x1.7add8ccb7926bp-9
+lgamma_a6: f64 = 0x1.38a94116f3f5dp-10
+lgamma_a7: f64 = 0x1.0b6c689b99cp-11
+lgamma_a8: f64 = 0x1.cf2eced10e54dp-13
+lgamma_a9: f64 = 0x1.c5088987dfb07p-14
+lgamma_a10: f64 = 0x1.a7074428cfa52p-16
+lgamma_a11: f64 = 0x1.7858e90a45837p-15
+lgamma_tc: f64 = 0x1.762d86356be3fp0
+lgamma_tf: f64 = -0x1.f19b9bcc38a42p-4
+lgamma_tt: f64 = -0x1.0c7caa48a971fp-58
+lgamma_t0: f64 = 0x1.ef72bc8ee38a2p-2
+lgamma_t1: f64 = -0x1.2e4278dc6c509p-3
+lgamma_t2: f64 = 0x1.08b4294d5419bp-4
+lgamma_t3: f64 = -0x1.0c9a8df35b713p-5
+lgamma_t4: f64 = 0x1.266e7970af9ecp-6
+lgamma_t5: f64 = -0x1.51f9fba91ec6ap-7
+lgamma_t6: f64 = 0x1.8fce0e370e344p-8
+lgamma_t7: f64 = -0x1.e2effb3e914d7p-9
+lgamma_t8: f64 = 0x1.282d32e15c915p-9
+lgamma_t9: f64 = -0x1.6fe8ebf2d1af1p-10
+lgamma_t10: f64 = 0x1.cdf0cef61a8e9p-11
+lgamma_t11: f64 = -0x1.1a6109c73e0ecp-11
+lgamma_t12: f64 = 0x1.4af6d6c0ebbf7p-12
+lgamma_t13: f64 = -0x1.47f24ecc38c38p-12
+lgamma_t14: f64 = 0x1.5fd3ee8c2d3f4p-12
+lgamma_u0: f64 = -0x1.3c467e37db0c8p-4
+lgamma_u1: f64 = 0x1.4401e8b005dffp-1
+lgamma_u2: f64 = 0x1.7475cd119bd6fp0
+lgamma_u3: f64 = 0x1.f497644ea845p-1
+lgamma_u4: f64 = 0x1.d4eaef6010924p-3
+lgamma_u5: f64 = 0x1.b678bbf2bab09p-7
+lgamma_v1: f64 = 0x1.3a5d7c2bd619cp1
+lgamma_v2: f64 = 0x1.10725a42b18f5p1
+lgamma_v3: f64 = 0x1.89dfbe45050afp-1
+lgamma_v4: f64 = 0x1.aae55d6537c88p-4
+lgamma_v5: f64 = 0x1.a5abb57d0cf61p-9
+lgamma_s0: f64 = -0x1.3c467e37db0c8p-4
+lgamma_s1: f64 = 0x1.b848b36e20878p-3
+lgamma_s2: f64 = 0x1.4d98f4f139f59p-2
+lgamma_s3: f64 = 0x1.2bb9cbee5f2f7p-3
+lgamma_s4: f64 = 0x1.b481c7e939961p-6
+lgamma_s5: f64 = 0x1.e26b67368f239p-10
+lgamma_s6: f64 = 0x1.0bfecdd17e945p-15
+lgamma_r1: f64 = 0x1.645a762c4ab74p0
+lgamma_r2: f64 = 0x1.71a1893d3dcdcp-1
+lgamma_r3: f64 = 0x1.601edccfbdf27p-3
+lgamma_r4: f64 = 0x1.317ea742ed475p-6
+lgamma_r5: f64 = 0x1.97ddaca41a95bp-11
+lgamma_r6: f64 = 0x1.ebaf7a5b3814p-18
+lgamma_w0: f64 = 0x1.acfe390c97d69p-2
+lgamma_w1: f64 = 0x1.555555555553bp-4
+lgamma_w2: f64 = -0x1.6c16c16b02e5cp-9
+lgamma_w3: f64 = 0x1.a019f98cf38b6p-11
+lgamma_w4: f64 = -0x1.380cb8c0fe741p-11
+lgamma_w5: f64 = 0x1.b67ba4cdad5d1p-11
+lgamma_w6: f64 = -0x1.ab89d0b9e43e4p-10
+
+lgammaf_pi: f32 = 0x1.921fb6p1
+lgammaf_a0: f32 = 0x1.3c467ep-4
+lgammaf_a1: f32 = 0x1.4a34d2p-2
+lgammaf_a2: f32 = 0x1.13dcp-4
+lgammaf_a3: f32 = 0x1.52289ep-6
+lgammaf_a4: f32 = 0x1.c99f36p-8
+lgammaf_a5: f32 = 0x1.0ddb48p-8
+lgammaf_tc: f32 = 0x1.762d86p0
+lgammaf_tf: f32 = -0x1.f19b9cp-4
+lgammaf_t0: f32 = -0x1.02a96ep-35
+lgammaf_t1: f32 = -0x1.95577p-26
+lgammaf_t2: f32 = 0x1.ef72dp-2
+lgammaf_t3: f32 = -0x1.2e41aep-3
+lgammaf_t4: f32 = 0x1.089b62p-4
+lgammaf_t5: f32 = -0x1.0d1108p-5
+lgammaf_t6: f32 = 0x1.3188f4p-6
+lgammaf_t7: f32 = -0x1.4424a2p-7
+lgammaf_u0: f32 = -0x1.3c467ep-4
+lgammaf_u1: f32 = 0x1.793c8p-1
+lgammaf_u2: f32 = 0x1.fb8b6cp-2
+lgammaf_v1: f32 = 0x1.1c0db6p0
+lgammaf_v2: f32 = 0x1.af4e1p-3
+lgammaf_v3: f32 = -0x1.517ee2p-7
+lgammaf_s0: f32 = -0x1.3c467ep-4
+lgammaf_s1: f32 = 0x1.147794p-2
+lgammaf_s2: f32 = 0x1.248f12p-3
+lgammaf_s3: f32 = 0x1.87373p-7
+lgammaf_r1: f32 = 0x1.5bfb18p-1
+lgammaf_r2: f32 = 0x1.db6066p-4
+lgammaf_r3: f32 = 0x1.ec672cp-9
+lgammaf_w0: f32 = 0x1.acfe3ap-2
+lgammaf_w1: f32 = 0x1.55553ep-4
+lgammaf_w2: f32 = -0x1.69ed8cp-9
+
+sin_pi_s1: f64 = -0x1.5555555555549p-3
+sin_pi_s2: f64 = 0x1.111111110f8a6p-7
+sin_pi_s3: f64 = -0x1.a01a019c161d5p-13
+sin_pi_s4: f64 = 0x1.71de357b1fe7dp-19
+sin_pi_s5: f64 = -0x1.ae5e68a2b9cebp-26
+sin_pi_s6: f64 = 0x1.5d93a5acfd57cp-33
+cos_pi_c1: f64 = 0x1.555555555554cp-5
+cos_pi_c2: f64 = -0x1.6c16c16c15177p-10
+cos_pi_c3: f64 = 0x1.a01a019cb159p-16
+cos_pi_c4: f64 = -0x1.27e4f809c52adp-22
+cos_pi_c5: f64 = 0x1.1ee9ebdb4b1c4p-29
+cos_pi_c6: f64 = -0x1.8fae9be8838d4p-37
+sin_pif_s1: f64 = -0x1.5555554cbac77p-3
+sin_pif_s2: f64 = 0x1.11110896efbb2p-7
+sin_pif_s3: f64 = -0x1.a00f9e2cae774p-13
+sin_pif_s4: f64 = 0x1.6cd878c3b46a7p-19
+cos_pif_c0: f64 = -0x1.ffffffd0c5e81p-2
+cos_pif_c1: f64 = 0x1.55553e1053a42p-5
+cos_pif_c2: f64 = -0x1.6c087e80f1e27p-10
+cos_pif_c3: f64 = 0x1.99342e0ee5069p-16
+
+--  Γ(1.5 + t) on |t| <= 0.5: the f64 polynomial's constant term as a
+--  pair, then its other coefficients; then the f32 polynomial's.
+gamma_c0_high: f64 = 0x1.c5bf891b4ef6bp-1
+gamma_c0_low: f64 = -0x1.66c41788626c2p-55
+gamma_c1: f64 = 0x1.08ea88ee561b2p-5
+gamma_c2: f64 = 0x1.a8c4dba620d62p-2
+gamma_c3: f64 = -0x1.b77ac1ca2ebc4p-4
+gamma_c4: f64 = 0x1.283bd374ea140p-3
+gamma_c5: f64 = -0x1.3d88cfe504937p-4
+gamma_c6: f64 = 0x1.e022b74492dadp-5
+gamma_c7: f64 = -0x1.374fd5cd6a141p-5
+gamma_c8: f64 = 0x1.a752c64df56b9p-6
+gamma_c9: f64 = -0x1.1a2c293acbda4p-6
+gamma_c10: f64 = 0x1.7991ee81016cfp-7
+gamma_c11: f64 = -0x1.f7fc6d20efc03p-8
+gamma_c12: f64 = 0x1.504cc8c4c0843p-8
+gamma_c13: f64 = -0x1.c09fa693cbfc4p-9
+gamma_c14: f64 = 0x1.2b52a6fbf3048p-9
+gamma_c15: f64 = -0x1.8f2be63625a54p-10
+gamma_c16: f64 = 0x1.084be8db95414p-10
+gamma_c17: f64 = -0x1.606b57e7334acp-11
+gamma_c18: f64 = 0x1.f4d423febd85dp-12
+gamma_c19: f64 = -0x1.4de4bab1d6d22p-12
+gamma_c20: f64 = 0x1.192c9a82f15fdp-13
+gamma_c21: f64 = -0x1.76e75bc4d1b5ap-14
+gamma_c22: f64 = 0x1.76e8b52b8ad09p-13
+gamma_c23: f64 = -0x1.f3e1335b1f73ap-14
+gammaf_c0_high: f64 = 0x1.c5bf891b871b3p-1
+gammaf_c1: f64 = 0x1.08ea88ebff2a3p-5
+gammaf_c2: f64 = 0x1.a8c4dafa62e14p-2
+gammaf_c3: f64 = -0x1.b77ac00023618p-4
+gammaf_c4: f64 = 0x1.283c28d428adap-3
+gammaf_c5: f64 = -0x1.3d8941bd89349p-4
+gammaf_c6: f64 = 0x1.e003121848325p-5
+gammaf_c7: f64 = -0x1.373abc3cd82c9p-5
+gammaf_c8: f64 = 0x1.aa178369cd786p-6
+gammaf_c9: f64 = -0x1.1c04b90fb4ac7p-6
+gammaf_c10: f64 = 0x1.5a4207042ba63p-7
+gammaf_c11: f64 = -0x1.ce3af295f0fc4p-8
+gammaf_c12: f64 = 0x1.f8f7a2be2d66ap-8
+gammaf_c13: f64 = -0x1.50c6454b3c6a1p-8
 
 erf_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7ff00000 then
+        --  erf(NaN) is NaN, erf(±inf) is ±1.
+        one_signed: f64 = if negative then -1.0 else 1.0 end if
+        result = one_signed + 1.0 / x
+        return
+    end if
+    if ix < 0x3feb0000 then
+        --  |x| < 0.84375: erf(x) = x + x*R(x^2).
+        if ix < 0x3e300000 then
+            --  |x| < 2^-28: the first term of the series.
+            if ix < 0x00800000 then
+                result = (8.0 * x + erf_efx8 * x) / 8.0
+                return
+            end if
+            result = x + erf_efx * x
+            return
+        end if
+        z := x * x
+        r := erf_pp0 + z * (erf_pp1 + z * (erf_pp2 + z * (erf_pp3 + z * erf_pp4)))
+        s := 1.0 + z * (erf_qq1 + z * (erf_qq2 + z * (erf_qq3 + z * (erf_qq4 + z * erf_qq5))))
+        y := r / s
+        result = x + x * y
+        return
+    end if
+    if ix < 0x3ff40000 then
+        --  0.84375 <= |x| < 1.25: erf(1+s) = erx + P1(s)/Q1(s).
+        s := abs_f64(x) - 1.0
+        p := erf_pa0 + s * (erf_pa1 + s * (erf_pa2 + s * (erf_pa3 + s * (erf_pa4
+             + s * (erf_pa5 + s * erf_pa6)))))
+        q := 1.0 + s * (erf_qa1 + s * (erf_qa2 + s * (erf_qa3 + s * (erf_qa4
+             + s * (erf_qa5 + s * erf_qa6)))))
+        result = if negative then -erf_erx - p / q else erf_erx + p / q end if
+        return
+    end if
+    if ix >= 0x40180000 then
+        --  |x| >= 6: ±(1 - tiny).
+        result = if negative then erf_tiny - 1.0 else 1.0 - erf_tiny end if
+        return
+    end if
+    a := abs_f64(x)
+    (r: big_r, s: big_s) := erfc_ratio_f64(a, ix < 0x4006db6e)
+    result = if negative then erfc_tail_f64(a, big_r, big_s) / a - 1.0
+             else 1.0 - erfc_tail_f64(a, big_r, big_s) / a end if
 end erf_f64
 
-erf_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
-end erf_f32
+--  For 1.25 <= |x| < 28, erfc(x) = (1/x)*exp(-x*x - 0.5625 + R/S), with
+--  R/S approximating log(x*erfc(x)) + x*x + 0.5625 in 1/x^2: R1/S1 below
+--  1/0.35, R2/S2 above.
+erfc_ratio_f64: (a: f64, near: bool) -> (r: f64, s: f64) =
+    w := 1.0 / (a * a)
+    if near then
+        r = erf_ra0 + w * (erf_ra1 + w * (erf_ra2 + w * (erf_ra3 + w * (erf_ra4
+            + w * (erf_ra5 + w * (erf_ra6 + w * erf_ra7))))))
+        s = 1.0 + w * (erf_sa1 + w * (erf_sa2 + w * (erf_sa3 + w * (erf_sa4
+            + w * (erf_sa5 + w * (erf_sa6 + w * (erf_sa7 + w * erf_sa8)))))))
+    else
+        r = erf_rb0 + w * (erf_rb1 + w * (erf_rb2 + w * (erf_rb3 + w * (erf_rb4
+            + w * (erf_rb5 + w * erf_rb6)))))
+        s = 1.0 + w * (erf_sb1 + w * (erf_sb2 + w * (erf_sb3 + w * (erf_sb4
+            + w * (erf_sb5 + w * (erf_sb6 + w * erf_sb7))))))
+    end if
+end erfc_ratio_f64
+
+--  exp(-x*x - 0.5625 + R/S) for x = a > 0, with z = a cut to its high
+--  word so that -x*x = -z*z + (z-x)*(z+x) loses nothing.
+erfc_tail_f64: (a: f64, r: f64, s: f64) -> (result: f64) =
+    z := with_low_word(a, 0)
+    result = exp_f64(-z * z - 0.5625) * exp_f64((z - a) * (z + a) + r / s)
+end erfc_tail_f64
 
 erfc_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7ff00000 then
+        --  erfc(NaN) is NaN, erfc(+inf) 0 and erfc(-inf) 2.
+        two_or_zero: f64 = if negative then 2.0 else 0.0 end if
+        result = two_or_zero + 1.0 / x
+        return
+    end if
+    if ix < 0x3feb0000 then
+        --  |x| < 0.84375.
+        if ix < 0x3c700000 then
+            result = 1.0 - x
+            return
+        end if
+        z := x * x
+        r := erf_pp0 + z * (erf_pp1 + z * (erf_pp2 + z * (erf_pp3 + z * erf_pp4)))
+        s := 1.0 + z * (erf_qq1 + z * (erf_qq2 + z * (erf_qq3 + z * (erf_qq4 + z * erf_qq5))))
+        y := r / s
+        if signed_word(hx) < 0x3fd00000 then
+            --  x < 1/4.
+            result = 1.0 - (x + x * y)
+        else
+            mut t: f64 = x * y
+            t = t + (x - 0.5)
+            result = 0.5 - t
+        end if
+        return
+    end if
+    if ix < 0x3ff40000 then
+        --  0.84375 <= |x| < 1.25.
+        s := abs_f64(x) - 1.0
+        p := erf_pa0 + s * (erf_pa1 + s * (erf_pa2 + s * (erf_pa3 + s * (erf_pa4
+             + s * (erf_pa5 + s * erf_pa6)))))
+        q := 1.0 + s * (erf_qa1 + s * (erf_qa2 + s * (erf_qa3 + s * (erf_qa4
+             + s * (erf_qa5 + s * erf_qa6)))))
+        if negative then
+            z := erf_erx + p / q
+            result = 1.0 + z
+        else
+            z := 1.0 - erf_erx
+            result = z - p / q
+        end if
+        return
+    end if
+    if ix < 0x403c0000 then
+        --  |x| < 28.
+        if negative and ix >= 0x40180000 then
+            --  x < -6.
+            result = 2.0 - erf_tiny
+            return
+        end if
+        a := abs_f64(x)
+        (r: big_r, s: big_s) := erfc_ratio_f64(a, ix < 0x4006db6d)
+        t := erfc_tail_f64(a, big_r, big_s)
+        result = if negative then 2.0 - t / a else t / a end if
+        return
+    end if
+    result = if negative then 2.0 - erf_tiny else erf_tiny * erf_tiny end if
 end erfc_f64
 
+erf_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7f800000 then
+        one_signed: f32 = if negative then -1.0 else 1.0 end if
+        result = one_signed + 1.0 / x
+        return
+    end if
+    if ix < 0x3f580000 then
+        --  |x| < 0.84375.
+        if ix < 0x38800000 then
+            --  |x| < 2^-14.
+            if ix < 0x04000000 then
+                result = (8.0 * x + erff_efx8 * x) / 8.0
+                return
+            end if
+            result = x + erff_efx * x
+            return
+        end if
+        z := x * x
+        r := erff_pp0 + z * (erff_pp1 + z * erff_pp2)
+        s := 1.0 + z * (erff_qq1 + z * (erff_qq2 + z * erff_qq3))
+        y := r / s
+        result = x + x * y
+        return
+    end if
+    if ix < 0x3fa00000 then
+        --  0.84375 <= |x| < 1.25.
+        s := abs_f32(x) - 1.0
+        p := erff_pa0 + s * (erff_pa1 + s * (erff_pa2 + s * erff_pa3))
+        q := 1.0 + s * (erff_qa1 + s * (erff_qa2 + s * erff_qa3))
+        result = if negative then -erff_erx - p / q else erff_erx + p / q end if
+        return
+    end if
+    if ix >= 0x40800000 then
+        --  |x| >= 4.
+        result = if negative then erff_tiny - 1.0 else 1.0 - erff_tiny end if
+        return
+    end if
+    a := abs_f32(x)
+    t := erfc_tail_f32(a, hx, ix < 0x4036db8c)
+    result = if negative then t / a - 1.0 else 1.0 - t / a end if
+end erf_f32
+
+--  For 1.25 <= |x| < 11, x*erfc(|x|) as exp(-z*z - 0.5625)*exp((z-x)*(z+x)
+--  + R/S), z being x with its low 13 bits cleared.  msun clears them from
+--  x's own bits, its sign included, which leaves (z-x)*(z+x) the same.
+erfc_tail_f32: (a: f32, hx: u32, near: bool) -> (result: f32) =
+    w := 1.0 / (a * a)
+    mut r: f32 = 0.0
+    mut s: f32 = 0.0
+    if near then
+        r = erff_ra0 + w * (erff_ra1 + w * (erff_ra2 + w * erff_ra3))
+        s = 1.0 + w * (erff_sa1 + w * (erff_sa2 + w * erff_sa3))
+    else
+        r = erff_rb0 + w * (erff_rb1 + w * erff_rb2)
+        s = 1.0 + w * (erff_sb1 + w * (erff_sb2 + w * erff_sb3))
+    end if
+    z := from_bits_f32(hx & 0xffffe000)
+    result = exp_f32(-z * z - 0.5625) * exp_f32((z - a) * (z + a) + r / s)
+end erfc_tail_f32
+
 erfc_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7f800000 then
+        two_or_zero: f32 = if negative then 2.0 else 0.0 end if
+        result = two_or_zero + 1.0 / x
+        return
+    end if
+    if ix < 0x3f580000 then
+        --  |x| < 0.84375.
+        if ix < 0x33800000 then
+            result = 1.0 - x
+            return
+        end if
+        z := x * x
+        r := erff_pp0 + z * (erff_pp1 + z * erff_pp2)
+        s := 1.0 + z * (erff_qq1 + z * (erff_qq2 + z * erff_qq3))
+        y := r / s
+        if signed_word(hx) < 0x3e800000 then
+            result = 1.0 - (x + x * y)
+        else
+            mut t: f32 = x * y
+            t = t + (x - 0.5)
+            result = 0.5 - t
+        end if
+        return
+    end if
+    if ix < 0x3fa00000 then
+        s := abs_f32(x) - 1.0
+        p := erff_pa0 + s * (erff_pa1 + s * (erff_pa2 + s * erff_pa3))
+        q := 1.0 + s * (erff_qa1 + s * (erff_qa2 + s * erff_qa3))
+        if negative then
+            z := erff_erx + p / q
+            result = 1.0 + z
+        else
+            z := 1.0 - erff_erx
+            result = z - p / q
+        end if
+        return
+    end if
+    if ix < 0x41300000 then
+        --  |x| < 11.
+        if negative and ix >= 0x40a00000 then
+            --  x < -5.
+            result = 2.0 - erff_tiny
+            return
+        end if
+        a := abs_f32(x)
+        t := erfc_tail_f32(a, hx, ix < 0x4036db8c)
+        result = if negative then 2.0 - t / a else t / a end if
+        return
+    end if
+    result = if negative then 2.0 - erff_tiny else erff_tiny * erff_tiny end if
 end erfc_f32
 
-gamma_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
-end gamma_f64
+--  sin(πx) for x < 0 and |x| < 2^52, without forming π*x: x is reduced
+--  mod 2 exactly and the octant picks msun's sine or cosine kernel.
+sin_pi_f64: (x: f64) -> (result: f64) =
+    mut y: f64 = -x
+    mut vz: f64 = y + 0x1.0p52
+    mut z: f64 = vz - 0x1.0p52
+    if z == y then
+        result = 0.0
+        return
+    end if
+    vz = y + 0x1.0p50
+    --  The low bits of the rounded y, in units of 0.25.
+    mut n: u32 = low_word(vz)
+    z = vz - 0x1.0p50
+    if z > y then
+        z = z - 0.25
+        n = n -% 1
+    end if
+    n = n & 7
+    y = y - z + f64(n) * 0.25
+    if n == 0 then
+        y = sin_pi_kernel_sin_f64(pi * y)
+    elsif n <= 2 then
+        y = sin_pi_kernel_cos_f64(pi * (0.5 - y))
+    elsif n <= 4 then
+        y = sin_pi_kernel_sin_f64(pi * (1.0 - y))
+    elsif n <= 6 then
+        y = -sin_pi_kernel_cos_f64(pi * (y - 1.5))
+    else
+        y = sin_pi_kernel_sin_f64(pi * (y - 2.0))
+    end if
+    result = -y
+end sin_pi_f64
 
-gamma_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
-end gamma_f32
+--  msun's k_sin.c and k_cos.c for an exact argument |x| <= π/4.
+sin_pi_kernel_sin_f64: (x: f64) -> (result: f64) =
+    z := x * x
+    w := z * z
+    r := sin_pi_s2 + z * (sin_pi_s3 + z * sin_pi_s4) + z * w * (sin_pi_s5 + z * sin_pi_s6)
+    v := z * x
+    result = x + v * (sin_pi_s1 + z * r)
+end sin_pi_kernel_sin_f64
+
+sin_pi_kernel_cos_f64: (x: f64) -> (result: f64) =
+    z := x * x
+    mut w: f64 = z * z
+    r := z * (cos_pi_c1 + z * (cos_pi_c2 + z * cos_pi_c3))
+         + w * w * (cos_pi_c4 + z * (cos_pi_c5 + z * cos_pi_c6))
+    hz := 0.5 * z
+    w = 1.0 - hz
+    result = w + (((1.0 - w) - hz) + z * r)
+end sin_pi_kernel_cos_f64
+
+sin_pi_f32: (x: f32) -> (result: f32) =
+    mut y: f32 = -x
+    mut vz: f32 = y + 0x1.0p23
+    mut z: f32 = vz - 0x1.0p23
+    if z == y then
+        result = 0.0
+        return
+    end if
+    vz = y + 0x1.0p21
+    mut n: u32 = bits_f32(vz)
+    z = vz - 0x1.0p21
+    if z > y then
+        z = z - 0.25
+        n = n -% 1
+    end if
+    n = n & 7
+    y = y - z + f32(n) * 0.25
+    if n == 0 then
+        y = sin_pi_kernel_sin_f32(f64(lgammaf_pi * y))
+    elsif n <= 2 then
+        y = sin_pi_kernel_cos_f32(f64(lgammaf_pi * (0.5 - y)))
+    elsif n <= 4 then
+        y = sin_pi_kernel_sin_f32(f64(lgammaf_pi * (1.0 - y)))
+    elsif n <= 6 then
+        y = -sin_pi_kernel_cos_f32(f64(lgammaf_pi * (y - 1.5)))
+    else
+        y = sin_pi_kernel_sin_f32(f64(lgammaf_pi * (y - 2.0)))
+    end if
+    result = -y
+end sin_pi_f32
+
+--  msun's k_sinf.c and k_cosf.c: f64 kernels with an f32 result.
+sin_pi_kernel_sin_f32: (x: f64) -> (result: f32) =
+    z := x * x
+    w := z * z
+    r := sin_pif_s3 + z * sin_pif_s4
+    s := z * x
+    result = f32((x + s * (sin_pif_s1 + z * sin_pif_s2)) + s * w * r)
+end sin_pi_kernel_sin_f32
+
+sin_pi_kernel_cos_f32: (x: f64) -> (result: f32) =
+    z := x * x
+    w := z * z
+    r := cos_pif_c2 + z * cos_pif_c3
+    result = f32(((1.0 + z * cos_pif_c0) + w * cos_pif_c1) + (w * z) * r)
+end sin_pi_kernel_cos_f32
 
 log_gamma_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    lx := low_word(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7ff00000 then
+        result = x * x
+        return
+    end if
+    if ix < 0x3c700000 then
+        --  |x| < 2^-56: -log|x|.
+        if (ix | lx) == 0 then
+            result = f64.infinity
+            return
+        end if
+        result = -log_f64(abs_f64(x))
+        return
+    end if
+    mut a: f64 = x
+    mut nadj: f64 = 0.0
+    if negative then
+        if ix >= 0x43300000 then
+            --  |x| >= 2^52: a negative integer.
+            result = f64.infinity
+            return
+        end if
+        t := sin_pi_f64(x)
+        if t == 0.0 then
+            result = f64.infinity
+            return
+        end if
+        --  Γ(x)Γ(-x)(-x) = π/sin(πx).
+        nadj = log_f64(pi / abs_f64(t * x))
+        a = -x
+    end if
+    mut r: f64 = 0.0
+    if ((ix -% 0x3ff00000) | lx) == 0 or ((ix -% 0x40000000) | lx) == 0 then
+        --  lgamma(1) = lgamma(2) = 0.
+        r = 0.0
+    elsif ix < 0x40000000 then
+        --  a < 2: reduced to [ymin - 0.23, ymin + 0.27] or near 1 or 2.
+        mut y: f64 = 0.0
+        mut i: i32 = 0
+        if ix <= 0x3feccccc then
+            --  lgamma(a) = lgamma(a+1) - log(a).
+            r = -log_f64(a)
+            if ix >= 0x3fe76944 then
+                y = 1.0 - a
+                i = 0
+            elsif ix >= 0x3fcda661 then
+                y = a - (lgamma_tc - 1.0)
+                i = 1
+            else
+                y = a
+                i = 2
+            end if
+        else
+            r = 0.0
+            if ix >= 0x3ffbb4c3 then
+                y = 2.0 - a
+                i = 0
+            elsif ix >= 0x3ff3b4c4 then
+                y = a - lgamma_tc
+                i = 1
+            else
+                y = a - 1.0
+                i = 2
+            end if
+        end if
+        if i == 0 then
+            z := y * y
+            p1 := lgamma_a0 + z * (lgamma_a2 + z * (lgamma_a4 + z * (lgamma_a6
+                  + z * (lgamma_a8 + z * lgamma_a10))))
+            p2 := z * (lgamma_a1 + z * (lgamma_a3 + z * (lgamma_a5 + z * (lgamma_a7
+                  + z * (lgamma_a9 + z * lgamma_a11)))))
+            p := y * p1 + p2
+            r = r + (p - y / 2.0)
+        elsif i == 1 then
+            z := y * y
+            w := z * y
+            p1 := lgamma_t0 + w * (lgamma_t3 + w * (lgamma_t6 + w * (lgamma_t9 + w * lgamma_t12)))
+            p2 := lgamma_t1 + w * (lgamma_t4 + w * (lgamma_t7 + w * (lgamma_t10 + w * lgamma_t13)))
+            p3 := lgamma_t2 + w * (lgamma_t5 + w * (lgamma_t8 + w * (lgamma_t11 + w * lgamma_t14)))
+            p := z * p1 - (lgamma_tt - w * (p2 + y * p3))
+            r = r + (lgamma_tf + p)
+        else
+            p1 := y * (lgamma_u0 + y * (lgamma_u1 + y * (lgamma_u2 + y * (lgamma_u3
+                  + y * (lgamma_u4 + y * lgamma_u5)))))
+            p2 := 1.0 + y * (lgamma_v1 + y * (lgamma_v2 + y * (lgamma_v3
+                  + y * (lgamma_v4 + y * lgamma_v5))))
+            r = r + (p1 / p2 - y / 2.0)
+        end if
+    elsif ix < 0x40200000 then
+        --  2 <= a < 8: lgamma(1+s) = log(s) + lgamma(s), down to [2, 3).
+        i := trunc_f64(a)
+        y := a - i
+        p := y * (lgamma_s0 + y * (lgamma_s1 + y * (lgamma_s2 + y * (lgamma_s3
+             + y * (lgamma_s4 + y * (lgamma_s5 + y * lgamma_s6))))))
+        q := 1.0 + y * (lgamma_r1 + y * (lgamma_r2 + y * (lgamma_r3 + y * (lgamma_r4
+             + y * (lgamma_r5 + y * lgamma_r6)))))
+        r = y / 2.0 + p / q
+        if i >= 3.0 then
+            mut z: f64 = 1.0
+            mut k: f64 = i - 1.0
+            while k >= 2.0 do
+                z = z * (y + k)
+                k = k - 1.0
+            end while
+            r = r + log_f64(z)
+        end if
+    elsif ix < 0x43700000 then
+        --  8 <= a < 2^56: Stirling's series in 1/a.
+        t := log_f64(a)
+        z := 1.0 / a
+        y := z * z
+        w := lgamma_w0 + z * (lgamma_w1 + y * (lgamma_w2 + y * (lgamma_w3 + y * (lgamma_w4
+             + y * (lgamma_w5 + y * lgamma_w6)))))
+        r = (a - 0.5) * (t - 1.0) + w
+    else
+        --  2^56 <= a.
+        r = a * (log_f64(a) - 1.0)
+    end if
+    result = if negative then nadj - r else r end if
 end log_gamma_f64
 
 log_gamma_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x7f800000 then
+        result = x * x
+        return
+    end if
+    if ix < 0x32000000 then
+        --  |x| < 2^-27: -log|x|.
+        if ix == 0 then
+            result = f32.infinity
+            return
+        end if
+        result = -log_f32(abs_f32(x))
+        return
+    end if
+    mut a: f32 = x
+    mut nadj: f32 = 0.0
+    if negative then
+        if ix >= 0x4b000000 then
+            --  |x| >= 2^23: a negative integer.
+            result = f32.infinity
+            return
+        end if
+        t := sin_pi_f32(x)
+        if t == 0.0 then
+            result = f32.infinity
+            return
+        end if
+        nadj = log_f32(lgammaf_pi / abs_f32(t * x))
+        a = -x
+    end if
+    mut r: f32 = 0.0
+    if ix == 0x3f800000 or ix == 0x40000000 then
+        r = 0.0
+    elsif ix < 0x40000000 then
+        mut y: f32 = 0.0
+        mut i: i32 = 0
+        if ix <= 0x3f666666 then
+            r = -log_f32(a)
+            if ix >= 0x3f3b4a20 then
+                y = 1.0 - a
+                i = 0
+            elsif ix >= 0x3e6d3308 then
+                y = a - (lgammaf_tc - 1.0)
+                i = 1
+            else
+                y = a
+                i = 2
+            end if
+        else
+            r = 0.0
+            if ix >= 0x3fdda618 then
+                y = 2.0 - a
+                i = 0
+            elsif ix >= 0x3f9da620 then
+                y = a - lgammaf_tc
+                i = 1
+            else
+                y = a - 1.0
+                i = 2
+            end if
+        end if
+        if i == 0 then
+            z := y * y
+            p1 := lgammaf_a0 + z * (lgammaf_a2 + z * lgammaf_a4)
+            p2 := z * (lgammaf_a1 + z * (lgammaf_a3 + z * lgammaf_a5))
+            p := y * p1 + p2
+            r = r + (p - y / 2.0)
+        elsif i == 1 then
+            p := lgammaf_t0 + y * lgammaf_t1 + y * y * (lgammaf_t2 + y * (lgammaf_t3
+                 + y * (lgammaf_t4 + y * (lgammaf_t5 + y * (lgammaf_t6 + y * lgammaf_t7)))))
+            r = r + (lgammaf_tf + p)
+        else
+            p1 := y * (lgammaf_u0 + y * (lgammaf_u1 + y * lgammaf_u2))
+            p2 := 1.0 + y * (lgammaf_v1 + y * (lgammaf_v2 + y * lgammaf_v3))
+            r = r + (p1 / p2 - y / 2.0)
+        end if
+    elsif ix < 0x41000000 then
+        --  2 <= a < 8.
+        i := trunc_f32(a)
+        y := a - i
+        p := y * (lgammaf_s0 + y * (lgammaf_s1 + y * (lgammaf_s2 + y * lgammaf_s3)))
+        q := 1.0 + y * (lgammaf_r1 + y * (lgammaf_r2 + y * lgammaf_r3))
+        r = y / 2.0 + p / q
+        if i >= 3.0 then
+            mut z: f32 = 1.0
+            mut k: f32 = i - 1.0
+            while k >= 2.0 do
+                z = z * (y + k)
+                k = k - 1.0
+            end while
+            r = r + log_f32(z)
+        end if
+    elsif ix < 0x4d000000 then
+        --  8 <= a < 2^27.
+        t := log_f32(a)
+        z := 1.0 / a
+        y := z * z
+        w := lgammaf_w0 + z * (lgammaf_w1 + y * lgammaf_w2)
+        r = (a - 0.5) * (t - 1.0) + w
+    else
+        r = a * (log_f32(a) - 1.0)
+    end if
+    result = if negative then nadj - r else r end if
 end log_gamma_f32
+
+--  The gamma function is not msun's, whose tgamma is under another
+--  licence, but this module's own.  Γ(x+1) = xΓ(x) carries any x to y in
+--  [1, 2]: for x >= 2 Γ(x) = Γ(y)(y)(y+1)...(x-1), each factor exact,
+--  and for x < 1 Γ(x) = Γ(y)/(x(x+1)...(y-1)).  On [1, 2], Γ(1.5 + t) is
+--  a polynomial in t, Chebyshev's interpolant of degree 23 (13 for f32)
+--  at its nodes in [-0.5, 0.5], of relative error below 2^-56 (2^-34).
+--  For f64 the product is kept as an unevaluated sum of two f64 values,
+--  rescaled by powers of two, so its rounding errors stay below 2^-100
+--  and only the polynomial and the final rounding count: under 2 ulps.
+--  For f32 it runs in f64.
+
+--  A value hi + lo, |lo| <= half an ulp of hi.
+pair: type = struct
+    high: f64
+    low: f64
+end pair
+
+--  a + b exactly, as a pair (Knuth's two-sum).
+two_sum_f64: (a: f64, b: f64) -> (sum: pair) =
+    s := a + b
+    v := s - a
+    e := (a - (s - v)) + (b - v)
+    sum = (high: s, low: e)
+end two_sum_f64
+
+--  a * b exactly, as a pair (Dekker's product, splitting each operand
+--  into halves of 26 bits), for |a|, |b| below 2^995.
+two_product_f64: (a: f64, b: f64) -> (product: pair) =
+    split: f64 = 0x1.0p27 + 1.0
+    ca := split * a
+    ah := ca - (ca - a)
+    al := a - ah
+    cb := split * b
+    bh := cb - (cb - b)
+    bl := b - bh
+    p := a * b
+    e := ((ah * bh - p) + ah * bl + al * bh) + al * bl
+    product = (high: p, low: e)
+end two_product_f64
+
+pair_multiply: (a: pair, b: pair) -> (product: pair) =
+    p := two_product_f64(a.high, b.high)
+    low := p.low + (a.high * b.low + a.low * b.high)
+    s := p.high + low
+    product = (high: s, low: low - (s - p.high))
+end pair_multiply
+
+--  Γ(1.5 + t) for |t| <= 0.5, as a pair, with the first-order effect of
+--  an error e in t added.
+gamma_base_f64: (t: f64, e: f64) -> (value: pair) =
+    if e == 0.0 and (t == 0.5 or t == -0.5) then
+        --  Γ(1) = Γ(2) = 1 exactly, so the factorials come out exact.
+        value = (high: 1.0, low: 0.0)
+        return
+    end if
+    p := gamma_c1 + t * (gamma_c2 + t * (gamma_c3 + t * (gamma_c4 + t * (gamma_c5
+         + t * (gamma_c6 + t * (gamma_c7 + t * (gamma_c8 + t * (gamma_c9 + t * (gamma_c10
+         + t * (gamma_c11 + t * (gamma_c12 + t * (gamma_c13 + t * (gamma_c14 + t * (gamma_c15
+         + t * (gamma_c16 + t * (gamma_c17 + t * (gamma_c18 + t * (gamma_c19 + t * (gamma_c20
+         + t * (gamma_c21 + t * (gamma_c22 + t * gamma_c23)))))))))))))))))))))
+    --  Γ'(1.5 + t), roughly: enough for the correction, itself below an ulp.
+    slope := gamma_c1 + t * (2.0 * gamma_c2 + t * (3.0 * gamma_c3 + t * (4.0 * gamma_c4
+             + t * (5.0 * gamma_c5 + t * 6.0 * gamma_c6))))
+    s := gamma_c0_low + t * p + e * slope
+    high := gamma_c0_high + s
+    value = (high: high, low: (gamma_c0_high - high) + s)
+end gamma_base_f64
+
+gamma_f64: (x: f64) -> (result: f64) =
+    if x <> x then
+        result = x + x
+        return
+    end if
+    if x == 0.0 then
+        --  ±inf with zero's sign.
+        result = 1.0 / x
+        return
+    end if
+    if x >= 172.0 then
+        --  Above 171.62..., Γ overflows.
+        result = x * 0x1.0p1023
+        return
+    end if
+    if x < 0.0 and floor_f64(x) == x then
+        --  A negative integer, -inf included.
+        result = (x - x) / (x - x)
+        return
+    end if
+    if x < -190.0 then
+        --  |Γ(x)| < 2^-1100: zero, with the sign of Γ, negative where
+        --  floor(x) is odd.  Beyond 2^53 every value is an even integer.
+        whole := floor_f64(x)
+        odd := whole > -0x1.0p53 and floor_f64(whole * 0.5) * 2.0 <> whole
+        result = if odd then -0x1.0p-1074 * 0x1.0p-1074 else 0x1.0p-1074 * 0x1.0p-1074 end if
+        return
+    end if
+    --  The product, held as product * 2^power.
+    mut product: pair = (high: 1.0, low: 0.0)
+    mut power: i32 = 0
+    mut t: f64 = 0.0
+    mut e: f64 = 0.0
+    above := x >= 2.0
+    if above then
+        n := floor_f64(x) - 1.0
+        y := x - n
+        t = y - 1.5
+        mut k: f64 = 1.0
+        while k <= n do
+            product = pair_multiply(product, (high: x - k, low: 0.0))
+            if product.high > 0x1.0p500 then
+                product = (high: product.high * 0x1.0p-500, low: product.low * 0x1.0p-500)
+                power = power + 500
+            end if
+            k = k + 1.0
+        end while
+    else
+        n := floor_f64(2.0 - x)
+        y := two_sum_f64(x, n)
+        t = y.high - 1.5
+        e = y.low
+        mut k: f64 = 0.0
+        while k < n do
+            product = pair_multiply(product, two_sum_f64(x, k))
+            if abs_f64(product.high) < 0x1.0p-500 then
+                product = (high: product.high * 0x1.0p500, low: product.low * 0x1.0p500)
+                power = power - 500
+            elsif abs_f64(product.high) > 0x1.0p500 then
+                product = (high: product.high * 0x1.0p-500, low: product.low * 0x1.0p-500)
+                power = power + 500
+            end if
+            k = k + 1.0
+        end while
+    end if
+    base := gamma_base_f64(t, e)
+    if above then
+        r := pair_multiply(base, product)
+        result = scale_f64(r.high + r.low, power)
+    else
+        --  base / product, the quotient corrected by its remainder.
+        q := base.high / product.high
+        qp := two_product_f64(q, product.high)
+        remainder := ((base.high - qp.high) - qp.low + base.low) - q * product.low
+        result = scale_f64(q + remainder / product.high, -power)
+    end if
+end gamma_f64
+
+gamma_f32: (x: f32) -> (result: f32) =
+    if x <> x then
+        result = x + x
+        return
+    end if
+    if x == 0.0 then
+        result = 1.0 / x
+        return
+    end if
+    if x >= 36.0 then
+        result = x * 0x1.0p127
+        return
+    end if
+    if x < 0.0 and floor_f32(x) == x then
+        result = (x - x) / (x - x)
+        return
+    end if
+    if x < -50.0 then
+        whole := floor_f32(x)
+        odd := whole > -0x1.0p24 and floor_f32(whole * 0.5) * 2.0 <> whole
+        result = if odd then -0x1.0p-149 * 0x1.0p-149 else 0x1.0p-149 * 0x1.0p-149 end if
+        return
+    end if
+    wx := f64(x)
+    mut product: f64 = 1.0
+    mut y: f64 = wx
+    above := wx >= 2.0
+    if above then
+        while y >= 2.0 do
+            y = y - 1.0
+            product = product * y
+        end while
+    else
+        while y < 1.0 do
+            product = product * y
+            y = y + 1.0
+        end while
+    end if
+    t := y - 1.5
+    base := gammaf_c0_high + t * (gammaf_c1 + t * (gammaf_c2 + t * (gammaf_c3
+            + t * (gammaf_c4 + t * (gammaf_c5 + t * (gammaf_c6 + t * (gammaf_c7
+            + t * (gammaf_c8 + t * (gammaf_c9 + t * (gammaf_c10 + t * (gammaf_c11
+            + t * (gammaf_c12 + t * gammaf_c13))))))))))))
+    wide := if above then base * product else base / product end if
+    if abs_f64(wide) >= 0x1.ffffffp127 then
+        --  Too large for f32: overflow in f32 arithmetic.
+        huge: f32 = 0x1.0p127
+        result = if wide > 0.0 then huge * huge else -huge * huge end if
+        return
+    end if
+    result = f32(wide)
+end gamma_f32

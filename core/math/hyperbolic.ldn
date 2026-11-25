@@ -1,61 +1,362 @@
---  The hyperbolic functions and their inverses.  Not yet ported: each routine returns NaN.
+--  The hyperbolic functions and their inverses: msun's e_sinh.c,
+--  e_sinhf.c, e_cosh.c, e_coshf.c, s_tanh.c, s_tanhf.c, s_asinh.c,
+--  s_asinhf.c, e_acosh.c, e_acoshf.c, e_atanh.c and e_atanhf.c, under
+--  Sun's notice in math.ldn.  Near the overflow threshold sinh and cosh
+--  take exp(x/2)/2 * exp(x/2), as Sun's original did, where FreeBSD now
+--  calls a routine under another licence.
 
+--  sinh(x) = (E + E/(E+1))/2 with E = expm1(|x|) up to 22 (9 for f32),
+--  exp(|x|)/2 up to log(f64.max), exp(|x|/2)/2 * exp(|x|/2) up to the
+--  overflow threshold, and an overflow beyond.
 sinh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    jx := high_word(x)
+    ix := jx & 0x7fffffff
+    if ix >= 0x7ff00000 then
+        result = x + x
+        return
+    end if
+    h: f64 = if jx >= 0x80000000 then -0.5 else 0.5 end if
+    if ix < 0x40360000 then
+        --  |x| < 22.
+        if ix < 0x3e300000 then
+            --  |x| < 2^-28: sinh(x) = x.
+            result = x
+            return
+        end if
+        t := expm1_f64(abs_f64(x))
+        if ix < 0x3ff00000 then
+            result = h * (2.0 * t - t * t / (t + 1.0))
+            return
+        end if
+        result = h * (t + t / (t + 1.0))
+        return
+    end if
+    if ix < 0x40862e42 then
+        --  |x| < log(f64.max).
+        result = h * exp_f64(abs_f64(x))
+        return
+    end if
+    if ix <= 0x408633ce then
+        --  Up to the overflow threshold.
+        w := exp_f64(0.5 * abs_f64(x))
+        t := h * w
+        result = t * w
+        return
+    end if
+    result = x * 1.0e307
 end sinh_f64
 
 sinh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    jx := bits_f32(x)
+    ix := jx & 0x7fffffff
+    if ix >= 0x7f800000 then
+        result = x + x
+        return
+    end if
+    h: f32 = if jx >= 0x80000000 then -0.5 else 0.5 end if
+    if ix < 0x41100000 then
+        --  |x| < 9.
+        if ix < 0x39800000 then
+            --  |x| < 2^-12.
+            result = x
+            return
+        end if
+        t := expm1_f32(abs_f32(x))
+        if ix < 0x3f800000 then
+            result = h * (2.0 * t - t * t / (t + 1.0))
+            return
+        end if
+        result = h * (t + t / (t + 1.0))
+        return
+    end if
+    if ix < 0x42b17217 then
+        result = h * exp_f32(abs_f32(x))
+        return
+    end if
+    if ix <= 0x42b2d4fc then
+        w := exp_f32(0.5 * abs_f32(x))
+        t := h * w
+        result = t * w
+        return
+    end if
+    result = x * 1.0e37
 end sinh_f32
 
+--  cosh(x) = 1 + expm1(|x|)^2/(2*exp(|x|)) up to ln2/2, (exp(|x|) +
+--  1/exp(|x|))/2 up to 22 (9 for f32), then as sinh.
 cosh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    ix := high_word(x) & 0x7fffffff
+    if ix >= 0x7ff00000 then
+        result = x * x
+        return
+    end if
+    if ix < 0x3fd62e43 then
+        t := expm1_f64(abs_f64(x))
+        w := 1.0 + t
+        if ix < 0x3c800000 then
+            result = w
+            return
+        end if
+        result = 1.0 + (t * t) / (w + w)
+        return
+    end if
+    if ix < 0x40360000 then
+        t := exp_f64(abs_f64(x))
+        result = 0.5 * t + 0.5 / t
+        return
+    end if
+    if ix < 0x40862e42 then
+        result = 0.5 * exp_f64(abs_f64(x))
+        return
+    end if
+    if ix <= 0x408633ce then
+        w := exp_f64(0.5 * abs_f64(x))
+        t := 0.5 * w
+        result = t * w
+        return
+    end if
+    huge: f64 = 1.0e300
+    result = huge * huge
 end cosh_f64
 
 cosh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    ix := bits_f32(x) & 0x7fffffff
+    if ix >= 0x7f800000 then
+        result = x * x
+        return
+    end if
+    if ix < 0x3eb17218 then
+        t := expm1_f32(abs_f32(x))
+        w := 1.0 + t
+        if ix < 0x39800000 then
+            result = 1.0
+            return
+        end if
+        result = 1.0 + (t * t) / (w + w)
+        return
+    end if
+    if ix < 0x41100000 then
+        t := exp_f32(abs_f32(x))
+        result = 0.5 * t + 0.5 / t
+        return
+    end if
+    if ix < 0x42b17217 then
+        result = 0.5 * exp_f32(abs_f32(x))
+        return
+    end if
+    if ix <= 0x42b2d4fc then
+        w := exp_f32(0.5 * abs_f32(x))
+        t := 0.5 * w
+        result = t * w
+        return
+    end if
+    huge: f32 = 1.0e30
+    result = huge * huge
 end cosh_f32
 
+--  tanh(x) = -t/(t+2) with t = expm1(-2|x|) below 1, 1 - 2/(t+2) with
+--  t = expm1(2|x|) up to 22 (9 for f32), and ±(1 - tiny) beyond.
 tanh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    jx := high_word(x)
+    ix := jx & 0x7fffffff
+    negative := jx >= 0x80000000
+    if ix >= 0x7ff00000 then
+        --  tanh(±inf) = ±1, tanh(NaN) = NaN.
+        result = if negative then 1.0 / x - 1.0 else 1.0 / x + 1.0 end if
+        return
+    end if
+    mut z: f64 = 0.0
+    if ix < 0x40360000 then
+        if ix < 0x3e300000 then
+            result = x
+            return
+        end if
+        if ix >= 0x3ff00000 then
+            t := expm1_f64(2.0 * abs_f64(x))
+            z = 1.0 - 2.0 / (t + 2.0)
+        else
+            t := expm1_f64(-2.0 * abs_f64(x))
+            z = -t / (t + 2.0)
+        end if
+    else
+        tiny: f64 = 1.0e-300
+        z = 1.0 - tiny
+    end if
+    result = if negative then -z else z end if
 end tanh_f64
 
 tanh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    jx := bits_f32(x)
+    ix := jx & 0x7fffffff
+    negative := jx >= 0x80000000
+    if ix >= 0x7f800000 then
+        result = if negative then 1.0 / x - 1.0 else 1.0 / x + 1.0 end if
+        return
+    end if
+    mut z: f32 = 0.0
+    if ix < 0x41100000 then
+        if ix < 0x39800000 then
+            result = x
+            return
+        end if
+        if ix >= 0x3f800000 then
+            t := expm1_f32(2.0 * abs_f32(x))
+            z = 1.0 - 2.0 / (t + 2.0)
+        else
+            t := expm1_f32(-2.0 * abs_f32(x))
+            z = -t / (t + 2.0)
+        end if
+    else
+        tiny: f32 = 1.0e-30
+        z = 1.0 - tiny
+    end if
+    result = if negative then -z else z end if
 end tanh_f32
 
+--  asinh(x) = sign(x)*log(|x| + sqrt(x*x+1)): x itself below 2^-28,
+--  log1p(|x| + x^2/(1 + sqrt(1+x^2))) up to 2, log(2|x| + 1/(|x| +
+--  sqrt(x*x+1))) up to 2^28, and log(|x|) + ln2 beyond.
 asinh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x7ff00000 then
+        result = x + x
+        return
+    end if
+    if ix < 0x3e300000 then
+        result = x
+        return
+    end if
+    mut w: f64 = 0.0
+    if ix > 0x41b00000 then
+        w = log_f64(abs_f64(x)) + ln_2
+    elsif ix > 0x40000000 then
+        t := abs_f64(x)
+        w = log_f64(2.0 * t + 1.0 / (sqrt_f64(x * x + 1.0) + t))
+    else
+        t := x * x
+        w = log1p_f64(abs_f64(x) + t / (1.0 + sqrt_f64(1.0 + t)))
+    end if
+    result = if hx < 0x80000000 then w else -w end if
 end asinh_f64
 
 asinh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x7f800000 then
+        result = x + x
+        return
+    end if
+    if ix < 0x31800000 then
+        result = x
+        return
+    end if
+    mut w: f32 = 0.0
+    if ix > 0x4d800000 then
+        w = log_f32(abs_f32(x)) + asinh_ln2_f32
+    elsif ix > 0x40000000 then
+        t := abs_f32(x)
+        w = log_f32(2.0 * t + 1.0 / (sqrt_f32(x * x + 1.0) + t))
+    else
+        t := x * x
+        w = log1p_f32(abs_f32(x) + t / (1.0 + sqrt_f32(1.0 + t)))
+    end if
+    result = if hx < 0x80000000 then w else -w end if
 end asinh_f32
 
+--  ln2 rounded to f32, as msun's float routines take it.
+asinh_ln2_f32: f32 = 0x1.62e43p-1
+
+--  acosh(x) = log(x + sqrt(x*x-1)): NaN below 1, log1p(t + sqrt(2t +
+--  t*t)) with t = x-1 up to 2, log(2x - 1/(x + sqrt(x*x-1))) up to 2^28,
+--  and log(x) + ln2 beyond.
 acosh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    lx := low_word(x)
+    if signed_word(hx) < 0x3ff00000 then
+        result = (x - x) / (x - x)
+    elsif hx >= 0x41b00000 then
+        result = if hx >= 0x7ff00000 then x + x else log_f64(x) + ln_2 end if
+    elsif ((hx -% 0x3ff00000) | lx) == 0 then
+        result = 0.0
+    elsif hx > 0x40000000 then
+        t := x * x
+        result = log_f64(2.0 * x - 1.0 / (x + sqrt_f64(t - 1.0)))
+    else
+        t := x - 1.0
+        result = log1p_f64(t + sqrt_f64(2.0 * t + t * t))
+    end if
 end acosh_f64
 
 acosh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    hx := bits_f32(x)
+    if signed_word(hx) < 0x3f800000 then
+        result = (x - x) / (x - x)
+    elsif hx >= 0x4d800000 then
+        result = if hx >= 0x7f800000 then x + x else log_f32(x) + asinh_ln2_f32 end if
+    elsif hx == 0x3f800000 then
+        result = 0.0
+    elsif hx > 0x40000000 then
+        t := x * x
+        result = log_f32(2.0 * x - 1.0 / (x + sqrt_f32(t - 1.0)))
+    else
+        t := x - 1.0
+        result = log1p_f32(t + sqrt_f32(2.0 * t + t * t))
+    end if
 end acosh_f32
 
+--  atanh(x) = 0.5*log1p(2x + 2x*x/(1-x)) below 0.5 and 0.5*log1p(2x/(1-x))
+--  from there, for x = |x|; ±inf at ±1 and NaN beyond.
 atanh_f64: (x: f64) -> (result: f64) =
-    _ = x
-    result = f64.nan
+    hx := high_word(x)
+    lx := low_word(x)
+    ix := hx & 0x7fffffff
+    if (ix | ((lx | (0 -% lx)) >> 31)) > 0x3ff00000 then
+        --  |x| > 1, NaN included.
+        result = (x - x) / (x - x)
+        return
+    end if
+    if ix == 0x3ff00000 then
+        result = x / 0.0
+        return
+    end if
+    if ix < 0x3e300000 then
+        result = x
+        return
+    end if
+    a := with_high_word(x, ix)
+    mut t: f64 = 0.0
+    if ix < 0x3fe00000 then
+        t = a + a
+        t = 0.5 * log1p_f64(t + t * a / (1.0 - a))
+    else
+        t = 0.5 * log1p_f64((a + a) / (1.0 - a))
+    end if
+    result = if hx < 0x80000000 then t else -t end if
 end atanh_f64
 
 atanh_f32: (x: f32) -> (result: f32) =
-    _ = x
-    result = f32.nan
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    if ix > 0x3f800000 then
+        result = (x - x) / (x - x)
+        return
+    end if
+    if ix == 0x3f800000 then
+        result = x / 0.0
+        return
+    end if
+    if ix < 0x31800000 then
+        result = x
+        return
+    end if
+    a := from_bits_f32(ix)
+    mut t: f32 = 0.0
+    if ix < 0x3f000000 then
+        t = a + a
+        t = 0.5 * log1p_f32(t + t * a / (1.0 - a))
+    else
+        t = 0.5 * log1p_f32((a + a) / (1.0 - a))
+    end if
+    result = if hx < 0x80000000 then t else -t end if
 end atanh_f32

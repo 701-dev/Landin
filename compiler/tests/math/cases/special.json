@@ -1,0 +1,341 @@
+{
+ "fixtures": {
+  "math-erf": {
+   "summary": "core/math's erf is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "erf",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-6:6",
+      "log:-1074:3:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "-1",
+      "0.84375",
+      "-0.84375",
+      "1.25",
+      "-1.25",
+      "0x1.6db6db6db6db7p1",
+      "6",
+      "-6",
+      "28",
+      "0x1p-28"
+     ]
+    },
+    {
+     "fn": "erf",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-4:4",
+      "log:-149:3:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "-1",
+      "0.84375",
+      "-0.84375",
+      "1.25",
+      "-1.25",
+      "0x1.6db6dcp1",
+      "4",
+      "-4",
+      "11",
+      "-11",
+      "0x1p-14"
+     ]
+    }
+   ]
+  },
+  "math-erfc": {
+   "summary": "core/math's erfc is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "erfc",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-6:28",
+      "log:-1074:5:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "-1",
+      "0.84375",
+      "-0.84375",
+      "1.25",
+      "-1.25",
+      "0x1.6db6db6db6db7p1",
+      "6",
+      "-6",
+      "28",
+      "0x1p-28",
+      "27.2",
+      "26.5"
+     ]
+    },
+    {
+     "fn": "erfc",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-5:11",
+      "log:-149:4:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "-1",
+      "0.84375",
+      "-0.84375",
+      "1.25",
+      "-1.25",
+      "0x1.6db6dcp1",
+      "4",
+      "-4",
+      "11",
+      "-11",
+      "0x1p-14",
+      "10",
+      "9.5"
+     ]
+    }
+   ]
+  },
+  "math-gamma": {
+   "summary": "core/math's gamma is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs",
+   "tables": [
+    {
+     "fn": "gamma",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-190:172",
+      "uniform:-4:6",
+      "log:-1074:8:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "2",
+      "3",
+      "0.5",
+      "-0.5",
+      "-1",
+      "-2",
+      "-1.5",
+      "10",
+      "23",
+      "171.5",
+      "171.625",
+      "-0x1.7ffffffffffffp7",
+      "-170.5",
+      "-190.5",
+      "0x1p-1023",
+      "-0x1p-1023"
+     ]
+    },
+    {
+     "fn": "gamma",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-50:36",
+      "uniform:-4:6",
+      "log:-149:6:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "2",
+      "3",
+      "0.5",
+      "-0.5",
+      "-1",
+      "-2",
+      "-1.5",
+      "10",
+      "35",
+      "35.0625",
+      "-42.5",
+      "-45.75",
+      "0x1p-127",
+      "-0x1p-127"
+     ]
+    }
+   ]
+  },
+  "math-log-gamma": {
+   "summary": "core/math's log_gamma at f64 is within one float of MPFR's correctly rounded result, for its specials, random inputs and hardest-to-round inputs",
+   "tables": [
+    {
+     "fn": "log_gamma",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:0:10",
+      "log:-1074:1024:+",
+      "uniform:-10:0"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "2",
+      "3",
+      "0.5",
+      "-0.5",
+      "-1",
+      "-2",
+      "-1.5",
+      "8",
+      "1.4616321449683622",
+      "0x1p-56",
+      "0x1p56",
+      "-0x1p52"
+     ]
+    }
+   ]
+  },
+  "math-log-gamma-f32": {
+   "summary": "core/math's log_gamma at f32 is within one float of MPFR's correctly rounded result, for its specials, random inputs and hardest-to-round inputs",
+   "tables": [
+    {
+     "fn": "log_gamma",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:0:10",
+      "log:-149:128:+",
+      "uniform:-10:0"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "2",
+      "3",
+      "0.5",
+      "-0.5",
+      "-1",
+      "-2",
+      "-1.5",
+      "8",
+      "0x1.762d86p0",
+      "0x1p-27",
+      "0x1p27",
+      "-0x1p23"
+     ]
+    }
+   ]
+  }
+ }
+}
