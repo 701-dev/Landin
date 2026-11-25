@@ -116,7 +116,12 @@ failed link, and two `--debug=full` links that must be the same bytes
 `LANDIN_REFINE=REFINE python3 -m unittest scripts.tests.test_cli_native.NativeWindowsLink`.
 
 An arm64 Windows program runs on an arm64 Windows machine, as "On a
-Windows host" below says, and Wine runs one only on an arm64 Linux host.
+Windows host" below says. A Windows 11 arm64 guest under KVM on an arm64
+Linux host is one: it has run the whole `windows-arm64-runtime` corpus,
+the ABI kind and the LLDB source sessions from their bundles, but its
+LLDB lost a single step every few dozen, so the stack switch's stepping
+session timed out there while it passes on the gate's runner. Wine runs
+an arm64 program only on an arm64 Linux host, and has not been tried.
 On an x86-64 host `--target=windows-arm64 --prepare-only` emits and links
 the whole corpus, which finds every refusal and link failure; the gate's
 arm64 runner is the execution verdict.
