@@ -671,11 +671,11 @@ package body Landin.Tests.Backend_Plans_Suite is
       Prepare (Item, Unit, Site);
       --  SR-1694: a C record of one float, and a distinct f32, which
       --  lowering holds as the same one-field aggregate.
-      Single := IR.Add_Nominal_Type (Unit, 3);
+      Single := IR.Add_Nominal_Type (Unit, 1);
       IR.Set_Nominal_Shape
         (Unit, Single, [1 => (Element => Landin.Types.F32, others => <>)],
          Landin.Layouts.C);
-      Real := IR.Add_Nominal_Type (Unit, 4);
+      Real := IR.Add_Nominal_Type (Unit, 2);
       IR.Set_Nominal_Shape
         (Unit, Real, [1 => (Element => Landin.Types.F32, others => <>)],
          Landin.Layouts.C);

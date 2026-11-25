@@ -34628,6 +34628,116 @@ options, and `scripts/tests/test_cli_native.py`'s
 twice with llvm-mingw's drivers where they are on PATH and compares the
 images and PDBs.
 
+### D2471 — An imported function's address on COFF is its `__imp_` pointer
+
+**From** D2190 and D2348.
+
+**The discrepancy:** x86-64 took an imported function's address as ELF's
+PIE does, `movq NAME@GOTPCREL(%rip)`. COFF has no GOT, and Clang's COFF
+assembler takes the suffix as a plain RIP-relative operand, so the load
+read the function's first eight bytes of code as its address, and every
+C peer handed a Landin pointer to a C function crashed there (SR-1694).
+arm64's COFF address already took `__imp_NAME`, but put the prefix
+outside a name that needs quotes, which the assembler refuses.
+
+**Chosen:** on COFF an imported function's address is loaded from
+`__imp_NAME`, the pointer a DLL import fills and the MinGW link makes for
+a definition it links in, on both architectures, with the prefix inside a
+quoted name's quotes. A routine the program defines stays `leaq NAME`.
+
+**The alternatives:** `leaq NAME`, which names a DLL function's import
+thunk rather than the function, so two addresses of one function could
+differ; and a GOT the program builds, which COFF's linkers do not.
+
+**Pinned by** the ABI fixtures `c-function-to-address`,
+`r440-native-callbacks` and `r440-native-dollar-link` in the Windows ABI
+kind on both architectures.
+
+### D2472 — A distinct type crosses Win64's C boundary as its base
+
+**From** D2190 and D213, whose transparent representation this keeps at the C boundary.
+
+**The discrepancy:** a `distinct` type is lowered as a one-field C-layout
+record, which SysV classifies by its field and so as the base. Win64
+passes a record of 1, 2, 4 or 8 bytes as one integer, floats included,
+so a `distinct f32` went in RCX where C passes the float in XMM0, and a
+C peer read garbage (SR-1694).
+
+**Chosen:** the IR marks a distinct nominal (`Mark_Distinct`), and the
+Win64 classifier gives a distinct record of one scalar field its base's
+register class, and unwraps a distinct record of one record to that
+record. The value stays the aggregate the emitter holds it as.
+
+**The alternatives:** lowering a distinct scalar as its scalar at the C
+boundary alone, which gives one type two representations in the IR; and
+classifying every one-field record as its field, which Win64 C does not
+do for a `struct { float x; }`.
+
+**Pinned by** `backend plans/Windows x64 positions` and the ABI fixture
+`r490-distinct-c-roundtrip` in the Windows ABI kind.
+
+### D2473 — Windows ABI fixtures link their C peers where llvm-mingw's Clang runs
+
+**From** D2189 and D2348.
+
+**The discrepancy:** a C peer is a C program, its `main` the C runtime's,
+and the flake's MinGW drivers have the import libraries but neither C
+headers nor a C runtime, so no lane compiled a peer for a Windows image
+and the Windows C plan had met no C code (SR-1694).
+
+**Chosen:** `compiler/tests/windows/check.py --kind=abi` emits each ABI
+fixture's assembly with refine on Linux and copies its peer's sources;
+execution compiles each peer with `--cc`, the pinned llvm-mingw release's
+Clang for Windows, with every lane's C flags and the fixture's `c-args`,
+and links it with the assembly, llvm-mingw's C runtime and the import
+libraries `platform/windows` names, dropping what nothing reaches, then
+holds the program to its fixture. A peer's text-mode output's CR LF reads
+as LF. A complete selection holds FreeBSD's required peers, variadic
+floats past the register slots and, on x86-64, every register Win64 makes
+a callee save, both halves of XMM6 to XMM15 among them, across a callback
+C enters. A peer's own assembly is SysV's or ELF's, or it includes a
+POSIX header, names no Windows target.
+
+**The alternatives:** a MinGW sysroot with headers and a C runtime in the
+flake for Linux, a second copy of what the Windows release carries, with
+compiler-rt's builtins for MinGW besides; MSYS2 on the runner, which no
+other lane needs; and the Microsoft C runtime, which `--link=microsoft`'s
+programs do not link.
+
+**Pinned by** the gate's `windows-runtime` and `windows-arm64-runtime`
+jobs and the fixtures `windows-variadic-floats` and
+`windows-c-entry-saves`.
+
+### D2474 — The Windows lane keeps Windows Error Reporting away with a job object
+
+**From** D2192.
+
+**The discrepancy:** the lane set the error mode its programs inherit and
+said that kept WER's dialog and wait away. On a Windows 11 host with WER
+on, run over SSH, 14 of 3,682 `windows-runtime` and 32 of 3,682
+`windows-microsoft` outcomes, every one a trap, did not finish within
+their 60 seconds: with several traps at once most still started a
+`WerFault` that ran for seconds. Measured with 24 trapping images twelve
+at a time, the error mode alone let 17 and 18 reach WER, the per-user
+`Disabled` value 6 and 14, and a job object none, twice (SR-1797).
+
+**Chosen:** besides the error mode, the lane's process joins a job object
+with `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, which every program it
+starts joins with it: an exception that ends a program ends it with the
+exception's code, as before, and WER is not asked. The whole corpus with
+WER on then passed 3,690 of 3,694 outcomes; the four others, one
+fixture's, timed out under a host load near 100 and passed alone, twice
+through the lane and 32 at once.
+
+**The alternatives:** the per-user `Disabled` value, which keeps only
+some reports away and is a setting the lane would leave changed; a README
+naming WER as a requirement and a lane that refuses a host where it is
+on, which leaves every contributor's machine to change; and
+`WerAddExcludedApplication` for each image, which needs every image's
+path before it runs and changes the user's settings.
+
+**Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
+
 ### D2290 — CodeView describes no inlined copy yet
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
