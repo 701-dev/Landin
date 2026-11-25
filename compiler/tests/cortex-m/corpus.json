@@ -3491,6 +3491,15 @@
     "runtime/math-cbrt": {
       "mode": "execute"
     },
+    "runtime/math-exp": {
+      "mode": "execute"
+    },
+    "runtime/math-exp2": {
+      "mode": "execute"
+    },
+    "runtime/math-expm1": {
+      "mode": "execute"
+    },
     "runtime/math-floor": {
       "mode": "execute"
     },
@@ -3504,6 +3513,21 @@
       "mode": "execute"
     },
     "runtime/math-hypot-f64": {
+      "mode": "execute"
+    },
+    "runtime/math-log": {
+      "mode": "execute"
+    },
+    "runtime/math-log10": {
+      "mode": "execute"
+    },
+    "runtime/math-log1p": {
+      "mode": "execute"
+    },
+    "runtime/math-log2": {
+      "mode": "execute"
+    },
+    "runtime/math-pow": {
       "mode": "execute"
     },
     "runtime/math-remainder": {
