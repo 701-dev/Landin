@@ -34776,8 +34776,9 @@ both Windows architectures reads kernel32's bounds on a prepared stack, on
 main's stack and back on the prepared one, reads address zero through
 `IsBadReadPtr`, whose access violation is dispatched on the prepared stack
 to kernel32's own handler, and traps there; and `stack report/a switch
-costs its frame`. Before the change its bounds checks failed on both
-architectures' Windows hosts.
+costs its frame`. Before the change the fixture ended with 1 on both
+architectures' Windows hosts, on x86-64 with its two checks of the bounds
+on the prepared stack failing.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 
