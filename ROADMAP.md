@@ -88,7 +88,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.25, R22.26, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -252,7 +252,7 @@ also says where a program's compile time goes among its sources, and gives
 the build and depth reports one name for each frame quantity. A measured code-quality cost attributable to
 assembly's fixed memory effect is recorded against `SR-09` before any narrower
 effect is proposed. Its ranked list answers the activations of `SR-231`,
-`SR-387`, `SR-596`, SR-869 and `SR-1023`, and measures x86-64's two-instruction
+`SR-387`, `SR-596`, `SR-869` and `SR-1023`, and measures x86-64's two-instruction
 reach of a thread instance. This takes on `SR-996` and `SR-275`, and carries the
 fresh-copy requirement. The instruction count under emulation is the
 per-routine cost report `SR-1267` asked for.
@@ -294,7 +294,7 @@ cycles, and up to 1.085 in an A/A wall run, so a pair past its tolerance is
 timed again. `compiler/tests/measure/findings.md` is the ranked list:
 arm64's allocator unused at `size`, RV64's far jumps, Cortex-M's homes
 addressed through r6, then allocation. `SR-09` and `SR-1267` are settled;
-`SR-596`, SR-869, `SR-231`, `SR-996`, `SR-577`, `SR-583` and `SR-1268` are R16.20's;
+`SR-596`, `SR-869`, `SR-231`, `SR-996`, `SR-577`, `SR-583` and `SR-1268` are R16.20's;
 `SR-275`, `SR-387` and `SR-1023` are restated with their figures, and `SR-1302`
 records the Xtensa reference's boot layout. Findings fixed on the way: the
 stack report names its frame quantities as the build report does (D1380),
@@ -412,7 +412,7 @@ then values are allocated through r0 to r7, then at the Thumb-2 levels the
 high registers and Thumb-2's forms. This takes on `SR-581`, `SR-582`, `SR-583`
 and `SR-584` at the Thumb-2 levels; `SR-596`'s float selection in VFP
 registers, measured on `runtime/firmware-mandelbrot` with the AN500
-description; SR-869's short `u64` routines on armv6-m; `SR-231`'s atom `match`
+description; `SR-869`'s short `u64` routines on armv6-m; `SR-231`'s atom `match`
 arms; `SR-996`'s counterpart against 32 KiB; `SR-577`'s float saves beside an
 assembly block; and `SR-586`'s local labels, since every Cortex-M board record
 is made again here once.
@@ -448,7 +448,7 @@ The programs and corpus lanes, the unit suites and the fixtures pass, the
 build modes agree and the scaling bound holds. The candidate passed its
 [gate](https://github.com/JanHaan/Landin/actions/runs/44578956148) and
 [boards](https://github.com/JanHaan/Landin/actions/runs/44584549572). R16.27
-takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, SR-869 and `SR-231`,
+takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, `SR-869` and `SR-231`,
 each with today's figures. Findings fixed on the way: the devices lane's
 cached consumer read a register's address only from literal words; and
 `runtime/directory-memory`, which now fits the reference at every profile,
@@ -666,7 +666,7 @@ hold, eight-byte integers and the floats a unit computes, and the Thumb-2
 levels' own registers and forms: SipHash and mandelbrot still spend about
 two fifths of their instructions on homes, and r8, r10 and r12 hold nothing.
 This takes on `SR-581`'s high registers, `SR-582`'s CBZ and CBNZ, `SR-583`'s
-bitfield instructions, `SR-596`'s float selection in VFP registers, SR-869's
+bitfield instructions, `SR-596`'s float selection in VFP registers, `SR-869`'s
 short `u64` routines on armv6-m and `SR-231`'s atom `match` arms, and `SR-1430`, the STM32H753's binary-search and merge-sort running
 more cycles after R16.24 while the M33 ran them faster: the cause found and
 the configurations no slower than R16.22's figures, or the cause recorded
@@ -758,7 +758,7 @@ Status: complete
 Depends on: R16.10
 
 What the Cortex-M, RISC-V and Xtensa items left: `SR-231`'s atom `match`
-re-testing its subject at every arm, SR-869's short `u64` routines on
+re-testing its subject at every arm, `SR-869`'s short `u64` routines on
 armv6-m, `SR-1433`'s Xtensa frame still reserving the logical-word bank,
 `SR-1468`'s `slt` then `bnez` where one `blt` would do, R551-12's bounds
 checks and `core/atomic`'s cell calls, and `SR-1578`'s lost backend case for
@@ -778,7 +778,7 @@ reads it (D2120), tests nothing a constant or an earlier test settled
 at armv6-m size executes 31% fewer instructions, the firmware set's
 `.text` at size is 6.0% smaller at armv6-m and 9.1% at the Thumb-2
 levels, and `runtime/core-text-format` now runs in the 32 KiB reference.
-SR-869's `divisor` is 548 bytes and `frame_bits` 178, short of its
+`SR-869`'s `divisor` is 548 bytes and `frame_bits` 178, short of its
 completion; it is kept with what remains, a held pair saving only the
 stores it removes on Thumb-1. The Xtensa frame is laid out after
 placement (D2116, `SR-1433`): the deepest call chain at esp32 speed falls
@@ -801,7 +801,7 @@ once and spends 6 bytes an arm, a table about 4, about 56 bytes over
 Fixed on the way: `measure.py compare` takes the directory `size` writes
 (met by two streams). `SR-1660` files a copied `refine` that cannot
 find its library, which two streams met. What is left on these targets
-is SR-869's pairs and frame record, forwarding blocks on RISC-V and
+is `SR-869`'s pairs and frame record, forwarding blocks on RISC-V and
 Xtensa, and the `match` table of constant results: none measured large
 enough for another item of its own. Every board's records were made
 again on the rig, and the boards are faster: the geometric mean of the
@@ -2533,7 +2533,9 @@ walk ends at `at_end`; none of their live text names a removed form.
 
 R15's proposal rewritten for today's library, second Io and threads.
 R21.60 and R21.61, which the maintainer placed here on 2026-11-24, bring
-`refine` itself to FreeBSD, whose programs it already builds.
+`refine` itself to FreeBSD, whose programs it already builds. R21.70,
+which the maintainer moved here on 2026-11-25, closes the gaps R21's items
+recorded on Windows.
 
 ### R21.10 — Windows x86-64
 
@@ -2878,11 +2880,35 @@ Xtensa installs failed because Debian's pool dropped two locked packages,
 which `environments/cortex-m/setup.py` now takes from
 `snapshot.debian.org` at the lock's time.
 
+### R21.70 — What Windows still lacks
+
+Status: planned
+Depends on: R21.61
+
+The gaps R21's items recorded on Windows, scheduled by the register sweep
+of 2026-11-25: `SR-1697`'s debugger case whose file name Git for Windows
+refuses, so that a Windows runner checks the repository out; `SR-1694`'s
+C peers, which run against no Windows image; `SR-1695`'s entry, which
+checks no processor level; `SR-1696`'s stack switch, which leaves the
+TEB's bounds naming the first stack, and `SR-1747`'s switch and start
+routines without the unwind tables a Windows debugger walks; `SR-1698`'s
+images, which no lane measures; `SR-1736`'s executable named without
+`.exe` and the private directory a failed link leaves; `SR-1748`'s two
+`--debug=full` builds that differ; and `SR-1797`'s lane, which keeps
+Windows Error Reporting away only where the image has disabled it.
+The maintainer moved it into R21 behind R21.61 in answering Q-285, so
+that R21's gate waits for the Windows gaps.
+
+Exit evidence: each row's completion on both Windows architectures where
+it names one, in the gate's Windows jobs, and switch_frames.py's session
+in the Windows debugger lane.
+
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
 runners, and the corpus linked by Microsoft's toolchain on both; `refine`
 built and tested on FreeBSD x86-64 in the gate and on FreeBSD arm64 in
-R21.61's recorded run.
+R21.61's recorded run; and the Windows gaps R21.70 names closed by its
+exit evidence.
 
 ## R22 — Library additions
 
@@ -3220,29 +3246,6 @@ Placed here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
-
-### R22.25 — What Windows still lacks
-
-Status: planned
-Depends on: none
-
-The gaps R21's items recorded on Windows, scheduled by the register sweep
-of 2026-11-25: `SR-1697`'s debugger case whose file name Git for Windows
-refuses, so that a Windows runner checks the repository out; `SR-1694`'s
-C peers, which run against no Windows image; `SR-1695`'s entry, which
-checks no processor level; `SR-1696`'s stack switch, which leaves the
-TEB's bounds naming the first stack, and `SR-1747`'s switch and start
-routines without the unwind tables a Windows debugger walks; `SR-1698`'s
-images, which no lane measures; `SR-1736`'s executable named without
-`.exe` and the private directory a failed link leaves; `SR-1748`'s two
-`--debug=full` builds that differ; and `SR-1797`'s lane, which keeps
-Windows Error Reporting away only where the image has disabled it.
-Placed here so that R21's gate does not wait for it; it depends on no
-other item.
-
-Exit evidence: each row's completion on both Windows architectures where
-it names one, in the gate's Windows jobs, and switch_frames.py's session
-in the Windows debugger lane.
 
 ### R22.26 — What refine-build wanted from the library
 
