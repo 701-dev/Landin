@@ -17,7 +17,7 @@ guest that builds refine unpacks it at PREFIX rather than building GCC.
 
 An existing guest is one booted fresh from the same release image, as the
 FreeBSD arm64 guest under KVM on an arm64 host is: GitHub's arm64 runners
-have no KVM, and building GCC under emulation outlasts a job (R21.61).
+have no KVM, and building GCC under emulation outlasts a job (D2470).
 
 The archive unpacks at PREFIX, /opt/landin, which the compiler's own
 programs name to find their runtime.
