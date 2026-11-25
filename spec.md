@@ -34740,6 +34740,38 @@ path before it runs and changes the user's settings.
 
 **Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
+### D2487 — A Windows image carries no time of its link
+
+**From** D2189, D2327 and D2486.
+
+**The discrepancy:** LLD writes the time of the link into a Windows
+image's COFF header and into its debug directory, which `--build-id` gives
+every image llvm-mingw's link makes, with or without debug information,
+unless `SOURCE_DATE_EPOCH` names a time. The development shell names one,
+so two links on a developer's host were the same bytes, while on the gate's
+runner, which names none, two links that fell in different seconds
+differed in those two fields: run 45591786213 met it on windows-arm64 and
+run 45597967911 on windows-x86-64. D2327 said Microsoft's `/Brepro` made
+its links the same bytes "as llvm-mingw's are", which held only where the
+variable was set.
+
+**Chosen:** llvm-mingw's link passes `/Brepro` to LLD
+(`-Wl,-Xlink=-Brepro`), which writes a hash of the image where the time
+would be, as Microsoft's link already does; a `SOURCE_DATE_EPOCH` in the
+environment changes nothing.
+
+**The alternatives:** `--no-insert-timestamp`, which writes zero and is the
+GNU linker's spelling of the same choice, where `/Brepro` keeps one
+spelling for both Windows links and a value that differs between images;
+and leaving the time to `SOURCE_DATE_EPOCH`, which makes reproducibility a
+property of the caller's environment.
+
+**Pinned by** `toolchain/a Windows link has no C runtime`, which holds the
+option, and `scripts/tests/test_cli_native.py`'s `NativeWindowsLink`
+cases `test_two_builds_are_the_same_bytes` and
+`test_two_debug_builds_are_the_same_bytes`, which link twice more than a
+second apart without `SOURCE_DATE_EPOCH`.
+
 ### D2290 — CodeView describes no inlined copy yet
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.

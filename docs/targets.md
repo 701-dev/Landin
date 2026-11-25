@@ -436,7 +436,10 @@ publication's private working directory, so the link assembles to the
 assembly's own name with `.o` there (`-save-temps=cwd`) and names the
 directory refine ran in, DWARF's `comp_dir`, in its place
 (`/pdbsourcepath:`). Microsoft's link does the same under `lld-link`;
-`link.exe` has no such option and is not claimed reproducible.
+`link.exe` has no such option and is not claimed reproducible. Neither
+link writes the time it ran: llvm-mingw's passes LLD `/Brepro`, as
+Microsoft's does, so a `SOURCE_DATE_EPOCH` in the environment, or none,
+changes nothing (D2487).
 `-o program` without `.exe` writes `program`, as asked, although
 llvm-mingw's driver adds the suffix itself (D2485).
 
@@ -687,7 +690,7 @@ and in what order they run.
 | source/panic map (`*.sources.json`) | equivalent closures with source-path spelling fixed; also compilation directory fixed when `--debug` is set | caller-spelled paths, a library file's as `/landin-library/` and its module path wherever the library is (D422), a build identity hashed over the file entries and assembly, and the SHA-256 of the final assembly |
 | `--debug=full`, `--debug=lines` assembly | equivalent closures with the compilation directory and source spelling fixed | DWARF `comp_dir` and `.file`, a library file's under `/landin-library/` (D422), and the build identity hashed over them |
 | Cortex-M device fixture ELF, object, assembly, linker script and linker map | paired builds with fixed source-path spelling in [`devices.py`](../environments/cortex-m/devices.py) | — |
-| hosted linked executable without `--debug` | equivalent closures with the output file name and the host's toolchain fixed | a file symbol named `landin` on an ELF target (D810) |
+| hosted linked executable without `--debug` | equivalent closures with the output file name and the host's toolchain fixed | a file symbol named `landin` on an ELF target (D810); on Windows a hash of the image where LLD would write the link's time (D2487) |
 | Windows linked executable and PDB with `--debug=full` | equivalent closures with the compilation directory, the output name, the source spelling and the host's toolchain fixed, under llvm-mingw's link or `lld-link` | the sources' paths, and the compilation directory as the link's (D2486) |
 
 The last row was measured before it was claimed. On the pinned Linux

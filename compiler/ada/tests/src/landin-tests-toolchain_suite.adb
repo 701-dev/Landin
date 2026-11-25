@@ -257,7 +257,8 @@ package body Landin.Tests.Toolchain_Suite is
                Facts => Landin.Targets.Windows_X86_64)),
          "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
          & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
-         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "main" & LF
+         & "-Wl,-Xlink=-Brepro" & LF & "main.s" & LF & "-lkernel32" & LF
+         & "-o" & LF & "main" & LF
          & "-fuse-ld=lld" & LF,
          "Windows links kernel32 alone, through LLD");
       --  D2289: source debugging links the PDB beside the image, which
@@ -273,7 +274,8 @@ package body Landin.Tests.Toolchain_Suite is
                Compilation_Directory => "/home/a,b")),
          "-nostdlib" & LF & "-Wl,-e,_landin_start" & LF
          & "-Wl,--stack,8388608" & LF & "-Wl,--gc-sections" & LF
-         & "main.s" & LF & "-lkernel32" & LF & "-o" & LF & "out/main.exe"
+         & "-Wl,-Xlink=-Brepro" & LF & "main.s" & LF & "-lkernel32" & LF
+         & "-o" & LF & "out/main.exe"
          & LF & "-Wl,--pdb=out/main.pdb" & LF
          & "-Wl,-Xlink=/pdbaltpath:%_PDB%" & LF
          --  D2486: the object under a fixed name where the link runs, and

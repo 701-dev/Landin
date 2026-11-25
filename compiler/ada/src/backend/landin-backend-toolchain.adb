@@ -763,6 +763,11 @@ package body Landin.Backend.Toolchain is
          Landin.Platform.Add (List, "-Wl,-e,_landin_start");
          Landin.Platform.Add (List, "-Wl,--stack,8388608");
          Landin.Platform.Add (List, "-Wl,--gc-sections");
+         --  D2487: LLD writes the time of the link into the COFF header and
+         --  the debug directory, which `--build-id` gives every image,
+         --  unless SOURCE_DATE_EPOCH names one; `/Brepro` writes a hash of
+         --  the image in its place, as Microsoft's link does (D2327).
+         Landin.Platform.Add (List, "-Wl,-Xlink=-Brepro");
          for Directory of Directories loop
             Landin.Platform.Add (List, "-L" & Directory);
          end loop;

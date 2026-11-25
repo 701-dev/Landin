@@ -762,9 +762,14 @@ class NativeWindowsLink(unittest.TestCase):
         return found
 
     def compile(self, target, *args, status=0):
+        # D2487: no SOURCE_DATE_EPOCH, which the development shell sets and
+        # a runner does not, and which LLD would take as the link's time.
+        environment = {name: value for name, value in os.environ.items()
+                       if name != 'SOURCE_DATE_EPOCH'}
         result = subprocess.run(
             [self.refine, 'compile', '--target=' + target, *args],
-            cwd=self.root, text=True, capture_output=True, timeout=120)
+            cwd=self.root, text=True, capture_output=True, timeout=120,
+            env=environment)
         self.assertEqual(result.returncode, status, result.stdout + result.stderr)
         return result
 
@@ -804,13 +809,33 @@ class NativeWindowsLink(unittest.TestCase):
                 self.assertEqual(sorted(path.name for path in self.root.iterdir()),
                                  ['bad.ldn', 'main.ldn'])
 
+    def test_two_builds_are_the_same_bytes(self):
+        """D2487: an image without debug information carries no link time
+        either: two links a second or more apart are the same bytes."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                images = []
+                for build in range(2):
+                    if build:
+                        time.sleep(1.1)
+                    self.compile(target, 'main.ldn', '--emit=exe',
+                                 '-o', 'program.exe')
+                    images.append((self.root / 'program.exe').read_bytes())
+                self.assertTrue(images[0] == images[1],
+                                'the images differ in '
+                                + image_differences(images[0], images[1]))
+
     def test_two_debug_builds_are_the_same_bytes(self):
-        """D2486: two `--debug=full` links of one program into one
-        directory give the same image and PDB."""
+        """D2486 and D2487: two `--debug=full` links of one program into one
+        directory, a second or more apart, give the same image and PDB."""
         for target in self.targets():
             with self.subTest(target=target):
                 kept = []
-                for _ in range(2):
+                for build in range(2):
+                    if build:
+                        # Past a second's boundary, where a link's time
+                        # would differ.
+                        time.sleep(1.1)
                     self.compile(target, 'main.ldn', '--emit=exe',
                                  '--debug=full', '-o', 'program.exe')
                     # A full-debug build keeps the assembly it linked.
