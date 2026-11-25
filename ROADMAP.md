@@ -1270,6 +1270,28 @@ candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45708189957) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45714601151).
 
+### R16.40 — An element address reaches every access through it
+
+Status: planned
+Depends on: R16.10
+
+fannkuch-redux spends 62% of its x86-64 instructions at speed in
+`reverse_prefix`, which swaps `values[left]` and `values[right]` in an
+`inout [16]u8`. Each element's address reaches its load and its store
+through compiler temporaries, so the address is formed once with
+`leaq (%rdi,%rsi), %r9` and both accesses read through `%r9`: two of
+the loop's fourteen instructions, and on arm64 two `add`s and a copy of
+fifteen. The existing fold reaches only an access right after its
+address (`SR-1788`). With the two addresses folded by hand into the
+four accesses, fannkuch-redux 10 executed 1.631 G instructions against
+1.515 G, 7.1% fewer, with the same output. The item reaches every
+access an element address is carried to later in its block, through
+the registers the address names while they hold.
+Exit evidence: fannkuch-redux at speed on x86-64 executing more than 5%
+fewer instructions than at the item's base, measured on arm64 as well;
+every benchmark program's instructions and image size reported against
+that base; and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
