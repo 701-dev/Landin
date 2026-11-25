@@ -1232,6 +1232,25 @@ merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45543519666) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45547023934).
 
+### R16.39 — An index counted down proves its own checks
+
+Status: planned
+Depends on: R16.10
+
+reverse-complement spends 70% of its x86-64 instructions at speed in
+`write_reversed`, which walks a sequence from its end, `while at > 0 do
+dec at` reading `sequence[at]` from `at = lenof sequence`: 7.10 G on
+fasta 25,000,000's output against C's 2.10 G. D2207's counted slot
+bounds only an index that counts up, so each byte still pays a bounds
+check and a reload of the length it compares with, three of the loop's
+sixteen instructions. No open row names the cost. The item proves an
+index counted down from a length below that length, and leaves unloaded
+a length no remaining check reads.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, measured on arm64 as
+well; every benchmark program's instructions and image size reported
+against that base; and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
