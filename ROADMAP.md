@@ -2884,6 +2884,23 @@ runners, and the corpus linked by Microsoft's toolchain on both; `refine`
 built and tested on FreeBSD x86-64 in the gate and on FreeBSD arm64 in
 R21.61's recorded run.
 
+Claimed after R21.61, on main at `df7d15920`. R21 declared no window, so
+each item reached main by its own promotion after its candidate's complete
+pass and boards dispatch, and main's gate passed after each. That tree
+passed the full
+[pass](https://github.com/701-dev/Landin/actions/runs/45554874878) and a
+[boards dispatch](https://github.com/701-dev/Landin/actions/runs/45559050512),
+and main's [gate](https://github.com/701-dev/Landin/actions/runs/45566681880)
+reused them. In that pass the Windows runners ran the corpus and the
+debugger sessions on x86-64 and arm64 (`windows-runtime`,
+`windows-debugger`, `windows-arm64-runtime`, `windows-arm64-debugger`), and
+the corpus linked by Microsoft's toolchain on both (`windows-microsoft`,
+`windows-arm64-microsoft`). `refine` was built and tested on FreeBSD
+x86-64 (`freebsd-toolchain`, `freebsd-host-1`, `freebsd-host-2`,
+`freebsd-host-release`). The FreeBSD arm64 claim rests on R21.61's
+recorded run (D2470). Q-279 stays open: until it is answered, no release
+publishes the FreeBSD arm64 archive.
+
 ## R22 — Library additions
 
 What a newcomer expects to find, written against the library R20 left: a
