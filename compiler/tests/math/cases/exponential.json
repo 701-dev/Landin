@@ -802,7 +802,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "math-pow-f32": {
    "summary": "core/math's pow is within one float of MPFR's correctly rounded result for C99 Annex F's special cases, random inputs and hardest-to-round inputs, at f32",
