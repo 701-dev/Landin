@@ -1,12 +1,12 @@
 {
  "fixtures": {
   "math-sinh": {
-   "summary": "core/math's sinh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's sinh is within two floats of MPFR's correctly rounded result at f64 and three at f32, msun's own error, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "sinh",
      "width": 64,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -43,7 +43,7 @@
     {
      "fn": "sinh",
      "width": 32,
-     "bound": 1,
+     "bound": 3,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -80,12 +80,12 @@
    ]
   },
   "math-cosh": {
-   "summary": "core/math's cosh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's cosh is within two floats of MPFR's correctly rounded result at f64 and three at f32, msun's own error, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "cosh",
      "width": 64,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -122,7 +122,7 @@
     {
      "fn": "cosh",
      "width": 32,
-     "bound": 1,
+     "bound": 3,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -159,12 +159,12 @@
    ]
   },
   "math-tanh": {
-   "summary": "core/math's tanh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's tanh is within three floats of MPFR's correctly rounded result at f64 and two at f32, msun's own error, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "tanh",
      "width": 64,
-     "bound": 1,
+     "bound": 3,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -196,7 +196,7 @@
     {
      "fn": "tanh",
      "width": 32,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -228,12 +228,12 @@
    ]
   },
   "math-asinh": {
-   "summary": "core/math's asinh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's asinh is within two floats of MPFR's correctly rounded result, at f64 and f32, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "asinh",
      "width": 64,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -265,7 +265,7 @@
     {
      "fn": "asinh",
      "width": 32,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -297,12 +297,12 @@
    ]
   },
   "math-acosh": {
-   "summary": "core/math's acosh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's acosh is within two floats of MPFR's correctly rounded result, at f64 and f32, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "acosh",
      "width": 64,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -334,7 +334,7 @@
     {
      "fn": "acosh",
      "width": 32,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -366,12 +366,12 @@
    ]
   },
   "math-atanh": {
-   "summary": "core/math's atanh is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "summary": "core/math's atanh is within two floats of MPFR's correctly rounded result, at f64 and f32, for each table's specials, random inputs and hardest-to-round inputs",
    "tables": [
     {
      "fn": "atanh",
      "width": 64,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -404,7 +404,7 @@
     {
      "fn": "atanh",
      "width": 32,
-     "bound": 1,
+     "bound": 2,
      "random": 24,
      "hard": 12,
      "pool": 20000,

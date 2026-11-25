@@ -295,9 +295,9 @@ erf_f64: (x: f64) -> (result: f64) =
         --  0.84375 <= |x| < 1.25: erf(1+s) = erx + P1(s)/Q1(s).
         s := abs_f64(x) - 1.0
         p := erf_pa0 + s * (erf_pa1 + s * (erf_pa2 + s * (erf_pa3 + s * (erf_pa4
-             + s * (erf_pa5 + s * erf_pa6)))))
+                                                                         + s * (erf_pa5 + s * erf_pa6)))))
         q := 1.0 + s * (erf_qa1 + s * (erf_qa2 + s * (erf_qa3 + s * (erf_qa4
-             + s * (erf_qa5 + s * erf_qa6)))))
+                                                                     + s * (erf_qa5 + s * erf_qa6)))))
         result = if negative then -erf_erx - p / q else erf_erx + p / q end if
         return
     end if
@@ -319,14 +319,14 @@ erfc_ratio_f64: (a: f64, near: bool) -> (r: f64, s: f64) =
     w := 1.0 / (a * a)
     if near then
         r = erf_ra0 + w * (erf_ra1 + w * (erf_ra2 + w * (erf_ra3 + w * (erf_ra4
-            + w * (erf_ra5 + w * (erf_ra6 + w * erf_ra7))))))
+                                                                        + w * (erf_ra5 + w * (erf_ra6 + w * erf_ra7))))))
         s = 1.0 + w * (erf_sa1 + w * (erf_sa2 + w * (erf_sa3 + w * (erf_sa4
-            + w * (erf_sa5 + w * (erf_sa6 + w * (erf_sa7 + w * erf_sa8)))))))
+                                                                    + w * (erf_sa5 + w * (erf_sa6 + w * (erf_sa7 + w * erf_sa8)))))))
     else
         r = erf_rb0 + w * (erf_rb1 + w * (erf_rb2 + w * (erf_rb3 + w * (erf_rb4
-            + w * (erf_rb5 + w * erf_rb6)))))
+                                                                        + w * (erf_rb5 + w * erf_rb6)))))
         s = 1.0 + w * (erf_sb1 + w * (erf_sb2 + w * (erf_sb3 + w * (erf_sb4
-            + w * (erf_sb5 + w * (erf_sb6 + w * erf_sb7))))))
+                                                                    + w * (erf_sb5 + w * (erf_sb6 + w * erf_sb7))))))
     end if
 end erfc_ratio_f64
 
@@ -371,9 +371,9 @@ erfc_f64: (x: f64) -> (result: f64) =
         --  0.84375 <= |x| < 1.25.
         s := abs_f64(x) - 1.0
         p := erf_pa0 + s * (erf_pa1 + s * (erf_pa2 + s * (erf_pa3 + s * (erf_pa4
-             + s * (erf_pa5 + s * erf_pa6)))))
+                                                                         + s * (erf_pa5 + s * erf_pa6)))))
         q := 1.0 + s * (erf_qa1 + s * (erf_qa2 + s * (erf_qa3 + s * (erf_qa4
-             + s * (erf_qa5 + s * erf_qa6)))))
+                                                                     + s * (erf_qa5 + s * erf_qa6)))))
         if negative then
             z := erf_erx + p / q
             result = 1.0 + z
@@ -690,9 +690,9 @@ log_gamma_f64: (x: f64) -> (result: f64) =
         if i == 0 then
             z := y * y
             p1 := lgamma_a0 + z * (lgamma_a2 + z * (lgamma_a4 + z * (lgamma_a6
-                  + z * (lgamma_a8 + z * lgamma_a10))))
+                                                                     + z * (lgamma_a8 + z * lgamma_a10))))
             p2 := z * (lgamma_a1 + z * (lgamma_a3 + z * (lgamma_a5 + z * (lgamma_a7
-                  + z * (lgamma_a9 + z * lgamma_a11)))))
+                                                                          + z * (lgamma_a9 + z * lgamma_a11)))))
             p := y * p1 + p2
             r = r + (p - y / 2.0)
         elsif i == 1 then
@@ -705,9 +705,9 @@ log_gamma_f64: (x: f64) -> (result: f64) =
             r = r + (lgamma_tf + p)
         else
             p1 := y * (lgamma_u0 + y * (lgamma_u1 + y * (lgamma_u2 + y * (lgamma_u3
-                  + y * (lgamma_u4 + y * lgamma_u5)))))
+                                                                          + y * (lgamma_u4 + y * lgamma_u5)))))
             p2 := 1.0 + y * (lgamma_v1 + y * (lgamma_v2 + y * (lgamma_v3
-                  + y * (lgamma_v4 + y * lgamma_v5))))
+                                                               + y * (lgamma_v4 + y * lgamma_v5))))
             r = r + (p1 / p2 - y / 2.0)
         end if
     elsif ix < 0x40200000 then
@@ -715,9 +715,9 @@ log_gamma_f64: (x: f64) -> (result: f64) =
         i := trunc_f64(a)
         y := a - i
         p := y * (lgamma_s0 + y * (lgamma_s1 + y * (lgamma_s2 + y * (lgamma_s3
-             + y * (lgamma_s4 + y * (lgamma_s5 + y * lgamma_s6))))))
+                                                                     + y * (lgamma_s4 + y * (lgamma_s5 + y * lgamma_s6))))))
         q := 1.0 + y * (lgamma_r1 + y * (lgamma_r2 + y * (lgamma_r3 + y * (lgamma_r4
-             + y * (lgamma_r5 + y * lgamma_r6)))))
+                                                                           + y * (lgamma_r5 + y * lgamma_r6)))))
         r = y / 2.0 + p / q
         if i >= 3.0 then
             mut z: f64 = 1.0
@@ -734,7 +734,7 @@ log_gamma_f64: (x: f64) -> (result: f64) =
         z := 1.0 / a
         y := z * z
         w := lgamma_w0 + z * (lgamma_w1 + y * (lgamma_w2 + y * (lgamma_w3 + y * (lgamma_w4
-             + y * (lgamma_w5 + y * lgamma_w6)))))
+                                                                                 + y * (lgamma_w5 + y * lgamma_w6)))))
         r = (a - 0.5) * (t - 1.0) + w
     else
         --  2^56 <= a.
@@ -815,7 +815,7 @@ log_gamma_f32: (x: f32) -> (result: f32) =
             r = r + (p - y / 2.0)
         elsif i == 1 then
             p := lgammaf_t0 + y * lgammaf_t1 + y * y * (lgammaf_t2 + y * (lgammaf_t3
-                 + y * (lgammaf_t4 + y * (lgammaf_t5 + y * (lgammaf_t6 + y * lgammaf_t7)))))
+                                                                          + y * (lgammaf_t4 + y * (lgammaf_t5 + y * (lgammaf_t6 + y * lgammaf_t7)))))
             r = r + (lgammaf_tf + p)
         else
             p1 := y * (lgammaf_u0 + y * (lgammaf_u1 + y * lgammaf_u2))
@@ -907,13 +907,13 @@ gamma_base_f64: (t: f64, e: f64) -> (value: pair) =
         return
     end if
     p := gamma_c1 + t * (gamma_c2 + t * (gamma_c3 + t * (gamma_c4 + t * (gamma_c5
-         + t * (gamma_c6 + t * (gamma_c7 + t * (gamma_c8 + t * (gamma_c9 + t * (gamma_c10
-         + t * (gamma_c11 + t * (gamma_c12 + t * (gamma_c13 + t * (gamma_c14 + t * (gamma_c15
-         + t * (gamma_c16 + t * (gamma_c17 + t * (gamma_c18 + t * (gamma_c19 + t * (gamma_c20
-         + t * (gamma_c21 + t * (gamma_c22 + t * gamma_c23)))))))))))))))))))))
+                                                                         + t * (gamma_c6 + t * (gamma_c7 + t * (gamma_c8 + t * (gamma_c9 + t * (gamma_c10
+                                                                                                                                                + t * (gamma_c11 + t * (gamma_c12 + t * (gamma_c13 + t * (gamma_c14 + t * (gamma_c15
+                                                                                                                                                                                                                           + t * (gamma_c16 + t * (gamma_c17 + t * (gamma_c18 + t * (gamma_c19 + t * (gamma_c20
+                                                                                                                                                                                                                                                                                                      + t * (gamma_c21 + t * (gamma_c22 + t * gamma_c23)))))))))))))))))))))
     --  Γ'(1.5 + t), roughly: enough for the correction, itself below an ulp.
     slope := gamma_c1 + t * (2.0 * gamma_c2 + t * (3.0 * gamma_c3 + t * (4.0 * gamma_c4
-             + t * (5.0 * gamma_c5 + t * 6.0 * gamma_c6))))
+                                                                         + t * (5.0 * gamma_c5 + t * 6.0 * gamma_c6))))
     s := gamma_c0_low + t * p + e * slope
     high := gamma_c0_high + s
     value = (high: high, low: (gamma_c0_high - high) + s)
@@ -1037,9 +1037,9 @@ gamma_f32: (x: f32) -> (result: f32) =
     end if
     t := y - 1.5
     base := gammaf_c0_high + t * (gammaf_c1 + t * (gammaf_c2 + t * (gammaf_c3
-            + t * (gammaf_c4 + t * (gammaf_c5 + t * (gammaf_c6 + t * (gammaf_c7
-            + t * (gammaf_c8 + t * (gammaf_c9 + t * (gammaf_c10 + t * (gammaf_c11
-            + t * (gammaf_c12 + t * gammaf_c13))))))))))))
+                                                                    + t * (gammaf_c4 + t * (gammaf_c5 + t * (gammaf_c6 + t * (gammaf_c7
+                                                                                                                              + t * (gammaf_c8 + t * (gammaf_c9 + t * (gammaf_c10 + t * (gammaf_c11
+                                                                                                                                                                                         + t * (gammaf_c12 + t * gammaf_c13))))))))))))
     wide := if above then base * product else base / product end if
     if abs_f64(wide) >= 0x1.ffffffp127 then
         --  Too large for f32: overflow in f32 arithmetic.

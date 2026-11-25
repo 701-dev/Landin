@@ -3488,7 +3488,25 @@
     "runtime/match-sink-binding": {
       "mode": "execute"
     },
+    "runtime/math-acosh": {
+      "mode": "execute"
+    },
+    "runtime/math-asinh": {
+      "mode": "execute"
+    },
+    "runtime/math-atanh": {
+      "mode": "execute"
+    },
     "runtime/math-cbrt": {
+      "mode": "execute"
+    },
+    "runtime/math-cosh": {
+      "mode": "execute"
+    },
+    "runtime/math-erf": {
+      "mode": "execute"
+    },
+    "runtime/math-erfc": {
       "mode": "execute"
     },
     "runtime/math-exp": {
@@ -3509,6 +3527,9 @@
     "runtime/math-fma-f64": {
       "mode": "execute"
     },
+    "runtime/math-gamma": {
+      "mode": "execute"
+    },
     "runtime/math-hypot-f32": {
       "mode": "execute"
     },
@@ -3516,6 +3537,12 @@
       "mode": "execute"
     },
     "runtime/math-log": {
+      "mode": "execute"
+    },
+    "runtime/math-log-gamma": {
+      "mode": "execute"
+    },
+    "runtime/math-log-gamma-f32": {
       "mode": "execute"
     },
     "runtime/math-log10": {
@@ -3539,7 +3566,13 @@
     "runtime/math-round": {
       "mode": "execute"
     },
+    "runtime/math-sinh": {
+      "mode": "execute"
+    },
     "runtime/math-sqrt": {
+      "mode": "execute"
+    },
+    "runtime/math-tanh": {
       "mode": "execute"
     },
     "runtime/measure-fibre-switches": {
