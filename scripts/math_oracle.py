@@ -146,15 +146,14 @@ def descriptions():
 
 def special_bits(text, width):
     """The bits of a special input, written as Python reads a float or
-    a hexadecimal float, or `nan`; refused unless exact at WIDTH."""
+    a hexadecimal float, or `nan`, rounded to nearest at WIDTH, so that
+    an f32 table takes msun's decimal thresholds as they are written."""
     value = float.fromhex(text) if 'x' in text.lower() else float(text)
     if width == 64:
         return struct.unpack('<Q', struct.pack('<d', value))[0]
-    bits = struct.unpack('<I', struct.pack('<f', value))[0]
-    back = struct.unpack('<f', struct.pack('<I', bits))[0]
-    if back != value and not (value != value):
-        raise Failure('special %s is not exact in f32' % text)
-    return bits
+    if float.fromhex('0x1.fffffefffffffp127') < abs(value) < float('inf'):
+        raise Failure('special %s overflows f32' % text)
+    return struct.unpack('<I', struct.pack('<f', value))[0]
 
 
 def table_cases(oracle, table, seed):

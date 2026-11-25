@@ -64,6 +64,6 @@ A domain is `bits`, every bit pattern alike; `uniform:LO:HI`; or
 `log:E1:E2:SIGN`, a power of two drawn from [E1, E2) with a uniform
 significand, signed `+`, `-` or `+-`. `domains2` and `domains3` are the
 second and third argument's. A special is a decimal or hexadecimal float
-Python reads, exact at the table's width, or a list of one per argument. A
+Python reads, rounded to the table's width, or a list of one per argument. A
 fixture's image must fit Cortex-M0's 32 KiB of flash, so a family's tables
 are split among several fixtures where they do not.
