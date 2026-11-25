@@ -559,7 +559,9 @@ this host's own Linux target, or under QEMU's stub on the other
 `darwin.py` through LLDB's SB API in `debugging/lldb_switch.py`;
 `freebsd/check.py --kind=debugger` with plain LLDB commands, which step a
 switch by the count of its instructions in the image, since FreeBSD's LLDB
-has no Python; and the Cortex-M lane's evidence, `switch` among its
+has no Python; `windows/debug.py` with the same commands, breaking on the
+switch by name and counting its instructions in the assembly beside the
+image, whose symbols are its PDB's (D2481); and the Cortex-M lane's evidence, `switch` among its
 controls. `debugging/test_check.py` holds the verdict to refusals without a
 debugger.
 

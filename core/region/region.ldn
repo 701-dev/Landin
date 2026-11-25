@@ -42,6 +42,15 @@ end region_value
 --- An allocator that takes its payloads from a parent and records each one.
 --- It is a handle: copies share one ledger. Releasing its state frees all
 --- recorded payloads; the parent must outlive the region.
+---
+--- A single free into a region gives nothing back, and says nothing: the
+--- payload and its ledger record stay until `release`. So code moved from
+--- the heap onto a region runs unchanged but keeps every temporary it
+--- frees, a `vec.release` or a fresh list each round of a loop among them,
+--- until the region ends, and a region over a region reclaims nothing
+--- before the outer one is released. A shorter lifetime inside a region
+--- takes a `core/zone` over the region's parent, reset at the end of each
+--- round.
 public region: type (provider: type) = region_value(provider)
 
 --- Fill `state` for a region over `parent` and return its handle. The handle
@@ -126,6 +135,8 @@ grow_ledger: (provider: type is mem.allocator, self: region(provider))
     book.val.room = length - 1
 end grow_ledger
 
+--  A single free gives nothing back: the region's type says so to its
+--  reader, since an allocator has no way to say it to a caller.
 region_free: (provider: type is mem.allocator, self: region(provider),
               block: ptr mut u8, size: usize) -> none =
     _ = self.book

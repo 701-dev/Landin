@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D2534 D2535 D2536 a program starts itself by the name it was run by on every hosted system, io.program_name giving the name and io.find_program finding it as a shell would, the child reporting the parent's working directory under io.spawn and the directory above under io.spawn_in while the parent's own does not change, a missing directory and an empty one not_found, and a program no search path entry holds not_found
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0560, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

@@ -1,4 +1,3 @@
-with Landin.Backend.Codeview;
 with Landin.Backend.X86_64.Allocation;
 
 package body Landin.Backend.X86_64.Codeview is
@@ -96,7 +95,8 @@ package body Landin.Backend.X86_64.Codeview is
       Cached_Frame : access function
         (Item : Item_Id) return Dwarf.Frame_Access := null;
       Trapped : access function
-        (Item : Item_Id; Value : Value_Id) return Boolean := null)
+        (Item : Item_Id; Value : Value_Id) return Boolean := null;
+      Stack_Switch, Stack_Start : String := "")
       return String
       renames Encode;
 

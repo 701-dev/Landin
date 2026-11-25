@@ -248,6 +248,20 @@ package body Landin.IR is
      is (Nominal_Field_Run_Is_Valid (Of_Unit, Id)
          and then Landin.Layouts.Is_C (Layout_Of (Of_Unit, Id)));
 
+   procedure Mark_Distinct (Into : in out Unit; Id : Nominal_Type_Id) is
+      Position : constant Positive := Nominal_Identities.Position (Into, Id);
+      Shape : Nominal_Shape_Record := Into.Nominal_Shapes.Element (Position);
+   begin
+      Shape.Distinct := True;
+      Into.Nominal_Shapes.Replace_Element (Position, Shape);
+   end Mark_Distinct;
+
+   function Is_Distinct
+     (Of_Unit : Unit; Id : Nominal_Type_Id) return Boolean
+     is (Nominal_Field_Run_Is_Valid (Of_Unit, Id)
+         and then Of_Unit.Nominal_Shapes.Element
+           (Nominal_Identities.Position (Of_Unit, Id)).Distinct);
+
    function Nominal_Field_Count
      (Of_Unit : Unit; Id : Nominal_Type_Id) return Natural is
    begin
@@ -376,7 +390,8 @@ package body Landin.IR is
          Made : constant Nominal_Shape_Record :=
            (Present => True, Policy => Policy,
             Fields => (First => Natural (Into.Nominal_Fields.Length),
-                       Count => Fields'Length));
+                       Count => Fields'Length),
+            Distinct => False);
       begin
          for Shape of Normal_Fields loop
             Into.Nominal_Fields.Append (Shape);

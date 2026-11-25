@@ -208,8 +208,9 @@ takes output implements `writer`'s two entries, and `core/diag` streams
 through `any io.writer` (D268). Every entry takes the provider's
 handle by value, and an erased capability is built from the address of a
 handle binding, `any(addr host)`; dispatch copies the handle from there.
-`process` lends the standard streams `input`, `out` and `err` and the argument
-table, each argument an OS string, and its free functions take the handle `in`, as `read` and `write` do,
+`process` lends the standard streams `input`, `out` and `err`, the argument
+table, each argument an OS string, and `program_name`, the name the program
+was run by, C's `argv[0]`, which no argument index reaches; its free functions take the handle `in`, as `read` and `write` do,
 so two lent arguments, the count and a write through an erased world made
 from the same handle are live at once. `in` is reserved [1760], so the
 standard-input entry is the noun `input`, which reads beside `out` and `err`
@@ -246,10 +247,14 @@ because changing a process's own environment is not safe beside threads.
 program, D293's shape again: the provider is a handle, and a
 started `child` is a value the caller keeps, edits `inout` and consumes
 with `wait`. A program is named by its path and given exactly the arguments
-and the environment its parent builds; nothing searches a path, no shell
+and the environment its parent builds; `spawn` searches no path, no shell
 reads a command line the parent did not write, and a child receives no
 open file of its parent's but its three streams, each inherited, discarded
-or piped. Its input is written with `write_child` and closed with
+or piped. `spawn_in` starts it in another working directory, from which a
+relative path is found, as `env -C` finds one, and the parent's own never
+changes; `find_program` finds a bare name on a `PATH` value as a shell
+does, over `file_system`'s statuses, passing an empty entry over, and
+`spawn` then starts the path it found. Its input is written with `write_child` and closed with
 `close_input`. A child that writes more than a pipe holds waits for its parent
 to read, so `read_child` reads whichever of its piped output and errors has
 something, and `wait` reports a portable `ending`, exited with a code or
@@ -318,7 +323,9 @@ carries none of it. It opens a path with `open_options`, appending and
 exclusive creation among them; renames in one step, replacing a file
 already at the new name, which with `make_temporary` and `synchronize` is
 how a file is replaced whole; gives a `status` of size, kind,
-modification time and a read-only flag, which `set_read_only` sets;
+modification time, a read-only flag, which `set_read_only` sets, and an
+executable flag, a regular file some permission bit lets someone run or on
+Windows one named `.exe` or `.com`;
 truncates; reads and writes at an offset without moving a file's position,
 a write past the end leaving zeros; makes temporary files exclusively
 under names drawn from an `entropy` the caller passes; and gives the
@@ -399,6 +406,10 @@ padding; it need not have a distinct address. Arena free does not reclaim
 individual allocations. A pool zero-byte request consumes a slot and must be
 freed with its original size. `allocate_bytes(0)` instead returns an empty descriptor
 without asking the provider. These are deliberately distinct contracts.
+`allocate_copy(memory, bytes)` copies lent bytes into a block of the
+provider's and returns the `[]mut u8` itself, which outlives what it was
+copied from and goes back through `release_copy`; an empty copy asks the
+provider for nothing.
 An arena can extend its current top allocation if the larger extent fits;
 other allocations between vector growths force the normal replacement path.
 An arena resize keeps a smaller block where it is, giving the top
@@ -476,6 +487,14 @@ to the parent. `zone.release(space, parent)` takes the space `inout` and
 the same parent and returns every block. It is refused while the zone's
 handle is still used (D2449).
 
+A lifetime nested inside a region's takes a zone over the region's parent,
+not the region: a single free into a region gives nothing back and says
+nothing, so code moved from the heap onto a region runs unchanged but keeps
+every temporary it frees, `vec.release` and a list made afresh each round
+among them, until the region is released, and a region over a region
+reclaims nothing before the outer one goes. A zone reset at the end of each
+round settles on one block that holds a round (D2531).
+
 The [probe runner](../environments/cortex-m/freestanding.py) copies only its
 declared import closure and records every source hash. Each link accepts the
 compiler-generated object, pinned `thumb/v6-m/nofp/libgcc.a` and GNU-generated
@@ -534,7 +553,11 @@ A new `core/NAME` directory is known in four other places, and a full
    library reference.
 
 The [availability inventory](#availability-inventory) above then says which
-targets it serves.
+targets it serves. Put the module's sources in `refine fmt`'s layout
+(`refine fmt core/NAME`): `./scripts/dev-test.sh --case='formatting/core
+and the examples are formatted'` holds the library to it, and the corpus's
+formatting case, which `add_fixture.py` names for the probe fixture, does
+not read the library.
 
 A new `platform/NAME`, or a submodule of one, is available on no target
 until the compiler is told which it serves: add its branch to `Permitted`,

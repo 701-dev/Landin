@@ -328,15 +328,54 @@ fixed if compiler.os == windows then
     --  The attribute list's room: one attribute needs about fifty bytes.
     attribute_room: type = [16]usize
 
-    launched: (self: host, path: text.os_string, arguments: []text.os_string,
+    --  Whether `path` names its place from the current directory: it
+    --  starts neither at a root, `\` or `/`, nor with a drive's letter.
+    relative: (path: []u8) -> (yes: bool) =
+        yes = not (lenof path > 0 and (path[0] == u8('\\') or path[0] == u8('/')))
+              and not (lenof path > 1 and path[1] == u8(':'))
+    end relative
+
+    --  The room a program's path is joined to its child's directory in.
+    joined_room: type = [2048]u8
+
+    launched: (self: host, directory: text.os_string, path: text.os_string,
+               arguments: []text.os_string,
                environment: []text.os_variable, streams: io.child_streams)
               -> (started: io.child)
               ! mem.not_found | io.no_access | io.io_failed =
+        place: []u8 = text.os_string_bytes(directory)
+        changing: bool = lenof place > 0
+        --  CreateProcessW finds a relative program from the parent's
+        --  directory, not the child's: it is joined to the child's here, so
+        --  that it is found from there, as on POSIX.
+        named: []u8 = text.os_string_bytes(path)
+        mut joined: joined_room = zeroed
+        mut program_path: text.os_string = path
+        if changing and relative(named) then
+            fail io.io_failed when lenof place + 1 + lenof named > lenof joined
+            mem.copy(joined[0..<lenof place], place) else none
+            joined[lenof place] = u8('\\')
+            mem.copy(joined[lenof place + 1..<lenof place + 1 + lenof named],
+                     named) else none
+            program_path = text.os_string_over(
+                joined[0..<lenof place + 1 + lenof named])
+        end if
         mut application: windows.path_room = zeroed
-        program: ptr u16 = windows.terminate(path, application) else (problem)
+        program: ptr u16 = windows.terminate(program_path,
+                                             application) else (problem)
             try lost(self, windows.code_of(problem))
             fail io.io_failed
         end
+        mut entered_room: windows.path_room = zeroed
+        mut entered: usize = 0
+        if changing then
+            wide: ptr u16 = windows.terminate(directory,
+                                              entered_room) else (problem)
+                try lost(self, windows.code_of(problem))
+                fail io.io_failed
+            end
+            entered = usize(wide)
+        end if
         line: block = try command_line(self, path, arguments)
         defer given_back(line)
         variables: block = try environment_block(self, environment)
@@ -388,7 +427,7 @@ fixed if compiler.os == windows then
         if windows.create_process(program, addr units[0], 0, 0, 1,
                                   windows.unicode_environment
                                   | windows.extended_startup,
-                                  variables.address, 0, addr startup,
+                                  variables.address, entered, addr startup,
                                   addr made) == 0 then
             try path_failure(self, windows.last_error())
         end if
@@ -410,8 +449,12 @@ fixed if compiler.os == windows then
     --  it; an inherited one the parent's own standard handle, duplicated.
     --  The child inherits those three handles and no other, and the code
     --  kept is the Win32 error.
-    --- Start the program at `path` as `io.programs`' `spawn` says. It is for a
-    --- provider built over this handle that supplies `io.programs`: `start`
+    --  A relative `path` is joined to `directory` with a `\`, so that it
+    --  is found from the child's directory, as on POSIX, where
+    --  CreateProcessW would find it from the parent's.
+    --- Start the program at `path` in `directory`, or in this process's own
+    --- directory when that is empty, as `io.programs`' `spawn` says. It is for
+    --- a provider built over this handle that supplies `io.programs`: `start`
     --- starts the child and does not wait. The provider itself reads, writes
     --- and closes the parent's ends of the child's pipes, files of this
     --- provider, and waits for the child through whatever waiting it does
@@ -420,13 +463,14 @@ fixed if compiler.os == windows then
     --- kept in the handle's last-error cell. On any failure no child was
     --- started and nothing `start` made is left open. `io.child`'s `handle`
     --- names the child as `process_of` gives it.
-    public start: (handle: host, path: text.os_string,
-                   arguments: []text.os_string,
+    public start: (handle: host, directory: text.os_string,
+                   path: text.os_string, arguments: []text.os_string,
                    environment: []text.os_variable, streams: io.child_streams)
                   -> (started: io.child)
                   ! mem.not_found | io.no_access | io.io_failed =
         keep_failure(handle, 0)
-        started = try launched(handle, path, arguments, environment, streams)
+        started = try launched(handle, directory, path, arguments, environment,
+                               streams)
     end start
 
     --- Return the process handle of a child `start` started, for a provider

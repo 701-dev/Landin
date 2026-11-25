@@ -18,6 +18,8 @@ from backend_corpus import PROFILES, SPECIALIZATION_PROFILES, inventory  # noqa:
 from backend import metadata  # noqa: E402
 from remote import configuration, observe  # noqa: E402
 from run import CommandFailed, workers  # noqa: E402
+sys.path.insert(0, str(ROOT / 'scripts'))
+import lane_refine  # noqa: E402
 
 CONTROLS = ROOT / 'compiler/tests/xtensa'
 INVENTORY = ROOT / 'compiler/tests/cortex-m/corpus.json'
@@ -29,6 +31,29 @@ COUNTERPARTS = ROOT / 'compiler/tests/cortex-m/counterparts.json'
 #  ordinary one, and one raised with PS.EXCM set, a double exception,
 #  whose PC only DEPC holds.
 TRAP_CONTROLS = ('trap-control', 'double-exception-control')
+
+#  The library the corpus's compilations name, for a refine copied out of
+#  its build directory (use_library); None lets refine find its own.
+LIBRARY = None
+
+
+def use_library(library):
+    """Name LIBRARY, a directory or None, in every `refine compile` that
+    `build` and the corpus run from now on."""
+    global LIBRARY
+    LIBRARY = library
+
+
+def compile_command(refine):
+    """`refine compile` with the library use_library named."""
+    return lane_refine.compile_command(refine, LIBRARY)
+
+
+def missing_library(log):
+    """lane_refine.MissingLibrary when LOG, a compiler log's text, is a
+    refusal of refine's library, naming the option that supplies one."""
+    said = lane_refine.missing_library(log, '--library DIR')
+    return lane_refine.MissingLibrary(said) if said else None
 
 
 def sha(path):
@@ -149,12 +174,18 @@ def symbols(run, tool, elf):
 def build(run, refine, inputs, chip, optimize='none', specialize='off', memory_profile='chip'):
     tool = 'xtensa-' + chip + '-elf-'
     staged = stage(run, inputs, chip, memory_profile)
-    base = [refine, 'compile', *staged, '--target=xtensa', '--level=xtensa-' + chip,
+    base = [*compile_command(refine), *staged, '--target=xtensa', '--level=xtensa-' + chip,
             '--firmware-layout=ram', '--firmware-entry=landin_xtensa_fixture_start',
             '--optimize=' + optimize, '--specialize=' + specialize]
     assembly = run.out / 'program.s'
-    run.command('compile', [*base, '--emit=asm', '-o', assembly,
-                           '--build-report=' + str(run.out / 'build.json')])
+    try:
+        run.command('compile', [*base, '--emit=asm', '-o', assembly,
+                               '--build-report=' + str(run.out / 'build.json')])
+    except CommandFailed as error:
+        missing = missing_library(Path(error.log).read_text(errors='replace'))
+        if missing:
+            raise missing from None
+        raise
     script = run.out / 'program.ld'
     run.command('derive', [*base, '--emit=linker-script', '-o', script])
     obj, elf = run.out / 'program.o', run.out / 'program.elf'

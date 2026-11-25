@@ -1,0 +1,57 @@
+--  On Windows a prepared stack is the thread's for as long as it runs
+--  (D2479): the switch onto it gives the TEB its bounds and the switch
+--  away puts back the leaving stack's.  On the fibre's stack kernel32's
+--  `GetCurrentThreadStackLimits` names bounds that hold the fibre's local
+--  and lie within the backing, and `IsBadReadPtr` reads address zero,
+--  whose access violation Windows dispatches on that stack to the
+--  handler inside kernel32, which answers that the address is bad.  Back
+--  on main's stack the bounds are main's again, and once the fibre resumes
+--  they are its own; there it fails a check, which ends the program with
+--  the trap's exception (D2192).  A check that does not hold resumes main,
+--  which ends with 1.
+compiler.assert(compiler.os == windows)
+
+extern(c) link(symbol: "GetCurrentThreadStackLimits") stack_limits:
+    (low: ptr mut usize, high: ptr mut usize) -> none
+extern(c) link(symbol: "IsBadReadPtr") is_bad_read:
+    (address: usize, length: usize) -> (bad: i32)
+
+mut backing: [16384]u8 = zeroed
+mut main_saved: usize = 0
+mut fibre_saved: usize = 0
+--  Each check the fibre makes, one bit apiece, and main's.
+mut passed: u32 = 0
+
+--  Whether the thread's stack, as kernel32 names it, holds `here` and
+--  lies within the backing exactly when `in_backing` says it should.
+bounds_hold: (here: usize, in_backing: bool) -> (right: bool) =
+    mut low: usize = 0
+    mut high: usize = 0
+    stack_limits(addr low, addr high)
+    first := usize(addr backing[0])
+    inside := first <= low and high <= first + 16384
+    right = low <= here and here < high and inside == in_backing
+end bounds_hold
+
+fibre: (argument: usize) -> noreturn =
+    mut local: usize = argument
+    if bounds_hold(usize(addr local), true) then passed = passed | 1 end if
+    if is_bad_read(0, 1) <> 0 then passed = passed | 2 end if
+    compiler.stack_switch(addr fibre_saved, main_saved)
+    if bounds_hold(usize(addr local), true) then passed = passed | 8 end if
+    if passed == 15 then
+        compiler.unreachable()
+    end if
+    compiler.stack_switch(addr fibre_saved, main_saved)
+    loop do
+    end loop
+end fibre
+
+public main: () -> (code: i32) =
+    mut local: usize = 0
+    fibre_saved = compiler.stack_prepare(backing[0..<16384], fibre, 5)
+    compiler.stack_switch(addr main_saved, fibre_saved)
+    if bounds_hold(usize(addr local), false) then passed = passed | 4 end if
+    compiler.stack_switch(addr main_saved, fibre_saved)
+    code = 1
+end main

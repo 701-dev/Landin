@@ -80,6 +80,7 @@
     "platform/posix/waits.ldn",
     "platform/windows/completion.ldn",
     "platform/windows/files.ldn",
+    "platform/windows/level.ldn",
     "platform/windows/memory.ldn",
     "platform/windows/processes.ldn",
     "platform/windows/sockets/socket_calls.ldn",
@@ -87,7 +88,8 @@
     "platform/windows/threads.ldn",
     "platform/windows/time.ldn",
     "platform/windows/wide.ldn",
-    "platform/windows/windows.ldn"
+    "platform/windows/windows.ldn",
+    "platform/x86_64/x86_64.ldn"
   ],
   "containers": [
     "compiler/tests/fixtures/runtime/derived-containers/main.ldn",
@@ -146,12 +148,14 @@
     "platform/posix/waits.ldn",
     "platform/windows/completion.ldn",
     "platform/windows/files.ldn",
+    "platform/windows/level.ldn",
     "platform/windows/memory.ldn",
     "platform/windows/processes.ldn",
     "platform/windows/threads.ldn",
     "platform/windows/time.ldn",
     "platform/windows/wide.ldn",
-    "platform/windows/windows.ldn"
+    "platform/windows/windows.ldn",
+    "platform/x86_64/x86_64.ldn"
   ],
   "hosted": [
     "compiler/tests/fixtures/runtime/derived-hosted-memory/main.ldn",
@@ -253,6 +257,7 @@
     "platform/posix/waits.ldn",
     "platform/windows/completion.ldn",
     "platform/windows/files.ldn",
+    "platform/windows/level.ldn",
     "platform/windows/memory.ldn",
     "platform/windows/processes.ldn",
     "platform/windows/sockets/socket_calls.ldn",
@@ -260,13 +265,15 @@
     "platform/windows/threads.ldn",
     "platform/windows/time.ldn",
     "platform/windows/wide.ldn",
-    "platform/windows/windows.ldn"
+    "platform/windows/windows.ldn",
+    "platform/x86_64/x86_64.ldn"
   ],
   "switch": [
     "compiler/tests/fixtures/runtime/stack-switch-frames/main.ldn",
     "platform/linux/events.ldn",
     "platform/linux/linux.ldn",
     "platform/linux/threads.ldn",
-    "platform/linux/wrapped.ldn"
+    "platform/linux/wrapped.ldn",
+    "platform/x86_64/x86_64.ldn"
   ]
 }

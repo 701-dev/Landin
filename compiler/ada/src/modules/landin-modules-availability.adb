@@ -65,6 +65,11 @@ package body Landin.Modules.Availability is
          --  Its two reference descriptions, on xtensa alone.
          return Landin.Targets.Architecture_Of (Facts) =
            Landin.Targets.Xtensa;
+      elsif Logical = "platform/x86_64" then
+         --  D2476: the processor's reading and its feature levels, declared
+         --  on x86_64 alone, so the system interfaces import it on every
+         --  target, as a shared program imports platform/riscv.
+         return True;
       elsif Under (Logical, "platform/c") then
          case Landin.Targets.C_ABI_Of (Facts) is
             when Landin.Targets.SysV_AMD64_LP64

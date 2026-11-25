@@ -18,7 +18,8 @@ mut contents: [12][32]u8 = zeroed
 free_node: (index: usize) -> (node: fake.volume_node) =
     node = (path: paths[index][0..<32], path_length: 0,
             contents: contents[index][0..<32], length: 0, kind: io.regular,
-            read_only: false, modified: (seconds: 0, nanoseconds: 0))
+            read_only: false, executable: false,
+            modified: (seconds: 0, nanoseconds: 0))
 end free_node
 
 --  Give NODE the path PATH, the kind KIND and the bytes BYTES.

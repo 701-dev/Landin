@@ -309,7 +309,7 @@ class CorpusOptions(unittest.TestCase):
         status, called = self.main('--all', '--qemu', '/q')
         self.assertEqual(status, 0)
         args, kwargs = called['inventory']
-        self.assertEqual(kwargs, {'locked': False, 'shard': (1, 1)})
+        self.assertEqual(kwargs, {'locked': False, 'shard': (1, 1), 'library': None})
         self.assertEqual(args[-1], 'sim')
         self.assertEqual(corpus.scope_of([], [], False)[0], 'UNLOCKED')
         self.assertIn('not COMPLETE', corpus.scope_of([], [], False)[1])
@@ -322,12 +322,14 @@ class CorpusOptions(unittest.TestCase):
     def test_a_locked_run_is_locked_and_defaults_to_the_gates_profile(self):
         _, called = self.main('--all', '--tools', '/t', root=Path('/t'))
         args, kwargs = called['inventory']
-        self.assertEqual((args[-1], kwargs), ('sim', {'locked': True, 'shard': (1, 1)}))
+        self.assertEqual((args[-1], kwargs), ('sim', {'locked': True, 'shard': (1, 1),
+                                                      'library': None}))
 
     def test_a_shard_of_the_complete_run_is_not_complete_alone(self):
         status, called = self.main('--all', '--shard=2/3', root=Path('/t'))
         self.assertEqual(status, 0)
-        self.assertEqual(called['inventory'][1], {'locked': True, 'shard': (2, 3)})
+        self.assertEqual(called['inventory'][1], {'locked': True, 'shard': (2, 3),
+                                                  'library': None})
         label, said = corpus.scope_of([], [], True, (2, 3))
         self.assertEqual(label, 'SHARD')
         self.assertIn('SHARD 2 of 3', said)
@@ -361,8 +363,43 @@ class CorpusOptions(unittest.TestCase):
                               '--profile', 'none/off', '--memory-profile', 'chip')
         args, _ = called['programs']
         self.assertEqual(args[3:], ('esp32', [Path('/p/one.ldn')], ['none/off'], 'chip',
-                                    ['/lib']))
+                                    ['/lib'], None))
         self.assertNotIn('inventory', called)
+
+    def test_a_copied_refine_is_given_its_library_or_told_it(self):
+        """--library reaches every compilation, and a refusal of
+        refine's library is said as one, naming --library, rather than as
+        a fixture's changed verdict."""
+        from unittest.mock import patch
+        from environments.xtensa import backend
+        here = Path(tempfile.mkdtemp(prefix='xtensa-library-'))
+        self.addCleanup(__import__('shutil').rmtree, here)
+        _, called = self.main('--all', '--qemu', '/q', '--library', str(here))
+        self.assertEqual(called['inventory'][1]['library'], here)
+        _, called = self.main('--program', '/p.ldn', '--qemu', '/q', '--library', str(here))
+        self.assertEqual(called['programs'][0][-1], here)
+        log = ("error[L0006]: module `core/mem` is in refine's library, and no library"
+               " was found: refine looked in /x/lib/landin\n")
+        commands = []
+
+        def command(name, argv, **options):
+            commands.append([str(part) for part in argv])
+            (here / (name + '.log')).write_text(log)
+            if name == 'compile-restricted':
+                raise CommandFailed(name, here / (name + '.log'), 'exited 1')
+            return log
+        run = SimpleNamespace(out=here, command=command)
+        self.addCleanup(backend.use_library, None)
+        backend.use_library(here)
+        with self.assertRaisesRegex(backend.lane_refine.MissingLibrary,
+                                    'looking in /x/lib/landin.*--library DIR'):
+            corpus.refusal(run, Path('/r'), ['f.ldn'], 'esp32', {'codes': ['L0015']})
+        self.assertEqual(commands[-1][:3], ['/r', 'compile', '--library=%s' % here])
+        with self.assertRaisesRegex(backend.lane_refine.MissingLibrary,
+                                    'looking in /x/lib/landin.*--library DIR'):
+            corpus.restriction(run, Path('/r'), 'runtime/x', SimpleNamespace(c_sources=()),
+                               ['f.ldn'], 'esp32', {'stops': 'link'}, 'sim')
+        self.assertEqual(commands[-1][:3], ['/r', 'compile', '--library=%s' % here])
 
     def test_options_that_cannot_go_together_are_refused(self):
         from contextlib import redirect_stderr

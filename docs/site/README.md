@@ -277,7 +277,11 @@ aliases, atoms and values, including a value whose expression begins on
 the next line or continues on more deeply indented ones, and keeps each
 conditional declaration with its target condition. It does not type-check, evaluate target conditions or infer
 private representations. An unsupported public form, missing public doc
-comment, missing overview or ambiguous item anchor stops generation. So
+comment, missing overview or ambiguous item anchor stops generation; the
+first two are read to the end of the library and refused together, each
+declaration named by its line. A declaration's attributes may stand alone
+on the line above its name, at the name's indentation, as `refine fmt`
+writes a long head. So
 does a comment whose backticked `module.name` names no public declaration
 of that module, the qualifier read as the page's links read it: a module
 the comment's own module imports, that module itself, or the one library

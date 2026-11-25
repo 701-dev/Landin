@@ -2161,11 +2161,14 @@ package body Landin.Backend.Arm64 is
       --  was never in one.  Each still starts an atom of its own on
       --  Mach-O.  No Landin routine is spelled with the dot, and an
       --  explicit link name that starts so moves the prefix as it moves a
-      --  local label's.  A prepared stack's first frame, and every
-      --  switched stack's saved one, is Stack_Frame bytes: x19-x28 and
-      --  d8-d15 from its bottom, then the stack's limit (D472) and a word
-      --  that keeps the frame sixteen-byte aligned, and at its top the
-      --  frame record, x29 and x30, as every routine's (D475).
+      --  local label's.  Every switched stack's saved frame is
+      --  Stack_Saved bytes: x19-x28 and d8-d15 from its bottom, then the
+      --  stack's limit (D472) and a word that keeps the frame sixteen-byte
+      --  aligned, on Windows the TEB's three bounds for the stack in place
+      --  of that word (D2479), and at its top the frame record, x29 and
+      --  x30, as every routine's (D475).  A prepared stack's first frame is
+      --  that, and on Windows a zero pair above it (D2480): Stack_Frame
+      --  bytes.
       --  Stack_Limit is D471's cell: the current stack's limit, zero on
       --  the stack the process started on.  A program that prepares a
       --  stack checks it in its routines' prologues; one that uses a
@@ -2467,7 +2470,17 @@ package body Landin.Backend.Arm64 is
          Emit (".zerofill __DATA,__bss," & Limit_Slot & ",8,3");
       end Emit_Thread_Start;
       Stack_Limit_Slot : constant := 144;
-      Stack_Record_Slot : constant := 160;
+      --  D2479: on Windows the TEB's base, limit and deallocation base
+      --  for the stack follow the limit, and the frame record follows
+      --  them.
+      Stack_TEB_Slot : constant := 152;
+      --  The TEB's DeallocationStack, the lowest address of the thread's
+      --  stack, beside its base and limit at 8 and 16.
+      TEB_Deallocation : constant := 16#1478#;
+      Stack_Record_Slot : constant Natural := (if COFF then 176 else 160);
+      --  What a switch holds on the stack it leaves: the saved registers,
+      --  the limit and the record.
+      Stack_Saved : constant Natural := Stack_Record_Slot + 16;
       Routine_Prefix : constant String := Unused_Local_Prefix ("landin.");
       Stack_Switcher : constant String :=
         Landin.Targets.Capabilities.Link_Symbol
@@ -2475,7 +2488,11 @@ package body Landin.Backend.Arm64 is
       Stack_Start : constant String :=
         Landin.Targets.Capabilities.Link_Symbol
           (Facts, Routine_Prefix & "stack_start");
-      Stack_Frame : constant := 176;
+      --  The first frame a prepare lays: what a switch holds and, on
+      --  Windows, above it the zero pair the start routine's table reads
+      --  as its caller's record, which ends an unwinder's walk (D2480).
+      Stack_Frame : constant Natural :=
+        Stack_Saved + (if COFF then 16 else 0);
       --  A linker-private `l` name on Mach-O, as Apple's compilers give a
       --  string literal, so the link sees each line as an atom of its own.
       function Report_Label (Index : Positive) return String
@@ -5362,10 +5379,11 @@ package body Landin.Backend.Arm64 is
                         --  below it as the switch routine's restore reads
                         --  it: x19 the entry, x20 its argument, then zero
                         --  for x21-x28 and d8-d15, the stack's limit, its
-                        --  base and the margin (D472), and the frame
-                        --  record, x29 zero and x30 past the start
-                        --  routine's nop.  A slice that
-                        --  cannot hold those 176 bytes and the margin traps
+                        --  base and the margin (D472), on Windows the
+                        --  TEB's bounds (D2479), and the frame record, x29
+                        --  zero and x30 past the start routine's nop, on
+                        --  Windows below a zero pair.  A slice that
+                        --  cannot hold that frame and the margin traps
                         --  stack_exhausted (D451); the difference is
                         --  signed, since aligning a short slice's top may
                         --  take it below the base.
@@ -5376,7 +5394,8 @@ package body Landin.Backend.Arm64 is
                         Emit ("sub x11, x11, x10");
                         Emit ("cmp x11, #" & Trimmed
                           (Landin.Targets.Byte_Count'Image
-                             (Stack_Frame + Limit_Margin)));
+                             (Landin.Targets.Byte_Count (Stack_Frame)
+                              + Limit_Margin)));
                         Emit ("b.lt " & Trap (Landin.Panics.Stack_Exhausted));
                         Emit ("add x10, x10, x11");
                         Emit ("sub x10, x10, #" & Trimmed (Natural'Image
@@ -5403,6 +5422,23 @@ package body Landin.Backend.Arm64 is
                           (Landin.Targets.Byte_Count'Image (Limit_Margin)));
                         Emit ("str x14, [x10, #" & Trimmed (Natural'Image
                           (Stack_Limit_Slot)) & "]");
+                        --  D2479: the TEB's base is the aligned top, and
+                        --  its limit and deallocation base the slice's
+                        --  base; the zero pair above the saved frame is
+                        --  D2480's.
+                        if COFF then
+                           Emit ("sub x13, x14, #" & Trimmed
+                             (Landin.Targets.Byte_Count'Image
+                                (Limit_Margin)));
+                           Emit ("add x12, x10, #" & Trimmed (Natural'Image
+                             (Stack_Frame)));
+                           Emit ("stp x12, x13, [x10, #" & Trimmed
+                             (Natural'Image (Stack_TEB_Slot)) & "]");
+                           Emit ("str x13, [x10, #" & Trimmed (Natural'Image
+                             (Stack_TEB_Slot + 16)) & "]");
+                           Emit ("stp xzr, xzr, [x10, #" & Trimmed
+                             (Natural'Image (Stack_Saved)) & "]");
+                        end if;
                         Stack_Used := True;
                         Store_Value (Value, "x10");
                      elsif M = Stack_Switch then
@@ -8652,8 +8688,10 @@ package body Landin.Backend.Arm64 is
       --  stopped before x29 moves, a debugger unwinds into the leaving
       --  fibre's frames, and after it into the resumed fibre's, whether
       --  it reads the unwind information or follows the frame record.
-      --  x18 is never named.  Every caller-saved register is left
-      --  changed, as by a call.
+      --  x18 is named on Windows alone, where it is the TEB's: the
+      --  routine saves the TEB's bounds with the limit and puts the
+      --  resumed stack's back (D2479).  Every caller-saved register is
+      --  left changed, as by a call.
       --
       --  The start routine is the return address of a prepared stack's
       --  first frame: the restore leaves the entry in x19, its argument in
@@ -8699,7 +8737,7 @@ package body Landin.Backend.Arm64 is
                   for Half in 1 .. 2 loop
                      Emit (".cfi_offset " & Trimmed (Names (Index, Half))
                            & ", -" & Image
-                             (Stack_Frame - 16 * (Index - 1)
+                             (Stack_Saved - 16 * (Index - 1)
                               - 8 * (Half - 1)));
                   end loop;
                end if;
@@ -8707,12 +8745,26 @@ package body Landin.Backend.Arm64 is
             Limit_Address ("x12", "x13");
             Emit ("ldr x11, [x12]");
             Emit ("str x11, [sp, #" & Image (Stack_Limit_Slot) & "]");
+            if COFF then
+               Emit ("ldr x11, [x18, #8]");
+               Emit ("ldr x13, [x18, #16]");
+               Emit ("stp x11, x13, [sp, #" & Image (Stack_TEB_Slot) & "]");
+               Emit ("ldr x11, [x18, #" & Image (TEB_Deallocation) & "]");
+               Emit ("str x11, [sp, #" & Image (Stack_TEB_Slot + 16) & "]");
+            end if;
             Emit ("mov x11, sp");
             Emit ("str x11, [x9]");
             Emit ("add x29, x10, #" & Image (Stack_Record_Slot));
             Emit ("mov sp, x10");
             Emit ("ldr x11, [sp, #" & Image (Stack_Limit_Slot) & "]");
             Emit ("str x11, [x12]");
+            if COFF then
+               Emit ("ldp x11, x13, [sp, #" & Image (Stack_TEB_Slot) & "]");
+               Emit ("str x11, [x18, #8]");
+               Emit ("str x13, [x18, #16]");
+               Emit ("ldr x11, [sp, #" & Image (Stack_TEB_Slot + 16) & "]");
+               Emit ("str x11, [x18, #" & Image (TEB_Deallocation) & "]");
+            end if;
             for Index in reverse Pairs'Range loop
                Emit ("ldp " & Trimmed (Pairs (Index)) & ", [sp, #"
                      & Image (16 * (Index - 1)) & "]");
@@ -8722,11 +8774,23 @@ package body Landin.Backend.Arm64 is
                   end loop;
                end if;
             end loop;
+            --  D2480: Windows' table describes the epilogue, whose
+            --  record is the resumed stack's.
+            if COFF then
+               Emit (".seh_startepilogue");
+            end if;
             Emit ("add sp, sp, #" & Image (Stack_Record_Slot));
+            if COFF then
+               Emit (".seh_stackalloc " & Image (Stack_Record_Slot));
+            end if;
             if Debug /= null then
                Emit (".cfi_def_cfa sp, 16");
             end if;
             Emit ("ldp x29, x30, [sp], #16");
+            if COFF then
+               Emit (".seh_save_fplr_x 16");
+               Emit (".seh_endepilogue");
+            end if;
             if Debug /= null then
                Emit (".cfi_def_cfa_offset 0");
                Emit (".cfi_restore w29");
@@ -8735,6 +8799,10 @@ package body Landin.Backend.Arm64 is
             Emit ("ret");
             if Debug /= null then
                Emit (".cfi_endproc");
+            end if;
+            if COFF and then Debug /= null then
+               Put (Landin.Backend.Codeview.Routine_End
+                      (Local_Prefix, Stack_Switcher) & ":");
             end if;
             Close_Unwind;
             Platform_Directive
@@ -8748,7 +8816,19 @@ package body Landin.Backend.Arm64 is
                Emit (".cfi_startproc");
                Emit (".cfi_undefined w30");
             end if;
+            --  D2480: on Windows the start routine's table reads its
+            --  caller's record from the zero pair above the first frame:
+            --  the opening nop, never run, stands for the push, and every
+            --  return address in the routine is past it, so an unwinder
+            --  restores x29 and x30 as zero there, which ends its walk.
+            if COFF then
+               Emit (".seh_proc " & Stack_Start);
+            end if;
             Emit ("nop");
+            if COFF then
+               Emit (".seh_save_fplr_x 16");
+               Emit (".seh_endprologue");
+            end if;
             Emit ("mov x0, x20");
             Emit ("blr x19");
             if Panic /= null and then Landin.Panics.Handler (Panic.all)
@@ -8775,6 +8855,11 @@ package body Landin.Backend.Arm64 is
             if Debug /= null then
                Emit (".cfi_endproc");
             end if;
+            if COFF and then Debug /= null then
+               Put (Landin.Backend.Codeview.Routine_End
+                      (Local_Prefix, Stack_Start) & ":");
+            end if;
+            Close_Unwind;
             Platform_Directive (Platform.End_Function (Format, Stack_Start));
          end;
          --  D471's cell, zero until a switch resumes a prepared stack: on
@@ -8961,7 +9046,11 @@ package body Landin.Backend.Arm64 is
                   COFF_Debug_Sections
                     (Of_Unit, Meanings, Names, Facts, Options, Debug.all,
                      Local_Prefix, Symbol'Access, Is_Exported_Item'Access,
-                     Cached_Plan'Access, Cached_Frame'Access)));
+                     Cached_Plan'Access, Cached_Frame'Access,
+                     Stack_Switch =>
+                       (if Stack_Used then Stack_Switcher else ""),
+                     Stack_Start =>
+                       (if Stack_Used then Stack_Start else ""))));
       end if;
       --  Windows' TLS directory, which no C runtime brings (D2188), as
       --  x86-64's: the template's bounds, the `.tls` section's first byte

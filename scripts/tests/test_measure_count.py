@@ -6,6 +6,7 @@ run prints the count, and docs/measurement.md's noise study records it."""
 from __future__ import annotations
 
 from pathlib import Path
+import io
 import os
 import shutil
 import struct
@@ -209,6 +210,52 @@ class RefusalTest(unittest.TestCase):
                                          "size", "--specialize", "off"])
         self.assertEqual((args.image, args.fixture, args.optimize, args.specialize),
                          (None, ["runtime/merge-sort"], "size", "off"))
+
+
+    def test_a_copied_refine_is_given_its_library_or_told_it(self):
+        """A --refine copied out of its build directory finds no
+        library; --library reaches it on either kind of target, and a
+        refusal of its library says so, naming --library."""
+        import argparse
+        import types
+        from unittest import mock
+        top = argparse.ArgumentParser()
+        measure_count.add_commands(top.add_subparsers(dest="command"))
+        directory = Path(tempfile.mkdtemp(prefix="count-library-"))
+        self.addCleanup(shutil.rmtree, directory)
+        library = directory / "library"
+        library.mkdir()
+        refine = directory / "refine"
+        refine.write_text("#!/bin/sh\necho \"error[L0006]: module \\`core/mem\\` is in"
+                          " refine's library, and no library was found: refine looked in"
+                          " /x/lib/landin\" >&2\nexit 1\n")
+        refine.chmod(0o755)
+        base = ["count", "--level", "armv6-m", "--fixture", "runtime/merge-sort",
+                "--refine", str(refine)]
+        seen = {}
+
+        def observe(*arguments, **options):
+            seen.update(options)
+            return [{"name": "m", "program": "m", "instructions": 1, "level": "armv6-m",
+                     "optimize": "speed", "specialize": "auto"}]
+        corpus = types.ModuleType("backend_corpus")
+        corpus.observe = observe
+        with mock.patch.dict(sys.modules, {"backend_corpus": corpus}), \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
+            args = measure_count.parse(top, [*base, "--target", "cortex-m0", "--library",
+                                             str(library), "--output",
+                                             str(directory / "out")])
+            measure_count.run_built(args, Path("/tools"))
+        self.assertEqual(seen, {"library": library})
+        args = measure_count.parse(top, [*base, "--target", "linux-x86-64", "--output",
+                                         str(directory / "hosted")])
+        with self.assertRaisesRegex(measure_count.Failure,
+                                    "no library, looking in /x/lib/landin.*--library DIR"):
+            measure_count.run_built(args, None)
+        args = measure_count.parse(top, ["count", "--target", "linux-rv64", "--level",
+                                         "rv64gc", "image", "--library", str(library)])
+        with self.assertRaisesRegex(measure_count.Failure, "an IMAGE is built already"):
+            measure_count.run_count(args)
 
 
 if __name__ == "__main__":

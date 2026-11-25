@@ -2987,7 +2987,7 @@ Within `platform`, availability goes by module:
 | `platform` module | available |
 |---|---|
 | `platform/c` | wherever a C ABI (application binary interface) is enabled: the hosted LP64 targets and Cortex-M's AAPCS32 |
-| a CPU module: `platform/cortex_m`, `platform/riscv` or `platform/xtensa` | everywhere, with its operations, submodules and reference descriptions only on its own targets: Cortex-M at any level, `rv32`, `xtensa` |
+| a CPU module: `platform/cortex_m`, `platform/riscv`, `platform/xtensa` or `platform/x86_64` | everywhere, with its operations, submodules and reference descriptions only on its own targets: Cortex-M at any level, `rv32`, `xtensa`, `x86_64` |
 | the POSIX layer: `platform/posix` over `platform/linux`, `platform/libc` and `platform/kqueue` | on every hosted system, with its declarations only on Linux, macOS and FreeBSD |
 | `platform/windows` | on every hosted system, with its declarations only on Windows |
 | a `platform` module the compiler gives no scope | nowhere |

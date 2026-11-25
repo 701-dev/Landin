@@ -270,11 +270,11 @@ uint8_t *duplicate(const uint8_t *bytes, size_t n);   /* always malloc */
 ```landin
 import core/mem
 
---- A copy of `bytes` in whatever memory the caller passes.
+--- A copy of `bytes` in whatever memory the caller passes, which the
+--- caller gives back with `mem.release_copy(memory, copy)`.
 duplicate: (provider: type is mem.allocator, memory: provider, bytes: []u8)
-           -> (copy: mem.byte_buffer) ! mem.out_of_memory =
-    copy = try mem.allocate_bytes(memory, lenof bytes)
-    mem.copy(mem.bytes(copy), bytes) else none -- the lengths are equal
+           -> (copy: []mut u8) ! mem.out_of_memory =
+    copy = try mem.allocate_copy(memory, bytes)
 end duplicate
 ```
 

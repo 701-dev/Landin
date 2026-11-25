@@ -69,6 +69,32 @@ class Images(unittest.TestCase):
         image = struct.pack("<IIIIIIII", 0xFEEDFACF, 0, 0, 2, 1, len(command), 0, 0)
         self.assertEqual(measure.macho_sections(image + command), {"__TEXT,__text": 24})
 
+    def test_a_pe_image_counts_memory_sizes_less_dwarf(self):
+        def image(stamp, text):
+            sections = [(b".text", 6, text), (b".bss", 32, b""),
+                        (b"/4", 3, b"dbg")]
+            at = 0x40 + 24 + 40 * len(sections)
+            headers, body = b"", b""
+            for name, virtual, data in sections:
+                headers += name.ljust(8, b"\0") + struct.pack(
+                    "<IIIIIIHHI", virtual, 0, len(data), at + len(body),
+                    0, 0, 0, 0, 0)
+                body += data
+            dos = b"MZ" + bytes(0x3A) + struct.pack("<I", 0x40)
+            coff = b"PE\0\0" + struct.pack("<HHIIIHH", 0x8664, len(sections),
+                                            stamp, 0, 0, 0, 0)
+            return dos + coff + headers + body
+        self.assertEqual(measure.pe_sections(image(1, b"\x90" * 6)),
+                         {".text": 6, ".bss": 32})
+        digests = []
+        for one in (image(1, b"\x90" * 6), image(2, b"\x90" * 6),
+                    image(1, b"\xcc" * 6)):
+            digest = hashlib.sha256()
+            measure.pe_sections(one, digest)
+            digests.append(digest.hexdigest())
+        self.assertEqual(digests[0], digests[1])
+        self.assertNotEqual(digests[0], digests[2])
+
 
 class Compare(unittest.TestCase):
     def run_compare(self, measured, base, candidate):
@@ -228,6 +254,47 @@ class BaseCheckout(unittest.TestCase):
                 measure.build("refine", "linux-x86-64", "x86-64-v1", ("speed", "auto"),
                               {"fixture": "runtime/none-such", "name": "w"},
                               Path(directory), None, root=Path(directory))
+
+    def test_a_copied_base_refine_is_told_its_tree(self):
+        #  A refine copied out of its build directory lies in no checkout:
+        #  the run refuses, naming the option that gives the base's tree.
+        with tempfile.TemporaryDirectory() as directory:
+            copied = Path(directory) / "refine"
+            copied.write_text("")
+            args = mock.Mock(refine="refine", base_refine=copied,
+                             base_checkout=None, target="linux-x86-64",
+                             output=directory, skip=[])
+            with mock.patch.object(measure, "targets",
+                                   lambda refine: {"linux-x86-64": {}}), \
+                    mock.patch.object(measure, "runner_rows", lambda given: {}), \
+                    mock.patch.object(measure, "workloads",
+                                      lambda: {"hosted": []}):
+                with self.assertRaisesRegex(measure.Failure,
+                                            "--base-checkout DIR"):
+                    measure.measure_time(args)
+
+    def test_a_refusal_for_want_of_a_library_names_the_option(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture = root / "compiler/tests/fixtures/runtime/w"
+            fixture.mkdir(parents=True)
+            (root / "compiler/ada").mkdir(parents=True)
+            refusal = mock.Mock(returncode=1, stdout="", stderr=(
+                "error[L0006]: no library was found: refine looked in"
+                " /x/lib/landin\n"))
+            with mock.patch.object(measure.fixture_meta, "read",
+                                   lambda path: mock.Mock(
+                                       library_arguments=lambda f: [],
+                                       source_arguments=lambda f: [])), \
+                    mock.patch.object(measure.subprocess, "run",
+                                      lambda *a, **k: refusal):
+                with self.assertRaisesRegex(measure.Failure,
+                                            "with --base-checkout DIR"):
+                    measure.build("refine", "linux-x86-64", "x86-64-v1",
+                                  ("speed", "auto"),
+                                  {"fixture": "runtime/w", "name": "w"},
+                                  root, None, root=root,
+                                  library_option="--base-checkout DIR")
 
 
 class Levels(unittest.TestCase):
