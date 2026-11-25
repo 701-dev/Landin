@@ -1649,23 +1649,23 @@ Two installers follow a published release, and neither is moved by the
 release workflow. The flake's `releaseVersion` and `releaseHashes` are
 written by hand from the publishing job's log, as `flake.nix` says beside
 them. The Homebrew formula, `Formula/landin.rb` in
-<https://github.com/JanHaan/homebrew-tap>, is moved by that tap's
+<https://github.com/701-dev/homebrew-tap>, is moved by that tap's
 `bump-landin` workflow, which runs daily and points the formula at
 GitHub's latest release. Right after publishing, run it at once rather
 than waiting for the schedule:
 
 ```sh
-gh workflow run bump-landin.yml --repo JanHaan/homebrew-tap -f version=X.Y.Z
+gh workflow run bump-landin.yml --repo 701-dev/homebrew-tap -f version=X.Y.Z
 ```
 
 Then check it: the tap's `main` gains the commit `Landin formula X.Y.Z`,
 and on a Mac with Apple Silicon and on Linux `brew update && brew upgrade
-landin` (or `brew install janhaan/tap/landin`) followed by `brew test
+landin` (or `brew install 701-dev/tap/landin`) followed by `brew test
 landin` passes; the formula's test runs `refine version`, which must name
 X.Y.Z, `refine svd --help`, a split command found in the keg's
 `libexec/landin` only through `refine`'s resolved path, and `refine run`
-of the README's first program. The tap is the maintainer's own
-repository, outside this one's gate.
+of the README's first program. The tap is a repository of its own,
+`701-dev/homebrew-tap`, outside this one's gate.
 
 The formula depends on these properties of a release, so a change to any
 of them changes the formula first, in the tap:

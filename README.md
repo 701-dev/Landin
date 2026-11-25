@@ -111,10 +111,12 @@ Homebrew installs `refine` on a Mac with Apple Silicon, and on Linux
 x86-64 and arm64. An Intel Mac is not covered.
 
 ```sh
-brew install janhaan/tap/landin
+brew install 701-dev/tap/landin
 ```
 
 `brew upgrade landin` updates it and `brew uninstall landin` removes it.
+To move an install from the earlier tap `janhaan/tap`, run `brew
+uninstall landin`, then the command above.
 The formula moves to a new release within a day of its publication.
 
 This installs the release archive for your platform, the one
