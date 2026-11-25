@@ -51,7 +51,10 @@ supplied, and Espressif's QEMU release archive with the Debian libraries it
 loads: SDL2 and the sound, X11 and Wayland libraries SDL2 links, and
 libgcrypt, 36 packages chosen by following each binary's `NEEDED` entries
 rather than the packages' dependencies, which would add Mesa and LLVM that
-nothing loads. Debian's libpulse finds its common library through a
+nothing loads. A package that has since left Debian's pool, superseded by
+a point release, is taken from `snapshot.debian.org` at the time the lock
+was made (`setup.py`'s `SNAPSHOT`), checked against the same SHA-256.
+Debian's libpulse finds its common library through a
 `RUNPATH` under `/usr`, so the lanes put the tool root's
 `lib/x86_64-linux-gnu/pulseaudio` on `LD_LIBRARY_PATH` beside the library
 directory itself. GCC and binutils come from the arm-elf and riscv64-elf

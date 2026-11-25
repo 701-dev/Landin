@@ -156,6 +156,27 @@ class Fetchers(unittest.TestCase):
                                      r' [0-9a-f]{64}, not the pinned [0-9a-f]{64}')
         self.assertEqual((opener.calls, waits), (1, []))
 
+    def test_setup_takes_a_package_that_left_the_pool_from_the_snapshot(self):
+        item = dict(self.item(), url=setup.POOL + 'pool/main/o/openssl/libssl3t64_1_amd64.deb')
+        asked = []
+        def opener(url, timeout):
+            asked.append(url)
+            return Scripted([404] if url.startswith(setup.POOL) else [])(url, timeout)
+        self.assertEqual(self.setup_fetch(opener, item), (GOOD, []))
+        self.assertEqual(asked, [item['url'],
+                                 setup.SNAPSHOT + 'pool/main/o/openssl/libssl3t64_1_amd64.deb'])
+
+    def test_setup_asks_no_snapshot_for_another_server_or_status(self):
+        for url, status in (('https://example.invalid/control.tar.xz', 404),
+                            (setup.POOL + 'pool/main/a/a/a.deb', 403)):
+            asked = []
+            def opener(url, timeout, status=status):
+                asked.append(url)
+                return Scripted([status])(url, timeout)
+            error, _ = self.setup_fetch(opener, dict(self.item(), url=url))
+            self.assertIsInstance(error, SystemExit)
+            self.assertEqual(asked, [url])
+
 
 class Server:
     """127.0.0.1 answering STATUSES in turn, then the archive."""

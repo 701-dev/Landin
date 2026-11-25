@@ -21,7 +21,12 @@ TRANSIENT = frozenset({408, 429, 500, 502, 503, 504})
 
 
 class DownloadError(OSError):
-    """A download that failed; its text is the whole report."""
+    """A download that failed; its text is the whole report, and STATUS
+    the last HTTP status, or None for a failure below HTTP."""
+
+    def __init__(self, text, status=None):
+        super().__init__(text)
+        self.status = status
 
 
 def status_of(error):
@@ -57,7 +62,7 @@ def download(url, name, consume, *, opener=None, timeout=60, attempts=ATTEMPTS,
                         name, url, said[-1],
                         '' if attempt == 1 else ' after %d attempts (%s)' % (attempt, '; '.join(said)))
                     + ('' if final else '; the server or the connection failed, not the pin:'
-                       ' the same command may pass later')) from error
+                       ' the same command may pass later'), status) from error
             wait = delay * 2 ** (attempt - 1)
             if report:
                 report('%s: %s from %s; attempt %d of %d in %g s'
