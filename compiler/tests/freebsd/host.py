@@ -39,7 +39,8 @@ USER = 'landin'
 HOME = '/home/' + USER
 CHECKOUT = HOME + '/Landin'
 #  What the build and the test program need beyond the base system:
-#  binutils' as assembles x86-64's GNU assembly (D475's -fno-integrated-as),
+#  binutils' as assembles x86-64's GNU assembly (D475's -fno-integrated-as)
+#  and its ld is the one the built GNAT links with on either architecture,
 #  git gives the build its revision, bash runs the developer scripts.
 PACKAGES = ('python3', 'git', 'bash', 'binutils')
 
@@ -179,7 +180,8 @@ def main():
                    f' python3 environments/freebsd/gnat.py --arch={options.arch},'
                    ' or pass --build-toolchain')
         gnat.build(options.arch, options.cache, options.output / 'gnat',
-                   memory=max(options.memory, 12288), cpus=options.cpus)
+                   memory=max(options.memory, 12288), cpus=options.cpus,
+                   runner_ssh=options.runner_ssh)
     log = options.output / 'host.log'
     started = time.monotonic()
     if options.runner_ssh:

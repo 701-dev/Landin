@@ -12,11 +12,18 @@ guest that builds refine unpacks it at PREFIX rather than building GCC.
     gnat.py --arch=amd64 --key      prints the inputs' digest
     gnat.py --arch=amd64 --path     the archive's path, building nothing
     gnat.py --arch=amd64            the archive's path, built if missing
+    gnat.py --arch=arm64 --runner-ssh='ssh ... root@HOST'
+                                    built in an existing guest instead
+
+An existing guest is one booted fresh from the same release image, as the
+FreeBSD arm64 guest under KVM on an arm64 host is: GitHub's arm64 runners
+have no KVM, and building GCC under emulation outlasts a job (R21.61).
 
 The archive unpacks at PREFIX, /opt/landin, which the compiler's own
 programs name to find their runtime.
 """
 import argparse
+import contextlib
 import hashlib
 import os
 from pathlib import Path
@@ -96,10 +103,10 @@ def archive_path(arch, cache):
     return cache / f'gnat-{GCC_VERSION}-gprbuild-{GPR_VERSION}-{arch}-{key(arch)}.tar.xz'
 
 
-def build(arch, cache, output, *, memory, cpus):
-    """Boot a fresh guest, build there, and keep the archive."""
+def build(arch, cache, output, *, memory, cpus, runner_ssh=None):
+    """Boot a fresh guest, or take RUNNER_SSH's, build there, and keep the
+    archive."""
     values = pins()
-    image, _ = vm.prepare(arch, cache)
     fetched = cache / 'gnat-sources'
     fetched.mkdir(parents=True, exist_ok=True)
     for name, url, sha in sources(values):
@@ -107,7 +114,15 @@ def build(arch, cache, output, *, memory, cpus):
     archive = archive_path(arch, cache)
     output.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
-    with vm.boot(arch, image, output, memory=memory, cpus=cpus, disk='48G') as guest:
+    if runner_ssh:
+        guests = contextlib.nullcontext(vm.Guest(ssh=runner_ssh))
+    else:
+        image, _ = vm.prepare(arch, cache)
+        guests = vm.boot(arch, image, output, memory=memory, cpus=cpus, disk='48G')
+    with guests as guest:
+        arch_said = guest.checked('uname -p').decode().strip()
+        vm.require(arch_said == ('amd64' if arch == 'amd64' else 'aarch64'),
+                   f'the guest is {arch_said}, not {arch}')
         guest.checked('service growfs onestart >/dev/null 2>&1 || true; df -h /')
         guest.checked('rm -rf /var/tmp/landin-sources && mkdir -p /var/tmp/landin-sources/patches')
         for name, _, _ in sources(values):
@@ -168,6 +183,8 @@ def main():
                         help="print the archive's path in the cache, building nothing")
     parser.add_argument('--memory', type=int, default=12288, help='guest MiB (12288)')
     parser.add_argument('--cpus', type=int, default=os.cpu_count(), help='guest processors')
+    parser.add_argument('--runner-ssh', help='an existing guest: the SSH command that reaches'
+                        ' it as root; --memory and --cpus are then its own')
     options = parser.parse_args()
     if options.key:
         print(key(options.arch))
@@ -179,7 +196,7 @@ def main():
     if not archive.exists():
         with tempfile.TemporaryDirectory(prefix='landin-gnat-') as scratch:
             build(options.arch, options.cache, options.output or Path(scratch),
-                  memory=options.memory, cpus=options.cpus)
+                  memory=options.memory, cpus=options.cpus, runner_ssh=options.runner_ssh)
     print(archive)
     return 0
 
