@@ -1582,9 +1582,10 @@ def measure(refine: Path, tools: dict[str, str], gdb: str,
         reported = tuple(os.fsdecode(bytes.fromhex(entry["path_hex"]))
                          for entry in inventory)
         #  The module's files come in their sorted order: linux.ldn, then
-        #  the generated wrapped.ldn.
-        implicit = tuple(str(path) for path in
-                         sorted((ROOT / "platform/linux").glob("*.ldn")))
+        #  the generated wrapped.ldn; then platform/x86_64, whose processor
+        #  words the entry's level check reads, imported on every target.
+        implicit = tuple(str(path) for module in ("platform/linux", "platform/x86_64")
+                         for path in sorted((ROOT / module).glob("*.ldn")))
         check_build_sources(reported, source_args + implicit)
         source_args = reported
         sources = tuple((ROOT / path).resolve() for path in source_args)

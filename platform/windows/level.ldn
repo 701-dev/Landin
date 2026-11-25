@@ -76,7 +76,7 @@ fixed if compiler.os == windows then
         --  `IsProcessorFeaturePresent`: nonzero when the processor has
         --  `feature`, a `PF_*` number.
         extern(c) link(symbol: "IsProcessorFeaturePresent")
-            processor_feature_present: (feature: u32) -> (present: i32)
+        processor_feature_present: (feature: u32) -> (present: i32)
 
         --  `PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE` and
         --  `PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE`.
@@ -113,10 +113,10 @@ fixed if compiler.os == windows then
 
             --- The first feature of this executable's level that `words`
             --- lacks, by the name `compiler.feature` gives it, or "" when
-            --- the level is all there.  RDM is not asked: nothing Windows
-            --- documents reports it.
+            --- the level is all there.
             public missing_feature:
                 (words: cpu_words) -> (name: []u8) =
+                --  RDM is not asked: nothing Windows documents reports it.
                 present: u64 = words.present
                 name = if (present & 0x400000000) == 0 then "lse"
                        elsif (present & 0x80000000) == 0 then "crc32"
