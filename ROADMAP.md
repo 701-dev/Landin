@@ -795,8 +795,8 @@ kept for `core/atomic`'s cell calls, which follow how D339 copies.
 `SR-1578`'s case returns built from IR, and `measure.py count` builds and
 counts a fixture at a chosen level, objective and description
 (`SR-1505`), documented in `docs/measurement.md`. `SR-231` is retired as
-not worth an IR terminator: the atom `match` chain tests its subject
-once and spends 6 bytes an arm, a table about 4, about 56 bytes over
+not worth an IR terminator, which the maintainer confirmed on 2026-11-25:
+the atom `match` chain tests its subject once and spends 6 bytes an arm, a table about 4, about 56 bytes over
 `failure.words`. `compiler/tests/measure/findings.md` has each figure.
 Fixed on the way: `measure.py compare` takes the directory `size` writes
 (met by two streams). `SR-1660` files a copied `refine` that cannot
