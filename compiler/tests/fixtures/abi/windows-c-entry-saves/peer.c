@@ -1,4 +1,4 @@
-/* SR-1694: Win64 makes a callee save rbx, rbp, rdi, rsi, r12 to r15 and
+/* D2473: Win64 makes a callee save rbx, rbp, rdi, rsi, r12 to r15 and
  * xmm6 to xmm15 whole.  r_probe sets each to a sentinel, enters the
  * Landin callback through the pointer it is given, and records in
  * r_probe_clobbered a bit for each register that came back changed. */

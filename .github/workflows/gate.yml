@@ -2587,7 +2587,7 @@ jobs:
           python3 compiler/tests/windows/check.py --prepare-only --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output="$RUNNER_TEMP/windows-microsoft-bundle"
-          #  SR-1694: the ABI fixtures' assembly and C peers, which
+          #  D2473: the ABI fixtures' assembly and C peers, which
           #  windows-runtime compiles and links with llvm-mingw's Clang.
           python3 compiler/tests/windows/check.py --prepare-only --kind=abi \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
@@ -2644,7 +2644,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      #  SR-1697: a Windows runner checks the repository out, and the
+      #  A Windows runner checks the repository out, and the
       #  lane runs from the checkout; the bundle's own lane/ is for a
       #  host that has none.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -2673,7 +2673,7 @@ jobs:
             sha256sum -c -
           unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
           mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
-      #  SR-1694: each ABI fixture's C peer compiled and linked with its
+      #  D2473: each ABI fixture's C peer compiled and linked with its
       #  assembly by llvm-mingw's Clang, the C runtime's program, and run.
       - name: Link and execute the Windows x86-64 ABI fixtures with their C peers
         if: always()
@@ -2859,7 +2859,7 @@ jobs:
             --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output="$RUNNER_TEMP/windows-microsoft-bundle"
-          #  SR-1694, as windows-emit's.
+          #  D2473, as windows-emit's.
           python3 compiler/tests/windows/check.py --prepare-only --target=windows-arm64 \
             --kind=abi \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
@@ -2912,7 +2912,7 @@ jobs:
     runs-on: windows-11-arm
     timeout-minutes: 30
     steps:
-      #  SR-1697: a Windows runner checks the repository out, and the
+      #  A Windows runner checks the repository out, and the
       #  lane runs from the checkout; the bundle's own lane/ is for a
       #  host that has none.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -2942,7 +2942,7 @@ jobs:
             sha256sum -c -
           unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
           mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
-      #  SR-1694: each ABI fixture's C peer compiled and linked with its
+      #  D2473: each ABI fixture's C peer compiled and linked with its
       #  assembly by llvm-mingw's Clang, the C runtime's program, and run.
       - name: Link and execute the Windows arm64 ABI fixtures with their C peers
         if: always()

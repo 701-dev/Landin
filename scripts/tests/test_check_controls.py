@@ -183,7 +183,7 @@ class RecordHints(unittest.TestCase):
 
 
 class PortablePaths(unittest.TestCase):
-    """Every tracked path is one a Windows checkout can hold (SR-1697)."""
+    """Every tracked path is one a Windows checkout can hold."""
 
     def test_ordinary_names_pass(self):
         self.assertEqual(faults(checker.check_portable_paths, written={

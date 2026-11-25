@@ -1300,6 +1300,43 @@
         }
       }
     },
+    "abi/windows-c-entry-saves": {
+      "mode": "restriction",
+      "reason": "Its C peer is Win64 assembly that sets and checks x86-64's callee-saved registers by name, so it compiles for no Arm M-profile core.",
+      "stops": "c-source",
+      "lanes": {
+        "esp32c3": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "RV32's ilp32 C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        },
+        "sifive-e": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "RV32's ilp32 C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        }
+      },
+      "targets": {
+        "xtensa": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "Xtensa's windowed C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        }
+      }
+    },
+    "abi/windows-variadic-floats": {
+      "codes": [
+        "L0346"
+      ],
+      "mode": "refuse",
+      "reason": "Its program calls a variadic C function, which AAPCS32 does not enable (D922); its C peer also prints its oracle through the C library."
+    },
     "runtime/a-zero-divisor-traps": {
       "mode": "execute",
       "selects": {

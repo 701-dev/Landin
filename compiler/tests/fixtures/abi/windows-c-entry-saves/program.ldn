@@ -1,4 +1,4 @@
---  SR-1694: the callback the C peer's probe enters with every register
+--  D2473: the callback the C peer's probe enters with every register
 --  Win64 makes a callee save set to a sentinel.  Its body keeps more
 --  integers and floats live across a call to C than the volatile
 --  registers hold, so an allocator that may use the saved ones does.

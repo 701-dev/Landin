@@ -34636,7 +34636,7 @@ images and PDBs.
 PIE does, `movq NAME@GOTPCREL(%rip)`. COFF has no GOT, and Clang's COFF
 assembler takes the suffix as a plain RIP-relative operand, so the load
 read the function's first eight bytes of code as its address, and every
-C peer handed a Landin pointer to a C function crashed there (SR-1694).
+C peer handed a Landin pointer to a C function crashed there.
 arm64's COFF address already took `__imp_NAME`, but put the prefix
 outside a name that needs quotes, which the assembler refuses.
 
@@ -34661,7 +34661,7 @@ kind on both architectures.
 record, which SysV classifies by its field and so as the base. Win64
 passes a record of 1, 2, 4 or 8 bytes as one integer, floats included,
 so a `distinct f32` went in RCX where C passes the float in XMM0, and a
-C peer read garbage (SR-1694).
+C peer read garbage.
 
 **Chosen:** the IR marks a distinct nominal (`Mark_Distinct`), and the
 Win64 classifier gives a distinct record of one scalar field its base's
@@ -34683,7 +34683,7 @@ do for a `struct { float x; }`.
 **The discrepancy:** a C peer is a C program, its `main` the C runtime's,
 and the flake's MinGW drivers have the import libraries but neither C
 headers nor a C runtime, so no lane compiled a peer for a Windows image
-and the Windows C plan had met no C code (SR-1694).
+and the Windows C plan had met no C code.
 
 **Chosen:** `compiler/tests/windows/check.py --kind=abi` emits each ABI
 fixture's assembly with refine on Linux and copies its peer's sources;
@@ -34719,7 +34719,7 @@ on, run over SSH, 14 of 3,682 `windows-runtime` and 32 of 3,682
 their 60 seconds: with several traps at once most still started a
 `WerFault` that ran for seconds. Measured with 24 trapping images twelve
 at a time, the error mode alone let 17 and 18 reach WER, the per-user
-`Disabled` value 6 and 14, and a job object none, twice (SR-1797).
+`Disabled` value 6 and 14, and a job object none, twice.
 
 **Chosen:** besides the error mode, the lane's process joins a job object
 with `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, which every program it

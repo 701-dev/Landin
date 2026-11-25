@@ -10620,7 +10620,7 @@ def windows_path_problem(path):
 def check_portable_paths(full_run):
     """Every tracked path is one a Windows or macOS checkout can hold.
 
-    SR-1697: a debugger case kept its source as `caller"\\path.ldn`, a name
+    A debugger case kept its source as `caller"\\path.ldn`, a name
     Git for Windows refuses, so no Windows runner could check the
     repository out and every Windows job took its lane from a bundle.  A
     name a test needs that Windows refuses is written at run time, as
@@ -10646,8 +10646,7 @@ def check_portable_paths(full_run):
     for path in sorted(paths):
         problem = windows_path_problem(path)
         if problem:
-            out.append((path, 1, problem + "; write it at run time instead"
-                        " (SR-1697)"))
+            out.append((path, 1, problem + "; write it at run time instead"))
         twin = folded.setdefault(path.casefold(), path)
         if twin != path:
             out.append((path, 1, "differs from %s only in case, which a"
@@ -10918,9 +10917,10 @@ PROCESS_SECTION_BUDGETS = {
     "Parallel sessions and shared resources": 14600,
     "Command reference": 8400,
     #  Raised when Windows arm64 added its three gate jobs, each a
-    #  row of the job table, and its Microsoft link a fourth, and again
-    #  when refine built on FreeBSD added two rows.
-    "The mechanical gate": 49300,
+    #  row of the job table, and its Microsoft link a fourth, again
+    #  when refine built on FreeBSD added two rows, and again when the
+    #  Windows runtime jobs took the ABI fixtures' C peers.
+    "The mechanical gate": 49700,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

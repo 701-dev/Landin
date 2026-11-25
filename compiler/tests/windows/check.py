@@ -54,9 +54,9 @@ TRAP_STATUS = 0xC000001D
 #  alone, and a C library is none Windows links.
 UNSUPPORTED = ('c-shared', 'c-archives', 'library-directories', 'c-inputs', 'link')
 #  The lane's kind, which --kind sets: the runtime corpus, or the ABI
-#  fixtures, each linked with its independent C peer (SR-1694).
+#  fixtures, each linked with its independent C peer (D2473).
 KIND = 'runtime'
-#  SR-1694: the C peers the ABI kind must run: FreeBSD's required set
+#  D2473: the C peers the ABI kind must run: FreeBSD's required set
 #  (compiler/tests/freebsd/check.py's ABI_REQUIRED), variadic floats past
 #  the register slots, and on x86-64 the registers Win64 makes a callee
 #  save, held across a callback C enters.
@@ -197,7 +197,7 @@ def build(args, bundle, item):
     label = '-'.join((base.name, optimize, specialize, level or 'default'))
     executable = bundle / (label + '.exe')
     peers = bool(meta.c_sources)
-    #  SR-1694: a C peer's program is the C runtime's, so refine emits the
+    #  D2473: a C peer's program is the C runtime's, so refine emits the
     #  assembly alone and the Windows job compiles the peer and links both
     #  with llvm-mingw's Clang there, which carries the C headers and
     #  runtime this host's MinGW driver lacks.
@@ -306,7 +306,7 @@ def windows_error_mode():
     The error mode, which every child inherits, keeps WER's dialog away
     but not WER itself: with several traps at once, most of them still
     start a WerFault that runs for seconds, enough to push an outcome
-    past its limit on a host where WER is on (SR-1797; GitHub's images
+    past its limit on a host where WER is on (D2474; GitHub's images
     turn it off).  The lane's process therefore joins a job object that
     says JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION: a process of the
     job that an exception ends is ended with the exception's code as

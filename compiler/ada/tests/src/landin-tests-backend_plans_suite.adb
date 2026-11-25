@@ -669,7 +669,7 @@ package body Landin.Tests.Backend_Plans_Suite is
         return IR.Signature_Part is (Kind => Kind, others => <>);
    begin
       Prepare (Item, Unit, Site);
-      --  SR-1694: a C record of one float, and a distinct f32, which
+      --  D2472: a C record of one float, and a distinct f32, which
       --  lowering holds as the same one-field aggregate.
       Single := IR.Add_Nominal_Type (Unit, 1);
       IR.Set_Nominal_Shape

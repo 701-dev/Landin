@@ -143,7 +143,7 @@ package body Landin.Backend.C_ABI is
       --  A distinct type crosses as its base.  SysV classifies the one
       --  field the same either way, but Win64 passes a record of 1, 2, 4
       --  or 8 bytes as one integer, so a distinct f32 went in RCX where C
-      --  takes the float in XMM0 (SR-1694).
+      --  takes the float in XMM0 (D2472).
       if Win64 and then Part.Kind = Landin.Types.Aggregate
         and then Landin.IR.Is_Distinct (Of_Unit, Part.Nominal)
         and then Landin.IR.Nominal_Field_Count (Of_Unit, Part.Nominal) = 1

@@ -1,4 +1,4 @@
---  SR-1694: Windows places a variadic tail by slot, a float in the
+--  D2473: Windows places a variadic tail by slot, a float in the
 --  integer register or stack slot its position takes, unlike SysV's two
 --  banks; C's va_arg reads each back.
 collector: type = extern(c) (count: i32, ...) -> (result: i32)

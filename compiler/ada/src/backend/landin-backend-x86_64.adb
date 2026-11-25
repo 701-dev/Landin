@@ -7313,7 +7313,7 @@ package body Landin.Backend.X86_64 is
                      --  COFF has no GOT, and Clang assembles `@GOTPCREL`
                      --  there as a plain load from the function, which
                      --  read its first instructions as the address
-                     --  (SR-1694): the import's address is its `__imp_`
+                     --  (D2471): the import's address is its `__imp_`
                      --  pointer, which a DLL's import fills and the
                      --  MinGW link makes for a definition it links in,
                      --  as arm64's COFF address takes it.

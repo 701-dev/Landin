@@ -40,7 +40,7 @@ asking Windows Error Reporting, which every child joins with it. The error
 mode alone keeps WER's dialog away but not WER: with several traps at once
 most still started a `WerFault` that ran for seconds, enough to push an
 outcome past its limit on a host where WER is on, as it is off on GitHub's
-images (SR-1797).
+images (D2474).
 
 The selection refuses a fixture naming the target that asks for what
 the lane does not run: a C library (`link:`), a C archive or shared
@@ -52,7 +52,7 @@ since the profiles of one fixture run at once and a fixture may make files
 where it runs (D2273).
 
 `--kind=abi` selects the ABI fixtures whose `targets:` name the target
-instead, each with an independently compiled C peer (SR-1694). A C peer's
+instead, each with an independently compiled C peer (D2473). A C peer's
 program is the C runtime's, whose `main` calls into the Landin code, so
 emission writes each fixture's assembly and copies its peer's sources,
 and execution compiles each peer with `--cc`, llvm-mingw's Clang for the

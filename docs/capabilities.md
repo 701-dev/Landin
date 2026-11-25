@@ -44,7 +44,10 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   kernel32, the system libraries `platform/windows`'s files name and no C
   runtime: `platform/windows`'s `_landin_start` runs `main` and ends the
   process with its result (D2188, D2189). C calls take
-  the Windows x64 convention, LLP64 (D2190), routines carry unwind tables
+  the Windows x64 convention, LLP64 (D2190), held against independently
+  compiled C peers, which the gate's Windows runners compile and link with
+  llvm-mingw's Clang and C runtime on both architectures (D2471-D2473),
+  routines carry unwind tables
   for their frame records (D2191), and a failed check writes its line to
   standard error and ends with `STATUS_ILLEGAL_INSTRUCTION` (D2192). A
   program has the hosted providers, written over `platform/windows`:
