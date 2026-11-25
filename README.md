@@ -535,7 +535,7 @@ Hosted targets:
 | Linux x86-64, Linux arm64 | hosted executables | natively, with GDB |
 | Linux RV64 | hosted executables | under QEMU's user emulation, with GDB |
 | macOS arm64 | hosted executables | natively, with LLDB |
-| FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux, or on FreeBSD x86-64 by `refine` built there | in FreeBSD VMs, with LLDB |
+| FreeBSD x86-64 and arm64 | hosted executables, emitted on Linux, or on FreeBSD by `refine` built there | in FreeBSD VMs, with LLDB |
 | Windows x86-64 and arm64 | hosted executables, emitted on Linux | natively on Windows runners, with LLDB |
 
 Firmware targets:
@@ -594,7 +594,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R21.61 — refine on FreeBSD arm64 (planned).**
+**Next roadmap item: R22.10 — Elementary functions (planned).**
 
 ## Questions, bugs and ideas
 

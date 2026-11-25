@@ -37,11 +37,12 @@ package Landin.Targets.Selection is
      with Pre => Is_Described (Name);
 
    --  The description a compiler built for TRIPLET defaults to, if any:
-   --  x86-64 Linux, arm64 Linux, arm64 Darwin and x86-64 FreeBSD each
-   --  describe their own host, and any other build describes none, so a
-   --  build there must name its target.  Parts of the triplet are matched
-   --  rather than the whole, since a vendor field and a Darwin or FreeBSD
-   --  release number say nothing about which description applies.
+   --  x86-64 Linux, arm64 Linux, arm64 Darwin, x86-64 FreeBSD and arm64
+   --  FreeBSD each describe their own host, and any other build describes
+   --  none, so a build there must name its target.  Parts of the triplet
+   --  are matched rather than the whole, since a vendor field and a Darwin
+   --  or FreeBSD release number say nothing about which description
+   --  applies.
    function Has_Host_Default (Triplet : String) return Boolean;
 
    function Host_Default (Triplet : String) return Target_Facts

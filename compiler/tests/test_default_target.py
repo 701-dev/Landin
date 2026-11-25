@@ -25,6 +25,7 @@ HOSTS = {
     ("Linux", "aarch64"): "linux-arm64",
     ("Darwin", "arm64"): "darwin-arm64",
     ("FreeBSD", "amd64"): "freebsd-x86-64",
+    ("FreeBSD", "arm64"): "freebsd-arm64",
 }
 
 
