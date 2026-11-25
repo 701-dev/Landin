@@ -81,7 +81,7 @@
    "instructions": 55109677
   },
   "rv64gc/size-all/reverse-complement": {
-   "instructions": 1497556
+   "instructions": 1467052
   },
   "rv64gc/size-all/thread": {
    "instructions": 3767062
@@ -102,7 +102,7 @@
    "instructions": 55109677
   },
   "rv64gc/size-auto/reverse-complement": {
-   "instructions": 1497556
+   "instructions": 1467052
   },
   "rv64gc/size-auto/thread": {
    "instructions": 3767062
@@ -123,7 +123,7 @@
    "instructions": 55110901
   },
   "rv64gc/size-off/reverse-complement": {
-   "instructions": 1498289
+   "instructions": 1467785
   },
   "rv64gc/size-off/thread": {
    "instructions": 3767087
@@ -144,7 +144,7 @@
    "instructions": 46969236
   },
   "rv64gc/speed-all/reverse-complement": {
-   "instructions": 1244942
+   "instructions": 1214438
   },
   "rv64gc/speed-all/thread": {
    "instructions": 3502621
@@ -165,7 +165,7 @@
    "instructions": 46969236
   },
   "rv64gc/speed-auto/reverse-complement": {
-   "instructions": 1244942
+   "instructions": 1214438
   },
   "rv64gc/speed-auto/thread": {
    "instructions": 3502621
@@ -186,7 +186,7 @@
    "instructions": 46970145
   },
   "rv64gc/speed-off/reverse-complement": {
-   "instructions": 1245651
+   "instructions": 1215147
   },
   "rv64gc/speed-off/thread": {
    "instructions": 3502646
@@ -270,7 +270,7 @@
    "instructions": 55110050
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
-   "instructions": 1497556
+   "instructions": 1467052
   },
   "rv64gc_xtheadba/size-all/thread": {
    "instructions": 3767062
@@ -291,7 +291,7 @@
    "instructions": 55110050
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
-   "instructions": 1497556
+   "instructions": 1467052
   },
   "rv64gc_xtheadba/size-auto/thread": {
    "instructions": 3767062
@@ -312,7 +312,7 @@
    "instructions": 55110516
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
-   "instructions": 1498289
+   "instructions": 1467785
   },
   "rv64gc_xtheadba/size-off/thread": {
    "instructions": 3767087
@@ -333,7 +333,7 @@
    "instructions": 46969319
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
-   "instructions": 1244942
+   "instructions": 1214438
   },
   "rv64gc_xtheadba/speed-all/thread": {
    "instructions": 3502621
@@ -354,7 +354,7 @@
    "instructions": 46969319
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
-   "instructions": 1244942
+   "instructions": 1214438
   },
   "rv64gc_xtheadba/speed-auto/thread": {
    "instructions": 3502621
@@ -375,7 +375,7 @@
    "instructions": 46970050
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
-   "instructions": 1245651
+   "instructions": 1215147
   },
   "rv64gc_xtheadba/speed-off/thread": {
    "instructions": 3502646
@@ -459,7 +459,7 @@
    "instructions": 55110474
   },
   "rv64gc_zba/size-all/reverse-complement": {
-   "instructions": 1497980
+   "instructions": 1467476
   },
   "rv64gc_zba/size-all/thread": {
    "instructions": 3767509
@@ -480,7 +480,7 @@
    "instructions": 55110474
   },
   "rv64gc_zba/size-auto/reverse-complement": {
-   "instructions": 1497980
+   "instructions": 1467476
   },
   "rv64gc_zba/size-auto/thread": {
    "instructions": 3767509
@@ -501,7 +501,7 @@
    "instructions": 55110940
   },
   "rv64gc_zba/size-off/reverse-complement": {
-   "instructions": 1498713
+   "instructions": 1468209
   },
   "rv64gc_zba/size-off/thread": {
    "instructions": 3767534
@@ -522,7 +522,7 @@
    "instructions": 46969591
   },
   "rv64gc_zba/speed-all/reverse-complement": {
-   "instructions": 1245214
+   "instructions": 1214710
   },
   "rv64gc_zba/speed-all/thread": {
    "instructions": 3502905
@@ -543,7 +543,7 @@
    "instructions": 46969591
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
-   "instructions": 1245214
+   "instructions": 1214710
   },
   "rv64gc_zba/speed-auto/thread": {
    "instructions": 3502905
@@ -564,7 +564,7 @@
    "instructions": 46970322
   },
   "rv64gc_zba/speed-off/reverse-complement": {
-   "instructions": 1245923
+   "instructions": 1215419
   },
   "rv64gc_zba/speed-off/thread": {
    "instructions": 3502930
@@ -648,7 +648,7 @@
    "instructions": 55110474
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
-   "instructions": 1497980
+   "instructions": 1467476
   },
   "rv64gc_zba_xtheadba/size-all/thread": {
    "instructions": 3767509
@@ -669,7 +669,7 @@
    "instructions": 55110474
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
-   "instructions": 1497980
+   "instructions": 1467476
   },
   "rv64gc_zba_xtheadba/size-auto/thread": {
    "instructions": 3767509
@@ -690,7 +690,7 @@
    "instructions": 55110940
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
-   "instructions": 1498713
+   "instructions": 1468209
   },
   "rv64gc_zba_xtheadba/size-off/thread": {
    "instructions": 3767534
@@ -711,7 +711,7 @@
    "instructions": 46969591
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
-   "instructions": 1245214
+   "instructions": 1214710
   },
   "rv64gc_zba_xtheadba/speed-all/thread": {
    "instructions": 3502905
@@ -732,7 +732,7 @@
    "instructions": 46969591
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
-   "instructions": 1245214
+   "instructions": 1214710
   },
   "rv64gc_zba_xtheadba/speed-auto/thread": {
    "instructions": 3502905
@@ -753,7 +753,7 @@
    "instructions": 46970322
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
-   "instructions": 1245923
+   "instructions": 1215419
   },
   "rv64gc_zba_xtheadba/speed-off/thread": {
    "instructions": 3502930

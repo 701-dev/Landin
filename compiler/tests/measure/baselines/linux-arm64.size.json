@@ -264,8 +264,8 @@
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 51908,
-    ".rodata": 18835,
+    ".text": 51880,
+    ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -334,8 +334,8 @@
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 51908,
-    ".rodata": 18835,
+    ".text": 51880,
+    ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -404,8 +404,8 @@
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 51980,
-    ".rodata": 18835,
+    ".text": 51952,
+    ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -474,8 +474,8 @@
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 49476,
-    ".rodata": 18480,
+    ".text": 49448,
+    ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -544,8 +544,8 @@
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 49476,
-    ".rodata": 18480,
+    ".text": 49448,
+    ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -614,8 +614,8 @@
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 49800,
-    ".rodata": 18480,
+    ".text": 49772,
+    ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -894,8 +894,8 @@
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 53084,
-    ".rodata": 19286,
+    ".text": 53056,
+    ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -964,8 +964,8 @@
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 53084,
-    ".rodata": 19286,
+    ".text": 53056,
+    ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -1034,8 +1034,8 @@
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 53156,
-    ".rodata": 19286,
+    ".text": 53128,
+    ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -1104,8 +1104,8 @@
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 50292,
-    ".rodata": 18875,
+    ".text": 50264,
+    ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -1174,8 +1174,8 @@
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 50292,
-    ".rodata": 18875,
+    ".text": 50264,
+    ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
@@ -1244,8 +1244,8 @@
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 50616,
-    ".rodata": 18875,
+    ".text": 50588,
+    ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
     ".data": 616,
