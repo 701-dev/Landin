@@ -177,7 +177,7 @@ public main: () -> (code: i32) =
     if run_64_1(cases_1, call_1, 2) <> 0 and code == 42 then
         code = 1
     end if
-    if run_32_1(cases_2, call_2, 2) <> 0 and code == 42 then
+    if run_32_1(cases_2, call_2, 3) <> 0 and code == 42 then
         code = 2
     end if
 end main

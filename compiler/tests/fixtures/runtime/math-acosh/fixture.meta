@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/math's acosh is within two floats of MPFR's correctly rounded result, at f64 and f32, for each table's specials, random inputs and hardest-to-round inputs
+summary: core/math's acosh is within two floats of MPFR's correctly rounded result at f64 and three at f32, msun's own error, for each table's specials, random inputs and hardest-to-round inputs
 program: main.ldn
 root: ../../../../..
 status: 42
