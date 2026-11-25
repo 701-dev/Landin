@@ -48,14 +48,19 @@ what a successor needs is never only in the conversation.
    `README.md` or `roadmap/` needs an entry in `scripts/tests/
    test_gate_inputs.py`'s `READERS`, or the scripts job fails.
 3. **Push** once the affected checks pass, with `item.py push ITEM
-   --watch`: it refuses a stale `citations.txt`, pushes, records the
-   head's runs and follows the gate in a detached `gate_watch.py --all`. Investigate a failed job from its log; a fixed
-   push supersedes the run. Another item's gate at the same time shares
-   the runners and both take longer.
-4. **Boards.** When the push gate passed, `item.py boards ITEM --watch`
-   dispatches the `scope=boards` run on the same head, records it and
-   follows it. It refuses while main is not an ancestor of the head:
-   merge main first (step 6). A closing commit that says
+   --watch`: it refuses a stale `citations.txt`, runs the pre-push checks
+   the changed paths select (`--no-check` when a failure is not the
+   change's), pushes, records the head's runs and follows the gate in two
+   detached watches. Wait on the first: it returns at the first failed
+   job, so read that job's log and start the fix at once; push it when the
+   `--all` watch ends, or once every job still running is of a kind the
+   fix does not touch. A fixed push supersedes the run. Another item's
+   gate at the same time shares the runners and both take longer.
+4. **Boards.** Once main is an ancestor of the head, dispatch the boards
+   beside its gate rather than after it: `item.py push ITEM --boards
+   --watch` at the push, or `item.py boards ITEM --watch`. It refuses
+   while main is not an ancestor of the head: merge main first (step 6),
+   and dispatch no boards on a tree main will move under. A closing commit that says
    `Gate: explanatory` may be pushed beside it: a dispatch is not
    cancelled by a push. A run that failed only in timing, every board leg
    passed, is not a boards failure: read the timing log, and if it reads
@@ -76,15 +81,20 @@ what a successor needs is never only in the conversation.
    clone's promotion token, merges `origin/main`, and declares the merge
    `Gate: explanatory` when everything main brings is declared and the
    gate key is unchanged, so the pass and the boards are reused; otherwise
-   push and gate the merged tree and dispatch its boards. If another item
+   push the merged tree with its boards beside its gate. If another item
    holds the token, keep working and wait with `item.py queue --wait
    ITEM` rather than merging twice. Promotion takes the token too, and
-   main's gate ending or `finish` gives it up. An item that says
+   main's gate verdict or `finish` gives it up. The holder may take other
+   waiting items' gated candidates into its final merge as
+   [a train](../../../docs/process.md#a-train), `item.py merge-main ITEM
+   --with OTHER`; an item riding one leaves its branch alone until it
+   lands, then follows main and finishes. An item that says
    `Promotion: maintainer` stops at the passed candidate and gives the
    token up with `item.py queue --release ITEM`.
-7. **Follow main**: `item.py gate ITEM --main --watch`. Main's push takes
-   the boards of the candidate's passed dispatch, so its gate is short. A
-   failure there is investigated, never rerun blindly.
+7. **Follow main**: `item.py gate ITEM --main --watch`, to its verdict,
+   the aggregate `gate` job; the cache jobs after it are no evidence.
+   Main's push takes the boards of the candidate's passed dispatch, so its
+   gate is short. A failure there is investigated, never rerun blindly.
 8. **Finish**: `item.py finish ITEM`, from the worktree or anywhere in the
    clone, refuses until main's gate passed, then removes the worktree, the
    local and remote branch, and moves the state to `landin-items/done/`,
@@ -117,7 +127,8 @@ AGENTS.md's "Friction is a finding" says.
 
 The item's agent holds standing authority to push, promote and clean up
 its own worktrees and branches unless the item says `Promotion: maintainer`
-(`ROADMAP.md`'s Mechanics); other work promotes only when that action is
+(`ROADMAP.md`'s Mechanics), and a train's integrator may promote the
+gated candidates riding it; other work promotes only when that action is
 authorized. Releases and versions are never covered.
 
 ## Dispatching items to agents
@@ -133,6 +144,15 @@ own beyond what `item.py` keeps:
   idle agent is not proof that its runs ended: the state says.
 - Act on reports, not raw material: the report's runs and commits are what
   to check (`gh run view RUN`, `git log -1 COMMIT`).
+- When the token's holder is in its final merge and others wait with
+  passed gates, run them as one train: `item.py queue` names the line,
+  `item.py merge-main HOLDER --with A --with B` merges them (it says which
+  it left out and why), `item.py push HOLDER --boards --watch`, the
+  explanatory `Done:` commit, `item.py promote HOLDER`, `item.py gate
+  HOLDER --main --watch`, then `finish` for the holder and each member.
+  Tell each member's agent it rides and must not push. On a failed
+  train gate, read the first failed job, then `--drop` one member, as
+  [the train](../../../docs/process.md#a-train) says.
 - A successor to such a session needs only `item.py status` and the open
   questions, which `roadmap/register.md` lists with their defaults.
 
