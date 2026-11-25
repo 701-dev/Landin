@@ -4,10 +4,10 @@
  "entries": {
   "armv8-a/none-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107264,
+    "__TEXT,__text": 111032,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -104,10 +104,10 @@
   },
   "armv8-a/none-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107264,
+    "__TEXT,__text": 111032,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -204,10 +204,10 @@
   },
   "armv8-a/none-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107336,
+    "__TEXT,__text": 111104,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -304,10 +304,10 @@
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39392,
+    "__TEXT,__text": 40124,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -404,10 +404,10 @@
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39392,
+    "__TEXT,__text": 40124,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -504,10 +504,10 @@
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39416,
+    "__TEXT,__text": 40148,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -604,10 +604,10 @@
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33676,
+    "__TEXT,__text": 34428,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -704,10 +704,10 @@
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33676,
+    "__TEXT,__text": 34428,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -804,10 +804,10 @@
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33836,
+    "__TEXT,__text": 34564,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -904,10 +904,10 @@
   },
   "armv8.1-a/none-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107232,
+    "__TEXT,__text": 111000,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -1004,10 +1004,10 @@
   },
   "armv8.1-a/none-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107232,
+    "__TEXT,__text": 111000,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -1104,10 +1104,10 @@
   },
   "armv8.1-a/none-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 107304,
+    "__TEXT,__text": 111072,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 13731,
+    "__TEXT,__cstring": 13973,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 664,
@@ -1204,10 +1204,10 @@
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39360,
+    "__TEXT,__text": 40092,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1304,10 +1304,10 @@
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39360,
+    "__TEXT,__text": 40092,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1404,10 +1404,10 @@
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 39384,
+    "__TEXT,__text": 40116,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11683,
+    "__TEXT,__cstring": 11964,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1504,10 +1504,10 @@
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33644,
+    "__TEXT,__text": 34396,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1604,10 +1604,10 @@
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33644,
+    "__TEXT,__text": 34396,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,
@@ -1704,10 +1704,10 @@
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    "__TEXT,__text": 33804,
+    "__TEXT,__text": 34532,
     "__TEXT,__stubs": 108,
     "__TEXT,__const": 297,
-    "__TEXT,__cstring": 11442,
+    "__TEXT,__cstring": 11723,
     "__DATA_CONST,__got": 72,
     "__DATA_CONST,__const": 392,
     "__DATA,__data": 480,

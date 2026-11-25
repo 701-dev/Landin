@@ -1209,6 +1209,24 @@ fewer instructions than at the item's base, measured on arm64 as well;
 program's instructions and image size reported against that base; and
 no other combination over its own.
 
+Done: `core/zone` (D2449) takes blocks from a parent, each twice as
+large as the one before from 1024 bytes less the parent's two-word
+header, or just large enough when the request is larger or the parent
+refuses the next, and hands out the newest block's bytes in order;
+`zone.reset` gives every allocation back through the handle and every
+block but the newest to the parent, and `zone.release` gives every block
+back. binary-trees takes its stretch tree, its long-lived tree and its
+rounds each from a zone over the heap, resetting the rounds' zone after
+each tree. Against the item's base it executes 54.8% fewer x86-64
+instructions at speed at depth 15 and 58.6% at size, 56.7% and 62.6% on
+arm64 under QEMU, and 61.6% and 65.7% on RV64; at depth 21 it runs in
+12.8 seconds against 32.4, 0.85 of C's time where it took 2.18, at 128
+MB peak against 385. Its image is 0.6% to 1.6% larger, no other
+workload's image changed, and every output is the same.
+`docs/benchmarks.md` measures it again. `SR-1432` is taken; `SR-1412`
+keeps the region's silent single free; Q-274 asks whether the module's
+name is `core/zone`.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
