@@ -19,6 +19,26 @@ def meta(label, **keys):
 
 
 class AddFixtureTest(unittest.TestCase):
+    def test_a_changed_library_module_the_fixture_imports_is_named(self):
+        import subprocess
+        import tempfile
+        saved = add_fixture.subprocess.run
+        def run(arguments, **_):
+            changed = ("core/zone/zone.ldn\nhosted/io/io.ldn\n"
+                       if arguments[1] == "diff" else "")
+            return subprocess.CompletedProcess(arguments, 0, changed, "")
+        add_fixture.subprocess.run = run
+        try:
+            with tempfile.TemporaryDirectory() as scratch:
+                (Path(scratch) / "main.ldn").write_text(
+                    "import core/zone\nimport core/mem\n")
+                self.assertEqual(add_fixture.changed_library(scratch),
+                                 ["core/zone"])
+                (Path(scratch) / "main.ldn").write_text("fn main() end\n")
+                self.assertEqual(add_fixture.changed_library(scratch), [])
+        finally:
+            add_fixture.subprocess.run = saved
+
     def test_a_runtime_fixture_starts_executing(self):
         self.assertEqual(add_fixture.corpus_row(
             meta("runtime/new"), None, None), {"mode": "execute"})
@@ -197,6 +217,17 @@ class AddFixtureTest(unittest.TestCase):
             " --case='formatting/the corpus is formatted'",
             "./highlight/test.sh --integration, inside nix develop",
             "python3 check.py"])
+        #  A changed library module it imports is held to the layout by
+        #  the library's own case, not the corpus's.
+        library = add_fixture.remaining_steps(
+            meta("runtime/new", program="main.ldn"), False, None,
+            ["core/zone"])
+        self.assertEqual(library[:2], [
+            "refine fmt core/zone, the changed library modules the fixture"
+            " imports",
+            "./scripts/dev-test.sh --fixture=runtime/new"
+            " --case='formatting/the corpus is formatted'"
+            " --case='formatting/core and the examples are formatted'"])
         #  A unit fixture with no report has no lane of its own.
         self.assertEqual(add_fixture.remaining_steps(meta("unit/new"), False),
                          ["python3 check.py"])

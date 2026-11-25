@@ -20,7 +20,32 @@ from setup import (DEFAULT, HERE, arm_archive, installed_tools, inventory, riscv
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(ROOT / 'compiler/tests'))
 import fixture_meta  # noqa: E402
+sys.path.insert(0, str(ROOT / 'scripts'))
+import lane_refine  # noqa: E402
 COUNTERPARTS = ROOT / 'compiler/tests/cortex-m'
+
+#  The library the corpus's own compilations name, for a refine copied out
+#  of its build directory (use_library); None lets refine find its own.
+LIBRARY = None
+
+
+def use_library(library):
+    """Name LIBRARY, a directory or None, in every `refine compile` that
+    `derived`, `build` and the corpus run from now on."""
+    global LIBRARY
+    LIBRARY = library
+
+
+def compile_command(refine):
+    """`refine compile` with the library use_library named."""
+    return lane_refine.compile_command(refine, LIBRARY)
+
+
+def missing_library(log):
+    """lane_refine.MissingLibrary when LOG, a compiler log's text, is a
+    refusal of refine's library, naming the option that supplies one."""
+    said = lane_refine.missing_library(log, '--library DIR')
+    return lane_refine.MissingLibrary(said) if said else None
 
 #  The CPU feature levels (D255) the corpus executes, each with the
 #  processor arguments the external harness assembles and links with, the
@@ -274,9 +299,13 @@ def probe_level(device):
 
 def said_why(error):
     """A failed compiler command with the compiler's first diagnostic, so
-    the failure says why rather than only which log to read."""
-    first = next((line.strip() for line in Path(error.log).read_text(
-        errors='replace').splitlines() if line.startswith('error[')), '')
+    the failure says why rather than only which log to read; a refusal of
+    refine's library is a MissingLibrary saying so instead."""
+    log = Path(error.log).read_text(errors='replace')
+    missing = missing_library(log)
+    if missing:
+        return missing
+    first = next((line.strip() for line in log.splitlines() if line.startswith('error[')), '')
     return CommandFailed(error.name, error.log, error.ended + (': ' + first if first else ''))
 
 
@@ -290,7 +319,7 @@ def derived(run, refine, device=REFERENCE, where=None):
     The facts are held to descriptions.json's record, so a profile the
     harness links with is the one descriptions.py compares.
     """
-    key = (str(refine), device)
+    key = (str(refine), str(LIBRARY), device)
     with DERIVING:
         if key in DERIVED:
             return DERIVED[key]
@@ -300,7 +329,7 @@ def derived(run, refine, device=REFERENCE, where=None):
         probe = Run(out, run.tools)
         try:
             probe.command('derive-profile', [
-                refine, 'compile', '--root=' + str(probe_root(device)),
+                *compile_command(refine), '--root=' + str(probe_root(device)),
                 '--target=' + device_target(device),
                 *probe_level(device), '--emit=linker-script', '--build-report=profile.json',
                 'profile.ldn', '-o', 'profile.ld'], timeout=60)
@@ -1143,8 +1172,8 @@ def build(run, refine, inputs, optimize, specialize, extra=(), linker=None,
     selected = [] if level == 'armv6-m' else ['--level=' + refine_level(level)]
     assembly = run.out / 'program.s'
     try:
-        run.command('compile', [refine, 'compile', *lane_inputs(level, inputs), '--target=' + target(level),
-                    *selected, '--emit=asm',
+        run.command('compile', [*compile_command(refine), *lane_inputs(level, inputs),
+                    '--target=' + target(level), *selected, '--emit=asm',
                     '--optimize=' + optimize, '--specialize=' + specialize,
                     '-o', assembly, '--build-report=' + str(run.out / 'build.json')],
                     timeout=60)

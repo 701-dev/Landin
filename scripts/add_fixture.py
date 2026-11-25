@@ -66,7 +66,10 @@ fixture.  This then
    belong in one run of it, so this names them rather than running them.
    Then the one run of the fixture and of every corpus case that reads
    it, the highlighters' integration pass for a source the editor grammar
-   parses, and `python3 check.py`.
+   parses, and `python3 check.py`.  When the fixture imports a `core/`,
+   `hosted/` or `platform/` module the checkout changed, `refine fmt` of
+   that module and `formatting/core and the examples are formatted`, the
+   case that holds the library's sources, come with them.
 """
 
 import argparse
@@ -262,17 +265,55 @@ def single_program_args(fixture, text):
             % (fixture, program.group(1) if program else "main.ldn"))
 
 
-def remaining_steps(meta, expect_written, unformatted=None):
+LIBRARY_ROOTS = ("core", "hosted", "platform")
+LIBRARY_FORMATTED = "--case='formatting/core and the examples are formatted'"
+
+
+def changed_library(directory, base="origin/main"):
+    """The library modules DIRECTORY's sources import that this checkout
+    changed since BASE, committed or not, sorted: each `core/NAME`,
+    `hosted/NAME` or `platform/NAME` directory.  The library's own sources
+    are held to `refine fmt` by a case of their own, which the fixture's
+    formatting case does not reach."""
+    imported = set()
+    for source in sorted(Path(directory).rglob("*.ldn")):
+        for found in re.finditer(
+                r"(?m)^\s*import\s+((?:%s)/[A-Za-z0-9_/]+)"
+                % "|".join(LIBRARY_ROOTS),
+                source.read_text(encoding="utf-8", errors="replace")):
+            imported.add(found.group(1))
+    if not imported:
+        return []
+    changed = set()
+    for arguments in (["diff", "--name-only", base + "...HEAD"],
+                      ["diff", "--name-only", "HEAD"],
+                      ["ls-files", "--others", "--exclude-standard"]):
+        ran = subprocess.run(["git", *arguments, "--", *LIBRARY_ROOTS],
+                             cwd=ROOT, capture_output=True, text=True)
+        if ran.returncode == 0:
+            changed.update(ran.stdout.split())
+    return sorted(module for module in imported
+                  if any(path.startswith(module + "/") or
+                         path.startswith(module + ".")
+                         for path in changed))
+
+
+def remaining_steps(meta, expect_written, unformatted=None, library=()):
     """What only the test program or another tool does for a fixture of
     META's class, in order: each a command line.
 
     EXPECT_WRITTEN says whether the fixture's `expect` file exists, and
     UNFORMATTED names the fixture's directory when no refine was here to
-    put its sources in the layout."""
+    put its sources in the layout.  LIBRARY names the library modules
+    the fixture imports that the checkout changed, held to the layout by
+    the library's own formatting case."""
     steps = []
     if unformatted:
         steps.append("refine fmt %s, with the refine ./scripts/dev-build.sh"
                      " --compiler-only builds" % unformatted)
+    if library:
+        steps.append("refine fmt %s, the changed library modules the"
+                     " fixture imports" % " ".join(library))
     records = []
     if meta.cls == "positive":
         records.append("--record=lowering")
@@ -294,6 +335,8 @@ def remaining_steps(meta, expect_written, unformatted=None):
         cases.append("--case='lowering/the recorded corpus is current'")
     if meta.cls in ("positive", "runtime", "abi"):
         cases.append("--case='formatting/the corpus is formatted'")
+    if library:
+        cases.append(LIBRARY_FORMATTED)
     if cases:
         steps.append("./scripts/dev-test.sh " + " ".join(cases))
     if meta.cls in ("positive", "runtime", "abi"):
@@ -596,7 +639,8 @@ def main(argv=None):
         expect_written = bool(meta.get("expect")) and (
             directory / meta["expect"]).is_file()
         steps.append(remaining_steps(meta, expect_written,
-                                     unformatted[meta.label]))
+                                     unformatted[meta.label],
+                                     changed_library(directory)))
     for one in combined_steps(steps):
         print("then run: " + one)
     if executing:

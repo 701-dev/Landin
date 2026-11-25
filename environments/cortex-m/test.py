@@ -332,6 +332,49 @@ class ProbeFailures(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 model()
 
+    def test_a_copied_refine_is_given_its_library_or_told_it(self):
+        #  --library reaches every compilation the corpus makes,
+        #  and a refusal of refine's library is said as one, naming
+        #  --library, rather than as a fixture's changed verdict.
+        from contextlib import redirect_stderr
+        import io
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import backend
+        import backend_corpus
+        from run import CommandFailed
+        with tempfile.TemporaryDirectory() as directory:
+            here = Path(directory)
+            log = ("error[L0006]: module `core/mem` is in refine's library, and no library"
+                   " was found: refine looked in /x/lib/landin\n")
+            commands = []
+
+            def command(name, argv, **options):
+                commands.append([str(part) for part in argv])
+                (here / (name + '.log')).write_text(log)
+                raise CommandFailed(name, str(here / (name + '.log')), 'exited 1')
+            run = SimpleNamespace(out=here, command=command, commands=[{'exit': 1}])
+            self.addCleanup(backend.use_library, None)
+            backend.use_library(here)
+            missing = 'looking in /x/lib/landin.*--library DIR'
+            with self.assertRaisesRegex(backend.lane_refine.MissingLibrary, missing):
+                backend_corpus.source_refusal(run, Path('/r'), 'runtime/word-count',
+                                              {'codes': ['L0015']})
+            self.assertEqual(commands[-1][:3], ['/r', 'compile', '--library=%s' % here])
+            with self.assertRaisesRegex(backend.lane_refine.MissingLibrary, missing):
+                backend_corpus.restriction(run, Path('/r'), 'runtime/word-count', {},
+                                           'none', 'off')
+            self.assertEqual(commands[-1][:3], ['/r', 'compile', '--library=%s' % here])
+            self.assertIsInstance(backend.said_why(CommandFailed(
+                'compile', str(here / 'compile-restricted.log'), 'exited 1')),
+                backend.lane_refine.MissingLibrary)
+            with patch.object(sys, 'argv', ['backend_corpus.py', '--refine', '/r',
+                                            '--output', str(here / 'o'), '--library',
+                                            str(here / 'none')]), \
+                    redirect_stderr(io.StringIO()) as said, self.assertRaises(SystemExit):
+                backend_corpus.main()
+            self.assertIn('is no directory', said.getvalue())
+
     def test_complete_backend_inventory_and_counterparts(self):
         from backend_corpus import inventory
         from unittest.mock import patch

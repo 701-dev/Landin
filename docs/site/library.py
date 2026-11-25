@@ -2,7 +2,8 @@
 
 A bounded declaration reader, not a type checker. The shared scanner excludes
 comments and literals from structural decisions. Unsupported public forms,
-missing documentation, orphan overviews and ambiguous anchors stop the build.
+missing documentation, orphan overviews and ambiguous anchors stop the build;
+every unreadable or undocumented declaration is named in the one refusal.
 Compiler tests remain the authority for legality and runtime behavior.
 """
 from __future__ import annotations
@@ -80,8 +81,179 @@ def attached_docs(lines, index):
     return '\n'.join(reversed(result)).strip()
 
 
-def read_items(text, source):
-    lines, codes = text.splitlines(), code_lines(text)
+class Refused(ValueError):
+    """A public declaration the reader cannot put on the page."""
+
+
+def refusal_report(refused):
+    if len(refused) == 1:
+        return refused[0]
+    return (f'{len(refused)} public library declarations refused:\n'
+            + '\n'.join(refused))
+
+
+def declaration(lines, codes, i, source, module, conditions):
+    """The public declaration whose `public` begins line I, or None."""
+    code = codes[i]
+    # The line the declaration's name is on: this one, or the next when
+    # its attributes stand alone above it.
+    last = i
+    attributes = ATTRIBUTES.match(code)
+    if (attributes and i + 1 < len(codes)
+            and codes[i + 1].startswith(attributes[1])
+            and NAMED.match(codes[i + 1][len(attributes[1]):])):
+        last = i + 1
+        code = code.rstrip() + ' ' + codes[last].lstrip()
+    match = PUBLIC.match(code)
+    if not match:
+        if not re.search(r'\bpublic\b', code):
+            return None
+        if attributes:
+            raise Refused(f'{source}:{i+1}: unsupported public declaration: '
+                          'attributes alone on a line need the name at the '
+                          'start of the next one, at their indentation, '
+                          'as `refine fmt` writes it')
+        raise Refused(f'{source}:{i+1}: unsupported public declaration')
+    prefix, foreign, name, after = match.groups()
+    after = after.strip()
+    documentation = attached_docs(lines, i)
+    if not documentation:
+        raise Refused(f'{source}:{i+1}: undocumented public {name}')
+    condition = '; '.join(
+        ('not (' + ' or '.join(c[2]) + ')'
+         + ('' if c[1] == 'otherwise' else ' and (' + c[1] + ')'))
+        if c[2] else c[1] for c in conditions)
+    if foreign:
+        # A C routine: its signature may continue on more deeply
+        # indented lines, and a definition ends it with '=' at
+        # delimiter depth zero where an import simply stops.
+        depth = 0
+        for char in ''.join(codes[i:last]):
+            if char in '([':
+                depth += 1
+            elif char in ')]':
+                depth -= 1
+        j = last
+        while True:
+            for char in codes[j]:
+                if char in '([':
+                    depth += 1
+                elif char in ')]':
+                    depth -= 1
+            stripped_end = codes[j].rstrip()
+            following = codes[j + 1] if j + 1 < len(codes) else ''
+            if depth == 0 and stripped_end.endswith('='):
+                signature = '\n'.join(
+                    lines[i:j] + [lines[j][:len(stripped_end) - 1]]).rstrip()
+                break
+            if depth == 0 and (not following.strip()
+                               or len(following) - len(following.lstrip())
+                               <= len(prefix)):
+                signature = '\n'.join(lines[i:j + 1]).rstrip()
+                break
+            j += 1
+            if j == len(codes):
+                raise Refused(f'{source}:{i+1}: unterminated C routine')
+        kind = 'function'
+    elif after.startswith('(') or (
+            not after and last + 1 < len(codes)
+            and codes[last + 1].strip().startswith('(')):
+        # A native routine, whose signature the layout may start on the
+        # next line.  The implementation separator is the first standalone '=' at
+        # delimiter depth zero. '=' inside defaults is not a separator.
+        depth = 0
+        end = None
+        for j in range(i, len(codes)):
+            for col, char in enumerate(codes[j]):
+                if char in '([':
+                    depth += 1
+                elif char in ')]':
+                    depth -= 1
+                elif char == '=' and depth == 0:
+                    end = (j, col)
+                    break
+            if end:
+                break
+        if not end:
+            raise Refused(f'{source}:{i+1}: routine has no body separator')
+        j, col = end
+        signature = '\n'.join(lines[i:j] + [lines[j][:col]]).rstrip()
+        kind = 'function'
+    elif re.match(r'type(?:\s|$)', after):
+        block = re.search(r'=\s*(?:layout\s*\([^)]*\)\s*)?(struct|concept)\b',
+                          code)
+        if block:
+            end_marker = prefix + 'end ' + name
+            j = next((n for n in range(i+1, len(codes))
+                      if codes[n].rstrip() == end_marker), None)
+            if j is None:
+                raise Refused(f'{source}:{i+1}: unclosed public type')
+            # Keep public fields and documented concept entries together.
+            signature = '\n'.join(lines[i:j+1])
+            kind = 'concept' if block[1] == 'concept' else 'type'
+        else:
+            # An alias whose right side the layout put on the next line,
+            # or continued on more deeply indented ones: a union of
+            # atoms written one `| ...` line after another.
+            j = last
+            while (j + 1 < len(codes) and codes[j+1].strip()
+                   and codes[j+1].startswith(prefix + '    ')):
+                j += 1
+                code = code.rstrip() + ' ' + codes[j].strip()
+            if '=' not in code or not code.split('=', 1)[1].strip():
+                raise Refused(f'{source}:{i+1}: unsupported type alias')
+            rhs = code.split('=', 1)[1].strip()
+            if (re.search(r'\b(?:struct|concept|variant)\b', rhs)
+                    or rhs.endswith('|')
+                    or rhs.count('(') != rhs.count(')')
+                    or rhs.count('[') != rhs.count(']')):
+                raise Refused(f'{source}:{i+1}: unsupported multiline type')
+            signature = '\n'.join(lines[i:j + 1])
+            kind = 'type'
+    elif after == 'atom':
+        signature, kind = '\n'.join(lines[i:last+1]), 'atom'
+    else:
+        # A value, whose expression the layout may begin on the next
+        # line or continue on more deeply indented ones; open brackets
+        # carry it on whatever the indentation.  Its name may itself be
+        # on the line after its attributes.
+        depth, j = 0, last
+        while True:
+            for char in codes[j]:
+                if char in '([':
+                    depth += 1
+                elif char in ')]':
+                    depth -= 1
+            following = codes[j + 1] if j + 1 < len(codes) else ''
+            if depth <= 0 and (not following.strip()
+                               or len(following) - len(following.lstrip())
+                               <= len(prefix)):
+                break
+            j += 1
+            if j == len(codes):
+                raise Refused(f'{source}:{i+1}: unterminated public value')
+        written = '\n'.join(lines[i:j + 1])
+        if '=' not in code or not written.split('=', 1)[1].strip():
+            raise Refused(f'{source}:{i+1}: unsupported public value')
+        signature, kind = written.rstrip(), 'value'
+    signature = textwrap.dedent(signature).strip()
+    return Item(module, name, kind, signature, documentation,
+                source, i+1, condition,
+                tuple(c[1] for c in conditions))
+
+
+def read_items(text, source, refusals=None):
+    """SOURCE's public declarations.  Every one it cannot read is refused
+    together: added to REFUSALS when given, else raised at the end."""
+    refused = [] if refusals is None else refusals
+    try:
+        codes = code_lines(text)
+    except ValueError as error:
+        refused.append(f'{source}: {error}')
+        if refusals is None:
+            raise Refused(refusal_report(refused))
+        return []
+    lines = text.splitlines()
     module = str(Path(source).parent)
     items = []
     conditions = []
@@ -99,146 +271,15 @@ def read_items(text, source):
                 conditions[-1][1] = 'otherwise'
             elif stripped == 'end if':
                 conditions.pop()
-        # The line the declaration's name is on: this one, or the next when
-        # its attributes stand alone above it.
-        last = i
-        attributes = ATTRIBUTES.match(code)
-        if (attributes and i + 1 < len(codes)
-                and codes[i + 1].startswith(attributes[1])
-                and NAMED.match(codes[i + 1][len(attributes[1]):])):
-            last = i + 1
-            code = code.rstrip() + ' ' + codes[last].lstrip()
-        match = PUBLIC.match(code)
-        if not match:
-            if re.search(r'\bpublic\b', code):
-                raise ValueError(f'{source}:{i+1}: unsupported public declaration')
+        try:
+            item = declaration(lines, codes, i, source, module, conditions)
+        except Refused as refusal:
+            refused.append(str(refusal))
             continue
-        prefix, foreign, name, after = match.groups()
-        after = after.strip()
-        documentation = attached_docs(lines, i)
-        if not documentation:
-            raise ValueError(f'{source}:{i+1}: undocumented public {name}')
-        condition = '; '.join(
-            ('not (' + ' or '.join(c[2]) + ')'
-             + ('' if c[1] == 'otherwise' else ' and (' + c[1] + ')'))
-            if c[2] else c[1] for c in conditions)
-        if foreign:
-            # A C routine: its signature may continue on more deeply
-            # indented lines, and a definition ends it with '=' at
-            # delimiter depth zero where an import simply stops.
-            depth = 0
-            for char in ''.join(codes[i:last]):
-                if char in '([':
-                    depth += 1
-                elif char in ')]':
-                    depth -= 1
-            j = last
-            while True:
-                for char in codes[j]:
-                    if char in '([':
-                        depth += 1
-                    elif char in ')]':
-                        depth -= 1
-                stripped_end = codes[j].rstrip()
-                following = codes[j + 1] if j + 1 < len(codes) else ''
-                if depth == 0 and stripped_end.endswith('='):
-                    signature = '\n'.join(
-                        lines[i:j] + [lines[j][:len(stripped_end) - 1]]).rstrip()
-                    break
-                if depth == 0 and (not following.strip()
-                                   or len(following) - len(following.lstrip())
-                                   <= len(prefix)):
-                    signature = '\n'.join(lines[i:j + 1]).rstrip()
-                    break
-                j += 1
-                if j == len(codes):
-                    raise ValueError(f'{source}:{i+1}: unterminated C routine')
-            kind = 'function'
-        elif after.startswith('(') or (
-                not after and last + 1 < len(codes)
-                and codes[last + 1].strip().startswith('(')):
-            # A native routine, whose signature the layout may start on the
-            # next line.  The implementation separator is the first standalone '=' at
-            # delimiter depth zero. '=' inside defaults is not a separator.
-            depth = 0
-            end = None
-            for j in range(i, len(codes)):
-                for col, char in enumerate(codes[j]):
-                    if char in '([':
-                        depth += 1
-                    elif char in ')]':
-                        depth -= 1
-                    elif char == '=' and depth == 0:
-                        end = (j, col)
-                        break
-                if end:
-                    break
-            if not end:
-                raise ValueError(f'{source}:{i+1}: routine has no body separator')
-            j, col = end
-            signature = '\n'.join(lines[i:j] + [lines[j][:col]]).rstrip()
-            kind = 'function'
-        elif re.match(r'type(?:\s|$)', after):
-            block = re.search(r'=\s*(?:layout\s*\([^)]*\)\s*)?(struct|concept)\b',
-                              code)
-            if block:
-                end_marker = prefix + 'end ' + name
-                j = next((n for n in range(i+1, len(codes))
-                          if codes[n].rstrip() == end_marker), None)
-                if j is None:
-                    raise ValueError(f'{source}:{i+1}: unclosed public type')
-                # Keep public fields and documented concept entries together.
-                signature = '\n'.join(lines[i:j+1])
-                kind = 'concept' if block[1] == 'concept' else 'type'
-            else:
-                # An alias whose right side the layout put on the next line,
-                # or continued on more deeply indented ones: a union of
-                # atoms written one `| ...` line after another.
-                j = last
-                while (j + 1 < len(codes) and codes[j+1].strip()
-                       and codes[j+1].startswith(prefix + '    ')):
-                    j += 1
-                    code = code.rstrip() + ' ' + codes[j].strip()
-                if '=' not in code or not code.split('=', 1)[1].strip():
-                    raise ValueError(f'{source}:{i+1}: unsupported type alias')
-                rhs = code.split('=', 1)[1].strip()
-                if (re.search(r'\b(?:struct|concept|variant)\b', rhs)
-                        or rhs.endswith('|')
-                        or rhs.count('(') != rhs.count(')')
-                        or rhs.count('[') != rhs.count(']')):
-                    raise ValueError(f'{source}:{i+1}: unsupported multiline type')
-                signature = '\n'.join(lines[i:j + 1])
-                kind = 'type'
-        elif after == 'atom':
-            signature, kind = '\n'.join(lines[i:last+1]), 'atom'
-        else:
-            # A value, whose expression the layout may begin on the next
-            # line or continue on more deeply indented ones; open brackets
-            # carry it on whatever the indentation.  Its name may itself be
-            # on the line after its attributes.
-            depth, j = 0, last
-            while True:
-                for char in codes[j]:
-                    if char in '([':
-                        depth += 1
-                    elif char in ')]':
-                        depth -= 1
-                following = codes[j + 1] if j + 1 < len(codes) else ''
-                if depth <= 0 and (not following.strip()
-                                   or len(following) - len(following.lstrip())
-                                   <= len(prefix)):
-                    break
-                j += 1
-                if j == len(codes):
-                    raise ValueError(f'{source}:{i+1}: unterminated public value')
-            written = '\n'.join(lines[i:j + 1])
-            if '=' not in code or not written.split('=', 1)[1].strip():
-                raise ValueError(f'{source}:{i+1}: unsupported public value')
-            signature, kind = written.rstrip(), 'value'
-        signature = textwrap.dedent(signature).strip()
-        items.append(Item(module, name, kind, signature, documentation,
-                          source, i+1, condition,
-                          tuple(c[1] for c in conditions)))
+        if item:
+            items.append(item)
+    if refusals is None and refused:
+        raise Refused(refusal_report(refused))
     return items
 
 
@@ -251,9 +292,12 @@ def collect(root):
                  if re.search(r'^compiler\.device\(', text, re.M)}
     files = {path: text for path, text in files.items()
              if str(Path(path).parent) not in described}
-    modules = {}
+    modules, refused = {}, []
     for path, text in files.items():
-        modules.setdefault(str(Path(path).parent), []).extend(read_items(text, path))
+        modules.setdefault(str(Path(path).parent), []).extend(
+            read_items(text, path, refused))
+    if refused:
+        raise Refused(refusal_report(refused))
     for module, items in modules.items():
         if not items:
             raise ValueError(f'{module}: no public library declarations')
