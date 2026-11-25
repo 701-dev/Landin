@@ -23,8 +23,24 @@ ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import lane_refine  # noqa: E402
 MAIN_SOURCE = HERE / "main.ldn"
-ODD_SOURCE = HERE / 'caller"\\path.ldn'
-SOURCES = (MAIN_SOURCE, ODD_SOURCE)
+#  The caller's source is compiled under a name holding a double quote and
+#  a backslash, the bytes D422's path inventory and the assembler's `.file`
+#  string must carry exactly.  No Windows checkout can hold that name, so
+#  the tree keeps the source as ODD_TEMPLATE and `stage_sources` writes it
+#  under ODD_NAME in the run's own directory.
+ODD_NAME = 'caller"\\path.ldn'
+ODD_TEMPLATE = HERE / "caller-path.ldn"
+
+
+def stage_sources(directory: Path) -> tuple[Path, Path]:
+    """The debugger program's two sources, the second written under
+    ODD_NAME in `directory`, which is made if it is not there."""
+    directory.mkdir(parents=True, exist_ok=True)
+    odd = directory / ODD_NAME
+    shutil.copyfile(ODD_TEMPLATE, odd)
+    return (MAIN_SOURCE, odd)
+
+
 CONTAINER_SOURCE = ROOT / "examples/derived_containers/workload/workload.ldn"
 #  The two orderings the workload dispatches to are the library's own.
 CMP_SOURCE = ROOT / "core/cmp/cmp.ldn"
@@ -1012,7 +1028,7 @@ def check_transcript(transcript: str, source_lines: dict[str, int],
     require(re.search(r"#0\s+.*\bdebug_inner\b", stack) is not None and
             re.search(r"#1\s+.*\bdebug_outer\b", stack) is not None and
             re.search(r"#2\s+.*\bmain\b", stack) is not None and
-            ODD_SOURCE.name in stack,
+            ODD_NAME in stack,
             f"nested Landin stack is incomplete: {stack!r}")
     generic_functions = marker_section(transcript, "generic-functions")
     require("debug_generic" in generic_functions,
@@ -1239,7 +1255,7 @@ def check_debug_sections(readelf: str, executable: Path,
 
 def check_source_map(table_path: Path, executable_id: str,
                      source_args: tuple[str, ...], assembly: Path,
-                     sources: tuple[Path, ...] = SOURCES) -> dict:
+                     sources: tuple[Path, ...]) -> dict:
     table = json.loads(table_path.read_text(encoding="ascii"))
     require(table["build_id"] == executable_id,
             "source map build ID differs from its executable")
@@ -1472,9 +1488,9 @@ REGISTER_LINES = {
     "inner-ready": source_line(REGISTER_SOURCE, "result = held + 1"),
     "leaf-ready": source_line(REGISTER_SOURCE, "total = doubled + 1"),
 }
-CALLER_LINE = source_line(ODD_SOURCE, "code = debug_outer(")
+CALLER_LINE = source_line(ODD_TEMPLATE, "code = debug_outer(")
 CALLER_COLUMN = next(line.index("debug_outer") + 1 for line in
-                     ODD_SOURCE.read_text().splitlines()
+                     ODD_TEMPLATE.read_text().splitlines()
                      if "code = debug_outer(" in line)
 
 
@@ -1533,7 +1549,7 @@ def measure(refine: Path, tools: dict[str, str], gdb: str,
     executable = scratch / f"debug-{key}"
     assembly = scratch / f"debug-{key}.s"
     report = scratch / f"report-{key}.json"
-    sources = SOURCES
+    sources = stage_sources(scratch / "sources")
     source_args = tuple(os.path.relpath(source, ROOT) for source in sources)
     fixture = (PARSER_FIXTURE if parser_workload else
                HOSTED_FIXTURE if hosted else CONTAINER_FIXTURE)
@@ -1566,9 +1582,10 @@ def measure(refine: Path, tools: dict[str, str], gdb: str,
         reported = tuple(os.fsdecode(bytes.fromhex(entry["path_hex"]))
                          for entry in inventory)
         #  The module's files come in their sorted order: linux.ldn, then
-        #  the generated wrapped.ldn.
-        implicit = tuple(str(path) for path in
-                         sorted((ROOT / "platform/linux").glob("*.ldn")))
+        #  the generated wrapped.ldn; then platform/x86_64, whose processor
+        #  words the entry's level check reads, imported on every target.
+        implicit = tuple(str(path) for module in ("platform/linux", "platform/x86_64")
+                         for path in sorted((ROOT / module).glob("*.ldn")))
         check_build_sources(reported, source_args + implicit)
         source_args = reported
         sources = tuple((ROOT / path).resolve() for path in source_args)

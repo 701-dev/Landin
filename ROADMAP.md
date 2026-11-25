@@ -2569,7 +2569,7 @@ the merged candidate's gate run 45229944797, with boards run 45234631776; `compi
 Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
 that Wine loaded; the trap after a prepared stack's report dispatched as
 an access violation; a musl-built `refine` named no host target (`SR-1518`
-taken). Rows SR-1694 to SR-1698 record the C peer lane, the start-up level
+taken). Rows `SR-1694` to `SR-1698` record the C peer lane, the start-up level
 check, the TEB bounds a stack switch leaves, the fixture path Git for
 Windows cannot check out and the measurement no lane takes of a Windows
 image; `hosted/heap`, arguments, environment and thread
@@ -2655,7 +2655,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to SR-1748 record the inline
+refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -2886,7 +2886,7 @@ which `environments/cortex-m/setup.py` now takes from
 
 ### R21.70 — What Windows still lacks
 
-Status: planned
+Status: complete
 Depends on: R21.61
 
 The gaps R21's items recorded on Windows, scheduled by the register sweep
@@ -2906,6 +2906,39 @@ that R21's gate waits for the Windows gaps.
 Exit evidence: each row's completion on both Windows architectures where
 it names one, in the gate's Windows jobs, and switch_frames.py's session
 in the Windows debugger lane.
+
+Done: every row the item names is closed on both Windows architectures,
+in gate run 45606318679, whose 100 jobs passed. The repository checks out
+on Windows: the debugger case's oddly named source is written at run time
+and `check.py` refuses a tracked path Windows cannot hold, and
+`windows-runtime` and `windows-arm64-runtime` run their lane from a
+checkout. Those jobs also run `compiler/tests/windows/check.py
+--kind=abi`, which links each ABI fixture's C peer with llvm-mingw's
+Clang and C runtime on the runner (D2473): 22 fixtures now name both
+Windows targets and two new ones hold variadic floats and, on x86-64,
+every register Win64 makes a callee save across a callback C enters. The
+first run found two Win64 defects, fixed: an imported function's address
+was read through a GOT COFF does not have, which loaded the function's
+first instructions (D2471), and a `distinct f32` crossed in RCX (D2472).
+A Windows image holds the processor to its level before `main`, sharing
+x86-64's reading with Linux in the new `platform/x86_64`, Windows arm64
+by `IsProcessorFeaturePresent`, which reports no RDM (D2475-D2477). A
+stack switch carries the TEB's bounds, a fixture traps in kernel32 on a
+prepared stack, and the switch and start routines carry unwind tables and
+PDB procedures, so `switch_frames.py`'s session runs in both Windows
+debugger jobs at four profiles (D2479-D2481). The `measure-size` job
+measures both Windows targets, `size-only` in the runner table, through a
+PE reader. An image named without `.exe` keeps its name and a failed link
+leaves no private directory (D2485); two links of one program, with or
+without `--debug=full`, are the same bytes (D2486), which the gate showed
+held only inside the flake's `SOURCE_DATE_EPOCH` until the MinGW link took
+`/Brepro` (D2487). The lane keeps Windows Error Reporting away with a job
+object (D2474): with WER on, the whole x86-64 corpus passed 3,706 of 3,706
+on a Windows 11 host, where the error mode alone had left 14 traps past
+their limit. The usability findings met building the project's Windows
+hosts are closed by the Windows lane's README, which now names the route
+a Windows arm64 guest gives and the checkout; the rows the item filed are
+`SR-1851`, `SR-1852` and `SR-1859`.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows

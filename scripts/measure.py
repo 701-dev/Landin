@@ -140,12 +140,40 @@ def macho_sections(data: bytes, digest=None) -> dict[str, int]:
     return sections
 
 
+def pe_sections(data: bytes, digest=None) -> dict[str, int]:
+    """Each section's size in memory in a PE image, by name, less the
+    DWARF sections a MinGW link keeps under long names; with DIGEST, each
+    one's name, size and content fed to it, so the COFF header's time
+    stamp does not move it."""
+    require(data[:2] == b"MZ", "not a PE image")
+    header, = struct.unpack_from("<I", data, 0x3C)
+    require(data[header:header + 4] == b"PE\0\0", "not a PE image")
+    count, = struct.unpack_from("<H", data, header + 6)
+    optional, = struct.unpack_from("<H", data, header + 20)
+    at = header + 24 + optional
+    sections: dict[str, int] = {}
+    for index in range(count):
+        base = at + index * 40
+        name = data[base:base + 8].rstrip(b"\0").decode()
+        virtual, _, raw_size, raw_at = struct.unpack_from("<IIII", data, base + 8)
+        if name.startswith(("/", ".debug")):
+            continue
+        sections[name] = sections.get(name, 0) + virtual
+        if digest is not None:
+            digest.update(f"{name} {virtual}\n".encode())
+            digest.update(data[raw_at:raw_at + min(raw_size, virtual)])
+    return sections
+
+
 def image_sections(path: Path) -> tuple[dict[str, int], str]:
     """The allocated sections' sizes, and a digest of their contents."""
     data = path.read_bytes()
     if data[:4] == b"\x7fELF":
         digest = hashlib.sha256()
         return elf_sections(data, digest), digest.hexdigest()
+    if data[:2] == b"MZ":
+        digest = hashlib.sha256()
+        return pe_sections(data, digest), digest.hexdigest()
     digest = hashlib.sha256()
     return macho_sections(data, digest), digest.hexdigest()
 
@@ -222,7 +250,9 @@ def key(level: str, profile: tuple[str, str], workload: str) -> str:
 DEFAULT_DRIVER = {"linux-x86-64": "gcc", "linux-arm64": "aarch64-linux-gnu-gcc",
                   "linux-rv64": "riscv64-linux-gnu-gcc", "darwin-arm64": "cc",
                   "cortex-m0": "arm-eabi-gcc", "rv32": "riscv64-elf-gcc",
-                  "xtensa": "xtensa-esp32-elf-gcc"}
+                  "xtensa": "xtensa-esp32-elf-gcc",
+                  "windows-x86-64": "x86_64-w64-mingw32-clang",
+                  "windows-arm64": "aarch64-w64-mingw32-clang"}
 FIRMWARE = ("cortex-m0", "rv32", "xtensa")
 ENTRY = MEASURE / "entry.ldn"
 
@@ -257,7 +287,8 @@ def build(refine, target, level, profile, workload, out, toolchain, library=None
     require(fixture.is_dir(), f"{root} has no fixture {workload['fixture']} to build"
             f" {workload['name']} from")
     meta = fixture_meta.read(fixture)
-    image = out / f"{target}-{level}-{profile[0]}-{profile[1]}-{workload['name']}"
+    image = out / (f"{target}-{level}-{profile[0]}-{profile[1]}-{workload['name']}"
+                   + (".exe" if target.startswith("windows-") else ""))
     firmware = (["--firmware-entry=start"] if target in FIRMWARE else [])
     command = [str(refine), "compile", f"--target={target}", f"--level={level}",
                f"--optimize={profile[0]}", f"--specialize={profile[1]}",

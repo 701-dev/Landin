@@ -71,6 +71,17 @@ package Landin.Backend.Toolchain is
    --  with `.pdb` in place of `.exe`, or after a name without it.
    function PDB_Path (Output : String) return String;
 
+   --  D2485: the file a Windows link run with Output as its `-o` writes.
+   --  llvm-mingw's driver, like GCC's, adds `.exe` to an output name with
+   --  no extension, so a MinGW link of a name without a `.` in its last
+   --  component writes Output & ".exe"; Microsoft's link, whose Clang
+   --  hands the linker the name unchanged, and every other target write
+   --  Output.  The driver links to this name and publishes the image under
+   --  the one asked for.
+   function Linked_Image
+     (Output : String; Facts : Landin.Targets.Target_Facts;
+      Driver : String) return String;
+
    --  Auxiliary native-debug outputs and bundle containment, so the driver
    --  can protect source inputs without knowing a platform's packaging.
    function Debug_Artifacts
@@ -216,12 +227,16 @@ package Landin.Backend.Toolchain is
       Float : Landin.Targets.Firmware.Float_Unit :=
         Landin.Targets.Firmware.No_Float_Unit;
       Assembly_Is_Object : Boolean := False;
-      Driver : String := "")
+      Driver : String := "";
+      Compilation_Directory : String := "")
       return Landin.Platform.Path_List
      with Pre => Landin.Targets.Levels.Belongs_To (Level, Facts);
    --  Assembly_Is_Object selects a separately assembled Darwin debug object.
    --  Driver is the named driver, which selects Microsoft's Windows link
    --  when Microsoft_Link says so.
+   --  Compilation_Directory is the directory a build's DWARF records as its
+   --  `comp_dir`, which a Windows full-debug link names as the one it ran
+   --  in (D2486); empty, it names none.
    --  Script, when given, is a developer's linker script for a firmware
    --  link (D546), passed where the derived OUTPUT.ld would be.
 

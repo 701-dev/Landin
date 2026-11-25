@@ -69,6 +69,32 @@ class Images(unittest.TestCase):
         image = struct.pack("<IIIIIIII", 0xFEEDFACF, 0, 0, 2, 1, len(command), 0, 0)
         self.assertEqual(measure.macho_sections(image + command), {"__TEXT,__text": 24})
 
+    def test_a_pe_image_counts_memory_sizes_less_dwarf(self):
+        def image(stamp, text):
+            sections = [(b".text", 6, text), (b".bss", 32, b""),
+                        (b"/4", 3, b"dbg")]
+            at = 0x40 + 24 + 40 * len(sections)
+            headers, body = b"", b""
+            for name, virtual, data in sections:
+                headers += name.ljust(8, b"\0") + struct.pack(
+                    "<IIIIIIHHI", virtual, 0, len(data), at + len(body),
+                    0, 0, 0, 0, 0)
+                body += data
+            dos = b"MZ" + bytes(0x3A) + struct.pack("<I", 0x40)
+            coff = b"PE\0\0" + struct.pack("<HHIIIHH", 0x8664, len(sections),
+                                            stamp, 0, 0, 0, 0)
+            return dos + coff + headers + body
+        self.assertEqual(measure.pe_sections(image(1, b"\x90" * 6)),
+                         {".text": 6, ".bss": 32})
+        digests = []
+        for one in (image(1, b"\x90" * 6), image(2, b"\x90" * 6),
+                    image(1, b"\xcc" * 6)):
+            digest = hashlib.sha256()
+            measure.pe_sections(one, digest)
+            digests.append(digest.hexdigest())
+        self.assertEqual(digests[0], digests[1])
+        self.assertNotEqual(digests[0], digests[2])
+
 
 class Compare(unittest.TestCase):
     def run_compare(self, measured, base, candidate):
