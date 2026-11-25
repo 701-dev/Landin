@@ -17451,6 +17451,9 @@ package body Landin.Stages.Lowering is
                     (Unit.all, Nominals (Position), Fields,
                      Policy => Landin.Checking.Layout_Of
                        (Types.all, Source));
+                  if Landin.Checking.Is_Distinct (Types.all, Source) then
+                     IR.Mark_Distinct (Unit.all, Nominals (Position));
+                  end if;
                end;
             end if;
          end;

@@ -1,0 +1,57 @@
+--  SR-1694: the callback the C peer's probe enters with every register
+--  Win64 makes a callee save set to a sentinel.  Its body keeps more
+--  integers and floats live across a call to C than the volatile
+--  registers hold, so an allocator that may use the saved ones does.
+extern(c) c_mix: (value: i64, scale: f64) -> (result: i64)
+
+public extern(c) landin_churn: (seed: i64) -> (result: i64) =
+    mut a: i64 = seed
+    mut b: i64 = seed + 1
+    mut c: i64 = seed + 2
+    mut d: i64 = seed + 3
+    mut e: i64 = seed + 4
+    mut f: i64 = seed + 5
+    mut g: i64 = seed + 6
+    mut h: i64 = seed + 7
+    mut j: i64 = seed + 8
+    mut k: i64 = seed + 9
+    mut p: f64 = 0.5
+    mut q: f64 = 1.5
+    mut r: f64 = 2.5
+    mut s: f64 = 3.5
+    mut t: f64 = 4.5
+    mut u: f64 = 5.5
+    mut v: f64 = 6.5
+    mut w: f64 = 7.5
+    mut x: f64 = 8.5
+    mut y: f64 = 9.5
+    mut z: f64 = 10.5
+    for round in i64(0)..<i64(12) do
+        a = (a * 3 + b) % 1000003
+        b = (b * 5 + c) % 1000003
+        c = (c * 7 + d) % 1000003
+        d = (d * 11 + e) % 1000003
+        e = (e * 13 + f) % 1000003
+        f = (f * 17 + g) % 1000003
+        g = (g * 19 + h) % 1000003
+        h = (h * 23 + j) % 1000003
+        j = (j * 29 + k) % 1000003
+        k = (k * 31 + a + round) % 1000003
+        p = p * 0.5 + q
+        q = q * 0.5 + r
+        r = r * 0.5 + s
+        s = s * 0.5 + t
+        t = t * 0.5 + u
+        u = u * 0.5 + v
+        v = v * 0.5 + w
+        w = w * 0.5 + x
+        x = x * 0.5 + y
+        y = y * 0.5 + z
+        z = z * 0.5 + p
+        a = c_mix(a, p + z)
+    end for
+    result = a + b + c + d + e + f + g + h + j + k
+    if p + q + r + s + t + u + v + w + x + y + z > 10.0 then
+        result += 1
+    end if
+end landin_churn

@@ -2587,8 +2587,13 @@ jobs:
           python3 compiler/tests/windows/check.py --prepare-only --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output="$RUNNER_TEMP/windows-microsoft-bundle"
-          #  Each bundle carries its lane under lane/: the Windows runner
-          #  checks nothing out (compiler/tests/windows/check.py).
+          #  SR-1694: the ABI fixtures' assembly and C peers, which
+          #  windows-runtime compiles and links with llvm-mingw's Clang.
+          python3 compiler/tests/windows/check.py --prepare-only --kind=abi \
+            --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
+            --output="$RUNNER_TEMP/windows-abi-bundle"
+          #  Each bundle carries its lane under lane/, for a Windows host
+          #  with no checkout (compiler/tests/windows/check.py).
       - name: Keep the bundle the Windows runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -2606,6 +2611,14 @@ jobs:
             ${{ runner.temp }}/windows-microsoft-bundle/prepared.json
             ${{ runner.temp }}/windows-microsoft-bundle/bundle
             ${{ runner.temp }}/windows-microsoft-bundle/lane
+          retention-days: 3
+      - name: Keep the bundle of the ABI fixtures and their C peers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x86-64-abi-bundle
+          path: |
+            ${{ runner.temp }}/windows-abi-bundle/prepared.json
+            ${{ runner.temp }}/windows-abi-bundle/bundle
           retention-days: 3
       #  The debugger sessions' images, PDBs and command files, and the
       #  lane, which carries its scripts itself (D2292).
@@ -2631,15 +2644,44 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
+      #  SR-1697: a Windows runner checks the repository out, and the
+      #  lane runs from the checkout; the bundle's own lane/ is for a
+      #  host that has none.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-x86-64-bundle
           path: ${{ runner.temp }}/windows-prepared
       - name: Execute the Windows x86-64 corpus
         run: >-
-          python "$env:RUNNER_TEMP/windows-prepared/lane/compiler/tests/windows/check.py"
+          python compiler/tests/windows/check.py
           --prepared="$env:RUNNER_TEMP/windows-prepared"
           --output="$env:RUNNER_TEMP/windows-evidence"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-x86-64-abi-bundle
+          path: ${{ runner.temp }}/windows-abi-prepared
+      - name: Install llvm-mingw's Windows Clang for the C peers
+        if: always()
+        shell: bash
+        run: |
+          . ./environments/pins.sh
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-x86_64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
+      #  SR-1694: each ABI fixture's C peer compiled and linked with its
+      #  assembly by llvm-mingw's Clang, the C runtime's program, and run.
+      - name: Link and execute the Windows x86-64 ABI fixtures with their C peers
+        if: always()
+        run: >-
+          python compiler/tests/windows/check.py --kind=abi
+          --prepared="$env:RUNNER_TEMP/windows-abi-prepared"
+          --cc="$env:RUNNER_TEMP/llvm-mingw/bin/x86_64-w64-mingw32-clang.exe"
+          --output="$env:RUNNER_TEMP/windows-abi-evidence"
       - name: Keep each outcome's output, status and the verdicts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -2649,6 +2691,10 @@ jobs:
             ${{ runner.temp }}/windows-evidence/summary.json
             ${{ runner.temp }}/windows-evidence/bundle/*.stdout
             ${{ runner.temp }}/windows-evidence/bundle/*.status
+            ${{ runner.temp }}/windows-abi-evidence/summary.json
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.link.log
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.stdout
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
   #  D2327: Microsoft's toolchain, the optional second one.  The runner's
@@ -2813,6 +2859,11 @@ jobs:
             --link=microsoft \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --output="$RUNNER_TEMP/windows-microsoft-bundle"
+          #  SR-1694, as windows-emit's.
+          python3 compiler/tests/windows/check.py --prepare-only --target=windows-arm64 \
+            --kind=abi \
+            --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
+            --output="$RUNNER_TEMP/windows-abi-bundle"
       - name: Keep the bundle the Windows arm64 runner executes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -2830,6 +2881,14 @@ jobs:
             ${{ runner.temp }}/windows-microsoft-bundle/prepared.json
             ${{ runner.temp }}/windows-microsoft-bundle/bundle
             ${{ runner.temp }}/windows-microsoft-bundle/lane
+          retention-days: 3
+      - name: Keep the bundle of the arm64 ABI fixtures and their C peers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-arm64-abi-bundle
+          path: |
+            ${{ runner.temp }}/windows-abi-bundle/prepared.json
+            ${{ runner.temp }}/windows-abi-bundle/bundle
           retention-days: 3
       - name: Emit the Windows arm64 debugger sessions
         run: >-
@@ -2853,16 +2912,46 @@ jobs:
     runs-on: windows-11-arm
     timeout-minutes: 30
     steps:
+      #  SR-1697: a Windows runner checks the repository out, and the
+      #  lane runs from the checkout; the bundle's own lane/ is for a
+      #  host that has none.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-arm64-bundle
           path: ${{ runner.temp }}/windows-prepared
       - name: Execute the Windows arm64 corpus
         run: >-
-          python "$env:RUNNER_TEMP/windows-prepared/lane/compiler/tests/windows/check.py"
+          python compiler/tests/windows/check.py
           --target=windows-arm64
           --prepared="$env:RUNNER_TEMP/windows-prepared"
           --output="$env:RUNNER_TEMP/windows-evidence"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-arm64-abi-bundle
+          path: ${{ runner.temp }}/windows-abi-prepared
+      - name: Install llvm-mingw's Windows Clang for the C peers
+        if: always()
+        shell: bash
+        run: |
+          . ./environments/pins.sh
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-aarch64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
+      #  SR-1694: each ABI fixture's C peer compiled and linked with its
+      #  assembly by llvm-mingw's Clang, the C runtime's program, and run.
+      - name: Link and execute the Windows arm64 ABI fixtures with their C peers
+        if: always()
+        run: >-
+          python compiler/tests/windows/check.py --kind=abi
+          --target=windows-arm64
+          --prepared="$env:RUNNER_TEMP/windows-abi-prepared"
+          --cc="$env:RUNNER_TEMP/llvm-mingw/bin/aarch64-w64-mingw32-clang.exe"
+          --output="$env:RUNNER_TEMP/windows-abi-evidence"
       - name: Keep each outcome's output, status and the verdicts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -2872,6 +2961,10 @@ jobs:
             ${{ runner.temp }}/windows-evidence/summary.json
             ${{ runner.temp }}/windows-evidence/bundle/*.stdout
             ${{ runner.temp }}/windows-evidence/bundle/*.status
+            ${{ runner.temp }}/windows-abi-evidence/summary.json
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.link.log
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.stdout
+            ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
   #  D2387: windows-microsoft's link on the arm64 runner, whose Clang

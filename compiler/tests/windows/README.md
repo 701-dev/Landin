@@ -12,13 +12,14 @@ The gate splits the lane in two jobs. `windows-emit` runs on Ubuntu with the
 checked release compiler and `--prepare-only`, linking with Clang 19, LLD
 and Ubuntu's MinGW-w64 import libraries (`mingw-w64-x86-64-dev`) under the
 name `x86_64-w64-mingw32-clang`, which is llvm-mingw's; `windows-runtime`
-runs the bundle with `--prepared=DIR` on GitHub's `windows-2025` image, with
-nothing but Python and the bundle, which carries this directory's script and
-the three it imports at their own paths under `lane/`, as `--prepare-only`
-writes them. That job checks nothing out: the
-tree holds a fixture path with a double quote, which Git for Windows refuses
-even outside a sparse checkout. An emitted bundle is not an execution
-verdict.
+runs the bundle with `--prepared=DIR` on GitHub's `windows-2025` image,
+from a checkout of the same commit and with nothing else but Python. The
+bundle also carries this directory's script and the three it imports at
+their own paths under `lane/`, as `--prepare-only` writes them, for a
+Windows host with no checkout. No tracked path is one Git for Windows
+refuses: `check.py` at the root holds every path to that, and a test that
+needs such a name writes it at run time. An emitted bundle is not an
+execution verdict.
 
 Windows arm64 has the same two jobs, `windows-arm64-emit` and
 `windows-arm64-runtime`, the second on GitHub's `windows-11-arm` image.
@@ -33,17 +34,43 @@ byte. A failed check ends a Windows program with the trap instruction and
 no handler, `ud2` on x86-64 and `brk #1` on arm64, whose exit code is
 `STATUS_ILLEGAL_INSTRUCTION`, 0xC000001D,
 and the lane requires exactly that for a fixture marked `traps: yes`.
-Before it runs anything the lane sets the error mode its programs inherit,
-so Windows Error Reporting neither opens a dialog nor waits on a trap.
+Before it runs anything the lane sets the error mode its programs inherit
+and joins a job object that ends a process an exception ends without
+asking Windows Error Reporting, which every child joins with it. The error
+mode alone keeps WER's dialog away but not WER: with several traps at once
+most still started a `WerFault` that ran for seconds, enough to push an
+outcome past its limit on a host where WER is on, as it is off on GitHub's
+images (SR-1797).
 
 The selection refuses a fixture naming the target that asks for what
-the lane does not run yet: C peers, a C library (`link:`) or library
-directories. The runtime job checks nothing out, so the bundle carries the
-files a fixture names in `run_files` and `stdin` under `inputs/`, and a
+the lane does not run: a C library (`link:`), a C archive or shared
+object, or library directories, and C peers outside the ABI kind. The
+bundle carries the files a fixture names in `run_files` and `stdin` under `inputs/`, and a
 program is given the copies. Each outcome runs in a working directory of
 its own under the bundle's `work/`, holding copies of those files too,
 since the profiles of one fixture run at once and a fixture may make files
 where it runs (D2273).
+
+`--kind=abi` selects the ABI fixtures whose `targets:` name the target
+instead, each with an independently compiled C peer (SR-1694). A C peer's
+program is the C runtime's, whose `main` calls into the Landin code, so
+emission writes each fixture's assembly and copies its peer's sources,
+and execution compiles each peer with `--cc`, llvm-mingw's Clang for the
+target, `-std=c11 -O2 -Wall -Wextra -Werror` and the fixture's `c-args`,
+then links it with the assembly, the C runtime llvm-mingw carries and the
+import libraries `platform/windows` names, dropping what nothing reaches.
+The flake's MinGW drivers have the import libraries but no C headers or
+runtime, so the link runs where llvm-mingw's own Clang is: in the gate,
+`windows-emit` and `windows-arm64-emit` prepare the bundle and
+`windows-runtime` and `windows-arm64-runtime` run it with the pinned
+llvm-mingw release for Windows, checked against its sha256. A complete
+selection must hold FreeBSD's required C peers, those of
+`compiler/tests/freebsd/check.py`'s `ABI_REQUIRED`. On a Windows host:
+
+```sh
+python compiler\tests\windows\check.py --kind=abi --prepared=DIR ^
+    --cc=LLVM-MINGW\bin\x86_64-w64-mingw32-clang.exe --output=EVIDENCE
+```
 
 The hosted providers are written over `platform/windows` on Windows
 (D2270 to D2272), so a fixture over `hosted/` names the target unless it
@@ -86,11 +113,11 @@ failed link, and two `--debug=full` links that must be the same bytes
 (D2485, D2486):
 `LANDIN_REFINE=REFINE python3 -m unittest scripts.tests.test_cli_native.NativeWindowsLink`.
 
-Nothing local runs an arm64 Windows program: Wine runs one only on an
-arm64 host, which none of this project's Linux hosts is. `--target=
-windows-arm64 --prepare-only` emits and links the whole corpus here, which
-finds every refusal and link failure; the gate's arm64 runner is the only
-execution verdict.
+An arm64 Windows program runs on an arm64 Windows machine, as "On a
+Windows host" below says, and Wine runs one only on an arm64 Linux host.
+On an x86-64 host `--target=windows-arm64 --prepare-only` emits and links
+the whole corpus, which finds every refusal and link failure; the gate's
+arm64 runner is the execution verdict.
 
 On a Windows host with llvm-mingw or MSYS2's CLANG64 toolchain, `refine`
 itself is not yet built for Windows, so emission stays on Linux.
@@ -207,7 +234,8 @@ programs, so the `windows-arm64-microsoft` job is the only verdict.
 refine runs on Linux, so emission stays there and a Windows machine runs
 the bundles, as the gate's jobs do. Each `--prepare-only` output carries
 its lane under `lane/`; copy the output directory to the Windows machine
-and run, from Windows' own Python:
+and run, from Windows' own Python, either that lane or a checkout's of the
+same commit:
 
 ```sh
 python DIR\lane\compiler\tests\windows\check.py --prepared=DIR --output=EVIDENCE

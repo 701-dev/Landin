@@ -50,10 +50,22 @@ SPECIALIZED = [('none', 'all'), ('speed', 'all')]
 #  trap instruction a failed check executes, `ud2` or arm64's `brk #1`,
 #  with no handler.
 TRAP_STATUS = 0xC000001D
-#  What the selection must not ask of the lane, each a later item's: a C
-#  peer is the ABI lane's, and a C library is none Windows links.
-UNSUPPORTED = ('c-sources', 'c-shared', 'c-archives', 'library-directories',
-               'c-inputs', 'link')
+#  What the selection must not ask of the lane: a C peer is the ABI kind's
+#  alone, and a C library is none Windows links.
+UNSUPPORTED = ('c-shared', 'c-archives', 'library-directories', 'c-inputs', 'link')
+#  The lane's kind, which --kind sets: the runtime corpus, or the ABI
+#  fixtures, each linked with its independent C peer (SR-1694).
+KIND = 'runtime'
+#  SR-1694: the C peers the ABI kind must run: FreeBSD's required set
+#  (compiler/tests/freebsd/check.py's ABI_REQUIRED), variadic floats past
+#  the register slots, and on x86-64 the registers Win64 makes a callee
+#  save, held across a callback C enters.
+ABI_REQUIRED = {'r440-native-scalars', 'r440-native-aggregates', 'r440-native-callbacks',
+                'r440-varargs-pointer-callback', 'r450-review-backend-c-entry',
+                'windows-variadic-floats'}
+ABI_REQUIRED_ON = {'windows-x86-64': {'windows-c-entry-saves'}, 'windows-arm64': set()}
+#  What a C peer is compiled with, as every lane compiles one.
+C_FLAGS = ('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror')
 
 
 #  The files a prepared bundle's execution runs, at their own paths under
@@ -84,15 +96,21 @@ def fixture_meta():
 def select(cases):
     meta_module = fixture_meta()
     found = []
-    for path in sorted((ROOT / 'compiler/tests/fixtures/runtime').glob('*/fixture.meta')):
+    for path in sorted((ROOT / 'compiler/tests/fixtures' / KIND).glob('*/fixture.meta')):
         meta = meta_module.read(path.parent)
         if meta.applies_to(TARGET):
             found.append((path.parent, meta))
     require(found, TARGET + ': empty fixture selection')
     for base, meta in found:
-        asked = [key for key in UNSUPPORTED if meta.get(key)]
-        require(not asked, '%s names %s, which the Windows lane does not run yet'
+        asked = [key for key in UNSUPPORTED + (('c-sources',) if KIND == 'runtime' else ())
+                 if meta.get(key)]
+        require(not asked, '%s names %s, which the Windows lane does not run'
                 % (base.name, ', '.join(asked)))
+        require(KIND == 'runtime' or meta.c_sources,
+                base.name + ': an ABI fixture lacks an independently compiled C peer')
+    if KIND == 'abi' and not cases:
+        missing = (ABI_REQUIRED | ABI_REQUIRED_ON[TARGET]) - {base.name for base, _ in found}
+        require(not missing, TARGET + ': ABI coverage missing: ' + ', '.join(sorted(missing)))
     if cases:
         known = {base.name for base, _ in found}
         unknown = sorted(set(cases) - known)
@@ -163,16 +181,34 @@ def recorder(output):
     return path
 
 
+def windows_libraries():
+    """The import libraries `platform/windows` names, each a
+    `linker.library` line, which a C peer's link takes beside the C
+    runtime's own."""
+    import re
+    names = set()
+    for path in (ROOT / 'platform/windows').rglob('*.ldn'):
+        names.update(re.findall(r'linker\.library\("([^"]+)"\)', path.read_text()))
+    return sorted(names)
+
+
 def build(args, bundle, item):
     base, meta, optimize, specialize, level = item
     label = '-'.join((base.name, optimize, specialize, level or 'default'))
     executable = bundle / (label + '.exe')
+    peers = bool(meta.c_sources)
+    #  SR-1694: a C peer's program is the C runtime's, so refine emits the
+    #  assembly alone and the Windows job compiles the peer and links both
+    #  with llvm-mingw's Clang there, which carries the C headers and
+    #  runtime this host's MinGW driver lacks.
+    output = bundle / (label + '.s') if peers else executable
     argv = [str(args.refine), 'compile', '--target=' + TARGET,
             '--optimize=' + optimize, '--specialize=' + specialize,
             *(['--level=' + level] if level else []),
-            '--toolchain=' + args.toolchain,
-            *(['--linker=' + args.linker] if args.linker else []),
-            *meta.source_arguments(base), '--emit=exe', '-o', str(executable)]
+            *([] if peers else ['--toolchain=' + args.toolchain]),
+            *(['--linker=' + args.linker] if args.linker and not peers else []),
+            *meta.source_arguments(base),
+            '--emit=' + ('asm' if peers else 'exe'), '-o', str(output)]
     environment = dict(os.environ, LANDIN_DEFERRED_LINK=str(bundle / label))
     done = subprocess.run(argv, cwd=ROOT / 'compiler/ada', capture_output=True,
                           env=environment)
@@ -180,9 +216,9 @@ def build(args, bundle, item):
         ' '.join(argv).encode() + b'\n' + done.stdout + done.stderr)
     require(done.returncode == 0, '%s: refine exited %d: %s' % (
         label, done.returncode, (done.stdout + done.stderr).decode(errors='replace')[:400]))
-    #  The runtime job checks nothing out, so the bundle carries the files
-    #  a fixture is run with, beside its executables, at paths relative to
-    #  the bundle.
+    #  The bundle carries the files a fixture is run with, beside its
+    #  executables, at paths relative to the bundle, so that it runs where
+    #  there is no checkout.
     given = []
     for one in meta.run_files:
         copy = Path('inputs', base.name, one)
@@ -200,14 +236,25 @@ def build(args, bundle, item):
         expected = meta['stdout'].encode()
     if expected is not None:
         (bundle / (label + '.expected')).write_bytes(expected)
-    deferred = args.link == 'microsoft'
+    deferred = args.link == 'microsoft' and not peers
     if deferred:
         link = json.loads((bundle / (label + '.link.json')).read_text())
         executable.unlink()
-    return {'label': label, 'case': 'runtime/' + base.name,
+    peer = {}
+    if peers:
+        sources = []
+        for one in meta.c_sources:
+            copy = Path('inputs', base.name, one.strip())
+            (bundle / copy).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(base / one.strip(), bundle / copy)
+            sources.append(copy.as_posix())
+        peer = {'peer': {'sources': sources, 'c_args': meta.c_args_for(TARGET),
+                         'libraries': windows_libraries()},
+                'assembly_sha256': sha(output)}
+    return {'label': label, 'case': KIND + '/' + base.name,
             'optimize': optimize, 'specialize': specialize, 'level': level,
             **({'link': link, 'assembly_sha256': sha(bundle / (label + '.s'))}
-               if deferred else {'executable_sha256': sha(executable)}),
+               if deferred else peer if peers else {'executable_sha256': sha(executable)}),
             'run_args': meta.run_args, 'run_files': given,
             'stdin': standard_input,
             'status': meta.status_at(level), 'traps': meta.traps,
@@ -242,7 +289,7 @@ def prepare(args):
     for file in LANE:
         (args.output / 'lane' / file).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / file, args.output / 'lane' / file)
-    manifest = {'target': TARGET, 'link': args.link,
+    manifest = {'target': TARGET, 'kind': KIND, 'link': args.link,
                 'scope': 'filtered' if args.case else
                          'shard %d of %d' % args.shard if args.shard else 'complete',
                 'revision': os.environ.get('GITHUB_SHA'),
@@ -374,6 +421,44 @@ def linked(bundle, result, driver, expect_linker):
     result['executable_sha256'] = sha(bundle / (label + '.exe'))
 
 
+def peer_linked(bundle, result, cc):
+    """Compile the C peers and link them with the emitted assembly, with
+    CC, llvm-mingw's Clang for the target, and the C runtime it carries;
+    raise what is wrong."""
+    label = result['label']
+    assembly = bundle / (label + '.s')
+    require(sha(assembly) == result['assembly_sha256'], label + ': assembly checksum')
+    peer = result['peer']
+    compile_args = [a for a in peer['c_args'] if not a.startswith(('-Wl,', '-l'))]
+    log = b''
+    objects = []
+
+    def step(argv, what):
+        nonlocal log
+        try:
+            done = subprocess.run(argv, cwd=bundle, capture_output=True, timeout=300)
+        except OSError as error:
+            raise Refused('%s: could not start %s: %s' % (label, argv[0], error))
+        except subprocess.TimeoutExpired:
+            raise Refused('%s: %s did not finish within 300 seconds' % (label, what))
+        log += ' '.join(argv).encode() + b'\n' + done.stdout + done.stderr
+        (bundle / (label + '.link.log')).write_bytes(log)
+        require(done.returncode == 0, '%s: %s exited %d: %s' % (
+            label, what, done.returncode, (done.stdout + done.stderr).decode(errors='replace')[-600:]))
+    for index, source in enumerate(peer['sources']):
+        obj = bundle / ('%s-peer-%d.o' % (label, index))
+        step([*cc, *C_FLAGS, *compile_args, '-c', str(bundle / source), '-o', str(obj)],
+             'the C peer\'s compilation')
+        objects.append(str(obj))
+    #  The C runtime starts the program and calls the peer's `main`; the
+    #  sections nothing retained reaches are dropped, as refine's own link
+    #  drops them.
+    step([*cc, str(assembly), *objects, *peer['c_args'], '-Wl,--gc-sections',
+          *['-l' + name for name in peer['libraries']],
+          '-o', str(bundle / (label + '.exe'))], 'the link')
+    result['executable_sha256'] = sha(bundle / (label + '.exe'))
+
+
 def outcome(bundle, result, runner):
     """Run one executable and hold it to its fixture; raise what is wrong."""
     label = result['label']
@@ -412,6 +497,11 @@ def outcome(bundle, result, runner):
     if runner:
         done.stdout = without_wine_report(done.stdout)
         done.stderr = without_wine_report(done.stderr or b'')
+    if 'peer' in result:
+        #  A C peer writes through the C runtime's text-mode streams, which
+        #  end a line with CR LF on Windows; a fixture's oracle is LF's.
+        done.stdout = done.stdout.replace(b'\r\n', b'\n')
+        done.stderr = (done.stderr or b'').replace(b'\r\n', b'\n')
     status = done.returncode & 0xFFFFFFFF
     (bundle / (label + '.status')).write_text('%d\n' % status)
     #  Wine hands Linux the low byte of the Windows exit code.
@@ -437,7 +527,7 @@ def outcome(bundle, result, runner):
         require(not done.stderr, label + ': unexpected standard error output')
 
 
-def execute(bundle, manifest, runner, jobs, driver=(), expect_linker=''):
+def execute(bundle, manifest, runner, jobs, driver=(), expect_linker='', cc=()):
     windows_error_mode()
     results = manifest['results']
     require(results or manifest.get('build_failures'), 'empty prepared fixture selection')
@@ -446,6 +536,8 @@ def execute(bundle, manifest, runner, jobs, driver=(), expect_linker=''):
         try:
             if 'link' in result:
                 linked(bundle, result, driver, expect_linker)
+            if 'peer' in result:
+                peer_linked(bundle, result, cc)
             outcome(bundle, result, runner)
             result['verdict'] = 'passed'
             return None
@@ -455,7 +547,7 @@ def execute(bundle, manifest, runner, jobs, driver=(), expect_linker=''):
             #  An image only the Windows job linked is kept apart, so that
             #  a failed outcome's can be read where it was not linked.
             image = bundle / (result['label'] + '.exe')
-            if 'link' in result and image.exists():
+            if ('link' in result or 'peer' in result) and image.exists():
                 kept = bundle.parent / 'failed'
                 kept.mkdir(exist_ok=True)
                 shutil.copyfile(image, kept / image.name)
@@ -491,7 +583,7 @@ def shard(text):
 
 
 def main():
-    global TARGET
+    global TARGET, KIND
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sys.path.insert(0, str(ROOT / 'scripts'))
@@ -501,6 +593,11 @@ def main():
                         help='a new directory for the bundle, transcripts and summary.json')
     parser.add_argument('--target', choices=sorted(DRIVERS), default=TARGET,
                         help='the Windows target the lane emits and runs')
+    parser.add_argument('--kind', choices=('runtime', 'abi'), default=KIND,
+                        help='the runtime corpus, or the ABI fixtures with their C peers')
+    parser.add_argument('--cc', default='',
+                        help="the ABI kind's C compiler at execution, llvm-mingw's"
+                        " Clang for the target; the target's driver name by default")
     parser.add_argument('--toolchain',
                         help="the llvm-mingw driver refine links with; the target's by default")
     parser.add_argument('--link', choices=('mingw', 'microsoft'), default='mingw',
@@ -525,18 +622,22 @@ def main():
     parser.add_argument('--jobs', type=int, default=os.cpu_count() or 4)
     args = parser.parse_args()
     TARGET = args.target
+    KIND = args.kind
     args.toolchain = args.toolchain or DRIVERS[TARGET]
     args.output = args.output.resolve()
-    summary = {'target': TARGET, 'status': 'failed'}
+    summary = {'target': TARGET, 'kind': KIND, 'status': 'failed'}
     try:
         require(not (args.prepare_only and args.prepared), 'prepare and execute are distinct stages')
         require(args.prepared or args.refine, 'emission needs --refine')
         require(not (args.shard and args.case), 'a shard is a share of the complete lane')
+        require(KIND == 'runtime' or args.link == 'mingw',
+                "the ABI kind links its C peers with llvm-mingw's C runtime alone")
         args.output.mkdir(parents=True, exist_ok=False)
         if args.prepared:
             prepared = args.prepared.resolve()
             manifest = json.loads((prepared / 'prepared.json').read_text())
-            require(manifest['target'] == TARGET, 'prepared payload belongs to another lane')
+            require(manifest['target'] == TARGET and manifest.get('kind', 'runtime') == KIND,
+                    'prepared payload belongs to another lane')
             if os.environ.get('GITHUB_SHA'):
                 require(manifest['revision'] == os.environ['GITHUB_SHA'],
                         'prepared payload belongs to another revision')
@@ -564,7 +665,8 @@ def main():
             summary['driver'] = driver_version(args.driver.split())
         try:
             execute(bundle, manifest, args.runner.split(), args.jobs,
-                    args.driver.split(), args.expect_linker)
+                    args.driver.split(), args.expect_linker,
+                    (args.cc or DRIVERS[TARGET]).split())
         finally:
             if manifest.get('link') == 'microsoft':
                 summary['linkers'] = sorted({one['linker'] for one in manifest['results']
