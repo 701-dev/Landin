@@ -1272,7 +1272,7 @@ candidate passed its
 
 ### R16.40 — An element address reaches every access through it
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 fannkuch-redux spends 62% of its x86-64 instructions at speed in
