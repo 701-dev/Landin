@@ -5563,6 +5563,13 @@
       ],
       "mode": "refuse"
     },
+    "runtime/windows-prepared-stack-is-the-threads": {
+      "codes": [
+        "L0324"
+      ],
+      "mode": "refuse",
+      "reason": "a Windows fixture: it declares kernel32's calls, which no firmware image links, and asserts compiler.os == windows (L0324)"
+    },
     "runtime/windows-run-programs": {
       "codes": [
         "L0015"

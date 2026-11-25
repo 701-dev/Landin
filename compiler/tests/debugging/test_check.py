@@ -690,6 +690,25 @@ class SwitchFramesTests(unittest.TestCase):
         with self.assertRaisesRegex(SWITCH.Mismatch, "short"):
             self.check(gdb_switch(short=True))
 
+    def test_a_windows_switch_is_counted_from_its_assembly(self) -> None:
+        #  A PE image's symbols are in its PDB, so the Windows lane counts
+        #  the routine's instructions in the assembly kept beside it.
+        assembly = "\n".join([
+            "\t.section .text$landin_stack,\"xr\"",
+            SWITCH.SWITCH + ":", "\t.seh_proc " + SWITCH.SWITCH,
+            "\tpushq %rbp", "\t.seh_pushreg %rbp", "\tmovq %rsi, %rsp",
+            ".Lcv_end_landin_stack_switch:", "\tpopq %rbp", "\tret",
+            "\t.seh_endproc", SWITCH.START + ":", "\tnop"])
+        self.assertEqual(SWITCH.assembly_instruction_count(assembly), 4)
+        with self.assertRaises(SWITCH.Mismatch):
+            SWITCH.assembly_instruction_count("main:\n\tret\n")
+
+    def test_the_windows_arm64_turn_is_at_its_record(self) -> None:
+        #  D2479: Windows saves the TEB's bounds below the frame record.
+        swap = re.compile(SWITCH.SWAP[SWITCH.ARCH["windows-arm64"]])
+        self.assertTrue(swap.search("add x29, x10, #0xb0"))
+        self.assertTrue(swap.search("add x29, x10, #160"))
+
     def test_frames_that_change_off_the_swap_are_refused(self) -> None:
         with self.assertRaisesRegex(SWITCH.Mismatch, "does not load"):
             self.check(gdb_switch(swap_at=1))
