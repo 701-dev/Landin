@@ -2950,7 +2950,7 @@ Cortex-M0's soft float is measured. Everything is single-threaded.
 
 ### R22.10 — Elementary functions
 
-Status: planned
+Status: active
 Depends on: R20
 
 `core/math`, SR-96: the functions of C's `<math.h>` that most programs
