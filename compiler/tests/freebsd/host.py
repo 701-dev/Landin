@@ -212,9 +212,10 @@ def main():
         else:
             arguments = ' '.join(shlex.quote(a) for a in options.tests)
             say('test program ' + (arguments or '(the complete local native suite)'))
+            #  The session's hard limit is the ceiling sshd started under;
+            #  root lifts it, and the user's login class takes the new one.
             status = streamed(guest, 'ulimit -d unlimited && ' + as_user(
-                f'ulimit -d unlimited && cd {CHECKOUT} && {environment}'
-                f' LANDIN_TEST_JOBS={options.jobs}'
+                f'cd {CHECKOUT} && {environment} LANDIN_TEST_JOBS={options.jobs}'
                 f' LANDIN_TEST_TIMINGS=1 ./scripts/test.sh {arguments}'), log, 4 * 3600)
             vm.require(status == 0, 'the test program failed; see ' + str(log))
     say(f'passed in {time.monotonic() - started:.0f} s; log {log}')
