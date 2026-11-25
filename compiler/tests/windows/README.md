@@ -80,6 +80,12 @@ failed outcome, one line each, and exits 1; `--prepare-only` fails on a
 failed build after writing the rest. Each transcript, status file and
 `summary.json` is in the output directory.
 
+The same shell runs the link checks each emission job runs first, on
+every target whose driver is on PATH: an image named without `.exe`, a
+failed link, and two `--debug=full` links that must be the same bytes
+(D2485, D2486):
+`LANDIN_REFINE=REFINE python3 -m unittest scripts.tests.test_cli_native.NativeWindowsLink`.
+
 Nothing local runs an arm64 Windows program: Wine runs one only on an
 arm64 host, which none of this project's Linux hosts is. `--target=
 windows-arm64 --prepare-only` emits and links the whole corpus here, which
