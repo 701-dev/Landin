@@ -28532,6 +28532,42 @@ does not do and its proofs do not need.
 
 **Pinned by** the IR optimization suite's `proved checks`.
 
+### D2491 — An index counted down from a length is below that length
+
+**The tour said** nothing. D2207 counts a slot that steps up and bounds
+it below by its first value; a slot that steps down was not counted, so
+nothing bounded it above. reverse-complement walks a sequence from its
+end, `at = lenof sequence` and then `while at > 0 do dec at` reading
+`sequence[at]`, and every byte kept a bounds check and a reload of the
+length it compared with: three of its loop's sixteen x86-64
+instructions, in a loop that is 70% of the program's.
+
+**Chosen:** a slot stored twice, once with a first value and once with
+its own load less a constant at least zero, its first store's block
+strictly dominating the step's and the step's load's, counts down: every
+value it holds where the first store strictly dominates is at most the
+first value, provided the step does not wrap. When the first value is a
+constant or a part nothing in the routine writes, such as a slice
+parameter's length, a checked `x - k` with `k` above zero that did not
+trap, where `x` is a load of the slot, is below that first value, and so
+proves the bounds check of an element `s[x - k]` when the first value is
+`s`'s length. `dec at` then `s[at]` is that form, the load of `at` after
+the step being the step's value. As with D2207, the walk learns that the
+step cannot wrap only when it reaches the step, so a proof resting on
+the slot is applied after the walk, and only if the step is checked, or
+the bounds where it stands leave room for its constant. A slot counted
+down gives no least of its first value, which D2207's rule gives a slot
+counted up, and a slot with two steps, or one stepped both ways, is not
+counted.
+
+**The alternatives:** a general range analysis over the loop, which
+D2207 declined; rewriting a descending loop to count up in lowering,
+which would leave the same loop written with its own index unproved and
+change the order a debugger shows.
+
+**Pinned by** the IR optimization suite's `proved checks`, with five
+controls, at size and speed, and x86-64's `counted-down slices`.
+
 ### D2447 — An identity may make the instruction it needs
 
 **The tour said** nothing. SHA-256's majority `(a & b) ^ (a & c) ^ (b &
@@ -28601,6 +28637,28 @@ selection of immediates.
 
 **Pinned by** SHA-256's measured load loop and the runtime fixtures'
 products at size and speed.
+
+### D2492 — x86-64 does not load a length no check reads
+
+**The tour said** nothing. An element of a slice is the inclusive range
+from its index to itself, and the operation names the slice's length
+for its bound; once the bound is proved (D2491) the operation reads the
+length no more, but the load that made it stayed: reverse-complement
+still loaded the length from its frame every byte and threw it away.
+
+**Chosen:** at size and speed x86-64 makes no instruction for a load of
+a slot, or of a field of one, whose every use is the length of a slice
+address whose check was removed. Such a load cannot trap and writes
+nothing, so leaving it out changes nothing the program observes; every
+other backend still makes it.
+
+**The alternatives:** giving the unchecked operation another operand in
+its length's place in the simplifier, which every backend would have
+read and which an operation that names a length it does not check would
+then have stated falsely. arm64 and RISC-V make no load of it in
+reverse-complement's loop, so they need no such rule.
+
+**Pinned by** x86-64's `counted-down slices` at size.
 
 ### D2247 — A constant left operand of a commutative integer operation goes right
 

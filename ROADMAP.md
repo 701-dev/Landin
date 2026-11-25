@@ -1236,6 +1236,44 @@ merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45543519666) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45547023934).
 
+### R16.39 — An index counted down proves its own checks
+
+Status: complete
+Depends on: R16.10
+
+reverse-complement spends 70% of its x86-64 instructions at speed in
+`write_reversed`, which walks a sequence from its end, `while at > 0 do
+dec at` reading `sequence[at]` from `at = lenof sequence`: 7.10 G on
+fasta 25,000,000's output against C's 2.10 G. D2207's counted slot
+bounds only an index that counts up, so each byte still pays a bounds
+check and a reload of the length it compares with, three of the loop's
+sixteen instructions. No open row names the cost. The item proves an
+index counted down from a length below that length, and leaves unloaded
+a length no remaining check reads.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, measured on arm64 as
+well; every benchmark program's instructions and image size reported
+against that base; and no other combination over its own.
+
+Done: a slot stored with a first value and stepped by its own load less
+a constant counts down and is never above that first value, so a
+checked `x - k` of its load is below a length the first value names,
+the proof waiting for the walk to see the step, as D2207's do (D2491);
+x86-64 makes no load of a length only proved checks name (D2492).
+reverse-complement keeps no check in its byte loop: against the item's
+base under QEMU it executes 12.4% fewer x86-64 instructions at speed
+and 12.7% at size, 7.0% and 5.5% on arm64, and 2.5% and 2.0% on RV64;
+fasta 4.1% fewer at x86-64 size, every other hosted program within
+0.2%, every output the same. Every image's code and data are the same
+size or smaller; FreeBSD's reverse-complement at speed is 28 and 16
+bytes larger in all, its RELRO padding growing by more than its text
+shrinks. Choosing the subject, nested copies of the allocator chain gave
+binary-trees under 3%, and a call's failure status, sealed and its test
+fused into the branch, 3.9%; `SR-1861` files the second. The merged
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45708189957) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45714601151).
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when

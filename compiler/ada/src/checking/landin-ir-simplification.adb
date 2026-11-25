@@ -1591,6 +1591,15 @@ package body Landin.IR.Simplification is
             Step_Holds_Owner : constant Flags.Owner :=
               Flags.Create (Slot_Total);
             Step_Holds : Flags.Elements renames Step_Holds_Owner.Data.all;
+            --  D2491: a counted slot whose step is its own content less a
+            --  constant counts down: it is never above its first value,
+            --  which Down_Term names when a term the whole routine holds
+            --  does, a constant or a part nothing writes.
+            Down_Owner : constant Flags.Owner := Flags.Create (Slot_Total);
+            Down : Flags.Elements renames Down_Owner.Data.all;
+            Down_Term_Owner : constant Terms.Owner :=
+              Terms.Create (Slot_Total);
+            Down_Term : Terms.Elements renames Down_Term_Owner.Data.all;
             --  The counted slot whose least the current question rested on,
             --  and whether it rested on two.
             Consulted : Slot_Id := No_Slot;
@@ -1868,6 +1877,35 @@ package body Landin.IR.Simplification is
                   then
                      return True;
                   end if;
+                  --  D2491: Left is below a load of a slot counting down
+                  --  from Right, `while at > 0 do dec at` reading s[at]
+                  --  from `at = lenof s`: the load is at most the first
+                  --  value wherever the first store strictly dominates it,
+                  --  provided the step cannot wrap, which the walk learns
+                  --  at the step.
+                  if Above /= No_Value and then Code_At (Above).Op = Load
+                    and then Code_At (Above).Slot /= No_Slot
+                  then
+                     declare
+                        S : constant Positive :=
+                          Positive (Code_At (Above).Slot);
+                     begin
+                        if Counted (S) and then Down (S) and then Started (S)
+                          and then Same_Term
+                            (Down_Term (S), Value_Term (Positive (Right)))
+                          and then Dominance.Strictly_Dominates
+                            (Tree, Code_At (First_Store (S)).In_Block,
+                             Code_At (Above).In_Block)
+                        then
+                           if Consulted = No_Slot then
+                              Consulted := Slot_Id (S);
+                           elsif Consulted /= Slot_Id (S) then
+                              Consulted_Two := True;
+                           end if;
+                           return True;
+                        end if;
+                     end;
+                  end if;
                end;
                return Upper_Of (Left) < Lower_Of (Right);
             end Below;
@@ -2120,6 +2158,7 @@ package body Landin.IR.Simplification is
                      --  first store is at least that store's.
                      if Code.Slot /= No_Slot
                        and then Counted (Positive (Code.Slot))
+                       and then not Down (Positive (Code.Slot))
                        and then Started (Positive (Code.Slot))
                        and then Code.Result in Landin.Types.Integer_Name
                        and then Dominance.Strictly_Dominates
@@ -2241,6 +2280,11 @@ package body Landin.IR.Simplification is
                              Lower_Of (Operand (Code, 1));
                            Started (Positive (Code.Slot)) :=
                              Consulted = No_Slot;
+                           Down_Term (Positive (Code.Slot)) :=
+                             (if Value_Term (Positive (Operand (Code, 1)))
+                                   .Kind in Constant_Term | Fixed_Term
+                              then Value_Term (Positive (Operand (Code, 1)))
+                              else (others => <>));
                         elsif Step_Store (Positive (Code.Slot)) = V then
                            --  The step x + k cannot wrap: it is checked, so
                            --  traps first, or x's bound leaves room for k.
@@ -2259,8 +2303,12 @@ package body Landin.IR.Simplification is
                            begin
                               Step_Holds (Positive (Code.Slot)) :=
                                 not Step_Code.Unchecked
-                                or else Upper_Of (Count)
-                                  <= Type_High (Step) - Numeric (Other);
+                                or else
+                                  (if Down (Positive (Code.Slot))
+                                   then Lower_Of (Count)
+                                     >= Type_Low (Step) + Numeric (Other)
+                                   else Upper_Of (Count)
+                                     <= Type_High (Step) - Numeric (Other));
                            end;
                         end if;
                         Consulted := No_Slot;
@@ -2495,6 +2543,15 @@ package body Landin.IR.Simplification is
                               --  Two steps leave Counted false.
                               Step_Store (S) := Value_Id (V);
                               Counted (S) := not Counted (S);
+                           elsif Step.Op = Subtract and then Step.Args = 2
+                             and then Step.Result in Landin.Types.Integer_Name
+                             and then Own_Load (Operand (Step, 1))
+                             and then Step_Constant (Operand (Step, 2))
+                           then
+                              --  D2491: x - k counts down.
+                              Step_Store (S) := Value_Id (V);
+                              Counted (S) := not Counted (S);
+                              Down (S) := True;
                            else
                               First_Store (S) := Value_Id (V);
                            end if;

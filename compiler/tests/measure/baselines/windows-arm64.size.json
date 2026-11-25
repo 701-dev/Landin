@@ -290,8 +290,8 @@
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 46856,
-    ".rdata": 18988,
+    ".text": 46828,
+    ".rdata": 18956,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -367,8 +367,8 @@
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 46856,
-    ".rdata": 18988,
+    ".text": 46828,
+    ".rdata": 18956,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -444,8 +444,8 @@
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 46928,
-    ".rdata": 18988,
+    ".text": 46900,
+    ".rdata": 18956,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -521,8 +521,8 @@
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 53592,
-    ".rdata": 18692,
+    ".text": 53564,
+    ".rdata": 18652,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -598,8 +598,8 @@
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 53592,
-    ".rdata": 18692,
+    ".text": 53564,
+    ".rdata": 18652,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -675,8 +675,8 @@
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 53336,
-    ".rdata": 18692,
+    ".text": 53308,
+    ".rdata": 18652,
     ".buildid": 81,
     ".data": 436,
     ".pdata": 896,
@@ -983,8 +983,8 @@
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 48308,
-    ".rdata": 19536,
+    ".text": 48280,
+    ".rdata": 19504,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
@@ -1060,8 +1060,8 @@
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 48308,
-    ".rdata": 19536,
+    ".text": 48280,
+    ".rdata": 19504,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
@@ -1137,8 +1137,8 @@
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 48380,
-    ".rdata": 19536,
+    ".text": 48352,
+    ".rdata": 19504,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
@@ -1214,8 +1214,8 @@
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55124,
-    ".rdata": 19240,
+    ".text": 55096,
+    ".rdata": 19200,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
@@ -1291,8 +1291,8 @@
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55124,
-    ".rdata": 19240,
+    ".text": 55096,
+    ".rdata": 19200,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
@@ -1368,8 +1368,8 @@
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 54868,
-    ".rdata": 19240,
+    ".text": 54840,
+    ".rdata": 19200,
     ".buildid": 81,
     ".data": 468,
     ".pdata": 944,
