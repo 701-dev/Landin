@@ -239,7 +239,9 @@ package Landin.Platform is
       Status : out Remove_Status) is abstract;
 
    --  Move one file without replacing an existing destination. Used to keep
-   --  an earlier executable while a tool produces a fresh one.
+   --  an earlier executable while a tool produces a fresh one, and to give
+   --  a staged file a tool wrote under its own choice of name the name its
+   --  publication was prepared for (D2485).
    procedure Move_File
      (Host   : Filesystem;
       From, To : String;
@@ -343,6 +345,12 @@ package Landin.Platform is
    function Resolve_Program (Host : Tool_Runner; Program : String)
       return String is abstract;
 
+   --  A run whose arguments name a staged output starts in a private
+   --  working directory beside the stage, which the publication removes
+   --  with whatever is in it; each argument naming the stage reaches the
+   --  tool relative to that directory.  So a file a tool leaves where it
+   --  runs is neither published nor left behind, and a tool can be asked
+   --  to write a scratch file there under a fixed relative name (D2486).
    procedure Run
      (Host      : Tool_Runner;
       Program   : String;

@@ -56,7 +56,9 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
   [runs natively in the gate](../compiler/tests/windows/README.md), apart
   from the fixtures that need POSIX itself. With `--debug=full` its
   objects carry CodeView and LLD links a PDB beside the image, which LLVM's
-  LLDB for Windows reads (D2287-D2292). Microsoft's toolchain is a
+  LLDB for Windows reads (D2287-D2292); two such builds of one program in
+  one directory give the same image and PDB (D2486). An image named
+  without `.exe` keeps the name asked for (D2485). Microsoft's toolchain is a
   second, optional one on a Windows host, selected with
   `--toolchain=x86_64-pc-windows-msvc-clang`, a Clang under that name, or
   `aarch64-pc-windows-msvc-clang` for Windows arm64: it assembles the same

@@ -34107,6 +34107,46 @@ installed with the SDK, and an assembler of another syntax.
 driver's name and the link line, and every Windows executable the gate's
 `windows-emit` job links.
 
+### D2485 — A Windows image named without `.exe` keeps the name asked for
+
+**From** D2189 and D907.
+
+**The discrepancy:** llvm-mingw's driver, as GCC's does since GCC 8, adds
+`.exe` to an output named without an extension, so
+`refine compile --target=windows-x86-64 FILE --emit=exe -o out` linked
+`out.exe` beside the staged `out` the publication had prepared. refine
+then refused with L0501, "reported success but produced no executable at
+out", which did not say to add `.exe`, and the publication's cleanup failed
+on the stage the unexplained file kept, with L0005, leaving its private
+directory in the output's.
+
+**Chosen:** the image is written under the name asked for. A MinGW link of
+a name whose last component holds no `.` is given the staged name with
+`.exe` after it, which the driver leaves as it is, and refine moves the
+file the link wrote to the staged name before it reads how the link ended,
+so a failed link's partial image goes with the stage and no private
+directory is left. The move is the publication's, by the arena's
+descriptor, never replacing an entry, as every other write in a stage is;
+`Landin.Platform`'s `Move_File` takes it for a staged path. Microsoft's
+link, whose Clang hands the linker the name unchanged (D2327), and a name
+with any extension, which the driver keeps, link under the staged name
+itself.
+
+**The alternatives:** refusing a Windows executable named without `.exe`
+before compiling, which gives a reader a rule a POSIX host does not have
+for a name the toolchain can write; publishing `out.exe` as well, an
+output nobody asked for that may replace a file of that name; overriding
+the driver's `-o` with the linker's own, which leaves the driver believing
+it wrote another file; and a stage leaf named apart from its destination,
+a change to every record the publication journals.
+
+**Pinned by** `driver/a Windows image keeps the name asked for`, on both
+Windows targets and both links, `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink` cases `test_an_image_without_exe_keeps_its_name` and
+`test_a_failed_link_leaves_nothing`, which link with llvm-mingw's drivers
+where they are on PATH, and the publication native control
+`staged_move`.
+
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
 **Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
@@ -34542,6 +34582,51 @@ stacks keep the limit in that cell.
 **The alternatives:** the PDB's full path, which names the build's staging directory and every host's own; and DWARF in the image, which the alternatives of D2287 decline.
 
 **Pinned by** `toolchain/a Windows link has no C runtime`, and the gate's `windows-debugger` job, whose images it runs on another host than the one they were linked on.
+
+### D2486 — Two full-debug Windows links of one program are the same bytes
+
+**From** D2289 and D2327.
+
+**The discrepancy:** two `--debug=full` builds of one Windows program into
+one directory gave different PDBs and, through the PDB's GUID, which the
+image carries, different images. LLD names each object in the PDB by its
+path, and the object was the driver's temporary file, `/tmp/NAME-XXXXXX.o`,
+whose name is random; and it names the directory the link ran in, and
+each relative path against it, the PDB's and a source named relatively
+among them, and that directory is the publication's private working
+directory, whose name is random too. `/Brepro` reaches neither.
+
+**Chosen:** a full-debug Windows link passes `-save-temps=cwd`, so the
+driver assembles to the assembly's own name with `.o` in the directory the
+link runs in, and `/pdbsourcepath:` with the compilation directory, the
+directory refine ran in, which DWARF records as `comp_dir`, so LLD names
+that directory in the private one's place and every relative path against
+it. A source named relatively is then named where it is, where before it
+was named in a directory that was gone. The object's name and the PDB's
+name in the linker's own record are the link's relative names against it,
+which name no file: the object is gone with the working directory, and the
+image names the PDB by its file name alone (D2289). The link runs in the
+publication's private working directory, which `Landin.Platform`'s `Run`
+now states and which the publication removes with the object in it. So two
+links are the same bytes under the relation DWARF's debug assembly is held
+to: one compilation directory and one source spelling. The same holds under
+Microsoft's link with `lld-link`, where the option is `/PDBSOURCEPATH:`;
+`link.exe` has no such option, is given none, and is not claimed
+reproducible, having no host here to compare.
+
+**The alternatives:** assembling to an object refine stages, as Darwin's
+debug object is (D907), which publishes a file a Windows build does not
+need; a fixed directory name in the private one's place, which would make
+links in different directories the same bytes but names a relative source
+where it is not; and a tool runner that starts a link in a directory the
+driver names, a second working directory for one link to need.
+
+**Pinned by** `toolchain/a Windows link has no C runtime` and
+`toolchain/a Microsoft driver selects Microsoft's link`, which hold the
+options, and `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink.test_two_debug_builds_are_the_same_bytes`, which links
+twice with llvm-mingw's drivers where they are on PATH and compares the
+images and PDBs.
 
 ### D2290 — CodeView describes no inlined copy yet
 
