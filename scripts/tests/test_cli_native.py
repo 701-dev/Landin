@@ -687,6 +687,55 @@ class NativeCLI(unittest.TestCase):
         make(4)
 
 
+def pe_sections(image):
+    """(name, file offset, size) of each section of a PE image, and of its
+    headers as `headers`."""
+    head = int.from_bytes(image[0x3c:0x40], 'little')
+    count = int.from_bytes(image[head + 6:head + 8], 'little')
+    optional = int.from_bytes(image[head + 20:head + 22], 'little')
+    table = head + 24 + optional
+    found = [('headers', 0, table + 40 * count)]
+    for index in range(count):
+        entry = image[table + 40 * index:table + 40 * (index + 1)]
+        name = entry[:8].rstrip(b'\0').decode(errors='replace')
+        size = int.from_bytes(entry[16:20], 'little')
+        start = int.from_bytes(entry[20:24], 'little')
+        found.append((name, start, size))
+    return found
+
+
+def image_differences(first, second):
+    """Where two PE images differ, by section, for a reader of a failed
+    comparison: each section's count of differing bytes and the first."""
+    if len(first) != len(second):
+        return 'sizes %d and %d' % (len(first), len(second))
+    said = []
+    for name, start, size in pe_sections(first):
+        differing = [at for at in range(start, min(start + size, len(first)))
+                     if first[at] != second[at]]
+        if differing:
+            said.append('%s: %d bytes, first at 0x%x' % (name, len(differing), differing[0]))
+    return '; '.join(said) or 'bytes outside every section'
+
+
+def string_differences(first, second, limit=12):
+    """The printable runs of four bytes or more that one file holds and the
+    other does not, each side's, at most LIMIT of each."""
+    def runs(data):
+        return set(re.findall(rb'[\x20-\x7e]{4,}', data))
+    left, right = runs(first), runs(second)
+    def shown(items):
+        return ', '.join(repr(item.decode()) for item in sorted(items)[:limit])
+    return 'first only: [%s]; second only: [%s]' % (shown(left - right), shown(right - left))
+
+
+def first_line_difference(first, second):
+    for number, (a, b) in enumerate(zip(first.splitlines(), second.splitlines()), 1):
+        if a != b:
+            return 'line %d: %r and %r' % (number, a[:120], b[:120])
+    return 'line counts %d and %d' % (len(first.splitlines()), len(second.splitlines()))
+
+
 #  llvm-mingw's driver for each Windows target, as refine names it.
 WINDOWS_DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
                    'windows-arm64': 'aarch64-w64-mingw32-clang'}
@@ -764,11 +813,23 @@ class NativeWindowsLink(unittest.TestCase):
                 for _ in range(2):
                     self.compile(target, 'main.ldn', '--emit=exe',
                                  '--debug=full', '-o', 'program.exe')
+                    # A full-debug build keeps the assembly it linked.
                     kept.append(((self.root / 'program.exe').read_bytes(),
-                                 (self.root / 'program.pdb').read_bytes()))
+                                 (self.root / 'program.pdb').read_bytes(),
+                                 (self.root / 'program.exe.s').read_bytes()))
                 self.assertEqual(self.leftovers(), [])
-                self.assertTrue(kept[0][0] == kept[1][0], 'the images differ')
-                self.assertTrue(kept[0][1] == kept[1][1], 'the PDBs differ')
+                # A difference is reported where it is: the assembly refine
+                # handed the link first, since everything follows from it.
+                self.assertTrue(kept[0][2] == kept[1][2],
+                                'the assemblies differ, at '
+                                + first_line_difference(kept[0][2], kept[1][2]))
+                self.assertTrue(kept[0][1] == kept[1][1],
+                                'the PDBs differ: '
+                                + string_differences(kept[0][1], kept[1][1]))
+                self.assertTrue(kept[0][0] == kept[1][0],
+                                'the images differ in '
+                                + image_differences(kept[0][0], kept[1][0])
+                                + '; ' + string_differences(kept[0][0], kept[1][0]))
                 # The source named relatively is named where it is, in the
                 # directory refine ran in, and no private directory is.
                 pdb = kept[0][1]
