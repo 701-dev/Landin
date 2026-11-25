@@ -3488,7 +3488,16 @@
     "runtime/match-sink-binding": {
       "mode": "execute"
     },
+    "runtime/math-arcsine": {
+      "mode": "execute"
+    },
+    "runtime/math-arctangent": {
+      "mode": "execute"
+    },
     "runtime/math-cbrt": {
+      "mode": "execute"
+    },
+    "runtime/math-cosine": {
       "mode": "execute"
     },
     "runtime/math-floor": {
@@ -3515,7 +3524,13 @@
     "runtime/math-round": {
       "mode": "execute"
     },
+    "runtime/math-sine": {
+      "mode": "execute"
+    },
     "runtime/math-sqrt": {
+      "mode": "execute"
+    },
+    "runtime/math-tangent": {
       "mode": "execute"
     },
     "runtime/measure-fibre-switches": {
