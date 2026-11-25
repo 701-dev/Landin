@@ -882,6 +882,13 @@ rv32imac` for both RV32 lanes, each line naming a level other than
 corpus runs each row at `armv6-m` and at its fixture's `levels:`, and
 `--lane` runs every row on one lane.
 
+A `refine` copied out of its build directory looks for its library at
+`../lib/landin` beside itself; `--library DIR` names it for every
+compilation, the corpus's and `--program`'s alike. A run whose compiler
+found no library, or one without `platform/cortex_m/reference` (L0006,
+L0518), fails saying so and naming `--library`, never as a row's changed
+verdict.
+
 A program that traps says `trapped: HardFault at` the faulting routine and
 line, and whether it was the UDF #1 a check emits; one that does not fit
 says by how much, as a corpus line does; a compile failure gives the

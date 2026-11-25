@@ -392,6 +392,51 @@ class LibraryDocumentation(unittest.TestCase):
         self.assertIn("undocumented public zz_undocumented", said[0][2])
 
 
+@contextlib.contextmanager
+def strict(on):
+    """The citations' source line held as the gate holds it, or not."""
+    import os
+    saved = {name: os.environ.pop(name, None)
+             for name in (checker.CITATIONS_STRICT, "GITHUB_ACTIONS")}
+    if on:
+        os.environ[checker.CITATIONS_STRICT] = "1"
+    try:
+        yield
+    finally:
+        os.environ.pop(checker.CITATIONS_STRICT, None)
+        for name, value in saved.items():
+            if value is not None:
+                os.environ[name] = value
+
+
+class DecisionCitations(unittest.TestCase):
+    """D2511: a decision cited in the compiler or its references is one
+    spec.md defines."""
+
+    INPUTS = ["spec.md", "compiler/ada", "docs", "core/README.md"]
+
+    def test_the_real_tree_cites_only_defined_decisions(self):
+        self.assertEqual(checked(checker.check_decision_citations,
+                                 copied=self.INPUTS), [])
+
+    def test_an_undefined_decision_is_named_where_it_is_cited(self):
+        with tree(copied=self.INPUTS) as root:
+            source = root / "compiler/ada/src/base/landin-json.adb"
+            source.write_text(source.read_text()
+                              + "--  As D99997 decided.\n"
+                              + "--  `D99996` is quoted, not cited.\n"
+                              + 'X : constant String := "D99995";\n')
+            guide = root / "docs/ir.md"
+            guide.write_text(guide.read_text() + "\nD99994 says so; U+D800"
+                             " is a code point.\n\n```\nD99993\n```\n")
+            said = checker.check_decision_citations(True)
+        self.assertEqual(sorted((path, why.split()[0]) for path, _, why
+                                in said),
+                         [("compiler/ada/src/base/landin-json.adb", "D99997"),
+                          ("docs/ir.md", "D99994")], said)
+        self.assertIn("register_next.py --decision", said[0][2])
+
+
 class CitationTable(unittest.TestCase):
     """`refine explain`'s constructs and decisions are the documents'."""
 
@@ -521,7 +566,15 @@ class CitationTable(unittest.TestCase):
             source.write_text(source.read_text() + "--  edited\n")
             after = identity["source_digest"](root)
             self.assertNotEqual(before, after)
-            said = checker.check_citation_table(True)
+            #  D2511: a local run notes it, and the gate refuses it.
+            with strict(False), contextlib.redirect_stdout(
+                    io.StringIO()) as noted:
+                self.assertEqual(checker.check_citation_table(True), [])
+            self.assertIn("note: %s names compiler sources %s"
+                          % (checker.CITATIONS_DATA, before[:12]),
+                          noted.getvalue())
+            with strict(True):
+                said = checker.check_citation_table(True)
             self.assertEqual([path for path, _, _ in said],
                              [checker.CITATIONS_DATA], said)
             self.assertIn("the citations are stale; they name compiler"
@@ -547,7 +600,8 @@ class CitationTable(unittest.TestCase):
         #  The bodies that held the texts before D1240 are refused, and no
         #  compiler source is among what --catalogue writes for a decision.
         body = checker.RETIRED_CITATION_BODIES[0]
-        with tree(copied=self.INPUTS, written={body: "-- back\n"}):
+        with tree(copied=self.INPUTS, written={body: "-- back\n"}), \
+                strict(True):
             said = checker.check_citation_table(True)
         #  The body is a compiler source, so the file's second line no
         #  longer names the sources either (D1357).

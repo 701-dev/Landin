@@ -553,7 +553,11 @@ A new `core/NAME` directory is known in four other places, and a full
    library reference.
 
 The [availability inventory](#availability-inventory) above then says which
-targets it serves.
+targets it serves. Put the module's sources in `refine fmt`'s layout
+(`refine fmt core/NAME`): `./scripts/dev-test.sh --case='formatting/core
+and the examples are formatted'` holds the library to it, and the corpus's
+formatting case, which `add_fixture.py` names for the probe fixture, does
+not read the library.
 
 A new `platform/NAME`, or a submodule of one, is available on no target
 until the compiler is told which it serves: add its branch to `Permitted`,

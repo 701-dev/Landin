@@ -31781,6 +31781,34 @@ read as none; and `scripts/tests/test_check_inventories.py`'s
 reports a compiler source changed since the file was written as stale,
 with both digests.
 
+**Amended by D2511:** a local run only notes a file whose source line
+alone is out of date; the gate and `item.py push` still refuse it.
+
+### D2511 — A stream does not regenerate the citations for a compiler edit alone
+
+**The tour said** nothing. Under D1357 every compiler edit made
+`citations.txt` stale, so each parallel stream regenerated it, and the
+union merge of their files gave two source lines the integrator replaced
+again. A decision a stream cited and never recorded drew no complaint but
+that stale file.
+
+**Chosen:** the full `python3 check.py` refuses a decision a compiler
+comment or a compiler reference (`docs/`, the compiler's and the tests'
+READMEs, `core/README.md`) cites and `spec.md` does not define. A local
+run notes, and does not refuse, a citations file whose source line alone
+differs from the checkout's; it refuses it on GitHub's runners and where
+`LANDIN_CITATIONS_STRICT` is set, and `item.py push` refuses it before
+anything is pushed, so whoever pushes regenerates once. A file stale in
+its entries is refused everywhere.
+
+**The alternatives:** leaving the digest out of the tracked file and
+stamping it at installation, which changes the packaging, the flake and
+the reader for a line; and a merge driver that regenerates the file,
+which a merge cannot run without the checkout's Python.
+
+**Pinned by** `scripts/tests/test_check_inventories.py`'s cases that a
+compiler edit alone is a note locally and refused in strict mode, and
+that an undefined cited decision is refused.
 ### D599 — A diagnostic's example names the options it is compiled with
 
 **The tour said** nothing. `docs/diagnostics.md`'s examples were compiled

@@ -3225,7 +3225,7 @@ pinned and published as R22.21's are; 10,000 digits timed.
 
 ### R22.24 — Tools that say what they need
 
-Status: planned
+Status: complete
 Depends on: none
 
 The process and measurement tools' refusals and defaults that sent their
@@ -3246,6 +3246,29 @@ Placed here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
+
+Done: `item.py push` refuses a tree the register's age check refuses, or
+the whole `check.py` when the push changes the roadmap, before anything
+is pushed, and `merge-main` exits 1 naming a row its merge aged;
+`merge-main --branch` merges a named branch, a window a continuous item
+also lands on, under the same declaration rules and without the token
+(`SR-1756`). `item.py gate` names each run's branch and event and says
+when main's own gate has not started (`SR-1798`). `check.py` refuses a
+decision a compiler comment or reference cites and `spec.md` lacks, and
+a local run only notes a citations file whose source line alone is
+stale, which the gate and `push` still refuse (`SR-1653`, D2511).
+`measure.py count` and the Cortex-M and Xtensa corpora take `--library`
+and name a missing library as one; `measure.py time` takes
+`--base-checkout` (`SR-1660`). `timing.py run` and `remote` take the
+gate's three runs from the constant the gate reads, and refuse to time
+the Pico 2's Arm port before its boot check (`SR-1827`, `SR-1828`; the
+switch itself is SR-1871). `add_fixture.py` names `refine fmt` of a
+changed library module and the library's formatting case, as core's
+"Adding a module" does (`SR-1829`). The library page's reader names
+every declaration it refuses at once (`SR-1738`), and `item.py queue`
+puts work that is no item in line (`SR-1849`). Met on the way and fixed:
+`register_next.py --delete` quoted a citation twice after a code span
+that wraps a line.
 
 ### R22.26 — What refine-build wanted from the library
 
