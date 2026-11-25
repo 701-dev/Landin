@@ -1902,7 +1902,7 @@ class RV32Lanes(unittest.TestCase):
         self.assertEqual(archives[0]['sha256'],
                          'cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d')
         #  So the graphical stack Espressif's own binaries linked has left
-        #  the lock: no SDL2, X11, Wayland, PulseAudio or libgcrypt (D2551).
+        #  the lock: no SDL2, X11, Wayland, PulseAudio or libgcrypt (D2571).
         debs = {item['file'].split('_')[0] for item in lock if item['kind'] == 'deb'}
         self.assertFalse(debs & {'libsdl2-2.0-0', 'libx11-6', 'libwayland-client0', 'libpulse0',
                                  'libasound2t64', 'libgcrypt20', 'libgpg-error0'})

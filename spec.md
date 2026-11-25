@@ -38074,7 +38074,7 @@ emulator lane.
 
 **Chosen:** one pinned emulator, Espressif's QEMU `esp-develop-9.2.2-20260417`,
 locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json`
-(since D2551 a static build of that tag, which needs no library), carries both
+(since D2571 a static build of that tag, which needs no library), carries both
 levels: `rv32imc` on its `esp32c3` machine, on the lane description
 `environments/cortex-m/lanes/descriptions/esp32c3` (the reference's
 capacities in SRAM1: 32 KiB of text at 0x4038_0000, 16 KiB of data at the
@@ -38147,7 +38147,7 @@ the packages in a release of the project's own, a second store to keep.
 `test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash`
 and `test_every_locked_debian_package_has_its_snapshot_url`.
 
-### D2551 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
+### D2571 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
 
 **The discrepancy:** the locked `qemu-espressif` and `qemu-xtensa` areas
 held Espressif's own release binaries of `esp-develop-9.2.2-20260417`,

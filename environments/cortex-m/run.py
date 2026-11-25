@@ -125,7 +125,7 @@ class Run:
         self.commands = []
         self.env = dict(os.environ, LC_ALL='C', LANG='C')
         #  Debian's QEMU and GDB load the installation's libraries; the
-        #  Espressif QEMU is a static build and loads none (D2551).
+        #  Espressif QEMU is a static build and loads none (D2571).
         self.env['LD_LIBRARY_PATH'] = str(tools / 'root/usr/lib/x86_64-linux-gnu')
         self.bin = tools / 'root/usr/bin'
         self.arm = tools / 'gnat-arm-elf/bin'
