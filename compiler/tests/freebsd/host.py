@@ -43,6 +43,8 @@ CHECKOUT = HOME + '/Landin'
 #  and its ld is the one the built GNAT links with on either architecture,
 #  git gives the build its revision, bash runs the developer scripts.
 PACKAGES = ('python3', 'git', 'bash', 'binutils')
+#  The data-size ceiling the corpus needs, 4 GiB (environments/freebsd/README.md).
+DATA_CEILING = 4294967296
 
 
 def say(text):
@@ -71,6 +73,11 @@ def provision(guest, archive, output):
     #  A login shell, for the user's own HOME, without its login messages.
     guest.checked(f'pw usershow {USER} >/dev/null 2>&1 || pw useradd {USER} -m -s /bin/sh;'
                   f' touch {HOME}/.hushlogin')
+    #  The displacement-limit fixture declares a 2 GiB global array, which
+    #  arm64's default 1 GiB data ceiling refuses before it reaches main;
+    #  raised as check.py's lanes raise it, reserving no memory.
+    guest.checked(f'test "$(sysctl -n kern.maxdsiz)" -ge {DATA_CEILING}'
+                  f' || sysctl kern.maxdsiz={DATA_CEILING} >/dev/null')
     say('toolchain ' + archive.name)
     gnat_home, gpr_home = gnat.install(guest, archive)
     (output / 'guest.txt').write_bytes(guest.checked(
@@ -205,8 +212,9 @@ def main():
         else:
             arguments = ' '.join(shlex.quote(a) for a in options.tests)
             say('test program ' + (arguments or '(the complete local native suite)'))
-            status = streamed(guest, as_user(
-                f'cd {CHECKOUT} && {environment} LANDIN_TEST_JOBS={options.jobs}'
+            status = streamed(guest, 'ulimit -d unlimited && ' + as_user(
+                f'ulimit -d unlimited && cd {CHECKOUT} && {environment}'
+                f' LANDIN_TEST_JOBS={options.jobs}'
                 f' LANDIN_TEST_TIMINGS=1 ./scripts/test.sh {arguments}'), log, 4 * 3600)
             vm.require(status == 0, 'the test program failed; see ' + str(log))
     say(f'passed in {time.monotonic() - started:.0f} s; log {log}')
