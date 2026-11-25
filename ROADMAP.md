@@ -2882,7 +2882,7 @@ which `environments/cortex-m/setup.py` now takes from
 
 ### R21.70 — What Windows still lacks
 
-Status: planned
+Status: active
 Depends on: R21.61
 
 The gaps R21's items recorded on Windows, scheduled by the register sweep
