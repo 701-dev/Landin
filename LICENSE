@@ -26,6 +26,10 @@ notices when copying the corresponding material:
   * Lucide icon paths: ISC; notice in assets/icons.py.
   * Nunito Sans font files: SIL Open Font License 1.1;
     notice in assets/fonts/nunito-sans/OFL.txt.
+  * The routines of core/math ported from FreeBSD's msun: Sun
+    Microsystems' notice, which asks only that it stay with the source;
+    preserved in core/math/math.ldn, whose files name the msun files
+    they port.
   * Tree-sitter support headers (alloc.h, array.h and parser.h): MIT;
     notice in highlight/tree-sitter/src/tree_sitter/LICENSE.
     highlight/tree-sitter/README.md records their pinned upstream sources.

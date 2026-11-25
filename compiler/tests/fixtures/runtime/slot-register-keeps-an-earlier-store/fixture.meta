@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: D2157: a value computed in its slot's register waits until no earlier value stored into that slot, and still read directly, holds the register, for integers and both float widths
+program: main.ldn
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0290

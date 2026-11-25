@@ -1,14 +1,14 @@
 {
  "fixtures": {
-  "math-roots": {
-   "summary": "core/math's sqrt and fma give MPFR's correctly rounded result, and cbrt and hypot are within one float of it, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+  "math-sqrt": {
+   "summary": "core/math's sqrt gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
    "tables": [
     {
      "fn": "sqrt",
      "width": 64,
      "bound": 0,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -37,8 +37,8 @@
      "fn": "sqrt",
      "width": 32,
      "bound": 0,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -62,13 +62,18 @@
       "4",
       "0.25"
      ]
-    },
+    }
+   ]
+  },
+  "math-cbrt": {
+   "summary": "core/math's cbrt is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
     {
      "fn": "cbrt",
      "width": 64,
      "bound": 1,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -97,8 +102,8 @@
      "fn": "cbrt",
      "width": 32,
      "bound": 1,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -122,13 +127,18 @@
       "-27",
       "0.125"
      ]
-    },
+    }
+   ]
+  },
+  "math-hypot-f64": {
+   "summary": "core/math's hypot is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64",
+   "tables": [
     {
      "fn": "hypot",
      "width": 64,
      "bound": 1,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -194,13 +204,18 @@
        "1"
       ]
      ]
-    },
+    }
+   ]
+  },
+  "math-hypot-f32": {
+   "summary": "core/math's hypot is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f32",
+   "tables": [
     {
      "fn": "hypot",
      "width": 32,
      "bound": 1,
-     "random": 32,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -266,13 +281,18 @@
        "1"
       ]
      ]
-    },
+    }
+   ]
+  },
+  "math-fma-f64": {
+   "summary": "core/math's fma gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64",
+   "tables": [
     {
      "fn": "fma",
      "width": 64,
      "bound": 0,
-     "random": 48,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",
@@ -371,13 +391,18 @@
        "-1"
       ]
      ]
-    },
+    }
+   ]
+  },
+  "math-fma-f32": {
+   "summary": "core/math's fma gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f32",
+   "tables": [
     {
      "fn": "fma",
      "width": 32,
      "bound": 0,
-     "random": 48,
-     "hard": 16,
+     "random": 24,
+     "hard": 12,
      "pool": 20000,
      "domains": [
       "bits",

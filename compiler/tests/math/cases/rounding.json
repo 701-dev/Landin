@@ -1,7 +1,7 @@
 {
  "fixtures": {
-  "math-rounding": {
-   "summary": "core/math's floor, ceil, trunc, round, round_even and the two remainders give MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+  "math-floor": {
+   "summary": "core/math's floor, ceil and trunc give MPFR's exact result for each table's specials and random inputs, at f64 and f32",
    "tables": [
     {
      "fn": "floor",
@@ -218,7 +218,12 @@
       "0x1.fffffep23",
       "-0x1.000002p23"
      ]
-    },
+    }
+   ]
+  },
+  "math-round": {
+   "summary": "core/math's round and round_even give MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
     {
      "fn": "round",
      "width": 64,
@@ -362,7 +367,12 @@
       "0x1.fffffep23",
       "-0x1.000002p23"
      ]
-    },
+    }
+   ]
+  },
+  "math-remainder": {
+   "summary": "core/math's remainder, C's fmod, gives MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
     {
      "fn": "remainder",
      "width": 64,
@@ -512,7 +522,12 @@
        "0x1p-149"
       ]
      ]
-    },
+    }
+   ]
+  },
+  "math-remainder-nearest": {
+   "summary": "core/math's remainder_nearest, IEEE's remainder, gives MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
     {
      "fn": "remainder_nearest",
      "width": 64,
