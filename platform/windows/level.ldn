@@ -44,10 +44,20 @@ fixed if compiler.os == windows then
 
         --  Every level above the family's baseline has POPCNT (D255).
         fixed if compiler.feature.popcnt then
-            --  Hold the processor to this level before the entry reads
-            --  anything.
+            --  Hold the processor to this level before `main` runs.  It
+            --  calls platform/x86_64 itself rather than this module's names
+            --  for it: refine inlines only at `--optimize speed`, so a call
+            --  through them would put three more routines in every image.
             check_level: () -> none =
-                hold_level()
+                missing: []u8 =
+                    x86_64.missing_feature(x86_64.read_cpu_words())
+                return when lenof missing == 0
+                tell("landin: this executable needs ")
+                tell(x86_64.level())
+                tell(", and the processor lacks ")
+                tell(missing)
+                tell("\n")
+                exit_process(refused_status)
             end check_level
         else
             --  The family's baseline needs no check, and runs none.
