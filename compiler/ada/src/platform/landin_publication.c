@@ -54,6 +54,7 @@ static int landin_publication_rebase_argument_locked(const char *arg, int direct
 static int landin_publication_stage_write_locked(const char *path, const char *bytes,
     size_t size);
 static int landin_publication_stage_mkdir_locked(const char *path);
+static int landin_publication_stage_move_locked(const char *from, const char *to);
 static int landin_read_snapshot_locked(const char *path, char **bytes, size_t *size,
     uint64_t *device, uint64_t *inode);
 static int landin_publication_open_locked(const char *path, int deletion,
@@ -676,6 +677,35 @@ static int no_replace(int fromfd, const char *from, int tofd, const char *to,
        private link and is dealt with by Finish, never by public unlink. */
     (void)unlinkat(fromfd, from, 0);
     return 0;
+}
+/* D2485: move a file a tool wrote in a stage to another name in the same
+   stage, relative to the arena's descriptor and never replacing an entry.
+   A Windows link writes the image under the name its driver chose, and the
+   publication installs it under the name the stage was prepared for. */
+static int landin_publication_stage_move_locked(const char *from, const char *to)
+{
+    const char *from_leaf, *to_leaf;
+    struct arena *a = stage_arena(from, &from_leaf);
+    struct arena *b = stage_arena(to, &to_leaf);
+    struct stat st;
+    if (!a && !b) {
+        if (reserved_stage(from, 0) || reserved_stage(to, 0)) { errno = ESTALE; return -1; }
+        return -2;
+    }
+    if (a != b || !a->refs) { errno = ESTALE; return -1; }
+    if (!*from_leaf || !*to_leaf || strchr(from_leaf, '/') || strchr(to_leaf, '/')
+        || !strcmp(from_leaf, ".") || !strcmp(from_leaf, "..")
+        || !strcmp(to_leaf, ".") || !strcmp(to_leaf, "..")) { errno = EINVAL; return -1; }
+    if (fstatat(a->private_fd, from_leaf, &st, AT_SYMLINK_NOFOLLOW) != 0)
+        return errno == ENOENT ? 0 : -1;
+    if (!S_ISREG(st.st_mode)) { errno = EINVAL; return -1; }
+    if (no_replace(a->private_fd, from_leaf, a->private_fd, to_leaf, 0) != 0) return -1;
+    /* no_replace's link fallback may keep the first name; a stage holds
+       only names its records explain, so the move is not done until it
+       is gone. */
+    if (fstatat(a->private_fd, from_leaf, &st, AT_SYMLINK_NOFOLLOW) == 0
+        && unlinkat(a->private_fd, from_leaf, 0) != 0) return -1;
+    return 1;
 }
 static struct publication *lookup(int token)
 {
@@ -1821,6 +1851,15 @@ int landin_publication_stage_mkdir(const char *path)
     registry_lock();
     int result = landin_publication_stage_mkdir_locked(path);
     registry_unlock();
+    return result;
+}
+int landin_publication_stage_move(const char *from, const char *to)
+{
+    registry_lock();
+    int result = landin_publication_stage_move_locked(from, to);
+    int error = errno;
+    registry_unlock();
+    errno = error;
     return result;
 }
 int landin_read_snapshot(const char *path, char **bytes, size_t *size, uint64_t *device,

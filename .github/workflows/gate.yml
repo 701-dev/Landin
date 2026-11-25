@@ -2568,6 +2568,14 @@ jobs:
             'exec clang-19 --target=x86_64-w64-mingw32 --sysroot=/usr/x86_64-w64-mingw32 "$@"' \
             > "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
           chmod +x "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
+      #  D2485 and D2486: an image named without `.exe` keeps its name, a
+      #  failed link leaves nothing, and two full-debug links of one
+      #  program give the same image and PDB.
+      - name: Windows x86-64 links name their image and repeat their debug builds
+        run: >-
+          PATH="$RUNNER_TEMP/bin:$PATH"
+          LANDIN_REFINE="$PWD/compiler/ada/build/linux-amd64/release/bin/refine"
+          python3 -m unittest -v scripts.tests.test_cli_native.NativeWindowsLink
       - name: Emit the Windows x86-64 corpus
         run: |
           python3 compiler/tests/windows/check.py --prepare-only \
@@ -2788,6 +2796,11 @@ jobs:
             "exec clang-19 --target=aarch64-w64-mingw32 --sysroot=$RUNNER_TEMP/$name/aarch64-w64-mingw32 \"\$@\"" \
             > "$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang"
           chmod +x "$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang"
+      - name: Windows arm64 links name their image and repeat their debug builds
+        run: >-
+          PATH="$RUNNER_TEMP/bin:$PATH"
+          LANDIN_REFINE="$PWD/compiler/ada/build/linux-amd64/release/bin/refine"
+          python3 -m unittest -v scripts.tests.test_cli_native.NativeWindowsLink
       - name: Emit the Windows arm64 corpus
         run: |
           python3 compiler/tests/windows/check.py --prepare-only --target=windows-arm64 \

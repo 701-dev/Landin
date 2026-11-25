@@ -1014,6 +1014,41 @@ static void absent_directory_publication(void)
     REQUIRE(landin_publication_stage_mkdir(stage) == -1);
     ++passed;
 }
+/* D2485: a file a tool wrote beside its stage under its own name moves to
+   the stage's name by the arena's descriptor, never over an entry, and is
+   published under the name the stage was prepared for. */
+static void staged_move(void)
+{
+    char parent[4096], output[8192], stage[4096], sibling[8192], outside[8192], other[8192];
+    path(parent, sizeof parent, "staged-move"); REQUIRE(mkdir(parent, 0700) == 0);
+    REQUIRE(snprintf(output, sizeof output, "%s/out", parent) > 0);
+    REQUIRE(snprintf(outside, sizeof outside, "%s/loose", parent) > 0);
+    REQUIRE(snprintf(other, sizeof other, "%s/loose-moved", parent) > 0);
+    REQUIRE(landin_publication_stage_move(outside, other) == -2);
+    int token = prepare_absent(output, stage);
+    REQUIRE(snprintf(sibling, sizeof sibling, "%s.exe", stage) > 0);
+    REQUIRE(landin_publication_stage_move(sibling, stage) == 0);
+    put(sibling, "image");
+    REQUIRE(landin_publication_stage_move(sibling, stage) == 1);
+    REQUIRE(access(sibling, F_OK) != 0 && content(stage, "image"));
+    put(sibling, "second");
+    REQUIRE(landin_publication_stage_move(sibling, stage) == -1
+            && content(stage, "image") && content(sibling, "second"));
+    REQUIRE(unlink(sibling) == 0);
+    REQUIRE(landin_publication_stage_move(stage, outside) == -1
+            && content(stage, "image") && access(outside, F_OK) != 0);
+    REQUIRE(step(token, 0) == 0 && step(token, 1) == 0
+            && step(token, 2) == 0 && step(token, 4) == 0);
+    REQUIRE(content(output, "image"));
+    DIR *listing = opendir(parent); struct dirent *item; unsigned entries = 0;
+    REQUIRE(listing != NULL);
+    while ((item = readdir(listing)) != NULL)
+        if (strcmp(item->d_name, ".") && strcmp(item->d_name, "..")) ++entries;
+    closedir(listing);
+    REQUIRE(entries == 1);
+    REQUIRE(landin_publication_stage_move(sibling, stage) == -1 && errno == ESTALE);
+    ++passed;
+}
 static void absent_root_arrivals(void)
 {
     for (unsigned phase = 1; phase <= 2; ++phase) {
@@ -1710,7 +1745,7 @@ int main(int argc, char **argv)
     separation_shortage();
     registry_lifetimes();
     identity_observations();
-    required_absence_snapshot(); absent_directory_publication();
+    required_absence_snapshot(); absent_directory_publication(); staged_move();
     absent_root_arrivals(); pinned_stage_directories();
     ordinary_group(); capture_actual(); absence_and_noclobber(); protected_alias();
     anchored_stage_and_roots(); directory_snapshot(); staged_rewrite();

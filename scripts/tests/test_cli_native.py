@@ -687,5 +687,94 @@ class NativeCLI(unittest.TestCase):
         make(4)
 
 
+#  llvm-mingw's driver for each Windows target, as refine names it.
+WINDOWS_DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
+                   'windows-arm64': 'aarch64-w64-mingw32-clang'}
+
+
+@unittest.skipUnless(REFINE, 'set LANDIN_REFINE for native CLI integration')
+class NativeWindowsLink(unittest.TestCase):
+    """A Windows link on this host, with each target's llvm-mingw driver on
+    PATH, as the gate's Windows emission jobs and `nix develop` have them;
+    a target without its driver is skipped."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='landin windows link ')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.refine = str(Path(REFINE).resolve())
+        (self.root / 'main.ldn').write_text(SOURCE)
+
+    def targets(self):
+        found = [target for target, driver in WINDOWS_DRIVERS.items()
+                 if shutil.which(driver)]
+        if not found:
+            self.skipTest('no llvm-mingw driver on PATH')
+        return found
+
+    def compile(self, target, *args, status=0):
+        result = subprocess.run(
+            [self.refine, 'compile', '--target=' + target, *args],
+            cwd=self.root, text=True, capture_output=True, timeout=120)
+        self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+        return result
+
+    def leftovers(self):
+        return sorted(path.name for path in self.root.iterdir()
+                      if path.name.startswith('.refine-'))
+
+    def test_an_image_without_exe_keeps_its_name(self):
+        """D2485: llvm-mingw's driver writes `out.exe` for `-o out`; refine
+        publishes the image as `out` and leaves no private directory."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                self.compile(target, 'main.ldn', '--emit=exe', '-o', 'out')
+                self.assertEqual((self.root / 'out').read_bytes()[:2], b'MZ')
+                self.assertFalse((self.root / 'out.exe').exists())
+                self.assertEqual(self.leftovers(), [])
+                (self.root / 'out').unlink()
+
+    def test_a_failed_link_leaves_nothing(self):
+        """D2485: a link that fails reports the linker's text and no
+        cleanup failure, and leaves neither the image nor a private
+        directory."""
+        (self.root / 'bad.ldn').write_text(
+            'extern(c) landin_missing_symbol: () -> none\n'
+            'public main: () -> (code: i32) =\n'
+            '    landin_missing_symbol()\n'
+            '    code = 0\n'
+            'end main\n')
+        for target in self.targets():
+            with self.subTest(target=target):
+                failed = self.compile(target, 'bad.ldn', '--emit=exe',
+                                      '--debug=full', '-o', 'bad', status=1)
+                said = failed.stdout + failed.stderr
+                self.assertIn('error[L0501]', said)
+                self.assertIn('landin_missing_symbol', said)
+                self.assertNotIn('L0005', said)
+                self.assertEqual(sorted(path.name for path in self.root.iterdir()),
+                                 ['bad.ldn', 'main.ldn'])
+
+    def test_two_debug_builds_are_the_same_bytes(self):
+        """D2486: two `--debug=full` links of one program into one
+        directory give the same image and PDB."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                kept = []
+                for _ in range(2):
+                    self.compile(target, 'main.ldn', '--emit=exe',
+                                 '--debug=full', '-o', 'program.exe')
+                    kept.append(((self.root / 'program.exe').read_bytes(),
+                                 (self.root / 'program.pdb').read_bytes()))
+                self.assertEqual(self.leftovers(), [])
+                self.assertTrue(kept[0][0] == kept[1][0], 'the images differ')
+                self.assertTrue(kept[0][1] == kept[1][1], 'the PDBs differ')
+                # The source named relatively is named where it is, in the
+                # directory refine ran in, and no private directory is.
+                pdb = kept[0][1]
+                self.assertIn(os.fsencode(self.root.resolve() / 'main.ldn'), pdb)
+                self.assertNotIn(b'.refine-publication-', pdb)
+
+
 if __name__ == '__main__':
     unittest.main()
