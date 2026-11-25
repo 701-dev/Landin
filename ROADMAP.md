@@ -3225,7 +3225,7 @@ pinned and published as R22.21's are; 10,000 digits timed.
 
 ### R22.24 — Tools that say what they need
 
-Status: planned
+Status: active
 Depends on: none
 
 The process and measurement tools' refusals and defaults that sent their
