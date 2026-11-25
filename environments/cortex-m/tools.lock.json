@@ -315,13 +315,6 @@
     "snapshot": "https://snapshot.debian.org/file/cab450ee6b2feeda0ae7073a03abbc719fc7d615"
   },
   {
-    "url": "https://deb.debian.org/debian/pool/main/libe/libexecs/libexecs1_1.4-2%2bb2_amd64.deb",
-    "file": "libexecs1_1.4-2+b2_amd64.deb",
-    "sha256": "05b578fead365a81141fe834c3b3b6df89d17a050784a237f736489fbd426105",
-    "kind": "deb",
-    "snapshot": "https://snapshot.debian.org/file/07d6444e74351143f26abcb2ca6b053319368c27"
-  },
-  {
     "url": "https://deb.debian.org/debian/pool/main/libf/libffi/libffi8_3.4.8-2_amd64.deb",
     "file": "libffi8_3.4.8-2_amd64.deb",
     "sha256": "0ebdc340de33333639c3c63874cd4b15ac2e83dfa1ef3053b7eefaf4919f4f68",
