@@ -235,18 +235,31 @@ def fetch(packages, item, sleep=time.sleep):
     def store(src):
         with dest.open('wb') as out:
             shutil.copyfileobj(src, out)
-    try:
-        #  urlopen is named here at each call, so a control can replace it.
-        download.download(item['url'], item['file'], store, sleep=sleep,
-                          opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
-                          report=lambda line: print(line, file=sys.stderr, flush=True))
-    except download.DownloadError as error:
-        raise SystemExit('setup.py: ' + str(error)) from error
+    #  A Debian package leaves deb.debian.org's pool once Debian supersedes
+    #  it, while the lock still names it; snapshot.debian.org keeps the same
+    #  file for good, and the SHA-256 below holds either source to the pin
+    #  (D2489).  The pool is asked first: it is the faster, and it spares
+    #  the archive that keeps everything.
+    sources = [item['url']] + ([item['snapshot']] if 'snapshot' in item else [])
+    failures = []
+    for url in sources:
+        try:
+            #  urlopen is named here at each call, so a control can replace it.
+            download.download(url, item['file'], store, sleep=sleep,
+                              opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
+                              report=lambda line: print(line, file=sys.stderr, flush=True))
+            break
+        except download.DownloadError as error:
+            failures.append(str(error))
+            if url != sources[-1]:
+                print('setup.py: %s; trying %s' % (error, sources[-1]), file=sys.stderr, flush=True)
+    else:
+        raise SystemExit('setup.py: ' + '; and then '.join(failures))
     #  Never asked again: the bytes arrived and are not the pinned ones.
     found = sha(dest)
     if found != item['sha256']:
         raise RuntimeError('archive hash mismatch: %s from %s has SHA-256 %s, not the pinned %s'
-                           % (item['file'], item['url'], found, item['sha256']))
+                           % (item['file'], url, found, item['sha256']))
     return dest
 
 

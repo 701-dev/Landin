@@ -58,6 +58,12 @@ directory itself. GCC and binutils come from the arm-elf and riscv64-elf
 archives whose version and checksums `environments/pins.sh` holds beside
 the host GNAT's; the arm-elf GDB is
 built without the Python the debugger sessions run, so GDB stays Debian's.
+Debian's pool drops a version once a newer one supersedes it, so each
+Debian package also names the `snapshot.debian.org/file/SHA1` URL that
+keeps the same file for good, and `setup.py` fetches from there when the
+pool fails (D2489). After adding or changing a Debian package in the lock,
+`python3 environments/cortex-m/lock_snapshot.py` finds its snapshot URL,
+downloads it and refuses it unless its SHA-256 is the locked one.
 The installer verifies archives before extraction. Each probe verifies the
 installation inventory and versions before execution, checks it again afterward,
 and retains that inventory. The host supplies only the C and C++ runtimes
