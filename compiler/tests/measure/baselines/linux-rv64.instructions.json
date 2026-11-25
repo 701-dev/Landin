@@ -3,7 +3,7 @@
  "target": "linux-rv64",
  "entries": {
   "rv64gc/none-all/binary-trees": {
-   "instructions": 392007270
+   "instructions": 149442229
   },
   "rv64gc/none-all/fannkuch-redux": {
    "instructions": 7790079
@@ -24,7 +24,7 @@
    "instructions": 5703699
   },
   "rv64gc/none-auto/binary-trees": {
-   "instructions": 392007270
+   "instructions": 149442229
   },
   "rv64gc/none-auto/fannkuch-redux": {
    "instructions": 7790079
@@ -45,7 +45,7 @@
    "instructions": 5703699
   },
   "rv64gc/none-off/binary-trees": {
-   "instructions": 392419831
+   "instructions": 149573038
   },
   "rv64gc/none-off/fannkuch-redux": {
    "instructions": 7790082
@@ -66,7 +66,7 @@
    "instructions": 5703704
   },
   "rv64gc/size-all/binary-trees": {
-   "instructions": 299604200
+   "instructions": 102678800
   },
   "rv64gc/size-all/fannkuch-redux": {
    "instructions": 3716074
@@ -87,7 +87,7 @@
    "instructions": 3767062
   },
   "rv64gc/size-auto/binary-trees": {
-   "instructions": 299604200
+   "instructions": 102678800
   },
   "rv64gc/size-auto/fannkuch-redux": {
    "instructions": 3716074
@@ -108,7 +108,7 @@
    "instructions": 3767062
   },
   "rv64gc/size-off/binary-trees": {
-   "instructions": 301691277
+   "instructions": 103359553
   },
   "rv64gc/size-off/fannkuch-redux": {
    "instructions": 3716089
@@ -129,7 +129,7 @@
    "instructions": 3767087
   },
   "rv64gc/speed-all/binary-trees": {
-   "instructions": 232074470
+   "instructions": 89199279
   },
   "rv64gc/speed-all/fannkuch-redux": {
    "instructions": 3483969
@@ -150,7 +150,7 @@
    "instructions": 3502621
   },
   "rv64gc/speed-auto/binary-trees": {
-   "instructions": 232074470
+   "instructions": 89199279
   },
   "rv64gc/speed-auto/fannkuch-redux": {
    "instructions": 3483969
@@ -171,7 +171,7 @@
    "instructions": 3502621
   },
   "rv64gc/speed-off/binary-trees": {
-   "instructions": 233201530
+   "instructions": 89477205
   },
   "rv64gc/speed-off/fannkuch-redux": {
    "instructions": 3483986
@@ -192,7 +192,7 @@
    "instructions": 3502646
   },
   "rv64gc_xtheadba/none-all/binary-trees": {
-   "instructions": 391297684
+   "instructions": 149437083
   },
   "rv64gc_xtheadba/none-all/fannkuch-redux": {
    "instructions": 7760482
@@ -213,7 +213,7 @@
    "instructions": 5703699
   },
   "rv64gc_xtheadba/none-auto/binary-trees": {
-   "instructions": 391297684
+   "instructions": 149437083
   },
   "rv64gc_xtheadba/none-auto/fannkuch-redux": {
    "instructions": 7760482
@@ -234,7 +234,7 @@
    "instructions": 5703699
   },
   "rv64gc_xtheadba/none-off/binary-trees": {
-   "instructions": 391720441
+   "instructions": 149578088
   },
   "rv64gc_xtheadba/none-off/fannkuch-redux": {
    "instructions": 7760485
@@ -255,7 +255,7 @@
    "instructions": 5703704
   },
   "rv64gc_xtheadba/size-all/binary-trees": {
-   "instructions": 298898494
+   "instructions": 102679970
   },
   "rv64gc_xtheadba/size-all/fannkuch-redux": {
    "instructions": 3686477
@@ -276,7 +276,7 @@
    "instructions": 3767062
   },
   "rv64gc_xtheadba/size-auto/binary-trees": {
-   "instructions": 298898494
+   "instructions": 102679970
   },
   "rv64gc_xtheadba/size-auto/fannkuch-redux": {
    "instructions": 3686477
@@ -297,7 +297,7 @@
    "instructions": 3767062
   },
   "rv64gc_xtheadba/size-off/binary-trees": {
-   "instructions": 300988007
+   "instructions": 103358287
   },
   "rv64gc_xtheadba/size-off/fannkuch-redux": {
    "instructions": 3686492
@@ -318,7 +318,7 @@
    "instructions": 3767087
   },
   "rv64gc_xtheadba/speed-all/binary-trees": {
-   "instructions": 231369408
+   "instructions": 89199805
   },
   "rv64gc_xtheadba/speed-all/fannkuch-redux": {
    "instructions": 3454372
@@ -339,7 +339,7 @@
    "instructions": 3502621
   },
   "rv64gc_xtheadba/speed-auto/binary-trees": {
-   "instructions": 231369408
+   "instructions": 89199805
   },
   "rv64gc_xtheadba/speed-auto/fannkuch-redux": {
    "instructions": 3454372
@@ -360,7 +360,7 @@
    "instructions": 3502621
   },
   "rv64gc_xtheadba/speed-off/binary-trees": {
-   "instructions": 232497616
+   "instructions": 89476583
   },
   "rv64gc_xtheadba/speed-off/fannkuch-redux": {
    "instructions": 3454389
@@ -381,7 +381,7 @@
    "instructions": 3502646
   },
   "rv64gc_zba/none-all/binary-trees": {
-   "instructions": 391303294
+   "instructions": 149442693
   },
   "rv64gc_zba/none-all/fannkuch-redux": {
    "instructions": 7761566
@@ -402,7 +402,7 @@
    "instructions": 5704240
   },
   "rv64gc_zba/none-auto/binary-trees": {
-   "instructions": 391303294
+   "instructions": 149442693
   },
   "rv64gc_zba/none-auto/fannkuch-redux": {
    "instructions": 7761566
@@ -423,7 +423,7 @@
    "instructions": 5704240
   },
   "rv64gc_zba/none-off/binary-trees": {
-   "instructions": 391715855
+   "instructions": 149573502
   },
   "rv64gc_zba/none-off/fannkuch-redux": {
    "instructions": 7761569
@@ -444,7 +444,7 @@
    "instructions": 5704245
   },
   "rv64gc_zba/size-all/binary-trees": {
-   "instructions": 298898918
+   "instructions": 102680394
   },
   "rv64gc_zba/size-all/fannkuch-redux": {
    "instructions": 3686901
@@ -465,7 +465,7 @@
    "instructions": 3767509
   },
   "rv64gc_zba/size-auto/binary-trees": {
-   "instructions": 298898918
+   "instructions": 102680394
   },
   "rv64gc_zba/size-auto/fannkuch-redux": {
    "instructions": 3686901
@@ -486,7 +486,7 @@
    "instructions": 3767509
   },
   "rv64gc_zba/size-off/binary-trees": {
-   "instructions": 300988431
+   "instructions": 103358711
   },
   "rv64gc_zba/size-off/fannkuch-redux": {
    "instructions": 3686916
@@ -507,7 +507,7 @@
    "instructions": 3767534
   },
   "rv64gc_zba/speed-all/binary-trees": {
-   "instructions": 231369680
+   "instructions": 89200077
   },
   "rv64gc_zba/speed-all/fannkuch-redux": {
    "instructions": 3454644
@@ -528,7 +528,7 @@
    "instructions": 3502905
   },
   "rv64gc_zba/speed-auto/binary-trees": {
-   "instructions": 231369680
+   "instructions": 89200077
   },
   "rv64gc_zba/speed-auto/fannkuch-redux": {
    "instructions": 3454644
@@ -549,7 +549,7 @@
    "instructions": 3502905
   },
   "rv64gc_zba/speed-off/binary-trees": {
-   "instructions": 232497888
+   "instructions": 89476855
   },
   "rv64gc_zba/speed-off/fannkuch-redux": {
    "instructions": 3454661
@@ -570,7 +570,7 @@
    "instructions": 3502930
   },
   "rv64gc_zba_xtheadba/none-all/binary-trees": {
-   "instructions": 391303294
+   "instructions": 149442693
   },
   "rv64gc_zba_xtheadba/none-all/fannkuch-redux": {
    "instructions": 7761566
@@ -591,7 +591,7 @@
    "instructions": 5704240
   },
   "rv64gc_zba_xtheadba/none-auto/binary-trees": {
-   "instructions": 391303294
+   "instructions": 149442693
   },
   "rv64gc_zba_xtheadba/none-auto/fannkuch-redux": {
    "instructions": 7761566
@@ -612,7 +612,7 @@
    "instructions": 5704240
   },
   "rv64gc_zba_xtheadba/none-off/binary-trees": {
-   "instructions": 391715855
+   "instructions": 149573502
   },
   "rv64gc_zba_xtheadba/none-off/fannkuch-redux": {
    "instructions": 7761569
@@ -633,7 +633,7 @@
    "instructions": 5704245
   },
   "rv64gc_zba_xtheadba/size-all/binary-trees": {
-   "instructions": 298898918
+   "instructions": 102680394
   },
   "rv64gc_zba_xtheadba/size-all/fannkuch-redux": {
    "instructions": 3686901
@@ -654,7 +654,7 @@
    "instructions": 3767509
   },
   "rv64gc_zba_xtheadba/size-auto/binary-trees": {
-   "instructions": 298898918
+   "instructions": 102680394
   },
   "rv64gc_zba_xtheadba/size-auto/fannkuch-redux": {
    "instructions": 3686901
@@ -675,7 +675,7 @@
    "instructions": 3767509
   },
   "rv64gc_zba_xtheadba/size-off/binary-trees": {
-   "instructions": 300988431
+   "instructions": 103358711
   },
   "rv64gc_zba_xtheadba/size-off/fannkuch-redux": {
    "instructions": 3686916
@@ -696,7 +696,7 @@
    "instructions": 3767534
   },
   "rv64gc_zba_xtheadba/speed-all/binary-trees": {
-   "instructions": 231369680
+   "instructions": 89200077
   },
   "rv64gc_zba_xtheadba/speed-all/fannkuch-redux": {
    "instructions": 3454644
@@ -717,7 +717,7 @@
    "instructions": 3502905
   },
   "rv64gc_zba_xtheadba/speed-auto/binary-trees": {
-   "instructions": 231369680
+   "instructions": 89200077
   },
   "rv64gc_zba_xtheadba/speed-auto/fannkuch-redux": {
    "instructions": 3454644
@@ -738,7 +738,7 @@
    "instructions": 3502905
   },
   "rv64gc_zba_xtheadba/speed-off/binary-trees": {
-   "instructions": 232497888
+   "instructions": 89476855
   },
   "rv64gc_zba_xtheadba/speed-off/fannkuch-redux": {
    "instructions": 3454661

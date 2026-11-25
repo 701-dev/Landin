@@ -4,8 +4,8 @@
  "entries": {
   "armv8-a/none-all/binary-trees": {
    "sections": {
-    ".text": 139216,
-    ".rodata": 20142,
+    ".text": 142984,
+    ".rodata": 20384,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 848,
@@ -74,8 +74,8 @@
   },
   "armv8-a/none-auto/binary-trees": {
    "sections": {
-    ".text": 139216,
-    ".rodata": 20142,
+    ".text": 142984,
+    ".rodata": 20384,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 848,
@@ -144,8 +144,8 @@
   },
   "armv8-a/none-off/binary-trees": {
    "sections": {
-    ".text": 139288,
-    ".rodata": 20142,
+    ".text": 143056,
+    ".rodata": 20384,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 848,
@@ -214,8 +214,8 @@
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    ".text": 46484,
-    ".rodata": 17101,
+    ".text": 47216,
+    ".rodata": 17382,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -284,8 +284,8 @@
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 46484,
-    ".rodata": 17101,
+    ".text": 47216,
+    ".rodata": 17382,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -354,8 +354,8 @@
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    ".text": 46508,
-    ".rodata": 17101,
+    ".text": 47240,
+    ".rodata": 17382,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -424,8 +424,8 @@
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 39916,
-    ".rodata": 16805,
+    ".text": 40668,
+    ".rodata": 17086,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -494,8 +494,8 @@
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 39916,
-    ".rodata": 16805,
+    ".text": 40668,
+    ".rodata": 17086,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -564,8 +564,8 @@
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 40076,
-    ".rodata": 16805,
+    ".text": 40804,
+    ".rodata": 17086,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -634,8 +634,8 @@
   },
   "armv8.1-a/none-all/binary-trees": {
    "sections": {
-    ".text": 142424,
-    ".rodata": 20594,
+    ".text": 146192,
+    ".rodata": 20836,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 856,
@@ -704,8 +704,8 @@
   },
   "armv8.1-a/none-auto/binary-trees": {
    "sections": {
-    ".text": 142424,
-    ".rodata": 20594,
+    ".text": 146192,
+    ".rodata": 20836,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 856,
@@ -774,8 +774,8 @@
   },
   "armv8.1-a/none-off/binary-trees": {
    "sections": {
-    ".text": 142496,
-    ".rodata": 20594,
+    ".text": 146264,
+    ".rodata": 20836,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 856,
@@ -844,8 +844,8 @@
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    ".text": 47660,
-    ".rodata": 17553,
+    ".text": 48392,
+    ".rodata": 17834,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -914,8 +914,8 @@
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 47660,
-    ".rodata": 17553,
+    ".text": 48392,
+    ".rodata": 17834,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -984,8 +984,8 @@
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    ".text": 47684,
-    ".rodata": 17553,
+    ".text": 48416,
+    ".rodata": 17834,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -1054,8 +1054,8 @@
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 40732,
-    ".rodata": 17201,
+    ".text": 41484,
+    ".rodata": 17482,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -1124,8 +1124,8 @@
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 40732,
-    ".rodata": 17201,
+    ".text": 41484,
+    ".rodata": 17482,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,
@@ -1194,8 +1194,8 @@
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 40892,
-    ".rodata": 17201,
+    ".text": 41620,
+    ".rodata": 17482,
     ".tbss": 4,
     ".data.rel.ro": 280,
     ".data": 584,

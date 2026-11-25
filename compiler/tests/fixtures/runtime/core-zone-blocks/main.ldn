@@ -93,11 +93,11 @@ zone_blocks: () -> (ok: bool) ! mem.out_of_memory =
     return when usize(next) <> usize(small) + 100 or tally.allocations <> 1
 
     --  What the first block cannot hold takes one twice as large.
-    large := try mem.allocate(scratch, usize(900), usize(1))
+    large := try mem.allocate(scratch, usize(960), usize(1))
     return when tally.allocations <> 2 or tally.last <> second_extent
 
     --  The newest allocation grows and shrinks where it is.
-    return when not mem.grow(scratch, large, usize(900), usize(1000),
+    return when not mem.grow(scratch, large, usize(960), usize(1000),
                              usize(1))
     shrunk := try mem.resize(scratch, large, usize(1000), usize(400),
                              usize(1))
@@ -121,7 +121,9 @@ zone_blocks: () -> (ok: bool) ! mem.out_of_memory =
       or tally.last <> 2 * word + 15 + 1800 or usize(big) % 16 <> 0
 
     --  When it refuses every block, the zone reports out_of_memory and the
-    --  newest block still serves what fits.
+    --  newest block still serves what fits.  That is one byte: the block
+    --  was made for the request and 15 bytes of alignment, and the
+    --  alignment its address needed may have taken all but a word of them.
     tally.limit = 0
     mut refused: bool = false
     _ = mem.allocate(scratch, usize(4000), usize(1)) else (problem)
@@ -130,7 +132,7 @@ zone_blocks: () -> (ok: bool) ! mem.out_of_memory =
         big
     end
     return when not refused or tally.allocations <> 3
-    tail := try mem.allocate(scratch, usize(8), usize(1))
+    tail := try mem.allocate(scratch, usize(1), usize(1))
     return when usize(tail) <> usize(big) + 1800
 
     --  A reset keeps the newest block and gives the two before it back.

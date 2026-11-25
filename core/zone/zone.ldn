@@ -74,7 +74,7 @@ take_block: (provider: type is mem.allocator, self: zone(provider),
              extent: usize) -> (address: usize) =
     address = 0
     fresh: ptr mut u8 = mem.allocate(self.parent, extent, alignof link)
-      else (problem)
+        else (problem)
         _ = problem
         return
     end

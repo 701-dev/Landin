@@ -4,8 +4,8 @@
  "entries": {
   "x86-64-v1/none-all/binary-trees": {
    "sections": {
-    ".text": 104064,
-    ".rodata": 20828,
+    ".text": 106941,
+    ".rodata": 21070,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -81,8 +81,8 @@
   },
   "x86-64-v1/none-auto/binary-trees": {
    "sections": {
-    ".text": 104064,
-    ".rodata": 20828,
+    ".text": 106941,
+    ".rodata": 21070,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -158,8 +158,8 @@
   },
   "x86-64-v1/none-off/binary-trees": {
    "sections": {
-    ".text": 104073,
-    ".rodata": 20828,
+    ".text": 106947,
+    ".rodata": 21070,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -235,8 +235,8 @@
   },
   "x86-64-v1/size-all/binary-trees": {
    "sections": {
-    ".text": 38203,
-    ".rodata": 16205,
+    ".text": 38635,
+    ".rodata": 16119,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -312,8 +312,8 @@
   },
   "x86-64-v1/size-auto/binary-trees": {
    "sections": {
-    ".text": 38203,
-    ".rodata": 16205,
+    ".text": 38635,
+    ".rodata": 16119,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -389,8 +389,8 @@
   },
   "x86-64-v1/size-off/binary-trees": {
    "sections": {
-    ".text": 38244,
-    ".rodata": 16205,
+    ".text": 38676,
+    ".rodata": 16119,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -466,8 +466,8 @@
   },
   "x86-64-v1/speed-all/binary-trees": {
    "sections": {
-    ".text": 39846,
-    ".rodata": 16000,
+    ".text": 40294,
+    ".rodata": 15914,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -543,8 +543,8 @@
   },
   "x86-64-v1/speed-auto/binary-trees": {
    "sections": {
-    ".text": 39846,
-    ".rodata": 16000,
+    ".text": 40294,
+    ".rodata": 15914,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -620,8 +620,8 @@
   },
   "x86-64-v1/speed-off/binary-trees": {
    "sections": {
-    ".text": 39974,
-    ".rodata": 16000,
+    ".text": 40486,
+    ".rodata": 15914,
     ".note.gnu.property": 48,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -697,8 +697,8 @@
   },
   "x86-64-v2/none-all/binary-trees": {
    "sections": {
-    ".text": 108470,
-    ".rodata": 21314,
+    ".text": 111347,
+    ".rodata": 21556,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -774,8 +774,8 @@
   },
   "x86-64-v2/none-auto/binary-trees": {
    "sections": {
-    ".text": 108470,
-    ".rodata": 21314,
+    ".text": 111347,
+    ".rodata": 21556,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -851,8 +851,8 @@
   },
   "x86-64-v2/none-off/binary-trees": {
    "sections": {
-    ".text": 108479,
-    ".rodata": 21314,
+    ".text": 111353,
+    ".rodata": 21556,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -928,8 +928,8 @@
   },
   "x86-64-v2/size-all/binary-trees": {
    "sections": {
-    ".text": 40021,
-    ".rodata": 16691,
+    ".text": 40453,
+    ".rodata": 16605,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1005,8 +1005,8 @@
   },
   "x86-64-v2/size-auto/binary-trees": {
    "sections": {
-    ".text": 40021,
-    ".rodata": 16691,
+    ".text": 40453,
+    ".rodata": 16605,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1082,8 +1082,8 @@
   },
   "x86-64-v2/size-off/binary-trees": {
    "sections": {
-    ".text": 40062,
-    ".rodata": 16691,
+    ".text": 40494,
+    ".rodata": 16605,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1159,8 +1159,8 @@
   },
   "x86-64-v2/speed-all/binary-trees": {
    "sections": {
-    ".text": 41958,
-    ".rodata": 16430,
+    ".text": 42406,
+    ".rodata": 16344,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1236,8 +1236,8 @@
   },
   "x86-64-v2/speed-auto/binary-trees": {
    "sections": {
-    ".text": 41958,
-    ".rodata": 16430,
+    ".text": 42406,
+    ".rodata": 16344,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1313,8 +1313,8 @@
   },
   "x86-64-v2/speed-off/binary-trees": {
    "sections": {
-    ".text": 42086,
-    ".rodata": 16430,
+    ".text": 42598,
+    ".rodata": 16344,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1390,8 +1390,8 @@
   },
   "x86-64-v3/none-all/binary-trees": {
    "sections": {
-    ".text": 111041,
-    ".rodata": 21370,
+    ".text": 113918,
+    ".rodata": 21612,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1467,8 +1467,8 @@
   },
   "x86-64-v3/none-auto/binary-trees": {
    "sections": {
-    ".text": 111041,
-    ".rodata": 21370,
+    ".text": 113918,
+    ".rodata": 21612,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1544,8 +1544,8 @@
   },
   "x86-64-v3/none-off/binary-trees": {
    "sections": {
-    ".text": 111050,
-    ".rodata": 21370,
+    ".text": 113924,
+    ".rodata": 21612,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1621,8 +1621,8 @@
   },
   "x86-64-v3/size-all/binary-trees": {
    "sections": {
-    ".text": 40739,
-    ".rodata": 16747,
+    ".text": 41171,
+    ".rodata": 16661,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1698,8 +1698,8 @@
   },
   "x86-64-v3/size-auto/binary-trees": {
    "sections": {
-    ".text": 40739,
-    ".rodata": 16747,
+    ".text": 41171,
+    ".rodata": 16661,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1775,8 +1775,8 @@
   },
   "x86-64-v3/size-off/binary-trees": {
    "sections": {
-    ".text": 40780,
-    ".rodata": 16747,
+    ".text": 41212,
+    ".rodata": 16661,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1852,8 +1852,8 @@
   },
   "x86-64-v3/speed-all/binary-trees": {
    "sections": {
-    ".text": 42726,
-    ".rodata": 16486,
+    ".text": 43174,
+    ".rodata": 16400,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -1929,8 +1929,8 @@
   },
   "x86-64-v3/speed-auto/binary-trees": {
    "sections": {
-    ".text": 42726,
-    ".rodata": 16486,
+    ".text": 43174,
+    ".rodata": 16400,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2006,8 +2006,8 @@
   },
   "x86-64-v3/speed-off/binary-trees": {
    "sections": {
-    ".text": 42854,
-    ".rodata": 16486,
+    ".text": 43366,
+    ".rodata": 16400,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2083,8 +2083,8 @@
   },
   "x86-64-v4/none-all/binary-trees": {
    "sections": {
-    ".text": 112449,
-    ".rodata": 21427,
+    ".text": 115326,
+    ".rodata": 21669,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2160,8 +2160,8 @@
   },
   "x86-64-v4/none-auto/binary-trees": {
    "sections": {
-    ".text": 112449,
-    ".rodata": 21427,
+    ".text": 115326,
+    ".rodata": 21669,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2237,8 +2237,8 @@
   },
   "x86-64-v4/none-off/binary-trees": {
    "sections": {
-    ".text": 112458,
-    ".rodata": 21427,
+    ".text": 115332,
+    ".rodata": 21669,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2314,8 +2314,8 @@
   },
   "x86-64-v4/size-all/binary-trees": {
    "sections": {
-    ".text": 41125,
-    ".rodata": 16804,
+    ".text": 41557,
+    ".rodata": 16718,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2391,8 +2391,8 @@
   },
   "x86-64-v4/size-auto/binary-trees": {
    "sections": {
-    ".text": 41125,
-    ".rodata": 16804,
+    ".text": 41557,
+    ".rodata": 16718,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2468,8 +2468,8 @@
   },
   "x86-64-v4/size-off/binary-trees": {
    "sections": {
-    ".text": 41166,
-    ".rodata": 16804,
+    ".text": 41598,
+    ".rodata": 16718,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2545,8 +2545,8 @@
   },
   "x86-64-v4/speed-all/binary-trees": {
    "sections": {
-    ".text": 43174,
-    ".rodata": 16543,
+    ".text": 43622,
+    ".rodata": 16457,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2622,8 +2622,8 @@
   },
   "x86-64-v4/speed-auto/binary-trees": {
    "sections": {
-    ".text": 43174,
-    ".rodata": 16543,
+    ".text": 43622,
+    ".rodata": 16457,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
@@ -2699,8 +2699,8 @@
   },
   "x86-64-v4/speed-off/binary-trees": {
    "sections": {
-    ".text": 43302,
-    ".rodata": 16543,
+    ".text": 43814,
+    ".rodata": 16457,
     ".note.gnu.property": 64,
     ".tbss": 4,
     ".data.rel.ro": 280,
