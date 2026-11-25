@@ -191,3 +191,22 @@ its own guest (`freebsd-host-1`, `freebsd-host-2`, `freebsd-host-release`),
 after `freebsd-toolchain` restores or builds the toolchain archive;
 `freebsd-toolchain-main` does the same on every push to main, whose cache
 every branch reads.
+
+On FreeBSD arm64 the same lane runs with `--arch=arm64` in a guest under
+KVM on an arm64 host, where `refine`'s own target is `freebsd-arm64` and
+the base system's Clang assembles as well as links. GitHub's arm64 runners
+have no KVM, and building GCC under emulation outlasts a job, so this is a
+named run rather than a gate job. Both scripts take that guest with
+`--runner-ssh`, the SSH command that reaches it as root; the toolchain
+archive's digest is the same either way:
+
+```sh
+python3 environments/freebsd/gnat.py --arch=arm64 --runner-ssh="$GUEST"   # once: about ten minutes on 20 processors in 8 GiB
+python3 compiler/tests/freebsd/host.py --arch=arm64 --runner-ssh="$GUEST" --output="$(mktemp -d)"
+python3 compiler/tests/freebsd/host.py --arch=arm64 --runner-ssh="$GUEST" --output="$(mktemp -d)" \
+    --mode=release --package=DIR
+```
+
+The guest is booted fresh from the locked image first, and each run
+provisions it again. The last makes `landin-VERSION-aarch64-freebsd.tar.gz`,
+which no release publishes yet.

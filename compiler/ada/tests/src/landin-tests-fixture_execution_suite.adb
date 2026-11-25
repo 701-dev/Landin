@@ -3432,16 +3432,20 @@ package body Landin.Tests.Fixture_Execution_Suite is
          Landin.Platform.Add (Driver_Arguments, "-no-pie");
       end if;
       --  A FreeBSD link takes refine's own FreeBSD options, as the emitted
-      --  lane's does: binutils' as for x86-64's GNU assembly (D475), the
-      --  private labels discarded, and every section nothing retained
-      --  reaches dropped, since an unreached library routine may name
-      --  libthr's pthread_create, which no -lthr provides (D518).
+      --  lane's does: binutils' as for x86-64's GNU assembly (D475), on
+      --  arm64 Clang's assembler keeping foreign `.L` names as symbols
+      --  (`-Wa,-L`), the private labels discarded, and every section
+      --  nothing retained reaches dropped, since an unreached library
+      --  routine may name libthr's pthread_create, which no -lthr
+      --  provides (D518).
       if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.FreeBSD
       then
          if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64
          then
             Landin.Platform.Add (Driver_Arguments, "-fno-integrated-as");
+         else
+            Landin.Platform.Add (Driver_Arguments, "-Wa,-L");
          end if;
          Landin.Platform.Add (Driver_Arguments, "-Wl,--discard-locals");
          Landin.Platform.Add (Driver_Arguments, "-Wl,--gc-sections");
@@ -3590,9 +3594,15 @@ package body Landin.Tests.Fixture_Execution_Suite is
         & "end main" & LF;
       Instruction : constant String :=
         (if Is_X86 then "shlx" elsif Is_RV64 then "th.addsl" else "ldaddal");
+      --  FreeBSD's arm64 link assembles with the base system's Clang,
+      --  which names the extension the instruction needs; GNU as names
+      --  the instruction.
       Refusal : constant String :=
         (if Is_X86 then "`shlx' is not supported on"
          elsif Is_RV64 then "xtheadba"
+         elsif Landin.Targets.Capabilities.Hosted_System_Of (Lanes.Target)
+           = Landin.Targets.Capabilities.FreeBSD
+         then "instruction requires: lse"
          else "selected processor does not support `ldaddal");
       --  The levels below the one that adds the instruction: the default
       --  unnamed, then each named.  arm64 has one, so it is named once;

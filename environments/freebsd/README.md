@@ -40,7 +40,9 @@ its inputs ([the toolchain's record](../../compiler/ada/TOOLCHAIN.md#freebsd-bui
 `refine` there and runs its test program
 ([refine on FreeBSD](../../compiler/tests/freebsd/README.md#refine-on-freebsd)).
 `vm.boot` takes the guest's memory, processors and a larger disk for
-those builds; the lanes keep 2 GiB and two processors.
+those builds; the lanes keep 2 GiB and two processors. Both scripts take an
+existing guest with `--runner-ssh` instead, as FreeBSD arm64's host lane
+does in a guest under KVM on an arm64 host.
 
 `compiler/tests/freebsd/check.py --prepared --runner-ssh` still executes a
 transferred payload in an existing guest, as the self-hosted controllers
