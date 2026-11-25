@@ -286,7 +286,7 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   hand, since `install.sh` does not serve FreeBSD yet. The host lane makes
   the FreeBSD arm64 one, `landin-VERSION-aarch64-freebsd.tar.gz`, in an
   arm64 guest, but no release publishes it yet. Homebrew's
-  `janhaan/tap/landin`, the flake's default package and the one-line
+  `701-dev/tap/landin`, the flake's default package and the one-line
   `install.sh` the site serves install a Linux or macOS one, the flake's
   `nix run` runs it,
   and its `refine` package builds from source. From the release after
