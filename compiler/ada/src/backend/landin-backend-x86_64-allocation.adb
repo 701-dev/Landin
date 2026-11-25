@@ -738,6 +738,11 @@ package body Landin.Backend.X86_64.Allocation is
          Variable_Held : array (General_Register) of Boolean :=
            [others => False];
          SSE_Busy_Until : array (SSE_Register) of Natural := [others => 0];
+         --  The last use of the values placed in each register so far,
+         --  apart from the slot intervals Busy_Until also counts: D2157's
+         --  value may take its slot's register only once these are past.
+         Value_Until : array (General_Register) of Natural := [others => 0];
+         SSE_Value_Until : array (SSE_Register) of Natural := [others => 0];
          --  Release buckets make spill reuse linear in instruction count,
          --  without scanning all previous homes at every definition.
          Release_Data : Count_Buffers.Buffer (Value_Count + 1);
@@ -2233,7 +2238,7 @@ package body Landin.Backend.X86_64.Allocation is
                        --  No other value still holds the register: one
                        --  stored into the slot earlier may be read after
                        --  this one begins, not through the slot.
-                       and then Busy_Until
+                       and then Value_Until
                          (Result.Slot (Overwrites (Index)).Register)
                          <= Position
                      then
@@ -2300,7 +2305,7 @@ package body Landin.Backend.X86_64.Allocation is
                   then
                      if Overwrites (Index) /= 0
                        and then Result.Slot (Overwrites (Index)).Kind = SSE
-                       and then SSE_Busy_Until
+                       and then SSE_Value_Until
                          (Result.Slot (Overwrites (Index)).Float_Register)
                          <= Position
                      then
@@ -2342,6 +2347,13 @@ package body Landin.Backend.X86_64.Allocation is
                            exit;
                         end if;
                      end loop;
+                  end if;
+                  if Place.Kind = GP then
+                     Value_Until (Place.Register) := Natural'Max
+                       (Value_Until (Place.Register), Lasts (Index));
+                  elsif Place.Kind = SSE then
+                     SSE_Value_Until (Place.Float_Register) := Natural'Max
+                       (SSE_Value_Until (Place.Float_Register), Lasts (Index));
                   end if;
                   if Place.Kind = Stack and then Allocate_GP
                     and then Forwardable (Index)

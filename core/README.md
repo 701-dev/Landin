@@ -25,7 +25,7 @@ The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule
 `core/fibre/stacks`, `core/io` with its submodules `core/io/fake` and
 `core/io/signal`, `core/iter`, `core/line`,
-`core/map`, `core/mem`,
+`core/map`, `core/math`, `core/mem`,
 `core/net`, `core/panic`, `core/pool`, `core/random`, `core/region`,
 `core/sort`, `core/spill`, `core/text`, `core/time`, `core/tree`,
 `core/vec` and `core/zone`. Every public interface is available on every target, with

@@ -133,9 +133,9 @@ f32 is floating (classify: classify_f32, is_negative: is_negative_f32,
                  log_gamma: log_gamma_f32)
 
 --  The constants, each the f64 nearest the real number.  Converting one
---  with f32() gives the f32 nearest the real number too: none lies near
---  enough to an f32 rounding boundary for the two roundings to differ,
---  which the math-representation fixture checks.
+--  with f32() gives the f32 nearest the real number too: each lies at
+--  least an eighth of an f32 unit from an f32 rounding boundary, far
+--  beyond the f64 rounding's error, so the two roundings agree.
 
 --- π, the ratio of a circle's circumference to its diameter.
 public pi: f64 = 0x1.921fb54442d18p1
@@ -370,7 +370,8 @@ end cbrt
 
 --- The square root of `x * x + y * y`, without the overflow or underflow
 --- of computing it that way; an infinity if either is infinite, even if
---- the other is NaN.  C's `hypot`.
+--- the other is NaN.  Within 0.9 ulp at f64, and 1.05 ulp at f32, as
+--- msun's own routine is.  C's `hypot`.
 public hypot: (item: type is floating, x: item, y: item) -> (result: item) =
     result = item.hypot(x, y)
 end hypot

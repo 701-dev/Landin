@@ -3299,6 +3299,9 @@
     "runtime/library-shared-map": {
       "mode": "execute"
     },
+    "runtime/library-shared-math": {
+      "mode": "execute"
+    },
     "runtime/library-shared-mem": {
       "mode": "execute"
     },
@@ -3510,6 +3513,9 @@
       "mode": "execute"
     },
     "runtime/math-remainder-nearest": {
+      "mode": "execute"
+    },
+    "runtime/math-representation": {
       "mode": "execute"
     },
     "runtime/math-round": {

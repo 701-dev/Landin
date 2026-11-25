@@ -45051,7 +45051,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** a builtin, `compiler.square_root` and the like, which the compiler could fold and keep in registers across the call; and the software routines alone, which give Cortex-M0's results everywhere at many times the cost. A builtin stays open for when a measurement shows the block's cost.
 
-**Pinned by** `runtime/math-sqrt` and `runtime/math-fma`, whose results are MPFR's correctly rounded ones on every target, the software routines on Cortex-M0, RV32 and Xtensa, and the exhaustive check of the software `f32` square root against MPFR that compiler/tests/math/README.md describes.
+**Pinned by** `runtime/math-sqrt`, `runtime/math-fma-f64` and `runtime/math-fma-f32`, whose results are MPFR's correctly rounded ones on every target, the software routines on Cortex-M0, RV32 and Xtensa, and the exhaustive check of the software `f32` square root against MPFR that compiler/tests/math/README.md describes.
 
 ### D2552 — `core/math` is one generic routine per function over `math.floating`
 

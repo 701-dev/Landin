@@ -2393,6 +2393,7 @@ runtime/library-shared-io | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64,
 runtime/library-shared-iter | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-line | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-map | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+runtime/library-shared-math | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-mem | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-net | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/library-shared-panic | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
@@ -2447,6 +2448,7 @@ runtime/math-hypot-f32 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64
 runtime/math-hypot-f64 | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/math-remainder | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/math-remainder-nearest | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+runtime/math-representation | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/math-round | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/math-sqrt | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/measure-fibre-switches | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

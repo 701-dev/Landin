@@ -228,6 +228,7 @@ The library covers:
   the environment;
 - running programs, clocks, sleeping, the system's entropy and a
   deterministic generator;
+- the elementary mathematical functions of `f32` and `f64`, `core/math`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
 - the rest of the file system: opening with options, renaming, a file's
@@ -1802,6 +1803,53 @@ It is not cryptographic: its outputs reveal its state. A key, a token or
 a password comes from `io.fill_random` directly.
 
 [Executable example](../compiler/tests/fixtures/runtime/random-sequence/main.ldn)
+
+## core/math
+
+The functions of C's `<math.h>` that most programs use, over `f32` and
+`f64`, written in Landin so that a result is the same bits on every
+target, Cortex-M0's soft float included.
+
+| Call | What it does |
+|---|---|
+| `math.sqrt`, `math.cbrt`, `math.hypot` | Square and cube roots, and the hypotenuse without overflow on the way. |
+| `math.fma` | `x * y + z` rounded once. |
+| `math.exp`, `math.exp2`, `math.expm1` | e or 2 to a power; `expm1` is `exp(x) - 1`, accurate near zero. |
+| `math.log`, `math.log2`, `math.log10`, `math.log1p` | Logarithms; `log1p` is `log(1 + x)`, accurate near zero. |
+| `math.pow` | A power, with C's special cases. |
+| `math.sin`, `math.cos`, `math.tan` | The trigonometric functions of radians, accurate for every argument. |
+| `math.asin`, `math.acos`, `math.atan`, `math.atan2` | Their inverses; `atan2(y, x)` is the angle of the point (x, y). |
+| `math.sinh`, `math.cosh`, `math.tanh`, `math.asinh`, `math.acosh`, `math.atanh` | The hyperbolic functions and their inverses. |
+| `math.erf`, `math.erfc`, `math.gamma`, `math.log_gamma` | The error function and its complement, the gamma function, and the logarithm of its magnitude. |
+| `math.floor`, `math.ceil`, `math.trunc`, `math.round`, `math.round_even` | Rounding to an integer; `round` takes a half away from zero, `round_even` to the even neighbour. |
+| `math.remainder`, `math.remainder_nearest` | `x - n * y` for `n` the quotient truncated, as integer `%` does, or rounded to nearest, IEEE's remainder. |
+| `math.classify`, `math.is_nan`, `math.is_infinite`, `math.is_finite`, `math.is_normal`, `math.is_negative` | What kind of value a float holds, and its sign bit. |
+| `math.abs`, `math.copy_sign`, `math.next_after`, `math.scale`, `math.split`, `math.whole_and_fraction`, `math.min`, `math.max` | The representation: magnitude, sign, the next float, a power of two, the fraction and exponent, the whole and fractional parts, and the lesser or greater, NaN ignored. |
+| `math.pi`, `math.tau`, `math.e`, `math.ln_2`, `math.ln_10`, `math.log2_e`, `math.log10_e`, `math.sqrt_2`, `math.sqrt_half` | The constants, as `f64`. |
+
+Every call takes either width: `math.sin(x)` is the `f32` sine when `x`
+is an `f32`. A float literal alone is an `f32` [0210], so `math.sqrt(2.0)`
+is the `f32` root; write `math.sqrt(f64(2.0))` or pass a typed value for
+the `f64` one. A constant converts with `f32()` to the `f32` nearest the
+real number.
+
+Each routine's error is stated in its doc comment in units in the last
+place of the exact result: zero for the exact routines, the square root
+and `fma`, which are correctly rounded, and below one for the others. The
+`math-*` fixtures check that bound on every target against MPFR's
+correctly rounded values, and [the measurements](../compiler/tests/math/README.md)
+give each routine's largest error.
+
+The square root and `fma` are the float unit's own instructions where the
+target has one, and are computed from the bits where it has none, with the
+same results. Results are rounded to nearest; the float unit's other
+rounding modes and exception flags are neither read nor set. Nothing keeps
+state, and nothing allocates.
+
+On Cortex-M0, a program takes only the routines it calls, beside libgcc's
+soft float, which every float program there takes.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-math/main.ldn)
 
 ## core/line
 
