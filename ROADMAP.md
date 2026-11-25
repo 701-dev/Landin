@@ -1227,7 +1227,10 @@ workload's image changed, and every output is the same.
 keeps the region's silent single free; Q-274 asks whether the module's
 name is `core/zone`, `SR-1829` files the formatting case no
 step for a new module names, and `SR-1830` the Debian packages the
-embedded tools fetch from a pool that drops superseded versions.
+embedded tools fetch from a pool that drops superseded versions. The
+merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45543519666) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45547023934).
 
 ### The continuous items
 
