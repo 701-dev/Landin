@@ -594,7 +594,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Current roadmap work: R21.61 — refine on FreeBSD arm64.**
+**Next roadmap item: R22.10 — Elementary functions (planned).**
 
 ## Questions, bugs and ideas
 

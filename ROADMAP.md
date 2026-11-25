@@ -2817,7 +2817,7 @@ host's KVM; `SR-1818`, the release build's memory at default parallelism;
 
 ### R21.61 — refine on FreeBSD arm64
 
-Status: active
+Status: complete
 Depends on: R21.60
 
 R21.60 on FreeBSD arm64. The gate's arm64 guest is emulated, where
@@ -2829,6 +2829,31 @@ guest under KVM on the maintainer's arm64 host, of R21.60's evidence:
 `refine` built there with the pinned GNAT, and the test program, the
 native adapter's cases and the hosted corpus it compiles passing; the
 host in `docs/capabilities.md` and a release archive for it.
+
+Done: `refine` builds and runs on FreeBSD arm64, where it defaults to
+`freebsd-arm64` (D2469) and links with the base system's `cc`, whose
+Clang also assembles. The named run (D2470) was in the FreeBSD 14.4 arm64
+guest under KVM on the maintainer's arm64 host, 20 processors in 8 GiB:
+`environments/freebsd/gnat.py --runner-ssh`, new, built the pinned GNAT
+16.1.0 and GPRbuild 26.0.0 there in ten minutes (archive key
+`b07aa20481369ea7`, 104 MB); `compiler/tests/freebsd/host.py` built
+`refine` at a535c1593 and ran the complete local native suite, 1,295 of
+1,295 cases in 17 minutes, fixture execution compiling, linking and
+running the hosted corpus with that `refine`; and its release leg at
+1bdd0677 packaged `landin-0.2.11-aarch64-freebsd.tar.gz` (sha256
+`81c05fff…f53177999`), whose `refine` loads only `libthr` and `libc` and
+ran with the GNAT moved away. No release publishes that archive until
+Q-279 is answered. Findings fixed: the test program's native FreeBSD
+arm64 C link lacked `-Wa,-L`, so the two `r440-native` ABI fixtures'
+foreign `.L` names were undefined, and its level refusal expected GNU
+as's words rather than Clang's; `host.py` left FreeBSD arm64's 1 GiB data
+ceiling, which refuses `large-array-offset-is-addressed`, as `check.py`'s
+lanes do not; a release build killed `gnat1` in 8 GiB at one job per
+processor, so `scripts/build.sh` now runs one job per 2 GiB of memory
+when no `-jN` is named (`SR-1818`, settled); and the gate's Cortex-M and
+Xtensa installs failed because Debian's pool dropped two locked packages,
+which `environments/cortex-m/setup.py` now takes from
+`snapshot.debian.org` at the lock's time.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
