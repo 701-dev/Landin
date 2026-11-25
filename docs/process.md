@@ -285,7 +285,8 @@ nix develop -c python3 scripts/run_logged.py \
 Choose the selectors for the change. `dev-test.sh` checks its own build;
 a preceding `dev-build.sh` is useful when compilation feedback is needed,
 rather than a mandatory separate step before each suite. Leave its worker
-count at the project's `-j0`, every core, and add no `taskset`: a build of
+count at the project's `-j0`, every core (a release build caps it at one
+job per 2 GiB of memory), and add no `taskset`: a build of
 the whole compiler at `-j4` takes 2.6 times as long as at the default on a
 32-core host, and the kernel shares the cores between concurrent builds
 better than a `-j` or a `taskset` chosen for each one. When several related commands are necessary, enter

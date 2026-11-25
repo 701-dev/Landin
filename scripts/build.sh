@@ -56,6 +56,8 @@ landin_usage() {
     echo "either way and published into its libexec/landin/ as refine-NAME."
     echo "A GPRbuild switch such as -q, -jN, -k or -R passes through to GPRbuild;"
     echo "a long option is refused, GPRbuild's configuration among them."
+    echo "Without -jN a release build runs one job per 2 GiB of memory, up to"
+    echo "one per processor; a debug build one per processor."
     echo "LANDIN_BUILD_MODE (debug or release), LANDIN_BUILD_TAG and"
     echo "LANDIN_BUILD_VARIANT choose the tree; scripts/env.sh says how."
 }
@@ -413,6 +415,45 @@ EOF
     else
         echo "landin: sources changed since the last build; rebuilding from clean, keeping bin/"
         landin_clean_objects
+    fi
+fi
+
+#  A release compile of the largest units takes up to 2 GiB each, so a
+#  release build that names no job count runs one job per 2 GiB of the
+#  memory this process may use, physical or its cgroup's limit, and never
+#  more than one per processor: GPRbuild's own default, one per processor,
+#  had the kernel kill gnat1 at 20 processors in 8 GiB.  A debug build
+#  fits one per processor there.
+landin_memory_mib() {
+    case "$(uname -s)" in
+        Linux)
+            Physical="$(awk '/^MemTotal:/ { print int($2 / 1024) }' /proc/meminfo)"
+            Limit="$(cat /sys/fs/cgroup/memory.max 2>/dev/null)" || Limit=max
+            case "$Limit" in
+                '' | max | *[!0-9]*) ;;
+                *) Limit=$((Limit / 1048576))
+                   [ "$Limit" -ge "$Physical" ] || Physical="$Limit" ;;
+            esac
+            echo "$Physical" ;;
+        FreeBSD) echo $(( $(sysctl -n hw.physmem) / 1048576 )) ;;
+        Darwin) echo $(( $(sysctl -n hw.memsize) / 1048576 )) ;;
+    esac
+}
+Jobs_Named=no
+for Argument do
+    case "$Argument" in -j*) Jobs_Named=yes ;; esac
+done
+if [ "$LANDIN_BUILD_MODE" = release ] && [ "$Jobs_Named" = no ]; then
+    Processors="$(getconf _NPROCESSORS_ONLN 2>/dev/null)" || Processors=
+    Memory_Mib="$(landin_memory_mib)" || Memory_Mib=
+    if [ -n "$Processors" ] && [ -n "$Memory_Mib" ]; then
+        Jobs=$((Memory_Mib / 2048))
+        [ "$Jobs" -ge 1 ] || Jobs=1
+        if [ "$Jobs" -lt "$Processors" ]; then
+            echo "landin: release build: $Jobs jobs, one per 2 GiB of $Memory_Mib MiB" \
+                 "on $Processors processors (name -jN to choose)"
+            set -- "$@" "-j$Jobs"
+        fi
     fi
 fi
 
