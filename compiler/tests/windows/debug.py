@@ -131,7 +131,8 @@ def prepare(args):
         require(assembly.is_file(), label + ': no assembly beside the image')
         count = switch_frames.assembly_instruction_count(assembly.read_text())
         (bundle / (label + '.lldb')).write_text(
-            '\n'.join(lldb_batch.switch_commands(count)) + '\n')
+            '\n'.join(lldb_batch.switch_commands(count, pdb=True))
+            + '\n')
         switches.append(dict(built, label=label, switch_instructions=count))
         print(TARGET + ': built ' + label, flush=True)
     DAP_SOURCE.parent.mkdir(parents=True, exist_ok=True)
@@ -175,8 +176,12 @@ def direct(bundle, manifest, lldb, output):
                     [*lldb, '--batch', '-s', label + '.lldb', built['image']],
                     cwd=bundle, stdin=subprocess.DEVNULL,
                     capture_output=True, timeout=300)
-            except subprocess.TimeoutExpired:
-                raise Refused(label + ': LLDB did not finish within 300 seconds')
+            except subprocess.TimeoutExpired as late:
+                #  What it printed before then, which says where it stopped.
+                (output / (label + '.transcript')).write_bytes(
+                    (late.stdout or b'') + (late.stderr or b''))
+                raise Refused(label + ': LLDB did not finish within 300'
+                              ' seconds')
             text = (done.stdout + done.stderr).decode(errors='replace')
             (output / (label + '.transcript')).write_text(text)
             try:

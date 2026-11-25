@@ -196,11 +196,20 @@ def gdb_stops(transcript: str) -> dict:
 #  x86-64 and arm64, so its instructions, which the lane counts in the
 #  linked image, are its steps, and one more leaves it.
 
-def lldb_commands(line: int, instructions: int) -> list[str]:
+def lldb_commands(line: int, instructions: int,
+                  pdb: bool = False) -> list[str]:
+    """`pdb` for an image whose debugging information is a PDB (D2481):
+    LLDB finds none of its routines by a regular expression, so the switch
+    routine's breakpoint names it, and it takes the routine's procedure
+    for debugging information, so it shows the instruction at a stop only
+    when asked to."""
     commands = ["settings set target.disable-aslr false",
+                *(["settings set stop-disassembly-display always"]
+                  if pdb else []),
                 f"breakpoint set --file {SOURCE.name} --line {line}",
                 "run", "thread backtrace", "breakpoint delete --force",
-                "breakpoint set --func-regex '^" + re.escape(SWITCH) + "$'"]
+                (f"breakpoint set --name {SWITCH}" if pdb else
+                 "breakpoint set --func-regex '^" + re.escape(SWITCH) + "$'")]
     for _ in SWITCHES:
         commands += ["continue", "thread backtrace"]
         for _ in range(instructions):
