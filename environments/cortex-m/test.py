@@ -1795,8 +1795,7 @@ class RV32Lanes(unittest.TestCase):
         self.assertTrue(lane_inputs('rv32imc', ['a.ldn'])[-1].endswith('lanes/lane-esp32c3.ldn'))
         self.assertEqual(lane_inputs('rv32imac', ['a.ldn']), ['a.ldn'])
         self.assertEqual(run.espressif, Path('/tools/qemu-espressif/bin'))
-        self.assertIn('/tools/root/usr/lib/x86_64-linux-gnu/pulseaudio',
-                      run.env['LD_LIBRARY_PATH'].split(':'))
+        self.assertEqual(run.env['LD_LIBRARY_PATH'], '/tools/root/usr/lib/x86_64-linux-gnu')
 
     def test_the_esp32c3_lane_record_is_its_description(self):
         from backend import LANE_PROFILES, LANE_ROOT, device_target, region
@@ -1892,16 +1891,21 @@ class RV32Lanes(unittest.TestCase):
         lock = json.loads((HERE / 'tools.lock.json').read_text())
         self.assertEqual({item['kind'] for item in lock}, {'deb', 'tar.xz'})
         archives = [item for item in lock if item['kind'] == 'tar.xz']
-        self.assertEqual([item['into'] for item in archives], [ESPRESSIF, ESPRESSIF_XTENSA])
+        #  One archive of nix-packages' Espressif QEMU holds both emulators.
+        self.assertEqual([item['into'] for item in archives], [[ESPRESSIF, ESPRESSIF_XTENSA]])
         self.assertIn(ESPRESSIF, AREAS)
         self.assertIn(ESPRESSIF_XTENSA, AREAS)
-        self.assertIn('esp_develop_9.2.2_20260417', archives[0]['file'])
-        #  The Xtensa QEMU is nix-packages' static build of the same tag.
-        self.assertEqual(archives[1]['file'], 'qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz')
-        self.assertTrue(archives[1]['url'].startswith(
+        #  It is nix-packages' static, headless build of Espressif's tag.
+        self.assertEqual(archives[0]['file'], 'qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz')
+        self.assertTrue(archives[0]['url'].startswith(
             'https://701-nix-packages.nbg1.your-objectstorage.com/exports/'))
-        self.assertEqual(archives[1]['sha256'],
+        self.assertEqual(archives[0]['sha256'],
                          'cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d')
+        #  So the graphical stack Espressif's own binaries linked has left
+        #  the lock: no SDL2, X11, Wayland, PulseAudio or libgcrypt (D2551).
+        debs = {item['file'].split('_')[0] for item in lock if item['kind'] == 'deb'}
+        self.assertFalse(debs & {'libsdl2-2.0-0', 'libx11-6', 'libwayland-client0', 'libpulse0',
+                                 'libasound2t64', 'libgcrypt20', 'libgpg-error0'})
         for item in lock:
             self.assertRegex(item['sha256'], '^[0-9a-f]{64}$')
         files = [item['file'] for item in lock]

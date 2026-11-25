@@ -270,6 +270,14 @@ def unpack(archive, into, mode):
                    check=True, timeout=600)
 
 
+def areas(item):
+    """The areas an archive of the lock is unpacked into: `into` names one,
+    or a list when one archive serves several, as nix-packages' Espressif
+    QEMU, which holds both emulators, serves the RV32 and the Xtensa lanes."""
+    into = item.get('into', [])
+    return [into] if isinstance(into, str) else list(into)
+
+
 def installer_tools():
     """Name missing unpackers before creating any installation directory."""
     missing = [name for name in ('dpkg-deb', 'tar', 'xz') if shutil.which(name) is None]
@@ -297,8 +305,9 @@ def main():
         dest = fetch(packages, item)
         if item['kind'] == 'deb':
             subprocess.run(['dpkg-deb', '-x', str(dest), str(root / 'root')], check=True, timeout=30)
-        elif item['kind'] == 'tar.xz' and item.get('into') in (ESPRESSIF, ESPRESSIF_XTENSA):
-            unpack(dest, root / item['into'], '-xJf')
+        elif item['kind'] == 'tar.xz' and set(areas(item)) <= {ESPRESSIF, ESPRESSIF_XTENSA}:
+            for area in areas(item):
+                unpack(dest, root / area, '-xJf')
         else:
             raise RuntimeError('unknown archive kind: ' + item['kind'])
     for area, archive in ((ARM, arm_archive()), (RISCV, riscv_archive())):

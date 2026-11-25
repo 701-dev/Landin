@@ -368,7 +368,7 @@ def count_cortex(image: Image, level: str, tools: Path, start=None, stop=None,
     usr = tools / "root/usr"
     libraries = usr / "lib/x86_64-linux-gnu"
     env = {**os.environ, "LC_ALL": "C", "LANG": "C",
-           "LD_LIBRARY_PATH": f"{libraries}:{libraries / 'pulseaudio'}"}
+           "LD_LIBRARY_PATH": str(libraries)}
     qemu = str(usr / "bin/qemu-system-arm")
     plugin = plugin_for((qemu, "-M", "none", "-display", "none"),
                         tuple(sorted(env.items())))

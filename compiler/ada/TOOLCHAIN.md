@@ -225,7 +225,8 @@ sets independently, including the S3's `salt` and `saltu` instructions.
 
 The private Linux x86-64 installation also carries
 [Espressif QEMU `esp-develop-9.2.2-20260417`](https://github.com/espressif/qemu/releases/tag/esp-develop-9.2.2-20260417)
-in its separate `qemu-xtensa` area, as a static, headless build of that tag
+in its separate `qemu-xtensa` area, and the same archive in `qemu-espressif`
+for the RV32 lanes, as a static, headless build of that tag
 from [701-dev/nix-packages](https://github.com/701-dev/nix-packages)
 rather than Espressif's own release binary, which links SDL2. Its
 archive, `qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz` from that
@@ -463,8 +464,9 @@ which the nix shell reads. Its multilibs include `rv32im/ilp32`, which
 `riscv64-unknown-elf-gcc`, the name Debian's and Ubuntu's
 `gcc-riscv64-unknown-elf` gives the same bare-metal GCC.
 `environments/cortex-m/setup.py` installs the Linux x86-64 one for the RV32
-emulator lanes, which run on Espressif's QEMU, locked with its libraries in
-`environments/cortex-m/tools.lock.json` (D695).
+emulator lanes, which run on Espressif's QEMU, locked in
+`environments/cortex-m/tools.lock.json` as the same nix-packages archive
+the Xtensa lanes use (D695, D2551).
 
 | platform | archive | sha256 |
 |---|---|---|
