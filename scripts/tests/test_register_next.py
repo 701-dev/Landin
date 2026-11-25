@@ -178,6 +178,14 @@ class Delete(unittest.TestCase):
         with self.assertRaises(SystemExit):
             register_next.delete(root, [gone])
 
+    def test_a_span_wrapped_onto_the_next_line_is_left_as_it_is(self):
+        gone = ROW % 90050
+        text = ("a `wrapped\nspan`; `%s`'s gone and %s too.\n\n"
+                "`not closed\n\n%s\n" % (gone, gone, gone))
+        self.assertEqual(register_next.quote_citations(text, {gone}),
+                         "a `wrapped\nspan`; `%s`'s gone and `%s` too.\n\n"
+                         "`not closed\n\n`%s`\n" % (gone, gone, gone))
+
 
 if __name__ == "__main__":
     unittest.main()
