@@ -66,4 +66,13 @@ fixed if compiler.os == windows then
     page_bytes: () -> (bytes: usize) =
         bytes = windows.page_bytes
     end page_bytes
+
+    resident_peak: () -> (bytes: usize) =
+        mut counters: windows.memory_counters = zeroed
+        counters.size = u32(sizeof windows.memory_counters)
+        bytes = 0
+        return when windows.process_memory(windows.current_process(),
+                                           addr counters, counters.size) == 0
+        bytes = counters.peak_working_set
+    end resident_peak
 end if

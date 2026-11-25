@@ -183,11 +183,19 @@ package body Landin.Tests.Fixture_Execution_Suite is
          & " --refine=REFINE --output=DIR, or the gate's freebsd-"
          & (if Target = "freebsd-x86-64" then "amd64" else "arm64")
          & " jobs (compiler/tests/freebsd/README.md)"
-      elsif Target in "windows-x86-64" | "windows-arm64" then
+      elsif Target = "windows-x86-64" then
          "compiler/tests/windows/check.py --target=" & Target & " --case="
          & Label (Ada.Strings.Fixed.Index (Label, "/") + 1 .. Label'Last)
          & " --refine=REFINE --output=DIR on Linux with --runner=wine,"
          & " or the gate's windows jobs (compiler/tests/windows/README.md)"
+      elsif Target = "windows-arm64" then
+         --  Wine runs an arm64 program only on an arm64 host: emit here and
+         --  execute the bundle on a Windows arm64 host.
+         "compiler/tests/windows/check.py --target=" & Target & " --case="
+         & Label (Ada.Strings.Fixed.Index (Label, "/") + 1 .. Label'Last)
+         & " --refine=REFINE --prepare-only --output=DIR on Linux, then"
+         & " --prepared=DIR on a Windows arm64 host, or the gate's"
+         & " windows-arm64 jobs (compiler/tests/windows/README.md)"
       elsif Target = "cortex-m0" then
          "environments/cortex-m/backend_corpus.py --case=" & Label
          & " --refine=REFINE --output=DIR, or the gate's cortex-m job"

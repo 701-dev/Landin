@@ -92,7 +92,8 @@ node_at: (index: usize, path: []u8, kind: io.entry_kind)
     try mem.copy(paths[index][0..<lenof path], path)
     node = (path: paths[index][0..<16], path_length: lenof path,
             contents: contents[index][0..<16], length: 0, kind: kind,
-            read_only: false, modified: (seconds: 0, nanoseconds: 0))
+            read_only: false, executable: false,
+            modified: (seconds: 0, nanoseconds: 0))
 end node_at
 
 --  The memory volume says the same of a directory node.

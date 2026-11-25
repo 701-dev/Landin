@@ -51,16 +51,19 @@ supplied, and Espressif's QEMU release archive with the Debian libraries it
 loads: SDL2 and the sound, X11 and Wayland libraries SDL2 links, and
 libgcrypt, 36 packages chosen by following each binary's `NEEDED` entries
 rather than the packages' dependencies, which would add Mesa and LLVM that
-nothing loads. A package that has since left Debian's pool, superseded by
-a point release, is taken from `snapshot.debian.org` at the time the lock
-was made (`setup.py`'s `SNAPSHOT`), checked against the same SHA-256.
-Debian's libpulse finds its common library through a
+nothing loads. Debian's libpulse finds its common library through a
 `RUNPATH` under `/usr`, so the lanes put the tool root's
 `lib/x86_64-linux-gnu/pulseaudio` on `LD_LIBRARY_PATH` beside the library
 directory itself. GCC and binutils come from the arm-elf and riscv64-elf
 archives whose version and checksums `environments/pins.sh` holds beside
 the host GNAT's; the arm-elf GDB is
 built without the Python the debugger sessions run, so GDB stays Debian's.
+Debian's pool drops a version once a newer one supersedes it, so each
+Debian package also names the `snapshot.debian.org/file/SHA1` URL that
+keeps the same file for good, and `setup.py` fetches from there when the
+pool fails (D2489). After adding or changing a Debian package in the lock,
+`python3 environments/cortex-m/lock_snapshot.py` finds its snapshot URL,
+downloads it and refuses it unless its SHA-256 is the locked one.
 The installer verifies archives before extraction. Each probe verifies the
 installation inventory and versions before execution, checks it again afterward,
 and retains that inventory. The host supplies only the C and C++ runtimes
@@ -878,6 +881,13 @@ rv32imac` for both RV32 lanes, each line naming a level other than
 `armv6-m`. It belongs to `--program` and is refused without it: the
 corpus runs each row at `armv6-m` and at its fixture's `levels:`, and
 `--lane` runs every row on one lane.
+
+A `refine` copied out of its build directory looks for its library at
+`../lib/landin` beside itself; `--library DIR` names it for every
+compilation, the corpus's and `--program`'s alike. A run whose compiler
+found no library, or one without `platform/cortex_m/reference` (L0006,
+L0518), fails saying so and naming `--library`, never as a row's changed
+verdict.
 
 A program that traps says `trapped: HardFault at` the faulting routine and
 line, and whether it was the UDF #1 a check emits; one that does not fit

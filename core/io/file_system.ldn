@@ -56,15 +56,20 @@ public data_only: atom
 public synchronizing: type = data_and_status | data_only
 
 --- The little that every system says alike about a file: its size in bytes,
---- what it is, when it was last written, as the wall clock read then, and
+--- what it is, when it was last written, as the wall clock read then,
 --- whether it is `read_only`, which on POSIX means that no permission bit
---- lets anyone write it.  A directory's own size differs between file
---- systems; a symbolic link's is the length of its target.
+--- lets anyone write it, and whether it is `executable`: a regular file the
+--- system would run as a program, which on POSIX means that some
+--- permission bit lets someone execute it and on Windows, which keeps no
+--- such bit, that its name ends in `.exe` or `.com`.  A directory is never
+--- executable.  A directory's own size differs between file systems; a
+--- symbolic link's is the length of its target.
 public status: type = struct
     size: u64
     kind: entry_kind
     modified: time.wall_time
     read_only: bool
+    executable: bool
 end status
 
 --- A temporary file `make_temporary` made: the file, open for reading and
@@ -258,6 +263,128 @@ public current_directory: (provider: type is file_system, host: provider,
                           ! io_failed =
     path = try provider.current_directory(host, into)
 end current_directory
+
+--  How a search path divides its entries and a path its parts: `:` and
+--  `/` on POSIX, `;` and `\` on Windows, where a name without an
+--  extension is run as `.exe`, as CreateProcessW runs it.
+fixed if compiler.os == windows then
+    path_list_separator: u8 = u8(';')
+    path_separator: u8 = u8('\\')
+    program_suffix: []u8 = ".exe"
+else
+    path_list_separator: u8 = u8(':')
+    path_separator: u8 = u8('/')
+    program_suffix: []u8 = ""
+end if
+
+--  Whether `name` names a place of its own rather than a program to
+--  search for: it holds a `/`, or on Windows a `\` or a drive's `:`.
+placed: (name: []u8) -> (yes: bool) =
+    yes = mem.find(name, u8('/')) < lenof name
+          or mem.find(name, path_separator) < lenof name
+          or (path_separator <> u8('/') and lenof name > 1
+              and name[1] == u8(':'))
+end placed
+
+--  The suffix a program named `name` is run with: Windows' `.exe` when its
+--  last part has no extension, and nothing otherwise.
+suffix_for: (name: []u8) -> (suffix: []u8) =
+    suffix = ""
+    return when lenof program_suffix == 0
+    mut at: usize = lenof name
+    while at > 0 do
+        byte: u8 = name[at - 1]
+        return when byte == u8('.')
+        break when byte == u8('/') or byte == path_separator
+        at -= 1
+    end while
+    suffix = program_suffix
+end suffix_for
+
+--  Put `parts` one after another in `into` and say whether they fit.
+put_parts: (into: []mut u8, parts: [4][]u8) -> (length: usize, fits: bool) =
+    length = 0
+    fits = false
+    for part in parts do
+        return when lenof part > lenof into - length
+        mem.copy(into[length..<length + lenof part], part) else none
+        length += lenof part
+    end for
+    fits = true
+end put_parts
+
+--  Whether the file at `path` is a program to run: a regular file, after
+--  any link it ends in, whose status says it is executable.  A path the
+--  provider cannot read the status of is none.
+runs: (provider: type is file_system, host: provider, path: []u8)
+      -> (yes: bool) =
+    found: status = provider.status_of(host, text.os_string_over(path),
+                                       following) else (problem)
+        _ = problem
+        yes = false
+        return
+    end
+    yes = found.kind == regular and found.executable
+end runs
+
+--- Find the program `name` as a shell finds a command, without starting it,
+--- and put its path in `into` for `spawn` to start: the first entry of the
+--- search path `search` holding an executable regular file of that name,
+--- joined to it with the separator the entry writes its parts with, `/` unless
+--- it is a Windows entry written with `\`. `search` is a `PATH` value, which
+--- `variable_named` reads, its entries divided by `:` on POSIX and by `;` on
+--- Windows; an empty entry is passed over rather than read as the current
+--- directory, so a program in it is never run by accident. A `name` that holds
+--- a `/`, or on Windows a `\` or a drive, names its own place and is not
+--- searched for: it is put in `into` when it is executable. On Windows, which
+--- runs only programs whose names end in `.exe` or `.com`, a name whose last
+--- part has no extension is looked for with `.exe` after it, as CreateProcessW
+--- looks for it. It reports `mem.not_found` when no entry holds the program,
+--- `name` is empty, or the place it names is not executable, and `io_failed`
+--- when a path to try does not fit in `into`. A file is executable as `status`
+--- says.
+public find_program: (provider: type is file_system, host: provider,
+                      name: text.os_string, search: text.os_string,
+                      into: []mut u8)
+                     -> (found: text.os_string from into)
+                     ! mem.not_found | io_failed =
+    found = text.os_string_over(into[0..<0])
+    wanted: []u8 = text.os_string_bytes(name)
+    fail mem.not_found when lenof wanted == 0
+    suffix: []u8 = suffix_for(wanted)
+    if placed(wanted) then
+        (length, fits) := put_parts(into, [wanted, suffix, "", ""])
+        fail io_failed when not fits
+        fail mem.not_found when not runs(host, into[0..<length])
+        found = text.os_string_over(into[0..<length])
+        return
+    end if
+    entries: []u8 = text.os_string_bytes(search)
+    mut start: usize = 0
+    while start <= lenof entries do
+        rest: []u8 = entries[start..<lenof entries]
+        width: usize = mem.find(rest, path_list_separator)
+        entry: []u8 = rest[0..<width]
+        start += width + 1
+        if lenof entry > 0 then
+            ends_divided: bool = entry[lenof entry - 1] == path_separator
+                                 or entry[lenof entry - 1] == u8('/')
+            --  The separator the entry writes its own parts with: Windows'
+            --  `\` where it has one, and `/` otherwise, which Windows takes
+            --  too.
+            divider: [1]u8 = [if mem.find(entry, path_separator) < lenof entry
+                              then path_separator else u8('/') end if]
+            between: []u8 = if ends_divided then "" else divider[0..<1] end if
+            (length, fits) := put_parts(into, [entry, between, wanted, suffix])
+            fail io_failed when not fits
+            if runs(host, into[0..<length]) then
+                found = text.os_string_over(into[0..<length])
+                return
+            end if
+        end if
+    end while
+    fail mem.not_found
+end find_program
 
 --- How many times `make_temporary` tries a name before it gives up with
 --- `io_failed`: a name is taken only when the bytes `names` gives repeat.

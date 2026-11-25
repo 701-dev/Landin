@@ -40,8 +40,10 @@ fixed if compiler.os == linux then
         fdatasync_number: i64 = 75
         ftruncate_number: i64 = 77
         getcwd_number: i64 = 79
+        chdir_number: i64 = 80
         fchmod_number: i64 = 91
         fchown_number: i64 = 93
+        getrusage_number: i64 = 98
         getuid_number: i64 = 102
         getgid_number: i64 = 104
         geteuid_number: i64 = 107
@@ -86,6 +88,7 @@ fixed if compiler.os == linux then
         symlinkat_number: i64 = 36
         linkat_number: i64 = 37
         ftruncate_number: i64 = 46
+        chdir_number: i64 = 49
         fchmod_number: i64 = 52
         fchmodat_number: i64 = 53
         fchownat_number: i64 = 54
@@ -112,6 +115,7 @@ fixed if compiler.os == linux then
         kill_number: i64 = 129
         rt_sigaction_number: i64 = 134
         rt_sigprocmask_number: i64 = 135
+        getrusage_number: i64 = 165
         getpid_number: i64 = 172
         getuid_number: i64 = 174
         geteuid_number: i64 = 175
@@ -154,6 +158,7 @@ fixed if compiler.os == linux then
         symlinkat_number: i64 = 36
         linkat_number: i64 = 37
         ftruncate_number: i64 = 46
+        chdir_number: i64 = 49
         fchmod_number: i64 = 52
         fchmodat_number: i64 = 53
         fchownat_number: i64 = 54
@@ -180,6 +185,7 @@ fixed if compiler.os == linux then
         kill_number: i64 = 129
         rt_sigaction_number: i64 = 134
         rt_sigprocmask_number: i64 = 135
+        getrusage_number: i64 = 165
         getpid_number: i64 = 172
         getuid_number: i64 = 174
         geteuid_number: i64 = 175

@@ -111,20 +111,33 @@ package body Landin.Backend.Dispatch is
           (48 + (if Float then Landin.Backend.VFP_Switch_Bytes else 0));
    begin
       case Landin.Targets.Capabilities.Backend_For (Facts) is
-         when Landin.Targets.Capabilities.X86_64_ELF
-            | Landin.Targets.Capabilities.X86_64_COFF =>
+         when Landin.Targets.Capabilities.X86_64_ELF =>
             return (Switch_Bytes => 64, Prepared_Bytes => 64,
                     Entry_Bytes => 0,
                     Report_Bytes => (if Linux then 8 else 24),
                     Report_Foreign => not Linux,
                     Limit_Margin => Margin, Unchecked => Unchecked,
                     Handler_Entry => Before);
+         --  D2479: Windows' switch saves the TEB's three bounds too, and
+         --  its first frame lays two zero words above the start routine's
+         --  return address, below which the entry is called.
+         when Landin.Targets.Capabilities.X86_64_COFF =>
+            return (Switch_Bytes => 88, Prepared_Bytes => 104,
+                    Entry_Bytes => 16, Report_Bytes => 24,
+                    Report_Foreign => True,
+                    Limit_Margin => Margin, Unchecked => Unchecked,
+                    Handler_Entry => Before);
          when Landin.Targets.Capabilities.Darwin_Arm64_Mach_O
-           | Landin.Targets.Capabilities.Arm64_ELF
-           | Landin.Targets.Capabilities.Arm64_COFF =>
+           | Landin.Targets.Capabilities.Arm64_ELF =>
             return (Switch_Bytes => 176, Prepared_Bytes => 176,
                     Entry_Bytes => 0, Report_Bytes => 16,
                     Report_Foreign => not Linux,
+                    Limit_Margin => Margin, Unchecked => Unchecked,
+                    Handler_Entry => Before);
+         when Landin.Targets.Capabilities.Arm64_COFF =>
+            return (Switch_Bytes => 192, Prepared_Bytes => 208,
+                    Entry_Bytes => 16, Report_Bytes => 16,
+                    Report_Foreign => True,
                     Limit_Margin => Margin, Unchecked => Unchecked,
                     Handler_Entry => Before);
          when Landin.Targets.Capabilities.RV64_ELF =>

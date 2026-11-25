@@ -163,7 +163,10 @@ what `main` returned or where the program trapped; no oracle is held. A
 program that does not fit the profile's map says by how much, and the run
 fails only when a profile could not be built or run. Repeat `--program` to
 run several; two that share a file name are told apart by their
-directories. Its runs are no corpus evidence:
+directories. `--library DIR` names the library for a `refine` copied out
+of its build directory, for the corpus and `--program` alike; a compiler
+that found none fails each run saying so, never as a changed verdict. Its
+runs are no corpus evidence:
 
 ```sh
 python3 environments/xtensa/corpus.py \

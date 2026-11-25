@@ -19,7 +19,8 @@ with an oracle, named in compiler/tests/measure/workloads.json.
     measure.py runners --refine R
         every target/level pair the compiler gives and how it is measured,
         checked against compiler/tests/measure/runners.json
-    measure.py time --refine R --base-refine B --target T --output DIR
+    measure.py time --refine R --base-refine B [--base-checkout DIR] --target T
+            --output DIR
         paired wall time of every configuration the runner table times on
         this host: the candidate's and the base's images interleaved
 
@@ -45,6 +46,8 @@ MEASURE = ROOT / "compiler/tests/measure"
 BASELINES = MEASURE / "baselines"
 sys.path.insert(0, str(ROOT / "compiler/tests"))
 import fixture_meta  # noqa: E402
+sys.path.insert(0, str(ROOT / "scripts"))
+import lane_refine  # noqa: E402  -- the --refine every lane takes
 
 OPTIMIZE = ("none", "size", "speed")
 SPECIALIZE = ("off", "auto", "all")
@@ -137,12 +140,40 @@ def macho_sections(data: bytes, digest=None) -> dict[str, int]:
     return sections
 
 
+def pe_sections(data: bytes, digest=None) -> dict[str, int]:
+    """Each section's size in memory in a PE image, by name, less the
+    DWARF sections a MinGW link keeps under long names; with DIGEST, each
+    one's name, size and content fed to it, so the COFF header's time
+    stamp does not move it."""
+    require(data[:2] == b"MZ", "not a PE image")
+    header, = struct.unpack_from("<I", data, 0x3C)
+    require(data[header:header + 4] == b"PE\0\0", "not a PE image")
+    count, = struct.unpack_from("<H", data, header + 6)
+    optional, = struct.unpack_from("<H", data, header + 20)
+    at = header + 24 + optional
+    sections: dict[str, int] = {}
+    for index in range(count):
+        base = at + index * 40
+        name = data[base:base + 8].rstrip(b"\0").decode()
+        virtual, _, raw_size, raw_at = struct.unpack_from("<IIII", data, base + 8)
+        if name.startswith(("/", ".debug")):
+            continue
+        sections[name] = sections.get(name, 0) + virtual
+        if digest is not None:
+            digest.update(f"{name} {virtual}\n".encode())
+            digest.update(data[raw_at:raw_at + min(raw_size, virtual)])
+    return sections
+
+
 def image_sections(path: Path) -> tuple[dict[str, int], str]:
     """The allocated sections' sizes, and a digest of their contents."""
     data = path.read_bytes()
     if data[:4] == b"\x7fELF":
         digest = hashlib.sha256()
         return elf_sections(data, digest), digest.hexdigest()
+    if data[:2] == b"MZ":
+        digest = hashlib.sha256()
+        return pe_sections(data, digest), digest.hexdigest()
     digest = hashlib.sha256()
     return macho_sections(data, digest), digest.hexdigest()
 
@@ -219,7 +250,9 @@ def key(level: str, profile: tuple[str, str], workload: str) -> str:
 DEFAULT_DRIVER = {"linux-x86-64": "gcc", "linux-arm64": "aarch64-linux-gnu-gcc",
                   "linux-rv64": "riscv64-linux-gnu-gcc", "darwin-arm64": "cc",
                   "cortex-m0": "arm-eabi-gcc", "rv32": "riscv64-elf-gcc",
-                  "xtensa": "xtensa-esp32-elf-gcc"}
+                  "xtensa": "xtensa-esp32-elf-gcc",
+                  "windows-x86-64": "x86_64-w64-mingw32-clang",
+                  "windows-arm64": "aarch64-w64-mingw32-clang"}
 FIRMWARE = ("cortex-m0", "rv32", "xtensa")
 ENTRY = MEASURE / "entry.ldn"
 
@@ -249,12 +282,13 @@ def sources(arguments: list[str]) -> list[str]:
 
 
 def build(refine, target, level, profile, workload, out, toolchain, library=None,
-          root=ROOT):
+          root=ROOT, library_option="--library DIR"):
     fixture = root / "compiler/tests/fixtures" / workload["fixture"]
     require(fixture.is_dir(), f"{root} has no fixture {workload['fixture']} to build"
             f" {workload['name']} from")
     meta = fixture_meta.read(fixture)
-    image = out / f"{target}-{level}-{profile[0]}-{profile[1]}-{workload['name']}"
+    image = out / (f"{target}-{level}-{profile[0]}-{profile[1]}-{workload['name']}"
+                   + (".exe" if target.startswith("windows-") else ""))
     firmware = (["--firmware-entry=start"] if target in FIRMWARE else [])
     command = [str(refine), "compile", f"--target={target}", f"--level={level}",
                f"--optimize={profile[0]}", f"--specialize={profile[1]}",
@@ -267,6 +301,9 @@ def build(refine, target, level, profile, workload, out, toolchain, library=None
                f"--build-report={image}.json"]
     done = subprocess.run(command, capture_output=True, text=True, timeout=900,
                           cwd=root / "compiler/ada")
+    missing = done.returncode and lane_refine.missing_library(
+        done.stdout + done.stderr, library_option)
+    require(not missing, f"{refine}: {missing}")
     require(done.returncode == 0, f"{target} {key(level, profile, workload['name'])}"
             f" did not build:\n{' '.join(command)}\n{done.stdout}{done.stderr}")
     return image, meta, fixture
@@ -496,7 +533,11 @@ def measure_time(args) -> int:
     #  its own library: across a breaking window the base's library lacks
     #  what the candidate's fixtures name, and the candidate's has dropped
     #  what the base's name, so a program pairs with its own tree.
-    base_root = checkout_of(args.base_refine) or ROOT
+    base_root = args.base_checkout or checkout_of(args.base_refine)
+    require(base_root is not None, f"{args.base_refine} lies in no checkout, so"
+            " neither its fixtures nor its library are known: name the base"
+            " commit's tree with --base-checkout DIR")
+    base_library = args.base_checkout
 
     def built(item):
         level, profile, workload = item
@@ -504,7 +545,9 @@ def measure_time(args) -> int:
         for side, refine, root in (("candidate", args.refine, ROOT),
                                    ("base", args.base_refine, base_root)):
             image, _, _ = build(refine, target, level, profile, workload,
-                                out / side, None, root=root)
+                                out / side, None, root=root,
+                                library=base_library if side == "base" else None,
+                                library_option="--base-checkout DIR")
             pair.append((image, image_sections(image)[1]))
         return item, pair
 
@@ -947,6 +990,10 @@ def main(argv=None) -> int:
     lane_refine.argument(wall)
     wall.add_argument("--base-refine", type=Path, required=True,
                       help="the base commit's compiler")
+    wall.add_argument("--base-checkout", type=Path, metavar="DIR",
+                      help="the base commit's tree, whose fixtures the base"
+                      " builds and whose library it is given; by default the"
+                      " checkout --base-refine lies in")
     wall.add_argument("--target", required=True, help="this host's target")
     wall.add_argument("--output", required=True)
     wall.add_argument("--samples", type=int, default=5)

@@ -45,7 +45,8 @@ and the run's provenance, and a summary is appended to $GITHUB_STEP_SUMMARY
 when that is set.  The exit status is 0 only for a passed port.
 
 A time step runs `python3 environments/boards/timing.py run --board=BOARD
---bundle=TIMING --output=NEW_DIRECTORY/BOARD-time --repeat=3 ARGUMENTS`.
+--bundle=TIMING --output=NEW_DIRECTORY/BOARD-time --repeat=3 ARGUMENTS`,
+three being timing.REPEAT.
 
 --probehive defaults to RIG_STATE/probehive and --ram-loader to
 RIG_STATE/bin/landin-ram-run.
@@ -80,10 +81,8 @@ BOARDS = ('rp2040', 'rp2350', 'rp2350_hazard3', 'stm32h753', 'stm32h753_cached',
           'esp32c5', 'esp32', 'esp32s3')
 PLACEHOLDER = re.compile(r'\{([a-z_]+)\}')
 MODES = ('boot', 'ram', 'time')
-#  The runs of each image a time step makes: the lower median of three is a
-#  warm run on every port, where a single run on the STM32H753 is a cold one
-#  (compiler/tests/measure/noise/cycles.json).
-TIMING_REPEAT = 3
+#  The runs of each image a time step makes, timing.py's own default.
+TIMING_REPEAT = timing.REPEAT
 
 
 def utc_now():

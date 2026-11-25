@@ -111,6 +111,77 @@ public value: i32 = 1
         self.assertEqual(result[2].signature, 'public\nlimit: u32 = 4')
         self.assertEqual(result[0].line, 2)
 
+    def test_a_long_c_head_inside_a_target_branch_takes_its_name_below(self):
+        # The layout `refine fmt` writes for a kernel32 name too
+        # long for one line, indented inside its `fixed if`.
+        text = '''fixed if compiler.os == windows then
+    --- The wall clock.
+    public extern(c) link(symbol: "GetSystemTimePreciseAsFileTime")
+    system_time: (into: ptr mut u64) -> none
+
+    --- The counter.
+    public extern(c) link(symbol: "QueryPerformanceCounter")
+    performance_counter:
+        (into: ptr mut i64) -> (done: i32)
+end if
+'''
+        result = self.read(text)
+        self.assertEqual([i.name for i in result], ['system_time', 'performance_counter'])
+        self.assertEqual([i.condition for i in result], ['compiler.os == windows'] * 2)
+        self.assertEqual(result[0].signature,
+                         'public extern(c) link(symbol: "GetSystemTimePreciseAsFileTime")\n'
+                         'system_time: (into: ptr mut u64) -> none')
+        self.assertTrue(result[1].signature.endswith('(into: ptr mut i64) -> (done: i32)'))
+        # A name indented below its attributes is not the layout's, and the
+        # refusal says which layout is.
+        with self.assertRaisesRegex(ValueError, r'demo\.ldn:2: unsupported public '
+                                                r'declaration: .*refine fmt'):
+            self.read('--- Clock.\npublic extern(c) link(symbol: "Clock")\n'
+                      '    clock: () -> none\n')
+
+    def test_every_refused_declaration_is_named_at_once(self):
+        # One run names them all, not the first it meets.
+        text = '''--- Shared by the next two.
+public first: u32 = 1
+public second: u32 = 2
+public extern(c) link(symbol: "Clock")
+--- Readable.
+public fine: atom
+--- No value.
+public empty: u32 =
+
+public third: atom
+'''
+        with self.assertRaises(ValueError) as caught:
+            self.read(text)
+        report = str(caught.exception).splitlines()
+        self.assertEqual(report[0], '4 public library declarations refused:')
+        self.assertEqual([line.split(': ', 1)[0] for line in report[1:]],
+                         ['core/demo/demo.ldn:3', 'core/demo/demo.ldn:4',
+                          'core/demo/demo.ldn:8', 'core/demo/demo.ldn:10'])
+        self.assertIn('undocumented public second', report[1])
+        self.assertIn('unsupported public value', report[3])
+        self.assertIn('undocumented public third', report[4])
+        # Given a list, the reader adds to it and returns what it read.
+        refused = []
+        self.assertEqual([i.name for i in library.read_items(
+            text, 'core/demo/demo.ldn', refused)], ['first', 'fine'])
+        self.assertEqual(len(refused), 4)
+        # collect gathers them across files and refuses once.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for base in library.ROOTS:
+                (root / base).mkdir()
+            for module in ('core/one', 'core/two'):
+                (root / module).mkdir()
+                (root / module / (module[5:] + '.ldn')).write_text(
+                    '--- Fine.\npublic fine: atom\npublic bare: atom\n')
+            with self.assertRaises(ValueError) as caught:
+                library.collect(root)
+            self.assertEqual(str(caught.exception).splitlines()[1:],
+                             ['core/one/one.ldn:3: undocumented public bare',
+                              'core/two/two.ldn:3: undocumented public bare'])
+
     def test_concept_entries_and_struct_fields_are_preserved(self):
         text = '''--- Input capability.
 public reader: type = concept (provider: type)

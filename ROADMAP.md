@@ -272,15 +272,15 @@ every target, level and profile, to committed baselines exactly, and the
 instructions of 468 under QEMU, RV64's and Cortex-M's; the schedule and
 any dispatch time the hosted workloads in pairs on one processor and the
 firmware set by each board's counter. The candidate `25159f4a8` passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44255590398) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44259826354),
+[gate](https://github.com/701-dev/Landin/actions/runs/44255590398) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44259826354),
 timing included, and
-[main's gate](https://github.com/JanHaan/Landin/actions/runs/44265284174);
+[main's gate](https://github.com/701-dev/Landin/actions/runs/44265284174);
 two never-promoted branches cut from it failed: a larger image
-([run](https://github.com/JanHaan/Landin/actions/runs/44265298161)) on every
+([run](https://github.com/701-dev/Landin/actions/runs/44265298161)) on every
 size key of Linux, firmware and FreeBSD and every instruction count, and a
-slower one ([run](https://github.com/JanHaan/Landin/actions/runs/44265297675),
-[dispatch](https://github.com/JanHaan/Landin/actions/runs/44265301923)) on
+slower one ([run](https://github.com/701-dev/Landin/actions/runs/44265297675),
+[dispatch](https://github.com/701-dev/Landin/actions/runs/44265301923)) on
 the same and on wall time, 126 of 126 pairs on x86-64, 84 of 84 on arm64 and
 62 of 66 on Darwin. Its board legs never ran, since `board-bundles` refuses
 a changed image on record drift first; a named rig run timed it on the
@@ -336,8 +336,8 @@ binary-trees 0.66. RV64 jumps near within a routine provably inside JAL's
 reach (D1405): `.text` 19.9% smaller at `speed`, counted instructions 9.5%
 to 20% fewer. No firmware, x86-64 or arm64 `speed` image changed; the build
 modes agree and the scaling bound holds. The candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44407003576) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44413857908).
+[gate](https://github.com/701-dev/Landin/actions/runs/44407003576) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44413857908).
 R16.21 to R16.24 took the other backends and their rows, `SR-586` and
 `SR-1302` among them. Findings fixed on the way: LLDB's `GetValueAsSigned`
 read a zero-extended `i32` in a register whole, so the Darwin sessions read
@@ -390,8 +390,8 @@ soft-float helpers dominate. Their six records were made again on the rig.
 The RV64 GDB sessions, the RV32 lanes and RV64's fixtures pass, the build
 modes agree and the scaling bound holds on the host and on RV64. The
 candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44452396582) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44459720484).
+[gate](https://github.com/701-dev/Landin/actions/runs/44452396582) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44459720484).
 Findings fixed on the way: the RV64 GDB session's source still assumed a
 dead argument stays readable, and is now the LLDB lanes' source, whose
 argument is read after the call; `runtime/directory-memory` now fits the
@@ -446,8 +446,8 @@ twelve runtime fixtures whose images did not fit it run on Cortex-M0 at
 every profile. The seven Cortex-M board records were made again on the rig.
 The programs and corpus lanes, the unit suites and the fixtures pass, the
 build modes agree and the scaling bound holds. The candidate passed its
-[gate](https://github.com/JanHaan/Landin/actions/runs/44578956148) and
-[boards](https://github.com/JanHaan/Landin/actions/runs/44584549572). R16.27
+[gate](https://github.com/701-dev/Landin/actions/runs/44578956148) and
+[boards](https://github.com/701-dev/Landin/actions/runs/44584549572). R16.27
 takes what is left: `SR-581`, `SR-582`'s CBZ, `SR-583`, `SR-596`, `SR-869` and `SR-231`,
 each with today's figures. Findings fixed on the way: the devices lane's
 cached consumer read a register's address only from literal words; and
@@ -795,8 +795,8 @@ kept for `core/atomic`'s cell calls, which follow how D339 copies.
 `SR-1578`'s case returns built from IR, and `measure.py count` builds and
 counts a fixture at a chosen level, objective and description
 (`SR-1505`), documented in `docs/measurement.md`. `SR-231` is retired as
-not worth an IR terminator: the atom `match` chain tests its subject
-once and spends 6 bytes an arm, a table about 4, about 56 bytes over
+not worth an IR terminator, which the maintainer confirmed on 2026-11-25:
+the atom `match` chain tests its subject once and spends 6 bytes an arm, a table about 4, about 56 bytes over
 `failure.words`. `compiler/tests/measure/findings.md` has each figure.
 Fixed on the way: `measure.py compare` takes the directory `size` writes
 (met by two streams). `SR-1660` files a copied `refine` that cannot
@@ -2584,7 +2584,7 @@ the merged candidate's gate run 45229944797, with boards run 45234631776; `compi
 Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
 that Wine loaded; the trap after a prepared stack's report dispatched as
 an access violation; a musl-built `refine` named no host target (`SR-1518`
-taken). Rows SR-1694 to SR-1698 record the C peer lane, the start-up level
+taken). Rows `SR-1694` to `SR-1698` record the C peer lane, the start-up level
 check, the TEB bounds a stack switch leaves, the fixture path Git for
 Windows cannot check out and the measurement no lane takes of a Windows
 image; `hosted/heap`, arguments, environment and thread
@@ -2670,7 +2670,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to SR-1748 record the inline
+refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -2901,7 +2901,7 @@ which `environments/cortex-m/setup.py` now takes from
 
 ### R21.70 — What Windows still lacks
 
-Status: planned
+Status: complete
 Depends on: R21.61
 
 The gaps R21's items recorded on Windows, scheduled by the register sweep
@@ -2921,6 +2921,39 @@ that R21's gate waits for the Windows gaps.
 Exit evidence: each row's completion on both Windows architectures where
 it names one, in the gate's Windows jobs, and switch_frames.py's session
 in the Windows debugger lane.
+
+Done: every row the item names is closed on both Windows architectures,
+in gate run 45606318679, whose 100 jobs passed. The repository checks out
+on Windows: the debugger case's oddly named source is written at run time
+and `check.py` refuses a tracked path Windows cannot hold, and
+`windows-runtime` and `windows-arm64-runtime` run their lane from a
+checkout. Those jobs also run `compiler/tests/windows/check.py
+--kind=abi`, which links each ABI fixture's C peer with llvm-mingw's
+Clang and C runtime on the runner (D2473): 22 fixtures now name both
+Windows targets and two new ones hold variadic floats and, on x86-64,
+every register Win64 makes a callee save across a callback C enters. The
+first run found two Win64 defects, fixed: an imported function's address
+was read through a GOT COFF does not have, which loaded the function's
+first instructions (D2471), and a `distinct f32` crossed in RCX (D2472).
+A Windows image holds the processor to its level before `main`, sharing
+x86-64's reading with Linux in the new `platform/x86_64`, Windows arm64
+by `IsProcessorFeaturePresent`, which reports no RDM (D2475-D2477). A
+stack switch carries the TEB's bounds, a fixture traps in kernel32 on a
+prepared stack, and the switch and start routines carry unwind tables and
+PDB procedures, so `switch_frames.py`'s session runs in both Windows
+debugger jobs at four profiles (D2479-D2481). The `measure-size` job
+measures both Windows targets, `size-only` in the runner table, through a
+PE reader. An image named without `.exe` keeps its name and a failed link
+leaves no private directory (D2485); two links of one program, with or
+without `--debug=full`, are the same bytes (D2486), which the gate showed
+held only inside the flake's `SOURCE_DATE_EPOCH` until the MinGW link took
+`/Brepro` (D2487). The lane keeps Windows Error Reporting away with a job
+object (D2474): with WER on, the whole x86-64 corpus passed 3,706 of 3,706
+on a Windows 11 host, where the error mode alone had left 14 traps past
+their limit. The usability findings met building the project's Windows
+hosts are closed by the Windows lane's README, which now names the route
+a Windows arm64 guest gives and the checkout; the rows the item filed are
+`SR-1851`, `SR-1852` and `SR-1859`.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
@@ -3244,7 +3277,7 @@ pinned and published as R22.21's are; 10,000 digits timed.
 
 ### R22.24 — Tools that say what they need
 
-Status: planned
+Status: complete
 Depends on: none
 
 The process and measurement tools' refusals and defaults that sent their
@@ -3266,9 +3299,32 @@ Placed here so that no phase gate waits for it; it depends on no other item.
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
 
+Done: `item.py push` refuses a tree the register's age check refuses, or
+the whole `check.py` when the push changes the roadmap, before anything
+is pushed, and `merge-main` exits 1 naming a row its merge aged;
+`merge-main --branch` merges a named branch, a window a continuous item
+also lands on, under the same declaration rules and without the token
+(`SR-1756`). `item.py gate` names each run's branch and event and says
+when main's own gate has not started (`SR-1798`). `check.py` refuses a
+decision a compiler comment or reference cites and `spec.md` lacks, and
+a local run only notes a citations file whose source line alone is
+stale, which the gate and `push` still refuse (`SR-1653`, D2511).
+`measure.py count` and the Cortex-M and Xtensa corpora take `--library`
+and name a missing library as one; `measure.py time` takes
+`--base-checkout` (`SR-1660`). `timing.py run` and `remote` take the
+gate's three runs from the constant the gate reads, and refuse to time
+the Pico 2's Arm port before its boot check (`SR-1827`, `SR-1828`; the
+switch itself is SR-1871). `add_fixture.py` names `refine fmt` of a
+changed library module and the library's formatting case, as core's
+"Adding a module" does (`SR-1829`). The library page's reader names
+every declaration it refuses at once (`SR-1738`), and `item.py queue`
+puts work that is no item in line (`SR-1849`). Met on the way and fixed:
+`register_next.py --delete` quoted a citation twice after a code span
+that wraps a line.
+
 ### R22.26 — What refine-build wanted from the library
 
-Status: planned
+Status: complete
 Depends on: none
 
 The hosted and allocator calls that writing refine-build, the contributed
@@ -3284,6 +3340,34 @@ nothing back and says nothing, and `core/README.md` naming `core/zone`
 Exit evidence: each call with a runtime fixture on every hosted target and
 its fake where the concept has one, `docs/library.md` saying where a
 reader looks, and refine-build's workaround for each removed or named.
+
+Done: a child's working directory is the spawn's (D2534): `io.spawn_in`
+names one, and `programs`' `spawn` entry, `posix.spawn_in` and
+`system.start` take it, a relative program found from the child's
+directory on every system, `chdir` in Linux's cloned child,
+`posix_spawn_file_actions_addchdir_np` on Darwin and FreeBSD, and on
+Windows `CreateProcessW`'s directory with a relative program joined to
+it. `io.status` says `executable` and `io.find_program` finds a name on a
+`PATH` value as a shell does, passing empty entries over (D2535);
+`io.program_name` lends `argv[0]` on every hosted system, Windows' parsed
+command line among them, and `io.memory_named` names the memory world
+(D2536). `mem.allocate_copy` keeps lent bytes as a `[]mut u8` (D2532).
+`heap.in_use`, `heap.peak_in_use` and `heap.peak_resident`, the last
+`getrusage` or `K32GetProcessMemoryInfo` (D2533). The region's type,
+`vec.release`, `core/README.md` and `docs/library.md` say that a free
+into a region gives nothing back and that a nested lifetime takes a zone
+(D2531). Pinned by `runtime/run-itself-in-directory` and
+`runtime/heap-in-use` and `runtime/find-program-volume` on every hosted
+target and `runtime/programs-by-name-memory` and
+`runtime/mem-allocate-copy` on every target, the scripted programs, the
+volume and the memory world their fakes. refine-build's workarounds, each named here and left to its
+own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
+`files/files.ldn` is `io.find_program`; the name written into its
+`--describe` is `io.program_name`; `strings.keep` is
+`mem.allocate_copy`; the heap handed beside a region is a zone over the
+region's parent; and `time -f %M` is `heap.in_use` and
+`heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
+SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 
@@ -3938,7 +4022,7 @@ and are cited by those numbers here and in `spec.md`.
 | --- | --- |
 | RP1 | Integer indexing of UTF-8 text by codepoint ordinal, linear, for ergonomics [0610]; reopen only with program or measurement evidence. |
 | RP2 | No weak conformances and no orphan rule: a collision is an error, answered with `distinct` or an explicit function [1280], because a weak conformance lets an application silently change a generic library's behaviour; reopen on ecosystem-scale evidence. |
-| RP3 | No compile-time execution and no macros; generated source comes from programs the build runs [1540]. Reviewed when the third kind of generated source appeared, and held for now: SVD modules, C bindings and `platform/linux/numbers` are each generated by a program run outside compilation, `refine svd`, `refine bindings` and `scripts/linux_syscalls.py`; none needed compile-time execution or a macro, and each generated file is checked in and held current by a check. The build-tool suggestion in [the roadmap discussion](https://github.com/JanHaan/Landin/discussions/2#discussioncomment-19264955) may bring a generalized source-generator stage, which would be reviewed against this position. |
+| RP3 | No compile-time execution and no macros; generated source comes from programs the build runs [1540]. Reviewed when the third kind of generated source appeared, and held for now: SVD modules, C bindings and `platform/linux/numbers` are each generated by a program run outside compilation, `refine svd`, `refine bindings` and `scripts/linux_syscalls.py`; none needed compile-time execution or a macro, and each generated file is checked in and held current by a check. The build-tool suggestion in [the roadmap discussion](https://github.com/701-dev/Landin/discussions/2#discussioncomment-19264955) may bring a generalized source-generator stage, which would be reviewed against this position. |
 | RP4 | `escaping` and `from` are written, not inferred, to keep checking local and because an allocator is a counterexample to inferred `from` [0790] [0900]. |
 | RP5 | Landin's own backends emitting assembly; not LLVM, a dependency larger than the language, and not C, which loses the calling convention, the traps and the debug information [1550]. |
 | RP6 | One version of a package name per program: 32 KB of flash, nominal types and one conformance register [1470]. |

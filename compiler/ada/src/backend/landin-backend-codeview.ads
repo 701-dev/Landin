@@ -97,6 +97,13 @@ package Landin.Backend.Codeview is
         (Item : Landin.IR.Item_Id) return Frame_Access := null;
       Trapped : access function
         (Item : Landin.IR.Item_Id; Value : Landin.IR.Value_Id)
-         return Boolean := null) return String;
+         return Boolean := null;
+      Stack_Switch, Stack_Start : String := "") return String;
+
+   --  D2481: the label that ends Symbol, a routine of the backend's own
+   --  that no item declares, which Sections describes as a procedure of
+   --  that name when it is the program's stack switch or start routine.
+   --  The backend places it after the routine's last instruction.
+   function Routine_End (Prefix, Symbol : String) return String;
 
 end Landin.Backend.Codeview;

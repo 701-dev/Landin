@@ -122,6 +122,9 @@ WINDOW = re.compile(r"^Window: (\S+)$")
 #  GitHub whether the holder's main gate has ended.
 QUEUE_POLL = 15
 QUEUE_ASK = 60
+#  Work that is no item waits in line only while it keeps asking: one whose
+#  `queue --wait` has not asked for this long has left the line.
+SESSION_LINE = 900
 #  An item nothing has moved for this long is reported as stalled.
 STALL_MINUTES = 60
 PHASES = ("started", "pushed", "gate-passed", "boards-passed", "promoted",
@@ -642,6 +645,8 @@ def record_gates(state, commit):
                 attempt, found.get("conclusion") or ""):
             entry.pop("failed", None)
         entry["status"] = found["status"]
+        entry["branch"] = found.get("headBranch") or ""
+        entry["event"] = found.get("event") or ""
         entry["conclusion"] = found.get("conclusion") or ""
         entry["attempt"] = attempt
         if entry["kind"] == "boards" and entry["conclusion"] == "failure" \
@@ -726,10 +731,17 @@ def gate(arguments):
             print("%s's gate has ended: the promotion token is released"
                   % target)
     for entry in shown:
-        print("run %s  %-8s %s" % (entry["run"], entry["kind"],
-                                   gate_text(entry, item)))
+        print("run %s  %-8s %-24s %s" % (
+            entry["run"], entry["kind"], "%s (%s)" % (
+                entry.get("branch") or "?", entry.get("event") or "?"),
+            gate_text(entry, item)))
     if not shown:
         print("no gate run for %s yet" % commit[:12])
+    elif arguments.main and not any(entry["kind"] == "main"
+                                    for entry in shown):
+        print("%s's own push gate on %s has not started yet: the runs above"
+              " are the candidate branch's, not %s's" % (
+                  target, commit[:12], target))
     if arguments.watch:
         return watch_gate(arguments, state, commit, shown)
     return 0
@@ -913,8 +925,9 @@ def queue_file(target=MAIN):
 @contextlib.contextmanager
 def queue_locked(cwd=None, target=MAIN):
     """The promotion queue of TARGET, read and written under one lock:
-    {"holder": {"item", "why", "taken"} or None, "waiting": [ITEM, ...]}.
-    A holder that is no item says `"session": true`."""
+    {"holder": {"item", "why", "taken"} or None, "waiting": [ITEM, ...],
+    "sessions": {NAME: when it last asked}}.  A holder that is no item says
+    `"session": true`; a waiter that is no item is in "sessions" too."""
     root = state_root(cwd)
     root.mkdir(parents=True, exist_ok=True)
     name = queue_file(target)
@@ -925,6 +938,7 @@ def queue_locked(cwd=None, target=MAIN):
                 if path.exists() else {})
         data.setdefault("holder", None)
         data.setdefault("waiting", [])
+        data.setdefault("sessions", {})
         before = json.dumps(data, sort_keys=True)
         yield data
         if json.dumps(data, sort_keys=True) != before:
@@ -970,7 +984,8 @@ def main_gate_ended(item, commit):
 def settle(data, ask):
     """Drop a holder or waiter this clone no longer runs, and, when ASK,
     a holder whose main gate has ended.  A session that is no item holds
-    the token until it releases it."""
+    the token until it releases it, and waits in line while it keeps
+    asking, at most SESSION_LINE seconds apart."""
     holder = data["holder"]
     if holder and holder.get("session"):
         pass
@@ -981,11 +996,18 @@ def settle(data, ask):
         journal(holder["item"], "promotion token released: main's gate on"
                 " the promoted commit has ended")
         data["holder"] = None
+    fresh = time.time() - SESSION_LINE
+    data["sessions"] = {name: asked for name, asked
+                        in data["sessions"].items() if asked >= fresh}
     data["waiting"] = [waiting for waiting in data["waiting"]
-                       if alive(waiting)]
+                       if waiting in data["sessions"] or alive(waiting)]
 
 
-def wait_command(item):
+def wait_command(item, session=False):
+    if session:
+        return ("python3 scripts/item.py queue --wait %s --why TEXT, again"
+                " on exit 124 (the line keeps %s while it asks at least every"
+                " %d seconds)" % (item, item, SESSION_LINE))
     return ("python3 scripts/item.py run %s queue-wait --limit 7200 --"
             " python3 scripts/item.py queue --wait %s --timeout 7000, then"
             " wait on the run it names; or python3 scripts/item.py queue"
@@ -996,14 +1018,17 @@ def take(item, why, ask=True, target=MAIN, session=False):
     """(True, None) when ITEM holds TARGET's promotion token, taking it if
     it is free and nobody waits before ITEM; else (False, why not), with
     ITEM put in line.  SESSION takes it for work that is no item, which
-    waits in no line."""
+    keeps its place in line while it keeps asking."""
     with queue_locked(target=target) as data:
+        if session:
+            data["sessions"][item] = time.time()
         settle(data, ask)
         holder = data["holder"]
         if holder and holder["item"] == item:
+            data["sessions"].pop(item, None)
             return True, None
         if holder:
-            if not session and item not in data["waiting"]:
+            if item not in data["waiting"]:
                 data["waiting"].append(item)
             return False, (
                 "%s holds the promotion token of %s since %s (%s), until %s;"
@@ -1013,20 +1038,19 @@ def take(item, why, ask=True, target=MAIN, session=False):
                     "it releases it" if holder.get("session") else
                     "main's gate on its promotion ends" if target == MAIN
                     else "it lands", "%s is number %d in line" % (
-                        item, data["waiting"].index(item) + 1)
-                    if item in data["waiting"] else "%s waits in no line"
-                    % item, wait_command(item) if not session else
-                    "`item.py queue` again"))
+                        item, data["waiting"].index(item) + 1),
+                    wait_command(item, session)))
         ahead = (data["waiting"][:data["waiting"].index(item)]
                  if item in data["waiting"] else list(data["waiting"]))
-        if ahead and not session:
+        if ahead:
             if item not in data["waiting"]:
                 data["waiting"].append(item)
             return False, ("%s waits for the promotion token before %s."
                            " Wait: %s" % (", ".join(ahead), item,
-                                          wait_command(item)))
+                                          wait_command(item, session)))
         data["waiting"] = [other for other in data["waiting"]
                            if other != item]
+        data["sessions"].pop(item, None)
         data["holder"] = {"item": item, "why": why, "taken": stamp()}
         if session:
             data["holder"]["session"] = True
@@ -1054,6 +1078,7 @@ def release(item, why, target=None):
                 held = True
             data["waiting"] = [other for other in data["waiting"]
                                if other != item]
+            data["sessions"].pop(item, None)
     if held and alive(item):
         journal(item, "promotion token released: %s" % why)
     return held
@@ -1091,7 +1116,12 @@ def queue(arguments):
               " --release %s`" % (arguments.take, target, arguments.take))
         return 0
     if arguments.wait:
-        load(arguments.wait)
+        session = not alive(arguments.wait)
+        if session and not arguments.why:
+            raise Refused("this clone runs no item %s: work that is no item"
+                          " waits for the token with `queue --wait %s --why"
+                          " TEXT`, saying what it is for" % (
+                              arguments.wait, arguments.wait))
         target = queue_target(arguments, arguments.wait)
         deadline = time.monotonic() + arguments.timeout
         asked = 0.0
@@ -1099,11 +1129,14 @@ def queue(arguments):
             ask = time.monotonic() - asked >= QUEUE_ASK
             if ask:
                 asked = time.monotonic()
-            taken, why = take(arguments.wait, "waited in line", ask=ask,
-                              target=target)
+            taken, why = take(arguments.wait, arguments.why if session
+                              else "waited in line", ask=ask, target=target,
+                              session=session)
             if taken:
-                print("%s holds the promotion token of %s: merge it"
-                      " (`item.py merge-main %s`) or promote"
+                print(("%s holds the promotion token of %s until `item.py"
+                       " queue --release %s`" if session else
+                       "%s holds the promotion token of %s: merge it"
+                       " (`item.py merge-main %s`) or promote")
                       % (arguments.wait, target, arguments.wait))
                 return 0
             if time.monotonic() >= deadline:
@@ -1171,6 +1204,52 @@ def citations_problem(worktree):
         result.stderr.strip().splitlines() or ["no output"])[-1]
 
 
+REGISTER_PATHS = ("ROADMAP.md", "roadmap/")
+
+
+def register_problem(worktree, since=None):
+    """What `check.py` refuses in the worktree's register, or None.
+
+    A merge can bring completed items that age an open row past its limit,
+    and a push that changes the roadmap or the register can break its other
+    rules; the documents job refused either only after the heavy jobs had
+    run.  When the commits since SINCE change ROADMAP.md or roadmap/, the
+    whole `check.py` runs; otherwise its register-age check alone.
+    """
+    worktree = Path(worktree)
+    if not (worktree / "check.py").exists():
+        return None
+    changed = since and git("diff", "--name-only", since, "HEAD", "--",
+                            *REGISTER_PATHS, cwd=worktree, check=False)
+    if changed:
+        result = subprocess.run([sys.executable, "check.py"], cwd=worktree,
+                                text=True, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        if result.returncode == 0:
+            return None
+        lines = result.stdout.strip().splitlines() or ["no output"]
+        return ("`python3 check.py` refuses this tree, which changes the"
+                " roadmap or the register:\n%s" % "\n".join(lines[-20:]))
+    probe = ("import sys\nsys.path.insert(0, '.')\nimport check\n"
+             "if not hasattr(check, 'register_age_problems'):\n"
+             "    sys.exit(0)\n"
+             "found = check.register_age_problems(check.ROOT,"
+             " check.register_ages(check.ROOT))\n"
+             "for where, line, text in found:\n"
+             "    print('%s:%s: %s' % (where, line, text))\n"
+             "sys.exit(1 if found else 0)\n")
+    result = subprocess.run([sys.executable, "-B", "-c", probe],
+                            cwd=worktree, text=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    if result.returncode == 0:
+        return None
+    if result.returncode == 1 and result.stdout.strip():
+        return ("the register's age check refuses this tree, as the gate's"
+                " documents job would:\n%s" % result.stdout.strip())
+    return "the register's age check could not run: %s" % (
+        result.stderr.strip().splitlines() or ["no output"])[-1]
+
+
 def merge_main(arguments):
     item = arguments.item
     state = load(item)
@@ -1182,11 +1261,23 @@ def merge_main(arguments):
     head = git("rev-parse", "HEAD", cwd=worktree)
     target = target_of(state)
     landing = landing_base(target, worktree)
+    other = arguments.branch and arguments.branch not in (
+        target, "origin/" + target)
+    if other:
+        #  A continuous item lands on main, and a breaking window's branch
+        #  takes it; one that must also land on the window's branch merges
+        #  that branch here, under the same rules, without main's token.
+        landing = arguments.branch if arguments.branch.startswith(
+            "origin/") else "origin/" + arguments.branch
+        if git("rev-parse", "-q", "--verify", landing, cwd=worktree,
+               check=False) is None:
+            raise Refused("there is no branch %s on GitHub to merge"
+                          % landing)
     if git("merge-base", "--is-ancestor", landing, head, cwd=worktree,
            check=False) is not None:
         print("%s is already in %s: nothing to merge" % (landing, head[:12]))
         return 0
-    if not arguments.no_queue:
+    if not arguments.no_queue and not other:
         taken, why = take(item, "final merge of %s" % target, target=target)
         if not taken:
             raise Refused(why)
@@ -1238,7 +1329,7 @@ def merge_main(arguments):
         reasons = []
         if undeclared:
             reasons.append("commits from %s without `%s`: %s" % (
-                target, EXPLANATORY, ", ".join(undeclared[:8])
+                landing[len("origin/"):], EXPLANATORY, ", ".join(undeclared[:8])
                 + (" and %d more" % (len(undeclared) - 8)
                    if len(undeclared) > 8 else "")))
         if not same:
@@ -1256,6 +1347,12 @@ def merge_main(arguments):
     stale = citations_problem(worktree)
     if stale:
         print(stale)
+    refused = register_problem(worktree)
+    if refused:
+        print(refused)
+        print("`item.py push %s` refuses the merge until this is fixed and"
+              " committed" % item)
+        return 1
     return 0
 
 
@@ -1351,6 +1448,13 @@ def push(arguments):
     stale = citations_problem(worktree)
     if stale:
         raise Refused(stale)
+    pushed = git("rev-parse", "-q", "--verify", "origin/" + state["branch"],
+                 cwd=worktree, check=False)
+    since = pushed or git("merge-base", "HEAD", landing_base(
+        target_of(state), worktree), cwd=worktree, check=False)
+    refused = register_problem(worktree, since)
+    if refused:
+        raise Refused(refused + "\nnothing was pushed")
     push_origin(item, worktree, "HEAD:refs/heads/%s" % state["branch"])
     git("branch", "-q", "--set-upstream-to=origin/%s" % state["branch"],
         cwd=worktree, check=False)
@@ -1914,6 +2018,10 @@ def main(argv=None):
                               " declare the merge explanatory when the reuse"
                               " rule allows it")
     sub.add_argument("item")
+    sub.add_argument("--branch", metavar="BRANCH", help="merge this branch"
+                     " instead of the one the item lands on, such as a"
+                     " breaking window's integration branch a continuous"
+                     " item also lands on; takes no promotion token")
     sub.add_argument("--no-queue", action="store_true", help="a merge to"
                      " pick up main while work goes on, without the token;"
                      " the final merge still takes it")
@@ -1922,14 +2030,18 @@ def main(argv=None):
     sub = commands.add_parser("queue", help="the promotion token's holder"
                               " and line")
     which = sub.add_mutually_exclusive_group()
-    which.add_argument("--wait", metavar="ITEM", help="return 0 once ITEM"
-                       " holds the token, taking it; 124 at the timeout")
+    which.add_argument("--wait", metavar="NAME", help="return 0 once the"
+                       " item, or with --why the work that is no item, NAME"
+                       " holds the token, taking it in its turn; 124 at the"
+                       " timeout")
     which.add_argument("--release", metavar="ITEM", help="give up ITEM's"
                        " token or place in line")
     which.add_argument("--take", metavar="NAME", help="take the token for"
                        " work that is no item, such as a register sweep,"
-                       " until `--release NAME`; exit 1 when it is held")
-    sub.add_argument("--why", help="with --take, what the token is for")
+                       " until `--release NAME`; exit 1 when it is held,"
+                       " with NAME put in line: `--wait NAME --why TEXT`")
+    sub.add_argument("--why", help="with --take or a --wait that is no item,"
+                     " what the token is for")
     sub.add_argument("--target", metavar="BRANCH", help="the queue of this"
                      " branch: main, or a window's integration branch"
                      " (the item's own, else main)")

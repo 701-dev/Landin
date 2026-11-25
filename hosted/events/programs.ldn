@@ -16,12 +16,13 @@ import platform/linux/numbers
 import platform/posix
 
 fixed if compiler.os <> windows then
-    events_spawn: (self: host, path: text.os_string,
+    events_spawn: (self: host, directory: text.os_string,
+                   path: text.os_string,
                    arguments: []text.os_string, environment: []text.os_variable,
                    streams: io.child_streams)
                   -> (started: io.child)
                   ! mem.not_found | io.no_access | io.io_failed =
-        started = try system.start(self.services, path, arguments, environment,
+        started = try system.start(self.services, directory, path, arguments, environment,
                                    streams)
         --  A pipe the system leaves blocking stays as it is rather than fail
         --  the spawn, which would leave a started child to end and reap: a

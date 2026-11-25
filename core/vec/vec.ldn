@@ -105,7 +105,10 @@ end clear
 
 --- Discard items, free backing through the original provider and reset the
 --- list. End all views first; nested resources remain the caller's
---- responsibility.
+--- responsibility. A provider that frees nothing one block at a time, a
+--- region or a zone, keeps the backing until it is itself released or
+--- reset: a list made afresh each round of a loop over a region keeps every
+--- round's backing until the region ends.
 public release: (item: type, provider: type is mem.allocator,
                  inout value: list(item), memory: provider) -> none =
     mem.release_storage(value.values, memory)

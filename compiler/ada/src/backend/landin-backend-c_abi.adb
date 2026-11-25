@@ -140,6 +140,43 @@ package body Landin.Backend.C_ABI is
          raise Compiler_Defect with "unsupported native C carrier";
       end if;
 
+      --  A distinct type crosses as its base.  SysV classifies the one
+      --  field the same either way, but Win64 passes a record of 1, 2, 4
+      --  or 8 bytes as one integer, so a distinct f32 went in RCX where C
+      --  takes the float in XMM0 (D2472).
+      if Win64 and then Part.Kind = Landin.Types.Aggregate
+        and then Landin.IR.Is_Distinct (Of_Unit, Part.Nominal)
+        and then Landin.IR.Nominal_Field_Count (Of_Unit, Part.Nominal) = 1
+      then
+         declare
+            Base : constant Landin.IR.Field_Shape :=
+              Landin.IR.Nth_Aggregate_Field
+                (Of_Unit,
+                 (Kind => Landin.IR.Aggregate_Field_Shape,
+                  Nominal => Part.Nominal, others => <>), 1);
+            Inner : Landin.IR.Signature_Part := Part;
+         begin
+            case Base.Kind is
+               when Landin.IR.Scalar_Field_Shape =>
+                  --  Still the aggregate the value is held as, in the
+                  --  register its base's class takes.
+                  Answer.Aggregate := True;
+                  Field_Extent
+                    (Of_Unit, Base, Facts, Answer.Size, Answer.Alignment);
+                  Answer.Count := 1;
+                  Answer.Classes (1) :=
+                    (if Base.Element in Landin.Types.Float_Name
+                     then SSE_Class else Integer_Class);
+                  return Answer;
+               when Landin.IR.Aggregate_Field_Shape =>
+                  Inner.Nominal := Base.Nominal;
+                  return Classify (Of_Unit, Inner, Facts);
+               when others =>
+                  null;
+            end case;
+         end;
+      end if;
+
       declare
          Shape : constant Landin.IR.Field_Shape :=
            (if Part.Kind = Landin.Types.Aggregate

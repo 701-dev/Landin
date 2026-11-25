@@ -171,7 +171,8 @@ package body Landin.Backend.Codeview is
       Cached_Frame : access function
         (Item : Item_Id) return Frame_Access := null;
       Trapped : access function
-        (Item : Item_Id; Value : Value_Id) return Boolean := null)
+        (Item : Item_Id; Value : Value_Id) return Boolean := null;
+      Stack_Switch, Stack_Start : String := "")
       return String
    is
       Result, Symbols, Definitions : US.Unbounded_String;
@@ -1461,6 +1462,39 @@ package body Landin.Backend.Codeview is
          end;
       end Module_Datum;
 
+      --  D2481: a routine of the backend's own, the stack switch or
+      --  start routine, is a procedure of its symbol's name with no
+      --  parameters, lines or variables, so that a debugger names the
+      --  frames it holds.
+      procedure Own_Routine (Routine_Symbol : String);
+      procedure Own_Routine (Routine_Symbol : String) is
+         Argument_List : constant Natural := Add (LF_ARGLIST, U32 (0));
+         Procedure_Type : constant Natural := Add
+           (LF_PROCEDURE, Index_Of (T_VOID) & Byte (0) & Byte (0)
+            & U16 (0) & Index_Of (Argument_List));
+         Function_Type : constant Natural := Add
+           (LF_FUNC_ID, Index_Of (0) & Index_Of (Procedure_Type)
+            & Z (Routine_Symbol));
+         Section : constant String := Open_Subsection;
+         Finish : constant String := Open (S_LPROC32_ID);
+      begin
+         Put (HT & ".long 0");
+         Put (HT & ".long 0");
+         Put (HT & ".long 0");
+         Put (HT & ".long " & Routine_End (Prefix, Routine_Symbol) & "-"
+              & Routine_Symbol);
+         Put (HT & ".long 0");
+         Put (HT & ".long 0");
+         Put (HT & ".long " & N (Function_Type));
+         Put (HT & ".secrel32 " & Routine_Symbol);
+         Put (HT & ".secidx " & Routine_Symbol);
+         Put (HT & ".byte 0");
+         Name (Routine_Symbol);
+         Close (Finish);
+         Short_Record (S_PROC_ID_END);
+         Close_Subsection (Section);
+      end Own_Routine;
+
       procedure Bytes (Text : String);
       procedure Bytes (Text : String) is
          Line : US.Unbounded_String;
@@ -1529,6 +1563,12 @@ package body Landin.Backend.Codeview is
             end if;
          end;
       end loop;
+      if Stack_Switch /= "" then
+         Own_Routine (Stack_Switch);
+      end if;
+      if Stack_Start /= "" then
+         Own_Routine (Stack_Start);
+      end if;
       declare
          Section : constant String := Open_Subsection;
       begin
@@ -1582,5 +1622,16 @@ package body Landin.Backend.Codeview is
       end loop;
       return US.To_String (Result);
    end Sections;
+
+   function Routine_End (Prefix, Symbol : String) return String is
+      Spelled : String := Symbol;
+   begin
+      for Each of Spelled loop
+         if Each = '.' then
+            Each := '_';
+         end if;
+      end loop;
+      return Prefix & "cv_end_" & Spelled;
+   end Routine_End;
 
 end Landin.Backend.Codeview;
