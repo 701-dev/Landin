@@ -4217,6 +4217,7 @@ The standard library's providers and containers:
 | module | what it gives |
 |---|---|
 | `core/arena` | a bump allocator over storage you supply |
+| `core/zone` | a bump allocator that grows by taking blocks from another allocator |
 | `core/pool` | uniform slots over storage you supply, freed slots reused |
 | `core/fault` | wraps any allocator and fails once a budget of attempts is spent |
 | `hosted/heap` | the operating system's memory, really freed, on every hosted system |

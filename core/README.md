@@ -27,8 +27,8 @@ The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
 `core/io/signal`, `core/iter`, `core/line`,
 `core/map`, `core/mem`,
 `core/net`, `core/panic`, `core/pool`, `core/random`, `core/region`,
-`core/sort`, `core/spill`, `core/text`, `core/time`, `core/tree` and
-`core/vec`. Every public interface is available on every target, with
+`core/sort`, `core/spill`, `core/text`, `core/time`, `core/tree`,
+`core/vec` and `core/zone`. Every public interface is available on every target, with
 these exceptions. `core/fibre/stacks` switches stacks through the
 compiler's stack builtins, so a target whose backend does not emit them
 refuses a program where it reaches one (D453, D564); `core/fibre` itself,
@@ -459,6 +459,22 @@ parent)` takes the ledger `inout` and the same parent, frees payloads in
 reverse order, gives a growing ledger's block back, and leaves the ledger
 available to `over` again. It is refused while the region's handle is still
 used. The caller keeps the ledger alive through the region's last use.
+
+`core/zone.over(space, parent)` makes a zone's handle over the caller's
+`zone.space` and a copy of the parent's handle. It allocates nothing. The
+zone hands out the newest block's bytes in address order. When they run
+out, it takes a new block from the parent, twice as large as the one
+before; the first block is 1024 bytes less the parent's two-word header.
+A request too large for that block, or a parent that refuses it, gets a
+block just large enough. If the parent refuses that too, the allocation
+reports `out_of_memory` and the zone is unchanged. Each block starts with
+the address and extent of the block before it. An individual free returns
+nothing. Only the newest allocation grows in place or gives back its
+tail; growing any other moves it. `zone.reset(handle)` gives every allocation back
+at once and returns every block except the newest, which is the largest,
+to the parent. `zone.release(space, parent)` takes the space `inout` and
+the same parent and returns every block. It is refused while the zone's
+handle is still used (D2449).
 
 The [probe runner](../environments/cortex-m/freestanding.py) copies only its
 declared import closure and records every source hash. Each link accepts the

@@ -1,0 +1,28 @@
+import core/arena
+import core/mem
+import core/zone
+
+exercise: () -> (ok: bool) ! mem.out_of_memory =
+    ok = false
+    mut backing: [64]u8 = zeroed
+    mut arena_space: arena.space = zeroed
+    memory := arena.over_unchecked(arena_space, addr backing[0], 64)
+    mut state: zone.space = zeroed
+    scratch := zone.over(state, memory)
+    address := try mem.allocate(scratch, usize(4), usize(1))
+    address.val = 42
+    return when address.val <> 42
+    zone.reset(scratch)
+    again := try mem.allocate(scratch, usize(4), usize(1))
+    return when usize(again) <> usize(address)
+    zone.release(state, memory)
+    ok = true
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise() else false
+    if ok then
+        code = 42
+    end if
+end main
