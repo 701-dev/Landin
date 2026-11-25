@@ -4,5 +4,5 @@ summary: core/math's log10 is within one float of MPFR's correctly rounded resul
 program: main.ldn
 root: ../../../../..
 status: 42
-targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 constructs: 0170, 0290

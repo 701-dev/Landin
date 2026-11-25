@@ -122,18 +122,9 @@ cases_1: [124]u64 = [
     0x401846926c2b6c98, 0x407af36767760f4c, 0x3e6769868156bdcc,
     0x3e67698689e7447a]
 
-run_1: () -> (failures: u32) =
-    --  expm1 at f64, within 1 of the correctly rounded result
-    failures = 0
-    mut at: usize = 0
-    while at < lenof cases_1 do
-        x := from_64(cases_1[at + 0])
-        if not within_64(math.expm1(x), cases_1[at + 1], 1) then
-            failures = failures + 1
-        end if
-        at = at + 2
-    end while
-end run_1
+call_1: (x: f64) -> (result: f64) =
+    result = math.expm1(x)
+end call_1
 
 --  expm1 at f32: the specials, 24 random inputs and the 12 hardest to round of 20000
 
@@ -160,25 +151,42 @@ cases_2: [124]u32 = [
     0x39754c65, 0x397553be, 0xbbaa5f53, 0xbba9ee23, 0xbf124ac5, 0xbededf1a,
     0x34000de4, 0x34000de5, 0x3f3c91b2, 0x3f8b5e60]
 
-run_2: () -> (failures: u32) =
-    --  expm1 at f32, within 1 of the correctly rounded result
+call_2: (x: f32) -> (result: f32) =
+    result = math.expm1(x)
+end call_2
+
+run_32_1: (cases: []u32, routine: (x: f32) -> (result: f32),
+           bound: u32) -> (failures: u32) =
     failures = 0
     mut at: usize = 0
-    while at < lenof cases_2 do
-        x := from_32(cases_2[at + 0])
-        if not within_32(math.expm1(x), cases_2[at + 1], 1) then
+    while at < lenof cases do
+        x := from_32(cases[at + 0])
+        if not within_32(routine(x), cases[at + 1], bound) then
             failures = failures + 1
         end if
         at = at + 2
     end while
-end run_2
+end run_32_1
+
+run_64_1: (cases: []u64, routine: (x: f64) -> (result: f64),
+           bound: u64) -> (failures: u32) =
+    failures = 0
+    mut at: usize = 0
+    while at < lenof cases do
+        x := from_64(cases[at + 0])
+        if not within_64(routine(x), cases[at + 1], bound) then
+            failures = failures + 1
+        end if
+        at = at + 2
+    end while
+end run_64_1
 
 public main: () -> (code: i32) =
     code = 42
-    if run_1() <> 0 and code == 42 then
+    if run_64_1(cases_1, call_1, 1) <> 0 and code == 42 then
         code = 1
     end if
-    if run_2() <> 0 and code == 42 then
+    if run_32_1(cases_2, call_2, 1) <> 0 and code == 42 then
         code = 2
     end if
 end main

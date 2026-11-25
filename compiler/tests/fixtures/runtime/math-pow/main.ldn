@@ -165,19 +165,9 @@ cases_1: [255]u64 = [
     0x400336fc3c201597, 0x403f6ad2fc49a758, 0x426a482e20a93480,
     0x3ffeb887569d10d8, 0x403422699d0d156e, 0x411ee5aef7d1a8ec]
 
-run_1: () -> (failures: u32) =
-    --  pow at f64, within 1 of the correctly rounded result
-    failures = 0
-    mut at: usize = 0
-    while at < lenof cases_1 do
-        x := from_64(cases_1[at + 0])
-        y := from_64(cases_1[at + 1])
-        if not within_64(math.pow(x, y), cases_1[at + 2], 1) then
-            failures = failures + 1
-        end if
-        at = at + 3
-    end while
-end run_1
+call_1: (x: f64, y: f64) -> (result: f64) =
+    result = math.pow(x, y)
+end call_1
 
 --  pow at f32: the specials, 24 random inputs and the 12 hardest to round of 20000
 
@@ -226,26 +216,44 @@ cases_2: [255]u32 = [
     0x400c0013, 0xc1c1a6a7, 0x31cad2d5, 0x3f55769f, 0x416d1b2a, 0x3d8aa108,
     0x1ce914b1, 0xbc8f0f3d, 0x4013c855]
 
-run_2: () -> (failures: u32) =
-    --  pow at f32, within 1 of the correctly rounded result
+call_2: (x: f32, y: f32) -> (result: f32) =
+    result = math.pow(x, y)
+end call_2
+
+run_32_2: (cases: []u32, routine: (x: f32, y: f32) -> (result: f32),
+           bound: u32) -> (failures: u32) =
     failures = 0
     mut at: usize = 0
-    while at < lenof cases_2 do
-        x := from_32(cases_2[at + 0])
-        y := from_32(cases_2[at + 1])
-        if not within_32(math.pow(x, y), cases_2[at + 2], 1) then
+    while at < lenof cases do
+        x := from_32(cases[at + 0])
+        y := from_32(cases[at + 1])
+        if not within_32(routine(x, y), cases[at + 2], bound) then
             failures = failures + 1
         end if
         at = at + 3
     end while
-end run_2
+end run_32_2
+
+run_64_2: (cases: []u64, routine: (x: f64, y: f64) -> (result: f64),
+           bound: u64) -> (failures: u32) =
+    failures = 0
+    mut at: usize = 0
+    while at < lenof cases do
+        x := from_64(cases[at + 0])
+        y := from_64(cases[at + 1])
+        if not within_64(routine(x, y), cases[at + 2], bound) then
+            failures = failures + 1
+        end if
+        at = at + 3
+    end while
+end run_64_2
 
 public main: () -> (code: i32) =
     code = 42
-    if run_1() <> 0 and code == 42 then
+    if run_64_2(cases_1, call_1, 1) <> 0 and code == 42 then
         code = 1
     end if
-    if run_2() <> 0 and code == 42 then
+    if run_32_2(cases_2, call_2, 1) <> 0 and code == 42 then
         code = 2
     end if
 end main
