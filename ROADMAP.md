@@ -2817,7 +2817,7 @@ host's KVM; `SR-1818`, the release build's memory at default parallelism;
 
 ### R21.61 — refine on FreeBSD arm64
 
-Status: planned
+Status: active
 Depends on: R21.60
 
 R21.60 on FreeBSD arm64. The gate's arm64 guest is emulated, where
