@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Next roadmap item: R22.10 — Elementary functions (planned).**
+**Next roadmap item: R21.70 — What Windows still lacks (planned).**
 
 ## Versions
 
