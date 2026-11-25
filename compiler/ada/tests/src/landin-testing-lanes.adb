@@ -1,6 +1,8 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Landin.Backend.Toolchain;
+with Landin.Platform.Native.Tools;
 with Landin.Targets.Selection;
 
 package body Landin.Testing.Lanes is
@@ -94,7 +96,37 @@ package body Landin.Testing.Lanes is
 
    function Runner return String is (Unbounded.To_String (Runner_Name));
 
-   function Toolchain return String is (Unbounded.To_String (Driver_Name));
+   --  Asked once: whether the native lane's own driver is installed, and
+   --  if it is not, the first of refine's other candidates that is.
+   Native_Driver_Asked : Boolean := False;
+   Native_Driver       : Unbounded.Unbounded_String;
+
+   function Toolchain return String is
+   begin
+      if Unbounded.Length (Driver_Name) > 0 or else not Is_Native then
+         return Unbounded.To_String (Driver_Name);
+      end if;
+      if not Native_Driver_Asked then
+         Native_Driver_Asked := True;
+         declare
+            Host : Landin.Platform.Native.Tools.Native_Tool_Runner;
+            Preferred : constant String :=
+              Landin.Backend.Toolchain.Driver_For (Target, "");
+         begin
+            for Name of Landin.Backend.Toolchain.Driver_Candidates
+              (Target, "", Native => True)
+            loop
+               if Host.Available (Name) then
+                  if Name /= Preferred then
+                     Native_Driver := Unbounded.To_Unbounded_String (Name);
+                  end if;
+                  exit;
+               end if;
+            end loop;
+         end;
+      end if;
+      return Unbounded.To_String (Native_Driver);
+   end Toolchain;
 
    function Target_Arguments return Landin.Platform.Path_List is
       Result : Landin.Platform.Path_List;

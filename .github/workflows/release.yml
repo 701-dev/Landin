@@ -428,6 +428,48 @@ jobs:
           path: ${{ runner.temp }}/images/user-${{ matrix.arch }}.tar
           retention-days: 7
 
+  #  The FreeBSD x86-64 archive, built and packaged in a FreeBSD guest by
+  #  the lane the gate's freebsd-host-release runs, with the pinned GNAT
+  #  built from source (environments/freebsd/gnat.py): main's gate leaves
+  #  that archive in main's cache, which a tag's run may restore; without it
+  #  this job builds it, about twenty minutes.  The archive links the base
+  #  system's C library and GCC's runtime into refine, so it runs on any
+  #  FreeBSD 14 x86-64 without the GNAT that built it.
+  freebsd:
+    needs: gated
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      #  Inlined rather than the freebsd-toolchain action, as the build
+      #  job inlines the pinned toolchain: a tag older than the action does
+      #  not contain it, and a tag with this job has gnat.py.
+      - name: The toolchain archive's name
+        id: archive
+        run: |
+          echo "key=$(python3 environments/freebsd/gnat.py --arch=amd64 --key)" >> "$GITHUB_OUTPUT"
+          echo "path=$(python3 environments/freebsd/gnat.py --arch=amd64 --path)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.archive.outputs.path }}
+          key: freebsd-gnat-amd64-${{ steps.archive.outputs.key }}
+      - name: Install QEMU
+        run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+      - name: Let the job open KVM
+        run: sudo chmod 666 /dev/kvm
+      - name: Build, check and package refine in a FreeBSD guest
+        run: >-
+          python3 compiler/tests/freebsd/host.py --arch=amd64 --memory=12288
+          --build-toolchain --mode=release --package="$RUNNER_TEMP/freebsd-package"
+          --output="$RUNNER_TEMP/freebsd-host"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: archive-x86_64-freebsd
+          path: ${{ runner.temp }}/freebsd-package/*
+
   #  The contributor image, from the tag's own recipe and pins, checked by
   #  building the compiler of the same tree inside it.  It needs nothing the
   #  build jobs make, so it runs beside them.
@@ -491,7 +533,7 @@ jobs:
   #  above have passed and logged what they made.  It alone may ask for an
   #  OIDC token, which is what signs the attestation.
   publish:
-    needs: [build, images]
+    needs: [build, freebsd, images]
     if: ${{ !inputs.rehearse }}
     runs-on: ubuntu-24.04
     environment: release

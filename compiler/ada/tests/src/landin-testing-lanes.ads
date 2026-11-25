@@ -51,6 +51,10 @@ package Landin.Testing.Lanes is
 
    function Runner return String;
 
+   --  The C driver `--toolchain` named, or "" for the target's own.  A
+   --  native lane whose own driver this host lacks takes the first other
+   --  driver refine would link with (Driver_Candidates): on a FreeBSD host
+   --  the base system's `cc`, as refine itself does.
    function Toolchain return String;
 
    --  The arguments that select the lane for `refine`: none on the native

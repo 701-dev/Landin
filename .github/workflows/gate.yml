@@ -124,6 +124,7 @@ jobs:
             freebsd-amd64-runtime freebsd-amd64-debugger freebsd-amd64-abi \
             freebsd-arm64-runtime-1 freebsd-arm64-runtime-2 \
             freebsd-arm64-debugger freebsd-arm64-abi freebsd-amd64-size freebsd-arm64-size \
+            freebsd-toolchain freebsd-host-1 freebsd-host-2 freebsd-host-release \
             windows-emit windows-runtime windows-microsoft windows-debugger \
             windows-arm64-emit windows-arm64-runtime windows-arm64-microsoft \
             windows-arm64-debugger \
@@ -2385,7 +2386,7 @@ jobs:
           ./scripts/ci_packages.sh \
             "clang-19=$LANDIN_CLANG_UBUNTU" lld-19 llvm-19 libarchive-tools \
             qemu-utils ${{ matrix.arch == 'amd64' && 'qemu-system-x86'
-              || 'qemu-system-arm qemu-efi-aarch64 ipxe-qemu' }} \
+              || 'qemu-system-arm qemu-efi-aarch64' }} \
             ${{ matrix.kind == 'debugger' && 'lldb-19' || '' }}
           test "$(dpkg-query -W -f='${Version}' clang-19)" = "$LANDIN_CLANG_UBUNTU"
           clang-19 --version
@@ -2426,6 +2427,105 @@ jobs:
           name: measure-size-freebsd-${{ matrix.arch }}
           path: ${{ runner.temp }}/freebsd-evidence/measure/size.json
           retention-days: 30
+
+  #  refine built on FreeBSD x86-64 and tested there.  GNAT-FSF-builds
+  #  publishes no FreeBSD GNAT, so the freebsd-toolchain action restores
+  #  the pinned GNAT and GPRbuild from the cache, under a digest of their
+  #  sources, patches and recipe, or builds them from source in a fresh
+  #  amd64 guest, about twenty minutes on four processors; with the cache it
+  #  takes a minute.  The build's log is kept when it ran.
+  freebsd-toolchain:
+    needs: [inputs]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    outputs:
+      key: ${{ steps.toolchain.outputs.key }}
+      path: ${{ steps.toolchain.outputs.path }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/freebsd-toolchain
+        id: toolchain
+      - name: Keep the build's log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: freebsd-gnat-amd64
+          path: ${{ runner.temp }}/freebsd-gnat/*.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  #  The same on every push to main, whatever the scope, so that the
+  #  archive is in main's cache, which every branch and tag may restore: a
+  #  branch's own cache is its alone, and main's push reuses its candidate's
+  #  pass, which skips freebsd-toolchain.  The gate does not need it.
+  freebsd-toolchain-main:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/freebsd-toolchain
+
+  #  The test program on FreeBSD x86-64, built there by the pinned GNAT, in
+  #  two shards that together are the complete local native suite: there
+  #  refine's own target is freebsd-x86-64, so fixture execution compiles,
+  #  links and runs the hosted corpus with the refine the guest built, and
+  #  the native adapter's cases run on FreeBSD's system calls.  The release
+  #  leg builds the release compiler and makes the archive the release
+  #  workflow publishes, kept for a fortnight.
+  freebsd-host:
+    name: freebsd-host-${{ matrix.part }}
+    needs: [inputs, freebsd-toolchain]
+    if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {part: 1, arguments: '-- --shard=1/2'}
+          - {part: 2, arguments: '-- --shard=2/2'}
+          - {part: release, arguments: '--mode=release --package="$RUNNER_TEMP/freebsd-package"'}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ needs.freebsd-toolchain.outputs.path }}
+          key: ${{ needs.freebsd-toolchain.outputs.key }}
+          fail-on-cache-miss: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/landin/freebsd/amd64.raw.xz
+            ~/.cache/landin/freebsd/amd64-base.txz
+          key: freebsd-amd64-${{ hashFiles('environments/freebsd/lock.json') }}
+      - name: Install QEMU
+        run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+      - name: Let the job open KVM
+        run: sudo chmod 666 /dev/kvm
+      - name: Build refine in a FreeBSD guest and run the test program there, ${{ matrix.part }}
+        run: >-
+          python3 compiler/tests/freebsd/host.py --arch=amd64 --memory=12288
+          --output="$RUNNER_TEMP/freebsd-host" ${{ matrix.arguments }}
+      - name: Keep the guest's identity and the build and test transcript
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: freebsd-host-${{ matrix.part }}
+          path: |
+            ${{ runner.temp }}/freebsd-host/*.log
+            ${{ runner.temp }}/freebsd-host/*.txt
+          retention-days: 14
+      - name: Keep the FreeBSD release archive
+        if: matrix.part == 'release'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: freebsd-x86-64-release
+          path: ${{ runner.temp }}/freebsd-package/*
+          retention-days: 14
 
   #  Windows x86-64: Linux refine emits every runtime fixture whose
   #  targets name windows-x86-64 at every profile, linking with Clang,
@@ -3347,7 +3447,8 @@ jobs:
             arm64-release-checks, freebsd, rv64-qemu,
             windows-emit, windows-runtime, windows-microsoft, windows-debugger,
             windows-arm64-emit, windows-arm64-runtime, windows-arm64-microsoft,
-            windows-arm64-debugger, determinism, board-bundles, board]
+            windows-arm64-debugger, freebsd-toolchain, freebsd-host,
+            determinism, board-bundles, board]
     runs-on: ubuntu-24.04
     steps:
       #  The whole history, so the cycles comparison reads its base

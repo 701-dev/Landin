@@ -2780,15 +2780,16 @@ not keeping Windows Error Reporting away off GitHub's images, and
 
 ### R21.60 — refine on FreeBSD x86-64
 
-Status: planned
+Status: complete
 Depends on: none
 
 The maintainer decided on 2026-11-24 that `refine` runs natively on
 FreeBSD beside Linux, and placed that work here. FreeBSD's programs are
 emitted on Linux today and run in the gate's FreeBSD guests, which
 compile no Landin. GNAT-FSF-builds publishes no pinned GNAT for FreeBSD,
-and its ports carry GNAT 14, so this item builds the pinned GNAT and
-GPRbuild on FreeBSD x86-64 from source, as `compiler/ada/TOOLCHAIN.md`
+and its packages carry GNAT 12 to 15 and a GPRbuild that moves with the
+ports, so this item builds the pinned GNAT and GPRbuild on FreeBSD x86-64
+from source, as `compiler/ada/TOOLCHAIN.md`
 allows a host to, cached by their inputs, and records how. `refine` and
 its commands are built with them; `Landin.Platform`'s native body takes
 FreeBSD in its POSIX arm wherever it differs from Linux and Darwin, as
@@ -2800,6 +2801,39 @@ on a GitHub-hosted Linux runner, builds `refine` in that guest, where the
 test program, the native adapter's cases and the hosted corpus compiled
 by that `refine` pass; the host in `docs/capabilities.md` and a release
 archive for it.
+
+Done: `refine` builds and runs on FreeBSD x86-64. GNAT 16.1.0 and GPRbuild
+26.0.0 are built from source in a FreeBSD 14.4 guest by
+`environments/freebsd/gnat.py` (D2428): GCC with FreeBSD ports'
+`lang/gcc16` patches and binutils, compiled once by `gnat14`, and GPRbuild
+with its own commit `6421e350274b`, which GNAT 16 needs; every source is
+pinned in `environments/pins.sh`, and the 111 MB archive is cached under a
+digest of its inputs, ten minutes to build on 16 processors and twenty on
+the gate's four. A compiler built there defaults to `freebsd-x86-64` and
+links with the base system's `cc` and binutils' `as` (D2427). The gate's new
+`freebsd-toolchain` job restores or builds the archive, `freebsd-toolchain-main`
+keeps it in main's cache, and `compiler/tests/freebsd/host.py` builds
+`refine` in an amd64 guest under KVM and runs the complete local native
+suite there as `freebsd-host-1` and `freebsd-host-2`, where fixture
+execution compiles, links and runs the hosted corpus with that `refine`,
+and `freebsd-host-release` packages `landin-VERSION-x86_64-freebsd.tar.gz`,
+whose `refine` loads only `libthr` and `libc` and ran with the GNAT moved
+away; the release workflow publishes it. All 1,294 cases passed in a local
+guest, and the merged candidate passed gate run 45513329197 with boards
+run 45517462370. The test program's native lane
+learned FreeBSD (D2429): its C driver is the one `refine` would take, a level
+is confirmed by the emitted lane's CPUID probe, the two fixtures that name
+Linux's fault endpoints run with that lane's endpoints preloaded, the level
+note and `-no-pie` stay Linux's, and its links take refine's FreeBSD
+options. `Landin.Platform`'s native body counts FreeBSD's allocator through
+jemalloc, flushing the thread's cache, and knows UFS and tmpfs compare
+names as bytes. Found and fixed on the way: the item's text said the ports
+carry GNAT 14, where FreeBSD's packages carry 12 to 15; the arm64 guest
+asked QEMU for an iPXE ROM its firmware does not need, so `ipxe-qemu` is no
+longer installed. Filed `SR-1817`, the FreeBSD arm64 lane's use of an arm64
+host's KVM; `SR-1818`, the release build's memory at default parallelism;
+`SR-1819`, the Windows lane's README on local arm64 hosts; and `SR-1820`,
+`install.sh` not serving FreeBSD yet.
 
 ### R21.61 — refine on FreeBSD arm64
 

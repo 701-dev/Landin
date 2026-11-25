@@ -1833,6 +1833,9 @@ READERS = {
     "environments/cortex-m/abi-validation.json": "names its own README",
     "environments/cortex-m/memory-validation.json": "names its own README",
     "environments/cortex-m/packed-validation.json": "names its own README",
+    #  The release leg names its archive from README.md's status line, as
+    #  the release workflow names every archive; the name is no verdict.
+    "compiler/tests/freebsd/host.py": "the freebsd-host release leg's archive name",
 }
 MENTION = re.compile(r"(?<![\w./-])(?:README|ROADMAP|handoff|AGENTS)\.md"
                      r"|\*\*?\.md\b|(?<![\w./-])roadmap/")

@@ -356,6 +356,13 @@ package body Landin.Backend.Toolchain is
          if Native then
             Add ("gcc");
          end if;
+      elsif Named = "" and then Native
+        and then Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+          = Landin.Targets.Capabilities.FreeBSD
+      then
+         --  On its own host a FreeBSD program links with the base
+         --  system's Clang, which every FreeBSD installation has as `cc`.
+         Add ("cc");
       elsif Named = ""
         and then Landin.Targets.Capabilities.Backend_For (Facts)
           = Landin.Targets.Capabilities.Cortex_M0_ELF
@@ -438,6 +445,17 @@ package body Landin.Backend.Toolchain is
            & (if Machine = "aarch64" then "aarch64" else "x86_64")
            & "-toolchain does too), or name a Clang with LLD and"
            & " MinGW-w64's import libraries with --toolchain=NAME" & Without;
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.FreeBSD and then Native
+      then
+         --  The base system's Clang links; x86-64's assembly is GNU as's,
+         --  which FreeBSD's binutils package installs.
+         return "FreeBSD's own cc links"
+           & (if Machine = "x86_64"
+              then " and binutils' as assembles: install it with"
+                   & " `pkg install binutils`"
+              else "")
+           & ", or name a driver with --toolchain=NAME" & Without;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Facts)
         = Landin.Targets.Capabilities.Linux
       then

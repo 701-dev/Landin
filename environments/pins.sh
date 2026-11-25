@@ -99,6 +99,20 @@ LANDIN_XTENSA_ESP_ELF_SHA256_X86_64_LINUX=f708752ebb35cab21f184b2574114ed1187619
 LANDIN_XTENSA_ESP_ELF_SHA256_AARCH64_LINUX=785ee242bfbdb3ac4e764e85d2f87109c7c5f3da57d742da9a7c58c0d0906149
 LANDIN_XTENSA_ESP_ELF_SHA256_AARCH64_DARWIN=be4eb81c12c9bbf6ead79c758bfa81b8e6ec9a695372f946ac924c70c32f273d
 
+#  FreeBSD, for which GNAT-FSF-builds publishes no archive: the pinned GNAT
+#  and GPRbuild built from these sources in a FreeBSD guest by
+#  environments/freebsd/gnat.py, with FreeBSD ports' lang/gcc16 patches
+#  from the ports commit named here, which environments/freebsd/gnat/
+#  patches holds.  GCC's is the GNU release tarball, the ports' distinfo
+#  checksum; GPRbuild, XML/Ada and the gprconfig knowledge base are
+#  AdaCore's GitHub archives of their v26.0.0 tags.  The archive the build
+#  makes is cached under a digest of all of these and the recipe.
+LANDIN_FREEBSD_GCC_SHA256=50efb4d94c3397aff3b0d61a5abd748b4dd31d9d3f2ab7be05b171d36a510f79
+LANDIN_FREEBSD_GPRBUILD_SHA256=4699443c1a97a1527de44e6c3d3505fd95c3904a6533e67cd34c674c408f7d4f
+LANDIN_FREEBSD_XMLADA_SHA256=26494e57233e8eff9f8339b1520b6dc8188b259a9fccfc808fb19ffe767813aa
+LANDIN_FREEBSD_GPRCONFIG_KB_SHA256=d6edeb941ab9df6b6a186180f17d9a89c57d25be1e0acd8a9237c38164d944de
+LANDIN_FREEBSD_PORTS_COMMIT=a9844c5f4e09f61d7f32547bba99636395fd9341
+
 #  sha256 of each archive, verified before it is unpacked.
 LANDIN_GNAT_SHA256_X86_64_LINUX=9f74f58a827a2ad40dd84c72a413e75ea52888e0d8f7e252fba4d26762402703
 LANDIN_GPRBUILD_SHA256_X86_64_LINUX=e3f27f2515ec04d963f6badade6595993b1c091ba15d1919a7c75aad1b7ed49b

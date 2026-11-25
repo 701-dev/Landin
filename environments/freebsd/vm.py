@@ -276,10 +276,12 @@ def chardev_path(path):
     return str(path).replace(',', ',,')
 
 
-def qemu_argv(arch, overlay, output, private):
+def qemu_argv(arch, overlay, output, private, *, memory=2048, cpus=2):
     """The guest's command line: its console and monitor are sockets in the
-    private directory, and its network forwards no port until admission."""
-    common = ['-m', '2048', '-smp', '2', '-display', 'none',
+    private directory, and its network forwards no port until admission.
+    The lanes run in 2 GiB and two processors; building a compiler in the
+    guest asks for more."""
+    common = ['-m', str(memory), '-smp', str(cpus), '-display', 'none',
               '-chardev', 'socket,id=console,server=on,wait=off,path='
               + chardev_path(private / 'console.sock') + ',logfile=' + chardev_path(output / 'console.log'),
               '-serial', 'chardev:console',
@@ -307,27 +309,32 @@ def qemu_argv(arch, overlay, output, private):
                'looked for ' + ', '.join(map(str, candidates))
                + '; install qemu-efi-aarch64, or name the firmware file in'
                ' LANDIN_FREEBSD_EFI'))
+    #  The UEFI firmware drives the network device itself, so the device
+    #  loads no option ROM: QEMU's default, efi-virtio.rom, is in a package
+    #  of its own that a host with QEMU and the firmware need not have.
+    common[common.index('virtio-net-pci,netdev=net0')] += ',romfile='
     return ['qemu-system-aarch64', '-machine', 'virt', '-cpu', 'max', '-bios', str(firmware),
             *common, '-drive', f'file={chardev_path(overlay)},format=qcow2,if=none,id=hd0',
             '-device', 'virtio-blk-pci,drive=hd0']
 
 
 @contextmanager
-def boot(arch, image, output, *, port=None):
+def boot(arch, image, output, *, port=None, memory=2048, cpus=2, disk=None):
     # An explicitly supplied port is a development VM (including an SSH tunnel
     # to a local Mac); recurring lanes always provision their own fresh overlay.
     if port:
         yield Guest(port)
         return
     overlay = output / 'guest.qcow2'
+    #  A larger disk is grown into by the guest's growfs at its first boot.
     subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'raw', '-b', image,
-                    overlay], check=True, capture_output=True)
+                    overlay, *([disk] if disk else [])], check=True, capture_output=True)
     #  The boot's key, the guest's console and QEMU's monitor are in a
     #  directory only this user can enter, and outside the retained output.
     with tempfile.TemporaryDirectory(prefix='landin-freebsd-') as private:
         private = Path(private)
         identity, public = client_key(private)
-        argv = qemu_argv(arch, overlay, output, private)
+        argv = qemu_argv(arch, overlay, output, private, memory=memory, cpus=cpus)
         (output / 'vm-command.json').write_text(json.dumps(argv, indent=2) + '\n')
         with (output / 'qemu.log').open('wb') as log:
             process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=log, stderr=log)

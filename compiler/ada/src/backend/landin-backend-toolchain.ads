@@ -109,11 +109,12 @@ package Landin.Backend.Toolchain is
    --  Every driver a link may use, in the order tried: Named alone when
    --  it is given, Driver_For's otherwise and, on Linux, the other
    --  distributions' spellings of the same GCC, then `gcc` when Native
-   --  says the target is the compiler's own host.  Cortex-M follows the
-   --  pinned `arm-eabi-gcc` with the `arm-none-eabi-gcc` the distributions
-   --  and Arm ship (D532), and RV32 the pinned `riscv64-elf-gcc` with the
-   --  distributions' `riscv64-unknown-elf-gcc` (D660).  Empty exactly
-   --  when Driver_For is.
+   --  says the target is the compiler's own host; on a FreeBSD host its
+   --  own target follows the cross driver with the base system's `cc`.
+   --  Cortex-M follows the pinned `arm-eabi-gcc` with the
+   --  `arm-none-eabi-gcc` the distributions and Arm ship (D532), and RV32
+   --  the pinned `riscv64-elf-gcc` with the distributions'
+   --  `riscv64-unknown-elf-gcc` (D660).  Empty exactly when Driver_For is.
    function Driver_Candidates
      (Facts : Landin.Targets.Target_Facts;
       Named : String;

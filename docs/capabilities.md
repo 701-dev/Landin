@@ -20,7 +20,7 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 | `linux-arm64` | hosted executables | natively | GDB |
 | `linux-rv64` | hosted executables, LP64D | QEMU's user emulation | GDB, through QEMU's stub |
 | `darwin-arm64` | hosted executables | natively | LLDB with dSYM |
-| `freebsd-x86-64` | hosted executables, emitted on Linux | a FreeBSD VM under KVM | LLDB in the VM |
+| `freebsd-x86-64` | hosted executables, emitted on Linux or by `refine` on FreeBSD x86-64 | a FreeBSD VM under KVM, emitted there too | LLDB in the VM |
 | `freebsd-arm64` | hosted executables, emitted on Linux | an emulated FreeBSD VM | LLDB in the VM |
 | `windows-x86-64` | hosted executables, emitted on Linux | natively, on a GitHub-hosted Windows runner | LLDB over CodeView and a PDB, natively and through `refine dap` from WSL |
 | `windows-arm64` | hosted executables, emitted on Linux | natively, on GitHub's Windows 11 arm64 runner | as `windows-x86-64`'s, with llvm-mingw's arm64 LLDB |
@@ -30,6 +30,13 @@ paragraph of `tour.md` or `spec.md`; `refine explain D542` prints either.
 
 - **FreeBSD** runs in [architecture-specific VMs](../environments/freebsd/README.md)
   with separate runtime, C ABI and debugger verdicts in the gate.
+  `refine` also runs on FreeBSD x86-64, built there with the pinned GNAT
+  and GPRbuild, which a FreeBSD guest builds from source
+  ([the toolchain's record](../compiler/ada/TOOLCHAIN.md#freebsd-built-from-source)).
+  There `freebsd-x86-64` is its own target, and a program links with the
+  base system's `cc` and binutils' `as`. The gate builds it in an amd64
+  guest and runs the whole test program there, the hosted corpus compiled,
+  linked and run by that `refine` ([the host lane](../compiler/tests/freebsd/README.md#refine-on-freebsd)).
 - **Windows** builds COFF executables through llvm-mingw's
   `x86_64-w64-mingw32-clang`, Clang's assembler and LLD, which link
   kernel32, the system libraries `platform/windows`'s files name and no C
@@ -270,9 +277,14 @@ The README has [the commands in brief](../README.md#refine-in-brief);
 
 - A release publishes an archive for Linux x86-64, Linux arm64 and macOS
   arm64, an installed prefix of `bin/refine`, `libexec/landin` and
-  `lib/landin`, each attested by the release workflow; Homebrew's
+  `lib/landin`, each attested by the release workflow; from the release
+  after 0.2.11 also one for FreeBSD x86-64,
+  `landin-VERSION-x86_64-freebsd.tar.gz`, built in a FreeBSD guest, whose
+  `refine` needs only the base system to start and which is unpacked by
+  hand, since `install.sh` does not serve FreeBSD yet. Homebrew's
   `janhaan/tap/landin`, the flake's default package and the one-line
-  `install.sh` the site serves install it, the flake's `nix run` runs it,
+  `install.sh` the site serves install a Linux or macOS one, the flake's
+  `nix run` runs it,
   and its `refine` package builds from source. From the release after
   0.2.11, a release publishes two archives for each Linux architecture
   (D1791). The static one has the platform's name: its `refine` and its
@@ -1290,7 +1302,8 @@ Add `--target=darwin-arm64` for native macOS output, then open
 ## Where the evidence comes from
 
 The recurring gate runs Linux, macOS and Windows programs natively, FreeBSD
-programs in accelerated VMs and Cortex-M firmware under QEMU, with separate runtime,
+programs in accelerated VMs, where it also builds and tests `refine` on
+FreeBSD x86-64, and Cortex-M firmware under QEMU, with separate runtime,
 C ABI and debugger verdicts; RV64 Linux runs under QEMU's user emulation, as
 above. On a push to `main`, weekly and by dispatch it also runs all eight
 board ports on the physical rig, each RAM run followed by its boot check.

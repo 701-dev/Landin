@@ -18,9 +18,8 @@ directory and concurrent resource-registry controls.
 The process controls include refusal before spawning under automatic child
 reaping and preservation of the signal policy the OS actually installed.
 `native-host-controls.log` retains the transcript. These check FreeBSD's
-host system calls; they do not claim a FreeBSD-hosted Ada compiler or the
-compiler command corpus ran there. The compiler commands run on Linux and
-Darwin, and the generated programs run in these guests.
+host system calls with the guest's C compiler; the compiler itself is built
+and tested on FreeBSD by the host lane below.
 
 The gate runs each lane in one GitHub-hosted Linux x86-64 job, which emits
 and then boots a fresh VM from the locked 14.4 image, as a local run does: amd64
@@ -74,9 +73,9 @@ link discards them again with `-Wl,--discard-locals`, as `refine`'s own
 FreeBSD link does.
 
 For a complete local lane, install Clang 19, LLD, LLVM object tools, GNU as,
-QEMU system emulators, arm64 UEFI firmware, the iPXE ROMs QEMU's virtio network
-device loads (`ipxe-qemu` on Ubuntu, which installs it only as a recommendation
-for arm64) and bsdtar, then run:
+QEMU system emulators, arm64 UEFI firmware and bsdtar, then run (the arm64
+guest's network device loads no option ROM, since its firmware drives it, so
+Ubuntu's `ipxe-qemu`, which `qemu-system-arm` only recommends, is not needed):
 
 ```sh
 python3 compiler/tests/freebsd/check.py --arch=amd64 --kind=runtime \
@@ -154,3 +153,41 @@ The [release image setup](https://github.com/freebsd/freebsd-src/blob/releng/14.
 [auxiliary-vector API](https://man.freebsd.org/cgi/man.cgi?query=elf_aux_info&sektion=3)
 and [arm64 capability definitions](https://github.com/freebsd/freebsd-src/blob/releng/14.4/sys/arm64/include/elf.h)
 are FreeBSD's own contracts.
+
+## refine on FreeBSD
+
+[`host.py`](host.py) makes FreeBSD x86-64 the compiler's host. It boots a
+fresh amd64 guest from the same locked image, unpacks the pinned GNAT and
+GPRbuild that [`environments/freebsd/gnat.py`](../../../environments/freebsd/gnat.py)
+built from source in such a guest ([the toolchain's record](../../ada/TOOLCHAIN.md#freebsd-built-from-source)),
+clones the checkout's HEAD and, as an unprivileged user, builds `refine` and
+its test program with `scripts/build.sh` and runs `scripts/test.sh` with the
+arguments after `--`. There `refine`'s own target is `freebsd-x86-64`, so
+fixture execution compiles, links with the base system's `cc` and runs the
+hosted corpus with the `refine` the guest built, and the native adapter's
+cases run on FreeBSD's system calls. The guest installs `python3`, `git`,
+`bash` and `binutils`, whose `as` assembles x86-64's GNU assembly.
+
+```sh
+python3 environments/freebsd/gnat.py --arch=amd64      # once: about ten minutes on 16 processors
+python3 compiler/tests/freebsd/host.py --arch=amd64 --output="$(mktemp -d)" -- --shard=1/2
+python3 compiler/tests/freebsd/host.py --arch=amd64 --output="$(mktemp -d)" \
+    --mode=release --package=DIR
+```
+
+The second builds the release compiler, makes
+`landin-VERSION-x86_64-freebsd.tar.gz` and its debug archive with
+`scripts/package.sh`, runs the unpacked `refine` in the guest with the GNAT
+moved away, and copies both out with their checksums; the release workflow
+publishes that archive. The test program's native FreeBSD lane differs from
+Linux's in three places: it links with `cc` when the target's cross driver
+is not installed, as `refine` does; it confirms `x86-64-v3` with
+[`processor.c`](processor.c), since FreeBSD has no `/proc/cpuinfo`; and the
+two fixtures that name Linux's fault endpoints run with
+[`io_endpoints.c`](io_endpoints.c) preloaded. `host.py` clones HEAD, so
+commit first; `--runner-ssh` takes an existing guest instead of booting one.
+The gate runs the test program as two shards and the release leg, each in
+its own guest (`freebsd-host-1`, `freebsd-host-2`, `freebsd-host-release`),
+after `freebsd-toolchain` restores or builds the toolchain archive;
+`freebsd-toolchain-main` does the same on every push to main, whose cache
+every branch reads.

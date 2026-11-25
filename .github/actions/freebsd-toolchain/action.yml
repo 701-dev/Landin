@@ -1,0 +1,63 @@
+#  The pinned GNAT and GPRbuild for FreeBSD, in one place.
+#
+#  GNAT-FSF-builds publishes no FreeBSD archive, so
+#  environments/freebsd/gnat.py builds both from source in a FreeBSD guest
+#  (compiler/ada/TOOLCHAIN.md), about twenty minutes on a hosted runner's
+#  four processors, and names the archive by a digest of its inputs.  This
+#  restores that archive from the cache, or builds and saves it when the
+#  cache lacks it, and says where it is.  A branch's cache is its own and
+#  main's is every branch's, so main's pushes run this too
+#  (gate.yml's freebsd-toolchain-main).
+
+name: FreeBSD toolchain
+description: Restore or build the pinned GNAT and GPRbuild for FreeBSD.
+
+inputs:
+  arch:
+    description: amd64 or arm64
+    required: false
+    default: amd64
+
+outputs:
+  key:
+    description: the cache key the archive is saved under
+    value: freebsd-gnat-${{ inputs.arch }}-${{ steps.archive.outputs.key }}
+  path:
+    description: the archive's path
+    value: ${{ steps.archive.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - name: The archive's name, a digest of its inputs
+      id: archive
+      shell: bash
+      run: |
+        echo "key=$(python3 environments/freebsd/gnat.py --arch=${{ inputs.arch }} --key)" >> "$GITHUB_OUTPUT"
+        echo "path=$(python3 environments/freebsd/gnat.py --arch=${{ inputs.arch }} --path)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: cache
+      with:
+        path: ${{ steps.archive.outputs.path }}
+        key: freebsd-gnat-${{ inputs.arch }}-${{ steps.archive.outputs.key }}
+    - name: Install QEMU
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+    - name: Let the job open KVM
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: sudo chmod 666 /dev/kvm
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: steps.cache.outputs.cache-hit != 'true'
+      with:
+        path: |
+          ~/.cache/landin/freebsd/${{ inputs.arch }}.raw.xz
+          ~/.cache/landin/freebsd/${{ inputs.arch }}-base.txz
+        key: freebsd-${{ inputs.arch }}-${{ hashFiles('environments/freebsd/lock.json') }}
+    - name: Build GNAT and GPRbuild from source in a FreeBSD guest
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: >-
+        python3 environments/freebsd/gnat.py --arch=${{ inputs.arch }} --memory=12288
+        --output="$RUNNER_TEMP/freebsd-gnat"

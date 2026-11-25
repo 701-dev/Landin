@@ -751,6 +751,55 @@ package body Landin.Tests.Fixture_Execution_Suite is
       Item : in out Landin.Testing.Context;
       Compiled : Boolean := False);
 
+   --  Two runtime fixtures name Linux's fault endpoints, a path under
+   --  /sys that refuses a write and /dev/full, which FreeBSD lacks.  On a
+   --  native FreeBSD lane each such program runs with the shared fault
+   --  endpoints compiler/tests/freebsd/check.py links into it on the
+   --  emitted lane, preloaded, so every other path still reaches FreeBSD's
+   --  libc and the fixture's oracles stay its own.  Built once, by the
+   --  lane's own driver; the deliberate real-host exception of the cases
+   --  that run the corpus.
+   Endpoints_Asked   : Boolean := False;
+   Endpoints_Object  : Unbounded.Unbounded_String;
+   Endpoints_Problem : Unbounded.Unbounded_String;
+
+   function Uses_Fault_Endpoints (Case_Item : Fixture) return Boolean
+     is (Lanes.Is_Native
+         and then Landin.Targets.Capabilities.Hosted_System_Of (Lanes.Target)
+           = Landin.Targets.Capabilities.FreeBSD
+         and then Name (Case_Item) in "core-io-erased-system"
+                                    | "r440-errno-detail");
+
+   procedure Build_Fault_Endpoints;
+
+   procedure Build_Fault_Endpoints is
+      Runner : Landin.Platform.Native.Tools.Native_Tool_Runner;
+      Args   : Landin.Platform.Path_List;
+      Built  : Landin.Platform.Tool_Result;
+      Object : constant String := Output_Directory & "fault-endpoints.so";
+      Driver : constant String :=
+        Landin.Backend.Toolchain.Driver_For (Lanes.Target, Lanes.Toolchain);
+   begin
+      if Endpoints_Asked then
+         return;
+      end if;
+      Endpoints_Asked := True;
+      Args.Append ("-shared");
+      Args.Append ("-fPIC");
+      Args.Append ("-o");
+      Args.Append (Object);
+      Args.Append (Fixture_Root & "/../freebsd/io_endpoints.c");
+      Runner.Run (Driver, Args, Built, Landin.Platform.Merged);
+      if Built.Ended = Landin.Platform.Exited and then Built.Exit_Code = 0
+      then
+         Endpoints_Object := Unbounded.To_Unbounded_String (Object);
+      else
+         Endpoints_Problem := Unbounded.To_Unbounded_String
+           (Driver & " could not build the fault endpoints: "
+            & Unbounded.To_String (Built.Output));
+      end if;
+   end Build_Fault_Endpoints;
+
    procedure Run_With_Stream
      (Case_Item : Fixture;
       Label : String;
@@ -765,7 +814,32 @@ package body Landin.Tests.Fixture_Execution_Suite is
         (if Stream (Case_Item) = Output
          then Landin.Platform.Output_Only else Landin.Platform.Merged);
    begin
-      if Compiled then
+      if Compiled and then Uses_Fault_Endpoints (Case_Item) then
+         Build_Fault_Endpoints;
+         if Unbounded.Length (Endpoints_Object) = 0 then
+            Landin.Testing.Fail
+              (Item, Label & ": " & Unbounded.To_String (Endpoints_Problem));
+            Outcome := (others => <>);
+            return;
+         end if;
+         declare
+            Environment : Landin.Platform.Path_List;
+            procedure Keep (Name, Value : String);
+            procedure Keep (Name, Value : String) is
+               pragma Unreferenced (Value);
+            begin
+               if Name /= "LD_PRELOAD" then
+                  Environment.Append (Name);
+               end if;
+            end Keep;
+         begin
+            Ada.Environment_Variables.Iterate (Keep'Access);
+            Environment.Append
+              ("LD_PRELOAD=" & Unbounded.To_String (Endpoints_Object));
+            Runner.Run_In_Environment
+              (Program, Arguments, Environment, Outcome, Capture);
+         end;
+      elsif Compiled then
          Run_Program (Runner, Program, Arguments, Outcome, Capture);
       else
          Runner.Run (Program, Arguments, Outcome, Capture);
@@ -2170,6 +2244,18 @@ package body Landin.Tests.Fixture_Execution_Suite is
       return Output (First .. Last) = "1";
    end Sysctl_Says_Yes;
 
+   --  The name Linux's /proc/cpuinfo gives a feature, which the flags
+   --  Processor_Flags holds are spelled in, whatever asked for them.
+   function Kernel_Flag (Each : Landin.Targets.Levels.Feature) return String
+     is (case Each is
+            when Landin.Targets.Levels.Cmpxchg16b => "cx16",
+            when Landin.Targets.Levels.Lahf       => "lahf_lm",
+            when Landin.Targets.Levels.Sse3       => "pni",
+            when Landin.Targets.Levels.Lzcnt      => "abm",
+            when Landin.Targets.Levels.Lse        => "atomics",
+            when Landin.Targets.Levels.Rdm        => "asimdrdm",
+            when others => Landin.Targets.Levels.Spelling (Each));
+
    procedure Ask_Lane_Processor (Host : Landin.Platform.Filesystem'Class) is
       Line : constant String :=
         (case Landin.Targets.Architecture_Of (Lanes.Target) is
@@ -2218,6 +2304,62 @@ package body Landin.Tests.Fixture_Execution_Suite is
                end if;
             end;
          end loop;
+         return;
+      elsif Landin.Targets.Capabilities.Hosted_System_Of (Lanes.Target)
+        = Landin.Targets.Capabilities.FreeBSD and then Lanes.Is_Native
+      then
+         --  FreeBSD has no /proc/cpuinfo.  compiler/tests/freebsd/
+         --  processor.c, the probe its emitted lane runs in the guest,
+         --  asks CPUID and XCR0 on x86-64 and the auxiliary vector's HWCAP
+         --  on arm64, and exits 0 only when the processor and the system
+         --  give the whole higher level; then every feature of that level
+         --  is a flag Host_Has_Level reads.
+         Processor_Source := Unbounded.To_Unbounded_String
+           ("this host's processor, as compiler/tests/freebsd/processor.c"
+            & " asks it");
+         declare
+            Source : constant String :=
+              Fixture_Root & "/../freebsd/processor.c";
+            Built : constant String := Output_Directory & "lane-processor";
+            Driver : constant String :=
+              Landin.Backend.Toolchain.Driver_For
+                (Lanes.Target, Lanes.Toolchain);
+            Higher : constant String :=
+              (if Landin.Targets.Architecture_Of (Lanes.Target)
+                  = Landin.Targets.Arm64
+               then "armv8.1-a" else "x86-64-v3");
+            Runner : Landin.Platform.Native.Tools.Native_Tool_Runner;
+            Args : Landin.Platform.Path_List;
+            Linked : Landin.Platform.Tool_Result;
+            Asked : Landin.Platform.Tool_Result;
+            package L renames Landin.Targets.Levels;
+         begin
+            Args.Append (Source);
+            Args.Append ("-o");
+            Args.Append (Built);
+            Runner.Run (Driver, Args, Linked, Landin.Platform.Merged);
+            if Linked.Ended /= Landin.Platform.Exited
+              or else Linked.Exit_Code /= 0
+            then
+               Refuse (Driver & " could not link the processor probe: "
+                       & Unbounded.To_String (Linked.Output));
+               return;
+            end if;
+            Runner.Run
+              (Built, Landin.Platform.No_Arguments, Asked,
+               Landin.Platform.Merged);
+            Processor_Flags := Unbounded.To_Unbounded_String (" ");
+            if Asked.Ended = Landin.Platform.Exited
+              and then Asked.Exit_Code = 0
+            then
+               for Each in L.Feature loop
+                  if L.Has (L.Level_Named (Lanes.Target, Higher), Each) then
+                     Unbounded.Append
+                       (Processor_Flags, Kernel_Flag (Each) & " ");
+                  end if;
+               end loop;
+            end if;
+         end;
          return;
       elsif Landin.Targets.Capabilities.Hosted_System_Of (Lanes.Target)
         /= Landin.Targets.Capabilities.Linux
@@ -2640,15 +2782,7 @@ package body Landin.Tests.Fixture_Execution_Suite is
       for Each in L.Feature loop
          if L.Has (Selected, Each) then
             declare
-               Kernel : constant String :=
-                 (case Each is
-                     when L.Cmpxchg16b => "cx16",
-                     when L.Lahf       => "lahf_lm",
-                     when L.Sse3       => "pni",
-                     when L.Lzcnt      => "abm",
-                     when L.Lse        => "atomics",
-                     when L.Rdm        => "asimdrdm",
-                     when others       => L.Spelling (Each));
+               Kernel : constant String := Kernel_Flag (Each);
             begin
                if Unbounded.Index (Processor_Flags, " " & Kernel & " ") = 0
                then
@@ -3080,7 +3214,14 @@ package body Landin.Tests.Fixture_Execution_Suite is
             Check_Arm64_Level (Built, Label, Level /= "", Item);
          elsif Lanes.Target_Name = "linux-rv64" and then Level /= "" then
             Check_RV64_Level (Built, Label, Level, Item);
-         elsif Level /= "" then
+         elsif Level /= ""
+           and then Landin.Targets.Capabilities.Hosted_System_Of
+             (Lanes.Target) = Landin.Targets.Capabilities.Linux
+         then
+            --  Only a Linux link writes the level's note (refine passes
+            --  -z LEVEL there alone); FreeBSD's loader reads none, and
+            --  the emitted FreeBSD lane holds its linked images to the
+            --  level's instructions instead.
             declare
                Note : Landin.Platform.Tool_Result;
                Args : Landin.Platform.Path_List;
@@ -3281,8 +3422,29 @@ package body Landin.Tests.Fixture_Execution_Suite is
       Landin.Platform.Add (Driver_Arguments, "-Werror");
       --  x86-64's emitted code addresses data RIP-relative and absolute
       --  alike; arm64's is position-independent, as the driver defaults.
-      if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64 then
+      --  FreeBSD's Clang links x86-64 without it, as refine's own FreeBSD
+      --  link and the emitted FreeBSD lane's do, and under -Werror refuses
+      --  it as unused.
+      if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64
+        and then Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+          = Landin.Targets.Capabilities.Linux
+      then
          Landin.Platform.Add (Driver_Arguments, "-no-pie");
+      end if;
+      --  A FreeBSD link takes refine's own FreeBSD options, as the emitted
+      --  lane's does: binutils' as for x86-64's GNU assembly (D475), the
+      --  private labels discarded, and every section nothing retained
+      --  reaches dropped, since an unreached library routine may name
+      --  libthr's pthread_create, which no -lthr provides (D518).
+      if Landin.Targets.Capabilities.Hosted_System_Of (Facts)
+        = Landin.Targets.Capabilities.FreeBSD
+      then
+         if Landin.Targets.Architecture_Of (Facts) = Landin.Targets.X86_64
+         then
+            Landin.Platform.Add (Driver_Arguments, "-fno-integrated-as");
+         end if;
+         Landin.Platform.Add (Driver_Arguments, "-Wl,--discard-locals");
+         Landin.Platform.Add (Driver_Arguments, "-Wl,--gc-sections");
       end if;
       --  Spelled for this lane's linker as every Python lane spells them.
       declare

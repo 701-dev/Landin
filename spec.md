@@ -22870,6 +22870,9 @@ description checks of `negative/description-unknown-core`.
 
 ### D257 — A build targets the compiler's own host, and another target is named
 
+**Amended by D2427.** A compiler built on FreeBSD x86-64 defaults to
+`freebsd-x86-64`.
+
 **From** [1500] and [1550].
 
 **The discrepancy:** [1550] says Landin relies on the assembler and linker of
@@ -34231,6 +34234,115 @@ whose link commands end in `-fuse-ld=link`, and the gate's
 `link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
 the default reaching `lld-link`.
 
+### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
+
+**From** D257 and D364.
+
+**The discrepancy:** D257 gives a build that names no target the
+compiler's own host, and listed the hosts a description covers as x86-64
+Linux, arm64 Linux and arm64 Darwin, so a `refine` built on FreeBSD would
+have refused every build without `--target=freebsd-x86-64`. D364 gave
+FreeBSD its triplet's Clang, `x86_64-unknown-freebsd14.4-clang`, the name
+a Linux host's cross driver has, which a FreeBSD installation does not.
+
+**Chosen:** a compiler GNAT built for a triplet whose machine is `x86_64`
+and whose system holds `-freebsd`, as `x86_64-unknown-freebsd14.4` does,
+defaults to `freebsd-x86-64`; FreeBSD's release number, like Darwin's,
+says nothing about which description applies. For its own host's target
+the link tries the triplet's Clang first and then `cc`, which every
+FreeBSD installation has: the base system's Clang. A cross build from
+another host keeps the triplet's driver alone. `cc` and not `gcc`, which
+FreeBSD does not have, and since D475's `-fno-integrated-as` hands
+x86-64's GNU assembly to `as`, binutils' `as` assembles it; with none
+installed L0500's advice says `pkg install binutils`. A compiler built
+on FreeBSD arm64 has no default yet, though its own target's link would
+try the same `cc`.
+
+**The alternatives:** naming `--target` on FreeBSD, the cross-compilation
+D257 removed; `clang`, the same compiler under a name the base system
+keeps for compatibility; Clang's integrated assembler, which D475
+replaced for x86-64's FreeBSD link; and asking the running machine, which
+D257 refuses.
+
+**Pinned by** `targets/names select their descriptions`,
+`driver/targets have a default` and `driver/linux names every
+distribution's driver`, and the gate's `freebsd-host` jobs, where a
+`refine` built on FreeBSD compiles, links and runs the hosted corpus with
+no `--target`.
+
+### D2428 — The pinned GNAT for FreeBSD is built from source in a FreeBSD guest
+
+**From** D2427 and `compiler/ada/TOOLCHAIN.md`'s pin.
+
+**The discrepancy:** the pin is GNAT 16.1.0 and GPRbuild 26.0.0, and
+GNAT-FSF-builds publishes neither for FreeBSD; FreeBSD's packages carry
+GNAT 12 to 15 and a GPRbuild that moves with the ports. Upstream GCC
+16.1.0 does not build on FreeBSD unpatched, and GPRbuild 26.0.0 builds
+with neither GNAT 16, which refuses one of its units, nor `gnat14`, which
+lacks a unit it uses.
+
+**Chosen:** `environments/freebsd/gnat.py` builds both in a fresh guest
+from the locked release image: GCC 16.1.0 with FreeBSD ports' `lang/gcc16`
+patches at a pinned ports commit, configured with binutils as the ports
+configure it, built once by the `gnat14` package rather than bootstrapped;
+then GPRbuild 26.0.0, XML/Ada and the knowledge base of the same tag, by
+GPRbuild's own bootstrap script with the new GNAT and GPRbuild's next
+commit, `6421e350274b`, which GNAT 16 needs. Every source is checked
+against `environments/pins.sh`. The archive is cached under a digest of
+the sources, the patches, the recipe and the image, so a guest that builds
+`refine` unpacks it at `/opt/landin`; the gate's `freebsd-toolchain` job
+restores or builds it, and `freebsd-toolchain-main` does on every push to
+main, whose pass is reused, so main's cache, which every branch reads,
+holds it. The release workflow's
+FreeBSD archive is packaged in such a guest, and its `refine` runs with
+the toolchain moved away.
+
+**The alternatives:** a package GNAT, which is not the pinned version; a
+three-stage bootstrap, three times the time for a check the pinned
+version's own release made; building through the ports framework, which
+moves with the ports tree; GPRbuild built by `gnat15`, a third compiler in
+the recipe; and building in every job, twenty minutes each on a hosted
+runner.
+
+**Pinned by** `environments/pins.sh`'s FreeBSD sources and ports commit,
+the gate's `freebsd-toolchain` and `freebsd-host-release` jobs, and
+`compiler/ada/TOOLCHAIN.md`'s FreeBSD record.
+
+### D2429 — The test program's native FreeBSD lane is Linux's, with FreeBSD's driver, probe and endpoints
+
+**From** D2427 and D2428.
+
+**The discrepancy:** the test program ran the hosted corpus natively only
+on Linux, and its lane assumed Linux in four places: it linked C with the
+target's triplet driver alone, confirmed a level from `/proc/cpuinfo`,
+held a level's image to the GNU property note only a Linux link writes,
+and passed `-no-pie`, which FreeBSD's Clang refuses as unused under
+`-Werror`. Two runtime fixtures open Linux's fault endpoints, a path under
+`/sys` and `/dev/full`. Its allocator meter read glibc's `mallinfo2`, and
+FreeBSD's jemalloc counts a block in a thread's cache as still held.
+
+**Chosen:** the native lane's C driver is the first of D2427's
+candidates the host can start, as `refine`'s own link takes. On a FreeBSD
+lane the level is confirmed by `compiler/tests/freebsd/processor.c`, the
+probe the emitted lane runs in its guest, which asks CPUID and XCR0 on
+x86-64 and the auxiliary vector on arm64, and the image's note and
+`-no-pie` stay Linux's. The two fixtures run with the emitted lane's fault
+endpoints, `compiler/tests/freebsd/io_endpoints.c`, built by the lane's
+driver and preloaded, so every other path reaches FreeBSD's libc and the
+fixtures' oracles are unchanged. The meter flushes the calling thread's
+jemalloc cache and reads `stats.allocated`.
+
+**The alternatives:** `--toolchain=cc` on FreeBSD's command line, a
+workaround for what `refine` already does; skipping the level and fault
+fixtures on FreeBSD, which the emitted lane covers but the compiler's own
+host would not; and turning jemalloc's cache off in the test processes, as
+the Linux launcher does glibc's, which measures another allocator than
+the one `refine` runs with.
+
+**Pinned by** the gate's `freebsd-host-1` and `freebsd-host-2` jobs, the
+complete local native suite on FreeBSD x86-64, and the Linux shards,
+which run the same cases unchanged.
+
 ### D2190 — The Windows x64 convention is planned beside System V's
 
 **From** [1550] and [1700].
@@ -37204,6 +37316,9 @@ siblings' `remove` line, and `compiler/tests/test_native_report_identity.py`,
 which finds no assembly after a failed link.
 
 ### D364 — Linux links through the GCC a distribution installs
+
+**Amended by D2427.** On a FreeBSD host its own target tries the base
+system's `cc` after the triplet's Clang.
 
 **The tour said** at [1590] that the platform driver owns the hosted
 runtime's linkage, and `Landin.Backend.Toolchain` named one driver per
