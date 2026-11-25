@@ -3249,7 +3249,7 @@ documents that name a step saying the new one.
 
 ### R22.26 — What refine-build wanted from the library
 
-Status: planned
+Status: active
 Depends on: none
 
 The hosted and allocator calls that writing refine-build, the contributed
