@@ -77,12 +77,18 @@ argument: (self: device, index: usize)
     fail mem.not_found
 end argument
 
+program_name: (self: device) -> (name: text.os_string from self) =
+    _ = self
+    name = text.os_string_over("")
+end program_name
+
 device is io.writer (write: write, write_some: write_some)
 device is io.reader (read: read)
 device is io.files (open_read: open, open_write: open,
                     same_file: same_file, close: close)
 device is io.process (input: out, out: out, err: out,
-                      arguments_length: arguments_length, argument: argument)
+                      arguments_length: arguments_length, argument: argument,
+                      program_name: program_name)
 device is io.world ()
 
 exercise: () -> (ok: bool) ! io.io_failed =

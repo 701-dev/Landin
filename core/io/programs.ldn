@@ -111,10 +111,12 @@ end ending
 --- a child's pipe or its end is awaited (D479).
 public programs: type = concept (provider: type)
     --- Start the program at `path` with `arguments`, which it sees after
-    --- its own name, and exactly the variables of `environment`.  A
-    --- missing program is `mem.not_found`, one the caller may not run
-    --- `no_access`; on any failure no child was started.
-    spawn: (self: provider, path: text.os_string,
+    --- its own name, and exactly the variables of `environment`, in the
+    --- working directory `directory`, or the parent's own when it is
+    --- empty.  A relative `path` is found from the child's directory.  A
+    --- missing program or directory is `mem.not_found`, one the caller may
+    --- not run or enter `no_access`; on any failure no child was started.
+    spawn: (self: provider, directory: text.os_string, path: text.os_string,
             arguments: []text.os_string, environment: []text.os_variable,
             streams: child_streams)
            -> (started: child) ! mem.not_found | no_access | io_failed
@@ -142,8 +144,26 @@ public spawn: (provider: type is programs, host: provider,
                path: text.os_string, arguments: []text.os_string,
                environment: []text.os_variable, streams: child_streams)
               -> (started: child) ! mem.not_found | no_access | io_failed =
-    started = try provider.spawn(host, path, arguments, environment, streams)
+    started = try provider.spawn(host, text.os_string_over(""), path,
+                                 arguments, environment, streams)
 end spawn
+
+--- Start the program at `path` as `spawn` does, with the child's working
+--- directory `directory`: the child changes to it before its program
+--- runs, so a relative `path` is found from there, as `env -C` finds one,
+--- and the parent's own directory never changes.  A directory that is
+--- missing is `mem.not_found` and one the caller may not enter
+--- `no_access`; an empty one is `mem.not_found` too, since it names no
+--- directory, and on any failure no child was started.
+public spawn_in: (provider: type is programs, host: provider,
+                  directory: text.os_string, path: text.os_string,
+                  arguments: []text.os_string,
+                  environment: []text.os_variable, streams: child_streams)
+                 -> (started: child) ! mem.not_found | no_access | io_failed =
+    fail mem.not_found when lenof text.os_string_bytes(directory) == 0
+    started = try provider.spawn(host, directory, path, arguments,
+                                 environment, streams)
+end spawn_in
 
 --- Write all of `bytes` to a child's piped input.  A child that is not
 --- reading makes its parent wait here once the pipe is full, so write a

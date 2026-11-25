@@ -385,8 +385,33 @@ fixed if compiler.os <> windows then
         (path: text.os_string, arguments: []text.os_string,
          environment: []text.os_variable, streams: standard_streams)
         -> (child: process_id) ! errno =
+        child = try spawn_in(text.os_string_over(no_bytes[0..<0]), path,
+                             arguments, environment, streams)
+    end spawn
+
+    --- `spawn` with the child's working directory `directory`, or this
+    --- process's own when `directory` is empty. The child changes to it
+    --- before its program is executed, so a relative `path` is found from
+    --- it, as `env -C` finds one, and this process's own directory is never
+    --- changed. A directory that is missing fails with `enoent`, one that
+    --- is no directory with `enotdir` and one the caller may not enter with
+    --- `eacces`, and no child is left. On Linux the cloned child calls
+    --- `chdir`; on Darwin and FreeBSD it is
+    --- `posix_spawn_file_actions_addchdir_np`.
+    public spawn_in:
+        (directory: text.os_string, path: text.os_string,
+         arguments: []text.os_string, environment: []text.os_variable,
+         streams: standard_streams)
+        -> (child: process_id) ! errno =
         mut room: path_room = zeroed
         terminated: ptr u8 = try terminate(path, room[0..<lenof room])
+        changing: bool = lenof text.os_string_bytes(directory) > 0
+        mut directory_room: path_room = zeroed
+        mut entered: ptr u8 = addr directory_room[0]
+        if changing then
+            entered = try terminate(directory,
+                                    directory_room[0..<lenof directory_room])
+        end if
         named: []u8 = text.os_string_bytes(path)
         --  The tables first, so each pointer is aligned, then every string
         --  with its NUL: the name, the arguments, and each variable as
@@ -440,8 +465,9 @@ fixed if compiler.os <> windows then
         named_table: ptr ptr u8 = ptr(usize(block))
         variable_table: ptr ptr u8 = ptr(variables)
         child = try system_spawn(terminated, named_table, variable_table,
-                                 (input: input, output: output, errors: errors))
-    end spawn
+                                 (input: input, output: output, errors: errors),
+                                 entered, changing)
+    end spawn_in
 
     --  Copy BYTES to WHOLE at AT with a NUL after them, which the mapping
     --  already is, and put their address in the table slot at TABLE: where the
@@ -619,9 +645,13 @@ fixed if compiler.os <> windows then
         --  have held.
         start_child: (path: ptr u8, arguments: ptr ptr u8,
                       environment: ptr ptr u8, streams: standard_streams,
-                      report: i32) -> noreturn =
+                      report: i32, directory: ptr u8, changing: bool)
+                     -> noreturn =
             mut result: i32 = 0
-            if streams.input <> standard_input then
+            if changing then
+                result = linux.chdir(directory)
+            end if
+            if result >= 0 and streams.input <> standard_input then
                 result = linux.dup3(i32(streams.input), 0, 0)
             end if
             if result >= 0 and streams.output <> standard_output then
@@ -688,7 +718,8 @@ fixed if compiler.os <> windows then
         end read_report
 
         system_spawn: (path: ptr u8, arguments: ptr ptr u8,
-                       environment: ptr ptr u8, streams: standard_streams)
+                       environment: ptr ptr u8, streams: standard_streams,
+                       directory: ptr u8, changing: bool)
                       -> (child: process_id) ! errno =
             mut made: [2]i32 = zeroed
             opened: i32 = linux.pipe2(addr made[0], linux.o_cloexec)
@@ -703,7 +734,8 @@ fixed if compiler.os <> windows then
             end
             copied: i64 = linux.fork()
             if copied == 0 then
-                start_child(path, arguments, environment, streams, writing)
+                start_child(path, arguments, environment, streams, writing,
+                            directory, changing)
             end if
             _ = linux.close(writing)
             if copied < 0 then
@@ -915,10 +947,18 @@ fixed if compiler.os <> windows then
         --  posix_spawn reports its failure as its result rather than in errno.
         spawn_with: (path: ptr u8, arguments: ptr ptr u8,
                      environment: ptr ptr u8, streams: standard_streams,
+                     directory: ptr u8, changing: bool,
                      actions: ptr mut libc.spawn_object,
                      attributes: ptr mut libc.spawn_object)
                     -> (child: process_id) ! errno =
-            mut error: i32 = stream_action(actions, streams.input, 0)
+            mut error: i32 = 0
+            if changing then
+                error = libc.posix_spawn_file_actions_addchdir_np(actions,
+                                                                  directory)
+            end if
+            if error == 0 then
+                error = stream_action(actions, streams.input, 0)
+            end if
             if error == 0 then
                 error = stream_action(actions, streams.output, 1)
             end if
@@ -936,7 +976,8 @@ fixed if compiler.os <> windows then
         end spawn_with
 
         system_spawn: (path: ptr u8, arguments: ptr ptr u8,
-                       environment: ptr ptr u8, streams: standard_streams)
+                       environment: ptr ptr u8, streams: standard_streams,
+                       directory: ptr u8, changing: bool)
                       -> (child: process_id) ! errno =
             mut actions: libc.spawn_object = 0
             mut attributes: libc.spawn_object = 0
@@ -948,7 +989,8 @@ fixed if compiler.os <> windows then
                 fail errno_of(given)
             end if
             child = spawn_with(path, arguments, environment, streams,
-                               addr actions, addr attributes) else (problem)
+                               directory, changing, addr actions,
+                               addr attributes) else (problem)
                 _ = libc.posix_spawnattr_destroy(addr attributes)
                 _ = libc.posix_spawn_file_actions_destroy(addr actions)
                 fail problem

@@ -126,6 +126,12 @@ fixed if compiler.os == freebsd then
     public extern(c) posix_spawn_file_actions_adddup2:
         (actions: ptr mut spawn_object, source: i32, target: i32) -> (error: i32)
 
+    --- Add to `actions` making `path` the child's working directory, a
+    --- relative program path being found from it: 0, or the errno.  The
+    --- system's own, since 13.1.
+    public extern(c) posix_spawn_file_actions_addchdir_np:
+        (actions: ptr mut spawn_object, path: ptr u8) -> (error: i32)
+
     --- Start a set of attributes for `posix_spawn`: 0, or the errno.
     public extern(c) posix_spawnattr_init:
         (attributes: ptr mut spawn_object) -> (error: i32)

@@ -366,14 +366,40 @@ fixed if compiler.os == windows then
         end if
     end system_rename
 
-    --  What core/io says of a file Windows describes.
-    status_from: (found: windows.file_information, kind: io.entry_kind)
+    --  What core/io says of a file Windows describes, `executable` when it
+    --  is a regular file the system runs.
+    status_from: (found: windows.file_information, kind: io.entry_kind,
+                  executable: bool)
                  -> (result: io.status) =
         result = (size: (u64(found.size_high) << 32) | u64(found.size_low),
                   kind: kind, modified: wall_of(found.written),
                   read_only: (found.attributes
-                              & windows.attribute_read_only) <> 0)
+                              & windows.attribute_read_only) <> 0,
+                  executable: kind == io.regular and executable)
     end status_from
+
+    --  A unit of a name lowered when it is an ASCII capital.
+    lowered: (unit: u16) -> (result: u16) =
+        result = if unit >= 65 and unit <= 90 then unit + 32 else unit end if
+    end lowered
+
+    --  Whether the file `opened` is has a name Windows runs as a program,
+    --  ending in `.exe` or `.com` in any case: Windows keeps no permission
+    --  to execute.  The name is the one its path reached after every link.
+    runnable: (opened: windows.handle) -> (yes: bool) =
+        yes = false
+        mut room: long_room = zeroed
+        got: u32 = windows.final_path(opened, addr room[0], u32(lenof room), 0)
+        return when got < 4 or usize(got) >= lenof room
+        end_at: usize = usize(got)
+        return when room[end_at - 4] <> 46
+        a: u16 = lowered(room[end_at - 3])
+        b: u16 = lowered(room[end_at - 2])
+        c: u16 = lowered(room[end_at - 1])
+        --  `exe` or `com`.
+        yes = (a == 101 and b == 120 and c == 101)
+              or (a == 99 and b == 111 and c == 109)
+    end runnable
 
     --  The status of an open handle; `link` when it was opened not
     --  following a link it ends in.
@@ -389,7 +415,8 @@ fixed if compiler.os == windows then
                      & windows.attribute_reparse_point) <> 0 then
             kind = io.symbolic_link
         end if
-        found = status_from(information, kind)
+        found = status_from(information, kind,
+                            kind == io.regular and runnable(opened))
     end status_of_handle
 
     system_status_of: (self: host, path: text.os_string,
