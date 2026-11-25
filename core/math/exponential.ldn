@@ -1,0 +1,83 @@
+--  Exponentials, logarithms and powers.  Not yet ported: each routine returns NaN.
+
+exp_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end exp_f64
+
+exp_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end exp_f32
+
+exp2_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end exp2_f64
+
+exp2_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end exp2_f32
+
+expm1_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end expm1_f64
+
+expm1_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end expm1_f32
+
+log_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end log_f64
+
+log_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end log_f32
+
+log2_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end log2_f64
+
+log2_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end log2_f32
+
+log10_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end log10_f64
+
+log10_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end log10_f32
+
+log1p_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end log1p_f64
+
+log1p_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end log1p_f32
+
+pow_f64: (x: f64, y: f64) -> (result: f64) =
+    _ = x
+    _ = y
+    result = f64.nan
+end pow_f64
+
+pow_f32: (x: f32, y: f32) -> (result: f32) =
+    _ = x
+    _ = y
+    result = f32.nan
+end pow_f32

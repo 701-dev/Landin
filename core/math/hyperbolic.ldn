@@ -1,0 +1,61 @@
+--  The hyperbolic functions and their inverses.  Not yet ported: each routine returns NaN.
+
+sinh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end sinh_f64
+
+sinh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end sinh_f32
+
+cosh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end cosh_f64
+
+cosh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end cosh_f32
+
+tanh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end tanh_f64
+
+tanh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end tanh_f32
+
+asinh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end asinh_f64
+
+asinh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end asinh_f32
+
+acosh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end acosh_f64
+
+acosh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end acosh_f32
+
+atanh_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end atanh_f64
+
+atanh_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end atanh_f32

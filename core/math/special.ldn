@@ -1,0 +1,41 @@
+--  The error and gamma functions.  Not yet ported: each routine returns NaN.
+
+erf_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end erf_f64
+
+erf_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end erf_f32
+
+erfc_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end erfc_f64
+
+erfc_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end erfc_f32
+
+gamma_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end gamma_f64
+
+gamma_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end gamma_f32
+
+log_gamma_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end log_gamma_f64
+
+log_gamma_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end log_gamma_f32

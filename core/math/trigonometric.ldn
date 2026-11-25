@@ -1,0 +1,73 @@
+--  The trigonometric functions and their inverses.  Not yet ported: each routine returns NaN.
+
+sin_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end sin_f64
+
+sin_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end sin_f32
+
+cos_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end cos_f64
+
+cos_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end cos_f32
+
+tan_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end tan_f64
+
+tan_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end tan_f32
+
+asin_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end asin_f64
+
+asin_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end asin_f32
+
+acos_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end acos_f64
+
+acos_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end acos_f32
+
+atan_f64: (x: f64) -> (result: f64) =
+    _ = x
+    result = f64.nan
+end atan_f64
+
+atan_f32: (x: f32) -> (result: f32) =
+    _ = x
+    result = f32.nan
+end atan_f32
+
+atan2_f64: (y: f64, x: f64) -> (result: f64) =
+    _ = y
+    _ = x
+    result = f64.nan
+end atan2_f64
+
+atan2_f32: (y: f32, x: f32) -> (result: f32) =
+    _ = y
+    _ = x
+    result = f32.nan
+end atan2_f32

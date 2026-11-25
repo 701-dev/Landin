@@ -1,0 +1,268 @@
+--  Classification and manipulation of the representation.  Each routine
+--  works on the bits, so every result is exact, and none of them takes
+--  the float unit's or soft float's arithmetic where a bit operation
+--  answers.
+
+classify_f64: (x: f64) -> (kind: category) =
+    bits := bits_f64(x)
+    exponent := (bits >> 52) & 0x7ff
+    fraction := bits & 0xfffffffffffff
+    if exponent == 0x7ff then
+        kind = if fraction == 0 then infinite else not_a_number end if
+    elsif exponent == 0 then
+        kind = if fraction == 0 then zero else subnormal end if
+    else
+        kind = normal
+    end if
+end classify_f64
+
+classify_f32: (x: f32) -> (kind: category) =
+    bits := bits_f32(x)
+    exponent := (bits >> 23) & 0xff
+    fraction := bits & 0x7fffff
+    if exponent == 0xff then
+        kind = if fraction == 0 then infinite else not_a_number end if
+    elsif exponent == 0 then
+        kind = if fraction == 0 then zero else subnormal end if
+    else
+        kind = normal
+    end if
+end classify_f32
+
+is_negative_f64: (x: f64) -> (yes: bool) =
+    yes = bits_f64(x) >> 63 == 1
+end is_negative_f64
+
+is_negative_f32: (x: f32) -> (yes: bool) =
+    yes = bits_f32(x) >> 31 == 1
+end is_negative_f32
+
+abs_f64: (x: f64) -> (result: f64) =
+    result = from_bits_f64(bits_f64(x) & 0x7fffffffffffffff)
+end abs_f64
+
+abs_f32: (x: f32) -> (result: f32) =
+    result = from_bits_f32(bits_f32(x) & 0x7fffffff)
+end abs_f32
+
+copy_sign_f64: (magnitude: f64, sign: f64) -> (result: f64) =
+    result = from_bits_f64((bits_f64(magnitude) & 0x7fffffffffffffff)
+                           | (bits_f64(sign) & 0x8000000000000000))
+end copy_sign_f64
+
+copy_sign_f32: (magnitude: f32, sign: f32) -> (result: f32) =
+    result = from_bits_f32((bits_f32(magnitude) & 0x7fffffff)
+                           | (bits_f32(sign) & 0x80000000))
+end copy_sign_f32
+
+--  One step along the bits: a float's magnitude grows with its bits, so
+--  moving away from zero adds one and moving toward it takes one away.
+next_after_f64: (x: f64, toward: f64) -> (result: f64) =
+    if x <> x or toward <> toward then
+        result = x + toward
+    elsif x == toward then
+        result = toward
+    elsif x == 0.0 then
+        result = from_bits_f64((bits_f64(toward) & 0x8000000000000000) | 1)
+    else
+        bits := bits_f64(x)
+        result = if (toward > x) == (x > 0.0) then from_bits_f64(bits + 1)
+                 else from_bits_f64(bits - 1) end if
+    end if
+end next_after_f64
+
+next_after_f32: (x: f32, toward: f32) -> (result: f32) =
+    if x <> x or toward <> toward then
+        result = x + toward
+    elsif x == toward then
+        result = toward
+    elsif x == 0.0 then
+        result = from_bits_f32((bits_f32(toward) & 0x80000000) | 1)
+    else
+        bits := bits_f32(x)
+        result = if (toward > x) == (x > 0.0) then from_bits_f32(bits + 1)
+                 else from_bits_f32(bits - 1) end if
+    end if
+end next_after_f32
+
+--  Multiplying by powers of two in at most three steps, each exact but
+--  the last, as msun's scalbn does.  A power that reaches the subnormals
+--  goes there in one multiplication by a factor that keeps 53 bits, so
+--  the result is rounded once.
+scale_f64: (x: f64, power: i32) -> (result: f64) =
+    mut y: f64 = x
+    mut n: i32 = power
+    if n > 1023 then
+        y = y * 0x1.0p1023
+        n = n - 1023
+        if n > 1023 then
+            y = y * 0x1.0p1023
+            n = n - 1023
+            if n > 1023 then
+                n = 1023
+            end if
+        end if
+    elsif n < -1022 then
+        y = y * 0x1.0p-969
+        n = n + 969
+        if n < -1022 then
+            y = y * 0x1.0p-969
+            n = n + 969
+            if n < -1022 then
+                n = -1022
+            end if
+        end if
+    end if
+    result = y * from_bits_f64(u64(1023 + n) << 52)
+end scale_f64
+
+scale_f32: (x: f32, power: i32) -> (result: f32) =
+    mut y: f32 = x
+    mut n: i32 = power
+    if n > 127 then
+        y = y * 0x1.0p127
+        n = n - 127
+        if n > 127 then
+            y = y * 0x1.0p127
+            n = n - 127
+            if n > 127 then
+                n = 127
+            end if
+        end if
+    elsif n < -126 then
+        y = y * 0x1.0p-102
+        n = n + 102
+        if n < -126 then
+            y = y * 0x1.0p-102
+            n = n + 102
+            if n < -126 then
+                n = -126
+            end if
+        end if
+    end if
+    result = y * from_bits_f32(u32(127 + n) << 23)
+end scale_f32
+
+split_f64: (x: f64) -> (fraction: f64, power: i32) =
+    bits := bits_f64(x)
+    exponent := i32((bits >> 52) & 0x7ff)
+    if exponent == 0x7ff or bits << 1 == 0 then
+        fraction = x
+        power = 0
+    elsif exponent == 0 then
+        (fraction: scaled, power: below) := split_f64(x * 0x1.0p64)
+        fraction = scaled
+        power = below - 64
+    else
+        fraction = from_bits_f64((bits & 0x800fffffffffffff) | 0x3fe0000000000000)
+        power = exponent - 0x3fe
+    end if
+end split_f64
+
+split_f32: (x: f32) -> (fraction: f32, power: i32) =
+    bits := bits_f32(x)
+    exponent := i32((bits >> 23) & 0xff)
+    if exponent == 0xff or bits << 1 == 0 then
+        fraction = x
+        power = 0
+    elsif exponent == 0 then
+        (fraction: scaled, power: below) := split_f32(x * 0x1.0p32)
+        fraction = scaled
+        power = below - 32
+    else
+        fraction = from_bits_f32((bits & 0x807fffff) | 0x3f000000)
+        power = exponent - 0x7e
+    end if
+end split_f32
+
+whole_and_fraction_f64: (x: f64) -> (whole: f64, fraction: f64) =
+    bits := bits_f64(x)
+    signed_zero := from_bits_f64(bits & 0x8000000000000000)
+    exponent := i32((bits >> 52) & 0x7ff) - 0x3ff
+    if exponent >= 52 then
+        whole = x
+        fraction = if x <> x then x else signed_zero end if
+    elsif exponent < 0 then
+        whole = signed_zero
+        fraction = x
+    else
+        mask := u64(0xfffffffffffff) >> u64(exponent)
+        if bits & mask == 0 then
+            whole = x
+            fraction = signed_zero
+        else
+            whole = from_bits_f64(bits & ~mask)
+            fraction = x - whole
+        end if
+    end if
+end whole_and_fraction_f64
+
+whole_and_fraction_f32: (x: f32) -> (whole: f32, fraction: f32) =
+    bits := bits_f32(x)
+    signed_zero := from_bits_f32(bits & 0x80000000)
+    exponent := i32((bits >> 23) & 0xff) - 0x7f
+    if exponent >= 23 then
+        whole = x
+        fraction = if x <> x then x else signed_zero end if
+    elsif exponent < 0 then
+        whole = signed_zero
+        fraction = x
+    else
+        mask := u32(0x7fffff) >> u32(exponent)
+        if bits & mask == 0 then
+            whole = x
+            fraction = signed_zero
+        else
+            whole = from_bits_f32(bits & ~mask)
+            fraction = x - whole
+        end if
+    end if
+end whole_and_fraction_f32
+
+min_f64: (x: f64, y: f64) -> (result: f64) =
+    if x <> x then
+        result = y
+    elsif y <> y then
+        result = x
+    elsif is_negative_f64(x) <> is_negative_f64(y) then
+        result = if is_negative_f64(x) then x else y end if
+    else
+        result = if x < y then x else y end if
+    end if
+end min_f64
+
+min_f32: (x: f32, y: f32) -> (result: f32) =
+    if x <> x then
+        result = y
+    elsif y <> y then
+        result = x
+    elsif is_negative_f32(x) <> is_negative_f32(y) then
+        result = if is_negative_f32(x) then x else y end if
+    else
+        result = if x < y then x else y end if
+    end if
+end min_f32
+
+max_f64: (x: f64, y: f64) -> (result: f64) =
+    if x <> x then
+        result = y
+    elsif y <> y then
+        result = x
+    elsif is_negative_f64(x) <> is_negative_f64(y) then
+        result = if is_negative_f64(x) then y else x end if
+    else
+        result = if x > y then x else y end if
+    end if
+end max_f64
+
+max_f32: (x: f32, y: f32) -> (result: f32) =
+    if x <> x then
+        result = y
+    elsif y <> y then
+        result = x
+    elsif is_negative_f32(x) <> is_negative_f32(y) then
+        result = if is_negative_f32(x) then y else x end if
+    else
+        result = if x > y then x else y end if
+    end if
+end max_f32
