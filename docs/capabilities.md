@@ -269,6 +269,11 @@ what each selects.
   fact reads the same way (D437).
 - The assembler holds an assembly block to the level, and a level runs only
   on a processor that confirms it; an unconfirmed level fails as unverified.
+- A static Linux executable and every Windows image built above the
+  baseline check the processor before `main`: one without a feature of the
+  level writes one line naming the level and the feature to standard error
+  and ends with status 127 (D284, D2475). Linux RV64 does not check
+  XTheadBa and Windows arm64 not RDM, which neither system reports.
 
 ## The command line
 

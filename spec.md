@@ -35122,6 +35122,92 @@ other system is refused on Windows.
 **Pinned by** `positive/c-packed-records`, which the determinism manifest
 emits for windows-x86-64.
 
+### D2475 — A Windows image holds the processor to its level in the entry
+
+**From** D255, D284 and D2189.
+
+**The discrepancy:** D2189's image carries no level mark and Windows'
+loader checks none, so a Windows program built above its family's baseline
+ran `main` on any processor and ended with `STATUS_ILLEGAL_INSTRUCTION` at
+the first instruction the processor lacked, as a failed check ends, with no
+word saying why; D284 had given a static Linux executable the check.
+
+**Chosen:** `platform/windows`'s `_landin_start` calls `check_level` before
+it reads the command line, so nothing the entry runs before the check can
+need the level beyond what Linux's entry needs. `level.ldn` gives
+`level`, `read_cpu_words` and `missing_feature` on both architectures, as
+`platform/linux` does, selects each level's check with `fixed if` on the
+`compiler.feature` facts, and leaves the baseline's empty. A processor
+without a feature writes `landin: this executable needs LEVEL, and the
+processor lacks FEATURE` to the standard error handle, when the process
+has one, and ends the process with `ExitProcess(127)`, the status D284
+chose, so one program built for Linux and Windows ends alike on one
+machine and a script reads both refusals as one.
+
+**The alternatives:** no check, which leaves the refusal indistinguishable
+from a failed check; `STATUS_ILLEGAL_INSTRUCTION` or another NTSTATUS,
+which reads as a crash and is exactly what the unchecked image ended with;
+and a message box, which a console program and a test lane cannot read.
+
+**Pinned by** `runtime/windows-level-check` at the default level,
+`x86-64-v3` and `armv8.1-a` in the Windows runtime lanes; under Wine, an
+`x86-64-v4` build of it on a processor without AVX-512 wrote the line and
+ended with 127.
+
+### D2476 — x86-64's processor reading is platform/x86_64, which every system's entry shares
+
+**From** D284, D687 and D2475.
+
+**The discrepancy:** D284's `cpuid` and `xgetbv` reading and its copy of
+D255's per-level feature tables were `platform/linux`'s, and Windows'
+entry needs the same reading: the processor answers it, not the system.
+
+**Chosen:** the reading and the tables are the module `platform/x86_64`,
+which is available on every target and declares everything on `x86_64`
+alone, as `platform/riscv` does on rv32, so `platform/linux` and
+`platform/windows` import it on every system they serve. Each keeps its
+own `cpu_words`, `read_cpu_words`, `level` and `missing_feature`, the type
+an alias of the module's and the routines calls of its, so a program
+names the check through its system's interface on every architecture.
+How a refusal is told and the process ended stay each system's.
+
+**The alternatives:** a copy in `platform/windows`, two tables of D255 to
+keep in step; `platform/windows` importing `platform/linux` for it, which
+would make Windows' interface depend on Linux's; and the tables in the
+compiler, which D284 already declined.
+
+**Pinned by** `runtime/linux-level-check`, unchanged, and
+`runtime/windows-level-check` on x86-64, and the driver case `source
+namespaces enforce target availability`, which imports the module on
+windows-arm64 and linux-rv64.
+
+### D2477 — Windows arm64 asks IsProcessorFeaturePresent, which reports no RDM
+
+**From** D255, D284 and D2475.
+
+**The discrepancy:** D284 reads arm64's features from AT_HWCAP, which
+Windows does not have, and Windows does not let a program read the
+processor's ID registers.
+
+**Chosen:** `read_cpu_words` asks kernel32's `IsProcessorFeaturePresent`
+for `PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE` (34) and
+`PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE` (31) and keeps each answer as
+that bit of `present`, and `armv8.1-a`'s check requires LSE, then CRC32.
+No `PF_*` number, through the Windows SDK of llvm-mingw 20261117, reports
+RDM, armv8.1-a's third feature, so it is not checked, as no Linux
+interface reports XTheadBa on RV64; refine's code selects no RDM
+instruction, so only an `assembler.block` using one can still end with
+`STATUS_ILLEGAL_INSTRUCTION`.
+
+**The alternatives:** the `CP 4030` value under the registry's
+`HARDWARE\DESCRIPTION\System\CentralProcessor\0`, which holds
+ID_AA64ISAR0_EL1 but which Windows does not document, and which would link
+advapi32 into every armv8.1-a image; and refusing RDM's absence as
+unconfirmed, which would refuse every armv8.1-a image on every processor.
+
+**Pinned by** `runtime/windows-level-check` at `armv8.1-a` on the
+windows-arm64 runtime lane, whose injected words lack LSE, then CRC32.
+
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 
 These were taken while writing `core` and the derived programs, and most

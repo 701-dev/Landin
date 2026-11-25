@@ -50,7 +50,9 @@ The hosted providers are written over `platform/windows` on Windows
 needs POSIX itself: a fixture that imports `platform/posix`, starts
 `/bin/sh`, opens `/dev/null` or holds an errno's POSIX number does not.
 A Windows-only fixture, `runtime/windows-run-programs`, starts the command
-processor in place of a shell.
+processor in place of a shell, and `runtime/windows-level-check` holds the
+entry's check of the processor's level, which every image above the
+baseline makes before it reads its command line (D2475).
 
 ## Running it locally
 
