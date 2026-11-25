@@ -9,6 +9,7 @@
         --output NEW_DIRECTORY [--repeat N] [--image DIGEST ...] [board options]
     python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY
         [--board BOARD ...] [--repeat N] [--ram-loader PI_HELPER] [-- board options]
+    (rp2350, the Pico 2's Arm port: run `run.py --board=rp2350 --mode=boot` first)
     python3 environments/boards/timing.py noise --results DIRECTORY ... --output FILE
     python3 environments/boards/timing.py figures (--results DIRECTORY ... | --evidence DIRECTORY)
         --output FILE
@@ -25,13 +26,20 @@ workload's image moved by a few bytes or linked into another RAM, each
 held to the named workload's status and checksum.
 
 `run`, on rigpi, holds the rig lock across one board's whole batch and runs
-each image REPEAT times through the SRAM helper's timing plan: the helper
+each image REPEAT times, three unless --repeat says otherwise, as the gate
+does: the figure is their lower median, and one run's is not the gate's.
+Each run goes through the SRAM helper's timing plan: the helper
 loads it as a warm RAM run does, starts the board's counter, stops the
 program with a breakpoint where its entry returns, and reads there the
 status, the trap count and the counter the program read just before it
 called `main` and just after `main` returned, whose difference is the
 figure.  A status other than the fixture's, a trap, a program that does
-not stop, or a figure past 2^31 fails the run.
+not stop, or a figure past 2^31 fails the run.  A timing run is a warm
+load, which never changes the Pico 2's architecture: its port's cores must
+already run it, Arm after an `rp2350` boot check as the gate's pico2 port
+runs one before its Arm steps, and Hazard3 on the resting image.  `run`
+reads the board as its port's architecture before the first image and
+refuses, saying which boot check to run, when the cores do not answer.
 
 `remote` copies a bundle and the matching board tools to rigpi, runs `run`
 there for each board in turn, and retrieves every result.  `noise` writes
@@ -72,6 +80,13 @@ COUNTERS = 'compiler/tests/measure/firmware/boards'
 STATUS = 'measured_status'
 BEFORE, AFTER = 'measured_before', 'measured_after'
 LIMIT = 1 << 31
+# The runs of each image `run` and `remote` make unless --repeat says
+# otherwise, and the gate's time steps make (gate.TIMING_REPEAT): their
+# figure is the lower median, which is a warm run on every port where a
+# single run on the STM32H753 is a cold one
+# (compiler/tests/measure/noise/cycles.json).  Fewer runs give a figure
+# the gate's is not comparable with.
+REPEAT = 3
 
 # Each port's target and level, as the board bundles are built
 # (build.TARGETS), less the STM32H753's cached profile, whose caches a
@@ -477,6 +492,39 @@ def time_load(run, args, board, image, elf, attempt):
     return timed
 
 
+def boot_check_first(board):
+    """What to run before timing BOARD, a Pico 2 port whose architecture
+    the cores do not run."""
+    rest = ('end the session with an rp2350_hazard3 boot check, which leaves the board on its'
+            ' resting image' if board == 'rp2350' else 'it leaves the board on its resting image')
+    return ('run the %s boot check first, which flashes and cold-starts the port\'s fixed image, as'
+            ' the gate\'s pico2 port does before its %s steps: python3 environments/boards/run.py'
+            ' --board=%s --mode=boot --refine REFINE --output NEW_DIRECTORY -- with the arguments'
+            ' rig.json gives that step (environments/boards/README.md, "One Pico 2 port alone"); %s'
+            % (board, 'Arm' if board == 'rp2350' else 'Hazard3', board, rest))
+
+
+def require_architecture(run, args, board):
+    """Refuse to time BOARD, a Pico 2 port, unless its cores answer as the
+    port's architecture: a warm load never changes it, and the board may
+    run the other one's image (D712).  The read is pico2.attached's: an
+    attach that fails as this chip means the cores run the other; any
+    other failure is the run's own."""
+    import pico2
+    chip = pico2.ARM_CHIP if board == 'rp2350' else pico2.RISCV_CHIP
+    name = 'architecture-' + chip
+    try:
+        common.Probe(run, None, chip, args.probe, ram_loader=args.ram_loader).read_words(
+            name, pico2.FLASH, 1)
+    except Failed:
+        if not run.commands or run.commands[-1]['name'] != name or run.commands[-1]['status'] == 0:
+            raise
+        raise common.NeedsSetup(
+            'the Pico 2 does not answer as %s, so its cores do not run the %s architecture a %s'
+            ' timing run needs; a warm load does not change it. %s; see %s.log'
+            % (chip, 'Arm' if board == 'rp2350' else 'Hazard3', board, boot_check_first(board), name))
+
+
 def run_board(args):
     board = args.board
     manifest = read_bundle(args.bundle)
@@ -507,6 +555,10 @@ def run_board(args):
     lock = common.rig_lock('timing.py %s' % board)
     try:
         lock.acquire()
+        if pico:
+            import pico2
+            pico2.refuse_bootsel(common.InGroup(run, args.hub_group), args, False)
+            require_architecture(run, args, board)
         for image in images:
             if pico:
                 import pico2
@@ -870,11 +922,14 @@ def main(argv=None):
     hand.add_argument('--profile', choices=PROFILES, required=True, help='the profile the files were built at')
     hand.add_argument('--output', type=Path, required=True, help='a new directory')
     hand.add_argument('elf', type=Path, nargs='+', help='a RAM image of the board')
-    timed = commands.add_parser('run', help="time one board's images, on the rig host")
+    timed = commands.add_parser('run', help="time one board's images, on the rig host; the Pico 2's"
+                                ' Arm port, rp2350, after its boot check')
     timed.add_argument('--bundle', type=Path, required=True)
     timed.add_argument('--board', choices=BOARDS, required=True)
     timed.add_argument('--output', type=Path, required=True, help='a new directory')
-    timed.add_argument('--repeat', type=int, default=1, help='runs of each image')
+    repeated = ('runs of each image, %d by default as the gate makes them; the figure is their'
+                ' lower median, and with fewer it is not the gate\'s figure' % REPEAT)
+    timed.add_argument('--repeat', type=int, default=REPEAT, help=repeated)
     timed.add_argument('--image', action='append', help='an image digest or workload name; repeat')
     timed.add_argument('--profile', choices=PROFILES, action='append',
                        help='only the images one of these profiles gave; repeat')
@@ -892,7 +947,7 @@ def main(argv=None):
     wrapped.add_argument('--bundle', type=Path, required=True)
     wrapped.add_argument('--output', type=Path, required=True, help='a new directory')
     wrapped.add_argument('--board', choices=BOARDS, action='append', help='repeat; default every board')
-    wrapped.add_argument('--repeat', type=int, default=1)
+    wrapped.add_argument('--repeat', type=int, default=REPEAT, help=repeated)
     wrapped.add_argument('--profile', choices=PROFILES, action='append',
                          help='only the images one of these profiles gave; repeat')
     wrapped.add_argument('--image', action='append', help='an image digest or workload name; repeat')

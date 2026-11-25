@@ -255,6 +255,47 @@ class BaseCheckout(unittest.TestCase):
                               {"fixture": "runtime/none-such", "name": "w"},
                               Path(directory), None, root=Path(directory))
 
+    def test_a_copied_base_refine_is_told_its_tree(self):
+        #  A refine copied out of its build directory lies in no checkout:
+        #  the run refuses, naming the option that gives the base's tree.
+        with tempfile.TemporaryDirectory() as directory:
+            copied = Path(directory) / "refine"
+            copied.write_text("")
+            args = mock.Mock(refine="refine", base_refine=copied,
+                             base_checkout=None, target="linux-x86-64",
+                             output=directory, skip=[])
+            with mock.patch.object(measure, "targets",
+                                   lambda refine: {"linux-x86-64": {}}), \
+                    mock.patch.object(measure, "runner_rows", lambda given: {}), \
+                    mock.patch.object(measure, "workloads",
+                                      lambda: {"hosted": []}):
+                with self.assertRaisesRegex(measure.Failure,
+                                            "--base-checkout DIR"):
+                    measure.measure_time(args)
+
+    def test_a_refusal_for_want_of_a_library_names_the_option(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture = root / "compiler/tests/fixtures/runtime/w"
+            fixture.mkdir(parents=True)
+            (root / "compiler/ada").mkdir(parents=True)
+            refusal = mock.Mock(returncode=1, stdout="", stderr=(
+                "error[L0006]: no library was found: refine looked in"
+                " /x/lib/landin\n"))
+            with mock.patch.object(measure.fixture_meta, "read",
+                                   lambda path: mock.Mock(
+                                       library_arguments=lambda f: [],
+                                       source_arguments=lambda f: [])), \
+                    mock.patch.object(measure.subprocess, "run",
+                                      lambda *a, **k: refusal):
+                with self.assertRaisesRegex(measure.Failure,
+                                            "with --base-checkout DIR"):
+                    measure.build("refine", "linux-x86-64", "x86-64-v1",
+                                  ("speed", "auto"),
+                                  {"fixture": "runtime/w", "name": "w"},
+                                  root, None, root=root,
+                                  library_option="--base-checkout DIR")
+
 
 class Levels(unittest.TestCase):
     def test_kernel_flag_spellings(self):

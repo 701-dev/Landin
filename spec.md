@@ -31783,6 +31783,34 @@ read as none; and `scripts/tests/test_check_inventories.py`'s
 reports a compiler source changed since the file was written as stale,
 with both digests.
 
+**Amended by D2511:** a local run only notes a file whose source line
+alone is out of date; the gate and `item.py push` still refuse it.
+
+### D2511 — A stream does not regenerate the citations for a compiler edit alone
+
+**The tour said** nothing. Under D1357 every compiler edit made
+`citations.txt` stale, so each parallel stream regenerated it, and the
+union merge of their files gave two source lines the integrator replaced
+again. A decision a stream cited and never recorded drew no complaint but
+that stale file.
+
+**Chosen:** the full `python3 check.py` refuses a decision a compiler
+comment or a compiler reference (`docs/`, the compiler's and the tests'
+READMEs, `core/README.md`) cites and `spec.md` does not define. A local
+run notes, and does not refuse, a citations file whose source line alone
+differs from the checkout's; it refuses it on GitHub's runners and where
+`LANDIN_CITATIONS_STRICT` is set, and `item.py push` refuses it before
+anything is pushed, so whoever pushes regenerates once. A file stale in
+its entries is refused everywhere.
+
+**The alternatives:** leaving the digest out of the tracked file and
+stamping it at installation, which changes the packaging, the flake and
+the reader for a line; and a merge driver that regenerates the file,
+which a merge cannot run without the checkout's Python.
+
+**Pinned by** `scripts/tests/test_check_inventories.py`'s cases that a
+compiler edit alone is a note locally and refused in strict mode, and
+that an undefined cited decision is refused.
 ### D599 — A diagnostic's example names the options it is compiled with
 
 **The tour said** nothing. `docs/diagnostics.md`'s examples were compiled
@@ -38535,6 +38563,47 @@ the firmware programs', not the corpus's.
 `rv32imac` levels, `descriptions.json`'s `esp32c3` lane record,
 `run.py`'s `rv32` part and the gate's `cortex-m` matrix, and
 `environments/cortex-m/test.py`'s `RV32Lanes`.
+
+### D2489 — A locked Debian package comes from snapshot.debian.org when the pool has dropped it
+
+**The discrepancy:** `environments/cortex-m/tools.lock.json` fetched its
+117 Debian packages only from `deb.debian.org/debian/pool`, which keeps
+a file while a suite names its version. A security or point release
+supersedes a locked version, the archive removes the file, and Debian's
+mirror edges stop serving it one by one; on 2026-11-25 some edges answered
+404 for `libssl3t64` 3.5.7-1~deb13u2 and a gate job failed in `setup.py`.
+No lane keeps the downloads, so once every edge has dropped a file each
+job that installs the tools fails on every branch.
+
+**Chosen:** each `deb` entry of the lock also carries `snapshot`, the
+URL `https://snapshot.debian.org/file/SHA1` under which Debian's snapshot
+archive keeps that file for good, addressed by its content.
+`environments/cortex-m/setup.py` asks the pool first and the snapshot
+URL when the pool fails, 404 included, and holds the bytes from either to
+the locked SHA-256, so the pin is the same whichever answers.
+`environments/cortex-m/lock_snapshot.py` fills a new entry's URL by its
+package, version and file name, downloads it and refuses it unless its
+SHA-256 is the locked one; the lock is updated, with its `snapshot`
+URLs, in one change.
+
+**The alternatives:** snapshot URLs only, which put every job's 117
+downloads on an archive that throttles heavily and is slower than the
+pool's CDN; `snapshot.debian.org/archive/debian/TIMESTAMP/pool/...` at
+one time for the whole lock, taken only when the pool answers 404, which
+landed first, on 2026-11-25, and this replaces: a package added after
+that time is not in its snapshot, the time must be moved by hand with
+every change, and a pool that fails in any other way still fails the job,
+where the SHA-1 is one fixed URL per file and every one is fetched and
+checked when it is written; a cache of the downloads keyed by the
+lock, which GitHub evicts after a week unused and which the rig and a
+fresh host do not share, so a dropped file still fails there; moving the
+lock to the newest versions whenever the pool drops one, which changes
+the tested binaries under every branch at Debian's pace; and copies of
+the packages in a release of the project's own, a second store to keep.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash`
+and `test_every_locked_debian_package_has_its_snapshot_url`.
 
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 

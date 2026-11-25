@@ -23,13 +23,24 @@ by the path it was handed.  A split command named for another command is
 refused.  `dispatcher(refine)` is the `refine` for the commands a split
 does not run, the one installed beside it (D1384).
 
+`library_argument(parser)` adds `--library DIR` beside it, for a refine
+copied out of its build directory, which looks for its library at
+`../lib/landin` beside itself and so finds none (D275).
+`compile_command(refine, library)` starts a `refine compile` that names
+that library, and `missing_library(log)` reads a refusal that says
+refine found none, or found one without the Cortex-M reference profile
+(L0006, L0518), so a lane says so, naming its own `--library`, rather
+than reporting the refusal as the fixture's.
+
 Every lane that takes `--refine` takes it here; the rig's board tools,
 which run with no scripts/ beside them, take it from
 environments/boards/common.py, which asks through `warn`.
 scripts/tests/test_refine_revision.py holds both to it.
 """
+import argparse
 import os
 from pathlib import Path
+import re
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -44,6 +55,12 @@ _asked = set()
 
 class LaneError(ValueError):
     """A refine that cannot run what the lane asks of it."""
+
+
+class MissingLibrary(Exception):
+    """A refusal that is refine's missing library, not a program's verdict:
+    no RuntimeError, so a lane's handler that reads a failed build as a
+    limit or a restriction lets it pass."""
 
 
 def warn(refine):
@@ -110,3 +127,49 @@ def dispatcher(refine):
                         ' beside it, in ../../bin/: the cases that compile'
                         ' need one; name refine instead' % refine)
     return found
+
+
+def _library(text):
+    """TEXT as an absolute Path naming a directory, for `--library`."""
+    path = Path(text).absolute()
+    if not path.is_dir():
+        raise argparse.ArgumentTypeError('%s is no directory: --library names the'
+                                         ' directory holding core, hosted and platform'
+                                         % text)
+    return path
+
+
+def library_argument(parser, help=None):
+    """Add `--library DIR` to PARSER: the library a refine copied out of
+    its build directory is given, which refine finds by itself otherwise.
+    Returns the argparse action."""
+    return parser.add_argument(
+        '--library', type=_library, metavar='DIR',
+        help=help or 'the directory holding core, hosted and platform, passed to'
+                     ' refine compile; refine finds its own unless it was copied'
+                     ' out of its build directory')
+
+
+def compile_command(refine, library=None):
+    """The argument vector's start that runs `refine compile` with REFINE
+    and, when LIBRARY is given, `--library=LIBRARY`."""
+    return [refine, 'compile', *(['--library=' + str(library)] if library else [])]
+
+
+#  What refine says when it found no library (D275), and where it looked.
+NO_LIBRARY = re.compile(r'no library was found: refine looked in ([^\n]*)')
+
+
+def missing_library(log, option='--library DIR'):
+    """What a refusal in LOG says of refine's library, naming OPTION, the
+    lane's own way to give one, or None when LOG is no such refusal."""
+    found = NO_LIBRARY.search(log)
+    if found:
+        return ('refine found no library, looking in %s: a refine copied out of its build'
+                ' directory looks for ../lib/landin beside itself; name the directory'
+                ' holding core, hosted and platform with %s' % (found.group(1).strip(), option))
+    if 'error[L0518]' in log:
+        return ('refine\'s library holds no platform/cortex_m/reference, the profile a'
+                ' program importing no description is given (L0518): name a library that'
+                ' holds one with %s' % option)
+    return None

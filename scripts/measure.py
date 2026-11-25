@@ -19,7 +19,8 @@ with an oracle, named in compiler/tests/measure/workloads.json.
     measure.py runners --refine R
         every target/level pair the compiler gives and how it is measured,
         checked against compiler/tests/measure/runners.json
-    measure.py time --refine R --base-refine B --target T --output DIR
+    measure.py time --refine R --base-refine B [--base-checkout DIR] --target T
+            --output DIR
         paired wall time of every configuration the runner table times on
         this host: the candidate's and the base's images interleaved
 
@@ -45,6 +46,8 @@ MEASURE = ROOT / "compiler/tests/measure"
 BASELINES = MEASURE / "baselines"
 sys.path.insert(0, str(ROOT / "compiler/tests"))
 import fixture_meta  # noqa: E402
+sys.path.insert(0, str(ROOT / "scripts"))
+import lane_refine  # noqa: E402  -- the --refine every lane takes
 
 OPTIMIZE = ("none", "size", "speed")
 SPECIALIZE = ("off", "auto", "all")
@@ -279,7 +282,7 @@ def sources(arguments: list[str]) -> list[str]:
 
 
 def build(refine, target, level, profile, workload, out, toolchain, library=None,
-          root=ROOT):
+          root=ROOT, library_option="--library DIR"):
     fixture = root / "compiler/tests/fixtures" / workload["fixture"]
     require(fixture.is_dir(), f"{root} has no fixture {workload['fixture']} to build"
             f" {workload['name']} from")
@@ -298,6 +301,9 @@ def build(refine, target, level, profile, workload, out, toolchain, library=None
                f"--build-report={image}.json"]
     done = subprocess.run(command, capture_output=True, text=True, timeout=900,
                           cwd=root / "compiler/ada")
+    missing = done.returncode and lane_refine.missing_library(
+        done.stdout + done.stderr, library_option)
+    require(not missing, f"{refine}: {missing}")
     require(done.returncode == 0, f"{target} {key(level, profile, workload['name'])}"
             f" did not build:\n{' '.join(command)}\n{done.stdout}{done.stderr}")
     return image, meta, fixture
@@ -527,7 +533,11 @@ def measure_time(args) -> int:
     #  its own library: across a breaking window the base's library lacks
     #  what the candidate's fixtures name, and the candidate's has dropped
     #  what the base's name, so a program pairs with its own tree.
-    base_root = checkout_of(args.base_refine) or ROOT
+    base_root = args.base_checkout or checkout_of(args.base_refine)
+    require(base_root is not None, f"{args.base_refine} lies in no checkout, so"
+            " neither its fixtures nor its library are known: name the base"
+            " commit's tree with --base-checkout DIR")
+    base_library = args.base_checkout
 
     def built(item):
         level, profile, workload = item
@@ -535,7 +545,9 @@ def measure_time(args) -> int:
         for side, refine, root in (("candidate", args.refine, ROOT),
                                    ("base", args.base_refine, base_root)):
             image, _, _ = build(refine, target, level, profile, workload,
-                                out / side, None, root=root)
+                                out / side, None, root=root,
+                                library=base_library if side == "base" else None,
+                                library_option="--base-checkout DIR")
             pair.append((image, image_sections(image)[1]))
         return item, pair
 
@@ -978,6 +990,10 @@ def main(argv=None) -> int:
     lane_refine.argument(wall)
     wall.add_argument("--base-refine", type=Path, required=True,
                       help="the base commit's compiler")
+    wall.add_argument("--base-checkout", type=Path, metavar="DIR",
+                      help="the base commit's tree, whose fixtures the base"
+                      " builds and whose library it is given; by default the"
+                      " checkout --base-refine lies in")
     wall.add_argument("--target", required=True, help="this host's target")
     wall.add_argument("--output", required=True)
     wall.add_argument("--samples", type=int, default=5)

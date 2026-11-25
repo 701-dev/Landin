@@ -629,6 +629,84 @@ class MergeMain(Clone):
                              "origin/" + self.state["branch"]))
 
 
+    def fake_check(self, ages=(), whole=0):
+        """A check.py whose age check refuses AGES and whose whole run
+        exits WHOLE."""
+        (self.worktree / "check.py").write_text(
+            "import sys\nROOT = '.'\n"
+            "def register_ages(root):\n    return {}\n"
+            "def register_age_problems(root, ages):\n"
+            "    return %r\n"
+            "if __name__ == '__main__':\n"
+            "    print('roadmap/register/SR-1.md:1: the whole check refused')\n"
+            "    sys.exit(%d)\n" % (list(ages), whole))
+        git(self.worktree, "add", "-A")
+        git(self.worktree, "commit", "-q", "-m", "a check")
+
+    def test_push_runs_the_whole_check_over_a_changed_roadmap(self):
+        #  The item's start changed ROADMAP.md, so the whole check runs.
+        self.fake_check(whole=1)
+        status, out = self.item("push", FIRST)
+        self.assertEqual(status, 2, out)
+        self.assertIn("`python3 check.py` refuses this tree", out)
+        self.assertIn("the whole check refused", out)
+        self.assertIn("nothing was pushed", out)
+        self.assertIsNone(git_or_none(self.worktree, "rev-parse",
+                                      "origin/" + self.state["branch"]))
+
+    def test_merge_main_names_a_row_the_merge_aged(self):
+        self.fake_check(ages=[("roadmap/register/SR-1.md", 1,
+                               "SR-1 has stood open through 11 items")])
+        self.on_main("roadmap/questions/Q-0.md", "q\n",
+                     "Ask\n\n" + item.EXPLANATORY)
+        status, out = self.item("merge-main", FIRST)
+        self.assertEqual(status, 1, out)
+        self.assertIn("the register's age check refuses this tree", out)
+        self.assertIn("SR-1 has stood open", out)
+        self.assertIn("`item.py push %s` refuses" % FIRST, out)
+
+    def test_merge_main_merges_a_named_branch_without_the_token(self):
+        self.item("start", SECOND)
+        git(self.clone, "checkout", "-q", "-b", "w", "origin/main")
+        (self.clone / "roadmap").mkdir(exist_ok=True)
+        (self.clone / "roadmap" / "window.md").write_text("window\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "Window\n\n" + item.EXPLANATORY)
+        git(self.clone, "push", "-q", "origin", "w:r9-integration")
+        git(self.clone, "checkout", "-q", "main")
+        status, out = self.item("merge-main", FIRST, "--branch",
+                                "r9-integration")
+        self.assertEqual(status, 0, out)
+        self.assertIn("merged origin/r9-integration", out)
+        self.assertIn(item.EXPLANATORY, self.merged_message())
+        self.assertTrue((self.worktree / "roadmap" / "window.md").exists())
+        item.REPOSITORY[0] = self.clone
+        self.assertEqual(item.take(SECOND, "test"), (True, None))
+        status, out = self.item("merge-main", FIRST, "--branch", "absent")
+        self.assertEqual(status, 2, out)
+        self.assertIn("no branch origin/absent", out)
+
+
+class GateListing(Promote):
+    def test_main_listing_names_branches_and_main_not_started(self):
+        head = self.commit("work")
+        self.state["promoted"] = head
+        item.save(self.state)
+        saved = item.runs_of
+        item.runs_of = lambda commit: [{
+            "databaseId": 7, "event": "push",
+            "headBranch": self.state["branch"], "status": "completed",
+            "conclusion": "success", "displayTitle": "work", "attempt": 1}]
+        try:
+            status, out = self.item("gate", FIRST, "--main")
+        finally:
+            item.runs_of = saved
+        self.assertEqual(status, 0, out)
+        self.assertIn("run 7  software %s (push)" % self.state["branch"],
+                      out)
+        self.assertIn("main's own push gate on %s has not started yet"
+                      % head[:12], out)
+
 class Timing(Promote):
     """A boards run that failed in timing alone is re-run, not dispatched."""
 
@@ -847,6 +925,46 @@ class SessionToken(Clone):
         self.assertIn("released", out)
         self.assertEqual(item.take(FIRST, "test"), (True, None))
 
+
+    def test_work_that_is_no_item_waits_in_line(self):
+        self.item("start", FIRST)
+        self.item("start", SECOND)
+        item.REPOSITORY[0] = self.clone
+        item.take(FIRST, "test")
+        status, out = self.item("queue", "--take", "sweep", "--why", "sweep")
+        self.assertEqual(status, 1, out)
+        self.assertIn("sweep is number 1 in line", out)
+        self.assertIn("queue --wait sweep --why", out)
+        taken, why = item.take(SECOND, "test")
+        self.assertFalse(taken)
+        self.assertIn("%s is number 2 in line" % SECOND, why)
+        item.release(FIRST, "test")
+        taken, why = item.take(SECOND, "test")
+        self.assertIn("sweep waits for the promotion token before %s"
+                      % SECOND, why)
+        status, out = self.item("queue", "--wait", "nobody")
+        self.assertEqual(status, 2, out)
+        self.assertIn("--why TEXT", out)
+        status, out = self.item("queue", "--wait", "sweep", "--why", "sweep",
+                                "--timeout", "0")
+        self.assertEqual(status, 0, out)
+        self.assertIn("until `item.py queue --release sweep`", out)
+        self.item("queue", "--release", "sweep")
+        self.assertEqual(item.take(SECOND, "test"), (True, None))
+
+    def test_a_session_that_stopped_asking_leaves_the_line(self):
+        self.item("start", FIRST)
+        self.item("start", SECOND)
+        item.REPOSITORY[0] = self.clone
+        item.take(FIRST, "test")
+        self.assertFalse(item.take("sweep", "x", session=True)[0])
+        saved = item.SESSION_LINE
+        item.SESSION_LINE = -1
+        try:
+            taken, why = item.take(SECOND, "test")
+        finally:
+            item.SESSION_LINE = saved
+        self.assertIn("%s is number 1 in line" % SECOND, why)
 
 class Clashes(Clone):
     def test_a_merged_branch_that_took_a_reserved_number_is_named(self):

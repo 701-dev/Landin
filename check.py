@@ -3042,6 +3042,83 @@ def guide_link_citations(path, text, constructs):
     return out
 
 
+#  Where a decision is cited outside the specification and the roadmap:
+#  the compiler's comments, and the references that explain it.
+DECISION_CITING_TREES = ("compiler/ada",)
+DECISION_CITING_DOCUMENTS = ("docs", "compiler/ada/README.md",
+                             "compiler/tests/README.md", "core/README.md")
+#  A decision cited in running text: not a hexadecimal digit run such as
+#  Ada's 16#D800#, not a code point after `U+`, not part of a longer word.
+DECISION_CITATION = re.compile(r"(?<![\w#+-])D(\d+)(?![\w#])")
+
+
+def decision_citation_lines(path, text):
+    """(line, text) of what in PATH can cite a decision: an Ada source's
+    comments, a Markdown file's prose; code spans and fences are quoted,
+    and an Ada string literal is a program's text."""
+    ada = path.endswith((".adb", ".ads", ".gpr"))
+    fenced = False
+    for n, line in enumerate(text.split("\n"), 1):
+        if ada:
+            line = re.sub(r'"(?:[^"]|"")*"', '""', line)
+            at = line.find("--")
+            if at < 0:
+                continue
+            line = line[at:]
+        else:
+            if line.lstrip().startswith(("```", "~~~")):
+                fenced = not fenced
+                continue
+            if fenced:
+                continue
+        yield n, re.sub(r"`[^`]*`", "", line)
+
+
+def check_decision_citations(full_run):
+    """Every decision a compiler comment or reference cites is in spec.md.
+
+    Streams cited decisions for hours before the register had them, and
+    nothing said so: the only complaint was a stale citations file, which
+    every compiler edit makes stale anyway.  A decision is defined by its
+    `### Dn — ` heading in spec.md's register.
+    """
+    if not full_run:
+        return []
+    spec = os.path.join(ROOT, SPEC_NAME)
+    if not os.path.exists(spec):
+        return []
+    defined = {int(number) for number in re.findall(
+        r"^### D(\d+) — ", read_file(spec, encoding="utf-8"), re.M)}
+    paths = []
+    for tree_path in DECISION_CITING_TREES:
+        for directory, _, names in sorted(os.walk(os.path.join(ROOT,
+                                                              tree_path))):
+            paths += [os.path.join(directory, name) for name in sorted(names)
+                      if name.endswith((".adb", ".ads", ".gpr"))]
+    for document in DECISION_CITING_DOCUMENTS:
+        whole = os.path.join(ROOT, document)
+        if os.path.isdir(whole):
+            paths += sorted(os.path.join(whole, name)
+                            for name in os.listdir(whole)
+                            if name.endswith(".md"))
+        elif os.path.exists(whole):
+            paths.append(whole)
+    out = []
+    for path in paths:
+        relative = os.path.relpath(path, ROOT)
+        text = read_file(path, encoding="utf-8")
+        for n, line in decision_citation_lines(relative, text):
+            for found in DECISION_CITATION.finditer(line):
+                if int(found.group(1)) not in defined:
+                    out.append((relative, n,
+                                "D%s is cited and %s's register does not"
+                                " define it: add its entry, or take a"
+                                " number with `python3 scripts/"
+                                "register_next.py --decision`"
+                                % (found.group(1), SPEC_NAME)))
+    return out
+
+
 def check_citations(paths, guide_paths=()):
     """Every construct/finding citation resolves within the selected scope."""
     citation_paths = [path for path in paths
@@ -8772,6 +8849,19 @@ def citations_dump():
     return "\n".join(lines) + "\n"
 
 
+#  Where a citations file whose source line alone is stale fails the run:
+#  in the gate, or wherever this variable is set (D2511).
+CITATIONS_STRICT = "LANDIN_CITATIONS_STRICT"
+
+
+def citations_strict():
+    """Whether a source line alone out of date fails the run (D2511): in
+    GitHub's runners and wherever LANDIN_CITATIONS_STRICT is set; a local
+    run only notes it, since `item.py push` refuses it before the push."""
+    return bool(os.environ.get(CITATIONS_STRICT)) or \
+        os.environ.get("GITHUB_ACTIONS") == "true"
+
+
 def check_citation_table(full_run):
     """`refine explain`'s constructs and decisions are the documents'.
 
@@ -8808,6 +8898,16 @@ def check_citation_table(full_run):
         #  the documents did not.
         moved = (len(written) == len(wanted) and len(wanted) > 1
                  and written[:1] + written[2:] == wanted[:1] + wanted[2:])
+        if moved and not citations_strict():
+            #  Every compiler edit moves the digest; a stream need not
+            #  regenerate for it, and whoever pushes does (D2511).
+            print("note: %s names compiler sources %s and the checkout's are"
+                  " %s; regenerate it with %s before the push, which"
+                  " `item.py push` and the gate require (D2511)" % (
+                      CITATIONS_DATA,
+                      written[1][len(CITATIONS_SOURCE):][:12] or "none",
+                      digest[:12], regenerating(CITATIONS_DATA)))
+            return out
         out.append((CITATIONS_DATA, 2 if moved else 1,
                     "the citations are stale"
                     + ("; they name compiler sources %s and the checkout's"
@@ -10910,8 +11010,10 @@ PROCESS_SECTION_BUDGETS = {
     "The loop that runs now": 9200,
     #  Both raised when item.py learned breaking windows, the mirror's
     #  refusal and register_next.py's --delete and --decision, which an
-    #  item's agent meets in these steps and nowhere else.
-    "Running an item": 5600,
+    #  item's agent meets in these steps and nowhere else; and again when
+    #  push and merge-main learned the register check, merge-main a named
+    #  branch and the queue a line for work that is no item.
+    "Running an item": 5700,
     "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
@@ -10919,8 +11021,9 @@ PROCESS_SECTION_BUDGETS = {
     #  Raised when Windows arm64 added its three gate jobs, each a
     #  row of the job table, and its Microsoft link a fourth, again
     #  when refine built on FreeBSD added two rows, and again when the
-    #  Windows runtime jobs took the ABI fixtures' C peers.
-    "The mechanical gate": 49700,
+    #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
+    #  main added in the same weeks.
+    "The mechanical gate": 49800,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,
@@ -12920,6 +13023,7 @@ def main(argv):
     else:
         guide_paths = []
     extra = check_citations(citation_paths, guide_paths)
+    extra += check_decision_citations(full_run)
     stale_paths = LIVE_DOCS if full_run else paths
     extra += check_stale_backlog(stale_paths, full_run)
     extra += check_agent_guidance(full_run)

@@ -370,11 +370,11 @@ option. `.#refine-bin` fetches 0.2.11. Archives hold the library from 0.2.8
 on; an archive from 0.2.7 or earlier holds `refine` alone.
 
 Outside nix, the same archives are installed by Homebrew,
-`brew install janhaan/tap/landin` and `brew upgrade landin`, on
+`brew install 701-dev/tap/landin` and `brew upgrade landin`, on
 `aarch64-darwin`, `aarch64-linux` and `x86_64-linux`; the formula lives in
-the maintainer's tap, outside this repository and its gate, and needs the
-Xcode command-line tools on macOS and the system's GCC driver on Linux to
-link, as an unpacked archive does. What the formula depends on in a
+the tap `701-dev/homebrew-tap`, outside this repository and its gate,
+and needs the Xcode command-line tools on macOS and the system's GCC
+driver on Linux to link, as an unpacked archive does. What the formula depends on in a
 release, and the step that moves it, are in
 [the installers](process.md#the-installers).
 

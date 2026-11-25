@@ -260,6 +260,38 @@ class Lanes(unittest.TestCase):
             self.assertEqual(args.refine,
                              Path.cwd() / "build/bin/refine")
 
+    def test_a_library_is_given_to_compile_and_must_be_a_directory(self):
+        import argparse
+        parser = argparse.ArgumentParser(prog="lane")
+        lane_refine.library_argument(parser)
+        here = Path(tempfile.mkdtemp(prefix="lane-library-"))
+        self.addCleanup(shutil.rmtree, here)
+        self.assertEqual(parser.parse_args(["--library", str(here)]).library, here)
+        self.assertIsNone(parser.parse_args([]).library)
+        with contextlib.redirect_stderr(io.StringIO()) as said, \
+                self.assertRaises(SystemExit):
+            parser.parse_args(["--library", str(here / "none")])
+        self.assertIn("is no directory", said.getvalue())
+        self.assertEqual(lane_refine.compile_command("/r", here),
+                         ["/r", "compile", "--library=%s" % here])
+        self.assertEqual(lane_refine.compile_command("/r"), ["/r", "compile"])
+
+    def test_a_refusal_of_refines_library_names_the_lanes_option(self):
+        #  A copied refine's refusal is no fixture's verdict.
+        log = ("error[L0006]: module `core/mem` is in refine's library, and no"
+               " library was found: refine looked in /tmp/lib/landin\n"
+               "  = note: D275: name the directory holding core, hosted and"
+               " platform with --library=DIR after the command\n")
+        said = lane_refine.missing_library(log, "--base-library DIR")
+        self.assertIn("looking in /tmp/lib/landin", said)
+        self.assertIn("with --base-library DIR", said)
+        said = lane_refine.missing_library(
+            "error[L0518]: this placement needs a device profile\n")
+        self.assertIn("platform/cortex_m/reference", said)
+        self.assertIn("with --library DIR", said)
+        self.assertIsNone(lane_refine.missing_library(
+            "error[L0015]: core/io is unavailable on this target\n"))
+
     def test_the_environment_names_one_and_is_asked_too(self):
         with mock.patch.object(refine_revision, "warn") as warn, \
                 mock.patch.dict(os.environ, {"LANDIN_REFINE": "/e/refine"}):

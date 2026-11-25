@@ -11,9 +11,10 @@ from pathlib import Path
 import re
 import sys
 
+import backend  # noqa: E402
 from backend import (HERE, LEVELS, ROOT, COUNTERPARTS, DESCRIPTIONS,
                      MATERIALIZATION, REFERENCE, THUMB_2, ImageLimit, build, c_compiler,
-                     c_objects, conventions, derived, describe_routines, describe_sizes,
+                     c_objects, compile_command, conventions, derived, describe_routines, describe_sizes,
                      describe_stack, observed_stack,
                      execute as qemu, fixture, harness_start, image_contract, image_sizes,
                      hard_float, lane_inputs, lane_of, level_flags, levels_of, link,
@@ -200,7 +201,7 @@ def source_refusal(run, refine, name, row, level='armv6-m'):
     inputs = lane_inputs(level, meta.module_arguments(base))
     selected = [] if level == 'armv6-m' else ['--level=' + refine_level(level)]
     try:
-        run.command('compile-refusal', [refine, 'compile', *inputs, '--target=' + target(level), *selected,
+        run.command('compile-refusal', [*compile_command(refine), *inputs, '--target=' + target(level), *selected,
                     '--emit=asm', '-o', run.out / 'refused.s'], timeout=900)
     except RuntimeError:
         command = run.commands[-1]
@@ -209,10 +210,13 @@ def source_refusal(run, refine, name, row, level='armv6-m'):
     else:
         raise RuntimeError('recorded source restriction unexpectedly compiled: ' + name)
     log = (run.out / 'compile-refusal.log').read_text()
+    #  A compiler with no library beside it refuses every fixture with
+    #  L0006, which is no changed verdict: it says so, and how to give one.
+    missing = backend.missing_library(log)
+    if missing:
+        raise missing
     codes = sorted(set(re.findall(r'error\[(L\d+)\]', log)))
-    #  A refusal the row does not record says what refine said, first: a
-    #  compiler with no library beside it refuses every fixture with
-    #  L0006, which is no changed verdict.
+    #  A refusal the row does not record says what refine said, first.
     #  On a lane the row's own codes are the reference's, so a lane whose
     #  refusal differs is given an entry of its own rather than new codes.
     lane = lane_of(level)
@@ -267,10 +271,13 @@ def restriction(run, refine, name, row, optimize, specialize, level='armv6-m'):
     reached, found = None, []
     try:
         run.command('compile-restricted', [
-            refine, 'compile', *lane_inputs(level, inputs), '--target=' + target(level), *selected,
-            '--emit=asm', '-o', run.out / 'restricted.s'], timeout=900)
+            *compile_command(refine), *lane_inputs(level, inputs), '--target=' + target(level),
+            *selected, '--emit=asm', '-o', run.out / 'restricted.s'], timeout=900)
     except CommandFailed as error:
         log = Path(error.log).read_text(errors='replace')
+        missing = backend.missing_library(log)
+        if missing:
+            raise missing from None
         said = next((line.strip() for line in log.splitlines()
                      if 'internal compiler defect' in line), None)
         if said is None:
@@ -360,7 +367,7 @@ def convention_control(parent, refine, name, level):
                       name='wrong')
     profile = derived(run, refine, LEVELS[level]['profile'])
     selected = [] if level == 'armv6-m' else ['--level=' + refine_level(level)]
-    run.command('compile', [refine, 'compile', *lane_inputs(level, meta.module_arguments(base)),
+    run.command('compile', [*compile_command(refine), *lane_inputs(level, meta.module_arguments(base)),
                             '--target=' + target(level), *selected, '--emit=asm',
                             '-o', out / 'program.s'], timeout=60)
     program = out / 'input-1.o'
@@ -437,7 +444,8 @@ def refine_link_route(parent, refine, name, level):
     selected = [] if level == 'armv6-m' else ['--level=' + refine_level(level)]
     elf = out / 'firmware.elf'
     run.command('compile', [
-        refine, 'compile', '--target=' + target(level), *selected, '--firmware-entry=start',
+        *compile_command(refine), '--target=' + target(level), *selected,
+        '--firmware-entry=start',
         '--emit=exe', '--toolchain=' + str(run.arm / 'arm-eabi-gcc'), '-L', out / 'lib',
         *lane_inputs(level, [*meta.module_arguments(base), str(out / 'entry.ldn')]),
         '-o', elf], timeout=60)
@@ -843,7 +851,7 @@ def program_names(programs):
 
 
 def observe(output, tools, refine, programs, profiles, levels=('armv6-m',), roots=(),
-            c_sources=()):
+            c_sources=(), library=None):
     """Run each of PROGRAMS, a source file or a module directory, at
     PROFILES and at each of LEVELS, on that level's machine and map, the
     constrained reference's for armv6-m, and say what it returned or
@@ -854,8 +862,11 @@ def observe(output, tools, refine, programs, profiles, levels=('armv6-m',), root
     value comes back as a value.  The harness still holds the stack to its
     reservation and names the routine that overran it.  C_SOURCES are C
     peers built by the lane's C contract (D985) and linked with the one
-    program they are given beside.  Nothing here is corpus evidence.
+    program they are given beside.  LIBRARY, when given, is the library
+    every compilation names (backend.use_library).  Nothing here is corpus
+    evidence.
     """
+    backend.use_library(library)
     if isinstance(programs, (str, Path)):
         programs = [programs]
     if isinstance(levels, str):
@@ -974,11 +985,13 @@ def observe_one(output, tools, refine, path, name, profiles, level, roots, peers
     return results
 
 
-def execute(output, tools, refine, selected=(), profiles=(), lane=None):
+def execute(output, tools, refine, selected=(), profiles=(), lane=None, library=None):
     """Run the corpus: every row at the default level, and each `execute`
     row at each M-profile level its fixture's `levels:` names, or with
     LANE every row alone on that emulator lane, at its level and on its
-    description's map (D607, D619)."""
+    description's map (D607, D619).  LIBRARY, when given, is the library
+    every compilation names (backend.use_library)."""
+    backend.use_library(library)
     rows = inventory()
     require(lane is None or lane in LANES, 'unknown corpus lane %s; the lanes are %s'
             % (lane, ', '.join(LANES)))
@@ -1186,6 +1199,7 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(parser)
+    lane_refine.library_argument(parser)
     parser.add_argument('--tools', type=Path, default=DEFAULT)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--case', action='append', default=[],
@@ -1243,10 +1257,10 @@ def main():
                 % (', '.join(sorted(set(chosen) - set(known))), ', '.join(known)))
         observe(out, args.tools.resolve(), args.refine.resolve(), args.program,
                 [known[p] for p in chosen] or PROFILES, args.level or ['armv6-m'], args.root,
-                args.c_source)
+                args.c_source, args.library)
         return
     execute(out, args.tools.resolve(), args.refine.resolve(), args.case, args.profile,
-            args.lane)
+            args.lane, args.library)
 
 
 if __name__ == '__main__':

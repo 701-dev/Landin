@@ -129,13 +129,13 @@ puts the steps in order:
 | start | `item.py start ITEM` | refuses a complete item or one with an incomplete dependency; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
 | after a reopen | `item.py resume [ITEM]` | the worktree, every recorded run as running, finished or lost, the gate runs, the journal's last lines and the next step |
 | along the way | `item.py note ITEM TEXT`, `item.py run ITEM NAME --limit S [--cwd DIR] -- COMMAND` | a dated journal line; a detached `run_logged.py` run kept in the state, in the item's worktree or DIR |
-| push | `item.py push ITEM [--watch]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does |
-| gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, and follows them with `gate_watch.py --all` in a detached run; a failed boards run is named a timing failure when only timing jobs failed |
+| push | `item.py push ITEM [--watch]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; refuses a tree the register's age check refuses, or the whole `check.py` when the push changes the roadmap; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does |
+| gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, naming each run's branch, and follows them with `gate_watch.py --all` in a detached run; a failed boards run is named a timing failure when only timing jobs failed |
 | boards | `item.py boards ITEM [--watch] [--unmerged] [--rerun-failed]` | dispatches `scope=boards` on the pushed head, records the run and with `--watch` follows it in a detached run; refuses while `main` is not an ancestor of the head, since promotion would refuse that tree (`--unmerged` dispatches anyway, for board feedback before the final merge); `--rerun-failed` re-runs only the failed jobs of a boards run that [failed in timing alone](#a-timing-failure-is-not-a-boards-failure) |
-| merging main | `item.py merge-main ITEM [--no-queue]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work |
+| merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work |
 | promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
 | finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
-| watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait ITEM \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released |
+| watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait NAME [--why TEXT] \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released, in line when held |
 | report | `item.py report ITEM` | a draft of [the report](../.agents/skills/landin-change/report.md), ending with the open questions the item asked and their defaults |
 
 ### A breaking window
@@ -1338,6 +1338,7 @@ it up when that gate ends (`item.py gate ITEM --main`, or `finish`) or with
 `item.py queue --release ITEM`. An item that finds the token held is put
 in line and waits with `item.py queue --wait ITEM`, which returns once the
 token is its own; it keeps working meanwhile, but takes no final merge.
+Work that is no item waits for it with `queue --wait NAME --why TEXT`.
 A holder this clone no longer runs, or whose `main` gate has ended, holds
 nothing. A merge whose main side is all `Gate: explanatory` and leaves the
 gate key alone is declared so by `merge-main` and reuses the candidate's
@@ -1649,23 +1650,23 @@ Two installers follow a published release, and neither is moved by the
 release workflow. The flake's `releaseVersion` and `releaseHashes` are
 written by hand from the publishing job's log, as `flake.nix` says beside
 them. The Homebrew formula, `Formula/landin.rb` in
-<https://github.com/JanHaan/homebrew-tap>, is moved by that tap's
+<https://github.com/701-dev/homebrew-tap>, is moved by that tap's
 `bump-landin` workflow, which runs daily and points the formula at
 GitHub's latest release. Right after publishing, run it at once rather
 than waiting for the schedule:
 
 ```sh
-gh workflow run bump-landin.yml --repo JanHaan/homebrew-tap -f version=X.Y.Z
+gh workflow run bump-landin.yml --repo 701-dev/homebrew-tap -f version=X.Y.Z
 ```
 
 Then check it: the tap's `main` gains the commit `Landin formula X.Y.Z`,
 and on a Mac with Apple Silicon and on Linux `brew update && brew upgrade
-landin` (or `brew install janhaan/tap/landin`) followed by `brew test
+landin` (or `brew install 701-dev/tap/landin`) followed by `brew test
 landin` passes; the formula's test runs `refine version`, which must name
 X.Y.Z, `refine svd --help`, a split command found in the keg's
 `libexec/landin` only through `refine`'s resolved path, and `refine run`
-of the README's first program. The tap is the maintainer's own
-repository, outside this one's gate.
+of the README's first program. The tap is a repository of its own,
+`701-dev/homebrew-tap`, outside this one's gate.
 
 The formula depends on these properties of a release, so a change to any
 of them changes the formula first, in the tap:

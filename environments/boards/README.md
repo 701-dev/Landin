@@ -440,19 +440,25 @@ end an Arm session with a `rp2350_hazard3` boot check.
 
 [Timing](#timing-runs) one port is a `--board` of `timing.py`, which takes
 the Pico 2's hub and port from rig.json itself. Each timing run is a warm
-load, so the board must run the port's architecture here as well:
+load, so the board must run the port's architecture here as well. Before
+the first image, the timing run reads the board as its port's architecture.
+If the cores do not answer, it refuses and names the boot check to run:
 
 ```sh
 python3 environments/boards/timing.py build --refine REFINE --output BUNDLE \
     --board rp2350_hazard3
 python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY \
-    --board rp2350_hazard3 --repeat 3
+    --board rp2350_hazard3
 python3 environments/boards/timing.py figures --results NEW_DIRECTORY --output figures.json
 python3 environments/boards/timing.py compare figures.json
 python3 environments/boards/timing.py record figures.json --board rp2350_hazard3
 ```
 
-The same holds for `rp2350` once the board runs Arm.
+For `rp2350`, run its boot check first, as the gate's pico2 port does
+before its Arm steps: the boot command above with `--board=rp2350`. The
+board then runs Arm, and
+`timing.py` times it with `--board rp2350`. End the session with the
+`rp2350_hazard3` boot check, which returns the board to its resting image.
 
 ### A Pico 2 with a data cable
 
@@ -554,7 +560,7 @@ RAM run each, through the SRAM helper's timing plan:
 ```sh
 python3 environments/boards/timing.py build --refine REFINE --output BUNDLE
 python3 environments/boards/timing.py remote --bundle BUNDLE --output NEW_DIRECTORY \
-    --board esp32 --repeat 3 --ram-loader PI_HELPER
+    --board esp32 --ram-loader PI_HELPER
 python3 environments/boards/timing.py figures --results NEW_DIRECTORY --output figures.json
 ```
 
@@ -586,7 +592,10 @@ of `--board`, held to `--workload`'s status and checksum and named
 that loads what another does, is refused.
 
 `run`, on rigpi, holds the rig lock across one port's images and runs each
-`--repeat` times; `remote` copies the bundle and these tools there and
+`--repeat` times, three by default. The gate's time steps use the same
+three, and the figure is the lower median of the runs. A figure from one
+run is not the gate's figure, so compare it with nothing the gate
+recorded. `remote` copies the bundle and these tools there and
 runs each `--board` in turn, as `run.py` does for a board tool. Each run is
 a warm load as a RAM run's, then:
 
@@ -625,7 +634,9 @@ figure, keyed `board/level/profile/workload`, from a full pass's: the
 lower median of its runs, a profile whose image another gave citing its
 digest, and each limit with its reason. The RP2350's Arm images run while the
 Pico 2 runs Arm: a `rp2350` boot check first, and a `rp2350_hazard3` boot
-check after, which leaves it on its resting image. A timing run leaves a
+check after, which leaves it on its resting image. A timing run of either
+port refuses a board whose cores run the other port's architecture
+([above](#one-pico-2-port-alone)). A timing run leaves a
 port's RAM image looping where it stopped, as a RAM run leaves its
 application; the next RAM run or boot check starts from that.
 
