@@ -256,7 +256,12 @@ note, which no loader reads, and `platform/linux`'s entry refuses it instead,
 before `main`, with status 127 and one line on standard error (D284). Linux
 arm64 and RV64 executables carry no note: a static build is held to its
 level by the entry, through AT_HWCAP and `riscv_hwprobe` (XTheadBa
-excepted), and a libc build is not held to it.
+excepted), and a libc build is not held to it. A Windows image carries no
+level mark (D2189), and `platform/windows`' entry holds it to its level the
+same way before it reads the command line: on x86-64 through
+`platform/x86_64`, the `cpuid` reading Linux's entry uses too, and on arm64
+through `IsProcessorFeaturePresent`, which reports LSE and CRC32 and nothing
+for RDM (D2475 to D2477).
 Darwin's lowest processor, Apple's M1, has more than `armv8-a`; the default
 assumes less than any Mac has, which is sound, and a build for Apple silicon
 may select `armv8.1-a`. Each test lane runs the levels a runtime fixture's

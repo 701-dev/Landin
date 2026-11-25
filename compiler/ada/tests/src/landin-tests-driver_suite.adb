@@ -8556,6 +8556,10 @@ package body Landin.Tests.Driver_Suite is
       System_Module_Accepted ("windows-arm64", "platform/posix", "posix");
       System_Module_Accepted ("linux-x86-64", "platform/windows", "windows");
       System_Module_Accepted ("darwin-arm64", "platform/windows", "windows");
+      --  x86-64's processor reading is imported on every target and
+      --  declares nothing off x86_64 (D2476).
+      System_Module_Accepted ("windows-arm64", "platform/x86_64", "x86_64");
+      System_Module_Accepted ("linux-rv64", "platform/x86_64", "x86_64");
       Hosted_Accepted;
       Refused ("linux-x86-64", "platform/cortex_m/reference", True);
       Refused ("linux-x86-64", "platform/cortex_m/reference", False);

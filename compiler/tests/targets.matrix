@@ -2898,6 +2898,7 @@ runtime/whole-arrays-copy-between-storage | linux-x86-64, linux-arm64, darwin-ar
 runtime/windows-events-child-wait | windows-x86-64, windows-arm64
 runtime/windows-events-console-control | windows-x86-64, windows-arm64
 runtime/windows-events-control-in-worker | windows-x86-64, windows-arm64
+runtime/windows-level-check | windows-x86-64, windows-arm64
 runtime/windows-run-programs | windows-x86-64, windows-arm64
 runtime/word-count | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/word-count-closed-input | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
