@@ -37,11 +37,11 @@
   },
   "x86-64-v1/none-all/fibre": {
    "sections": {
-    ".text": 104533,
-    ".rdata": 25540,
+    ".text": 104664,
+    ".rdata": 25568,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -70,11 +70,11 @@
   },
   "x86-64-v1/none-all/thread": {
    "sections": {
-    ".text": 128660,
-    ".rdata": 30748,
+    ".text": 128822,
+    ".rdata": 30776,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -114,11 +114,11 @@
   },
   "x86-64-v1/none-auto/fibre": {
    "sections": {
-    ".text": 104533,
-    ".rdata": 25540,
+    ".text": 104664,
+    ".rdata": 25568,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -147,11 +147,11 @@
   },
   "x86-64-v1/none-auto/thread": {
    "sections": {
-    ".text": 128660,
-    ".rdata": 30748,
+    ".text": 128822,
+    ".rdata": 30776,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -191,11 +191,11 @@
   },
   "x86-64-v1/none-off/fibre": {
    "sections": {
-    ".text": 104535,
-    ".rdata": 25540,
+    ".text": 104666,
+    ".rdata": 25568,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 64
    }
@@ -224,11 +224,11 @@
   },
   "x86-64-v1/none-off/thread": {
    "sections": {
-    ".text": 128661,
-    ".rdata": 30748,
+    ".text": 128823,
+    ".rdata": 30776,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 72
    }
@@ -268,11 +268,11 @@
   },
   "x86-64-v1/size-all/fibre": {
    "sections": {
-    ".text": 39750,
-    ".rdata": 20884,
+    ".text": 39881,
+    ".rdata": 20912,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -301,11 +301,11 @@
   },
   "x86-64-v1/size-all/thread": {
    "sections": {
-    ".text": 49265,
-    ".rdata": 24788,
+    ".text": 49427,
+    ".rdata": 24816,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -345,11 +345,11 @@
   },
   "x86-64-v1/size-auto/fibre": {
    "sections": {
-    ".text": 39750,
-    ".rdata": 20884,
+    ".text": 39881,
+    ".rdata": 20912,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -378,11 +378,11 @@
   },
   "x86-64-v1/size-auto/thread": {
    "sections": {
-    ".text": 49265,
-    ".rdata": 24788,
+    ".text": 49427,
+    ".rdata": 24816,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -422,11 +422,11 @@
   },
   "x86-64-v1/size-off/fibre": {
    "sections": {
-    ".text": 39752,
-    ".rdata": 20884,
+    ".text": 39883,
+    ".rdata": 20912,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 64
    }
@@ -455,11 +455,11 @@
   },
   "x86-64-v1/size-off/thread": {
    "sections": {
-    ".text": 49309,
-    ".rdata": 24788,
+    ".text": 49471,
+    ".rdata": 24816,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 72
    }
@@ -499,11 +499,11 @@
   },
   "x86-64-v1/speed-all/fibre": {
    "sections": {
-    ".text": 49971,
-    ".rdata": 20580,
+    ".text": 50071,
+    ".rdata": 20608,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -532,11 +532,11 @@
   },
   "x86-64-v1/speed-all/thread": {
    "sections": {
-    ".text": 61955,
-    ".rdata": 24428,
+    ".text": 62055,
+    ".rdata": 24456,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -576,11 +576,11 @@
   },
   "x86-64-v1/speed-auto/fibre": {
    "sections": {
-    ".text": 49971,
-    ".rdata": 20580,
+    ".text": 50071,
+    ".rdata": 20608,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 48
    }
@@ -609,11 +609,11 @@
   },
   "x86-64-v1/speed-auto/thread": {
    "sections": {
-    ".text": 61955,
-    ".rdata": 24428,
+    ".text": 62055,
+    ".rdata": 24456,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 52
    }
@@ -653,11 +653,11 @@
   },
   "x86-64-v1/speed-off/fibre": {
    "sections": {
-    ".text": 49971,
-    ".rdata": 20580,
+    ".text": 50071,
+    ".rdata": 20608,
     ".buildid": 53,
     ".data": 16640,
-    ".pdata": 1188,
+    ".pdata": 1212,
     ".tls": 16,
     ".reloc": 64
    }
@@ -686,11 +686,11 @@
   },
   "x86-64-v1/speed-off/thread": {
    "sections": {
-    ".text": 62149,
-    ".rdata": 24428,
+    ".text": 62249,
+    ".rdata": 24456,
     ".buildid": 53,
     ".data": 147776,
-    ".pdata": 1536,
+    ".pdata": 1560,
     ".tls": 24,
     ".reloc": 72
    }
@@ -730,11 +730,11 @@
   },
   "x86-64-v2/none-all/fibre": {
    "sections": {
-    ".text": 110028,
-    ".rdata": 26556,
+    ".text": 110159,
+    ".rdata": 26584,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -763,11 +763,11 @@
   },
   "x86-64-v2/none-all/thread": {
    "sections": {
-    ".text": 134155,
-    ".rdata": 31772,
+    ".text": 134317,
+    ".rdata": 31800,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -807,11 +807,11 @@
   },
   "x86-64-v2/none-auto/fibre": {
    "sections": {
-    ".text": 110028,
-    ".rdata": 26556,
+    ".text": 110159,
+    ".rdata": 26584,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -840,11 +840,11 @@
   },
   "x86-64-v2/none-auto/thread": {
    "sections": {
-    ".text": 134155,
-    ".rdata": 31772,
+    ".text": 134317,
+    ".rdata": 31800,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -884,11 +884,11 @@
   },
   "x86-64-v2/none-off/fibre": {
    "sections": {
-    ".text": 110030,
-    ".rdata": 26556,
+    ".text": 110161,
+    ".rdata": 26584,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 64
    }
@@ -917,11 +917,11 @@
   },
   "x86-64-v2/none-off/thread": {
    "sections": {
-    ".text": 134156,
-    ".rdata": 31772,
+    ".text": 134318,
+    ".rdata": 31800,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 72
    }
@@ -961,11 +961,11 @@
   },
   "x86-64-v2/size-all/fibre": {
    "sections": {
-    ".text": 42335,
-    ".rdata": 21900,
+    ".text": 42466,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -994,11 +994,11 @@
   },
   "x86-64-v2/size-all/thread": {
    "sections": {
-    ".text": 51850,
-    ".rdata": 25804,
+    ".text": 52012,
+    ".rdata": 25832,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1038,11 +1038,11 @@
   },
   "x86-64-v2/size-auto/fibre": {
    "sections": {
-    ".text": 42335,
-    ".rdata": 21900,
+    ".text": 42466,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1071,11 +1071,11 @@
   },
   "x86-64-v2/size-auto/thread": {
    "sections": {
-    ".text": 51850,
-    ".rdata": 25804,
+    ".text": 52012,
+    ".rdata": 25832,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1115,11 +1115,11 @@
   },
   "x86-64-v2/size-off/fibre": {
    "sections": {
-    ".text": 42337,
-    ".rdata": 21900,
+    ".text": 42468,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 64
    }
@@ -1148,11 +1148,11 @@
   },
   "x86-64-v2/size-off/thread": {
    "sections": {
-    ".text": 51894,
-    ".rdata": 25804,
+    ".text": 52056,
+    ".rdata": 25832,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 72
    }
@@ -1192,11 +1192,11 @@
   },
   "x86-64-v2/speed-all/fibre": {
    "sections": {
-    ".text": 52844,
-    ".rdata": 21596,
+    ".text": 52944,
+    ".rdata": 21624,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1225,11 +1225,11 @@
   },
   "x86-64-v2/speed-all/thread": {
    "sections": {
-    ".text": 64835,
-    ".rdata": 25444,
+    ".text": 64935,
+    ".rdata": 25472,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1269,11 +1269,11 @@
   },
   "x86-64-v2/speed-auto/fibre": {
    "sections": {
-    ".text": 52844,
-    ".rdata": 21596,
+    ".text": 52944,
+    ".rdata": 21624,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1302,11 +1302,11 @@
   },
   "x86-64-v2/speed-auto/thread": {
    "sections": {
-    ".text": 64835,
-    ".rdata": 25444,
+    ".text": 64935,
+    ".rdata": 25472,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1346,11 +1346,11 @@
   },
   "x86-64-v2/speed-off/fibre": {
    "sections": {
-    ".text": 52844,
-    ".rdata": 21596,
+    ".text": 52944,
+    ".rdata": 21624,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1296,
+    ".pdata": 1320,
     ".tls": 16,
     ".reloc": 64
    }
@@ -1379,11 +1379,11 @@
   },
   "x86-64-v2/speed-off/thread": {
    "sections": {
-    ".text": 65029,
-    ".rdata": 25444,
+    ".text": 65129,
+    ".rdata": 25472,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1644,
+    ".pdata": 1668,
     ".tls": 24,
     ".reloc": 72
    }
@@ -1423,11 +1423,11 @@
   },
   "x86-64-v3/none-all/fibre": {
    "sections": {
-    ".text": 112728,
-    ".rdata": 26732,
+    ".text": 112859,
+    ".rdata": 26760,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1456,11 +1456,11 @@
   },
   "x86-64-v3/none-all/thread": {
    "sections": {
-    ".text": 136855,
-    ".rdata": 31948,
+    ".text": 137017,
+    ".rdata": 31976,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1500,11 +1500,11 @@
   },
   "x86-64-v3/none-auto/fibre": {
    "sections": {
-    ".text": 112728,
-    ".rdata": 26732,
+    ".text": 112859,
+    ".rdata": 26760,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1533,11 +1533,11 @@
   },
   "x86-64-v3/none-auto/thread": {
    "sections": {
-    ".text": 136855,
-    ".rdata": 31948,
+    ".text": 137017,
+    ".rdata": 31976,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1577,11 +1577,11 @@
   },
   "x86-64-v3/none-off/fibre": {
    "sections": {
-    ".text": 112730,
-    ".rdata": 26732,
+    ".text": 112861,
+    ".rdata": 26760,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 64
    }
@@ -1610,11 +1610,11 @@
   },
   "x86-64-v3/none-off/thread": {
    "sections": {
-    ".text": 136856,
-    ".rdata": 31948,
+    ".text": 137018,
+    ".rdata": 31976,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 72
    }
@@ -1654,11 +1654,11 @@
   },
   "x86-64-v3/size-all/fibre": {
    "sections": {
-    ".text": 43207,
-    ".rdata": 22076,
+    ".text": 43338,
+    ".rdata": 22104,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1687,11 +1687,11 @@
   },
   "x86-64-v3/size-all/thread": {
    "sections": {
-    ".text": 52722,
-    ".rdata": 25980,
+    ".text": 52884,
+    ".rdata": 26008,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1731,11 +1731,11 @@
   },
   "x86-64-v3/size-auto/fibre": {
    "sections": {
-    ".text": 43207,
-    ".rdata": 22076,
+    ".text": 43338,
+    ".rdata": 22104,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1764,11 +1764,11 @@
   },
   "x86-64-v3/size-auto/thread": {
    "sections": {
-    ".text": 52722,
-    ".rdata": 25980,
+    ".text": 52884,
+    ".rdata": 26008,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1808,11 +1808,11 @@
   },
   "x86-64-v3/size-off/fibre": {
    "sections": {
-    ".text": 43209,
-    ".rdata": 22076,
+    ".text": 43340,
+    ".rdata": 22104,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 64
    }
@@ -1841,11 +1841,11 @@
   },
   "x86-64-v3/size-off/thread": {
    "sections": {
-    ".text": 52766,
-    ".rdata": 25980,
+    ".text": 52928,
+    ".rdata": 26008,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 72
    }
@@ -1885,11 +1885,11 @@
   },
   "x86-64-v3/speed-all/fibre": {
    "sections": {
-    ".text": 53868,
-    ".rdata": 21772,
+    ".text": 53968,
+    ".rdata": 21800,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1918,11 +1918,11 @@
   },
   "x86-64-v3/speed-all/thread": {
    "sections": {
-    ".text": 65859,
-    ".rdata": 25620,
+    ".text": 65959,
+    ".rdata": 25648,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -1962,11 +1962,11 @@
   },
   "x86-64-v3/speed-auto/fibre": {
    "sections": {
-    ".text": 53868,
-    ".rdata": 21772,
+    ".text": 53968,
+    ".rdata": 21800,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 48
    }
@@ -1995,11 +1995,11 @@
   },
   "x86-64-v3/speed-auto/thread": {
    "sections": {
-    ".text": 65859,
-    ".rdata": 25620,
+    ".text": 65959,
+    ".rdata": 25648,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2039,11 +2039,11 @@
   },
   "x86-64-v3/speed-off/fibre": {
    "sections": {
-    ".text": 53868,
-    ".rdata": 21772,
+    ".text": 53968,
+    ".rdata": 21800,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1308,
+    ".pdata": 1332,
     ".tls": 16,
     ".reloc": 64
    }
@@ -2072,11 +2072,11 @@
   },
   "x86-64-v3/speed-off/thread": {
    "sections": {
-    ".text": 66053,
-    ".rdata": 25620,
+    ".text": 66153,
+    ".rdata": 25648,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1656,
+    ".pdata": 1680,
     ".tls": 24,
     ".reloc": 72
    }
@@ -2116,11 +2116,11 @@
   },
   "x86-64-v4/none-all/fibre": {
    "sections": {
-    ".text": 114211,
-    ".rdata": 26860,
+    ".text": 114342,
+    ".rdata": 26888,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2149,11 +2149,11 @@
   },
   "x86-64-v4/none-all/thread": {
    "sections": {
-    ".text": 138338,
-    ".rdata": 32068,
+    ".text": 138500,
+    ".rdata": 32096,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2193,11 +2193,11 @@
   },
   "x86-64-v4/none-auto/fibre": {
    "sections": {
-    ".text": 114211,
-    ".rdata": 26860,
+    ".text": 114342,
+    ".rdata": 26888,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2226,11 +2226,11 @@
   },
   "x86-64-v4/none-auto/thread": {
    "sections": {
-    ".text": 138338,
-    ".rdata": 32068,
+    ".text": 138500,
+    ".rdata": 32096,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2270,11 +2270,11 @@
   },
   "x86-64-v4/none-off/fibre": {
    "sections": {
-    ".text": 114213,
-    ".rdata": 26860,
+    ".text": 114344,
+    ".rdata": 26888,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 64
    }
@@ -2303,11 +2303,11 @@
   },
   "x86-64-v4/none-off/thread": {
    "sections": {
-    ".text": 138339,
-    ".rdata": 32068,
+    ".text": 138501,
+    ".rdata": 32096,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 72
    }
@@ -2347,11 +2347,11 @@
   },
   "x86-64-v4/size-all/fibre": {
    "sections": {
-    ".text": 43665,
-    ".rdata": 22196,
+    ".text": 43796,
+    ".rdata": 22224,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2380,11 +2380,11 @@
   },
   "x86-64-v4/size-all/thread": {
    "sections": {
-    ".text": 53180,
-    ".rdata": 26100,
+    ".text": 53342,
+    ".rdata": 26128,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2424,11 +2424,11 @@
   },
   "x86-64-v4/size-auto/fibre": {
    "sections": {
-    ".text": 43665,
-    ".rdata": 22196,
+    ".text": 43796,
+    ".rdata": 22224,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2457,11 +2457,11 @@
   },
   "x86-64-v4/size-auto/thread": {
    "sections": {
-    ".text": 53180,
-    ".rdata": 26100,
+    ".text": 53342,
+    ".rdata": 26128,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2501,11 +2501,11 @@
   },
   "x86-64-v4/size-off/fibre": {
    "sections": {
-    ".text": 43667,
-    ".rdata": 22196,
+    ".text": 43798,
+    ".rdata": 22224,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 64
    }
@@ -2534,11 +2534,11 @@
   },
   "x86-64-v4/size-off/thread": {
    "sections": {
-    ".text": 53224,
-    ".rdata": 26100,
+    ".text": 53386,
+    ".rdata": 26128,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 72
    }
@@ -2578,11 +2578,11 @@
   },
   "x86-64-v4/speed-all/fibre": {
    "sections": {
-    ".text": 54380,
-    ".rdata": 21900,
+    ".text": 54480,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2611,11 +2611,11 @@
   },
   "x86-64-v4/speed-all/thread": {
    "sections": {
-    ".text": 66371,
-    ".rdata": 25740,
+    ".text": 66471,
+    ".rdata": 25768,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2655,11 +2655,11 @@
   },
   "x86-64-v4/speed-auto/fibre": {
    "sections": {
-    ".text": 54380,
-    ".rdata": 21900,
+    ".text": 54480,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 48
    }
@@ -2688,11 +2688,11 @@
   },
   "x86-64-v4/speed-auto/thread": {
    "sections": {
-    ".text": 66371,
-    ".rdata": 25740,
+    ".text": 66471,
+    ".rdata": 25768,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 52
    }
@@ -2732,11 +2732,11 @@
   },
   "x86-64-v4/speed-off/fibre": {
    "sections": {
-    ".text": 54380,
-    ".rdata": 21900,
+    ".text": 54480,
+    ".rdata": 21928,
     ".buildid": 53,
     ".data": 16656,
-    ".pdata": 1320,
+    ".pdata": 1344,
     ".tls": 16,
     ".reloc": 64
    }
@@ -2765,11 +2765,11 @@
   },
   "x86-64-v4/speed-off/thread": {
    "sections": {
-    ".text": 66565,
-    ".rdata": 25740,
+    ".text": 66665,
+    ".rdata": 25768,
     ".buildid": 53,
     ".data": 147792,
-    ".pdata": 1668,
+    ".pdata": 1692,
     ".tls": 24,
     ".reloc": 72
    }
