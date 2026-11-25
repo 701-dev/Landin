@@ -1225,7 +1225,9 @@ MB peak against 385. Its image is 0.6% to 1.6% larger, no other
 workload's image changed, and every output is the same.
 `docs/benchmarks.md` measures it again. `SR-1432` is taken; `SR-1412`
 keeps the region's silent single free; Q-274 asks whether the module's
-name is `core/zone`.
+name is `core/zone`, `SR-1829` files the formatting case no
+step for a new module names, and `SR-1830` the Debian packages the
+embedded tools fetch from a pool that drops superseded versions.
 
 ### The continuous items
 
