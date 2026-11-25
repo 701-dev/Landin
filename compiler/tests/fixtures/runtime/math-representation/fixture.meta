@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/math's classification, sign, magnitude, stepping, scaling, splitting, min and max give the exact results IEEE 754 and C give at both widths, and each constant is the nearest f64 and converts to the nearest f32
+summary: core/math's classification, sign, magnitude, stepping, scaling, splitting, min and max give the exact results IEEE 754 and C give at both widths
 program: main.ldn
 root: ../../../../..
 status: 42

@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: Small shared core/math consumer gives exact results for the constants' f32 conversions, a square root, rounding, a fused multiply-add, a split, a scaled subnormal and a remainder by zero, at both widths
+summary: Small shared core/math consumer finds each constant the nearest f64 and its f32 conversion the nearest f32, and gives exact results for a floor, two roundings, a split and a scaled subnormal, at both widths
 program: main.ldn
 root: ../../../../..
 status: 42

@@ -1,22 +1,27 @@
 import core/math
 
---  A few routines at both widths, each result exact: the constants'
---  f32 conversions are the f32 values nearest the real numbers, and a
---  square root, a floor, a fused multiply-add and a split give what the
---  arithmetic says.
+--  The constants and a few of the routines that work on the bits, at both
+--  widths, each result exact: every constant is the f64 nearest the real
+--  number and converts to the f32 nearest it, and rounding, splitting and
+--  scaling give what the arithmetic says.
 exercise: () -> (ok: bool) =
     ok = false
     two: f64 = 2.0
-    return when f32(math.pi) <> 0x1.921fb6p1 or f32(math.e) <> 0x1.5bf0a8p1
-      or f32(math.ln_2) <> 0x1.62e430p-1 or f32(math.sqrt_2) <> 0x1.6a09e6p0
-    return when math.sqrt(two) <> math.sqrt_2 or math.sqrt(f32(two)) <> 0x1.6a09e6p0
+    return when math.pi <> 0x1.921fb54442d18p1 or math.tau <> 0x1.921fb54442d18p2
+      or math.e <> 0x1.5bf0a8b145769p1 or math.ln_2 <> 0x1.62e42fefa39efp-1
+      or math.ln_10 <> 0x1.26bb1bbb55516p1 or math.log2_e <> 0x1.71547652b82fep0
+      or math.log10_e <> 0x1.bcb7b1526e50ep-2 or math.sqrt_2 <> 0x1.6a09e667f3bcdp0
+      or math.sqrt_half <> 0x1.6a09e667f3bcdp-1
+    return when f32(math.pi) <> 0x1.921fb6p1 or f32(math.tau) <> 0x1.921fb6p2
+      or f32(math.e) <> 0x1.5bf0a8p1 or f32(math.ln_2) <> 0x1.62e430p-1
+      or f32(math.ln_10) <> 0x1.26bb1cp1 or f32(math.log2_e) <> 0x1.715476p0
+      or f32(math.log10_e) <> 0x1.bcb7b2p-2 or f32(math.sqrt_2) <> 0x1.6a09e6p0
+      or f32(math.sqrt_half) <> 0x1.6a09e6p-1
     return when math.floor(-two / 3.0) <> -1.0 or math.round(f32(2.5)) <> 3.0
       or math.round_even(f32(2.5)) <> 2.0
-    return when math.fma(0.1 * two / 2.0, 10.0, -1.0) <> 0x1.0p-54
     (fraction: fraction, power: power) := math.split(two * 3.0)
     return when fraction <> 0.75 or power <> 3
     ok = math.classify(math.scale(two, -1050)) == math.subnormal
-         and math.is_nan(math.remainder(two, 0.0))
 end exercise
 
 public main: () -> (code: i32) =

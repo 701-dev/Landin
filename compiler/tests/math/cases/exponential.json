@@ -583,8 +583,8 @@
     }
    ]
   },
-  "math-pow": {
-   "summary": "core/math's pow is within one float of MPFR's correctly rounded result for C99 Annex F's special cases, random inputs and hardest-to-round inputs, at f64 and f32",
+  "math-pow-f64": {
+   "summary": "core/math's pow is within one float of MPFR's correctly rounded result for C99 Annex F's special cases, random inputs and hardest-to-round inputs, at f64",
    "tables": [
     {
      "fn": "pow",
@@ -801,7 +801,12 @@
        "0x1.8p1"
       ]
      ]
-    },
+    }
+   ]
+  },
+  "math-pow-f32": {
+   "summary": "core/math's pow is within one float of MPFR's correctly rounded result for C99 Annex F's special cases, random inputs and hardest-to-round inputs, at f32",
+   "tables": [
     {
      "fn": "pow",
      "width": 32,

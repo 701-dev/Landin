@@ -1,8 +1,8 @@
 import core/math
 
---  The routines that work on a float's representation, and the
---  constants: each result is exact, so each is compared with the one
---  value IEEE 754 and C give.  Every check is made at both widths.
+--  The routines that work on a float's representation: each result is
+--  exact, so each is compared with the one value IEEE 754 and C give.
+--  Every check is made at both widths.
 
 bits_64: (x: f64) -> (bits: u64) =
     view: ptr u64 = ptr(usize(addr x))
@@ -89,23 +89,6 @@ steps: (zero: f64) -> (wrong: i32) =
     end if
 end steps
 
---  The constants, as the nearest f64 and, converted, the nearest f32.
-constants: () -> (wrong: i32) =
-    wrong = 0
-    if math.pi <> 0x1.921fb54442d18p1 or math.tau <> 0x1.921fb54442d18p2
-      or math.e <> 0x1.5bf0a8b145769p1 or math.ln_2 <> 0x1.62e42fefa39efp-1
-      or math.ln_10 <> 0x1.26bb1bbb55516p1 or math.log2_e <> 0x1.71547652b82fep0
-      or math.log10_e <> 0x1.bcb7b1526e50ep-2 or math.sqrt_2 <> 0x1.6a09e667f3bcdp0
-      or math.sqrt_half <> 0x1.6a09e667f3bcdp-1 then
-        wrong = 1
-    end if
-    if f32(math.tau) <> 0x1.921fb6p2 or f32(math.ln_10) <> 0x1.26bb1cp1
-      or f32(math.log2_e) <> 0x1.715476p0 or f32(math.log10_e) <> 0x1.bcb7b2p-2
-      or f32(math.sqrt_half) <> 0x1.6a09e6p-1 then
-        wrong = 2
-    end if
-end constants
-
 public main: () -> (code: i32) =
     zero: f64 = 0.0
     code = 42
@@ -113,7 +96,5 @@ public main: () -> (code: i32) =
         code = 10 + classes(zero)
     elsif steps(zero) <> 0 then
         code = 20 + steps(zero)
-    elsif constants() <> 0 then
-        code = 30 + constants()
     end if
 end main
