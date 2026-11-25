@@ -2943,6 +2943,27 @@ built and tested on FreeBSD x86-64 in the gate and on FreeBSD arm64 in
 R21.61's recorded run; and the Windows gaps R21.70 names closed by its
 exit evidence.
 
+Claimed after R21.70, on main `fac832822`. R21 declared no window, so
+each item reached main by its own promotion after its candidate's complete
+pass and boards dispatch, and main's gate passed after each. That tree
+passed the full
+[pass](https://github.com/701-dev/Landin/actions/runs/45640994727), 92
+jobs passed and 8 skipped by their conditions, and a
+[boards dispatch](https://github.com/701-dev/Landin/actions/runs/45648808530),
+which main's [gate](https://github.com/701-dev/Landin/actions/runs/45653929208)
+reused. In that pass the Windows runners ran the corpus and the debugger
+sessions on x86-64 and arm64 (`windows-runtime`, `windows-debugger`,
+`windows-arm64-runtime`, `windows-arm64-debugger`), and the corpus linked
+by Microsoft's toolchain on both (`windows-microsoft`,
+`windows-arm64-microsoft`). `refine` was built and tested on FreeBSD
+x86-64 (`freebsd-toolchain`, `freebsd-host-1`, `freebsd-host-2`,
+`freebsd-host-release`); FreeBSD arm64 rests on R21.61's recorded run
+(D2470). R21.70's rows are closed in the same jobs: both runtime jobs ran
+from a checkout and linked the ABI fixtures' C peers, both debugger jobs
+ran `switch_frames.py`'s session at its four profiles, and `measure-size`
+measured both Windows targets. Q-279 is answered; until a release
+publishes the FreeBSD arm64 archive, `SR-1892` holds that work.
+
 ## R22 — Library additions
 
 What a newcomer expects to find, written against the library R20 left: a
