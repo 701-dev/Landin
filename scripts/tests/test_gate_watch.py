@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -119,7 +120,9 @@ def state(status, jobs, conclusion="", attempt=1):
             "url": "https://example.invalid/run/7", "jobs": jobs}
 
 
-class GateWatch(unittest.TestCase):
+class Fixture(unittest.TestCase):
+    """A fake `gh` answering recorded states, and the watcher run on them."""
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="landin-watch-")
         self.addCleanup(self.temporary.cleanup)
@@ -128,16 +131,20 @@ class GateWatch(unittest.TestCase):
         gh.write_text(FAKE_GH % sys.executable)
         gh.chmod(0o755)
         self.states = directory / "states.json"
+        #  The shared poller's directory, apart from the host's.
+        self.shared = directory / "shared"
 
     def watch(self, states, *arguments):
         self.states.write_text(json.dumps(states))
         environment = {**os.environ, "STATES": str(self.states),
+                       "LANDIN_GATE_WATCH_DIR": str(self.shared),
                        "GH_REPO": "example/landin",
                        "WORKFLOW": WORKFLOW_PATH,
                        "PATH": "%s%s%s" % (self.temporary.name, os.pathsep,
                                            os.environ["PATH"])}
         return subprocess.run(
-            [sys.executable, str(WATCH), "--interval=0", *arguments],
+            [sys.executable, str(WATCH), "--interval=0", "--alone",
+             *arguments],
             capture_output=True, text=True, timeout=HANG, env=environment,
             cwd=ROOT)
 
@@ -156,6 +163,8 @@ class GateWatch(unittest.TestCase):
         return [re.search(r'oid: "(\w+)"', query).group(1)
                 for query in self.queries() if "oid:" in query][0]
 
+
+class GateWatch(Fixture):
     def test_the_first_failed_job_ends_the_watch_while_others_run(self):
         result = self.watch([
             state("in_progress", [job(1, "documents"),
@@ -484,6 +493,124 @@ class GateWatch(unittest.TestCase):
                   conclusion="cancelled"),
         ], "--run=7")
         self.assertEqual(result.returncode, 2, result.stdout)
+
+
+class SharedPoller(Fixture):
+    """Watches read one poller's answers instead of each asking GitHub."""
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(self.stop_poller)
+
+    def stop_poller(self):
+        found = self.shared / "poller.json"
+        if found.exists():
+            pid = json.loads(found.read_text())["pid"]
+            try:
+                os.kill(pid, 15)
+            except ProcessLookupError:
+                pass
+
+    def environment(self, **settings):
+        return {**os.environ, "STATES": str(self.states),
+                "GH_REPO": "example/landin", "WORKFLOW": WORKFLOW_PATH,
+                "LANDIN_GATE_WATCH_DIR": str(self.shared),
+                "LANDIN_GATE_WATCH_FLOOR": "0.2",
+                "LANDIN_GATE_WATCH_IDLE": "1",
+                "PATH": "%s%s%s" % (self.temporary.name, os.pathsep,
+                                    os.environ["PATH"]),
+                **{"LANDIN_GATE_WATCH_" + name: str(value)
+                   for name, value in settings.items()}}
+
+    def start(self, *arguments, **settings):
+        return subprocess.Popen(
+            [sys.executable, str(WATCH), "--interval=0.2", *arguments],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            env=self.environment(**settings), cwd=ROOT)
+
+    def finish(self, process):
+        out, err = process.communicate(timeout=HANG)
+        return process.returncode, out + err
+
+    def running(self, polls):
+        """POLLS states of a running run, then its success."""
+        return [state("in_progress", [job(1, "documents"),
+                                      job(2, "gate", status="in_progress")])
+                ] * polls + [state("completed", [job(1, "documents"),
+                                                 job(2, "gate")],
+                                   conclusion="success")]
+
+    def test_two_watches_share_one_query_a_poll(self):
+        self.states.write_text(json.dumps(self.running(25)))
+        first = self.start("--run=7")
+        second = self.start("--run=8", "--all")
+        for process in (first, second):
+            status, out = self.finish(process)
+            self.assertEqual(status, 0, out)
+            self.assertIn("success    gate", out)
+        both = [query for query in self.queries()
+                if "r7: resource" in query and "r8: resource" in query]
+        self.assertTrue(both, self.queries())
+        self.assertFalse((self.shared / "follow").exists()
+                         and list((self.shared / "follow").iterdir()))
+
+    def test_the_poller_ends_once_nothing_is_followed(self):
+        self.states.write_text(json.dumps(self.running(1)))
+        status, out = self.finish(self.start("--run=7"))
+        self.assertEqual(status, 0, out)
+        pid = json.loads((self.shared / "poller.json").read_text())["pid"]
+        deadline = time.time() + 30
+        while time.time() < deadline and "ending" not in (
+                self.shared / "poller.log").read_text():
+            time.sleep(0.1)
+        self.assertIn("nothing followed for 1 s; ending",
+                      (self.shared / "poller.log").read_text())
+        time.sleep(0.5)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(pid, 0)
+
+    def test_a_dead_poller_is_started_again(self):
+        #  poller.json left by a poller that is gone, its lock free.
+        self.shared.mkdir()
+        (self.shared / "poller.json").write_text(json.dumps(
+            {"pid": 2 ** 22 + 1, "polled": 0}))
+        self.states.write_text(json.dumps(self.running(1)))
+        status, out = self.finish(self.start("--run=7"))
+        self.assertEqual(status, 0, out)
+        self.assertIn("the shared gate poller had ended; started it again",
+                      out)
+
+    def test_a_stuck_poller_is_routed_around(self):
+        #  A poller holds the lock and answers nothing: the watch asks
+        #  GitHub itself and says so.
+        import fcntl
+        self.shared.mkdir()
+        lock = open(self.shared / "poller.lock", "a")
+        self.addCleanup(lock.close)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        self.states.write_text(json.dumps(self.running(0)))
+        status, out = self.finish(self.start("--run=7", STUCK=1))
+        self.assertEqual(status, 0, out)
+        self.assertIn("has not answered for", out)
+        self.assertIn("asking GitHub directly meanwhile", out)
+
+    def test_a_commit_is_waited_for_through_the_poller(self):
+        (self.states.parent / "states.json.unlisted").write_text("2")
+        self.states.write_text(json.dumps(self.running(0)))
+        status, out = self.finish(self.start(
+            "--commit=" + "a" * 40, "--event=push", "--branch=main"))
+        self.assertEqual(status, 0, out)
+        self.assertIn("no push on main gate run for aaaaaaaaaaaa yet", out)
+        self.assertIn("following gate run 7 (push on main)", out)
+
+    def test_a_refusal_ends_the_watch_with_the_pollers_error(self):
+        (self.states.parent / "states.json.fail").write_text(json.dumps(
+            [99, "gh: Not Found (HTTP 404)"]))
+        self.states.write_text(json.dumps(self.running(0)))
+        status, out = self.finish(self.start("--run=7"))
+        self.assertEqual(status, 3, out)
+        self.assertIn("HTTP 404", out)
+        self.assertNotIn("Traceback", out)
 
 
 if __name__ == "__main__":

@@ -80,7 +80,9 @@ complete gate finish. A failed gate reports itself only when its last lane
 ends, so follow it with `python3 scripts/gate_watch.py`, which returns at
 the first failed job with its step and log command, and investigate the
 log rather than rerunning the matrix; a pushed fix cancels the superseded
-run. Promotion follows the [promotion rule](#physical-boards-and-promotion):
+run. Every watch on a host reads one shared poller, which the first watch
+starts and which asks GitHub's GraphQL API once an interval for all of
+them; `gate_watch.py --help` says how it starts, ends and recovers. Promotion follows the [promotion rule](#physical-boards-and-promotion):
 the candidate's complete software gate, a passed boards dispatch on its
 tree, or before only explanatory commits, unless the edit is itself
 explanatory, and `main`'s own gate followed to its verdict. A changed merge tree needs

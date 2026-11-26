@@ -11,7 +11,8 @@ cancels the superseded run, because the gate's concurrency group does.
 
     python3 scripts/gate_watch.py [--run ID | --commit SHA] [--interval S]
                                   [--all | --verdict] [--event E]
-                                  [--branch B]
+                                  [--branch B] [--alone]
+    python3 scripts/gate_watch.py --serve     # the host's shared poller
 
 `--all` follows the run to its end instead and names every failed job,
 for a round whose fixes should all go in one push: returning at the first
@@ -61,6 +62,18 @@ boards and promotion).  A failure of the aggregate alone, every job before
 it passed, is its verdict or its cycles comparison: re-running it would
 judge the same figures again.
 
+Every watch on the host reads one shared poller rather than asking GitHub
+itself: it registers the run or commit it follows under the host's watch
+directory, $LANDIN_GATE_WATCH_DIR or ~/.cache/landin/gate-watch, and the
+poller, `gate_watch.py --serve`, asks once an interval for everything
+registered there, in one query, and writes each answer beside it.  The
+first watch that finds no poller starts one, detached, logging to
+poller.log there; a watch that finds it gone starts it again, and one that
+gets no answer for ten minutes while a poller holds the lock asks GitHub
+itself meanwhile.  The poller asks at the shortest interval a watch asked
+for, never under fifteen seconds, and ends ten minutes after the last watch
+did.  `--alone` asks GitHub directly at every poll, as before the poller.
+
 The exit status is 0 when the run succeeded, 1 when a job failed, and 2
 when the run ended otherwise, for instance cancelled by a newer push, and
 3 when GitHub could not be asked.
@@ -69,9 +82,11 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 from datetime import datetime
 
 FAILED = ("failure", "timed_out", "startup_failure")
@@ -402,6 +417,299 @@ class Direct:
         _, listed = ask(self.name(), commits=[commit])
         return listed[commit] or []
 
+    def unfollow(self, kind, what):
+        pass
+
+
+# --------------------------------------------------- one shared poller a host
+#
+#  Every watch on the host registers what it follows, a run or a commit, as
+#  a file under DIRECTORY/follow; one poller, `gate_watch.py --serve`, asks
+#  GitHub once an interval for all of them in one query and writes each
+#  answer under DIRECTORY/state.  A watch reads its file.  The first watch
+#  that finds no poller starts one, detached, and any watch starts it again
+#  if it died; the poller ends once nothing has followed anything for IDLE
+#  seconds.  Only one poller runs, the one holding DIRECTORY/poller.lock.
+
+
+def directory():
+    """The host's shared watch directory: $LANDIN_GATE_WATCH_DIR, else
+    landin/gate-watch under $XDG_CACHE_HOME or ~/.cache."""
+    named = os.environ.get("LANDIN_GATE_WATCH_DIR")
+    if named:
+        return Path(named)
+    cache = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+    return Path(cache) / "landin" / "gate-watch"
+
+
+def setting(name, default):
+    """A number the tests shorten: $LANDIN_GATE_WATCH_<NAME>, else DEFAULT."""
+    return float(os.environ.get("LANDIN_GATE_WATCH_" + name, default))
+
+
+#  The shortest interval the poller asks at, whatever a watch asks for.
+FLOOR = 15
+#  Seconds the poller runs on with nothing followed before it ends.
+IDLE = 600
+
+
+def slug(repo):
+    return repo.replace("/", "_")
+
+
+def write_json(path, value):
+    """VALUE written to PATH whole, so a reader never sees half of it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(".%s.%d" % (path.name, os.getpid()))
+    partial.write_text(json.dumps(value))
+    os.replace(partial, path)
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def poller_running(place):
+    """Whether a poller holds PLACE's lock."""
+    import fcntl
+    place.mkdir(parents=True, exist_ok=True)
+    with open(place / "poller.lock", "a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        return False
+
+
+def start_poller(place):
+    """Start `gate_watch.py --serve` detached, its output appended to
+    PLACE/poller.log; a second one started at the same time finds the lock
+    held and ends."""
+    place.mkdir(parents=True, exist_ok=True)
+    with open(place / "poller.log", "a") as log:
+        subprocess.Popen([sys.executable, os.path.abspath(__file__),
+                          "--serve"], stdin=subprocess.DEVNULL, stdout=log,
+                         stderr=subprocess.STDOUT, start_new_session=True,
+                         env={**os.environ,
+                              "LANDIN_GATE_WATCH_DIR": str(place)})
+
+
+def follows(place):
+    """{repo: ({run}, {commit}, shortest interval)} of the live follow
+    files; those of ended processes are removed."""
+    wanted = {}
+    for path in sorted((place / "follow").glob("*.json")):
+        found = read_json(path)
+        if not found or not alive(found.get("pid", 0)):
+            path.unlink(missing_ok=True)
+            continue
+        runs, commits, interval = wanted.setdefault(
+            found["repo"], (set(), set(), [3600.0]))
+        (runs if found["kind"] == "run" else commits).add(found["what"])
+        interval[0] = min(interval[0], found.get("interval", 30))
+    return {repo: (runs, commits, interval[0])
+            for repo, (runs, commits, interval) in wanted.items()}
+
+
+def registered_since(place, moment):
+    """Whether a watch registered after MOMENT."""
+    for path in (place / "follow").glob("*.json"):
+        try:
+            if path.stat().st_mtime > moment:
+                return True
+        except OSError:
+            pass
+    return False
+
+
+def state_path(place, repo, kind, what):
+    return place / "state" / slug(repo) / ("%s-%s.json" % (kind, what))
+
+
+def serve():
+    """The host's poller: until nothing has been followed for IDLE seconds,
+    ask GitHub for every followed run and commit, one query a repository
+    each interval, and write each answer."""
+    import fcntl
+    place = directory()
+    place.mkdir(parents=True, exist_ok=True)
+    lock = open(place / "poller.lock", "a")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return 0
+    floor, idle = setting("FLOOR", FLOOR), setting("IDLE", IDLE)
+    print("%s poller %d started" % (stamp(), os.getpid()), flush=True)
+    write_json(place / "poller.json", {"pid": os.getpid(),
+                                       "started": time.time()})
+    steps, failures, last = {}, {}, time.time()
+    while True:
+        wanted = follows(place)
+        if not wanted:
+            if time.time() - last > idle:
+                print("%s poller %d: nothing followed for %d s; ending"
+                      % (stamp(), os.getpid(), idle), flush=True)
+                return 0
+            time.sleep(min(1.0, max(floor, 0.05)))
+            continue
+        last = time.time()
+        interval = max(floor, min(shortest for _, _, shortest
+                                  in wanted.values()))
+        for repo, (runs, commits, _) in wanted.items():
+            poll(place, repo, sorted(runs), sorted(commits), steps, failures)
+        write_json(place / "poller.json", {"pid": os.getpid(),
+                                           "polled": time.time()})
+        #  A watch that registers meanwhile is answered at once rather
+        #  than after the rest of the interval: it waits for an answer
+        #  asked after it registered.
+        ends = time.time() + interval
+        while time.time() < ends:
+            time.sleep(min(1.0, max(ends - time.time(), 0.01)))
+            if registered_since(place, last):
+                break
+
+
+def stamp():
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def poll(place, repo, runs, commits, steps, failures):
+    """One query for REPO's followed RUNS and COMMITS, each answer written
+    with the time it was asked; a failure is written beside the last
+    answer, with how many polls in a row have failed."""
+    asked = time.time()
+    try:
+        views, listed = ask(repo, runs=runs, commits=commits)
+        for run, view in views.items():
+            if view is not None:
+                jobs, replaced = split(view)
+                add_steps(jobs + replaced, steps)
+                view["steps"] = {job["node"]: job["steps"]
+                                 for job in jobs + replaced if job["steps"]}
+    except Unanswered as error:
+        print("%s %s: %s" % (stamp(), repo, error), flush=True)
+        for kind, whats in (("run", runs), ("commit", commits)):
+            for what in whats:
+                path = state_path(place, repo, kind, what)
+                held = read_json(path) or {}
+                key = (repo, kind, what)
+                failures[key] = failures.get(key, 0) + 1
+                held.update({"error": str(error), "failures": failures[key],
+                             "failed": asked})
+                write_json(path, held)
+        return
+    for kind, answers in (("run", views), ("commit", listed)):
+        for what, answer in answers.items():
+            failures.pop((repo, kind, what), None)
+            write_json(state_path(place, repo, kind, what),
+                       {"polled": asked, "answer": answer})
+
+
+class Shared:
+    """Reads the host's shared poller's answers, starting it when none runs.
+
+    Each read waits for an answer asked after the previous one, so a watch
+    never judges the same poll twice; a watch that finds the poller dead
+    starts it again.  If no answer comes for STUCK seconds while a poller
+    holds the lock, the watch asks GitHub itself for that poll.
+    """
+
+    def __init__(self, interval, repo=None, out=sys.stdout):
+        self.repo = repo or repository()
+        self.interval = interval
+        self.place = directory()
+        self.steps = {}
+        self.seen = {}
+        self.out = out
+        self.direct = Direct(self.repo)
+        self.said = set()
+
+    def say(self, text):
+        if text not in self.said:
+            self.said.add(text)
+            print(text, file=self.out, flush=True)
+
+    def follow(self, kind, what):
+        path = self.place / "follow" / ("%s-%s.%d.json"
+                                        % (kind, what, os.getpid()))
+        if not path.exists():
+            write_json(path, {"repo": self.repo, "kind": kind, "what": what,
+                              "pid": os.getpid(),
+                              "interval": self.interval})
+            import atexit
+            atexit.register(path.unlink, missing_ok=True)
+            self.seen.setdefault((kind, what), time.time())
+
+    def answer(self, kind, what):
+        """The poller's next answer for WHAT, a run or a commit."""
+        self.follow(kind, what)
+        after = self.seen[(kind, what)]
+        path = state_path(self.place, self.repo, kind, what)
+        waited = time.time()
+        stuck = max(setting("STUCK", 600), 10 * self.interval)
+        while True:
+            held = read_json(path) or {}
+            if held.get("polled", 0) > after:
+                self.seen[(kind, what)] = held["polled"]
+                return held["answer"]
+            if held.get("failed", 0) > after:
+                #  A refusal that is no server error ends the watch, as
+                #  its own request's would; a rate limit is waited out; a
+                #  server error ends it once TRIES polls in a row failed.
+                error = held["error"]
+                if not SERVER_ERROR.search(error):
+                    raise Unanswered(error)
+                if re.search(r"rate.?limit", error, re.IGNORECASE):
+                    self.say("the shared gate poller is rate-limited by"
+                             " GitHub; waiting: %s" % error.splitlines()[-1])
+                elif held.get("failures", 0) >= TRIES:
+                    raise Unanswered(error)
+            if not poller_running(self.place):
+                if self.place.joinpath("poller.json").exists():
+                    self.say("the shared gate poller had ended; started it"
+                             " again (log: %s)" % (self.place / "poller.log"))
+                start_poller(self.place)
+                time.sleep(0.2)
+            elif time.time() - waited > stuck:
+                self.say("the shared gate poller has not answered for %d s"
+                         " (log: %s); asking GitHub directly meanwhile"
+                         % (stuck, self.place / "poller.log"))
+                self.seen[(kind, what)] = time.time()
+                return (self.direct.view(what) if kind == "run"
+                        else self.direct.runs(what))
+            time.sleep(min(max(self.interval / 4, 0.05), 1.0))
+
+    def view(self, run):
+        found = self.answer("run", run)
+        if found is None:
+            raise Unanswered("GitHub names no workflow run %d in %s"
+                             % (run, self.repo))
+        for check in found["checks"]:
+            if check.get("node") in found.get("steps", {}):
+                self.steps[check["node"]] = found["steps"][check["node"]]
+        return found
+
+    def runs(self, commit):
+        return self.answer("commit", commit) or []
+
+    def unfollow(self, kind, what):
+        (self.place / "follow" / ("%s-%s.%d.json" % (kind, what, os.getpid()))
+         ).unlink(missing_ok=True)
+
 
 def jobs_of(run, source=None, view=None):
     """RUN's jobs, each name's latest attempt, and the earlier attempts'
@@ -575,7 +883,9 @@ def watch(run, interval, every=False, verdict=False, source=None, view=None):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     which = parser.add_mutually_exclusive_group()
     which.add_argument("--run", type=int)
     which.add_argument("--commit")
@@ -592,15 +902,25 @@ def main(argv):
                         "schedule")
     parser.add_argument("--branch", help="with a commit, wait for a run on "
                         "this branch")
+    parser.add_argument("--alone", action="store_true", help="ask GitHub "
+                        "directly at each poll instead of reading the host's "
+                        "shared poller")
+    parser.add_argument("--serve", action="store_true", help="be the host's "
+                        "shared poller; the watches start it themselves")
     args = parser.parse_args(argv[1:])
+    if args.serve:
+        return serve()
     if args.run is not None and (args.event or args.branch):
         parser.error("--event and --branch choose among a commit's runs; "
                      "--run already names one")
     global retry_pause
     retry_pause = min(retry_pause, args.interval)
     run = args.run
-    source = Direct()
+    #  A watch ended by its time limit removes its follow files on the way
+    #  out; the poller drops those of a process that is gone in any case.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))
     try:
+        source = Direct() if args.alone else Shared(args.interval)
         if run is None:
             commit = full_commit(args.commit or "HEAD")
             if commit is None:
@@ -608,6 +928,7 @@ def main(argv):
                              "give its full hash" % args.commit)
             run = find_run(commit, args.interval, args.event, args.branch,
                            source)
+            source.unfollow("commit", commit)
         about = source.view(run)
         print("following gate run %s (%s on %s)"
               % (run, about.get("event") or "unknown event",
