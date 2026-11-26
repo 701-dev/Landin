@@ -5245,9 +5245,17 @@ package body Landin.Backend.X86_64 is
                            elsif Direct
                              and then From_Size in Landin.Targets.Byte_1
                                | Landin.Targets.Byte_2
-                             and then Landin.IR.Op_Of (Of_Unit, Item, Source)
-                               in Landin.IR.Load_Indirect
-                                | Landin.IR.Load_Element
+                             and then (Landin.IR.Op_Of (Of_Unit, Item, Source)
+                                         in Landin.IR.Load_Indirect
+                                          | Landin.IR.Load_Element
+                                       or else
+                                         (Landin.IR.Op_Of
+                                            (Of_Unit, Item, Source)
+                                            = Landin.IR.Load
+                                          and then Allocation_Plan.Slot
+                                            (Positive (Landin.IR.Slot_Of
+                                               (Of_Unit, Item, Source)))
+                                            .Zero_Extended))
                              and then Allocation_Plan.Value
                                (Positive (Source)).Kind = Allocation.GP
                              and then Allocation."="
@@ -5260,7 +5268,9 @@ package body Landin.Backend.X86_64 is
                               --  register was zero-extended to its
                               --  doubleword there, which a 32-bit write
                               --  extends to 64 bits, so widening it in
-                              --  the same register moves nothing.
+                              --  the same register moves nothing; so is
+                              --  one read from a slot every store of
+                              --  which extends it (D2654).
                               null;
                            elsif Direct then
                               Emit ((case From_Size is

@@ -54,6 +54,13 @@ package Landin.Backend.X86_64.Allocation is
       --  there as its memory operand, and anything else is left in the
       --  accumulator, where it was computed, rather than in a home.
       Forwarded : Boolean := False;
+      --  D2654: a byte or halfword slot held in a general register at size
+      --  and speed, no parameter, whose every store leaves that register
+      --  zero-extended from the slot's width: what a byte or halfword
+      --  load or a number made in it, or what is moved in from another
+      --  register, which selection's move extends.  A widening of it
+      --  reads the register as it is.
+      Zero_Extended : Boolean := False;
    end record;
    package Location_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Location);

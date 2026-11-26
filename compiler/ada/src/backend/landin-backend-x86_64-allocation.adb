@@ -846,8 +846,25 @@ package body Landin.Backend.X86_64.Allocation is
          function Rewrites (Value, Left : Natural) return Natural;
          function Forwardable (Value : Positive) return Boolean;
          function Overwrites (Value : Positive) return Natural;
+         function Opens_At_Store
+           (Value : Positive; Position : Natural) return Natural;
+         function Widens (Value : Positive) return Boolean;
          function Folds (Value : Positive) return Boolean;
          function Float_Forwardable (Value : Positive) return Boolean;
+
+         --  D2654: an unsigned widening of a byte or halfword, which may
+         --  take the register of a variable it reads for the last time:
+         --  the variable keeps its value there, as a debugger reads it.
+         function Widens (Value : Positive) return Boolean is
+           (Landin.IR.Op_Of (Of_Unit, Item, Landin.IR.Value_Id (Value))
+              = Landin.IR.Conversion
+            and then Landin.IR.Result_Of
+              (Of_Unit, Item, Landin.IR.Value_Id (Value))
+              in Landin.Types.Integer_Name
+            and then Landin.IR.Result_Of (Of_Unit, Item,
+              Landin.IR.Nth_Operand
+                (Of_Unit, Item, Landin.IR.Value_Id (Value), 1))
+              in Landin.Types.U8 | Landin.Types.U16);
 
          --  The left operand of an operation selection computes where its
          --  result lives, when that operand's last use is this one; else 0.
@@ -1269,6 +1286,102 @@ package body Landin.Backend.X86_64.Allocation is
                return Slot;
             end;
          end Overwrites;
+
+         --  D2654: the slot a value's first store stores it into when
+         --  that slot's interval, placed in a general register, opens after
+         --  the value begins and no later than that store, is the next
+         --  interval the register opens, the register is free from here to
+         --  there and no call or argument transport writes it, nothing
+         --  else loads or stores the slot inside the value's span, and no
+         --  operand but the left one lives in the register: the value may
+         --  be made in it, as D2157 makes one whose slot already holds it,
+         --  and the store moves nothing.  Else 0.
+         function Opens_At_Store
+           (Value : Positive; Position : Natural) return Natural is
+            Store_At : Natural := 0;
+         begin
+            if Has_Assembly or else Lasts (Value) <= Starts (Value)
+              or else Lasts (Value) - Starts (Value) > 32
+              or else Result.Value (Value).Address_Required
+            then
+               return 0;
+            end if;
+            for P in Starts (Value) + 1 .. Lasts (Value) loop
+               declare
+                  User : constant Landin.IR.Value_Id :=
+                    Landin.IR.Value_Id (Sequence (P));
+               begin
+                  if Landin.IR.Op_Of (Of_Unit, Item, User) = Landin.IR.Store
+                    and then Positive
+                      (Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                      = Value
+                  then
+                     Store_At := P;
+                     exit;
+                  end if;
+               end;
+            end loop;
+            if Store_At = 0 then
+               return 0;
+            end if;
+            declare
+               Slot : constant Positive := Positive (Landin.IR.Slot_Of
+                 (Of_Unit, Item, Landin.IR.Value_Id (Sequence (Store_At))));
+               Held : Location renames Result.Slot (Slot);
+            begin
+               if Interval_Slots (Slot) = 0 or else Held.Kind /= GP
+                 or else Landin.IR.Is_Address
+                   (Of_Unit, Item, Landin.IR.Slot_Id (Slot))
+                 or else Spans (Slot).First <= Starts (Value)
+                 or else Spans (Slot).First > Store_At
+                 or else Spans (Slot).Last < Lasts (Value)
+                 or else not Reservations.Has_Element
+                   (Upcoming (Held.Register))
+                 or else Reservations.Element (Upcoming (Held.Register))
+                   /= Slot
+                 or else Busy_Until (Held.Register) > Position
+                 or else Value_Until (Held.Register) > Position
+                 or else Named (Held.Register)
+                 or else (Held.Register in Caller_Saved
+                          and then not Untouched
+                            (Held.Register, Position, Spans (Slot).First))
+               then
+                  return 0;
+               end if;
+               for Which in 1 .. Landin.IR.Operand_Count
+                 (Of_Unit, Item, Landin.IR.Value_Id (Value))
+               loop
+                  declare
+                     Other : Location renames Result.Value
+                       (Positive (Landin.IR.Nth_Operand
+                          (Of_Unit, Item, Landin.IR.Value_Id (Value),
+                           Which)));
+                  begin
+                     if Which > 1 and then Other.Kind = GP
+                       and then Other.Register = Held.Register
+                     then
+                        return 0;
+                     end if;
+                  end;
+               end loop;
+               for P in Starts (Value) + 1 .. Lasts (Value) loop
+                  declare
+                     Between : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (P));
+                  begin
+                     if P /= Store_At
+                       and then Landin.IR.Op_Of (Of_Unit, Item, Between)
+                         in Landin.IR.Load | Landin.IR.Store
+                       and then Positive
+                         (Landin.IR.Slot_Of (Of_Unit, Item, Between)) = Slot
+                     then
+                        return 0;
+                     end if;
+                  end;
+               end loop;
+               return Slot;
+            end;
+         end Opens_At_Store;
 
          --  D2156: whether a load from memory is read where it lies by
          --  its one use, the next operation, as that operation's right
@@ -2319,10 +2432,18 @@ package body Landin.Backend.X86_64.Allocation is
                         Place.Kind := GP;
                         Place.Register :=
                           Result.Slot (Overwrites (Index)).Register;
+                     elsif Opens_At_Store (Index, Position) /= 0 then
+                        Place.Kind := GP;
+                        Place.Register :=
+                          Result.Slot (Opens_At_Store (Index, Position))
+                            .Register;
+                        Busy_Until (Place.Register) := Natural'Max
+                          (Busy_Until (Place.Register), Lasts (Index));
                      elsif Left /= 0 and then Result.Value (Left).Kind = GP
                        and then (not Holds_Variable (Left)
                                  or else Landin.IR.Op_Of (Of_Unit, Item, Value)
-                                   = Landin.IR.Pointer_Address)
+                                   = Landin.IR.Pointer_Address
+                                 or else Widens (Index))
                        and then Clear (Result.Value (Left).Register,
                                        Position, Lasts (Index))
                      then
@@ -2451,6 +2572,45 @@ package body Landin.Backend.X86_64.Allocation is
                      Next_Release (Index) := Releases (Lasts (Index) + 1);
                      Releases (Lasts (Index) + 1) := Index;
                   end if;
+               end if;
+            end;
+         end loop;
+         --  D2654: which byte and halfword slots hold only zero-extended
+         --  values in their registers.
+         for Slot in 1 .. Slot_Count loop
+            Result.Slot (Slot).Zero_Extended :=
+              Allocate_GP and then not Has_Assembly
+              and then Result.Slot (Slot).Kind = GP
+              and then Result.Slot (Slot).Size
+                in Landin.Targets.Byte_1 | Landin.Targets.Byte_2
+              and then not Parameter_Slot (Slot);
+         end loop;
+         for Index in 1 .. Value_Count loop
+            declare
+               Id : constant Landin.IR.Value_Id := Landin.IR.Value_Id (Index);
+            begin
+               if Landin.IR.Op_Of (Of_Unit, Item, Id) = Landin.IR.Store then
+                  declare
+                     Slot : constant Positive :=
+                       Positive (Landin.IR.Slot_Of (Of_Unit, Item, Id));
+                     Stored : constant Landin.IR.Value_Id :=
+                       Landin.IR.Nth_Operand (Of_Unit, Item, Id, 1);
+                     At_Place : Location renames
+                       Result.Value (Positive (Stored));
+                  begin
+                     if Result.Slot (Slot).Zero_Extended
+                       and then not
+                         ((Landin.IR.Op_Of (Of_Unit, Item, Stored)
+                             in Landin.IR.Load_Indirect
+                              | Landin.IR.Load_Element | Landin.IR.Number
+                           and then not Packed_Part (Of_Unit, Item, Stored))
+                          or else (At_Place.Kind = GP
+                                   and then At_Place.Register
+                                     /= Result.Slot (Slot).Register))
+                     then
+                        Result.Slot (Slot).Zero_Extended := False;
+                     end if;
+                  end;
                end if;
             end;
          end loop;

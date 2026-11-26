@@ -890,8 +890,11 @@ operation's memory operand, as a load used as its right operand always
 is, and anything else stays in the accumulator it was computed in. A
 value stored into a slot held in a register, whose old value is dead
 from that value on, is computed in that register, as are the values
-before it that each become the next one's left operand (D2157), and an
-addition into a register neither operand holds is one `lea` (D2158). A
+before it that each become the next one's left operand (D2157), or when
+the slot's interval opens at that store and nothing holds the register
+before it (D2654); an addition into a register neither operand holds is
+one `lea` (D2158). A byte or halfword slot whose stores all leave its
+register zero-extended is widened there with no move (D2654). A
 proved product by a power of two is a shift or a scaled `lea` (D2251),
 and an element index that is a value plus or minus a constant, made only
 for the proved access right after it, is that value's register with the

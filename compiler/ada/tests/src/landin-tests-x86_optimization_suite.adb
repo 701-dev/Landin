@@ -1895,6 +1895,32 @@ package body Landin.Tests.X86_Optimization_Suite is
             end;
          end loop;
       end;
+      --  D2654: at speed a loaded byte is made in the register its
+      --  variable is kept in, whose interval opens at the store, and
+      --  widening the variable reads that register as it is: no byte
+      --  is extended from one register into another.
+      declare
+         Kept : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Kept,
+            "public count: (s: []u8, table: [256]u8) -> (r: u32) = r = 0 "
+            & "mut at: usize = lenof s while at > 0 do dec at "
+            & "base: u8 = s[at] continue when base == 10 "
+            & "r +%= u32(table[usize(base)]) end while end count");
+         declare
+            Text : constant String :=
+              Emitted (Kept, (Opt.Speed, Opt.Off));
+         begin
+            Check_Assembly
+              (Item, Text,
+               Contains (Text, "movzbl (")
+               and then not Contains (Text, "movzbl %"),
+               "a loaded byte is kept and widened in its variable's "
+               & "register at speed");
+         end;
+      end;
       --  D2254: a constant element behind an address slot is read at
       --  its displacement, the slot in a register or its home.
       declare

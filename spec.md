@@ -28794,6 +28794,43 @@ left until a measurement asks for it.
 
 **Pinned by** the x86-64 optimization suite's `arithmetic shapes`.
 
+### D2654 — x86-64 loads a byte into the register it is kept in
+
+**The tour said** nothing. reverse-complement's `write_reversed` loads a
+byte into `base` and indexes a table with `usize(base)`. `base`'s
+interval opens at its store, so D2157 did not make the load in its
+register: the byte was loaded into a register of its own and copied
+into `base`'s with `movzbl`. The widening then read a slot, not a load,
+so D2249 did not apply, and it extended the byte again into a third
+register. Two of the loop's fifteen instructions a byte moved nothing.
+
+**Chosen:** at size and speed a value is made in the register of the
+slot its first store writes when that slot's interval opens after the
+value begins and no later than the store, it is the next interval that
+register opens, and nothing holds or writes the register from the value
+to there: no other value, call or argument transport, no other load or
+store of the slot within the value's span, and no operand but the left
+one. The store then moves nothing. A byte or halfword slot held in a
+general register, no parameter, is zero-extended there when each of its
+stores writes what a byte or halfword load or a number made in its
+register, or a value moved in from another register, which selection's
+move extends. An unsigned widening of such a slot's load in the same
+register moves nothing, and an unsigned widening of a byte or halfword
+may take the register of a variable it reads for the last time, which
+keeps its value there. At speed under QEMU reverse-complement executes
+8.7% fewer x86-64 instructions, binary-trees 3.2% and fasta and the
+switch measurements 0.8% to 0.9%; every other figure is within 0.03%,
+every output the same.
+
+**The alternatives:** tracking which registers hold zero-extended
+values across every operation, which D2249 left until a measurement
+asked and which this loop does not need: its slot's stores are all
+loads; and opening the slot's interval at the value rather than the
+store, which would change every routine's intervals for this one case.
+
+**Pinned by** the x86-64 optimization suite's `arithmetic shapes` and
+reverse-complement's output under the runtime suite.
+
 ### D2369 — x86-64 narrows an unchecked integer in its register
 
 **The tour said** nothing. A narrowing conversion moved its operand

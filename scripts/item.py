@@ -8,7 +8,7 @@
     python3 scripts/item.py push ITEM [--watch] [--boards] [--no-check]
                                                 # pre-push checks, push, gate
     python3 scripts/item.py gate ITEM [--watch] # the gate runs of the branch head
-    python3 scripts/item.py boards ITEM [--watch] [--rerun-failed]
+    python3 scripts/item.py boards ITEM [--watch] [--rerun-failed] [--again]
                                                 # dispatch scope=boards
     python3 scripts/item.py merge-main ITEM [--with OTHER ...]
                                                 # take the queue, merge main once;
@@ -62,7 +62,9 @@ the gate reuses the candidate's pass and the boards dispatch still counts,
 as the reuse rule already allows; otherwise it says which commits or paths
 make the merged tree new.  `boards` refuses to dispatch on a head main is
 not an ancestor of, since promotion would refuse that tree; `--unmerged`
-dispatches anyway, for board feedback before the final merge.  After a
+dispatches anyway, for board feedback before the final merge.  A head
+whose boards run is queued, running or passed is not dispatched again: the
+run is followed, or named, unless `--again`.  After a
 boards run whose board legs passed and whose only failures were timing
 jobs, `boards --rerun-failed` re-runs only the failed jobs of that run.
 `push` refuses a stale `citations.txt` before pushing, then runs the cheap
@@ -634,10 +636,15 @@ def run(arguments):
 
 
 def runs_of(commit):
-    return gh("run", "list", "--workflow=gate.yml", "--commit", commit,
-              "--limit", "20", "--json",
-              "databaseId,event,headBranch,status,conclusion,displayTitle,"
-              "createdAt,attempt") or []
+    """COMMIT's gate runs, newest first, from one GraphQL query: the REST
+    listing this was spent the account's REST quota beside the watches."""
+    gate_watch = gate_module("gate_watch")
+    try:
+        return gate_watch.runs_of_commit(
+            commit, repo=gate_watch.repository(repository()))
+    except gate_watch.Unanswered as error:
+        raise Refused("GitHub did not list the gate runs of %s: %s"
+                      % (commit[:12], error))
 
 
 def kind_of(run_entry, target=MAIN):
@@ -907,9 +914,31 @@ def boards(arguments):
                       " merge it first (`item.py merge-main %s`), or"
                       " --unmerged for board feedback before the final merge"
                       % (target, commit[:12], item))
+    listed = runs_of(commit)
+    going = [found for found in listed if kind_of(found, target) == "boards"
+             and (found["status"] != "completed"
+                  or found.get("conclusion") == "success")]
+    if going and not arguments.again:
+        #  A queued dispatch is not listed as running, and dispatching
+        #  again beside it ran the boards twice on one tree.
+        found = going[0]
+        record_gates(state, commit)
+        save(state)
+        if found["status"] == "completed":
+            print("boards run %s on %s passed: not dispatched again"
+                  " (--again dispatches another)" % (found["databaseId"],
+                                                     commit[:12]))
+            return 0
+        print("boards run %s on %s is %s: followed, not dispatched again"
+              " (--again dispatches another)" % (
+                  found["databaseId"], commit[:12], found["status"]))
+        if arguments.watch:
+            return watch_boards(arguments, found["databaseId"],
+                                found.get("attempt") or 1)
+        return 0
     if arguments.unmerged:
         journal(item, "boards dispatched with --unmerged")
-    before = {found["databaseId"] for found in runs_of(commit)}
+    before = {found["databaseId"] for found in listed}
     result = subprocess.run(["gh", "workflow", "run", "gate.yml", "--ref",
                              state["branch"], "-f", "scope=boards"],
                             cwd=repository(), text=True,
@@ -1999,6 +2028,7 @@ def push(arguments):
         #  Beside the gate rather than after it: a hold then waits for the
         #  longer of the two, not their sum.
         arguments.unmerged = arguments.rerun_failed = False
+        arguments.again = False
         status = boards(arguments) or status
     return status
 
@@ -2096,9 +2126,12 @@ def promote(arguments):
                         " --partial promotes work short of its close" % item)
     problems += train_landing_problems(state, commit, items,
                                        arguments.partial)
-    others = [found for found in gh("run", "list", "--workflow=gate.yml",
-                                    "--status", "in_progress", "--json",
-                                    "databaseId,headBranch") or []]
+    try:
+        others = gh("run", "list", "--workflow=gate.yml", "--status",
+                    "in_progress", "--json", "databaseId,headBranch") or []
+    except Refused:
+        #  Only a note: an exhausted REST quota does not stop a promotion.
+        others = []
     if problems:
         raise Refused("not promoted:\n  " + "\n  ".join(problems))
     if others:
@@ -2651,6 +2684,9 @@ def main(argv=None):
     sub.add_argument("--rerun-failed", action="store_true", help="re-run"
                      " only the failed jobs of the head's boards run that"
                      " failed in timing alone")
+    sub.add_argument("--again", action="store_true", help="dispatch although"
+                     " the head has a boards run queued, running or passed,"
+                     " which is otherwise followed")
     sub.set_defaults(handler=boards)
 
     sub = commands.add_parser("promote", help="check the evidence and push"
