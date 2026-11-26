@@ -481,56 +481,69 @@ public atan2: (item: type is floating, y: item, x: item) -> (result: item) =
     result = item.atan2(y, x)
 end atan2
 
---- The hyperbolic sine of `x`.  C's `sinh`.
+--- The hyperbolic sine of `x`.  Within 1.9 ulp at f64 and 2.5 at f32, as
+--- msun's own routines are.  C's `sinh`.
 public sinh: (item: type is floating, x: item) -> (result: item) =
     result = item.sinh(x)
 end sinh
 
---- The hyperbolic cosine of `x`.  C's `cosh`.
+--- The hyperbolic cosine of `x`.  Within 1.9 ulp at f64 and 2.5 at f32,
+--- as msun's own routines are.  C's `cosh`.
 public cosh: (item: type is floating, x: item) -> (result: item) =
     result = item.cosh(x)
 end cosh
 
---- The hyperbolic tangent of `x`.  C's `tanh`.
+--- The hyperbolic tangent of `x`.  Within 2.1 ulp at f64 and 2.2 at
+--- f32, as msun's own routines are.  C's `tanh`.
 public tanh: (item: type is floating, x: item) -> (result: item) =
     result = item.tanh(x)
 end tanh
 
---- The inverse hyperbolic sine of `x`.  C's `asinh`.
+--- The inverse hyperbolic sine of `x`.  Within 1.7 ulp at f64 and 1.8
+--- at f32, as msun's own routines are.  C's `asinh`.
 public asinh: (item: type is floating, x: item) -> (result: item) =
     result = item.asinh(x)
 end asinh
 
---- The inverse hyperbolic cosine of `x`; NaN below 1.  C's `acosh`.
+--- The inverse hyperbolic cosine of `x`; NaN below 1.  Within 1.8 ulp at
+--- f64 and 2.1 at f32, as msun's own routines are.  C's `acosh`.
 public acosh: (item: type is floating, x: item) -> (result: item) =
     result = item.acosh(x)
 end acosh
 
 --- The inverse hyperbolic tangent of `x`: an infinity at ±1, NaN beyond.
+--- Within 1.6 ulp at f64 and 1.8 at f32, as msun's own routines are.
 --- C's `atanh`.
 public atanh: (item: type is floating, x: item) -> (result: item) =
     result = item.atanh(x)
 end atanh
 
---- The error function of `x`.  C's `erf`.
+--- The error function of `x`.  Within 0.91 ulp at f64 and 0.89 at f32.
+--- C's `erf`.
 public erf: (item: type is floating, x: item) -> (result: item) =
     result = item.erf(x)
 end erf
 
 --- The complementary error function of `x`, `1 - erf(x)`, accurate where
---- `x` is large.  C's `erfc`.
+--- `x` is large.  Within 2.7 ulp at f64 and 3.2 at f32, as msun's own
+--- routines are.  C's `erfc`.
 public erfc: (item: type is floating, x: item) -> (result: item) =
     result = item.erfc(x)
 end erfc
 
 --- The gamma function of `x`: NaN at a negative integer, an infinity of
---- zero's sign at zero.  C's `tgamma`.
+--- zero's sign at zero.  Within 0.81 ulp at f64 and 0.51 at f32.  C's
+--- `tgamma`.
 public gamma: (item: type is floating, x: item) -> (result: item) =
     result = item.gamma(x)
 end gamma
 
 --- The natural logarithm of the gamma function's magnitude at `x`:
---- +infinity at zero and at a negative integer.  C's `lgamma`, without
+--- +infinity at zero and at a negative integer.  Within 3.6 ulp at f64
+--- and 3.9 at f32 for `x` above -2, and 2.5 above zero, as msun's own
+--- routines are.  Below -2, near each point where the function is zero,
+--- its relative error grows to some 10^5 ulp: msun's reflection formula
+--- subtracts two nearly equal logarithms there.  C's `lgamma`, without
 --- its sign, which `gamma`'s sign gives where it is finite.
 public log_gamma: (item: type is floating, x: item) -> (result: item) =
     result = item.log_gamma(x)
