@@ -312,7 +312,8 @@ class Lane:
         guest.checked(f'if [ "$(readlink {root})" = {destination} ]; then rm {root}; fi; '
                       + 'rm -rf ' + shlex.quote(self.remote_prefix) + '; rm -f '
                       + shlex.join([self.remote_prefix + suffix for suffix in
-                                    ('-payload.tar.gz', '-processor', '-results.tar.gz', '-execute.sh')]))
+                                    ('-payload.tar.gz', '-processor', '-results.tar.gz', '-results.names',
+                                     '-execute.sh')]))
 
     def native_host_controls(self, guest):
         root = self.source_root
@@ -442,10 +443,15 @@ class Lane:
                        f'echo $? >{shlex.quote(status)}']
         remote_results = self.remote_prefix + '-results.tar.gz'
         remote_script = self.remote_prefix + '-execute.sh'
+        #  The names go to tar in a file of their own: on one command line,
+        #  a few thousand results passed the guest's argument limit.
+        remote_names = self.remote_prefix + '-results.names'
+        names = [r['label'] + ext for r in results for ext in
+                 (('.stdout', '.status') if r['meta'].get('stream', 'merged') == 'merged'
+                  else ('.stdout', '.stderr', '.status'))]
+        guest.checked('cat > ' + shlex.quote(remote_names), input=('\n'.join(names) + '\n').encode())
         script += ['tar -czf ' + shlex.quote(remote_results) + ' -C ' + shlex.quote(str(self.remote_bundle))
-                   + ' ' + shlex.join([r['label'] + ext for r in results for ext in
-                                     (('.stdout', '.status') if r['meta'].get('stream', 'merged') == 'merged'
-                                      else ('.stdout', '.stderr', '.status'))])]
+                   + ' -T ' + shlex.quote(remote_names)]
         guest.checked('cat > ' + shlex.quote(remote_script), input=('\n'.join(script) + '\n').encode())
         transcript = guest.checked('sh ' + shlex.quote(remote_script), timeout=max(900, 90 * len(results)))
         (self.output / 'guest-execute.log').write_bytes(transcript)

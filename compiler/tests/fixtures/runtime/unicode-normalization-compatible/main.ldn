@@ -10,8 +10,15 @@ import core/mem
 import core/text
 import core/unicode
 
-stride: u32 = 1
-expected: u32 = 0x7e2b3e24
+--  Firmware walks every 61st scalar, within the emulator's
+--  session; a hosted target walks them all.
+fixed if compiler.os == freestanding then
+    stride: u32 = 61
+    expected: u32 = 0xaa52449c
+else
+    stride: u32 = 1
+    expected: u32 = 0x7e2b3e24
+end if
 
 --  FNV-1a, 32 bits: fold one byte into the digest.
 feed: (inout state: u32, value: u8) -> none =

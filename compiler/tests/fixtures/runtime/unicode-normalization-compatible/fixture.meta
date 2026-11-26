@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/unicode's NFKC and NFKD of every scalar are NormalizationTest.txt's part 1, by their digest, and meet the file's invariants
+summary: core/unicode's NFKC and NFKD of every scalar are NormalizationTest.txt's part 1, by their digest, and meet the file's invariants; firmware walks every 61st scalar
 program: main.ldn
 root: ../../../../..
 status: 42

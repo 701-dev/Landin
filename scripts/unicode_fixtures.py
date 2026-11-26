@@ -391,22 +391,32 @@ def byte_array(name, data):
     return tables.array(name, "u8", list(data))
 
 
+#  Every how many lines of NormalizationTest.txt firmware checks.
+SEQUENCE_STRIDE = 7
+
+
 def sequences_fixture(database):
     data = bytearray()
     ends = []
-    state = OFFSET
+    lines_held = []
     longest = 0
     for part, columns in normalization_lines(database):
         if part == 1:
             continue
         data += tables.encoded(columns[0])
         ends.append(len(data))
+        lines_held.append(columns)
         for column in columns[1:]:
-            written = tables.encoded(column)
-            longest = max(longest, len(written))
-            state = fnv(state, written + b"\xff")
+            longest = max(longest, len(tables.encoded(column)))
     if longest > 256:
         raise tables.GeneratorError("a column of %d bytes" % longest)
+
+    def digest(stride):
+        state = OFFSET
+        for columns in lines_held[::stride]:
+            for column in columns[1:]:
+                state = fnv(state, tables.encoded(column) + b"\xff")
+        return state
     lines = header([
         "Each line of",
         "NormalizationTest.txt but part 1's meets every invariant the file",
@@ -417,7 +427,17 @@ def sequences_fixture(database):
         "and c5; c3 is the NFD of c2 and c3, and c5 that of c4 and c5; c4 is",
         "the NFKC and c5 the NFKD of every column."])
     lines += ["", "import core/mem", "import core/text", "import core/unicode",
-              "", "expected: u32 = 0x%08x" % state, ""]
+              "",
+              "--  Firmware checks every %s line, within the emulator's"
+              % ordinal(SEQUENCE_STRIDE),
+              "--  session; a hosted target checks them all.",
+              "fixed if compiler.os == freestanding then",
+              "    stride: usize = %d" % SEQUENCE_STRIDE,
+              "    expected: u32 = 0x%08x" % digest(SEQUENCE_STRIDE),
+              "else",
+              "    stride: usize = 1",
+              "    expected: u32 = 0x%08x" % digest(1),
+              "end if", ""]
     lines += byte_array("sources", data)
     lines += tables.array("ends", "u32", ends)
     lines += [""] + FEED + [""] + FEED_TEXT
@@ -484,7 +504,7 @@ public main: () -> (code: i32) =
         return when not gives(2, c4, c4, again) or not gives(2, c5, c4, again)
         return when not gives(3, c2, c5, again) or not gives(3, c3, c5, again)
         return when not gives(3, c4, c5, again) or not gives(3, c5, c5, again)
-        inc line
+        line += stride
     end while
     if state == expected then
         code = 42
@@ -620,7 +640,7 @@ def render_all(database):
         "unicode-normalization-canonical":
             scalar_normalization_fixture(database, "canonical", 61),
         "unicode-normalization-compatible":
-            scalar_normalization_fixture(database, "compatible", None),
+            scalar_normalization_fixture(database, "compatible", 61),
         "unicode-normalization-sequences": sequences_fixture(database),
     }
     for member, unit, plural in BREAKS:
