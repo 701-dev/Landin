@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/big's rationals agree with Python's fractions on lowest terms, arithmetic, powers, comparison, floor and truncation, correctly rounded conversion to f64 and f32, exact conversion from them, and text
+summary: core/big's rationals against Python's fractions: lowest terms, sums, differences, products, quotients, powers, comparison, sign, negation, floor and truncation
 program: main.ldn
 root: ../../../../..
 status: 42

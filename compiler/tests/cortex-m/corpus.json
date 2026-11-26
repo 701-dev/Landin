@@ -1692,6 +1692,33 @@
       ],
       "mode": "refuse"
     },
+    "runtime/big-integer": {
+      "mode": "execute"
+    },
+    "runtime/big-integer-bits": {
+      "mode": "execute"
+    },
+    "runtime/big-integer-conversion": {
+      "mode": "execute"
+    },
+    "runtime/big-integer-text": {
+      "mode": "execute"
+    },
+    "runtime/big-integer-theory": {
+      "mode": "execute"
+    },
+    "runtime/big-limbs": {
+      "mode": "execute"
+    },
+    "runtime/big-limbs-products": {
+      "mode": "execute"
+    },
+    "runtime/big-rational": {
+      "mode": "execute"
+    },
+    "runtime/big-rational-conversion": {
+      "mode": "execute"
+    },
     "runtime/binary-search": {
       "mode": "execute"
     },
@@ -2661,6 +2688,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-exact-numbers": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-failure-words": {
       "codes": [
         "L0015"
@@ -3319,6 +3352,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-atomic": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-big": {
       "mode": "execute"
     },
     "runtime/library-shared-cache": {

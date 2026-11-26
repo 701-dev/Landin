@@ -254,6 +254,16 @@ scratch: (provider: type is mem.allocator, memory: provider, count: usize)
     try reserve(room, memory, count)
 end scratch
 
+--  The most limbs a result written over one of its operands is first
+--  worked out in on the stack, so that a loop such as `x = x * y` takes
+--  nothing from an arena but its values' growth.
+on_stack: usize = 64
+
+--  A value whose block is `slots`, a caller's stack, empty.
+over_stack: (slots: []mut u32) -> (value: integer from slots) =
+    value = (limbs: slots, length: 0, negative: false)
+end over_stack
+
 --  `into` = `left` times `right`, the limb layer's scratch taken from
 --  `room`, which grows only when it is too short: a loop that keeps
 --  multiplying through one room allocates only while its numbers grow,
@@ -263,6 +273,15 @@ multiply_with: (provider: type is mem.allocator, inout into: integer,
                 inout room: integer) -> none ! mem.out_of_memory =
     total: usize = left.length + right.length
     if shares(into, left) or shares(into, right) then
+        if total <= on_stack and limbs.multiply_scratch(left.length,
+                                                        right.length) == 0 then
+            mut held: [64]u32 = zeroed
+            mut product := over_stack(held[0..<on_stack])
+            mut none_needed := over_stack(held[0..<0])
+            try multiply_with(product, memory, left, right, none_needed)
+            try set(into, memory, product)
+            return
+        end if
         mut fresh := new()
         undo release(fresh, memory)
         try multiply_with(fresh, memory, left, right, room)
@@ -343,6 +362,21 @@ public divide_truncating: (provider: type is mem.allocator,
                            divisor: integer) -> none ! mem.out_of_memory =
     if shares(quotient, numerator) or shares(quotient, divisor)
       or shares(remainder, numerator) or shares(remainder, divisor) then
+        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
+            --  Worked out on the stack and copied back: the quotient and
+            --  the remainder each take at most a limb more than either
+            --  operand, and the scratch both lengths and one more, so no
+            --  step asks the allocator to move a block that is the stack's.
+            mut held: [128]u32 = zeroed
+            mut whole_held := over_stack(held[0..<32])
+            mut part_held := over_stack(held[32..<64])
+            mut room_held := over_stack(held[64..<128])
+            try divide_with(whole_held, part_held, memory, numerator, divisor,
+                            room_held)
+            try set(quotient, memory, whole_held)
+            try set(remainder, memory, part_held)
+            return
+        end if
         mut whole := new()
         mut part := new()
         undo release(whole, memory)
@@ -368,6 +402,21 @@ public divide_floor: (provider: type is mem.allocator, inout quotient: integer,
                      -> none ! mem.out_of_memory =
     if shares(quotient, numerator) or shares(quotient, divisor)
       or shares(remainder, numerator) or shares(remainder, divisor) then
+        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
+            --  Worked out on the stack and copied back: the quotient and
+            --  the remainder each take at most a limb more than either
+            --  operand, and the scratch both lengths and one more, so no
+            --  step asks the allocator to move a block that is the stack's.
+            mut held: [128]u32 = zeroed
+            mut whole_held := over_stack(held[0..<32])
+            mut part_held := over_stack(held[32..<64])
+            mut room_held := over_stack(held[64..<128])
+            try divide_floor_with(whole_held, part_held, memory, numerator, divisor,
+                                  room_held)
+            try set(quotient, memory, whole_held)
+            try set(remainder, memory, part_held)
+            return
+        end if
         mut whole := new()
         mut part := new()
         undo release(whole, memory)

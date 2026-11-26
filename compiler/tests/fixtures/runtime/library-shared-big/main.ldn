@@ -1,0 +1,43 @@
+--  Small shared core/big consumer: 2^64 - 1 plus one through the limb
+--  layer with no allocator, and through the integers in an arena, where
+--  the sum is past `i64` and taking one away brings it back.
+import core/arena
+import core/big
+import core/big/limbs
+import core/cmp
+import core/mem
+
+mut backing: [512]u8 = zeroed
+
+--  (2^64 - 1) + 1 = 2^64, in limbs: two zero limbs and a carry.
+carried: () -> (ok: bool) =
+    value: [2]u32 = [0xffffffff, 0xffffffff]
+    one: [1]u32 = [1]
+    mut sum: [2]u32 = zeroed
+    carry: u32 = limbs.add(sum[0..<2], value[0..<2], one[0..<1])
+    ok = carry == 1 and sum[0] == 0 and sum[1] == 0
+end carried
+
+exercise: () -> (ok: bool) ! mem.out_of_memory =
+    ok = false
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], 512)
+    mut most := big.new()
+    mut one := big.new()
+    mut sum := big.new()
+    try big.set_u64(most, memory, 0xffffffffffffffff)
+    try big.set_i64(one, memory, 1)
+    try big.add(sum, memory, most, one)
+    past: bool = (big.to_i64(sum) else 0) == 0
+                 and big.compare(sum, most) == cmp.greater
+    try big.subtract(sum, memory, sum, one)
+    ok = past and big.compare(sum, most) == cmp.equal
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise() else false
+    if ok and carried() then
+        code = 42
+    end if
+end main

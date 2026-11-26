@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/big/limbs agrees with Python's integers on every operation of its table and on products and quotients of drawn operands across the Karatsuba and Toom-3 thresholds, with no allocator
+summary: core/big/limbs agrees with Python's integers on every operation of its table, results written over an operand included, with no allocator
 program: main.ldn
 root: ../../../../..
 status: 42

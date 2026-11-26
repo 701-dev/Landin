@@ -72,15 +72,15 @@ end settle_ratio
 --- Make `into` `numerator` / `denominator` in lowest terms.  A zero
 --- denominator stops the program, as division by zero does.
 public rational_set_ratio: (provider: type is mem.allocator, inout into: rational,
-                   memory: provider, numerator: integer, denominator: integer)
-                  -> none ! mem.out_of_memory =
+                            memory: provider, numerator: integer, denominator: integer)
+                           -> none ! mem.out_of_memory =
     try settle_ratio(into, memory, numerator, denominator)
 end rational_set_ratio
 
 --- Make `into` the integer `value`, over one.
 public rational_set_integer: (provider: type is mem.allocator, inout into: rational,
-                     memory: provider, value: integer)
-                    -> none ! mem.out_of_memory =
+                              memory: provider, value: integer)
+                             -> none ! mem.out_of_memory =
     mut one := new()
     defer release(one, memory)
     try set_i64(one, memory, 1)
@@ -97,15 +97,15 @@ end rational_set
 
 --- Make `into` a copy of `value`'s numerator, which carries its sign.
 public rational_numerator: (provider: type is mem.allocator, inout into: integer,
-                   memory: provider, value: rational)
-                  -> none ! mem.out_of_memory =
+                            memory: provider, value: rational)
+                           -> none ! mem.out_of_memory =
     try set(into, memory, value.top)
 end rational_numerator
 
 --- Make `into` a copy of `value`'s denominator, which is positive.
 public rational_denominator: (provider: type is mem.allocator, inout into: integer,
-                     memory: provider, value: rational)
-                    -> none ! mem.out_of_memory =
+                              memory: provider, value: rational)
+                             -> none ! mem.out_of_memory =
     mut one: [1]u32 = [1]
     try set(into, memory, denominator_of(value, one))
 end rational_denominator
@@ -242,8 +242,8 @@ end rational_power
 
 --- Make `into` the greatest integer not above `value`.
 public rational_floor: (provider: type is mem.allocator, inout into: integer,
-               memory: provider, value: rational)
-              -> none ! mem.out_of_memory =
+                        memory: provider, value: rational)
+                       -> none ! mem.out_of_memory =
     mut one: [1]u32 = [1]
     mut rest := new()
     defer release(rest, memory)
@@ -252,8 +252,8 @@ end rational_floor
 
 --- Make `into` `value` rounded toward zero to an integer.
 public rational_truncate: (provider: type is mem.allocator, inout into: integer,
-                  memory: provider, value: rational)
-                 -> none ! mem.out_of_memory =
+                           memory: provider, value: rational)
+                          -> none ! mem.out_of_memory =
     mut one: [1]u32 = [1]
     mut rest := new()
     defer release(rest, memory)

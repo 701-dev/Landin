@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/big's integers agree with Python's on arithmetic, both divisions, powers, roots, gcd, modular inverse and power, bit operations, shifts, conversions to and from the machine integers and floats, and text, results written over an operand included
+summary: core/big's integers against Python's: sums, differences, products, both divisions, comparison, sign, negation and absolute value, and products and quotients of drawn operands across the multiplication thresholds
 program: main.ldn
 root: ../../../../..
 status: 42
