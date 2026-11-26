@@ -1407,7 +1407,7 @@ its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
 
 ### R16.43 — A value read after its store is made in its slot's register on arm64
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 arm64 makes a value in the register of the slot it is stored into only
@@ -1425,6 +1425,27 @@ Exit evidence: reverse-complement at speed on arm64 executing more than
 host reported beside them; every benchmark program's instructions and
 image size reported against that base, x86-64 as well; and no other
 combination over its own.
+
+Done: at speed arm64 makes a value read again after its first store in
+the register of the slot that store writes when the slot holds that
+register over the value's span, or its interval opens at the store,
+and nothing else stores the slot inside the span; an indirect load may
+take the register of what it reads for the last time (D2714). The
+three copies of `write_reversed`'s loop and mandelbrot's two float
+moves go. Against the item's base under QEMU at armv8-a speed
+mandelbrot executes 12.0% fewer instructions, reverse-complement
+11.7%, the switch measurements 1.9%, fasta 1.8% and binary-trees 1.4%;
+fannkuch-redux, every size figure and every x86-64 figure are the
+same, every output the same. Timed on one 3.9 GHz big core of an arm64 host, where no
+cycle counter is open to an unprivileged user, mandelbrot runs 16.1%
+faster and reverse-complement 15.5%, the others within 1%. arm64
+images at speed are 24 to 2,332 bytes smaller over seven workloads a
+configuration; none grew. `SR-1958`, which measured the copies by
+hand, is completed and deleted. The register sweep had planned this
+work as R16.44 and the increment checks as R16.43; the increment item
+is R16.44 now. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45893946410)
+and [boards](https://github.com/701-dev/Landin/actions/runs/45893959661).
 
 ### R16.44 — An increment proved by the check before it
 
