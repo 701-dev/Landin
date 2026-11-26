@@ -3546,7 +3546,17 @@
       }
     },
     "runtime/library-shared-dense": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 41504 of this lane's 32 KiB, over by 8736."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 43336 of this lane's 32 KiB, over by 10568."
+        }
+      }
     },
     "runtime/library-shared-diag": {
       "mode": "execute"

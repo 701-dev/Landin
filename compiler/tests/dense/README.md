@@ -1,7 +1,8 @@
 # core/dense against the reference BLAS and OpenBLAS
 
 `core/dense`'s evidence is of two kinds: the reference BLAS's own test
-programs, translated into runtime fixtures that run on every target, and
+programs, translated into runtime fixtures that run on every hosted
+target and on the Cortex-M7 and Xtensa emulators, and
 the time its `f64` matrix product takes beside OpenBLAS's on one core.
 
 ## The translated test programs

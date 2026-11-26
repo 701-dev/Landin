@@ -22,7 +22,8 @@
 --  and the ones whose accuracy or speed needs care from the published
 --  methods its comment names.  The `dense-*` runtime fixtures translate
 --  the cases of the reference BLAS's test programs and hold every test
---  ratio under their threshold on every target, as
+--  ratio under their threshold on every hosted target and on the
+--  Cortex-M7 and Xtensa emulators, as
 --  compiler/tests/dense/README.md describes.
 import core/math
 

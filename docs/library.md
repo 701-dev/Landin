@@ -2260,7 +2260,10 @@ vectors', not blocked. Every routine is written from the mathematics:
 `norm_two` and `rotation` by Blue's scaling in Anderson's form, which
 neither overflows nor underflows unless the result does. The `dense-blas-*`
 fixtures translate the reference BLAS's own test programs and hold every
-test ratio under their threshold of 16 at both widths on every target.
+test ratio under their threshold of 16 at both widths, on every hosted
+target and on the Cortex-M7 and Xtensa emulators. They are past the
+32 KiB of Cortex-M0 and of the RV32 lanes, which run the small consumer
+and record the rest as image limits.
 Banded and packed storage, complex elements, extended-precision
 accumulation and arrays of more than two dimensions are not here.
 

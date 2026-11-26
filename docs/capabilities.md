@@ -1019,8 +1019,9 @@ injector as arguments, as providers.
   updates, and the matrix product, packed into the caller's scratch and
   blocked for the cache (D2700). Nothing allocates and nothing is ported
   (D2702). The reference BLAS's test programs, translated, hold every test
-  ratio under their threshold of 16 at both widths on every target the
-  gate runs. The `f64` product at n=1000 takes 8.2 times OpenBLAS's time
+  ratio under their threshold of 16 at both widths on every hosted target
+  and on the Cortex-M7 and Xtensa emulators; past 32 KiB, they are image
+  limits on Cortex-M0 and RV32. The `f64` product at n=1000 takes 8.2 times OpenBLAS's time
   on one core, without vector instructions (D2703). Banded and packed
   storage and complex elements are not covered.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a

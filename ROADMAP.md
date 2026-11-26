@@ -3400,8 +3400,8 @@ licence in each fixture's NOTICE and named in `LICENSE`, into
 leading dimension and again by rows, every test ratio under 16, the
 largest 2.3, on every hosted target; firmware runs every eighth case of
 level 2 and every sixth of level 3 in its 20 seconds, and the five large
-fixtures, past Cortex-M0's 32 KiB, run on the Cortex-M7, RV32 and Xtensa
-lanes. `runtime/dense-views-and-norms` and `runtime/library-shared-dense`
+fixtures, past the 32 KiB of Cortex-M0 and the RV32 lanes, are image
+limits there and run on the Cortex-M7 and Xtensa lanes. `runtime/dense-views-and-norms` and `runtime/library-shared-dense`
 check the rest exactly. `scripts/dense_timing.py` times the `f64` product
 at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
 8.2 times, mostly vector instructions refine does not emit (D2703).
