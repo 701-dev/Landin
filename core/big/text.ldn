@@ -1,0 +1,85 @@
+--  An integer's decimal and hexadecimal text, and reading it back: a
+--  negative value is written with a `-` and read with one, and nothing
+--  writes a `+`, as `core/text` writes and reads the machine integers.
+
+import core/big/limbs
+import core/mem
+import core/text
+
+--  Append `value`'s digits in base `base`, 10 or 16, to `into`.
+append_digits: (provider: type is mem.allocator, inout into: text.builder,
+                memory: provider, value: integer, base: u32)
+               -> none ! mem.out_of_memory =
+    count: usize = if base == 10 then limbs.decimal_length(value.length)
+                   else limbs.hex_length(value.length) end if
+    mut bytes := try mem.allocate_bytes(memory, count + 1)
+    defer mem.release_bytes(memory, bytes)
+    mut room := try scratch(memory, value.length)
+    defer release(room, memory)
+    digits: []mut u8 = mem.bytes(bytes)
+    mut start: usize = 0
+    if value.negative then
+        digits[0] = u8('-')
+        start = 1
+    end if
+    written: usize = if base == 10 then
+                         limbs.write_decimal(digits[start..<lenof digits],
+                                             magnitude(value), room.limbs)
+                     else limbs.write_hex(digits[start..<lenof digits],
+                                          magnitude(value)) end if
+    try text.append(into, digits[0..<start + written])
+end append_digits
+
+--- Append `value`'s decimal digits to `into`, with a `-` before a
+--- negative value's and no leading zero, `0` for zero.  The digits are
+--- found by dividing by 10^9 again and again, so the work grows with the
+--- square of the length.
+public append_decimal: (provider: type is mem.allocator,
+                        inout into: text.builder, memory: provider,
+                        value: integer) -> none ! mem.out_of_memory =
+    try append_digits(into, memory, value, 10)
+end append_decimal
+
+--- Append `value`'s hexadecimal digits to `into`, in lower case with no
+--- `0x`, a `-` before a negative value's and no leading zero.
+public append_hex: (provider: type is mem.allocator,
+                    inout into: text.builder, memory: provider,
+                    value: integer) -> none ! mem.out_of_memory =
+    try append_digits(into, memory, value, 16)
+end append_hex
+
+--  Read an optional `-` and digits in base `base` into `into`.
+parse_digits: (provider: type is mem.allocator, inout into: integer,
+               memory: provider, source: []u8, base: u32)
+              -> none ! text.invalid_number | mem.out_of_memory =
+    negative: bool = lenof source > 0 and source[0] == u8('-')
+    digits: []u8 = if negative then source[1..<lenof source] else source end if
+    want: usize = if base == 10 then limbs.decimal_limbs(lenof digits)
+                  else limbs.hex_limbs(lenof digits) end if
+    mut fresh := new()
+    undo release(fresh, memory)
+    try reserve(fresh, memory, want)
+    count: usize = if base == 10 then try limbs.read_decimal(fresh.limbs, digits)
+                   else try limbs.read_hex(fresh.limbs, digits) end if
+    settle(fresh, count, negative)
+    replace(into, memory, fresh)
+end parse_digits
+
+--- Make `into` the integer an optional `-` and nonempty ASCII decimal
+--- digits spell, of any length, leading zeros allowed: what
+--- `append_decimal` writes.  Anything else, a `+` or a space among it, is
+--- `text.invalid_number`, and leaves `into` as it was.
+public parse_decimal: (provider: type is mem.allocator, inout into: integer,
+                       memory: provider, source: []u8)
+                      -> none ! text.invalid_number | mem.out_of_memory =
+    try parse_digits(into, memory, source, 10)
+end parse_decimal
+
+--- Make `into` the integer an optional `-` and nonempty hexadecimal
+--- digits of either case spell, with no `0x`: what `append_hex` writes.
+--- Anything else is `text.invalid_number`, and leaves `into` as it was.
+public parse_hex: (provider: type is mem.allocator, inout into: integer,
+                   memory: provider, source: []u8)
+                  -> none ! text.invalid_number | mem.out_of_memory =
+    try parse_digits(into, memory, source, 16)
+end parse_hex

@@ -1,0 +1,178 @@
+--  Bit operations, which read an integer as two's complement with as many
+--  bits as it needs and its sign bit repeated without end, as Python's
+--  and GMP's do: so -1 has every bit set, `and` of a negative value keeps
+--  a nonnegative one's bits, and a right shift rounds down.
+
+import core/big/limbs
+import core/mem
+
+--- Whether bit `index` of `value` is set, counting from the least
+--- significant as 0, in its two's complement.
+public bit: (value: integer, index: usize) -> (set: bool) =
+    at: usize = index / 32
+    place: u32 = u32(index % 32)
+    mut own: bool = false
+    if at < value.length then
+        own = (value.limbs[at] >> place) & 1 == 1
+    end if
+    set = own
+    return when not value.negative
+    --  -m is the complement of m - 1, and bit i of m - 1 differs from m's
+    --  exactly when every bit of m below i is clear.
+    mut clear_below: bool = true
+    for limb, position in value.limbs[0..<value.length] do
+        if position < at then
+            if limb <> 0 then clear_below = false end if
+        elsif position == at then
+            if place > 0 and limb & ((u32(1) << place) - 1) <> 0 then
+                clear_below = false
+            end if
+        end if
+    end for
+    set = not (own <> clear_below)
+end bit
+
+--- Make `into` `value` times 2^`count`.
+public shift_left: (provider: type is mem.allocator, inout into: integer,
+                    memory: provider, value: integer, count: usize)
+                   -> none ! mem.out_of_memory =
+    whole: usize = count / 32
+    part: u32 = u32(count % 32)
+    length: usize = value.length
+    negative: bool = value.negative
+    total: usize = length + whole + 1
+    if shares(into, value) and lenof into.limbs < total then
+        mut fresh := new()
+        undo release(fresh, memory)
+        try shift_left(fresh, memory, value, count)
+        replace(into, memory, fresh)
+        return
+    end if
+    if length == 0 then
+        into.length = 0
+        into.negative = false
+        return
+    end if
+    try reserve(into, memory, total)
+    --  Within one block the limbs move up, read from the top down, so a
+    --  value shifted into itself is read before it is written.
+    into.limbs[length + whole] = limbs.shift_left(
+        into.limbs[whole..<whole + length], value.limbs[0..<length], part)
+    limbs.clear(into.limbs[0..<whole])
+    settle(into, total, negative)
+end shift_left
+
+--- Make `into` `value` divided by 2^`count`, rounded down, toward negative
+--- infinity, as an arithmetic shift of its two's complement is.
+public shift_right: (provider: type is mem.allocator, inout into: integer,
+                     memory: provider, value: integer, count: usize)
+                    -> none ! mem.out_of_memory =
+    whole: usize = count / 32
+    part: u32 = u32(count % 32)
+    length: usize = value.length
+    negative: bool = value.negative
+    if whole >= length then
+        try set_i64(into, memory, if negative then -1 else 0 end if)
+        return
+    end if
+    --  Rounding a negative value down adds one to its magnitude's
+    --  quotient when any bit shifted out was set.
+    dropped: bool = negative and any_below(value.limbs[0..<length], count)
+    kept: usize = length - whole
+    if shares(into, value) and lenof into.limbs < kept + 1 then
+        mut fresh := new()
+        undo release(fresh, memory)
+        try shift_right(fresh, memory, value, count)
+        replace(into, memory, fresh)
+        return
+    end if
+    try reserve(into, memory, kept + 1)
+    --  Within one block the limbs move down, read from the bottom up.
+    out := limbs.shift_right(into.limbs[0..<kept],
+                             value.limbs[whole..<length], part)
+    _ = out
+    into.limbs[kept] = 0
+    if dropped then
+        carry := limbs.add_limb(into.limbs[0..<kept + 1],
+                                into.limbs[0..<kept + 1], 1)
+        _ = carry
+    end if
+    settle(into, kept + 1, negative)
+end shift_right
+
+--  The `count` limbs of `value`'s two's complement into `into`.
+complement_of: (into: []mut u32, value: integer) -> none =
+    limbs.clear(into)
+    limbs.copy(into, value.limbs[0..<value.length])
+    if value.negative then
+        for slot in into do
+            slot = ~slot
+        end for
+        carry := limbs.add_limb(into, into, 1)
+        _ = carry
+    end if
+end complement_of
+
+and_kind: u32 = 0
+or_kind: u32 = 1
+xor_kind: u32 = 2
+
+--  `into` = `left` op `right` in two's complement.
+combine: (provider: type is mem.allocator, inout into: integer,
+          memory: provider, left: integer, right: integer, kind: u32)
+         -> none ! mem.out_of_memory =
+    width: usize = 1 + (if left.length >= right.length then left.length
+                        else right.length end if)
+    mut room := try scratch(memory, 2 * width)
+    defer release(room, memory)
+    first: []mut u32 = room.limbs[0..<width]
+    second: []mut u32 = room.limbs[width..<2 * width]
+    complement_of(first, left)
+    complement_of(second, right)
+    for slot, at in first do
+        slot = if kind == and_kind then slot & second[at]
+               elsif kind == or_kind then slot | second[at]
+               else slot ^ second[at] end if
+    end for
+    negative: bool = first[width - 1] >> 31 == 1
+    if negative then
+        for slot in first do
+            slot = ~slot
+        end for
+        carry := limbs.add_limb(first, first, 1)
+        _ = carry
+    end if
+    try set_limbs(into, memory, first, negative)
+end combine
+
+--- Make `into` the bitwise and of `left` and `right`.
+public and_bits: (provider: type is mem.allocator, inout into: integer,
+                  memory: provider, left: integer, right: integer)
+                 -> none ! mem.out_of_memory =
+    try combine(into, memory, left, right, and_kind)
+end and_bits
+
+--- Make `into` the bitwise inclusive or of `left` and `right`.
+public or_bits: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, left: integer, right: integer)
+                -> none ! mem.out_of_memory =
+    try combine(into, memory, left, right, or_kind)
+end or_bits
+
+--- Make `into` the bitwise exclusive or of `left` and `right`.
+public xor_bits: (provider: type is mem.allocator, inout into: integer,
+                  memory: provider, left: integer, right: integer)
+                 -> none ! mem.out_of_memory =
+    try combine(into, memory, left, right, xor_kind)
+end xor_bits
+
+--- Make `into` the complement of every bit of `value`, which is
+--- `-value - 1`.
+public complement: (provider: type is mem.allocator, inout into: integer,
+                    memory: provider, value: integer)
+                   -> none ! mem.out_of_memory =
+    mut one := new()
+    defer release(one, memory)
+    try set_i64(one, memory, -1)
+    try subtract(into, memory, one, value)
+end complement

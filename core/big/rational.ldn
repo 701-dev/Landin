@@ -1,0 +1,392 @@
+--  Rationals: a numerator and a positive denominator with no common
+--  divisor but one, kept so by every routine, so equal rationals have
+--  equal parts and the sign is the numerator's.
+
+import core/big/limbs
+import core/cmp
+import core/mem
+import core/panic
+import core/text
+
+rational_value: type = struct
+    top: integer
+    --  Zero only in a value no routine has written, where it stands for
+    --  one, so that `rational_new` allocates nothing.
+    bottom: integer
+end rational_value
+
+--- A rational number of any size: a numerator and a denominator, each an
+--- integer in the caller's allocator, always in lowest terms with a
+--- positive denominator.  Copying one copies its handles, as copying an
+--- integer does: make a copy with `rational_set`.
+public rational: type = rational_value
+
+--- Zero, holding no block.
+public rational_new: () -> (result: rational) =
+    result = (top: new(), bottom: new())
+end rational_new
+
+--- Give both of the value's blocks back and leave it zero.
+public rational_release: (provider: type is mem.allocator,
+                          inout value: rational, memory: provider) -> none =
+    release(value.top, memory)
+    release(value.bottom, memory)
+end rational_release
+
+--  The denominator, `one` standing for the empty one of a value no
+--  routine has written.
+denominator_of: (value: rational, one: []mut u32)
+                -> (result: integer from value, one) =
+    result = value.bottom
+    if result.length == 0 then
+        one[0] = 1
+        result = (limbs: one, length: 1, negative: false)
+    end if
+end denominator_of
+
+--  `into` = top / bottom in lowest terms, `bottom` not zero, written
+--  through fresh parts so that either may be one of `into`'s.
+settle_ratio: (provider: type is mem.allocator, inout into: rational,
+               memory: provider, top: integer, bottom: integer)
+              -> none ! mem.out_of_memory =
+    panic.require(bottom.length > 0)
+    mut divisor := new()
+    defer release(divisor, memory)
+    mut numerator := new()
+    undo release(numerator, memory)
+    mut denominator := new()
+    undo release(denominator, memory)
+    mut rest := new()
+    defer release(rest, memory)
+    try gcd(divisor, memory, top, bottom)
+    try divide_truncating(numerator, memory, rest, top, divisor)
+    try divide_truncating(denominator, memory, rest, bottom, divisor)
+    if denominator.negative then
+        negate(numerator)
+        negate(denominator)
+    end if
+    rational_release(into, memory)
+    into = (top: numerator, bottom: denominator)
+end settle_ratio
+
+--- Make `into` `numerator` / `denominator` in lowest terms.  A zero
+--- denominator stops the program, as division by zero does.
+public rational_set_ratio: (provider: type is mem.allocator, inout into: rational,
+                            memory: provider, numerator: integer, denominator: integer)
+                           -> none ! mem.out_of_memory =
+    try settle_ratio(into, memory, numerator, denominator)
+end rational_set_ratio
+
+--- Make `into` the integer `value`, over one.
+public rational_set_integer: (provider: type is mem.allocator, inout into: rational,
+                              memory: provider, value: integer)
+                             -> none ! mem.out_of_memory =
+    mut one := new()
+    defer release(one, memory)
+    try set_i64(one, memory, 1)
+    try settle_ratio(into, memory, value, one)
+end rational_set_integer
+
+--- Make `into` a copy of `value`, in blocks of its own.
+public rational_set: (provider: type is mem.allocator, inout into: rational,
+                      memory: provider, value: rational)
+                     -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    try settle_ratio(into, memory, value.top, denominator_of(value, one))
+end rational_set
+
+--- Make `into` a copy of `value`'s numerator, which carries its sign.
+public rational_numerator: (provider: type is mem.allocator, inout into: integer,
+                            memory: provider, value: rational)
+                           -> none ! mem.out_of_memory =
+    try set(into, memory, value.top)
+end rational_numerator
+
+--- Make `into` a copy of `value`'s denominator, which is positive.
+public rational_denominator: (provider: type is mem.allocator, inout into: integer,
+                              memory: provider, value: rational)
+                             -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    try set(into, memory, denominator_of(value, one))
+end rational_denominator
+
+--- -1, 0 or 1 as `value` is negative, zero or positive.
+public rational_sign: (value: rational) -> (result: i32) =
+    result = sign(value.top)
+end rational_sign
+
+--- Change `value`'s sign, in place.
+public rational_negate: (inout value: rational) -> none =
+    negate(value.top)
+end rational_negate
+
+--- How `left` compares with `right`, by the products of each numerator
+--- with the other's denominator.
+public rational_compare: (provider: type is mem.allocator, left: rational,
+                          memory: provider, right: rational)
+                         -> (result: cmp.order) ! mem.out_of_memory =
+    if sign(left.top) <> sign(right.top) then
+        result = if sign(left.top) < sign(right.top) then cmp.less
+                 else cmp.greater end if
+        return
+    end if
+    mut one: [1]u32 = [1]
+    mut other: [1]u32 = [1]
+    mut first := new()
+    defer release(first, memory)
+    mut second := new()
+    defer release(second, memory)
+    try multiply(first, memory, left.top, denominator_of(right, other))
+    try multiply(second, memory, right.top, denominator_of(left, one))
+    result = compare(first, second)
+end rational_compare
+
+--  `into` = a/b + c/d, `minus` taking c/d's sign over.
+add_ratio: (provider: type is mem.allocator, inout into: rational,
+            memory: provider, left: rational, right: rational, minus: bool)
+           -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    mut other: [1]u32 = [1]
+    left_bottom: integer = denominator_of(left, one)
+    right_bottom: integer = denominator_of(right, other)
+    mut first := new()
+    defer release(first, memory)
+    mut second := new()
+    defer release(second, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try multiply(first, memory, left.top, right_bottom)
+    try multiply(second, memory, right.top, left_bottom)
+    if minus then
+        try subtract(first, memory, first, second)
+    else
+        try add(first, memory, first, second)
+    end if
+    try multiply(bottom, memory, left_bottom, right_bottom)
+    try settle_ratio(into, memory, first, bottom)
+end add_ratio
+
+--- Make `into` the sum of `left` and `right`.
+public rational_add: (provider: type is mem.allocator, inout into: rational,
+                      memory: provider, left: rational, right: rational)
+                     -> none ! mem.out_of_memory =
+    try add_ratio(into, memory, left, right, false)
+end rational_add
+
+--- Make `into` `left` less `right`.
+public rational_subtract: (provider: type is mem.allocator,
+                           inout into: rational, memory: provider,
+                           left: rational, right: rational)
+                          -> none ! mem.out_of_memory =
+    try add_ratio(into, memory, left, right, true)
+end rational_subtract
+
+--- Make `into` the product of `left` and `right`.
+public rational_multiply: (provider: type is mem.allocator,
+                           inout into: rational, memory: provider,
+                           left: rational, right: rational)
+                          -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    mut other: [1]u32 = [1]
+    mut top := new()
+    defer release(top, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try multiply(top, memory, left.top, right.top)
+    try multiply(bottom, memory, denominator_of(left, one),
+                 denominator_of(right, other))
+    try settle_ratio(into, memory, top, bottom)
+end rational_multiply
+
+--- Make `into` `left` divided by `right`.  A zero `right` stops the
+--- program, as division by zero does.
+public rational_divide: (provider: type is mem.allocator,
+                         inout into: rational, memory: provider,
+                         left: rational, right: rational)
+                        -> none ! mem.out_of_memory =
+    panic.require(right.top.length > 0)
+    mut one: [1]u32 = [1]
+    mut other: [1]u32 = [1]
+    mut top := new()
+    defer release(top, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try multiply(top, memory, left.top, denominator_of(right, other))
+    try multiply(bottom, memory, denominator_of(left, one), right.top)
+    try settle_ratio(into, memory, top, bottom)
+end rational_divide
+
+--- Make `into` `base` raised to `exponent`, a negative exponent raising
+--- its reciprocal; zero to a negative power stops the program, and zero to
+--- the zeroth is one.
+public rational_power: (provider: type is mem.allocator,
+                        inout into: rational, memory: provider,
+                        base: rational, exponent: i64)
+                       -> none ! mem.out_of_memory =
+    inverted: bool = exponent < 0
+    panic.require(not inverted or base.top.length > 0)
+    size: u64 = if inverted then u64(-(exponent + 1)) + 1 else u64(exponent) end if
+    mut one: [1]u32 = [1]
+    mut top := new()
+    defer release(top, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try power(top, memory, base.top, size)
+    try power(bottom, memory, denominator_of(base, one), size)
+    if inverted then
+        try settle_ratio(into, memory, bottom, top)
+    else
+        try settle_ratio(into, memory, top, bottom)
+    end if
+end rational_power
+
+--- Make `into` the greatest integer not above `value`.
+public rational_floor: (provider: type is mem.allocator, inout into: integer,
+                        memory: provider, value: rational)
+                       -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    mut rest := new()
+    defer release(rest, memory)
+    try divide_floor(into, memory, rest, value.top, denominator_of(value, one))
+end rational_floor
+
+--- Make `into` `value` rounded toward zero to an integer.
+public rational_truncate: (provider: type is mem.allocator, inout into: integer,
+                           memory: provider, value: rational)
+                          -> none ! mem.out_of_memory =
+    mut one: [1]u32 = [1]
+    mut rest := new()
+    defer release(rest, memory)
+    try divide_truncating(into, memory, rest, value.top,
+                          denominator_of(value, one))
+end rational_truncate
+
+--  `into` = significand times 2^power exactly, signed.
+set_exact: (provider: type is mem.allocator, inout into: rational,
+            memory: provider, negative: bool, significand: u64, power: i64)
+           -> none ! mem.out_of_memory =
+    mut top := new()
+    defer release(top, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try set_u64(top, memory, significand)
+    if negative then negate(top) end if
+    try set_i64(bottom, memory, 1)
+    if power >= 0 then
+        try shift_left(top, memory, top, usize(power))
+    else
+        try shift_left(bottom, memory, bottom, usize(-power))
+    end if
+    try settle_ratio(into, memory, top, bottom)
+end set_exact
+
+--- Make `into` exactly the value of `value`, as every finite float is a
+--- rational whose denominator is a power of two; `not_finite`, changing
+--- nothing, for an infinity or NaN.  Both zeros are zero.
+public rational_set_f64: (provider: type is mem.allocator,
+                          inout into: rational, memory: provider, value: f64)
+                         -> none ! mem.out_of_memory | not_finite =
+    (negative: negative, significand: significand, power: power) :=
+        try parts_64(value)
+    try set_exact(into, memory, negative, significand, power)
+end rational_set_f64
+
+--- Make `into` exactly the value of `value`, as `rational_set_f64` does.
+public rational_set_f32: (provider: type is mem.allocator,
+                          inout into: rational, memory: provider, value: f32)
+                         -> none ! mem.out_of_memory | not_finite =
+    (negative: negative, significand: significand, power: power) :=
+        try parts_32(value)
+    try set_exact(into, memory, negative, significand, power)
+end rational_set_f32
+
+--  The bits of the float of `format` nearest |value|: the quotient of
+--  the numerator by the denominator, scaled to between 65 and 66 bits,
+--  rounded once with its remainder as the sticky bit.
+rational_bits: (provider: type is mem.allocator, value: rational,
+                memory: provider, format: format_value)
+               -> (bits: u64) ! mem.out_of_memory =
+    bits = 0
+    return when value.top.length == 0
+    mut one: [1]u32 = [1]
+    bottom: integer = denominator_of(value, one)
+    scale: i64 = 65 + i64(bit_length(bottom)) - i64(bit_length(value.top))
+    mut top := new()
+    defer release(top, memory)
+    mut under := new()
+    defer release(under, memory)
+    mut quotient := new()
+    defer release(quotient, memory)
+    mut rest := new()
+    defer release(rest, memory)
+    try set(top, memory, value.top)
+    absolute(top)
+    try set(under, memory, bottom)
+    if scale >= 0 then
+        try shift_left(top, memory, top, usize(scale))
+    else
+        try shift_left(under, memory, under, usize(-scale))
+    end if
+    try divide_truncating(quotient, memory, rest, top, under)
+    bits = rounded_digits(magnitude(quotient), rest.length > 0, -scale, format)
+end rational_bits
+
+--- The `f64` nearest `value`, ties to even, rounded once from the exact
+--- quotient, an infinity of its sign beyond the greatest finite `f64` and a
+--- zero of its sign below half the least subnormal.
+public rational_to_f64: (provider: type is mem.allocator, value: rational,
+                         memory: provider) -> (result: f64) ! mem.out_of_memory =
+    mut bits: u64 = try rational_bits(value, memory, double)
+    if value.top.negative then bits = bits | 0x8000000000000000 end if
+    result = float_64(bits)
+end rational_to_f64
+
+--- The `f32` nearest `value`, as `rational_to_f64` gives the `f64`:
+--- rounded once, never through an `f64`.
+public rational_to_f32: (provider: type is mem.allocator, value: rational,
+                         memory: provider) -> (result: f32) ! mem.out_of_memory =
+    mut bits: u64 = try rational_bits(value, memory, single)
+    if value.top.negative then bits = bits | 0x80000000 end if
+    result = float_32(u32(bits))
+end rational_to_f32
+
+--- Append `value` to `into` as its numerator's decimal text, then `/` and
+--- its denominator's unless that is one: `-3/4`, `7`.
+public rational_append: (provider: type is mem.allocator,
+                         inout into: text.builder, memory: provider,
+                         value: rational) -> none ! mem.out_of_memory =
+    try append_decimal(into, memory, value.top)
+    mut one: [1]u32 = [1]
+    bottom: integer = denominator_of(value, one)
+    return when bottom.length == 1 and bottom.limbs[0] == 1
+    try text.append(into, "/")
+    try append_decimal(into, memory, bottom)
+end rational_append
+
+--- Make `into` the rational `rational_append` writes: an integer's
+--- decimal text, then optionally `/` and nonzero decimal digits, put in
+--- lowest terms, so `6/-4` is refused and `6/4` read as 3/2.  Anything
+--- else, a zero denominator among it, is `text.invalid_number`, and leaves
+--- `into` as it was.
+public rational_parse: (provider: type is mem.allocator, inout into: rational,
+                        memory: provider, source: []u8)
+                       -> none ! text.invalid_number | mem.out_of_memory =
+    mut slash: usize = lenof source
+    for byte, at in source do
+        if byte == u8('/') and slash == lenof source then slash = at end if
+    end for
+    mut top := new()
+    defer release(top, memory)
+    mut bottom := new()
+    defer release(bottom, memory)
+    try parse_decimal(top, memory, source[0..<slash])
+    if slash < lenof source then
+        digits: []u8 = source[slash + 1..<lenof source]
+        fail text.invalid_number when lenof digits > 0 and digits[0] == u8('-')
+        try parse_decimal(bottom, memory, digits)
+        fail text.invalid_number when bottom.length == 0
+    else
+        try set_i64(bottom, memory, 1)
+    end if
+    try settle_ratio(into, memory, top, bottom)
+end rational_parse

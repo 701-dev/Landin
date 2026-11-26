@@ -3,6 +3,7 @@
 --  failure, which `core/failure` words.  The two meet here rather than in
 --  the system layer, which imports nothing above it (D1951).
 
+import core/big
 import core/cache
 import core/failure
 import core/io
@@ -58,6 +59,8 @@ fixed if compiler.os <> windows then
             cache.bad_line: failure.words(cache.bad_line)
             line.unsupported_rate: failure.words(line.unsupported_rate)
             line.unsupported_format: failure.words(line.unsupported_format)
+            big.not_invertible: failure.words(big.not_invertible)
+            big.not_finite: failure.words(big.not_finite)
             _ (rest): posix.words(rest)
         end match
     end words

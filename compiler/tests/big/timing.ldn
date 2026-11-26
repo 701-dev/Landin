@@ -1,0 +1,93 @@
+--  The timing `python3 scripts/big_oracle.py time` runs: `timing MOST
+--  SPEND` times core/big/limbs's multiplication of two numbers of n limbs
+--  and its division of 2n limbs by n, for n from one limb to MOST, each
+--  for SPEND nanoseconds and at least once, and prints a line for each n:
+--  its bits and the nanoseconds a multiplication and a division took.
+--  The operands are drawn from core/random, the divisor's top limb kept
+--  nonzero.
+import core/big/limbs
+import core/io
+import core/mem
+import core/random
+import core/text
+import core/time
+import hosted/blocking
+import hosted/heap
+
+--  The argument at `at` as a `u64`, or `fallback` when there is none.
+argument: (host: blocking.host, at: usize, fallback: u64) -> (value: u64) =
+    value = fallback
+    return when io.arguments_length(host) <= at
+    given: text.os_string = io.argument(host, at) else (problem)
+        _ = problem
+        return
+    end
+    value = text.parse_u64(text.os_string_bytes(given)) else fallback
+end argument
+
+--  The nanoseconds one run of `step` takes, run until `spend` have passed.
+--  0 multiplies and 1 divides.
+timed: (host: blocking.host, step: u32, work: []mut u32, count: usize,
+        spend: u64) -> (each: u64) =
+    numerator: []u32 = work[0..<2 * count]
+    divisor: []u32 = work[2 * count..<3 * count]
+    product: []mut u32 = work[3 * count..<5 * count]
+    quotient: []mut u32 = work[5 * count..<6 * count + 1]
+    remainder: []mut u32 = work[6 * count + 1..<7 * count + 1]
+    room: []mut u32 = work[7 * count + 1..<lenof work]
+    mut rounds: u64 = 0
+    start: time.instant = time.now(host)
+    mut spent: u64 = 0
+    while rounds == 0 or spent < spend do
+        if step == 0 then
+            limbs.multiply(product, numerator[0..<count], divisor, room)
+        else
+            limbs.divide(quotient, remainder, numerator, divisor, room)
+        end if
+        inc rounds
+        spent = u64(time.elapsed(start, time.now(host)))
+    end while
+    each = spent / rounds
+end timed
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    most: usize = usize(argument(host, 0, 31250))
+    spend: u64 = argument(host, 1, 200000000)
+    room: usize = limbs.multiply_scratch(most, most) + 3 * most + 1
+    slots: usize = 7 * most + 1 + room
+    mut block := mem.allocate_bytes(memory, 4 * slots) else (problem)
+        _ = problem
+        return
+    end
+    defer mem.release_bytes(memory, block)
+    bytes: []mut u8 = mem.bytes(block)
+    first: ptr mut [1]u32 = ptr(usize(addr bytes[0]))
+    mut work: []mut u32 = first.val[0..<1]
+    unchecked begin
+        --  The block holds `slots` limbs.
+        work = work[0..<slots]
+    end unchecked
+    mut source := random.new(2213)
+    for slot in work do
+        slot = random.next_u32(source)
+    end for
+    mut count: usize = 1
+    while count <= most do
+        if work[3 * count - 1] == 0 then work[3 * count - 1] = 1 end if
+        multiplied: u64 = timed(host, 0, work, count, spend)
+        divided: u64 = timed(host, 1, work, count, spend)
+        bits: usize = 32 * count
+        io.write_format(host, io.out(host), "{} {} {}\n",
+                        [any(addr bits), any(addr multiplied), any(addr divided)])
+            else none
+        if count == most then
+            break
+        end if
+        count = if count < 8 then 2 * count else count + count / 2 end if
+        if count > most then count = most end if
+    end while
+    code = 0
+end main
