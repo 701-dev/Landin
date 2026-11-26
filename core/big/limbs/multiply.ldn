@@ -13,8 +13,8 @@ import core/panic
 --  The lengths at which each method starts to beat the one below it, in
 --  limbs of both operands, measured on x86-64 and arm64 hosts; the
 --  Cortex-M0, whose limb product is a library call, keeps the same ones.
-karatsuba_from: usize = 24
-toom_from: usize = 100
+karatsuba_from: usize = 48
+toom_from: usize = 150
 
 --  `into[0..<la+lb]` = `left` times `right` by rows, `left` at least as
 --  long as `right` and `right` not empty.

@@ -37,14 +37,17 @@ public compare: (left: []u32, right: []u32) -> (result: cmp.order) =
         return
     end if
     result = cmp.equal
-    while at > 0 do
-        dec at
-        if left[at] <> right[at] then
-            result = if left[at] < right[at] then cmp.less
-                     else cmp.greater end if
-            return
-        end if
-    end while
+    unchecked begin
+        --  Both hold `at` significant limbs.
+        while at > 0 do
+            dec at
+            if left[at] <> right[at] then
+                result = if left[at] < right[at] then cmp.less
+                         else cmp.greater end if
+                return
+            end if
+        end while
+    end unchecked
 end compare
 
 --- Write zero into every limb of `into`.
@@ -59,9 +62,12 @@ end clear
 --- down within one slice.
 public copy: (into: []mut u32, value: []u32) -> none =
     panic.require(lenof into >= lenof value)
-    for limb, at in value do
-        into[at] = limb
-    end for
+    unchecked begin
+        --  `into` is at least as long as `value`.
+        for limb, at in value do
+            into[at] = limb
+        end for
+    end unchecked
 end copy
 
 --- Write `left + right` into `into`'s first `max(lenof left, lenof right)`
