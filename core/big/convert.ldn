@@ -1,0 +1,267 @@
+--  Conversion between integers and the machine's integers and floats.
+--  A float is made from bits rounded here, to nearest with ties to even,
+--  from the number's top 64 bits and whether any below them are set, so a
+--  result in the subnormal range is rounded once, as an exact operation
+--  would round it, on every target.
+
+import core/big/limbs
+import core/mem
+import core/panic
+import core/text
+
+--- `value` as an `i64`, or `text.number_overflow` when it is outside
+--- `i64`'s range.
+public to_i64: (value: integer) -> (result: i64) ! text.number_overflow =
+    size: u64 = try to_u64_magnitude(value)
+    if value.negative then
+        fail text.number_overflow when size > 0x8000000000000000
+        result = if size == 0x8000000000000000 then -9223372036854775807 - 1
+                 else -i64(size) end if
+    else
+        fail text.number_overflow when size > 0x7fffffffffffffff
+        result = i64(size)
+    end if
+end to_i64
+
+--- `value` as a `u64`, or `text.number_overflow` when it is negative or
+--- above `u64`'s maximum.
+public to_u64: (value: integer) -> (result: u64) ! text.number_overflow =
+    fail text.number_overflow when value.negative
+    result = try to_u64_magnitude(value)
+end to_u64
+
+to_u64_magnitude: (value: integer) -> (size: u64) ! text.number_overflow =
+    fail text.number_overflow when value.length > 2
+    size = 0
+    if value.length > 0 then size = u64(value.limbs[0]) end if
+    if value.length > 1 then size = size | (u64(value.limbs[1]) << 32) end if
+end to_u64_magnitude
+
+--- The number of bits of `value`'s magnitude, zero for zero: one more
+--- than the place of its highest set bit.
+public bit_length: (value: integer) -> (count: usize) =
+    count = 0
+    return when value.length == 0
+    top: u32 = value.limbs[value.length - 1]
+    count = 32 * value.length - usize(limbs.leading_zeros(top))
+end bit_length
+
+--  The 64 bits of the magnitude `digits` from bit `offset` up, those
+--  past its end zero.
+bits_at: (digits: []u32, offset: usize) -> (bits: u64) =
+    bits = 0
+    first: usize = offset / 32
+    shift: u64 = u64(offset % 32)
+    for step in usize(0)..<3 do
+        at: usize = first + step
+        if at < lenof digits then
+            limb: u64 = u64(digits[at])
+            if step == 0 then
+                bits = limb >> shift
+            else
+                place: u64 = 32 * u64(step) - shift
+                bits = bits | (limb << place)
+            end if
+        end if
+    end for
+end bits_at
+
+--  Whether any bit of `digits` below bit `offset` is set.
+any_below: (digits: []u32, offset: usize) -> (yes: bool) =
+    yes = false
+    whole: usize = offset / 32
+    for at in usize(0)..<whole do
+        if at < lenof digits and digits[at] <> 0 then
+            yes = true
+            return
+        end if
+    end for
+    part: u32 = u32(offset % 32)
+    if part > 0 and whole < lenof digits then
+        yes = digits[whole] & ((u32(1) << part) - 1) <> 0
+    end if
+end any_below
+
+--  The format of a float: its significand's bits with the hidden one,
+--  and its least and greatest normal exponents.
+format_value: type = struct
+    precision: u32
+    least: i64
+    most: i64
+end format_value
+
+double: format_value = (precision: 53, least: -1022, most: 1023)
+single: format_value = (precision: 24, least: -126, most: 127)
+
+--  The bits of the float of `format` nearest `top` times 2^`power`,
+--  ties to even, its sign left clear: `top` has its high bit set, and
+--  `sticky` says whether the exact value is a little above it.
+rounded: (top: u64, sticky: bool, power: i64, format: format_value)
+         -> (bits: u64) =
+    leading: i64 = power + 63
+    hidden: u64 = u64(1) << u64(format.precision - 1)
+    infinity: u64 = u64(2 * format.most + 1) << u64(format.precision - 1)
+    if leading > format.most then
+        bits = infinity
+        return
+    end if
+    mut kept: i64 = i64(format.precision)
+    if leading < format.least then
+        kept = kept - (format.least - leading)
+    end if
+    if kept <= 0 then
+        --  Below half the least subnormal, zero; at half, a tie to zero;
+        --  above it, the least subnormal.
+        bits = if kept == 0 and (top > 0x8000000000000000 or sticky) then 1
+               else 0 end if
+        return
+    end if
+    drop: u64 = 64 - u64(kept)
+    mut mantissa: u64 = top >> drop
+    rest: u64 = top & ((u64(1) << drop) - 1)
+    half: u64 = u64(1) << (drop - 1)
+    if rest > half or (rest == half and (sticky or mantissa & 1 == 1)) then
+        inc mantissa
+    end if
+    if leading < format.least then
+        --  A subnormal's bits are its significand; one rounded up to the
+        --  hidden bit's place is the least normal, whose bits these are.
+        bits = mantissa
+        return
+    end if
+    mut exponent: i64 = leading
+    if mantissa == hidden << 1 then
+        mantissa = hidden
+        inc exponent
+        if exponent > format.most then
+            bits = infinity
+            return
+        end if
+    end if
+    bits = (u64(exponent - format.least + 1) << u64(format.precision - 1))
+           | (mantissa - hidden)
+end rounded
+
+--  The bits of the float of `format` nearest the magnitude `digits` times
+--  2^`power`, a little more when `sticky`.
+rounded_digits: (digits: []u32, sticky: bool, power: i64,
+                 format: format_value) -> (bits: u64) =
+    count: usize = limbs.significant(digits)
+    bits = 0
+    return when count == 0
+    length: usize = 32 * count - usize(limbs.leading_zeros(digits[count - 1]))
+    if length <= 64 then
+        top: u64 = bits_at(digits, 0) << u64(64 - length)
+        bits = rounded(top, sticky, power - i64(64 - length), format)
+    else
+        offset: usize = length - 64
+        below: bool = sticky or any_below(digits, offset)
+        bits = rounded(bits_at(digits, offset), below, power + i64(offset),
+                       format)
+    end if
+end rounded_digits
+
+float_64: (bits: u64) -> (value: f64) =
+    view: ptr f64 = ptr(usize(addr bits))
+    value = view.val
+end float_64
+
+float_32: (bits: u32) -> (value: f32) =
+    view: ptr f32 = ptr(usize(addr bits))
+    value = view.val
+end float_32
+
+bits_64: (value: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr value))
+    bits = view.val
+end bits_64
+
+bits_32: (value: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr value))
+    bits = view.val
+end bits_32
+
+--- The `f64` nearest `value`, ties to even, and an infinity of its sign
+--- beyond the greatest finite `f64`.  Every integer of 53 bits or fewer
+--- converts exactly.
+public to_f64: (value: integer) -> (result: f64) =
+    mut bits: u64 = rounded_digits(magnitude(value), false, 0, double)
+    if value.negative then bits = bits | 0x8000000000000000 end if
+    result = float_64(bits)
+end to_f64
+
+--- The `f32` nearest `value`, ties to even, and an infinity of its sign
+--- beyond the greatest finite `f32`: rounded once from the integer, never
+--- through an `f64`.
+public to_f32: (value: integer) -> (result: f32) =
+    mut bits: u64 = rounded_digits(magnitude(value), false, 0, single)
+    if value.negative then bits = bits | 0x80000000 end if
+    result = float_32(u32(bits))
+end to_f32
+
+--  A finite float's parts: its sign, and a significand and a power of two
+--  whose product is its magnitude; `not_finite` for an infinity or NaN.
+parts_64: (value: f64)
+          -> (negative: bool, significand: u64, power: i64) ! not_finite =
+    bits: u64 = bits_64(value)
+    negative = bits >> 63 == 1
+    field: u64 = (bits >> 52) & 0x7ff
+    fail not_finite when field == 0x7ff
+    significand = bits & 0xfffffffffffff
+    if field == 0 then
+        power = -1074
+    else
+        significand = significand | 0x10000000000000
+        power = i64(field) - 1075
+    end if
+end parts_64
+
+parts_32: (value: f32)
+          -> (negative: bool, significand: u64, power: i64) ! not_finite =
+    bits: u32 = bits_32(value)
+    negative = bits >> 31 == 1
+    field: u32 = (bits >> 23) & 0xff
+    fail not_finite when field == 0xff
+    significand = u64(bits & 0x7fffff)
+    if field == 0 then
+        power = -149
+    else
+        significand = significand | 0x800000
+        power = i64(field) - 150
+    end if
+end parts_32
+
+--  `into` = significand times 2^power, rounded toward zero, signed.
+set_scaled: (provider: type is mem.allocator, inout into: integer,
+             memory: provider, negative: bool, significand: u64, power: i64)
+            -> none ! mem.out_of_memory =
+    if power >= 0 then
+        try set_u64(into, memory, significand)
+        try shift_left(into, memory, into, usize(power))
+    elsif power > -64 then
+        try set_u64(into, memory, significand >> u64(-power))
+    else
+        try set_u64(into, memory, 0)
+    end if
+    if negative then negate(into) end if
+end set_scaled
+
+--- Make `into` the integer part of `value`, rounded toward zero as a
+--- conversion to an integer type rounds; `not_finite`, changing nothing,
+--- for an infinity or NaN.
+public set_f64: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, value: f64)
+                -> none ! mem.out_of_memory | not_finite =
+    (negative: negative, significand: significand, power: power) :=
+        try parts_64(value)
+    try set_scaled(into, memory, negative, significand, power)
+end set_f64
+
+--- Make `into` the integer part of `value`, as `set_f64` does.
+public set_f32: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, value: f32)
+                -> none ! mem.out_of_memory | not_finite =
+    (negative: negative, significand: significand, power: power) :=
+        try parts_32(value)
+    try set_scaled(into, memory, negative, significand, power)
+end set_f32

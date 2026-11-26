@@ -2188,6 +2188,124 @@ instead, and on the hosted targets.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-complex/main.ldn)
 
+## core/big
+
+Integers and rationals of any size, for a number no machine integer
+holds. A `big.integer` is a signed integer, a handle to limbs taken from
+the caller's allocator; a `big.rational` is a numerator over a positive
+denominator, always in lowest terms. Both are written in Landin over
+`core/big/limbs`, whose limb is 32 bits on every target, so a result is
+the same limbs everywhere, Cortex-M0 included.
+
+Each routine writes a destination passed `inout` as its first argument,
+grows it through `memory`, an allocator, and takes its operands after:
+`try big.multiply(product, memory, left, right)`. It fails only
+`mem.out_of_memory` unless the table names another failure.
+
+| Call | What it does |
+|---|---|
+| `big.new`, `big.release` | Zero, which allocates nothing, and giving a value's block back to `memory`. |
+| `big.set`, `big.set_i64`, `big.set_u64`, `big.set_limbs`, `big.limbs_of` | A copy of another integer, a machine integer, or a magnitude in limbs with a sign; `limbs_of` is a `[]u32` view of the magnitude, for `core/big/limbs`. |
+| `big.to_i64`, `big.to_u64` | The machine integer, failing `text.number_overflow` when the value is outside the type. |
+| `big.to_f64`, `big.to_f32`, `big.set_f64`, `big.set_f32` | The nearest float, ties to even, rounded once, and infinity beyond the float's range; `set_f64` and `set_f32` take a float's integer part, rounded toward zero, and fail `big.not_finite`. |
+| `big.sign`, `big.compare`, `big.negate`, `big.absolute` | The sign as -1, 0 or 1, the order as a `cmp.order`, and the negation and magnitude in place. |
+| `big.add`, `big.subtract`, `big.multiply` | The sum, difference and product. |
+| `big.divide_truncating`, `big.divide_floor` | A quotient and a remainder: rounded toward zero, the remainder with the numerator's sign, as `/` and `%` do, or rounded down, the remainder with the divisor's sign. The remainder's destination follows `memory`: `big.divide_floor(quotient, memory, remainder, numerator, divisor)`. |
+| `big.power`, `big.root` | A power by a `u64` exponent, and the root of a `u32` degree, rounded toward zero. |
+| `big.gcd`, `big.inverse_modulo`, `big.power_modulo` | The greatest common divisor, never negative; the inverse for a modulus, failing `big.not_invertible`; and a power for a modulus, from 0 to the modulus less one. |
+| `big.and_bits`, `big.or_bits`, `big.xor_bits`, `big.complement`, `big.shift_left`, `big.shift_right`, `big.bit`, `big.bit_length` | The bits of the two's complement form, its sign repeated without end, as Python and GMP read it: `complement` is `-x - 1`, and `shift_right` rounds down. `and` and `or` are keywords, hence the names. |
+| `big.append_decimal`, `big.append_hex`, `big.parse_decimal`, `big.parse_hex` | Text appended to a `text.builder`, and read from bytes: `-` before a negative value, lower-case hex digits with no `0x`. Parsing takes an optional `-` and no `+`, fails `text.invalid_number`, and then leaves its destination as it was. |
+| `big.rational_new`, `big.rational_release` | Zero, and giving a rational's blocks back. |
+| `big.rational_set_ratio`, `big.rational_set_integer`, `big.rational_set` | A rational from a numerator and a denominator, from an integer, or a copy of another. |
+| `big.rational_numerator`, `big.rational_denominator` | Copies of the two parts, as integers. |
+| `big.rational_sign`, `big.rational_negate`, `big.rational_compare` | The sign, the negation in place, and the order, which needs `memory`: `big.rational_compare(left, memory, right)`. |
+| `big.rational_add`, `big.rational_subtract`, `big.rational_multiply`, `big.rational_divide`, `big.rational_power` | The arithmetic, each result in lowest terms; the power takes an `i64` exponent, and a negative one raises the reciprocal. |
+| `big.rational_floor`, `big.rational_truncate` | The integer below, or the integer toward zero. |
+| `big.rational_to_f64`, `big.rational_to_f32`, `big.rational_set_f64`, `big.rational_set_f32` | The nearest float, ties to even, rounded once from the exact quotient, subnormals included; `rational_set_f64` and `rational_set_f32` take exactly the float's value, and fail `big.not_finite`. |
+| `big.rational_append`, `big.rational_parse` | The text `-3/4`, or `7` for a whole number, and reading it back, failing `text.invalid_number`; a zero or signed denominator is refused. |
+
+A destination may be one of the operands: `big.add(x, memory, x, y)`.
+Assigning an integer copies its handle, not its number, so two bindings
+would share one block; `big.set` makes a copy. The routines that loop,
+`power`, `root`, `gcd`, `inverse_modulo` and `power_modulo`, keep their
+temporaries from step to step, so an arena, which frees nothing, holds a
+call however many steps it takes. A result of at most 64 limbs written
+over one of its operands is worked out on the stack. The rational
+routines carry the prefix `rational_` because the module's principal type
+is the integer, as `text.utf8_*` do.
+
+What a caller can foresee is a failure: no memory, a value outside `i64`,
+text that is not a number, a float that is not finite, a value with no
+inverse. A mistake in the program stops it, as `/` by zero does: a zero
+divisor or denominator, an even root of a negative value, a root of degree
+0, a modulus that is not positive, a negative exponent for a modulus. A
+float is rounded once: `to_f32` never goes through an `f64`.
+
+Multiplication is schoolbook, Karatsuba and Toom-3 by size; division and
+decimal text are quadratic. On x86-64, a product of two million-bit
+numbers takes about 65 ms, and a division of two million bits by one
+million about 2.1 s;
+[the measurements](../compiler/tests/big/README.md#timing) have the table. The
+module has no floating point of any precision, which the layers leave
+room for, no FFT or Toom variant above three, no primality test or
+factoring, and no constant-time operation: Landin writes no cryptography.
+
+On Cortex-M0's 32 KiB reference, a program that adds and compares
+integers fits with room, and one that multiplies or divides fits. One
+that needs both, as roots, the modular inverse and power, and every
+rational routine do, takes 36 to 51 KiB and needs a larger part.
+
+The `big-*` fixtures check every routine against Python's integers and
+fractions on every target;
+[their description](../compiler/tests/big/README.md#the-fixtures) says how they are
+written.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-big/main.ldn)
+
+## core/big/limbs
+
+Natural numbers in slices of `u32` limbs the caller supplies, least
+significant limb first, as GMP's `mpn` layer has them. Nothing allocates,
+and nothing is kept between calls. `core/big` is built on it, and
+`big.limbs_of` and `big.set_limbs` pass between the two. A limb is 32
+bits on every target, so a result is the same limbs everywhere.
+
+| Call | What it does |
+|---|---|
+| `limbs.significant`, `limbs.compare` | The count of limbs without the high zero ones, and the order of two numbers by value, whatever their lengths. |
+| `limbs.clear`, `limbs.copy` | Zero, and a copy. |
+| `limbs.add`, `limbs.add_limb`, `limbs.subtract`, `limbs.subtract_limb` | The sum or difference with a number or one limb, returning the carry or the borrow; the left operand is at least as long as the right. |
+| `limbs.multiply_limb`, `limbs.add_multiply_limb`, `limbs.subtract_multiply_limb` | A number times one limb, written, added to or subtracted from the destination, returning the high limb; the last two are GMP's `addmul_1` and `submul_1`. |
+| `limbs.shift_left`, `limbs.shift_right` | A shift by a count below 32, returning the bits shifted out. |
+| `limbs.leading_zeros`, `limbs.trailing_zeros` | The zero bits above or below a limb's set ones. |
+| `limbs.divide_limb`, `limbs.remainder_limb` | Division by one limb, returning the remainder, with or without the quotient. |
+| `limbs.multiply`, `limbs.multiply_scratch` | The product, of `lenof left + lenof right` limbs: schoolbook below 48 limbs, Karatsuba below 150 and Toom-3 above. `multiply_scratch` is the scratch length it needs. |
+| `limbs.divide`, `limbs.divide_scratch` | The quotient and remainder by Knuth's Algorithm D, for a divisor whose top limb is not zero and which is no longer than the numerator. `divide_scratch` is the scratch length it needs. |
+| `limbs.write_decimal`, `limbs.decimal_length`, `limbs.write_hex`, `limbs.hex_length` | Digits written to bytes, returning their count; the hex is lower case, with no leading zero, and `0` for zero. The lengths are what the bytes must hold: 10 a limb and one for decimal, 8 a limb and one for hex. |
+| `limbs.read_decimal`, `limbs.decimal_limbs`, `limbs.read_hex`, `limbs.hex_limbs` | Digits read into limbs, returning the limb count and failing `text.invalid_number`. The lengths are what the limbs must hold: for decimal, one limb for every nine digits and one more. |
+
+Each routine says how long its destination must be. `limbs.multiply`
+writes `lenof left + lenof right` limbs; `limbs.divide` writes a quotient
+of `lenof numerator - lenof divisor + 1` limbs and a remainder as long as
+the divisor, with scratch of the two lengths and one more;
+`limbs.write_decimal` takes scratch as long as the value. A requirement
+not met stops the program, as `panic.require` does.
+
+A destination may be an operand's own slice for `add`, `add_limb`,
+`subtract`, `subtract_limb`, `multiply_limb`, `shift_left`, `shift_right`
+and `divide_limb`. For every other routine it must not overlap an
+operand. Reading digits is the layer's only failure.
+
+On Cortex-M0, a program takes only the routines it calls. The whole layer
+is 20,310 bytes at `size/auto`: multiplication through Toom-3 is about
+9.5 KiB of it, and division 1.9 KiB.
+
+The `big-limbs` fixtures check the routines against Python's integers on
+every target; [their description](../compiler/tests/big/README.md#the-fixtures) says
+how they are written.
+
+[Executable example](../compiler/tests/fixtures/runtime/big-limbs/main.ldn)
+
 ## core/line
 
 Serial line settings: a UART's rate and frame, the divisor its baud-rate generator is set to, and the refusals every driver shares.

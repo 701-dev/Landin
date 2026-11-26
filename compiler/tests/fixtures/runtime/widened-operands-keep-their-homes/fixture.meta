@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D2120: a u64 widening made where its sum reads it keeps its operand's home until then, so two widened elements added after a call are two values
+program: main.ldn
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0290, 0310
+levels: armv7-m, armv8-m.main

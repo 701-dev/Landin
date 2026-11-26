@@ -23812,7 +23812,9 @@ which is sorted. A name beginning with a dot is not entered, as a
 checkout's `.git` is not; a directory reached twice through a link is
 listed once; a source a directory reaches and an operand also names is
 formatted once, while one operand given twice is still refused. A directory
-holding no source is refused as L0002. `--stdout` still prints one source,
+holding no source is refused as L0002; one whose sources an earlier operand
+already reached, `refine fmt core/big core/big/limbs`, holds them and is
+not. `--stdout` still prints one source,
 so a directory holding more than one is refused with it. An L0008 for a
 respaced line marks the bytes that differ, from the first the layout changes
 to the last, or the byte an insertion goes before, and its note says from
@@ -29043,14 +29045,17 @@ eight-byte one, from an unsigned source or a signed word to a signed
 result, emits nothing either: its reader loads the source into the low
 register and makes the high one with `movs` zero or `asrs` 31. The
 source then lives, and is held (D1567), through the conversion's last
-reader.
+reader, and a source left in its home keeps that home as long.
 
 **The alternatives:** a held pair (D1503's form) for each, which on
 Thumb-1 moves a pair with two `mov` where a home moves it with two `ldr`
 of the same size, and holds two of the six registers a routine has.
 
-**Pinned by** the Cortex-M corpus at every level and
-`compiler/tests/measure/baselines/`.
+**Pinned by** the Cortex-M corpus at every level,
+`compiler/tests/measure/baselines/` and
+`runtime/widened-operands-keep-their-homes`, whose sum of two widened
+elements was the second twice at `armv7-m` and `armv8-m.main` before the
+frame kept the first one's home.
 
 ### D2121 — Cortex-M tests nothing a constant or an earlier test settled
 
@@ -38890,6 +38895,81 @@ and `test_a_missing_unpacker_is_refused_before_creating_a_partial_installation`,
 and nix-packages' `qemu-arm-export` and `gdb-export` checks, which run
 each archive unpacked outside the store.
 
+### D2734 — The gate's Linux jobs take their tools from the flake, through the nix-packages cache alone
+
+**The discrepancy:** after D2572 the Cortex-M lock held no Debian package,
+but the gate's other Linux jobs still installed theirs from Ubuntu's
+archive, and several ran a different build of a tool than `nix develop`
+does: Clang 19.1.1 with Ubuntu's `libc6-dev` for the bindings jobs where
+the shell has nixpkgs' 19.1.7 with its glibc, LLD and LLVM's tools and
+LLDB's adapter for the FreeBSD and Windows lanes, Ubuntu's MinGW-w64 import
+libraries where the shell has nixpkgs', Ubuntu's riscv64 GCC, glibc and
+`gdb-multiarch` for the RV64 lane where the shell has nixpkgs' GCC 15.3
+and GDB, QEMU 8.2.2 with `qemu-utils` and `qemu-efi-aarch64` for the
+FreeBSD guests, `libarchive-tools` for one `bsdtar` call, bubblewrap for
+the static archive's check, and Emacs and Neovim for the editor smokes.
+
+**Chosen:** a job takes each through `.github/actions/nix-tools`, which
+installs Nix with 701-dev/nix-packages' binary cache as its only
+substituter and its key as the only trusted one, both from
+`environments/pins.sh`, and builds the flake's packages of the job's
+names: `llvm-19`, `qemu-system`, `qemu-user`, `cross-riscv64`,
+`gdb-multiarch`, `bubblewrap`, `emacs-nox` and `neovim`, the same
+derivations the shell holds. `scripts/nix_tools.py` first asks Nix what
+that would build, and anything but the flake's own `landin-*` wrappers is
+a path the cache lacks: it names it and stops, so a job never compiles a
+toolchain or fetches one from a source the gate does not record. The
+flake's `nixpkgs` follows nix-packages' own, so one input revision fixes
+both and the cache holds every path. The tools move to what the shell had:
+
+- Clang, LLD, the LLVM tools and LLDB's adapter: nixpkgs' `llvmPackages_19`,
+  Clang 19.1.7, pinned as `LANDIN_CLANG_NIX`, which the flake holds the
+  lock to and `scripts/clang_version.sh` asserts in each job; the bindings
+  jobs compile against that package set's glibc. `LANDIN_CLANG_UBUNTU`
+  goes. The Windows lanes' drivers are the flake's
+  `x86_64-w64-mingw32-clang`, over nixpkgs' MinGW-w64 14.0.0, and
+  `aarch64-w64-mingw32-clang`, over the pinned llvm-mingw release's arm64
+  libraries as before.
+- The RV64 lane links with the flake's riscv64 driver, GCC 15.3.0
+  (`LANDIN_CROSS_GCC_NIX`, now asserted in the job) over glibc 2.42, whose
+  executables name their loader by its store path, so the lane no longer
+  sets `QEMU_LD_PREFIX`; it debugs with the flake's `gdb-multiarch`.
+- The FreeBSD guests run nix-packages' `qemu-system`: nixpkgs' QEMU 11.1.0,
+  `x86_64-softmmu` and `aarch64-softmmu` only, headless, with `qemu-img`,
+  user networking and the arm64 edk2 firmware, which the lane now looks
+  for beside the emulator on PATH before a distribution's. Python's
+  `tarfile` unpacks the base system's sysroot, the same 4,301 entries
+  `bsdtar` gave, so `libarchive-tools` and the shell's `libarchive` go.
+- bubblewrap 0.11.2, Neovim 0.12.4 and nix-packages' headless Emacs 30.2,
+  without native compilation, whose closure is a quarter of nixpkgs'
+  `emacs-nox`. With them the editor-grammar job's integration pass runs
+  the Neovim parser and Emacs tree-sitter smokes, which no gate job had run.
+
+Ubuntu's archive keeps the jobs that test a stock system on purpose,
+`outside-user-stock`, the release workflow's `gh` when an image lacks it,
+and the two suspended RV64 hardware jobs, which run nothing. GNAT's
+arm-elf and riscv64-elf compilers still load the host's `libzstd.so.1`
+(D2572); that ends with their own recipes, not here.
+
+**The alternatives:** relocatable archives without Nix, as D2571 and
+D2572 chose for the Cortex-M lock, which suits a few self-contained
+programs but not Clang, whose wrapper and resource directory are found by
+store path; the Ubuntu packages kept, which leaves the gate and the shell
+on two builds of each tool and the archive as a provider; Nix with
+cache.nixos.org as well, which works but leaves a second provider and
+lets a missing path be fetched or built unseen; a static bubblewrap
+archive, a second mechanism for one tool; and bubblewrap replaced by
+util-linux's `unshare` and `chroot`, a rewrite of the static check's
+sandbox.
+
+**Pinned by** `scripts/tests/test_nix_tools.py`,
+`scripts/tests/test_rv64_lanes.py`'s
+`test_workflow_requires_all_native_and_emit_verdicts`,
+`scripts/tests/test_check_controls.py`'s
+`test_the_gate_tools_are_held_to_their_other_records`, `check.py`,
+which holds `flake.nix` to reading `LANDIN_CLANG_NIX`, and nix-packages'
+`qemu-system` and `emacs-nox` checks.
+
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 
 **The tour said** nothing; the `rv32imc` level has no A, and the C3 has
@@ -42057,7 +42137,7 @@ and for a host string is not defined.
 `runtime/core-mem-blocks`, `runtime/tree-copy`,
 `runtime/directory-listing` and `runtime/library-builtin-evidence`.
 
-### D2735 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
+### D2815 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
 
 **The tour said** at [1280] that a type has one evidence for a concept and no override, and `cmp.ordered`'s `less` must be a strict weak order. IEEE's `<` is not one once a NaN is among the values, so floats had no evidence and a sort of them declared its own.
 
@@ -45977,13 +46057,13 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
 
-**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2734 makes its condition the rule for all of `core/*`.
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2814 makes its condition the rule for all of `core/*`.
 
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
 
-### D2734 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
+### D2814 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
 
 **The tour said** nothing; `LICENSE` says that compiling a program places no licensing condition on it, and neither does linking `core/*` into it. D2554 kept that promise for `core/math` and `core/unicode`'s tables kept it by the same reading, each as the default of a question.
 
@@ -45992,6 +46072,85 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** admitting BSD and MIT sources with a notice every linking program reproduces, which would add an obligation for the project's users, and which the maintainer refused; and porting nothing, which replaces measured code with new code for no licensing gain.
 
 **Pinned by** `LICENSE`'s list of third-party material, the notice in `core/math/math.ldn` and each `core/math` file's opening comment naming the msun files it ports, and `core/unicode/LICENSE.unicode` named in `tables.ldn`'s header.
+### D2594 — `core/big` keeps a number in 32-bit limbs on every target, in two layers
+
+**The tour said** nothing about numbers wider than `u64`, and D237 left `u128` out of the language. The roadmap asks for arbitrary precision in two layers: one over the caller's limbs with no allocator, as GMP's `mpn` is, for firmware and a parser that may not allocate, and one that grows through the caller's allocator.
+
+**Chosen:** a limb is a `u32` on every target, the least significant first, so a product of two limbs is a `u64` and every routine gives the same limbs on each target, Cortex-M0 included. `core/big/limbs` is the lower layer: naturals as slices the caller supplies, each routine saying how long its destination must be, and the room beyond it that multiplication, division and decimal text need as a scratch slice whose length `multiply_scratch` and `divide_scratch` state by following the same steps. A requirement a call does not meet stops the program, as `panic.require` does. `core/big` is the upper layer: `big.integer`, a signed handle to limbs in a block from the allocator, and `big.rational`, two of them, each routine writing into a destination passed `inout` that it grows as it needs to, and `big.release` giving a block back. `big.limbs_of` lends an integer's magnitude to the lower layer and `big.set_limbs` takes one back. A later arbitrary-precision float can stand on both layers.
+
+**The alternatives:** 64-bit limbs on 64-bit targets, whose product needs four 32-bit products without `u128` and whose results would differ in shape between targets; and one layer over an allocator, which firmware that allocates nothing and a parser that may not allocate could not use.
+
+**Pinned by** `runtime/big-limbs`, which runs every lower-layer routine with no allocator on every target, the firmware lanes included, and `runtime/library-shared-big`.
+
+### D2595 — A `core/big` destination may be one of its operands, and a copy is made with `set`
+
+**The tour said** at [0800] that only `inout` and `sink` lock their argument, so a call may pass one binding both `inout` and as a plain operand when the value holds no view of the binding's own storage, as a handle to allocated limbs does not.
+
+**Chosen:** every `core/big` routine that writes a destination gives the right result when the destination is one of its operands, `big.add(x, memory, x, y)`: it works in place where the limb layer can and the destination's block is already long enough, and otherwise works the result out apart and gives the destination's old block back. A result of at most 64 limbs written over an operand is worked out in a buffer on the stack and copied back, so that a loop such as `x = x * y` takes nothing from an arena but its value's growth. Assigning an integer or a rational copies its handle, not its number, so two bindings then share one block and the first `release` frees it under the other: `big.set` and `big.rational_set` make a copy in a block of its own. A destination that shares a block with an operand by such an assignment, rather than being it, is not detected.
+
+**The alternatives:** refusing a destination that is an operand, which the checker cannot see through a handle and which would make every accumulation take a second value; and copying the number on assignment, which needs destructors or an allocator in every assignment.
+
+**Pinned by** the operations numbered from 0x100 in `runtime/big-integer` and `runtime/big-rational`, which write each result over its first operand, and `runtime/library-shared-big`, whose factorial multiplies into itself in a 2 KiB arena.
+
+### D2596 — A `core/big` loop keeps its temporaries, so an arena holds a call whatever its length
+
+**The tour said** that arenas are the idiom [1360], and `core/arena` frees nothing until it is released.
+
+**Chosen:** each `core/big` routine that loops, `power`, `root`, `gcd`, `inverse_modulo` and `power_modulo`, makes its temporaries once and keeps them from one step to the next, exchanging their handles rather than making new values, and passes the limb layer's scratch to every step from one value that grows only when it is too short. So a call allocates only while its numbers grow, by a bounded number of blocks of its result's size, and an arena holds it however many steps it takes. Every temporary is given back through the allocator before the call returns, which a freeing allocator takes and an arena ignores.
+
+**The alternatives:** temporaries made afresh each step, which a heap frees and an arena keeps, so that `power_modulo` with a 64-bit exponent filled a 7 KiB arena; and a scratch the caller passes to every call, which would put the layer's bookkeeping into every signature.
+
+**Pinned by** `runtime/big-integer` and `runtime/big-rational`, each record of which runs in a fresh arena of a few KiB on every target, Cortex-M0's 16 KiB of RAM included.
+
+### D2597 — `core/big` stops the program for a zero divisor, and fails only for what a caller can foresee
+
+**The tour said** at [0290] that integer division by zero traps, and that foreseeable conditions should be represented and recovered from directly.
+
+**Chosen:** a zero divisor, in `divide_truncating`, `divide_floor`, `rational_set_ratio` and `rational_divide`, stops the program as `/` by zero does; so do an even root of a negative integer, a root of degree zero, a modulus that is not positive, a negative exponent of `power_modulo` and zero to a negative power. A routine fails only with an atom a caller can act on: `mem.out_of_memory` when the allocator refuses; `big.not_invertible` when an inverse modulo a modulus does not exist; `big.not_finite` for an infinity or NaN given to `set_f64`, `set_f32`, `rational_set_f64` or `rational_set_f32`; `text.number_overflow` from `to_i64` and `to_u64` for a value outside the type; and `text.invalid_number` for text that does not spell a number. Each failure leaves the destination as it was. The two new atoms are in `failure.reason` with their words.
+
+**The alternatives:** a failure for a zero divisor on every division, which every caller would recover from with nothing to do, as `/` has none; and stopping the program for a value outside `i64`, which a caller converting a parsed number has to foresee.
+
+**Pinned by** `runtime/big-integer`'s conversion and refusal records and `runtime/big-rational`'s refusals.
+
+### D2598 — `core/big` rounds a conversion to a float once, to nearest with ties to even
+
+**The tour said** at [0310] that an integer converts to a float by rounding. An integer or rational of any size is not one of the machine integers that rule reaches.
+
+**Chosen:** `big.to_f64`, `big.to_f32`, `big.rational_to_f64` and `big.rational_to_f32` round the exact value once to the nearest float of the width, ties to even, from its top 64 bits and whether any bit below them is set, so a result in the subnormal range is rounded once, as an exact operation would round it, and an `f32` is never rounded through an `f64`. A value beyond the greatest finite float gives an infinity of its sign, and a nonzero rational below half the least subnormal a zero of its sign. A rational's quotient is scaled to between 65 and 66 bits before its remainder becomes the sticky bit. From a float, `set_f64` and `set_f32` take the integer part, rounded toward zero as a conversion to an integer type rounds, and `rational_set_f64` and `rational_set_f32` the exact value, a power of two over one or under one.
+
+**The alternatives:** converting through the machine's `u64` to `f64` and scaling, which rounds twice in the subnormal range and for an `f32`; and rounding toward zero, which a reader of a float expects only from a conversion to an integer.
+
+**Pinned by** `runtime/big-integer` and `runtime/big-rational`, whose tables hold ties, values a little above them, subnormal quotients and the overflow thresholds at both widths, with the bits Python's exact arithmetic gives.
+
+### D2599 — `core/big`'s bit operations read an integer as two's complement without end
+
+**The tour said** at [0330] what the bitwise operators do on the machine integers, whose width is fixed.
+
+**Chosen:** `and_bits`, `or_bits`, `xor_bits`, `complement`, `bit`, `shift_left` and `shift_right` read an integer as its two's complement with its sign bit repeated without end, as Python's and GMP's do: -1 has every bit set, `complement(x)` is `-x - 1`, and `shift_right` rounds toward negative infinity, as an arithmetic shift does. `bit_length` is the bits of the magnitude. The three are named `and_bits`, `or_bits` and `xor_bits` because `and` and `or` are keywords.
+
+**The alternatives:** operations on the magnitude with the sign kept apart, which make `x & -1` differ from `x` and a shift of a negative number round toward zero.
+
+**Pinned by** `runtime/big-integer`'s bit, shift and complement records, negative operands among them.
+
+### D2600 — `core/big` keeps rationals in lowest terms beside its integers, under `rational_` names
+
+**The tour said** at D274 that a module is named by a short noun and holds its principal type's operations, and that names are prefixed only where one module holds several types (`io.memory_over`).
+
+**Chosen:** `big.rational` is in `core/big` beside `big.integer`, the module's principal type, and its routines are named with the prefix `rational_`, `big.rational_add`, as the text builder's are `text.utf8_*`, because each needs the integer's representation and both share the conversions' rounding. A rational is always in lowest terms with a positive denominator, so equal rationals have equal parts and the sign is the numerator's. `big.rational_new()` allocates nothing: its empty denominator stands for one until a routine writes it. Text is the numerator's decimal digits and, unless the denominator is one, `/` and the denominator's: `-3/4`, `7`, what `rational_parse` reads back.
+
+**The alternatives:** a module of its own, `core/big/rational`, which would need the integer's representation made public; and rationals kept as given and reduced on demand, which make comparison and text depend on the history of a value.
+
+**Pinned by** `runtime/big-rational`, whose set records give unreduced parts and negative denominators, and `runtime/example-exact-numbers`.
+
+### D2601 — `core/big` multiplies by schoolbook, Karatsuba and Toom-3, and divides by Knuth's Algorithm D
+
+**The tour said** nothing. The roadmap asks for multiplication from schoolbook through Karatsuba to Toom-3, and leaves out FFT multiplication and the Toom variants above three.
+
+**Chosen:** two operands of n limbs are multiplied by the schoolbook method below 48 limbs, by Karatsuba's three half-length products below 150, and by Toom's five third-length products above, evaluated at 0, 1, -1, 2 and infinity and interpolated by Bodrato's sequence in two's complement over 2k + 2 limbs, where an intermediate value may be negative. An operand much longer than the other is cut into pieces as long as the shorter. The thresholds are where each method began to win on x86-64, timed on a busy host, and every target keeps them. Division is Knuth's Algorithm D, whose work grows with the product of the quotient's and the divisor's lengths, and decimal text divides by 10^9 a pass at a time, whose work grows with the square of the length; at a million bits a multiplication took 58 ms and a division of two million bits by one million 2.1 s on that host, as compiler/tests/big/README.md records. Divide-and-conquer division and text wait for a consumer that needs them.
+
+**The alternatives:** Toom-4 and FFT multiplication, which the roadmap leaves out; and divide-and-conquer division now, which no consumer in the repository reaches at the lengths where it wins.
+
+**Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
 
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 

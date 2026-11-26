@@ -309,7 +309,7 @@ end less_i64
 less_isize: (left: isize, right: isize) -> (yes: bool) =
     yes = left < right
 end less_isize
---  Floats order by IEEE 754's totalOrder (D2735), a strict order of every
+--  Floats order by IEEE 754's totalOrder (D2815), a strict order of every
 --  bit pattern: negative NaNs, negative infinity, the negative numbers,
 --  -0.0, +0.0, the positive numbers, infinity, positive NaNs.  It agrees
 --  with `<` on every pair of numbers but the two zeros.  A float's bits

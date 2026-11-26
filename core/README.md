@@ -19,7 +19,8 @@ executes them on Cortex-M0.
 
 ## Availability inventory
 
-The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
+The shared freestanding modules are `core/arena`, `core/atomic`,
+`core/big` with its submodule `core/big/limbs`, `core/cache`,
 `core/cmp`, `core/complex`,
 `core/diag`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule
@@ -365,7 +366,7 @@ names. The comparison concepts
 `equatable`, `hashable` and `ordered` live in `core/cmp`, apart from the map
 and the sort that consume them (D273). It ships `equatable` and `hashable` for the integer
 scalars, `bool` and `[]u8` and `ordered` for the integer scalars and, by
-IEEE 754's totalOrder, for `f32` and `f64` (D2735), and `core/text` all
+IEEE 754's totalOrder, for `f32` and `f64` (D2815), and `core/text` all
 three for `utf8` (D270), `core/time` all three for
 `time.duration` and `time.instant` and `core/net` `equatable` and
 `hashable` for `net.address` (D1031): a later key type declares its

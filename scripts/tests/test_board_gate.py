@@ -386,6 +386,28 @@ class Refusals(unittest.TestCase):
         self.assertFalse((self.rig.state / 'runs/pico2.json').exists())
         self.assertTrue(self.rig.free())
 
+    def test_a_hand_run_of_the_arm_port_has_the_gate_restore_the_pico_2_first(self):
+        # A hand re-record of the Arm port left the cores on Arm, and the
+        # gate's first step, a Hazard3 RAM run that attaches without a
+        # reset, failed on them.  The Arm tool now writes the port's journal.
+        import pico2
+        pico2.leaving_rest('rp2350 ram run', state=self.rig.state)
+        document, _ = self.rig.gate('pico2')
+        self.assertEqual(document['outcome'], 'passed', document.get('failure'))
+        self.assertEqual(document['previous_interrupted']['left_by'], 'rp2350 ram run')
+        self.assertEqual(document['steps'][0]['board'], 'rp2350_hazard3')
+        self.assertEqual(document['steps'][0]['mode'], 'boot')
+        self.assertFalse(pico2.journal(self.rig.state).exists())
+
+    def test_a_passed_hazard3_boot_check_clears_the_journal(self):
+        import pico2
+        pico2.leaving_rest('rp2350 boot run', state=self.rig.state)
+        pico2.at_rest(state=self.rig.state)
+        self.assertFalse(pico2.journal(self.rig.state).exists())
+        pico2.at_rest(state=self.rig.state)
+        rig = json.loads((ROOT / 'environments/boards/rig.json').read_text())
+        self.assertIn(pico2.PORT, json.dumps(rig))
+
     def test_the_steps_are_checked_before_they_run(self):
         rig = json.loads(self.rig.rig.read_text())
         values = dict(probehive='P', ram_loader='L')

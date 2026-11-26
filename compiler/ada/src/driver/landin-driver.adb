@@ -719,6 +719,52 @@ package body Landin.Driver is
       --  twice, through a link, is listed once.  A source a directory
       --  reaches that is already named is formatted once.
       Visited : Landin.Platform.Path_List;
+      --  Whether a source is under `Directory`, by the walk `Add_Directory`
+      --  takes, whether or not an earlier operand reached it first: only a
+      --  directory holding none is refused.
+      function Holds_Source (Directory : String) return Boolean;
+      function Holds_Source (Directory : String) return Boolean is
+         use type Landin.Platform.List_Status;
+         Walked : Landin.Platform.Path_List;
+         function Walk (Path : String) return Boolean;
+         function Walk (Path : String) return Boolean is
+            Entries : Landin.Platform.Path_List;
+            Listed : Landin.Platform.List_Status;
+            Identity : constant Landin.Platform.File_Identity :=
+              Host.Existing_Identity (Path);
+         begin
+            if Identity.Valid then
+               for Other of Walked loop
+                  if Host.Existing_Identity (Other) = Identity then
+                     return False;
+                  end if;
+               end loop;
+            end if;
+            Walked.Append (Path);
+            Host.List_Directory (Path, Entries, Listed);
+            if Listed /= Landin.Platform.List_Ok then
+               return False;
+            end if;
+            for Name of Entries loop
+               if Name'Length > 0 and then Name (Name'First) /= '.' then
+                  declare
+                     Inner : constant String := Paths.Joined_Path (Path, Name);
+                  begin
+                     if Host.Is_Directory (Inner) then
+                        if Walk (Inner) then
+                           return True;
+                        end if;
+                     elsif Paths.Is_Source_Name (Name) then
+                        return True;
+                     end if;
+                  end;
+               end if;
+            end loop;
+            return False;
+         end Walk;
+      begin
+         return Walk (Directory);
+      end Holds_Source;
       procedure Add_Directory (Directory : String);
       procedure Add_Directory (Directory : String) is
          use type Landin.Platform.List_Status;
@@ -782,6 +828,7 @@ package body Landin.Driver is
                begin
                   Add_Directory (Argument);
                   if Natural (Named.Length) = Before and then not Misused
+                    and then not Holds_Source (Argument)
                   then
                      Misused := True;
                      Refuse (Code_Unknown_Option,
