@@ -1405,6 +1405,27 @@ The merged candidate, with `gate-watcher` riding it, passed its
 after `freebsd-host-release` was run again over a mirror's refusal, and
 its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
 
+### R16.43 — A value read after its store is made in its slot's register on arm64
+
+Status: planned
+Depends on: R16.10
+
+arm64 makes a value in the register of the slot it is stored into only
+when the store is the value's last use (D2164), so a value read again
+after its store is made in a register of its own and copied:
+reverse-complement's `write_reversed` copies `at - 1` into `at`, the
+loaded byte into `base` and `width + 1` into `width`, three `mov`s of
+its eighteen instructions a byte. Removed by hand they leave 1.415 G
+instructions under QEMU against 1.597 G, 11.4% fewer, with the same
+output (`SR-1958`). The item makes such a value in its slot's register
+at speed when the slot holds that register over the value's span or
+opens it at the store, as x86-64's D2157 and D2654 do.
+Exit evidence: reverse-complement at speed on arm64 executing more than
+5% fewer instructions than at the item's base, its time on an arm64
+host reported beside them; every benchmark program's instructions and
+image size reported against that base, x86-64 as well; and no other
+combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
