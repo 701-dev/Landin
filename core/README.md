@@ -29,7 +29,7 @@ The shared freestanding modules are `core/arena`, `core/atomic`,
 `core/map`, `core/math`, `core/mem`,
 `core/net`, `core/panic`, `core/pool`, `core/random`, `core/region`,
 `core/sort`, `core/spill`, `core/text`, `core/time`, `core/tree`,
-`core/vec` and `core/zone`. Every public interface is available on every target, with
+`core/unicode`, `core/vec` and `core/zone`. Every public interface is available on every target, with
 these exceptions. `core/fibre/stacks` switches stacks through the
 compiler's stack builtins, so a target whose backend does not emit them
 refuses a program where it reaches one (D453, D564); `core/fibre` itself,

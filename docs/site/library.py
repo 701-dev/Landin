@@ -1625,8 +1625,13 @@ def write(root, destination, render):
              overview.split('\n\n')[0], toc=toc_html(toc, 'In this module'))
     for path, text in sources.items():
         hl = render.Highlighter()
+        #  A generated file, one whose opening comment says not to edit it,
+        #  is listed as plain text: core/unicode's tables are 336 KB of
+        #  numbers, which a span per token made a 4 MB page.
+        plain = 'Do not edit it' in '\n'.join(text.splitlines()[:12])
         body = '<pre class="api-signature"><code>' + '\n'.join(
-            f'<span class="api-source-line" id="L{i}"><a class="api-line-number" href="#L{i}">{i}</a>{hl.line(line)}</span>'
+            f'<span class="api-source-line" id="L{i}"><a class="api-line-number" href="#L{i}">{i}</a>'
+            f'{html.escape(line, quote=False) if plain else hl.line(line)}</span>'
             for i, line in enumerate(text.splitlines(), 1)) + '</code></pre>'
         emit(source_name(path), path, body, path, str(Path(path).parent))
     (destination / 'library-index.json').write_text(json.dumps(index, indent=2) + '\n')

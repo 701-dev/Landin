@@ -205,6 +205,8 @@ RUNNING_EXAMPLES = [
      "main.ldn"),
     ("Exact numbers",
      "compiler/tests/fixtures/runtime/example-exact-numbers/main.ldn"),
+    ("Text as a reader sees it",
+     "compiler/tests/fixtures/runtime/example-text-as-read/main.ldn"),
     ("Insertion sort",
      "compiler/tests/fixtures/runtime/example-insertion-sort/main.ldn"),
     ("Binary search",

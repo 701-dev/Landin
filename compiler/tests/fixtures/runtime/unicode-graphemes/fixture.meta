@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/unicode's grapheme cluster boundaries of every line of GraphemeBreakTest.txt are the file's, by grapheme_end and by walking graphemes
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
+constructs: 0600, 1150

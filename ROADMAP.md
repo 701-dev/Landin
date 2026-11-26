@@ -3597,7 +3597,7 @@ SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Character properties, case, normalisation and segmentation over `utf8`,
@@ -3607,6 +3607,25 @@ sink it writes to, the end-of-iteration form segmentation uses, and
 whether it iterates through `iterable`.
 Exit evidence: the Unicode conformance test files pass; the generator's
 check in the gate; table cost on Cortex-M0 measured.
+
+Done: `core/unicode` (D2615) has the general category, the combining
+class and six binary properties, simple and full case mapping with the
+final sigma and title case (D2619), the four normalization forms with no
+buffer (D2620), and grapheme, word and sentence boundaries with `for`
+walks over `iter.iterable` (D2618), every text routine appending whole or
+nothing to a `text.utf8_builder` (D2616). `scripts/unicode_tables.py`
+writes its tables from the pinned Unicode 18.0.0 database in stages of
+repeated blocks (D2614), and the fixtures' oracles: Unicode's normalization test
+and its three break test files pass on every hosted target, every table
+is checked against the database by a digest of every scalar, and firmware
+walks every Nth scalar within the corpus's 20 seconds; the script test
+holds the tables to the pin in the gate. On Cortex-M0 at `size/auto` a
+program links only the tables it reaches (D2617): 5,388 bytes for
+grapheme clusters, 12,420 for the general category, 19,817 for NFC and
+NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
+Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
+hosted backends' writable sections for immutable data, met laying out
+the tables.
 
 ### R22.40 — Character encodings
 

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/unicode's title case of every scalar as a text of its own is its full title mapping when it is cased and itself when not, as the Unicode Character Database gives them, by their digest; firmware walks every 31st scalar
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0600, 1140

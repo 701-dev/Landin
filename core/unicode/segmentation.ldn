@@ -1,0 +1,415 @@
+--  Text segmentation, Unicode's UAX #29: where a text's extended grapheme
+--  clusters, words and sentences begin and end, by its default rules.
+
+import core/iter
+import core/text
+
+--- A piece of a text, from the position `begins` to the position `ends`,
+--- which ends it: `source[text.offset(piece.begins)..<text.offset(
+--- piece.ends)]` is its text.  It holds positions, not the text, so it is
+--- a value of its own.
+public segment: type = struct
+    begins: text.position
+    ends: text.position
+end segment
+
+--  Where the piece that begins at a boundary of a text ends: one of
+--  `grapheme_end`, `word_end` and `sentence_end`.  A walk holds the one it
+--  segments by rather than naming its unit, so that an image links only
+--  the tables of the units its walks use (D2617).
+boundary: type = (source: utf8, at: text.position) -> (after: text.position)
+
+segments_value: type = struct
+    source: utf8
+    step: boundary
+end segments_value
+
+--- A text's segments, one unit at a time, for `for` to walk: what
+--- `graphemes`, `words` and `sentences` give.  Each item is a `segment`,
+--- in order, and together they cover the text.
+public segments: type = segments_value
+
+--- The extended grapheme clusters of `source`, each what a reader takes
+--- for one character: "é" written as "e" and U+0301 is one, as is a flag
+--- or a family emoji.  `for cluster in unicode.graphemes(source)` walks
+--- them.
+public graphemes: (source: utf8) -> (result: segments from source) =
+    result = (source: source, step: grapheme_end)
+end graphemes
+
+--- The pieces of `source` between its word boundaries: each word, and
+--- each run of spaces or single punctuation mark between words, so that
+--- the pieces cover the text.  Whether a piece is a word is the caller's
+--- question; one holding an alphabetic scalar or a digit is.
+public words: (source: utf8) -> (result: segments from source) =
+    result = (source: source, step: word_end)
+end words
+
+--- The sentences of `source`, each with the spaces after it.
+public sentences: (source: utf8) -> (result: segments from source) =
+    result = (source: source, step: sentence_end)
+end sentences
+
+--  Where the piece of the walk's unit that begins at `at` ends.
+end_of: (walk: ptr segments_value, at: text.position)
+        -> (after: text.position) =
+    after = walk.val.step(walk.val.source, at)
+end end_of
+
+walk_first: (walk: ptr segments_value) -> (piece: segment) =
+    begins: text.position = text.start(walk.val.source)
+    piece = (begins: begins, ends: end_of(walk, begins))
+end walk_first
+
+walk_at_end: (walk: ptr segments_value, piece: segment) -> (yes: bool) =
+    yes = text.utf8_at_end(walk.val.source, piece.begins)
+end walk_at_end
+
+walk_item: (walk: ptr segments_value, piece: segment) -> (value: segment) =
+    _ = walk
+    value = (begins: text.copied(piece.begins),
+             ends: text.copied(piece.ends))
+end walk_item
+
+walk_next: (walk: ptr segments_value, piece: segment) -> (next: segment) =
+    begins: text.position = text.copied(piece.ends)
+    next = (begins: begins, ends: end_of(walk, begins))
+end walk_next
+
+segments_value is iter.iterable (cur: segment, item_type: segment,
+                                 first: walk_first, at_end: walk_at_end,
+                                 item: walk_item, next: walk_next)
+
+--  Each of the three walks below finds the first boundary after `at` by
+--  stepping forward one scalar at a time from `at`, keeping as it goes
+--  what the rules ask of the text before the scalar it is at: the classes
+--  of the scalars before it, how many regional indicators run up to it,
+--  and so on.  It needs nothing from before `at`.  `at` is a boundary, and
+--  no rule's left side holds a boundary inside it: each pair a left side
+--  holds is one some other rule joins, as "a." in WB7's "a.b" is joined by
+--  WB6 for the same reason, a run of regional indicators breaks only after
+--  an even count, and a sentence's terminator, closing marks and spaces
+--  are each joined to the one before.  So the state each walk starts with
+--  at `at`, as though the text began there, is the state the text gives
+--  it.  Each walk reads each scalar of the piece it finds a bounded
+--  number of times.  It may read past the piece's end only to look ahead:
+--  WB6, WB7b and WB12 over the scalars WB4 passes over, and SB8 in
+--  `sentence_end` as far as the next letter, terminator or paragraph end,
+--  which nothing bounds.  What either reads beyond the piece the next
+--  piece begins with, so walking a whole text stays linear.
+
+--- The position where the extended grapheme cluster that begins at `at`
+--- ends: the next grapheme boundary of `source` after `at`, or `at` itself
+--- at the end.  `at` is a boundary: the text's start, or a position this
+--- returned.
+public grapheme_end: (source: utf8, at: text.position)
+                     -> (after: text.position) =
+    after = at
+    bytes: []u8 = text.bytes(source)
+    return when text.offset(at) >= lenof bytes
+    (scalar: first, after: second) := decoded(bytes, text.offset(at))
+    mut left: u8 = grapheme_code(first)
+    --  Whether an odd number of regional indicators runs up to here, so
+    --  that the next one pairs with the last (GB12 and GB13).
+    mut regional: bool = left & 15 == grapheme_regional_indicator
+    --  Whether an emoji's pictograph and then only Extend scalars come
+    --  before here, and whether a ZWJ follows those, so that a pictograph
+    --  next joins them (GB11).
+    mut pictograph: bool = left & pictographic_grapheme_bit <> 0
+    mut zwj: bool = false
+    --  Whether an Indic conjunct's linker and then only InCB Extend
+    --  scalars come before here, so that a consonant next joins them
+    --  (GB9c).
+    mut linked: bool = left & conjunct_mask == conjunct_linker
+    mut offset: usize = second
+    while offset < lenof bytes do
+        (scalar, after: next) := decoded(bytes, offset)
+        right: u8 = grapheme_code(scalar)
+        break when not grapheme_joined(left, right, regional, zwj, linked)
+        kind: u8 = right & 15
+        regional = kind == grapheme_regional_indicator and not regional
+        zwj = pictograph and kind == grapheme_zwj
+        pictograph = right & pictographic_grapheme_bit <> 0
+                     or pictograph and kind == grapheme_extend
+        incb: u8 = right & conjunct_mask
+        linked = incb == conjunct_linker
+                 or linked and incb == conjunct_extend
+        left = right
+        offset = next
+    end while
+    after = text.from_offset(bytes, offset)
+end grapheme_end
+
+--  Whether no grapheme boundary falls between scalars of grapheme codes
+--  `left` and `right`, given what comes before `left` as `grapheme_end`
+--  keeps it.
+grapheme_joined: (left: u8, right: u8, regional: bool, zwj: bool,
+                  linked: bool) -> (yes: bool) =
+    before: u8 = left & 15
+    kind: u8 = right & 15
+    yes = before == grapheme_cr and kind == grapheme_lf
+    return when before == grapheme_cr or before == grapheme_lf
+      or before == grapheme_control
+    return when kind == grapheme_cr or kind == grapheme_lf
+      or kind == grapheme_control
+    yes = true
+    --  Hangul's syllables, from their conjoining jamo.
+    return when before == grapheme_l
+      and (kind == grapheme_l or kind == grapheme_v
+           or kind == grapheme_lv or kind == grapheme_lvt)
+    return when (before == grapheme_lv or before == grapheme_v)
+      and (kind == grapheme_v or kind == grapheme_t)
+    return when (before == grapheme_lvt or before == grapheme_t)
+      and kind == grapheme_t
+    return when kind == grapheme_extend or kind == grapheme_zwj
+      or kind == grapheme_spacingmark or before == grapheme_prepend
+    return when linked and right & conjunct_mask == conjunct_consonant
+    return when zwj and right & pictographic_grapheme_bit <> 0
+    return when regional and kind == grapheme_regional_indicator
+    yes = false
+end grapheme_joined
+
+--- The position where the piece that begins at `at` ends: the next word
+--- boundary of `source` after `at`, or `at` itself at the end.  `at` is a
+--- boundary, as for `grapheme_end`.
+public word_end: (source: utf8, at: text.position)
+                 -> (after: text.position) =
+    after = at
+    bytes: []u8 = text.bytes(source)
+    return when text.offset(at) >= lenof bytes
+    (scalar: first, after: second) := decoded(bytes, text.offset(at))
+    --  The code of the scalar just before here, for the rules that look
+    --  at the scalars themselves (WB3 to WB3d), and the classes of the
+    --  last two before here that are not Extend, Format or ZWJ, which WB4
+    --  passes over, for the rest.  The first scalar counts as one of
+    --  those whatever it is, since WB4 passes over nothing at a boundary.
+    mut raw: u8 = word_code(first)
+    mut last: u8 = raw & 31
+    mut earlier: u8 = word_other
+    mut regional: bool = last == word_regional_indicator
+    mut offset: usize = second
+    while offset < lenof bytes do
+        (scalar, after: next) := decoded(bytes, offset)
+        code: u8 = word_code(scalar)
+        kind: u8 = code & 31
+        before: u8 = raw & 31
+        --  WB3 to WB4 look at the scalars themselves; the rest, in
+        --  `word_joined`, at the ones WB4 does not pass over.
+        joined: bool = if before == word_cr or before == word_lf
+          or before == word_newline then
+                           before == word_cr and kind == word_lf
+                       elsif kind == word_cr or kind == word_lf
+                         or kind == word_newline then
+                           false
+                       elsif before == word_zwj
+                         and code & pictographic_word_bit <> 0
+                         or before == word_wsegspace
+                            and kind == word_wsegspace
+                         or word_ignored(kind) then
+                           true
+                       else
+                           word_joined(bytes, next, earlier, last, kind,
+                                       regional)
+                       end if
+        break when not joined
+        if not word_ignored(kind) then
+            regional = kind == word_regional_indicator and not regional
+            earlier = last
+            last = kind
+        end if
+        raw = code
+        offset = next
+    end while
+    after = text.from_offset(bytes, offset)
+end word_end
+
+--  Whether WB4 passes over a scalar of word class `kind`.
+word_ignored: (kind: u8) -> (yes: bool) =
+    yes = kind == word_extend or kind == word_format or kind == word_zwj
+end word_ignored
+
+--  Whether word class `kind` is a letter, WB5's AHLetter.
+word_letter: (kind: u8) -> (yes: bool) =
+    yes = kind == word_aletter or kind == word_hebrew_letter
+end word_letter
+
+--  Whether word class `kind` may join letters across it, MidLetter or
+--  MidNumLetQ.
+word_mid_letter: (kind: u8) -> (yes: bool) =
+    yes = kind == word_midletter or kind == word_midnumlet
+          or kind == word_single_quote
+end word_mid_letter
+
+--  Whether word class `kind` may join digits across it, MidNum or
+--  MidNumLetQ.
+word_mid_number: (kind: u8) -> (yes: bool) =
+    yes = kind == word_midnum or kind == word_midnumlet
+          or kind == word_single_quote
+end word_mid_number
+
+--  The class of the first scalar at or after offset `at` of `bytes` that
+--  WB4 does not pass over, or `word_other` at the end.
+word_ahead: (bytes: []u8, at: usize) -> (kind: u8) =
+    kind = word_other
+    mut offset: usize = at
+    while offset < lenof bytes do
+        (scalar, after: next) := decoded(bytes, offset)
+        kind = word_code(scalar) & 31
+        return when not word_ignored(kind)
+        offset = next
+    end while
+    kind = word_other
+end word_ahead
+
+--  Whether no word boundary falls before a scalar of class `kind` whose
+--  next scalar begins at offset `next` of `bytes`, by the rules from WB5
+--  on.  `last` and `earlier` are the classes of the two scalars before it
+--  that WB4 does not pass over, and `regional` whether an odd number of
+--  regional indicators runs up to it.  Only WB6, WB7b and WB12 look past
+--  `kind`, over the scalars WB4 passes over to the next one.
+word_joined: (bytes: []u8, next: usize, earlier: u8, last: u8, kind: u8,
+              regional: bool) -> (yes: bool) =
+    yes = true
+    return when word_letter(last) and word_letter(kind)
+    return when word_letter(last) and word_mid_letter(kind)
+      and word_letter(word_ahead(bytes, next))
+    return when word_letter(earlier) and word_mid_letter(last)
+      and word_letter(kind)
+    return when last == word_hebrew_letter and kind == word_single_quote
+    return when last == word_hebrew_letter and kind == word_double_quote
+      and word_ahead(bytes, next) == word_hebrew_letter
+    return when earlier == word_hebrew_letter and last == word_double_quote
+      and kind == word_hebrew_letter
+    return when (last == word_numeric or word_letter(last))
+      and kind == word_numeric
+    return when last == word_numeric and word_letter(kind)
+    return when earlier == word_numeric and word_mid_number(last)
+      and kind == word_numeric
+    return when last == word_numeric and word_mid_number(kind)
+      and word_ahead(bytes, next) == word_numeric
+    return when last == word_katakana and kind == word_katakana
+    return when (word_letter(last) or last == word_numeric
+                 or last == word_katakana or last == word_extendnumlet)
+      and kind == word_extendnumlet
+    return when last == word_extendnumlet
+      and (word_letter(kind) or kind == word_numeric
+           or kind == word_katakana)
+    return when regional and kind == word_regional_indicator
+    yes = false
+end word_joined
+
+--- The position where the sentence that begins at `at` ends: the next
+--- sentence boundary of `source` after `at`, or `at` itself at the end.
+--- `at` is a boundary, as for `grapheme_end`.
+public sentence_end: (source: utf8, at: text.position)
+                     -> (after: text.position) =
+    after = at
+    bytes: []u8 = text.bytes(source)
+    return when text.offset(at) >= lenof bytes
+    --  The class of the scalar just before here, for CR LF and the
+    --  paragraph's end, and the classes of the last two before here that
+    --  are not Extend or Format, which SB5 passes over, for the rest.
+    mut raw: u8 = sentence_other
+    mut last: u8 = sentence_other
+    mut earlier: u8 = sentence_other
+    --  Where a sentence may end: whether a terminator, then closing marks,
+    --  then spaces come before here (SATerm Close* Sp*), whether spaces
+    --  are among them, and whether the terminator is ATerm, a full stop,
+    --  whose sentence SB8 lets go on in lower case.
+    mut ending: bool = false
+    mut spaced: bool = false
+    mut stop: bool = false
+    --  What SB8's look ahead found from a place at or before here: the
+    --  offset of the first scalar that settles it, and whether that is
+    --  lower case.  It settles each place up to that offset alike.
+    mut settled: usize = text.offset(at)
+    mut lower: bool = false
+    mut offset: usize = text.offset(at)
+    while offset < lenof bytes do
+        (scalar, after: next) := decoded(bytes, offset)
+        kind: u8 = sentence_code(scalar)
+        if ending and stop and offset > settled then
+            (at: found, lower: is_lower) := sentence_ahead(bytes, offset)
+            settled = found
+            lower = is_lower
+        end if
+        --  SB6 keeps a full stop before a digit, and SB7 one between
+        --  capitals or after a lower case letter and before a capital;
+        --  after a terminator, its closing marks and its spaces SB8 to
+        --  SB10 say what joins, and SB11 breaks before anything else.
+        joined: bool = if offset == text.offset(at) then
+                           true
+                       elsif raw == sentence_cr then
+                           kind == sentence_lf
+                       elsif sentence_separator(raw) then
+                           false
+                       elsif kind == sentence_extend
+                         or kind == sentence_format then
+                           true
+                       elsif last == sentence_aterm
+                         and (kind == sentence_numeric
+                              or kind == sentence_upper
+                                 and (earlier == sentence_upper
+                                      or earlier == sentence_lower)) then
+                           true
+                       elsif ending then
+                           stop and lower or kind == sentence_scontinue
+                           or sentence_terminator(kind)
+                           or not spaced and kind == sentence_close
+                           or kind == sentence_sp or sentence_separator(kind)
+                       else
+                           true
+                       end if
+        break when not joined
+        if offset == text.offset(at)
+          or kind <> sentence_extend and kind <> sentence_format then
+            if sentence_terminator(kind) then
+                ending = true
+                spaced = false
+                stop = kind == sentence_aterm
+            elsif kind == sentence_sp then
+                spaced = ending
+            elsif kind <> sentence_close or spaced then
+                ending = false
+            end if
+            earlier = last
+            last = kind
+        end if
+        raw = kind
+        offset = next
+    end while
+    after = text.from_offset(bytes, offset)
+end sentence_end
+
+--  Whether sentence class `kind` ends a paragraph, SB4's ParaSep.
+sentence_separator: (kind: u8) -> (yes: bool) =
+    yes = kind == sentence_sep or kind == sentence_cr or kind == sentence_lf
+end sentence_separator
+
+--  Whether sentence class `kind` ends a sentence, SATerm.
+sentence_terminator: (kind: u8) -> (yes: bool) =
+    yes = kind == sentence_aterm or kind == sentence_sterm
+end sentence_terminator
+
+--  SB8's look ahead from offset `from` of `bytes`, after a full stop and
+--  its closing marks and spaces: the offset of the first scalar that is a
+--  letter, a terminator or a paragraph's end, or the end of the text, and
+--  whether that scalar is lower case, which keeps the sentence going.
+--  Nothing bounds how far it looks, but `sentence_end` looks once for the
+--  places before the scalar it finds, and the sentence that follows runs
+--  at least that far, so each scalar is read a bounded number of times.
+sentence_ahead: (bytes: []u8, start: usize) -> (at: usize, lower: bool) =
+    lower = false
+    at = start
+    while at < lenof bytes do
+        (scalar, after: next) := decoded(bytes, at)
+        kind: u8 = sentence_code(scalar)
+        if kind == sentence_oletter or kind == sentence_upper
+          or kind == sentence_lower or sentence_separator(kind)
+          or sentence_terminator(kind) then
+            lower = kind == sentence_lower
+            return
+        end if
+        at = next
+    end while
+end sentence_ahead
