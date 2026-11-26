@@ -1077,6 +1077,7 @@ jobs:
           path: ${{ runner.temp }}/linux-release
 
       - name: Restore and verify release executables
+        id: restore
         run: |
           mkdir -p compiler/ada/build/linux-amd64/release
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
@@ -1086,6 +1087,7 @@ jobs:
       #  The arm-elf and riscv64-elf archives, QEMU, Espressif's QEMU and
       #  GDB, as every part's lanes use.
       - name: Install the locked Cortex-M and RV32 tools
+        id: tools
         run: python3 environments/cortex-m/setup.py --tools "$RUNNER_TEMP/cortex-m"
 
       #  Including that the parts below are every lane once.
@@ -1097,8 +1099,9 @@ jobs:
       #  and fetched by hash, never vendored; check.py's offline half of
       #  devices/test.py cannot regenerate, so this job does.  Only the
       #  `programs` part's devices and descriptions lanes read them.
+      #  After a failed probe-supervisor control too, as Darwin's sizes.
       - name: Count every firmware workload's instructions and compare them with the base's baselines
-        if: matrix.part == 'programs'
+        if: ${{ !cancelled() && matrix.part == 'programs' && steps.restore.outcome == 'success' && steps.tools.outcome == 'success' }}
         run: |
           set -eu
           python3 scripts/measure.py instructions \
@@ -1776,6 +1779,7 @@ jobs:
           path: ${{ runner.temp }}/darwin-release
 
       - name: Restore and verify release executables
+        id: restore
         run: |
           mkdir -p compiler/ada/build/darwin-arm64/release
           tar -xzf "$RUNNER_TEMP/darwin-release/darwin-release.tar.gz" \
@@ -1787,8 +1791,11 @@ jobs:
           LANDIN_TEST_TIMINGS=1
           ./scripts/test.sh --host --target=linux-x86-64 --shard=${{ matrix.shard }}/2
 
+      #  After a failed suite step too, once the compiler is restored: a
+      #  host-suite failure otherwise hid every Darwin size key until a
+      #  second whole gate.
       - name: Measure Darwin's sections and compare them with the base's baselines
-        if: matrix.shard == 2
+        if: ${{ !cancelled() && matrix.shard == 2 && steps.restore.outcome == 'success' }}
         run: |
           set -eu
           python3 scripts/measure.py size \

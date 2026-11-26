@@ -104,9 +104,13 @@ reasoning goes in the commits and in `spec.md`'s register of decisions.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without
-asking again. An item opts out with one line, `Promotion: maintainer`,
-which returns that step to the maintainer; `check.py` refuses any other
-spelling. Releases and versions are never covered.
+asking again. The session that runs the roadmap, or a train's integrator,
+may also promote other items' gated candidates inside a train: merged into
+the promotion token's holder, they land as one tree on its own gate and
+boards (`docs/process.md`, "A train"). An item opts out with one line,
+`Promotion: maintainer`, which returns that step to the maintainer and
+keeps it off every train; `check.py` refuses any other spelling. Releases
+and versions are never covered.
 
 **The register.** A row is only for what outlives the item that met it
 and waits for a trigger. A finding the item fixes is named in its commit
