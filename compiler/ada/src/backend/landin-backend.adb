@@ -1603,6 +1603,163 @@ package body Landin.Backend is
       return (others => <>);
    end Carried;
 
+   function Reach_Of
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Block : Landin.IR.Block_Id;
+      Position : Positive;
+      Uses : Use_Counts;
+      References : Use_Counts) return Address_Reach
+   is
+      use type Landin.IR.Opcode;
+      use type Landin.IR.Value_Id;
+      use type Landin.IR.Slot_Id;
+      Value : constant Landin.IR.Value_Id :=
+        Landin.IR.Nth_Value (Of_Unit, Item, Block, Position);
+      Length : constant Natural := Landin.IR.Length (Of_Unit, Item, Block);
+      Most : constant := 8;
+      --  The carrying slots and how many loads of each are still to
+      --  come; the loads met and how many of their uses are accesses
+      --  still to come.
+      type Pending is record
+         Id : Natural := 0;
+         Left : Natural := 0;
+      end record;
+      type Pendings is array (1 .. Most) of Pending;
+      Slots, Loads : Pendings;
+      Slot_Count, Load_Count : Natural := 0;
+      Left : Natural := Uses (Positive (Value));
+      Result : Address_Reach;
+      None : constant Address_Reach := (others => <>);
+
+      function Finished return Boolean;
+      function Finished return Boolean is
+        (Left = 0
+         and then (for all Index in 1 .. Slot_Count =>
+                     Slots (Index).Left = 0)
+         and then (for all Index in 1 .. Load_Count =>
+                     Loads (Index).Left = 0));
+
+      function Carrying_Slot (Slot : Landin.IR.Slot_Id) return Natural;
+      function Carrying_Slot (Slot : Landin.IR.Slot_Id) return Natural is
+      begin
+         for Index in 1 .. Slot_Count loop
+            if Landin.IR.Slot_Id (Slots (Index).Id) = Slot then
+               return Index;
+            end if;
+         end loop;
+         return 0;
+      end Carrying_Slot;
+
+      function Carrying_Load (Read : Landin.IR.Value_Id) return Natural;
+      function Carrying_Load (Read : Landin.IR.Value_Id) return Natural is
+      begin
+         for Index in 1 .. Load_Count loop
+            if Landin.IR.Value_Id (Loads (Index).Id) = Read then
+               return Index;
+            end if;
+         end loop;
+         return 0;
+      end Carrying_Load;
+   begin
+      if Left = 0 then
+         return None;
+      end if;
+      for At_Position in Position + 1 .. Length loop
+         exit when Finished;
+         if Result.Count = Most_Reached then
+            return None;
+         end if;
+         declare
+            Other : constant Landin.IR.Value_Id :=
+              Landin.IR.Nth_Value (Of_Unit, Item, Block, At_Position);
+            Op : constant Landin.IR.Opcode :=
+              Landin.IR.Op_Of (Of_Unit, Item, Other);
+            Count : constant Natural :=
+              Landin.IR.Operand_Count (Of_Unit, Item, Other);
+            First : constant Landin.IR.Value_Id :=
+              (if Count > 0
+               then Landin.IR.Nth_Operand (Of_Unit, Item, Other, 1)
+               else Landin.IR.No_Value);
+            Carrier : constant Natural :=
+              (if First = Landin.IR.No_Value then 0
+               else Carrying_Load (First));
+            Slot : constant Landin.IR.Slot_Id :=
+              (if Op in Landin.IR.Load | Landin.IR.Store
+               then Landin.IR.Slot_Of (Of_Unit, Item, Other)
+               else Landin.IR.No_Slot);
+         begin
+            if Op in Landin.IR.Load_Indirect | Landin.IR.Store_Indirect
+              and then (First = Value or else Carrier > 0)
+            then
+               if Op = Landin.IR.Store_Indirect
+                 and then (Landin.IR.Nth_Operand (Of_Unit, Item, Other, 2)
+                             = Value
+                           or else Carrying_Load
+                             (Landin.IR.Nth_Operand (Of_Unit, Item, Other, 2))
+                             > 0)
+               then
+                  return None;
+               end if;
+               if First = Value then
+                  Left := Left - 1;
+               else
+                  Loads (Carrier).Left := Loads (Carrier).Left - 1;
+               end if;
+               Result.Last := At_Position;
+            elsif Op = Landin.IR.Store and then First = Value then
+               if not Landin.IR.Is_Address (Of_Unit, Item, Slot)
+                 or else Landin.IR.Declares (Of_Unit, Item, Slot)
+                   /= Landin.IR.No_Declaration
+                 or else References (Positive (Slot)) < 2
+                 or else Slot_Count = Most
+                 or else Carrying_Slot (Slot) > 0
+               then
+                  return None;
+               end if;
+               Slot_Count := Slot_Count + 1;
+               Slots (Slot_Count) :=
+                 (Id => Natural (Slot),
+                  Left => References (Positive (Slot)) - 1);
+               Left := Left - 1;
+            elsif Op = Landin.IR.Load and then Carrying_Slot (Slot) > 0 then
+               if Load_Count = Most or else Uses (Positive (Other)) = 0
+                 or else Slots (Carrying_Slot (Slot)).Left = 0
+               then
+                  return None;
+               end if;
+               Slots (Carrying_Slot (Slot)).Left :=
+                 Slots (Carrying_Slot (Slot)).Left - 1;
+               Load_Count := Load_Count + 1;
+               Loads (Load_Count) :=
+                 (Id => Natural (Other), Left => Uses (Positive (Other)));
+            else
+               --  Any other read of the address or of a carrying load,
+               --  or another store to a carrying slot, needs it formed.
+               for Which in 1 .. Count loop
+                  declare
+                     Read : constant Landin.IR.Value_Id :=
+                       Landin.IR.Nth_Operand (Of_Unit, Item, Other, Which);
+                  begin
+                     if Read = Value or else Carrying_Load (Read) > 0 then
+                        return None;
+                     end if;
+                  end;
+               end loop;
+               if Op = Landin.IR.Store and then Carrying_Slot (Slot) > 0 then
+                  return None;
+               end if;
+               goto Next;
+            end if;
+            Result.Count := Result.Count + 1;
+            Result.Values (Result.Count) := Other;
+         end;
+         <<Next>>
+         null;
+      end loop;
+      return (if Finished then Result else None);
+   end Reach_Of;
+
    function Prepares_Stacks (Of_Unit : Landin.IR.Unit) return Boolean is
       use type Landin.IR.Item_Kind;
       use type Landin.IR.Opcode;

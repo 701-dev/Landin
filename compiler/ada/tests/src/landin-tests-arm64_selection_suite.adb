@@ -77,6 +77,8 @@ package body Landin.Tests.Arm64_Selection_Suite is
    procedure Slice_Elements_Check_Once
      (Item : in out Landin.Testing.Context);
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context);
+   procedure Addresses_Reach_Accesses
+     (Item : in out Landin.Testing.Context);
    procedure Choices_Select_Conditionally
      (Item : in out Landin.Testing.Context);
 
@@ -1136,6 +1138,82 @@ package body Landin.Tests.Arm64_Selection_Suite is
          "none counts with a branch");
    end Counted_Flag_Adds;
 
+   --  D2573: an element address carried to its accesses by temporaries,
+   --  each element of a swap read and written, is not formed at size and
+   --  speed while its base and index hold: every access reads through
+   --  them, the array's own and a slice's alike, and no `add` of two
+   --  registers is left.  At none each address is formed.
+   procedure Addresses_Reach_Accesses
+     (Item : in out Landin.Testing.Context)
+   is
+      Source : constant String :=
+        "public swap: (inout values: [16]u8, i: usize, j: usize) -> none "
+        & "= saved: u8 = values[i] values[i] = values[j] "
+        & "values[j] = saved end swap "
+        & "public swap_words: (words: []mut u32, i: usize, j: usize) "
+        & "-> none = saved: u32 = words[i] words[i] = words[j] "
+        & "words[j] = saved end swap_words";
+
+      --  Whether some line of Text adds two registers.
+      function Adds_Registers (Text : String) return Boolean;
+
+      function Adds_Registers (Text : String) return Boolean is
+         At_Line : Natural := Text'First;
+      begin
+         while At_Line <= Text'Last loop
+            declare
+               Stop : Natural :=
+                 Ada.Strings.Fixed.Index (Text (At_Line .. Text'Last), [LF]);
+            begin
+               if Stop = 0 then
+                  Stop := Text'Last + 1;
+               end if;
+               declare
+                  Line : constant String := Text (At_Line .. Stop - 1);
+               begin
+                  if Contains (Line, HT & "add x")
+                    and then not Contains (Line, "#")
+                  then
+                     return True;
+                  end if;
+               end;
+               At_Line := Stop + 1;
+            end;
+         end loop;
+         return False;
+      end Adds_Registers;
+   begin
+      for Objective in Opt.Objective loop
+         declare
+            Text : constant String := Converted (Item, Source, Objective);
+            Swap : constant String := Routine (Text, "swap");
+            Words : constant String := Routine (Text, "swap_words");
+            Where : constant String :=
+              " at " & Opt.Objective'Image (Objective);
+         begin
+            if Objective = Opt.None then
+               Landin.Testing.Check
+                 (Item, Adds_Registers (Swap),
+                  "none forms an element's address" & Where);
+            else
+               Landin.Testing.Check
+                 (Item, not Adds_Registers (Swap)
+                        and then Count (Swap, "ldrb w") = 2
+                        and then Count (Swap, "strb w") = 2
+                        and then Count (Swap, ", x1]") = 2
+                        and then Count (Swap, ", x2]") = 2,
+                  "a swapped array element is read and written through "
+                  & "its base and index" & Where);
+               Landin.Testing.Check
+                 (Item, not Adds_Registers (Words)
+                        and then Count (Words, ", lsl #2]") = 4,
+                  "a swapped slice element is read and written through "
+                  & "its base and scaled index" & Where);
+            end if;
+         end;
+      end loop;
+   end Addresses_Reach_Accesses;
+
    --  D338: a choice is csel or fcsel on the flags of the comparison right
    --  before it, or on a stored bool; fcmp leaves an unordered pair's
    --  flags so that `mi` is false for it, choosing the second value.
@@ -1242,6 +1320,9 @@ package body Landin.Tests.Arm64_Selection_Suite is
       Landin.Testing.Register
         (Into, "arm64 selection", "a counted comparison is a flag add",
          Counted_Flag_Adds'Access);
+      Landin.Testing.Register
+        (Into, "arm64 selection", "an address reaches every access",
+         Addresses_Reach_Accesses'Access);
       Landin.Testing.Register
         (Into, "arm64 selection", "a choice is a conditional move",
          Choices_Select_Conditionally'Access);

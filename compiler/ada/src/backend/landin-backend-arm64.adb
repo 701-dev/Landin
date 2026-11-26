@@ -268,6 +268,9 @@ package body Landin.Backend.Arm64 is
       Size : Held_Size := Landin.Targets.Byte_8;
       Address_Required : Boolean := False;
    end record;
+   --  The memory operands selection's folded addresses are read through.
+   package Operand_Vectors is new Ada.Containers.Vectors
+     (Positive, Unbounded.Unbounded_String, Unbounded."=");
    package Location_Vectors is new Ada.Containers.Vectors
      (Positive, Value_Location);
    --  A slot held in a register only over its live interval, in the
@@ -2823,6 +2826,19 @@ package body Landin.Backend.Arm64 is
          Row : Positive := 1;
          Folded : Address_Fold;
          Folded_Base : Unbounded.Unbounded_String;
+         --  An element address carried to several accesses later in its
+         --  block, Landin.Backend.Reach_Of's, is not formed while the
+         --  registers its base names hold through the last of them: each
+         --  access reads through that base, Reached naming it in
+         --  Reach_Operands, and the carrying stores and loads, which
+         --  Carrying marks, are not emitted.
+         Reached_Data : Use_Buffers.Buffer
+           (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
+         Reached : Use_Counts renames Reached_Data.Data.all;
+         Carrying_Data : Use_Buffers.Buffer
+           (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
+         Carrying : Use_Counts renames Carrying_Data.Data.all;
+         Reach_Operands : Operand_Vectors.Vector;
          --  The branch a comparison right before it already took, testing
          --  the comparison's flags rather than a stored verdict.
          Fused_Branch : Landin.IR.Value_Id := Landin.IR.No_Value;
@@ -4430,6 +4446,9 @@ package body Landin.Backend.Arm64 is
             --  address folded into it, or else the register holding its
             --  own, x10 when it has to be loaded.
             function Indirect_Base return String;
+            function Reach_Width (Found : Address_Reach) return Natural;
+            function Reach (Base : String; Found : Address_Reach)
+              return Boolean;
 
             --  The instruction after this one in its block, if any, and
             --  the block laid out after this one, which a branch to it
@@ -4690,9 +4709,161 @@ package body Landin.Backend.Arm64 is
                if Folded.Access_Value = Value then
                   Folded := (others => <>);
                   return Unbounded.To_String (Folded_Base);
+               elsif Optimized and then Reached (Positive (Value)) > 0 then
+                  return Unbounded.To_String
+                    (Reach_Operands (Reached (Positive (Value))));
                end if;
                return Read (Operand (1), "x10");
             end Indirect_Base;
+
+            --  The bytes every access of Found moves, or 0 when they
+            --  differ: a scaled index folds only at its own width.
+            function Reach_Width (Found : Address_Reach) return Natural is
+               Width : Natural := 0;
+            begin
+               for Index in 1 .. Found.Count loop
+                  declare
+                     Other : constant Landin.IR.Value_Id :=
+                       Found.Values (Index);
+                     Moved : Natural;
+                  begin
+                     case Landin.IR.Op_Of (Of_Unit, Item, Other) is
+                        when Landin.IR.Load_Indirect =>
+                           Moved := Landin.Targets.Bytes
+                             (Size_Of_Value (Other));
+                        when Landin.IR.Store_Indirect =>
+                           Moved := Landin.Targets.Bytes
+                             (Size_Of_Value (Landin.IR.Nth_Operand
+                                (Of_Unit, Item, Other, 2)));
+                        when others =>
+                           goto Next;
+                     end case;
+                     if Width = 0 then
+                        Width := Moved;
+                     elsif Width /= Moved then
+                        return 0;
+                     end if;
+                  end;
+                  <<Next>>
+                  null;
+               end loop;
+               return Width;
+            end Reach_Width;
+
+            --  Whether the registers Base names keep their values over
+            --  Found up to its last access, which reads Base before it
+            --  writes anything; if so each access is marked to read
+            --  through Base and the carrying stores and loads to be left
+            --  out.
+            function Reach (Base : String; Found : Address_Reach)
+              return Boolean
+            is
+               type Name_List is array (1 .. 2) of Natural;
+               Names : Name_List := [others => No_Register];
+               Named : Natural := 0;
+
+               function Carrier (Other : Landin.IR.Value_Id) return Boolean;
+               function Carrier (Other : Landin.IR.Value_Id) return Boolean
+                 is (Landin.IR.Op_Of (Of_Unit, Item, Other)
+                       in Landin.IR.Load | Landin.IR.Store);
+
+               function Names_Register (Register : Natural) return Boolean;
+               function Names_Register (Register : Natural) return Boolean
+                 is (Register /= No_Register
+                     and then (for some Index in 1 .. Named =>
+                                 Names (Index) = Register));
+            begin
+               if Found.Count = 0 then
+                  return False;
+               end if;
+               --  "xB, xI" or "xB, xI, lsl #S": the base and the index.
+               declare
+                  At_Char : Natural := Base'First;
+               begin
+                  while At_Char <= Base'Last loop
+                     if Base (At_Char) = 'x' then
+                        declare
+                           Stop : Natural := At_Char + 1;
+                           Number : Natural := 0;
+                        begin
+                           while Stop <= Base'Last
+                             and then Base (Stop) in '0' .. '9'
+                           loop
+                              Number := Number * 10
+                                + (Character'Pos (Base (Stop))
+                                   - Character'Pos ('0'));
+                              Stop := Stop + 1;
+                           end loop;
+                           if Stop = At_Char + 1 or else Named = Names'Last
+                             or else Number in Selection.General_Scratch
+                               | 8 | 18 | 30
+                           then
+                              return False;
+                           end if;
+                           Named := Named + 1;
+                           Names (Named) := Number;
+                           At_Char := Stop;
+                        end;
+                     elsif Base (At_Char) in ',' | ' ' then
+                        At_Char := At_Char + 1;
+                     elsif Base (At_Char .. Base'Last)'Length >= 3
+                       and then Base (At_Char .. At_Char + 2) = "lsl"
+                     then
+                        exit;
+                     else
+                        --  sp, or anything else: not reasoned about.
+                        return False;
+                     end if;
+                  end loop;
+               end;
+               for Position in Current_Position + 1 .. Found.Last - 1 loop
+                  declare
+                     Other : constant Landin.IR.Value_Id :=
+                       Landin.IR.Nth_Value
+                         (Of_Unit, Item, Current_Block, Position);
+                     Op_Other : constant Landin.IR.Opcode :=
+                       Landin.IR.Op_Of (Of_Unit, Item, Other);
+                  begin
+                     if Carrier (Other)
+                       and then (for some Index in 1 .. Found.Count =>
+                                   Found.Values (Index) = Other)
+                     then
+                        null;
+                     elsif Op_Other = Landin.IR.Load
+                       and then Plan.Values (Positive (Other)).Register
+                         /= No_Register
+                       and then Plan.Values (Positive (Other)).Register
+                         = Plan.Slots (Positive (Landin.IR.Slot_Of
+                             (Of_Unit, Item, Other))).Register
+                     then
+                        --  A load into its slot's own register leaves it
+                        --  as it was.
+                        null;
+                     elsif Op_Other in Landin.IR.Call
+                         | Landin.IR.Indirect_Call | Landin.IR.Assembly
+                       or else Is_Switch (Of_Unit, Item, Other)
+                       or else Names_Register
+                         (Plan.Values (Positive (Other)).Register)
+                       or else (Op_Other = Landin.IR.Store
+                                and then Names_Register
+                                  (Plan.Slots (Positive (Landin.IR.Slot_Of
+                                     (Of_Unit, Item, Other))).Register))
+                     then
+                        return False;
+                     end if;
+                  end;
+               end loop;
+               Reach_Operands.Append (Unbounded.To_Unbounded_String (Base));
+               for Index in 1 .. Found.Count loop
+                  if Carrier (Found.Values (Index)) then
+                     Carrying (Positive (Found.Values (Index))) := 1;
+                  else
+                     Reached (Positive (Found.Values (Index))) :=
+                       Natural (Reach_Operands.Last_Index);
+                  end if;
+               end loop;
+               return True;
+            end Reach;
 
             procedure Branch_On
               (Condition : String; Yes, No : Landin.IR.Block_Id) is
@@ -5165,6 +5336,7 @@ package body Landin.Backend.Arm64 is
          begin
             if Value = Folded.Store or else Value = Folded.Load
               or else Value = Fused_Branch or else Value = Fused_Increment
+              or else (Optimized and then Carrying (Positive (Value)) > 0)
             then
                return;
             end if;
@@ -5207,19 +5379,33 @@ package body Landin.Backend.Arm64 is
                      then
                         declare
                            Fold : constant Address_Fold := Folding;
+                           Found : constant Address_Reach :=
+                             (if Optimized
+                                and then Fold.Access_Value
+                                  = Landin.IR.No_Value
+                              then Reach_Of
+                                (Of_Unit, Item, Current_Block,
+                                 Current_Position, Uses, References)
+                              else (others => <>));
+                           Width : constant Natural :=
+                             (if Fold.Access_Value /= Landin.IR.No_Value
+                              then Folded_Size (Fold)
+                              else Reach_Width (Found));
                            Into : constant String := Target (Value, "x10");
                            Base : constant String :=
                              Index_Operand (Storage, Field, 0, 0, Nested,
-                                            Width => Folded_Size (Fold),
-                                            Into => Into);
+                                            Width => Width, Into => Into);
                         begin
-                           if Base /= Into or else Fold.Access_Value
-                             /= Landin.IR.No_Value
-                           then
+                           if Fold.Access_Value /= Landin.IR.No_Value then
                               Folded := Fold;
                               Folded_Base :=
                                 Unbounded.To_Unbounded_String (Base);
-                           else
+                           elsif Base = Into then
+                              Deliver (Value, Into, Extended => True);
+                           elsif not Reach (Base, Found) then
+                              --  The registers do not hold: the address
+                              --  is formed after all.
+                              Emit ("add " & Into & ", " & Base);
                               Deliver (Value, Into, Extended => True);
                            end if;
                         end;
@@ -5920,6 +6106,27 @@ package body Landin.Backend.Arm64 is
                               return;
                            end if;
                         end;
+                        --  Several accesses, or one further on, through
+                        --  temporaries carrying the address, read through
+                        --  the base and lower bound while those hold.
+                        if Optimized and then Bytes in 1 | 2 | 4 | 8 then
+                           declare
+                              Found : constant Address_Reach :=
+                                Reach_Of (Of_Unit, Item, Current_Block,
+                                          Current_Position, Uses, References);
+                              Width : constant Natural := Reach_Width (Found);
+                           begin
+                              if Width > 0
+                                and then (Bytes = 1
+                                          or else Natural (Bytes) = Width)
+                                and then Reach
+                                  (Read (Operand (1), "x11") & ", " & Lower
+                                   & Scaling, Found)
+                              then
+                                 return;
+                              end if;
+                           end;
+                        end if;
                         if Optimized and then Bytes in 1 | 2 | 4 | 8 then
                            declare
                               Into : constant String := Target (Value);

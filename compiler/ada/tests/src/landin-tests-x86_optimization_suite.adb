@@ -204,6 +204,8 @@ package body Landin.Tests.X86_Optimization_Suite is
    procedure Slice_Elements_Check_Once
      (Item : in out Landin.Testing.Context);
    procedure Counted_Down_Slices (Item : in out Landin.Testing.Context);
+   procedure Addresses_Reach_Accesses
+     (Item : in out Landin.Testing.Context);
    procedure Arithmetic_Shapes (Item : in out Landin.Testing.Context);
    procedure Shifts_Rotate (Item : in out Landin.Testing.Context);
    procedure Operands_In_Place (Item : in out Landin.Testing.Context);
@@ -1358,6 +1360,57 @@ package body Landin.Tests.X86_Optimization_Suite is
       end;
    end Counted_Down_Slices;
 
+   --  D2573: an element address carried to its accesses by temporaries,
+   --  each element of a swap read and written, is not formed at size and
+   --  speed while the registers its operand names hold: every access
+   --  reads through `(%base,%index)`, and no `leaq` is left.  At none
+   --  each address is formed in %rcx.
+   procedure Addresses_Reach_Accesses
+     (Item : in out Landin.Testing.Context)
+   is
+      use type Opt.Objective;
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+   begin
+      Lower
+        (Item, Work,
+         "public swap: (inout values: [16]u8, i: usize, j: usize) -> none "
+         & "= saved: u8 = values[i] values[i] = values[j] "
+         & "values[j] = saved end swap");
+      for Objective in Opt.Objective loop
+         declare
+            Whole : constant String := Emitted (Work, (Objective, Opt.Off));
+            From : constant Natural :=
+              Ada.Strings.Fixed.Index (Whole, [LF] & "swap:");
+            Upto : constant Natural :=
+              (if From = 0 then 0
+               else Ada.Strings.Fixed.Index
+                 (Whole (From .. Whole'Last), ".size swap"));
+            Text : constant String :=
+              (if Upto = 0 then "" else Whole (From .. Upto));
+            Where : constant String :=
+              " at " & Opt.Objective'Image (Objective);
+         begin
+            if Objective = Opt.None then
+               Check_Assembly
+                 (Item, Whole,
+                  Ada.Strings.Fixed.Count (Text, "addq %rax, %rcx") = 4
+                  and then Ada.Strings.Fixed.Count (Text, "(%rdi,%") = 0,
+                  "none forms an element's address" & Where);
+            else
+               Check_Assembly
+                 (Item, Whole,
+                  Text /= ""
+                  and then Ada.Strings.Fixed.Count (Text, "leaq") = 0
+                  and then Ada.Strings.Fixed.Count (Text, ", (%rdi,%") = 2
+                  and then Ada.Strings.Fixed.Count (Text, "l (%rdi,%") = 2,
+                  "a swapped element is read and written through its base "
+                  & "and index" & Where);
+            end if;
+         end;
+      end loop;
+   end Addresses_Reach_Accesses;
+
    --  Every reciprocal Landin.Backend.Reciprocals gives, applied exactly as
    --  the backend applies it, against Ada's own division and remainder:
    --  every 8-bit dividend by every 8-bit divisor, and at the wider widths
@@ -2153,7 +2206,8 @@ package body Landin.Tests.X86_Optimization_Suite is
                   Indexed (Text, "movq", ",8)") >= 3
                   and then Contains (Text, "(%rbp,%")
                   and then Indexed (Text, "movzbl", ")") >= 1
-                  and then Indexed (Text, "leaq", ")") >= 1
+                  and then Indexed (Text, "movb", ")") >= 1
+                  and then Indexed (Text, "leaq", ")") = 0
                   and then not Contains (Text, "imulq $8"),
                   "size and speed address frame, slice and indirect"
                   & " elements with indexed memory operands");
@@ -2765,6 +2819,9 @@ package body Landin.Tests.X86_Optimization_Suite is
          Slice_Elements_Check_Once'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "counted-down slices", Counted_Down_Slices'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "an address reaches every access",
+         Addresses_Reach_Accesses'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "reciprocals divide exactly",
          Reciprocals_Divide_Exactly'Access);
