@@ -1853,8 +1853,9 @@ state, and nothing allocates.
 
 On Cortex-M0, a program takes only the routines it calls, beside libgcc's
 soft float, which every float program there takes. A routine at both widths
-is 3 to 6 KiB at `size/auto` for most, and up to 15 KiB for the
-trigonometric functions, whose argument reduction is exact for every
+takes from 2.5 KiB at `size/auto` for a root to 13 KiB for a hyperbolic or
+error function with the exponentials it calls, and 15 KiB for a
+trigonometric function, whose argument reduction is exact for every
 argument; [the measurements](../compiler/tests/math/README.md#size-on-cortex-m0)
 give each fixture's figures.
 
