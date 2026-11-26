@@ -1315,6 +1315,48 @@ as well, and the row is taken. The merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45760688726) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45760702435).
 
+### R16.41 — A float element is compared where it lies
+
+Status: complete
+Depends on: R16.10
+
+fasta spends two thirds of its x86-64 instructions at speed in
+`select_symbol`, which counts the cumulative probabilities a random
+number reaches: if-conversion makes `if random >= cumulative[at] then
+inc index end if` a comparison whose flag is added to the count, ten
+instructions a step. Two of them move nothing: the element is loaded
+into a register with `movsd` before `ucomisd` reads it, which can read
+it from memory, and the flag's zero extension is made in `%eax` and
+copied to the register the addition reads. With both left out, ten
+instructions become eight, and fasta 2,500,000 executes 2.857 G
+instructions against 3.142 G, 9.1% fewer, with the same output. The
+item compares a float that only its comparison or arithmetic reads
+where it lies, and extends a counted flag into its own register.
+Exit evidence: fasta at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base; every benchmark program's
+instructions and image size reported against that base, arm64 as well;
+and no other combination over its own.
+
+Done: at size and speed x86-64 does not make a float load whose one use
+is a float comparison, addition, subtraction, multiplication or
+division, when only constants with an immediate and loads of a slot
+already in its register lie between them; the operation reads the
+load's memory operand, and a counted one or zero is extended straight
+into its own register (D2574). `select_symbol`'s loop falls from ten
+x86-64 instructions to eight: against the item's base under QEMU fasta
+executes 9.1% fewer x86-64 instructions at speed and 7.9% at size,
+mandelbrot 0.2% fewer and the switch measurements 0.07%, every other
+program and every arm64 figure the same, every output the same. Cycles
+on a Zen 2 host did not move: about 10.0 G at fasta 25,000,000 either
+way. Four workloads' x86-64 images are 31 bytes smaller in all a
+configuration on Linux and Windows; FreeBSD's keep their totals, RELRO
+padding taking up what the text gives back. Putting if-conversion's
+copies before the load as well changed STM32H753 firmware for no gain
+and was undone. `SR-1918` records the count's overflow check the loop
+keeps, `SR-1919` the refusal `item.py start` met. The candidate passed
+its [gate](https://github.com/701-dev/Landin/actions/runs/45795175499)
+and [boards](https://github.com/701-dev/Landin/actions/runs/45795196472).
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
