@@ -1,0 +1,352 @@
+--  Arithmetic on natural numbers held in the caller's limbs, as GMP's
+--  `mpn` layer works: a number is a slice of `u32` limbs, the least
+--  significant first, and every routine reads and writes slices the
+--  caller supplies, with no allocator and nothing kept between calls.  So
+--  firmware, and a parser that may not allocate, can use it.  A limb is
+--  32 bits on every target, so a routine gives the same limbs on each and
+--  a product of two limbs is a `u64`.
+--
+--  Lengths are the caller's: a slice is the number its limbs spell, high
+--  zero limbs included, and each routine says how long its destination
+--  must be and what it writes.  A routine that needs room beyond its
+--  destination takes a scratch slice whose length a companion routine
+--  states, `multiply_scratch` and `divide_scratch`.  A destination may be
+--  the very slice an operand is, where a routine says so, and may not
+--  otherwise overlap one.  A requirement a call does not meet stops the
+--  program, as `panic.require` does.
+
+import core/cmp
+import core/panic
+
+--- The number of limbs of `value` below its highest nonzero one, and
+--- with it: its length without high zero limbs, zero for zero.
+public significant: (value: []u32) -> (count: usize) =
+    count = lenof value
+    while count > 0 and value[count - 1] == 0 do
+        dec count
+    end while
+end significant
+
+--- How `left` compares with `right` as numbers, whatever their lengths:
+--- high zero limbs count for nothing.
+public compare: (left: []u32, right: []u32) -> (result: cmp.order) =
+    mut at: usize = significant(left)
+    other: usize = significant(right)
+    if at <> other then
+        result = if at < other then cmp.less else cmp.greater end if
+        return
+    end if
+    result = cmp.equal
+    while at > 0 do
+        dec at
+        if left[at] <> right[at] then
+            result = if left[at] < right[at] then cmp.less
+                     else cmp.greater end if
+            return
+        end if
+    end while
+end compare
+
+--- Write zero into every limb of `into`.
+public clear: (into: []mut u32) -> none =
+    for slot in into do
+        slot = 0
+    end for
+end clear
+
+--- Copy `value` into the first limbs of `into`, which is at least as long.
+--- `into` may begin where `value` does, or below it, as when a number moves
+--- down within one slice.
+public copy: (into: []mut u32, value: []u32) -> none =
+    panic.require(lenof into >= lenof value)
+    for limb, at in value do
+        into[at] = limb
+    end for
+end copy
+
+--- Write `left + right` into `into`'s first `max(lenof left, lenof right)`
+--- limbs and return the carry out of them, 0 or 1.  `into` is at least
+--- that long, and may be either operand's own slice.
+public add: (into: []mut u32, left: []u32, right: []u32)
+            -> (carry: u32) =
+    long: usize = if lenof left >= lenof right then lenof left
+                  else lenof right end if
+    short: usize = if lenof left >= lenof right then lenof right
+                   else lenof left end if
+    panic.require(lenof into >= long)
+    mut sum: u64 = 0
+    unchecked begin
+        --  Every index is below `short` or `long`, which the operands and
+        --  `into` hold, and a sum of two limbs and a carry fits a `u64`.
+        for at in usize(0)..<short do
+            sum = u64(left[at]) + u64(right[at]) + (sum >> 32)
+            into[at] = u32(sum & 0xffffffff)
+        end for
+        if lenof left >= lenof right then
+            for at in short..<long do
+                sum = u64(left[at]) + (sum >> 32)
+                into[at] = u32(sum & 0xffffffff)
+            end for
+        else
+            for at in short..<long do
+                sum = u64(right[at]) + (sum >> 32)
+                into[at] = u32(sum & 0xffffffff)
+            end for
+        end if
+    end unchecked
+    carry = u32(sum >> 32)
+end add
+
+--- Write `left + right`, a single limb, into `into`'s first `lenof left`
+--- limbs and return the carry out of them.  `into` may be `left`'s slice.
+public add_limb: (into: []mut u32, left: []u32, right: u32)
+                 -> (carry: u32) =
+    panic.require(lenof into >= lenof left)
+    mut sum: u64 = u64(right)
+    unchecked begin
+        --  Every index is below `lenof left`, which `into` holds.
+        for limb, at in left do
+            sum = u64(limb) + sum
+            into[at] = u32(sum & 0xffffffff)
+            sum = sum >> 32
+        end for
+    end unchecked
+    carry = u32(sum)
+end add_limb
+
+--- Write `left - right` into `into`'s first `lenof left` limbs, `left`
+--- being at least as long as `right`, and return the borrow out of them, 1
+--- when `right` was the greater and the limbs hold the difference plus
+--- 2^(32 lenof left).  `into` may be either operand's own slice.
+public subtract: (into: []mut u32, left: []u32, right: []u32)
+                 -> (borrow: u32) =
+    panic.require(lenof left >= lenof right and lenof into >= lenof left)
+    mut owed: u64 = 0
+    unchecked begin
+        --  Indices stay below `lenof left`; a limb minus a limb and a
+        --  borrow wraps to the difference's low limb and its borrow bit.
+        for at in usize(0)..<lenof right do
+            difference: u64 = u64(left[at]) -% u64(right[at]) -% owed
+            into[at] = u32(difference & 0xffffffff)
+            owed = difference >> 63
+        end for
+        for at in lenof right..<lenof left do
+            difference: u64 = u64(left[at]) -% owed
+            into[at] = u32(difference & 0xffffffff)
+            owed = difference >> 63
+        end for
+    end unchecked
+    borrow = u32(owed)
+end subtract
+
+--- Write `left - right`, a single limb, into `into`'s first `lenof left`
+--- limbs and return the borrow out of them.  `into` may be `left`'s slice.
+public subtract_limb: (into: []mut u32, left: []u32, right: u32)
+                      -> (borrow: u32) =
+    panic.require(lenof into >= lenof left)
+    mut owed: u64 = u64(right)
+    unchecked begin
+        --  Indices stay below `lenof left`, which `into` holds.
+        for limb, at in left do
+            difference: u64 = u64(limb) -% owed
+            into[at] = u32(difference & 0xffffffff)
+            owed = difference >> 63
+        end for
+    end unchecked
+    borrow = u32(owed)
+end subtract_limb
+
+--- Write `value` times the limb `factor` into `into`'s first `lenof value`
+--- limbs and return the limb above them, the product's highest.  `into`
+--- may be `value`'s slice.
+public multiply_limb: (into: []mut u32, value: []u32, factor: u32)
+                      -> (high: u32) =
+    panic.require(lenof into >= lenof value)
+    mut product: u64 = 0
+    unchecked begin
+        --  A limb times a limb plus a limb fits a `u64`.
+        for limb, at in value do
+            product = u64(limb) * u64(factor) + (product >> 32)
+            into[at] = u32(product & 0xffffffff)
+        end for
+    end unchecked
+    high = u32(product >> 32)
+end multiply_limb
+
+--- Add `value` times the limb `factor` to `into`'s first `lenof value`
+--- limbs and return the limb carried out of them.
+public add_multiply_limb: (into: []mut u32, value: []u32, factor: u32)
+                          -> (carry: u32) =
+    panic.require(lenof into >= lenof value)
+    mut product: u64 = 0
+    unchecked begin
+        --  A limb times a limb plus two limbs fits a `u64`.
+        for limb, at in value do
+            product = u64(limb) * u64(factor) + u64(into[at]) + (product >> 32)
+            into[at] = u32(product & 0xffffffff)
+        end for
+    end unchecked
+    carry = u32(product >> 32)
+end add_multiply_limb
+
+--- Subtract `value` times the limb `factor` from `into`'s first
+--- `lenof value` limbs and return the limb borrowed beyond them.
+public subtract_multiply_limb: (into: []mut u32, value: []u32, factor: u32)
+                               -> (borrow: u32) =
+    panic.require(lenof into >= lenof value)
+    mut owed: u64 = 0
+    unchecked begin
+        --  The product and the borrow carried in fit a `u64`; their low
+        --  limb comes off the limb of `into` and their high limb, with a
+        --  borrow from that, is carried on.
+        for limb, at in value do
+            product: u64 = u64(limb) * u64(factor) + owed
+            low: u64 = product & 0xffffffff
+            have: u64 = u64(into[at])
+            into[at] = u32((have -% low) & 0xffffffff)
+            owed = (product >> 32) + (if have < low then u64(1) else u64(0) end if)
+        end for
+    end unchecked
+    borrow = u32(owed)
+end subtract_multiply_limb
+
+--- Write `value` shifted left by `count` bits, below 32, into `into`'s
+--- first `lenof value` limbs and return the bits shifted out of the top,
+--- in the low bits of the result.  `into` may be `value`'s slice.
+public shift_left: (into: []mut u32, value: []u32, count: u32)
+                   -> (out: u32) =
+    panic.require(count < 32 and lenof into >= lenof value)
+    out = 0
+    mut at: usize = lenof value
+    return when at == 0
+    out = if count == 0 then 0 else value[at - 1] >> (32 - count) end if
+    unchecked begin
+        --  From the top down, so that `into` may be `value`: each limb is
+        --  read before the one below it is written.
+        while at > 1 do
+            high: u32 = value[at - 1]
+            low: u32 = value[at - 2]
+            into[at - 1] = if count == 0 then high
+                           else (high << count) | (low >> (32 - count)) end if
+            dec at
+        end while
+        into[0] = value[0] << count
+    end unchecked
+end shift_left
+
+--- Write `value` shifted right by `count` bits, below 32, into `into`'s
+--- first `lenof value` limbs and return the bits shifted out of the
+--- bottom, in the high bits of the result.  `into` may be `value`'s
+--- slice.
+public shift_right: (into: []mut u32, value: []u32, count: u32)
+                    -> (out: u32) =
+    panic.require(count < 32 and lenof into >= lenof value)
+    out = 0
+    length: usize = lenof value
+    return when length == 0
+    out = if count == 0 then 0 else value[0] << (32 - count) end if
+    unchecked begin
+        --  From the bottom up, so that `into` may be `value`.
+        for at in usize(0)..<length - 1 do
+            low: u32 = value[at]
+            high: u32 = value[at + 1]
+            into[at] = if count == 0 then low
+                       else (low >> count) | (high << (32 - count)) end if
+        end for
+        into[length - 1] = value[length - 1] >> count
+    end unchecked
+end shift_right
+
+--- The number of high zero bits in the limb `value`, 32 for zero.
+public leading_zeros: (value: u32) -> (count: u32) =
+    count = 0
+    if value == 0 then
+        count = 32
+        return
+    end if
+    mut rest: u32 = value
+    if rest & 0xffff0000 == 0 then
+        count = count + 16
+        rest = rest << 16
+    end if
+    if rest & 0xff000000 == 0 then
+        count = count + 8
+        rest = rest << 8
+    end if
+    if rest & 0xf0000000 == 0 then
+        count = count + 4
+        rest = rest << 4
+    end if
+    if rest & 0xc0000000 == 0 then
+        count = count + 2
+        rest = rest << 2
+    end if
+    if rest & 0x80000000 == 0 then
+        count = count + 1
+    end if
+end leading_zeros
+
+--- The number of low zero bits in the limb `value`, 32 for zero.
+public trailing_zeros: (value: u32) -> (count: u32) =
+    count = 0
+    if value == 0 then
+        count = 32
+        return
+    end if
+    mut rest: u32 = value
+    if rest & 0xffff == 0 then
+        count = count + 16
+        rest = rest >> 16
+    end if
+    if rest & 0xff == 0 then
+        count = count + 8
+        rest = rest >> 8
+    end if
+    if rest & 0xf == 0 then
+        count = count + 4
+        rest = rest >> 4
+    end if
+    if rest & 0x3 == 0 then
+        count = count + 2
+        rest = rest >> 2
+    end if
+    if rest & 0x1 == 0 then
+        count = count + 1
+    end if
+end trailing_zeros
+
+--- Divide `value` by the nonzero limb `divisor`, writing the quotient into
+--- `quotient`'s first `lenof value` limbs, and return the remainder.
+--- `quotient` may be `value`'s slice.
+public divide_limb: (quotient: []mut u32, value: []u32, divisor: u32)
+                    -> (remainder: u32) =
+    panic.require(divisor <> 0 and lenof quotient >= lenof value)
+    mut rest: u64 = 0
+    mut at: usize = lenof value
+    d: u64 = u64(divisor)
+    unchecked begin
+        --  The remainder is below the divisor, so the remainder and a limb
+        --  fit a `u64` and their quotient fits a limb.
+        while at > 0 do
+            dec at
+            current: u64 = (rest << 32) | u64(value[at])
+            q: u64 = current / d
+            quotient[at] = u32(q)
+            rest = current - q * d
+        end while
+    end unchecked
+    remainder = u32(rest)
+end divide_limb
+
+--- The remainder of `value` divided by the nonzero limb `divisor`.
+public remainder_limb: (value: []u32, divisor: u32) -> (remainder: u32) =
+    panic.require(divisor <> 0)
+    mut rest: u64 = 0
+    mut at: usize = lenof value
+    d: u64 = u64(divisor)
+    while at > 0 do
+        dec at
+        rest = ((rest << 32) | u64(value[at])) % d
+    end while
+    remainder = u32(rest)
+end remainder_limb

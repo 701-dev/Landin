@@ -1,0 +1,374 @@
+--  Multiplication: the schoolbook method for short operands, Karatsuba's
+--  three half-length products above `karatsuba_from` limbs and Toom's
+--  five third-length products, evaluated at 0, 1, -1, 2 and infinity and
+--  interpolated by Bodrato's sequence, above `toom_from`.  An operand much
+--  longer than the other is cut into pieces as long as the shorter, each
+--  multiplied as two equal lengths are.  Every step's room comes from the
+--  caller's scratch, whose length `multiply_scratch` states by following
+--  the same steps.
+
+import core/cmp
+import core/panic
+
+--  The lengths at which each method starts to beat the one below it, in
+--  limbs of both operands, measured on x86-64 and arm64 hosts; the
+--  Cortex-M0, whose limb product is a library call, keeps the same ones.
+karatsuba_from: usize = 24
+toom_from: usize = 100
+
+--  `into[0..<la+lb]` = `left` times `right` by rows, `left` at least as
+--  long as `right` and `right` not empty.
+schoolbook: (into: []mut u32, left: []u32, right: []u32) -> none =
+    count: usize = lenof left
+    into[count] = multiply_limb(into[0..<count], left, right[0])
+    for at in usize(1)..<lenof right do
+        into[at + count] = add_multiply_limb(into[at..<at + count], left,
+                                             right[at])
+    end for
+end schoolbook
+
+--  Add `value`, whose limbs above `into`'s end from `offset` are zero, to
+--  `into` from `offset`, carrying to `into`'s end, which the sum fits.
+add_at: (into: []mut u32, offset: usize, value: []u32) -> none =
+    count: usize = significant(value)
+    return when count == 0
+    panic.require(offset + count <= lenof into)
+    mut carry: u32 = add(into[offset..<offset + count],
+                         into[offset..<offset + count], value[0..<count])
+    rest: usize = offset + count
+    if carry <> 0 then
+        carry = add_limb(into[rest..<lenof into], into[rest..<lenof into],
+                         carry)
+    end if
+    panic.require(carry == 0)
+end add_at
+
+--  `into` = |left - right|, where `into` is as long as the longer and the
+--  missing limbs of the shorter are zero, and whether left was the
+--  smaller.
+difference: (into: []mut u32, left: []u32, right: []u32)
+            -> (negative: bool) =
+    negative = compare(left, right) == cmp.less
+    mut larger: []u32 = left
+    mut smaller: []u32 = right
+    if negative then
+        larger = right
+        smaller = left
+    end if
+    smaller = smaller[0..<significant(smaller)]
+    copy(into, larger[0..<significant(larger)])
+    clear(into[significant(larger)..<lenof into])
+    borrow := subtract(into, into, smaller)
+    _ = borrow
+end difference
+
+--  The scratch `balanced` takes for two operands of `count` limbs each.
+balanced_scratch: (count: usize) -> (slots: usize) =
+    slots = 0
+    if count < karatsuba_from then
+        return
+    elsif count < toom_from then
+        half: usize = (count + 1) / 2
+        mut below: usize = balanced_scratch(half)
+        upper: usize = balanced_scratch(count - half)
+        if upper > below then below = upper end if
+        slots = 4 * half + (if below > 1 then below else 1 end if)
+    else
+        third: usize = (count + 2) / 3
+        top: usize = count - 2 * third
+        mut below: usize = balanced_scratch(third + 1)
+        lower: usize = balanced_scratch(third)
+        if lower > below then below = lower end if
+        upper: usize = balanced_scratch(top)
+        if upper > below then below = upper end if
+        slots = 8 * third + 8 + below
+    end if
+end balanced_scratch
+
+--  `into[0..<2n]` = `left` times `right`, both `n` limbs long, `into`
+--  overlapping neither.
+balanced: (into: []mut u32, left: []u32, right: []u32, scratch: []mut u32)
+          -> none =
+    count: usize = lenof left
+    if count < karatsuba_from then
+        schoolbook(into, left, right)
+    elsif count < toom_from then
+        karatsuba(into, left, right, scratch)
+    else
+        toom(into, left, right, scratch)
+    end if
+end balanced
+
+--  Karatsuba's method: with h = ceil(n/2), left = l1 B^h + l0 and the
+--  same for right, the product is z0 + z1 B^h + z2 B^2h, where z0 = l0 r0,
+--  z2 = l1 r1 and z1 = z0 + z2 - (l0 - l1)(r0 - r1).
+karatsuba: (into: []mut u32, left: []u32, right: []u32,
+            scratch: []mut u32) -> none =
+    count: usize = lenof left
+    half: usize = (count + 1) / 2
+    rest: usize = count - half
+    --  scratch: the middle product in [0, 2h), the differences in [2h, 3h)
+    --  and [3h, 4h), and the deeper products' room from 4h.
+    middle: []mut u32 = scratch[0..<2 * half]
+    left_difference: []mut u32 = scratch[2 * half..<3 * half]
+    right_difference: []mut u32 = scratch[3 * half..<4 * half]
+    deeper: []mut u32 = scratch[4 * half..<lenof scratch]
+    left_negative := difference(left_difference, left[0..<half],
+                                left[half..<count])
+    right_negative := difference(right_difference, right[0..<half],
+                                 right[half..<count])
+    balanced(middle, left_difference, right_difference, deeper)
+    balanced(into[0..<2 * half], left[0..<half], right[0..<half],
+             scratch[2 * half..<lenof scratch])
+    balanced(into[2 * half..<2 * count], left[half..<count],
+             right[half..<count], scratch[2 * half..<lenof scratch])
+    --  z0 + z2 into [2h, 4h + 1), over the differences, which are spent.
+    sum: []mut u32 = scratch[2 * half..<4 * half + 1]
+    clear(sum)
+    copy(sum, into[0..<2 * half])
+    carry := add(sum[0..<2 * half], sum[0..<2 * half],
+                 into[2 * half..<2 * count])
+    sum[2 * half] = carry
+    if left_negative == right_negative then
+        borrow := subtract(sum, sum, middle)
+        _ = borrow
+    else
+        more := add(sum, sum, middle)
+        _ = more
+    end if
+    add_at(into[0..<2 * count], half, sum)
+end karatsuba
+
+--  The two's complement of `value`, in place.
+negate: (value: []mut u32) -> none =
+    mut carry: u64 = 1
+    for slot in value do
+        carry = u64(~slot) + carry
+        slot = u32(carry & 0xffffffff)
+        carry = carry >> 32
+    end for
+end negate
+
+--  `value` / 3 in place, `value` a multiple of 3 in two's complement:
+--  Hensel's exact division by the inverse of 3 modulo 2^32.
+divide_exactly_by_3: (value: []mut u32) -> none =
+    mut owed: u32 = 0
+    for slot in value do
+        borrow: u32 = if slot < owed then 1 else 0 end if
+        q: u32 = (slot -% owed) *% 0xaaaaaaab
+        slot = q
+        owed = u32((u64(q) * 3) >> 32) + borrow
+    end for
+end divide_exactly_by_3
+
+--  `value` / 2 in place, `value` even in two's complement: an arithmetic
+--  shift by one bit.
+halve: (value: []mut u32) -> none =
+    count: usize = lenof value
+    top: u32 = value[count - 1] & 0x80000000
+    out := shift_right(value, value, 1)
+    _ = out
+    value[count - 1] = value[count - 1] | top
+end halve
+
+--  `into` = `into` - `value`, `value` no longer, modulo B^lenof into.
+wrapping_subtract: (into: []mut u32, value: []u32) -> none =
+    count: usize = significant(value)
+    borrow := subtract(into, into, value[0..<count])
+    _ = borrow
+end wrapping_subtract
+
+--  `into` = `into` + `value`, `value` no longer, modulo B^lenof into.
+wrapping_add: (into: []mut u32, value: []u32) -> none =
+    count: usize = significant(value)
+    carry := add(into, into, value[0..<count])
+    _ = carry
+end wrapping_add
+
+--  `into[0..<k+1]` = a0 + a2 + a1 when `sign` is 1, |a0 + a2 - a1| when
+--  it is -1, with whether the second was negative; the parts are those of
+--  `value` cut at k and 2k.
+at_one: (into: []mut u32, value: []u32, third: usize, minus: bool)
+        -> (negative: bool) =
+    count: usize = lenof value
+    negative = false
+    clear(into)
+    copy(into, value[0..<third])
+    carry := add(into[0..<third], into[0..<third], value[2 * third..<count])
+    into[third] = carry
+    if minus then
+        --  |(a0 + a2) - a1|, through the end of `into` for the difference.
+        negative = compare(into, value[third..<2 * third]) == cmp.less
+        if negative then
+            --  a1 - (a0 + a2): a1 is the larger, so the sum is below B^k.
+            borrow := subtract(into[0..<third], value[third..<2 * third],
+                               into[0..<third])
+            _ = borrow
+            into[third] = 0
+        else
+            borrow := subtract(into, into, value[third..<2 * third])
+            _ = borrow
+        end if
+    else
+        more := add(into, into, value[third..<2 * third])
+        _ = more
+    end if
+end at_one
+
+--  `into[0..<k+1]` = a0 + 2 a1 + 4 a2 of `value` cut at k and 2k.
+at_two: (into: []mut u32, value: []u32, third: usize) -> none =
+    count: usize = lenof value
+    clear(into)
+    copy(into, value[2 * third..<count])
+    out := shift_left(into, into, 1)
+    _ = out
+    carry := add(into, into, value[third..<2 * third])
+    _ = carry
+    doubled := shift_left(into, into, 1)
+    _ = doubled
+    more := add(into, into, value[0..<third])
+    _ = more
+end at_two
+
+--  Toom's method in three parts: with k = ceil(n/3), left = l2 B^2k +
+--  l1 B^k + l0, and the product's five coefficients are found from its
+--  values at 0, 1, -1, 2 and infinity.  The interpolation's intermediate
+--  values may be negative, so it runs in two's complement over 2k + 2
+--  limbs, which hold each with room for its sign; the coefficients it
+--  ends with are those of a product of natural numbers, and natural.
+toom: (into: []mut u32, left: []u32, right: []u32, scratch: []mut u32)
+      -> none =
+    count: usize = lenof left
+    third: usize = (count + 2) / 3
+    width: usize = 2 * third + 2
+    ends: usize = 2 * (third + 1)
+    left_value: []mut u32 = scratch[0..<third + 1]
+    right_value: []mut u32 = scratch[third + 1..<ends]
+    at_1: []mut u32 = scratch[ends..<ends + width]
+    at_minus_1: []mut u32 = scratch[ends + width..<ends + 2 * width]
+    at_2: []mut u32 = scratch[ends + 2 * width..<ends + 3 * width]
+    deeper: []mut u32 = scratch[ends + 3 * width..<lenof scratch]
+    --  The values at 0 and infinity go straight to their places.
+    balanced(into[0..<2 * third], left[0..<third], right[0..<third], scratch)
+    balanced(into[4 * third..<2 * count], left[2 * third..<count],
+             right[2 * third..<count], scratch)
+    --  At 1.
+    left_minus := at_one(left_value, left, third, false)
+    right_minus := at_one(right_value, right, third, false)
+    _ = left_minus
+    _ = right_minus
+    balanced(at_1, left_value, right_value, deeper)
+    --  At -1, its sign the product of the two signs.
+    left_negative := at_one(left_value, left, third, true)
+    right_negative := at_one(right_value, right, third, true)
+    balanced(at_minus_1, left_value, right_value, deeper)
+    if left_negative <> right_negative then
+        negate(at_minus_1)
+    end if
+    --  At 2.
+    at_two(left_value, left, third)
+    at_two(right_value, right, third)
+    balanced(at_2, left_value, right_value, deeper)
+    --  The interpolation, with c1..c3 the coefficients between the outer
+    --  two: r(2) = (r(2) - r(-1)) / 3, r(-1) = (r(1) - r(-1)) / 2,
+    --  r(1) = r(1) - r(0), r(2) = (r(2) - r(1)) / 2, which leave
+    --  r(1) - r(-1) - r(inf) = c2, r(2) - 2 r(inf) = c3 and
+    --  r(-1) - c3 = c1.
+    zero_value: []u32 = into[0..<2 * third]
+    infinity_value: []u32 = into[4 * third..<2 * count]
+    wrapping_subtract(at_2, at_minus_1)
+    divide_exactly_by_3(at_2)
+    negate(at_minus_1)
+    wrapping_add(at_minus_1, at_1)
+    halve(at_minus_1)
+    wrapping_subtract(at_1, zero_value)
+    wrapping_subtract(at_2, at_1)
+    halve(at_2)
+    wrapping_subtract(at_1, at_minus_1)
+    wrapping_subtract(at_1, infinity_value)
+    wrapping_subtract(at_2, infinity_value)
+    wrapping_subtract(at_2, infinity_value)
+    wrapping_subtract(at_minus_1, at_2)
+    --  The coefficients into their places between the two outer ones.
+    clear(into[2 * third..<4 * third])
+    add_at(into[0..<2 * count], third, at_minus_1)
+    add_at(into[0..<2 * count], 2 * third, at_1)
+    add_at(into[0..<2 * count], 3 * third, at_2)
+end toom
+
+--- The length of scratch `multiply` needs for operands of `left` and
+--- `right` limbs.
+public multiply_scratch: (left: usize, right: usize) -> (slots: usize) =
+    long: usize = if left >= right then left else right end if
+    short: usize = if left >= right then right else left end if
+    slots = 0
+    if short < karatsuba_from then
+        return
+    elsif long == short then
+        slots = balanced_scratch(short)
+        return
+    end if
+    mut below: usize = balanced_scratch(short)
+    piece: usize = long % short
+    if piece > 0 then
+        other: usize = multiply_scratch(short, piece)
+        if other > below then below = other end if
+    end if
+    slots = 2 * short + below
+end multiply_scratch
+
+--- Write `left` times `right` into `into`'s first `lenof left + lenof
+--- right` limbs, taking room from `scratch`, at least
+--- `multiply_scratch(lenof left, lenof right)` limbs long.  `into`
+--- overlaps neither operand nor the scratch.
+public multiply: (into: []mut u32, left: []u32, right: []u32,
+                  scratch: []mut u32) -> none =
+    total: usize = lenof left + lenof right
+    panic.require(lenof into >= total)
+    panic.require(lenof scratch >= multiply_scratch(lenof left, lenof right))
+    if lenof left == 0 or lenof right == 0 then
+        clear(into[0..<total])
+        return
+    end if
+    mut long: []u32 = left
+    mut short: []u32 = right
+    if lenof right > lenof left then
+        long = right
+        short = left
+    end if
+    size: usize = lenof short
+    if size < karatsuba_from then
+        schoolbook(into[0..<total], long, short)
+        return
+    end if
+    if lenof long == size then
+        balanced(into[0..<total], long, short, scratch)
+        return
+    end if
+    --  Pieces of `long` as long as `short`: the first straight into place,
+    --  each later one through the scratch, added over the last one's top.
+    balanced(into[0..<2 * size], long[0..<size], short, scratch)
+    product: []mut u32 = scratch[0..<2 * size]
+    deeper: []mut u32 = scratch[2 * size..<lenof scratch]
+    mut offset: usize = size
+    while offset + size <= lenof long do
+        balanced(product, long[offset..<offset + size], short, deeper)
+        carry := add(into[offset..<offset + size],
+                     into[offset..<offset + size], product[0..<size])
+        copy(into[offset + size..<offset + 2 * size], product[size..<2 * size])
+        more := add_limb(into[offset + size..<offset + 2 * size],
+                         into[offset + size..<offset + 2 * size], carry)
+        panic.require(more == 0)
+        offset = offset + size
+    end while
+    piece: usize = lenof long - offset
+    return when piece == 0
+    part: []mut u32 = scratch[0..<size + piece]
+    multiply(part, short, long[offset..<lenof long], deeper)
+    carry := add(into[offset..<offset + size], into[offset..<offset + size],
+                 part[0..<size])
+    copy(into[offset + size..<total], part[size..<size + piece])
+    more := add_limb(into[offset + size..<total], into[offset + size..<total],
+                     carry)
+    panic.require(more == 0)
+end multiply
