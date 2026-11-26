@@ -106,7 +106,9 @@ A `wall` figure is compared in pairs because the hosted runners are not one
 machine: GitHub gives a job one of several processor models and moves its
 image weekly, so a committed figure would rarely meet a run on its own
 processor. The ratio of candidate to base in one job, on one processor,
-is what the tolerance judges. The committed `wall` figures record the
+is what the tolerance judges. A workload the candidate adds has no
+fixture in the base's tree and so no pair: the commit that adds it names
+it new and times it from the next. The committed `wall` figures record the
 processor model and image beside the median, a trend and not a threshold.
 
 The `cycles` counters, each enabled by the probe before the run:

@@ -3616,7 +3616,9 @@ arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
 for the game's C program over GMP; 56% of it is Algorithm D's
 normalizing passes for a quotient of a limb or two, so `SR-1928` is
 restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
-counted twenty-three examples where the gate runs thirty.
+counted twenty-three examples where the gate runs thirty, and `measure.py
+time` refused a hosted workload the base's tree has no fixture for, so the
+commit adding one failed every dispatch's timing; it is now named new.
 
 ### R22.24 — Tools that say what they need
 
