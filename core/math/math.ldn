@@ -540,7 +540,7 @@ end gamma
 
 --- The natural logarithm of the gamma function's magnitude at `x`:
 --- +infinity at zero and at a negative integer.  Within 3.6 ulp at f64
---- and 3.9 at f32 for `x` above -2, and 2.5 above zero, as msun's own
+--- and 4.2 at f32 for `x` above -2, and 2.6 above zero, as msun's own
 --- routines are.  Below -2, near each point where the function is zero,
 --- its relative error grows to some 10^5 ulp: msun's reflection formula
 --- subtracts two nearly equal logarithms there.  C's `lgamma`, without

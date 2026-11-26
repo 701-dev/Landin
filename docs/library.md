@@ -1900,7 +1900,7 @@ real number.
 Each routine's error is stated in its doc comment in units in the last
 place of the exact result: zero for the exact routines, the square root
 and `fma`, which are correctly rounded; below one for most of the others;
-and up to 3.9 for the hyperbolic functions, `erfc`, `log_gamma`, `atan2`
+and up to 4.2 for the hyperbolic functions, `erfc`, `log_gamma`, `atan2`
 and `hypot` at `f32`, whose methods are msun's and carry its error.
 `log_gamma` loses its relative accuracy near the points below -2 where it
 is zero. The `math-*` fixtures check each bound on every target against

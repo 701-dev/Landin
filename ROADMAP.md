@@ -3080,7 +3080,7 @@ square root and `fma` are the float unit's instructions in assembly where
 there is one, and computed from the bits on Cortex-M0, RV32 and Xtensa
 (D2551). Every routine's error is stated in its doc comment (D2553): zero
 for the exact ones, the square root and `fma`; below an ulp for most; up
-to 3.9 for the hyperbolic functions, `erfc`, `log_gamma` above -2, `atan2`
+to 4.2 for the hyperbolic functions, `erfc`, `log_gamma` above -2, `atan2`
 and `hypot` at f32, as msun's own are, which `SR-1898` holds; and
 `log_gamma` loses its relative accuracy near its zeros below -2,
 `SR-1897`. `scripts/math_oracle.py` builds compiler/tests/math/oracle.c
