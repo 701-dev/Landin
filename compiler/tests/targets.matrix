@@ -2993,6 +2993,7 @@ runtime/volume-links-as-systems-follow | linux-x86-64, linux-arm64, darwin-arm64
 runtime/volume-memory | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/whole-array-elements | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/whole-arrays-copy-between-storage | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/widening-operand-outlives-product | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/windows-events-child-wait | windows-x86-64, windows-arm64
 runtime/windows-events-console-control | windows-x86-64, windows-arm64
 runtime/windows-events-control-in-worker | windows-x86-64, windows-arm64

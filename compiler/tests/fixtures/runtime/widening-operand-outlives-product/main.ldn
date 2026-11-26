@@ -1,0 +1,20 @@
+--  `k`, a word widened to i64, is read again after the product of
+--  `k + 1` and `k`: on Cortex-M at size and speed the widening is made
+--  where it is read, from its operand's home (D2120), so that home must
+--  outlive every read of `k`.  Once the product took the operand's home
+--  and `k * ((k + 1) * k)` read the product for `k`, 4 for 2 when `k` is 1.
+compute: (count: usize) -> (code: i32) =
+    code = 1
+    for j in 0..<count do
+        k := i64(j + 1)
+        v := k * ((k + 1) * k)
+        if v <> k * k * k + k * k then
+            return
+        end if
+    end for
+    code = 42
+end compute
+
+public main: () -> (code: i32) =
+    code = compute(16)
+end main

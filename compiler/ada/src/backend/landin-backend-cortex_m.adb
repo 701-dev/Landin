@@ -1194,17 +1194,22 @@ package body Landin.Backend.Cortex_M is
    end Find_Refusal;
 
    --  D1567: a slot or value Registers holds in a register has no home.
+   --  Deferring: the emission makes a deferred widening where it is read
+   --  (D2120), from its operand's home, so that home is kept as long as
+   --  the widening is read, as Allocate_Registers keeps its register.
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count;
-      Registers : access constant Register_Plan := null) return Frame;
+      Registers : access constant Register_Plan := null;
+      Deferring : Boolean := False) return Frame;
 
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count;
-      Registers : access constant Register_Plan := null) return Frame
+      Registers : access constant Register_Plan := null;
+      Deferring : Boolean := False) return Frame
    is
       package IR renames Landin.IR;
       package L renames Landin.Targets.Layouts;
@@ -1364,6 +1369,29 @@ package body Landin.Backend.Cortex_M is
                end loop;
             end;
          end loop;
+         --  D2120: a widening made where it is read reads its operand's
+         --  home there, so the operand's home outlives the widening.
+         if Deferring then
+            for Position in 1 .. IR.Length
+              (Of_Unit, Item, IR.Block_Id (Block))
+            loop
+               declare
+                  Value : constant IR.Value_Id := IR.Nth_Value
+                    (Of_Unit, Item, IR.Block_Id (Block), Position);
+               begin
+                  if Deferred_Widening (Of_Unit, Item, Facts, Value) then
+                     declare
+                        Source : constant Positive := Positive
+                          (IR.Nth_Operand (Of_Unit, Item, Value, 1));
+                     begin
+                        Last.Data (Source) := Natural'Max
+                          (Last.Data (Source),
+                           Last.Data (Positive (Value)));
+                     end;
+                  end if;
+               end;
+            end loop;
+         end if;
          for Position in 1 .. IR.Length
            (Of_Unit, Item, IR.Block_Id (Block))
          loop
@@ -10428,7 +10456,8 @@ package body Landin.Backend.Cortex_M is
                   end if;
                   Emit_Routine
                     (Item, Allocated_Frame
-                       (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
+                       (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
+                        Deferring => Recording /= null));
                   if Recording /= null then
                      --  D2108: a second emission may write a register
                      --  the first left alone, where the plan holds a
@@ -10455,7 +10484,7 @@ package body Landin.Backend.Cortex_M is
                               Emit_Routine
                                 (Item, Allocated_Frame
                                    (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
-                                    Placed'Access),
+                                    Placed'Access, Deferring => True),
                                  Registers => Placed'Access);
                               Kept := Holds (Placed, Recording.all);
                               exit when Kept;

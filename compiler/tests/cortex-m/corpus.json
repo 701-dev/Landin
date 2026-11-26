@@ -6134,6 +6134,9 @@
     "runtime/whole-arrays-copy-between-storage": {
       "mode": "execute"
     },
+    "runtime/widening-operand-outlives-product": {
+      "mode": "execute"
+    },
     "runtime/windows-events-child-wait": {
       "codes": [
         "L0015"
