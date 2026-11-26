@@ -28675,7 +28675,9 @@ fifteen.
 **Chosen:** at size and speed, an element address of an array or a slice
 whose every use is, later in its block, an indirect load or store through
 it or a load of a temporary stored once with it, and whose temporaries no
-other instruction names, is not formed on x86-64 or arm64. Each of those
+other instruction names and no binding the debugger shows is described
+through, as `for element in values` describes its element, is not formed
+on x86-64 or arm64. Each of those
 accesses reads through the memory operand the address would have been
 formed from, `(%base,%index,scale)` or `[xB, xI, lsl #s]`, and the
 temporaries' stores and loads move nothing, when no instruction before the
@@ -28695,7 +28697,8 @@ index's intervals over the accesses, which selection's check of the
 registers already in place makes unnecessary.
 
 **Pinned by** x86-64's and arm64's `an address reaches every access` at
-none, size and speed.
+none, size and speed, and the debugger sessions' `loop-element-locals`,
+which read a loop's element through its temporary at size.
 
 ### D2247 — A constant left operand of a commutative integer operation goes right
 

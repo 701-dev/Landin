@@ -419,8 +419,9 @@ package Landin.Backend is
    --  The indirect accesses an element address with more than one use
    --  reaches later in its block: through the address itself, or through
    --  address slots carrying it, compiler temporaries each stored once
-   --  with it and named otherwise only by loads whose every use is such
-   --  an access, as an element swapped in place is reached.  Values holds
+   --  with it, named otherwise only by loads whose every use is such an
+   --  access and through which no source alias is described, as an
+   --  element swapped in place is reached.  Values holds
    --  the carrying stores and loads and the accesses, in order, and Last
    --  the position of the last access; Count is 0 when some other use
    --  needs the address formed.  No access stores the address itself.

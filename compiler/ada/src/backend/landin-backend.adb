@@ -1651,6 +1651,29 @@ package body Landin.Backend is
          return 0;
       end Carrying_Slot;
 
+      --  Whether a source alias, a binding the debugger shows, is
+      --  described through Slot: `for element in values` binds each
+      --  element through the temporary carrying its address, which
+      --  must then hold it.
+      function Describes (Slot : Landin.IR.Slot_Id) return Boolean;
+      function Describes (Slot : Landin.IR.Slot_Id) return Boolean is
+         use type Landin.IR.Storage_Kind;
+      begin
+         for Index in 1 .. Landin.IR.Source_Alias_Count (Of_Unit, Item) loop
+            declare
+               Place : constant Landin.IR.Storage :=
+                 Landin.IR.Nth_Source_Alias (Of_Unit, Item, Index).Place;
+            begin
+               if Place.Kind = Landin.IR.Runtime_Address
+                 and then Place.Address = Slot
+               then
+                  return True;
+               end if;
+            end;
+         end loop;
+         return False;
+      end Describes;
+
       function Carrying_Load (Read : Landin.IR.Value_Id) return Natural;
       function Carrying_Load (Read : Landin.IR.Value_Id) return Natural is
       begin
@@ -1711,6 +1734,7 @@ package body Landin.Backend is
                if not Landin.IR.Is_Address (Of_Unit, Item, Slot)
                  or else Landin.IR.Declares (Of_Unit, Item, Slot)
                    /= Landin.IR.No_Declaration
+                 or else Describes (Slot)
                  or else References (Positive (Slot)) < 2
                  or else Slot_Count = Most
                  or else Carrying_Slot (Slot) > 0
