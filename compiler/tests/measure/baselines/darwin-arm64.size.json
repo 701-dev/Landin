@@ -73,6 +73,21 @@
     "__DATA,__bss": 136
    }
   },
+  "armv8-a/none-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355500,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8-a/none-all/reverse-complement": {
    "sections": {
     "__TEXT,__text": 125728,
@@ -168,6 +183,21 @@
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 640,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
+  "armv8-a/none-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355500,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 136
@@ -273,6 +303,21 @@
     "__DATA,__bss": 136
    }
   },
+  "armv8-a/none-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355660,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8-a/none-off/reverse-complement": {
    "sections": {
     "__TEXT,__text": 125872,
@@ -365,6 +410,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12313,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8-a/size-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95220,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,
@@ -473,6 +533,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8-a/size-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95220,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
     "__TEXT,__text": 44524,
@@ -565,6 +640,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12313,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8-a/size-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95288,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,
@@ -673,6 +763,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8-a/speed-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103180,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
     "__TEXT,__text": 43024,
@@ -765,6 +870,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12075,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8-a/speed-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103180,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,
@@ -873,6 +993,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8-a/speed-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103624,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
     "__TEXT,__text": 43348,
@@ -968,6 +1103,21 @@
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 640,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
+  "armv8.1-a/none-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355468,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 136
@@ -1073,6 +1223,21 @@
     "__DATA,__bss": 136
    }
   },
+  "armv8.1-a/none-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355468,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8.1-a/none-auto/reverse-complement": {
    "sections": {
     "__TEXT,__text": 125696,
@@ -1173,6 +1338,21 @@
     "__DATA,__bss": 136
    }
   },
+  "armv8.1-a/none-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 355628,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 41562,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 656,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8.1-a/none-off/reverse-complement": {
    "sections": {
     "__TEXT,__text": 125840,
@@ -1265,6 +1445,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12313,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8.1-a/size-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95188,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,
@@ -1373,6 +1568,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8.1-a/size-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95188,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
     "__TEXT,__text": 44492,
@@ -1465,6 +1675,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12313,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8.1-a/size-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 95256,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31785,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,
@@ -1573,6 +1798,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8.1-a/speed-all/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103148,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
     "__TEXT,__text": 42992,
@@ -1673,6 +1913,21 @@
     "__DATA,__bss": 116
    }
   },
+  "armv8.1-a/speed-auto/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103148,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
     "__TEXT,__text": 42992,
@@ -1765,6 +2020,21 @@
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 172,
     "__TEXT,__cstring": 12075,
+    "__DATA_CONST,__got": 80,
+    "__DATA_CONST,__const": 360,
+    "__DATA,__data": 480,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
+  "armv8.1-a/speed-off/pidigits": {
+   "sections": {
+    "__TEXT,__text": 103592,
+    "__TEXT,__stubs": 120,
+    "__TEXT,__const": 166,
+    "__TEXT,__cstring": 31516,
+    "__TEXT,__landin_id": 64,
     "__DATA_CONST,__got": 80,
     "__DATA_CONST,__const": 360,
     "__DATA,__data": 480,

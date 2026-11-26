@@ -57,6 +57,18 @@
     ".reloc": 32
    }
   },
+  "armv8-a/none-all/pidigits": {
+   "sections": {
+    ".text": 387116,
+    ".rdata": 48648,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8-a/none-all/reverse-complement": {
    "sections": {
     ".text": 159448,
@@ -130,6 +142,18 @@
     ".buildid": 81,
     ".data": 380,
     ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-auto/pidigits": {
+   "sections": {
+    ".text": 387116,
+    ".rdata": 48648,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -211,6 +235,18 @@
     ".reloc": 52
    }
   },
+  "armv8-a/none-off/pidigits": {
+   "sections": {
+    ".text": 387276,
+    ".rdata": 48648,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
   "armv8-a/none-off/reverse-complement": {
    "sections": {
     ".text": 159592,
@@ -284,6 +320,18 @@
     ".buildid": 81,
     ".data": 380,
     ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-all/pidigits": {
+   "sections": {
+    ".text": 97268,
+    ".rdata": 38224,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -365,6 +413,18 @@
     ".reloc": 32
    }
   },
+  "armv8-a/size-auto/pidigits": {
+   "sections": {
+    ".text": 97268,
+    ".rdata": 38224,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
     ".text": 46716,
@@ -438,6 +498,18 @@
     ".buildid": 81,
     ".data": 380,
     ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/size-off/pidigits": {
+   "sections": {
+    ".text": 97336,
+    ".rdata": 38224,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 52
    }
@@ -519,6 +591,18 @@
     ".reloc": 32
    }
   },
+  "armv8-a/speed-all/pidigits": {
+   "sections": {
+    ".text": 119996,
+    ".rdata": 37840,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
     ".text": 53452,
@@ -592,6 +676,18 @@
     ".buildid": 81,
     ".data": 380,
     ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-auto/pidigits": {
+   "sections": {
+    ".text": 119996,
+    ".rdata": 37840,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -673,6 +769,18 @@
     ".reloc": 52
    }
   },
+  "armv8-a/speed-off/pidigits": {
+   "sections": {
+    ".text": 119884,
+    ".rdata": 37840,
+    ".buildid": 81,
+    ".data": 396,
+    ".pdata": 1432,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
     ".text": 53196,
@@ -746,6 +854,18 @@
     ".buildid": 81,
     ".data": 412,
     ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-all/pidigits": {
+   "sections": {
+    ".text": 391072,
+    ".rdata": 49188,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -827,6 +947,18 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/none-auto/pidigits": {
+   "sections": {
+    ".text": 391072,
+    ".rdata": 49188,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8.1-a/none-auto/reverse-complement": {
    "sections": {
     ".text": 163404,
@@ -900,6 +1032,18 @@
     ".buildid": 81,
     ".data": 412,
     ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-off/pidigits": {
+   "sections": {
+    ".text": 391232,
+    ".rdata": 49188,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 52
    }
@@ -981,6 +1125,18 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/size-all/pidigits": {
+   "sections": {
+    ".text": 98720,
+    ".rdata": 38772,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
     ".text": 48168,
@@ -1054,6 +1210,18 @@
     ".buildid": 81,
     ".data": 412,
     ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-auto/pidigits": {
+   "sections": {
+    ".text": 98720,
+    ".rdata": 38772,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -1135,6 +1303,18 @@
     ".reloc": 52
    }
   },
+  "armv8.1-a/size-off/pidigits": {
+   "sections": {
+    ".text": 98788,
+    ".rdata": 38772,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
     ".text": 48240,
@@ -1208,6 +1388,18 @@
     ".buildid": 81,
     ".data": 412,
     ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-all/pidigits": {
+   "sections": {
+    ".text": 121528,
+    ".rdata": 38388,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 32
    }
@@ -1289,6 +1481,18 @@
     ".reloc": 32
    }
   },
+  "armv8.1-a/speed-auto/pidigits": {
+   "sections": {
+    ".text": 121528,
+    ".rdata": 38388,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
     ".text": 54984,
@@ -1362,6 +1566,18 @@
     ".buildid": 81,
     ".data": 412,
     ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-off/pidigits": {
+   "sections": {
+    ".text": 121416,
+    ".rdata": 38388,
+    ".buildid": 81,
+    ".data": 428,
+    ".pdata": 1480,
+    ".landin": 64,
     ".tls": 8,
     ".reloc": 52
    }
