@@ -39,6 +39,27 @@ class AddFixtureTest(unittest.TestCase):
         finally:
             add_fixture.subprocess.run = saved
 
+    def test_a_changed_submodule_beside_its_module_is_not_named_again(self):
+        import subprocess
+        import tempfile
+        saved = add_fixture.subprocess.run
+        def run(arguments, **_):
+            changed = ("core/big/big.ldn\ncore/big/limbs/limbs.ldn\n"
+                       if arguments[1] == "diff" else "")
+            return subprocess.CompletedProcess(arguments, 0, changed, "")
+        add_fixture.subprocess.run = run
+        try:
+            with tempfile.TemporaryDirectory() as scratch:
+                (Path(scratch) / "main.ldn").write_text(
+                    "import core/big\nimport core/big/limbs\n")
+                self.assertEqual(add_fixture.changed_library(scratch),
+                                 ["core/big"])
+                (Path(scratch) / "main.ldn").write_text("import core/big/limbs\n")
+                self.assertEqual(add_fixture.changed_library(scratch),
+                                 ["core/big/limbs"])
+        finally:
+            add_fixture.subprocess.run = saved
+
     def test_a_runtime_fixture_starts_executing(self):
         self.assertEqual(add_fixture.corpus_row(
             meta("runtime/new"), None, None), {"mode": "execute"})

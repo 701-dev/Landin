@@ -1194,17 +1194,22 @@ package body Landin.Backend.Cortex_M is
    end Find_Refusal;
 
    --  D1567: a slot or value Registers holds in a register has no home.
+   --  Deferring says that the emission the frame is for makes each
+   --  D2120 widening where it is read, so that the widening's operand is
+   --  read there too and keeps its home until then.
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count;
-      Registers : access constant Register_Plan := null) return Frame;
+      Registers : access constant Register_Plan := null;
+      Deferring : Boolean := False) return Frame;
 
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
       Maximum : Landin.Targets.Byte_Count;
-      Registers : access constant Register_Plan := null) return Frame
+      Registers : access constant Register_Plan := null;
+      Deferring : Boolean := False) return Frame
    is
       package IR renames Landin.IR;
       package L renames Landin.Targets.Layouts;
@@ -1364,6 +1369,31 @@ package body Landin.Backend.Cortex_M is
                end loop;
             end;
          end loop;
+         if Deferring then
+            --  D2120: a widening made where it is read reads its operand
+            --  there, so the operand's home stays its own until the
+            --  widening's last reader, as its register does in the plan.
+            --  Freed at the widening, it went to the next value, which a
+            --  second widened operand of the same reader overwrote.
+            for Position in 1 .. IR.Length
+              (Of_Unit, Item, IR.Block_Id (Block))
+            loop
+               declare
+                  Value : constant IR.Value_Id := IR.Nth_Value
+                    (Of_Unit, Item, IR.Block_Id (Block), Position);
+               begin
+                  if Deferred_Widening (Of_Unit, Item, Facts, Value) then
+                     declare
+                        Source : constant Positive :=
+                          Positive (IR.Nth_Operand (Of_Unit, Item, Value, 1));
+                     begin
+                        Last.Data (Source) := Natural'Max
+                          (Last.Data (Source), Last.Data (Positive (Value)));
+                     end;
+                  end if;
+               end;
+            end loop;
+         end if;
          for Position in 1 .. IR.Length
            (Of_Unit, Item, IR.Block_Id (Block))
          loop
@@ -1520,7 +1550,6 @@ package body Landin.Backend.Cortex_M is
       Facts : Landin.Targets.Target_Facts;
       Options : Landin.Optimization.Options) return Boolean
    is
-      pragma Unreferenced (Options);
       Limit : constant Landin.Targets.Byte_Count := 16#FFFF_FFC0#;
       Bound : Landin.Targets.Byte_Count;
 
@@ -1573,8 +1602,11 @@ package body Landin.Backend.Cortex_M is
          return True;
       end if;
       declare
+         use type Landin.Optimization.Objective;
          Reserved : constant Landin.Targets.Byte_Count :=
-           Extent (Allocated_Frame (Of_Unit, Item, Facts, Limit));
+           Extent (Allocated_Frame
+             (Of_Unit, Item, Facts, Limit,
+              Deferring => Options.Optimize /= Landin.Optimization.None));
       begin
          return Reserved <= Limit and then Calls_Fit (Reserved);
       end;
@@ -10428,7 +10460,8 @@ package body Landin.Backend.Cortex_M is
                   end if;
                   Emit_Routine
                     (Item, Allocated_Frame
-                       (Of_Unit, Item, Facts, 16#FFFF_FFC0#));
+                       (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
+                        Deferring => Recording /= null));
                   if Recording /= null then
                      --  D2108: a second emission may write a register
                      --  the first left alone, where the plan holds a
@@ -10455,7 +10488,7 @@ package body Landin.Backend.Cortex_M is
                               Emit_Routine
                                 (Item, Allocated_Frame
                                    (Of_Unit, Item, Facts, 16#FFFF_FFC0#,
-                                    Placed'Access),
+                                    Placed'Access, Deferring => True),
                                  Registers => Placed'Access);
                               Kept := Holds (Placed, Recording.all);
                               exit when Kept;

@@ -272,7 +272,8 @@ LIBRARY_FORMATTED = "--case='formatting/core and the examples are formatted'"
 def changed_library(directory, base="origin/main"):
     """The library modules DIRECTORY's sources import that this checkout
     changed since BASE, committed or not, sorted: each `core/NAME`,
-    `hosted/NAME` or `platform/NAME` directory.  The library's own sources
+    `hosted/NAME` or `platform/NAME` directory, a submodule left out when
+    its module is named.  The library's own sources
     are held to `refine fmt` by a case of their own, which the fixture's
     formatting case does not reach."""
     imported = set()
@@ -292,10 +293,14 @@ def changed_library(directory, base="origin/main"):
                              cwd=ROOT, capture_output=True, text=True)
         if ran.returncode == 0:
             changed.update(ran.stdout.split())
-    return sorted(module for module in imported
-                  if any(path.startswith(module + "/") or
-                         path.startswith(module + ".")
-                         for path in changed))
+    modules = [module for module in imported
+               if any(path.startswith(module + "/") or
+                      path.startswith(module + ".")
+                      for path in changed)]
+    #  `refine fmt core/big` formats core/big/limbs too, and naming both
+    #  refuses the second with L0002, its sources already taken.
+    return sorted(module for module in modules
+                  if not any(module.startswith(other + "/") for other in modules))
 
 
 def remaining_steps(meta, expect_written, unformatted=None, library=()):
