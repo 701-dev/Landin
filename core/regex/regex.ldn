@@ -1,0 +1,539 @@
+--  Regular expressions over `utf8`, compiled when the program runs with
+--  the caller's allocator and matched in time linear in the text: Rust's
+--  `regex` crate's syntax and leftmost-first meaning, less the
+--  backreferences and look-around that would lose linear time.
+--
+--  A pattern compiles to a byte program, its classes to the UTF-8 bytes
+--  of their scalars.  A search is the Pike VM's, which runs every thread
+--  of the program in step and so never goes back over the text.
+--
+--  Nothing is allocated after `compile`: the compiled pattern holds the
+--  storage its searches use, which is why a search takes it `inout`.  A
+--  match is two `text.position`s into the text searched, as a `span`.
+
+import core/iter
+import core/mem
+import core/text
+import core/unicode
+import core/vec
+
+--- The pattern is not one this syntax reads: an unclosed group or
+--- bracket, a repetition of nothing, a range out of order, an unknown
+--- escape or flag, or a class that could match bytes that are not UTF-8,
+--- such as `(?-u:\W)`.
+public invalid_pattern: atom
+--- The pattern writes what the library leaves out because it would lose
+--- linear time, a backreference or a look-around such as `(?=x)`, or
+--- names a Unicode property core/unicode holds no table for, a script.
+public unsupported_pattern: atom
+--- The pattern compiles to more than its options' `size_limit`, or nests
+--- groups or brackets more than 64 deep, or counts a repetition past
+--- 100,000.
+public pattern_too_large: atom
+--- The pattern needs Unicode's tables, for `\w`, `\d`, `\s`, `\b`, `\p`
+--- or `(?i)`, and was compiled with `lean` options, which hold none.
+--- `(?-u)` asks for those classes' ASCII meanings.
+public unicode_unavailable: atom
+
+--- What `compile` can fail with.
+public compile_failure: type = invalid_pattern | unsupported_pattern
+    | pattern_too_large | unicode_unavailable | mem.out_of_memory
+
+--- How a pattern is compiled: `defaults` gives the usual options, and
+--- `lean` the same without Unicode's tables.
+public options: type = options_value
+
+options_value: type = struct
+    unicode: unicode_source
+    size_limit: usize
+    anchored: bool
+end options_value
+
+--- The options `compile` uses: Unicode's tables, for `\w`, `\d`, `\s`,
+--- `\b`, `\p` and `(?i)`, and a size limit of 250,000 instructions.
+public defaults: () -> (result: options) =
+    result = (unicode: unicode_tables(), size_limit: 250_000, anchored: false)
+end defaults
+
+--- The options without Unicode's tables, so that a program that uses
+--- them links none: what a small firmware image wants.  A pattern that
+--- needs them then fails with `unicode_unavailable`.
+public lean: () -> (result: options) =
+    result = (unicode: no_tables(), size_limit: 250_000, anchored: false)
+end lean
+
+--- The options with a different size limit, counted in instructions and
+--- edges of the compiled program, which bounds a compiled pattern's
+--- storage and so the time a search takes per byte.
+public with_size_limit: (settings: options, limit: usize)
+                        -> (result: options) =
+    result = settings
+    result.size_limit = limit
+end with_size_limit
+
+--- The options with every search anchored: a match must begin where the
+--- search does, at the haystack's start or a `find_at`'s position, and
+--- each match a walk finds where the one before it ended.
+public with_anchored: (settings: options) -> (result: options) =
+    result = settings
+    result.anchored = true
+end with_anchored
+
+--- A compiled pattern, which holds the storage its searches use.  Give
+--- it back with `release`.
+public regex: type = regex_value
+
+regex_value: type = struct
+    forward: program
+    groups: u32
+    names: vec.list(group_name)
+    name_bytes: vec.list(u8)
+    pike: pike_cache
+    source: unicode_source
+    anchored: bool
+    captured: usize
+end regex_value
+
+--- A match: the text from `begins` to `ends`, positions of the text
+--- searched, so that `source[text.offset(found.begins)..<text.offset(
+--- found.ends)]` is its text.
+public span: type = struct
+    begins: text.position
+    ends: text.position
+end span
+
+--- Compile `pattern` with the default options.
+public compile: (provider: type is mem.allocator, memory: provider,
+                 pattern: utf8) -> (result: regex) ! compile_failure =
+    result = try compile_with(memory, pattern, defaults())
+end compile
+
+--- Compile `pattern` with `settings`, taking its storage from `memory`,
+--- which `release` gives it back to.
+public compile_with: (provider: type is mem.allocator, memory: provider,
+                      pattern: utf8, settings: options)
+                     -> (result: regex) ! compile_failure =
+    mut tree: hir = new_hir()
+    defer release_hir(tree, memory)
+    try parse(tree, memory, pattern, settings.unicode)
+    result = (forward: new_program(), groups: tree.groups,
+              names: vec.new(item: group_name),
+              name_bytes: vec.new(item: u8), pike: new_pike_cache(),
+              source: settings.unicode, anchored: settings.anchored,
+              captured: 0)
+    undo release(result, memory)
+    try compile_program(result.forward, memory, tree, false,
+                        settings.size_limit)
+    pattern_bytes: []u8 = text.bytes(pattern)
+    for name in vec.used(tree.names) do
+        begins: usize = vec.length(result.name_bytes)
+        for byte in pattern_bytes[usize(name.begins)..<usize(name.ends)] do
+            try vec.push(result.name_bytes, memory, byte)
+        end for
+        kept: group_name = (group: name.group, begins: u32(begins),
+                            ends: u32(vec.length(result.name_bytes)))
+        try vec.push(result.names, memory, kept)
+    end for
+    slot_count: usize = usize(tree.groups) * 2
+    try size_pike_cache(result.pike, memory, vec.length(result.forward.insts),
+                        slot_count)
+end compile_with
+
+--- Give a compiled pattern's storage back to the allocator it was compiled
+--- with.  The pattern is empty afterwards and matches nothing.
+public release: (provider: type is mem.allocator, inout expression: regex,
+                 memory: provider) -> none =
+    release_program(expression.forward, memory)
+    vec.release(expression.names, memory)
+    vec.release(expression.name_bytes, memory)
+    release_pike_cache(expression.pike, memory)
+    expression.groups = 0
+    expression.captured = 0
+end release
+
+--- How many groups the pattern has, the whole match, group zero, among
+--- them: one more than its capturing groups.
+public group_count: (expression: regex) -> (count: usize) =
+    count = usize(expression.groups)
+end group_count
+
+--- The number of the group `name` names, `(?P<name>...)` or
+--- `(?<name>...)`, or `mem.not_found`.
+public group_named: (expression: regex, name: utf8)
+                    -> (group: usize) ! mem.not_found =
+    held: []u8 = vec.used(expression.name_bytes)
+    for entry in vec.used(expression.names) do
+        if same_bytes(held[usize(entry.begins)..<usize(entry.ends)],
+                      text.bytes(name)) then
+            group = usize(entry.group)
+            return
+        end if
+    end for
+    fail mem.not_found
+end group_named
+
+--- Whether the pattern matches anywhere in `haystack`.
+public is_match: (inout expression: regex, haystack: utf8) -> (yes: bool) =
+    yes = search(expression, text.bytes(haystack), 0, 0, true)
+end is_match
+
+--- The leftmost-first match in `haystack`, or `mem.not_found`.
+public find: (inout expression: regex, haystack: utf8)
+             -> (found: span) ! mem.not_found =
+    found = try find_at(expression, haystack, text.start(haystack))
+end find
+
+--- The leftmost-first match that begins at or after `start_at`, a
+--- scalar's start in `haystack`.  The text before `start_at` still counts
+--- for the looks: `\b` and `^` see it.
+public find_at: (inout expression: regex, haystack: utf8,
+                 start_at: text.position) -> (found: span) ! mem.not_found =
+    bytes: []u8 = text.bytes(haystack)
+    fail mem.not_found
+      when not search(expression, bytes, text.offset(start_at), 2, false)
+    found = found_span(expression, bytes)
+end find_at
+
+--- The leftmost-first match at or after `start_at`, as `find_at` finds
+--- it, with what each group matched, which `group` then gives until the
+--- next search.
+public captures_at: (inout expression: regex, haystack: utf8,
+                     start_at: text.position) -> (found: span) ! mem.not_found =
+    bytes: []u8 = text.bytes(haystack)
+    fail mem.not_found
+      when not search(expression, bytes, text.offset(start_at),
+                      expression.pike.slot_count, false)
+    found = found_span(expression, bytes)
+end captures_at
+
+--- The leftmost-first match in `haystack` with its groups, as
+--- `captures_at` from its start.
+public captures: (inout expression: regex, haystack: utf8)
+                 -> (found: span) ! mem.not_found =
+    found = try captures_at(expression, haystack, text.start(haystack))
+end captures
+
+--  Search `bytes` from `origin` for the leftmost-first match, keeping
+--  its first `wanted` slots, or with `earliest` only whether there is
+--  one.
+search: (inout expression: regex, bytes: []u8, origin: usize,
+         wanted: usize, earliest: bool) -> (matched: bool) =
+    expression.captured = 0
+    matched = false
+    return when origin > lenof bytes
+    matched = pike_search(expression.pike, expression.forward,
+                          expression.source, bytes, origin,
+                          expression.anchored, earliest, wanted)
+    if matched then
+        expression.captured = if wanted < expression.pike.slot_count then wanted
+                              else expression.pike.slot_count end if
+    end if
+end search
+
+--- Where a walk over a haystack's matches is: where the next search
+--- begins, and where the last match ended.  `walk_start` begins one.
+public cursor: type = cursor_value
+
+cursor_value: type = struct
+    next: usize
+    last_end: usize
+    done: bool
+end cursor_value
+
+--- A cursor before a haystack's first match.
+public walk_start: () -> (at: cursor) =
+    at = (next: 0, last_end: unset, done: false)
+end walk_start
+
+--- The match after `at`'s in `haystack`, moving `at` past it, or
+--- `mem.not_found` when there is none.  Matches do not overlap, and an
+--- empty match right where the one before it ended is passed over, so
+--- that `a*` over "aab" gives "aa" and the empty match at the end.  With
+--- `groups` the match's groups are kept for `group`.
+public next_match: (inout expression: regex, haystack: utf8,
+                    inout at: cursor, groups: bool)
+                   -> (found: span) ! mem.not_found =
+    bytes: []u8 = text.bytes(haystack)
+    fail mem.not_found when at.done
+    wanted: usize = if groups then expression.pike.slot_count else 2 end if
+    mut matched: bool = search(expression, bytes, at.next, wanted, false)
+    if matched then
+        slots: []usize = vec.used(expression.pike.found)
+        if slots[0] == slots[1] and slots[1] == at.last_end then
+            matched = at.next < lenof bytes
+                      and search(expression, bytes, at.next + 1, wanted, false)
+        end if
+    end if
+    if not matched then
+        at.done = true
+        fail mem.not_found
+    end if
+    found = found_span(expression, bytes)
+    at.next = text.offset(found.ends)
+    at.last_end = at.next
+end next_match
+
+--- Every match in `haystack`, in order, as `next_match` finds them, for
+--- `for` to walk: `for found in regex.matches(addr pattern, haystack)`.
+--- The walk searches as it goes, through the pointer, so the pattern is
+--- not used otherwise during it.
+public matches: (expression: ptr mut regex, haystack: utf8)
+                -> (result: match_walk from expression, haystack) =
+    result = (expression: expression, haystack: haystack)
+end matches
+
+--- What `matches` gives `for`.
+public match_walk: type = match_walk_value
+
+match_walk_value: type = struct
+    expression: ptr mut regex_value
+    haystack: utf8
+end match_walk_value
+
+walk_position: type = struct
+    at: cursor_value
+    found: span
+end walk_position
+
+walk_search: (walk: ptr match_walk_value, at: cursor_value)
+             -> (next: walk_position) =
+    mut moved: cursor_value = at
+    nowhere: span = (begins: text.nowhere, ends: text.nowhere)
+    found: span = next_match(walk.val.expression.val, walk.val.haystack,
+                             moved, false) else nowhere
+    next = (at: moved, found: found)
+end walk_search
+
+walk_first: (walk: ptr match_walk_value) -> (position: walk_position) =
+    position = walk_search(walk, walk_start())
+end walk_first
+
+walk_at_end: (walk: ptr match_walk_value, position: walk_position)
+             -> (yes: bool) =
+    _ = walk
+    yes = position.at.done
+end walk_at_end
+
+walk_item: (walk: ptr match_walk_value, position: walk_position)
+           -> (value: span) =
+    _ = walk
+    value = (begins: text.copied(position.found.begins),
+             ends: text.copied(position.found.ends))
+end walk_item
+
+walk_next: (walk: ptr match_walk_value, position: walk_position)
+           -> (next: walk_position) =
+    next = walk_search(walk, position.at)
+end walk_next
+
+match_walk_value is iter.iterable (cur: walk_position, item_type: span,
+                                   first: walk_first, at_end: walk_at_end,
+                                   item: walk_item, next: walk_next)
+
+--- Append `haystack` to `into` with every match replaced by `template`,
+--- matches found as `matches` finds them, and give how many there were.
+--- In the template `$1` or `${1}` is what group 1 matched, `$name` or
+--- `${name}` what the group of that name did, and `$$` a `$`; a group
+--- that took no part, or that the pattern does not have, is empty.  A
+--- `$` before anything else stands for itself.  On `mem.out_of_memory`
+--- `into` holds what it held before.
+public replace_all: (inout expression: regex, haystack: utf8,
+                     template: utf8, inout into: text.builder)
+                    -> (count: usize) ! mem.out_of_memory =
+    count = 0
+    bytes: []u8 = text.bytes(haystack)
+    pieces: []u8 = text.bytes(template)
+    groups: bool = mem.find(pieces, u8('$')) < lenof pieces
+    mut at: cursor = walk_start()
+    mut copied: usize = 0
+    started: usize = text.length(into)
+    undo text.truncate(into, started)
+    loop do
+        found: span = next_match(expression, haystack, at, groups) else begin
+            break
+        end
+        try text.append(into, bytes[copied..<text.offset(found.begins)])
+        try expand(expression, bytes, pieces, into)
+        copied = text.offset(found.ends)
+        inc count
+    end loop
+    try text.append(into, bytes[copied..<lenof bytes])
+end replace_all
+
+--  Append `template` to `into` with its `$` references filled from the
+--  last match's groups.
+expand: (expression: regex, bytes: []u8, template: []u8,
+         inout into: text.builder) -> none ! mem.out_of_memory =
+    mut at: usize = 0
+    while at < lenof template do
+        byte: u8 = template[at]
+        if byte <> u8('$') or at + 1 >= lenof template then
+            try text.append(into, template[at..<at + 1])
+            inc at
+            continue
+        end if
+        if template[at + 1] == u8('$') then
+            try text.append(into, "$")
+            at += 2
+            continue
+        end if
+        mut first: usize = at + 1
+        mut last: usize = first
+        mut closing: usize = 0
+        if template[first] == u8('{') then
+            inc first
+            last = first
+            while last < lenof template and template[last] <> u8('}') do
+                inc last
+            end while
+            if last >= lenof template then
+                try text.append(into, "$")
+                inc at
+                continue
+            end if
+            closing = 1
+        else
+            while last < lenof template and name_byte(template[last], false)
+              and template[last] < 0x80 do
+                inc last
+            end while
+        end if
+        if last == first then
+            try text.append(into, "$")
+            inc at
+            continue
+        end if
+        name: []u8 = template[first..<last]
+        mut index: usize = unset
+        mut number: usize = 0
+        mut numeric: bool = true
+        for digit in name do
+            if is_digit(digit) and number < 0x10000 then
+                number = number * 10 + usize(digit - u8('0'))
+            else
+                numeric = false
+            end if
+        end for
+        if numeric then
+            index = number
+        else
+            held: []u8 = vec.used(expression.name_bytes)
+            for entry in vec.used(expression.names) do
+                if same_bytes(held[usize(entry.begins)..<usize(entry.ends)],
+                              name) then
+                    index = usize(entry.group)
+                end if
+            end for
+        end if
+        if index <> unset then
+            nowhere: span = (begins: text.nowhere, ends: text.nowhere)
+            piece: span = (group(expression, index) else nowhere)
+            try text.append(into, bytes[text.offset(piece.begins)..<text.offset(
+                                        piece.ends)])
+        end if
+        at = last + closing
+    end while
+end expand
+
+--- What group `index` matched in the last `captures` or `captures_at`:
+--- `mem.not_found` when the group took no part in the match, or there was
+--- no match, or there is no such group.
+public group: (expression: regex, index: usize)
+              -> (found: span) ! mem.not_found =
+    slots: []usize = vec.used(expression.pike.found)
+    fail mem.not_found when 2 * index + 1 >= expression.captured
+    begins: usize = slots[2 * index]
+    ends: usize = slots[2 * index + 1]
+    fail mem.not_found when begins == unset or ends == unset
+    found = (begins: text.from_offset([], begins),
+             ends: text.from_offset([], ends))
+end group
+
+--  The match the last search found, as its first two slots hold it.
+found_span: (expression: regex, bytes: []u8) -> (found: span) =
+    slots: []usize = vec.used(expression.pike.found)
+    found = (begins: text.from_offset(bytes, slots[0]),
+             ends: text.from_offset(bytes, slots[1]))
+end found_span
+
+--  `core/unicode`'s tables, as a pattern reads them.
+unicode_tables: () -> (source: unicode_source) =
+    source = (present: true, category_of: unicode_category,
+              flags_of: unicode_flags, fold: unicode.simple_fold,
+              upper: unicode.simple_upper, lower: unicode.simple_lower,
+              title: unicode.simple_title)
+end unicode_tables
+
+no_tables: () -> (source: unicode_source) =
+    source = (present: false, category_of: no_category, flags_of: no_flags,
+              fold: same_scalar, upper: same_scalar, lower: same_scalar,
+              title: same_scalar)
+end no_tables
+
+no_category: (scalar: u32) -> (index: u8) =
+    _ = scalar
+    index = 29
+end no_category
+
+no_flags: (scalar: u32) -> (bits: u8) =
+    _ = scalar
+    bits = 0
+end no_flags
+
+same_scalar: (scalar: u32) -> (result: u32) =
+    result = scalar
+end same_scalar
+
+unicode_flags: (scalar: u32) -> (bits: u8) =
+    bits = 0
+    if unicode.is_alphabetic(scalar) then bits = bits | alphabetic_flag end if
+    if unicode.is_white_space(scalar) then bits = bits | white_space_flag
+    end if
+    if unicode.is_uppercase(scalar) then bits = bits | uppercase_flag end if
+    if unicode.is_lowercase(scalar) then bits = bits | lowercase_flag end if
+    if unicode.is_cased(scalar) then bits = bits | cased_flag end if
+    if unicode.is_case_ignorable(scalar) then
+        bits = bits | case_ignorable_flag
+    end if
+end unicode_flags
+
+--  The index of `scalar`'s general category in core/unicode's order.
+unicode_category: (scalar: u32) -> (index: u8) =
+    index = match unicode.category(scalar)
+        unicode.uppercase_letter: 0
+        unicode.lowercase_letter: 1
+        unicode.titlecase_letter: 2
+        unicode.modifier_letter: 3
+        unicode.other_letter: 4
+        unicode.nonspacing_mark: 5
+        unicode.spacing_mark: 6
+        unicode.enclosing_mark: 7
+        unicode.decimal_number: 8
+        unicode.letter_number: 9
+        unicode.other_number: 10
+        unicode.connector_punctuation: 11
+        unicode.dash_punctuation: 12
+        unicode.open_punctuation: 13
+        unicode.close_punctuation: 14
+        unicode.initial_punctuation: 15
+        unicode.final_punctuation: 16
+        unicode.other_punctuation: 17
+        unicode.math_symbol: 18
+        unicode.currency_symbol: 19
+        unicode.modifier_symbol: 20
+        unicode.other_symbol: 21
+        unicode.space_separator: 22
+        unicode.line_separator: 23
+        unicode.paragraph_separator: 24
+        unicode.control: 25
+        unicode.format: 26
+        unicode.surrogate: 27
+        unicode.private_use: 28
+        unicode.unassigned: 29
+    end match
+end unicode_category
+
+public debug_sizes: (expression: regex) -> (insts: usize, edges: usize) =
+    insts = vec.length(expression.forward.insts)
+    edges = vec.length(expression.forward.edges)
+end debug_sizes

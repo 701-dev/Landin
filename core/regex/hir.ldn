@@ -1,0 +1,111 @@
+--  The parsed form of a pattern: a tree of nodes in one list, its classes'
+--  scalar ranges in another, which the parser writes and the compiler
+--  reads.  Flags are already applied: a case-insensitive letter is a
+--  class, `.` is the class it means under the flags it was written under,
+--  and `^` is the look its flags make it.
+
+import core/mem
+import core/vec
+
+--  A node's kind.
+node_empty: u8 = 0
+node_literal: u8 = 1
+node_class: u8 = 2
+node_look: u8 = 3
+node_repeat: u8 = 4
+node_capture: u8 = 5
+node_concat: u8 = 6
+node_alternate: u8 = 7
+
+--  No node, no instruction, no unbounded count: the largest `u32`.
+nothing: u32 = 0xffff_ffff
+
+--  The empty-width assertions, as a node's `value` and an instruction's
+--  `arg` hold them.  The `_ascii` words are `(?-u)`'s, over [0-9A-Za-z_];
+--  the `_unicode` ones read Unicode's \w on each side.
+look_start_text: u8 = 1
+look_end_text: u8 = 2
+look_start_line: u8 = 3
+look_end_line: u8 = 4
+look_start_line_crlf: u8 = 5
+look_end_line_crlf: u8 = 6
+look_word_ascii: u8 = 7
+look_not_word_ascii: u8 = 8
+look_word_start_ascii: u8 = 9
+look_word_end_ascii: u8 = 10
+look_word_start_half_ascii: u8 = 11
+look_word_end_half_ascii: u8 = 12
+look_word_unicode: u8 = 13
+look_not_word_unicode: u8 = 14
+look_word_start_unicode: u8 = 15
+look_word_end_unicode: u8 = 16
+look_word_start_half_unicode: u8 = 17
+look_word_end_half_unicode: u8 = 18
+
+--  One node.  `child` is a repeat's or a capture's operand, the first
+--  child of a concatenation or an alternation, and a class's first range;
+--  `sibling` is the next child of the node above.  `count` is a class's
+--  number of ranges, `value` a literal's scalar, a look's kind or a
+--  capture's group number, and `low` and `high` a repeat's bounds, `high`
+--  `nothing` when it has none.
+hir_node: type = struct
+    kind: u8
+    greedy: bool
+    value: u32
+    child: u32
+    sibling: u32
+    count: u32
+    low: u32
+    high: u32
+end hir_node
+
+--  A range of scalars, `low` to `high` inclusive.
+scalar_range: type = struct
+    low: u32
+    high: u32
+end scalar_range
+
+--  A capture group's name, as the pattern's byte offsets of it.
+group_name: type = struct
+    group: u32
+    begins: u32
+    ends: u32
+end group_name
+
+--  The tree.  `root` is its top node; `groups` counts the capture groups,
+--  the whole match as group zero among them.
+hir: type = struct
+    nodes: vec.list(hir_node)
+    ranges: vec.list(scalar_range)
+    names: vec.list(group_name)
+    root: u32
+    groups: u32
+    --  Whether some look reads Unicode's \w, and whether some is CRLF's.
+    unicode_word: bool
+    crlf: bool
+end hir
+
+new_hir: () -> (result: hir) =
+    result = (nodes: vec.new(item: hir_node),
+              ranges: vec.new(item: scalar_range),
+              names: vec.new(item: group_name), root: 0, groups: 1,
+              unicode_word: false, crlf: false)
+end new_hir
+
+release_hir: (provider: type is mem.allocator, inout tree: hir,
+              memory: provider) -> none =
+    vec.release(tree.nodes, memory)
+    vec.release(tree.ranges, memory)
+    vec.release(tree.names, memory)
+end release_hir
+
+--  Append a node and give its index.
+add_node: (provider: type is mem.allocator, inout tree: hir,
+           memory: provider, kind: u8, value: u32, child: u32)
+          -> (index: u32) ! mem.out_of_memory | pattern_too_large =
+    fail pattern_too_large when vec.length(tree.nodes) >= 0x0fff_ffff
+    index = u32(vec.length(tree.nodes))
+    added: hir_node = (kind: kind, greedy: true, value: value, child: child,
+                       sibling: nothing, count: 0, low: 0, high: 0)
+    try vec.push(tree.nodes, memory, added)
+end add_node

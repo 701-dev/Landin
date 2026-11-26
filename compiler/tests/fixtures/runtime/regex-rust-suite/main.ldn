@@ -1,0 +1,85 @@
+--  Rust's `regex` test suite over core/regex: each case cases.ldn holds,
+--  which scripts/regex_tests.py writes from the crate's testdata, is
+--  compiled, and every match is walked with its groups and compared with
+--  the case's.  The name of each case that fails is written to standard
+--  output.
+
+import core/io
+import core/regex
+import core/text
+import hosted/blocking
+import hosted/heap
+
+--  Whether case `index` holds: it compiles, or fails to when it should,
+--  and its matches are the case's.
+case_holds: (index: usize) -> (yes: bool) =
+    yes = false
+    row: []u32 = case_table[index * 8..<index * 8 + 8]
+    pattern := text.from_bytes(case_texts[usize(row[0])..<usize(row[1])])
+      else begin
+        return
+    end
+    haystack := text.from_bytes(case_texts[usize(row[2])..<usize(row[3])])
+      else begin
+        return
+    end
+    flags: u32 = row[4]
+    memory := heap.new()
+    mut settings: regex.options = regex.defaults()
+    if flags & 1 <> 0 then settings = regex.with_anchored(settings) end if
+    mut expression := regex.compile_with(memory, pattern, settings)
+      else begin
+        yes = flags & 2 <> 0
+        return
+    end
+    defer regex.release(expression, memory)
+    return when flags & 2 <> 0
+    mut at := regex.walk_start()
+    groups: usize = usize(row[7])
+    for number in usize(0)..<usize(row[6]) do
+        found := regex.next_match(expression, haystack, at, true) else begin
+            return
+        end
+        _ = found
+        first: usize = (usize(row[5]) + number * groups) * 2
+        for group in usize(0)..<groups do
+            want_begin: u32 = case_spans[first + group * 2]
+            want_end: u32 = case_spans[first + group * 2 + 1]
+            got := regex.group(expression, group) else begin
+                return when want_begin <> 0xffffffff
+                continue
+            end
+            return when want_begin == 0xffffffff
+            return when text.offset(got.begins) <> usize(want_begin)
+              or text.offset(got.ends) <> usize(want_end)
+        end for
+    end for
+    if flags & 4 == 0 then
+        extra := regex.next_match(expression, haystack, at, false)
+          else (problem)
+            _ = problem
+            yes = true
+            return
+        end
+        _ = extra
+        return
+    end if
+    yes = true
+end case_holds
+
+public main: () -> (code: i32) =
+    code = 1
+    host := blocking.new()
+    mut failures: usize = 0
+    for index in usize(0)..<case_count do
+        if not case_holds(index) then
+            inc failures
+            begins: usize = if index == 0 then 0
+                            else usize(case_name_ends[index - 1]) end if
+            ends: usize = usize(case_name_ends[index])
+            io.write(host, io.out(host), case_names[begins..<ends]) else none
+            io.write(host, io.out(host), "\n") else none
+        end if
+    end for
+    if failures == 0 then code = 42 end if
+end main
