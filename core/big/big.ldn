@@ -351,6 +351,54 @@ divide_floor_with: (provider: type is mem.allocator, inout quotient: integer,
     end if
 end divide_floor_with
 
+--  Either division, `floor` choosing which, into results that may be its
+--  operands: worked out on the stack and copied back where the operands
+--  are short, and apart in fresh values where they are not.
+divide_either: (provider: type is mem.allocator, inout quotient: integer,
+                inout remainder: integer, memory: provider,
+                numerator: integer, divisor: integer, floor: bool)
+               -> none ! mem.out_of_memory =
+    if shares(quotient, numerator) or shares(quotient, divisor)
+      or shares(remainder, numerator) or shares(remainder, divisor) then
+        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
+            --  The quotient and the remainder each take at most a limb
+            --  more than either operand, and the scratch both lengths and
+            --  one more, so no step asks the allocator to move a block that
+            --  is the stack's.
+            mut held: [128]u32 = zeroed
+            mut whole_held := over_stack(held[0..<32])
+            mut part_held := over_stack(held[32..<64])
+            mut room_held := over_stack(held[64..<128])
+            if floor then
+                try divide_floor_with(whole_held, part_held, memory, numerator,
+                                      divisor, room_held)
+            else
+                try divide_with(whole_held, part_held, memory, numerator,
+                                divisor, room_held)
+            end if
+            try set(quotient, memory, whole_held)
+            try set(remainder, memory, part_held)
+            return
+        end if
+        mut whole := new()
+        mut part := new()
+        undo release(whole, memory)
+        undo release(part, memory)
+        try divide_either(whole, part, memory, numerator, divisor, floor)
+        replace(quotient, memory, whole)
+        replace(remainder, memory, part)
+        return
+    end if
+    mut room := new()
+    defer release(room, memory)
+    if floor then
+        try divide_floor_with(quotient, remainder, memory, numerator, divisor,
+                              room)
+    else
+        try divide_with(quotient, remainder, memory, numerator, divisor, room)
+    end if
+end divide_either
+
 --- Divide `numerator` by `divisor`, rounding the quotient toward zero, as
 --- `/` and `%` do: `quotient` takes the quotient and `remainder` the
 --- remainder, which has the numerator's sign and is smaller than the
@@ -360,35 +408,7 @@ public divide_truncating: (provider: type is mem.allocator,
                            inout quotient: integer, inout remainder: integer,
                            memory: provider, numerator: integer,
                            divisor: integer) -> none ! mem.out_of_memory =
-    if shares(quotient, numerator) or shares(quotient, divisor)
-      or shares(remainder, numerator) or shares(remainder, divisor) then
-        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
-            --  Worked out on the stack and copied back: the quotient and
-            --  the remainder each take at most a limb more than either
-            --  operand, and the scratch both lengths and one more, so no
-            --  step asks the allocator to move a block that is the stack's.
-            mut held: [128]u32 = zeroed
-            mut whole_held := over_stack(held[0..<32])
-            mut part_held := over_stack(held[32..<64])
-            mut room_held := over_stack(held[64..<128])
-            try divide_with(whole_held, part_held, memory, numerator, divisor,
-                            room_held)
-            try set(quotient, memory, whole_held)
-            try set(remainder, memory, part_held)
-            return
-        end if
-        mut whole := new()
-        mut part := new()
-        undo release(whole, memory)
-        undo release(part, memory)
-        try divide_truncating(whole, part, memory, numerator, divisor)
-        replace(quotient, memory, whole)
-        replace(remainder, memory, part)
-        return
-    end if
-    mut room := new()
-    defer release(room, memory)
-    try divide_with(quotient, remainder, memory, numerator, divisor, room)
+    try divide_either(quotient, remainder, memory, numerator, divisor, false)
 end divide_truncating
 
 --- Divide `numerator` by `divisor`, rounding the quotient down, toward
@@ -400,33 +420,5 @@ public divide_floor: (provider: type is mem.allocator, inout quotient: integer,
                       inout remainder: integer, memory: provider,
                       numerator: integer, divisor: integer)
                      -> none ! mem.out_of_memory =
-    if shares(quotient, numerator) or shares(quotient, divisor)
-      or shares(remainder, numerator) or shares(remainder, divisor) then
-        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
-            --  Worked out on the stack and copied back: the quotient and
-            --  the remainder each take at most a limb more than either
-            --  operand, and the scratch both lengths and one more, so no
-            --  step asks the allocator to move a block that is the stack's.
-            mut held: [128]u32 = zeroed
-            mut whole_held := over_stack(held[0..<32])
-            mut part_held := over_stack(held[32..<64])
-            mut room_held := over_stack(held[64..<128])
-            try divide_floor_with(whole_held, part_held, memory, numerator, divisor,
-                                  room_held)
-            try set(quotient, memory, whole_held)
-            try set(remainder, memory, part_held)
-            return
-        end if
-        mut whole := new()
-        mut part := new()
-        undo release(whole, memory)
-        undo release(part, memory)
-        try divide_floor(whole, part, memory, numerator, divisor)
-        replace(quotient, memory, whole)
-        replace(remainder, memory, part)
-        return
-    end if
-    mut room := new()
-    defer release(room, memory)
-    try divide_floor_with(quotient, remainder, memory, numerator, divisor, room)
+    try divide_either(quotient, remainder, memory, numerator, divisor, true)
 end divide_floor

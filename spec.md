@@ -28978,14 +28978,17 @@ eight-byte one, from an unsigned source or a signed word to a signed
 result, emits nothing either: its reader loads the source into the low
 register and makes the high one with `movs` zero or `asrs` 31. The
 source then lives, and is held (D1567), through the conversion's last
-reader.
+reader, and a source left in its home keeps that home as long.
 
 **The alternatives:** a held pair (D1503's form) for each, which on
 Thumb-1 moves a pair with two `mov` where a home moves it with two `ldr`
 of the same size, and holds two of the six registers a routine has.
 
-**Pinned by** the Cortex-M corpus at every level and
-`compiler/tests/measure/baselines/`.
+**Pinned by** the Cortex-M corpus at every level,
+`compiler/tests/measure/baselines/` and
+`runtime/widened-operands-keep-their-homes`, whose sum of two widened
+elements was the second twice at `armv7-m` and `armv8-m.main` before the
+frame kept the first one's home.
 
 ### D2121 — Cortex-M tests nothing a constant or an earlier test settled
 
@@ -45982,7 +45985,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing. The roadmap asks for multiplication from schoolbook through Karatsuba to Toom-3, and leaves out FFT multiplication and the Toom variants above three.
 
-**Chosen:** two operands of n limbs are multiplied by the schoolbook method below 48 limbs, by Karatsuba's three half-length products below 150, and by Toom's five third-length products above, evaluated at 0, 1, -1, 2 and infinity and interpolated by Bodrato's sequence in two's complement over 2k + 2 limbs, where an intermediate value may be negative. An operand much longer than the other is cut into pieces as long as the shorter. The thresholds are where each method began to win on x86-64, timed on a busy host, and every target keeps them. Division is Knuth's Algorithm D, whose work grows with the product of the quotient's and the divisor's lengths, and decimal text divides by 10^9 a pass at a time, whose work grows with the square of the length; at a million bits a multiplication took 65 ms and a division of two million bits by one million 2.1 s on that host. Divide-and-conquer division and text wait for a consumer that needs them.
+**Chosen:** two operands of n limbs are multiplied by the schoolbook method below 48 limbs, by Karatsuba's three half-length products below 150, and by Toom's five third-length products above, evaluated at 0, 1, -1, 2 and infinity and interpolated by Bodrato's sequence in two's complement over 2k + 2 limbs, where an intermediate value may be negative. An operand much longer than the other is cut into pieces as long as the shorter. The thresholds are where each method began to win on x86-64, timed on a busy host, and every target keeps them. Division is Knuth's Algorithm D, whose work grows with the product of the quotient's and the divisor's lengths, and decimal text divides by 10^9 a pass at a time, whose work grows with the square of the length; at a million bits a multiplication took 58 ms and a division of two million bits by one million 2.1 s on that host, as compiler/tests/big/README.md records. Divide-and-conquer division and text wait for a consumer that needs them.
 
 **The alternatives:** Toom-4 and FFT multiplication, which the roadmap leaves out; and divide-and-conquer division now, which no consumer in the repository reaches at the lengths where it wins.
 

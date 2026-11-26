@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/big's integers against Python's: sums, differences, products, both divisions, comparison, sign, negation and absolute value, and products and quotients of drawn operands across the multiplication thresholds
+summary: core/big's integers against Python's: sums, differences, comparison, sign, negation and absolute value
 program: main.ldn
 root: ../../../../..
 status: 42

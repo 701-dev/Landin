@@ -19,7 +19,8 @@ executes them on Cortex-M0.
 
 ## Availability inventory
 
-The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
+The shared freestanding modules are `core/arena`, `core/atomic`,
+`core/big` with its submodule `core/big/limbs`, `core/cache`,
 `core/cmp`,
 `core/diag`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule

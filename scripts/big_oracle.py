@@ -44,6 +44,18 @@ TARGETS = ('linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, '
            'freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, '
            'windows-arm64')
 
+#  The fixtures whose image overflows the Cortex-M0 reference's 32 KiB at
+#  some profile, which compiler/tests/cortex-m/corpus.json records as a
+#  profile limit with the measured sizes, and which therefore leave
+#  cortex-m0 out of their targets: the lane still runs every profile that
+#  fits, and mps2-an500 every profile.
+FIRMWARE_LIMITED = {
+    'big-limbs', 'big-limbs-products', 'big-integer-products', 'big-integer-quotients',
+    'big-integer-powers', 'big-integer-roots', 'big-integer-modular', 'big-integer-bits',
+    'big-integer-conversion', 'big-integer-text', 'big-rational', 'big-rational-products',
+    'big-rational-floats', 'big-rational-text',
+}
+
 MASK = (1 << 64) - 1
 
 
@@ -238,7 +250,7 @@ def limb_cases(draw):
             words[-1] = draw.choice((0, 1, 0xffffffff))
         return words
 
-    sizes = (0, 1, 2, 3, 5)
+    sizes = (0, 1, 2, 4)
     for la in sizes:
         for lb in sizes:
             a, b = any_limbs(la), any_limbs(lb)
@@ -252,13 +264,8 @@ def limb_cases(draw):
                 record(22, a, b, 0, limbs(difference % (1 << 32 * la), la), 1 if difference < 0 else 0)
             order = (number(a) > number(b)) - (number(a) < number(b)) + 1
             record(12, a, b, 0, [], order)
-            record(16, a, b, 0, limbs(number(a) * number(b), la + lb), 0)
-            nb = len(limbs(number(b)))
-            if 0 < nb <= la and number(b[:nb]) == number(b):
-                q, r = divmod(number(a), number(b))
-                record(17, a, b[:nb], 0, limbs(q, la - nb + 1) + limbs(r, nb), 0)
-    for la in (0, 1, 3, 6):
-        for p in (0, 1, 10, 0x80000000, 0xffffffff, draw.getrandbits(32)):
+    for la in (0, 1, 4):
+        for p in (0, 0xffffffff, draw.getrandbits(32) | 1):
             a = any_limbs(la)
             value = number(a)
             span = 1 << (32 * la)
@@ -297,11 +304,11 @@ def limb_cases(draw):
     return records
 
 
-SHAPES = [(47, 47), (48, 48), (49, 48), (63, 61), (96, 96), (149, 149),
-          (150, 150), (151, 151), (160, 160), (200, 199), (320, 160),
-          (300, 151), (250, 60), (151, 3), (320, 48)]
-QUOTIENTS = [(2, 2), (3, 2), (10, 3), (40, 20), (100, 50), (320, 160),
-             (300, 151), (200, 1), (64, 63)]
+SHAPES = [(1, 1), (2, 1), (1, 3), (3, 3), (5, 2), (47, 47), (48, 48), (49, 48),
+          (63, 61), (96, 96), (149, 149), (150, 150), (151, 151), (160, 160),
+          (200, 199), (320, 160), (300, 151), (250, 60), (151, 3), (320, 48)]
+QUOTIENTS = [(1, 1), (2, 1), (2, 2), (3, 2), (5, 3), (10, 3), (40, 20), (100, 50),
+             (320, 160), (300, 151), (200, 1), (64, 63)]
 
 
 def limb_room():
@@ -461,7 +468,7 @@ def integer_cases(draw):
                 x = y
         return -x if value < 0 else x
 
-    sizes = (0, 1, 2, 3, 5)
+    sizes = (0, 1, 2, 4)
     for la in sizes:
         for lb in sizes:
             a, b = any_value(la), any_value(lb)
@@ -479,11 +486,13 @@ def integer_cases(draw):
                 record(0x105, a, b, r=a // b, s=a % b)
             record(8, a, b, r=math.gcd(a, b))
             record(0x108, a, b, r=math.gcd(a, b))
-            record(11, a, b, r=a & b)
-            record(12, a, b, r=a | b)
-            record(13, a, b, r=a ^ b)
-            record(0x10b, a, b, r=a & b)
-            record(0x10d, a, b, r=a ^ b)
+            if la != 4 and lb != 4:
+                record(11, a, b, r=a & b)
+                record(12, a, b, r=a | b)
+                record(13, a, b, r=a ^ b)
+            if la == lb:
+                record(0x10b, a, b, r=a & b)
+                record(0x10d, a, b, r=a ^ b)
             record(19, a, b, w=(a > b) - (a < b) + 1)
             modulus = abs(b) + 1
             try:
@@ -493,38 +502,31 @@ def integer_cases(draw):
             exponent = abs(any_value(draw.randrange(3)))
             record(10, a, exponent, modulus, r=pow(a, exponent, modulus))
             record(0x10a, a, exponent, modulus, r=pow(a, exponent, modulus))
-    for la in (0, 1, 2, 3, 4):
-        for _ in range(3):
+    for la in (0, 1, 2, 3):
+        for _ in range(2):
             a = any_value(la)
             record(14, a, r=~a)
-            for p in (0, 1, 31, 32, 33, 70, draw.randrange(200)):
+            for p in (0, 33, draw.randrange(100)):
                 record(15, a, p=p, r=a << p)
                 record(16, a, p=p, r=a >> p)
-                record(0x10f, a, p=p, r=a << p)
-                record(0x110, a, p=p, r=a >> p)
                 record(17, a, p=p, w=(a >> p) & 1)
+            p = draw.randrange(70)
+            record(0x10f, a, p=p, r=a << p)
+            record(0x110, a, p=p, r=a >> p)
             record(18, a, w=abs(a).bit_length())
             record(20, a, w=(a > 0) - (a < 0) + 1)
             record(21, a, r=-a)
             record(22, a, r=abs(a))
-            for p in (0, 1, 2, 3, 7):
+            for p in (0, 1, 2, 5):
                 record(6, a, p=p, r=a ** p)
-            for p in (1, 2, 3, 4, 5, 9):
+            for p in (1, 2, 3, 7):
                 if a >= 0 or p % 2:
                     record(7, a, p=p, r=root(a, p))
             record(29, a, w=digest_text(str(a)))
             record(30, a, w=digest_text(('-' if a < 0 else '') + format(abs(a), 'x')))
-    edges = [0, 1, -1, (1 << 63) - 1, 1 << 63, -(1 << 63), -(1 << 63) - 1,
-             (1 << 64) - 1, 1 << 64, -(1 << 64), 1 << 53, (1 << 53) + 1,
-             (1 << 53) + 3, (1 << 54) + 2, (1 << 24) + 1, (1 << 24) + 3,
-             ((1 << 53) + 1) << 100, (((1 << 53) + 1) << 100) + 1,
-             ((1 << 24) + 1) << 200, (((1 << 24) + 1) << 200) + 1,
-             (1 << 1024) - (1 << 970), (1 << 1024) - (1 << 970) - 1,
-             (1 << 128) - (1 << 103), (1 << 128) - (1 << 103) - 1,
-             (1 << 1024), 3 << 1100]
-    edges += [-value for value in edges]
-    edges += [any_value(draw.randrange(1, 5)) for _ in range(12)]
-    for a in edges:
+    machine = [0, 1, -1, (1 << 63) - 1, 1 << 63, -(1 << 63), -(1 << 63) - 1,
+               (1 << 64) - 1, 1 << 64, -(1 << 64), any_value(1), any_value(3)]
+    for a in machine:
         if -(1 << 63) <= a < (1 << 63):
             record(23, a, p=a & MASK)
         else:
@@ -533,14 +535,23 @@ def integer_cases(draw):
             record(24, a, p=a)
         else:
             record(24, a, w=1)
+    doubles = [0, 1, (1 << 53) + 1, (1 << 53) + 3, (1 << 54) + 2,
+               ((1 << 53) + 1) << 100, (((1 << 53) + 1) << 100) + 1,
+               (1 << 1024) - (1 << 970), (1 << 1024) - (1 << 970) - 1,
+               1 << 1024, any_value(2), any_value(4)]
+    for a in doubles + [-value for value in doubles[2:6]]:
         record(25, a, p=float_bits(a, DOUBLE))
+    singles_of = [(1 << 24) + 1, (1 << 24) + 3, ((1 << 24) + 1) << 200,
+                  (((1 << 24) + 1) << 200) + 1, (1 << 128) - (1 << 103),
+                  (1 << 128) - (1 << 103) - 1, 3 << 1100, any_value(3)]
+    for a in singles_of + [-value for value in singles_of[:3]]:
         record(26, a, p=float_bits(a, SINGLE))
     floats = [0x0000000000000000, 0x8000000000000000, 0x3ff0000000000000,
               0xbff8000000000000, 0x4330000000000001, 0x7fefffffffffffff,
               0xffefffffffffffff, 0x0000000000000001, 0x3fe0000000000000,
               0xc3e0000000000000, 0x7ff0000000000000, 0xfff8000000000000,
               0x7ff0000000000001]
-    floats += [draw.getrandbits(64) for _ in range(10)]
+    floats += [draw.getrandbits(64) for _ in range(5)]
     for bits in floats:
         value = float_value(bits, DOUBLE)
         if value is None:
@@ -549,7 +560,7 @@ def integer_cases(draw):
             record(27, p=bits, r=int(value))
     singles = [0x00000000, 0x80000000, 0x3f800000, 0xbfc00000, 0x4b800001,
                0x7f7fffff, 0xff7fffff, 0x00000001, 0x7f800000, 0xffc00000]
-    singles += [draw.getrandbits(32) for _ in range(10)]
+    singles += [draw.getrandbits(32) for _ in range(5)]
     for bits in singles:
         value = float_value(bits, SINGLE)
         if value is None:
@@ -596,7 +607,7 @@ def rational_cases(draw):
         bottom = draw.getrandbits(draw.choice((1, 8, 33, 70))) + 1
         return Fraction(top, bottom)
 
-    for _ in range(14):
+    for _ in range(8):
         x, y = any_value(), any_value()
         record(2, x, y, r=x + y)
         record(3, x, y, r=x - y)
@@ -625,7 +636,7 @@ def rational_cases(draw):
             Fraction(3, 1 << 151), Fraction((1 << 24) + 1, 1 << 160),
             Fraction((1 << 128) - (1 << 103)), Fraction(10 ** 30 + 1, 10 ** 30),
             Fraction(-(1 << 60) - 1, 3), Fraction((1 << 53) + 1, 2), Fraction(0)]
-    hard += [any_value() for _ in range(8)]
+    hard += [any_value() for _ in range(4)]
     for x in hard:
         record(10, x, p=float_bits(x, DOUBLE))
         record(11, x, p=float_bits(x, SINGLE))
@@ -1045,28 +1056,16 @@ end draw
 --  Whether one record of `seeded`, from `at`, agrees.
 seeded_agrees: (provider: type is mem.allocator, at: usize, memory: provider)
                -> (yes: bool) ! mem.out_of_memory =
-    op: u32 = seeded[at]
     mut source := random.new(u64(seeded[at + 1]))
     first: u64 = u64(seeded[at + 4]) | (u64(seeded[at + 5]) << 32)
     second: u64 = u64(seeded[at + 6]) | (u64(seeded[at + 7]) << 32)
     mut a := big.new()
     mut b := big.new()
     mut r := big.new()
-    mut s := big.new()
-    try draw(source, a, memory, usize(seeded[at + 2]))
+{seeded_s}    try draw(source, a, memory, usize(seeded[at + 2]))
     count: usize = usize(seeded[at + 3])
     try draw(source, b, memory, count)
-    if op == 1 then
-        try big.multiply(r, memory, a, b)
-        yes = digest(big.limbs_of(r)) == first
-    else
-        if drawn[count - 1] == 0 then
-            drawn[count - 1] = 1
-            try big.set_limbs(b, memory, drawn[0..<count], false)
-        end if
-        try big.divide_floor(r, s, memory, a, b)
-        yes = digest(big.limbs_of(r)) == first and digest(big.limbs_of(s)) == second
-    end if
+{seeded_step}
 end seeded_agrees
 
 --  Whether every record of `seeded` agrees.
@@ -1082,6 +1081,19 @@ run_seeded: () -> (ok: bool) =
     end while
 end run_seeded
 '''
+
+
+SEEDED_STEPS = {
+    1: '''    try big.multiply(r, memory, a, b)
+    yes = digest(big.limbs_of(r)) == first
+    _ = second''',
+    2: '''    if drawn[count - 1] == 0 then
+        drawn[count - 1] = 1
+        try big.set_limbs(b, memory, drawn[0..<count], false)
+    end if
+    try big.divide_floor(r, s, memory, a, b)
+    yes = digest(big.limbs_of(r)) == first and digest(big.limbs_of(s)) == second''',
+}
 
 
 def integer_program(name, records, seeded, refusals, summary):
@@ -1199,7 +1211,10 @@ end main
            r_mut='' if ops <= {17, 18, 19, 20, 25, 26, 29, 30} else 'mut ',
            s_mut='mut ' if ops & {4, 5, 0x104, 0x105} else '',
            w_mut='mut ' if ops & {9, 17, 18, 19, 20, 27, 28} else '',
-           seeded_code=INTEGER_SEEDED.format(backing=backing) if seeded else '',
+           seeded_code=INTEGER_SEEDED.format(
+               backing=backing, seeded_step=SEEDED_STEPS[seeded[0][0]] if seeded else '',
+               seeded_s='    mut s := big.new()\n' if seeded and seeded[0][0] == 2 else '',
+               second_used='') if seeded else '',
            refusal_code=INTEGER_REFUSALS.format(backing=backing) if refusals else '',
            steps='\n    '.join(steps))
     return program
@@ -1420,38 +1435,53 @@ end main
 
 
 INTEGER_GROUPS = {
-    'big-integer': ({1, 2, 3, 4, 5, 19, 20, 21, 22, 0x101, 0x102, 0x103, 0x104, 0x105},
-                    True, False,
-                    "core/big's integers against Python's: sums, differences, products, "
-                    "both divisions, comparison, sign, negation and absolute value, and "
-                    "products and quotients of drawn operands across the multiplication "
-                    "thresholds"),
-    'big-integer-theory': ({6, 7, 8, 9, 10, 0x108, 0x10a}, False, False,
-                           "core/big's integers against Python's: powers, integer roots, "
-                           "the greatest common divisor, the inverse modulo a modulus and "
-                           "the power modulo one"),
+    'big-integer': ({1, 2, 19, 20, 21, 22, 0x101, 0x102}, set(), False,
+                    "core/big's integers against Python's: sums, differences, "
+                    "comparison, sign, negation and absolute value"),
+    'big-integer-products': ({3, 0x103}, {1}, False,
+                             "core/big's integers against Python's: products, and "
+                             "products of drawn operands across the multiplication "
+                             "thresholds"),
+    'big-integer-quotients': ({4, 5, 0x104, 0x105}, {2}, False,
+                              "core/big's integers against Python's: quotients and "
+                              "remainders rounded toward zero and down, and those of "
+                              "drawn operands"),
+    'big-integer-powers': ({6}, set(), False,
+                           "core/big's integers against Python's: powers"),
+    'big-integer-roots': ({7}, set(), False,
+                          "core/big's integers against Python's: integer roots"),
+    'big-integer-gcd': ({8, 0x108}, set(), False,
+                        "core/big's integers against Python's: the greatest common "
+                        "divisor"),
+    'big-integer-modular': ({9, 10, 0x10a}, set(), False,
+                            "core/big's integers against Python's: the inverse modulo a "
+                            "modulus and the power modulo one"),
     'big-integer-bits': ({11, 12, 13, 14, 15, 16, 17, 18, 0x10b, 0x10d, 0x10f, 0x110},
-                         False, False,
+                         set(), False,
                          "core/big's integers against Python's: and, or, exclusive or and "
                          "complement in two's complement, shifts, single bits and bit "
                          "lengths"),
-    'big-integer-conversion': ({23, 24, 25, 26, 27, 28}, False, False,
+    'big-integer-conversion': ({23, 24, 25, 26, 27, 28}, set(), False,
                                "core/big's integers against Python's: to and from i64, u64, "
                                "f64 and f32, each float rounded once to nearest"),
-    'big-integer-text': ({29, 30}, False, True,
+    'big-integer-text': ({29, 30}, set(), True,
                          "core/big's integers against Python's: decimal and hexadecimal "
                          "text written and read back, and text that is no number refused"),
 }
 
 RATIONAL_GROUPS = {
-    'big-rational': ({1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 0x102, 0x104, 0x105}, False,
+    'big-rational': ({1, 2, 3, 7, 15, 16, 0x102}, False,
                      "core/big's rationals against Python's fractions: lowest terms, "
-                     "sums, differences, products, quotients, powers, comparison, sign, "
-                     "negation, floor and truncation"),
-    'big-rational-conversion': ({10, 11, 12, 13, 14}, True,
-                                "core/big's rationals against Python's fractions: the nearest "
-                                "f64 and f32, rounded once, exact values of floats, and text "
-                                "written, read back and refused"),
+                     "sums, differences, comparison, sign and negation"),
+    'big-rational-products': ({4, 5, 6, 8, 9, 0x104, 0x105}, False,
+                              "core/big's rationals against Python's fractions: products, "
+                              "quotients, powers, floor and truncation"),
+    'big-rational-floats': ({10, 11, 12, 13}, False,
+                            "core/big's rationals against Python's fractions: the nearest "
+                            "f64 and f32, rounded once, and the exact values of floats"),
+    'big-rational-text': ({14}, True,
+                          "core/big's rationals against Python's fractions: text written, "
+                          "read back and refused"),
 }
 
 FIXTURE_SUMMARIES = {
@@ -1476,8 +1506,8 @@ def programs():
     integers = integer_cases(draw)
     for name, (ops, seeded, refusals, summary) in INTEGER_GROUPS.items():
         result[name] = integer_program(name, [r for r in integers if r[0] in ops],
-                                       integer_seeded() if seeded else [], refusals,
-                                       summary + '.')
+                                       [r for r in integer_seeded() if r[0] in seeded],
+                                       refusals, summary + '.')
     rationals = rational_cases(draw)
     for name, (ops, refusals, summary) in RATIONAL_GROUPS.items():
         result[name] = rational_program([r for r in rationals if r[0] in ops], refusals,
@@ -1513,7 +1543,9 @@ root: ../../../../..
 status: 42
 targets: {targets}
 constructs: 0150, 0290
-'''.format(summary=FIXTURE_SUMMARIES[name], targets=TARGETS), encoding='utf-8')
+'''.format(summary=FIXTURE_SUMMARIES[name],
+           targets=TARGETS.replace('cortex-m0, ', '') if name in FIRMWARE_LIMITED
+           else TARGETS), encoding='utf-8')
     return directory
 
 

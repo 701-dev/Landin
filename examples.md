@@ -580,6 +580,116 @@ Big Ben to the Eiffel Tower: 340.6 km
 the Sydney Opera House to the Statue of Liberty: 15988.8 km
 ```
 
+## Exact numbers
+
+Numbers past any machine integer, with `core/big`: two to the 200th and
+50 factorial as integers of any size, and the 30th harmonic number, a sum
+of thirty fractions kept exact and in lowest terms after every step. Floats
+are not yet formattable, so its forty decimal places come from integer
+arithmetic: the whole part of the sum times ten to the 40th, printed with
+a point before its last forty digits.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-exact-numbers/main.ldn`.
+
+```landin
+--  Numbers no machine integer holds, and fractions kept exact: two to the
+--  200th, 50 factorial, and the 30th harmonic number, 1 + 1/2 + ... + 1/30,
+--  as a fraction and to forty decimal places.
+import core/big
+import core/failure
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+import hosted/heap
+
+--- Append `value` with a decimal point before its last `places` digits;
+--- `value` is at least 10^places, so a digit stands before the point.
+append_scaled: (inout line: text.builder, value: big.integer, places: usize)
+               -> none ! mem.out_of_memory =
+    memory := heap.new()
+    mut digits := text.growing(any(addr memory))
+    defer text.release(digits)
+    try big.append_decimal(digits, memory, value)
+    written: []u8 = text.used(digits)
+    point: usize = lenof written - places
+    try text.append(line, written[0..<point])
+    try text.append(line, ".")
+    try text.append(line, written[point..<lenof written])
+end append_scaled
+
+lines: (inout line: text.builder) -> none ! mem.out_of_memory =
+    memory := heap.new()
+    mut value := big.new()
+    defer big.release(value, memory)
+    mut factor := big.new()
+    defer big.release(factor, memory)
+
+    try big.set_i64(factor, memory, 2)
+    try big.power(value, memory, factor, 200)
+    try text.append(line, "2^200 = ")
+    try big.append_decimal(line, memory, value)
+
+    try big.set_i64(value, memory, 1)
+    for n in i64(2)..50 do
+        try big.set_i64(factor, memory, n)
+        try big.multiply(value, memory, value, factor)
+    end for
+    try text.append(line, "\n50! = ")
+    try big.append_decimal(line, memory, value)
+
+    --  The sum stays in lowest terms after every step.
+    mut sum := big.rational_new()
+    defer big.rational_release(sum, memory)
+    mut term := big.rational_new()
+    defer big.rational_release(term, memory)
+    mut one := big.new()
+    defer big.release(one, memory)
+    try big.set_i64(one, memory, 1)
+    for n in i64(1)..30 do
+        try big.set_i64(factor, memory, n)
+        try big.rational_set_ratio(term, memory, one, factor)
+        try big.rational_add(sum, memory, sum, term)
+    end for
+    try text.append(line, "\nH(30) = ")
+    try big.rational_append(line, memory, sum)
+
+    --  Forty places: the whole part of the sum times 10^40.
+    try big.set_i64(factor, memory, 10)
+    try big.power(value, memory, factor, 40)
+    try big.rational_set_integer(term, memory, value)
+    try big.rational_multiply(term, memory, term, sum)
+    try big.rational_floor(value, memory, term)
+    try text.append(line, "\n       = ")
+    try append_scaled(line, value, 40)
+    try text.append(line, "...\n")
+end lines
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    mut line := text.growing(any(addr memory))
+    defer text.release(line)
+    lines(line) else (problem)
+        words: []u8 = failure.words(problem)
+        io.write_format(host, io.err(host), "exact: {}\n", [any(addr words)]) else none
+        return
+    end
+    io.write(host, io.out(host), text.used(line)) else none
+    code = 0
+end main
+```
+
+It prints
+
+```text
+2^200 = 1606938044258990275541962092341162602522202993782792835301376
+50! = 30414093201713378043612608166064768844377641568960512000000000000
+H(30) = 9304682830147/2329089562800
+       = 3.9949871309203910705017736641243773126748...
+```
+
 ## Insertion sort
 
 Insertion sort grows a sorted prefix, moving each new value left past the

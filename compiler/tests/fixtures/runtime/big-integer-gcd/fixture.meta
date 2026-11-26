@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/big's integers against Python's: powers, integer roots, the greatest common divisor, the inverse modulo a modulus and the power modulo one
+summary: core/big's integers against Python's: the greatest common divisor
 program: main.ldn
 root: ../../../../..
 status: 42
