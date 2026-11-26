@@ -52,6 +52,9 @@ several of the tasks together.
 | Turn an errno from `platform/posix` into words | `posix.words(problem)` for an errno alone; `system.words(problem)` for a `system.reason`, an errno or one of the library's failures | [platform/posix](../platform/posix), [hosted/system](../hosted/system) |
 | Right-align a number in a column | `text.over(buffer)` makes a builder, `text.append_u64(line, value)` writes the number, `text.align_right(line, start, width, u8(' '))` pads it from `start`, and `io.put(out, text.used(line))` prints it | [core/text](../core/text) |
 | Print a float with two decimals | Scale it to whole hundredths and print the integer parts, as [core/text](../core/text)'s program shows; floats are not formattable | [core/text](../core/text) |
+| Change the case of text | `text.utf8_over(buffer)` makes a builder, `unicode.append_upper(into, source)`, `append_lower` or `append_title` writes the text, and `text.utf8_used(into)` lends it | [core/unicode](../core/unicode) |
+| Count characters as a reader does | `for cluster in unicode.graphemes(source) do`, counting the items | [core/unicode](../core/unicode) |
+| Compare text ignoring case | `unicode.append_folded(into, source)` for each text, `unicode.append_nfc` over each result where accents may be spelled apart, then `text.equal` | [core/unicode](../core/unicode) |
 
 A program that reads a whole file into memory chooses between two
 builders:
@@ -235,6 +238,8 @@ The library covers:
 - running programs, clocks, sleeping, the system's entropy and a
   deterministic generator;
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
+- Unicode's properties, case mapping, normalization and the boundaries
+  of characters, words and sentences, `core/unicode`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
 - the rest of the file system: opening with options, renaming, a file's
@@ -585,8 +590,10 @@ into `utf8` counts scalars. So do not index with `offset(position)`.
 `text.from_offset` makes a position at any offset you give it and checks
 nothing. The positions below are always on a scalar's start.
 
-UTF-8 equality, hashing and ordering use the encoded bytes, with no
-normalization and no locale collation.
+UTF-8 equality, hashing and ordering use the encoded bytes. `core/text`
+never normalizes and never collates by locale; a program that needs two
+spellings of one text to compare equal normalizes them first with
+[core/unicode](../core/unicode).
 
 ### Positions and searches in text
 
@@ -897,6 +904,190 @@ through them.
 The program prints a price list: each item's name aligned left, its
 count right-aligned under its heading, and its price, an `f64`, with two
 decimals.
+
+## core/unicode
+
+What the Unicode Standard says about a scalar and about text, where
+[core/text](../core/text) reads and writes UTF-8 without interpreting it:
+a scalar's properties, case mapping, the four normalization forms, and
+where a reader's characters, words and sentences begin and end. The data
+is Unicode 18.0.0, which `unicode.unicode_version` names as a
+`version_number` of `major`, `minor` and `update`.
+
+| Call | What it does |
+|---|---|
+| `unicode.category`, `unicode.combining_class` | A scalar's general category and its canonical combining class. |
+| `unicode.is_alphabetic`, `unicode.is_white_space`, `unicode.is_uppercase`, `unicode.is_lowercase`, `unicode.is_cased`, `unicode.is_case_ignorable` | Whether a scalar has a property. |
+| `unicode.simple_upper`, `unicode.simple_lower`, `unicode.simple_title`, `unicode.simple_fold` | Map one scalar to one scalar. |
+| `unicode.append_upper`, `unicode.append_lower`, `unicode.append_title`, `unicode.append_folded` | Append a text in another case, or folded for a comparison that ignores case. |
+| `unicode.append_nfc`, `unicode.append_nfd`, `unicode.append_nfkc`, `unicode.append_nfkd` | Append a text in a normalization form. |
+| `unicode.graphemes`, `unicode.words`, `unicode.sentences` | Walk a text's characters, words or sentences in a `for` loop. |
+| `unicode.grapheme_end`, `unicode.word_end`, `unicode.sentence_end` | Find the next boundary after a position. |
+
+A scalar is a `u32`, as a `for` loop over `utf8` gives one. Every routine
+that writes appends to a `text.utf8_builder`, which the caller makes over
+its own buffer with `text.utf8_over`, and appends its whole result or
+nothing: on `mem.out_of_memory` the builder holds what it held. Nothing
+allocates and nothing keeps state. The tables are immutable data, written
+by `scripts/unicode_tables.py` from a pinned copy of the Unicode Character
+Database.
+
+### Properties
+
+| Call | What it does |
+|---|---|
+| `category(scalar)` | The general category, a `general_category`: one of thirty atoms named as the database's long names are, in lower case, so Lu is `unicode.uppercase_letter` and Nd is `unicode.decimal_number`. A value above U+10FFFF is `unassigned`. |
+| `combining_class(scalar)` | The canonical combining class, a `u8`, which orders the marks after a base. It is zero for a base and for any scalar that is no mark. |
+| `is_alphabetic(scalar)` | Whether the scalar is Alphabetic: a letter, or a mark or number that writes part of a word. |
+| `is_white_space(scalar)` | Whether it is White_Space: a space, a tab, or a line or paragraph end. |
+| `is_uppercase(scalar)`, `is_lowercase(scalar)` | Whether it is Uppercase, or Lowercase. |
+| `is_cased(scalar)` | Whether it is Cased: upper, lower or title case. |
+| `is_case_ignorable(scalar)` | Whether it is Case_Ignorable, which case mapping passes over when it looks for the letters around a sigma or for a word's first letter. |
+
+Compare a category with `==`, as in
+`unicode.category(scalar) == unicode.decimal_number`.
+
+### Case
+
+| Call | What it does |
+|---|---|
+| `simple_upper(scalar)`, `simple_lower(scalar)`, `simple_title(scalar)` | The simple mapping, one scalar for one, or the scalar itself when it has none. ß has no simple uppercase, since its uppercase is two letters. |
+| `simple_fold(scalar)` | The simple case folding: what two scalars that differ only in case both fold to. |
+| `append_upper(into, source)` | Append the uppercase of `source`, by each scalar's full mapping: "straße" gives "STRASSE". |
+| `append_lower(into, source)` | Append the lowercase. A capital sigma that ends a word becomes ς, final sigma, and one elsewhere σ. |
+| `append_title(into, source)` | Append the title case. In each word, as `word_end` finds them, the first cased scalar takes its titlecase mapping and the rest of the word its lowercase: "the ǆungla" gives "The ǅungla". |
+| `append_folded(into, source)` | Append the case folding, so that two texts that differ only in case fold to the same text: "Straße" and "STRASSE" both give "strasse". |
+
+The four `append_` routines apply Unicode's default full mappings, which
+are right for every language except Turkish, Azerbaijani and Lithuanian.
+Those three need a locale, which a later item adds.
+
+To compare two texts ignoring case, fold each and compare the results
+with `text.equal`. Put them in NFC as well where an accent may be written
+either as part of its letter or as a mark of its own:
+
+```landin
+--  Whether two texts say the same words whatever their case and however
+--  their accents are spelled: each folded, then put in NFC, compares
+--  equal.
+same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
+    mut folded: [64]u8 = zeroed
+    mut left_storage: [64]u8 = zeroed
+    mut right_storage: [64]u8 = zeroed
+    mut scratch: text.utf8_builder = text.utf8_over(folded)
+    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
+    try unicode.append_folded(scratch, left)
+    try unicode.append_nfc(left_form, text.utf8_used(scratch))
+    text.utf8_clear(scratch)
+    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
+    try unicode.append_folded(scratch, right)
+    try unicode.append_nfc(right_form, text.utf8_used(scratch))
+    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
+end same_words
+```
+
+### Normalization
+
+| Call | What it does |
+|---|---|
+| `append_nfc(into, source)` | Append the NFC form: canonically decomposed and composed again, so "e" and U+0301 give "é", U+00E9. It is the form to store and compare text in. |
+| `append_nfd(into, source)` | Append the NFD form: every scalar canonically decomposed, with its marks in canonical order. |
+| `append_nfkc(into, source)` | Append the NFKC form: compatibility decomposed and canonically composed again. It is the form to match identifiers and search terms in. |
+| `append_nfkd(into, source)` | Append the NFKD form: decomposed by the compatibility mappings too, so "ﬁ" gives "fi" and "²" gives "2". That loses formatting a reader may have meant. |
+
+The routines keep no buffer of their own. Each takes time linear in the
+text, except over a run of combining marks that is out of canonical
+order, which takes the run's length times the number of combining
+classes it holds.
+
+`core/text` never normalizes: its equality, hashing and ordering compare
+the encoded bytes. A program that wants "é" to equal "e" with U+0301
+normalizes both texts first.
+
+### Segmentation
+
+The boundaries are those of the default rules of Unicode's UAX #29.
+
+| Call | What it does |
+|---|---|
+| `graphemes(source)` | The extended grapheme clusters, each what a reader takes for one character: "é" written as "e" and U+0301 is one, and so is a flag or a family emoji. |
+| `words(source)` | The pieces between word boundaries: each word, and each run of spaces or single punctuation mark between words. |
+| `sentences(source)` | The sentences, each with the spaces after it. |
+| `grapheme_end(source, at)`, `word_end(source, at)`, `sentence_end(source, at)` | The position where the piece that begins at `at` ends, or `at` itself at the end of the text. `at` is a boundary: the text's start, or a position one of these returned. |
+
+`graphemes`, `words` and `sentences` each give a walk for `for`. Each
+item is a `unicode.segment` holding two `text.position`s, `begins` and
+`ends`, and the items cover the text in order. A segment holds positions
+and not the text, so slice the text to read a piece:
+`source[text.offset(piece.begins)..<text.offset(piece.ends)]`.
+
+`words` gives the spaces and punctuation as pieces too. Whether a piece
+is a word is the caller's question; a piece that holds an alphabetic
+scalar or a digit is one.
+
+Counting characters as a reader does is a walk over the clusters, beside
+the walk over scalars that `for` gives over `utf8` itself:
+
+```landin
+--  How many scalars and how many characters `source` holds: a character
+--  is what a reader takes for one, an extended grapheme cluster.
+counts: (source: utf8) -> (scalars: usize, characters: usize) =
+    scalars = 0
+    characters = 0
+    for scalar in source do
+        _ = scalar
+        inc scalars
+    end for
+    for cluster in unicode.graphemes(source) do
+        _ = cluster
+        inc characters
+    end for
+end counts
+```
+
+### What it leaves out
+
+- Scripts and the properties not listed above.
+- Line breaking, Unicode's UAX #14.
+- Collation, which is ordering text as a language's readers expect.
+- Case mapping tailored to a locale.
+- Encodings other than UTF-8.
+
+Later items add encodings, locale formatting and regular expressions.
+
+### Conformance and size
+
+Unicode's conformance tests for normalization and for grapheme cluster,
+word and sentence boundaries pass in full on every hosted target, and
+there every table is checked against the database over every
+scalar, by digest. Firmware checks every Nth scalar. The checks are the
+`unicode-*` fixtures under `compiler/tests/fixtures/runtime/`.
+
+The tables are immutable, so on a microcontroller they stay in flash and
+take no RAM, and an image links only the tables that the routines it
+calls reach. On Cortex-M0 at `size/auto`, in bytes of flash measured from
+linked images:
+
+| What a program calls | Tables | `core/unicode` code |
+|---|---:|---:|
+| `category` | 12,420 | 380 |
+| `combining_class` and the six `is_` properties | 12,134 | 1,190 |
+| Simple and full upper, lower and folded case | 12,047 | 4,544 |
+| Title case, which adds word boundaries | 19,147 | 6,226 |
+| NFC and NFD | 19,817 | 7,098 |
+| NFKC and NFKD, with NFC and NFD | 36,084 | 7,578 |
+| Grapheme clusters | 5,388 | 2,636 |
+| Words | 7,100 | 3,480 |
+| Sentences | 7,964 | 2,816 |
+
+NFKC and NFKD do not fit Cortex-M0's 32 KiB profile beside anything. Each
+of the others does.
+
+[Executable example](../compiler/tests/fixtures/runtime/example-text-as-read/main.ldn)
+
+The program is [Text as a reader sees it](../examples.md#text-as-a-reader-sees-it):
+it counts the characters of a name and of two flags, lists the words of a
+sentence, changes case, and compares two texts ignoring case.
 
 ## core/io
 

@@ -1,0 +1,29 @@
+import core/text
+import core/unicode
+
+--  A little of each part of core/unicode, as small as Cortex-M0 holds:
+--  a category, the grapheme clusters of an accent spelled apart and a
+--  flag, and the uppercase of a letter that becomes two.
+exercise: () -> (ok: bool) =
+    ok = false
+    return when unicode.unicode_version.major < 18
+    return when unicode.category(u32('A')) <> unicode.uppercase_letter
+    mut clusters: usize = 0
+    for piece in unicode.graphemes("e\u{301}\u{1f1f3}\u{1f1f1}") do
+        _ = piece
+        inc clusters
+    end for
+    return when clusters <> 2
+    mut storage: [8]u8 = zeroed
+    mut into: text.utf8_builder = text.utf8_over(storage)
+    unicode.append_upper(into, "\u{df}") else begin return end
+    ok = text.equal(text.utf8_used(into), "SS")
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main

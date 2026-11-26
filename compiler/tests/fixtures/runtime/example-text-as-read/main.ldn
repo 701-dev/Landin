@@ -53,19 +53,22 @@ public main: () -> (code: i32) =
 
     --  "Amélie" with its é written as e and a combining acute, and two
     --  flags, each two regional indicators.
+    names: [2]utf8 = ["Ame\u{301}lie", "the flags of the Netherlands and Japan"]
     samples: [2]utf8 = ["Ame\u{301}lie", "\u{1f1f3}\u{1f1f1}\u{1f1ef}\u{1f1f5}"]
-    for sample in samples do
+    for index in usize(0)..<2 do
+        name := names[index]
+        sample := samples[index]
         (scalars, characters) := counts(sample)
         bytes := lenof text.bytes(sample)
         io.format(out, "{}: {} bytes, {} scalars, {} characters\n",
-                  [any(addr sample), any(addr bytes), any(addr scalars),
+                  [any(addr name), any(addr bytes), any(addr scalars),
                    any(addr characters)])
             else none
     end for
 
     --  The words of a sentence: the pieces between word boundaries that
     --  hold a letter or a digit, not the spaces and punctuation between.
-    sentence: utf8 = "Don't panic: it's 3.14, not π."
+    sentence: utf8 = "Don't panic: it's 3.14, not 22/7."
     mut separator: utf8 = ""
     for piece in unicode.words(sentence) do
         word: utf8 = sentence[text.offset(piece.begins)..<text.offset(piece.ends)]
@@ -91,7 +94,7 @@ public main: () -> (code: i32) =
     upper: utf8 = text.utf8_used(into)
     io.format(out, "{}\n", [any(addr upper)]) else none
     text.utf8_clear(into)
-    unicode.append_title(into, "the ǆungla of ΟΔΥΣΣΕΥΣ") else begin return end
+    unicode.append_title(into, "the ǆungla of STRAẞE") else begin return end
     title: utf8 = text.utf8_used(into)
     io.format(out, "{}\n", [any(addr title)]) else none
 

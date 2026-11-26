@@ -45905,3 +45905,73 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
+
+### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
+
+**The tour said** nothing; the R22 phase requires a table derived from outside data to come from a generator with a pinned input, its output checked in and held by a check, and left to its Unicode item how a large constant table is laid out and what it costs a firmware image.
+
+**Chosen:** `scripts/unicode_tables.py` reads the Unicode Character Database 18.0.0 out of its `UCD.zip`, pinned by URL and SHA-256 and verified before a byte is read, and writes `core/unicode/tables.ldn`, every table private to the module. A property every scalar has, the general category, the combining class, the binary properties and the three segmentation classes, is a lookup in up to five stages: the scalar's high bits index a top array, each stage's value and the next bits index the stage below, and the last gives the value; blocks repeat, so each is kept once, and the generator keeps the split that makes the arrays smallest, 12,300 bytes for the general category against 20,496 in three stages. A map only some scalars have, a decomposition, a composition or a full case mapping, is the same lookup of the scalar's block of 64, whose 64-bit mask says which scalars have an entry and whose base says where they begin in a byte pool, each entry its length and then UTF-8. A case record holds the four simple mappings as differences from the scalar. Cased and Case_Ignorable, which only case mapping reads, are a table apart from the other binary properties, so that case mapping links 4 KiB rather than 7.8. Hangul syllables decompose and compose by arithmetic. Every table is an immutable module array, which a firmware image keeps in flash and which costs no RAM, and each is its own datum, so an image holds only the tables its routines reach: on Cortex-M0 at `size/auto` the general category is 12,420 bytes of tables, a grapheme walk 5,388, NFC and NFD 19,817 and all four forms 36,084, which with the normalizer's code does not fit the 32 KiB profile. The script test holds `tables.ldn` to the pin and to being its own rendering, and, where the pinned archive is in the inputs cache, every generated file to the archive.
+
+**The alternatives:** ranges searched by bisection, which take 16,808 bytes for the general category's 4,202 runs; three stages, which the generator measured at 20,496 bytes for the general category; and a table per facility in a module of its own, which would put the tables in the library's public surface. All were declined.
+
+**Pinned by** `scripts/tests/test_unicode_tables.py`; `runtime/unicode-category` and `runtime/unicode-properties`, whose digest of every value's answer is the database's; and the Cortex-M0 rows of `compiler/tests/cortex-m/corpus.json`.
+
+### D2615 — Unicode is a module of its own, `core/unicode`
+
+**The tour said** at [0600] that text is UTF-8 and that `core/text` never normalizes; R20 left where Unicode's algorithms live to this item.
+
+**Chosen:** `core/unicode` holds the character properties, case mapping, normalization and segmentation, beside `core/text` and importing it. A program that builds, searches or formats text imports `core/text` alone and checks none of the tables, whose source is 336 KB; `core/text`'s equality, order and search stay over encoded bytes, with no normalization. The name is the subject's, as `core/math`'s is.
+
+**The alternatives:** a submodule `core/text/unicode`, which reads as a part of `core/text` that every text program carries; and putting the routines in `core/text`, which would make every program that imports it check the tables, as `platform/linux`'s system-call numbers once made every Linux program check a thousand declarations. Both were declined.
+
+**Pinned by** every `runtime/unicode-*` fixture and `runtime/example-text-as-read`, which import `core/unicode`.
+
+### D2616 — A routine that writes text appends it to a `text.utf8_builder`, whole or not at all
+
+**The tour said** nothing; R20 left the sink case mapping and normalization write to this item, and D948 makes a `utf8_builder` hold only whole scalars.
+
+**Chosen:** `append_upper`, `append_lower`, `append_title`, `append_folded`, `append_nfc`, `append_nfd`, `append_nfkc` and `append_nfkd` take the builder first, `inout`, then the source text (D1954), and append the result after what the builder holds. One that runs out of room fails `mem.out_of_memory` (D2029) and leaves the builder as it was, by an `undo` that truncates it to its length at the call, so a caller's buffer never holds part of a result. None allocates: the builder is over the caller's buffer, and nothing in the module keeps storage. The scalar mappings, `simple_upper` and the rest, return one `u32`.
+
+**The alternatives:** writing into a `[]mut u8` and returning a count, which `text.encode` does for one scalar and which would make every caller track the length and re-validate the bytes; a byte `builder`, which would let the text be mixed with bytes that are not UTF-8; and an allocator parameter, which a caller who wants one already gives through `text.growing`'s builder. All were declined.
+
+**Pinned by** `runtime/unicode-text-contracts`, which runs each routine into a buffer one byte short and requires the builder unchanged.
+
+### D2617 — A segment walk and a normalization form hold the routine they use, so an image links only their tables
+
+**The tour said** nothing; [1000] makes a function a value a struct field may hold.
+
+**Chosen:** `graphemes`, `words` and `sentences` give one type, `unicode.segments`, which holds the boundary routine it steps by, `grapheme_end`, `word_end` or `sentence_end`, as a function value, rather than an atom naming its unit; and the normalizer's reader holds its decomposition, canonical or compatible, the same way. A routine is linked where something takes its address, so a program that walks grapheme clusters links no word or sentence table, and one that composes to NFC links no compatibility table: on Cortex-M0 at `size/auto` that is 15,064 and 16,267 bytes it would otherwise carry. The call through the field costs an indirect branch per segment or per decomposed scalar.
+
+**The alternatives:** a `match` on the unit, which links every unit's routine and table into every walk; three walk types, one conformance each, which triplicates the walk; and a generic reader over a concept, which specialises the whole normalizer once per form for the same separation. All were declined.
+
+**Pinned by** `runtime/unicode-graphemes`, `runtime/unicode-sentences` and `runtime/unicode-normalization-canonical`, whose images fit Cortex-M0's 32 KiB profile only because of it, as the corpus's limits would otherwise record.
+
+### D2618 — Segmentation steps from a boundary to the next, and its walks conform to `iter.iterable`
+
+**The tour said** at [1320] that `for` walks an `iter.iterable`; R20 left to this item the end-of-iteration form segmentation uses and whether it iterates through `iterable`, and D2030 makes the end of a walk `at_end`, never a failure.
+
+**Chosen:** `grapheme_end(source, at)`, `word_end` and `sentence_end` take a `text.position` at a boundary, the text's start or a position one of them gave, and return the next boundary, or `at` itself at the end, so a loop steps while `text.utf8_at_end` is false, as a scalar walk does. `graphemes(source)`, `words` and `sentences` conform to `iter.iterable` with a `unicode.segment` as the item, its `begins` and `ends` positions: a value of its own, as [1320]'s item must be, from which the caller slices the text. The rules are UAX #29's defaults for extended grapheme clusters, words and sentences, Unicode 18's GB9c among them, evaluated in one forward walk that keeps the state the rules look back at; since no rule's left side can hold a boundary, a walk started at a boundary needs nothing before it. SB8's look-ahead is unbounded, and its answer is kept for every place it decided, so a whole text is still walked in linear time. Words are UAX #29's pieces between word boundaries, spaces and punctuation included; which of them are words is the caller's question. Line breaking, UAX #14, is not part of it.
+
+**The alternatives:** an item that is the segment's text, a view of the source, which [1320] does not allow; a failure at the end, which D2030 declined; and a count of segments without positions, which loses where they are. All were declined.
+
+**Pinned by** `runtime/unicode-graphemes`, `runtime/unicode-words-1`, `runtime/unicode-words-2` and `runtime/unicode-sentences`, which hold every line of the conformance files and check both the boundary routine and the `for` walk.
+
+### D2619 — Case mapping is Unicode's default, with the final sigma and no language's tailoring
+
+**The tour said** nothing; D1955 makes a locale an explicit value, which the library does not have yet.
+
+**Chosen:** the full mappings are UnicodeData's simple ones with SpecialCasing's unconditional entries, and folding is CaseFolding's common and full entries. Of SpecialCasing's conditions only Final_Sigma holds in every language: a capital sigma lowercases to the final sigma, U+03C2, when a cased scalar comes before it, with only case-ignorable ones between, and none comes after it so. The conditions for Lithuanian, Turkish and Azerbaijani are left out until a locale value can select them. Title case is Unicode's toTitlecase: in each word `word_end` finds, the first cased scalar takes its titlecase mapping, the rest of the word its lowercase, and what comes before that scalar is kept, so "123abc" gives "123Abc". The scalar routines are the simple mappings, which a case-insensitive comparison of single scalars uses.
+
+**The alternatives:** the simple mappings alone, which leave "ß" uppercase; the language-tailored rules by a parameter now, which would put a locale in the library before its shape is decided; and title case by the first scalar of each run of letters, which differs from Unicode's on digits and apostrophes. All were declined.
+
+**Pinned by** `runtime/unicode-case-scalars` and `runtime/unicode-case-title`, whose digests of every scalar's mappings are the database's, and `runtime/unicode-text-contracts`, which checks the final sigma in context and title case across words.
+
+### D2620 — Normalization holds no buffer, and passes Unicode's normalization test on every hosted target
+
+**The tour said** nothing; UAX #15 defines the four forms by decomposition, canonical ordering and composition.
+
+**Chosen:** the normalizer reads the source's full decomposition a scalar at a time, orders each run of marks by walking it once for each combining class it holds when it is out of order, which is stable and needs no storage, and composes each stretch from a starter by walking it twice, once to find what the starter becomes and once to write the marks that did not combine. It takes time linear in the text except on a run of marks out of canonical order, which takes its length times the number of classes in it. `runtime/unicode-normalization-sequences` checks every line of Unicode's normalization test file, NormalizationTest, but its first part against all the file's invariants, and `-canonical` and `-compatible` every scalar as part 1 and its rule for unlisted scalars say; firmware walks every 61st scalar, since the Cortex-M corpus gives a run 20 seconds and every target reads the same tables. NFKC and NFKD do not fit Cortex-M0's 32 KiB beside their tables, which the corpus records.
+
+**The alternatives:** a fixed buffer of marks, which fails or loses text on a longer run, as the stream-safe format's inserted joiners change text; and an allocator for the run, which no other text routine asks for. Both were declined.
+
+**Pinned by** `runtime/unicode-normalization-sequences`, `runtime/unicode-normalization-canonical`, `runtime/unicode-normalization-compatible` and the long run of marks in `runtime/unicode-text-contracts`.

@@ -181,10 +181,10 @@ class CheckedIn(unittest.TestCase):
         self.assertEqual(unicode_tables.form_problems(text), [])
 
     def test_the_fixtures_name_the_pinned_release(self):
-        for name in ("category", "properties", "case-scalars",
+        for name in ("category", "properties", "case-scalars", "case-title",
                      "normalization-canonical", "normalization-compatible",
-                     "normalization-sequences", "graphemes", "words",
-                     "sentences"):
+                     "normalization-sequences", "graphemes", "words-1",
+                     "words-2", "sentences"):
             path = unicode_tables.FIXTURES / ("unicode-" + name) / "main.ldn"
             self.assertIn("Database %s;" % unicode_tables.VERSION,
                           path.read_text(encoding="utf-8"), path)
