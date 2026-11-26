@@ -954,9 +954,11 @@ class Mirror(Clone):
             str(self.top / "no-such-mirror.git"))
         self.item("start", FIRST)
         state = item.load(FIRST)
-        saved = item.gh
+        saved = item.gh, item.runs_of
         item.gh = lambda *arguments: []
-        self.addCleanup(setattr, item, "gh", saved)
+        item.runs_of = lambda commit: []
+        self.addCleanup(setattr, item, "gh", saved[0])
+        self.addCleanup(setattr, item, "runs_of", saved[1])
         status, out = self.item("push", FIRST)
         self.assertEqual(status, 0, out)
         self.assertIn("GitHub took the push; the mirror", out)

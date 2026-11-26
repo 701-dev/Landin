@@ -125,6 +125,8 @@ def gh(*arguments, label=None):
                                   text=True, timeout=REQUEST_LIMIT)
         except subprocess.TimeoutExpired:
             said = "timed out after %d s" % REQUEST_LIMIT
+        except FileNotFoundError:
+            raise Unanswered("%s\n  `gh` is not on PATH" % named)
         else:
             if done.returncode == 0:
                 return json.loads(done.stdout)
