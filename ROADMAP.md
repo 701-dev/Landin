@@ -1317,7 +1317,7 @@ as well, and the row is taken. The merged candidate passed its
 
 ### R16.41 — A float element is compared where it lies
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 fasta spends two thirds of its x86-64 instructions at speed in
