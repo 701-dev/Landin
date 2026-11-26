@@ -981,6 +981,19 @@ injector as arguments, as providers.
   where there is one (D2551, D2552). Each routine's error is stated and
   checked against MPFR on every target, and measured on every input of
   each one-argument `f32` routine (D2553).
+- **Complex numbers.** `core/complex` has `complex.number(f32)` and
+  `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
+  named routines generic over both: the arithmetic, the conjugate and the
+  projection, magnitude, angle and polar form, `exp`, `log`, `pow` and
+  `sqrt`, and the trigonometric and hyperbolic functions and their
+  inverses (D2634). Infinities, NaN, signed zeros and branch cuts follow
+  C's Annex G (D2635). Nothing is ported: each routine is written from the
+  mathematics and published methods (D2637). Each routine's error is
+  stated for each part and checked against MPC on every target the gate
+  runs (D2636). On Cortex-M0 the arithmetic, `sqrt`, `atan` and `atanh` fit
+  at `f32`; the larger functions pass 32 KiB and run on the Cortex-M7
+  emulator lane instead.
+
 - **Big numbers.** `core/big` has integers and rationals of any size over
   the caller's allocator, and `core/big/limbs` the natural numbers in
   caller-supplied slices of `u32` limbs beneath them, which allocates

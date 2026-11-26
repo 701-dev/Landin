@@ -560,8 +560,8 @@ run records and what the gate checks for each target.
   stackful fibres on every native target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
   time, networking, random numbers, atomic cells, the elementary
-  mathematical functions and integers and rationals of any size, each
-  provider with a
+  mathematical functions, complex numbers and integers and rationals of
+  any size, each provider with a
   fake for testing, and `hosted` providers over POSIX, among them threads
   started as a group a function joins. A Linux executable links no C
   library unless `--link=libc` asks for one.
@@ -598,7 +598,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.11 — Complex numbers (planned).**
+**Next roadmap item: R22.13 — Big integers and rationals (planned).**
 
 ## Questions, bugs and ideas
 

@@ -1,0 +1,350 @@
+--  Complex numbers over f32 and f64: arithmetic with C's Annex G
+--  treatment of infinities, the magnitude, argument and polar form, and
+--  the elementary functions, so that a result is the same on every
+--  target, Cortex-M0's soft float included: the same bits, save which NaN
+--  a NaN part is, which is the target's own.  A number is generic over
+--  `math.floating`, which f32 and f64 meet, so one name serves both
+--  widths, and every routine is written once, over that concept.
+--
+--  The routines keep Annex G's special values and its signed zeros on
+--  each side of a branch cut: a part that the annex leaves unsigned has
+--  the sign MPC gives it.  Each routine's error is stated in units in the
+--  last place of each part of the exact result, the largest of a million
+--  random inputs at each width, rounded up, and the `complex-*` runtime
+--  fixtures pin it against MPC's correctly rounded values on every
+--  target, as compiler/tests/math/README.md describes.  Results are
+--  rounded to nearest; the float unit's other rounding modes and its
+--  exception flags are neither read nor set.
+--
+--  Nothing here is ported: each routine is written from the mathematics,
+--  and the ones whose accuracy needs care from the published methods its
+--  comment names.
+import core/math
+
+--- A complex number, `real + imaginary·i`, with parts of a float type:
+--- `number(f64)` or `number(f32)`.  A struct literal makes one:
+--- `z: complex.number(f64) = (real: 1.0, imaginary: -2.0)`.
+public number: type (item: type is math.floating) = struct
+    real: item
+    imaginary: item
+end number
+
+--  Facts of the two formats, chosen by width.  A constant is converted
+--  only at the width it is written for, so an f64 constant that no f32
+--  holds is never converted to one.
+pick: (item: type is math.floating, wide: f64, narrow: f32) -> (value: item) =
+    if sizeof item == 8 then
+        value = item(wide)
+    else
+        value = item(narrow)
+    end if
+end pick
+
+--  The largest finite value.
+largest: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.fffffffffffffp1023, narrow: 0x1.fffffep127)
+end largest
+
+--  The distance from 1 to the next float up.
+epsilon: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.0p-52, narrow: 0x1.0p-23)
+end epsilon
+
+--  The number of bits of a significand, the leading one included.
+precision: (item: type is math.floating) -> (bits: i32) =
+    bits = if sizeof item == 8 then 53 else 24 end if
+end precision
+
+--  The least exponent of a normal value: 2 to this power is the least.
+least_exponent: (item: type is math.floating) -> (power: i32) =
+    power = if sizeof item == 8 then -1022 else -126 end if
+end least_exponent
+
+--  The greatest exponent: 2 to this power is the greatest power of 2.
+greatest_exponent: (item: type is math.floating) -> (power: i32) =
+    power = if sizeof item == 8 then 1023 else 127 end if
+end greatest_exponent
+
+--  An infinity with `sign`'s sign.
+infinity: (item: type is math.floating, sign: item) -> (value: item) =
+    big := largest(item: item)
+    value = math.copy_sign(big * big, sign)
+end infinity
+
+--  The exponent of `x`'s leading bit, as C's ilogb gives it for a finite
+--  nonzero `x`: |x| lies in [2^e, 2^(e+1)).
+exponent: (item: type is math.floating, x: item) -> (power: i32) =
+    (fraction: fraction, power: split_power) := math.split(x)
+    power = split_power - 1
+end exponent
+
+--- `z + w`, each part rounded once, as IEEE addition rounds it.
+public add: (item: type is math.floating, z: number(item), w: number(item))
+            -> (result: number(item)) =
+    result = (real: z.real + w.real, imaginary: z.imaginary + w.imaginary)
+end add
+
+--- `z - w`, each part rounded once, as IEEE subtraction rounds it.
+public subtract: (item: type is math.floating, z: number(item), w: number(item))
+                 -> (result: number(item)) =
+    result = (real: z.real - w.real, imaginary: z.imaginary - w.imaginary)
+end subtract
+
+--- `-z`: both parts' signs flipped, NaN and zeros included.  Exact.
+public negate: (item: type is math.floating, z: number(item))
+               -> (result: number(item)) =
+    result = (real: -z.real, imaginary: -z.imaginary)
+end negate
+
+--- The complex conjugate, `z` with its imaginary part's sign flipped.
+--- Exact.  C's `conj`.
+public conjugate: (item: type is math.floating, z: number(item))
+                  -> (result: number(item)) =
+    result = (real: z.real, imaginary: -z.imaginary)
+end conjugate
+
+--- `z` projected onto the Riemann sphere: `z` itself, unless either part
+--- is an infinity, when it is +∞ with an imaginary zero of `z`'s imaginary
+--- sign, even where the other part is NaN.  Exact.  C's `cproj`.
+public project: (item: type is math.floating, z: number(item))
+                -> (result: number(item)) =
+    if math.is_infinite(z.real) or math.is_infinite(z.imaginary) then
+        zero: item = item(0)
+        result = (real: infinity(item: item, sign: item(1)),
+                  imaginary: math.copy_sign(zero, z.imaginary))
+    else
+        result = z
+    end if
+end project
+
+--  a·b - c·d, its error under 2 ulp: the error of c·d, which an fma
+--  gives exactly, is added back to a·b - c·d rounded once (Kahan).  An
+--  exact zero keeps the sign IEEE's exact arithmetic gives it.
+difference_of_products: (item: type is math.floating, a: item, b: item, c: item, d: item)
+                        -> (result: item) =
+    cd := c * d
+    error := math.fma(-c, d, cd)
+    first := math.fma(a, b, -cd)
+    result = if error == item(0) then first else first + error end if
+end difference_of_products
+
+--  Whether a nonzero `v` lies outside [2^-limit, 2^limit], a quarter of
+--  the exponent range, where a product of two such can overflow or lose
+--  bits to underflow.
+far_out: (item: type is math.floating, v: item) -> (yes: bool) =
+    limit := greatest_exponent(item: item) / 4
+    m := math.abs(v)
+    yes = m <> item(0) and (m > math.scale(item(1), limit) or m < math.scale(item(1), -limit))
+end far_out
+
+outside: (item: type is math.floating, a: item, b: item, c: item, d: item)
+         -> (yes: bool) =
+    yes = far_out(a) or far_out(b) or far_out(c) or far_out(d)
+end outside
+
+--  p·q + r·s for finite p, q, r and s, as `value · 2^power`, with neither
+--  overflow nor underflow on the way, whatever the operands' magnitudes,
+--  and an error under 2 ulp: each operand is split into a significand in
+--  [1, 2) and an exponent, the smaller product's significand scaled to the
+--  larger's exponent, and the two summed as `difference_of_products`
+--  sums them.  A term the scaling takes below the subnormals is beyond
+--  the other's last place.
+product_sum: (item: type is math.floating, p: item, q: item, r: item, s: item)
+             -> (value: item, power: i32) =
+    zero: item = item(0)
+    first := p <> zero and q <> zero
+    second := r <> zero and s <> zero
+    power = 0
+    if not first and not second then
+        value = p * q + r * s
+        return
+    end if
+    if not second then
+        e := exponent(p) + exponent(q)
+        value = math.scale(p, -exponent(p)) * math.scale(q, -exponent(q))
+        power = e
+        return
+    end if
+    if not first then
+        e := exponent(r) + exponent(s)
+        value = math.scale(r, -exponent(r)) * math.scale(s, -exponent(s))
+        power = e
+        return
+    end if
+    e1 := exponent(p) + exponent(q)
+    e2 := exponent(r) + exponent(s)
+    mp := math.scale(p, -exponent(p))
+    mq := math.scale(q, -exponent(q))
+    mr := math.scale(r, -exponent(r))
+    ms := math.scale(s, -exponent(s))
+    if e1 >= e2 then
+        value = difference_of_products(mp, mq, -math.scale(mr, e2 - e1), ms)
+        power = e1
+    else
+        value = difference_of_products(math.scale(mp, e1 - e2), mq, -mr, ms)
+        power = e2
+    end if
+end product_sum
+
+--- `z · w`, each part within 1.0 ulp at both widths: the parts' products
+--- are summed with the error of one product recovered by a fused
+--- multiply-add, so a part that cancels keeps its accuracy, and finite
+--- operands whose products would overflow or underflow are scaled first.
+--- An infinite operand gives an infinite product where IEEE's arithmetic
+--- would give NaN, as Annex G's multiplication does: `(∞ + NaN·i) · (1 +
+--- 1·i)` is an infinity.
+public multiply: (item: type is math.floating, z: number(item), w: number(item))
+                 -> (result: number(item)) =
+    mut a := z.real
+    mut b := z.imaginary
+    mut c := w.real
+    mut d := w.imaginary
+    if math.is_finite(a) and math.is_finite(b) and math.is_finite(c) and math.is_finite(d) then
+        if not outside(a, b, c, d) then
+            result = (real: difference_of_products(a, c, b, d),
+                      imaginary: difference_of_products(a, d, -b, c))
+            return
+        end if
+        (value: real, power: real_power) := product_sum(a, c, -b, d)
+        (value: imaginary, power: imaginary_power) := product_sum(a, d, b, c)
+        result = (real: math.scale(real, real_power),
+                  imaginary: math.scale(imaginary, imaginary_power))
+        return
+    end if
+    mut x := a * c - b * d
+    mut y := a * d + b * c
+    if math.is_nan(x) and math.is_nan(y) then
+        --  Annex G's recovery: an infinite operand is taken as a unit of
+        --  its direction, a NaN part beside it as a zero of its sign, and
+        --  the product of the directions scaled to infinity.  The
+        --  annex's sample also turns NaNs into zeros where a product
+        --  overflowed; its rule for `*` does not ask that, nor does MPC.
+        zero: item = item(0)
+        one: item = item(1)
+        mut again := false
+        if math.is_infinite(a) or math.is_infinite(b) then
+            a = math.copy_sign(if math.is_infinite(a) then one else zero end if, a)
+            b = math.copy_sign(if math.is_infinite(b) then one else zero end if, b)
+            if math.is_nan(c) then c = math.copy_sign(zero, c) end if
+            if math.is_nan(d) then d = math.copy_sign(zero, d) end if
+            again = true
+        end if
+        if math.is_infinite(c) or math.is_infinite(d) then
+            c = math.copy_sign(if math.is_infinite(c) then one else zero end if, c)
+            d = math.copy_sign(if math.is_infinite(d) then one else zero end if, d)
+            if math.is_nan(a) then a = math.copy_sign(zero, a) end if
+            if math.is_nan(b) then b = math.copy_sign(zero, b) end if
+            again = true
+        end if
+        if again then
+            huge := infinity(item: item, sign: one)
+            x = huge * (a * c - b * d)
+            y = huge * (a * d + b * c)
+        end if
+    end if
+    result = (real: x, imaginary: y)
+end multiply
+
+--- `z / w`, each part within 3.21 ulp at f64 and 3.32 at f32: `z ·
+--- conj(w) / |w|²`, its numerator's parts summed as `multiply` sums them,
+--- each over operands scaled by powers of 2 so that nothing overflows or
+--- underflows on the way.  As Annex G's division does, an infinity over a
+--- finite number is an infinity, a finite number over an infinity a zero,
+--- and a nonzero number over zero an infinity in its direction.
+public divide: (item: type is math.floating, z: number(item), w: number(item))
+               -> (result: number(item)) =
+    mut a := z.real
+    mut b := z.imaginary
+    mut c := w.real
+    mut d := w.imaginary
+    zero: item = item(0)
+    one: item = item(1)
+    mut x := zero
+    mut y := zero
+    if math.is_finite(a) and math.is_finite(b) and math.is_finite(c) and math.is_finite(d)
+      and (c <> zero or d <> zero) then
+        if not outside(a, b, c, d) then
+            denominator := c * c + d * d
+            result = (real: difference_of_products(a, c, -b, d) / denominator,
+                      imaginary: difference_of_products(b, c, a, d) / denominator)
+            return
+        end if
+        --  |w|² from w scaled by 2^-e to a larger part in [1, 2), and each
+        --  part of z · conj(w) as `product_sum` gives it.
+        e := exponent(math.max(math.abs(c), math.abs(d)))
+        s := math.scale(c, -e)
+        t := math.scale(d, -e)
+        denominator := s * s + t * t
+        (value: real, power: real_power) := product_sum(a, c, b, d)
+        (value: imaginary, power: imaginary_power) := product_sum(b, c, -a, d)
+        result = (real: math.scale(real / denominator, real_power - 2 * e),
+                  imaginary: math.scale(imaginary / denominator, imaginary_power - 2 * e))
+        return
+    end if
+    huge := infinity(item: item, sign: one)
+    if (math.is_infinite(a) or math.is_infinite(b)) and math.is_finite(c) and math.is_finite(d)
+      and (c <> zero or d <> zero) then
+        --  An infinity over a finite number: Annex G's recovery, taken
+        --  whatever IEEE's arithmetic would give, as MPC takes it.
+        a = math.copy_sign(if math.is_infinite(a) then one else zero end if, a)
+        b = math.copy_sign(if math.is_infinite(b) then one else zero end if, b)
+        result = (real: huge * (a * c + b * d), imaginary: huge * (b * c - a * d))
+        return
+    end if
+    --  IEEE's arithmetic on what is left, then Annex G's recovery.
+    m := math.max(math.abs(c), math.abs(d))
+    mut shift: i32 = 0
+    if math.is_finite(m) and m <> zero then
+        shift = exponent(m)
+        c = math.scale(c, -shift)
+        d = math.scale(d, -shift)
+    end if
+    denominator := c * c + d * d
+    x = math.scale((a * c + b * d) / denominator, -shift)
+    y = math.scale((b * c - a * d) / denominator, -shift)
+    if math.is_nan(x) and math.is_nan(y) then
+        if denominator == zero and (not math.is_nan(a) or not math.is_nan(b)) then
+            x = math.copy_sign(huge, c) * a
+            y = math.copy_sign(huge, c) * b
+        elsif math.is_infinite(m) and math.is_finite(a) and math.is_finite(b) then
+            c = math.copy_sign(if math.is_infinite(c) then one else zero end if, c)
+            d = math.copy_sign(if math.is_infinite(d) then one else zero end if, d)
+            x = zero * (a * c + b * d)
+            y = zero * (b * c - a * d)
+        end if
+    end if
+    result = (real: x, imaginary: y)
+end divide
+
+--- The magnitude |z| without overflow or underflow on the way: `math.
+--- hypot` of the parts, within 0.91 ulp at f64 and 1.08 at f32.  An
+--- infinite part gives +∞ even beside NaN.  C's `cabs`.
+public abs: (item: type is math.floating, z: number(item)) -> (result: item) =
+    result = math.hypot(z.real, z.imaginary)
+end abs
+
+--- The argument of `z`, its angle from the positive real axis, in
+--- [-π, π]: `math.atan2` of the imaginary and real parts, within 1.42 ulp
+--- at f64 and 1.45 at f32, with its signed zeros, so that the negative real
+--- axis gives π from a +0 imaginary part and -π from -0.  C's `carg`.
+public arg: (item: type is math.floating, z: number(item)) -> (result: item) =
+    result = math.atan2(z.imaginary, z.real)
+end arg
+
+--- `z` in polar form: its magnitude, as `abs` gives it, and its angle, as
+--- `arg` does.
+public polar: (item: type is math.floating, z: number(item))
+              -> (magnitude: item, angle: item) =
+    magnitude = math.hypot(z.real, z.imaginary)
+    angle = math.atan2(z.imaginary, z.real)
+end polar
+
+--- The number of magnitude `magnitude` at `angle` radians from the
+--- positive real axis: `magnitude · cos(angle)` and `magnitude ·
+--- sin(angle)`, each within 1.53 ulp at f64 and 1.46 at f32, with IEEE's
+--- products, so an infinite magnitude at angle 0 has a NaN imaginary
+--- part.
+public from_polar: (item: type is math.floating, magnitude: item, angle: item)
+                   -> (result: number(item)) =
+    result = (real: magnitude * math.cos(angle), imaginary: magnitude * math.sin(angle))
+end from_polar

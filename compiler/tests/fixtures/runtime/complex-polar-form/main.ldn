@@ -1,0 +1,28 @@
+import core/complex
+import core/math
+
+--  `polar` is `abs` and `arg` together: 3 + 4i's magnitude is exactly 5
+--  and its angle is what `arg` gives, and an infinite part gives an
+--  infinite magnitude even beside NaN.  At f32, whose image fits
+--  Cortex-M0's flash at every profile.
+exercise: () -> (ok: bool) =
+    ok = false
+    narrow: complex.number(f32) = (real: 3.0, imaginary: 4.0)
+    (magnitude: narrow_magnitude, angle: narrow_angle) := complex.polar(narrow)
+    return when narrow_magnitude <> 5.0 or narrow_angle <> complex.arg(narrow)
+      or narrow_angle <= 0.9 or narrow_angle >= 1.0
+    zero: f32 = 0.0
+    nan := zero / zero
+    far: complex.number(f32) = (real: nan, imaginary: f32(1.0) / zero)
+    (magnitude: far_magnitude, angle: far_angle) := complex.polar(far)
+    ok = math.is_infinite(far_magnitude) and not math.is_negative(far_magnitude)
+         and math.is_nan(far_angle)
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main

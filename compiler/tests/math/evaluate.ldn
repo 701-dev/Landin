@@ -2,24 +2,15 @@
 --  fixtures` to write it again.  The program `measure` and `exhaustive`
 --  run: `evaluate FUNCTION WIDTH` reads records of the function's inputs,
 --  little-endian at WIDTH bits, from standard input and writes each
---  record back with core/math's result after it;  `evaluate FUNCTION 32
---  FIRST COUNT` writes the records of COUNT f32 inputs, every bit pattern
---  from FIRST up, without reading any.
+--  record back with the result after it, a complex number as its real
+--  and imaginary parts;  `evaluate FUNCTION 32 FIRST COUNT` writes the
+--  records of COUNT f32 inputs, every bit pattern from FIRST up, without
+--  reading any.
+import core/complex
 import core/io
 import core/math
 import core/text
 import hosted/blocking
-
-arity: (name: []u8) -> (count: usize) =
-    count = 1
-    if same(name, "hypot") or same(name, "remainder")
-      or same(name, "remainder_nearest") or same(name, "pow")
-      or same(name, "atan2") then
-        count = 2
-    elsif same(name, "fma") then
-        count = 3
-    end if
-end arity
 
 same: (left: []u8, right: []u8) -> (yes: bool) =
     yes = lenof left == lenof right
@@ -160,162 +151,577 @@ number: (name: []u8) -> (which: u32) =
         which = 35
     elsif same(name, "log_gamma") then
         which = 36
+    elsif same(name, "complex.add") then
+        which = 37
+    elsif same(name, "complex.subtract") then
+        which = 38
+    elsif same(name, "complex.multiply") then
+        which = 39
+    elsif same(name, "complex.divide") then
+        which = 40
+    elsif same(name, "complex.negate") then
+        which = 41
+    elsif same(name, "complex.conjugate") then
+        which = 42
+    elsif same(name, "complex.project") then
+        which = 43
+    elsif same(name, "complex.abs") then
+        which = 44
+    elsif same(name, "complex.arg") then
+        which = 45
+    elsif same(name, "complex.from_polar") then
+        which = 46
+    elsif same(name, "complex.exp") then
+        which = 47
+    elsif same(name, "complex.log") then
+        which = 48
+    elsif same(name, "complex.pow") then
+        which = 49
+    elsif same(name, "complex.sqrt") then
+        which = 50
+    elsif same(name, "complex.sin") then
+        which = 51
+    elsif same(name, "complex.cos") then
+        which = 52
+    elsif same(name, "complex.tan") then
+        which = 53
+    elsif same(name, "complex.asin") then
+        which = 54
+    elsif same(name, "complex.acos") then
+        which = 55
+    elsif same(name, "complex.atan") then
+        which = 56
+    elsif same(name, "complex.sinh") then
+        which = 57
+    elsif same(name, "complex.cosh") then
+        which = 58
+    elsif same(name, "complex.tanh") then
+        which = 59
+    elsif same(name, "complex.asinh") then
+        which = 60
+    elsif same(name, "complex.acosh") then
+        which = 61
+    elsif same(name, "complex.atanh") then
+        which = 62
     end if
 end number
 
-result_64: (which: u32, record: []u8) -> (result: u64) =
-    result = 0
-    if which == 1 then
-        result = canonical_64(bits_64(math.sqrt(from_64(take_64(record, 0)))))
-    elsif which == 2 then
-        result = canonical_64(bits_64(math.cbrt(from_64(take_64(record, 0)))))
-    elsif which == 3 then
-        result = canonical_64(bits_64(math.hypot(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+--  How many floats the function takes and gives.
+shape: (which: u32) -> (inputs: usize, outputs: usize) =
+    inputs = 1
+    outputs = 1
+    if which == 3 then
+        inputs = 2
+        outputs = 1
     elsif which == 4 then
-        result = canonical_64(bits_64(math.fma(from_64(take_64(record, 0)), from_64(take_64(record, 1)), from_64(take_64(record, 2)))))
-    elsif which == 5 then
-        result = canonical_64(bits_64(math.floor(from_64(take_64(record, 0)))))
-    elsif which == 6 then
-        result = canonical_64(bits_64(math.ceil(from_64(take_64(record, 0)))))
-    elsif which == 7 then
-        result = canonical_64(bits_64(math.trunc(from_64(take_64(record, 0)))))
-    elsif which == 8 then
-        result = canonical_64(bits_64(math.round(from_64(take_64(record, 0)))))
-    elsif which == 9 then
-        result = canonical_64(bits_64(math.round_even(from_64(take_64(record, 0)))))
+        inputs = 3
+        outputs = 1
     elsif which == 10 then
-        result = canonical_64(bits_64(math.remainder(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
+        inputs = 2
+        outputs = 1
     elsif which == 11 then
-        result = canonical_64(bits_64(math.remainder_nearest(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
-    elsif which == 12 then
-        result = canonical_64(bits_64(math.exp(from_64(take_64(record, 0)))))
-    elsif which == 13 then
-        result = canonical_64(bits_64(math.exp2(from_64(take_64(record, 0)))))
-    elsif which == 14 then
-        result = canonical_64(bits_64(math.expm1(from_64(take_64(record, 0)))))
-    elsif which == 15 then
-        result = canonical_64(bits_64(math.log(from_64(take_64(record, 0)))))
-    elsif which == 16 then
-        result = canonical_64(bits_64(math.log2(from_64(take_64(record, 0)))))
-    elsif which == 17 then
-        result = canonical_64(bits_64(math.log10(from_64(take_64(record, 0)))))
-    elsif which == 18 then
-        result = canonical_64(bits_64(math.log1p(from_64(take_64(record, 0)))))
+        inputs = 2
+        outputs = 1
     elsif which == 19 then
-        result = canonical_64(bits_64(math.pow(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
-    elsif which == 20 then
-        result = canonical_64(bits_64(math.sin(from_64(take_64(record, 0)))))
-    elsif which == 21 then
-        result = canonical_64(bits_64(math.cos(from_64(take_64(record, 0)))))
-    elsif which == 22 then
-        result = canonical_64(bits_64(math.tan(from_64(take_64(record, 0)))))
-    elsif which == 23 then
-        result = canonical_64(bits_64(math.asin(from_64(take_64(record, 0)))))
-    elsif which == 24 then
-        result = canonical_64(bits_64(math.acos(from_64(take_64(record, 0)))))
-    elsif which == 25 then
-        result = canonical_64(bits_64(math.atan(from_64(take_64(record, 0)))))
+        inputs = 2
+        outputs = 1
     elsif which == 26 then
-        result = canonical_64(bits_64(math.atan2(from_64(take_64(record, 0)), from_64(take_64(record, 1)))))
-    elsif which == 27 then
-        result = canonical_64(bits_64(math.sinh(from_64(take_64(record, 0)))))
-    elsif which == 28 then
-        result = canonical_64(bits_64(math.cosh(from_64(take_64(record, 0)))))
-    elsif which == 29 then
-        result = canonical_64(bits_64(math.tanh(from_64(take_64(record, 0)))))
-    elsif which == 30 then
-        result = canonical_64(bits_64(math.asinh(from_64(take_64(record, 0)))))
-    elsif which == 31 then
-        result = canonical_64(bits_64(math.acosh(from_64(take_64(record, 0)))))
-    elsif which == 32 then
-        result = canonical_64(bits_64(math.atanh(from_64(take_64(record, 0)))))
-    elsif which == 33 then
-        result = canonical_64(bits_64(math.erf(from_64(take_64(record, 0)))))
-    elsif which == 34 then
-        result = canonical_64(bits_64(math.erfc(from_64(take_64(record, 0)))))
-    elsif which == 35 then
-        result = canonical_64(bits_64(math.gamma(from_64(take_64(record, 0)))))
-    elsif which == 36 then
-        result = canonical_64(bits_64(math.log_gamma(from_64(take_64(record, 0)))))
+        inputs = 2
+        outputs = 1
+    elsif which == 37 then
+        inputs = 4
+        outputs = 2
+    elsif which == 38 then
+        inputs = 4
+        outputs = 2
+    elsif which == 39 then
+        inputs = 4
+        outputs = 2
+    elsif which == 40 then
+        inputs = 4
+        outputs = 2
+    elsif which == 41 then
+        inputs = 2
+        outputs = 2
+    elsif which == 42 then
+        inputs = 2
+        outputs = 2
+    elsif which == 43 then
+        inputs = 2
+        outputs = 2
+    elsif which == 44 then
+        inputs = 2
+        outputs = 1
+    elsif which == 45 then
+        inputs = 2
+        outputs = 1
+    elsif which == 46 then
+        inputs = 2
+        outputs = 2
+    elsif which == 47 then
+        inputs = 2
+        outputs = 2
+    elsif which == 48 then
+        inputs = 2
+        outputs = 2
+    elsif which == 49 then
+        inputs = 4
+        outputs = 2
+    elsif which == 50 then
+        inputs = 2
+        outputs = 2
+    elsif which == 51 then
+        inputs = 2
+        outputs = 2
+    elsif which == 52 then
+        inputs = 2
+        outputs = 2
+    elsif which == 53 then
+        inputs = 2
+        outputs = 2
+    elsif which == 54 then
+        inputs = 2
+        outputs = 2
+    elsif which == 55 then
+        inputs = 2
+        outputs = 2
+    elsif which == 56 then
+        inputs = 2
+        outputs = 2
+    elsif which == 57 then
+        inputs = 2
+        outputs = 2
+    elsif which == 58 then
+        inputs = 2
+        outputs = 2
+    elsif which == 59 then
+        inputs = 2
+        outputs = 2
+    elsif which == 60 then
+        inputs = 2
+        outputs = 2
+    elsif which == 61 then
+        inputs = 2
+        outputs = 2
+    elsif which == 62 then
+        inputs = 2
+        outputs = 2
     end if
-end result_64
+end shape
 
-result_32: (which: u32, record: []u8) -> (result: u64) =
-    result = 0
+--  The function's result for the inputs in `record`, written into `into`
+--  from `at`.
+apply_64: (which: u32, record: []u8, into: []mut u8, at: usize) -> none =
     if which == 1 then
-        result = canonical_32(bits_32(math.sqrt(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.sqrt(from_64(take_64(record, 0))))), 8)
     elsif which == 2 then
-        result = canonical_32(bits_32(math.cbrt(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.cbrt(from_64(take_64(record, 0))))), 8)
     elsif which == 3 then
-        result = canonical_32(bits_32(math.hypot(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+        put(into, at, canonical_64(bits_64(math.hypot(from_64(take_64(record, 0)), from_64(take_64(record, 1))))), 8)
     elsif which == 4 then
-        result = canonical_32(bits_32(math.fma(from_32(take_32(record, 0)), from_32(take_32(record, 1)), from_32(take_32(record, 2)))))
+        put(into, at, canonical_64(bits_64(math.fma(from_64(take_64(record, 0)), from_64(take_64(record, 1)), from_64(take_64(record, 2))))), 8)
     elsif which == 5 then
-        result = canonical_32(bits_32(math.floor(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.floor(from_64(take_64(record, 0))))), 8)
     elsif which == 6 then
-        result = canonical_32(bits_32(math.ceil(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.ceil(from_64(take_64(record, 0))))), 8)
     elsif which == 7 then
-        result = canonical_32(bits_32(math.trunc(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.trunc(from_64(take_64(record, 0))))), 8)
     elsif which == 8 then
-        result = canonical_32(bits_32(math.round(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.round(from_64(take_64(record, 0))))), 8)
     elsif which == 9 then
-        result = canonical_32(bits_32(math.round_even(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.round_even(from_64(take_64(record, 0))))), 8)
     elsif which == 10 then
-        result = canonical_32(bits_32(math.remainder(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+        put(into, at, canonical_64(bits_64(math.remainder(from_64(take_64(record, 0)), from_64(take_64(record, 1))))), 8)
     elsif which == 11 then
-        result = canonical_32(bits_32(math.remainder_nearest(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+        put(into, at, canonical_64(bits_64(math.remainder_nearest(from_64(take_64(record, 0)), from_64(take_64(record, 1))))), 8)
     elsif which == 12 then
-        result = canonical_32(bits_32(math.exp(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.exp(from_64(take_64(record, 0))))), 8)
     elsif which == 13 then
-        result = canonical_32(bits_32(math.exp2(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.exp2(from_64(take_64(record, 0))))), 8)
     elsif which == 14 then
-        result = canonical_32(bits_32(math.expm1(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.expm1(from_64(take_64(record, 0))))), 8)
     elsif which == 15 then
-        result = canonical_32(bits_32(math.log(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.log(from_64(take_64(record, 0))))), 8)
     elsif which == 16 then
-        result = canonical_32(bits_32(math.log2(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.log2(from_64(take_64(record, 0))))), 8)
     elsif which == 17 then
-        result = canonical_32(bits_32(math.log10(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.log10(from_64(take_64(record, 0))))), 8)
     elsif which == 18 then
-        result = canonical_32(bits_32(math.log1p(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.log1p(from_64(take_64(record, 0))))), 8)
     elsif which == 19 then
-        result = canonical_32(bits_32(math.pow(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+        put(into, at, canonical_64(bits_64(math.pow(from_64(take_64(record, 0)), from_64(take_64(record, 1))))), 8)
     elsif which == 20 then
-        result = canonical_32(bits_32(math.sin(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.sin(from_64(take_64(record, 0))))), 8)
     elsif which == 21 then
-        result = canonical_32(bits_32(math.cos(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.cos(from_64(take_64(record, 0))))), 8)
     elsif which == 22 then
-        result = canonical_32(bits_32(math.tan(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.tan(from_64(take_64(record, 0))))), 8)
     elsif which == 23 then
-        result = canonical_32(bits_32(math.asin(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.asin(from_64(take_64(record, 0))))), 8)
     elsif which == 24 then
-        result = canonical_32(bits_32(math.acos(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.acos(from_64(take_64(record, 0))))), 8)
     elsif which == 25 then
-        result = canonical_32(bits_32(math.atan(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.atan(from_64(take_64(record, 0))))), 8)
     elsif which == 26 then
-        result = canonical_32(bits_32(math.atan2(from_32(take_32(record, 0)), from_32(take_32(record, 1)))))
+        put(into, at, canonical_64(bits_64(math.atan2(from_64(take_64(record, 0)), from_64(take_64(record, 1))))), 8)
     elsif which == 27 then
-        result = canonical_32(bits_32(math.sinh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.sinh(from_64(take_64(record, 0))))), 8)
     elsif which == 28 then
-        result = canonical_32(bits_32(math.cosh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.cosh(from_64(take_64(record, 0))))), 8)
     elsif which == 29 then
-        result = canonical_32(bits_32(math.tanh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.tanh(from_64(take_64(record, 0))))), 8)
     elsif which == 30 then
-        result = canonical_32(bits_32(math.asinh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.asinh(from_64(take_64(record, 0))))), 8)
     elsif which == 31 then
-        result = canonical_32(bits_32(math.acosh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.acosh(from_64(take_64(record, 0))))), 8)
     elsif which == 32 then
-        result = canonical_32(bits_32(math.atanh(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.atanh(from_64(take_64(record, 0))))), 8)
     elsif which == 33 then
-        result = canonical_32(bits_32(math.erf(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.erf(from_64(take_64(record, 0))))), 8)
     elsif which == 34 then
-        result = canonical_32(bits_32(math.erfc(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.erfc(from_64(take_64(record, 0))))), 8)
     elsif which == 35 then
-        result = canonical_32(bits_32(math.gamma(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.gamma(from_64(take_64(record, 0))))), 8)
     elsif which == 36 then
-        result = canonical_32(bits_32(math.log_gamma(from_32(take_32(record, 0)))))
+        put(into, at, canonical_64(bits_64(math.log_gamma(from_64(take_64(record, 0))))), 8)
+    elsif which == 37 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        w: complex.number(f64) = (real: from_64(take_64(record, 2)), imaginary: from_64(take_64(record, 3)))
+        got: complex.number(f64) = complex.add(z, w)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 38 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        w: complex.number(f64) = (real: from_64(take_64(record, 2)), imaginary: from_64(take_64(record, 3)))
+        got: complex.number(f64) = complex.subtract(z, w)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 39 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        w: complex.number(f64) = (real: from_64(take_64(record, 2)), imaginary: from_64(take_64(record, 3)))
+        got: complex.number(f64) = complex.multiply(z, w)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 40 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        w: complex.number(f64) = (real: from_64(take_64(record, 2)), imaginary: from_64(take_64(record, 3)))
+        got: complex.number(f64) = complex.divide(z, w)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 41 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.negate(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 42 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.conjugate(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 43 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.project(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 44 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        put(into, at, canonical_64(bits_64(complex.abs(z))), 8)
+    elsif which == 45 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        put(into, at, canonical_64(bits_64(complex.arg(z))), 8)
+    elsif which == 46 then
+        got: complex.number(f64) = complex.from_polar(from_64(take_64(record, 0)), from_64(take_64(record, 1)))
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 47 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.exp(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 48 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.log(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 49 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        w: complex.number(f64) = (real: from_64(take_64(record, 2)), imaginary: from_64(take_64(record, 3)))
+        got: complex.number(f64) = complex.pow(z, w)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 50 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.sqrt(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 51 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.sin(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 52 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.cos(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 53 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.tan(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 54 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.asin(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 55 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.acos(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 56 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.atan(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 57 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.sinh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 58 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.cosh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 59 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.tanh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 60 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.asinh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 61 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.acosh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
+    elsif which == 62 then
+        z: complex.number(f64) = (real: from_64(take_64(record, 0)), imaginary: from_64(take_64(record, 1)))
+        got: complex.number(f64) = complex.atanh(z)
+        put(into, at, canonical_64(bits_64(got.real)), 8)
+        put(into, at + 8, canonical_64(bits_64(got.imaginary)), 8)
     end if
-end result_32
+end apply_64
+
+apply_32: (which: u32, record: []u8, into: []mut u8, at: usize) -> none =
+    if which == 1 then
+        put(into, at, canonical_32(bits_32(math.sqrt(from_32(take_32(record, 0))))), 4)
+    elsif which == 2 then
+        put(into, at, canonical_32(bits_32(math.cbrt(from_32(take_32(record, 0))))), 4)
+    elsif which == 3 then
+        put(into, at, canonical_32(bits_32(math.hypot(from_32(take_32(record, 0)), from_32(take_32(record, 1))))), 4)
+    elsif which == 4 then
+        put(into, at, canonical_32(bits_32(math.fma(from_32(take_32(record, 0)), from_32(take_32(record, 1)), from_32(take_32(record, 2))))), 4)
+    elsif which == 5 then
+        put(into, at, canonical_32(bits_32(math.floor(from_32(take_32(record, 0))))), 4)
+    elsif which == 6 then
+        put(into, at, canonical_32(bits_32(math.ceil(from_32(take_32(record, 0))))), 4)
+    elsif which == 7 then
+        put(into, at, canonical_32(bits_32(math.trunc(from_32(take_32(record, 0))))), 4)
+    elsif which == 8 then
+        put(into, at, canonical_32(bits_32(math.round(from_32(take_32(record, 0))))), 4)
+    elsif which == 9 then
+        put(into, at, canonical_32(bits_32(math.round_even(from_32(take_32(record, 0))))), 4)
+    elsif which == 10 then
+        put(into, at, canonical_32(bits_32(math.remainder(from_32(take_32(record, 0)), from_32(take_32(record, 1))))), 4)
+    elsif which == 11 then
+        put(into, at, canonical_32(bits_32(math.remainder_nearest(from_32(take_32(record, 0)), from_32(take_32(record, 1))))), 4)
+    elsif which == 12 then
+        put(into, at, canonical_32(bits_32(math.exp(from_32(take_32(record, 0))))), 4)
+    elsif which == 13 then
+        put(into, at, canonical_32(bits_32(math.exp2(from_32(take_32(record, 0))))), 4)
+    elsif which == 14 then
+        put(into, at, canonical_32(bits_32(math.expm1(from_32(take_32(record, 0))))), 4)
+    elsif which == 15 then
+        put(into, at, canonical_32(bits_32(math.log(from_32(take_32(record, 0))))), 4)
+    elsif which == 16 then
+        put(into, at, canonical_32(bits_32(math.log2(from_32(take_32(record, 0))))), 4)
+    elsif which == 17 then
+        put(into, at, canonical_32(bits_32(math.log10(from_32(take_32(record, 0))))), 4)
+    elsif which == 18 then
+        put(into, at, canonical_32(bits_32(math.log1p(from_32(take_32(record, 0))))), 4)
+    elsif which == 19 then
+        put(into, at, canonical_32(bits_32(math.pow(from_32(take_32(record, 0)), from_32(take_32(record, 1))))), 4)
+    elsif which == 20 then
+        put(into, at, canonical_32(bits_32(math.sin(from_32(take_32(record, 0))))), 4)
+    elsif which == 21 then
+        put(into, at, canonical_32(bits_32(math.cos(from_32(take_32(record, 0))))), 4)
+    elsif which == 22 then
+        put(into, at, canonical_32(bits_32(math.tan(from_32(take_32(record, 0))))), 4)
+    elsif which == 23 then
+        put(into, at, canonical_32(bits_32(math.asin(from_32(take_32(record, 0))))), 4)
+    elsif which == 24 then
+        put(into, at, canonical_32(bits_32(math.acos(from_32(take_32(record, 0))))), 4)
+    elsif which == 25 then
+        put(into, at, canonical_32(bits_32(math.atan(from_32(take_32(record, 0))))), 4)
+    elsif which == 26 then
+        put(into, at, canonical_32(bits_32(math.atan2(from_32(take_32(record, 0)), from_32(take_32(record, 1))))), 4)
+    elsif which == 27 then
+        put(into, at, canonical_32(bits_32(math.sinh(from_32(take_32(record, 0))))), 4)
+    elsif which == 28 then
+        put(into, at, canonical_32(bits_32(math.cosh(from_32(take_32(record, 0))))), 4)
+    elsif which == 29 then
+        put(into, at, canonical_32(bits_32(math.tanh(from_32(take_32(record, 0))))), 4)
+    elsif which == 30 then
+        put(into, at, canonical_32(bits_32(math.asinh(from_32(take_32(record, 0))))), 4)
+    elsif which == 31 then
+        put(into, at, canonical_32(bits_32(math.acosh(from_32(take_32(record, 0))))), 4)
+    elsif which == 32 then
+        put(into, at, canonical_32(bits_32(math.atanh(from_32(take_32(record, 0))))), 4)
+    elsif which == 33 then
+        put(into, at, canonical_32(bits_32(math.erf(from_32(take_32(record, 0))))), 4)
+    elsif which == 34 then
+        put(into, at, canonical_32(bits_32(math.erfc(from_32(take_32(record, 0))))), 4)
+    elsif which == 35 then
+        put(into, at, canonical_32(bits_32(math.gamma(from_32(take_32(record, 0))))), 4)
+    elsif which == 36 then
+        put(into, at, canonical_32(bits_32(math.log_gamma(from_32(take_32(record, 0))))), 4)
+    elsif which == 37 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        w: complex.number(f32) = (real: from_32(take_32(record, 2)), imaginary: from_32(take_32(record, 3)))
+        got: complex.number(f32) = complex.add(z, w)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 38 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        w: complex.number(f32) = (real: from_32(take_32(record, 2)), imaginary: from_32(take_32(record, 3)))
+        got: complex.number(f32) = complex.subtract(z, w)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 39 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        w: complex.number(f32) = (real: from_32(take_32(record, 2)), imaginary: from_32(take_32(record, 3)))
+        got: complex.number(f32) = complex.multiply(z, w)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 40 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        w: complex.number(f32) = (real: from_32(take_32(record, 2)), imaginary: from_32(take_32(record, 3)))
+        got: complex.number(f32) = complex.divide(z, w)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 41 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.negate(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 42 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.conjugate(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 43 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.project(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 44 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        put(into, at, canonical_32(bits_32(complex.abs(z))), 4)
+    elsif which == 45 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        put(into, at, canonical_32(bits_32(complex.arg(z))), 4)
+    elsif which == 46 then
+        got: complex.number(f32) = complex.from_polar(from_32(take_32(record, 0)), from_32(take_32(record, 1)))
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 47 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.exp(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 48 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.log(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 49 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        w: complex.number(f32) = (real: from_32(take_32(record, 2)), imaginary: from_32(take_32(record, 3)))
+        got: complex.number(f32) = complex.pow(z, w)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 50 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.sqrt(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 51 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.sin(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 52 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.cos(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 53 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.tan(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 54 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.asin(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 55 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.acos(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 56 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.atan(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 57 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.sinh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 58 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.cosh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 59 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.tanh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 60 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.asinh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 61 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.acosh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    elsif which == 62 then
+        z: complex.number(f32) = (real: from_32(take_32(record, 0)), imaginary: from_32(take_32(record, 1)))
+        got: complex.number(f32) = complex.atanh(z)
+        put(into, at, canonical_32(bits_32(got.real)), 4)
+        put(into, at + 4, canonical_32(bits_32(got.imaginary)), 4)
+    end if
+end apply_32
 
 argument_number: (host: blocking.host, index: usize) -> (value: u64) =
     value = 0
@@ -330,9 +736,9 @@ public main: () -> (code: i32) =
     name := text.os_string_bytes(given)
     width := argument_number(host, 1)
     bytes: usize = if width == 64 then 8 else 4 end if
-    inputs := arity(name)
     which := number(name)
-    record_bytes := (inputs + 1) * bytes
+    (inputs: inputs, outputs: outputs) := shape(which)
+    record_bytes := (inputs + outputs) * bytes
     mut buffer: [32768]u8 = zeroed
     mut output: [65536]u8 = zeroed
     per_block := lenof output / record_bytes
@@ -345,8 +751,7 @@ public main: () -> (code: i32) =
             while filled < per_block and done < count do
                 at := filled * record_bytes
                 put(output, at, first + done, 4)
-                result := result_32(which, output[at..<at + record_bytes])
-                put(output, at + 4, result, 4)
+                apply_32(which, output[at..<at + 4], output, at + 4)
                 filled = filled + 1
                 done = done + 1
             end while
@@ -368,9 +773,11 @@ public main: () -> (code: i32) =
                 output[to + k] = buffer[at + k]
             end for
             record := buffer[at..<at + input_bytes]
-            result := if width == 64 then result_64(which, record)
-                      else result_32(which, record) end if
-            put(output, to + input_bytes, result, bytes)
+            if width == 64 then
+                apply_64(which, record, output, to + input_bytes)
+            else
+                apply_32(which, record, output, to + input_bytes)
+            end if
         end for
         io.write(host, io.out(host), output[0..<whole * record_bytes]) else begin return end
         rest := held - whole * input_bytes
