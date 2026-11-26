@@ -30,6 +30,9 @@ notices when copying the corresponding material:
     Microsystems' notice, which asks only that it stay with the source;
     preserved in core/math/math.ldn, whose files name the msun files
     they port.
+  * The tables of core/unicode, generated from the Unicode Character
+    Database: Unicode License V3; notice in core/unicode/LICENSE.unicode,
+    named in the header of core/unicode/tables.ldn.
   * Tree-sitter support headers (alloc.h, array.h and parser.h): MIT;
     notice in highlight/tree-sitter/src/tree_sitter/LICENSE.
     highlight/tree-sitter/README.md records their pinned upstream sources.

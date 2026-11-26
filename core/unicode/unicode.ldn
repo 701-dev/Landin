@@ -135,13 +135,13 @@ end is_lowercase
 
 --- Whether `scalar` is Cased: upper, lower or title case.
 public is_cased: (scalar: u32) -> (yes: bool) =
-    yes = flag_code(scalar) & cased_bit <> 0
+    yes = case_context_code(scalar) & cased_bit <> 0
 end is_cased
 
 --- Whether `scalar` is Case_Ignorable, which case mapping passes over when
 --- it looks for the letters around a sigma or a word's first letter.
 public is_case_ignorable: (scalar: u32) -> (yes: bool) =
-    yes = flag_code(scalar) & case_ignorable_bit <> 0
+    yes = case_context_code(scalar) & case_ignorable_bit <> 0
 end is_case_ignorable
 
 --  Decode the scalar of `bytes` that begins at `at`, which is well-formed

@@ -94,6 +94,9 @@ FLAGS = (
     ("cased", "DerivedCoreProperties.txt", "Cased"),
     ("case_ignorable", "DerivedCoreProperties.txt", "Case_Ignorable"),
 )
+#  The first of FLAGS that `case_context_code` holds rather than
+#  `flag_code`.
+CONTEXT_BIT = 4
 
 #  Each segmentation property's values, in the order of their codes; the
 #  first is the default of a scalar its file does not list.
@@ -554,6 +557,8 @@ HEADER = """\
 --  {url}
 --  SHA-256 {sha256}.
 --  Do not edit it: change the pin in the generator and run it again.
+--  The values are Unicode, Inc.'s, copyright 1991-2026, under the Unicode
+--  License V3, whose notice is core/unicode/LICENSE.unicode.
 --
 --  Every name is private to core/unicode, whose routines read them, and a
 --  table a program's routines never reach is not in its image (D296).
@@ -678,12 +683,20 @@ def render(database, version=VERSION, url=URL, sha256=SHA256):
     lines += render_trie("combining_code",
                          "Each scalar's canonical combining class.",
                          Trie(database.combining, 8), "u8")
-    lines += ["", "--  The bits of `flag_code`, one per binary property."]
+    lines += ["", "--  The bits of `flag_code`, one per binary property, and of",
+              "--  `case_context_code`, the two case mapping reads, in a table",
+              "--  of their own so that it links no other (D2614)."]
     for bit, (name, _, _) in enumerate(FLAGS):
-        lines.append("%s_bit: u8 = %d" % (name, 1 << bit))
+        lines.append("%s_bit: u8 = %d" % (name, 1 << (bit % CONTEXT_BIT)))
     lines += render_trie("flag_code",
-                         "Each scalar's binary properties, one bit each.",
-                         Trie(database.flags, 8), "u8")
+                         "Each scalar's binary properties but the case"
+                         " context's, one bit each.",
+                         Trie([flags & ((1 << CONTEXT_BIT) - 1)
+                               for flags in database.flags], 8), "u8")
+    lines += render_trie("case_context_code",
+                         "Each scalar's Cased and Case_Ignorable bits.",
+                         Trie([flags >> CONTEXT_BIT
+                               for flags in database.flags], 8), "u8")
 
     numbers, table, specials = case_records(database)
     lines += render_trie("case_code",
@@ -759,7 +772,9 @@ def sizes(database):
     report = {
         "category": Trie(database.category, 8).size,
         "combining": Trie(database.combining, 8).size,
-        "flags": Trie(database.flags, 8).size,
+        "flags": Trie([flags & 15 for flags in database.flags], 8).size,
+        "case_context": Trie([flags >> 4 for flags in database.flags],
+                             8).size,
         "case": Trie(numbers, width(len(table))).size + 17 * len(table),
         "grapheme": Trie(database.grapheme, 8).size,
         "word": Trie(database.word, 8).size,
