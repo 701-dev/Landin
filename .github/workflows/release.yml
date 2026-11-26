@@ -252,6 +252,12 @@ jobs:
             fi
           fi
 
+      #  bubblewrap for the archive's check where no glibc is, below.
+      - name: Install bubblewrap
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: bubblewrap
       - name: Package it
         id: package
         run: |
@@ -285,7 +291,6 @@ jobs:
           #  program and the --link=libc fixtures against musl (D1790), as
           #  the gate's release jobs run it on the same build.
           if [ "$RUNNER_OS" = Linux ] && [ -f scripts/static_check.py ]; then
-            ./scripts/ci_packages.sh bubblewrap
             if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
               sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
             fi
@@ -457,7 +462,9 @@ jobs:
           path: ${{ steps.archive.outputs.path }}
           key: freebsd-gnat-amd64-${{ steps.archive.outputs.key }}
       - name: Install QEMU
-        run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: qemu-system
       - name: Let the job open KVM
         run: sudo chmod 666 /dev/kvm
       - name: Build, check and package refine in a FreeBSD guest

@@ -78,7 +78,14 @@ candidates into the token holder's final merge, which then lands them all
 on its own gate and boards.  A member rides until then: it refuses to push,
 merge, wait for the token or promote, and `promote HOLDER` writes it as
 promoted with the holder's runs, so its `finish` follows main's gate as any
-promoted item's does.  `--drop OTHER` rebuilds the train without one.
+promoted item's does.  `--with-branch BRANCH` takes work that is no item,
+a register sweep say, on a passed push gate of its pushed head; its owner
+leaves the branch alone until the train lands.  `--drop OTHER` rebuilds
+the train without one.
+
+The token goes to an item only once its head has a passed push gate: until
+then `merge-main` and `queue --wait` keep its place in line and the token
+passes over it to the first ready.
 
 A phase that declares a breaking window, a line `Window: BRANCH` in its
 opening paragraphs, keeps its serial items on that integration branch
@@ -171,9 +178,26 @@ def repository(cwd=None):
     return cwd if cwd is not None else REPOSITORY[0]
 
 
+#  What git says when another worktree of the clone holds a ref's lock:
+#  the worktrees share their refs, so one's fetch can find another's lock.
+REF_LOCK_RACE = re.compile(r"cannot lock ref|Unable to create '[^']*\.lock'"
+                           r"|unable to update local ref")
+#  Times a fetch that met another's ref lock is asked again.
+REF_LOCK_TRIES = 5
+
+
 def git(*arguments, cwd=None, check=True):
-    result = subprocess.run(["git", *arguments], cwd=repository(cwd), text=True,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    for attempt in range(1, REF_LOCK_TRIES + 1):
+        result = subprocess.run(["git", *arguments], cwd=repository(cwd),
+                                text=True, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        #  A fetch is safe to ask again; `push --boards` once ended on such
+        #  a race in the fetch after its push, before it dispatched.
+        if result.returncode == 0 or arguments[:1] != ("fetch",) or \
+                not REF_LOCK_RACE.search(result.stderr) or \
+                attempt == REF_LOCK_TRIES:
+            break
+        time.sleep(attempt)
     if check and result.returncode != 0:
         raise Refused("git %s failed: %s" % (" ".join(arguments),
                                              result.stderr.strip()))
@@ -667,8 +691,12 @@ def record_gates(state, commit):
         entry = known.get(found["databaseId"])
         if entry is None:
             entry = {"run": found["databaseId"], "commit": commit,
-                     "tree": tree, "kind": kind_of(found, target_of(state))}
+                     "tree": tree}
             state["gates"].append(entry)
+        #  Judged again at every refresh: a boards dispatch recorded while
+        #  queued has no title yet, so it was kept as `workflow_dispatch`,
+        #  and the promotion never counted it as the boards.
+        entry["kind"] = kind_of(found, target_of(state))
         attempt = found.get("attempt") or 1
         if (entry.get("attempt"), entry.get("conclusion")) != (
                 attempt, found.get("conclusion") or ""):
@@ -1162,14 +1190,44 @@ def wait_command(item, session=False):
             " --wait %s, again on exit 124" % (item, item, item))
 
 
+def gated(item, refresh=False):
+    """Whether ITEM's worktree head has a passed push gate as its state
+    records it, asking GitHub first when REFRESH and it does not."""
+    if not alive(item):
+        return False
+    state = load(item)
+    head = git("rev-parse", "HEAD", cwd=state["worktree"], check=False) \
+        if Path(state["worktree"]).exists() else None
+
+    def passed():
+        return bool(head) and any(
+            entry["commit"] == head and entry.get("kind") == "software"
+            and entry.get("conclusion") == "success"
+            for entry in state["gates"])
+    if not passed() and refresh and head and shutil.which("gh"):
+        try:
+            record_gates(state, head)
+            save(state)
+        except Refused:
+            pass
+    return passed()
+
+
 def take(item, why, ask=True, target=MAIN, session=False):
     """(True, None) when ITEM holds TARGET's promotion token, taking it if
     it is free and nobody waits before ITEM; else (False, why not), with
     ITEM put in line.  SESSION takes it for work that is no item, which
     keeps its place in line while it keeps asking.  An item riding
-    another's train is refused: the holder's token serves it."""
+    another's train is refused: the holder's token serves it.
+
+    An item takes the token only once its head has a passed push gate:
+    one that took it for its final merge while its candidate still gated
+    held main for a hundred minutes.  Until then it keeps its place in
+    line and the token passes over it to the first that is ready; work
+    that is no item says itself when it is ready."""
     if not session and alive(item):
         refuse_riding(load(item), "wait for the token")
+    ready = session or gated(item, refresh=ask)
     with queue_locked(target=target) as data:
         if session:
             data["sessions"][item] = time.time()
@@ -1191,8 +1249,19 @@ def take(item, why, ask=True, target=MAIN, session=False):
                     else "it lands", "%s is number %d in line" % (
                         item, data["waiting"].index(item) + 1),
                     wait_command(item, session)))
-        ahead = (data["waiting"][:data["waiting"].index(item)]
-                 if item in data["waiting"] else list(data["waiting"]))
+        ahead = [other for other in (
+            data["waiting"][:data["waiting"].index(item)]
+            if item in data["waiting"] else data["waiting"])
+            if other in data["sessions"] or gated(other)]
+        if not ready:
+            if item not in data["waiting"]:
+                data["waiting"].append(item)
+            return False, (
+                "%s's head has no passed push gate yet, so it does not take"
+                " the promotion token, which passes to the first ready in"
+                " line; it keeps its place.  Push the head and let its gate"
+                " pass (`item.py push %s --watch`), then ask again."
+                " Wait: %s" % (item, item, wait_command(item, session)))
         if ahead:
             if item not in data["waiting"]:
                 data["waiting"].append(item)
@@ -1517,7 +1586,8 @@ def merge_main(arguments):
     state = load(item)
     refuse_riding(state, "merge main")
     if getattr(arguments, "members", None) or getattr(arguments, "drop",
-                                                      None):
+                                                      None) or getattr(
+            arguments, "branches", None):
         return train_merge(arguments, state)
     worktree = state["worktree"]
     git("fetch", "-q", "origin", cwd=worktree)
@@ -1675,6 +1745,34 @@ def train_problems(holder, name, worktree):
     return problems, head
 
 
+def branch_problems(holder, branch, worktree):
+    """Why BRANCH, work that is no item, cannot ride HOLDER's train, and
+    its pushed head: (problems, head).  It rides on a passed push gate of
+    its pushed head with its whole listing, as an item does; it has no
+    state here, so whoever owns it leaves it alone until the train lands."""
+    if branch in (MAIN, holder["branch"]):
+        return ["%s is no member's branch" % branch], None
+    if alive(branch) or any(state["branch"] == branch
+                            and state["phase"] != "finished"
+                            for state in running_states()):
+        return ["%s is an item's: name the item with --with" % branch], None
+    head = git("rev-parse", "-q", "--verify", "origin/" + branch,
+               cwd=worktree, check=False)
+    if not head:
+        return ["the branch %s is not on GitHub" % branch], None
+    passed = [found for found in runs_of(head)
+              if kind_of(found) == "software"
+              and found.get("conclusion") == "success"]
+    if not passed:
+        return ["%s has no passed push gate on its head %s"
+                % (branch, head[:12])], head
+    missing = complete_listing(passed[0]["databaseId"])
+    if missing:
+        return ["%s's run %s does not pass whole: %s"
+                % (branch, passed[0]["databaseId"], missing)], head
+    return [], head
+
+
 def generated_files(worktree):
     """The files check.py regenerates, as the worktree's check.py names
     them."""
@@ -1688,10 +1786,11 @@ def generated_files(worktree):
     return set(result.stdout.split()) if result.returncode == 0 else set()
 
 
-def merge_member(holder, name, head, worktree):
+def merge_member(holder, name, head, worktree, branch=None):
     """Merge NAME's HEAD into the holder's worktree as one commit; None,
-    or why it was not merged, the worktree then as before."""
-    member = load(name)
+    or why it was not merged, the worktree then as before.  BRANCH names
+    a member that is no item, whose branch NAME is."""
+    member = {"branch": name} if branch else load(name)
     before = git("rev-parse", "HEAD", cwd=worktree)
     clashes = reserved_clashes(holder, head)
     if clashes:
@@ -1727,7 +1826,7 @@ def merge_member(holder, name, head, worktree):
             member["branch"], holder["branch"], name, name, head[:12]),
         cwd=worktree)
     merge = git("rev-parse", "HEAD", cwd=worktree)
-    clashes = reserved_clashes(member, merge)
+    clashes = [] if branch else reserved_clashes(member, merge)
     if clashes:
         git("reset", "-q", "--hard", before, cwd=worktree)
         return "; ".join(clashes)
@@ -1751,11 +1850,17 @@ def train_merge(arguments, holder):
         raise Refused(why)
     train = holder.get("train") or {}
     members = dict(train.get("members") or {})
+    branches = dict(train.get("branches") or {})
     dropped = [name for name in arguments.drop or [] if name in members]
-    unknown = [name for name in arguments.drop or [] if name not in members]
+    dropped_branches = [name for name in arguments.drop or []
+                        if name in branches]
+    unknown = [name for name in arguments.drop or [] if name not in members
+               and name not in branches]
     if unknown:
         raise Refused("%s rides no train of %s" % (", ".join(unknown), item))
-    if dropped:
+    wanted_branches = [name for name in getattr(arguments, "branches", None)
+                       or [] if name not in branches]
+    if dropped or dropped_branches:
         #  The members' merges are taken off by going back to the tree
         #  before them, never by a revert, which would land on main and
         #  undo the dropped member's change when it merges main later.
@@ -1781,6 +1886,10 @@ def train_merge(arguments, holder):
         members = {}
         wanted = rest + [name for name in arguments.members or []
                          if name not in rest]
+        wanted_branches = [name for name in branches
+                           if name not in dropped_branches] + [
+            name for name in wanted_branches if name not in branches]
+        branches = {}
         train["rebuilt"] = True
     else:
         wanted = [name for name in arguments.members or []
@@ -1796,7 +1905,7 @@ def train_merge(arguments, holder):
             raise Refused("the merge of %s stopped on conflicts: resolve and"
                           " commit them, then run this again" % landing)
         journal(item, "merged %s before the train's members" % landing)
-    if not members:
+    if not members and not branches:
         train["before"] = git("rev-parse", "HEAD", cwd=worktree)
     refused = {}
     for name in wanted:
@@ -1819,19 +1928,35 @@ def train_merge(arguments, holder):
         with queue_locked() as data:
             data["waiting"] = [other for other in data["waiting"]
                                if other != name]
+    for name in wanted_branches:
+        problems, head = branch_problems(holder, name, worktree)
+        why_not = "; ".join(problems) if problems else merge_member(
+            holder, name, head, worktree, branch=True)
+        if why_not:
+            refused[name] = why_not
+            continue
+        branches[name] = head
+        journal(item, "train: branch %s's %s merged; its owner leaves it"
+                " alone until the train lands" % (name, head[:12]))
     train["members"] = members
+    train["branches"] = branches
     holder["train"] = train
     save(holder)
     for name, why_not in refused.items():
         print("not merged: %s: %s" % (name, why_not))
-    if not members:
+    if not members and not branches:
         print("the train has no members: %s's merge is an ordinary one"
               % item)
     else:
         print("%s's train: %s, merged over %s" % (
-            item, ", ".join("%s %s" % (name, head[:12])
-                            for name, head in members.items()),
+            item, ", ".join(["%s %s" % (name, head[:12])
+                             for name, head in members.items()]
+                            + ["branch %s %s" % (name, head[:12])
+                               for name, head in branches.items()]),
             landing))
+        if branches:
+            print("tell the owners of %s to leave their branches alone"
+                  " until the train lands" % ", ".join(branches))
         print("its tree is new: push it with its boards beside its gate"
               " (`item.py push %s --boards --watch`).  The members' agents"
               " leave their branches alone until it lands.  Once the gate"
@@ -1870,6 +1995,19 @@ def train_landing_problems(state, commit, items, partial):
         if not partial and items.get(name, {}).get("status") != "complete":
             problems.append("train member %s is not complete in the"
                             " candidate's ROADMAP.md" % name)
+    for branch, head in (state.get("train") or {}).get("branches",
+                                                         {}).items():
+        pushed = git("rev-parse", "-q", "--verify", "origin/" + branch,
+                     cwd=state["worktree"], check=False)
+        if pushed != head:
+            problems.append("branch %s moved past %s since it was merged:"
+                            " `item.py merge-main %s --drop %s`, or rebuild"
+                            " with it" % (branch, head[:12], state["item"],
+                                          branch))
+        if git("merge-base", "--is-ancestor", head, commit,
+               cwd=state["worktree"], check=False) is None:
+            problems.append("branch %s's %s is not in %s" % (
+                branch, head[:12], commit[:12]))
     return problems
 
 
@@ -2023,7 +2161,13 @@ def push(arguments):
     journal(item, "pushed %s" % head[:12])
     print("pushed %s to %s" % (head[:12], state["branch"]))
     arguments.main = False
-    status = gate(arguments)
+    try:
+        status = gate(arguments)
+    except Refused as error:
+        #  The push stands; the boards are still dispatched beside it.
+        print("the gate runs were not recorded: %s; `item.py gate %s`"
+              " records them" % (error, item))
+        status = 2
     if arguments.boards:
         #  Beside the gate rather than after it: a hold then waits for the
         #  longer of the two, not their sum.
@@ -2307,10 +2451,12 @@ def describe(state, full=False):
         out.append("  rides %s's train with %s%s" % (
             train["holder"], train["head"][:12], ", landed as %s"
             % train["landed"][:12] if train.get("landed") else ""))
-    if train.get("members"):
+    if train.get("members") or train.get("branches"):
         out.append("  holds a train: %s" % ", ".join(
-            "%s %s" % (name, head[:12])
-            for name, head in train["members"].items()))
+            ["%s %s" % (name, head[:12])
+             for name, head in (train.get("members") or {}).items()]
+            + ["branch %s %s" % (name, head[:12])
+               for name, head in (train.get("branches") or {}).items()]))
     return out
 
 
@@ -2351,7 +2497,9 @@ def phase_step(state):
                 " it lands, `item.py gate %s --main --watch` and `item.py"
                 " finish %s`" % (train["holder"], state["item"],
                                  train["head"][:12], item, item))
-    members = (state.get("train") or {}).get("members")
+    members = list((state.get("train") or {}).get("members") or ()) + [
+        "branch " + name for name in (state.get("train") or {}).get(
+            "branches") or ()]
     if members and phase in ("pushed", "gate-passed", "boards-passed"):
         return ("`item.py gate %s` for the train's runs: push it with its"
                 " boards beside its gate (`item.py push %s --boards"
@@ -2638,9 +2786,14 @@ def main(argv=None):
     sub.add_argument("--with", dest="members", action="append",
                      metavar="ITEM", help="also merge this item's gated"
                      " candidate, a train promoted as one tree; repeat it")
+    sub.add_argument("--with-branch", dest="branches", action="append",
+                     metavar="BRANCH", help="also merge this branch, work"
+                     " that is no item, on a passed push gate of its pushed"
+                     " head; repeat it")
     sub.add_argument("--drop", action="append", metavar="ITEM",
-                     help="take a member off the train: rebuild it from the"
-                     " tree before the members, without this one")
+                     help="take a member, an item or a --with-branch"
+                     " branch, off the train: rebuild it from the tree"
+                     " before the members, without this one")
     sub.set_defaults(handler=merge_main)
 
     sub = commands.add_parser("queue", help="the promotion token's holder"
