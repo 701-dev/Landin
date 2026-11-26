@@ -14,7 +14,7 @@ representable floats, on every target the fixture names.  It writes
 compiler/tests/math/evaluate.ldn too, the program the other two run.
 
 `measure` draws COUNT inputs (a million by default) from the function's
-domains in its fixture's description, runs them through evaluate.ldn on
+domains in its fixture's description, or from those `--domain` names, runs them through evaluate.ldn on
 this host, and prints MPFR's verdict as one JSON object: the largest
 error in units in the last place and an input that gives it.
 `exhaustive` does the same for every one of the 2^32 inputs of a
@@ -55,6 +55,9 @@ FIXTURES = ROOT / 'compiler/tests/fixtures/runtime'
 
 #  How many parts `digest` hashes apart, in order, whatever the job count.
 DIGEST_PARTS = 256
+#  How many parts `exhaustive` checks apart: small enough that MPFR's
+#  slow regions, gamma's near zero and erfc's in [9, 17], spread out.
+EXHAUSTIVE_PARTS = 1024
 
 #  Every target a runtime fixture runs on; the Cortex-M, RV32 and Xtensa
 #  firmware lanes take theirs from compiler/tests/cortex-m/corpus.json.
@@ -593,8 +596,9 @@ def measure(args, oracle, refine):
         evaluate = compile_evaluate(refine, scratch)
         command = [str(oracle), 'inputs', '--fn', args.function, '--width', str(args.width),
                    '--seed', str(args.seed), '--count', str(args.count)]
+        given = {0: args.domain, 1: args.domain2, 2: args.domain3}
         for argument, flag in ((0, '--domain'), (1, '--domain2'), (2, '--domain3')):
-            for domain in domains_of(table, argument):
+            for domain in given[argument] or domains_of(table, argument):
                 command += [flag, domain]
         inputs = subprocess.Popen(command, stdout=subprocess.PIPE)
         evaluated = subprocess.Popen([str(evaluate), args.function, str(args.width)],
@@ -627,30 +631,53 @@ def exhaustive_part(oracle, evaluate, function, bound, first, count):
 
 
 def exhaustive(args, oracle, refine):
+    """Every f32 input, in EXHAUSTIVE_PARTS parts that JOBS processes take
+    in turn, so a part where MPFR is slow holds up one process and not a
+    whole share.  Each part's verdict is appended to --record as it ends,
+    and a part already there is not run again, so a run that a limit
+    stopped is resumed by the same command."""
     if ARITY.get(args.function) != 1:
         raise Failure('%s is not a one-argument function' % args.function)
     table = table_for(args.function, 32)
     total = 1 << 32
-    parts = args.jobs * 4
-    size = total // parts
+    size = total // EXHAUSTIVE_PARTS
+    record = Path(args.record) if args.record else None
+    done = {}
+    if record and record.exists():
+        for line in record.read_text(encoding='utf-8').splitlines():
+            entry = json.loads(line)
+            if entry.get('function') == args.function and 'part' in entry:
+                done[entry['part']] = entry
+    first, _, last = (args.parts or '0:%d' % EXHAUSTIVE_PARTS).partition(':')
+    chosen = range(int(first), int(last))
+    pending = [k for k in chosen if k not in done]
     with tempfile.TemporaryDirectory() as scratch:
         evaluate = compile_evaluate(refine, scratch)
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            futures = [pool.submit(exhaustive_part, oracle, evaluate, args.function,
-                                   table['bound'], k * size, size) for k in range(parts)]
-            results = [future.result() for future in futures]
+            futures = {pool.submit(exhaustive_part, oracle, evaluate, args.function,
+                                   table['bound'], k * size, size): k for k in pending}
+            for future in concurrent.futures.as_completed(futures):
+                result, shown = future.result()
+                sys.stderr.write(shown)
+                result['part'] = futures[future]
+                done[result['part']] = result
+                if record:
+                    with record.open('a', encoding='utf-8') as out:
+                        out.write(json.dumps(result) + '\n')
     summary = {'function': args.function, 'width': 32, 'records': 0,
                'not_correctly_rounded': 0, 'past_bound': 0, 'max_ulp': 0.0}
-    for result, shown in results:
-        sys.stderr.write(shown)
+    for part, result in done.items():
+        if part not in chosen:
+            continue
         for key in ('records', 'not_correctly_rounded', 'past_bound'):
             summary[key] += result[key]
         if result['max_ulp'] > summary['max_ulp']:
             summary['max_ulp'] = result['max_ulp']
             summary['at'] = result['at']
             summary['gives'] = result['gives']
+    summary['parts'] = '%d:%d' % (chosen.start, chosen.stop)
     print(json.dumps(summary))
-    return 0 if summary['past_bound'] == 0 and summary['records'] == total else 1
+    return 0 if summary['past_bound'] == 0 and summary['records'] == len(chosen) * size else 1
 
 
 def digest_part(command, first, count):
@@ -698,9 +725,18 @@ def main():
     measured.add_argument('width', type=int, choices=(32, 64))
     measured.add_argument('--count', type=int, default=1000000)
     measured.add_argument('--seed', type=int, default=2551)
+    for flag in ('--domain', '--domain2', '--domain3'):
+        measured.add_argument(flag, action='append', default=[],
+                              help='draw that argument from these domains instead'
+                                   ' of its fixture\'s')
     every = commands.add_parser('exhaustive', help='measure every f32 input')
     every.add_argument('function')
     every.add_argument('--jobs', type=int, default=os.cpu_count())
+    every.add_argument('--parts', help='FIRST:LAST, the parts of %d to check, each'
+                       ' 2^22 bit patterns from FIRST * 2^22 up: 0:768 is every'
+                       ' input from +0 up and from -0 to just above -2' % EXHAUSTIVE_PARTS)
+    every.add_argument('--record', help='a file each part\'s verdict is appended to,'
+                       ' and the parts it already holds are not run again')
     hashed = commands.add_parser('digest', help='hash every f32 result, on a target')
     hashed.add_argument('function')
     hashed.add_argument('--target', help='a refine --target name; the host by default')

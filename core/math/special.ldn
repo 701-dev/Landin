@@ -845,8 +845,13 @@ log_gamma_f32: (x: f32) -> (result: f32) =
         y := z * z
         w := lgammaf_w0 + z * (lgammaf_w1 + y * lgammaf_w2)
         r = (a - 0.5) * (t - 1.0) + w
-    else
+    elsif ix < 0x7c44af8e then
         r = a * (log_f32(a) - 1.0)
+    else
+        --  From 0x1.895f1cp+121 up the logarithm of gamma is past f32's
+        --  largest float, which msun's product rounds to: overflow.
+        huge: f32 = 0x1.0p127
+        r = huge * huge
     end if
     result = if negative then nadj - r else r end if
 end log_gamma_f32

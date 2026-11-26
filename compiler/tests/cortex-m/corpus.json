@@ -3527,6 +3527,9 @@
       "profile_limit": "selected-image",
       "reason": "At none/off the argument reduction's Payne-Hanek routine, 9 KiB of it, and the f64 and f32 kernels take the image to 41,512 bytes of flash, over the 32 KiB profile by 8,744: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
+    "runtime/math-erf": {
+      "mode": "execute"
+    },
     "runtime/math-erfc": {
       "mode": "execute"
     },
