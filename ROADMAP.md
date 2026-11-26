@@ -1311,7 +1311,9 @@ on both, every other hosted program within 0.3%, every output the same.
 Every image's code is the same size or smaller; 33 FreeBSD arm64 images
 are 8 bytes larger in all, their RELRO padding growing by more than
 their text shrinks. `SR-1788`'s slice store, SHA-256's byte loop, is folded
-as well, and the row is taken.
+as well, and the row is taken. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45760688726) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45760702435).
 
 ### The continuous items
 
