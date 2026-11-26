@@ -1272,7 +1272,7 @@ candidate passed its
 
 ### R16.40 — An element address reaches every access through it
 
-Status: active
+Status: complete
 Depends on: R16.10
 
 fannkuch-redux spends 62% of its x86-64 instructions at speed in
@@ -1291,6 +1291,23 @@ Exit evidence: fannkuch-redux at speed on x86-64 executing more than 5%
 fewer instructions than at the item's base, measured on arm64 as well;
 every benchmark program's instructions and image size reported against
 that base; and no other combination over its own.
+
+Done: an element address of an array or a slice whose every use is,
+later in its block, an indirect access through it or a load of a
+temporary carrying it is not formed on x86-64 or arm64 while the
+registers its memory operand names hold through the last access; each
+access reads through that operand, and the temporaries' stores and loads
+move nothing (D2573). A temporary a debugger binding is described
+through, as a loop's element is, keeps its address. `reverse_prefix`'s
+loop falls from fourteen x86-64 instructions to twelve and from fifteen
+arm64 instructions to twelve: against the item's base under QEMU
+fannkuch-redux executes 7.1% fewer x86-64 instructions at speed and 6.8%
+at size, 10.0% and 7.9% on arm64; reverse-complement 1.2% to 1.9% fewer
+on both, every other hosted program within 0.3%, every output the same.
+Every image's code is the same size or smaller; 33 FreeBSD arm64 images
+are 8 bytes larger in all, their RELRO padding growing by more than
+their text shrinks. `SR-1788`'s slice store, SHA-256's byte loop, is folded
+as well, and the row is taken.
 
 ### The continuous items
 
