@@ -52,6 +52,10 @@
 --  6. NMAX is 32 on hosted targets and 16 on firmware, whose RAM holds
 --     no more, rather than 65.  It decides only the order of DMVCH's own
 --     check, MIN(32, NMAX): the largest M here is 14 either way.
+--  7. Firmware runs every 8th case of each routine, its first and last
+--     among them, with the data of every case generated as on a hosted
+--     target, and DMVCH's own check and DREGR1 whole: the firmware
+--     corpora give a run 20 seconds of an emulator.
 --
 --  The exit code is 42 when every check passes.  Otherwise it is
 --  10 + 2·r at f64, or 50 + 2·r at f32, for a test ratio not under 16,
@@ -401,6 +405,21 @@ judge: (item: type is math.floating, inout o: outcome(item), err: item)
     end if
 end judge
 
+--  Firmware runs every `stride`-th case of a routine, its first and its
+--  last, within the 20 seconds an emulator gives it; a hosted target
+--  runs them all.
+fixed if compiler.os == freestanding then
+    stride: usize = 8
+else
+    stride: usize = 1
+end if
+
+--  Whether the case numbered `count`, from 1, of `total` runs, and so
+--  in how many layouts: every `stride`-th case, the first and the last.
+layouts: (count: usize, total: usize) -> (orders: usize) =
+    orders = if (count - 1) % stride == 0 or count == total then 2 else 0 end if
+end layouts
+
 lesser: (x: usize, y: usize) -> (result: usize) =
     result = if x < y then x else y end if
 end lesser
@@ -438,6 +457,7 @@ check_gemv: (item: type is math.floating, w: work(item), eps: item)
             -> (o: outcome(item)) =
     o = (failure: 0, worst: item(0))
     mut g := restart()
+    mut count: usize = 0
     half := item(0.5)
     for d in 0..<lenof dimensions do
         n := dimensions[d]
@@ -465,7 +485,8 @@ check_gemv: (item: type is math.floating, w: work(item), eps: item)
                                 make_vector(w.y, w.yy, rows, incy, g, item(0))
                                 copy_elements(w.x_saved, w.xx, lx)
                                 copy_elements(w.y_saved, w.yy, ly)
-                                for order in 0..<2 do
+                                count += 1
+                                for order in usize(0)..<layouts(count, 5184) do
                                     l := layout_of(order == 1, m, n)
                                     lay_out(general, dense.upper, false, m, n, w.a, w.aa, l)
                                     copy_elements(w.a_saved, w.aa, l.length)
@@ -522,6 +543,7 @@ check_symv: (item: type is math.floating, w: work(item), eps: item)
             -> (o: outcome(item)) =
     o = (failure: 0, worst: item(0))
     mut g := restart()
+    mut count: usize = 0
     half := item(0.5)
     for d in 0..<lenof dimensions do
         n := dimensions[d]
@@ -543,7 +565,8 @@ check_symv: (item: type is math.floating, w: work(item), eps: item)
                             make_vector(w.y, w.yy, n, incy, g, item(0))
                             copy_elements(w.x_saved, w.xx, lx)
                             copy_elements(w.y_saved, w.yy, ly)
-                            for order in 0..<2 do
+                            count += 1
+                            for order in usize(0)..<layouts(count, 3456) do
                                 l := layout_of(order == 1, n, n)
                                 lay_out(symmetric, part, false, n, n, w.a, w.aa, l)
                                 copy_elements(w.a_saved, w.aa, l.length)
@@ -584,6 +607,7 @@ check_triangular: (item: type is math.floating, w: work(item), eps: item,
                    solve: bool) -> (o: outcome(item)) =
     o = (failure: 0, worst: item(0))
     mut g := restart()
+    mut count: usize = 0
     half := item(0.5)
     for i in 0..<nmax do
         w.z[i] = item(0)
@@ -604,7 +628,8 @@ check_triangular: (item: type is math.floating, w: work(item), eps: item,
                         make_vector(w.x, w.xx, n, incx, g, half)
                         clear_middle(w.x, w.xx, n, incx)
                         copy_elements(w.x_saved, w.xx, lx)
-                        for order in 0..<2 do
+                        count += 1
+                        for order in usize(0)..<layouts(count, 288) do
                             l := layout_of(order == 1, n, n)
                             lay_out(triangular, part, unit, n, n, w.a, w.aa, l)
                             copy_elements(w.a_saved, w.aa, l.length)
@@ -663,6 +688,7 @@ check_ger: (item: type is math.floating, w: work(item), eps: item)
            -> (o: outcome(item)) =
     o = (failure: 0, worst: item(0))
     mut g := restart()
+    mut count: usize = 0
     half := item(0.5)
     for d in 0..<lenof dimensions do
         n := dimensions[d]
@@ -686,7 +712,8 @@ check_ger: (item: type is math.floating, w: work(item), eps: item)
                         make_matrix(general, dense.upper, false, m, n, w.a, g, item(0))
                         copy_elements(w.x_saved, w.xx, lx)
                         copy_elements(w.y_saved, w.yy, ly)
-                        for order in 0..<2 do
+                        count += 1
+                        for order in usize(0)..<layouts(count, 576) do
                             l := layout_of(order == 1, m, n)
                             lay_out(general, dense.upper, false, m, n, w.a, w.aa, l)
                             copy_elements(w.a_saved, w.aa, l.length)
@@ -731,8 +758,10 @@ check_syr: (item: type is math.floating, w: work(item), eps: item, two: bool)
            -> (o: outcome(item)) =
     o = (failure: 0, worst: item(0))
     mut g := restart()
+    mut count: usize = 0
     half := item(0.5)
-    count: usize = if two then 4 else 1 end if
+    count_y: usize = if two then 4 else 1 end if
+    cases: usize = if two then 576 else 144 end if
     for d in 0..<lenof dimensions do
         n := dimensions[d]
         for ic in 0..<2 do
@@ -742,7 +771,7 @@ check_syr: (item: type is math.floating, w: work(item), eps: item, two: bool)
                 lx := incx * n
                 make_vector(w.x, w.xx, n, incx, g, half)
                 clear_middle(w.x, w.xx, n, incx)
-                for iy in 0..<count do
+                for iy in 0..<count_y do
                     incy := increments[iy]
                     ly := incy * n
                     if two then
@@ -757,7 +786,8 @@ check_syr: (item: type is math.floating, w: work(item), eps: item, two: bool)
                         if two then
                             copy_elements(w.y_saved, w.yy, ly)
                         end if
-                        for order in 0..<2 do
+                        count += 1
+                        for order in usize(0)..<layouts(count, cases) do
                             l := layout_of(order == 1, n, n)
                             lay_out(symmetric, part, false, n, n, w.a, w.aa, l)
                             copy_elements(w.a_saved, w.aa, l.length)
