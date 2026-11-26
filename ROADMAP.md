@@ -1407,7 +1407,7 @@ its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
 
 ### R16.43 — A value read after its store is made in its slot's register on arm64
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 arm64 makes a value in the register of the slot it is stored into only
