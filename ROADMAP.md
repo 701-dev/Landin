@@ -3916,7 +3916,7 @@ process.md naming stale records.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 
-Status: planned
+Status: active
 Depends on: none
 
 Why a gate job failed is recorded nowhere: the gate-time study of
