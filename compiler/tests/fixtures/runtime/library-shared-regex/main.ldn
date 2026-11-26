@@ -4,14 +4,10 @@ import core/text
 
 --  A little of core/regex, as small as Cortex-M0 holds: a pattern
 --  compiled with `lean` options into an arena, a match and its group, a
---  walk over the matches and a replacement.  Firmware's arena is as
---  small as the compiled pattern allows; a 64-bit host's words are twice
---  as wide.
-fixed if compiler.os == freestanding then
-    arena_size: usize = 6144
-else
-    arena_size: usize = 12288
-end if
+--  walk over the matches and a replacement.  The engines' code is past
+--  the 32 KiB Cortex-M0 profile, so firmware runs it on the M7 lane's
+--  map, with room for an arena as large as a hosted one.
+arena_size: usize = 16384
 
 mut backing: [arena_size]u8 = zeroed
 

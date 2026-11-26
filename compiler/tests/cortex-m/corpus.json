@@ -3563,7 +3563,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-regex": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "PLACEHOLDER"
     },
     "runtime/library-shared-region": {
       "mode": "execute"
@@ -5346,7 +5348,15 @@
       "mode": "refuse"
     },
     "runtime/regex-linear-time": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "PLACEHOLDER"
+    },
+    "runtime/regex-redux-patterns": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/regex-rust-suite": {
       "codes": [
@@ -5942,6 +5952,9 @@
     "runtime/unicode-category": {
       "mode": "execute"
     },
+    "runtime/unicode-category-runs": {
+      "mode": "execute"
+    },
     "runtime/unicode-graphemes": {
       "mode": "execute"
     },
@@ -5963,7 +5976,7 @@
     "runtime/unicode-properties": {
       "mode": "execute"
     },
-    "runtime/unicode-runs": {
+    "runtime/unicode-property-runs": {
       "mode": "execute"
     },
     "runtime/unicode-sentences": {

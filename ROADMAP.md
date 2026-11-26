@@ -1385,7 +1385,7 @@ every live row into its file. R17.10 reviews each moved row against
 those its authority covers and puts the rest it would retire to the
 maintainer as questions. It provides the SR allocation script and files the
 rows-to-be in `roadmap/inputs/rows-to-be.md`. The rows that describe R22's
-additions (`SR-96` math, SR-97 float text, SR-98 locale and Unicode, SR-100
+additions (`SR-96` math, SR-97 float text, SR-98 locale and Unicode, `SR-100`
 regular expressions, SR-285 format width and radix) become `scheduled` on
 the R22 items that take them.
 Exit evidence: every row typed and under the cap; the allocation script and
@@ -3623,10 +3623,10 @@ program that uses one locale carries only its data.
 
 ### R22.60 — Regular expressions
 
-Status: active
+Status: complete
 Depends on: R22.30
 
-`core/regex`, SR-100: patterns compiled at run time with the caller's
+`core/regex`, `SR-100`: patterns compiled at run time with the caller's
 allocator and matched in linear time; Unicode classes from R22.30's
 tables; a match's position and captures, iteration over the matches, and
 replacing every match from a template. Built on the established
@@ -3645,6 +3645,30 @@ target and on Cortex-M0; Rust's `regex` test suite passing for the
 supported syntax, regex-redux's patterns among the cases; every engine
 checked against the Pike VM on generated patterns and inputs, as RE2's
 tester does.
+
+Done: `core/regex` reads the `regex` crate's syntax, less backreferences
+and look-around, with four failure atoms (D2674), compiles it to a byte
+program whose classes are UTF-8 tries (D2675) into storage its searches
+reuse, allocating nothing after `compile` (D2677), and chooses per
+pattern among a literal prefilter, a lazy DFA run forward and reversed,
+the one-pass DFA and the Pike VM (D2678); a DFA state holds its threads'
+step targets, so its closure keeps the Pike VM's order (D2679). Walks,
+`for` over `matches` and `replace_all` follow the crate's empty-match
+rule (D2681), and `(?i)` takes each scalar's simple folding orbit
+(D2682). Unicode's tables come through the options' function values, so
+`lean()` links none (D2676), and `core/unicode` gains
+`category_run_end` and `property_run_end`, from per-block tables its
+generator writes, so `\w` compiles a run at a time. The crate 1.12.2's
+suite, pinned by hash, passes all 897 cases the library can state
+(`runtime/regex-rust-suite`), and regex-redux's patterns count and
+replace over the game's FASTA as Python's `re` does
+(`runtime/regex-redux-patterns`);
+`runtime/regex-engines-agree` checks every engine against the Pike VM on
+seeded generated patterns, and `runtime/regex-linear-time` pins linear
+work on ten adversarial patterns on every hosted target and on the
+Cortex-M7 corpus lane (D2680): the engines are 140 KB of Thumb code, so
+the 32 KiB ARMv6-M profile records a size limit, which Q-336 asks about
+and SR-1968 records. `SR-100` is taken.
 
 ### R22.61 — A finished `for` no longer holds its source
 

@@ -1,0 +1,9 @@
+class: runtime
+profiles: standard
+summary: core/regex runs the Benchmark Game's regex-redux patterns over benchmark-game-fasta's output for 1000: the header and line breaks removed, the nine variants counted, by the chosen engines and the Pike VM alone, and the five IUB replacements applied in turn, the counts and lengths Python's re gives
+program: main.ldn
+root: ../../../../..
+stdin: input.txt
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 1150, 1370

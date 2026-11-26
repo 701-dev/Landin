@@ -4,18 +4,20 @@
 --  time freshly compiled, and the work the second search does is at most
 --  a little over twice the first's, and within the text's length times
 --  the program's size.  The options are `lean`, and the memory an arena
---  over a static buffer, so that Cortex-M0 runs it as a hosted target
---  does.
+--  over a static buffer, so that firmware runs it as a hosted target
+--  does: the M7 corpus lane, since the engines' code is past the 32 KiB
+--  Cortex-M0 profile.
 
 import core/arena
 import core/regex
 import core/text
 
---  Firmware's texts are shorter, and its arena smaller, to fit its RAM.
+--  Firmware's texts are shorter, so that an emulator's session holds the
+--  searches.
 fixed if compiler.os == freestanding then
-    length: usize = 200
-    arena_size: usize = 9216
-    text_size: usize = 2048
+    length: usize = 400
+    arena_size: usize = 65536
+    text_size: usize = 4096
 else
     length: usize = 3000
     arena_size: usize = 65536

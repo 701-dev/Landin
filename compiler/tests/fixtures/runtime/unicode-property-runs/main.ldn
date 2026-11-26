@@ -1,8 +1,8 @@
---  core/unicode's runs: walking the code space from run to run, each run
---  `category_run_end` gives holds scalars of one general category and
---  the scalar after it has another, and likewise for the six binary
---  properties and `property_run_end`.  A hosted target checks every
---  scalar of every run; firmware every 37th, and each run's last.
+--  core/unicode's property runs: walking the code space from run to run,
+--  each run `property_run_end` gives holds scalars with one set of the six
+--  binary properties and the scalar after it has another.  A hosted
+--  target checks every scalar of every run; firmware every 37th, and each
+--  run's last.
 
 import core/unicode
 
@@ -23,30 +23,8 @@ bits_of: (scalar: u32) -> (value: u8) =
     if unicode.is_case_ignorable(scalar) then value |= 32 end if
 end bits_of
 
---  Whether every category run is one and ends where the category changes;
---  and how many runs there were.
-categories_hold: () -> (ok: bool, runs: u32) =
-    ok = false
-    runs = 0
-    mut scalar: u32 = 0
-    while scalar <= 0x10ffff do
-        last: u32 = unicode.category_run_end(scalar)
-        return when last < scalar or last > 0x10ffff
-        kind := unicode.category(scalar)
-        mut probe: u32 = scalar
-        while probe < last do
-            return when unicode.category(probe) <> kind
-            probe += stride
-        end while
-        return when unicode.category(last) <> kind
-        return when last < 0x10ffff and unicode.category(last + 1) == kind
-        inc runs
-        scalar = last + 1
-    end while
-    ok = true
-end categories_hold
-
---  The same for the binary properties.
+--  Whether every property run is one and ends where the properties
+--  change; and how many runs there were.
 properties_hold: () -> (ok: bool, runs: u32) =
     ok = false
     runs = 0
@@ -70,11 +48,9 @@ end properties_hold
 
 public main: () -> (code: i32) =
     code = 1
-    (ok: categories, runs: category_runs) := categories_hold()
     (ok: properties, runs: property_runs) := properties_hold()
     --  The runs are few: a scalar at a time would be over a million.
-    if categories and properties and category_runs < 10_000
-      and property_runs < 10_000 then
+    if properties and property_runs < 10_000 then
         code = 42
     end if
 end main

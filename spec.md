@@ -46045,3 +46045,93 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** porting `catrig.c` and the others with their notices, which every program linking `core/complex` would then carry, against `LICENSE`'s promise; and porting musl's, MIT-licensed, with the same cost.
 
 **Pinned by** `core/complex/complex.ldn`'s opening comment, which says nothing is ported.
+
+### D2674 — `core/regex` reads Rust's `regex` syntax, less what loses linear time, and fails with four atoms
+
+**The tour said** nothing about regular expressions; the roadmap asks for a freestanding library of linear-time automata compiled when the program runs, and R20 left the allocator and capability shape and how a match position is named to its item.
+
+**Chosen:** `core/regex` reads the syntax of Rust's `regex` crate and gives its leftmost-first meaning: Unicode by default, the flags `i`, `m`, `s`, `U`, `u`, `x` and `R`, named groups as `(?P<name>...)` and `(?<name>...)`, bracket classes with `&&`, `--` and `~~` and POSIX's ASCII classes, the Perl classes, `\p` for the general categories and the six binary properties `core/unicode` holds, and the word looks `\b`, `\B`, `\<`, `\>` and `\b{start}` with its kin. A backreference and a look-around, which no engine matches in linear time, fail `unsupported_pattern`, as does a property `core/unicode` has no table for, a script's; any other pattern the syntax does not read fails `invalid_pattern`, a class that could match bytes that are not UTF-8, `(?-u:\W)`, among them, as Rust's `Regex` refuses it. A program past the options' size limit, or groups and brackets nested more than 64 deep, or a count past 100,000, fails `pattern_too_large`; a pattern that needs Unicode's tables compiled without them fails `unicode_unavailable` (D2676). A match is a `regex.span`, two `text.position`s of the text searched, as `unicode.segment` is (D2618). Rust's test suite is the conformance oracle: `scripts/regex_tests.py` reads it out of the crate pinned by SHA-256 and writes every case the library can state, 897 of its 1,184, into `runtime/regex-rust-suite`; the rest are sets of patterns, other match and search kinds, bounded searches, other line terminators, haystacks that are not UTF-8, regex-lite's own cases and the properties `core/unicode` lacks, each counted by its reason in the generated file.
+
+**The alternatives:** RE2's syntax, which differs in small ways from the crate whose test suite is the oracle; POSIX's leftmost-longest meaning, which no common engine of the last twenty years gives; and one failure atom for every refusal, which tells a user nothing about what to change. All were declined.
+
+**Pinned by** `runtime/regex-rust-suite`; `runtime/regex-redux-patterns`, which runs the Benchmark Game's regex-redux patterns, which the crate's suite does not hold; and `runtime/regex-api`, which refuses a pattern of each kind with its own atom.
+
+### D2675 — A pattern compiles to a byte program whose classes are tries of their scalars' UTF-8
+
+**The tour said** at [0600] that `utf8` is well-formed UTF-8; the roadmap asks for automata without backreferences.
+
+**Chosen:** the parser writes a tree with the flags applied, a case-insensitive scalar already the class of its simple case-folding orbit and `.` the class it means, and the compiler builds a Thompson program from it in which every instruction reads one byte. A class's scalar ranges become their UTF-8 byte sequences, split where the encoded length changes and where a continuation byte would range over less than all its values, compiled as a trie in which equal nodes are shared, so `\w` is 345 instructions; a reversed program, built the same way with the sequences reversed, finds a match's start (D2678). Every instruction that reads reads a whole scalar's bytes, and a search adds a thread only where a scalar begins, so a match never begins or ends inside one and an empty match never splits one. `x*` whose `x` can match the empty text compiles as `(?:x+)?`, as the crate's compiler does, so that an empty `x` still takes part and sets its groups.
+
+**The alternatives:** a program over scalars, whose DFA would need a table indexed by scalar or a search per byte; and a class instruction that tests a property when the search runs, which a DFA cannot cache by byte. Both were declined.
+
+**Pinned by** `runtime/regex-rust-suite`, whose `empty`, `crazy` and `fowler/nullsubexpr` cases hold the empty iterations' groups and whose `utf8` cases the scalar boundaries.
+
+### D2676 — The Unicode tables a pattern reads are function values its options hold, so a lean program links none
+
+**The tour said** at [1000] that a function is a value; D2617 has a walk hold the routine it uses so that an image links only its tables.
+
+**Chosen:** `regex.defaults()` gives options holding `core/unicode`'s general category, binary properties, case mappings and their run ends as function values, and `regex.lean()` options holding stand-ins that read nothing. Only the parser and the Unicode word look call through them, so a program that compiles with `lean` links no table of `core/unicode` and its image holds the engines alone; a pattern that needs a table, Unicode's `\w`, `\d`, `\s`, `\b` or `\p`, or `(?i)` in Unicode mode, then fails `unicode_unavailable`, and `(?-u)` asks for the ASCII meaning, as the crate behaves built without its Unicode features. `compile` is `compile_with(memory, pattern, regex.defaults())`. A Unicode class is built a run at a time: `unicode.category_run_end` and `unicode.property_run_end`, which this item adds, give the last scalar sharing a scalar's category or properties, from per-block tables `scripts/unicode_tables.py` writes beside each trie, so `\w` compiles in milliseconds where a scalar at a time took 90.
+
+**The alternatives:** a `match` on a flag, which links every table into every image; tables of ranges in `core/regex` itself, as the crate keeps, which would duplicate `core/unicode`'s data; and a scalar at a time over the code space, which the run ends replace. All were declined.
+
+**Pinned by** `runtime/library-shared-regex` and `runtime/regex-linear-time`, which compile with `lean` on the firmware lanes, `runtime/regex-api`'s `unicode_unavailable` refusals, and `runtime/unicode-category-runs` and `runtime/unicode-property-runs`, which hold every run to its category and properties.
+
+### D2677 — A compiled pattern holds its searches' storage, so a search allocates nothing and takes the pattern `inout`
+
+**The tour said** at [1360] that what allocates takes the allocator, and D1948 that a container keeps no allocator.
+
+**Chosen:** `compile` and `compile_with` take the allocator and allocate everything a search of the pattern will use: the programs, the Pike VM's thread lists and slots, the lazy DFA's bounded caches, the one-pass table and the literal set. A search takes the compiled pattern `inout`, since it writes those caches, and allocates nothing, so a firmware search cannot run out of memory and a search's time is its own. `release` gives it all back to the allocator it was compiled with. The DFA caches' bound is the options' `with_cache_size`, 512 KiB by default; a program of n instructions gets at most 16n + 64 states of it, so a small pattern takes little. A fixed `with_size_limit`, 250,000 instructions and edges by default, bounds the program.
+
+**The alternatives:** a cache the caller makes and passes to each search, as the crate's `regex-automata` does, which adds an argument to every call for the case of many threads sharing one pattern, which Landin's patterns do not yet meet; and growing the caches during a search, which would need the allocator at every call. Both were declined.
+
+**Pinned by** `runtime/regex-linear-time` and `runtime/library-shared-regex`, which compile into an arena over a static buffer and search with no allocator.
+
+### D2678 — The engine is chosen per pattern and search, as RE2's and the crate's are
+
+**The tour said** nothing; the item names a literal prefilter, a one-pass engine, a lazy DFA run in reverse for a match's start, and a Pike VM.
+
+**Chosen:** when a pattern's matches all begin with one of at most 16 literals of at most 16 bytes, found by walking the tree from its start, the search skips to where one occurs; when those literals are the whole pattern, as in `agggtaaa|tttaccct`, the first found is the match, each position trying them in the pattern's order of preference. Otherwise the lazy DFA finds where the leftmost-first match ends, skipping with the literals while it is in its start state, and the reversed program's DFA, run back from there with longest-match states, where it begins. When groups are wanted, the one-pass DFA finds them between the two if the pattern is one-pass and keeps at most 32 slots, and the Pike VM otherwise. An anchored pattern's groups go to the one-pass DFA directly. A DFA that cannot answer gives the search to the Pike VM (D2679). `with_engine` asks for one engine, which tests and measurement use; `regex.prepared` says which a pattern got, `regex.fallbacks` how many searches the DFA gave up, `regex.work` how much work searches did and `regex.program_size` the program's size.
+
+**The alternatives:** the Pike VM alone, which is linear but slow on every byte; a backtracking engine for small inputs, which the crate keeps but which needs a visited set to stay linear; and a DFA compiled ahead of time and vectorised literal search, which the item leaves out. All were declined.
+
+**Pinned by** `runtime/regex-engines-agree`, which checks every engine against the Pike VM on 300 seeded generated patterns with eight haystacks each, unanchored and anchored, and requires each engine to have answered for some.
+
+### D2679 — A lazy DFA state is the threads' targets before their closure, which is taken once the next byte is known
+
+**The tour said** nothing; RE2's and the crate's lazy DFAs cache determinized states in bounded memory and report a match one byte late.
+
+**Chosen:** a state is the ordered list of the instructions a step reached, before any split or look is followed, with what the byte before was: nothing, a newline, a carriage return, a word byte or another. A transition on a byte first takes the closure of each listed instruction in order, judging every look now that the bytes on both sides are known, then steps the readers over the byte and lists their targets, so the closure visits the program in the order the Pike VM's does and leftmost-first's preference is the same: a state that kept its closure and judged the looks later reorders `(?m)(?:^|a)+`'s threads and finds a longer match than the Pike VM. A match ends where a state reached through it begins. The cache holds a table of states by byte class, the classes split where the program's ranges and looks need them; when it is full it is cleared and the search goes on from its current state, and a search that clears it more than eight times gives up. A Unicode word look is judged only between ASCII bytes, and a search that meets another byte where one is listed gives up, as the crate's DFA quits on such a byte. A search that gives up is answered by the Pike VM, from the start.
+
+**The alternatives:** states that keep their closure, RE2's form, which needs RE2's flags to rerun it and still differs from the Pike VM on a look inside a loop; and a DFA that judges Unicode word looks by decoding the scalars around a position, which makes its byte transitions depend on more than one byte. Both were declined.
+
+**Pinned by** `runtime/regex-engines-agree`, whose long haystacks over patterns of many states clear a 24 KiB cache mid-search and give up, and `runtime/regex-rust-suite`'s `multiline` cases.
+
+### D2680 — Each search is linear in the text, and a walk over every match need not be
+
+**The tour said** nothing; the roadmap asks for linear time pinned on adversarial patterns, on a hosted target and on Cortex-M0.
+
+**Chosen:** every engine visits each instruction at most once per byte, and the DFA builds each state in time linear in the program, so one search takes time linear in the text times the program's size whatever the pattern. `regex.work` counts that work: the threads the Pike VM stepped, the bytes the DFAs read and the instructions their new states reached, and the bytes the prefilter and the one-pass DFA read. `runtime/regex-linear-time` holds ten patterns exponential for a backtracking engine or for a DFA's states, `(a*)*b`, `(x+x+)+y` and `(?:a?){20}a{20}b` among them, to work at most 2.3 times as large over a text twice as long, and within the text's length times the program, on every hosted target and on the Cortex-M target. A program that compiles a pattern links the parser, the compiler and every engine, about 140 KB of Thumb text at `size/auto`, so the 32 KiB ARMv6-M profile records it as a size limit, as it does the `complex-*` fixtures, and the M7 corpus lane, `cortex-m0` at `armv7e-m` with 4 MiB, runs it. A walk over every match, `next_match` or `matches`, searches again after each match, and a pattern whose leftmost-first match is short but whose search reads far past it, `a+b|a` over a long run of `a`s, reads to the end for each match and takes time quadratic in the text, as RE2's and the crate's iterators do.
+
+**The alternatives:** timing the searches, which a loaded runner makes noisy and an emulator meaningless; and a work bound per walk, which leftmost-first's non-overlapping matches do not allow. Both were declined.
+
+**Pinned by** `runtime/regex-linear-time`.
+
+### D2681 — A walk passes over an empty match where the last one ended, and `for` walks through a pointer to the pattern
+
+**The tour said** at [1320] that `for` walks an `iter.iterable`, whose entries cannot fail; D2030 makes the end of a walk `at_end`.
+
+**Chosen:** `walk_start` and `next_match` walk a haystack's matches, `next_match` failing `mem.not_found` at the end and keeping the match's groups for `group` when asked. Each search begins where the last match ended, and an empty match exactly there is passed over by searching again a byte further on, the crate's rule: `a*` over "aab" gives "aa" and the empty match at the end, not one between. `matches(addr pattern, haystack)` conforms to `iter.iterable` with a `span` as its item; the walk holds the pointer, since every step writes the pattern's caches, so the pattern is not used otherwise while it runs. `replace_all` appends the haystack to a `text.builder` with each such match replaced by a template, `$1` and `${1}` for a group by number, `$name` and `${name}` by name, `$$` for a dollar, a group that took no part or that the pattern lacks as nothing, and a dollar before anything else as itself; it gives the number of matches, and on `mem.out_of_memory` the builder holds what it held, as D2616 has it.
+
+**The alternatives:** a walk that reports every empty match, which gives a match between "aa" and its end that the crate and every test suite reject; a walk value holding the pattern by value, which would copy its caches; and a replacement callback, which Landin's function values, capturing nothing, would need a context argument for. All were declined.
+
+**Pinned by** `runtime/regex-api`, `runtime/library-shared-regex` and every iterating case of `runtime/regex-rust-suite`.
+
+### D2682 — A case-insensitive class takes every scalar of its members' simple case-folding orbits
+
+**The tour said** nothing; D2619 makes `core/unicode`'s simple case folding CaseFolding's common and simple entries.
+
+**Chosen:** under `(?i)` a class, and a scalar, which becomes the class of one, gains every scalar whose `unicode.simple_fold` is that of a member: its folding, its own and its folding's simple upper, lower and title mappings, and the 31 scalars none of those reaches, the Kelvin sign among them, which `scripts/unicode_tables.py` writes into `core/regex/folds.ldn` from the same pinned database. Every scalar of an orbit of two or more is Cased, so a walk over a class passes a run of uncased scalars whole. Under `(?-u)` folding swaps the case of the ASCII letters alone.
+
+**The alternatives:** a table of every orbit, as the crate keeps, 2,800 entries where 31 suffice; and full case folding, by which `ß` would match `ss`, which the crate does not do and which a byte automaton over single scalars cannot. Both were declined.
+
+**Pinned by** `runtime/regex-rust-suite`'s `flags` and `unicode` cases and `runtime/regex-api`'s `(?i)straße`.
