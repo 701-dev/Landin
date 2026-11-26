@@ -749,9 +749,13 @@ def attempt_jobs(run_id, attempt):
 def job_log(job_id):
     """A job's log.  GitHub answers with a redirect to storage that refuses
     the token, which `gh` drops there and urllib would send on."""
-    done = subprocess.run(["gh", "api", "repos/%s/actions/jobs/%s/logs"
-                           % (os.environ["GITHUB_REPOSITORY"], job_id)],
+    path = "repos/%s/actions/jobs/%s/logs" % (os.environ["GITHUB_REPOSITORY"], job_id)
+    #  A log holds colour escapes, which a newer `gh` refuses to print
+    #  without the flag an older one does not know.
+    done = subprocess.run(["gh", "api", "--allow-escape-sequences", path],
                           capture_output=True, timeout=20)
+    if done.returncode and b"unknown flag" in done.stderr:
+        done = subprocess.run(["gh", "api", path], capture_output=True, timeout=20)
     if done.returncode:
         raise OSError("no log for job %s: %s" % (job_id, done.stderr.decode()[:200]))
     return done.stdout.decode("utf-8", "replace")
