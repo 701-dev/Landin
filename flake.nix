@@ -1,8 +1,14 @@
 {
   description = "Landin — a development shell holding the pinned toolchain";
 
+  #  The tools nixpkgs does not build as the lanes need them, and the binary
+  #  cache that serves them and the nixpkgs packages the gate takes, come
+  #  from 701-dev/nix-packages; its nixpkgs is this flake's, so that one
+  #  revision fixes both and every store path the gate asks for is one the
+  #  cache holds (docs/environments.md, "Tools from nix-packages").
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nix-packages.url = "github:701-dev/nix-packages";
+    nixpkgs.follows = "nix-packages/nixpkgs";
   };
 
   outputs =
@@ -477,10 +483,14 @@
               mv "${name}/aarch64-w64-mingw32/lib" "$out/lib"
             '';
 
+          clangVersion = pin "LANDIN_CLANG_NIX";
           llvmVersioned =
             let
               llvm19 = pkgs.llvmPackages_19;
             in
+            if llvm19.clang.version != clangVersion then
+              throw "landin: nixpkgs' clang 19 is ${llvm19.clang.version} and environments/pins.sh pins LANDIN_CLANG_NIX=${clangVersion}; move the pin with flake.lock"
+            else
             pkgs.runCommand "landin-llvm-19" { } (''
               mkdir -p "$out/bin"
               cat > "$out/bin/clang-19" <<'SCRIPT'
@@ -502,6 +512,9 @@
               ln -s ${llvm19.llvm}/bin/llvm-objdump "$out/bin/llvm-objdump-19"
               ln -s ${llvm19.llvm}/bin/llvm-nm "$out/bin/llvm-nm-19"
               ln -s ${llvm19.llvm}/bin/llvm-ar "$out/bin/llvm-ar-19"
+              #  The FreeBSD debugger lane's adapter, as Ubuntu's lldb-19
+              #  names it.
+              ln -s ${llvm19.lldb}/bin/lldb-dap "$out/bin/lldb-dap-19"
               #  The Windows target's driver under llvm-mingw's name: the
               #  bare Clang for x86-64 MinGW, LLD as its linker and
               #  MinGW-w64's import libraries as its sysroot, from which a
@@ -531,13 +544,37 @@
               chmod +x "$out/bin/aarch64-w64-mingw32-clang"
             '');
 
+          qemuSystem = inputs.nix-packages.packages.${system}.qemu-system;
+
+          #  What a gate job takes through .github/actions/nix-tools: the
+          #  same derivations this shell holds, by the names the jobs ask
+          #  for, so a job and this shell run one tool.  Each comes from the
+          #  nix-packages cache; the action refuses to build any but these
+          #  small wrappers.
+          ciTools =
+            {
+              llvm-19 = llvmVersioned;
+              inherit (pkgs) bubblewrap neovim;
+              inherit (inputs.nix-packages.packages.${system}) emacs-nox;
+            }
+            // lib.optionalAttrs (system == "x86_64-linux") {
+              qemu-system = qemuSystem;
+              gdb-multiarch = gdbMultiarch;
+              cross-riscv64 = crossLane {
+                cpu = "riscv64";
+                triplet = "riscv64-linux-gnu";
+                cross = pkgs.pkgsCross.riscv64;
+              };
+            };
+
           crossTools = lib.optionals pkgs.stdenv.hostPlatform.isLinux (
             [
               qemuUser
               gdbMultiarch
-              #  bsdtar, which unpacks the FreeBSD lanes' base system.
-              pkgs.libarchive
             ]
+            #  The FreeBSD lanes' guests, x86-64 under KVM and arm64 under
+            #  TCG, with qemu-img and the arm64 firmware: the gate's.
+            ++ lib.optionals (system == "x86_64-linux") [ qemuSystem ]
             ++ map crossLane crossLanes
           );
 
@@ -874,7 +911,7 @@
           #  lane without the shell: the gate's rv64-qemu jobs take it from
           #  here, so they run the QEMU environments/pins.sh pins.
           isLinux = pkgs.stdenv.hostPlatform.isLinux;
-          inherit qemuUser;
+          inherit qemuUser ciTools;
 
           shell = pkgs.mkShell {
             #  First, so its clang-19 comes before the bare compiler of that
@@ -1003,6 +1040,9 @@
         #  three, overwriting the word after a correct program's buffer.
         // (if built.isLinux then {
           qemu-user = built.qemuUser;
+        }
+        // built.ciTools
+        // {
           board-ram-run = import ./environments/boards/ram-run/package.nix {
             pkgs = inputs.nixpkgs.legacyPackages.${system};
           };

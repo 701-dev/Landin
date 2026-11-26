@@ -10,8 +10,9 @@ program's exit status, output and trap line to its fixture.
 
 The gate splits the lane in two jobs. `windows-emit` runs on Ubuntu with the
 checked release compiler and `--prepare-only`, linking with Clang 19, LLD
-and Ubuntu's MinGW-w64 import libraries (`mingw-w64-x86-64-dev`) under the
-name `x86_64-w64-mingw32-clang`, which is llvm-mingw's; `windows-runtime`
+and nixpkgs' MinGW-w64 import libraries under the name
+`x86_64-w64-mingw32-clang`, which is llvm-mingw's: the flake's driver of
+that name, the one `nix develop` holds; `windows-runtime`
 runs the bundle with `--prepared=DIR` on GitHub's `windows-2025` image,
 from a checkout of the same commit and with nothing else but Python. The
 bundle also carries this directory's script and the three it imports at

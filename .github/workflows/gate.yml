@@ -331,9 +331,11 @@ jobs:
       #  The focused mode requires Emacs and the executable, then waits for a
       #  live refine diagnostic.
       - name: Install the required Emacs client
-        run: |
-          ./scripts/ci_packages.sh emacs-nox
-          emacs --version | sed -n '1p'
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: emacs-nox
+      - name: The Emacs client's version
+        run: emacs --version | sed -n '1p'
 
       - name: Emacs starts refine lsp
         run: >-
@@ -661,10 +663,13 @@ jobs:
       #  program, and the --link=libc runtime fixtures link against musl
       #  and run.  bubblewrap needs unprivileged user namespaces, which
       #  Ubuntu 24.04's AppArmor refuses by default.
+      - name: Install bubblewrap
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: bubblewrap
       - name: The static archive without glibc
         run: |
           set -eu
-          ./scripts/ci_packages.sh bubblewrap
           if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
@@ -836,16 +841,11 @@ jobs:
           ./scripts/build.sh -q
 
       - name: Install the pinned Clang
-        run: |
-          set -eu
-          . ./environments/pins.sh
-          ./scripts/ci_packages.sh "clang-19=$LANDIN_CLANG_UBUNTU" libc6-dev
-          installed=$(dpkg-query -W -f='${Version}' clang-19)
-          if [ "$installed" != "$LANDIN_CLANG_UBUNTU" ]; then
-            echo "clang-19 is $installed, not $LANDIN_CLANG_UBUNTU" >&2
-            exit 1
-          fi
-          clang-19 --version | sed -n '1p'
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: llvm-19
+      - name: The pinned Clang's version
+        run: ./scripts/clang_version.sh
 
       - name: The binding generator
         run: >-
@@ -881,22 +881,26 @@ jobs:
           chmod 755 node_modules/tree-sitter-cli/tree-sitter
           ./node_modules/.bin/tree-sitter --version
 
+      #  Neovim and Emacs from the flake, before the pass, so that its
+      #  editor smokes run here too: Neovim's live parser smoke and LSP
+      #  opt-out control, and Emacs's tree-sitter mode and highlighting.
+      - name: Install Neovim and Emacs
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: neovim emacs-nox
+
       - name: The integration pass
         run: ./highlight/test.sh --integration
 
       - name: The committed parser is what the grammar generates
         run: git diff --exit-code -- highlight/tree-sitter
 
-      #  The integration pass runs the Neovim smokes only where nvim is,
-      #  and this runner has none, so the LSP opt-out control never ran
-      #  here.  The distribution's Neovim, 0.9, runs it: it needs only
-      #  `nvim -l` and the plugin's setup.  It is installed after the
-      #  pass, because 0.9 cannot load the generated ABI 15 parser that
-      #  the pass's parser smoke would then try.
+      #  The LSP opt-out control on its own, as a step a reader finds: the
+      #  pass above ran it as well, with the parser smoke.  It needs only
+      #  `nvim -l` and the plugin's setup.
       - name: The Neovim LSP preference smoke
         run: |
           set -eu
-          ./scripts/apt_install.sh --no-install-recommends neovim
           nvim --version | head -n 1
           nvim -n --headless --clean \
             --cmd "set runtimepath^=$PWD/highlight/nvim" \
@@ -2304,10 +2308,13 @@ jobs:
       #  program, and the --link=libc runtime fixtures link against musl
       #  and run.  bubblewrap needs unprivileged user namespaces, which
       #  Ubuntu 24.04's AppArmor refuses by default.
+      - name: Install bubblewrap
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: bubblewrap
       - name: The static archive without glibc
         run: |
           set -eu
-          ./scripts/ci_packages.sh bubblewrap
           if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
@@ -2337,16 +2344,11 @@ jobs:
             --output="$RUNNER_TEMP/dap"
 
       - name: Install the pinned Clang
-        run: |
-          set -eu
-          . ./environments/pins.sh
-          ./scripts/ci_packages.sh "clang-19=$LANDIN_CLANG_UBUNTU" libc6-dev
-          installed=$(dpkg-query -W -f='${Version}' clang-19)
-          if [ "$installed" != "$LANDIN_CLANG_UBUNTU" ]; then
-            echo "clang-19 is $installed, not $LANDIN_CLANG_UBUNTU" >&2
-            exit 1
-          fi
-          clang-19 --version | sed -n '1p'
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: llvm-19
+      - name: The pinned Clang's version
+        run: ./scripts/clang_version.sh
 
       - name: The generated bindings for the standard AAPCS64
         run: |
@@ -2405,16 +2407,12 @@ jobs:
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
             -C compiler/ada/build/linux-amd64/release
           ./scripts/build.sh -q
-      - name: Install the cross driver, ELF tools and QEMU
-        run: |
-          . ./environments/pins.sh
-          ./scripts/ci_packages.sh \
-            "clang-19=$LANDIN_CLANG_UBUNTU" lld-19 llvm-19 libarchive-tools \
-            qemu-utils ${{ matrix.arch == 'amd64' && 'qemu-system-x86'
-              || 'qemu-system-arm qemu-efi-aarch64' }} \
-            ${{ matrix.kind == 'debugger' && 'lldb-19' || '' }}
-          test "$(dpkg-query -W -f='${Version}' clang-19)" = "$LANDIN_CLANG_UBUNTU"
-          clang-19 --version
+      - name: Install the cross driver, ELF tools, LLDB's adapter and QEMU
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: llvm-19 qemu-system
+      - name: The pinned Clang's version
+        run: ./scripts/clang_version.sh
       - name: Let the job open KVM
         if: matrix.arch == 'amd64'
         run: |
@@ -2528,7 +2526,9 @@ jobs:
             ~/.cache/landin/freebsd/amd64-base.txz
           key: freebsd-amd64-${{ hashFiles('environments/freebsd/lock.json') }}
       - name: Install QEMU
-        run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: qemu-system
       - name: Let the job open KVM
         run: sudo chmod 666 /dev/kvm
       - name: Build refine in a FreeBSD guest and run the test program there, ${{ matrix.part }}
@@ -2581,17 +2581,19 @@ jobs:
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
             -C compiler/ada/build/linux-amd64/release
           ./scripts/build.sh -q
+      #  The flake's x86_64-w64-mingw32-clang: the bare Clang 19 and LLD
+      #  over nixpkgs' MinGW-w64 import libraries, the driver the nix shell
+      #  holds.
       - name: Install Clang, LLD and the MinGW-w64 import libraries
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: llvm-19
+      - name: The Windows x86-64 driver
         run: |
-          . ./environments/pins.sh
-          ./scripts/ci_packages.sh \
-            "clang-19=$LANDIN_CLANG_UBUNTU" lld-19 mingw-w64-x86-64-dev
-          test "$(dpkg-query -W -f='${Version}' clang-19)" = "$LANDIN_CLANG_UBUNTU"
+          set -eu
+          ./scripts/clang_version.sh
           mkdir -p "$RUNNER_TEMP/bin"
-          printf '%s\n' '#!/bin/sh' \
-            'exec clang-19 --target=x86_64-w64-mingw32 --sysroot=/usr/x86_64-w64-mingw32 "$@"' \
-            > "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
-          chmod +x "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
+          ln -s "$(command -v x86_64-w64-mingw32-clang)" "$RUNNER_TEMP/bin/x86_64-w64-mingw32-clang"
       #  D2485 and D2486: an image named without `.exe` keeps its name, a
       #  failed link leaves nothing, and two full-debug links of one
       #  program give the same image and PDB.
@@ -2851,22 +2853,19 @@ jobs:
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
             -C compiler/ada/build/linux-amd64/release
           ./scripts/build.sh -q
+      #  The flake's aarch64-w64-mingw32-clang: the bare Clang 19 and LLD
+      #  over the import libraries of the llvm-mingw release
+      #  environments/pins.sh pins, the driver the nix shell holds.
       - name: Install Clang, LLD and llvm-mingw's arm64 import libraries
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: llvm-19
+      - name: The Windows arm64 driver
         run: |
-          . ./environments/pins.sh
-          ./scripts/ci_packages.sh "clang-19=$LANDIN_CLANG_UBUNTU" lld-19
-          test "$(dpkg-query -W -f='${Version}' clang-19)" = "$LANDIN_CLANG_UBUNTU"
-          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-aarch64"
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
-            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
-          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS  $RUNNER_TEMP/$name.zip" |
-            sha256sum -c -
-          unzip -q "$RUNNER_TEMP/$name.zip" "$name/aarch64-w64-mingw32/lib/*" -d "$RUNNER_TEMP"
+          set -eu
+          ./scripts/clang_version.sh
           mkdir -p "$RUNNER_TEMP/bin"
-          printf '%s\n' '#!/bin/sh' \
-            "exec clang-19 --target=aarch64-w64-mingw32 --sysroot=$RUNNER_TEMP/$name/aarch64-w64-mingw32 \"\$@\"" \
-            > "$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang"
-          chmod +x "$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang"
+          ln -s "$(command -v aarch64-w64-mingw32-clang)" "$RUNNER_TEMP/bin/aarch64-w64-mingw32-clang"
       - name: Windows arm64 links name their image and repeat their debug builds
         run: >-
           PATH="$RUNNER_TEMP/bin:$PATH"
@@ -3147,28 +3146,32 @@ jobs:
             -C compiler/ada/build/linux-amd64/release
           ./scripts/build.sh -q
 
-      - name: Install nix for the pinned emulator
-        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      #  The flake's QEMU user emulation, its riscv64 cross driver and its
+      #  multi-target GDB, the nix shell's own (compiler/ada/TOOLCHAIN.md).
+      - name: Install the pinned QEMU user emulation, the LP64D cross toolchain and GDB
+        uses: ./.github/actions/nix-tools
+        with:
+          packages: qemu-user cross-riscv64 gdb-multiarch
 
-      - name: Install the pinned QEMU user emulation and the LP64D cross toolchain
-        timeout-minutes: 25
+      - name: The pinned emulator and cross driver
         run: |
           set -eu
-          nix build --out-link "$RUNNER_TEMP/qemu-user" .#qemu-user
-          echo "$RUNNER_TEMP/qemu-user/bin" >> "$GITHUB_PATH"
-          ./scripts/ci_packages.sh \
-            gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu libc6-dev-riscv64-cross \
-            gdb-multiarch
           . ./environments/pins.sh
-          version=$("$RUNNER_TEMP/qemu-user/bin/qemu-riscv64" --version | sed -n '1p')
+          version=$(qemu-riscv64 --version | sed -n '1p')
           echo "$version"
           case "$version" in
             "qemu-riscv64 version $LANDIN_CROSS_QEMU_NIX"*) ;;
             *) echo "not the pinned QEMU $LANDIN_CROSS_QEMU_NIX" >&2; exit 1 ;;
           esac
-          riscv64-linux-gnu-gcc --version | sed -n '1p'
+          version=$(riscv64-linux-gnu-gcc -dumpversion)
+          echo "riscv64-linux-gnu-gcc $version"
+          test "$version" = "$LANDIN_CROSS_GCC_NIX" ||
+            { echo "not the pinned cross GCC $LANDIN_CROSS_GCC_NIX" >&2; exit 1; }
           riscv64-linux-gnu-objdump --version | sed -n '1p'
-          test -f "$(riscv64-linux-gnu-gcc -print-file-name=libm.a)"
+          #  The driver links a program that asks for libm, as refine's
+          #  `linker.library` requests do.
+          printf 'int main(void) { return 0; }\n' |
+            riscv64-linux-gnu-gcc -x c - -lm -o "$RUNNER_TEMP/links-libm"
           ls /proc/sys/fs/binfmt_misc 2>/dev/null || echo "no binfmt_misc"
 
       #  A fixture that starts itself again by its own name, prototype 5's
@@ -3190,16 +3193,16 @@ jobs:
           fi
           magic='\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xf3\x00'
           mask='\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff'
-          interpreter=$(readlink -f "$RUNNER_TEMP/qemu-user/bin/qemu-riscv64")
+          interpreter=$(readlink -f "$(command -v qemu-riscv64)")
           printf '%s' ":qemu-riscv64:M::$magic:$mask:$interpreter:F" |
             sudo tee "$handlers/register" > /dev/null
           cat "$handlers/qemu-riscv64"
 
-      #  Ubuntu's cross executables ask for /lib/ld-linux-riscv64-lp64d.so.1,
-      #  which QEMU finds under its prefix.
+      #  The cross driver's executables ask for its glibc's loader by its
+      #  store path, which QEMU opens as it is.
       - name: The test program on the RV64 lane, shard ${{ matrix.shard }} of 2
         run: >-
-          QEMU_LD_PREFIX=/usr/riscv64-linux-gnu QEMU_CPU=max,xtheadba=true
+          QEMU_CPU=max,xtheadba=true
           LANDIN_TEST_JOBS=8 LANDIN_TEST_TIMINGS=1
           ./scripts/test.sh --target=linux-rv64 --runner=qemu-riscv64
           --shard=${{ matrix.shard }}/2

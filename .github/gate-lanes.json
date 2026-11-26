@@ -160,7 +160,10 @@
  ],
  "sets": {
   "workflow": [
-   ".github/workflows/gate.yml"
+   ".github/workflows/gate.yml",
+   ".github/actions/**",
+   "flake.nix",
+   "flake.lock"
   ],
   "determinism-workflow": [
    ".github/workflows/determinism.yml"

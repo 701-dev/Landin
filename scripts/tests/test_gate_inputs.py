@@ -1914,6 +1914,7 @@ DOCUMENT_READERS = {
     ".github/workflows/gate-rerun.yml": COMMENT,
     ".github/gate-lanes.json": "the shadow selection's path globs, which decide no job",
     "scripts/gate_history.py": COMMENT,
+    ".github/actions/nix-tools/action.yml": COMMENT,
     ".gitignore": "the rendered site's output directory",
     "lychee.toml": "links.yml, which always runs",
     "citations.txt": "decisions' text that names a guide, copied from spec.md",
@@ -1935,6 +1936,7 @@ DOCUMENT_READERS = {
     "scripts/agent_env.sh": COMMENT,
     "scripts/agent_hook.py": "the agent session hook, run by a harness and"
                              " never by a lane; its test is in scripts/tests",
+    "scripts/nix_tools.py": COMMENT,
     "scripts/benchmarks.py": "measures the Benchmark Game ports by hand; no"
                              " lane runs it, and it names its method's guide",
     "scripts/build.sh": COMMENT,

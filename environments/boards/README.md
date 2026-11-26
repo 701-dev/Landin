@@ -436,7 +436,11 @@ port's `ram-record.json` and `record.json` once they are checked. If the
 board may be on Arm or on an unknown image, run the boot check first: it
 ends on the port's fixed image, from which the RAM run starts. The Hazard3
 boot check leaves the board on its resting image, the Arm one does not;
-end an Arm session with a `rp2350_hazard3` boot check.
+end an Arm session with a `rp2350_hazard3` boot check. Every `rp2350` run
+also writes the port's gate journal, `RIG_STATE/runs/pico2.json`, and a
+passed `rp2350_hazard3` boot check removes it, so a session left on Arm
+makes the next gate run of the port restore the resting image before its
+first Hazard3 attach, as after a gate run that was cut short.
 
 [Timing](#timing-runs) one port is a `--board` of `timing.py`, which takes
 the Pico 2's hub and port from rig.json itself. Each timing run is a warm
