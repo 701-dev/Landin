@@ -39,6 +39,7 @@ Each tool's args carry `hub`, `port`, `pico_serial`, `guard_serial`,
 `arguments` adds the options that give them.
 """
 
+import json
 import re
 import stat
 import struct
@@ -360,6 +361,35 @@ def await_bootsel(run, args):
     require(not args.pico_serial or args.pico_serial in device,
             'BOOTSEL enumerated as %s, not with serial %s' % (device, args.pico_serial))
     return device
+
+
+#  The gate's port of both tools, whose journal is RIG_STATE/runs/PORT.json.
+PORT = 'pico2'
+
+
+def journal(state=None):
+    """The gate's journal of the Pico 2's port: an entry there says the
+    board is not known to be on its resting image, the fixed Hazard3 one,
+    and the port's next gate run begins with the boot check that restores
+    it."""
+    return Path(common.RIG_STATE if state is None else state) / 'runs' / (PORT + '.json')
+
+
+def leaving_rest(by, state=None):
+    """Write in the journal that BY, an Arm run, takes the board off its
+    resting image.  A hand re-record of the Arm port left the cores on Arm,
+    and the gate's next Hazard3 RAM run, which attaches without a reset,
+    failed on them; the gate now restores the board first, as after one of
+    its own runs that was cut short."""
+    common.write_state(journal(state), json.dumps(dict(
+        port=PORT, left_by=by, started=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())),
+        indent=2) + '\n', state)
+
+
+def at_rest(state=None):
+    """The Hazard3 boot check restored and verified the resting image: the
+    journal's entry, whoever left it, no longer holds."""
+    journal(state).unlink(missing_ok=True)
 
 
 def arguments(parser):
