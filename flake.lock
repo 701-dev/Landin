@@ -1,24 +1,46 @@
 {
   "nodes": {
+    "nix-packages": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1795718818,
+        "narHash": "sha256-2nxBAhUFoiSG6vNByHTrg7pkopsgVWDxgFIy6Y1DRaE=",
+        "owner": "701-dev",
+        "repo": "nix-packages",
+        "rev": "59e3b1c6747a271534175796eada11533baccc29",
+        "type": "github"
+      },
+      "original": {
+        "owner": "701-dev",
+        "repo": "nix-packages",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1787135253,
         "narHash": "sha256-RD2kNWCG+Bjo6h+JVjWVNntZs2GtRoeY2xHjts/FNkA=",
-        "owner": "nixos",
+        "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "ffb3c9b700e759be2ef13237c9d8f953b32a1e46",
         "type": "github"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
+        "owner": "NixOS",
         "repo": "nixpkgs",
+        "rev": "ffb3c9b700e759be2ef13237c9d8f953b32a1e46",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nix-packages": "nix-packages",
+        "nixpkgs": [
+          "nix-packages",
+          "nixpkgs"
+        ]
       }
     }
   },

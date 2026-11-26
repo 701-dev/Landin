@@ -10,6 +10,7 @@ import shlex
 import shutil
 import socket
 import subprocess
+import tarfile
 import tempfile
 import time
 import urllib.request
@@ -66,8 +67,17 @@ def prepare(arch, cache, *, image=True):
     sysroot = cache / (arch + '-sysroot')
     if not (sysroot / '.ready').exists():
         sysroot.mkdir(exist_ok=True)
-        subprocess.run(['bsdtar', '-xf', base, '-C', sysroot,
-                        './lib', './usr/lib', './usr/include'], check=True)
+        #  Python's own tar reader, rather than bsdtar: the archive is the
+        #  locked one, checked above, and GNU tar would serve as well, but
+        #  neither is then a tool the lane needs.  Its absolute symbolic
+        #  links are made relative below, so the `tar` filter, which keeps
+        #  them, rather than `data`, which refuses them.
+        with tarfile.open(base, 'r:xz') as archive:
+            #  A generator, so that the archive is read once.
+            wanted = (member for member in archive
+                      if member.name.startswith(('./lib/', './usr/lib/', './usr/include/'))
+                      or member.name in ('./lib', './usr/lib', './usr/include'))
+            archive.extractall(sysroot, members=wanted, filter='tar')
         for path in sysroot.rglob('*'):
             if path.is_symlink() and os.readlink(path).startswith('/'):
                 target = sysroot / os.readlink(path).lstrip('/')
@@ -291,14 +301,16 @@ def qemu_argv(arch, overlay, output, private, *, memory=2048, cpus=2):
         require(os.access('/dev/kvm', os.R_OK | os.W_OK), 'x86-64 guest requires accessible KVM')
         return ['qemu-system-x86_64', '-accel', 'kvm', '-cpu', 'host', *common,
                 '-drive', f'file={chardev_path(overlay)},format=qcow2,if=virtio']
-    #  Ubuntu's qemu-efi-aarch64, then the firmware a QEMU on PATH ships
-    #  in its own share directory, as the Nix store's does.
-    candidates = [Path('/usr/share/AAVMF/AAVMF_CODE.fd'),
-                  Path('/usr/share/qemu/edk2-aarch64-code.fd')]
+    #  The firmware the QEMU on PATH ships in its own share directory, as
+    #  nix-packages' qemu-system does, then a distribution's: Debian's and
+    #  Ubuntu's qemu-efi-aarch64, and a QEMU installed under /usr.
+    candidates = []
     emulator = shutil.which('qemu-system-aarch64')
     if emulator:
         candidates.append(Path(emulator).resolve().parent.parent
                           / 'share/qemu/edk2-aarch64-code.fd')
+    candidates += [Path('/usr/share/AAVMF/AAVMF_CODE.fd'),
+                   Path('/usr/share/qemu/edk2-aarch64-code.fd')]
     firmware = next((p for p in candidates if p.is_file()), None)
     if os.environ.get('LANDIN_FREEBSD_EFI'):
         firmware = Path(os.environ['LANDIN_FREEBSD_EFI'])
@@ -307,7 +319,8 @@ def qemu_argv(arch, overlay, output, private, *, memory=2048, cpus=2):
             + (f'LANDIN_FREEBSD_EFI names {firmware}, which is not a file'
                if os.environ.get('LANDIN_FREEBSD_EFI') else
                'looked for ' + ', '.join(map(str, candidates))
-               + '; install qemu-efi-aarch64, or name the firmware file in'
+               + "; put nix-packages' qemu-system on PATH (`nix build .#qemu-system`),"
+               ' install qemu-efi-aarch64, or name the firmware file in'
                ' LANDIN_FREEBSD_EFI'))
     #  The UEFI firmware drives the network device itself, so the device
     #  loads no option ROM: QEMU's default, efi-virtio.rom, is in a package
