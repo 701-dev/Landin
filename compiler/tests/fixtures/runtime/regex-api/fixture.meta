@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/regex refuses each kind of pattern with its own failure, fills replacement templates by number and name, walks empty matches as Rust's regex does, searches from a position and anchored, and reads Unicode classes and case
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+constructs: 0940, 1030

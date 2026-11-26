@@ -87,7 +87,7 @@ builder: type = struct
     pending: vec.list(edge)
 end builder
 
-cache_size: usize = 1024
+cache_size: usize = 64
 
 build_failure: type = pattern_too_large | mem.out_of_memory
 
@@ -642,14 +642,23 @@ compile_trie: (provider: type is mem.allocator, inout code: program,
         try vec.push(c.pending, memory, added)
         at = run_end
     end while
-    mut node: vec.list(edge) = vec.new(item: edge)
-    defer vec.release(node, memory)
+    --  The node's edges leave the shared list before it is built: in a
+    --  buffer of the frame's when they are few, as nearly every node's
+    --  are, so that an arena is not spent on them.
+    count: usize = vec.length(c.pending) - base
+    mut few: [32]edge = zeroed
+    mut many: vec.list(edge) = vec.new(item: edge)
+    defer vec.release(many, memory)
     for index in base..<vec.length(c.pending) do
         item: edge = vec.get(c.pending, index) else (problem)
             _ = problem
             fail pattern_too_large
         end
-        try vec.push(node, memory, item)
+        if count <= lenof few then
+            few[index - base] = item
+        else
+            try vec.push(many, memory, item)
+        end if
     end for
     while vec.length(c.pending) > base do
         _ = vec.pop(c.pending) else (problem)
@@ -657,7 +666,11 @@ compile_trie: (provider: type is mem.allocator, inout code: program,
             break
         end
     end while
-    state = try cached_node(code, memory, c, vec.used(node))
+    if count <= lenof few then
+        state = try cached_node(code, memory, c, few[0..<count])
+    else
+        state = try cached_node(code, memory, c, vec.used(many))
+    end if
 end compile_trie
 
 same_range: (c: builder, index: usize, head: byte_sequence, depth: usize)

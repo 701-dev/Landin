@@ -177,12 +177,16 @@ public compile_with: (provider: type is mem.allocator, memory: provider,
     try compile_program(result.forward, memory, tree, false,
                         settings.size_limit)
     if settings.engine <> pike_vm then
-        try compile_program(result.backward, memory, tree, true,
-                            settings.size_limit)
         try size_dfa_cache(result.forward_dfa, memory, result.forward,
                            settings.cache_size / 2, false)
-        try size_dfa_cache(result.backward_dfa, memory, result.backward,
-                           settings.cache_size / 2, true)
+        --  The reversed program only finds where a match the forward DFA
+        --  found begins.
+        if result.forward_dfa.usable then
+            try compile_program(result.backward, memory, tree, true,
+                                settings.size_limit)
+            try size_dfa_cache(result.backward_dfa, memory, result.backward,
+                               settings.cache_size / 2, true)
+        end if
     end if
     if settings.engine == automatic or settings.engine == literal_prefilter
     then
@@ -258,6 +262,14 @@ public prepared: (expression: regex)
     one_pass = expression.pass_table.usable
     literals = expression.literals.usable
 end prepared
+
+--- The size of the compiled program, in the instructions and edges the
+--- options' `size_limit` counts: what a search's work per byte of text is
+--- bounded by.
+public program_size: (expression: regex) -> (count: usize) =
+    count = vec.length(expression.forward.insts)
+            + vec.length(expression.forward.edges)
+end program_size
 
 --- How many groups the pattern has, the whole match, group zero, among
 --- them: one more than its capturing groups.
@@ -519,7 +531,10 @@ match_walk_value is iter.iterable (cur: walk_position, item_type: span,
 --- Append `haystack` to `into` with every match replaced by `template`,
 --- matches found as `matches` finds them, and give how many there were.
 --- In the template `$1` or `${1}` is what group 1 matched, `$name` or
---- `${name}` what the group of that name did, and `$$` a `$`; a group
+--- `${name}` what the group of that name did, and `$$` a `$`.  Without
+--- braces the name is the longest run of letters, digits and `_` after
+--- the `$`, so `$1a` names a group `1a` where `${1}a` is group 1 then an
+--- `a`.  A group
 --- that took no part, or that the pattern does not have, is empty.  A
 --- `$` before anything else stands for itself.  On `mem.out_of_memory`
 --- `into` holds what it held before.
@@ -579,8 +594,9 @@ expand: (expression: regex, bytes: []u8, template: []u8,
             end if
             closing = 1
         else
-            while last < lenof template and name_byte(template[last], false)
-              and template[last] < 0x80 do
+            while last < lenof template
+              and (is_alphanumeric(template[last])
+                   or template[last] == u8('_')) do
                 inc last
             end while
         end if
@@ -721,8 +737,3 @@ unicode_category: (scalar: u32) -> (index: u8) =
         unicode.unassigned: 29
     end match
 end unicode_category
-
-public debug_sizes: (expression: regex) -> (insts: usize, edges: usize) =
-    insts = vec.length(expression.forward.insts)
-    edges = vec.length(expression.forward.edges)
-end debug_sizes

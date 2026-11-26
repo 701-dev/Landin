@@ -1,0 +1,120 @@
+--  core/regex's searches take time linear in the text on patterns that
+--  make a backtracking engine take exponential time, or a DFA exponential
+--  space: each is searched over a text and over one twice as long, each
+--  time freshly compiled, and the work the second search does is at most
+--  a little over twice the first's, and within the text's length times
+--  the program's size.  The options are `lean`, and the memory an arena
+--  over a static buffer, so that Cortex-M0 runs it as a hosted target
+--  does.
+
+import core/arena
+import core/regex
+import core/text
+
+--  Firmware's texts are shorter, and its arena smaller, to fit its RAM.
+fixed if compiler.os == freestanding then
+    length: usize = 200
+    arena_size: usize = 9216
+    text_size: usize = 2048
+else
+    length: usize = 3000
+    arena_size: usize = 65536
+    text_size: usize = 32768
+end if
+
+mut backing: [arena_size]u8 = zeroed
+mut haystack_storage: [text_size]u8 = zeroed
+
+--  How a text is made: `fill` repeated, then `last` once.
+case_entry: type = struct
+    pattern: utf8
+    fill: utf8
+    last: utf8
+    operation: u8
+end case_entry
+
+--  The operations: whether there is a match, the match, and the match
+--  with its groups.
+is_match_operation: u8 = 0
+find_operation: u8 = 1
+captures_operation: u8 = 2
+
+cases: [10]case_entry = [
+    (pattern: "(a*)*b", fill: "a", last: "", operation: is_match_operation),
+    (pattern: "(a|a)*b", fill: "a", last: "", operation: find_operation),
+    (pattern: "(a|aa)*c", fill: "a", last: "", operation: captures_operation),
+    (pattern: "(x+x+)+y", fill: "x", last: "", operation: is_match_operation),
+    (pattern: "(?:a?){20}a{20}b", fill: "a", last: "",
+     operation: find_operation),
+    (pattern: "[ab]*a[ab]{10}c", fill: "ab", last: "",
+     operation: find_operation),
+    (pattern: "^(a+)+$", fill: "a", last: "b",
+     operation: captures_operation),
+    (pattern: "(?-u)(\\w+\\s?)*$", fill: "word ", last: "!",
+     operation: captures_operation),
+    (pattern: "(.*)*x", fill: "abc", last: "", operation: find_operation),
+    (pattern: "(?:a+|b+)*c(?:a|b)", fill: "ab", last: "",
+     operation: is_match_operation)
+]
+
+--  The work one search of case `entry` over `count` repetitions of its
+--  fill does, freshly compiled, and the compiled program's size.
+measured: (entry: case_entry, count: usize)
+          -> (work: u64, size: u64)
+          ! regex.compile_failure | text.invalid_text =
+    fill: []u8 = text.bytes(entry.fill)
+    last: []u8 = text.bytes(entry.last)
+    mut used: usize = 0
+    for round in usize(0)..<count do
+        _ = round
+        for byte in fill do
+            haystack_storage[used] = byte
+            inc used
+        end for
+    end for
+    for byte in last do
+        haystack_storage[used] = byte
+        inc used
+    end for
+    haystack: utf8 = try text.from_bytes(haystack_storage[0..<used])
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    settings := regex.with_cache_size(regex.lean(), 3072)
+    mut expression := try regex.compile_with(memory, entry.pattern, settings)
+    defer regex.release(expression, memory)
+    nowhere: regex.span = (begins: text.nowhere, ends: text.nowhere)
+    if entry.operation == is_match_operation then
+        _ = regex.is_match(expression, haystack)
+    elsif entry.operation == find_operation then
+        _ = (regex.find(expression, haystack) else nowhere)
+    else
+        _ = (regex.captures(expression, haystack) else nowhere)
+    end if
+    work = regex.work(expression)
+    size = u64(regex.program_size(expression))
+end measured
+
+--  Whether case `entry`'s work grows linearly: twice the text costs at
+--  most 2.3 times the work, give or take the program's size, and the
+--  work is within the text's length times the program's size.
+linear: (entry: case_entry) -> (yes: bool) =
+    yes = false
+    (work: shorter, size: size) := measured(entry, length) else begin
+        return
+    end
+    (work: longer, size: _) := measured(entry, 2 * length) else begin
+        return
+    end
+    bytes: u64 = u64(2 * length * lenof text.bytes(entry.fill))
+    return when longer * 10 > shorter * 23 + 40 * (size + 1)
+    return when longer > (bytes + 2) * (size + 2) * 2
+    yes = true
+end linear
+
+public main: () -> (code: i32) =
+    code = 1
+    for entry in cases do
+        return when not linear(entry)
+    end for
+    code = 42
+end main
