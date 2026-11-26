@@ -28709,6 +28709,36 @@ registers already in place makes unnecessary.
 none, size and speed, and the debugger sessions' `loop-element-locals`,
 which read a loop's element through its temporary at size.
 
+### D2574 — x86-64 compares a float element where it lies
+
+**The tour said** nothing. If-conversion counts the elements a float
+comparison holds for, as fasta's `select_symbol` does with `if random >=
+cumulative[at] then inc index end if`, by adding the comparison's flag
+to the count (D338). x86-64 loaded the element into a register with
+`movsd` before `ucomisd` read it, although `ucomisd` reads memory, and
+made the flag's zero extension in `%eax`, then copied it to the register
+the addition read: two of the loop's ten instructions moved nothing.
+
+**Chosen:** at size and speed a float load whose one use is an operation
+that reads a memory operand, a float comparison or a float addition,
+subtraction, multiplication or division, is not made when nothing but
+constants with an immediate and loads of a slot already in its register
+lies between them: the operation reads the load's memory operand, whose
+registers nothing between writes; the loads and constants if-conversion
+copies from an arm are such instructions. A counted flag of one or zero
+is extended straight into the register the choice lives in. Every other
+backend makes the same loads as before.
+
+**The alternatives:** a conditional `sbb` or `adc` of the comparison's
+carry, which would read the count's overflow check differently from the
+addition it replaces; and having if-conversion put the arms' copies
+before the load rather than between it and the comparison, which changed
+Cortex-M7 firmware for no gain there and which the forwarding rule does
+not need.
+
+**Pinned by** x86-64's `a counted comparison is a flag add` at size and
+speed, and fasta's output under the runtime suite.
+
 ### D2247 — A constant left operand of a commutative integer operation goes right
 
 **The tour said** nothing. Lowering keeps the source's order, so `4 * t`
