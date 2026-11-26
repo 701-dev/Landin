@@ -600,34 +600,6 @@ package body Landin.IR.If_Conversion is
             Last : constant Instruction := Code_At (Branch);
             Condition_Value : constant Value_Id := Operand (Last, 1);
 
-            --  Where the arms' copies go when the condition is right
-            --  before the branch: before it, so that the choice reads the
-            --  condition next to it, and before a float load just ahead
-            --  of it that only the condition reads, so that the load is
-            --  next to its comparison too, which x86-64 then makes from
-            --  memory (D2574).  The copies cannot trap or be observed, so
-            --  they may go before a load that can trap.
-            function Early_Place return Value_Id;
-
-            function Early_Place return Value_Id is
-               Loaded : constant Value_Id := Condition_Value - 1;
-               Condition : constant Instruction := Code_At (Condition_Value);
-            begin
-               if Condition_Value > First_Of (Head)
-                 and then Code_At (Loaded).Op
-                   in Load | Load_Datum | Load_Element | Load_Field
-                    | Load_Indirect
-                 and then Code_At (Loaded).Result in Landin.Types.Float_Name
-                 and then Uses (Positive (Loaded)) = 1
-                 and then Condition.Args = 2
-                 and then (Operand (Condition, 1) = Loaded
-                           or else Operand (Condition, 2) = Loaded)
-               then
-                  return Loaded;
-               end if;
-               return Condition_Value;
-            end Early_Place;
-
             --  An arm is the block a side leads to when only Head leads
             --  there and it ends in a jump; otherwise the side has none.
             --  Lowering may put blocks that only jump before it, as an
@@ -701,7 +673,7 @@ package body Landin.IR.If_Conversion is
                     (Head => Head,
                      Before =>
                        (if Condition_Value = Branch - 1
-                        then Early_Place else Branch),
+                        then Condition_Value else Branch),
                      Branch => Branch,
                      Join => Join,
                      Early_First => Natural (Early_Plan.Length),
