@@ -384,6 +384,11 @@ package body Landin.Backend.Arm64 is
          Parameter_Of : Counts renames Facts_Of.Parameter_Of.Data.all;
          Free_Homes : array (Held_Size) of Natural := [others => 0];
          Busy_Until : array (Register_Number) of Natural := [others => 0];
+         --  The last position at which a value given each register is
+         --  read: a slot's register is busy over the slot's interval, so
+         --  Busy_Until does not say whether a value still holds it.
+         Value_Until : array (Register_Number) of Natural :=
+           [others => 0];
          Declared_Set : constant Saved_Set := Result.Saves;
          Has_Assembly : Boolean renames Facts_Of.Has_Assembly;
          --  Whether a callee-saved register pays for its save: below this
@@ -415,6 +420,8 @@ package body Landin.Backend.Arm64 is
          function Stored_Into (Value : Positive; Position : Natural)
             return Natural;
          function Stored_Late (Value : Positive; Position : Natural)
+            return Natural;
+         function Stored_Early (Value : Positive; Position : Natural)
             return Natural;
 
          --  Whether a call or assembly block lies at some position from
@@ -804,6 +811,105 @@ package body Landin.Backend.Arm64 is
             end;
          end Stored_Late;
 
+         --  D2714: the register of the slot a value's first store writes
+         --  it into, when the value is read again after that store, at
+         --  speed: the slot is placed over an interval through the
+         --  value's last use, and either already holds the register at
+         --  Position, no value given the register is read after
+         --  Position and nothing loads the slot before the store, or its
+         --  interval opens at the store and nothing holds the register
+         --  now but, for an indirect load, what the load itself reads
+         --  for the last time: selection forms the address before the
+         --  one load writes the register.  Nothing else stores the slot
+         --  inside the value's span.  The value is made in the slot's
+         --  register, the store moves nothing, and the uses after it
+         --  read the register, which holds the slot's value from the
+         --  store on.  D2164 covers a
+         --  store that is the value's last use; this the rest.
+         function Stored_Early (Value : Positive; Position : Natural)
+            return Natural
+         is
+            Last : constant Natural := Lasts (Value);
+            Store_At : Natural := 0;
+         begin
+            if not Speed or else Has_Assembly
+              or else Last <= Position or else Last - Position > 32
+            then
+               return No_Register;
+            end if;
+            for Between in Position + 1 .. Last - 1 loop
+               declare
+                  User : constant Landin.IR.Value_Id :=
+                    Landin.IR.Value_Id (Sequence (Between));
+               begin
+                  if Landin.IR.Op_Of (Of_Unit, Item, User) = Landin.IR.Store
+                    and then Positive
+                      (Landin.IR.Nth_Operand (Of_Unit, Item, User, 1))
+                      = Value
+                  then
+                     Store_At := Between;
+                     exit;
+                  end if;
+               end;
+            end loop;
+            if Store_At = 0 then
+               return No_Register;
+            end if;
+            declare
+               Slot : constant Positive := Positive (Landin.IR.Slot_Of
+                 (Of_Unit, Item, Landin.IR.Value_Id (Sequence (Store_At))));
+               Number : constant Natural := Result.Slots (Slot).Register;
+               Span : constant Landin.IR.Liveness.Interval := Spans (Slot);
+            begin
+               if Interval_Slots (Slot) /= 1
+                 or else Number = No_Register
+                 or else Span.Last < Last
+               then
+                  return No_Register;
+               end if;
+               if Span.First <= Position then
+                  --  The slot holds the register now: its old content is
+                  --  dead from Position, as no value read later holds it
+                  --  and no load of the slot comes before the store.
+                  if Value_Until (Number) > Position then
+                     return No_Register;
+                  end if;
+               elsif Span.First /= Store_At
+                 or else Busy_Until (Number) > Position
+                 or else
+                   (Busy_Until (Number) = Position
+                    and then Landin.IR.Op_Of
+                      (Of_Unit, Item, Landin.IR.Value_Id (Value))
+                      /= Landin.IR.Load_Indirect)
+                 or else not Reservations.Has_Element (Upcoming (Number))
+                 or else Reservations.Key (Upcoming (Number)) /= Store_At
+                 or else Reservations.Element (Upcoming (Number)) /= Slot
+               then
+                  return No_Register;
+               end if;
+               for Between in Position + 1 .. Last loop
+                  declare
+                     Other : constant Landin.IR.Value_Id :=
+                       Landin.IR.Value_Id (Sequence (Between));
+                     Op : constant Landin.IR.Opcode :=
+                       Landin.IR.Op_Of (Of_Unit, Item, Other);
+                  begin
+                     if Between /= Store_At
+                       and then
+                         (Op = Landin.IR.Store
+                          or else (Op = Landin.IR.Load
+                                   and then Between < Store_At))
+                       and then Positive
+                         (Landin.IR.Slot_Of (Of_Unit, Item, Other)) = Slot
+                     then
+                        return No_Register;
+                     end if;
+                  end;
+               end loop;
+               return Number;
+            end;
+         end Stored_Early;
+
          --  Whether a value from Position through Last may hold register
          --  Number as far as calls go.  A float may hold d18-d31 when no
          --  call lies strictly inside its interval, since one at its last
@@ -958,6 +1064,8 @@ package body Landin.Backend.Arm64 is
                            Place.Register := Number;
                            Busy_Until (Number) :=
                              Natural'Max (Busy_Until (Number), Last);
+                           Value_Until (Number) :=
+                             Natural'Max (Value_Until (Number), Last);
                            Result.Held (Number) := True;
                            if Number in Saved_General | Saved_Float then
                               Result.Saves (Number) := True;
@@ -990,6 +1098,7 @@ package body Landin.Backend.Arm64 is
                         Share (Widened_From (Index, Position));
                         Share (Stored_Into (Index, Position));
                         Share (Stored_Late (Index, Position));
+                        Share (Stored_Early (Index, Position));
                         if Kind in Landin.Types.Float_Name then
                            Take (Free_Float'First, Free_Float'Last);
                            Take (Saved_Float'First, Saved_Float'Last);

@@ -27397,6 +27397,45 @@ routine for the debugger (D1404).
 **Pinned by** `arm64 selection/a stored value is made in its slot` and
 `compiler/tests/measure/baselines/`.
 
+### D2714 — arm64 makes a value read after its store in its slot's register
+
+**The tour said** nothing. D2164 made a value in its slot's register
+only when the store was the value's last use, so one read again after
+its store was made in a register of its own and moved: three of
+reverse-complement's eighteen instructions a byte in `write_reversed`
+copied `at - 1` into `at`, the loaded byte into `base` and `width + 1`
+into `width`, and mandelbrot's real and imaginary parts were moved the
+same way.
+
+**Chosen:** at `speed`, in a routine with no assembly block, a value
+read after its first store, within 32 positions of its definition, is
+made in the register of the slot that store writes when the slot is
+placed in that register over an interval running through the value's
+last use, nothing else stores the slot within the value's span, and
+either the slot already holds the register at the definition, no value
+given the register is read after the definition and nothing loads the
+slot before the store, or the slot's interval opens at the store and
+nothing holds the register at the definition, but for an indirect
+load, what that load itself reads for the last time: its address is
+formed before the one load writes the register. The store moves
+nothing, and the uses after it read the slot's register. A debugger
+stepping between the definition and the store sees the variable's new
+value early, as under D2164. Under QEMU at armv8-a, `speed` executes
+12.0% fewer instructions on mandelbrot, 11.7% on reverse-complement,
+1.9% on the switch measurements, 1.8% on fasta and 1.4% on
+binary-trees, every output the same; on a Cortex-X925 core the first
+two run 16.1% and 15.5% faster.
+
+**The alternatives:** x86-64's D2157 chain of values each the next
+one's left operand, which no measured arm64 loop needs; the rule at
+`size`, which D2164 left alone for the debugger (D1404); and letting
+any operation's result take an operand's register at its own position,
+which needs every selected sequence to read its operands before it
+writes and so is left to the indirect load, whose emission was read.
+
+**Pinned by** `arm64 selection/a value read again is made in its slot`
+and `compiler/tests/measure/baselines/`.
+
 ### D2165 — arm64 complements a 32-bit value in its 32-bit view
 
 **The tour said** nothing. `~x` of a `u32` or `i32` was `mvn` of the
