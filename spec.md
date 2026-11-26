@@ -38629,8 +38629,8 @@ machine with a description of its map (D607, D619), and RV32 had no
 emulator lane.
 
 **Chosen:** one pinned emulator, Espressif's QEMU `esp-develop-9.2.2-20260417`,
-locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json` with
-the Debian 13 libraries its binary's `NEEDED` entries reach, carries both
+locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json`
+(since D2571 a static build of that tag, which needs no library), carries both
 levels: `rv32imc` on its `esp32c3` machine, on the lane description
 `environments/cortex-m/lanes/descriptions/esp32c3` (the reference's
 capacities in SRAM1: 32 KiB of text at 0x4038_0000, 16 KiB of data at the
@@ -38664,6 +38664,9 @@ the firmware programs', not the corpus's.
 
 ### D2489 — A locked Debian package comes from snapshot.debian.org when the pool has dropped it
 
+**Superseded by D2572.** The lock holds no Debian package, and `setup.py`
+asks each archive's one URL; what follows is history.
+
 **The discrepancy:** `environments/cortex-m/tools.lock.json` fetched its
 117 Debian packages only from `deb.debian.org/debian/pool`, which keeps
 a file while a suite names its version. A security or point release
@@ -38679,10 +38682,10 @@ archive keeps that file for good, addressed by its content.
 `environments/cortex-m/setup.py` asks the pool first and the snapshot
 URL when the pool fails, 404 included, and holds the bytes from either to
 the locked SHA-256, so the pin is the same whichever answers.
-`environments/cortex-m/lock_snapshot.py` fills a new entry's URL by its
-package, version and file name, downloads it and refuses it unless its
-SHA-256 is the locked one; the lock is updated, with its `snapshot`
-URLs, in one change.
+A script beside the lock, removed with the route by D2572, filled a new
+entry's URL by its package, version and file name, downloaded it and
+refused it unless its SHA-256 was the locked one; the lock was updated,
+with its `snapshot` URLs, in one change.
 
 **The alternatives:** snapshot URLs only, which put every job's 117
 downloads on an archive that throttles heavily and is slower than the
@@ -38699,9 +38702,119 @@ lock to the newest versions whenever the pool drops one, which changes
 the tested binaries under every branch at Debian's pace; and copies of
 the packages in a release of the project's own, a second store to keep.
 
+**Pinned by** nothing since D2572, which removed both controls,
+`test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash` and
+`test_every_locked_debian_package_has_its_snapshot_url`, with the route.
+
+### D2571 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
+
+**The discrepancy:** the locked `qemu-espressif` and `qemu-xtensa` areas
+held Espressif's own release binaries of `esp-develop-9.2.2-20260417`,
+`qemu-system-riscv32` and `qemu-system-xtensa`. They are linked to SDL2
+and the rest of a graphical stack, so the lock carried 36 Debian packages
+no lane uses (`-nographic` and `-display none` throughout: SDL2, X11,
+xcb, Wayland, DRM, PulseAudio, ALSA, the audio codecs, D-Bus, libsystemd,
+libgcrypt), the lanes set `LD_LIBRARY_PATH` to the installation's Debian
+root with PulseAudio's directory beside it, and on NixOS the emulators
+started only under `landin-fhs`, which an Xtensa run with `--qemu` alone
+did not go through.
+
+**Chosen:** the lock's one Espressif QEMU entry names the archive
+`qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz` from the binary
+cache of 701-dev/nix-packages, the project's repository of tools built
+from source with Nix: the same tag, headless, `xtensa-softmmu` and
+`riscv32-softmmu` only, statically linked against musl, with
+Espressif's ROM images and its `--with-pkgversion`, so `--version` still
+answers `9.2.2 (esp_develop_9.2.2_20260417)`. `setup.py` fetches and
+holds it to its SHA-256 like any locked archive, and the cache keeps the
+sources of every path in its build beside it. The archive holds both
+emulators, so its entry's `into` lists both areas and `setup.py` unpacks
+it into each, keeping every lane's paths. The binaries need no library:
+the 36 packages leave the lock, 116 to 80, the 80 being the closure of
+the `NEEDED` entries of every binary and library in the packages of
+Debian's `qemu-system-arm` and `gdb-multiarch` with GDB's data and
+Python's standard library; `environments/xtensa/tools.py` and the gate's
+Xtensa jobs no longer set `LD_LIBRARY_PATH`, the Cortex-M lanes set it
+without PulseAudio's directory, and both emulators start on NixOS as
+they are. The lock's check and the `--tools`/`--qemu` rules are
+unchanged.
+
+**The alternatives:** keeping Espressif's binary, with the graphical
+stack it drags in; Espressif's binary with a stub `libSDL2` of our own,
+whose symbol list follows each Espressif release; a dynamic build linked
+to the lock's Debian libraries, which keeps the FHS route on NixOS; and
+the Nix package taken through a flake input, which needs Nix in the
+emulator jobs, the later stage of moving CI onto Nix; and two copies of
+the archive in the lock, one per area, which its check refuses as a
+repeated entry.
+
 **Pinned by** `environments/cortex-m/test.py`'s
-`test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash`
-and `test_every_locked_debian_package_has_its_snapshot_url`.
+`test_the_lock_is_nix_packages_archives_only`, which since D2572 also
+refuses any Debian package back into the lock.
+
+### D2572 — The Cortex-M lanes' QEMU and GDB are nix-packages builds, and the lock holds no Debian package
+
+**The discrepancy:** after D2571 the lock still carried 80 Debian 13
+packages for two binaries, Debian's `qemu-system-arm` 10.0.13 and
+`gdb-multiarch` 16.3, nearly all of them loaded at start-up for features
+no lane uses: GDB's debuginfod (curl, Kerberos, LDAP, OpenSSL), its
+babeltrace and Intel PT readers, QEMU's VNC, RDMA, persistent-memory,
+FUSE, VDE and eBPF backends. The lanes put the installation's Debian root
+on `LD_LIBRARY_PATH`, `setup.py` needed `dpkg-deb` and the snapshot route
+of D2489 to fetch packages the pool had dropped, and on NixOS the two
+started only under `landin-fhs`.
+
+**Chosen:** two more archives of 701-dev/nix-packages, built from
+upstream's sources and served from its cache with them, at the versions
+the lock had (no version moves with the route):
+
+- `qemu-arm-10.0.13-x86_64-linux.tar.xz`, unpacked into the tool root's
+  `qemu-arm`: QEMU 10.0.13 from its release tarball, `arm-softmmu` only,
+  with no device but the microbit and MPS2 boards (`mps2-an385`, `-an386`,
+  `-an500`, `-an505`, `-an511`, `-an521`) and `-M none`, no optional
+  feature but TCG plugins and libfdt, linked to glib, PCRE2, libfdt and
+  zlib. `scripts/measure_count.py` loads its counting plugin with
+  `-plugin`, which is `dlopen`, so this QEMU cannot be static like the
+  other two archives: the archive carries the libraries it loads and
+  glibc's loader in its `lib/`, and its `bin/qemu-system-arm` is a `sh`
+  launcher that `exec`s `libexec/qemu-system-arm` through that loader,
+  keeping the process and its arguments. `--version` says
+  `QEMU emulator version 10.0.13`.
+- `gdb-16.3-x86_64-linux.tar.xz`, unpacked into `gdb`: GDB 16.3 for the
+  host and the `arm-none-eabi` and `riscv64-unknown-elf` targets, static
+  against musl, with Python 3.13 linked in and its standard library under
+  the archive's `lib/python3.13`, found relative to the executable and
+  compiled to bytecode in the build; without debuginfod, babeltrace,
+  Intel PT, source-highlight, xxhash, Guile, the TUI, the simulators and
+  gdbserver. The sessions call it `gdb/bin/gdb`.
+
+The 80 packages, `setup.py`'s Debian half and its GDB bytecode step,
+`dpkg` in the nix shell, D2489's snapshot route with the script that
+filled its URLs, and the lanes' `LD_LIBRARY_PATH` all go; the lock
+is three archives. Nothing the lock installs needs a library of the
+host's, so its glibc floor falls from 2.38, which a Debian binary asked
+for, to 2.35, which GNAT's arm-elf and riscv64-elf archives ask for, and
+`landin-fhs` remains only for those cross compilers and Espressif's.
+GNAT's `cc1`, `lto1` and `gnat1` load `libzstd.so.1`, which the Debian
+root had supplied to them unseen through the lanes' `LD_LIBRARY_PATH`;
+the host supplies it now, as every distribution's base does, and
+`landin-fhs` holds nixpkgs' zstd for it on NixOS.
+
+**The alternatives:** QEMU static as well, which cannot load the plugin;
+the dynamic QEMU depending on the host's glibc, as Debian's did, with
+`$ORIGIN` paths for the rest, which keeps the FHS route on NixOS and a
+floor set by nixpkgs' glibc; `--enable-targets=all` for GDB, which is
+what `gdb-multiarch` built and no session uses; nixpkgs' versions, QEMU
+11.1 and GDB 17.2 with Python 3.14, which change the tested binaries in
+the same step as their source; and GDB's Python moved out to the harness
+over GDB/MI, so the pinned GNAT GDBs serve, a rewrite of every session.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_is_nix_packages_archives_only`,
+`test_installation_inventories_every_unpacked_area_and_archive_identity`
+and `test_a_missing_unpacker_is_refused_before_creating_a_partial_installation`,
+and nix-packages' `qemu-arm-export` and `gdb-export` checks, which run
+each archive unpacked outside the store.
 
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 

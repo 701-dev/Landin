@@ -11012,18 +11012,22 @@ PROCESS_SECTION_BUDGETS = {
     #  refusal and register_next.py's --delete and --decision, which an
     #  item's agent meets in these steps and nowhere else; and again when
     #  push and merge-main learned the register check, merge-main a named
-    #  branch and the queue a line for work that is no item.
-    "Running an item": 5700,
+    #  branch and the queue a line for work that is no item; and again
+    #  when push learned the pre-push checks and boards beside the gate,
+    #  gate the first-failure watch and main's verdict, merge-main trains.
+    "Running an item": 6700,
     "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
-    "Command reference": 8400,
+    #  Raised when gate_watch.py learned --verdict.
+    "Command reference": 8500,
     #  Raised when Windows arm64 added its three gate jobs, each a
     #  row of the job table, and its Microsoft link a fourth, again
-    #  when refine built on FreeBSD added two rows, and again when the
+    #  when refine built on FreeBSD added two rows, again when the
     #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
-    #  main added in the same weeks.
-    "The mechanical gate": 49800,
+    #  main added in the same weeks, and again when trains, boards beside
+    #  the gate and main's verdict joined the promotion rule.
+    "The mechanical gate": 52700,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

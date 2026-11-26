@@ -20,13 +20,18 @@ DEFAULT = Path.home() / "work/.cortex-m"
 PINS = HERE.parent / "pins.sh"
 #  GCC and binutils are GNAT's arm-elf archive, and for the RV32 lanes its
 #  riscv64-elf archive, from the release the host GNAT comes from, and
-#  pinned beside it in environments/pins.sh; the lock keeps QEMU, Espressif's
-#  QEMU for RV32 and Xtensa, and the GDB whose Python the sessions run.
-#  Espressif's Xtensa compiler and its per-chip plugins share the same pins.
+#  pinned beside it in environments/pins.sh; the lock keeps the emulators
+#  and the GDB whose Python the sessions run, each an archive built by
+#  701-dev/nix-packages.  Espressif's Xtensa compiler and its per-chip
+#  plugins share the pins of environments/pins.sh.
 ARM = "gnat-arm-elf"
 RISCV = "gnat-riscv64-elf"
 XTENSA = "xtensa-esp-elf"
-#  Where Espressif's QEMU release, one of the lock's archives, is unpacked.
+#  Where the lock's archives are unpacked: QEMU for the Cortex-M machines,
+#  GDB, and Espressif's QEMU, one archive serving the RV32 and the Xtensa
+#  lanes.
+QEMU_ARM = "qemu-arm"
+GDB = "gdb"
 ESPRESSIF = "qemu-espressif"
 ESPRESSIF_XTENSA = "qemu-xtensa"
 
@@ -73,10 +78,10 @@ def sha(path):
 
 
 #  What an installation holds, each inventoried whole.
-AREAS = ('root', ARM, RISCV, ESPRESSIF, XTENSA, ESPRESSIF_XTENSA)
+AREAS = (QEMU_ARM, GDB, ARM, RISCV, ESPRESSIF, XTENSA, ESPRESSIF_XTENSA)
 REQUIRED_TOOLS = (
     'installation.json', ARM + '/bin/arm-eabi-gcc', RISCV + '/bin/riscv64-elf-gcc',
-    'root/usr/bin/qemu-system-arm', 'root/usr/bin/gdb-multiarch',
+    QEMU_ARM + '/bin/qemu-system-arm', GDB + '/bin/gdb',
     ESPRESSIF + '/bin/qemu-system-riscv32',
     ESPRESSIF_XTENSA + '/bin/qemu-system-xtensa',
     XTENSA + '/bin/xtensa-esp-elf-gcc', XTENSA + '/bin/xtensa-esp-elf-as',
@@ -101,10 +106,12 @@ def probe_inputs(root):
             if not name.endswith('.md')}
 
 
-#  The lock carries every shared library its tools load except the C and C++
-#  runtimes, which come from the host.  Its newest binary asks for glibc 2.38,
-#  so that is the host it needs, whichever distribution supplies it.
-GLIBC = (2, 38)
+#  The emulators and GDB need nothing of the host's: the Espressif QEMU and
+#  GDB are static, and the Cortex-M QEMU carries its own glibc and loader.
+#  The cross compilers, GNAT's arm-elf and riscv64-elf archives, are glibc
+#  binaries that ask for glibc 2.35 (Espressif's Xtensa compiler, 2.17), so
+#  that is the host they need, whichever distribution supplies it.
+GLIBC = (2, 35)
 
 
 def supported_host(output=None):
@@ -130,11 +137,11 @@ FHS = 'landin-fhs'
 
 
 def nixos_route(output=None):
-    """On NixOS, run this lane where the locked Debian binaries can start.
+    """On NixOS, run this lane where the pinned cross compilers can start.
 
     NixOS's own loader path holds a stub that refuses a binary built for
-    another distribution, so QEMU and GDB start only inside an FHS
-    environment.  The flake's `landin-fhs` is one: when it is on PATH, as it
+    another distribution, so the GNAT and Espressif compilers, release
+    binaries for glibc, start only inside an FHS environment.  The flake's `landin-fhs` is one: when it is on PATH, as it
     is in `nix develop`, the lane runs itself again through it, with the
     same arguments, before it has done anything; without it the lane is
     refused naming that route.
@@ -161,8 +168,8 @@ def nixos_route(output=None):
             sys.stderr.flush()
             os.execv(wrapper, [wrapper, sys.executable, *sys.orig_argv[1:]])
         raise SystemExit(
-            'cortex-m: the locked QEMU and GDB are Debian binaries, and this NixOS host\'s'
-            ' %s is its stub loader, which refuses them.  Run the lane from `nix develop`,'
+            'cortex-m: the pinned cross compilers are release binaries for glibc, and this'
+            ' NixOS host\'s %s is its stub loader, which refuses them.  Run the lane from `nix develop`,'
             ' whose %s runs it in an FHS environment of the store\'s glibc:\n  %s'
             % (LOADER, FHS, route))
     if os.environ.get('LANDIN_FHS'):
@@ -206,28 +213,6 @@ def installed_tools(path):
     return root
 
 
-def compile_gdb_python(root):
-    """Byte-compile the Python GDB embeds, with GDB's own interpreter.
-
-    The lock ships its standard library as source, and without bytecode every
-    GDB start compiles what it imports: about 200 ms a session where 80 would
-    do, over two thousand sessions.  Compiling once here, rather than letting
-    the first session write it, makes every session start the same way;
-    `inventory` still ignores `__pycache__`, so the record is unchanged.
-    """
-    usr = root / 'root/usr'
-    env = dict(os.environ, LD_LIBRARY_PATH=str(usr / 'lib/x86_64-linux-gnu'))
-    program = ('import compileall, sys; ok = all(compileall.compile_dir(d, quiet=1)'
-               ' for d in sys.argv[1:]); print("compiled" if ok else "failed")')
-    completed = subprocess.run(
-        [usr / 'bin/gdb-multiarch', '-q', '-nx', '-batch', '-ex',
-         'python import sys; sys.argv = %r; exec(%r)'
-         % (['', str(usr / 'lib/python3.13'), str(usr / 'share/gdb/python')], program)],
-        env=env, capture_output=True, text=True, timeout=300)
-    if completed.returncode != 0 or completed.stdout.strip() != 'compiled':
-        raise RuntimeError('compiling GDB\'s Python failed: ' + completed.stdout + completed.stderr)
-
-
 def fetch(packages, item, sleep=time.sleep):
     """ITEM's archive downloaded into PACKAGES and verified before anything unpacks it."""
     dest = packages / item['file']
@@ -235,26 +220,14 @@ def fetch(packages, item, sleep=time.sleep):
     def store(src):
         with dest.open('wb') as out:
             shutil.copyfileobj(src, out)
-    #  A Debian package leaves deb.debian.org's pool once Debian supersedes
-    #  it, while the lock still names it; snapshot.debian.org keeps the same
-    #  file for good, and the SHA-256 below holds either source to the pin
-    #  (D2489).  The pool is asked first: it is the faster, and it spares
-    #  the archive that keeps everything.
-    sources = [item['url']] + ([item['snapshot']] if 'snapshot' in item else [])
-    failures = []
-    for url in sources:
-        try:
-            #  urlopen is named here at each call, so a control can replace it.
-            download.download(url, item['file'], store, sleep=sleep,
-                              opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
-                              report=lambda line: print(line, file=sys.stderr, flush=True))
-            break
-        except download.DownloadError as error:
-            failures.append(str(error))
-            if url != sources[-1]:
-                print('setup.py: %s; trying %s' % (error, sources[-1]), file=sys.stderr, flush=True)
-    else:
-        raise SystemExit('setup.py: ' + '; and then '.join(failures))
+    url = item['url']
+    try:
+        #  urlopen is named here at each call, so a control can replace it.
+        download.download(url, item['file'], store, sleep=sleep,
+                          opener=lambda url, timeout: urllib.request.urlopen(url, timeout=timeout),
+                          report=lambda line: print(line, file=sys.stderr, flush=True))
+    except download.DownloadError as error:
+        raise SystemExit('setup.py: %s' % error)
     #  Never asked again: the bytes arrived and are not the pinned ones.
     found = sha(dest)
     if found != item['sha256']:
@@ -270,15 +243,26 @@ def unpack(archive, into, mode):
                    check=True, timeout=600)
 
 
+#  The areas the lock's archives may be unpacked into.
+LOCKED = (QEMU_ARM, GDB, ESPRESSIF, ESPRESSIF_XTENSA)
+
+
+def areas(item):
+    """The areas an archive of the lock is unpacked into: `into` names one,
+    or a list when one archive serves several, as nix-packages' Espressif
+    QEMU, which holds both emulators, serves the RV32 and the Xtensa lanes."""
+    into = item.get('into', [])
+    return [into] if isinstance(into, str) else list(into)
+
+
 def installer_tools():
     """Name missing unpackers before creating any installation directory."""
-    missing = [name for name in ('dpkg-deb', 'tar', 'xz') if shutil.which(name) is None]
+    missing = [name for name in ('tar', 'xz') if shutil.which(name) is None]
     if missing:
         raise RuntimeError(
-            'setup.py needs %s on PATH to unpack the locked archives; install dpkg'
-            ' (for dpkg-deb), tar and xz before retrying. On NixOS `nix develop`'
-            ' provides all three; see environments/cortex-m/README.md#on-nixos.'
-            % ', '.join(missing))
+            'setup.py needs %s on PATH to unpack the locked archives; install tar'
+            ' and xz before retrying. On NixOS `nix develop` provides both; see'
+            ' environments/cortex-m/README.md#on-nixos.' % ', '.join(missing))
 
 
 def main():
@@ -295,16 +279,14 @@ def main():
     packages.mkdir()
     for item in json.loads((HERE / 'tools.lock.json').read_text()):
         dest = fetch(packages, item)
-        if item['kind'] == 'deb':
-            subprocess.run(['dpkg-deb', '-x', str(dest), str(root / 'root')], check=True, timeout=30)
-        elif item['kind'] == 'tar.xz' and item.get('into') in (ESPRESSIF, ESPRESSIF_XTENSA):
-            unpack(dest, root / item['into'], '-xJf')
+        if item['kind'] == 'tar.xz' and areas(item) and set(areas(item)) <= set(LOCKED):
+            for area in areas(item):
+                unpack(dest, root / area, '-xJf')
         else:
             raise RuntimeError('unknown archive kind: ' + item['kind'])
     for area, archive in ((ARM, arm_archive()), (RISCV, riscv_archive())):
         unpack(fetch(packages, archive), root / area, '-xzf')
     unpack(fetch(packages, xtensa_archive()), root / XTENSA, '-xJf')
-    compile_gdb_python(root)
     record = {'lock_sha256': sha(HERE / 'tools.lock.json'),
               'arm': {key: arm_archive()[key] for key in ('version', 'sha256')},
               'riscv': {key: riscv_archive()[key] for key in ('version', 'sha256')},

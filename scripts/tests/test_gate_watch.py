@@ -170,6 +170,45 @@ class GateWatch(unittest.TestCase):
                       result.stdout)
         self.assertIn("failed jobs: scripts, editor-grammar", result.stdout)
         self.assertIn("run 7: failure", result.stdout)
+        #  Each failed job named again with its step, so a second cause is
+        #  not lost among the first's lines.
+        self.assertIn("  editor-grammar: at The integration pass",
+                      result.stdout)
+        self.assertIn("  scripts: no failed step listed", result.stdout)
+
+    def test_verdict_returns_when_the_aggregate_concludes(self):
+        #  Main's cache jobs run on after the aggregate; the verdict is the
+        #  aggregate's, and the watch does not wait for them.
+        result = self.watch([
+            state("in_progress", [job(1, "documents"),
+                                  job(2, "gate", status="in_progress"),
+                                  job(3, "linux-release-main-cache",
+                                      status="in_progress")]),
+            state("in_progress", [job(1, "documents"), job(2, "gate"),
+                                  job(3, "linux-release-main-cache",
+                                      status="in_progress")]),
+        ], "--run=7", "--verdict")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("its verdict, the `gate` job, is success",
+                      result.stdout)
+        self.assertIn("still running, outside the verdict:"
+                      " linux-release-main-cache", result.stdout)
+
+    def test_verdict_names_every_failure_before_it(self):
+        result = self.watch([
+            state("in_progress", [job(1, "scripts", conclusion="failure"),
+                                  job(2, "gate", status="in_progress")]),
+            state("in_progress", [job(1, "scripts", conclusion="failure"),
+                                  job(2, "gate", conclusion="failure")]),
+        ], "--run=7", "--verdict")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("is failure", result.stdout)
+        self.assertIn("  failed: scripts", result.stdout)
+
+    def test_verdict_and_all_are_exclusive(self):
+        result = self.watch([state("completed", [], "success")], "--run=7",
+                            "--verdict", "--all")
+        self.assertEqual(result.returncode, 2, result.stdout)
 
     def test_a_timing_failure_with_every_board_passed_is_named_so(self):
         result = self.watch([

@@ -10,12 +10,20 @@ log, so the fix can start while the other lanes run on.  Pushing the fix
 cancels the superseded run, because the gate's concurrency group does.
 
     python3 scripts/gate_watch.py [--run ID | --commit SHA] [--interval S]
-                                  [--all] [--event E] [--branch B]
+                                  [--all | --verdict] [--event E]
+                                  [--branch B]
 
 `--all` follows the run to its end instead and names every failed job,
 for a round whose fixes should all go in one push: returning at the first
 failure once left a second failed lane of the same run unseen, and the
-next push failed on it again.
+next push failed on it again.  Each failed job is named again at the end
+with the step it failed at, so a second cause is not lost among the first's
+lines.
+
+`--verdict` follows the run until its aggregate `gate` job concludes,
+naming every failure before it, and returns then with that job's verdict:
+on main's push the jobs that save main's caches run on after it, are no
+evidence and took the promotion token seven to nine minutes longer.
 
 With neither, it follows the gate run for HEAD, waiting for one to appear.
 A commit may be anything `git rev-parse` names here, a short hash among
@@ -249,13 +257,25 @@ def log_commands(run, job, active):
             "        once the run ends: %s)" % whole]
 
 
-def watch(run, interval, every=False):
+VERDICT_JOB = "gate"
+
+
+def failed_step(job):
+    """The name of the first step JOB failed at, or None."""
+    steps = [step["name"] for step in job.get("steps", ())
+             if step.get("conclusion") in FAILED]
+    return steps[0] if steps else None
+
+
+def watch(run, interval, every=False, verdict=False):
     """Follow RUN; the verdict is read from the last complete listing.
 
     A failed job of the run's current attempt ends the watch at once unless
-    EVERY.  One left from an earlier attempt is held back while the run is
-    active, because the rerun that made the newer attempt may be about to
-    replace it; whether it failed the run is read when the run ends.
+    EVERY or VERDICT.  One left from an earlier attempt is held back while
+    the run is active, because the rerun that made the newer attempt may be
+    about to replace it; whether it failed the run is read when the run
+    ends.  With VERDICT the watch ends when the aggregate job of the
+    current attempt concludes, with its conclusion.
     """
     reported = set()
     held_back = set()
@@ -282,15 +302,32 @@ def watch(run, interval, every=False):
             print("%-10s %s%s" % (job["conclusion"], job["name"], minutes(job)),
                   flush=True)
             if failed:
-                steps = [step["name"] for step in job.get("steps", ())
-                         if step.get("conclusion") in FAILED]
+                step = failed_step(job)
                 print("FAILED: %s%s" % (job["name"],
-                                        " at %s" % steps[0] if steps else ""))
+                                        " at %s" % step if step else ""))
                 for line in log_commands(run, job, not ended):
                     print(line)
                 print("run:    %s" % view["url"], flush=True)
-                if not every and not ended:
+                if not every and not verdict and not ended:
                     return 1
+        aggregate = [job for job in jobs if job["name"] == VERDICT_JOB
+                     and job["attempt"] >= current
+                     and job["status"] == "completed"]
+        if verdict and aggregate and not ended:
+            failed = [job for job in jobs if job["conclusion"] in FAILED]
+            going = [job["name"] for job in jobs
+                     if job["status"] != "completed"]
+            conclusion = aggregate[0]["conclusion"]
+            print("run %s: its verdict, the `%s` job, is %s  %s"
+                  % (run, VERDICT_JOB, conclusion, view["url"]))
+            for job in failed:
+                step = failed_step(job)
+                print("  failed: %s%s" % (job["name"], " at %s" % step
+                                          if step else ""))
+            if going:
+                print("still running, outside the verdict: %s"
+                      % ", ".join(going))
+            return 0 if conclusion == "success" else 1
         if ended:
             #  The verdict: this listing's failures and nothing remembered.
             failed = [job["name"] for job in jobs if job["conclusion"] in FAILED]
@@ -304,6 +341,12 @@ def watch(run, interval, every=False):
                       "not part of the verdict: %s" % ", ".join(earlier))
             if failed:
                 print("failed jobs: %s" % ", ".join(failed))
+                for job in jobs:
+                    if job["conclusion"] in FAILED:
+                        step = failed_step(job)
+                        print("  %s: %s" % (job["name"], "at %s" % step
+                                            if step else "no failed step"
+                                            " listed"))
                 kind = failure_kind(jobs)
                 if kind == "timing":
                     print("a timing failure, not a boards one: every board "
@@ -325,8 +368,13 @@ def main(argv):
     which.add_argument("--run", type=int)
     which.add_argument("--commit")
     parser.add_argument("--interval", type=float, default=30)
-    parser.add_argument("--all", action="store_true",
-                        help="follow the run to its end, naming every failure")
+    ends = parser.add_mutually_exclusive_group()
+    ends.add_argument("--all", action="store_true",
+                      help="follow the run to its end, naming every failure")
+    ends.add_argument("--verdict", action="store_true",
+                      help="follow the run until its aggregate `gate` job "
+                      "concludes, naming every failure, and return with "
+                      "that verdict")
     parser.add_argument("--event", help="with a commit, wait for a run of "
                         "this event: push, workflow_dispatch, pull_request, "
                         "schedule")
@@ -350,7 +398,7 @@ def main(argv):
         print("following gate run %s (%s on %s)"
               % (run, about.get("event") or "unknown event",
                  about.get("headBranch") or "no branch"), flush=True)
-        return watch(run, args.interval, args.all)
+        return watch(run, args.interval, args.all, args.verdict)
     except Unanswered as error:
         print("gate_watch: GitHub did not answer: %s" % error, file=sys.stderr)
         return 3

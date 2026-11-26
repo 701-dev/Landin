@@ -225,11 +225,19 @@ sets independently, including the S3's `salt` and `saltu` instructions.
 
 The private Linux x86-64 installation also carries
 [Espressif QEMU `esp-develop-9.2.2-20260417`](https://github.com/espressif/qemu/releases/tag/esp-develop-9.2.2-20260417)
-in its separate `qemu-xtensa` area. Its archive SHA256 is
-`0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8a547e35`,
-recorded with its URL in `environments/cortex-m/tools.lock.json`.
+in its separate `qemu-xtensa` area, and the same archive in `qemu-espressif`
+for the RV32 lanes, as a static, headless build of that tag
+from [701-dev/nix-packages](https://github.com/701-dev/nix-packages)
+rather than Espressif's own release binary, which links SDL2. Its
+archive, `qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz` from that
+repository's cache, has SHA256
+`cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d`,
+recorded with its URL in `environments/cortex-m/tools.lock.json`; the
+sources it was built from are in the same cache, listed in a file
+beside the archive there.
 `qemu-system-xtensa` selects `-M esp32` or `-M esp32s3`; its version response
-is `9.2.2 (esp_develop_9.2.2_20260417)`. The installation record inventories
+is `9.2.2 (esp_develop_9.2.2_20260417)`, Espressif's package string, which
+the build sets. The installation record inventories
 the compiler, both chip plugins and the Xtensa emulator alongside the other
 embedded tools.
 
@@ -429,11 +437,20 @@ release the host GNAT comes from, GCC `16.1.0` with GNU Binutils
 `LANDIN_GNAT_ARM_ELF_VERSION` `16.1.0-1` with a checksum per host, which
 `environments/cortex-m/setup.py` and the nix shell read; its multilibs
 cover ARMv6-M through Armv8.1-M with MVE. Its GDB is built without Python,
-which the debugger sessions run, so QEMU and `gdb-multiarch` stay pinned
-in `environments/cortex-m/tools.lock.json`. The
-[profile guide](../../environments/cortex-m/README.md) gives exact versions,
-options and reproduction on any glibc 2.38 Linux x86-64 host. None of them
-is an Ada bootstrap dependency.
+which the debugger sessions run, so QEMU and GDB are pinned in
+`environments/cortex-m/tools.lock.json`, each an archive that
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages) built from
+upstream's source and serves from its cache with the sources it was built
+from (D2572):
+
+| tool | archive | sha256 |
+|---|---|---|
+| QEMU 10.0.13, `arm-softmmu`, microbit and MPS2 machines, TCG plugins | `qemu-arm-10.0.13-x86_64-linux.tar.xz` | `e6d296decd5abee0855ed706a91c153c72e7a0e0cb933cbe059e2e800c36a093` |
+| GDB 16.3 for Arm and RISC-V, Python 3.13, static | `gdb-16.3-x86_64-linux.tar.xz` | `9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba` |
+
+The [profile guide](../../environments/cortex-m/README.md) gives exact
+versions, options and reproduction on any glibc 2.35 Linux x86-64 host.
+None of them is an Ada bootstrap dependency.
 
 `refine` itself looks for `arm-eabi-gcc` and then `arm-none-eabi-gcc`, the
 name Debian, Ubuntu, Fedora, Homebrew and Arm's own releases give the same
@@ -456,8 +473,9 @@ which the nix shell reads. Its multilibs include `rv32im/ilp32`, which
 `riscv64-unknown-elf-gcc`, the name Debian's and Ubuntu's
 `gcc-riscv64-unknown-elf` gives the same bare-metal GCC.
 `environments/cortex-m/setup.py` installs the Linux x86-64 one for the RV32
-emulator lanes, which run on Espressif's QEMU, locked with its libraries in
-`environments/cortex-m/tools.lock.json` (D695).
+emulator lanes, which run on Espressif's QEMU, locked in
+`environments/cortex-m/tools.lock.json` as the same nix-packages archive
+the Xtensa lanes use (D695, D2571).
 
 | platform | archive | sha256 |
 |---|---|---|
