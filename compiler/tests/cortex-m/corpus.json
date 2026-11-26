@@ -2916,6 +2916,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-text-as-read": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/failure-words": {
       "mode": "execute"
     },
@@ -3572,6 +3578,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-tree": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-unicode": {
       "mode": "execute"
     },
     "runtime/library-shared-vec": {
@@ -5885,6 +5894,70 @@
             "L0346"
           ],
           "reason": "Xtensa's windowed C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        }
+      }
+    },
+    "runtime/unicode-case-scalars": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40508 of this lane's 32 KiB, over by 7740."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40764 of this lane's 32 KiB, over by 7996."
+        }
+      }
+    },
+    "runtime/unicode-case-title": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 42,504 bytes, over Cortex-M0's 32 KiB of flash by 9,736: title case reads the word boundary tables and routines beside the case tables, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 30,396 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-category": {
+      "mode": "execute"
+    },
+    "runtime/unicode-graphemes": {
+      "mode": "execute"
+    },
+    "runtime/unicode-normalization-canonical": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 43,344 bytes, over Cortex-M0's 32 KiB of flash by 10,576: the canonical decomposition and composition tables, 19,817 bytes, with the normalizer's code unoptimized. size/off, size/auto and speed/auto fit, 32,344 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-normalization-compatible": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "NFKC and NFKD read the compatibility decompositions, 16,267 bytes, beside the canonical ones and the compositions: the image is 49,096 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 16,328, and larger at the other profiles, so no profile executes it there. unicode-normalization-canonical executes NFC and NFD on Cortex-M0; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-normalization-sequences": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "It holds the source column of 3,017 lines of NormalizationTest.txt and reads all four forms' tables: the image is 91,200 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 58,432, so no profile executes it there; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-properties": {
+      "mode": "execute"
+    },
+    "runtime/unicode-sentences": {
+      "mode": "execute"
+    },
+    "runtime/unicode-text-contracts": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "It calls every case mapping, all four normalization forms and every segmentation, so it reads every table of core/unicode: the image is 94,356 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 61,588, so no profile executes it there. The unicode-* walk and conformance fixtures execute each part on Cortex-M0; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-words-1": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 33,624 bytes, over Cortex-M0's 32 KiB of flash by 856: the word table and the first part of WordBreakTest.txt with the word rules unoptimized. size/off, size/auto and speed/auto fit, 28,276 bytes at size/auto, and execute every line of the part; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-words-2": {
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 32992 of this lane's 32 KiB, over by 224."
         }
       }
     },

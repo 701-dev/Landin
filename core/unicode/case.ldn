@@ -1,0 +1,216 @@
+--  Case mapping and folding: Unicode's default algorithms (its chapter
+--  3.13), with SpecialCasing's unconditional mappings and its one
+--  condition every language shares, the final sigma.  The language-specific
+--  ones, Turkish and Azerbaijani's dotted I and Lithuanian's dot above, are
+--  left out, since they need a locale.
+
+import core/mem
+import core/text
+
+--  The case record of a scalar: an index of the `case_` arrays.  A value
+--  above U+10FFFF has the identity's, zero.
+record_of: (scalar: u32) -> (index: usize) =
+    index = case_code(scalar)
+end record_of
+
+--  `scalar` moved by a record's difference.
+moved: (scalar: u32, by: i32) -> (result: u32) =
+    result = u32(i64(scalar) + i64(by))
+end moved
+
+--- The simple uppercase mapping of `scalar`, one scalar for one: itself
+--- when it has none.  ß has none, since its uppercase is two letters.
+public simple_upper: (scalar: u32) -> (result: u32) =
+    result = moved(scalar, case_upper[record_of(scalar)])
+end simple_upper
+
+--- The simple lowercase mapping of `scalar`, or itself.
+public simple_lower: (scalar: u32) -> (result: u32) =
+    result = moved(scalar, case_lower[record_of(scalar)])
+end simple_lower
+
+--- The simple titlecase mapping of `scalar`, or itself: U+01C6 dž gives
+--- U+01C5 ǅ where its uppercase is U+01C4 Ǆ.
+public simple_title: (scalar: u32) -> (result: u32) =
+    result = moved(scalar, case_title[record_of(scalar)])
+end simple_title
+
+--- The simple case folding of `scalar`, or itself: what two scalars that
+--- differ only in case both fold to, one scalar for one, as a
+--- case-insensitive match of single scalars compares them.
+public simple_fold: (scalar: u32) -> (result: u32) =
+    result = moved(scalar, case_fold[record_of(scalar)])
+end simple_fold
+
+--  Which of a special record's four full mappings: upper, lower, title or
+--  folded, the order of its entries.
+upper_kind: usize = 0
+lower_kind: usize = 1
+title_kind: usize = 2
+fold_kind: usize = 3
+
+--  Append the full mapping of kind `kind` of `scalar`.
+append_mapped: (inout into: text.utf8_builder, scalar: u32, kind: usize)
+               -> none ! mem.out_of_memory =
+    record: usize = record_of(scalar)
+    if not case_special[record] then
+        by: i32 = if kind == upper_kind then
+                      case_upper[record]
+                  elsif kind == lower_kind then
+                      case_lower[record]
+                  elsif kind == title_kind then
+                      case_title[record]
+                  else
+                      case_fold[record]
+                  end if
+        try put(into, moved(scalar, by))
+        return
+    end if
+    (at: entry) := entry_of(case_full_block(scalar >> 6), case_full_masks,
+                            case_full_bases, case_full_pool, scalar)
+    mut at: usize = entry
+    mut left: usize = kind
+    while left > 0 do
+        at += 1 + usize(case_full_pool[at])
+        dec left
+    end while
+    try put_bytes(into, case_full_pool[at + 1..<at + 1
+                                                + usize(case_full_pool[at])])
+end append_mapped
+
+--  Append `scalar`, which is one.
+put: (inout into: text.utf8_builder, scalar: u32)
+     -> none ! mem.out_of_memory =
+    text.utf8_append_scalar(into, scalar) else (problem)
+        match problem
+            mem.out_of_memory: fail mem.out_of_memory
+            _: compiler.unreachable()
+        end match
+    end
+end put
+
+--  Append `bytes`, the UTF-8 of whole scalars a table holds.
+put_bytes: (inout into: text.utf8_builder, bytes: []u8)
+           -> none ! mem.out_of_memory =
+    unchecked begin
+        --  The generator wrote the table's entries as UTF-8.
+        value: utf8 = compiler.utf8_unvalidated(bytes)
+        try text.utf8_append_text(into, value)
+    end unchecked
+end put_bytes
+
+--  Append each scalar of `source` mapped by kind `kind`, the final sigma
+--  aside, or, when `into` runs out of room, nothing.
+append_each: (inout into: text.utf8_builder, source: utf8, kind: usize)
+             -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    bytes: []u8 = text.bytes(source)
+    mut at: usize = 0
+    while at < lenof bytes do
+        (scalar, after) := decoded(bytes, at)
+        if kind == lower_kind and scalar == 0x3a3 and final_sigma(bytes, at)
+        then
+            try put(into, 0x3c2)
+        else
+            try append_mapped(into, scalar, kind)
+        end if
+        at = after
+    end while
+end append_each
+
+--  Whether the capital sigma at `at` ends a word, Unicode's Final_Sigma:
+--  a cased scalar comes before it, with only case-ignorable ones between,
+--  and none comes after it so.
+final_sigma: (bytes: []u8, at: usize) -> (yes: bool) =
+    yes = false
+    mut back: usize = at
+    mut before: bool = false
+    while back > 0 and not before do
+        dec back
+        while back > 0 and bytes[back] >= 0x80 and bytes[back] < 0xc0 do
+            dec back
+        end while
+        (scalar, _) := decoded(bytes, back)
+        if is_cased(scalar) then
+            before = true
+        elsif not is_case_ignorable(scalar) then
+            return
+        end if
+    end while
+    return when not before
+    (after: past) := decoded(bytes, at)
+    mut ahead: usize = past
+    while ahead < lenof bytes do
+        (scalar, after) := decoded(bytes, ahead)
+        return when is_cased(scalar)
+        if not is_case_ignorable(scalar) then
+            yes = true
+            return
+        end if
+        ahead = after
+    end while
+    yes = true
+end final_sigma
+
+--- Append the uppercase of `source` to `into`: each scalar's full
+--- uppercase mapping, so "straße" gives "STRASSE".  On
+--- `mem.out_of_memory` the builder holds what it held.
+public append_upper: (inout into: text.utf8_builder, source: utf8)
+                     -> none ! mem.out_of_memory =
+    try append_each(into, source, upper_kind)
+end append_upper
+
+--- Append the lowercase of `source` to `into`: each scalar's full
+--- lowercase mapping, and a capital sigma that ends a word as ς, final
+--- sigma, where one elsewhere is σ.  On `mem.out_of_memory` the builder
+--- holds what it held.
+public append_lower: (inout into: text.utf8_builder, source: utf8)
+                     -> none ! mem.out_of_memory =
+    try append_each(into, source, lower_kind)
+end append_lower
+
+--- Append the case folding of `source` to `into`: each scalar's full
+--- folding, so that two texts that differ only in case fold to the same
+--- text, "Straße" and "STRASSE" both to "strasse".  Compare folded texts
+--- with `text.equal`; normalize them first where they may spell an accent
+--- apart.  On `mem.out_of_memory` the builder holds what it held.
+public append_folded: (inout into: text.utf8_builder, source: utf8)
+                      -> none ! mem.out_of_memory =
+    try append_each(into, source, fold_kind)
+end append_folded
+
+--- Append the title case of `source` to `into`: in each word, as
+--- `word_end` finds them, the first cased scalar takes its full titlecase
+--- mapping and the rest of the word its lowercase, so "the ǆungla" gives
+--- "The ǅungla".  What comes before a word's first cased scalar is left as
+--- it is.  On `mem.out_of_memory` the builder holds what it held.
+public append_title: (inout into: text.utf8_builder, source: utf8)
+                     -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    bytes: []u8 = text.bytes(source)
+    mut word: text.position = text.start(source)
+    while not text.utf8_at_end(source, word) do
+        ends: text.position = word_end(source, word)
+        mut at: usize = text.offset(word)
+        mut found: bool = false
+        while at < text.offset(ends) do
+            (scalar, after) := decoded(bytes, at)
+            if found then
+                if scalar == 0x3a3 and final_sigma(bytes, at) then
+                    try put(into, 0x3c2)
+                else
+                    try append_mapped(into, scalar, lower_kind)
+                end if
+            elsif is_cased(scalar) then
+                found = true
+                try append_mapped(into, scalar, title_kind)
+            else
+                try put(into, scalar)
+            end if
+            at = after
+        end while
+        word = ends
+    end while
+end append_title

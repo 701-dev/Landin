@@ -1,0 +1,20 @@
+import core/unicode
+
+--  A little of core/unicode, as small as Cortex-M0 holds: a letter's
+--  general category and its simple uppercase, and the database's version.
+exercise: () -> (ok: bool) =
+    ok = false
+    return when unicode.unicode_version.major < 18
+    return when unicode.category(u32('A')) <> unicode.uppercase_letter
+    return when unicode.category(u32('7')) <> unicode.decimal_number
+    ok = unicode.simple_upper(u32('a')) == u32('A')
+         and unicode.simple_upper(0xdf) == 0xdf
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main

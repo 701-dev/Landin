@@ -235,7 +235,7 @@
   },
   "x86-64-v1/size-all/binary-trees": {
    "sections": {
-    ".text": 39903,
+    ".text": 39871,
     ".rdata": 18648,
     ".buildid": 81,
     ".data": 404,
@@ -246,7 +246,7 @@
   },
   "x86-64-v1/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 26771,
+    ".text": 26744,
     ".rdata": 14852,
     ".buildid": 81,
     ".data": 184,
@@ -257,7 +257,7 @@
   },
   "x86-64-v1/size-all/fasta": {
    "sections": {
-    ".text": 23941,
+    ".text": 23914,
     ".rdata": 12700,
     ".buildid": 81,
     ".data": 376,
@@ -268,7 +268,7 @@
   },
   "x86-64-v1/size-all/fibre": {
    "sections": {
-    ".text": 39734,
+    ".text": 39707,
     ".rdata": 20928,
     ".buildid": 81,
     ".data": 16640,
@@ -279,7 +279,7 @@
   },
   "x86-64-v1/size-all/mandelbrot": {
    "sections": {
-    ".text": 39612,
+    ".text": 39574,
     ".rdata": 18656,
     ".buildid": 81,
     ".data": 388,
@@ -290,7 +290,7 @@
   },
   "x86-64-v1/size-all/reverse-complement": {
    "sections": {
-    ".text": 38373,
+    ".text": 38326,
     ".rdata": 17732,
     ".buildid": 81,
     ".data": 436,
@@ -301,7 +301,7 @@
   },
   "x86-64-v1/size-all/thread": {
    "sections": {
-    ".text": 49262,
+    ".text": 49235,
     ".rdata": 24832,
     ".buildid": 81,
     ".data": 147776,
@@ -312,7 +312,7 @@
   },
   "x86-64-v1/size-auto/binary-trees": {
    "sections": {
-    ".text": 39903,
+    ".text": 39871,
     ".rdata": 18648,
     ".buildid": 81,
     ".data": 404,
@@ -323,7 +323,7 @@
   },
   "x86-64-v1/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 26771,
+    ".text": 26744,
     ".rdata": 14852,
     ".buildid": 81,
     ".data": 184,
@@ -334,7 +334,7 @@
   },
   "x86-64-v1/size-auto/fasta": {
    "sections": {
-    ".text": 23941,
+    ".text": 23914,
     ".rdata": 12700,
     ".buildid": 81,
     ".data": 376,
@@ -345,7 +345,7 @@
   },
   "x86-64-v1/size-auto/fibre": {
    "sections": {
-    ".text": 39734,
+    ".text": 39707,
     ".rdata": 20928,
     ".buildid": 81,
     ".data": 16640,
@@ -356,7 +356,7 @@
   },
   "x86-64-v1/size-auto/mandelbrot": {
    "sections": {
-    ".text": 39612,
+    ".text": 39574,
     ".rdata": 18656,
     ".buildid": 81,
     ".data": 388,
@@ -367,7 +367,7 @@
   },
   "x86-64-v1/size-auto/reverse-complement": {
    "sections": {
-    ".text": 38373,
+    ".text": 38326,
     ".rdata": 17732,
     ".buildid": 81,
     ".data": 436,
@@ -378,7 +378,7 @@
   },
   "x86-64-v1/size-auto/thread": {
    "sections": {
-    ".text": 49262,
+    ".text": 49235,
     ".rdata": 24832,
     ".buildid": 81,
     ".data": 147776,
@@ -389,7 +389,7 @@
   },
   "x86-64-v1/size-off/binary-trees": {
    "sections": {
-    ".text": 39979,
+    ".text": 39947,
     ".rdata": 18648,
     ".buildid": 81,
     ".data": 404,
@@ -400,7 +400,7 @@
   },
   "x86-64-v1/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 26773,
+    ".text": 26746,
     ".rdata": 14852,
     ".buildid": 81,
     ".data": 184,
@@ -411,7 +411,7 @@
   },
   "x86-64-v1/size-off/fasta": {
    "sections": {
-    ".text": 23967,
+    ".text": 23940,
     ".rdata": 12700,
     ".buildid": 81,
     ".data": 376,
@@ -422,7 +422,7 @@
   },
   "x86-64-v1/size-off/fibre": {
    "sections": {
-    ".text": 39736,
+    ".text": 39709,
     ".rdata": 20928,
     ".buildid": 81,
     ".data": 16640,
@@ -433,7 +433,7 @@
   },
   "x86-64-v1/size-off/mandelbrot": {
    "sections": {
-    ".text": 39697,
+    ".text": 39659,
     ".rdata": 18656,
     ".buildid": 81,
     ".data": 388,
@@ -444,7 +444,7 @@
   },
   "x86-64-v1/size-off/reverse-complement": {
    "sections": {
-    ".text": 38438,
+    ".text": 38391,
     ".rdata": 17732,
     ".buildid": 81,
     ".data": 436,
@@ -455,7 +455,7 @@
   },
   "x86-64-v1/size-off/thread": {
    "sections": {
-    ".text": 49306,
+    ".text": 49279,
     ".rdata": 24832,
     ".buildid": 81,
     ".data": 147776,
@@ -466,7 +466,7 @@
   },
   "x86-64-v1/speed-all/binary-trees": {
    "sections": {
-    ".text": 56907,
+    ".text": 56587,
     ".rdata": 18384,
     ".buildid": 81,
     ".data": 404,
@@ -477,7 +477,7 @@
   },
   "x86-64-v1/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 36187,
+    ".text": 35797,
     ".rdata": 14716,
     ".buildid": 81,
     ".data": 184,
@@ -488,7 +488,7 @@
   },
   "x86-64-v1/speed-all/fasta": {
    "sections": {
-    ".text": 31710,
+    ".text": 31582,
     ".rdata": 12572,
     ".buildid": 81,
     ".data": 376,
@@ -499,7 +499,7 @@
   },
   "x86-64-v1/speed-all/fibre": {
    "sections": {
-    ".text": 50007,
+    ".text": 49815,
     ".rdata": 20624,
     ".buildid": 81,
     ".data": 16640,
@@ -510,7 +510,7 @@
   },
   "x86-64-v1/speed-all/mandelbrot": {
    "sections": {
-    ".text": 55775,
+    ".text": 55449,
     ".rdata": 18400,
     ".buildid": 81,
     ".data": 388,
@@ -521,7 +521,7 @@
   },
   "x86-64-v1/speed-all/reverse-complement": {
    "sections": {
-    ".text": 51774,
+    ".text": 51454,
     ".rdata": 17436,
     ".buildid": 81,
     ".data": 436,
@@ -532,7 +532,7 @@
   },
   "x86-64-v1/speed-all/thread": {
    "sections": {
-    ".text": 61991,
+    ".text": 61799,
     ".rdata": 24472,
     ".buildid": 81,
     ".data": 147776,
@@ -543,7 +543,7 @@
   },
   "x86-64-v1/speed-auto/binary-trees": {
    "sections": {
-    ".text": 56907,
+    ".text": 56587,
     ".rdata": 18384,
     ".buildid": 81,
     ".data": 404,
@@ -554,7 +554,7 @@
   },
   "x86-64-v1/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 36187,
+    ".text": 35797,
     ".rdata": 14716,
     ".buildid": 81,
     ".data": 184,
@@ -565,7 +565,7 @@
   },
   "x86-64-v1/speed-auto/fasta": {
    "sections": {
-    ".text": 31710,
+    ".text": 31582,
     ".rdata": 12572,
     ".buildid": 81,
     ".data": 376,
@@ -576,7 +576,7 @@
   },
   "x86-64-v1/speed-auto/fibre": {
    "sections": {
-    ".text": 50007,
+    ".text": 49815,
     ".rdata": 20624,
     ".buildid": 81,
     ".data": 16640,
@@ -587,7 +587,7 @@
   },
   "x86-64-v1/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 55775,
+    ".text": 55449,
     ".rdata": 18400,
     ".buildid": 81,
     ".data": 388,
@@ -598,7 +598,7 @@
   },
   "x86-64-v1/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 51774,
+    ".text": 51454,
     ".rdata": 17436,
     ".buildid": 81,
     ".data": 436,
@@ -609,7 +609,7 @@
   },
   "x86-64-v1/speed-auto/thread": {
    "sections": {
-    ".text": 61991,
+    ".text": 61799,
     ".rdata": 24472,
     ".buildid": 81,
     ".data": 147776,
@@ -620,7 +620,7 @@
   },
   "x86-64-v1/speed-off/binary-trees": {
    "sections": {
-    ".text": 56971,
+    ".text": 56651,
     ".rdata": 18384,
     ".buildid": 81,
     ".data": 404,
@@ -631,7 +631,7 @@
   },
   "x86-64-v1/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 36315,
+    ".text": 35925,
     ".rdata": 14716,
     ".buildid": 81,
     ".data": 184,
@@ -642,7 +642,7 @@
   },
   "x86-64-v1/speed-off/fasta": {
    "sections": {
-    ".text": 31772,
+    ".text": 31644,
     ".rdata": 12572,
     ".buildid": 81,
     ".data": 376,
@@ -653,7 +653,7 @@
   },
   "x86-64-v1/speed-off/fibre": {
    "sections": {
-    ".text": 50007,
+    ".text": 49815,
     ".rdata": 20624,
     ".buildid": 81,
     ".data": 16640,
@@ -664,7 +664,7 @@
   },
   "x86-64-v1/speed-off/mandelbrot": {
    "sections": {
-    ".text": 55775,
+    ".text": 55449,
     ".rdata": 18400,
     ".buildid": 81,
     ".data": 388,
@@ -675,7 +675,7 @@
   },
   "x86-64-v1/speed-off/reverse-complement": {
    "sections": {
-    ".text": 51646,
+    ".text": 51326,
     ".rdata": 17436,
     ".buildid": 81,
     ".data": 436,
@@ -686,7 +686,7 @@
   },
   "x86-64-v1/speed-off/thread": {
    "sections": {
-    ".text": 62185,
+    ".text": 61929,
     ".rdata": 24472,
     ".buildid": 81,
     ".data": 147776,
@@ -928,7 +928,7 @@
   },
   "x86-64-v2/size-all/binary-trees": {
    "sections": {
-    ".text": 41922,
+    ".text": 41890,
     ".rdata": 19208,
     ".buildid": 81,
     ".data": 428,
@@ -939,7 +939,7 @@
   },
   "x86-64-v2/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 28790,
+    ".text": 28763,
     ".rdata": 15420,
     ".buildid": 81,
     ".data": 208,
@@ -950,7 +950,7 @@
   },
   "x86-64-v2/size-all/fasta": {
    "sections": {
-    ".text": 25960,
+    ".text": 25933,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 400,
@@ -961,7 +961,7 @@
   },
   "x86-64-v2/size-all/fibre": {
    "sections": {
-    ".text": 42319,
+    ".text": 42292,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -972,7 +972,7 @@
   },
   "x86-64-v2/size-all/mandelbrot": {
    "sections": {
-    ".text": 41631,
+    ".text": 41593,
     ".rdata": 19224,
     ".buildid": 81,
     ".data": 412,
@@ -983,7 +983,7 @@
   },
   "x86-64-v2/size-all/reverse-complement": {
    "sections": {
-    ".text": 40392,
+    ".text": 40345,
     ".rdata": 18300,
     ".buildid": 81,
     ".data": 460,
@@ -994,7 +994,7 @@
   },
   "x86-64-v2/size-all/thread": {
    "sections": {
-    ".text": 51847,
+    ".text": 51820,
     ".rdata": 25848,
     ".buildid": 81,
     ".data": 147792,
@@ -1005,7 +1005,7 @@
   },
   "x86-64-v2/size-auto/binary-trees": {
    "sections": {
-    ".text": 41922,
+    ".text": 41890,
     ".rdata": 19208,
     ".buildid": 81,
     ".data": 428,
@@ -1016,7 +1016,7 @@
   },
   "x86-64-v2/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 28790,
+    ".text": 28763,
     ".rdata": 15420,
     ".buildid": 81,
     ".data": 208,
@@ -1027,7 +1027,7 @@
   },
   "x86-64-v2/size-auto/fasta": {
    "sections": {
-    ".text": 25960,
+    ".text": 25933,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 400,
@@ -1038,7 +1038,7 @@
   },
   "x86-64-v2/size-auto/fibre": {
    "sections": {
-    ".text": 42319,
+    ".text": 42292,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -1049,7 +1049,7 @@
   },
   "x86-64-v2/size-auto/mandelbrot": {
    "sections": {
-    ".text": 41631,
+    ".text": 41593,
     ".rdata": 19224,
     ".buildid": 81,
     ".data": 412,
@@ -1060,7 +1060,7 @@
   },
   "x86-64-v2/size-auto/reverse-complement": {
    "sections": {
-    ".text": 40392,
+    ".text": 40345,
     ".rdata": 18300,
     ".buildid": 81,
     ".data": 460,
@@ -1071,7 +1071,7 @@
   },
   "x86-64-v2/size-auto/thread": {
    "sections": {
-    ".text": 51847,
+    ".text": 51820,
     ".rdata": 25848,
     ".buildid": 81,
     ".data": 147792,
@@ -1082,7 +1082,7 @@
   },
   "x86-64-v2/size-off/binary-trees": {
    "sections": {
-    ".text": 41998,
+    ".text": 41966,
     ".rdata": 19208,
     ".buildid": 81,
     ".data": 428,
@@ -1093,7 +1093,7 @@
   },
   "x86-64-v2/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 28792,
+    ".text": 28765,
     ".rdata": 15420,
     ".buildid": 81,
     ".data": 208,
@@ -1104,7 +1104,7 @@
   },
   "x86-64-v2/size-off/fasta": {
    "sections": {
-    ".text": 25986,
+    ".text": 25959,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 400,
@@ -1115,7 +1115,7 @@
   },
   "x86-64-v2/size-off/fibre": {
    "sections": {
-    ".text": 42321,
+    ".text": 42294,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -1126,7 +1126,7 @@
   },
   "x86-64-v2/size-off/mandelbrot": {
    "sections": {
-    ".text": 41716,
+    ".text": 41678,
     ".rdata": 19224,
     ".buildid": 81,
     ".data": 412,
@@ -1137,7 +1137,7 @@
   },
   "x86-64-v2/size-off/reverse-complement": {
    "sections": {
-    ".text": 40457,
+    ".text": 40410,
     ".rdata": 18300,
     ".buildid": 81,
     ".data": 460,
@@ -1148,7 +1148,7 @@
   },
   "x86-64-v2/size-off/thread": {
    "sections": {
-    ".text": 51891,
+    ".text": 51864,
     ".rdata": 25848,
     ".buildid": 81,
     ".data": 147792,
@@ -1159,7 +1159,7 @@
   },
   "x86-64-v2/speed-all/binary-trees": {
    "sections": {
-    ".text": 59275,
+    ".text": 58955,
     ".rdata": 18952,
     ".buildid": 81,
     ".data": 428,
@@ -1170,7 +1170,7 @@
   },
   "x86-64-v2/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 38558,
+    ".text": 38174,
     ".rdata": 15284,
     ".buildid": 81,
     ".data": 208,
@@ -1181,7 +1181,7 @@
   },
   "x86-64-v2/speed-all/fasta": {
    "sections": {
-    ".text": 34041,
+    ".text": 33913,
     ".rdata": 13140,
     ".buildid": 81,
     ".data": 400,
@@ -1192,7 +1192,7 @@
   },
   "x86-64-v2/speed-all/fibre": {
    "sections": {
-    ".text": 52849,
+    ".text": 52649,
     ".rdata": 21640,
     ".buildid": 81,
     ".data": 16656,
@@ -1203,7 +1203,7 @@
   },
   "x86-64-v2/speed-all/mandelbrot": {
    "sections": {
-    ".text": 58143,
+    ".text": 57817,
     ".rdata": 18968,
     ".buildid": 81,
     ".data": 412,
@@ -1214,7 +1214,7 @@
   },
   "x86-64-v2/speed-all/reverse-complement": {
    "sections": {
-    ".text": 54137,
+    ".text": 53817,
     ".rdata": 17996,
     ".buildid": 81,
     ".data": 460,
@@ -1225,7 +1225,7 @@
   },
   "x86-64-v2/speed-all/thread": {
    "sections": {
-    ".text": 64871,
+    ".text": 64679,
     ".rdata": 25488,
     ".buildid": 81,
     ".data": 147792,
@@ -1236,7 +1236,7 @@
   },
   "x86-64-v2/speed-auto/binary-trees": {
    "sections": {
-    ".text": 59275,
+    ".text": 58955,
     ".rdata": 18952,
     ".buildid": 81,
     ".data": 428,
@@ -1247,7 +1247,7 @@
   },
   "x86-64-v2/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 38558,
+    ".text": 38174,
     ".rdata": 15284,
     ".buildid": 81,
     ".data": 208,
@@ -1258,7 +1258,7 @@
   },
   "x86-64-v2/speed-auto/fasta": {
    "sections": {
-    ".text": 34041,
+    ".text": 33913,
     ".rdata": 13140,
     ".buildid": 81,
     ".data": 400,
@@ -1269,7 +1269,7 @@
   },
   "x86-64-v2/speed-auto/fibre": {
    "sections": {
-    ".text": 52849,
+    ".text": 52649,
     ".rdata": 21640,
     ".buildid": 81,
     ".data": 16656,
@@ -1280,7 +1280,7 @@
   },
   "x86-64-v2/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 58143,
+    ".text": 57817,
     ".rdata": 18968,
     ".buildid": 81,
     ".data": 412,
@@ -1291,7 +1291,7 @@
   },
   "x86-64-v2/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 54137,
+    ".text": 53817,
     ".rdata": 17996,
     ".buildid": 81,
     ".data": 460,
@@ -1302,7 +1302,7 @@
   },
   "x86-64-v2/speed-auto/thread": {
    "sections": {
-    ".text": 64871,
+    ".text": 64679,
     ".rdata": 25488,
     ".buildid": 81,
     ".data": 147792,
@@ -1313,7 +1313,7 @@
   },
   "x86-64-v2/speed-off/binary-trees": {
    "sections": {
-    ".text": 59339,
+    ".text": 59019,
     ".rdata": 18952,
     ".buildid": 81,
     ".data": 428,
@@ -1324,7 +1324,7 @@
   },
   "x86-64-v2/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 38686,
+    ".text": 38302,
     ".rdata": 15284,
     ".buildid": 81,
     ".data": 208,
@@ -1335,7 +1335,7 @@
   },
   "x86-64-v2/speed-off/fasta": {
    "sections": {
-    ".text": 34105,
+    ".text": 33977,
     ".rdata": 13140,
     ".buildid": 81,
     ".data": 400,
@@ -1346,7 +1346,7 @@
   },
   "x86-64-v2/speed-off/fibre": {
    "sections": {
-    ".text": 52849,
+    ".text": 52649,
     ".rdata": 21640,
     ".buildid": 81,
     ".data": 16656,
@@ -1357,7 +1357,7 @@
   },
   "x86-64-v2/speed-off/mandelbrot": {
    "sections": {
-    ".text": 58143,
+    ".text": 57817,
     ".rdata": 18968,
     ".buildid": 81,
     ".data": 412,
@@ -1368,7 +1368,7 @@
   },
   "x86-64-v2/speed-off/reverse-complement": {
    "sections": {
-    ".text": 54009,
+    ".text": 53689,
     ".rdata": 17996,
     ".buildid": 81,
     ".data": 460,
@@ -1379,7 +1379,7 @@
   },
   "x86-64-v2/speed-off/thread": {
    "sections": {
-    ".text": 65065,
+    ".text": 64809,
     ".rdata": 25488,
     ".buildid": 81,
     ".data": 147792,
@@ -1621,7 +1621,7 @@
   },
   "x86-64-v3/size-all/binary-trees": {
    "sections": {
-    ".text": 42641,
+    ".text": 42605,
     ".rdata": 19272,
     ".buildid": 81,
     ".data": 428,
@@ -1632,7 +1632,7 @@
   },
   "x86-64-v3/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 29517,
+    ".text": 29486,
     ".rdata": 15484,
     ".buildid": 81,
     ".data": 208,
@@ -1643,7 +1643,7 @@
   },
   "x86-64-v3/size-all/fasta": {
    "sections": {
-    ".text": 26687,
+    ".text": 26656,
     ".rdata": 13332,
     ".buildid": 81,
     ".data": 416,
@@ -1654,7 +1654,7 @@
   },
   "x86-64-v3/size-all/fibre": {
    "sections": {
-    ".text": 43191,
+    ".text": 43160,
     ".rdata": 22120,
     ".buildid": 81,
     ".data": 16656,
@@ -1665,7 +1665,7 @@
   },
   "x86-64-v3/size-all/mandelbrot": {
    "sections": {
-    ".text": 42358,
+    ".text": 42316,
     ".rdata": 19288,
     ".buildid": 81,
     ".data": 412,
@@ -1676,7 +1676,7 @@
   },
   "x86-64-v3/size-all/reverse-complement": {
    "sections": {
-    ".text": 41119,
+    ".text": 41068,
     ".rdata": 18364,
     ".buildid": 81,
     ".data": 460,
@@ -1687,7 +1687,7 @@
   },
   "x86-64-v3/size-all/thread": {
    "sections": {
-    ".text": 52719,
+    ".text": 52688,
     ".rdata": 26024,
     ".buildid": 81,
     ".data": 147792,
@@ -1698,7 +1698,7 @@
   },
   "x86-64-v3/size-auto/binary-trees": {
    "sections": {
-    ".text": 42641,
+    ".text": 42605,
     ".rdata": 19272,
     ".buildid": 81,
     ".data": 428,
@@ -1709,7 +1709,7 @@
   },
   "x86-64-v3/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 29517,
+    ".text": 29486,
     ".rdata": 15484,
     ".buildid": 81,
     ".data": 208,
@@ -1720,7 +1720,7 @@
   },
   "x86-64-v3/size-auto/fasta": {
    "sections": {
-    ".text": 26687,
+    ".text": 26656,
     ".rdata": 13332,
     ".buildid": 81,
     ".data": 416,
@@ -1731,7 +1731,7 @@
   },
   "x86-64-v3/size-auto/fibre": {
    "sections": {
-    ".text": 43191,
+    ".text": 43160,
     ".rdata": 22120,
     ".buildid": 81,
     ".data": 16656,
@@ -1742,7 +1742,7 @@
   },
   "x86-64-v3/size-auto/mandelbrot": {
    "sections": {
-    ".text": 42358,
+    ".text": 42316,
     ".rdata": 19288,
     ".buildid": 81,
     ".data": 412,
@@ -1753,7 +1753,7 @@
   },
   "x86-64-v3/size-auto/reverse-complement": {
    "sections": {
-    ".text": 41119,
+    ".text": 41068,
     ".rdata": 18364,
     ".buildid": 81,
     ".data": 460,
@@ -1764,7 +1764,7 @@
   },
   "x86-64-v3/size-auto/thread": {
    "sections": {
-    ".text": 52719,
+    ".text": 52688,
     ".rdata": 26024,
     ".buildid": 81,
     ".data": 147792,
@@ -1775,7 +1775,7 @@
   },
   "x86-64-v3/size-off/binary-trees": {
    "sections": {
-    ".text": 42717,
+    ".text": 42681,
     ".rdata": 19272,
     ".buildid": 81,
     ".data": 428,
@@ -1786,7 +1786,7 @@
   },
   "x86-64-v3/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 29519,
+    ".text": 29488,
     ".rdata": 15484,
     ".buildid": 81,
     ".data": 208,
@@ -1797,7 +1797,7 @@
   },
   "x86-64-v3/size-off/fasta": {
    "sections": {
-    ".text": 26713,
+    ".text": 26682,
     ".rdata": 13332,
     ".buildid": 81,
     ".data": 416,
@@ -1808,7 +1808,7 @@
   },
   "x86-64-v3/size-off/fibre": {
    "sections": {
-    ".text": 43193,
+    ".text": 43162,
     ".rdata": 22120,
     ".buildid": 81,
     ".data": 16656,
@@ -1819,7 +1819,7 @@
   },
   "x86-64-v3/size-off/mandelbrot": {
    "sections": {
-    ".text": 42443,
+    ".text": 42401,
     ".rdata": 19288,
     ".buildid": 81,
     ".data": 412,
@@ -1830,7 +1830,7 @@
   },
   "x86-64-v3/size-off/reverse-complement": {
    "sections": {
-    ".text": 41184,
+    ".text": 41133,
     ".rdata": 18364,
     ".buildid": 81,
     ".data": 460,
@@ -1841,7 +1841,7 @@
   },
   "x86-64-v3/size-off/thread": {
    "sections": {
-    ".text": 52763,
+    ".text": 52732,
     ".rdata": 26024,
     ".buildid": 81,
     ".data": 147792,
@@ -1852,7 +1852,7 @@
   },
   "x86-64-v3/speed-all/binary-trees": {
    "sections": {
-    ".text": 60107,
+    ".text": 59659,
     ".rdata": 19016,
     ".buildid": 81,
     ".data": 428,
@@ -1863,7 +1863,7 @@
   },
   "x86-64-v3/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 39454,
+    ".text": 38942,
     ".rdata": 15348,
     ".buildid": 81,
     ".data": 208,
@@ -1874,7 +1874,7 @@
   },
   "x86-64-v3/speed-all/fasta": {
    "sections": {
-    ".text": 34937,
+    ".text": 34681,
     ".rdata": 13204,
     ".buildid": 81,
     ".data": 416,
@@ -1885,7 +1885,7 @@
   },
   "x86-64-v3/speed-all/fibre": {
    "sections": {
-    ".text": 53873,
+    ".text": 53673,
     ".rdata": 21816,
     ".buildid": 81,
     ".data": 16656,
@@ -1896,7 +1896,7 @@
   },
   "x86-64-v3/speed-all/mandelbrot": {
    "sections": {
-    ".text": 59039,
+    ".text": 58585,
     ".rdata": 19032,
     ".buildid": 81,
     ".data": 412,
@@ -1907,7 +1907,7 @@
   },
   "x86-64-v3/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55033,
+    ".text": 54585,
     ".rdata": 18060,
     ".buildid": 81,
     ".data": 460,
@@ -1918,7 +1918,7 @@
   },
   "x86-64-v3/speed-all/thread": {
    "sections": {
-    ".text": 65895,
+    ".text": 65703,
     ".rdata": 25664,
     ".buildid": 81,
     ".data": 147792,
@@ -1929,7 +1929,7 @@
   },
   "x86-64-v3/speed-auto/binary-trees": {
    "sections": {
-    ".text": 60107,
+    ".text": 59659,
     ".rdata": 19016,
     ".buildid": 81,
     ".data": 428,
@@ -1940,7 +1940,7 @@
   },
   "x86-64-v3/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 39454,
+    ".text": 38942,
     ".rdata": 15348,
     ".buildid": 81,
     ".data": 208,
@@ -1951,7 +1951,7 @@
   },
   "x86-64-v3/speed-auto/fasta": {
    "sections": {
-    ".text": 34937,
+    ".text": 34681,
     ".rdata": 13204,
     ".buildid": 81,
     ".data": 416,
@@ -1962,7 +1962,7 @@
   },
   "x86-64-v3/speed-auto/fibre": {
    "sections": {
-    ".text": 53873,
+    ".text": 53673,
     ".rdata": 21816,
     ".buildid": 81,
     ".data": 16656,
@@ -1973,7 +1973,7 @@
   },
   "x86-64-v3/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 59039,
+    ".text": 58585,
     ".rdata": 19032,
     ".buildid": 81,
     ".data": 412,
@@ -1984,7 +1984,7 @@
   },
   "x86-64-v3/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55033,
+    ".text": 54585,
     ".rdata": 18060,
     ".buildid": 81,
     ".data": 460,
@@ -1995,7 +1995,7 @@
   },
   "x86-64-v3/speed-auto/thread": {
    "sections": {
-    ".text": 65895,
+    ".text": 65703,
     ".rdata": 25664,
     ".buildid": 81,
     ".data": 147792,
@@ -2006,7 +2006,7 @@
   },
   "x86-64-v3/speed-off/binary-trees": {
    "sections": {
-    ".text": 60171,
+    ".text": 59723,
     ".rdata": 19016,
     ".buildid": 81,
     ".data": 428,
@@ -2017,7 +2017,7 @@
   },
   "x86-64-v3/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 39582,
+    ".text": 39070,
     ".rdata": 15348,
     ".buildid": 81,
     ".data": 208,
@@ -2028,7 +2028,7 @@
   },
   "x86-64-v3/speed-off/fasta": {
    "sections": {
-    ".text": 35001,
+    ".text": 34745,
     ".rdata": 13204,
     ".buildid": 81,
     ".data": 416,
@@ -2039,7 +2039,7 @@
   },
   "x86-64-v3/speed-off/fibre": {
    "sections": {
-    ".text": 53873,
+    ".text": 53673,
     ".rdata": 21816,
     ".buildid": 81,
     ".data": 16656,
@@ -2050,7 +2050,7 @@
   },
   "x86-64-v3/speed-off/mandelbrot": {
    "sections": {
-    ".text": 59039,
+    ".text": 58585,
     ".rdata": 19032,
     ".buildid": 81,
     ".data": 412,
@@ -2061,7 +2061,7 @@
   },
   "x86-64-v3/speed-off/reverse-complement": {
    "sections": {
-    ".text": 54905,
+    ".text": 54457,
     ".rdata": 18060,
     ".buildid": 81,
     ".data": 460,
@@ -2072,7 +2072,7 @@
   },
   "x86-64-v3/speed-off/thread": {
    "sections": {
-    ".text": 66089,
+    ".text": 65833,
     ".rdata": 25664,
     ".buildid": 81,
     ".data": 147792,
@@ -2314,7 +2314,7 @@
   },
   "x86-64-v4/size-all/binary-trees": {
    "sections": {
-    ".text": 43028,
+    ".text": 42992,
     ".rdata": 19336,
     ".buildid": 81,
     ".data": 428,
@@ -2325,7 +2325,7 @@
   },
   "x86-64-v4/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 29904,
+    ".text": 29873,
     ".rdata": 15548,
     ".buildid": 81,
     ".data": 208,
@@ -2336,7 +2336,7 @@
   },
   "x86-64-v4/size-all/fasta": {
    "sections": {
-    ".text": 27074,
+    ".text": 27043,
     ".rdata": 13396,
     ".buildid": 81,
     ".data": 416,
@@ -2347,7 +2347,7 @@
   },
   "x86-64-v4/size-all/fibre": {
    "sections": {
-    ".text": 43649,
+    ".text": 43618,
     ".rdata": 22240,
     ".buildid": 81,
     ".data": 16656,
@@ -2358,7 +2358,7 @@
   },
   "x86-64-v4/size-all/mandelbrot": {
    "sections": {
-    ".text": 42745,
+    ".text": 42703,
     ".rdata": 19352,
     ".buildid": 81,
     ".data": 412,
@@ -2369,7 +2369,7 @@
   },
   "x86-64-v4/size-all/reverse-complement": {
    "sections": {
-    ".text": 41506,
+    ".text": 41455,
     ".rdata": 18428,
     ".buildid": 81,
     ".data": 460,
@@ -2380,7 +2380,7 @@
   },
   "x86-64-v4/size-all/thread": {
    "sections": {
-    ".text": 53177,
+    ".text": 53146,
     ".rdata": 26144,
     ".buildid": 81,
     ".data": 147792,
@@ -2391,7 +2391,7 @@
   },
   "x86-64-v4/size-auto/binary-trees": {
    "sections": {
-    ".text": 43028,
+    ".text": 42992,
     ".rdata": 19336,
     ".buildid": 81,
     ".data": 428,
@@ -2402,7 +2402,7 @@
   },
   "x86-64-v4/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 29904,
+    ".text": 29873,
     ".rdata": 15548,
     ".buildid": 81,
     ".data": 208,
@@ -2413,7 +2413,7 @@
   },
   "x86-64-v4/size-auto/fasta": {
    "sections": {
-    ".text": 27074,
+    ".text": 27043,
     ".rdata": 13396,
     ".buildid": 81,
     ".data": 416,
@@ -2424,7 +2424,7 @@
   },
   "x86-64-v4/size-auto/fibre": {
    "sections": {
-    ".text": 43649,
+    ".text": 43618,
     ".rdata": 22240,
     ".buildid": 81,
     ".data": 16656,
@@ -2435,7 +2435,7 @@
   },
   "x86-64-v4/size-auto/mandelbrot": {
    "sections": {
-    ".text": 42745,
+    ".text": 42703,
     ".rdata": 19352,
     ".buildid": 81,
     ".data": 412,
@@ -2446,7 +2446,7 @@
   },
   "x86-64-v4/size-auto/reverse-complement": {
    "sections": {
-    ".text": 41506,
+    ".text": 41455,
     ".rdata": 18428,
     ".buildid": 81,
     ".data": 460,
@@ -2457,7 +2457,7 @@
   },
   "x86-64-v4/size-auto/thread": {
    "sections": {
-    ".text": 53177,
+    ".text": 53146,
     ".rdata": 26144,
     ".buildid": 81,
     ".data": 147792,
@@ -2468,7 +2468,7 @@
   },
   "x86-64-v4/size-off/binary-trees": {
    "sections": {
-    ".text": 43104,
+    ".text": 43068,
     ".rdata": 19336,
     ".buildid": 81,
     ".data": 428,
@@ -2479,7 +2479,7 @@
   },
   "x86-64-v4/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 29906,
+    ".text": 29875,
     ".rdata": 15548,
     ".buildid": 81,
     ".data": 208,
@@ -2490,7 +2490,7 @@
   },
   "x86-64-v4/size-off/fasta": {
    "sections": {
-    ".text": 27100,
+    ".text": 27069,
     ".rdata": 13396,
     ".buildid": 81,
     ".data": 416,
@@ -2501,7 +2501,7 @@
   },
   "x86-64-v4/size-off/fibre": {
    "sections": {
-    ".text": 43651,
+    ".text": 43620,
     ".rdata": 22240,
     ".buildid": 81,
     ".data": 16656,
@@ -2512,7 +2512,7 @@
   },
   "x86-64-v4/size-off/mandelbrot": {
    "sections": {
-    ".text": 42830,
+    ".text": 42788,
     ".rdata": 19352,
     ".buildid": 81,
     ".data": 412,
@@ -2523,7 +2523,7 @@
   },
   "x86-64-v4/size-off/reverse-complement": {
    "sections": {
-    ".text": 41571,
+    ".text": 41520,
     ".rdata": 18428,
     ".buildid": 81,
     ".data": 460,
@@ -2534,7 +2534,7 @@
   },
   "x86-64-v4/size-off/thread": {
    "sections": {
-    ".text": 53221,
+    ".text": 53190,
     ".rdata": 26144,
     ".buildid": 81,
     ".data": 147792,
@@ -2545,7 +2545,7 @@
   },
   "x86-64-v4/speed-all/binary-trees": {
    "sections": {
-    ".text": 60619,
+    ".text": 60171,
     ".rdata": 19080,
     ".buildid": 81,
     ".data": 428,
@@ -2556,7 +2556,7 @@
   },
   "x86-64-v4/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 39966,
+    ".text": 39454,
     ".rdata": 15412,
     ".buildid": 81,
     ".data": 208,
@@ -2567,7 +2567,7 @@
   },
   "x86-64-v4/speed-all/fasta": {
    "sections": {
-    ".text": 35449,
+    ".text": 35193,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 416,
@@ -2578,7 +2578,7 @@
   },
   "x86-64-v4/speed-all/fibre": {
    "sections": {
-    ".text": 54385,
+    ".text": 54185,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -2589,7 +2589,7 @@
   },
   "x86-64-v4/speed-all/mandelbrot": {
    "sections": {
-    ".text": 59551,
+    ".text": 59097,
     ".rdata": 19096,
     ".buildid": 81,
     ".data": 412,
@@ -2600,7 +2600,7 @@
   },
   "x86-64-v4/speed-all/reverse-complement": {
    "sections": {
-    ".text": 55545,
+    ".text": 55097,
     ".rdata": 18124,
     ".buildid": 81,
     ".data": 460,
@@ -2611,7 +2611,7 @@
   },
   "x86-64-v4/speed-all/thread": {
    "sections": {
-    ".text": 66407,
+    ".text": 66215,
     ".rdata": 25784,
     ".buildid": 81,
     ".data": 147792,
@@ -2622,7 +2622,7 @@
   },
   "x86-64-v4/speed-auto/binary-trees": {
    "sections": {
-    ".text": 60619,
+    ".text": 60171,
     ".rdata": 19080,
     ".buildid": 81,
     ".data": 428,
@@ -2633,7 +2633,7 @@
   },
   "x86-64-v4/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 39966,
+    ".text": 39454,
     ".rdata": 15412,
     ".buildid": 81,
     ".data": 208,
@@ -2644,7 +2644,7 @@
   },
   "x86-64-v4/speed-auto/fasta": {
    "sections": {
-    ".text": 35449,
+    ".text": 35193,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 416,
@@ -2655,7 +2655,7 @@
   },
   "x86-64-v4/speed-auto/fibre": {
    "sections": {
-    ".text": 54385,
+    ".text": 54185,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -2666,7 +2666,7 @@
   },
   "x86-64-v4/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 59551,
+    ".text": 59097,
     ".rdata": 19096,
     ".buildid": 81,
     ".data": 412,
@@ -2677,7 +2677,7 @@
   },
   "x86-64-v4/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 55545,
+    ".text": 55097,
     ".rdata": 18124,
     ".buildid": 81,
     ".data": 460,
@@ -2688,7 +2688,7 @@
   },
   "x86-64-v4/speed-auto/thread": {
    "sections": {
-    ".text": 66407,
+    ".text": 66215,
     ".rdata": 25784,
     ".buildid": 81,
     ".data": 147792,
@@ -2699,7 +2699,7 @@
   },
   "x86-64-v4/speed-off/binary-trees": {
    "sections": {
-    ".text": 60683,
+    ".text": 60235,
     ".rdata": 19080,
     ".buildid": 81,
     ".data": 428,
@@ -2710,7 +2710,7 @@
   },
   "x86-64-v4/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 40094,
+    ".text": 39582,
     ".rdata": 15412,
     ".buildid": 81,
     ".data": 208,
@@ -2721,7 +2721,7 @@
   },
   "x86-64-v4/speed-off/fasta": {
    "sections": {
-    ".text": 35513,
+    ".text": 35257,
     ".rdata": 13268,
     ".buildid": 81,
     ".data": 416,
@@ -2732,7 +2732,7 @@
   },
   "x86-64-v4/speed-off/fibre": {
    "sections": {
-    ".text": 54385,
+    ".text": 54185,
     ".rdata": 21944,
     ".buildid": 81,
     ".data": 16656,
@@ -2743,7 +2743,7 @@
   },
   "x86-64-v4/speed-off/mandelbrot": {
    "sections": {
-    ".text": 59551,
+    ".text": 59097,
     ".rdata": 19096,
     ".buildid": 81,
     ".data": 412,
@@ -2754,7 +2754,7 @@
   },
   "x86-64-v4/speed-off/reverse-complement": {
    "sections": {
-    ".text": 55417,
+    ".text": 54969,
     ".rdata": 18124,
     ".buildid": 81,
     ".data": 460,
@@ -2765,7 +2765,7 @@
   },
   "x86-64-v4/speed-off/thread": {
    "sections": {
-    ".text": 66601,
+    ".text": 66345,
     ".rdata": 25784,
     ".buildid": 81,
     ".data": 147792,
