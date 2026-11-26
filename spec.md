@@ -46058,7 +46058,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
 
-### D2734 — A `core/big` product by one limb, and a division's scratch, take no block a step
+### D2735 — A `core/big` product by one limb, and a division's scratch, take no block a step
 
 **The tour said** that arenas are the idiom [1360]; D2595 worked a result written over an operand out on the stack up to 64 limbs and apart above, and D2596 kept a looping routine's temporaries, which left the public routines themselves taking a block a call.
 

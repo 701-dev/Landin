@@ -3611,7 +3611,7 @@ host, 4.5 of them the system's: a product written over an operand above
 64 limbs and every division's scratch each took a block of their own,
 which the hosted heap maps and unmaps. `big.multiply` by one limb now
 works in place and a division takes its scratch from the remainder's
-block (D2734, pinned by `runtime/big-integer-in-place` in an 8 KiB
+block (D2735, pinned by `runtime/big-integer-in-place` in an 8 KiB
 arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
 for the game's C program over GMP; 56% of it is Algorithm D's
 normalizing passes for a quotient of a limb or two, so `SR-1928` is
