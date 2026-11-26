@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: the Benchmark Game pidigits workload takes its count of digits as an argument, the correctness input thirty, and runs Gibbons' unbounded spigot over core/big's integers, every step computing into values the loop keeps, printing the digits ten to a line with their running count
+constructs: 0050, 0150, 0160, 0290, 0310, 0350, 0400, 0520, 0630, 0670, 0710, 0900, 1150
+program: main.ldn
+root: ../../../../..
+run_args: 30
+run_expect: output.txt
+status: 0
+stream: output
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

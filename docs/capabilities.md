@@ -1372,7 +1372,7 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [`examples.md`](../examples.md)
   runs on every hosted target against its recorded output: everyday tools,
   the printing and failure lessons, the classic exercises from FizzBuzz to
-  merge sort, the sensor-polling program, and five Benchmark Game ports at
+  merge sort, the sensor-polling program, and six Benchmark Game ports at
   correctness scale. Its firmware example builds for Cortex-M0 and is held
   to its serial output on the emulator.
 

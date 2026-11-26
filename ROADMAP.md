@@ -3541,13 +3541,29 @@ recorded with the map's share measured.
 
 ### R22.23 — pidigits ported
 
-Status: active
+Status: complete
 Depends on: R22.13
 
 Gibbons' spigot over R22.13's integers, with no GMP.
 
 Exit evidence: the game's output for 30 digits as a runtime fixture,
 pinned and published as R22.21's are; 10,000 digits timed.
+
+Done: `runtime/benchmark-game-pidigits` runs the game's step-by-step
+spigot over `core/big`, both extractions kept, and prints the game's
+30-digit file byte for byte, its digest pinned in `check.py`; it is in
+`examples.md` and in `workloads.json`'s hosted set, timed at 500 digits.
+10,000 digits, the output equal to Python's, took 9.5 s on the EPYC
+host, 4.5 of them the system's: a product written over an operand above
+64 limbs and every division's scratch each took a block of their own,
+which the hosted heap maps and unmaps. `big.multiply` by one limb now
+works in place and a division takes its scratch from the remainder's
+block (D2734, pinned by `runtime/big-integer-in-place` in an 8 KiB
+arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
+for the game's C program over GMP; 56% of it is Algorithm D's
+normalizing passes for a quotient of a limb or two, so `SR-1928` is
+restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
+counted twenty-three examples where the gate runs thirty.
 
 ### R22.24 — Tools that say what they need
 

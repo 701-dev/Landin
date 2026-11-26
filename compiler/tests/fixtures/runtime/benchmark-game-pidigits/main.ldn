@@ -1,0 +1,160 @@
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  Gibbons' unbounded spigot over core/big's integers rather than GMP.
+--  The count of digits is the program's argument: thirty for the
+--  correctness output and ten thousand for the performance run.  Each term
+--  of the series widens a linear fractional transformation held as three
+--  integers; a digit is final once the transformation sends both 3 and 4
+--  to it, and is then taken out of the transformation.
+import core/big
+import core/cmp
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- The spigot's state, and the scratch its steps compute into, so that
+--- the loop allocates only while the numbers grow.
+spigot: type = struct
+    numerator: big.integer
+    accumulator: big.integer
+    denominator: big.integer
+    product: big.integer
+    sum: big.integer
+    quotient: big.integer
+    remainder: big.integer
+    small: big.integer
+end spigot
+
+--- Make `into` `value` times `factor`, through `small`, which holds it.
+scale: (memory: memory_of, inout into: big.integer, value: big.integer,
+        inout small: big.integer, factor: u64) -> none ! mem.out_of_memory =
+    try big.set_u64(small, memory, factor)
+    try big.multiply(into, memory, value, small)
+end scale
+
+--- The digit the transformation sends `nth` to: the whole part of
+--- (numerator * nth + accumulator) / denominator.
+extract_digit: (inout state: spigot, memory: memory_of, nth: u64)
+               -> (digit: u64) ! mem.out_of_memory | text.number_overflow =
+    try scale(memory, state.product, state.numerator, state.small, nth)
+    try big.add(state.sum, memory, state.product, state.accumulator)
+    try big.divide_truncating(state.quotient, memory, state.remainder,
+                              state.sum, state.denominator)
+    digit = try big.to_u64(state.quotient)
+end extract_digit
+
+--- Take the digit out: the accumulator less the denominator times the
+--- digit, times ten, and the numerator times ten.
+eliminate_digit: (inout state: spigot, memory: memory_of, digit: u64)
+                 -> none ! mem.out_of_memory =
+    try scale(memory, state.product, state.denominator, state.small, digit)
+    try big.subtract(state.accumulator, memory, state.accumulator,
+                     state.product)
+    try scale(memory, state.accumulator, state.accumulator, state.small, 10)
+    try scale(memory, state.numerator, state.numerator, state.small, 10)
+end eliminate_digit
+
+--- Compose the transformation with the series' `k`th term.
+next_term: (inout state: spigot, memory: memory_of, k: u64)
+           -> none ! mem.out_of_memory =
+    odd: u64 = k * 2 + 1
+    try scale(memory, state.product, state.numerator, state.small, 2)
+    try big.add(state.accumulator, memory, state.accumulator, state.product)
+    try scale(memory, state.accumulator, state.accumulator, state.small, odd)
+    try scale(memory, state.denominator, state.denominator, state.small, odd)
+    try scale(memory, state.numerator, state.numerator, state.small, k)
+end next_term
+
+release_all: (inout state: spigot, memory: memory_of) -> none =
+    big.release(state.numerator, memory)
+    big.release(state.accumulator, memory)
+    big.release(state.denominator, memory)
+    big.release(state.product, memory)
+    big.release(state.sum, memory)
+    big.release(state.quotient, memory)
+    big.release(state.remainder, memory)
+    big.release(state.small, memory)
+end release_all
+
+--- Write a line of `digits`, padded with spaces to ten, and the count.
+say: (host: blocking.host, digits: []u8, count: usize)
+     -> none ! io.io_failed | mem.out_of_memory | text.invalid_format =
+    mut storage: [32]u8 = zeroed
+    mut line := text.over(storage)
+    try text.append(line, digits)
+    mut pad: usize = lenof digits
+    while pad < 10 do
+        try text.append(line, " ")
+        inc pad
+    end while
+    try text.format(line, "\t:{}\n", [any(addr count)])
+    try io.write(host, io.out(host), text.used(line))
+end say
+
+pidigits: (host: blocking.host, n: usize)
+          -> none ! mem.out_of_memory | io.io_failed | text.invalid_format
+                  | text.number_overflow =
+    memory := heap.new()
+    mut state: spigot = (numerator: big.new(), accumulator: big.new(),
+                         denominator: big.new(), product: big.new(),
+                         sum: big.new(), quotient: big.new(),
+                         remainder: big.new(), small: big.new())
+    defer release_all(state, memory)
+    try big.set_u64(state.numerator, memory, 1)
+    try big.set_u64(state.denominator, memory, 1)
+
+    mut line: [10]u8 = zeroed
+    mut used: usize = 0
+    mut count: usize = 0
+    mut k: u64 = 0
+    while count < n do
+        inc k
+        try next_term(state, memory, k)
+        --  A digit can be final only once the numerator is no larger
+        --  than the accumulator.
+        order := big.compare(state.numerator, state.accumulator)
+        continue when order == cmp.greater
+        digit: u64 = try extract_digit(state, memory, 3)
+        continue when digit <> try extract_digit(state, memory, 4)
+        line[used] = u8(digit) + 48
+        inc used
+        inc count
+        if used == 10 then
+            try say(host, line[0..<used], count)
+            used = 0
+        end if
+        try eliminate_digit(state, memory, digit)
+    end while
+    if used > 0 then
+        try say(host, line[0..<used], count)
+    end if
+end pidigits
+
+--- The count named by the first argument.
+digit_count: (host: blocking.host)
+             -> (n: usize) ! mem.not_found | text.invalid_number
+                           | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end digit_count
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    n := digit_count(host) else begin
+        io.write(host, io.err(host), "usage: pidigits N\n") else none
+        return
+    end
+
+    pidigits(host, n) else (problem)
+        return when problem <> mem.out_of_memory
+        message: []u8 = "pidigits: out of memory\n"
+        io.write(host, io.err(host), message) else none
+        return
+    end
+    code = 0
+end main

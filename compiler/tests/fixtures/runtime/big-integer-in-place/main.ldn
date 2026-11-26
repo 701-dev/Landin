@@ -1,0 +1,57 @@
+--  A value of a hundred limbs multiplied by a limb and divided by it
+--  again a thousand times, its results written over the values the loop
+--  keeps, in an arena of 8 KiB that frees nothing: the product by one
+--  limb works in place, and the division takes its scratch from the
+--  remainder's block, so the loop takes memory only while its values
+--  grow.
+import core/arena
+import core/big
+import core/cmp
+import core/mem
+
+mut backing: [8192]u8 = zeroed
+
+exercise: () -> (ok: bool) ! mem.out_of_memory =
+    ok = false
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], 8192)
+    mut value := big.new()
+    mut three := big.new()
+    mut seven := big.new()
+    mut quotient := big.new()
+    mut remainder := big.new()
+    try big.set_i64(value, memory, 1)
+    try big.set_i64(three, memory, 3)
+    try big.set_i64(seven, memory, 7)
+    --  3^2000, a hundred limbs, one factor at a time.
+    mut left: usize = 2000
+    while left > 0 do
+        try big.multiply(value, memory, value, three)
+        dec left
+    end while
+    mut exact: bool = true
+    left = 1000
+    while left > 0 do
+        try big.multiply(value, memory, value, seven)
+        try big.divide_truncating(quotient, memory, remainder, value, seven)
+        exact = exact and big.sign(remainder) == 0
+        try big.set(value, memory, quotient)
+        dec left
+    end while
+    --  3^2000 again, into the quotient, which the loop left equal to it.
+    try big.set_i64(quotient, memory, 1)
+    left = 2000
+    while left > 0 do
+        try big.multiply(quotient, memory, quotient, three)
+        dec left
+    end while
+    ok = exact and big.compare(value, quotient) == cmp.equal
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise() else false
+    if ok then
+        code = 42
+    end if
+end main

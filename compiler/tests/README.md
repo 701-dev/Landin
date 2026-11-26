@@ -689,7 +689,7 @@ machine and holds what the serial port carried to the fixture's
 | everyday tools | `line-count`, `example-sum-arguments`, `word-count`, `line-numbers`, `plugin-loading`, `directory-listing`, `run-shell`, `tree-copy`, `network-echo` |
 | printing and failures | `example-formatted-output`, `example-failure-words` |
 | classic exercises | `example-fizzbuzz`, `example-greatest-common-divisor`, `example-insertion-sort`, `example-binary-search`, `example-sieve-of-eratosthenes`, `example-run-length-encoding`, `example-merge-sort`, `example-sensors` |
-| Benchmark Game ports | `benchmark-game-fannkuch-redux`, `benchmark-game-mandelbrot`, `benchmark-game-fasta`, `benchmark-game-reverse-complement`, `benchmark-game-binary-trees` |
+| Benchmark Game ports | `benchmark-game-fannkuch-redux`, `benchmark-game-mandelbrot`, `benchmark-game-fasta`, `benchmark-game-reverse-complement`, `benchmark-game-binary-trees`, `benchmark-game-pidigits` |
 
 The `example-*` fixtures print, so they are hosted only. Each classic
 exercise also has a test of the same algorithm without the `example-`
@@ -707,8 +707,9 @@ targets. Their oracles are byte for byte the official
 [fannkuch-redux](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fannkuchredux.html),
 [Mandelbrot](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/mandelbrot.html),
 [FASTA](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fasta.html),
-[reverse-complement](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/revcomp.html)
-and [binary-trees](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/binarytrees.html)
+[reverse-complement](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/revcomp.html),
+[binary-trees](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/binarytrees.html)
+and [pidigits](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/pidigits.html)
 outputs, and `check.py` holds each to its official digest.
 
 On Linux x86-64, compile one of the status-42 tests from the repository
@@ -722,8 +723,8 @@ refine compile --root=. --target=linux-x86-64 \
 test $? -eq 42
 ```
 
-`.github/workflows/gate.yml` compiles, runs and checks all twenty-three
-examples on each full gate run. The
+`.github/workflows/gate.yml` compiles, runs and checks every
+example on each full gate run. The
 [gate reference](../../docs/process.md#the-mechanical-gate) describes the verified
 explanatory-only reuse exception.
 

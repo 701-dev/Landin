@@ -264,6 +264,35 @@ over_stack: (slots: []mut u32) -> (value: integer from slots) =
     value = (limbs: slots, length: 0, negative: false)
 end over_stack
 
+--  `into` = `left` times `right`, one of which is a single limb: one pass
+--  over the other, which may be `into` itself, so that a loop such as
+--  `x = x * k` takes nothing from the allocator but its values' growth
+--  however long `x` grows.
+multiply_by_limb: (provider: type is mem.allocator, inout into: integer,
+                   memory: provider, left: integer, right: integer)
+                  -> none ! mem.out_of_memory =
+    long_is_left: bool = right.length == 1
+    factor: u32 = if long_is_left then right.limbs[0] else left.limbs[0] end if
+    count: usize = if long_is_left then left.length else right.length end if
+    negative: bool = left.negative <> right.negative
+    in_place: bool = if long_is_left then shares(into, left)
+                     else shares(into, right) end if
+    if in_place then
+        --  A resize keeps the limbs, so the long operand is `into`'s own
+        --  wherever its block now is.
+        try reserve(into, memory, count + 1)
+        into.limbs[count] = limbs.multiply_limb(into.limbs[0..<count],
+                                                into.limbs[0..<count], factor)
+    else
+        try reserve(into, memory, count + 1)
+        long: []u32 = if long_is_left then magnitude(left)
+                      else magnitude(right) end if
+        into.limbs[count] = limbs.multiply_limb(into.limbs[0..<count], long,
+                                                factor)
+    end if
+    settle(into, count + 1, negative)
+end multiply_by_limb
+
 --  `into` = `left` times `right`, the limb layer's scratch taken from
 --  `room`, which grows only when it is too short: a loop that keeps
 --  multiplying through one room allocates only while its numbers grow,
@@ -272,6 +301,10 @@ multiply_with: (provider: type is mem.allocator, inout into: integer,
                 memory: provider, left: integer, right: integer,
                 inout room: integer) -> none ! mem.out_of_memory =
     total: usize = left.length + right.length
+    if left.length == 1 or right.length == 1 then
+        try multiply_by_limb(into, memory, left, right)
+        return
+    end if
     if shares(into, left) or shares(into, right) then
         if total <= on_stack and limbs.multiply_scratch(left.length,
                                                         right.length) == 0 then
@@ -389,8 +422,15 @@ divide_either: (provider: type is mem.allocator, inout quotient: integer,
         replace(remainder, memory, part)
         return
     end if
-    mut room := new()
-    defer release(room, memory)
+    --  The scratch is the remainder's block past the limbs it keeps, so
+    --  that a loop dividing into the same results allocates only while
+    --  they grow.
+    kept: usize = divisor.length + 1
+    spare: usize = if numerator.length < divisor.length then 0
+                   else limbs.divide_scratch(numerator.length, divisor.length)
+                   end if
+    try reserve(remainder, memory, kept + spare)
+    mut room := over_stack(remainder.limbs[kept..<kept + spare])
     if floor then
         try divide_floor_with(quotient, remainder, memory, numerator, divisor,
                               room)

@@ -46058,6 +46058,16 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
 
+### D2734 — A `core/big` product by one limb, and a division's scratch, take no block a step
+
+**The tour said** that arenas are the idiom [1360]; D2595 worked a result written over an operand out on the stack up to 64 limbs and apart above, and D2596 kept a looping routine's temporaries, which left the public routines themselves taking a block a call.
+
+**Chosen:** `big.multiply` of a value by an integer of one limb is one pass of the limb layer's `multiply_limb`, in place when the destination is the long operand, so `x = x * k` takes nothing from the allocator but `x`'s growth at any length. A division into results that are not its operands takes its scratch from the remainder's block, past the limbs it keeps, which the division reserves for it, so a loop dividing into the same quotient and remainder allocates only while they grow; the remainder keeps a block as long as the numerator and twice the divisor in consequence. pidigits' 10,000 digits took 9.5 s, 4.5 of them in the system's mapping and unmapping of a block a step, before this, and 4.6 s, 0.02 in the system, after, on the host of compiler/tests/big/README.md.
+
+**The alternatives:** a public room parameter, `divide_with`'s, on every division, which would put the layer's bookkeeping into every caller's signature as D2596 declined; and leaving it to the caller to multiply into a value of its own and exchange the handles, which `core/big` gives no public routine for.
+
+**Pinned by** `runtime/big-integer-in-place`, which multiplies a hundred-limb value by one limb in place and divides it by that limb a thousand times in an 8 KiB arena, and which runs out of the arena without either change; and `runtime/benchmark-game-pidigits`.
+
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 
 **The tour said** nothing; the R22 phase requires a table derived from outside data to come from a generator with a pinned input, its output checked in and held by a check, and left to its Unicode item how a large constant table is laid out and what it costs a firmware image.
