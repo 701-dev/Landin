@@ -204,6 +204,7 @@ whose `f32` half fits there have a fixture per width; the image at
 | `complex-arctangent-f32` | 20500 |
 | `complex-atanh-f32` | 20228 |
 | `complex-signs` | 31576 |
+| `complex-polar-form`, `polar` at `f32` | 10552 |
 
 Every other fixture, and these at `none/off` where the table above is
 near the limit, is past it with the `core/math` routines it calls and

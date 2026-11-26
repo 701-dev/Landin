@@ -3148,7 +3148,7 @@ defaults.
 
 ### R22.11 — Complex numbers
 
-Status: active
+Status: complete
 Depends on: R22.10
 
 A complex number over `f32` and `f64`: arithmetic with C's Annex G
@@ -3181,15 +3181,19 @@ ulp of the larger part on bounded domains, grows with |w·log z|
 (`SR-1949`). `scripts/math_oracle.py` gained MPC beside MPFR: complex
 shapes of up to four input floats, MPC evaluated in MPFR's whole exponent
 range, where its intermediates no longer underflow, a part beside NaN
-compared by magnitude, and a normwise bound for `pow` (D2636). The 29
-`complex-*` fixtures pass on every target the gate runs, the firmware
-lanes included; a single elementary function at `f64`, or a trigonometric
-one at either width, is past Cortex-M0's 32 KiB with the `core/math` it
-calls and the soft float, so twelve fixtures split by width run there and
-the rest are recorded as image limits and run on the Cortex-M7 lane
-(`SR-1950`). A million random inputs per routine and width were measured
-against MPC on Linux x86-64. Filed: `SR-1948`, generic float code naming
-no width's facts.
+compared by magnitude, and a normwise bound for `pow` (D2636). The 30
+`complex-*` fixtures and `library-shared-complex` pass on every target the
+gate runs, the firmware lanes included. A single elementary function at
+`f64`, or a trigonometric one at either width, is past Cortex-M0's 32 KiB
+with the `core/math` it calls and the soft float, whose `f32` sine
+reduces in `f64` (`SR-1950`); so the families whose `f32` half fits have
+a fixture per width, thirteen fixtures run on Cortex-M0, eight at every
+profile, and the rest are recorded as image limits and run on the
+Cortex-M7 lane. That lane found `tanh` taking the sign of an imaginary
+zero from the sine of an overflowed `2y`, a NaN whose sign is each
+target's own (`SR-1895`), fixed with `sin y · cos y`. A million random
+inputs per routine and width were measured against MPC on Linux x86-64.
+Filed: `SR-1948`, generic float code naming no width's facts.
 
 ### R22.12 — Special functions
 

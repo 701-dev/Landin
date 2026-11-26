@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Current roadmap work: R22.11 — Complex numbers.**
+**Next roadmap item: R22.13 — Big integers and rationals (planned).**
 
 ## Versions
 
