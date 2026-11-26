@@ -114,10 +114,11 @@ end thread_views
 --  first `wanted` slots, at most the cache's slot count, to the start of
 --  the cache's `found`.  `anchored` asks for a match that begins at
 --  `origin`, and `earliest` for the end of the first match seen, which is
---  enough to say whether there is one.
+--  enough to say whether there is one.  No byte at or past `stop` is
+--  read but by the looks: a search already knows its match ends there.
 pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
-              bytes: []u8, origin: usize, anchored: bool, earliest: bool,
-              wanted: usize) -> (matched: bool) =
+              bytes: []u8, origin: usize, stop: usize, anchored: bool,
+              earliest: bool, wanted: usize) -> (matched: bool) =
     matched = false
     insts: []inst = vec.used(code.insts)
     edges: []edge = vec.used(code.edges)
@@ -142,7 +143,7 @@ pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
                                    stack, scratch, stride, width, insts,
                                    source, bytes, code.start, at)
         end if
-        break when now.count == 0 and (matched or anchored or at >= lenof bytes)
+        break when now.count == 0 and (matched or anchored or at >= stop)
         --  Step every thread over the byte at `at`, in priority order; a
         --  match ends the threads after it.
         later.count = 0
@@ -159,7 +160,7 @@ pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
                 return when earliest
                 break
             end if
-            continue when at >= lenof bytes
+            continue when at >= stop
             byte: u8 = bytes[at]
             if item.kind == inst_range then
                 if byte >= item.low and byte <= item.high then
@@ -186,7 +187,7 @@ pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
         held: thread_views = now
         now = later
         later = held
-        break when at >= lenof bytes
+        break when at >= stop
         inc at
     end loop
 end pike_search

@@ -47,12 +47,13 @@ program: type = struct
     insts: vec.list(inst)
     edges: vec.list(edge)
     start: u32
+    unanchored: u32
     looks: u32
 end program
 
 new_program: () -> (result: program) =
     result = (insts: vec.new(item: inst), edges: vec.new(item: edge),
-              start: 0, looks: 0)
+              start: 0, unanchored: 0, looks: 0)
 end new_program
 
 release_program: (provider: type is mem.allocator, inout code: program,
@@ -83,6 +84,7 @@ builder: type = struct
     limit: usize
     sequences: vec.list(byte_sequence)
     cache: vec.list(u32)
+    pending: vec.list(edge)
 end builder
 
 cache_size: usize = 1024
@@ -96,8 +98,9 @@ compile_program: (provider: type is mem.allocator, inout code: program,
                  -> none ! build_failure =
     mut c: builder = (reverse: reverse, captures: not reverse, limit: limit,
                        sequences: vec.new(item: byte_sequence),
-                       cache: vec.new(item: u32))
+                       cache: vec.new(item: u32), pending: vec.new(item: edge))
     defer vec.release(c.sequences, memory)
+    defer vec.release(c.pending, memory)
     defer vec.release(c.cache, memory)
     try vec.reserve(c.cache, memory, cache_size)
     for index in usize(0)..<cache_size do
@@ -108,6 +111,24 @@ compile_program: (provider: type is mem.allocator, inout code: program,
     done: u32 = try emit(code, memory, c, inst_match, 0, 0, 0, 0)
     patch(code, body.exit, done)
     code.start = body.start
+    code.unanchored = body.start
+    if not reverse then
+        --  `(?s:.)*?` before the pattern, for the DFA's unanchored search:
+        --  it prefers the pattern, and steps a whole scalar at a time, so
+        --  that a match begins only at a scalar's start.
+        mut any_tree: hir = new_hir()
+        defer release_hir(any_tree, memory)
+        everything: scalar_range = (low: 0, high: scalar_limit)
+        try vec.push(any_tree.ranges, memory, everything)
+        whole: hir_node = (kind: node_class, greedy: true, value: 0, child: 0,
+                           sibling: nothing, count: 1, low: 0, high: 0)
+        try vec.push(any_tree.nodes, memory, whole)
+        step: fragment = try compile_node(code, memory, c, any_tree, 0)
+        prefix: u32 = try emit(code, memory, c, inst_split, 0, 0, body.start,
+                               step.start)
+        patch(code, step.exit, prefix)
+        code.unanchored = prefix
+    end if
     skip_gotos(code)
     try drop_gotos(code, memory)
 end compile_program
@@ -596,8 +617,9 @@ end add_sequences_of
 compile_trie: (provider: type is mem.allocator, inout code: program,
                memory: provider, inout c: builder, first: usize, to: usize,
                depth: usize, exit: u32) -> (state: u32) ! build_failure =
-    mut pending: [256]edge = zeroed
-    mut count: usize = 0
+    --  This node's edges go on the end of the shared list; each child's
+    --  are pushed and taken off again before the next edge of this one.
+    base: usize = vec.length(c.pending)
     mut at: usize = first
     while at < to do
         head: byte_sequence = vec.get(c.sequences, at) else (problem)
@@ -615,13 +637,27 @@ compile_trie: (provider: type is mem.allocator, inout code: program,
         target: u32 = if head.count == depth + 1 then exit
                       else try compile_trie(code, memory, c, at, run_end,
                                             depth + 1, exit) end if
-        fail pattern_too_large when count >= lenof pending
-        pending[count] = (low: head.low[depth], high: head.high[depth],
-                          next: target)
-        inc count
+        added: edge = (low: head.low[depth], high: head.high[depth],
+                       next: target)
+        try vec.push(c.pending, memory, added)
         at = run_end
     end while
-    state = try cached_node(code, memory, c, pending[0..<count])
+    mut node: vec.list(edge) = vec.new(item: edge)
+    defer vec.release(node, memory)
+    for index in base..<vec.length(c.pending) do
+        item: edge = vec.get(c.pending, index) else (problem)
+            _ = problem
+            fail pattern_too_large
+        end
+        try vec.push(node, memory, item)
+    end for
+    while vec.length(c.pending) > base do
+        _ = vec.pop(c.pending) else (problem)
+            _ = problem
+            break
+        end
+    end while
+    state = try cached_node(code, memory, c, vec.used(node))
 end compile_trie
 
 same_range: (c: builder, index: usize, head: byte_sequence, depth: usize)
@@ -697,6 +733,7 @@ end node_equals
 skip_gotos: (inout code: program) -> none =
     insts: []mut inst = vec.used(code.insts)
     code.start = past_gotos(insts, code.start)
+    code.unanchored = past_gotos(insts, code.unanchored)
     for item in insts do
         if item.kind <> inst_sparse and item.kind <> inst_match
           and item.kind <> inst_fail then
@@ -745,6 +782,7 @@ drop_gotos: (provider: type is mem.allocator, inout code: program,
         item.next = map[usize(item.next)]
     end for
     code.start = map[usize(code.start)]
+    code.unanchored = map[usize(code.unanchored)]
     while vec.length(code.insts) > place do
         _ = vec.pop(code.insts) else (problem)
             _ = problem

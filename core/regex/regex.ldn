@@ -46,20 +46,37 @@ public options: type = options_value
 options_value: type = struct
     unicode: unicode_source
     size_limit: usize
+    cache_size: usize
     anchored: bool
+    engine: engine
 end options_value
+
+--- Which engine answers: `automatic` chooses per pattern and search, as
+--- `compile` does; the others, for tests and measurement, ask for one.
+--- An engine that cannot answer a search leaves it to the Pike VM, which
+--- always can.
+public engine: type = automatic | pike_vm | lazy_dfa
+
+--- The engine chosen per pattern and search.
+public automatic: atom
+--- The Pike VM alone.
+public pike_vm: atom
+--- The lazy DFA for where a match is, the Pike VM for its groups.
+public lazy_dfa: atom
 
 --- The options `compile` uses: Unicode's tables, for `\w`, `\d`, `\s`,
 --- `\b`, `\p` and `(?i)`, and a size limit of 250,000 instructions.
 public defaults: () -> (result: options) =
-    result = (unicode: unicode_tables(), size_limit: 250_000, anchored: false)
+    result = (unicode: unicode_tables(), size_limit: 250_000,
+              cache_size: 512 * 1024, anchored: false, engine: automatic)
 end defaults
 
 --- The options without Unicode's tables, so that a program that uses
 --- them links none: what a small firmware image wants.  A pattern that
 --- needs them then fails with `unicode_unavailable`.
 public lean: () -> (result: options) =
-    result = (unicode: no_tables(), size_limit: 250_000, anchored: false)
+    result = (unicode: no_tables(), size_limit: 250_000,
+              cache_size: 512 * 1024, anchored: false, engine: automatic)
 end lean
 
 --- The options with a different size limit, counted in instructions and
@@ -70,6 +87,22 @@ public with_size_limit: (settings: options, limit: usize)
     result = settings
     result.size_limit = limit
 end with_size_limit
+
+--- The options with a different bound on the lazy DFA's caches, in
+--- bytes, which `compile` allocates; a search that would need more clears
+--- them, and one that clears them too often leaves the rest to the Pike
+--- VM.  Below a few kilobytes the DFA is not used at all.
+public with_cache_size: (settings: options, bytes: usize)
+                        -> (result: options) =
+    result = settings
+    result.cache_size = bytes
+end with_cache_size
+
+--- The options with the engine `which`.
+public with_engine: (settings: options, which: engine) -> (result: options) =
+    result = settings
+    result.engine = which
+end with_engine
 
 --- The options with every search anchored: a match must begin where the
 --- search does, at the haystack's start or a `find_at`'s position, and
@@ -85,6 +118,10 @@ public regex: type = regex_value
 
 regex_value: type = struct
     forward: program
+    backward: program
+    forward_dfa: dfa_cache
+    backward_dfa: dfa_cache
+    engine: engine
     groups: u32
     names: vec.list(group_name)
     name_bytes: vec.list(u8)
@@ -116,7 +153,9 @@ public compile_with: (provider: type is mem.allocator, memory: provider,
     mut tree: hir = new_hir()
     defer release_hir(tree, memory)
     try parse(tree, memory, pattern, settings.unicode)
-    result = (forward: new_program(), groups: tree.groups,
+    result = (forward: new_program(), backward: new_program(),
+              forward_dfa: new_dfa_cache(), backward_dfa: new_dfa_cache(),
+              engine: settings.engine, groups: tree.groups,
               names: vec.new(item: group_name),
               name_bytes: vec.new(item: u8), pike: new_pike_cache(),
               source: settings.unicode, anchored: settings.anchored,
@@ -124,6 +163,14 @@ public compile_with: (provider: type is mem.allocator, memory: provider,
     undo release(result, memory)
     try compile_program(result.forward, memory, tree, false,
                         settings.size_limit)
+    if settings.engine <> pike_vm then
+        try compile_program(result.backward, memory, tree, true,
+                            settings.size_limit)
+        try size_dfa_cache(result.forward_dfa, memory, result.forward,
+                           settings.cache_size / 2, false)
+        try size_dfa_cache(result.backward_dfa, memory, result.backward,
+                           settings.cache_size / 2, true)
+    end if
     pattern_bytes: []u8 = text.bytes(pattern)
     for name in vec.used(tree.names) do
         begins: usize = vec.length(result.name_bytes)
@@ -144,6 +191,9 @@ end compile_with
 public release: (provider: type is mem.allocator, inout expression: regex,
                  memory: provider) -> none =
     release_program(expression.forward, memory)
+    release_program(expression.backward, memory)
+    release_dfa_cache(expression.forward_dfa, memory)
+    release_dfa_cache(expression.backward_dfa, memory)
     vec.release(expression.names, memory)
     vec.release(expression.name_bytes, memory)
     release_pike_cache(expression.pike, memory)
@@ -215,19 +265,60 @@ end captures
 
 --  Search `bytes` from `origin` for the leftmost-first match, keeping
 --  its first `wanted` slots, or with `earliest` only whether there is
---  one.
+--  one.  The lazy DFA finds where the match ends, and searching backward
+--  from there where it begins; the Pike VM then finds its groups between
+--  the two, and answers whatever the DFA gives up on.
 search: (inout expression: regex, bytes: []u8, origin: usize,
          wanted: usize, earliest: bool) -> (matched: bool) =
     expression.captured = 0
     matched = false
     return when origin > lenof bytes
-    matched = pike_search(expression.pike, expression.forward,
-                          expression.source, bytes, origin,
-                          expression.anchored, earliest, wanted)
-    if matched then
-        expression.captured = if wanted < expression.pike.slot_count then wanted
-                              else expression.pike.slot_count end if
+    mut start: usize = origin
+    if not at_boundary(bytes, start) then
+        return when expression.anchored
+        while not at_boundary(bytes, start) do inc start end while
     end if
+    width: usize = if wanted < expression.pike.slot_count then wanted
+                   else expression.pike.slot_count end if
+    if expression.engine <> pike_vm then
+        (outcome: ahead, ends: ends) := dfa_forward(expression.forward_dfa,
+                                                     expression.forward,
+                                                     bytes, start,
+                                                     expression.anchored,
+                                                     earliest)
+        return when ahead == dfa_none
+        if ahead == dfa_found then
+            matched = true
+            return when earliest or width == 0
+            mut begins: usize = start
+            mut behind: u8 = dfa_found
+            if not expression.anchored then
+                (outcome: back, begins: found_begins) := dfa_reverse(
+                    expression.backward_dfa, expression.backward, bytes, ends,
+                    start)
+                behind = back
+                begins = found_begins
+            end if
+            if behind == dfa_found then
+                if width <= 2 then
+                    found: []mut usize = vec.used(expression.pike.found)
+                    found[0] = begins
+                    found[1] = ends
+                    expression.captured = 2
+                    return
+                end if
+                matched = pike_search(expression.pike, expression.forward,
+                                      expression.source, bytes, begins, ends,
+                                      true, false, width)
+                if matched then expression.captured = width end if
+                return
+            end if
+        end if
+    end if
+    matched = pike_search(expression.pike, expression.forward,
+                          expression.source, bytes, start, lenof bytes,
+                          expression.anchored, earliest, width)
+    if matched then expression.captured = width end if
 end search
 
 --- Where a walk over a haystack's matches is: where the next search
