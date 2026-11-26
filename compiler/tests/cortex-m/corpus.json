@@ -3518,7 +3518,17 @@
       "reason": "At none/off asinh's f64 and f32 routines with the logarithms and the f64 square root they call take the image to 43,736 bytes of flash, over the 32 KiB profile by 10,968: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-atanh": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40368 of this lane's 32 KiB, over by 7600."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44512 of this lane's 32 KiB, over by 11744."
+        }
+      }
     },
     "runtime/math-cbrt": {
       "mode": "execute"
@@ -3544,13 +3554,43 @@
       "reason": "At none/off erfc's f64 and f32 rational approximations with the exponentials they call take the image to 38,632 bytes of flash, over the 32 KiB profile by 5,864: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-exp": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 35544 of this lane's 32 KiB, over by 2776."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 39872 of this lane's 32 KiB, over by 7104."
+        }
+      }
     },
     "runtime/math-exp2": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37136 of this lane's 32 KiB, over by 4368."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 41280 of this lane's 32 KiB, over by 8512."
+        }
+      }
     },
     "runtime/math-expm1": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 38176 of this lane's 32 KiB, over by 5408."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 42504 of this lane's 32 KiB, over by 9736."
+        }
+      }
     },
     "runtime/math-floor": {
       "mode": "execute"
@@ -3559,7 +3599,17 @@
       "mode": "execute"
     },
     "runtime/math-fma-f64": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 35312 of this lane's 32 KiB, over by 2544."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 36640 of this lane's 32 KiB, over by 3872."
+        }
+      }
     },
     "runtime/math-gamma": {
       "mode": "execute",
@@ -3573,22 +3623,72 @@
       "mode": "execute"
     },
     "runtime/math-log": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 36368 of this lane's 32 KiB, over by 3600."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40504 of this lane's 32 KiB, over by 7736."
+        }
+      }
     },
     "runtime/math-log-gamma": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 48664 of this lane's 32 KiB, over by 15896."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 51376 of this lane's 32 KiB, over by 18608; at size/auto RV32's needs FLASH 32880 of this lane's 32 KiB, over by 112; at size/off RV32's needs FLASH 32896 of this lane's 32 KiB, over by 128."
+        }
+      }
     },
     "runtime/math-log-gamma-f32": {
       "mode": "execute"
     },
     "runtime/math-log10": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 34352 of this lane's 32 KiB, over by 1584."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 38496 of this lane's 32 KiB, over by 5728."
+        }
+      }
     },
     "runtime/math-log1p": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 36984 of this lane's 32 KiB, over by 4216."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 41120 of this lane's 32 KiB, over by 8352."
+        }
+      }
     },
     "runtime/math-log2": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 33824 of this lane's 32 KiB, over by 1056."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37960 of this lane's 32 KiB, over by 5192."
+        }
+      }
     },
     "runtime/math-pow-f32": {
       "mode": "execute"
@@ -3602,10 +3702,30 @@
       "mode": "execute"
     },
     "runtime/math-remainder-nearest": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40144 of this lane's 32 KiB, over by 7376."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44200 of this lane's 32 KiB, over by 11432."
+        }
+      }
     },
     "runtime/math-representation": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45264 of this lane's 32 KiB, over by 12496."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 49184 of this lane's 32 KiB, over by 16416; at size/auto RV32's needs FLASH 34976 of this lane's 32 KiB, over by 2208; at size/off RV32's needs FLASH 34968 of this lane's 32 KiB, over by 2200; at speed/auto RV32's needs FLASH 34296 of this lane's 32 KiB, over by 1528."
+        }
+      }
     },
     "runtime/math-round": {
       "mode": "execute"
@@ -3629,7 +3749,17 @@
       "reason": "At none/off the argument reduction's Payne-Hanek routine, 9 KiB of it, and the f64 and f32 kernels take the image to 43,792 bytes of flash, over the 32 KiB profile by 11,024: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-tanh": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 41496 of this lane's 32 KiB, over by 8728."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45816 of this lane's 32 KiB, over by 13048; at size/auto RV32's needs FLASH 33952 of this lane's 32 KiB, over by 1184; at size/off RV32's needs FLASH 33952 of this lane's 32 KiB, over by 1184."
+        }
+      }
     },
     "runtime/measure-fibre-switches": {
       "codes": [
