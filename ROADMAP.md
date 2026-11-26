@@ -3235,7 +3235,8 @@ Cortex-M7 lane. That lane found `tanh` taking the sign of an imaginary
 zero from the sine of an overflowed `2y`, a NaN whose sign is each
 target's own (`SR-1895`), fixed with `sin y · cos y`. A million random
 inputs per routine and width were measured against MPC on Linux x86-64.
-Filed: `SR-1948`, generic float code naming no width's facts.
+Filed: `SR-1948`, generic float code naming no width's facts, and
+`SR-1951`, `item.py boards --watch` dispatching again over a queued run.
 
 ### R22.12 — Special functions
 
