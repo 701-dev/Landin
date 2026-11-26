@@ -562,8 +562,8 @@ add_sequences_of: (provider: type is mem.allocator, inout c: builder,
     pending_high[0] = high
     while count > 0 do
         dec count
-        mut start: u32 = pending_low[count]
-        mut finish: u32 = pending_high[count]
+        start: u32 = pending_low[count]
+        finish: u32 = pending_high[count]
         mut split: bool = false
         for boundary in length_boundaries do
             if not split and start <= boundary and finish > boundary then
