@@ -778,8 +778,8 @@ class PinnedToolchain(unittest.TestCase):
                  "tree-sitter-cli is not 0.26.9"),
                 (PINS[4], '"version": "0.26.9"', '"version": "0.26.8"',
                  "the lockfile's tree-sitter-cli is not 0.26.9"),
-                (PINS[2], "~24.04.2", "~24.04.3",
-                 "LANDIN_CLANG_UBUNTU 1:19.1.1-1ubuntu1~24.04.3 is not recorded"),
+                (PINS[2], "LANDIN_CLANG_NIX=19.1.7", "LANDIN_CLANG_NIX=19.1.8",
+                 "LANDIN_CLANG_NIX 19.1.8 is not recorded"),
                 (PINS[2], "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=9ce8",
                  "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=0ce8",
                  "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX 0ce8"),
@@ -826,7 +826,7 @@ class PinnedToolchain(unittest.TestCase):
         self.assertEqual(faults(checker.check_pinned_toolchain, copied=copied), [])
         for old, new, fragment in (
                 ('pin "LANDIN_CROSS_QEMU_NIX"', '"11.1.0"',
-                 "does not hold its cross lane to LANDIN_CROSS_QEMU_NIX"),
+                 "does not hold its package set to LANDIN_CROSS_QEMU_NIX"),
                 ('pin "LANDIN_CROSS_GCC_NIX"', '"15.3.0"',
                  "names LANDIN_CROSS_GCC_NIX's 15.3.0 literally")):
             with self.subTest(fragment=fragment), tree(copied=copied) as root:

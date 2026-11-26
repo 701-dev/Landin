@@ -73,9 +73,11 @@ link discards them again with `-Wl,--discard-locals`, as `refine`'s own
 FreeBSD link does.
 
 For a complete local lane, install Clang 19, LLD, LLVM object tools, GNU as,
-QEMU system emulators, arm64 UEFI firmware and bsdtar, then run (the arm64
-guest's network device loads no option ROM, since its firmware drives it, so
-Ubuntu's `ipxe-qemu`, which `qemu-system-arm` only recommends, is not needed):
+and QEMU's x86-64 and arm64 system emulators with `qemu-img` and the arm64
+UEFI firmware, then run (the arm64 guest's network device loads no option
+ROM, since its firmware drives it, so Ubuntu's `ipxe-qemu`, which
+`qemu-system-arm` only recommends, is not needed). The base system's
+headers and libraries are unpacked by Python's own tar reader:
 
 ```sh
 python3 compiler/tests/freebsd/check.py --arch=amd64 --kind=runtime \
@@ -83,36 +85,25 @@ python3 compiler/tests/freebsd/check.py --arch=amd64 --kind=runtime \
     --output=/tmp/freebsd-runtime
 ```
 
-On Linux, `nix develop` provides what emission needs, so `--prepare-only` runs
-there with the lane's defaults: `clang-19`, `ld.lld-19`, `llvm-objdump-19`
-and `llvm-nm-19` from the flake's LLVM 19 under Ubuntu's names, GNU as and
-bsdtar. Its
-`clang-19` takes the bare compiler, with the wrapper's resource directory, for
-a command that names a target or a sysroot, as every FreeBSD compilation does,
-because nixpkgs' wrapper adds the host's glibc to a FreeBSD build; a host
-program gets the wrapper, as `bindings/test.py`'s `refine bindings` needs. The shell does not
-provide the system emulators and firmware that run the guests; nixpkgs'
-QEMU does, its iPXE ROMs and arm64 UEFI firmware included, so on a Linux
-host the whole lane runs from the shell with that QEMU added. amd64 needs
-read and write access to `/dev/kvm`:
+On Linux x86-64, `nix develop` provides all of it, as the gate's jobs take
+it: `clang-19`, `ld.lld-19`, `llvm-objdump-19`, `llvm-nm-19` and
+`lldb-dap-19` from the flake's LLVM 19 under Ubuntu's names, GNU as, and
+nix-packages' `qemu-system`, whose arm64 firmware the lane finds beside the
+emulator. Its `clang-19` takes the bare compiler, with the wrapper's
+resource directory, for a command that names a target or a sysroot, as
+every FreeBSD compilation does, because nixpkgs' wrapper adds the host's
+glibc to a FreeBSD build; a host program gets the wrapper, as
+`bindings/test.py`'s `refine bindings` needs. amd64 needs read and write
+access to `/dev/kvm`:
 
 ```sh
 nix develop
-nix shell nixpkgs#qemu -c python3 compiler/tests/freebsd/check.py \
-    --arch=amd64 --kind=runtime \
+python3 compiler/tests/freebsd/check.py --arch=arm64 --kind=runtime \
     --refine="$PWD/compiler/ada/build/$LANDIN_BUILD_TAG/debug/bin/refine" \
-    --output="$(mktemp -d)/freebsd-runtime"
+    --output="$(mktemp -d)/freebsd-arm64-runtime"
 ```
 
-The arm64 guest is emulated and looks for its firmware only under
-`/usr/share`, so name nixpkgs' with `LANDIN_FREEBSD_EFI`:
-
-```sh
-nix shell nixpkgs#qemu -c sh -c 'LANDIN_FREEBSD_EFI="$(dirname "$(command -v qemu-system-aarch64)")/../share/qemu/edk2-aarch64-code.fd" \
-    python3 compiler/tests/freebsd/check.py --arch=arm64 --kind=runtime \
-    --refine="$PWD/compiler/ada/build/$LANDIN_BUILD_TAG/debug/bin/refine" \
-    --output="$(mktemp -d)/freebsd-arm64-runtime"'
-```
+`LANDIN_FREEBSD_EFI` names another arm64 firmware file, when one is wanted.
 
 The first run downloads and verifies the locked FreeBSD images and base
 system into `~/.cache/landin/freebsd`. A lane runs every build and every
