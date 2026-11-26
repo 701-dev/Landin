@@ -3350,7 +3350,7 @@ soft float recorded on Cortex-M0 on the rig.
 
 ### R22.15 — Dense vectors and matrices
 
-Status: planned
+Status: active
 Depends on: R22.10
 
 The dense array as linear algebra sees it: a vector or matrix as a view
