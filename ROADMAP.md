@@ -1357,6 +1357,29 @@ keeps, `SR-1919` the refusal `item.py start` met. The candidate passed
 its [gate](https://github.com/701-dev/Landin/actions/runs/45795175499)
 and [boards](https://github.com/701-dev/Landin/actions/runs/45795196472).
 
+### R16.42 — A byte is loaded into the register it is kept in
+
+Status: planned
+Depends on: R16.10
+
+reverse-complement spends seven tenths of its x86-64 instructions at
+speed in `write_reversed`, whose loop turns each byte of a line around
+through a table of complements. Two of its fifteen instructions a byte
+move nothing: the byte is loaded into a register of its own and copied
+with `movzbl` into the register its variable `base` is kept in, since
+that variable's interval opens only at the store, and widening it to
+index the table extends it again into a third register, though every
+value `base` ever holds is a loaded byte already zero-extended. With
+both left out, reverse-complement executes 1.359 G instructions against
+1.488 G, 8.7% fewer, and about 11% fewer cycles on a Zen 2 host, with
+the same output. The item makes a value in its slot's register when the
+slot's interval opens at the value's store, and widens a byte or
+halfword where it lies when its slot holds only zero-extended values.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, cycles reported beside
+them; every benchmark program's instructions and image size reported
+against that base, arm64 as well; and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
