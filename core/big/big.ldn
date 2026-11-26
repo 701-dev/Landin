@@ -254,52 +254,83 @@ scratch: (provider: type is mem.allocator, memory: provider, count: usize)
     try reserve(room, memory, count)
 end scratch
 
---- Make `into` the product of `left` and `right`.
-public multiply: (provider: type is mem.allocator, inout into: integer,
-                  memory: provider, left: integer, right: integer)
-                 -> none ! mem.out_of_memory =
+--  `into` = `left` times `right`, the limb layer's scratch taken from
+--  `room`, which grows only when it is too short: a loop that keeps
+--  multiplying through one room allocates only while its numbers grow,
+--  which keeps it within an arena that frees nothing.
+multiply_with: (provider: type is mem.allocator, inout into: integer,
+                memory: provider, left: integer, right: integer,
+                inout room: integer) -> none ! mem.out_of_memory =
     total: usize = left.length + right.length
     if shares(into, left) or shares(into, right) then
         mut fresh := new()
         undo release(fresh, memory)
-        try multiply(fresh, memory, left, right)
+        try multiply_with(fresh, memory, left, right, room)
         replace(into, memory, fresh)
         return
     end if
     try reserve(into, memory, total)
-    slots: usize = limbs.multiply_scratch(left.length, right.length)
-    mut room := try scratch(memory, slots)
-    defer release(room, memory)
+    try reserve(room, memory, limbs.multiply_scratch(left.length, right.length))
     limbs.multiply(into.limbs[0..<total], magnitude(left), magnitude(right),
                    room.limbs)
     settle(into, total, left.negative <> right.negative)
+end multiply_with
+
+--- Make `into` the product of `left` and `right`.
+public multiply: (provider: type is mem.allocator, inout into: integer,
+                  memory: provider, left: integer, right: integer)
+                 -> none ! mem.out_of_memory =
+    mut room := new()
+    defer release(room, memory)
+    try multiply_with(into, memory, left, right, room)
 end multiply
 
---  The truncating quotient and remainder of magnitudes, with the
---  quotient's sign `negative` and the remainder's `numerator`'s.
-divide_magnitudes: (provider: type is mem.allocator, inout quotient: integer,
-                    inout remainder: integer, memory: provider,
-                    numerator: integer, divisor: integer)
-                   -> none ! mem.out_of_memory =
+--  The truncating quotient and remainder of `numerator` by `divisor`,
+--  neither result sharing an operand's block, the scratch from `room`.
+--  Each result keeps a limb more than it needs, so that `divide_floor`'s
+--  step down from it stays in its block.
+divide_with: (provider: type is mem.allocator, inout quotient: integer,
+              inout remainder: integer, memory: provider,
+              numerator: integer, divisor: integer, inout room: integer)
+             -> none ! mem.out_of_memory =
     panic.require(divisor.length > 0)
     negative: bool = numerator.negative <> divisor.negative
+    try reserve(remainder, memory, divisor.length + 1)
     if limbs.compare(magnitude(numerator), magnitude(divisor)) == cmp.less then
-        try set(remainder, memory, numerator)
+        limbs.copy(remainder.limbs, magnitude(numerator))
+        settle(remainder, numerator.length, numerator.negative)
+        try reserve(quotient, memory, 2)
         quotient.length = 0
         quotient.negative = false
         return
     end if
     count: usize = numerator.length - divisor.length + 1
-    try reserve(quotient, memory, count)
-    try reserve(remainder, memory, divisor.length)
-    slots: usize = limbs.divide_scratch(numerator.length, divisor.length)
-    mut room := try scratch(memory, slots)
-    defer release(room, memory)
+    try reserve(quotient, memory, count + 1)
+    try reserve(room, memory, limbs.divide_scratch(numerator.length,
+                                                   divisor.length))
     limbs.divide(quotient.limbs[0..<count], remainder.limbs[0..<divisor.length],
                  magnitude(numerator), magnitude(divisor), room.limbs)
     settle(quotient, count, negative)
     settle(remainder, divisor.length, numerator.negative)
-end divide_magnitudes
+end divide_with
+
+--  The quotient rounded down and its remainder, through `room`, the
+--  results sharing no operand's block.
+divide_floor_with: (provider: type is mem.allocator, inout quotient: integer,
+                    inout remainder: integer, memory: provider,
+                    numerator: integer, divisor: integer, inout room: integer)
+                   -> none ! mem.out_of_memory =
+    try divide_with(quotient, remainder, memory, numerator, divisor, room)
+    if remainder.length > 0 and remainder.negative <> divisor.negative then
+        --  Rounded toward zero from a negative quotient: one lower, and
+        --  the divisor added to the remainder, both within the room
+        --  `divide_with` left them.
+        mut held: [1]u32 = [1]
+        one: integer = (limbs: held[0..<1], length: 1, negative: false)
+        try add_signed(quotient, memory, quotient, quotient.negative, one, true)
+        try add(remainder, memory, remainder, divisor)
+    end if
+end divide_floor_with
 
 --- Divide `numerator` by `divisor`, rounding the quotient toward zero, as
 --- `/` and `%` do: `quotient` takes the quotient and `remainder` the
@@ -321,7 +352,9 @@ public divide_truncating: (provider: type is mem.allocator,
         replace(remainder, memory, part)
         return
     end if
-    try divide_magnitudes(quotient, remainder, memory, numerator, divisor)
+    mut room := new()
+    defer release(room, memory)
+    try divide_with(quotient, remainder, memory, numerator, divisor, room)
 end divide_truncating
 
 --- Divide `numerator` by `divisor`, rounding the quotient down, toward
@@ -344,14 +377,7 @@ public divide_floor: (provider: type is mem.allocator, inout quotient: integer,
         replace(remainder, memory, part)
         return
     end if
-    try divide_magnitudes(quotient, remainder, memory, numerator, divisor)
-    if remainder.length > 0 and remainder.negative <> divisor.negative then
-        --  Rounded toward zero from a negative quotient: one lower, and
-        --  the divisor added to the remainder.
-        mut one := new()
-        defer release(one, memory)
-        try set_i64(one, memory, 1)
-        try subtract(quotient, memory, quotient, one)
-        try add(remainder, memory, remainder, divisor)
-    end if
+    mut room := new()
+    defer release(room, memory)
+    try divide_floor_with(quotient, remainder, memory, numerator, divisor, room)
 end divide_floor

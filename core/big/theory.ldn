@@ -1,10 +1,44 @@
 --  Powers, integer roots, the greatest common divisor and arithmetic
---  modulo an integer.  Each works through the operations above it and
---  temporaries from the allocator, which it gives back before it returns.
+--  modulo an integer.  Each works through the operations above it, and
+--  each loop keeps its temporaries from one step to the next, swapping
+--  their handles rather than making new ones, so that it allocates only
+--  while its numbers grow: an arena, which frees nothing, holds what one
+--  call takes however many steps it runs.  The temporaries are given back
+--  before the call returns.
 
 import core/cmp
 import core/mem
 import core/panic
+
+--  Exchange two values' handles, so that each holds the other's block.
+exchange: (escaping inout left: integer, escaping inout right: integer)
+          -> none =
+    held: integer = left
+    left = right
+    right = held
+end exchange
+
+--  `result` = `base` raised to `exponent`, by repeated squaring through
+--  `square`, `spare` and `room`; `result` shares no block with `base`.
+power_with: (provider: type is mem.allocator, escaping inout result: integer,
+             memory: provider, base: integer, exponent: u64,
+             escaping inout square: integer, escaping inout spare: integer,
+             inout room: integer) -> none ! mem.out_of_memory =
+    try set_i64(result, memory, 1)
+    try set(square, memory, base)
+    mut rest: u64 = exponent
+    while rest > 0 do
+        if rest & 1 == 1 then
+            try multiply_with(spare, memory, result, square, room)
+            exchange(result, spare)
+        end if
+        rest = rest >> 1
+        if rest > 0 then
+            try multiply_with(spare, memory, square, square, room)
+            exchange(square, spare)
+        end if
+    end while
+end power_with
 
 --- Make `into` `base` raised to `exponent`, by repeated squaring; zero to
 --- the zeroth is one.
@@ -15,18 +49,11 @@ public power: (provider: type is mem.allocator, inout into: integer,
     undo release(result, memory)
     mut square := new()
     defer release(square, memory)
-    try set_i64(result, memory, 1)
-    try set(square, memory, base)
-    mut rest: u64 = exponent
-    while rest > 0 do
-        if rest & 1 == 1 then
-            try multiply(result, memory, result, square)
-        end if
-        rest = rest >> 1
-        if rest > 0 then
-            try multiply(square, memory, square, square)
-        end if
-    end while
+    mut spare := new()
+    defer release(spare, memory)
+    mut room := new()
+    defer release(room, memory)
+    try power_with(result, memory, base, exponent, square, spare, room)
     replace(into, memory, result)
 end power
 
@@ -41,14 +68,14 @@ public root: (provider: type is mem.allocator, inout into: integer,
     panic.require(degree > 0)
     panic.require(not value.negative or degree % 2 == 1)
     negative: bool = value.negative
+    if value.length == 0 or degree == 1 then
+        try set(into, memory, value)
+        return
+    end if
     mut size := new()
     defer release(size, memory)
     try set(size, memory, value)
     absolute(size)
-    if size.length == 0 or degree == 1 then
-        try set(into, memory, value)
-        return
-    end if
     --  Newton's method from above: x' = ((d - 1) x + v / x^(d-1)) / d is
     --  never below the root and falls while x is above it.
     mut guess := new()
@@ -63,6 +90,12 @@ public root: (provider: type is mem.allocator, inout into: integer,
     defer release(scale, memory)
     mut times := new()
     defer release(times, memory)
+    mut square := new()
+    defer release(square, memory)
+    mut spare := new()
+    defer release(spare, memory)
+    mut room := new()
+    defer release(room, memory)
     count: usize = bit_length(size)
     width: usize = usize(degree)
     try set_i64(guess, memory, 1)
@@ -70,13 +103,14 @@ public root: (provider: type is mem.allocator, inout into: integer,
     try set_u64(scale, memory, u64(degree - 1))
     try set_u64(times, memory, u64(degree))
     loop do
-        try power(lower, memory, guess, u64(degree - 1))
-        try divide_truncating(next, part, memory, size, lower)
-        try multiply(lower, memory, guess, scale)
-        try add(next, memory, next, lower)
-        try divide_truncating(next, part, memory, next, times)
+        try power_with(lower, memory, guess, u64(degree - 1), square, spare,
+                       room)
+        try divide_with(next, part, memory, size, lower, room)
+        try multiply_with(lower, memory, guess, scale, room)
+        try add(spare, memory, next, lower)
+        try divide_with(next, part, memory, spare, times, room)
         break when compare(next, guess) <> cmp.less
-        try set(guess, memory, next)
+        exchange(guess, next)
     end loop
     if negative then negate(guess) end if
     replace(into, memory, guess)
@@ -96,12 +130,14 @@ public gcd: (provider: type is mem.allocator, inout into: integer,
     defer release(quotient, memory)
     mut rest := new()
     defer release(rest, memory)
+    mut room := new()
+    defer release(room, memory)
     try set(first, memory, left)
     try set(second, memory, right)
     absolute(first)
     absolute(second)
     while second.length > 0 do
-        try divide_truncating(quotient, rest, memory, first, second)
+        try divide_with(quotient, rest, memory, first, second, room)
         --  The handles move round: first takes second, second the
         --  remainder, and the old first's block is the next one's room.
         exchange(first, second)
@@ -109,23 +145,6 @@ public gcd: (provider: type is mem.allocator, inout into: integer,
     end while
     replace(into, memory, first)
 end gcd
-
---  Exchange two values' handles, so that each holds the other's block.
-exchange: (escaping inout left: integer, escaping inout right: integer)
-          -> none =
-    held: integer = left
-    left = right
-    right = held
-end exchange
-
---  `value` modulo the positive `modulus`, from 0 to `modulus - 1`.
-reduce: (provider: type is mem.allocator, inout into: integer,
-         memory: provider, value: integer, modulus: integer)
-        -> none ! mem.out_of_memory =
-    mut quotient := new()
-    defer release(quotient, memory)
-    try divide_floor(quotient, into, memory, value, modulus)
-end reduce
 
 --- Make `into` the inverse of `value` modulo `modulus`: the integer from
 --- 0 to `modulus - 1` whose product with `value` leaves one, by the
@@ -150,21 +169,29 @@ public inverse_modulo: (provider: type is mem.allocator, inout into: integer,
     defer release(rest, memory)
     mut step := new()
     defer release(step, memory)
+    mut spare := new()
+    defer release(spare, memory)
+    mut room := new()
+    defer release(room, memory)
     try set(first, memory, modulus)
-    try reduce(second, memory, value, modulus)
+    try divide_floor_with(quotient, second, memory, value, modulus, room)
     try set_i64(before, memory, 0)
     try set_i64(after, memory, 1)
     while second.length > 0 do
-        try divide_truncating(quotient, rest, memory, first, second)
+        try divide_with(quotient, rest, memory, first, second, room)
         exchange(first, second)
         exchange(second, rest)
-        try multiply(step, memory, quotient, after)
-        try subtract(step, memory, before, step)
+        --  The coefficients: before, after = after, before - q after.
+        try multiply_with(step, memory, quotient, after, room)
+        try subtract(spare, memory, before, step)
         exchange(before, after)
-        exchange(after, step)
+        exchange(after, spare)
     end while
     fail not_invertible when first.length <> 1 or first.limbs[0] <> 1
-    try reduce(into, memory, before, modulus)
+    mut result := new()
+    undo release(result, memory)
+    try divide_floor_with(quotient, result, memory, before, modulus, room)
+    replace(into, memory, result)
 end inverse_modulo
 
 --- Make `into` `base` raised to `exponent` modulo `modulus`, from 0 to
@@ -181,17 +208,24 @@ public power_modulo: (provider: type is mem.allocator, inout into: integer,
     defer release(reduced, memory)
     mut product := new()
     defer release(product, memory)
-    try reduce(reduced, memory, base, modulus)
-    try set_i64(result, memory, 1)
-    try reduce(result, memory, result, modulus)
+    mut quotient := new()
+    defer release(quotient, memory)
+    mut one := new()
+    defer release(one, memory)
+    mut room := new()
+    defer release(room, memory)
+    try divide_floor_with(quotient, reduced, memory, base, modulus, room)
+    try set_i64(one, memory, 1)
+    try divide_floor_with(quotient, result, memory, one, modulus, room)
     mut at: usize = bit_length(exponent)
     while at > 0 do
         dec at
-        try multiply(product, memory, result, result)
-        try reduce(result, memory, product, modulus)
+        try multiply_with(product, memory, result, result, room)
+        try divide_floor_with(quotient, result, memory, product, modulus, room)
         if bit(exponent, at) then
-            try multiply(product, memory, result, reduced)
-            try reduce(result, memory, product, modulus)
+            try multiply_with(product, memory, result, reduced, room)
+            try divide_floor_with(quotient, result, memory, product, modulus,
+                                  room)
         end if
     end while
     replace(into, memory, result)

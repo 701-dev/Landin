@@ -159,7 +159,8 @@ public subtract_limb: (into: []mut u32, left: []u32, right: u32)
             owed = difference >> 63
         end for
     end unchecked
-    borrow = u32(owed)
+    --  An empty `left` lends the whole of a nonzero `right`.
+    borrow = if owed <> 0 then 1 else 0 end if
 end subtract_limb
 
 --- Write `value` times the limb `factor` into `into`'s first `lenof value`
