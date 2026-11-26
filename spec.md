@@ -46291,7 +46291,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** the Pike VM alone, which is linear but slow on every byte; a backtracking engine for small inputs, which the crate keeps but which needs a visited set to stay linear; and a DFA compiled ahead of time and vectorised literal search, which the item leaves out. All were declined.
 
-**Pinned by** `runtime/regex-engines-agree`, which checks every engine against the Pike VM on 300 seeded generated patterns with eight haystacks each, unanchored and anchored, and requires each engine to have answered for some.
+**Pinned by** `runtime/regex-engines-agree`, which checks every engine against the Pike VM on 100 seeded generated patterns and six one-pass ones with eight haystacks each, unanchored and anchored, and requires each engine to have answered for some.
 
 ### D2679 — A lazy DFA state is the threads' targets before their closure, which is taken once the next byte is known
 

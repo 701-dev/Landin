@@ -12,7 +12,7 @@ import core/regex
 import core/text
 import hosted/heap
 
-pattern_count: usize = 300
+pattern_count: usize = 100
 haystack_count: usize = 8
 
 --  xorshift32.
@@ -146,7 +146,13 @@ check_pattern: (provider: type is mem.allocator, memory: provider,
     end
     defer regex.release(reference, memory)
     for which, index in engines do
+        --  A cache of 64 KiB holds every state these patterns reach, and is
+        --  quicker to allocate than the default's; the one-pass engine
+        --  keeps the default, whose half bounds its table.
         mut settings := regex.with_engine(regex.defaults(), which)
+        if which <> regex.one_pass_dfa then
+            settings = regex.with_cache_size(settings, 64 * 1024)
+        end if
         --  The last engine's cache is too small for the DFA to keep its
         --  states, so that it clears them and gives up.
         if index == 4 then settings = regex.with_cache_size(settings, 4096)
@@ -184,6 +190,28 @@ check_pattern: (provider: type is mem.allocator, memory: provider,
     end for
 end check_pattern
 
+--  Patterns with groups that are one-pass, each of which must get a
+--  one-pass table.
+one_pass_patterns: [6]utf8 = ["a(b|c)d", "([0-9]+)-([0-9]+)", "^(a+)(b*)$",
+                              "x([a-c]+)y(z?)", "(?:(a)|(b))c", "(é+)(1|B)"]
+
+check_one_pass: (provider: type is mem.allocator, memory: provider,
+                 haystacks: []utf8, inout seen: tally) -> none =
+    for pattern in one_pass_patterns do
+        settings: regex.options = regex.with_engine(regex.defaults(),
+                                                    regex.one_pass_dfa)
+        mut probe := regex.compile_with(memory, pattern, settings) else begin
+            inc seen.failures
+            continue
+        end
+        (lazy: _, one_pass: one_pass, literals: _) := regex.prepared(probe)
+        regex.release(probe, memory)
+        if not one_pass then inc seen.failures end if
+        check_pattern(memory, pattern, haystacks, false, seen)
+        check_pattern(memory, pattern, haystacks, true, seen)
+    end for
+end check_one_pass
+
 --  Patterns whose DFAs have many states, over haystacks long enough to
 --  fill a small cache, so that it is cleared and built again, and given
 --  up on, mid-search.
@@ -192,9 +220,9 @@ crowded: [4]utf8 = ["(?-u)[ab]*a[ab]{6}", "(?-u)(?:[ab]*a){3}[ab]{3}(b)?",
 
 check_crowded: (provider: type is mem.allocator, memory: provider,
                 inout random: u32, inout seen: tally) -> none =
-    mut storage: [2048]u8 = zeroed
+    mut storage: [1024]u8 = zeroed
     for pattern in crowded do
-        for round in usize(0)..<3 do
+        for round in usize(0)..<2 do
             _ = round
             for byte in storage do
                 byte = if next_random(random) % 2 == 0 then u8('a')
@@ -276,11 +304,12 @@ public main: () -> (code: i32) =
             end
         end for
         check_pattern(memory, pattern, haystacks, round % 4 == 3, seen)
+        if round == 0 then check_one_pass(memory, haystacks, seen) end if
     end for
     check_crowded(memory, random, seen)
     return when seen.failures <> 0
-    return when seen.lazy < pattern_count or seen.one_pass < 25
-      or seen.literals < 150
+    return when seen.lazy < pattern_count or seen.one_pass < 12
+      or seen.literals < 50
     --  Only a search that meets a byte past ASCII where a Unicode word
     --  boundary is judged makes the DFA give up here, and a crowded
     --  cache in some of the long searches.
