@@ -3729,15 +3729,10 @@ Status: planned
 Depends on: none
 
 The faults of the process tools met since R22.24, scheduled by the
-register sweep of 2026-11-26. In `item.py`: SR-1988's boards run
-recorded while queued, which `promote` then does not find; SR-1989's
-token taken before the candidate's gate passed; SR-1990's `push
---boards` that ends at a ref-lock race before its dispatch; SR-1905's
-older copy whose queue wait drops waiters that are no item; SR-1919's
-`start` refusing a continuous item whose text the branch adds without
-naming `--base`; and SR-1893's train, which takes only items. In the
-other tools: SR-1839's gate watch that ends at one malformed or short
-answer from GitHub; SR-1906's `register_next.py --decision` that answers
+register sweep of 2026-11-26. In `item.py`: SR-1905's older copy whose
+queue wait drops waiters that are no item; and SR-1919's `start`
+refusing a continuous item whose text the branch adds without naming
+`--base`. In the other tools: SR-1906's `register_next.py --decision` that answers
 from a branch behind main's reservations; SR-1917's age rule that differs
 during an uncommitted merge; SR-1859's full `check.py` reading untracked
 notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
@@ -3875,9 +3870,7 @@ that of a passed boards run under a week old takes that run's legs and
 cycles, as main's push already takes a passed run of the same tree
 (D1647), and the aggregate names the run it took. The weekly boards run
 becomes daily on main when main moved, so a board or probe that degrades
-shows within a day, until R22.37's daily complete gate takes it over. `item.py boards` meets R22.27's SR-1988, a boards run
-recorded while queued that `promote` does not find; the item that lands
-second takes the other's change. Placed here so that no phase gate
+shows within a day, until R22.37's daily complete gate takes it over. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: controls that an image, harness, record or workflow change

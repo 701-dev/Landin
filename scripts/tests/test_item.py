@@ -83,9 +83,14 @@ class Clone(unittest.TestCase):
         #  these cases never ask for.
         self.saved_verdict = item.verdict_of
         item.verdict_of = lambda run: None
+        #  Every item here counts as gated unless a case says otherwise:
+        #  `GatedToken` holds the token to the real rule.
+        self.saved_gated = item.gated
+        item.gated = lambda name, refresh=False: True
 
     def tearDown(self):
         item.verdict_of = self.saved_verdict
+        item.gated = self.saved_gated
         item.REPOSITORY[0] = item.ROOT
         self.scratch.cleanup()
 
@@ -525,6 +530,60 @@ class Queue(Clone):
         self.assertIn("promotion token: %s since" % SECOND, out)
         status, out = self.item("queue", "--release", SECOND)
         self.assertIn("released", out)
+
+
+class GatedToken(Clone):
+    """The token goes only to an item whose head passed its push gate."""
+
+    def setUp(self):
+        super().setUp()
+        item.gated = self.saved_gated
+        self.item("start", FIRST)
+        self.item("start", SECOND)
+        item.REPOSITORY[0] = self.clone
+
+    def pass_gate(self, name):
+        state = item.load(name)
+        head = git(Path(state["worktree"]), "rev-parse", "HEAD")
+        state["gates"].append({"run": 7, "commit": head, "tree": "t",
+                               "kind": "software", "status": "completed",
+                               "conclusion": "success"})
+        item.save(state)
+
+    def test_an_ungated_item_keeps_its_place_and_is_passed_over(self):
+        taken, why = item.take(FIRST, "test", ask=False)
+        self.assertFalse(taken)
+        self.assertIn("%s's head has no passed push gate yet" % FIRST, why)
+        self.assertIn("keeps its place", why)
+        self.pass_gate(SECOND)
+        self.assertEqual(item.take(SECOND, "test", ask=False), (True, None))
+        status, out = self.item("queue")
+        self.assertIn("promotion token: %s" % SECOND, out)
+        self.assertIn("waiting: %s" % FIRST, out)
+        item.release(SECOND, "test")
+        self.pass_gate(FIRST)
+        self.assertEqual(item.take(FIRST, "test", ask=False), (True, None))
+
+    def test_a_gate_on_an_older_head_does_not_count(self):
+        self.pass_gate(FIRST)
+        worktree = Path(item.load(FIRST)["worktree"])
+        (worktree / "later.txt").write_text("later\n")
+        git(worktree, "add", "-A")
+        git(worktree, "commit", "-q", "-m", "later")
+        self.assertFalse(item.take(FIRST, "test", ask=False)[0])
+
+    def test_work_that_is_no_item_is_not_held_to_it(self):
+        self.assertEqual(item.take("sweep", "a sweep", session=True),
+                         (True, None))
+
+    def test_the_holder_keeps_the_token_over_its_merge(self):
+        self.pass_gate(FIRST)
+        self.assertEqual(item.take(FIRST, "test", ask=False), (True, None))
+        worktree = Path(item.load(FIRST)["worktree"])
+        (worktree / "merge.txt").write_text("merged\n")
+        git(worktree, "add", "-A")
+        git(worktree, "commit", "-q", "-m", "a merge's new head")
+        self.assertEqual(item.take(FIRST, "test", ask=False), (True, None))
 
 
 class MergeMain(Clone):
@@ -1218,6 +1277,61 @@ class PrePush(Promote):
         self.assertEqual(dispatched, [(FIRST, False)])
 
 
+    def test_push_dispatches_the_boards_when_the_runs_cannot_be_recorded(self):
+        saved_gate, saved_boards = item.gate, item.boards
+
+        def refused(arguments):
+            raise item.Refused("git fetch -q origin failed: cannot lock ref")
+        item.gate = refused
+        dispatched = []
+        item.boards = lambda arguments: dispatched.append(arguments.item) or 0
+        self.addCleanup(setattr, item, "gate", saved_gate)
+        self.addCleanup(setattr, item, "boards", saved_boards)
+        self.commit("work")
+        status, out = self.item("push", FIRST, "--boards", "--no-check")
+        self.assertEqual(dispatched, [FIRST], out)
+        self.assertIn("the gate runs were not recorded", out)
+        self.assertEqual(status, 2, out)
+
+    def test_a_boards_run_recorded_while_queued_is_boards_once_titled(self):
+        head = self.commit("work")
+        queued = {"databaseId": 9, "event": "workflow_dispatch",
+                  "headBranch": self.state["branch"], "status": "queued",
+                  "conclusion": "", "displayTitle": "gate", "attempt": 1}
+        saved = item.runs_of
+        self.addCleanup(setattr, item, "runs_of", saved)
+        item.runs_of = lambda commit: [queued]
+        item.record_gates(self.state, head)
+        self.assertEqual(self.state["gates"][-1]["kind"], "workflow_dispatch")
+        item.runs_of = lambda commit: [dict(
+            queued, status="completed", conclusion="success",
+            displayTitle="gate: boards only on %s" % self.state["branch"])]
+        item.record_gates(self.state, head)
+        self.assertEqual([entry["kind"] for entry in self.state["gates"]
+                          if entry["run"] == 9], ["boards"])
+
+    def test_a_fetch_that_meets_another_worktrees_ref_lock_is_asked_again(self):
+        real, sleeps = item.subprocess.run, []
+        answers = [1, 1, 0]
+
+        def run(command, *arguments, **options):
+            if command[:2] == ["git", "fetch"]:
+                code = answers.pop(0)
+                return item.subprocess.CompletedProcess(
+                    command, code, "", "error: cannot lock ref"
+                    " 'refs/remotes/origin/main': is at 1 but expected 2"
+                    if code else "")
+            return real(command, *arguments, **options)
+        saved = item.subprocess.run, item.time.sleep
+        item.subprocess.run, item.time.sleep = run, sleeps.append
+        try:
+            item.git("fetch", "-q", "origin", cwd=self.worktree)
+        finally:
+            item.subprocess.run, item.time.sleep = saved
+        self.assertEqual(answers, [])
+        self.assertEqual(sleeps, [1, 2])
+
+
 class Train(Clone):
     """A train: the holder's final merge brings other gated candidates."""
 
@@ -1319,6 +1433,65 @@ class Train(Clone):
                                                items, False)
         self.assertTrue(any("moved past" in one for one in problems),
                         problems)
+
+    def plain_branch(self, name, path):
+        """A branch that is no item, pushed with one commit; its head."""
+        git(self.clone, "checkout", "-q", "-b", name, "main")
+        (self.clone / path).write_text(name + "\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "sweep")
+        git(self.clone, "push", "-q", "origin", name)
+        git(self.clone, "checkout", "-q", "main")
+        return git(self.clone, "rev-parse", name)
+
+    def test_a_branch_that_is_no_item_rides_on_its_passed_gate(self):
+        self.gated(FIRST, "first.txt")
+        head = self.plain_branch("sweep", "sweep.txt")
+        item.take(FIRST, "test")
+        item.runs_of = lambda commit: [{
+            "databaseId": 9, "event": "push", "headBranch": "sweep",
+            "status": "completed", "conclusion": "success",
+            "displayTitle": "sweep", "attempt": 1}] if commit == head else []
+        status, out = self.item("merge-main", FIRST, "--with-branch", "sweep")
+        self.assertEqual(status, 0, out)
+        self.assertIn("branch sweep %s" % head[:12], out)
+        self.assertIn("leave their branches alone", out)
+        self.assertTrue((self.holder / "sweep.txt").exists())
+        holder = item.load(FIRST)
+        self.assertEqual(holder["train"]["branches"], {"sweep": head})
+        commit = git(self.holder, "rev-parse", "HEAD")
+        items, _ = item.roadmap_items((self.holder / "ROADMAP.md").read_text())
+        self.assertEqual(item.train_landing_problems(holder, commit, items,
+                                                     False), [])
+        #  Moved after its merge: named at promotion, and dropped.
+        git(self.clone, "checkout", "-q", "sweep")
+        (self.clone / "later.txt").write_text("later\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "later")
+        git(self.clone, "push", "-q", "origin", "sweep")
+        git(self.clone, "checkout", "-q", "main")
+        git(self.holder, "fetch", "-q", "origin")
+        problems = item.train_landing_problems(holder, commit, items, False)
+        self.assertTrue(any("branch sweep moved past" in one
+                            for one in problems), problems)
+        status, out = self.item("merge-main", FIRST, "--drop", "sweep")
+        self.assertEqual(status, 0, out)
+        self.assertFalse((self.holder / "sweep.txt").exists())
+        self.assertEqual(item.load(FIRST)["train"]["branches"], {})
+
+    def test_an_ungated_or_item_branch_does_not_ride(self):
+        self.gated(FIRST, "first.txt")
+        self.plain_branch("sweep", "sweep.txt")
+        item.take(FIRST, "test")
+        status, out = self.item("merge-main", FIRST, "--with-branch",
+                                "sweep", "--with-branch",
+                                item.load(THIRD)["branch"],
+                                "--with-branch", "absent")
+        self.assertEqual(status, 1, out)
+        self.assertIn("sweep has no passed push gate", out)
+        self.assertIn("is an item's: name the item with --with", out)
+        self.assertIn("the branch absent is not on GitHub", out)
+        self.assertFalse((self.holder / "sweep.txt").exists())
 
     def test_maintainer_ungated_and_conflicting_members_are_refused(self):
         self.gated(FIRST, "first.txt")
