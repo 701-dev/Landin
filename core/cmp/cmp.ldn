@@ -276,8 +276,8 @@ public ordered: type = concept (item: type)
     less: (left: item, right: item) -> (yes: bool)
 end ordered
 
---  The library supplies the ordering of every integer scalar, and core/text
---  that of utf8. One register, no override [1280]: another ordering for one
+--  The library supplies the ordering of every integer scalar and of both
+--  floats, and core/text that of utf8. One register, no override [1280]: another ordering for one
 --  of these goes on a distinct wrapper.
 less_u8: (left: u8, right: u8) -> (yes: bool) =
     yes = left < right
@@ -309,6 +309,32 @@ end less_i64
 less_isize: (left: isize, right: isize) -> (yes: bool) =
     yes = left < right
 end less_isize
+--  Floats order by IEEE 754's totalOrder (D2735), a strict order of every
+--  bit pattern: negative NaNs, negative infinity, the negative numbers,
+--  -0.0, +0.0, the positive numbers, infinity, positive NaNs.  It agrees
+--  with `<` on every pair of numbers but the two zeros.  A float's bits
+--  are read through its address, as core/math reads them, and made a key
+--  that orders as an unsigned integer: a negative float's bits inverted,
+--  so that a larger magnitude comes first, and a positive one's sign bit
+--  set, so that it follows every negative one.
+key_f64: (x: f64) -> (key: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits := view.val
+    key = if bits >> 63 == 1 then bits ^ 0xffffffffffffffff
+          else bits | 0x8000000000000000 end if
+end key_f64
+key_f32: (x: f32) -> (key: u32) =
+    view: ptr u32 = ptr(usize(addr x))
+    bits := view.val
+    key = if bits >> 31 == 1 then bits ^ 0xffffffff
+          else bits | 0x80000000 end if
+end key_f32
+less_f64: (left: f64, right: f64) -> (yes: bool) =
+    yes = key_f64(left) < key_f64(right)
+end less_f64
+less_f32: (left: f32, right: f32) -> (yes: bool) =
+    yes = key_f32(left) < key_f32(right)
+end less_f32
 --  Bytes order as `compare` orders them.
 less_bytes: (left: []u8, right: []u8) -> (yes: bool) =
     yes = compare(left, right) == less
@@ -323,6 +349,8 @@ i16 is ordered (less: less_i16)
 i32 is ordered (less: less_i32)
 i64 is ordered (less: less_i64)
 isize is ordered (less: less_isize)
+f32 is ordered (less: less_f32)
+f64 is ordered (less: less_f64)
 []u8 is ordered (less: less_bytes)
 
 --- The left bytes order before the right ones.

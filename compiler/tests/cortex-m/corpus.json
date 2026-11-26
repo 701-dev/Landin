@@ -1915,6 +1915,9 @@
     "runtime/cmp-bytes-ordered": {
       "mode": "execute"
     },
+    "runtime/cmp-float-total-order": {
+      "mode": "execute"
+    },
     "runtime/cmp-siphash-vectors": {
       "mode": "execute"
     },

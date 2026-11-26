@@ -42057,6 +42057,16 @@ and for a host string is not defined.
 `runtime/core-mem-blocks`, `runtime/tree-copy`,
 `runtime/directory-listing` and `runtime/library-builtin-evidence`.
 
+### D2735 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
+
+**The tour said** at [1280] that a type has one evidence for a concept and no override, and `cmp.ordered`'s `less` must be a strict weak order. IEEE's `<` is not one once a NaN is among the values, so floats had no evidence and a sort of them declared its own.
+
+**Chosen:** the maintainer's answer: `core/cmp` declares `f32 is ordered` and `f64 is ordered` by IEEE 754's totalOrder, a strict order of every bit pattern: negative NaNs, a larger payload first, negative infinity, the negative numbers, -0.0, +0.0, the positive numbers, infinity, and positive NaNs, a larger payload last. It agrees with `<` on every pair of numbers except the two zeros, so a sort of measurements is the order a reader expects and a NaN has one place, at an end. `less` reads each float's bits through its address and compares keys as unsigned integers: a negative float's bits inverted, a positive one's sign bit set. Another order goes on a distinct type, as for an integer.
+
+**The alternatives:** no evidence, a program declaring a distinct type with the order it wants; and evidence by `<`, valid only where no NaN is sorted, which breaks the concept's own requirement on the values a float can hold.
+
+**Pinned by** `runtime/cmp-float-total-order`, which sorts NaNs of both signs, quiet and signalling, the infinities, both zeros, subnormals and ordinary numbers at both widths on every hosted target and on Cortex-M0.
+
 ### D353 — The hosted provider maps a path's errno, opens and closes once
 
 **The tour said** nothing of the providers' insides, and D297 wrote the
@@ -45967,11 +45977,21 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
 
-**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. It is the default of a question the maintainer has not yet answered.
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2734 makes its condition the rule for all of `core/*`.
 
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
+
+### D2734 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
+
+**The tour said** nothing; `LICENSE` says that compiling a program places no licensing condition on it, and neither does linking `core/*` into it. D2554 kept that promise for `core/math` and `core/unicode`'s tables kept it by the same reading, each as the default of a question.
+
+**Chosen:** the maintainer's rule: material from outside the project enters `core/*` only under terms whose sole condition is a notice kept with the source, and that ask nothing of a program that links it: no notice in its documentation, no attribution at run time, no licence of its own. The notice stays in the files that hold the material, and `LICENSE` names each such source among its third-party material without changing its promise. `core/math`'s msun code under Sun's notice and `core/unicode`'s tables, generated from the Unicode Character Database, whose notice is `core/unicode/LICENSE.unicode` and is named in the header of `tables.ldn`, are the two today: a compiled program carries the tables' values, not the Data Files. Code under terms that ask more, BSD-2-Clause's notice in a binary's documentation or MIT's notice with substantial portions, is written here from the mathematics or the standard instead.
+
+**The alternatives:** admitting BSD and MIT sources with a notice every linking program reproduces, which would add an obligation for the project's users, and which the maintainer refused; and porting nothing, which replaces measured code with new code for no licensing gain.
+
+**Pinned by** `LICENSE`'s list of third-party material, the notice in `core/math/math.ldn` and each `core/math` file's opening comment naming the msun files it ports, and `core/unicode/LICENSE.unicode` named in `tables.ldn`'s header.
 
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 

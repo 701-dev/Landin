@@ -76,10 +76,7 @@ Open:
 
 | Question | Default until answered | What waits on the answer |
 | --- | --- | --- |
-| [Q-306 — May `core/math` carry code ported from FreeBSD's msun under Sun's notice?](questions/Q-306.md) | option 1: `core/math` holds msun code under Sun's notice alone, preserved in its source and named in `LICENSE`, and places no condition on a program. | nothing; another answer replaces routines before a release names them. |
 | [Q-307 — Does R22.10's exhaustive check of the `f32` functions need to run on the firmware targets?](questions/Q-307.md) | option 1: the exhaustive check against MPFR on Linux x86-64, compared bit for bit on Linux arm64 and RV64 under QEMU, and the tables on every target in the gate. | nothing in R22.10, which closes with the default's runs; options 2 and 3 add recorded runs afterwards. |
-| [Q-308 — Do `f32` and `f64` get `cmp.ordered` evidence?](questions/Q-308.md) | option 1, no evidence, since option 2 is easy to add and hard to take back. | nothing in R22.10; R22.74's distributions and any sort of floats in a later item. |
-| [Q-321 — Does a program that links `core/unicode`'s tables carry Unicode's notice?](questions/Q-321.md) | the notice is kept with the source, in `core/unicode/LICENSE.unicode` and `tables.ldn`'s header, and `LICENSE` names it among the third-party material without changing its promise. | nothing in the code; the wording of `LICENSE` before a release names `core/unicode`. |
 
 Answered:
 
@@ -141,3 +138,6 @@ Answered:
 - [Q-279 — How does a release get its FreeBSD arm64 archive?](questions/Q-279.md)
 - [Q-284 — May the register sweep of 2026-11-25 retire three measurement rows nobody is waiting on?](questions/Q-284.md)
 - [Q-285 — Are the sweep's three items wanted where it placed them, in R22 beside the serial lane?](questions/Q-285.md)
+- [Q-306 — May `core/math` carry code ported from FreeBSD's msun under Sun's notice?](questions/Q-306.md)
+- [Q-308 — Do `f32` and `f64` get `cmp.ordered` evidence?](questions/Q-308.md)
+- [Q-321 — Does a program that links `core/unicode`'s tables carry Unicode's notice?](questions/Q-321.md)
