@@ -1,0 +1,145 @@
+--  The hyperbolic and trigonometric functions.  The trigonometric ones
+--  are the hyperbolic ones turned a quarter, as Annex G defines them:
+--  sin z = -i·sinh(iz), cos z = cosh(iz) and tan z = -i·tanh(iz).
+import core/math
+
+--  Past this |x|, cosh x and |sinh x| are e^|x|/2 to the format's
+--  precision, and tanh x is ±1.
+far: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 22.0, narrow: f32(12.0))
+end far
+
+--  cosh x · factor and sinh x · factor, for a finite x and a factor of
+--  magnitude at most 1, finite wherever the product is.
+cosh_times: (item: type is math.floating, x: item, factor: item) -> (result: item) =
+    if math.abs(x) <= far(item: item) then
+        result = math.cosh(x) * factor
+    else
+        result = exp_times(math.abs(x), factor, -1)
+    end if
+end cosh_times
+
+sinh_times: (item: type is math.floating, x: item, factor: item) -> (result: item) =
+    if math.abs(x) <= far(item: item) then
+        result = math.sinh(x) * factor
+    else
+        result = math.copy_sign(item(1), x) * exp_times(math.abs(x), factor, -1)
+    end if
+end sinh_times
+
+--- The hyperbolic sine: `sinh x · cos y + i·cosh x · sin y` for
+--- `z = x + iy`, finite wherever the exact parts are.  A real `z` gives a
+--- real result with `z`'s zero, and Annex G's special values elsewhere.
+--- C's `csinh`.
+public sinh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    if y == zero then
+        result = (real: math.sinh(x), imaginary: y)
+    elsif math.is_finite(y) then
+        if math.is_nan(x) then
+            result = (real: x, imaginary: x)
+        elsif math.is_infinite(x) then
+            result = (real: x * math.cos(y), imaginary: math.abs(x) * math.sin(y))
+        else
+            result = (real: sinh_times(x, math.cos(y)), imaginary: cosh_times(x, math.sin(y)))
+        end if
+    elsif x == zero or math.is_infinite(x) then
+        result = (real: x, imaginary: y - y)
+    else
+        result = (real: y - y, imaginary: y - y)
+    end if
+end sinh
+
+--- The hyperbolic cosine: `cosh x · cos y + i·sinh x · sin y` for
+--- `z = x + iy`, finite wherever the exact parts are.  A real `z` gives a
+--- real result, its imaginary zero the product of the parts' signs, and
+--- Annex G's special values elsewhere.  C's `ccosh`.
+public cosh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    if y == zero then
+        result = (real: math.cosh(x), imaginary: math.copy_sign(zero, x) * y)
+    elsif math.is_finite(y) then
+        if math.is_nan(x) then
+            result = (real: x, imaginary: x)
+        elsif math.is_infinite(x) then
+            result = (real: math.abs(x) * math.cos(y), imaginary: x * math.sin(y))
+        else
+            result = (real: cosh_times(x, math.cos(y)), imaginary: sinh_times(x, math.sin(y)))
+        end if
+    elsif x == zero then
+        result = (real: y - y, imaginary: math.copy_sign(zero, x) * math.copy_sign(item(1), y))
+    elsif math.is_infinite(x) then
+        real := if math.is_nan(y) then math.abs(x) else x * math.copy_sign(item(1), y) end if
+        result = (real: real, imaginary: y - y)
+    else
+        result = (real: y - y, imaginary: y - y)
+    end if
+end cosh
+
+--- The hyperbolic tangent, by Kahan's form, which cancels nowhere: with
+--- t = tan y, β = 1 + t², s = sinh x and ρ = √(1 + s²), it is
+--- `(β·ρ·s + i·t) / (1 + β·s²)`, and past |x| = 22 (12 at f32) the real
+--- part is ±1 and the imaginary 4·t/β · e^(-2|x|).  Annex G's special
+--- values: ±1 with a signed zero for an infinite real part.  C's
+--- `ctanh`.
+public tanh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    one: item = item(1)
+    if math.is_infinite(x) then
+        sign := if math.is_finite(y) then math.sin(y + y) else y end if
+        result = (real: math.copy_sign(one, x), imaginary: math.copy_sign(zero, sign))
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: if y == zero then y else x end if)
+    elsif not math.is_finite(y) then
+        result = (real: y - y, imaginary: y - y)
+    elsif math.abs(x) > far(item: item) then
+        t := math.tan(y)
+        four: item = item(4)
+        e := math.exp(-two(item: item) * math.abs(x))
+        result = (real: math.copy_sign(one, x), imaginary: four * (t / (one + t * t)) * e)
+    else
+        t := math.tan(y)
+        beta := one + t * t
+        s := math.sinh(x)
+        rho := math.sqrt(one + s * s)
+        denominator := one + beta * s * s
+        result = (real: beta * rho * s / denominator, imaginary: t / denominator)
+    end if
+end tanh
+
+two: (item: type is math.floating) -> (value: item) =
+    value = item(2)
+end two
+
+--  i·z and -i·z.
+times_i: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = (real: -z.imaginary, imaginary: z.real)
+end times_i
+
+times_minus_i: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = (real: z.imaginary, imaginary: -z.real)
+end times_minus_i
+
+--- The sine: `-i·sinh(i·z)`, `sin x · cosh y + i·cos x · sinh y`, with
+--- `sinh`'s accuracy and special values turned a quarter.  C's `csin`.
+public sin: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = times_minus_i(sinh(times_i(z)))
+end sin
+
+--- The cosine: `cosh(i·z)`, `cos x · cosh y - i·sin x · sinh y`, with
+--- `cosh`'s accuracy and special values turned a quarter.  C's `ccos`.
+public cos: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = cosh(times_i(z))
+end cos
+
+--- The tangent: `-i·tanh(i·z)`, with `tanh`'s accuracy and special values
+--- turned a quarter.  C's `ctan`.
+public tan: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = times_minus_i(tanh(times_i(z)))
+end tan

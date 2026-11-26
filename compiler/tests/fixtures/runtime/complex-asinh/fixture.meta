@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/complex's asinh is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0170, 0290
