@@ -1362,8 +1362,8 @@ The holder may bring other items' gated candidates into its final merge,
 own as one integrated tree: one gate, one boards dispatch and one `main`
 gate instead of one each. The holder's agent, or the session that runs
 the roadmap, is the train's integrator; `ROADMAP.md`'s Mechanics give it
-the authority. A branch that is no item rides by `--with-branch` on its head's passed
-gate; its owner leaves it alone meanwhile. A member rides when its pushed head is its worktree's head,
+the authority. A branch no item owns rides by `--with-branch` on its head's passed
+gate; its owner leaves it be meanwhile. A member rides when its pushed head is its worktree's head,
 a push gate on that head passed with its whole listing, it is complete in
 its own `ROADMAP.md`, it lands on `main` and it does not say
 `Promotion: maintainer`. Each is merged after `origin/main`, in order. A
