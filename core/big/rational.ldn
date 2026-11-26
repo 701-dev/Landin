@@ -59,8 +59,8 @@ settle_ratio: (provider: type is mem.allocator, inout into: rational,
     mut rest := new()
     defer release(rest, memory)
     try gcd(divisor, memory, top, bottom)
-    try divide_truncating(numerator, rest, memory, top, divisor)
-    try divide_truncating(denominator, rest, memory, bottom, divisor)
+    try divide_truncating(numerator, memory, rest, top, divisor)
+    try divide_truncating(denominator, memory, rest, bottom, divisor)
     if denominator.negative then
         negate(numerator)
         negate(denominator)
@@ -123,7 +123,7 @@ end rational_negate
 --- How `left` compares with `right`, by the products of each numerator
 --- with the other's denominator.
 public rational_compare: (provider: type is mem.allocator, left: rational,
-                          right: rational, memory: provider)
+                          memory: provider, right: rational)
                          -> (result: cmp.order) ! mem.out_of_memory =
     if sign(left.top) <> sign(right.top) then
         result = if sign(left.top) < sign(right.top) then cmp.less
@@ -247,7 +247,7 @@ public rational_floor: (provider: type is mem.allocator, inout into: integer,
     mut one: [1]u32 = [1]
     mut rest := new()
     defer release(rest, memory)
-    try divide_floor(into, rest, memory, value.top, denominator_of(value, one))
+    try divide_floor(into, memory, rest, value.top, denominator_of(value, one))
 end rational_floor
 
 --- Make `into` `value` rounded toward zero to an integer.
@@ -257,7 +257,7 @@ public rational_truncate: (provider: type is mem.allocator, inout into: integer,
     mut one: [1]u32 = [1]
     mut rest := new()
     defer release(rest, memory)
-    try divide_truncating(into, rest, memory, value.top,
+    try divide_truncating(into, memory, rest, value.top,
                           denominator_of(value, one))
 end rational_truncate
 
@@ -327,7 +327,7 @@ rational_bits: (provider: type is mem.allocator, value: rational,
     else
         try shift_left(under, memory, under, usize(-scale))
     end if
-    try divide_truncating(quotient, rest, memory, top, under)
+    try divide_truncating(quotient, memory, rest, top, under)
     bits = rounded_digits(magnitude(quotient), rest.length > 0, -scale, format)
 end rational_bits
 

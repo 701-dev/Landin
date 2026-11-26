@@ -1946,7 +1946,7 @@ grows it through `memory`, an allocator, and takes its operands after:
 | `big.to_f64`, `big.to_f32`, `big.set_f64`, `big.set_f32` | The nearest float, ties to even, rounded once, and infinity beyond the float's range; `set_f64` and `set_f32` take a float's integer part, rounded toward zero, and fail `big.not_finite`. |
 | `big.sign`, `big.compare`, `big.negate`, `big.absolute` | The sign as -1, 0 or 1, the order as a `cmp.order`, and the negation and magnitude in place. |
 | `big.add`, `big.subtract`, `big.multiply` | The sum, difference and product. |
-| `big.divide_truncating`, `big.divide_floor` | A quotient and a remainder: rounded toward zero, the remainder with the numerator's sign, as `/` and `%` do, or rounded down, the remainder with the divisor's sign. |
+| `big.divide_truncating`, `big.divide_floor` | A quotient and a remainder: rounded toward zero, the remainder with the numerator's sign, as `/` and `%` do, or rounded down, the remainder with the divisor's sign. The remainder's destination follows `memory`: `big.divide_floor(quotient, memory, remainder, numerator, divisor)`. |
 | `big.power`, `big.root` | A power by a `u64` exponent, and the root of a `u32` degree, rounded toward zero. |
 | `big.gcd`, `big.inverse_modulo`, `big.power_modulo` | The greatest common divisor, never negative; the inverse for a modulus, failing `big.not_invertible`; and a power for a modulus, from 0 to the modulus less one. |
 | `big.and_bits`, `big.or_bits`, `big.xor_bits`, `big.complement`, `big.shift_left`, `big.shift_right`, `big.bit`, `big.bit_length` | The bits of the two's complement form, its sign repeated without end, as Python and GMP read it: `complement` is `-x - 1`, and `shift_right` rounds down. `and` and `or` are keywords, hence the names. |
@@ -1954,7 +1954,7 @@ grows it through `memory`, an allocator, and takes its operands after:
 | `big.rational_new`, `big.rational_release` | Zero, and giving a rational's blocks back. |
 | `big.rational_set_ratio`, `big.rational_set_integer`, `big.rational_set` | A rational from a numerator and a denominator, from an integer, or a copy of another. |
 | `big.rational_numerator`, `big.rational_denominator` | Copies of the two parts, as integers. |
-| `big.rational_sign`, `big.rational_negate`, `big.rational_compare` | The sign, the negation in place, and the order, which needs `memory`. |
+| `big.rational_sign`, `big.rational_negate`, `big.rational_compare` | The sign, the negation in place, and the order, which needs `memory`: `big.rational_compare(left, memory, right)`. |
 | `big.rational_add`, `big.rational_subtract`, `big.rational_multiply`, `big.rational_divide`, `big.rational_power` | The arithmetic, each result in lowest terms; the power takes an `i64` exponent, and a negative one raises the reciprocal. |
 | `big.rational_floor`, `big.rational_truncate` | The integer below, or the integer toward zero. |
 | `big.rational_to_f64`, `big.rational_to_f32`, `big.rational_set_f64`, `big.rational_set_f32` | The nearest float, ties to even, rounded once from the exact quotient, subnormals included; `rational_set_f64` and `rational_set_f32` take exactly the float's value, and fail `big.not_finite`. |
@@ -1981,7 +1981,7 @@ Multiplication is schoolbook, Karatsuba and Toom-3 by size; division and
 decimal text are quadratic. On x86-64, a product of two million-bit
 numbers takes about 65 ms, and a division of two million bits by one
 million about 2.1 s;
-[the measurements](../compiler/tests/big/README.md) have the table. The
+[the measurements](../compiler/tests/big/README.md#timing) have the table. The
 module has no floating point of any precision, which the layers leave
 room for, no FFT or Toom variant above three, no primality test or
 factoring, and no constant-time operation: Landin writes no cryptography.
@@ -1993,7 +1993,7 @@ rational routine do, takes 36 to 51 KiB and needs a larger part.
 
 The `big-*` fixtures check every routine against Python's integers and
 fractions on every target;
-[their description](../compiler/tests/big/README.md) says how they are
+[their description](../compiler/tests/big/README.md#the-fixtures) says how they are
 written.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-big/main.ldn)
@@ -2037,7 +2037,7 @@ is 20,310 bytes at `size/auto`: multiplication through Toom-3 is about
 9.5 KiB of it, and division 1.9 KiB.
 
 The `big-limbs` fixtures check the routines against Python's integers on
-every target; [their description](../compiler/tests/big/README.md) says
+every target; [their description](../compiler/tests/big/README.md#the-fixtures) says
 how they are written.
 
 [Executable example](../compiler/tests/fixtures/runtime/big-limbs/main.ldn)

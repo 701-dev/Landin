@@ -203,6 +203,8 @@ RUNNING_EXAMPLES = [
     ("Great-circle distance",
      "compiler/tests/fixtures/runtime/example-great-circle-distance/"
      "main.ldn"),
+    ("Exact numbers",
+     "compiler/tests/fixtures/runtime/example-exact-numbers/main.ldn"),
     ("Insertion sort",
      "compiler/tests/fixtures/runtime/example-insertion-sort/main.ldn"),
     ("Binary search",

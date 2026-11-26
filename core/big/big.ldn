@@ -404,9 +404,8 @@ end divide_either
 --- remainder, which has the numerator's sign and is smaller than the
 --- divisor in magnitude.  A zero divisor stops the program, as `/` by zero
 --- does.
-public divide_truncating: (provider: type is mem.allocator,
-                           inout quotient: integer, inout remainder: integer,
-                           memory: provider, numerator: integer,
+public divide_truncating: (provider: type is mem.allocator, inout quotient: integer,
+                           memory: provider, inout remainder: integer, numerator: integer,
                            divisor: integer) -> none ! mem.out_of_memory =
     try divide_either(quotient, remainder, memory, numerator, divisor, false)
 end divide_truncating
@@ -417,7 +416,7 @@ end divide_truncating
 --- times `divisor` plus `remainder` is `numerator`.  A zero divisor stops
 --- the program.
 public divide_floor: (provider: type is mem.allocator, inout quotient: integer,
-                      inout remainder: integer, memory: provider,
+                      memory: provider, inout remainder: integer,
                       numerator: integer, divisor: integer)
                      -> none ! mem.out_of_memory =
     try divide_either(quotient, remainder, memory, numerator, divisor, true)

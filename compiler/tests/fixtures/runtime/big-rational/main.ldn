@@ -219,7 +219,7 @@ equals: (provider: type is mem.allocator, value: big.rational,
     try big.rational_denominator(bottom, memory, value)
     try big.rational_numerator(other_top, memory, want)
     try big.rational_denominator(other_bottom, memory, want)
-    order := try big.rational_compare(value, want, memory)
+    order := try big.rational_compare(value, memory, want)
     yes = big.compare(top, other_top) == cmp.equal
           and big.compare(bottom, other_bottom) == cmp.equal
           and order == cmp.equal
@@ -259,7 +259,7 @@ agrees: (provider: type is mem.allocator, inout at: usize, memory: provider)
     elsif op == 0x3 then
         try big.rational_subtract(r, memory, x, y)
     elsif op == 0x7 then
-        order := try big.rational_compare(x, y, memory)
+        order := try big.rational_compare(x, memory, y)
         w = if order == cmp.less then 0 elsif order == cmp.equal then 1 else 2 end if
     elsif op == 0xf then
         w = u32(big.rational_sign(x) + 1)

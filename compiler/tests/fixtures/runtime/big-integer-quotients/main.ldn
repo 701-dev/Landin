@@ -206,15 +206,15 @@ agrees: (provider: type is mem.allocator, inout at: usize, memory: provider)
     mut s := big.new()
     w: u32 = 0
     if op == 0x4 then
-        try big.divide_truncating(r, s, memory, a, b)
+        try big.divide_truncating(r, memory, s, a, b)
     elsif op == 0x5 then
-        try big.divide_floor(r, s, memory, a, b)
+        try big.divide_floor(r, memory, s, a, b)
     elsif op == 0x104 then
         try big.set(r, memory, a)
-        try big.divide_truncating(r, s, memory, r, b)
+        try big.divide_truncating(r, memory, s, r, b)
     elsif op == 0x105 then
         try big.set(r, memory, a)
-        try big.divide_floor(r, s, memory, r, b)
+        try big.divide_floor(r, memory, s, r, b)
     end if
     yes = w == word and equals(r, want) and equals(s, also)
 end agrees
@@ -261,7 +261,7 @@ seeded_agrees: (provider: type is mem.allocator, at: usize, memory: provider)
         drawn[count - 1] = 1
         try big.set_limbs(b, memory, drawn[0..<count], false)
     end if
-    try big.divide_floor(r, s, memory, a, b)
+    try big.divide_floor(r, memory, s, a, b)
     yes = digest(big.limbs_of(r)) == first and digest(big.limbs_of(s)) == second
 end seeded_agrees
 

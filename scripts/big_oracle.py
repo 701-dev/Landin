@@ -899,8 +899,8 @@ INTEGER_ARMS = {
     1: 'try big.add(r, memory, a, b)',
     2: 'try big.subtract(r, memory, a, b)',
     3: 'try big.multiply(r, memory, a, b)',
-    4: 'try big.divide_truncating(r, s, memory, a, b)',
-    5: 'try big.divide_floor(r, s, memory, a, b)',
+    4: 'try big.divide_truncating(r, memory, s, a, b)',
+    5: 'try big.divide_floor(r, memory, s, a, b)',
     6: 'try big.power(r, memory, a, p)',
     7: 'try big.root(r, memory, a, u32(p))',
     8: 'try big.gcd(r, memory, a, b)',
@@ -975,8 +975,8 @@ INTEGER_ARMS = {
 }
 for kind, call in ((1, 'add(r, memory, r, b)'), (2, 'subtract(r, memory, r, b)'),
                    (3, 'multiply(r, memory, r, b)'),
-                   (4, 'divide_truncating(r, s, memory, r, b)'),
-                   (5, 'divide_floor(r, s, memory, r, b)'), (8, 'gcd(r, memory, r, b)'),
+                   (4, 'divide_truncating(r, memory, s, r, b)'),
+                   (5, 'divide_floor(r, memory, s, r, b)'), (8, 'gcd(r, memory, r, b)'),
                    (10, 'power_modulo(r, memory, r, b, c)'),
                    (11, 'and_bits(r, memory, r, b)'), (13, 'xor_bits(r, memory, r, b)'),
                    (15, 'shift_left(r, memory, r, usize(p))'),
@@ -1091,7 +1091,7 @@ SEEDED_STEPS = {
         drawn[count - 1] = 1
         try big.set_limbs(b, memory, drawn[0..<count], false)
     end if
-    try big.divide_floor(r, s, memory, a, b)
+    try big.divide_floor(r, memory, s, a, b)
     yes = digest(big.limbs_of(r)) == first and digest(big.limbs_of(s)) == second''',
 }
 
@@ -1230,7 +1230,7 @@ RATIONAL_ARMS = {
     5: 'try big.rational_divide(r, memory, x, y)',
     6: 'exponent: i64 = if p >> 63 == 1 then -i64(0 -% p) else i64(p) end if\n'
        'try big.rational_power(r, memory, x, exponent)',
-    7: 'order := try big.rational_compare(x, y, memory)\n'
+    7: 'order := try big.rational_compare(x, memory, y)\n'
        'w = if order == cmp.less then 0 elsif order == cmp.equal then 1 else 2 end if',
     8: 'try big.rational_floor(whole, memory, x)\n'
        'try big.rational_set_integer(r, memory, whole)',
@@ -1365,7 +1365,7 @@ equals: (provider: type is mem.allocator, value: big.rational,
     try big.rational_denominator(bottom, memory, value)
     try big.rational_numerator(other_top, memory, want)
     try big.rational_denominator(other_bottom, memory, want)
-    order := try big.rational_compare(value, want, memory)
+    order := try big.rational_compare(value, memory, want)
     yes = big.compare(top, other_top) == cmp.equal
           and big.compare(bottom, other_bottom) == cmp.equal
           and order == cmp.equal
