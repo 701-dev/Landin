@@ -38979,6 +38979,81 @@ and `test_a_missing_unpacker_is_refused_before_creating_a_partial_installation`,
 and nix-packages' `qemu-arm-export` and `gdb-export` checks, which run
 each archive unpacked outside the store.
 
+### D2734 — The gate's Linux jobs take their tools from the flake, through the nix-packages cache alone
+
+**The discrepancy:** after D2572 the Cortex-M lock held no Debian package,
+but the gate's other Linux jobs still installed theirs from Ubuntu's
+archive, and several ran a different build of a tool than `nix develop`
+does: Clang 19.1.1 with Ubuntu's `libc6-dev` for the bindings jobs where
+the shell has nixpkgs' 19.1.7 with its glibc, LLD and LLVM's tools and
+LLDB's adapter for the FreeBSD and Windows lanes, Ubuntu's MinGW-w64 import
+libraries where the shell has nixpkgs', Ubuntu's riscv64 GCC, glibc and
+`gdb-multiarch` for the RV64 lane where the shell has nixpkgs' GCC 15.3
+and GDB, QEMU 8.2.2 with `qemu-utils` and `qemu-efi-aarch64` for the
+FreeBSD guests, `libarchive-tools` for one `bsdtar` call, bubblewrap for
+the static archive's check, and Emacs and Neovim for the editor smokes.
+
+**Chosen:** a job takes each through `.github/actions/nix-tools`, which
+installs Nix with 701-dev/nix-packages' binary cache as its only
+substituter and its key as the only trusted one, both from
+`environments/pins.sh`, and builds the flake's packages of the job's
+names: `llvm-19`, `qemu-system`, `qemu-user`, `cross-riscv64`,
+`gdb-multiarch`, `bubblewrap`, `emacs-nox` and `neovim`, the same
+derivations the shell holds. `scripts/nix_tools.py` first asks Nix what
+that would build, and anything but the flake's own `landin-*` wrappers is
+a path the cache lacks: it names it and stops, so a job never compiles a
+toolchain or fetches one from a source the gate does not record. The
+flake's `nixpkgs` follows nix-packages' own, so one input revision fixes
+both and the cache holds every path. The tools move to what the shell had:
+
+- Clang, LLD, the LLVM tools and LLDB's adapter: nixpkgs' `llvmPackages_19`,
+  Clang 19.1.7, pinned as `LANDIN_CLANG_NIX`, which the flake holds the
+  lock to and `scripts/clang_version.sh` asserts in each job; the bindings
+  jobs compile against that package set's glibc. `LANDIN_CLANG_UBUNTU`
+  goes. The Windows lanes' drivers are the flake's
+  `x86_64-w64-mingw32-clang`, over nixpkgs' MinGW-w64 14.0.0, and
+  `aarch64-w64-mingw32-clang`, over the pinned llvm-mingw release's arm64
+  libraries as before.
+- The RV64 lane links with the flake's riscv64 driver, GCC 15.3.0
+  (`LANDIN_CROSS_GCC_NIX`, now asserted in the job) over glibc 2.42, whose
+  executables name their loader by its store path, so the lane no longer
+  sets `QEMU_LD_PREFIX`; it debugs with the flake's `gdb-multiarch`.
+- The FreeBSD guests run nix-packages' `qemu-system`: nixpkgs' QEMU 11.1.0,
+  `x86_64-softmmu` and `aarch64-softmmu` only, headless, with `qemu-img`,
+  user networking and the arm64 edk2 firmware, which the lane now looks
+  for beside the emulator on PATH before a distribution's. Python's
+  `tarfile` unpacks the base system's sysroot, the same 4,301 entries
+  `bsdtar` gave, so `libarchive-tools` and the shell's `libarchive` go.
+- bubblewrap 0.11.2, Neovim 0.12.4 and nix-packages' headless Emacs 30.2,
+  without native compilation, whose closure is a quarter of nixpkgs'
+  `emacs-nox`. With them the editor-grammar job's integration pass runs
+  the Neovim parser and Emacs tree-sitter smokes, which no gate job had run.
+
+Ubuntu's archive keeps the jobs that test a stock system on purpose,
+`outside-user-stock`, the release workflow's `gh` when an image lacks it,
+and the two suspended RV64 hardware jobs, which run nothing. GNAT's
+arm-elf and riscv64-elf compilers still load the host's `libzstd.so.1`
+(D2572); that ends with their own recipes, not here.
+
+**The alternatives:** relocatable archives without Nix, as D2571 and
+D2572 chose for the Cortex-M lock, which suits a few self-contained
+programs but not Clang, whose wrapper and resource directory are found by
+store path; the Ubuntu packages kept, which leaves the gate and the shell
+on two builds of each tool and the archive as a provider; Nix with
+cache.nixos.org as well, which works but leaves a second provider and
+lets a missing path be fetched or built unseen; a static bubblewrap
+archive, a second mechanism for one tool; and bubblewrap replaced by
+util-linux's `unshare` and `chroot`, a rewrite of the static check's
+sandbox.
+
+**Pinned by** `scripts/tests/test_nix_tools.py`,
+`scripts/tests/test_rv64_lanes.py`'s
+`test_workflow_requires_all_native_and_emit_verdicts`,
+`scripts/tests/test_check_controls.py`'s
+`test_the_gate_tools_are_held_to_their_other_records`, `check.py`,
+which holds `flake.nix` to reading `LANDIN_CLANG_NIX`, and nix-packages'
+`qemu-system` and `emacs-nox` checks.
+
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 
 **The tour said** nothing; the `rv32imc` level has no A, and the C3 has
