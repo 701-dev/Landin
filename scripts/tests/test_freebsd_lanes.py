@@ -344,6 +344,38 @@ class FreeBSDControls(unittest.TestCase):
                       '/tmp/landin-control/bundle/loads-provider.so last <',
                       written[0])
 
+    def test_the_results_are_archived_from_a_list_not_the_command_line(self):
+        #  Every fixture's result files on one tar command line outgrew the
+        #  FreeBSD guest's argument limit at R22.11's corpus; tar reads
+        #  their names from a list the lane writes beside the script.
+        lane = LANE.Lane.__new__(LANE.Lane)
+        lane.source_root = Path('/home/runner/work/Landin/Landin')
+        lane.remote_prefix = '/tmp/landin-control'
+        lane.remote_bundle = Path(lane.remote_prefix) / 'bundle'
+        results = [{'case': 'runtime/word-count', 'label': 'case-%d' % n,
+                    'meta': {'stream': 'output' if n % 2 else 'merged'}} for n in range(3000)]
+        lane.standard_input = lambda result: '/dev/null'
+        written = []
+
+        class Stop(Exception):
+            pass
+
+        def checked(command, **keywords):
+            written.append((command, keywords.get('input', b'').decode()))
+            if len(written) == 2:
+                raise Stop()
+            return b''
+        with self.assertRaises(Stop):
+            lane.execute(SimpleNamespace(checked=checked), results)
+        script = written[0][1]
+        archive = [line for line in script.splitlines() if line.startswith('tar ')]
+        self.assertEqual(archive, ['tar -czf /tmp/landin-control-results.tar.gz -C '
+                                   '/tmp/landin-control/bundle -T /tmp/landin-control-results.list'])
+        self.assertEqual(written[1][0], 'cat > /tmp/landin-control-results.list')
+        names = written[1][1].splitlines()
+        self.assertEqual(len(names), 1500 * 2 + 1500 * 3)
+        self.assertEqual(names[:3], ['case-0.stdout', 'case-0.status', 'case-1.stdout'])
+
     def test_a_c_archive_fixture_is_compiled_from_its_work_copy(self):
         #  compiler/tests/README.md: each `c-archives` source is compiled
         #  alone and archived as lib<stem>.a in its own directory of a work
