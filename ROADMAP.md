@@ -3828,7 +3828,7 @@ control it names.
 
 ### R22.33 — Boards reused on identical images
 
-Status: planned
+Status: active
 Depends on: none
 
 A promotion's boards taken from the last passed boards run when every
