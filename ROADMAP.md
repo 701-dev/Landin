@@ -3163,6 +3163,34 @@ later addition by Q-67's answer.
 Exit evidence: each function within its stated error of MPC's values,
 with branch cuts and signed zeros as Annex G gives them, on every target.
 
+Done: `core/complex` holds `number(item)`, a struct of `real` and
+`imaginary` over `math.floating`, and every routine R22.11 names, each
+written once over the concept with the parts' own arithmetic, under C's
+names where they are the mathematics' own and words elsewhere: `add`,
+`subtract`, `multiply`, `divide`, `negate`, `conjugate`, `project`,
+`polar` and `from_polar` (D2634). Annex G's special values and its signed
+zeros on each side of a cut hold throughout; a sign the annex leaves open
+is whatever the arithmetic gives (D2635). Nothing is ported, msun's
+complex files being BSD-2-Clause under Q-306's default: the square root,
+`tanh` and `atanh` are Kahan's, the arcsine and arccosine Hull, Fairgrieve
+and Tang's, and `multiply` and `divide` sum their products with an fma's
+recovered error, each product over its own exponents, so that no
+magnitudes overflow or lose a part (D2637). Each routine states its error
+per part, from 1.0 ulp for `multiply` to 6.1 for `tanh`, and `pow`'s, 19
+ulp of the larger part on bounded domains, grows with |w·log z|
+(`SR-1949`). `scripts/math_oracle.py` gained MPC beside MPFR: complex
+shapes of up to four input floats, MPC evaluated in MPFR's whole exponent
+range, where its intermediates no longer underflow, a part beside NaN
+compared by magnitude, and a normwise bound for `pow` (D2636). The 29
+`complex-*` fixtures pass on every target the gate runs, the firmware
+lanes included; a single elementary function at `f64`, or a trigonometric
+one at either width, is past Cortex-M0's 32 KiB with the `core/math` it
+calls and the soft float, so twelve fixtures split by width run there and
+the rest are recorded as image limits and run on the Cortex-M7 lane
+(`SR-1950`). A million random inputs per routine and width were measured
+against MPC on Linux x86-64. Filed: `SR-1948`, generic float code naming
+no width's facts.
+
 ### R22.12 — Special functions
 
 Status: planned

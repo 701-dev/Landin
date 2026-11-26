@@ -235,6 +235,7 @@ The library covers:
 - running programs, clocks, sleeping, the system's entropy and a
   deterministic generator;
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
+- complex numbers over `f32` and `f64`, `core/complex`;
 - blocking TCP and UDP sockets over IPv4 and IPv6;
 - threads started as a group the function joins, `hosted/thread`;
 - the rest of the file system: opening with options, renaming, a file's
@@ -1923,6 +1924,69 @@ argument; [the measurements](../compiler/tests/math/README.md#size-on-cortex-m0)
 give each fixture's figures.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-math/main.ldn)
+
+## core/complex
+
+Complex numbers over `f32` and `f64`: a number with a real and an
+imaginary part, its arithmetic and its elementary functions, built on
+`core/math`. Landin has no operator overloading, so the arithmetic is
+named routines.
+
+| Call | What it does |
+|---|---|
+| `complex.add`, `complex.subtract`, `complex.multiply`, `complex.divide`, `complex.negate` | The arithmetic. |
+| `complex.conjugate`, `complex.project` | The conjugate, C's `conj`, and the projection onto the Riemann sphere, C's `cproj`: every infinity becomes +∞ with a signed imaginary zero. |
+| `complex.abs`, `complex.arg`, `complex.polar` | The magnitude, by `math.hypot`; the angle in [-π, π], by `math.atan2`; and both together. |
+| `complex.from_polar` | The number with a given magnitude and angle. |
+| `complex.exp`, `complex.log` | The exponential and the principal logarithm, cut along the negative real axis. |
+| `complex.pow` | `pow(z, w)` is exp(w·log z), and 1 when `w` is 0. |
+| `complex.sqrt` | The principal square root, whose real part is not negative. |
+| `complex.sin`, `complex.cos`, `complex.tan` | The trigonometric functions. |
+| `complex.sinh`, `complex.cosh`, `complex.tanh` | The hyperbolic functions. |
+| `complex.asin`, `complex.acos`, `complex.atan`, `complex.asinh`, `complex.acosh`, `complex.atanh` | Their inverses. |
+
+A `complex.number(f32)` or `complex.number(f64)` is a struct with the
+fields `real` and `imaginary`, made with a struct literal:
+`z: complex.number(f64) = (real: 1.0, imaginary: -2.0)`. Every routine
+takes either width, as `core/math`'s do. A float literal alone is an `f32`
+[0210], so pass a typed value for the `f64` routine. A name is C's where
+it is the mathematics' own, and a word for the rest.
+
+Infinities, NaN, signed zeros and branch cuts follow C's Annex G. An
+infinite operand of `multiply` gives an infinity where plain IEEE
+arithmetic would give NaN. Dividing a nonzero number by zero gives an
+infinity. On a branch cut, the sign of a zero picks the side. Where
+Annex G leaves a sign unspecified, nearly always that of a zero or an
+infinity beside a NaN part, a routine gives whatever its arithmetic gives.
+
+Each routine's error is stated in its doc comment for each part, in units
+in the last place of that part of the exact result: zero for `add` and
+`subtract`, which round each part once, and for the exact `negate`,
+`conjugate` and `project`; about 1 for `multiply`; 1.5 or less for `abs`,
+`arg`, `log` and `from_polar`; 2 for `exp` and `sqrt`; up to 3.6 for
+`divide`, `sin`, `cos`, `sinh`, `cosh` and the inverse functions; and
+about 6 for `tan` and `tanh`. `pow`'s error grows with |w·log z|: it is
+within about 19 units of the larger part for parts of `z` up to 4 and of
+`w` up to 2. The `complex-*` fixtures check each bound against MPC's
+correctly rounded values on every target the gate runs, and
+[the measurements](../compiler/tests/math/README.md) give the figures.
+
+Nothing is ported. Every routine is written from the mathematics and from
+published methods: Kahan's square root, hyperbolic tangent and inverse
+hyperbolic tangent, and Hull, Fairgrieve and Tang's arcsine and arccosine.
+msun's complex code is under a licence whose notice a program would have
+to carry. Results are rounded to nearest. Nothing keeps state, and nothing
+allocates.
+
+Cortex-M0 has 32 KiB of flash and soft float. At `f32`, `add`, `subtract`,
+`multiply`, `divide`, `sqrt`, `atan` and `atanh` fit there with room for a
+program, and so do `add`, `subtract` and `sqrt` at `f64`. One elementary
+function at `f64`, or a trigonometric or hyperbolic one at either width,
+takes a program past 32 KiB with the `core/math` routines it calls and
+libgcc's soft float. Those fixtures run on the Cortex-M7 emulator lane
+instead, and on the hosted targets.
+
+[Executable example](../compiler/tests/fixtures/runtime/library-shared-complex/main.ldn)
 
 ## core/line
 

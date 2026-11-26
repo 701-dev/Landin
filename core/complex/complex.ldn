@@ -78,13 +78,13 @@ exponent: (item: type is math.floating, x: item) -> (power: i32) =
     power = split_power - 1
 end exponent
 
---- `z + w`, each part rounded once.  Exact where IEEE addition is.
+--- `z + w`, each part rounded once, as IEEE addition rounds it.
 public add: (item: type is math.floating, z: number(item), w: number(item))
             -> (result: number(item)) =
     result = (real: z.real + w.real, imaginary: z.imaginary + w.imaginary)
 end add
 
---- `z - w`, each part rounded once.
+--- `z - w`, each part rounded once, as IEEE subtraction rounds it.
 public subtract: (item: type is math.floating, z: number(item), w: number(item))
                  -> (result: number(item)) =
     result = (real: z.real - w.real, imaginary: z.imaginary - w.imaginary)
@@ -104,8 +104,8 @@ public conjugate: (item: type is math.floating, z: number(item))
 end conjugate
 
 --- `z` projected onto the Riemann sphere: `z` itself, unless either part
---- is an infinity, when it is +∞ with an imaginary zero of `z`'s
---- imaginary sign, even where the other part is NaN.  Exact.  C's `cproj`.
+--- is an infinity, when it is +∞ with an imaginary zero of `z`'s imaginary
+--- sign, even where the other part is NaN.  Exact.  C's `cproj`.
 public project: (item: type is math.floating, z: number(item))
                 -> (result: number(item)) =
     if math.is_infinite(z.real) or math.is_infinite(z.imaginary) then
@@ -186,13 +186,13 @@ product_sum: (item: type is math.floating, p: item, q: item, r: item, s: item)
     end if
 end product_sum
 
---- `z · w`, each part within 2 ulp: the parts' products are summed with
---- the error of one product recovered by a fused multiply-add, so that a
---- part that cancels keeps its accuracy, and finite operands whose
---- products would overflow or underflow are scaled first.  An infinite
---- operand gives an infinite product even where IEEE's arithmetic would
---- give NaN, as Annex G's multiplication does: `(∞ + NaN·i) · (1 + 1·i)`
---- is an infinity.
+--- `z · w`, each part within 1.0 ulp at both widths: the parts' products
+--- are summed with the error of one product recovered by a fused
+--- multiply-add, so a part that cancels keeps its accuracy, and finite
+--- operands whose products would overflow or underflow are scaled first.
+--- An infinite operand gives an infinite product where IEEE's arithmetic
+--- would give NaN, as Annex G's multiplication does: `(∞ + NaN·i) · (1 +
+--- 1·i)` is an infinity.
 public multiply: (item: type is math.floating, z: number(item), w: number(item))
                  -> (result: number(item)) =
     mut a := z.real
@@ -245,11 +245,12 @@ public multiply: (item: type is math.floating, z: number(item), w: number(item))
     result = (real: x, imaginary: y)
 end multiply
 
---- `z / w`, each part within 3 ulp: `z · conj(w) / |w|²`, its numerator's
---- parts summed as `multiply` sums them and both operands scaled by
---- powers of 2 so that nothing overflows or underflows on the way.
---- Division by a zero gives an infinity in the direction of `z`, and a
---- finite `z` over an infinite `w` a zero, as Annex G's division does.
+--- `z / w`, each part within 3.21 ulp at f64 and 3.32 at f32: `z ·
+--- conj(w) / |w|²`, its numerator's parts summed as `multiply` sums them,
+--- each over operands scaled by powers of 2 so that nothing overflows or
+--- underflows on the way.  As Annex G's division does, an infinity over a
+--- finite number is an infinity, a finite number over an infinity a zero,
+--- and a nonzero number over zero an infinity in its direction.
 public divide: (item: type is math.floating, z: number(item), w: number(item))
                -> (result: number(item)) =
     mut a := z.real
@@ -315,17 +316,17 @@ public divide: (item: type is math.floating, z: number(item), w: number(item))
     result = (real: x, imaginary: y)
 end divide
 
---- The magnitude |z|, without overflow or underflow on the way: `math.
---- hypot` of the parts, with its error.  An infinite part gives +∞ even
---- beside NaN.  C's `cabs`.
+--- The magnitude |z| without overflow or underflow on the way: `math.
+--- hypot` of the parts, within 0.91 ulp at f64 and 1.08 at f32.  An
+--- infinite part gives +∞ even beside NaN.  C's `cabs`.
 public abs: (item: type is math.floating, z: number(item)) -> (result: item) =
     result = math.hypot(z.real, z.imaginary)
 end abs
 
 --- The argument of `z`, its angle from the positive real axis, in
---- [-π, π]: `math.atan2` of the imaginary and real parts, with its error
---- and its signed zeros, so that the negative real axis gives π above
---- the cut, from +0 imaginary, and -π below.  C's `carg`.
+--- [-π, π]: `math.atan2` of the imaginary and real parts, within 1.42 ulp
+--- at f64 and 1.45 at f32, with its signed zeros, so that the negative real
+--- axis gives π from a +0 imaginary part and -π from -0.  C's `carg`.
 public arg: (item: type is math.floating, z: number(item)) -> (result: item) =
     result = math.atan2(z.imaginary, z.real)
 end arg
@@ -340,8 +341,9 @@ end polar
 
 --- The number of magnitude `magnitude` at `angle` radians from the
 --- positive real axis: `magnitude · cos(angle)` and `magnitude ·
---- sin(angle)`, each within 1.5 ulp, with IEEE's products, so an infinite
---- magnitude at angle 0 has a NaN imaginary part.
+--- sin(angle)`, each within 1.53 ulp at f64 and 1.46 at f32, with IEEE's
+--- products, so an infinite magnitude at angle 0 has a NaN imaginary
+--- part.
 public from_polar: (item: type is math.floating, magnitude: item, angle: item)
                    -> (result: number(item)) =
     result = (real: magnitude * math.cos(angle), imaginary: magnitude * math.sin(angle))

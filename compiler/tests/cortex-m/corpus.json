@@ -1946,7 +1946,17 @@
       "reason": "At every profile the image holding asin at f64 and f32 with the arcsines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 76,488 bytes of flash at size/auto, over by 43,720. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/complex-arctangent-f32": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45688 of this lane's 32 KiB, over by 12920."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47696 of this lane's 32 KiB, over by 14928."
+        }
+      }
     },
     "runtime/complex-arctangent-f64": {
       "mode": "execute",
@@ -1965,7 +1975,17 @@
       "reason": "At every profile the image holding asinh at f64 and f32 with the arcsines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 75,872 bytes of flash at size/auto, over by 43,104. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/complex-atanh-f32": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45168 of this lane's 32 KiB, over by 12400."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47168 of this lane's 32 KiB, over by 14400."
+        }
+      }
     },
     "runtime/complex-atanh-f64": {
       "mode": "execute",
@@ -1983,7 +2003,17 @@
       "reason": "At every profile the image holding cos at f64 and f32 with the hyperbolic functions, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 64,736 bytes of flash at size/auto, over by 31,968. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/complex-divide-f32": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 43296 of this lane's 32 KiB, over by 10528."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47080 of this lane's 32 KiB, over by 14312; at size/auto RV32's needs FLASH 35704 of this lane's 32 KiB, over by 2936; at size/off RV32's needs FLASH 35648 of this lane's 32 KiB, over by 2880; at speed/auto RV32's needs FLASH 34424 of this lane's 32 KiB, over by 1656."
+        }
+      }
     },
     "runtime/complex-divide-f64": {
       "mode": "execute",
@@ -2011,7 +2041,17 @@
       "reason": "At every profile the image holding log's f64 routine with the logarithm and arctangent it calls, and libgcc's soft float, is past the 32 KiB profile: 36,312 bytes of flash at size/auto, over by 3,544. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/complex-multiply-f32": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 39040 of this lane's 32 KiB, over by 6272."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 42480 of this lane's 32 KiB, over by 9712."
+        }
+      }
     },
     "runtime/complex-multiply-f64": {
       "mode": "execute",
@@ -2022,6 +2062,9 @@
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "At every profile the image holding abs, arg and from_polar at f64 and f32 with the hypotenuse, arctangent, sine and cosine they call, and libgcc's soft float, is past the 32 KiB profile: 67,536 bytes of flash at size/auto, over by 34,768. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-polar-form": {
+      "mode": "execute"
     },
     "runtime/complex-pow": {
       "mode": "execute",
@@ -3459,7 +3502,17 @@
       "mode": "execute"
     },
     "runtime/library-shared-complex": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45112 of this lane's 32 KiB, over by 12344."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 48888 of this lane's 32 KiB, over by 16120; at size/auto RV32's needs FLASH 35104 of this lane's 32 KiB, over by 2336; at size/off RV32's needs FLASH 35064 of this lane's 32 KiB, over by 2296; at speed/auto RV32's needs FLASH 33552 of this lane's 32 KiB, over by 784."
+        }
+      }
     },
     "runtime/library-shared-diag": {
       "mode": "execute"

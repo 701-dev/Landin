@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: Small shared core/complex consumer gives exact results for a sum, a product, a quotient, i squared, the square roots of -4 and 3 + 4i, a conjugate and the projection of an infinity
+summary: Small shared core/complex consumer gives exact f32 results for a sum, a product, i squared, the square roots of -4 and 3 + 4i, a conjugate and the projection of an infinity
 program: main.ldn
 root: ../../../../..
 status: 42

@@ -98,8 +98,9 @@ arcsine_parts: (item: type is math.floating, x: item, y: item)
 end arcsine_parts
 
 --- The inverse hyperbolic sine, with the cuts along the imaginary axis
---- beyond ±i.  Annex G's special values: +∞ for an infinite part,
---- with the angle of the direction.  C's `casinh`.
+--- beyond ±i: `i·asin(-i·z)`.  Each part within 3.31 ulp at f64 and 3.63
+--- at f32.  Annex G's special values: +∞ for an infinite part, with the
+--- angle of its direction.  C's `casinh`.
 public asinh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     x := z.real
     y := z.imaginary
@@ -125,16 +126,17 @@ public asinh: (item: type is math.floating, z: number(item)) -> (result: number(
     end if
 end asinh
 
---- The arcsine: `-i·asinh(i·z)`, with the cuts along the real axis
---- beyond ±1 and Annex G's special values turned a quarter.  C's `casin`.
+--- The arcsine: `-i·asinh(i·z)`, with the cuts along the real axis beyond
+--- ±1, each part within 3.05 ulp at f64 and 3.22 at f32, and `asinh`'s
+--- special values turned a quarter.  C's `casin`.
 public asin: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     result = times_minus_i(asinh(times_i(z)))
 end asin
 
 --- The arccosine, its real part in [0, π], with the cuts along the real
---- axis beyond ±1.  Annex G's special values: -i·∞ times the sign of the
---- imaginary part for an infinite part, with the angle of the direction.
---- C's `cacos`.
+--- axis beyond ±1.  Each part within 3.30 ulp at f64 and 3.40 at f32.
+--- Annex G's special values: -i·∞ times the sign of the imaginary part for
+--- an infinite part, with the angle of its direction.  C's `cacos`.
 public acos: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     x := z.real
     y := z.imaginary
@@ -172,7 +174,9 @@ end acos
 
 --- The inverse hyperbolic cosine, with a nonnegative real part and the
 --- cut along the real axis below 1: `i·acos z` or `-i·acos z`, whichever
---- has it, so the imaginary part takes the sign of `z`'s.  C's `cacosh`.
+--- has it, so the imaginary part takes the sign of `z`'s, and with `acos`'s
+--- error.  NaN + i·NaN for a NaN imaginary part beside a finite real part,
+--- as C's `cacosh`.
 public acosh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     if math.is_nan(z.imaginary) and math.is_finite(z.real) then
         --  C's cacosh(x + iNaN) for every finite x, 0 included, where
@@ -187,8 +191,9 @@ end acosh
 --- The inverse hyperbolic tangent, with the cuts along the real axis
 --- beyond ±1, by Kahan's form: `¼·log1p(4x / ((1 - x)² + y²)) + ½·i·
 --- atan2(2y, (1 - x)(1 + x) - y²)`, and its limits where |z| is far from
---- 1.  `atanh(±1)` is ±∞.  Annex G's special values: ±i·π/2 with a
---- signed zero for an infinite part.  C's `catanh`.
+--- 1.  Each part within 3.30 ulp at f64 and 3.54 at f32.  `atanh(±1)` is
+--- ±∞.  Annex G's special values: ±i·π/2 with a signed zero for an
+--- infinite part.  C's `catanh`.
 public atanh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     x := z.real
     y := z.imaginary
@@ -238,8 +243,8 @@ public atanh: (item: type is math.floating, z: number(item)) -> (result: number(
 end atanh
 
 --- The arctangent: `-i·atanh(i·z)`, with the cuts along the imaginary
---- axis beyond ±i and Annex G's special values turned a quarter.  C's
---- `catan`.
+--- axis beyond ±i, each part within 3.44 ulp at f64 and 3.52 at f32, and
+--- `atanh`'s special values turned a quarter.  C's `catan`.
 public atan: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
     result = times_minus_i(atanh(times_i(z)))
 end atan

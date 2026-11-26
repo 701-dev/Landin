@@ -559,8 +559,8 @@ run records and what the gate checks for each target.
   modules, atomics, volatile access and packed register images, and
   stackful fibres on every native target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
-  time, networking, random numbers, atomic cells and the elementary
-  mathematical functions, each provider with a
+  time, networking, random numbers, atomic cells, the elementary
+  mathematical functions and complex numbers, each provider with a
   fake for testing, and `hosted` providers over POSIX, among them threads
   started as a group a function joins. A Linux executable links no C
   library unless `--link=libc` asks for one.

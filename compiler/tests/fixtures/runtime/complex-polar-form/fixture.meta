@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/complex's polar gives 3 + 4i's magnitude, exactly 5, and its angle, the same as abs and arg give, at f32, and an infinite part's magnitude as +infinity beside NaN
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0170, 0290

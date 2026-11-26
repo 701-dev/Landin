@@ -1,4 +1,4 @@
-# core/math against MPFR
+# core/math against MPFR, core/complex against MPC
 
 `core/math`'s routines are measured against MPFR's correctly rounded
 values, computed outside the program under test. Three kinds of evidence
@@ -31,8 +31,8 @@ counted as one.
 
 | file | what it is |
 |---|---|
-| `oracle.c` | the MPFR program: case tables, input sets and the check; its header says how each is computed |
-| `cases/*.json` | one file per family of routines: each fixture's tables, with their bound, domains and specials |
+| `oracle.c` | the MPFR and MPC program: case tables, input sets and the check; its header says how each is computed |
+| `cases/*.json` | one file per family of routines: each fixture's tables, with their bound, domains and specials; `complex-*.json` are `core/complex`'s |
 | `evaluate.ldn` | generated: the program `measure` and `exhaustive` run, which applies one routine to inputs it reads or enumerates |
 
 ## Commands
@@ -45,11 +45,13 @@ python3 scripts/math_oracle.py measure FUNCTION WIDTH [--count N]
 python3 scripts/math_oracle.py exhaustive FUNCTION [--jobs N]
 ```
 
-`fixtures` writes each `compiler/tests/fixtures/runtime/math-*` fixture a
-description names, and `evaluate.ldn`; a new fixture is then made known
-with `scripts/add_fixture.py`. The oracle is built against the MPFR and GMP
-of `flake.lock`'s nixpkgs, which `nix build --inputs-from .` fetches, or
-the prefixes `$LANDIN_MPFR` and `$LANDIN_GMP` name.
+`fixtures` writes each `compiler/tests/fixtures/runtime/math-*` and
+`complex-*` fixture a description names, and `evaluate.ldn`; a new fixture
+is then made known with `scripts/add_fixture.py`. A `core/complex` routine
+is named `complex.NAME`, as `measure complex.exp 64`. The oracle is built
+against the MPFR, MPC and GMP of `flake.lock`'s nixpkgs, which `nix build
+--inputs-from .` fetches, or the prefixes `$LANDIN_MPFR`, `$LANDIN_MPC` and
+`$LANDIN_GMP` name.
 
 ## Size on Cortex-M0
 
@@ -119,8 +121,94 @@ records as their profile limits; the other profiles execute them.
 
 A domain is `bits`, every bit pattern alike; `uniform:LO:HI`; or
 `log:E1:E2:SIGN`, a power of two drawn from [E1, E2) with a uniform
-significand, signed `+`, `-` or `+-`. `domains2` and `domains3` are the
-second and third argument's. A special is a decimal or hexadecimal float
-Python reads, rounded to the table's width, or a list of one per argument. A
+significand, signed `+`, `-` or `+-`. `domains2` to `domains4` are the
+second to fourth input float's; a complex argument is two, its real part
+first. A special is a decimal or hexadecimal float Python reads, rounded
+to the table's width, or a list of one per input float. `"norm": true`
+measures a complex result in units of its larger part, as `pow`'s table
+does. A
 fixture's image must fit Cortex-M0's 32 KiB of flash, so a family's tables
 are split among several fixtures where they do not.
+
+## core/complex against MPC
+
+The `complex-*` fixtures and `measure complex.NAME` hold `core/complex`
+to MPC's correctly rounded values the same way, with these differences:
+
+- **Each part on its own.** A complex result's real and imaginary parts
+  are rounded and measured each against the same part of MPC's result,
+  in units in its own last place, and a case passes only when both are
+  within the bound. `pow`'s table is measured in units of the larger
+  part instead, since its error grows with |w·log z| and an exact zero
+  part beside a rounded one, as `(-2)^0.5` has, has no finite error of
+  its own; its domains keep the parts of `z` within 4 and of `w` within
+  2.
+- **A part beside NaN by magnitude.** Annex G leaves the sign of nearly
+  every zero or infinity beside a NaN part unspecified, so such a part is
+  compared by magnitude alone, in the fixtures and in `measure`.
+- **MPC in MPFR's whole exponent range.** MPC's intermediate values
+  underflow in the format's range, so the oracle evaluates MPC's functions
+  unrestricted and rounds the result into the format once, by its ternary
+  value. `tanh`'s and `tan`'s tables still stop at |x| = 2^59, past which
+  MPC's own e^(2x) overflows MPFR's range and loses the sign of the
+  imaginary zero.
+- **The specials** are a grid: each part one of 0, -0, 1, -1, 0.5, -2.5,
+  the least subnormal, the greatest finite value, the infinities and NaN,
+  every pair of them for a one-argument routine, and a pair of twelve
+  numbers for each argument of `add`, `subtract`, `multiply`, `divide` and
+  `pow`, with exact powers beside `pow`'s.
+
+The largest error of a million random inputs per routine and width, in
+units in the last place of a part, as each routine's doc comment states
+it:
+
+| routine | f64 | f32 |
+|---|---:|---:|
+| `add`, `subtract`, `negate`, `conjugate`, `project` | 0 | 0 |
+| `multiply` | 1.00 | 1.00 |
+| `divide` | 3.21 | 3.32 |
+| `abs` | 0.91 | 1.08 |
+| `arg` | 1.42 | 1.45 |
+| `from_polar` | 1.53 | 1.46 |
+| `exp` | 2.10 | 2.03 |
+| `log` | 1.47 | 1.45 |
+| `pow`, of the larger part | 19.07 | 19.23 |
+| `sqrt` | 2.00 | 2.00 |
+| `sin` | 2.72 | 3.04 |
+| `cos` | 2.84 | 2.73 |
+| `tan` | 5.94 | 5.66 |
+| `sinh` | 2.63 | 2.73 |
+| `cosh` | 2.84 | 2.81 |
+| `tanh` | 5.36 | 6.10 |
+| `asin` | 3.05 | 3.22 |
+| `acos`, `acosh` | 3.30 | 3.40 |
+| `atan` | 3.44 | 3.52 |
+| `asinh` | 3.31 | 3.63 |
+| `atanh` | 3.30 | 3.54 |
+
+Cortex-M0's constrained reference holds 32 KiB of flash. The families
+whose `f32` half fits there have a fixture per width; the image at
+`size/auto`, in bytes:
+
+| fixture | flash at `size/auto` |
+|---|---:|
+| `complex-arithmetic-f32` | 13696 |
+| `complex-arithmetic-f64` | 25080 |
+| `complex-multiply-f32` | 23624 |
+| `complex-multiply-f64` | 32664 |
+| `complex-divide-f32` | 25592 |
+| `complex-sqrt-f32` | 14100 |
+| `complex-sqrt-f64` | 25584 |
+| `complex-exp-f32` | 31696 |
+| `complex-log-f32` | 24844 |
+| `complex-arctangent-f32` | 20500 |
+| `complex-atanh-f32` | 20228 |
+| `complex-signs` | 31576 |
+
+Every other fixture, and these at `none/off` where the table above is
+near the limit, is past it with the `core/math` routines it calls and
+libgcc's soft float: a single elementary function at `f64`, and a
+trigonometric or hyperbolic one at either width, whose `f32` argument
+reduction is in `f64`. `compiler/tests/cortex-m/corpus.json` records each
+as a profile limit with its size, and the Cortex-M7 corpus lane, with 4
+MiB of code memory, executes them all.
