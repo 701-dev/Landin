@@ -3456,7 +3456,7 @@ SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 
-Status: planned
+Status: active
 Depends on: R20
 
 Character properties, case, normalisation and segmentation over `utf8`,
