@@ -24,19 +24,23 @@ a header's AST; Clang is not part of the Ada bootstrap and not a C or LLVM
 product backend.  The Linux environments provide a Clang 19 as the external
 C11 header frontend and compiler for its generated C adapters.  The selected target is
 `x86_64-pc-linux-gnu` on x86-64 and `aarch64-unknown-linux-gnu` on arm64,
-where the Linux arm64 jobs install the same package for arm64 and run
-`compiler/tests/linux-arm64/bindings.py`.  The gate's bindings job installs Ubuntu 24.04's
-`clang-19` package at exactly `1:19.1.1-1ubuntu1~24.04.2` (Clang 19.1.1),
-the version `environments/pins.sh` names as `LANDIN_CLANG_UBUNTU`, asserts
-the installed version, and takes the headers and root sysroot from the same
-release's `libc6-dev`.  The local container's `debian/stable` channel gives
-19.1.7, and `bindings/test.py`, which runs `refine bindings`, passes on
-both, the committed fixture's
-byte-for-byte regeneration included; the gate's is the version of record.
-The versioned package name prevents a moving default Clang major.
+where the Linux arm64 jobs take the same package for arm64 and run
+`compiler/tests/linux-arm64/bindings.py`.  The gate's bindings jobs take
+the flake's `llvm-19` from the nix-packages cache
+(`docs/environments.md`, "Tools from nix-packages"): nixpkgs'
+`llvmPackages_19` at `flake.lock`'s revision, Clang 19.1.7, the version
+`environments/pins.sh` names as `LANDIN_CLANG_NIX`, which `flake.nix`
+holds the lock to and `scripts/clang_version.sh` asserts in each job.  Its
+`clang-19` is the nixpkgs wrapper, whose headers and C library are that
+package set's glibc.  The local container's `debian/stable` channel gives
+19.1.7 too, and `bindings/test.py`, which runs `refine bindings`, passes
+on both, the committed fixture's byte-for-byte regeneration included; the
+gate's is the version of record.  Until 2026-11-26 the gate installed
+Ubuntu 24.04's `clang-19` package, 19.1.1, with its `libc6-dev`.  The
+versioned name prevents a moving default Clang major.
 
-The Linux nix shell selects `llvmPackages."19".clang`, with `glibc.dev`, from
-the package set fixed by `flake.lock`.  The Darwin shell deliberately gains no
+The Linux nix shell selects the same `llvmPackages."19".clang`, with
+`glibc.dev`, from the package set fixed by `flake.lock`.  The Darwin shell deliberately gains no
 Linux C frontend or sysroot: Apple headers are not evidence about the selected
 Linux ABI. Validate that on a Linux host.  No independent Clang archive
 is downloaded; each environment uses its package set's provenance, and the
@@ -107,9 +111,11 @@ cross GCC `15.3.0`, the versions `environments/pins.sh` names as
 build from a lock whose package set has others. Its drivers carry the
 triplet names `refine` asks for, and its multi-target GDB is
 `gdb-multiarch`, because the GDB the pinned GNAT bundles reads only its own
-architecture. The gate's `rv64-qemu` jobs install nix and run the flake's
-`qemu-user`, refusing any version but `LANDIN_CROSS_QEMU_NIX`, and link with
-Ubuntu 24.04's riscv64 cross packages, whose versions their logs print.
+architecture. The gate's `rv64-qemu` jobs take the shell's own `qemu-user`,
+riscv64 cross driver and `gdb-multiarch` from the nix-packages cache,
+refusing any QEMU but `LANDIN_CROSS_QEMU_NIX` and any GCC but
+`LANDIN_CROSS_GCC_NIX`. Until 2026-11-26 they linked with Ubuntu 24.04's
+riscv64 cross packages and debugged with its `gdb-multiarch`.
 Ubuntu's own `qemu-user`, 8.2.2, is not a substitute: it gives a riscv64
 `sigaction` the `sa_restorer` word Linux's lacks, so `rt_sigaction` writes
 32 bytes into a 24-byte record.

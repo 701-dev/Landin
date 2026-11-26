@@ -78,11 +78,11 @@ Open:
 | Question | Default until answered | What waits on the answer |
 | --- | --- | --- |
 | [Q-306 — May `core/math` carry code ported from FreeBSD's msun under Sun's notice?](questions/Q-306.md) | option 1: `core/math` holds msun code under Sun's notice alone, preserved in its source and named in `LICENSE`, and places no condition on a program. | nothing; another answer replaces routines before a release names them. |
-| [Q-307 — Does R22.10's exhaustive check of the `f32` functions need to run on the firmware targets?](questions/Q-307.md) | option 1: the exhaustive check against MPFR on Linux x86-64, compared bit for bit on Linux arm64 and RV64 under QEMU, and the tables on every target in the gate. | nothing in R22.10, which closes with the default's runs; options 2 and 3 add recorded runs afterwards. |
 | [Q-308 — Do `f32` and `f64` get `cmp.ordered` evidence?](questions/Q-308.md) | option 1, no evidence, since option 2 is easy to add and hard to take back. | nothing in R22.10; R22.74's distributions and any sort of floats in a later item. |
 | [Q-321 — Does a program that links `core/unicode`'s tables carry Unicode's notice?](questions/Q-321.md) | the notice is kept with the source, in `core/unicode/LICENSE.unicode` and `tables.ldn`'s header, and `LICENSE` names it among the third-party material without changing its promise. | nothing in the code; the wording of `LICENSE` before a release names `core/unicode`. |
 | [Q-346 — Do the register sweep's new items stand where it placed them?](questions/Q-346.md) | the items stand as written, the R22 ones beside the serial lane and the R16 ones in the continuous lane, and their rows stay scheduled on them; the roadmap manager may start them. | nothing; option 3 would bring the register back toward its cap. |
 | [Q-347 — Which macOS does the release archive support?](questions/Q-347.md) | the minimum stated as macOS 26 in the README, `docs/capabilities.md` and the formula, with the release workflow checking the archive's `minos`; the older build waits for the answer. | R22.29's macOS part beyond stating the current minimum. |
+| [Q-364 — How long does the selection run in shadow mode before R22.37 applies it?](questions/Q-364.md) | about 200 complete gates from the shadow selection's first run. | R22.37's start; nothing in R22.36, which records from its first run whatever the length. |
 
 Answered:
 
@@ -144,3 +144,5 @@ Answered:
 - [Q-279 — How does a release get its FreeBSD arm64 archive?](questions/Q-279.md)
 - [Q-284 — May the register sweep of 2026-11-25 retire three measurement rows nobody is waiting on?](questions/Q-284.md)
 - [Q-285 — Are the sweep's three items wanted where it placed them, in R22 beside the serial lane?](questions/Q-285.md)
+- [Q-307 — Does R22.10's exhaustive check of the `f32` functions need to run on the firmware targets?](questions/Q-307.md)
+- [Q-363 — How often does the complete gate run once an item's landing on main no longer needs it?](questions/Q-363.md)

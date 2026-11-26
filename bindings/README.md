@@ -697,13 +697,13 @@ header work, a whole binding with every Clang run in its own environment,
 each refusal by its code, and a replacement that fails after each of its
 moves and puts every output back.
 
-The suite requires an external Clang, and the gate and the development shell
-run different builds of Clang 19. The gate's `bindings` job installs Ubuntu
-24.04's `clang-19` at the version `environments/pins.sh` pins as
-`LANDIN_CLANG_UBUNTU`, 19.1.1, and runs the debug compiler the gate built.
-The Linux Nix development shell's `clang-19` is LLVM 19 from the package set
-`flake.lock` fixes, 19.1.7 at the time of writing, which nothing pins to the
-gate's. The suite passes with both, and the gate's is the one a regenerated
+The suite requires an external Clang. The gate's `bindings` job and the
+Linux Nix development shell run the same one: the flake's `clang-19`, LLVM
+19 from the package set `flake.lock` fixes, at the version
+`environments/pins.sh` pins as `LANDIN_CLANG_NIX`, 19.1.7, which the job
+takes from the nix-packages cache; the job runs the debug compiler the gate
+built. The Debian container's `clang-19` is Debian stable's. The suite
+passes with both, and the gate's is the one a regenerated
 fixture is answered for. Syntax-only adapter checks keep C warnings fatal
 while allowing unused command-line options from the Nix Clang wrapper to
 remain warnings. It uses an empty explicit Linux sysroot,
@@ -750,10 +750,9 @@ of frame-origin arguments.
 Three fixtures hold generated files: `abi/r440-bindings-generated`,
 `abi/cortex-cmsis-bindings` and `abi/cortex-vfp-bindings`. One command
 regenerates all three from the repository root with a built refine and,
-as the cases do, `$CLANG` or `clang-19` (the gate's `bindings` job uses
-Ubuntu 24.04's `clang-19` at the version `environments/pins.sh` names;
-`nix develop` provides a `clang-19` that `bindings/test.py` runs with, as
-the gate does):
+as the cases do, `$CLANG` or `clang-19` (the gate's `bindings` job and
+`nix develop` both provide the flake's `clang-19`, at the version
+`environments/pins.sh` names):
 
 ```sh
 python3 bindings/test.py --refine PATH --write
