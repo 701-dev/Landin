@@ -5,11 +5,11 @@ import core/math
 --  exponent of the format is exact, and `high + low` is ln 2 to twice
 --  the format's precision.
 ln_2_high: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 0x1.62e42fee00000p-1, narrow: f32(0x1.62ep-1))
+    value = pick(item: item, wide: 0x1.62e42fee00000p-1, narrow: 0x1.62ep-1)
 end ln_2_high
 
 ln_2_low: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 0x1.a39ef35793c76p-33, narrow: f32(0x1.0bfbe8p-15))
+    value = pick(item: item, wide: 0x1.a39ef35793c76p-33, narrow: 0x1.0bfbe8p-15)
 end ln_2_low
 
 --  `e^x · factor · 2^shift` for a finite `x` and a `factor` of magnitude
@@ -26,15 +26,15 @@ exp_times: (item: type is math.floating, x: item, factor: item, shift: i32) -> (
     end if
     f := exponent(factor)
     scaled := math.scale(factor, -f)
-    edge := pick(item: item, wide: 708.0, narrow: f32(87.0))
+    edge := pick(item: item, wide: 708.0, narrow: 87.0)
     if math.abs(x) < edge then
         result = math.scale(math.exp(x) * scaled, f + shift)
         return
     end if
     --  Past this, the product overflows or underflows whatever the factor.
-    limit := pick(item: item, wide: 1500.0, narrow: f32(200.0))
+    limit := pick(item: item, wide: 1500.0, narrow: 200.0)
     clamped := math.max(math.min(x, limit), -limit)
-    k := math.floor(clamped * item(math.log2_e))
+    k := math.floor(clamped * pick(item: item, wide: 0x1.71547652b82fep0, narrow: 0x1.715476p0))
     r := (clamped - k * ln_2_high(item: item)) - k * ln_2_low(item: item)
     result = math.scale(math.exp(r) * scaled, i32(k) + f + shift)
 end exp_times

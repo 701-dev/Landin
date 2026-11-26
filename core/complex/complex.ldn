@@ -42,12 +42,12 @@ end pick
 
 --  The largest finite value.
 largest: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 0x1.fffffffffffffp1023, narrow: f32(0x1.fffffep127))
+    value = pick(item: item, wide: 0x1.fffffffffffffp1023, narrow: 0x1.fffffep127)
 end largest
 
 --  The distance from 1 to the next float up.
 epsilon: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 0x1.0p-52, narrow: f32(0x1.0p-23))
+    value = pick(item: item, wide: 0x1.0p-52, narrow: 0x1.0p-23)
 end epsilon
 
 --  The number of bits of a significand, the leading one included.

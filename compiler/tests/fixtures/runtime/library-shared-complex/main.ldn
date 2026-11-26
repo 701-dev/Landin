@@ -1,0 +1,41 @@
+import core/complex
+import core/math
+
+--  A few of the routines whose results are exact: the arithmetic on small
+--  integers, i·i, the square roots of -4 and of 3 + 4i, the conjugate and
+--  the projection of an infinity.
+exercise: () -> (ok: bool) =
+    ok = false
+    z: complex.number(f64) = (real: 1.0, imaginary: 2.0)
+    w: complex.number(f64) = (real: 3.0, imaginary: -1.0)
+    sum := complex.add(z, w)
+    return when sum.real <> 4.0 or sum.imaginary <> 1.0
+    product := complex.multiply(z, w)
+    return when product.real <> 5.0 or product.imaginary <> 5.0
+    quotient := complex.divide(product, w)
+    return when quotient.real <> 1.0 or quotient.imaginary <> 2.0
+    i: complex.number(f64) = (real: 0.0, imaginary: 1.0)
+    square := complex.multiply(i, i)
+    return when square.real <> -1.0 or square.imaginary <> 0.0
+    minus_four: complex.number(f64) = (real: -4.0, imaginary: 0.0)
+    root := complex.sqrt(minus_four)
+    return when root.real <> 0.0 or root.imaginary <> 2.0
+    three_four: complex.number(f64) = (real: 3.0, imaginary: 4.0)
+    other_root := complex.sqrt(three_four)
+    return when other_root.real <> 2.0 or other_root.imaginary <> 1.0
+    conjugate := complex.conjugate(z)
+    return when conjugate.real <> 1.0 or conjugate.imaginary <> -2.0
+    big := f64(1.0) / 0.0
+    far: complex.number(f64) = (real: 1.0, imaginary: -big)
+    projected := complex.project(far)
+    ok = math.is_infinite(projected.real) and projected.imaginary == 0.0
+         and math.is_negative(projected.imaginary)
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main

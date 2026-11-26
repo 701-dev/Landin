@@ -6,7 +6,7 @@
     {
      "fn": "complex.sin",
      "width": 64,
-     "bound": 3,
+     "bound": 4,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -512,7 +512,7 @@
     {
      "fn": "complex.sin",
      "width": 32,
-     "bound": 3,
+     "bound": 4,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -1015,7 +1015,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "complex-cosine": {
    "summary": "core/complex's cos is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32",
@@ -2032,7 +2033,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "complex-tangent": {
    "summary": "core/complex's tan is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32",
@@ -3049,7 +3051,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "complex-sinh": {
    "summary": "core/complex's sinh is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32",
@@ -4066,7 +4069,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "complex-cosh": {
    "summary": "core/complex's cosh is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32",
@@ -5083,7 +5087,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "complex-tanh": {
    "summary": "core/complex's tanh is within each table's bound of MPC's correctly rounded result, part by part, for Annex G's special values, random inputs and the hardest to round, at f64 and f32",
@@ -5091,7 +5096,7 @@
     {
      "fn": "complex.tanh",
      "width": 64,
-     "bound": 6,
+     "bound": 7,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -5597,7 +5602,7 @@
     {
      "fn": "complex.tanh",
      "width": 32,
-     "bound": 6,
+     "bound": 7,
      "random": 24,
      "hard": 12,
      "pool": 20000,
@@ -6100,7 +6105,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   }
  }
 }

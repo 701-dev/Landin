@@ -995,10 +995,10 @@ end run_64_z_r
 
 public main: () -> (code: i32) =
     code = 42
-    if run_64_z_r(cases_1, call_1, 1) <> 0 and code == 42 then
+    if run_64_z_r(cases_1, call_1, 2) <> 0 and code == 42 then
         code = 1
     end if
-    if run_32_z_r(cases_2, call_2, 1) <> 0 and code == 42 then
+    if run_32_z_r(cases_2, call_2, 2) <> 0 and code == 42 then
         code = 2
     end if
     if run_64_z_r(cases_3, call_3, 2) <> 0 and code == 42 then

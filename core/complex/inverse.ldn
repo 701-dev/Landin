@@ -8,9 +8,23 @@
 --  acosh z is ±i·acos z, whichever has a nonnegative real part.
 import core/math
 
---  π/2 in two parts, the second the first's rounding error.
+--  π/2, π/4 and 3π/4 rounded to the width, written for each so that no
+--  f64 arithmetic is done at run time to make an f32 one, and π/2's
+--  rounding error.
+half_pi_high: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.921fb54442d18p0, narrow: 0x1.921fb6p0)
+end half_pi_high
+
+quarter_pi: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.921fb54442d18p-1, narrow: 0x1.921fb6p-1)
+end quarter_pi
+
+three_quarters_pi: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.2d97c7f3321d2p1, narrow: 0x1.2d97c8p1)
+end three_quarters_pi
+
 half_pi_low: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 0x1.1a62633145c07p-54, narrow: f32(-0x1.777a5cp-25))
+    value = pick(item: item, wide: 0x1.1a62633145c07p-54, narrow: -0x1.777a5cp-25)
 end half_pi_low
 
 --  2^(p/2 + 1) for a format of p bits: past it a part's square is
@@ -32,7 +46,7 @@ arcsine_parts: (item: type is math.floating, x: item, y: item)
     one: item = item(1)
     half: item = item(0.5)
     big := large(item: item)
-    half_pi := item(math.pi / 2.0)
+    half_pi := half_pi_high(item: item)
     if x > big or y > big then
         --  |z| ≫ 1: A is |z| and A + √(A² - 1) is 2|z|.
         sine = math.atan2(x, y)
@@ -90,12 +104,12 @@ public asinh: (item: type is math.floating, z: number(item)) -> (result: number(
     x := z.real
     y := z.imaginary
     zero: item = item(0)
-    half_pi := item(math.pi / 2.0)
+    half_pi := half_pi_high(item: item)
     if math.is_infinite(y) then
         if math.is_nan(x) then
             result = (real: y, imaginary: x)
         elsif math.is_infinite(x) then
-            result = (real: x, imaginary: math.copy_sign(item(math.pi / 4.0), y))
+            result = (real: x, imaginary: math.copy_sign(quarter_pi(item: item), y))
         else
             result = (real: math.copy_sign(math.abs(y), x), imaginary: math.copy_sign(half_pi, y))
         end if
@@ -125,14 +139,14 @@ public acos: (item: type is math.floating, z: number(item)) -> (result: number(i
     x := z.real
     y := z.imaginary
     zero: item = item(0)
-    half_pi := item(math.pi / 2.0)
-    pi := item(math.pi)
+    half_pi := half_pi_high(item: item)
+    pi := pick(item: item, wide: 0x1.921fb54442d18p1, narrow: 0x1.921fb6p1)
     if math.is_infinite(y) then
         mut angle := half_pi
         if math.is_nan(x) then
             angle = x
         elsif math.is_infinite(x) then
-            angle = if x > zero then item(math.pi / 4.0) else item(0.75 * math.pi) end if
+            angle = if x > zero then quarter_pi(item: item) else three_quarters_pi(item: item) end if
         end if
         result = (real: angle, imaginary: -y)
     elsif math.is_infinite(x) then
@@ -150,7 +164,7 @@ public acos: (item: type is math.floating, z: number(item)) -> (result: number(i
         (sine: sine, cosine: cosine, imaginary: imaginary) := arcsine_parts(math.abs(x), math.abs(y))
         --  acos(-x) is π - acos(x), with π's rounding error added back.
         real := if x < zero then
-                    (pi - cosine) + item(2) * half_pi_low(item: item)
+            (pi - cosine) + item(2) * half_pi_low(item: item)
                 else cosine end if
         result = (real: real, imaginary: -math.copy_sign(imaginary, y))
     end if
@@ -181,7 +195,7 @@ public atanh: (item: type is math.floating, z: number(item)) -> (result: number(
     zero: item = item(0)
     one: item = item(1)
     half: item = item(0.5)
-    half_pi := item(math.pi / 2.0)
+    half_pi := half_pi_high(item: item)
     if math.is_infinite(y) then
         result = (real: math.copy_sign(zero, x), imaginary: math.copy_sign(half_pi, y))
         return

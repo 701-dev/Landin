@@ -6,7 +6,7 @@ import core/math
 --  Past this |x|, cosh x and |sinh x| are e^|x|/2 to the format's
 --  precision, and tanh x is ±1.
 far: (item: type is math.floating) -> (value: item) =
-    value = pick(item: item, wide: 22.0, narrow: f32(12.0))
+    value = pick(item: item, wide: 22.0, narrow: 12.0)
 end far
 
 --  cosh x · factor and sinh x · factor, for a finite x and a factor of
