@@ -3498,7 +3498,9 @@
       "mode": "execute"
     },
     "runtime/math-acosh": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off acosh's f64 and f32 routines with the logarithms and the f64 square root they call take the image to 43,504 bytes of flash, over the 32 KiB profile by 10,736: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-arcsine": {
       "mode": "execute",
@@ -3511,7 +3513,9 @@
       "reason": "At none/off the inverse functions' f64 and f32 routines, with the f64 square root computed from the bits take the image to 35,288 bytes of flash, over the 32 KiB profile by 2,520: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-asinh": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off asinh's f64 and f32 routines with the logarithms and the f64 square root they call take the image to 43,736 bytes of flash, over the 32 KiB profile by 10,968: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-atanh": {
       "mode": "execute"
@@ -3520,7 +3524,9 @@
       "mode": "execute"
     },
     "runtime/math-cosh": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off cosh's f64 and f32 routines with the exponentials they call take the image to 37,224 bytes of flash, over the 32 KiB profile by 4,456: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-cosine": {
       "mode": "execute",
@@ -3528,10 +3534,14 @@
       "reason": "At none/off the argument reduction's Payne-Hanek routine, 9 KiB of it, and the f64 and f32 kernels take the image to 41,512 bytes of flash, over the 32 KiB profile by 8,744: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-erf": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off erf's f64 and f32 rational approximations with the exponentials they call take the image to 38,208 bytes of flash, over the 32 KiB profile by 5,440: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-erfc": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off erfc's f64 and f32 rational approximations with the exponentials they call take the image to 38,632 bytes of flash, over the 32 KiB profile by 5,864: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-exp": {
       "mode": "execute"
@@ -3552,7 +3562,9 @@
       "mode": "execute"
     },
     "runtime/math-gamma": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off gamma's f64 and f32 routines, the f64 one with its double-f64 product take the image to 35,976 bytes of flash, over the 32 KiB profile by 3,208: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-hypot-f32": {
       "mode": "execute"
@@ -3604,7 +3616,9 @@
       "reason": "At none/off the argument reduction's Payne-Hanek routine, 9 KiB of it, and the f64 and f32 kernels take the image to 41,488 bytes of flash, over the 32 KiB profile by 8,720: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-sinh": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off sinh's f64 and f32 routines with the exponentials they call take the image to 37,384 bytes of flash, over the 32 KiB profile by 4,616: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/math-sqrt": {
       "mode": "execute"

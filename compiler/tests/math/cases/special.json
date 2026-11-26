@@ -76,7 +76,8 @@
       "0x1p-14"
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "math-erfc": {
    "summary": "core/math's erfc is within three floats of MPFR's correctly rounded result at f64 and four at f32, msun's own error, for each table's specials, random inputs and hardest-to-round inputs",
@@ -158,7 +159,8 @@
       "9.5"
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "math-gamma": {
    "summary": "core/math's gamma is within one float of MPFR's correctly rounded result, at f64 and f32, for each table's specials, random inputs and hardest-to-round inputs",
@@ -247,7 +249,8 @@
       "-0x1p-127"
      ]
     }
-   ]
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
   },
   "math-log-gamma": {
    "summary": "core/math's log_gamma is within four floats of MPFR's correctly rounded result for x above -2, msun's own error, at f64, for each table's specials, random inputs and hardest-to-round inputs",
