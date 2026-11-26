@@ -88,7 +88,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -1404,6 +1404,55 @@ The merged candidate, with `gate-watcher` riding it, passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45855807406),
 after `freebsd-host-release` was run again over a mirror's refusal, and
 its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
+
+### R16.43 — An increment proved by the check before it
+
+Status: planned
+Depends on: R16.10
+
+Two increments keep an overflow check that cannot fail. SR-1959's index,
+checked below a constant bound by the bounds check just before it in the
+same block, then incremented: reverse-complement's `write_reversed`,
+4.0% of its x86-64 instructions at speed by a hand patch. SR-1918's
+count, incremented at most once a step of a counted loop from zero:
+fasta's `select_symbol`, 5.0% on x86-64 and 5.4% on arm64 by its step
+count. The first needs only the fact the block's own check leaves; the
+second needs the count's bound related to the loop's, an invariant the
+simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
+Exit evidence: each check proved and removed on every target, the two
+programs' instructions measured against the item's base, and no other
+combination over its own.
+
+### R16.44 — arm64 keeps a stored value in its slot's register
+
+Status: planned
+Depends on: R16.10
+
+SR-1958: arm64 makes a stored value in its slot's register only when the
+store is the value's last use (D2164), so reverse-complement's
+`write_reversed` copies three values a byte into their slots' registers,
+11.4% of its instructions by a hand patch. x86-64 already lets later
+uses read the slot's register (D2157) and makes a value there when the
+slot's interval opens at its store (D2654). Scheduled by the register
+sweep of 2026-11-26. Exit evidence: reverse-complement at speed on arm64
+executing fewer instructions than at the item's base by most of the hand
+patch's margin, and no other combination over its own.
+
+### R16.45 — A call's failure tested once
+
+Status: planned
+Depends on: R16.10
+
+SR-1861: every call that can fail costs x86-64 about eleven instructions
+on its succeeding way where two would do, its status stored, loaded back,
+validated against its atom set and tested through a byte. R16.39
+measured sealing the call's failure slot and fusing the test into its
+branch at about 5% of binary-trees' cycles. Sealing changes every
+backend's validation, so firmware images and board records move with
+it. Scheduled by the register sweep of 2026-11-26. Exit evidence: a
+call's succeeding way testing its status once, in a register, on every
+target, binary-trees measured against the item's base, and no other
+combination over its own.
 
 ### The continuous items
 
@@ -3296,7 +3345,11 @@ elementary ones: the incomplete gamma and beta functions and their
 inverses, the logarithm of the beta function, the digamma function, the
 inverse error function, the exponential integral, and the Bessel
 functions of the first and second kind and their modified forms for real
-order and argument. R22.74's distributions stand on them.
+order and argument. R22.74's distributions stand on them. SR-1897's
+`math.log_gamma` below -2, on which the incomplete gamma and beta
+stand, and SR-1948's facts of a width, which generic code over
+`math.floating` cannot name, are scheduled here by the register sweep of
+2026-11-26.
 
 Leaves out: elliptic integrals and functions, hypergeometric and Airy
 functions, the zeta function, spherical harmonics, and complex arguments.
@@ -3659,6 +3712,67 @@ region's parent; and `time -f %M` is `heap.in_use` and
 `heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
 SR-1881 records the misleading refusal a new Linux wrapper meets.
 
+### R22.27 — Process tools' remaining faults
+
+Status: planned
+Depends on: none
+
+The faults of the process tools met since R22.24, scheduled by the
+register sweep of 2026-11-26. In `item.py`: SR-1988's boards run
+recorded while queued, which `promote` then does not find; SR-1989's
+token taken before the candidate's gate passed; SR-1990's `push
+--boards` that ends at a ref-lock race before its dispatch; SR-1905's
+older copy whose queue wait drops waiters that are no item; SR-1919's
+`start` refusing a continuous item whose text the branch adds without
+naming `--base`; and SR-1893's train, which takes only items. In the
+other tools: SR-1839's gate watch that ends at one malformed or short
+answer from GitHub; SR-1906's `register_next.py --decision` that answers
+from a branch behind main's reservations; SR-1917's age rule that differs
+during an uncommitted merge; SR-1859's full `check.py` reading untracked
+notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
+back to its user; and SR-1991's item identity that no rule retires.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: each script's or check's tests pinning its change, and the
+documents that name a step saying the new one.
+
+### R22.28 — What Windows still lacks after R21.70
+
+Status: planned
+Depends on: none
+
+The Windows gaps R21.70 left or met, scheduled by the register sweep of
+2026-11-26: SR-1746's inlined copies, which CodeView does not describe;
+SR-1767's Microsoft lanes, which link with whatever Clang and Visual
+Studio the runner image carries; SR-1851's C symbol whose link name
+begins with `.L`, which COFF's assembler takes as private; SR-1852's
+eight ABI fixtures whose C peers are not Windows C; and SR-1940's arm64
+LLDB session that did not step through `landin.stack_switch` once.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: each row's completion on both Windows architectures, in
+the gate's Windows lanes.
+
+### R22.29 — Release archives that say where they run
+
+Status: planned
+Depends on: none
+
+What a user installing a release meets, scheduled by the register sweep
+of 2026-11-26, before the next release: SR-1850's macOS archive, which
+needs macOS 26 and says so nowhere, Q-347 asking which minimum it states;
+SR-1820's `install.sh`, which refuses the FreeBSD archive the release
+workflow now publishes; SR-1516's flake, which nothing builds on
+`aarch64-linux`; and SR-1894's locked Debian packages, which nothing
+fetches until a candidate's gate does. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: the release workflow's checks and `install.sh`'s tests
+holding each change, the flake built for `aarch64-linux` in the gate,
+and the scheduled package fetch's first run.
+
 ### R22.30 — Text and Unicode
 
 Status: complete
@@ -3690,6 +3804,43 @@ NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
 Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
 hosted backends' writable sections for immutable data, met laying out
 the tables.
+
+### R22.31 — Refusals that say what to do
+
+Status: planned
+Depends on: none
+
+Refusals met since R20.61 that do not say what to do, or say something
+misleading, scheduled by the register sweep of 2026-11-26: SR-1693's
+L0201 at a library module no import reaches, and SR-1881's at an
+undeclared `*_number` of `platform/linux`, both with [1860]'s note to
+check the spelling; SR-1896's L0011 at a hexadecimal float without its
+point; SR-1714's internal defect where a firmware assembly operand is
+linked; SR-1716's developer's linker script that puts a routine at
+address zero without a refusal; and SR-1214's misuse traps of the root,
+which carry no words. Placed here so that no phase gate waits for it; it
+depends on no other item.
+
+Exit evidence: each refusal pinned by a negative fixture or a driver
+case, and `docs/diagnostics.md` saying the new notes.
+
+### R22.32 — Defects the library work met
+
+Status: planned
+Depends on: none
+
+Defects R19 to R22.30 met beside their own work, scheduled by the
+register sweep of 2026-11-26: SR-1938's immutable module arrays in a
+hosted image's writable section; SR-1939's Tree-sitter grammar, which
+misreads a sum of three operands followed by a statement; SR-1568's
+anonymous-function paths that nothing reaches since D1654; SR-1882's
+cancellation test, which signals `refine` before its handlers are
+installed on a loaded host; and SR-1740's runtime outcome that never
+ends and holds the whole test program until the job's limit. Placed
+here so that no phase gate waits for it; it depends on no other item.
+
+Exit evidence: each row's completion with the fixture, corpus test or
+control it names.
 
 ### R22.40 — Character encodings
 
@@ -3866,6 +4017,9 @@ inverse and the DCT-II and DCT-III; convolution and correlation directly
 and by transform; window functions; FIR filters, IIR filters as biquad
 sections, and the design of windowed-sinc and Butterworth filters. The
 transform and filters in Q15 and Q31 through R22.14, for firmware.
+SR-1949's `core/complex` errors, `tanh`, `tan` and `pow`, are brought
+within a few ulp first, since the transforms take its arithmetic and
+`exp` as their kernels (register sweep of 2026-11-26).
 
 Leaves out: wavelets, the other DCT and DST kinds, more than two
 dimensions, number-theoretic transforms, and adaptive filters.
