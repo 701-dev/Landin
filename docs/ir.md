@@ -694,7 +694,10 @@ nothing reaches the arms' blocks then, and compaction drops them. A checked
 `x = x + k` in an arm whose other side leaves `x` alone qualifies too, as
 `x + (if c then k else 0)`, because that addition traps exactly when the arm
 would have. So `if a < b then inc n end if` becomes a comparison, a choice of
-one or zero and an addition, with no branch. A check, a call, a memory access
+one or zero and an addition, with no branch. The arms' copies go before the
+comparison, and before a float load only the comparison reads, so that a
+backend finds the comparison next to its choice and the load next to its
+comparison, which x86-64 then makes from memory (D2574). A check, a call, a memory access
 or a division in an arm keeps the branch, and so does a condition computed
 from a slot an arm stores, such as `inc at if at == n then at = 0 end if` in
 a loop, where each choice would wait on the one before it. Each arm is held to six operations

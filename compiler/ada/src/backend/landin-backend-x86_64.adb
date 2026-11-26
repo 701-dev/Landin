@@ -7490,20 +7490,38 @@ package body Landin.Backend.X86_64 is
                   begin
                      if Optimized and then (Counts_Up or else Counts_Down)
                      then
-                        if Fused then
-                           Emit ("set"
-                                 & (if Counts_Up then Flags
-                                    else Inverse_Condition (Flags))
-                                 & " %al");
-                           Emit ("movzbl %al, %eax");
-                        else
-                           Emit ("movzbl " & Value_Operand (Condition)
-                                 & ", %eax");
-                           if Counts_Down then
-                              Emit ("xorl $1, %eax");
+                        declare
+                           --  D2574: the zero extension writes the choice's
+                           --  own register when it has one, at 32 bits,
+                           --  which clears the rest of it: no move after.
+                           In_Register : constant Boolean :=
+                             Allocation_Plan.Value (Positive (Value)).Kind
+                               = Allocation.GP;
+                           Into : constant String :=
+                             (if In_Register
+                              then Allocation.Name
+                                (Allocation_Plan.Value
+                                   (Positive (Value)).Register,
+                                 Landin.Targets.Byte_4)
+                              else "%eax");
+                        begin
+                           if Fused then
+                              Emit ("set"
+                                    & (if Counts_Up then Flags
+                                       else Inverse_Condition (Flags))
+                                    & " %al");
+                              Emit ("movzbl %al, " & Into);
+                           else
+                              Emit ("movzbl " & Value_Operand (Condition)
+                                    & ", " & Into);
+                              if Counts_Down then
+                                 Emit ("xorl $1, " & Into);
+                              end if;
                            end if;
-                        end if;
-                        Store_Value (Value, Accumulator (Held));
+                           if not In_Register then
+                              Store_Value (Value, Accumulator (Held));
+                           end if;
+                        end;
                         return;
                      end if;
                      Load_Value (If_False);
