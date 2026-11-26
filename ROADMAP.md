@@ -1315,6 +1315,28 @@ as well, and the row is taken. The merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45760688726) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45760702435).
 
+### R16.41 — A float element is compared where it lies
+
+Status: planned
+Depends on: R16.10
+
+fasta spends two thirds of its x86-64 instructions at speed in
+`select_symbol`, which counts the cumulative probabilities a random
+number reaches: if-conversion makes `if random >= cumulative[at] then
+inc index end if` a comparison whose flag is added to the count, ten
+instructions a step. Two of them move nothing: the element is loaded
+into a register with `movsd` before `ucomisd` reads it, which can read
+it from memory, and the flag's zero extension is made in `%eax` and
+copied to the register the addition reads. With both left out, ten
+instructions become eight, and fasta 2,500,000 executes 2.857 G
+instructions against 3.142 G, 9.1% fewer, with the same output. The
+item compares a float that only its comparison or arithmetic reads
+where it lies, and extends a counted flag into its own register.
+Exit evidence: fasta at speed on x86-64 executing more than 5% fewer
+instructions than at the item's base; every benchmark program's
+instructions and image size reported against that base, arm64 as well;
+and no other combination over its own.
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when
