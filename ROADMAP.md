@@ -1359,7 +1359,7 @@ and [boards](https://github.com/701-dev/Landin/actions/runs/45795196472).
 
 ### R16.42 — A byte is loaded into the register it is kept in
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 reverse-complement spends seven tenths of its x86-64 instructions at
