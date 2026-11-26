@@ -3150,7 +3150,7 @@ every target.
 
 ### R22.13 — Big integers and rationals
 
-Status: planned
+Status: active
 Depends on: R20
 
 Arbitrary-precision arithmetic in two layers. The lower works on
