@@ -3541,7 +3541,7 @@ recorded with the map's share measured.
 
 ### R22.23 — pidigits ported
 
-Status: planned
+Status: active
 Depends on: R22.13
 
 Gibbons' spigot over R22.13's integers, with no GMP.
