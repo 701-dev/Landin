@@ -503,6 +503,83 @@ gcd(42, 0) = 42
 gcd(37, 600) = 1
 ```
 
+## Great-circle distance
+
+The distance between two places on the Earth's surface by the haversine
+formula, from [Rosetta Code](https://rosettacode.org/wiki/Haversine_formula),
+with `core/math`'s sine, cosine, arcsine and square root. Every call of
+`core/math` takes either float width, and gives the same result on every
+target. Floats are not yet formattable, so the distance is rounded to whole
+tenths of a kilometre and printed as two integers.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-great-circle-distance/main.ldn`.
+
+```landin
+--  The great-circle distance between two places on the Earth, by the
+--  haversine formula, which stays accurate for places close together.
+import core/io
+import core/math
+import hosted/blocking
+
+--- The mean radius the Rosetta Code task takes, in kilometres.
+earth_radius: f64 = 6372.8
+
+place: type = struct
+    name: utf8
+    latitude: f64
+    longitude: f64
+end place
+
+radians: (degrees: f64) -> (result: f64) =
+    result = degrees * math.pi / 180.0
+end radians
+
+--- The distance along the surface from `start` to `finish`, in kilometres.
+distance: (start: place, finish: place) -> (kilometres: f64) =
+    across := math.sin(radians(finish.latitude - start.latitude) / 2.0)
+    along := math.sin(radians(finish.longitude - start.longitude) / 2.0)
+    h := across * across
+         + math.cos(radians(start.latitude)) * math.cos(radians(finish.latitude)) * along * along
+    kilometres = 2.0 * earth_radius * math.asin(math.sqrt(h))
+end distance
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    mut storage: [256]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+
+    places: [6]place = [(name: "Nashville", latitude: 36.12, longitude: -86.67),
+                        (name: "Los Angeles", latitude: 33.94, longitude: -118.40),
+                        (name: "Big Ben", latitude: 51.5007, longitude: -0.1246),
+                        (name: "the Eiffel Tower", latitude: 48.8584, longitude: 2.2945),
+                        (name: "the Sydney Opera House", latitude: -33.8568,
+                         longitude: 151.2153),
+                        (name: "the Statue of Liberty", latitude: 40.6892,
+                         longitude: -74.0445)]
+    for pair in usize(0)..<3 do
+        start := places[2 * pair]
+        finish := places[2 * pair + 1]
+        --  Floats are not yet formattable: print whole tenths of a kilometre.
+        tenths := i64(math.round(distance(start, finish) * 10.0))
+        whole := tenths / 10
+        tenth := tenths % 10
+        io.format(out, "{} to {}: {}.{} km\n",
+                  [any(addr start.name), any(addr finish.name), any(addr whole), any(addr tenth)])
+            else none
+    end for
+    code = 0
+end main
+```
+
+It prints
+
+```text
+Nashville to Los Angeles: 2887.3 km
+Big Ben to the Eiffel Tower: 340.6 km
+the Sydney Opera House to the Statue of Liberty: 15988.8 km
+```
+
 ## Insertion sort
 
 Insertion sort grows a sorted prefix, moving each new value left past the

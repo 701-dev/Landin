@@ -1343,7 +1343,7 @@ every live row into its file. R17.10 reviews each moved row against
 those its authority covers and puts the rest it would retire to the
 maintainer as questions. It provides the SR allocation script and files the
 rows-to-be in `roadmap/inputs/rows-to-be.md`. The rows that describe R22's
-additions (SR-96 math, SR-97 float text, SR-98 locale and Unicode, SR-100
+additions (`SR-96` math, SR-97 float text, SR-98 locale and Unicode, SR-100
 regular expressions, SR-285 format width and radix) become `scheduled` on
 the R22 items that take them.
 Exit evidence: every row typed and under the cap; the allocation script and
@@ -3087,10 +3087,10 @@ Cortex-M0's soft float is measured. Everything is single-threaded.
 
 ### R22.10 — Elementary functions
 
-Status: planned
+Status: complete
 Depends on: R20
 
-`core/math`, SR-96: the functions of C's `<math.h>` that most programs
+`core/math`, `SR-96`: the functions of C's `<math.h>` that most programs
 use, over `f32` and `f64`, written in Landin so that results agree across
 targets. Classification and manipulation of the representation, rounding
 and remainders; `sqrt` and `fma` as instructions where the target has
@@ -3111,6 +3111,40 @@ Exit evidence: every function within its stated error of MPFR's
 correctly rounded values, one-argument `f32` functions exhaustively and
 the rest on a random and a hard-case set, on every target; image size on
 Cortex-M0's soft float measured.
+
+Done: `core/math` holds the functions R22.10 names, each generic over
+`math.floating`, which `f32` and `f64` meet, under C's names where they are
+the mathematics' own and words elsewhere (D2552). It is ported from msun's
+files under Sun's notice, and `exp2`, the software `fma` and `gamma` are
+written here, since msun's are under other licences (D2554, Q-306); the
+square root and `fma` are the float unit's instructions in assembly where
+there is one, and computed from the bits on Cortex-M0, RV32 and Xtensa
+(D2551). Every routine's error is stated in its doc comment (D2553): zero
+for the exact ones, the square root and `fma`; below an ulp for most; up
+to 4.2 for the hyperbolic functions, `erfc`, `log_gamma` above -2, `atan2`
+and `hypot` at f32, as msun's own are, which `SR-1898` holds; and
+`log_gamma` loses its relative accuracy near its zeros below -2,
+`SR-1897`. `scripts/math_oracle.py` builds compiler/tests/math/oracle.c
+against MPFR and writes the 36 `math-*` fixtures, whose tables of
+specials, random and hardest-to-round inputs pass on every target the
+gate runs, the firmware lanes included, thirteen of them past Cortex-M0's
+flash at `none/off` alone and executed at its other profiles. A million
+random inputs per routine and width, and every input of each
+one-argument f32 routine, `log_gamma`'s above -2, were measured against
+MPFR on Linux x86-64, and those routines' 2^32 f32 results compared bit
+for bit, every NaN as one, on Linux arm64 and RV64 under QEMU (Q-307). Each
+fixture's Cortex-M0 image is measured in compiler/tests/math/README.md,
+and `examples.md` computes great-circle distances with it. The
+trigonometric stream found x86-64's `size` allocator giving a value its
+slot's register while an earlier value still held it (D2157), fixed with
+`runtime/slot-register-keeps-an-earlier-store`; the Cortex-M0 lane found
+the software square root's exponent and f32 pairing wrong; `log_gamma` at
+f32 overflowed to the largest float; and the oracle now rounds a special
+to its width, checks in resumable parts and takes a domain. Filed:
+`SR-1895`, a NaN's bits differing between targets unsaid; `SR-1896`, a
+hexadecimal float without its point refused without saying so. Q-306,
+Q-307 and Q-308, floats' ordering evidence, are open with their
+defaults.
 
 ### R22.11 — Complex numbers
 

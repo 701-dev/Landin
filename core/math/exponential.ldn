@@ -1,0 +1,1487 @@
+--  Exponentials, logarithms and powers.  exp, expm1, log, log2, log10,
+--  log1p and pow are msun's e_exp.c, e_expf.c, s_expm1.c, s_expm1f.c,
+--  e_log.c, e_logf.c, k_log.h, k_logf.h, e_log2.c, e_log2f.c, e_log10.c,
+--  e_log10f.c, s_log1p.c, s_log1pf.c, e_pow.c and e_powf.c, under Sun's
+--  notice in math.ldn.  exp2 is written here: msun's is under another
+--  licence.
+
+--  exp(hi - lo) * 2^k for |hi - lo| <= 0.5 ln 2, lo the error of the
+--  reduced argument hi - lo:  exp(r) = 1 + r + r*R(r)/(2 - R(r)) with
+--  R(r) = r - (P1*r^2 + ... + P5*r^10), its error below 2^-59, and the
+--  correction lo added before the last rounding.  2^k is applied in at
+--  most two exact steps and one rounding.
+exp_scaled_f64: (hi: f64, lo: f64, k: i32) -> (result: f64) =
+    x := hi - lo
+    t := x * x
+    c := x - t * (1.66666666666666019037e-01
+                  + t * (-2.77777777770155933842e-03
+                         + t * (6.61375632143793436117e-05
+                                + t * (-1.65339022054652515390e-06
+                                       + t * 4.13813679705723846039e-08))))
+    y := 1.0 - ((lo - (x * c) / (2.0 - c)) - hi)
+    if k >= -1021 then
+        if k == 1024 then
+            result = y * 2.0 * 0x1.0p1023
+        else
+            result = y * from_words(u32(0x3ff + k) << 20, 0)
+        end if
+    else
+        result = y * from_words(u32(0x3ff + (k + 1000)) << 20, 0) * 0x1.0p-1000
+    end if
+end exp_scaled_f64
+
+exp_scaled_f32: (hi: f32, lo: f32, k: i32) -> (result: f32) =
+    x := hi - lo
+    t := x * x
+    --  P1, P2 on [-0.34568, 0.34568], error below 2^-27.74.
+    c := x - t * (1.6666625440e-1 + t * -2.7667332906e-3)
+    y := 1.0 - ((lo - (x * c) / (2.0 - c)) - hi)
+    if k >= -125 then
+        if k == 128 then
+            result = y * 2.0 * 0x1.0p127
+        else
+            result = y * from_bits_f32(u32(0x7f + k) << 23)
+        end if
+    else
+        result = y * from_bits_f32(u32(0x7f + (k + 100)) << 23) * 0x1.0p-100
+    end if
+end exp_scaled_f32
+
+--  exp(x): reduce x = k*ln2 + r, |r| <= 0.5*ln2, with ln2 split so that
+--  k*ln2_hi is exact, then exp(r) as exp_scaled describes.  Error below
+--  one ulp.
+exp_f64: (x: f64) -> (result: f64) =
+    high := high_word(x)
+    negative := high >> 31 == 1
+    hx := high & 0x7fffffff
+    if hx >= 0x40862e42 then
+        --  |x| >= 709.78...
+        if hx >= 0x7ff00000 then
+            if ((hx & 0xfffff) | low_word(x)) <> 0 then
+                result = x + x
+            elsif negative then
+                result = 0.0
+            else
+                result = x
+            end if
+            return
+        end if
+        if x > 7.09782712893383973096e+02 then
+            result = f64.infinity
+            return
+        end if
+        if x < -7.45133219101941108420e+02 then
+            result = 0.0
+            return
+        end if
+    end if
+    mut hi: f64 = 0.0
+    mut lo: f64 = 0.0
+    mut k: i32 = 0
+    if hx > 0x3fd62e42 then
+        --  |x| > 0.5 ln2
+        if hx < 0x3ff0a2b2 then
+            --  and |x| < 1.5 ln2
+            if negative then
+                hi = x + 6.93147180369123816490e-01
+                lo = -1.90821492927058770002e-10
+                k = -1
+            else
+                hi = x - 6.93147180369123816490e-01
+                lo = 1.90821492927058770002e-10
+                k = 1
+            end if
+        else
+            half: f64 = if negative then -0.5 else 0.5 end if
+            k = i32(1.44269504088896338700e+00 * x + half)
+            t := f64(k)
+            --  t*ln2_hi is exact here.
+            hi = x - t * 6.93147180369123816490e-01
+            lo = t * 1.90821492927058770002e-10
+        end if
+    elsif hx < 0x3e300000 then
+        --  |x| < 2^-28
+        result = 1.0 + x
+        return
+    else
+        hi = x
+    end if
+    if k == 0 then
+        t := hi * hi
+        c := hi - t * (1.66666666666666019037e-01
+                       + t * (-2.77777777770155933842e-03
+                              + t * (6.61375632143793436117e-05
+                                     + t * (-1.65339022054652515390e-06
+                                            + t * 4.13813679705723846039e-08))))
+        result = 1.0 - ((hi * c) / (c - 2.0) - hi)
+    else
+        result = exp_scaled_f64(hi, lo, k)
+    end if
+end exp_f64
+
+exp_f32: (x: f32) -> (result: f32) =
+    bits := bits_f32(x)
+    negative := bits >> 31 == 1
+    hx := bits & 0x7fffffff
+    if hx >= 0x42b17218 then
+        --  |x| >= 88.721...
+        if hx > 0x7f800000 then
+            result = x + x
+            return
+        end if
+        if hx == 0x7f800000 then
+            result = if negative then 0.0 else x end if
+            return
+        end if
+        if x > 8.8721679688e+01 then
+            huge: f32 = 1.0e+30
+            result = huge * huge
+            return
+        end if
+        if x < -1.0397208405e+02 then
+            result = 0.0
+            return
+        end if
+    end if
+    mut hi: f32 = 0.0
+    mut lo: f32 = 0.0
+    mut k: i32 = 0
+    if hx > 0x3eb17218 then
+        if hx < 0x3f851592 then
+            if negative then
+                hi = x + 6.9314575195e-01
+                lo = -1.4286067653e-06
+                k = -1
+            else
+                hi = x - 6.9314575195e-01
+                lo = 1.4286067653e-06
+                k = 1
+            end if
+        else
+            half: f32 = if negative then -0.5 else 0.5 end if
+            k = i32(1.4426950216e+00 * x + half)
+            t := f32(k)
+            hi = x - t * 6.9314575195e-01
+            lo = t * 1.4286067653e-06
+        end if
+    elsif hx < 0x39000000 then
+        --  |x| < 2^-14
+        result = 1.0 + x
+        return
+    else
+        hi = x
+    end if
+    if k == 0 then
+        t := hi * hi
+        c := hi - t * (1.6666625440e-1 + t * -2.7667332906e-3)
+        result = 1.0 - ((hi * c) / (c - 2.0) - hi)
+    else
+        result = exp_scaled_f32(hi, lo, k)
+    end if
+end exp_f32
+
+--  2^x: k the integer nearest x and r = x - k, exact, in [-1/2, 1/2];
+--  then 2^x = exp(r*ln2) * 2^k.  r*ln2 is carried as hi - lo: r's
+--  leading bits times ln2's leading bits are exact, and the rest of the
+--  product goes into lo, so exp_scaled sees the argument to well beyond
+--  the format's precision.
+exp2_f64: (x: f64) -> (result: f64) =
+    if x <> x then
+        result = x + x
+        return
+    end if
+    if x >= 1024.0 then
+        result = f64.infinity
+        return
+    end if
+    if x < -1075.0 then
+        result = 0.0
+        return
+    end if
+    whole := round_even_f64(x)
+    r := x - whole
+    k := i32(whole)
+    --  21 leading bits of r times ln2's 32 leading bits: 53 bits, exact.
+    r_hi := with_low_word(r, 0)
+    r_lo := r - r_hi
+    ln2_hi: f64 = 6.93147180369123816490e-01
+    ln2_lo: f64 = 1.90821492927058770002e-10
+    hi := r_hi * ln2_hi
+    lo := -(r_lo * ln2_hi + r * ln2_lo)
+    result = exp_scaled_f64(hi, lo, k)
+end exp2_f64
+
+exp2_f32: (x: f32) -> (result: f32) =
+    if x <> x then
+        result = x + x
+        return
+    end if
+    if x >= 128.0 then
+        huge: f32 = 1.0e+30
+        result = huge * huge
+        return
+    end if
+    if x < -150.0 then
+        result = 0.0
+        return
+    end if
+    whole := round_even_f32(x)
+    r := x - whole
+    k := i32(whole)
+    --  9 leading bits of r times ln2's 15 leading bits: 24 bits, exact.
+    r_hi := from_bits_f32(bits_f32(r) & 0xffff8000)
+    r_lo := r - r_hi
+    ln2_hi: f32 = 6.9314575195e-01
+    ln2_lo: f32 = 1.4286067653e-06
+    hi := r_hi * ln2_hi
+    lo := -(r_lo * ln2_hi + r * ln2_lo)
+    result = exp_scaled_f32(hi, lo, k)
+end exp2_f32
+
+--  expm1(x) = exp(x) - 1: reduce x = k*ln2 + r with a correction c for
+--  the rounding of r, approximate expm1(r) by a rational function in r
+--  whose polynomial R1(r^2) has error below 2^-61, then
+--  expm1(x) = 2^k * (expm1(r) + 1) - 1, or 2^k * (expm1(r) + (1 - 2^-k))
+--  where that keeps more bits.  Error below one ulp.
+expm1_f64: (x: f64) -> (result: f64) =
+    high := high_word(x)
+    negative := high >> 31 == 1
+    hx := high & 0x7fffffff
+    if hx >= 0x4043687a then
+        --  |x| >= 56*ln2
+        if hx >= 0x40862e42 then
+            if hx >= 0x7ff00000 then
+                if ((hx & 0xfffff) | low_word(x)) <> 0 then
+                    result = x + x
+                elsif negative then
+                    result = -1.0
+                else
+                    result = x
+                end if
+                return
+            end if
+            if x > 7.09782712893383973096e+02 then
+                result = f64.infinity
+                return
+            end if
+        end if
+        if negative then
+            result = -1.0
+            return
+        end if
+    end if
+    mut r: f64 = x
+    mut c: f64 = 0.0
+    mut k: i32 = 0
+    if hx > 0x3fd62e42 then
+        mut hi: f64 = 0.0
+        mut lo: f64 = 0.0
+        if hx < 0x3ff0a2b2 then
+            if negative then
+                hi = x + 6.93147180369123816490e-01
+                lo = -1.90821492927058770002e-10
+                k = -1
+            else
+                hi = x - 6.93147180369123816490e-01
+                lo = 1.90821492927058770002e-10
+                k = 1
+            end if
+        else
+            half: f64 = if negative then -0.5 else 0.5 end if
+            k = i32(1.44269504088896338700e+00 * x + half)
+            t := f64(k)
+            hi = x - t * 6.93147180369123816490e-01
+            lo = t * 1.90821492927058770002e-10
+        end if
+        r = hi - lo
+        c = (hi - r) - lo
+    elsif hx < 0x3c900000 then
+        --  |x| < 2^-54
+        result = x
+        return
+    end if
+    hfx := 0.5 * r
+    hxs := r * hfx
+    r1 := 1.0 + hxs * (-3.33333333333331316428e-02
+                       + hxs * (1.58730158725481460165e-03
+                                + hxs * (-7.93650757867487942473e-05
+                                         + hxs * (4.00821782732936239552e-06
+                                                  + hxs * -2.01099218183624371326e-07))))
+    mut t: f64 = 3.0 - r1 * hfx
+    mut e: f64 = hxs * ((r1 - t) / (6.0 - r * t))
+    if k == 0 then
+        result = r - (r * e - hxs)
+        return
+    end if
+    twopk := from_words(u32(0x3ff + k) << 20, 0)
+    e = r * (e - c) - c
+    e = e - hxs
+    if k == -1 then
+        result = 0.5 * (r - e) - 0.5
+        return
+    end if
+    if k == 1 then
+        if r < -0.25 then
+            result = -2.0 * (e - (r + 0.5))
+        else
+            result = 1.0 + 2.0 * (r - e)
+        end if
+        return
+    end if
+    if k <= -2 or k > 56 then
+        mut y: f64 = 1.0 - (e - r)
+        if k == 1024 then
+            y = y * 2.0 * 0x1.0p1023
+        else
+            y = y * twopk
+        end if
+        result = y - 1.0
+        return
+    end if
+    if k < 20 then
+        --  t = 1 - 2^-k
+        t = from_words(0x3ff00000 - (0x200000 >> u32(k)), 0)
+        y := t - (e - r)
+        result = y * twopk
+    else
+        --  t = 2^-k
+        t = from_words(u32(0x3ff - k) << 20, 0)
+        mut y: f64 = r - (e + t)
+        y = y + 1.0
+        result = y * twopk
+    end if
+end expm1_f64
+
+expm1_f32: (x: f32) -> (result: f32) =
+    bits := bits_f32(x)
+    negative := bits >> 31 == 1
+    hx := bits & 0x7fffffff
+    if hx >= 0x4195b844 then
+        --  |x| >= 27*ln2
+        if hx >= 0x42b17218 then
+            if hx > 0x7f800000 then
+                result = x + x
+                return
+            end if
+            if hx == 0x7f800000 then
+                result = if negative then -1.0 else x end if
+                return
+            end if
+            if x > 8.8721679688e+01 then
+                huge: f32 = 1.0e+30
+                result = huge * huge
+                return
+            end if
+        end if
+        if negative then
+            result = -1.0
+            return
+        end if
+    end if
+    mut r: f32 = x
+    mut c: f32 = 0.0
+    mut k: i32 = 0
+    if hx > 0x3eb17218 then
+        mut hi: f32 = 0.0
+        mut lo: f32 = 0.0
+        if hx < 0x3f851592 then
+            if negative then
+                hi = x + 6.9313812256e-01
+                lo = -9.0580006145e-06
+                k = -1
+            else
+                hi = x - 6.9313812256e-01
+                lo = 9.0580006145e-06
+                k = 1
+            end if
+        else
+            half: f32 = if negative then -0.5 else 0.5 end if
+            k = i32(1.4426950216e+00 * x + half)
+            t := f32(k)
+            hi = x - t * 6.9313812256e-01
+            lo = t * 9.0580006145e-06
+        end if
+        r = hi - lo
+        c = (hi - r) - lo
+    elsif hx < 0x33000000 then
+        --  |x| < 2^-25
+        result = x
+        return
+    end if
+    hfx := 0.5 * r
+    hxs := r * hfx
+    --  Q1, Q2 on [-0.34568, 0.34568], error below 2^-30.04.
+    r1 := 1.0 + hxs * (-3.3333212137e-2 + hxs * 1.5807170421e-3)
+    mut t: f32 = 3.0 - r1 * hfx
+    mut e: f32 = hxs * ((r1 - t) / (6.0 - r * t))
+    if k == 0 then
+        result = r - (r * e - hxs)
+        return
+    end if
+    twopk := from_bits_f32(u32(0x7f + k) << 23)
+    e = r * (e - c) - c
+    e = e - hxs
+    if k == -1 then
+        result = 0.5 * (r - e) - 0.5
+        return
+    end if
+    if k == 1 then
+        if r < -0.25 then
+            result = -2.0 * (e - (r + 0.5))
+        else
+            result = 1.0 + 2.0 * (r - e)
+        end if
+        return
+    end if
+    if k <= -2 or k > 56 then
+        mut y: f32 = 1.0 - (e - r)
+        if k == 128 then
+            y = y * 2.0 * 0x1.0p127
+        else
+            y = y * twopk
+        end if
+        result = y - 1.0
+        return
+    end if
+    if k < 23 then
+        t = from_bits_f32(0x3f800000 - (0x1000000 >> u32(k)))
+        y := t - (e - r)
+        result = y * twopk
+    else
+        t = from_bits_f32(u32(0x7f - k) << 23)
+        mut y: f32 = r - (e + t)
+        y = y + 1.0
+        result = y * twopk
+    end if
+end expm1_f32
+
+--  log(x): x = 2^k * (1 + f) with sqrt(2)/2 < 1 + f < sqrt(2), then
+--  log(1 + f) = 2s + 2/3 s^3 + ... = 2s + s*R(s^2) for s = f/(2 + f),
+--  R a polynomial with error below 2^-58.45, and
+--  log(x) = k*ln2_hi + (f - (hfsq - (s*(hfsq + R) + k*ln2_lo))) with
+--  hfsq = f*f/2.  Error below one ulp.
+log_f64: (x: f64) -> (result: f64) =
+    mut hx: u32 = high_word(x)
+    lx := low_word(x)
+    mut v: f64 = x
+    mut k: i32 = 0
+    if hx < 0x00100000 or hx >= 0x80000000 then
+        --  x < 2^-1022
+        if ((hx & 0x7fffffff) | lx) == 0 then
+            result = -f64.infinity
+            return
+        end if
+        if hx >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+        --  Subnormal: scale it up.
+        k = k - 54
+        v = v * 0x1.0p54
+        hx = high_word(v)
+    end if
+    if hx >= 0x7ff00000 then
+        result = v + v
+        return
+    end if
+    k = k + i32(hx >> 20) - 1023
+    hx = hx & 0x000fffff
+    i := (hx + 0x95f64) & 0x100000
+    --  Normalize x or x/2.
+    v = with_high_word(v, hx | (i ^ 0x3ff00000))
+    k = k + i32(i >> 20)
+    f := v - 1.0
+    ln2_hi: f64 = 6.93147180369123816490e-01
+    ln2_lo: f64 = 1.90821492927058770002e-10
+    if (0x000fffff & (2 + hx)) < 3 then
+        --  -2^-20 <= f < 2^-20
+        if f == 0.0 then
+            if k == 0 then
+                result = 0.0
+            else
+                dk := f64(k)
+                result = dk * ln2_hi + dk * ln2_lo
+            end if
+            return
+        end if
+        poly := f * f * (0.5 - 0.33333333333333333 * f)
+        if k == 0 then
+            result = f - poly
+        else
+            dk := f64(k)
+            result = dk * ln2_hi - ((poly - dk * ln2_lo) - f)
+        end if
+        return
+    end if
+    s := f / (2.0 + f)
+    dk := f64(k)
+    z := s * s
+    i2 := i32(hx) - 0x6147a
+    w := z * z
+    j := 0x6b851 - i32(hx)
+    t1 := w * (3.999999999940941908e-01
+               + w * (2.222219843214978396e-01 + w * 1.531383769920937332e-01))
+    t2 := z * (6.666666666666735130e-01
+               + w * (2.857142874366239149e-01
+                      + w * (1.818357216161805012e-01 + w * 1.479819860511658591e-01)))
+    poly := t2 + t1
+    if (i2 | j) > 0 then
+        hfsq := 0.5 * f * f
+        if k == 0 then
+            result = f - (hfsq - s * (hfsq + poly))
+        else
+            result = dk * ln2_hi - ((hfsq - (s * (hfsq + poly) + dk * ln2_lo)) - f)
+        end if
+    else
+        if k == 0 then
+            result = f - s * (f - poly)
+        else
+            result = dk * ln2_hi - ((s * (f - poly) - dk * ln2_lo) - f)
+        end if
+    end if
+end log_f64
+
+log_f32: (x: f32) -> (result: f32) =
+    mut ix: u32 = bits_f32(x)
+    mut v: f32 = x
+    mut k: i32 = 0
+    if ix < 0x00800000 or ix >= 0x80000000 then
+        --  x < 2^-126
+        if (ix & 0x7fffffff) == 0 then
+            result = -f32.infinity
+            return
+        end if
+        if ix >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+        k = k - 25
+        v = v * 0x1.0p25
+        ix = bits_f32(v)
+    end if
+    if ix >= 0x7f800000 then
+        result = v + v
+        return
+    end if
+    k = k + i32(ix >> 23) - 127
+    ix = ix & 0x007fffff
+    i := (ix + (0x95f64 << 3)) & 0x800000
+    v = from_bits_f32(ix | (i ^ 0x3f800000))
+    k = k + i32(i >> 23)
+    f := v - 1.0
+    ln2_hi: f32 = 6.9313812256e-01
+    ln2_lo: f32 = 9.0580006145e-06
+    if (0x007fffff & (0x8000 + ix)) < 0xc000 then
+        --  -2^-9 <= f < 2^-9
+        if f == 0.0 then
+            if k == 0 then
+                result = 0.0
+            else
+                dk := f32(k)
+                result = dk * ln2_hi + dk * ln2_lo
+            end if
+            return
+        end if
+        poly := f * f * (0.5 - 0.33333333333333333 * f)
+        if k == 0 then
+            result = f - poly
+        else
+            dk := f32(k)
+            result = dk * ln2_hi - ((poly - dk * ln2_lo) - f)
+        end if
+        return
+    end if
+    s := f / (2.0 + f)
+    dk := f32(k)
+    z := s * s
+    i2 := i32(ix) - (0x6147a << 3)
+    w := z * z
+    j := (0x6b851 << 3) - i32(ix)
+    --  Lg1..Lg4: error below 2^-34.24.
+    t1 := w * (0x1.999c26p-2 + w * 0x1.f13c4cp-3)
+    t2 := z * (0x1.555554p-1 + w * 0x1.23d3dcp-2)
+    poly := t2 + t1
+    if (i2 | j) > 0 then
+        hfsq := 0.5 * f * f
+        if k == 0 then
+            result = f - (hfsq - s * (hfsq + poly))
+        else
+            result = dk * ln2_hi - ((hfsq - (s * (hfsq + poly) + dk * ln2_lo)) - f)
+        end if
+    else
+        if k == 0 then
+            result = f - s * (f - poly)
+        else
+            result = dk * ln2_hi - ((s * (f - poly) - dk * ln2_lo) - f)
+        end if
+    end if
+end log_f32
+
+--  log(1 + f) - f + f*f/2 for sqrt(2)/2 - 1 < f < sqrt(2) - 1, which
+--  log2 and log10 add in extra precision: msun's k_log1p.
+log1p_kernel_f64: (f: f64) -> (result: f64) =
+    s := f / (2.0 + f)
+    z := s * s
+    w := z * z
+    t1 := w * (3.999999999940941908e-01
+               + w * (2.222219843214978396e-01 + w * 1.531383769920937332e-01))
+    t2 := z * (6.666666666666735130e-01
+               + w * (2.857142874366239149e-01
+                      + w * (1.818357216161805012e-01 + w * 1.479819860511658591e-01)))
+    poly := t2 + t1
+    hfsq := 0.5 * f * f
+    result = s * (hfsq + poly)
+end log1p_kernel_f64
+
+log1p_kernel_f32: (f: f32) -> (result: f32) =
+    s := f / (2.0 + f)
+    z := s * s
+    w := z * z
+    t1 := w * (0x1.999c26p-2 + w * 0x1.f13c4cp-3)
+    t2 := z * (0x1.555554p-1 + w * 0x1.23d3dcp-2)
+    poly := t2 + t1
+    hfsq := 0.5 * f * f
+    result = s * (hfsq + poly)
+end log1p_kernel_f32
+
+--  The reduction log, log2 and log10 share: x = 2^k * (1 + f) with
+--  sqrt(2)/2 < 1 + f < sqrt(2), for finite positive normal or subnormal
+--  x; the caller has taken out zero, negatives, infinities and NaN.
+reduce_log_f64: (x: f64) -> (k: i32, f: f64) =
+    mut v: f64 = x
+    mut hx: u32 = high_word(x)
+    k = 0
+    if hx < 0x00100000 then
+        k = -54
+        v = v * 0x1.0p54
+        hx = high_word(v)
+    end if
+    k = k + i32(hx >> 20) - 1023
+    hx = hx & 0x000fffff
+    i := (hx + 0x95f64) & 0x100000
+    v = with_high_word(v, hx | (i ^ 0x3ff00000))
+    k = k + i32(i >> 20)
+    f = v - 1.0
+end reduce_log_f64
+
+reduce_log_f32: (x: f32) -> (k: i32, f: f32) =
+    mut v: f32 = x
+    mut hx: u32 = bits_f32(x)
+    k = 0
+    if hx < 0x00800000 then
+        k = -25
+        v = v * 0x1.0p25
+        hx = bits_f32(v)
+    end if
+    k = k + i32(hx >> 23) - 127
+    hx = hx & 0x007fffff
+    i := (hx + 0x4afb0d) & 0x800000
+    v = from_bits_f32(hx | (i ^ 0x3f800000))
+    k = k + i32(i >> 23)
+    f = v - 1.0
+end reduce_log_f32
+
+--  log2(x) = k + log(1 + f)/ln2, with f - f*f/2 split into hi + lo so
+--  that the cancellation near sqrt(2) and sqrt(2)/2 loses nothing, and
+--  k added in extra precision.  Error below one ulp.
+log2_f64: (x: f64) -> (result: f64) =
+    hx := high_word(x)
+    lx := low_word(x)
+    if hx < 0x00100000 or hx >= 0x80000000 then
+        if ((hx & 0x7fffffff) | lx) == 0 then
+            result = -f64.infinity
+            return
+        end if
+        if hx >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+    end if
+    if hx >= 0x7ff00000 then
+        result = x + x
+        return
+    end if
+    if hx == 0x3ff00000 and lx == 0 then
+        result = 0.0
+        return
+    end if
+    (k: k, f: f) := reduce_log_f64(x)
+    y := f64(k)
+    hfsq := 0.5 * f * f
+    r := log1p_kernel_f64(f)
+    hi := with_low_word(f - hfsq, 0)
+    lo := (f - hi) - hfsq + r
+    ivln2hi: f64 = 1.44269504072144627571e+00
+    ivln2lo: f64 = 1.67517131648865118353e-10
+    val_hi := hi * ivln2hi
+    mut val_lo: f64 = (lo + hi) * ivln2lo + lo * ivln2hi
+    w := y + val_hi
+    val_lo = val_lo + ((y - w) + val_hi)
+    result = val_lo + w
+end log2_f64
+
+log2_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    if hx < 0x00800000 or hx >= 0x80000000 then
+        if (hx & 0x7fffffff) == 0 then
+            result = -f32.infinity
+            return
+        end if
+        if hx >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+    end if
+    if hx >= 0x7f800000 then
+        result = x + x
+        return
+    end if
+    if hx == 0x3f800000 then
+        result = 0.0
+        return
+    end if
+    (k: k, f: f) := reduce_log_f32(x)
+    y := f32(k)
+    hfsq := 0.5 * f * f
+    r := log1p_kernel_f32(f)
+    hi := from_bits_f32(bits_f32(f - hfsq) & 0xfffff000)
+    lo := (f - hi) - hfsq + r
+    ivln2hi: f32 = 1.4428710938e+00
+    ivln2lo: f32 = -1.7605285393e-04
+    result = (lo + hi) * ivln2lo + lo * ivln2hi + hi * ivln2hi + y
+end log2_f32
+
+--  log10(x) = k*log10(2) + log(1 + f)/ln10, as log2 computes it.  Error
+--  below one ulp.
+log10_f64: (x: f64) -> (result: f64) =
+    hx := high_word(x)
+    lx := low_word(x)
+    if hx < 0x00100000 or hx >= 0x80000000 then
+        if ((hx & 0x7fffffff) | lx) == 0 then
+            result = -f64.infinity
+            return
+        end if
+        if hx >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+    end if
+    if hx >= 0x7ff00000 then
+        result = x + x
+        return
+    end if
+    if hx == 0x3ff00000 and lx == 0 then
+        result = 0.0
+        return
+    end if
+    (k: k, f: f) := reduce_log_f64(x)
+    y := f64(k)
+    hfsq := 0.5 * f * f
+    r := log1p_kernel_f64(f)
+    hi := with_low_word(f - hfsq, 0)
+    lo := (f - hi) - hfsq + r
+    ivln10hi: f64 = 4.34294481878168880939e-01
+    ivln10lo: f64 = 2.50829467116452752298e-11
+    log10_2hi: f64 = 3.01029995663611771306e-01
+    log10_2lo: f64 = 3.69423907715893078616e-13
+    val_hi := hi * ivln10hi
+    y2 := y * log10_2hi
+    mut val_lo: f64 = y * log10_2lo + (lo + hi) * ivln10lo + lo * ivln10hi
+    w := y2 + val_hi
+    val_lo = val_lo + ((y2 - w) + val_hi)
+    result = val_lo + w
+end log10_f64
+
+log10_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    if hx < 0x00800000 or hx >= 0x80000000 then
+        if (hx & 0x7fffffff) == 0 then
+            result = -f32.infinity
+            return
+        end if
+        if hx >= 0x80000000 then
+            result = (x - x) / 0.0
+            return
+        end if
+    end if
+    if hx >= 0x7f800000 then
+        result = x + x
+        return
+    end if
+    if hx == 0x3f800000 then
+        result = 0.0
+        return
+    end if
+    (k: k, f: f) := reduce_log_f32(x)
+    y := f32(k)
+    hfsq := 0.5 * f * f
+    r := log1p_kernel_f32(f)
+    hi := from_bits_f32(bits_f32(f - hfsq) & 0xfffff000)
+    lo := (f - hi) - hfsq + r
+    ivln10hi: f32 = 4.3432617188e-01
+    ivln10lo: f32 = -3.1689971365e-05
+    log10_2hi: f32 = 3.0102920532e-01
+    log10_2lo: f32 = 7.9034151668e-07
+    result = y * log10_2lo + (lo + hi) * ivln10lo + lo * ivln10hi
+             + hi * ivln10hi + y * log10_2hi
+end log10_f32
+
+--  log1p(x) = log(1 + x): as log, with u = 1 + x = 2^k * (1 + f) and a
+--  correction c = (1 + x - u)/u for the rounding of u, added with the
+--  low part of k*ln2.  Error below one ulp.
+log1p_f64: (x: f64) -> (result: f64) =
+    high := high_word(x)
+    hx := signed_word(high)
+    ax := high & 0x7fffffff
+    ln2_hi: f64 = 6.93147180369123816490e-01
+    ln2_lo: f64 = 1.90821492927058770002e-10
+    mut k: i32 = 1
+    mut f: f64 = 0.0
+    mut c: f64 = 0.0
+    mut hu: u32 = 0
+    if hx < 0x3fda827a then
+        --  1 + x < sqrt(2)+
+        if ax >= 0x3ff00000 then
+            --  x <= -1.0
+            if x == -1.0 then
+                result = -f64.infinity
+            else
+                result = (x - x) / (x - x)
+            end if
+            return
+        end if
+        if ax < 0x3e200000 then
+            --  |x| < 2^-29
+            if ax < 0x3c900000 then
+                result = x
+            else
+                result = x - x * x * 0.5
+            end if
+            return
+        end if
+        if hx > 0 or hx <= signed_word(0xbfd2bec4) then
+            --  sqrt(2)/2- <= 1 + x < sqrt(2)+
+            k = 0
+            f = x
+            hu = 1
+        end if
+    end if
+    if hx >= 0x7ff00000 then
+        result = x + x
+        return
+    end if
+    if k <> 0 then
+        mut u: f64 = 0.0
+        if hx < 0x43400000 then
+            u = 1.0 + x
+            hu = high_word(u)
+            k = i32(hu >> 20) - 1023
+            --  The correction term.
+            c = if k > 0 then 1.0 - (u - x) else x - (u - 1.0) end if
+            c = c / u
+        else
+            u = x
+            hu = high_word(u)
+            k = i32(hu >> 20) - 1023
+            c = 0.0
+        end if
+        hu = hu & 0x000fffff
+        --  The approximation to sqrt(2) here must be stricter than the
+        --  ones above, so that k == 0 is never reached from here.
+        if hu < 0x6a09e then
+            --  Normalize u.
+            u = with_high_word(u, hu | 0x3ff00000)
+        else
+            --  Normalize u/2.
+            k = k + 1
+            u = with_high_word(u, hu | 0x3fe00000)
+            hu = (0x00100000 - hu) >> 2
+        end if
+        f = u - 1.0
+    end if
+    hfsq := 0.5 * f * f
+    dk := f64(k)
+    if hu == 0 then
+        --  |f| < 2^-20
+        if f == 0.0 then
+            if k == 0 then
+                result = 0.0
+            else
+                c = c + dk * ln2_lo
+                result = dk * ln2_hi + c
+            end if
+            return
+        end if
+        poly := hfsq * (1.0 - 0.66666666666666666 * f)
+        if k == 0 then
+            result = f - poly
+        else
+            result = dk * ln2_hi - ((poly - (dk * ln2_lo + c)) - f)
+        end if
+        return
+    end if
+    s := f / (2.0 + f)
+    z := s * s
+    poly := z * (6.666666666666735130e-01
+                 + z * (3.999999999940941908e-01
+                        + z * (2.857142874366239149e-01
+                               + z * (2.222219843214978396e-01
+                                      + z * (1.818357216161805012e-01
+                                             + z * (1.531383769920937332e-01
+                                                    + z * 1.479819860511658591e-01))))))
+    if k == 0 then
+        result = f - (hfsq - s * (hfsq + poly))
+    else
+        result = dk * ln2_hi - ((hfsq - (s * (hfsq + poly) + (dk * ln2_lo + c))) - f)
+    end if
+end log1p_f64
+
+log1p_f32: (x: f32) -> (result: f32) =
+    bits := bits_f32(x)
+    hx := signed_word(bits)
+    ax := bits & 0x7fffffff
+    ln2_hi: f32 = 6.9313812256e-01
+    ln2_lo: f32 = 9.0580006145e-06
+    mut k: i32 = 1
+    mut f: f32 = 0.0
+    mut c: f32 = 0.0
+    mut hu: u32 = 0
+    if hx < 0x3ed413d0 then
+        if ax >= 0x3f800000 then
+            if x == -1.0 then
+                result = -f32.infinity
+            else
+                result = (x - x) / (x - x)
+            end if
+            return
+        end if
+        if ax < 0x38000000 then
+            --  |x| < 2^-15
+            if ax < 0x33800000 then
+                result = x
+            else
+                result = x - x * x * 0.5
+            end if
+            return
+        end if
+        if hx > 0 or hx <= signed_word(0xbe95f619) then
+            k = 0
+            f = x
+            hu = 1
+        end if
+    end if
+    if hx >= 0x7f800000 then
+        result = x + x
+        return
+    end if
+    if k <> 0 then
+        mut u: f32 = 0.0
+        if hx < 0x5a000000 then
+            u = 1.0 + x
+            hu = bits_f32(u)
+            k = i32(hu >> 23) - 127
+            c = if k > 0 then 1.0 - (u - x) else x - (u - 1.0) end if
+            c = c / u
+        else
+            u = x
+            hu = bits_f32(u)
+            k = i32(hu >> 23) - 127
+            c = 0.0
+        end if
+        hu = hu & 0x007fffff
+        if hu < 0x3504f4 then
+            u = from_bits_f32(hu | 0x3f800000)
+        else
+            k = k + 1
+            u = from_bits_f32(hu | 0x3f000000)
+            hu = (0x00800000 - hu) >> 2
+        end if
+        f = u - 1.0
+    end if
+    hfsq := 0.5 * f * f
+    dk := f32(k)
+    if hu == 0 then
+        if f == 0.0 then
+            if k == 0 then
+                result = 0.0
+            else
+                c = c + dk * ln2_lo
+                result = dk * ln2_hi + c
+            end if
+            return
+        end if
+        poly := hfsq * (1.0 - 0.66666666666666666 * f)
+        if k == 0 then
+            result = f - poly
+        else
+            result = dk * ln2_hi - ((poly - (dk * ln2_lo + c)) - f)
+        end if
+        return
+    end if
+    s := f / (2.0 + f)
+    z := s * s
+    poly := z * (6.6666668653e-01
+                 + z * (4.0000000596e-01
+                        + z * (2.8571429849e-01
+                               + z * (2.2222198546e-01
+                                      + z * (1.8183572590e-01
+                                             + z * (1.5313838422e-01
+                                                    + z * 1.4798198640e-01))))))
+    if k == 0 then
+        result = f - (hfsq - s * (hfsq + poly))
+    else
+        result = dk * ln2_hi - ((hfsq - (s * (hfsq + poly) + (dk * ln2_lo + c))) - f)
+    end if
+end log1p_f32
+
+--  x^y = 2^(y*log2(x)): log2(x) is computed to about 64 bits as t1 + t2
+--  from log((1 + s)/(1 - s)) = 2s + 2/3 s^3 + ... with
+--  s = (x - 1)/(x + 1) or (x - 1.5)/(x + 1.5), y*log2(x) as p_h + p_l,
+--  then 2^(p_h + p_l) as exp computes it.  The special cases are C99
+--  Annex F's.  Error below one ulp.
+pow_f64: (x: f64, y: f64) -> (result: f64) =
+    hx := high_word(x)
+    lx := low_word(x)
+    hy := high_word(y)
+    ly := low_word(y)
+    x_negative := hx >= 0x80000000
+    y_negative := hy >= 0x80000000
+    mut ix: u32 = hx & 0x7fffffff
+    iy := hy & 0x7fffffff
+    --  x^0 = 1, and 1^y = 1 even for a NaN y.
+    if (iy | ly) == 0 or (hx == 0x3ff00000 and lx == 0) then
+        result = 1.0
+        return
+    end if
+    if ix > 0x7ff00000 or (ix == 0x7ff00000 and lx <> 0)
+      or iy > 0x7ff00000 or (iy == 0x7ff00000 and ly <> 0) then
+        result = x + y
+        return
+    end if
+    --  For a negative x, whether y is an odd integer (1), an even one
+    --  (2) or not an integer (0).
+    mut yisint: i32 = 0
+    if x_negative then
+        if iy >= 0x43400000 then
+            yisint = 2
+        elsif iy >= 0x3ff00000 then
+            e := (iy >> 20) - 0x3ff
+            if e > 20 then
+                j := ly >> (52 - e)
+                if j << (52 - e) == ly then
+                    yisint = 2 - i32(j & 1)
+                end if
+            elsif ly == 0 then
+                j := iy >> (20 - e)
+                if j << (20 - e) == iy then
+                    yisint = 2 - i32(j & 1)
+                end if
+            end if
+        end if
+    end if
+    if ly == 0 then
+        if iy == 0x7ff00000 then
+            --  y is +-inf.
+            if ((ix -% 0x3ff00000) | lx) == 0 then
+                result = 1.0
+            elsif ix >= 0x3ff00000 then
+                result = if y_negative then 0.0 else y end if
+            else
+                result = if y_negative then -y else 0.0 end if
+            end if
+            return
+        end if
+        if iy == 0x3ff00000 then
+            result = if y_negative then 1.0 / x else x end if
+            return
+        end if
+        if hy == 0x40000000 then
+            result = x * x
+            return
+        end if
+        if hy == 0x3fe00000 and x_negative == false then
+            result = sqrt_f64(x)
+            return
+        end if
+    end if
+    mut ax: f64 = abs_f64(x)
+    if lx == 0 and (ix == 0x7ff00000 or ix == 0 or ix == 0x3ff00000) then
+        --  x is +-0, +-inf or +-1.
+        mut z: f64 = ax
+        if y_negative then
+            z = 1.0 / z
+        end if
+        if x_negative then
+            if ix == 0x3ff00000 and yisint == 0 then
+                z = (z - z) / (z - z)
+            elsif yisint == 1 then
+                z = -z
+            end if
+        end if
+        result = z
+        return
+    end if
+    if x_negative and yisint == 0 then
+        result = (x - x) / (x - x)
+        return
+    end if
+    --  The sign of the result.
+    s: f64 = if x_negative and yisint == 1 then -1.0 else 1.0 end if
+    mut t1: f64 = 0.0
+    mut t2: f64 = 0.0
+    if iy > 0x41e00000 then
+        --  |y| > 2^31
+        if iy > 0x43f00000 then
+            --  |y| > 2^64 must overflow or underflow.
+            if ix <= 0x3fefffff then
+                result = if y_negative then f64.infinity else 0.0 end if
+                return
+            end if
+            if ix >= 0x3ff00000 then
+                result = if y_negative then 0.0 else f64.infinity end if
+                return
+            end if
+        end if
+        --  Over- or underflow if x is not close to one.
+        if ix < 0x3fefffff then
+            result = if y_negative then s * f64.infinity else s * 0.0 end if
+            return
+        end if
+        if ix > 0x3ff00000 then
+            result = if y_negative then s * 0.0 else s * f64.infinity end if
+            return
+        end if
+        --  |1 - x| <= 2^-20: log(x) is x - x^2/2 + x^3/3 - x^4/4.
+        t := ax - 1.0
+        w := (t * t) * (0.5 - t * (3.3333333333333331e-01 - t * 0.25))
+        --  ivln2_h has 21 significant bits.
+        u := 1.44269502162933349609e+00 * t
+        v := t * 1.92596299112661746887e-08 - w * 1.44269504088896338700e+00
+        t1 = with_low_word(u + v, 0)
+        t2 = v - (t1 - u)
+    else
+        mut n: i32 = 0
+        if ix < 0x00100000 then
+            --  Subnormal x.
+            ax = ax * 9007199254740992.0
+            n = n - 53
+            ix = high_word(ax)
+        end if
+        n = n + i32(ix >> 20) - 0x3ff
+        j := ix & 0x000fffff
+        --  Normalize ix, and choose the interval.
+        ix = j | 0x3ff00000
+        mut k: u32 = 0
+        if j <= 0x3988e then
+            --  |x| < sqrt(3/2)
+            k = 0
+        elsif j < 0xbb67a then
+            --  |x| < sqrt(3)
+            k = 1
+        else
+            k = 0
+            n = n + 1
+            ix = ix - 0x00100000
+        end if
+        ax = with_high_word(ax, ix)
+        bp: f64 = if k == 1 then 1.5 else 1.0 end if
+        dp_h: f64 = if k == 1 then 5.84962487220764160156e-01 else 0.0 end if
+        dp_l: f64 = if k == 1 then 1.35003920212974897128e-08 else 0.0 end if
+        --  ss = s_h + s_l = (x - 1)/(x + 1) or (x - 1.5)/(x + 1.5).
+        u := ax - bp
+        v := 1.0 / (ax + bp)
+        ss := u * v
+        s_h := with_low_word(ss, 0)
+        --  t_h = ax + bp, high part.
+        t_h := from_words(((ix >> 1) | 0x20000000) + 0x00080000 + (k << 18), 0)
+        t_l := ax - (t_h - bp)
+        s_l := v * ((u - s_h * t_h) - s_h * t_l)
+        --  log(ax)
+        mut s2: f64 = ss * ss
+        mut r: f64 = s2 * s2 * (5.99999999999994648725e-01
+                                + s2 * (4.28571428578550184252e-01
+                                        + s2 * (3.33333329818377432918e-01
+                                                + s2 * (2.72728123808534006489e-01
+                                                        + s2 * (2.30660745775561754067e-01
+                                                                + s2 * 2.06975017800338417784e-01)))))
+        r = r + s_l * (s_h + ss)
+        s2 = s_h * s_h
+        th := with_low_word(3.0 + s2 + r, 0)
+        tl := r - ((th - 3.0) - s2)
+        --  u2 + v2 = ss*(1 + ...)
+        u2 := s_h * th
+        v2 := s_l * th + tl * ss
+        --  2/(3 log2) * (ss + ...)
+        p_h := with_low_word(u2 + v2, 0)
+        p_l := v2 - (p_h - u2)
+        --  cp_h + cp_l = 2/(3 log2)
+        z_h := 9.61796700954437255859e-01 * p_h
+        z_l := -7.02846165095275826516e-09 * p_h + p_l * 9.61796693925975554329e-01 + dp_l
+        --  log2(ax) = (ss + ...)*2/(3 log2) = n + dp_h + z_h + z_l
+        t := f64(n)
+        t1 = with_low_word(((z_h + z_l) + dp_h) + t, 0)
+        t2 = z_l - (((t1 - t) - dp_h) - z_h)
+    end if
+    --  Split y into y1 + y2 and compute (y1 + y2)*(t1 + t2).
+    y1 := with_low_word(y, 0)
+    p_l := (y - y1) * t1 + y * t2
+    mut p_h: f64 = y1 * t1
+    mut z: f64 = p_l + p_h
+    j := high_word(z)
+    i := low_word(z)
+    js := signed_word(j)
+    if js >= 0x40900000 then
+        --  z >= 1024
+        if ((j - 0x40900000) | i) <> 0 or p_l + 8.0085662595372944372e-17 > z - p_h then
+            result = s * f64.infinity
+            return
+        end if
+    elsif (j & 0x7fffffff) >= 0x4090cc00 then
+        --  z <= -1075
+        if ((j - 0xc090cc00) | i) <> 0 or p_l <= z - p_h then
+            result = s * 0.0
+            return
+        end if
+    end if
+    --  2^(p_h + p_l)
+    magnitude := j & 0x7fffffff
+    mut k: i32 = i32(magnitude >> 20) - 0x3ff
+    mut n: i32 = 0
+    if magnitude > 0x3fe00000 then
+        --  |z| > 0.5: n = [z + 0.5]
+        nn := j + (0x00100000 >> u32(k + 1))
+        k = i32((nn & 0x7fffffff) >> 20) - 0x3ff
+        t := from_words(nn & ~(0x000fffff >> u32(k)), 0)
+        n = i32(((nn & 0x000fffff) | 0x00100000) >> u32(20 - k))
+        if js < 0 then
+            n = -n
+        end if
+        p_h = p_h - t
+    end if
+    t := with_low_word(p_l + p_h, 0)
+    u := t * 6.93147182464599609375e-01
+    v := (p_l - (t - p_h)) * 6.93147180559945286227e-01 + t * -1.90465429995776804525e-09
+    z = u + v
+    w := v - (z - u)
+    tt := z * z
+    t1e := z - tt * (1.66666666666666019037e-01
+                     + tt * (-2.77777777770155933842e-03
+                             + tt * (6.61375632143793436117e-05
+                                     + tt * (-1.65339022054652515390e-06
+                                             + tt * 4.13813679705723846039e-08))))
+    r := (z * t1e) / (t1e - 2.0) - (w + z * w)
+    z = 1.0 - (r - z)
+    --  z's sign bit is clear; the sign of the sum is that of its biased
+    --  exponent.
+    high := high_word(z) +% (unsigned_word(n) << 20)
+    if signed_word(high) >> 20 <= 0 then
+        --  A subnormal result.
+        z = scale_f64(z, n)
+    else
+        z = with_high_word(z, high)
+    end if
+    result = s * z
+end pow_f64
+
+pow_f32: (x: f32, y: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    hy := bits_f32(y)
+    x_negative := hx >= 0x80000000
+    y_negative := hy >= 0x80000000
+    mut ix: u32 = hx & 0x7fffffff
+    iy := hy & 0x7fffffff
+    huge: f32 = 1.0e30
+    tiny: f32 = 1.0e-30
+    if iy == 0 or hx == 0x3f800000 then
+        result = 1.0
+        return
+    end if
+    if ix > 0x7f800000 or iy > 0x7f800000 then
+        result = x + y
+        return
+    end if
+    mut yisint: i32 = 0
+    if x_negative then
+        if iy >= 0x4b800000 then
+            yisint = 2
+        elsif iy >= 0x3f800000 then
+            e := (iy >> 23) - 0x7f
+            j := iy >> (23 - e)
+            if j << (23 - e) == iy then
+                yisint = 2 - i32(j & 1)
+            end if
+        end if
+    end if
+    if iy == 0x7f800000 then
+        if ix == 0x3f800000 then
+            result = 1.0
+        elsif ix > 0x3f800000 then
+            result = if y_negative then 0.0 else y end if
+        else
+            result = if y_negative then -y else 0.0 end if
+        end if
+        return
+    end if
+    if iy == 0x3f800000 then
+        result = if y_negative then 1.0 / x else x end if
+        return
+    end if
+    if hy == 0x40000000 then
+        result = x * x
+        return
+    end if
+    if hy == 0x3f000000 and x_negative == false then
+        result = sqrt_f32(x)
+        return
+    end if
+    mut ax: f32 = abs_f32(x)
+    if ix == 0x7f800000 or ix == 0 or ix == 0x3f800000 then
+        mut z: f32 = ax
+        if y_negative then
+            z = 1.0 / z
+        end if
+        if x_negative then
+            if ix == 0x3f800000 and yisint == 0 then
+                z = (z - z) / (z - z)
+            elsif yisint == 1 then
+                z = -z
+            end if
+        end if
+        result = z
+        return
+    end if
+    if x_negative and yisint == 0 then
+        result = (x - x) / (x - x)
+        return
+    end if
+    sn: f32 = if x_negative and yisint == 1 then -1.0 else 1.0 end if
+    mut t1: f32 = 0.0
+    mut t2: f32 = 0.0
+    if iy > 0x4d000000 then
+        --  |y| > 2^27: over- or underflow if x is not close to one.
+        if ix < 0x3f7ffff6 then
+            result = if y_negative then sn * huge * huge else sn * tiny * tiny end if
+            return
+        end if
+        if ix > 0x3f800007 then
+            result = if y_negative then sn * tiny * tiny else sn * huge * huge end if
+            return
+        end if
+        t := ax - 1.0
+        w := (t * t) * (0.5 - t * (3.33333343e-01 - t * 0.25))
+        --  ivln2_h has 16 significant bits.
+        u := 1.4426879883e+00 * t
+        v := t * 7.0526075433e-06 - w * 1.4426950216e+00
+        t1 = from_bits_f32(bits_f32(u + v) & 0xfffff000)
+        t2 = v - (t1 - u)
+    else
+        mut n: i32 = 0
+        if ix < 0x00800000 then
+            ax = ax * 16777216.0
+            n = n - 24
+            ix = bits_f32(ax)
+        end if
+        n = n + i32(ix >> 23) - 0x7f
+        j := ix & 0x007fffff
+        ix = j | 0x3f800000
+        mut k: u32 = 0
+        if j <= 0x1cc471 then
+            k = 0
+        elsif j < 0x5db3d7 then
+            k = 1
+        else
+            k = 0
+            n = n + 1
+            ix = ix - 0x00800000
+        end if
+        ax = from_bits_f32(ix)
+        bp: f32 = if k == 1 then 1.5 else 1.0 end if
+        dp_h: f32 = if k == 1 then 5.84960938e-01 else 0.0 end if
+        dp_l: f32 = if k == 1 then 1.56322085e-06 else 0.0 end if
+        u := ax - bp
+        v := 1.0 / (ax + bp)
+        ss := u * v
+        s_h := from_bits_f32(bits_f32(ss) & 0xfffff000)
+        t_h := from_bits_f32((((ix >> 1) & 0xfffff000) | 0x20000000) + 0x00400000 + (k << 21))
+        t_l := ax - (t_h - bp)
+        s_l := v * ((u - s_h * t_h) - s_h * t_l)
+        mut s2: f32 = ss * ss
+        mut r: f32 = s2 * s2 * (6.0000002384e-01
+                                + s2 * (4.2857143283e-01
+                                        + s2 * (3.3333334327e-01
+                                                + s2 * (2.7272811532e-01
+                                                        + s2 * (2.3066075146e-01
+                                                                + s2 * 2.0697501302e-01)))))
+        r = r + s_l * (s_h + ss)
+        s2 = s_h * s_h
+        th := from_bits_f32(bits_f32(3.0 + s2 + r) & 0xfffff000)
+        tl := r - ((th - 3.0) - s2)
+        u2 := s_h * th
+        v2 := s_l * th + tl * ss
+        p_h := from_bits_f32(bits_f32(u2 + v2) & 0xfffff000)
+        p_l := v2 - (p_h - u2)
+        z_h := 9.6191406250e-01 * p_h
+        z_l := -1.1736857402e-04 * p_h + p_l * 9.6179670095e-01 + dp_l
+        t := f32(n)
+        t1 = from_bits_f32(bits_f32(((z_h + z_l) + dp_h) + t) & 0xfffff000)
+        t2 = z_l - (((t1 - t) - dp_h) - z_h)
+    end if
+    y1 := from_bits_f32(hy & 0xfffff000)
+    p_l := (y - y1) * t1 + y * t2
+    mut p_h: f32 = y1 * t1
+    mut z: f32 = p_l + p_h
+    j := bits_f32(z)
+    js := signed_word(j)
+    if js > 0x43000000 then
+        --  z > 128
+        result = sn * huge * huge
+        return
+    elsif js == 0x43000000 then
+        if p_l + 4.2995665694e-08 > z - p_h then
+            result = sn * huge * huge
+            return
+        end if
+    elsif (j & 0x7fffffff) > 0x43160000 then
+        --  z < -150
+        result = sn * tiny * tiny
+        return
+    elsif j == 0xc3160000 then
+        if p_l <= z - p_h then
+            result = sn * tiny * tiny
+            return
+        end if
+    end if
+    magnitude := j & 0x7fffffff
+    mut k: i32 = i32(magnitude >> 23) - 0x7f
+    mut n: i32 = 0
+    if magnitude > 0x3f000000 then
+        nn := j + (0x00800000 >> u32(k + 1))
+        k = i32((nn & 0x7fffffff) >> 23) - 0x7f
+        t := from_bits_f32(nn & ~(0x007fffff >> u32(k)))
+        n = i32(((nn & 0x007fffff) | 0x00800000) >> u32(23 - k))
+        if js < 0 then
+            n = -n
+        end if
+        p_h = p_h - t
+    end if
+    t := from_bits_f32(bits_f32(p_l + p_h) & 0xffff8000)
+    u := t * 6.93145752e-01
+    v := (p_l - (t - p_h)) * 6.9314718246e-01 + t * 1.42860654e-06
+    z = u + v
+    w := v - (z - u)
+    tt := z * z
+    t1e := z - tt * (1.6666667163e-01
+                     + tt * (-2.7777778450e-03
+                             + tt * (6.6137559770e-05
+                                     + tt * (-1.6533901999e-06
+                                             + tt * 4.1381369442e-08))))
+    r := (z * t1e) / (t1e - 2.0) - (w + z * w)
+    z = 1.0 - (r - z)
+    high := bits_f32(z) +% (unsigned_word(n) << 23)
+    if signed_word(high) >> 23 <= 0 then
+        z = scale_f32(z, n)
+    else
+        z = from_bits_f32(high)
+    end if
+    result = sn * z
+end pow_f32

@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: the great-circle distances of three pairs of places by the haversine formula, through core/math's sine, cosine, arcsine and square root, printed to a tenth of a kilometre
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0170, 0290, 0670, 0710, 1150
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
