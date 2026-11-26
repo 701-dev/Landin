@@ -16,22 +16,22 @@ case_holds: (index: usize) -> (yes: bool) =
     yes = false
     row: []u32 = case_table[index * 8..<index * 8 + 8]
     pattern := text.from_bytes(case_texts[usize(row[0])..<usize(row[1])])
-      else begin
-        return
-    end
+        else begin
+            return
+        end
     haystack := text.from_bytes(case_texts[usize(row[2])..<usize(row[3])])
-      else begin
-        return
-    end
+        else begin
+            return
+        end
     flags: u32 = row[4]
     memory := heap.new()
     mut settings: regex.options = regex.defaults()
     if flags & 1 <> 0 then settings = regex.with_anchored(settings) end if
     mut expression := regex.compile_with(memory, pattern, settings)
-      else begin
-        yes = flags & 2 <> 0
-        return
-    end
+        else begin
+            yes = flags & 2 <> 0
+            return
+        end
     defer regex.release(expression, memory)
     return when flags & 2 <> 0
     mut at := regex.walk_start()
@@ -56,7 +56,7 @@ case_holds: (index: usize) -> (yes: bool) =
     end for
     if flags & 4 == 0 then
         extra := regex.next_match(expression, haystack, at, false)
-          else (problem)
+            else (problem)
             _ = problem
             yes = true
             return

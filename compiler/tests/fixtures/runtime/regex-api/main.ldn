@@ -14,7 +14,7 @@ refused: (pattern: utf8, settings: regex.options,
     yes = false
     memory := heap.new()
     mut compiled := regex.compile_with(memory, pattern, settings)
-      else (problem)
+        else (problem)
         yes = problem == expected
         return
     end
@@ -56,7 +56,7 @@ replaces: (pattern: utf8, haystack: utf8, template: utf8, expected: utf8,
     mut out := text.growing(any(addr memory))
     defer text.release(out)
     replaced: usize = regex.replace_all(compiled, haystack, template, out)
-      else 0
+        else 0
     yes = replaced == count and text.equal(utf8(text.used(out)), expected)
 end replaces
 
@@ -87,9 +87,9 @@ searches_hold: () -> (yes: bool) =
     return when not regex.is_match(words, haystack)
     second := regex.find_at(words, haystack,
                             text.from_offset(text.bytes(haystack), 7))
-      else begin
-        return
-    end
+        else begin
+            return
+        end
     return when text.offset(second.begins) <> 7
       or text.offset(second.ends) <> 12
     mut count: usize = 0
@@ -100,9 +100,9 @@ searches_hold: () -> (yes: bool) =
     return when count <> 2
     mut anchored := regex.compile_with(memory, "[a-z]",
                                        regex.with_anchored(regex.defaults()))
-      else begin
-        return
-    end
+        else begin
+            return
+        end
     defer regex.release(anchored, memory)
     mut runs: usize = 0
     for found in regex.matches(addr anchored, "abc1d") do

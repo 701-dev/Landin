@@ -97,8 +97,8 @@ compile_program: (provider: type is mem.allocator, inout code: program,
                   memory: provider, tree: hir, reverse: bool, limit: usize)
                  -> none ! build_failure =
     mut c: builder = (reverse: reverse, captures: not reverse, limit: limit,
-                       sequences: vec.new(item: byte_sequence),
-                       cache: vec.new(item: u32), pending: vec.new(item: edge))
+                      sequences: vec.new(item: byte_sequence),
+                      cache: vec.new(item: u32), pending: vec.new(item: edge))
     defer vec.release(c.sequences, memory)
     defer vec.release(c.pending, memory)
     defer vec.release(c.cache, memory)

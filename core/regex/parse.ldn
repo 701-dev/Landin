@@ -238,7 +238,7 @@ parse_atom: (provider: type is mem.allocator, inout p: parser,
     byte: u8 = peek(p)
     if byte == u8('(') then
         (node: grouped, present: atom_present) := try parse_group(p, tree,
-                                                                 memory)
+                                                                  memory)
         node = grouped
         present = atom_present
     elsif byte == u8('[') then
@@ -424,7 +424,7 @@ named_group: (provider: type is mem.allocator, inout p: parser,
     name: []u8 = p.bytes[begins..<p.at]
     for held in vec.used(tree.names) do
         fail invalid_pattern
-          when same_bytes(p.bytes[usize(held.begins)..<usize(held.ends)], name)
+            when same_bytes(p.bytes[usize(held.begins)..<usize(held.ends)], name)
     end for
     inc p.at
     group = tree.groups
@@ -439,7 +439,7 @@ end named_group
 --  beyond ASCII, and after the first also a digit, `.`, `[` or `]`.
 name_byte: (byte: u8, first: bool) -> (yes: bool) =
     yes = byte >= u8('a') and byte <= u8('z') or byte >= u8('A')
-          and byte <= u8('Z') or byte == u8('_') or byte >= 0x80
+                                                 and byte <= u8('Z') or byte == u8('_') or byte >= 0x80
     return when yes or first
     yes = is_digit(byte) or byte == u8('.') or byte == u8('[')
           or byte == u8(']')
@@ -777,7 +777,7 @@ parse_set_union: (provider: type is mem.allocator, inout p: parser,
                                   or at_operator(p, u8('~'))
                                   or at_operator(p, u8('-')))
         if byte == u8('[') and not first or byte == u8('[')
-          and peek_at(p, 1) == u8(':') then
+                                            and peek_at(p, 1) == u8(':') then
             if peek_at(p, 1) == u8(':') then
                 found: bool = try parse_posix(p, memory, set)
                 if found then

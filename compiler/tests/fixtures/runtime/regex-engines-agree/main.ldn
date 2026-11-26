@@ -130,12 +130,12 @@ check_pattern: (provider: type is mem.allocator, memory: provider,
         reference_settings = regex.with_anchored(reference_settings)
     end if
     mut reference := regex.compile_with(memory, pattern, reference_settings)
-      else (problem)
+        else (problem)
         _ = problem
         for which in engines do
             settings := regex.with_engine(regex.defaults(), which)
             mut other := regex.compile_with(memory, pattern, settings)
-              else (other_problem)
+                else (other_problem)
                 _ = other_problem
                 continue
             end
@@ -208,16 +208,16 @@ check_crowded: (provider: type is mem.allocator, memory: provider,
                                                     regex.pike_vm)
             mut reference := regex.compile_with(memory, pattern,
                                                 reference_settings) else begin
-                inc seen.failures
-                return
-            end
+                                                    inc seen.failures
+                                                    return
+                                                end
             defer regex.release(reference, memory)
             settings := regex.with_cache_size(regex.defaults(), 24 * 1024)
             mut other := regex.compile_with(memory, pattern, settings)
-              else begin
-                inc seen.failures
-                return
-            end
+                else begin
+                    inc seen.failures
+                    return
+                end
             defer regex.release(other, memory)
             mut want: [1024]usize = zeroed
             mut got: [1024]usize = zeroed

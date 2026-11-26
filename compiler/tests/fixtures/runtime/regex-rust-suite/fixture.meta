@@ -2,7 +2,6 @@ class: runtime
 profiles: standard
 summary: core/regex passes the cases of Rust's regex crate's test suite it can state, every match with its groups, as scripts/regex_tests.py takes them from the pinned crate
 program: main.ldn
-with: cases.ldn
 root: ../../../../..
 status: 42
 targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

@@ -277,7 +277,7 @@ look_holds: (kind: u8, source: unicode_source, bytes: []u8, at: usize)
     elsif kind == look_start_line_crlf then
         yes = at == 0 or bytes[at - 1] == u8('\n')
               or bytes[at - 1] == u8('\r')
-              and (at >= count or bytes[at] <> u8('\n'))
+                 and (at >= count or bytes[at] <> u8('\n'))
     elsif kind == look_end_line_crlf then
         yes = at >= count or bytes[at] == u8('\r')
               or bytes[at] == u8('\n') and (at == 0 or bytes[at - 1] <> u8('\r'))

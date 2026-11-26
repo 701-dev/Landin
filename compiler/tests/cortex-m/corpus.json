@@ -3562,6 +3562,9 @@
     "runtime/library-shared-random": {
       "mode": "execute"
     },
+    "runtime/library-shared-regex": {
+      "mode": "execute"
+    },
     "runtime/library-shared-region": {
       "mode": "execute"
     },
@@ -5330,6 +5333,27 @@
     "runtime/reference-place-updates": {
       "mode": "execute"
     },
+    "runtime/regex-api": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-engines-agree": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/regex-linear-time": {
+      "mode": "execute"
+    },
+    "runtime/regex-rust-suite": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/region-beside-parent": {
       "mode": "execute"
     },
@@ -5937,6 +5961,9 @@
       "reason": "It holds the source column of 3,017 lines of NormalizationTest.txt and reads all four forms' tables: the image is 91,200 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 58,432, so no profile executes it there; this image limit is not runtime evidence."
     },
     "runtime/unicode-properties": {
+      "mode": "execute"
+    },
+    "runtime/unicode-runs": {
       "mode": "execute"
     },
     "runtime/unicode-sentences": {

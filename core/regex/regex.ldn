@@ -310,7 +310,7 @@ public find_at: (inout expression: regex, haystack: utf8,
                  start_at: text.position) -> (found: span) ! mem.not_found =
     bytes: []u8 = text.bytes(haystack)
     fail mem.not_found
-      when not search(expression, bytes, text.offset(start_at), 2, false)
+        when not search(expression, bytes, text.offset(start_at), 2, false)
     found = found_span(expression, bytes)
 end find_at
 
@@ -321,8 +321,8 @@ public captures_at: (inout expression: regex, haystack: utf8,
                      start_at: text.position) -> (found: span) ! mem.not_found =
     bytes: []u8 = text.bytes(haystack)
     fail mem.not_found
-      when not search(expression, bytes, text.offset(start_at),
-                      expression.pike.slot_count, false)
+        when not search(expression, bytes, text.offset(start_at),
+                        expression.pike.slot_count, false)
     found = found_span(expression, bytes)
 end captures_at
 
@@ -378,11 +378,11 @@ search: (inout expression: regex, bytes: []u8, origin: usize,
     end if
     if expression.engine <> pike_vm then
         (outcome: ahead, ends: ends) := dfa_forward(expression.forward_dfa,
-                                                     expression.forward,
-                                                     expression.literals,
-                                                     bytes, start,
-                                                     expression.anchored,
-                                                     earliest)
+                                                    expression.forward,
+                                                    expression.literals,
+                                                    bytes, start,
+                                                    expression.anchored,
+                                                    earliest)
         return when ahead == dfa_none
         if ahead == dfa_found then
             matched = true
@@ -631,7 +631,7 @@ expand: (expression: regex, bytes: []u8, template: []u8,
             nowhere: span = (begins: text.nowhere, ends: text.nowhere)
             piece: span = (group(expression, index) else nowhere)
             try text.append(into, bytes[text.offset(piece.begins)..<text.offset(
-                                        piece.ends)])
+                piece.ends)])
         end if
         at = last + closing
     end while
