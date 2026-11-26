@@ -1,0 +1,37 @@
+--  D2120: two u32 elements widened to u64 and added, in a loop after a
+--  call and before a second loop.  Each widening is made where the sum
+--  reads it, so each element's home must stay its own until then; at
+--  armv7-m size/auto the first one's home went to the second and the sum
+--  was the second element twice.
+import core/panic
+
+add: (into: []mut u32, left: []u32, right: []u32) -> (carry: u32) =
+    long: usize = if lenof left >= lenof right then lenof left
+                  else lenof right end if
+    short: usize = if lenof left >= lenof right then lenof right
+                   else lenof left end if
+    panic.require(lenof into >= long)
+    mut sum: u64 = 0
+    unchecked begin
+        for at in usize(0)..<short do
+            sum = u64(left[at]) + u64(right[at]) + (sum >> 32)
+            into[at] = u32(sum & 0xffffffff)
+        end for
+        if lenof left >= lenof right then
+            for at in short..<long do
+                sum = u64(left[at]) + (sum >> 32)
+                into[at] = u32(sum & 0xffffffff)
+            end for
+        end if
+    end unchecked
+    carry = u32(sum >> 32)
+end add
+
+public main: () -> (code: i32) =
+    left: [2]u32 = [0x1c3cd9c3, 7]
+    right: [1]u32 = [0xffffffff]
+    mut sum: [2]u32 = zeroed
+    carry: u32 = add(sum[0..<2], left[0..<2], right[0..<1])
+    code = if sum[0] == 0x1c3cd9c2 and sum[1] == 8 and carry == 0 then 42
+           else 1 end if
+end main

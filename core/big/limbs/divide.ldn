@@ -1,0 +1,79 @@
+--  Division with remainder by Knuth's Algorithm D (The Art of Computer
+--  Programming, volume 2, section 4.3.1): the divisor is shifted until its
+--  top bit is set, and each quotient limb is estimated from the top two
+--  limbs of what remains and the top two of the divisor, which leaves it
+--  at most one too large, corrected by adding the divisor back.
+
+import core/panic
+
+--- The length of scratch `divide` needs for a numerator of `numerator`
+--- limbs and a divisor of `divisor` limbs: one limb more than both.
+public divide_scratch: (numerator: usize, divisor: usize) -> (slots: usize) =
+    slots = numerator + divisor + 1
+end divide_scratch
+
+--- Divide `numerator` by `divisor`, whose highest limb is not zero and
+--- which is no longer than `numerator`: write the quotient into
+--- `quotient`'s first `lenof numerator - lenof divisor + 1` limbs and the
+--- remainder into `remainder`'s first `lenof divisor`, taking room from
+--- `scratch`, at least `divide_scratch(lenof numerator, lenof divisor)`
+--- long.  Neither result overlaps an operand, the scratch or the other.
+public divide: (quotient: []mut u32, remainder: []mut u32,
+                numerator: []u32, divisor: []u32, scratch: []mut u32)
+               -> none =
+    count: usize = lenof divisor
+    length: usize = lenof numerator
+    panic.require(count > 0 and length >= count)
+    panic.require(divisor[count - 1] <> 0)
+    panic.require(lenof quotient >= length - count + 1
+                  and lenof remainder >= count)
+    panic.require(lenof scratch >= divide_scratch(length, count))
+    if count == 1 then
+        remainder[0] = divide_limb(quotient[0..<length], numerator,
+                                   divisor[0])
+        return
+    end if
+    shift: u32 = leading_zeros(divisor[count - 1])
+    rest: []mut u32 = scratch[0..<length + 1]
+    by: []mut u32 = scratch[length + 1..<length + 1 + count]
+    out := shift_left(by, divisor, shift)
+    _ = out
+    rest[length] = shift_left(rest[0..<length], numerator, shift)
+    top: u64 = u64(by[count - 1])
+    next: u64 = u64(by[count - 2])
+    mut at: usize = length - count + 1
+    while at > 0 do
+        dec at
+        mut estimate: u64 = 0
+        mut left: u64 = 0
+        unchecked begin
+            --  Indices stay below `length + 1`; the top limb of what
+            --  remains is at most the divisor's, so the estimate is below
+            --  2^32 + 2 and each product fits a `u64`.
+            high: u64 = (u64(rest[at + count]) << 32) | u64(rest[at + count - 1])
+            estimate = high / top
+            left = high - estimate * top
+            below: u64 = u64(rest[at + count - 2])
+            while estimate > 0xffffffff
+              or estimate * next > ((left << 32) | below) do
+                estimate = estimate - 1
+                left = left + top
+                break when left > 0xffffffff
+            end while
+        end unchecked
+        window: []mut u32 = rest[at..<at + count]
+        borrow: u32 = subtract_multiply_limb(window, by, u32(estimate))
+        have: u32 = rest[at + count]
+        if have < borrow then
+            --  One too large: the divisor goes back once.
+            estimate = estimate - 1
+            carry := add(window, window, by)
+            rest[at + count] = (have -% borrow) +% carry
+        else
+            rest[at + count] = have - borrow
+        end if
+        quotient[at] = u32(estimate)
+    end while
+    back := shift_right(remainder[0..<count], rest[0..<count], shift)
+    _ = back
+end divide

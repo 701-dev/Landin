@@ -1,0 +1,423 @@
+--  Integers and rationals of any size, grown through the caller's
+--  allocator: the upper of `core/big`'s two layers, over the limbs of
+--  `core/big/limbs`.  A value is a handle to a block of limbs and a sign;
+--  every routine that makes one writes it into a destination the caller
+--  passes `inout`, growing its block as it needs to, so a loop that keeps
+--  computing into the same values allocates only while they grow.  A
+--  destination may be one of the operands.  Each value's block is given
+--  back with `release`.
+
+import core/big/limbs
+import core/cmp
+import core/mem
+import core/panic
+
+integer_value: type = struct
+    --  The whole block: its length is the capacity.
+    limbs: []mut u32
+    --  The limbs of the magnitude, high zero limbs left out.
+    length: usize
+    --  Never true of zero.
+    negative: bool
+end integer_value
+
+--- A signed integer of any size: a handle to limbs the allocator gave and
+--- a sign.  Assigning one copies the handle, not the number, so two
+--- bindings would share one block and the first `release` would free it
+--- under the other: make a copy with `set`.
+public integer: type = integer_value
+
+--- An inverse modulo a modulus does not exist: the value and the modulus
+--- have a common divisor other than one.
+public not_invertible: atom
+--- A float that is an infinity or not a number has no integer or
+--- rational value.
+public not_finite: atom
+
+--- Zero, holding no block, so making one allocates nothing.
+public new: () -> (result: integer) =
+    nothing: []mut u32 = []
+    result = (limbs: nothing, length: 0, negative: false)
+end new
+
+--- Give the value's block back to the provider it came from and leave it
+--- zero.
+public release: (provider: type is mem.allocator, inout value: integer,
+                 memory: provider) -> none =
+    slots: usize = lenof value.limbs
+    value.length = 0
+    value.negative = false
+    return when slots == 0
+    block: ptr mut u8 = ptr(usize(addr value.limbs[0]))
+    nothing: []mut u32 = []
+    value.limbs = nothing
+    provider.free(memory, block, slots * sizeof u32)
+end release
+
+--  The limbs of `count` slots from `block`.
+view_of: (block: ptr mut u8, count: usize) -> (view: []mut u32) =
+    first: ptr mut [1]u32 = ptr(usize(block))
+    mut whole: []mut u32 = first.val[0..<1]
+    unchecked begin
+        --  The block holds `count` limbs, at least one.
+        whole = whole[0..<count]
+    end unchecked
+    view = whole
+end view_of
+
+--  Room for at least `want` limbs, keeping the magnitude's.  A new block
+--  holds half as many again as the old, so a value that keeps growing is
+--  copied a bounded number of times over.
+reserve: (provider: type is mem.allocator, inout value: integer,
+          memory: provider, want: usize) -> none ! mem.out_of_memory =
+    have: usize = lenof value.limbs
+    return when want <= have
+    mut slots: usize = have + have / 2
+    if slots < want then slots = want end if
+    extent: usize = try mem.storage_extent(item: u32, slots: slots)
+    if have == 0 then
+        block: ptr mut u8 = try provider.alloc(memory, extent, alignof u32)
+        value.limbs = view_of(block, slots)
+    else
+        old: ptr mut u8 = ptr(usize(addr value.limbs[0]))
+        block: ptr mut u8 = try provider.resize(memory, old, have * sizeof u32,
+                                                extent, alignof u32)
+        value.limbs = view_of(block, slots)
+    end if
+end reserve
+
+--  Whether two values' blocks are one, so that writing one would change
+--  the other.
+shares: (left: integer, right: integer) -> (yes: bool) =
+    yes = lenof left.limbs > 0 and lenof right.limbs > 0
+          and usize(addr left.limbs[0]) == usize(addr right.limbs[0])
+end shares
+
+--  The magnitude's limbs.
+magnitude: (value: integer) -> (view: []u32 from value) =
+    view = value.limbs[0..<value.length]
+end magnitude
+
+--  Count the first `count` limbs as the magnitude, high zeros left out,
+--  with the sign `negative` unless that leaves zero.
+settle: (inout value: integer, count: usize, negative: bool) -> none =
+    value.length = limbs.significant(value.limbs[0..<count])
+    value.negative = negative and value.length > 0
+end settle
+
+--  Replace `into` by `fresh`, giving `into`'s block back.
+replace: (provider: type is mem.allocator, inout target: integer,
+          memory: provider, escaping into target fresh: integer) -> none =
+    release(target, memory)
+    target = fresh
+end replace
+
+--- The limbs of the value's magnitude, the least significant first and
+--- with no high zero limb: what `core/big/limbs` takes.  End uses of the
+--- view before the value is next written or released.
+public limbs_of: (value: integer) -> (view: []u32 from value) =
+    view = magnitude(value)
+end limbs_of
+
+--- Make `into` the integer whose magnitude `magnitude` spells, the least
+--- significant limb first, negative when `negative` is and it is not zero.
+public set_limbs: (provider: type is mem.allocator, inout into: integer,
+                   memory: provider, value: []u32, negative: bool)
+                  -> none ! mem.out_of_memory =
+    count: usize = limbs.significant(value)
+    try reserve(into, memory, count)
+    limbs.copy(into.limbs, value[0..<count])
+    settle(into, count, negative)
+end set_limbs
+
+--- Make `into` a copy of `value`, in a block of its own.
+public set: (provider: type is mem.allocator, inout into: integer,
+             memory: provider, value: integer) -> none ! mem.out_of_memory =
+    return when shares(into, value)
+    try reserve(into, memory, value.length)
+    limbs.copy(into.limbs, magnitude(value))
+    settle(into, value.length, value.negative)
+end set
+
+--- Make `into` the integer `value`.
+public set_i64: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, value: i64) -> none ! mem.out_of_memory =
+    negative: bool = value < 0
+    --  The magnitude, -2^63's included, as a `u64`.
+    size: u64 = if negative then u64(-(value + 1)) + 1 else u64(value) end if
+    try set_u64_signed(into, memory, size, negative)
+end set_i64
+
+--- Make `into` the integer `value`.
+public set_u64: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, value: u64) -> none ! mem.out_of_memory =
+    try set_u64_signed(into, memory, value, false)
+end set_u64
+
+set_u64_signed: (provider: type is mem.allocator, inout into: integer,
+                 memory: provider, size: u64, negative: bool)
+                -> none ! mem.out_of_memory =
+    try reserve(into, memory, 2)
+    into.limbs[0] = u32(size & 0xffffffff)
+    into.limbs[1] = u32(size >> 32)
+    settle(into, 2, negative)
+end set_u64_signed
+
+--- -1, 0 or 1 as `value` is negative, zero or positive.
+public sign: (value: integer) -> (result: i32) =
+    result = if value.length == 0 then 0
+             elsif value.negative then -1 else 1 end if
+end sign
+
+--- How `left` compares with `right`.
+public compare: (left: integer, right: integer) -> (result: cmp.order) =
+    if left.negative <> right.negative then
+        result = if left.negative then cmp.less else cmp.greater end if
+        return
+    end if
+    result = limbs.compare(magnitude(left), magnitude(right))
+    if left.negative then
+        result = if result == cmp.less then cmp.greater
+                 elsif result == cmp.greater then cmp.less
+                 else cmp.equal end if
+    end if
+end compare
+
+--- Change `value`'s sign, in place.
+public negate: (inout value: integer) -> none =
+    value.negative = not value.negative and value.length > 0
+end negate
+
+--- Make `value` its absolute value, in place.
+public absolute: (inout value: integer) -> none =
+    value.negative = false
+end absolute
+
+--  `into` = `left` + `right` with the signs given, `into` sharing neither
+--  block unless its room already holds the result.
+add_signed: (provider: type is mem.allocator, inout into: integer,
+             memory: provider, left: integer, left_negative: bool,
+             right: integer, right_negative: bool)
+            -> none ! mem.out_of_memory =
+    long: usize = if left.length >= right.length then left.length
+                  else right.length end if
+    if (shares(into, left) or shares(into, right))
+      and lenof into.limbs < long + 1 then
+        mut fresh := new()
+        undo release(fresh, memory)
+        try add_signed(fresh, memory, left, left_negative, right,
+                       right_negative)
+        replace(into, memory, fresh)
+        return
+    end if
+    try reserve(into, memory, long + 1)
+    if left_negative == right_negative then
+        carry: u32 = limbs.add(into.limbs[0..<long], magnitude(left),
+                               magnitude(right))
+        into.limbs[long] = carry
+        settle(into, long + 1, left_negative)
+        return
+    end if
+    if limbs.compare(magnitude(left), magnitude(right)) <> cmp.less then
+        borrow := limbs.subtract(into.limbs[0..<long], magnitude(left),
+                                 magnitude(right))
+        _ = borrow
+        settle(into, long, left_negative)
+    else
+        borrow := limbs.subtract(into.limbs[0..<long], magnitude(right),
+                                 magnitude(left))
+        _ = borrow
+        settle(into, long, right_negative)
+    end if
+end add_signed
+
+--- Make `into` the sum of `left` and `right`.
+public add: (provider: type is mem.allocator, inout into: integer,
+             memory: provider, left: integer, right: integer)
+            -> none ! mem.out_of_memory =
+    try add_signed(into, memory, left, left.negative, right, right.negative)
+end add
+
+--- Make `into` `left` less `right`.
+public subtract: (provider: type is mem.allocator, inout into: integer,
+                  memory: provider, left: integer, right: integer)
+                 -> none ! mem.out_of_memory =
+    try add_signed(into, memory, left, left.negative, right,
+                   not right.negative and right.length > 0)
+end subtract
+
+--  Scratch limbs from the allocator, held by an integer so that
+--  `release` gives them back.
+scratch: (provider: type is mem.allocator, memory: provider, count: usize)
+         -> (room: integer) ! mem.out_of_memory =
+    room = new()
+    try reserve(room, memory, count)
+end scratch
+
+--  The most limbs a result written over one of its operands is first
+--  worked out in on the stack, so that a loop such as `x = x * y` takes
+--  nothing from an arena but its values' growth.
+on_stack: usize = 64
+
+--  A value whose block is `slots`, a caller's stack, empty.
+over_stack: (slots: []mut u32) -> (value: integer from slots) =
+    value = (limbs: slots, length: 0, negative: false)
+end over_stack
+
+--  `into` = `left` times `right`, the limb layer's scratch taken from
+--  `room`, which grows only when it is too short: a loop that keeps
+--  multiplying through one room allocates only while its numbers grow,
+--  which keeps it within an arena that frees nothing.
+multiply_with: (provider: type is mem.allocator, inout into: integer,
+                memory: provider, left: integer, right: integer,
+                inout room: integer) -> none ! mem.out_of_memory =
+    total: usize = left.length + right.length
+    if shares(into, left) or shares(into, right) then
+        if total <= on_stack and limbs.multiply_scratch(left.length,
+                                                        right.length) == 0 then
+            mut held: [64]u32 = zeroed
+            mut product := over_stack(held[0..<on_stack])
+            mut none_needed := over_stack(held[0..<0])
+            try multiply_with(product, memory, left, right, none_needed)
+            try set(into, memory, product)
+            return
+        end if
+        mut fresh := new()
+        undo release(fresh, memory)
+        try multiply_with(fresh, memory, left, right, room)
+        replace(into, memory, fresh)
+        return
+    end if
+    try reserve(into, memory, total)
+    try reserve(room, memory, limbs.multiply_scratch(left.length, right.length))
+    limbs.multiply(into.limbs[0..<total], magnitude(left), magnitude(right),
+                   room.limbs)
+    settle(into, total, left.negative <> right.negative)
+end multiply_with
+
+--- Make `into` the product of `left` and `right`.
+public multiply: (provider: type is mem.allocator, inout into: integer,
+                  memory: provider, left: integer, right: integer)
+                 -> none ! mem.out_of_memory =
+    mut room := new()
+    defer release(room, memory)
+    try multiply_with(into, memory, left, right, room)
+end multiply
+
+--  The truncating quotient and remainder of `numerator` by `divisor`,
+--  neither result sharing an operand's block, the scratch from `room`.
+--  Each result keeps a limb more than it needs, so that `divide_floor`'s
+--  step down from it stays in its block.
+divide_with: (provider: type is mem.allocator, inout quotient: integer,
+              inout remainder: integer, memory: provider,
+              numerator: integer, divisor: integer, inout room: integer)
+             -> none ! mem.out_of_memory =
+    panic.require(divisor.length > 0)
+    negative: bool = numerator.negative <> divisor.negative
+    try reserve(remainder, memory, divisor.length + 1)
+    if limbs.compare(magnitude(numerator), magnitude(divisor)) == cmp.less then
+        limbs.copy(remainder.limbs, magnitude(numerator))
+        settle(remainder, numerator.length, numerator.negative)
+        try reserve(quotient, memory, 2)
+        quotient.length = 0
+        quotient.negative = false
+        return
+    end if
+    count: usize = numerator.length - divisor.length + 1
+    try reserve(quotient, memory, count + 1)
+    try reserve(room, memory, limbs.divide_scratch(numerator.length,
+                                                   divisor.length))
+    limbs.divide(quotient.limbs[0..<count], remainder.limbs[0..<divisor.length],
+                 magnitude(numerator), magnitude(divisor), room.limbs)
+    settle(quotient, count, negative)
+    settle(remainder, divisor.length, numerator.negative)
+end divide_with
+
+--  The quotient rounded down and its remainder, through `room`, the
+--  results sharing no operand's block.
+divide_floor_with: (provider: type is mem.allocator, inout quotient: integer,
+                    inout remainder: integer, memory: provider,
+                    numerator: integer, divisor: integer, inout room: integer)
+                   -> none ! mem.out_of_memory =
+    try divide_with(quotient, remainder, memory, numerator, divisor, room)
+    if remainder.length > 0 and remainder.negative <> divisor.negative then
+        --  Rounded toward zero from a negative quotient: one lower, and
+        --  the divisor added to the remainder, both within the room
+        --  `divide_with` left them.
+        mut held: [1]u32 = [1]
+        one: integer = (limbs: held[0..<1], length: 1, negative: false)
+        try add_signed(quotient, memory, quotient, quotient.negative, one, true)
+        try add(remainder, memory, remainder, divisor)
+    end if
+end divide_floor_with
+
+--  Either division, `floor` choosing which, into results that may be its
+--  operands: worked out on the stack and copied back where the operands
+--  are short, and apart in fresh values where they are not.
+divide_either: (provider: type is mem.allocator, inout quotient: integer,
+                inout remainder: integer, memory: provider,
+                numerator: integer, divisor: integer, floor: bool)
+               -> none ! mem.out_of_memory =
+    if shares(quotient, numerator) or shares(quotient, divisor)
+      or shares(remainder, numerator) or shares(remainder, divisor) then
+        if numerator.length < on_stack / 2 and divisor.length < on_stack / 2 then
+            --  The quotient and the remainder each take at most a limb
+            --  more than either operand, and the scratch both lengths and
+            --  one more, so no step asks the allocator to move a block that
+            --  is the stack's.
+            mut held: [128]u32 = zeroed
+            mut whole_held := over_stack(held[0..<32])
+            mut part_held := over_stack(held[32..<64])
+            mut room_held := over_stack(held[64..<128])
+            if floor then
+                try divide_floor_with(whole_held, part_held, memory, numerator,
+                                      divisor, room_held)
+            else
+                try divide_with(whole_held, part_held, memory, numerator,
+                                divisor, room_held)
+            end if
+            try set(quotient, memory, whole_held)
+            try set(remainder, memory, part_held)
+            return
+        end if
+        mut whole := new()
+        mut part := new()
+        undo release(whole, memory)
+        undo release(part, memory)
+        try divide_either(whole, part, memory, numerator, divisor, floor)
+        replace(quotient, memory, whole)
+        replace(remainder, memory, part)
+        return
+    end if
+    mut room := new()
+    defer release(room, memory)
+    if floor then
+        try divide_floor_with(quotient, remainder, memory, numerator, divisor,
+                              room)
+    else
+        try divide_with(quotient, remainder, memory, numerator, divisor, room)
+    end if
+end divide_either
+
+--- Divide `numerator` by `divisor`, rounding the quotient toward zero, as
+--- `/` and `%` do: `quotient` takes the quotient and `remainder` the
+--- remainder, which has the numerator's sign and is smaller than the
+--- divisor in magnitude.  A zero divisor stops the program, as `/` by zero
+--- does.
+public divide_truncating: (provider: type is mem.allocator, inout quotient: integer,
+                           memory: provider, inout remainder: integer, numerator: integer,
+                           divisor: integer) -> none ! mem.out_of_memory =
+    try divide_either(quotient, remainder, memory, numerator, divisor, false)
+end divide_truncating
+
+--- Divide `numerator` by `divisor`, rounding the quotient down, toward
+--- negative infinity: `remainder` takes what is left, which has the
+--- divisor's sign and is smaller than it in magnitude, so that `quotient`
+--- times `divisor` plus `remainder` is `numerator`.  A zero divisor stops
+--- the program.
+public divide_floor: (provider: type is mem.allocator, inout quotient: integer,
+                      memory: provider, inout remainder: integer,
+                      numerator: integer, divisor: integer)
+                     -> none ! mem.out_of_memory =
+    try divide_either(quotient, remainder, memory, numerator, divisor, true)
+end divide_floor
