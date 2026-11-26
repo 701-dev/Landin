@@ -475,7 +475,7 @@ which the nix shell reads. Its multilibs include `rv32im/ilp32`, which
 `environments/cortex-m/setup.py` installs the Linux x86-64 one for the RV32
 emulator lanes, which run on Espressif's QEMU, locked in
 `environments/cortex-m/tools.lock.json` as the same nix-packages archive
-the Xtensa lanes use (D695, D2551).
+the Xtensa lanes use (D695, D2571).
 
 | platform | archive | sha256 |
 |---|---|---|

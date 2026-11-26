@@ -664,11 +664,44 @@ package body Landin.Tests.Backend_Plans_Suite is
       Unit : IR.Unit;
       Site : Landin.Provenance.Origin;
       Facts : constant Targets.Target_Facts := Targets.Windows_X86_64;
-      Wide, Word : IR.Nominal_Type_Id;
+      Wide, Word, Single, Real : IR.Nominal_Type_Id;
       function Scalar (Kind : Landin.Types.Type_Kind)
         return IR.Signature_Part is (Kind => Kind, others => <>);
    begin
       Prepare (Item, Unit, Site);
+      --  D2472: a C record of one float, and a distinct f32, which
+      --  lowering holds as the same one-field aggregate.
+      Single := IR.Add_Nominal_Type (Unit, 1);
+      IR.Set_Nominal_Shape
+        (Unit, Single, [1 => (Element => Landin.Types.F32, others => <>)],
+         Landin.Layouts.C);
+      Real := IR.Add_Nominal_Type (Unit, 2);
+      IR.Set_Nominal_Shape
+        (Unit, Real, [1 => (Element => Landin.Types.F32, others => <>)],
+         Landin.Layouts.C);
+      IR.Mark_Distinct (Unit, Real);
+      declare
+         Plan : constant Backend.C_ABI.Plan := Backend.C_ABI.Assign
+           (Unit, [(Kind => Landin.Types.Aggregate, Nominal => Single,
+                    others => <>),
+                   (Kind => Landin.Types.Aggregate, Nominal => Real,
+                    others => <>)],
+            (Kind => Landin.Types.Aggregate, Nominal => Real,
+             others => <>), Facts);
+      begin
+         Landin.Testing.Check
+           (Item, Plan.Arguments (1).Registers (1) = 1
+              and then Plan.Arguments (1).Shape.Classes (1)
+                = Backend.C_ABI.Integer_Class,
+            "a C record of one float travels as one integer");
+         Landin.Testing.Check
+           (Item, Plan.Arguments (2).Registers (1) = 2
+              and then Plan.Arguments (2).Shape.Classes (1)
+                = Backend.C_ABI.SSE_Class
+              and then Plan.Result.Shape.Classes (1)
+                = Backend.C_ABI.SSE_Class,
+            "a distinct f32 travels and returns as its float, in XMM");
+      end;
       Wide := IR.Add_Nominal_Type (Unit, 1);
       IR.Set_Nominal_Shape
         (Unit, Wide,

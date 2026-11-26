@@ -126,7 +126,7 @@ class Run:
         self.env = dict(os.environ, LC_ALL='C', LANG='C')
         #  Every locked emulator and the GDB need no library path: the
         #  Espressif QEMU and GDB are static, and the Cortex-M QEMU's
-        #  launcher names the libraries it carries (D2551, D2572).
+        #  launcher names the libraries it carries (D2571, D2572).
         self.bin = tools / QEMU_ARM / 'bin'
         self.gdb = tools / GDB / 'bin/gdb'
         self.arm = tools / 'gnat-arm-elf/bin'

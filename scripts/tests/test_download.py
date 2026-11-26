@@ -253,6 +253,12 @@ class LandinFetch(unittest.TestCase):
         self.assertIn('after up to 2 attempts', done.stderr)
         self.assertFalse((into / 'a.tar.gz').exists())
 
+    def test_a_refusal_in_passing_is_asked_again(self):
+        #  GitHub's release downloads answered 403 once and then served.
+        done, server, into = self.fetch([403])
+        self.assertEqual((done.returncode, server.requests), (0, 2), done.stderr)
+        self.assertEqual((into / 'unpacked/hello').read_text(), 'hi\n')
+
     def test_a_missing_archive_ends_at_once(self):
         done, server, _ = self.fetch([404, 404])
         self.assertEqual((done.returncode, server.requests), (1, 1))

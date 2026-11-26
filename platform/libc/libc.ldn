@@ -101,6 +101,15 @@ fixed if compiler.os <> windows then
     --- others.
     public extern(c) getpagesize: () -> (bytes: i32)
 
+    --- `getrusage`'s `who` for the calling process itself.
+    public rusage_self: i32 = 0
+
+    --- The resource use of `who` into the 144-byte `struct rusage` at
+    --- `usage`: 0, or -1 with the reason in errno.  Its `ru_maxrss`, the
+    --- peak resident set, is the word at byte 32: in bytes on Darwin and in
+    --- KiB on FreeBSD.
+    public extern(c) getrusage: (who: i32, usage: usize) -> (status: i32)
+
     --- End the process with `status` at once: no `atexit` handler runs and no
     --- C stream is flushed.
     public extern(c) _exit: (status: i32) -> noreturn

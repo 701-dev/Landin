@@ -61,6 +61,19 @@ fixed if compiler.os <> windows then
         bytes = system_page_size()
     end page_size
 
+    --- The most memory this process has held resident at once since it
+    --- started, in bytes: `getrusage`'s `ru_maxrss` for the process itself,
+    --- which Linux and FreeBSD count in KiB and Darwin in bytes. It fails
+    --- with the errno, which no system gives for the process itself.
+    public peak_resident:
+        () -> (bytes: usize) ! errno =
+        --  `struct rusage`: two `timeval`s of 16 bytes, then `ru_maxrss`
+        --  among fourteen words, on every 64-bit hosted system.
+        mut usage: [18]usize = zeroed
+        try system_usage(usize(addr usage[0]))
+        bytes = usage[4] * usage_unit
+    end peak_resident
+
     --  The system's own calls beneath the facility above: Linux's system
     --  calls through platform/linux, and the C library through
     --  platform/libc on Darwin and FreeBSD, whose system interface it is.
@@ -96,6 +109,13 @@ fixed if compiler.os <> windows then
         system_page_size: () -> (bytes: usize) =
             bytes = linux.page_size()
         end system_page_size
+
+        system_usage: (usage: usize) -> none ! errno =
+            result: i32 = linux.getrusage(linux.rusage_self, usage)
+            fail errno_of(-result) when result < 0
+        end system_usage
+
+        usage_unit: usize = 1024
     elsif compiler.os == darwin or compiler.os == freebsd then
         system_map: (length: usize) -> (base: ptr mut u8) ! errno =
             result: usize = libc.mmap(0, length, libc.prot_read | libc.prot_write,
@@ -138,5 +158,16 @@ fixed if compiler.os <> windows then
         system_page_size: () -> (bytes: usize) =
             bytes = usize(libc.getpagesize())
         end system_page_size
+
+        system_usage: (usage: usize) -> none ! errno =
+            fail failure() when libc.getrusage(libc.rusage_self, usage) <> 0
+        end system_usage
+
+        --  Darwin counts `ru_maxrss` in bytes, FreeBSD in KiB.
+        fixed if compiler.os == darwin then
+            usage_unit: usize = 1
+        else
+            usage_unit: usize = 1024
+        end if
     end if
 end if

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: a program measures its own memory, the heap's bytes in use rising by what a block asks for and falling back when it is freed, so repeated work that frees what it takes leaves them where they were, the heap's peak keeping the most it held, and the process's peak resident size at least that peak
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
+constructs: 0310, 0600, 1000, 1410, 1420, 1480, 1950

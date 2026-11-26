@@ -1,0 +1,93 @@
+import platform/windows
+
+--  The process entry holds the processor to the image's CPU feature level
+--  before it reads the command line; this program reaching `main` is that
+--  check passing on the processor that runs it.  The words below are
+--  injected, so each level's refusal is decided without a processor that
+--  lacks the feature: no words at all lack the level's first feature, and
+--  words that have one level lack the next one's.
+
+fixed if compiler.arch == x86_64 then
+    --  Every bit set: every feature and all the state.
+    everything: windows.cpu_words =
+        (standard_ecx: 0xFFFFFFFF, structured_ebx: 0xFFFFFFFF,
+         extended_ecx: 0xFFFFFFFF, enabled_state: 0xFFFFFFFF)
+    --  x86-64-v2's features and nothing above them.
+    second: windows.cpu_words =
+        (standard_ecx: 0x00982201, structured_ebx: 0,
+         extended_ecx: 0x00000001, enabled_state: 0)
+    --  Every feature, but no state the system saves.
+    stateless: windows.cpu_words =
+        (standard_ecx: 0xFFFFFFFF, structured_ebx: 0xFFFFFFFF,
+         extended_ecx: 0xFFFFFFFF, enabled_state: 0)
+
+    fixed if compiler.feature.avx then
+        level_name: []u8 = "x86-64-v3"
+        first_missing: []u8 = "cmpxchg16b"
+        after_second: []u8 = "avx"
+        without_state: []u8 = "avx state"
+    elsif compiler.feature.popcnt then
+        level_name: []u8 = "x86-64-v2"
+        first_missing: []u8 = "cmpxchg16b"
+        after_second: []u8 = ""
+        without_state: []u8 = ""
+    else
+        level_name: []u8 = "x86-64-v1"
+        first_missing: []u8 = ""
+        after_second: []u8 = ""
+        without_state: []u8 = ""
+    end if
+else
+    --  Every feature the system could answer for.
+    everything: windows.cpu_words = (present: 0xFFFFFFFFFFFFFFFF)
+    --  PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE alone.
+    second: windows.cpu_words = (present: 0x400000000)
+    stateless: windows.cpu_words = (present: 0xFFFFFFFFFFFFFFFF)
+
+    --  RDM is named but not checked: nothing Windows documents reports it.
+    fixed if compiler.feature.lse then
+        level_name: []u8 = "armv8.1-a"
+        first_missing: []u8 = "lse"
+        after_second: []u8 = "crc32"
+        without_state: []u8 = ""
+    else
+        level_name: []u8 = "armv8-a"
+        first_missing: []u8 = ""
+        after_second: []u8 = ""
+        without_state: []u8 = ""
+    end if
+end if
+
+same: (left: []u8, right: []u8) -> (equal: bool) =
+    equal = false
+    return when lenof left <> lenof right
+    for at in usize(0)..<lenof left do
+        return when left[at] <> right[at]
+    end for
+    equal = true
+end same
+
+--  The level changes code in this same program: an atomic add is one LSE
+--  instruction at armv8.1-a and an exclusive-monitor loop below it.
+mut entries: u32 = 0
+
+public main: () -> (code: i32) =
+    code = 1
+    return when compiler.atomic_add(addr entries, 1, compiler.acq_rel) <> 0
+    return when not same(windows.level(), level_name)
+    code = 2
+    nothing: windows.cpu_words = zeroed
+    return when not same(windows.missing_feature(nothing), first_missing)
+    code = 3
+    return when not same(windows.missing_feature(everything), "")
+    code = 4
+    return when not same(windows.missing_feature(second), after_second)
+    code = 5
+    return when not same(windows.missing_feature(stateless), without_state)
+    --  This processor has the level, or the entry would not have run
+    --  `main`.
+    code = 6
+    return when not same(windows.missing_feature(windows.read_cpu_words()),
+                         "")
+    code = 42
+end main

@@ -185,9 +185,10 @@ def allocate(root, count, question=False, decision=False):
 
 def quote_citations(text, gone):
     """TEXT with every citation of a row in GONE put in a code span; a
-    span already there is left as it is."""
+    span already there is left as it is.  A span may wrap onto the next
+    line of its paragraph, as Markdown's do, and ends at a blank line."""
     out = []
-    for piece in re.split(r"(`[^`\n]*`)", text):
+    for piece in re.split(r"(`(?:[^`\n]|\n(?![ \t]*\n))*`)", text):
         if piece.startswith("`") and piece.endswith("`") and len(piece) > 1:
             out.append(piece)
         else:

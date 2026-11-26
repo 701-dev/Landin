@@ -462,5 +462,95 @@ class Remote(unittest.TestCase):
                                           'umask 077; mktemp -d /tmp/landin-timing.XXXXXXXX']])
 
 
+class Runs(unittest.TestCase):
+    """`run` and `remote` by hand, the board operations faked."""
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+
+    def parsed(self, command, *more):
+        """The arguments COMMAND is given by its parser, as main gives them."""
+        got = {}
+        target = 'run_board' if command == 'run' else command
+        with mock.patch.object(timing, target, lambda args, *rest: got.setdefault('args', args) and 0):
+            timing.main([command, '--bundle=b', '--output=o', *(['--board=esp32'] if command == 'run'
+                                                                else []), *more])
+        return got['args']
+
+    def test_run_and_remote_take_the_gate_s_three_runs_unless_told_otherwise(self):
+        """A figure by hand is the gate's figure: the gate's time steps pass
+        the same constant the tools default to."""
+        import gate
+        self.assertEqual(timing.REPEAT, 3)
+        self.assertEqual(gate.TIMING_REPEAT, timing.REPEAT)
+        for command in ('run', 'remote'):
+            self.assertEqual(self.parsed(command).repeat, timing.REPEAT, command)
+            self.assertEqual(self.parsed(command, '--repeat=1').repeat, 1, command)
+        printed = io.StringIO()
+        with redirect_stdout(printed), self.assertRaises(SystemExit):
+            timing.main(['run', '--help'])
+        self.assertIn("not the gate's figure", ' '.join(printed.getvalue().split()))
+
+    def run_pico(self, board, attach):
+        """run_board for BOARD, a Pico 2 port, whose architecture read
+        ATTACH answers; returns the result written and the images timed."""
+        manifest = dict(source_identity='s', compiler=dict(sha256='c'), boards={board: dict(images=[
+            dict(workload='w', digest='d' * 64, elf='images/w.elf', profiles=['none-off'],
+                 placement='text:sram,data:sram,stack:sram')])})
+        args = SimpleNamespace(board=board, bundle=self.root / 'bundle', image=None, profile=None,
+                               output=self.root / ('out-%d' % len(list(self.root.glob('out-*')))), probe=None, spacing=0, quiet=0,
+                               ram_loader=Path('/helper'), hub='.3.3', port=2, power_only=True,
+                               hub_group='dialout', repeat=timing.REPEAT, seconds=20)
+        timed, written = [], {}
+
+        def probe_command(run, name, argv, **kw):
+            run.commands.append(dict(name=name, status=attach))
+            if attach:
+                raise common.Failed('%s failed' % name)
+            Path(run.out / (name + '.json')).write_text(json.dumps(dict(
+                format_version=1, status='passed', mode='read', board=board, flash_written=False,
+                helper_source_sha256='h', address=0x10000000, count=1, words=[0])))
+            return ''
+        import pico2
+        with mock.patch.object(timing, 'read_bundle', return_value=manifest), \
+                mock.patch.object(common, 'verify_ram_helper'), \
+                mock.patch.object(common, 'place_hubs'), \
+                mock.patch.object(common, 'Pace'), \
+                mock.patch.object(common, 'rig_lock'), \
+                mock.patch.object(common, 'retain_kernel_usb'), \
+                mock.patch.object(common, 'helper_source_hash', return_value='h'), \
+                mock.patch.object(common, 'probe_command', side_effect=probe_command), \
+                mock.patch.object(common, 'write_result',
+                                  side_effect=lambda path, result, run: written.update(result)), \
+                mock.patch.object(pico2, 'refuse_bootsel'), \
+                mock.patch.object(timing, 'time_load', side_effect=lambda run, a, b, image, elf, n: (
+                    timed.append(n) or dict(count=100 + n, clock=dict(source='xtal', hz=12000000),
+                                            counter='CYCCNT', unit='cycles', probe_count=0,
+                                            halted_drift=0, host_seconds=0.1, setup={}))), \
+                redirect_stdout(io.StringIO()):
+            timing.run_board(args)
+        return written, timed
+
+    def test_the_rp2350_is_read_as_arm_before_any_image_and_refused_on_another_image(self):
+        """A warm load never changes the Pico 2's architecture: the Arm port's
+        timing run reads the board as RP235x first and, where its cores run
+        Hazard3, refuses before any timing load, naming the boot check that
+        puts the board on Arm as the gate's pico2 port runs it."""
+        written, timed = self.run_pico('rp2350', attach=1)
+        self.assertEqual((written['status'], written['outcome'], timed), ('failed', 'needs-setup', []))
+        said = written['failure']
+        for part in ('does not answer as RP235x', 'run the rp2350 boot check first',
+                     'run.py --board=rp2350 --mode=boot', 'rp2350_hazard3 boot check'):
+            self.assertIn(part, said)
+        self.assertEqual([c['name'] for c in written['commands']], ['architecture-RP235x'])
+        written, timed = self.run_pico('rp2350', attach=0)
+        self.assertEqual((written['status'], timed), ('passed', [1, 2, 3]))
+        self.assertEqual(written['images'][0]['median'], 102)
+        written, timed = self.run_pico('rp2350_hazard3', attach=1)
+        self.assertIn('run.py --board=rp2350_hazard3 --mode=boot', written['failure'])
+        self.assertEqual([c['name'] for c in written['commands']], ['architecture-RP235x_riscv'])
+
+
 if __name__ == '__main__':
     unittest.main()

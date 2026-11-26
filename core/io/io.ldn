@@ -124,6 +124,10 @@ public process: type = concept (provider: type)
     --- mem.not_found when out of range.
     argument: (self: provider, index: usize)
               -> (value: text.os_string from self) ! mem.not_found
+    --- Lend the program's name as the process was given it, C's
+    --- `argv[0]`; the provider retains its backing.  Empty when none was
+    --- given.
+    program_name: (self: provider) -> (name: text.os_string from self)
 end process
 
 --- The process's environment: its variables, each a name and a value that
@@ -435,6 +439,18 @@ public argument: (provider: type is process, host: provider, index: usize)
                  -> (value: text.os_string from host) ! mem.not_found =
     value = try provider.argument(host, index)
 end argument
+
+--- Lend the name the program was run by, as whoever started it gave it:
+--- C's `argv[0]`, which `argument` never returns. It is often the path the
+--- program was started by and may be any string its parent chose, a bare
+--- name, a relative path or none at all, so it is the name to write in a
+--- usage line or to describe the program by, not proof of where its file
+--- is. It is empty when the parent gave no name. Its backing is the
+--- provider's, as an argument's is.
+public program_name: (provider: type is process, host: provider)
+                     -> (name: text.os_string from host) =
+    name = provider.program_name(host)
+end program_name
 
 --- Return the number of variables in the provider's environment.
 public variables_length: (provider: type is environment, host: provider)

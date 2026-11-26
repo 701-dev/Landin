@@ -101,12 +101,13 @@ fixed if compiler.os <> windows then
 
     --  posix.spawn reports a failure only when no child was started, so an
     --  interrupted spawn is made again.
-    spawned: (path: text.os_string, arguments: []text.os_string,
-              environment: []text.os_variable, streams: posix.standard_streams)
+    spawned: (directory: text.os_string, path: text.os_string,
+              arguments: []text.os_string, environment: []text.os_variable,
+              streams: posix.standard_streams)
              -> (child: posix.process_id) ! posix.errno =
         loop do
-            child = posix.spawn(path, arguments, environment,
-                                streams) else (problem)
+            child = posix.spawn_in(directory, path, arguments, environment,
+                                   streams) else (problem)
                 continue when problem == posix.eintr
                 fail problem
             end
@@ -114,8 +115,9 @@ fixed if compiler.os <> windows then
         end loop
     end spawned
 
-    launched: (path: text.os_string, arguments: []text.os_string,
-               environment: []text.os_variable, streams: io.child_streams)
+    launched: (directory: text.os_string, path: text.os_string,
+               arguments: []text.os_string, environment: []text.os_variable,
+               streams: io.child_streams)
               -> (started: io.child) ! posix.errno =
         input: stream_end = try prepared(streams.input, posix.standard_input,
                                          false)
@@ -126,7 +128,8 @@ fixed if compiler.os <> windows then
         errors: stream_end = try prepared(streams.errors, posix.standard_error,
                                           true)
         undo dropped(errors, true)
-        child: posix.process_id = try spawned(path, arguments, environment,
+        child: posix.process_id = try spawned(directory, path, arguments,
+                                              environment,
                                               (input: input.child_side,
                                                output: output.child_side,
                                                errors: errors.child_side))
@@ -146,8 +149,9 @@ fixed if compiler.os <> windows then
     --  the child when the parent has it closed: every descriptor `start`
     --  makes is above the three standard ones, so none is taken for it.  An
     --  interrupted spawn is made again, and the code kept is the errno.
-    --- Start the program at `path` as `io.programs`' `spawn` says. It is for a
-    --- provider built over this handle that supplies `io.programs`: `start`
+    --- Start the program at `path` in `directory`, or in this process's own
+    --- directory when that is empty, as `io.programs`' `spawn` says. It is for
+    --- a provider built over this handle that supplies `io.programs`: `start`
     --- starts the child and does not wait. The provider itself reads, writes
     --- and closes the parent's ends of the child's pipes, files of this
     --- provider, and waits for the child through whatever waiting it does
@@ -156,13 +160,14 @@ fixed if compiler.os <> windows then
     --- kept in the handle's last-error cell. On any failure no child was
     --- started and nothing `start` made is left open. `io.child`'s `handle`
     --- names the child as `process_of` gives it.
-    public start: (handle: host, path: text.os_string,
-                   arguments: []text.os_string, environment: []text.os_variable,
-                   streams: io.child_streams)
+    public start: (handle: host, directory: text.os_string,
+                   path: text.os_string, arguments: []text.os_string,
+                   environment: []text.os_variable, streams: io.child_streams)
                   -> (started: io.child)
                   ! mem.not_found | io.no_access | io.io_failed =
         keep_failure(handle, 0)
-        started = launched(path, arguments, environment, streams) else (problem)
+        started = launched(directory, path, arguments, environment,
+                           streams) else (problem)
             try path_failure(handle, problem)
             fail io.io_failed
         end

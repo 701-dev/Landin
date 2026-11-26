@@ -957,6 +957,12 @@
               export LANDIN_GPRBUILD_HOME="${gprbuild}"
               export LANDIN_BUILD_TAG=nix-${system}
               export LANDIN_ENV_KEY=${environmentKey}
+              #  stdenv exports a fixed SOURCE_DATE_EPOCH, which no runner
+              #  job outside `nix develop` has: lld stamped the link time
+              #  into Windows images, two links here agreed and two on a
+              #  runner a second apart differed, which only the gate saw.
+              #  A build or test that wants a fixed time sets its own.
+              unset SOURCE_DATE_EPOCH
               #  On standard error: `nix develop -c cmd > file` runs this hook
               #  too, and the banner written to standard output went into the
               #  file -- a source rewritten that way was silently corrupted.

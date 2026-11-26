@@ -5545,6 +5545,79 @@ package body Landin.Tests.Driver_Suite is
       end;
    end Microsoft_Link_Leaves_The_Search_To_Its_Linker;
 
+   --  D2485: llvm-mingw's driver adds `.exe` to an output name without
+   --  an extension, so the link is given the staged name with `.exe` and
+   --  the image is published under the name asked for, on both Windows
+   --  targets; Microsoft's link, whose Clang keeps the name, and a name
+   --  with an extension are linked under the staged name itself.
+   procedure A_Windows_Image_Keeps_The_Name_Asked_For
+     (Item : in out Landin.Testing.Context);
+
+   procedure A_Windows_Image_Keeps_The_Name_Asked_For
+     (Item : in out Landin.Testing.Context)
+   is
+      procedure Link (Target, Output, Toolchain : String; Appended : Boolean);
+      procedure Link (Target, Output, Toolchain : String; Appended : Boolean)
+      is
+         Host : Landin.Testing.Fakes.Fake_Filesystem;
+         Tools : Landin.Testing.Fakes.Fake_Tool_Runner;
+         Args : Landin.Platform.Path_List;
+         Label : constant String := Target & " -o " & Output
+           & (if Toolchain = "" then "" else " " & Toolchain);
+      begin
+         Host.Add_File ("main.ldn", Entry_Program);
+         Args.Append ("--target=" & Target);
+         Args.Append ("--emit=exe");
+         if Toolchain /= "" then
+            Args.Append ("--toolchain=" & Toolchain);
+            Args.Append ("--linker=lld");
+         end if;
+         Args.Append ("main.ldn");
+         Args.Append ("-o");
+         Args.Append (Output);
+         declare
+            Result : constant Landin.Driver.Outcome :=
+              Landin.Driver.Execute (Args, Host, Tools);
+            Report : constant String := Unbounded.To_String (Result.Report);
+         begin
+            Landin.Testing.Check_Equal
+              (Item, Result.Status, Landin.Driver.Status_Success,
+               Label & ": the link succeeds: " & Report);
+            Landin.Testing.Check
+              (Item, Tools.Run_Count >= 1, Label & ": the link runs");
+            if Tools.Run_Count >= 1 then
+               declare
+                  Linked : constant String :=
+                    Output_Path (Tools.Call_At (Tools.Run_Count));
+                  Leaf : constant String := "/" & Output
+                    & (if Appended then ".exe" else "");
+               begin
+                  Landin.Testing.Check
+                    (Item, Linked'Length > Leaf'Length
+                     and then Ada.Strings.Fixed.Tail (Linked, Leaf'Length)
+                       = Leaf,
+                     Label & ": the link writes the staged " & Leaf
+                     & ": " & Linked);
+               end;
+            end if;
+            Landin.Testing.Check
+              (Item, Host.Exists (Output)
+               and then (not Appended
+                         or else not Host.Exists (Output & ".exe")),
+               Label & ": the image is published as " & Output & " alone");
+         end;
+      end Link;
+   begin
+      Link ("windows-x86-64", "out", "", Appended => True);
+      Link ("windows-arm64", "out", "", Appended => True);
+      Link ("windows-x86-64", "out.exe", "", Appended => False);
+      Link ("windows-x86-64", "out.bin", "", Appended => False);
+      Link ("windows-x86-64", "out", "x86_64-pc-windows-msvc-clang",
+            Appended => False);
+      Link ("windows-arm64", "out", "aarch64-pc-windows-msvc-clang",
+            Appended => False);
+   end A_Windows_Image_Keeps_The_Name_Asked_For;
+
    procedure Builtin_Imports_Never_Search_Roots
      (Item : in out Landin.Testing.Context);
 
@@ -8483,6 +8556,10 @@ package body Landin.Tests.Driver_Suite is
       System_Module_Accepted ("windows-arm64", "platform/posix", "posix");
       System_Module_Accepted ("linux-x86-64", "platform/windows", "windows");
       System_Module_Accepted ("darwin-arm64", "platform/windows", "windows");
+      --  x86-64's processor reading is imported on every target and
+      --  declares nothing off x86_64 (D2476).
+      System_Module_Accepted ("windows-arm64", "platform/x86_64", "x86_64");
+      System_Module_Accepted ("linux-rv64", "platform/x86_64", "x86_64");
       Hosted_Accepted;
       Refused ("linux-x86-64", "platform/cortex_m/reference", True);
       Refused ("linux-x86-64", "platform/cortex_m/reference", False);
@@ -10267,6 +10344,9 @@ package body Landin.Tests.Driver_Suite is
       Landin.Testing.Register
         (Into, "driver", "Microsoft's link leaves the search to its linker",
          Microsoft_Link_Leaves_The_Search_To_Its_Linker'Access);
+      Landin.Testing.Register
+        (Into, "driver", "a Windows image keeps the name asked for",
+         A_Windows_Image_Keeps_The_Name_Asked_For'Access);
       Landin.Testing.Register
         (Into, "driver", "builtin imports never search roots",
          Builtin_Imports_Never_Search_Roots'Access);

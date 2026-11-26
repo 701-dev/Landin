@@ -104,9 +104,13 @@ reasoning goes in the commits and in `spec.md`'s register of decisions.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without
-asking again. An item opts out with one line, `Promotion: maintainer`,
-which returns that step to the maintainer; `check.py` refuses any other
-spelling. Releases and versions are never covered.
+asking again. The session that runs the roadmap, or a train's integrator,
+may also promote other items' gated candidates inside a train: merged into
+the promotion token's holder, they land as one tree on its own gate and
+boards (`docs/process.md`, "A train"). An item opts out with one line,
+`Promotion: maintainer`, which returns that step to the maintainer and
+keeps it off every train; `check.py` refuses any other spelling. Releases
+and versions are never covered.
 
 **The register.** A row is only for what outlives the item that met it
 and waits for a trigger. A finding the item fixes is named in its commit
@@ -1231,6 +1235,44 @@ embedded tools fetch from a pool that drops superseded versions. The
 merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45543519666) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45547023934).
+
+### R16.39 — An index counted down proves its own checks
+
+Status: complete
+Depends on: R16.10
+
+reverse-complement spends 70% of its x86-64 instructions at speed in
+`write_reversed`, which walks a sequence from its end, `while at > 0 do
+dec at` reading `sequence[at]` from `at = lenof sequence`: 7.10 G on
+fasta 25,000,000's output against C's 2.10 G. D2207's counted slot
+bounds only an index that counts up, so each byte still pays a bounds
+check and a reload of the length it compares with, three of the loop's
+sixteen instructions. No open row names the cost. The item proves an
+index counted down from a length below that length, and leaves unloaded
+a length no remaining check reads.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, measured on arm64 as
+well; every benchmark program's instructions and image size reported
+against that base; and no other combination over its own.
+
+Done: a slot stored with a first value and stepped by its own load less
+a constant counts down and is never above that first value, so a
+checked `x - k` of its load is below a length the first value names,
+the proof waiting for the walk to see the step, as D2207's do (D2491);
+x86-64 makes no load of a length only proved checks name (D2492).
+reverse-complement keeps no check in its byte loop: against the item's
+base under QEMU it executes 12.4% fewer x86-64 instructions at speed
+and 12.7% at size, 7.0% and 5.5% on arm64, and 2.5% and 2.0% on RV64;
+fasta 4.1% fewer at x86-64 size, every other hosted program within
+0.2%, every output the same. Every image's code and data are the same
+size or smaller; FreeBSD's reverse-complement at speed is 28 and 16
+bytes larger in all, its RELRO padding growing by more than its text
+shrinks. Choosing the subject, nested copies of the allocator chain gave
+binary-trees under 3%, and a call's failure status, sealed and its test
+fused into the branch, 3.9%; `SR-1861` files the second. The merged
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45708189957) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45714601151).
 
 ### The continuous items
 
@@ -2565,7 +2607,7 @@ the merged candidate's gate run 45229944797, with boards run 45234631776; `compi
 Wine locally. Found and fixed on the way: Windows refused images past 2 GiB
 that Wine loaded; the trap after a prepared stack's report dispatched as
 an access violation; a musl-built `refine` named no host target (`SR-1518`
-taken). Rows SR-1694 to SR-1698 record the C peer lane, the start-up level
+taken). Rows `SR-1694` to `SR-1698` record the C peer lane, the start-up level
 check, the TEB bounds a stack switch leaves, the fixture path Git for
 Windows cannot check out and the measurement no lane takes of a Windows
 image; `hosted/heap`, arguments, environment and thread
@@ -2651,7 +2693,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to SR-1748 record the inline
+refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -2882,7 +2924,7 @@ which `environments/cortex-m/setup.py` now takes from
 
 ### R21.70 — What Windows still lacks
 
-Status: planned
+Status: complete
 Depends on: R21.61
 
 The gaps R21's items recorded on Windows, scheduled by the register sweep
@@ -2902,6 +2944,39 @@ that R21's gate waits for the Windows gaps.
 Exit evidence: each row's completion on both Windows architectures where
 it names one, in the gate's Windows jobs, and switch_frames.py's session
 in the Windows debugger lane.
+
+Done: every row the item names is closed on both Windows architectures,
+in gate run 45606318679, whose 100 jobs passed. The repository checks out
+on Windows: the debugger case's oddly named source is written at run time
+and `check.py` refuses a tracked path Windows cannot hold, and
+`windows-runtime` and `windows-arm64-runtime` run their lane from a
+checkout. Those jobs also run `compiler/tests/windows/check.py
+--kind=abi`, which links each ABI fixture's C peer with llvm-mingw's
+Clang and C runtime on the runner (D2473): 22 fixtures now name both
+Windows targets and two new ones hold variadic floats and, on x86-64,
+every register Win64 makes a callee save across a callback C enters. The
+first run found two Win64 defects, fixed: an imported function's address
+was read through a GOT COFF does not have, which loaded the function's
+first instructions (D2471), and a `distinct f32` crossed in RCX (D2472).
+A Windows image holds the processor to its level before `main`, sharing
+x86-64's reading with Linux in the new `platform/x86_64`, Windows arm64
+by `IsProcessorFeaturePresent`, which reports no RDM (D2475-D2477). A
+stack switch carries the TEB's bounds, a fixture traps in kernel32 on a
+prepared stack, and the switch and start routines carry unwind tables and
+PDB procedures, so `switch_frames.py`'s session runs in both Windows
+debugger jobs at four profiles (D2479-D2481). The `measure-size` job
+measures both Windows targets, `size-only` in the runner table, through a
+PE reader. An image named without `.exe` keeps its name and a failed link
+leaves no private directory (D2485); two links of one program, with or
+without `--debug=full`, are the same bytes (D2486), which the gate showed
+held only inside the flake's `SOURCE_DATE_EPOCH` until the MinGW link took
+`/Brepro` (D2487). The lane keeps Windows Error Reporting away with a job
+object (D2474): with WER on, the whole x86-64 corpus passed 3,706 of 3,706
+on a Windows 11 host, where the error mode alone had left 14 traps past
+their limit. The usability findings met building the project's Windows
+hosts are closed by the Windows lane's README, which now names the route
+a Windows arm64 guest gives and the checkout; the rows the item filed are
+`SR-1851`, `SR-1852` and `SR-1859`.
 
 ### R21 gate
 The corpus and debugger sessions on both architectures on GitHub's Windows
@@ -3225,7 +3300,7 @@ pinned and published as R22.21's are; 10,000 digits timed.
 
 ### R22.24 — Tools that say what they need
 
-Status: planned
+Status: complete
 Depends on: none
 
 The process and measurement tools' refusals and defaults that sent their
@@ -3247,9 +3322,32 @@ Placed here so that no phase gate waits for it; it depends on no other item.
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
 
+Done: `item.py push` refuses a tree the register's age check refuses, or
+the whole `check.py` when the push changes the roadmap, before anything
+is pushed, and `merge-main` exits 1 naming a row its merge aged;
+`merge-main --branch` merges a named branch, a window a continuous item
+also lands on, under the same declaration rules and without the token
+(`SR-1756`). `item.py gate` names each run's branch and event and says
+when main's own gate has not started (`SR-1798`). `check.py` refuses a
+decision a compiler comment or reference cites and `spec.md` lacks, and
+a local run only notes a citations file whose source line alone is
+stale, which the gate and `push` still refuse (`SR-1653`, D2511).
+`measure.py count` and the Cortex-M and Xtensa corpora take `--library`
+and name a missing library as one; `measure.py time` takes
+`--base-checkout` (`SR-1660`). `timing.py run` and `remote` take the
+gate's three runs from the constant the gate reads, and refuse to time
+the Pico 2's Arm port before its boot check (`SR-1827`, `SR-1828`; the
+switch itself is SR-1871). `add_fixture.py` names `refine fmt` of a
+changed library module and the library's formatting case, as core's
+"Adding a module" does (`SR-1829`). The library page's reader names
+every declaration it refuses at once (`SR-1738`), and `item.py queue`
+puts work that is no item in line (`SR-1849`). Met on the way and fixed:
+`register_next.py --delete` quoted a citation twice after a code span
+that wraps a line.
+
 ### R22.26 — What refine-build wanted from the library
 
-Status: planned
+Status: complete
 Depends on: none
 
 The hosted and allocator calls that writing refine-build, the contributed
@@ -3265,6 +3363,34 @@ nothing back and says nothing, and `core/README.md` naming `core/zone`
 Exit evidence: each call with a runtime fixture on every hosted target and
 its fake where the concept has one, `docs/library.md` saying where a
 reader looks, and refine-build's workaround for each removed or named.
+
+Done: a child's working directory is the spawn's (D2534): `io.spawn_in`
+names one, and `programs`' `spawn` entry, `posix.spawn_in` and
+`system.start` take it, a relative program found from the child's
+directory on every system, `chdir` in Linux's cloned child,
+`posix_spawn_file_actions_addchdir_np` on Darwin and FreeBSD, and on
+Windows `CreateProcessW`'s directory with a relative program joined to
+it. `io.status` says `executable` and `io.find_program` finds a name on a
+`PATH` value as a shell does, passing empty entries over (D2535);
+`io.program_name` lends `argv[0]` on every hosted system, Windows' parsed
+command line among them, and `io.memory_named` names the memory world
+(D2536). `mem.allocate_copy` keeps lent bytes as a `[]mut u8` (D2532).
+`heap.in_use`, `heap.peak_in_use` and `heap.peak_resident`, the last
+`getrusage` or `K32GetProcessMemoryInfo` (D2533). The region's type,
+`vec.release`, `core/README.md` and `docs/library.md` say that a free
+into a region gives nothing back and that a nested lifetime takes a zone
+(D2531). Pinned by `runtime/run-itself-in-directory` and
+`runtime/heap-in-use` and `runtime/find-program-volume` on every hosted
+target and `runtime/programs-by-name-memory` and
+`runtime/mem-allocate-copy` on every target, the scripted programs, the
+volume and the memory world their fakes. refine-build's workarounds, each named here and left to its
+own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
+`files/files.ldn` is `io.find_program`; the name written into its
+`--describe` is `io.program_name`; `strings.keep` is
+`mem.allocate_copy`; the heap handed beside a region is a zone over the
+region's parent; and `time -f %M` is `heap.in_use` and
+`heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
+SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 

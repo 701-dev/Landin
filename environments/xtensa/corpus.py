@@ -12,9 +12,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE))
+from environments.xtensa import backend  # noqa: E402
 from environments.xtensa.backend import (COUNTERPARTS, INVENTORY, PROFILES,
-    SPECIALIZATION_PROFILES, CommandFailed, Run, build, configuration, disposition, execute,
-    inventory, metadata, sha, workers)  # noqa: E402
+    SPECIALIZATION_PROFILES, CommandFailed, Run, build, compile_command, configuration,
+    disposition, execute, inventory, metadata, sha, workers)  # noqa: E402
 from environments.xtensa.remote import observe  # noqa: E402
 from environments.xtensa.tools import Tools  # noqa: E402
 
@@ -78,10 +79,14 @@ def inputs_of(name, row):
 
 
 def refusal(run, refine, inputs, chip, row):
-    run.command('compile-refusal', [refine, 'compile', *inputs, '--target=xtensa',
+    run.command('compile-refusal', [*compile_command(refine), *inputs, '--target=xtensa',
                 '--level=xtensa-' + chip, '--emit=asm', '-o', run.out / 'refused.s'],
                 expected=1)
     text = (run.out / 'compile-refusal.log').read_text()
+    #  A compiler with no library refuses every fixture: no changed verdict.
+    missing = backend.missing_library(text)
+    if missing:
+        raise missing
     codes = sorted(set(re.findall(r'error\[(L\d+)\]', text)))
     if codes != sorted(row['codes']) or not codes:
         raise RuntimeError('source refusal differs: expected %s, observed %s; if Xtensa\'s'
@@ -136,10 +141,14 @@ def restriction(run, refine, name, meta, inputs, chip, row, memory_profile):
     codes."""
     reached, found = None, []
     try:
-        run.command('compile-restricted', [refine, 'compile', *inputs, '--target=xtensa',
-                    '--level=xtensa-' + chip, '--emit=asm', '-o', run.out / 'restricted.s'])
+        run.command('compile-restricted', [*compile_command(refine), *inputs,
+                    '--target=xtensa', '--level=xtensa-' + chip, '--emit=asm',
+                    '-o', run.out / 'restricted.s'])
     except Exception:
         text = (run.out / 'compile-restricted.log').read_text()
+        missing = backend.missing_library(text)
+        if missing:
+            raise missing from None
         said = next((line.strip() for line in text.splitlines()
                      if 'internal compiler defect' in line), None)
         if said is None:
@@ -373,9 +382,12 @@ def scope_of(selected, profiles, locked, shard=(1, 1)):
 
 
 def execute_inventory(output, refine, qemu, chip, selected=(), profiles=(),
-                      memory_profile=GATE_MEMORY_PROFILE, locked=True, shard=(1, 1)):
+                      memory_profile=GATE_MEMORY_PROFILE, locked=True, shard=(1, 1),
+                      library=None):
     """SHARD is (I, N): the runs are dealt round N shards in inventory order
-    and the I-th share is made, so the N shards together are every run once."""
+    and the I-th share is made, so the N shards together are every run once.
+    LIBRARY, when given, is the library every compilation names."""
+    backend.use_library(library)
     original = rows()
     if set(selected) - original.keys():
         raise RuntimeError('unknown exact fixture: ' + ', '.join(sorted(
@@ -493,7 +505,7 @@ def describe_run(values):
 
 
 def observe_programs(output, refine, qemu, chip, programs, profiles=(),
-                     memory_profile=GATE_MEMORY_PROFILE, roots=()):
+                     memory_profile=GATE_MEMORY_PROFILE, roots=(), library=None):
     """Run each of PROGRAMS, a source file or a module directory, at
     PROFILES on CHIP and say what it returned or where it trapped, as the
     Cortex-M corpus's --program does.
@@ -501,7 +513,9 @@ def observe_programs(output, refine, qemu, chip, programs, profiles=(),
     No oracle is held: the status is printed, so a measured value comes back
     as a value; an image the profile's map cannot hold says by how much.
     The run fails only when a profile could not be built or run.  Nothing
-    here is corpus evidence."""
+    here is corpus evidence.  LIBRARY, when given, is the library every
+    compilation names."""
+    backend.use_library(library)
     profiles = [profile_name(one) for one in profiles]
     known = {'-'.join(p): p for p in PROFILES + SPECIALIZATION_PROFILES}
     if set(profiles) - known.keys():
@@ -572,6 +586,7 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(parser)
+    lane_refine.library_argument(parser)
     parser.add_argument('--qemu', type=Path,
                         help='the QEMU a run without --tools uses, its tools from PATH')
     parser.add_argument('--tools', type=Path,
@@ -615,12 +630,12 @@ def main():
         if args.program:
             result = observe_programs(args.output, args.refine.resolve(), tools.qemu,
                                       args.chip, args.program, args.profile,
-                                      args.memory_profile, args.root)
+                                      args.memory_profile, args.root, args.library)
         else:
             result = execute_inventory(args.output, args.refine.resolve(), tools.qemu,
                                        args.chip, args.fixture, args.profile,
                                        args.memory_profile, locked=tools.root is not None,
-                                       shard=args.shard)
+                                       shard=args.shard, library=args.library)
     finally:
         if args.output.is_dir():
             tools.finish(args.output)

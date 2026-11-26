@@ -24721,6 +24721,8 @@ helper opens the graph`.
 
 ### D469 — The switch and start routines have names a debugger shows
 
+**Amended by D2481.** On Windows, whose images carry no symbol table, the two routines are CodeView procedures of the PDB; the rest stands.
+
 **The tour said** nothing. D447 has a debugger's walk pass through a
 switch and end at a fibre's first frame, and D450's backends emitted the
 two routines that carry it, one switch routine and one start routine per
@@ -28530,6 +28532,42 @@ does not do and its proofs do not need.
 
 **Pinned by** the IR optimization suite's `proved checks`.
 
+### D2491 — An index counted down from a length is below that length
+
+**The tour said** nothing. D2207 counts a slot that steps up and bounds
+it below by its first value; a slot that steps down was not counted, so
+nothing bounded it above. reverse-complement walks a sequence from its
+end, `at = lenof sequence` and then `while at > 0 do dec at` reading
+`sequence[at]`, and every byte kept a bounds check and a reload of the
+length it compared with: three of its loop's sixteen x86-64
+instructions, in a loop that is 70% of the program's.
+
+**Chosen:** a slot stored twice, once with a first value and once with
+its own load less a constant at least zero, its first store's block
+strictly dominating the step's and the step's load's, counts down: every
+value it holds where the first store strictly dominates is at most the
+first value, provided the step does not wrap. When the first value is a
+constant or a part nothing in the routine writes, such as a slice
+parameter's length, a checked `x - k` with `k` above zero that did not
+trap, where `x` is a load of the slot, is below that first value, and so
+proves the bounds check of an element `s[x - k]` when the first value is
+`s`'s length. `dec at` then `s[at]` is that form, the load of `at` after
+the step being the step's value. As with D2207, the walk learns that the
+step cannot wrap only when it reaches the step, so a proof resting on
+the slot is applied after the walk, and only if the step is checked, or
+the bounds where it stands leave room for its constant. A slot counted
+down gives no least of its first value, which D2207's rule gives a slot
+counted up, and a slot with two steps, or one stepped both ways, is not
+counted.
+
+**The alternatives:** a general range analysis over the loop, which
+D2207 declined; rewriting a descending loop to count up in lowering,
+which would leave the same loop written with its own index unproved and
+change the order a debugger shows.
+
+**Pinned by** the IR optimization suite's `proved checks`, with five
+controls, at size and speed, and x86-64's `counted-down slices`.
+
 ### D2447 — An identity may make the instruction it needs
 
 **The tour said** nothing. SHA-256's majority `(a & b) ^ (a & c) ^ (b &
@@ -28599,6 +28637,28 @@ selection of immediates.
 
 **Pinned by** SHA-256's measured load loop and the runtime fixtures'
 products at size and speed.
+
+### D2492 — x86-64 does not load a length no check reads
+
+**The tour said** nothing. An element of a slice is the inclusive range
+from its index to itself, and the operation names the slice's length
+for its bound; once the bound is proved (D2491) the operation reads the
+length no more, but the load that made it stayed: reverse-complement
+still loaded the length from its frame every byte and threw it away.
+
+**Chosen:** at size and speed x86-64 makes no instruction for a load of
+a slot, or of a field of one, whose every use is the length of a slice
+address whose check was removed. Such a load cannot trap and writes
+nothing, so leaving it out changes nothing the program observes; every
+other backend still makes it.
+
+**The alternatives:** giving the unchecked operation another operand in
+its length's place in the simplifier, which every backend would have
+read and which an operation that names a length it does not check would
+then have stated falsely. arm64 and RISC-V make no load of it in
+reverse-complement's loop, so they need no such rule.
+
+**Pinned by** x86-64's `counted-down slices` at size.
 
 ### D2247 — A constant left operand of a commutative integer operation goes right
 
@@ -31781,6 +31841,34 @@ read as none; and `scripts/tests/test_check_inventories.py`'s
 reports a compiler source changed since the file was written as stale,
 with both digests.
 
+**Amended by D2511:** a local run only notes a file whose source line
+alone is out of date; the gate and `item.py push` still refuse it.
+
+### D2511 — A stream does not regenerate the citations for a compiler edit alone
+
+**The tour said** nothing. Under D1357 every compiler edit made
+`citations.txt` stale, so each parallel stream regenerated it, and the
+union merge of their files gave two source lines the integrator replaced
+again. A decision a stream cited and never recorded drew no complaint but
+that stale file.
+
+**Chosen:** the full `python3 check.py` refuses a decision a compiler
+comment or a compiler reference (`docs/`, the compiler's and the tests'
+READMEs, `core/README.md`) cites and `spec.md` does not define. A local
+run notes, and does not refuse, a citations file whose source line alone
+differs from the checkout's; it refuses it on GitHub's runners and where
+`LANDIN_CITATIONS_STRICT` is set, and `item.py push` refuses it before
+anything is pushed, so whoever pushes regenerates once. A file stale in
+its entries is refused everywhere.
+
+**The alternatives:** leaving the digest out of the tracked file and
+stamping it at installation, which changes the packaging, the flake and
+the reader for a line; and a merge driver that regenerates the file,
+which a merge cannot run without the checkout's Python.
+
+**Pinned by** `scripts/tests/test_check_inventories.py`'s cases that a
+compiler edit alone is a note locally and refused in strict mode, and
+that an undefined cited decision is refused.
 ### D599 — A diagnostic's example names the options it is compiled with
 
 **The tour said** nothing. `docs/diagnostics.md`'s examples were compiled
@@ -34107,6 +34195,46 @@ installed with the SDK, and an assembler of another syntax.
 driver's name and the link line, and every Windows executable the gate's
 `windows-emit` job links.
 
+### D2485 — A Windows image named without `.exe` keeps the name asked for
+
+**From** D2189 and D907.
+
+**The discrepancy:** llvm-mingw's driver, as GCC's does since GCC 8, adds
+`.exe` to an output named without an extension, so
+`refine compile --target=windows-x86-64 FILE --emit=exe -o out` linked
+`out.exe` beside the staged `out` the publication had prepared. refine
+then refused with L0501, "reported success but produced no executable at
+out", which did not say to add `.exe`, and the publication's cleanup failed
+on the stage the unexplained file kept, with L0005, leaving its private
+directory in the output's.
+
+**Chosen:** the image is written under the name asked for. A MinGW link of
+a name whose last component holds no `.` is given the staged name with
+`.exe` after it, which the driver leaves as it is, and refine moves the
+file the link wrote to the staged name before it reads how the link ended,
+so a failed link's partial image goes with the stage and no private
+directory is left. The move is the publication's, by the arena's
+descriptor, never replacing an entry, as every other write in a stage is;
+`Landin.Platform`'s `Move_File` takes it for a staged path. Microsoft's
+link, whose Clang hands the linker the name unchanged (D2327), and a name
+with any extension, which the driver keeps, link under the staged name
+itself.
+
+**The alternatives:** refusing a Windows executable named without `.exe`
+before compiling, which gives a reader a rule a POSIX host does not have
+for a name the toolchain can write; publishing `out.exe` as well, an
+output nobody asked for that may replace a file of that name; overriding
+the driver's `-o` with the linker's own, which leaves the driver believing
+it wrote another file; and a stage leaf named apart from its destination,
+a change to every record the publication journals.
+
+**Pinned by** `driver/a Windows image keeps the name asked for`, on both
+Windows targets and both links, `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink` cases `test_an_image_without_exe_keeps_its_name` and
+`test_a_failed_link_leaves_nothing`, which link with llvm-mingw's drivers
+where they are on PATH, and the publication native control
+`staged_move`.
+
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
 **Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
@@ -34543,6 +34671,193 @@ stacks keep the limit in that cell.
 
 **Pinned by** `toolchain/a Windows link has no C runtime`, and the gate's `windows-debugger` job, whose images it runs on another host than the one they were linked on.
 
+### D2486 — Two full-debug Windows links of one program are the same bytes
+
+**From** D2289 and D2327.
+
+**The discrepancy:** two `--debug=full` builds of one Windows program into
+one directory gave different PDBs and, through the PDB's GUID, which the
+image carries, different images. LLD names each object in the PDB by its
+path, and the object was the driver's temporary file, `/tmp/NAME-XXXXXX.o`,
+whose name is random; and it names the directory the link ran in, and
+each relative path against it, the PDB's and a source named relatively
+among them, and that directory is the publication's private working
+directory, whose name is random too. `/Brepro` reaches neither.
+
+**Chosen:** a full-debug Windows link passes `-save-temps=cwd`, so the
+driver assembles to the assembly's own name with `.o` in the directory the
+link runs in, and `/pdbsourcepath:` with the compilation directory, the
+directory refine ran in, which DWARF records as `comp_dir`, so LLD names
+that directory in the private one's place and every relative path against
+it. A source named relatively is then named where it is, where before it
+was named in a directory that was gone. The object's name and the PDB's
+name in the linker's own record are the link's relative names against it,
+which name no file: the object is gone with the working directory, and the
+image names the PDB by its file name alone (D2289). The link runs in the
+publication's private working directory, which `Landin.Platform`'s `Run`
+now states and which the publication removes with the object in it. So two
+links are the same bytes under the relation DWARF's debug assembly is held
+to: one compilation directory and one source spelling. The same holds under
+Microsoft's link with `lld-link`, where the option is `/PDBSOURCEPATH:`;
+`link.exe` has no such option, is given none, and is not claimed
+reproducible, having no host here to compare.
+
+**The alternatives:** assembling to an object refine stages, as Darwin's
+debug object is (D907), which publishes a file a Windows build does not
+need; a fixed directory name in the private one's place, which would make
+links in different directories the same bytes but names a relative source
+where it is not; and a tool runner that starts a link in a directory the
+driver names, a second working directory for one link to need.
+
+**Pinned by** `toolchain/a Windows link has no C runtime` and
+`toolchain/a Microsoft driver selects Microsoft's link`, which hold the
+options, and `scripts/tests/test_cli_native.py`'s
+`NativeWindowsLink.test_two_debug_builds_are_the_same_bytes`, which links
+twice with llvm-mingw's drivers where they are on PATH and compares the
+images and PDBs.
+
+### D2471 — An imported function's address on COFF is its `__imp_` pointer
+
+**From** D2190 and D2348.
+
+**The discrepancy:** x86-64 took an imported function's address as ELF's
+PIE does, `movq NAME@GOTPCREL(%rip)`. COFF has no GOT, and Clang's COFF
+assembler takes the suffix as a plain RIP-relative operand, so the load
+read the function's first eight bytes of code as its address, and every
+C peer handed a Landin pointer to a C function crashed there.
+arm64's COFF address already took `__imp_NAME`, but put the prefix
+outside a name that needs quotes, which the assembler refuses.
+
+**Chosen:** on COFF an imported function's address is loaded from
+`__imp_NAME`, the pointer a DLL import fills and the MinGW link makes for
+a definition it links in, on both architectures, with the prefix inside a
+quoted name's quotes. A routine the program defines stays `leaq NAME`.
+
+**The alternatives:** `leaq NAME`, which names a DLL function's import
+thunk rather than the function, so two addresses of one function could
+differ; and a GOT the program builds, which COFF's linkers do not.
+
+**Pinned by** the ABI fixtures `c-function-to-address`,
+`r440-native-callbacks` and `r440-native-dollar-link` in the Windows ABI
+kind on both architectures.
+
+### D2472 — A distinct type crosses Win64's C boundary as its base
+
+**From** D2190 and D213, whose transparent representation this keeps at the C boundary.
+
+**The discrepancy:** a `distinct` type is lowered as a one-field C-layout
+record, which SysV classifies by its field and so as the base. Win64
+passes a record of 1, 2, 4 or 8 bytes as one integer, floats included,
+so a `distinct f32` went in RCX where C passes the float in XMM0, and a
+C peer read garbage.
+
+**Chosen:** the IR marks a distinct nominal (`Mark_Distinct`), and the
+Win64 classifier gives a distinct record of one scalar field its base's
+register class, and unwraps a distinct record of one record to that
+record. The value stays the aggregate the emitter holds it as.
+
+**The alternatives:** lowering a distinct scalar as its scalar at the C
+boundary alone, which gives one type two representations in the IR; and
+classifying every one-field record as its field, which Win64 C does not
+do for a `struct { float x; }`.
+
+**Pinned by** `backend plans/Windows x64 positions` and the ABI fixture
+`r490-distinct-c-roundtrip` in the Windows ABI kind.
+
+### D2473 — Windows ABI fixtures link their C peers where llvm-mingw's Clang runs
+
+**From** D2189 and D2348.
+
+**The discrepancy:** a C peer is a C program, its `main` the C runtime's,
+and the flake's MinGW drivers have the import libraries but neither C
+headers nor a C runtime, so no lane compiled a peer for a Windows image
+and the Windows C plan had met no C code.
+
+**Chosen:** `compiler/tests/windows/check.py --kind=abi` emits each ABI
+fixture's assembly with refine on Linux and copies its peer's sources;
+execution compiles each peer with `--cc`, the pinned llvm-mingw release's
+Clang for Windows, with every lane's C flags and the fixture's `c-args`,
+and links it with the assembly, llvm-mingw's C runtime and the import
+libraries `platform/windows` names, dropping what nothing reaches, then
+holds the program to its fixture. A peer's text-mode output's CR LF reads
+as LF. A complete selection holds FreeBSD's required peers, variadic
+floats past the register slots and, on x86-64, every register Win64 makes
+a callee save, both halves of XMM6 to XMM15 among them, across a callback
+C enters. A peer's own assembly is SysV's or ELF's, or it includes a
+POSIX header, names no Windows target.
+
+**The alternatives:** a MinGW sysroot with headers and a C runtime in the
+flake for Linux, a second copy of what the Windows release carries, with
+compiler-rt's builtins for MinGW besides; MSYS2 on the runner, which no
+other lane needs; and the Microsoft C runtime, which `--link=microsoft`'s
+programs do not link.
+
+**Pinned by** the gate's `windows-runtime` and `windows-arm64-runtime`
+jobs and the fixtures `windows-variadic-floats` and
+`windows-c-entry-saves`.
+
+### D2474 — The Windows lane keeps Windows Error Reporting away with a job object
+
+**From** D2192.
+
+**The discrepancy:** the lane set the error mode its programs inherit and
+said that kept WER's dialog and wait away. On a Windows 11 host with WER
+on, run over SSH, 14 of 3,682 `windows-runtime` and 32 of 3,682
+`windows-microsoft` outcomes, every one a trap, did not finish within
+their 60 seconds: with several traps at once most still started a
+`WerFault` that ran for seconds. Measured with 24 trapping images twelve
+at a time, the error mode alone let 17 and 18 reach WER, the per-user
+`Disabled` value 6 and 14, and a job object none, twice.
+
+**Chosen:** besides the error mode, the lane's process joins a job object
+with `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, which every program it
+starts joins with it: an exception that ends a program ends it with the
+exception's code, as before, and WER is not asked. The whole corpus with
+WER on then passed 3,690 of 3,694 outcomes; the four others, one
+fixture's, timed out under a host load near 100 and passed alone, twice
+through the lane and 32 at once.
+
+**The alternatives:** the per-user `Disabled` value, which keeps only
+some reports away and is a setting the lane would leave changed; a README
+naming WER as a requirement and a lane that refuses a host where it is
+on, which leaves every contributor's machine to change; and
+`WerAddExcludedApplication` for each image, which needs every image's
+path before it runs and changes the user's settings.
+
+**Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
+
+### D2487 — A Windows image carries no time of its link
+
+**From** D2189, D2327 and D2486.
+
+**The discrepancy:** LLD writes the time of the link into a Windows
+image's COFF header and into its debug directory, which `--build-id` gives
+every image llvm-mingw's link makes, with or without debug information,
+unless `SOURCE_DATE_EPOCH` names a time. The development shell names one,
+so two links on a developer's host were the same bytes, while on the gate's
+runner, which names none, two links that fell in different seconds
+differed in those two fields: run 45591786213 met it on windows-arm64 and
+run 45597967911 on windows-x86-64. D2327 said Microsoft's `/Brepro` made
+its links the same bytes "as llvm-mingw's are", which held only where the
+variable was set.
+
+**Chosen:** llvm-mingw's link passes `/Brepro` to LLD
+(`-Wl,-Xlink=-Brepro`), which writes a hash of the image where the time
+would be, as Microsoft's link already does; a `SOURCE_DATE_EPOCH` in the
+environment changes nothing.
+
+**The alternatives:** `--no-insert-timestamp`, which writes zero and is the
+GNU linker's spelling of the same choice, where `/Brepro` keeps one
+spelling for both Windows links and a value that differs between images;
+and leaving the time to `SOURCE_DATE_EPOCH`, which makes reproducibility a
+property of the caller's environment.
+
+**Pinned by** `toolchain/a Windows link has no C runtime`, which holds the
+option, and `scripts/tests/test_cli_native.py`'s `NativeWindowsLink`
+cases `test_two_builds_are_the_same_bytes` and
+`test_two_debug_builds_are_the_same_bytes`, which link twice more than a
+second apart without `SOURCE_DATE_EPOCH`.
+
 ### D2290 — CodeView describes no inlined copy yet
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
@@ -34641,6 +34956,8 @@ runtime`, whose driver names the target's triplet.
 
 ### D2349 — A Windows arm64 routine's unwind table describes its frame record, and its CodeView names ARM64's registers
 
+**Amended by D2480.** The stack switch's table describes its epilogue too, and the start routine has one; the rest stands.
+
 **From** [1550], D2191 and D2287.
 
 **The discrepancy:** D2191 describes an x86-64 frame for Windows' unwinder
@@ -34730,6 +35047,119 @@ holds the adapter to a connection, and the gate's `windows-debugger` and
 `windows-arm64-debugger` jobs; on the probe runs 45364098012 to
 45366912659 four of six sessions over the streams stalled and none of six
 over a connection.
+
+### D2479 — A Windows stack switch carries the TEB's stack bounds
+
+**From** D450, D472, D2192 and D2350.
+
+**The discrepancy:** Windows keeps a thread's stack bounds in its TEB, the
+base at GS:8 and the limit at GS:16 on x86-64 and at x18 plus 8 and 16 on
+arm64, with the lowest address of its reservation, DeallocationStack, at
+0x1478. The exception dispatcher walks only frames within the base and the
+limit, `__chkstk` probes the pages from the limit down to a stack pointer
+below it, and kernel32's
+`GetCurrentThreadStackLimits` answers with them. D450's switch left them
+naming the stack the thread started on while code ran on a prepared stack,
+so for as long as it ran the thread's stack was, to Windows, another one;
+only D2192's report made its own stack the thread's before its trap.
+
+**Chosen:** on Windows the switch saves the TEB's base, limit and
+deallocation base with D472's limit on the stack it leaves, and puts back
+those the resumed stack saved, as the limit is put back; and
+`compiler.stack_prepare` lays into a prepared stack's first frame its own
+bounds: the aligned top as the base, and the slice's base as both the limit
+and the deallocation base, since the whole slice is committed memory. A
+Windows thread (D2275), which runs on a stack cut from its group's backing,
+then has that stack's bounds there, and its system stack's again when it
+switches back before it ends. On x86-64 the switch saves the four words in
+an area it allocates below its six pushes, which makes a first frame of 104
+bytes and a switch of 88; on arm64 the three bounds take the frame's spare
+word and two more below its frame record, a first frame of 208 bytes and a
+switch of 192. Every other target's frames are unchanged.
+
+**The alternatives:** saving the base and limit alone, under which
+`GetCurrentThreadStackLimits` would answer with the base of the stack the
+thread started on and a prepared stack's top; Windows' own fibres,
+`ConvertThreadToFiber` and `SwitchToFiber`, which save the same words and
+more but allocate their stacks and contexts themselves, where D450's caller
+supplies them; and the TEB left alone, as before.
+
+**Pinned by** `runtime/windows-prepared-stack-is-the-threads`, which on
+both Windows architectures reads kernel32's bounds on a prepared stack, on
+main's stack and back on the prepared one, reads address zero through
+`IsBadReadPtr`, whose access violation is dispatched on the prepared stack
+to kernel32's own handler, and traps there; and `stack report/a switch
+costs its frame`. Before the change the fixture ended with 1 on both
+architectures' Windows hosts, on x86-64 with its two checks of the bounds
+on the prepared stack failing.
+
+### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
+
+**From** D447, D2191 and D2349.
+
+**The discrepancy:** Windows unwinds a frame by its routine's table in the
+image, and a debugger on Windows does too, where every other target reads
+D447's call frame information. On x86-64 the switch and start routines had
+no table, so an unwinder took each for a leaf that moved no stack pointer;
+on arm64 the switch's table described its frame record but not its
+epilogue, and the start routine had none.
+
+**Chosen:** on x86-64 the switch's table describes its six pushes and the
+allocation of the four words D2479 saves, and its prologue ends there;
+every instruction up to the allocation's release runs with all of them on
+the stack, which both stacks hold alike, and what follows is the epilogue
+Windows' unwinder reads, an addition to RSP, pops and RET, so one table is
+right on either side of the load of RSP. On arm64 the switch's table also
+describes its epilogue, the release of the saved registers and the frame
+record's pop. A prepared first frame lays two zero words above the start
+routine's return address, below which the start routine calls the entry.
+On x86-64 the start routine's table describes no prologue, so an unwinder
+takes the return address its frame holds, zero; on arm64 its table reads
+its opening nop, never run, as the push of a frame record, which every
+return address in the routine is past, so an unwinder restores x29 and x30
+as the zero pair. A return address of zero ends a walk on Windows, as the
+thread's own first frame ends it.
+
+**The alternatives:** the TEB's base alone ending the dispatcher's walk,
+which a debugger does not read; and a table claiming a frame record for
+the x86-64 start routine, which has none.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s stack switch sessions
+(D2481), whose backtrace in a fibre ends at the start routine, and
+`runtime/windows-prepared-stack-is-the-threads`, whose access violation is
+dispatched through these tables.
+
+### D2481 — On Windows the switch and start routines are procedures of the PDB
+
+**From** D469 and D2287.
+
+**The discrepancy:** D469 names the two routines by local function symbols,
+which a debugger reads from an ELF or Mach-O image. A Windows image carries
+no symbol table: a debugger names a frame from the PDB, whose procedures
+are the routines with CodeView descriptions, and its publics, which are
+external symbols. A backtrace through a Windows switch named neither
+routine.
+
+**Chosen:** with `--debug=full` each of the two routines is a CodeView
+procedure, `S_LPROC32_ID`, of its symbol's name, `landin.stack_switch` or
+`landin.stack_start`, with no parameters, lines or variables, so that LLDB
+names their frames and breaks on them by name. `compiler/tests/windows/
+debug.py` runs D469's session, switch_frames.py's, on both Windows
+architectures at the four profiles, as FreeBSD's lane does: plain LLDB
+commands stepping a switch by the count of its instructions, counted in the
+assembly `--debug=full` keeps beside the image, since a PE image's symbols
+are its PDB's. LLDB finds a PDB's routine by its name and not by a pattern,
+and shows the instruction at a stop in a routine it has a description of
+only when told to, so the Windows session breaks on the switch by name and
+asks for the instruction at every stop.
+
+**The alternatives:** external symbols, which the PDB's publics would
+carry, and which D469 declined; and CodeView line records, which would
+claim source the routines do not have.
+
+**Pinned by** the gate's `windows-debugger` and `windows-arm64-debugger`
+jobs, whose LLDB sessions hold the frames at every instruction of the
+switch to `compiler/tests/debugging/switch_frames.py`.
 
 ### D2269 — The Windows entry splits the command line as Microsoft's C runtime does
 
@@ -35121,6 +35551,92 @@ other system is refused on Windows.
 
 **Pinned by** `positive/c-packed-records`, which the determinism manifest
 emits for windows-x86-64.
+
+### D2475 — A Windows image holds the processor to its level in the entry
+
+**From** D255, D284 and D2189.
+
+**The discrepancy:** D2189's image carries no level mark and Windows'
+loader checks none, so a Windows program built above its family's baseline
+ran `main` on any processor and ended with `STATUS_ILLEGAL_INSTRUCTION` at
+the first instruction the processor lacked, as a failed check ends, with no
+word saying why; D284 had given a static Linux executable the check.
+
+**Chosen:** `platform/windows`'s `_landin_start` calls `check_level` before
+it reads the command line, so nothing the entry runs before the check can
+need the level beyond what Linux's entry needs. `level.ldn` gives
+`level`, `read_cpu_words` and `missing_feature` on both architectures, as
+`platform/linux` does, selects each level's check with `fixed if` on the
+`compiler.feature` facts, and leaves the baseline's empty. A processor
+without a feature writes `landin: this executable needs LEVEL, and the
+processor lacks FEATURE` to the standard error handle, when the process
+has one, and ends the process with `ExitProcess(127)`, the status D284
+chose, so one program built for Linux and Windows ends alike on one
+machine and a script reads both refusals as one.
+
+**The alternatives:** no check, which leaves the refusal indistinguishable
+from a failed check; `STATUS_ILLEGAL_INSTRUCTION` or another NTSTATUS,
+which reads as a crash and is exactly what the unchecked image ended with;
+and a message box, which a console program and a test lane cannot read.
+
+**Pinned by** `runtime/windows-level-check` at the default level,
+`x86-64-v3` and `armv8.1-a` in the Windows runtime lanes; under Wine, an
+`x86-64-v4` build of it on a processor without AVX-512 wrote the line and
+ended with 127.
+
+### D2476 — x86-64's processor reading is platform/x86_64, which every system's entry shares
+
+**From** D284, D687 and D2475.
+
+**The discrepancy:** D284's `cpuid` and `xgetbv` reading and its copy of
+D255's per-level feature tables were `platform/linux`'s, and Windows'
+entry needs the same reading: the processor answers it, not the system.
+
+**Chosen:** the reading and the tables are the module `platform/x86_64`,
+which is available on every target and declares everything on `x86_64`
+alone, as `platform/riscv` does on rv32, so `platform/linux` and
+`platform/windows` import it on every system they serve. Each keeps its
+own `cpu_words`, `read_cpu_words`, `level` and `missing_feature`, the type
+an alias of the module's and the routines calls of its, so a program
+names the check through its system's interface on every architecture.
+How a refusal is told and the process ended stay each system's.
+
+**The alternatives:** a copy in `platform/windows`, two tables of D255 to
+keep in step; `platform/windows` importing `platform/linux` for it, which
+would make Windows' interface depend on Linux's; and the tables in the
+compiler, which D284 already declined.
+
+**Pinned by** `runtime/linux-level-check`, unchanged, and
+`runtime/windows-level-check` on x86-64, and the driver case `source
+namespaces enforce target availability`, which imports the module on
+windows-arm64 and linux-rv64.
+
+### D2477 — Windows arm64 asks IsProcessorFeaturePresent, which reports no RDM
+
+**From** D255, D284 and D2475.
+
+**The discrepancy:** D284 reads arm64's features from AT_HWCAP, which
+Windows does not have, and Windows does not let a program read the
+processor's ID registers.
+
+**Chosen:** `read_cpu_words` asks kernel32's `IsProcessorFeaturePresent`
+for `PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE` (34) and
+`PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE` (31) and keeps each answer as
+that bit of `present`, and `armv8.1-a`'s check requires LSE, then CRC32.
+No `PF_*` number, through the Windows SDK of llvm-mingw 20261117, reports
+RDM, armv8.1-a's third feature, so it is not checked, as no Linux
+interface reports XTheadBa on RV64; refine's code selects no RDM
+instruction, so only an `assembler.block` using one can still end with
+`STATUS_ILLEGAL_INSTRUCTION`.
+
+**The alternatives:** the `CP 4030` value under the registry's
+`HARDWARE\DESCRIPTION\System\CentralProcessor\0`, which holds
+ID_AA64ISAR0_EL1 but which Windows does not document, and which would link
+advapi32 into every armv8.1-a image; and refusing RDM's absence as
+unconfirmed, which would refuse every armv8.1-a image on every processor.
+
+**Pinned by** `runtime/windows-level-check` at `armv8.1-a` on the
+windows-arm64 runtime lane, whose injected words lack LSE, then CRC32.
 
 ## DECISIONS: THE CORE LIBRARY AND THE DERIVED PROGRAMS
 
@@ -38074,7 +38590,7 @@ emulator lane.
 
 **Chosen:** one pinned emulator, Espressif's QEMU `esp-develop-9.2.2-20260417`,
 locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json`
-(since D2551 a static build of that tag, which needs no library), carries both
+(since D2571 a static build of that tag, which needs no library), carries both
 levels: `rv32imc` on its `esp32c3` machine, on the lane description
 `environments/cortex-m/lanes/descriptions/esp32c3` (the reference's
 capacities in SRAM1: 32 KiB of text at 0x4038_0000, 16 KiB of data at the
@@ -38150,7 +38666,7 @@ the packages in a release of the project's own, a second store to keep.
 `test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash` and
 `test_every_locked_debian_package_has_its_snapshot_url`, with the route.
 
-### D2551 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
+### D2571 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
 
 **The discrepancy:** the locked `qemu-espressif` and `qemu-xtensa` areas
 held Espressif's own release binaries of `esp-develop-9.2.2-20260417`,
@@ -38198,7 +38714,7 @@ refuses any Debian package back into the lock.
 
 ### D2572 — The Cortex-M lanes' QEMU and GDB are nix-packages builds, and the lock holds no Debian package
 
-**The discrepancy:** after D2551 the lock still carried 80 Debian 13
+**The discrepancy:** after D2571 the lock still carried 80 Debian 13
 packages for two binaries, Debian's `qemu-system-arm` 10.0.13 and
 `gdb-multiarch` 16.3, nearly all of them loaded at start-up for features
 no lane uses: GDB's debuginfod (curl, Kerberos, LDAP, OpenSSL), its
@@ -41750,6 +42266,57 @@ round for good.
 on every target, Cortex-M0 among them, and
 `runtime/benchmark-game-binary-trees`.
 
+### D2531 — A nested lifetime takes a zone, and a region's free says so in its documentation
+
+**The tour said** nothing, and `core/README.md` said that a region's
+single free returns nothing, leaving the reader to conclude that nesting
+regions reclaims nothing. refine-build handed every routine that started
+a shorter lifetime the heap beside its region, and code it moved from the
+heap onto a region compiled and ran unchanged while `vec.release` and a
+fresh list each round kept every temporary until the region ended, so a
+loop took memory by the square of its steps.
+
+**Chosen:** a lifetime nested inside a region's takes a `core/zone` over
+the region's parent, reset at the end of each round, which D2449 made
+possible; `core/README.md`, the region's type and `vec.release` say so,
+and that a free into a region or a zone gives nothing back before it is
+released or reset. The allocator concept is unchanged: nothing a caller
+could do with a provider's answer would stop the growth, which only a
+different allocator stops.
+
+**The alternatives:** an entry of `mem.allocator` saying whether a free
+reclaims, which every provider and fake would have to answer and no
+container could act on; a region that frees a payload back to its parent,
+which loses the region's one release and costs a ledger search per free;
+and a check, which would need to know which frees run in a loop.
+
+**Pinned by** `runtime/library-shared-zone` and `runtime/core-zone-blocks`,
+which show the zone's reset keeping one block, on every target.
+
+### D2532 — A copy of lent bytes into an allocator returns the bytes
+
+**The tour said** at [1360] that storage comes from an allocator passed
+in, and no call copied a `[]u8` into allocated storage and returned a
+`[]u8`: `mem.allocate_bytes` gives a `byte_buffer` whose view is lent from
+the local binding, so its copy cannot be kept, and the five-call form
+that can was shown only in one example. refine-build's `strings.keep`,
+which the whole tool rests on, wrote it out.
+
+**Chosen:** `mem.allocate_copy(memory, bytes)` takes a block of exactly
+`lenof bytes` from the provider, copies the bytes in and returns it as a
+`[]mut u8` that borrows nothing, and `mem.release_copy(memory, copied)`
+gives it back with its own length. An empty copy asks the provider for
+nothing and releasing one does nothing; a refusal is `out_of_memory`
+with nothing taken.
+
+**The alternatives:** documenting the five calls, which every program
+that keeps a line or an argument would write out again; returning a
+`byte_buffer`, which is the form that cannot be kept; and a `text`
+builder, which is for text that grows.
+
+**Pinned by** `runtime/mem-allocate-copy` on every target, Cortex-M0 among
+them.
+
 ### D387 — `core/sort` takes a comparison with a context
 
 **The tour said** at [1290] that a generic function takes a type as an
@@ -42679,6 +43246,105 @@ Darwin and FreeBSD headers; and `runtime/run-shell`, `runtime/run-streams`,
 `runtime/run-large-output`, `runtime/run-signalled` and the other programs
 fixtures, unchanged, over `blocking.new()`.
 
+### D2534 — A child's working directory is the spawn's, and a relative program is found from it
+
+**The tour said** nothing, and `io.spawn` and `posix.spawn` took no
+working directory while nothing changed the process's own, which is not
+safe beside threads. So a child always started where its parent was, and
+refine-build, the contributed build command, started every step as
+`env -C VIEW PROGRAM`, which needs GNU coreutils' `env` and is not on
+macOS.
+
+**Chosen:** `io.programs`' `spawn` entry takes the child's directory, an
+OS string, empty for the parent's own. `io.spawn` keeps its signature and
+passes the empty one; `io.spawn_in(host, directory, path, ...)` names a
+directory and refuses an empty one `mem.not_found` before it asks, since
+it names none. The child changes to it before its program is executed,
+so a relative program is found from there, as `env -C` and
+`posix_spawn_file_actions_addchdir` find one: on Linux the cloned child
+calls `chdir` first, on Darwin and FreeBSD it is
+`posix_spawn_file_actions_addchdir_np`, and on Windows `CreateProcessW`'s
+directory, a relative program joined to it with `\` because Windows
+finds one from the parent's. A missing directory is `mem.not_found`, one
+the caller may not enter `no_access`, and no child is left.
+`platform/posix` gains `spawn_in` beside `spawn`, and `hosted/system`'s
+`start`, the provider builders' call, takes the directory. The scripted
+fake matches a record by its path and its `directory`, so one program
+may be scripted apart in two directories.
+
+**The alternatives:** a new parameter of `io.spawn` itself, which breaks
+every caller for a want most do not have; changing the process's own
+directory, which every thread shares; a relative program found from the
+parent's directory, which Windows does and POSIX's spawn does not, and
+which would need the parent's path on POSIX; and a field of
+`child_streams`, which says how streams connect.
+
+**Pinned by** `runtime/run-itself-in-directory` on every hosted target and
+`runtime/programs-by-name-memory` on every target.
+
+### D2535 — A file says whether it runs, and the library searches `PATH` for a name
+
+**The tour said** nothing, and `io.spawn` rightly searches no path, but
+nothing else did either, and `io.status` had no executable bit, so a tool
+wrote its own search, 30 lines in refine-build, and took the first
+regular file of the name, executable or not.
+
+**Chosen:** `io.status` gains `executable`: a regular file some
+permission bit lets someone execute on POSIX, and on Windows, which keeps
+no such bit, a regular file whose final path ends in `.exe` or `.com`; a
+directory never is. `io.find_program(host, name, search, into)`, over
+`file_system`, finds a name as a shell does and puts its path in the
+caller's buffer: the first entry of `search`, a `PATH` value the caller
+reads through `environment`, holding an executable regular file of that
+name, after following links, joined to the entry with the separator the
+entry writes, `\` for a Windows entry that has one and `/` otherwise,
+which Windows takes too. Entries divide at `:`, on Windows at `;`,
+where a name whose last part has no extension is looked for with `.exe`
+after it as `CreateProcessW` looks. An empty entry is passed over rather
+than read as the current directory, so a program there never runs by
+accident. A name holding a separator, or a drive on Windows, names its
+own place and is checked, not searched. Nothing is found `mem.not_found`;
+a path too long for the buffer `io_failed`. The volume fake's nodes carry
+`executable`.
+
+**The alternatives:** searching inside `spawn`, which a caller could not
+see or refuse and which the library rejected for the shell's reasons;
+taking the provider's environment itself, which would make the search
+need two concepts and a fake of both; reading an empty entry as `.`, as
+POSIX's shells do, which runs a program from wherever the caller stands;
+and `access(X_OK)`, which asks about this process and is not a status.
+
+**Pinned by** `runtime/run-itself-in-directory` and
+`runtime/find-program-volume`, the search over the volume fake, on every
+hosted target.
+
+### D2536 — A program reads the name it was run by
+
+**The tour said** nothing, and `io.argument` starts after the program's
+name, C's `argv[1]`, with nothing in `core/io` giving `argv[0]`. A
+contributed command answering `--describe`, which the dispatcher holds to
+its file's name, wrote its name in, so a copy under another name was
+refused; a usage line could not say the name it was called by; and
+the Windows events stream's fixture, whose child was to be itself, started
+the command processor instead.
+
+**Chosen:** `process` gains `program_name`, and `io.program_name(host)`
+lends the name as the host passed it, C's `argv[0]`, empty when none was
+given: on POSIX the entry's vector, and on Windows the first part of the
+command line the entry reads, the same `argv[0]` the C runtime gives. It
+is the name to say, not proof of where the file is. The memory world has
+none unless `io.memory_named(world, name)` gives one.
+
+**The alternatives:** Windows' `GetModuleFileNameW`, which gives the
+executable's path rather than the name it was run by, and has no POSIX
+counterpart; index zero of `argument`, which would shift every existing
+caller's arguments; and a parameter of `memory_over`, which every memory
+world would have to give.
+
+**Pinned by** `runtime/run-itself-in-directory`, which finds itself by the
+name and starts itself, on every hosted target, and
+`runtime/programs-by-name-memory` on every target.
+
 ### D480 — The event loop sleeps in its wait, and needs no descriptor to wake it
 
 **The tour said** nothing. D449 lets a fibre wait for a descriptor, a
@@ -43561,6 +44227,38 @@ Both were declined.
 `runtime/hosted-heap-provider` and `runtime/linux-heap-size-classes` with it
 clear, and `runtime/linux-vdso` and `runtime/clock-system-libc` over the
 relaxed cache; D514 records what the lock costs.
+
+### D2533 — The heap counts what it holds, and the process says its peak
+
+**The tour said** nothing, and neither `hosted/heap` nor `core/io`
+reported the heap's bytes in use or the process's peak size, while
+`core/pool` keeps counters. A test that repeated work does not grow
+could not be written in Landin, and refine-build measured it with GNU
+`time -f %M` around its executable, skipped where that is missing.
+
+**Chosen:** `heap.in_use(memory)` is the bytes the heap holds for blocks
+not yet freed, each counted as its size class or its own mapping's
+pages, header and alignment included, and `heap.peak_in_use(memory)` the
+most it has held at once. The counts change with the size classes under
+their lock once a thread has started, and a mapping, made without the
+lock, takes it only to count. `heap.peak_resident(memory)` is the
+process's peak resident size in bytes as the system counts it: POSIX's
+`getrusage` maximum resident set, KiB on Linux and FreeBSD and bytes on
+Darwin, through the new `posix.peak_resident`, and Windows' peak working
+set through `K32GetProcessMemoryInfo`; zero when the system does not say.
+It counts the pages a program touched, so it may be less than the heap's
+peak, whose mapped pages need not all be touched, and FreeBSD reads it at
+its statistics clock, so a program shorter than a tick may not be seen at
+its largest.
+
+**The alternatives:** counting the bytes asked for, which the heap does
+not keep, since a free trusts its header and not the size passed; atomic
+counters, which every allocation would pay for beside a lock it already
+takes; a concept for memory measurement with a fake, when the heap is
+the process's own and a fake heap measures nothing; and a resident size
+in `core/io`, which a firmware image would carry.
+
+**Pinned by** `runtime/heap-in-use` on every hosted target.
 
 ### D503 — The process's own state beside threads
 

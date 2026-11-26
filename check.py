@@ -3042,6 +3042,83 @@ def guide_link_citations(path, text, constructs):
     return out
 
 
+#  Where a decision is cited outside the specification and the roadmap:
+#  the compiler's comments, and the references that explain it.
+DECISION_CITING_TREES = ("compiler/ada",)
+DECISION_CITING_DOCUMENTS = ("docs", "compiler/ada/README.md",
+                             "compiler/tests/README.md", "core/README.md")
+#  A decision cited in running text: not a hexadecimal digit run such as
+#  Ada's 16#D800#, not a code point after `U+`, not part of a longer word.
+DECISION_CITATION = re.compile(r"(?<![\w#+-])D(\d+)(?![\w#])")
+
+
+def decision_citation_lines(path, text):
+    """(line, text) of what in PATH can cite a decision: an Ada source's
+    comments, a Markdown file's prose; code spans and fences are quoted,
+    and an Ada string literal is a program's text."""
+    ada = path.endswith((".adb", ".ads", ".gpr"))
+    fenced = False
+    for n, line in enumerate(text.split("\n"), 1):
+        if ada:
+            line = re.sub(r'"(?:[^"]|"")*"', '""', line)
+            at = line.find("--")
+            if at < 0:
+                continue
+            line = line[at:]
+        else:
+            if line.lstrip().startswith(("```", "~~~")):
+                fenced = not fenced
+                continue
+            if fenced:
+                continue
+        yield n, re.sub(r"`[^`]*`", "", line)
+
+
+def check_decision_citations(full_run):
+    """Every decision a compiler comment or reference cites is in spec.md.
+
+    Streams cited decisions for hours before the register had them, and
+    nothing said so: the only complaint was a stale citations file, which
+    every compiler edit makes stale anyway.  A decision is defined by its
+    `### Dn — ` heading in spec.md's register.
+    """
+    if not full_run:
+        return []
+    spec = os.path.join(ROOT, SPEC_NAME)
+    if not os.path.exists(spec):
+        return []
+    defined = {int(number) for number in re.findall(
+        r"^### D(\d+) — ", read_file(spec, encoding="utf-8"), re.M)}
+    paths = []
+    for tree_path in DECISION_CITING_TREES:
+        for directory, _, names in sorted(os.walk(os.path.join(ROOT,
+                                                              tree_path))):
+            paths += [os.path.join(directory, name) for name in sorted(names)
+                      if name.endswith((".adb", ".ads", ".gpr"))]
+    for document in DECISION_CITING_DOCUMENTS:
+        whole = os.path.join(ROOT, document)
+        if os.path.isdir(whole):
+            paths += sorted(os.path.join(whole, name)
+                            for name in os.listdir(whole)
+                            if name.endswith(".md"))
+        elif os.path.exists(whole):
+            paths.append(whole)
+    out = []
+    for path in paths:
+        relative = os.path.relpath(path, ROOT)
+        text = read_file(path, encoding="utf-8")
+        for n, line in decision_citation_lines(relative, text):
+            for found in DECISION_CITATION.finditer(line):
+                if int(found.group(1)) not in defined:
+                    out.append((relative, n,
+                                "D%s is cited and %s's register does not"
+                                " define it: add its entry, or take a"
+                                " number with `python3 scripts/"
+                                "register_next.py --decision`"
+                                % (found.group(1), SPEC_NAME)))
+    return out
+
+
 def check_citations(paths, guide_paths=()):
     """Every construct/finding citation resolves within the selected scope."""
     citation_paths = [path for path in paths
@@ -8772,6 +8849,19 @@ def citations_dump():
     return "\n".join(lines) + "\n"
 
 
+#  Where a citations file whose source line alone is stale fails the run:
+#  in the gate, or wherever this variable is set (D2511).
+CITATIONS_STRICT = "LANDIN_CITATIONS_STRICT"
+
+
+def citations_strict():
+    """Whether a source line alone out of date fails the run (D2511): in
+    GitHub's runners and wherever LANDIN_CITATIONS_STRICT is set; a local
+    run only notes it, since `item.py push` refuses it before the push."""
+    return bool(os.environ.get(CITATIONS_STRICT)) or \
+        os.environ.get("GITHUB_ACTIONS") == "true"
+
+
 def check_citation_table(full_run):
     """`refine explain`'s constructs and decisions are the documents'.
 
@@ -8808,6 +8898,16 @@ def check_citation_table(full_run):
         #  the documents did not.
         moved = (len(written) == len(wanted) and len(wanted) > 1
                  and written[:1] + written[2:] == wanted[:1] + wanted[2:])
+        if moved and not citations_strict():
+            #  Every compiler edit moves the digest; a stream need not
+            #  regenerate for it, and whoever pushes does (D2511).
+            print("note: %s names compiler sources %s and the checkout's are"
+                  " %s; regenerate it with %s before the push, which"
+                  " `item.py push` and the gate require (D2511)" % (
+                      CITATIONS_DATA,
+                      written[1][len(CITATIONS_SOURCE):][:12] or "none",
+                      digest[:12], regenerating(CITATIONS_DATA)))
+            return out
         out.append((CITATIONS_DATA, 2 if moved else 1,
                     "the citations are stale"
                     + ("; they name compiler sources %s and the checkout's"
@@ -10597,6 +10697,64 @@ def check_comment_forms(full_run):
 COMMAND_FENCES = frozenset(("sh", "shell", "bash", "console"))
 
 
+#  What Windows refuses in a path component: the characters Win32 file
+#  names exclude, a component ending in a space or a dot, and the device
+#  names with any extension.
+WINDOWS_REFUSED = re.compile(r'[<>:"|?*\\\x00-\x1f]')
+WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)")
+
+
+def windows_path_problem(path):
+    """Why a checkout on Windows cannot hold `path`, or None."""
+    for part in path.split("/"):
+        if WINDOWS_REFUSED.search(part):
+            return ("component %r holds a character Windows refuses in a"
+                    " file name" % part)
+        if part.endswith((" ", ".")):
+            return "component %r ends in a space or a dot" % part
+        if WINDOWS_DEVICES.match(part):
+            return "component %r is a Windows device name" % part
+    return None
+
+
+def check_portable_paths(full_run):
+    """Every tracked path is one a Windows or macOS checkout can hold.
+
+    A debugger case kept its source as `caller"\\path.ldn`, a name
+    Git for Windows refuses, so no Windows runner could check the
+    repository out and every Windows job took its lane from a bundle.  A
+    name a test needs that Windows refuses is written at run time, as
+    `compiler/tests/debugging/check.py` writes that one.  Two paths that
+    differ only in case are refused too, since both systems' default file
+    systems fold case and a checkout keeps only one of them.  The paths
+    are Git's index, or the tree's files where Git cannot answer.
+    """
+    if not full_run:
+        return []
+    listed = _git(ROOT, "ls-files", "-z")
+    if listed is not None:
+        paths = [name for name in listed.split("\0") if name]
+    else:
+        paths = []
+        for directory, names, files in os.walk(ROOT):
+            names[:] = [name for name in names if name != ".git"]
+            for name in files:
+                paths.append(os.path.relpath(os.path.join(directory, name),
+                                             ROOT).replace(os.sep, "/"))
+    out = []
+    folded = {}
+    for path in sorted(paths):
+        problem = windows_path_problem(path)
+        if problem:
+            out.append((path, 1, problem + "; write it at run time instead"))
+        twin = folded.setdefault(path.casefold(), path)
+        if twin != path:
+            out.append((path, 1, "differs from %s only in case, which a"
+                        " Windows or macOS checkout cannot hold both of"
+                        % twin))
+    return out
+
+
 def check_named_files(full_run):
     """A document or source file that names another names one that exists.
 
@@ -10852,16 +11010,24 @@ PROCESS_SECTION_BUDGETS = {
     "The loop that runs now": 9200,
     #  Both raised when item.py learned breaking windows, the mirror's
     #  refusal and register_next.py's --delete and --decision, which an
-    #  item's agent meets in these steps and nowhere else.
-    "Running an item": 5600,
+    #  item's agent meets in these steps and nowhere else; and again when
+    #  push and merge-main learned the register check, merge-main a named
+    #  branch and the queue a line for work that is no item; and again
+    #  when push learned the pre-push checks and boards beside the gate,
+    #  gate the first-failure watch and main's verdict, merge-main trains.
+    "Running an item": 6700,
     "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
-    "Command reference": 8400,
+    #  Raised when gate_watch.py learned --verdict.
+    "Command reference": 8500,
     #  Raised when Windows arm64 added its three gate jobs, each a
-    #  row of the job table, and its Microsoft link a fourth, and again
-    #  when refine built on FreeBSD added two rows.
-    "The mechanical gate": 49300,
+    #  row of the job table, and its Microsoft link a fourth, again
+    #  when refine built on FreeBSD added two rows, again when the
+    #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
+    #  main added in the same weeks, and again when trains, boards beside
+    #  the gate and main's verdict joined the promotion rule.
+    "The mechanical gate": 52700,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,
@@ -12861,6 +13027,7 @@ def main(argv):
     else:
         guide_paths = []
     extra = check_citations(citation_paths, guide_paths)
+    extra += check_decision_citations(full_run)
     stale_paths = LIVE_DOCS if full_run else paths
     extra += check_stale_backlog(stale_paths, full_run)
     extra += check_agent_guidance(full_run)
@@ -12921,6 +13088,7 @@ def main(argv):
     extra += check_discussion_targets(full_run)
     extra += check_target_lists(full_run)
     extra += check_named_files(full_run)
+    extra += check_portable_paths(full_run)
     extra += check_record_hints(full_run)
     extra += check_server_targets(full_run)
     extra += check_build_paths(full_run)

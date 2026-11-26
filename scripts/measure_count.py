@@ -32,6 +32,9 @@ instruction whose address lies in the image's executable range.
         compile the plugin's own declarations against a QEMU's
         <qemu-plugin.h>, which needs glib's headers
 
+A --refine copied out of its build directory finds no library, so a
+built program names one with `--library DIR`, on either kind of target.
+
 `--from SYMBOL` and `--to SYMBOL` count only from the first time SYMBOL's
 instruction is about to execute, and up to (not including) the first time
 the other's is.  A corpus harness image, one with `backend_done`, counts
@@ -467,8 +470,6 @@ def run_built(args, tools: Path) -> int:
     """`count` with --fixture or --source: build each program at --level,
     --optimize and --specialize through the Cortex-M corpus's own
     `--program` path, which counts from `main`, and print each count."""
-    require(not args.library or args.target in USER_MODE, "--library is a hosted"
-            " build's; the Cortex-M corpus finds the library beside --refine")
     require(args.target == "cortex-m0" or args.target in USER_MODE,
             f"--fixture and --source build programs for cortex-m0 and"
             f" {', '.join(USER_MODE)}, not {args.target}")
@@ -493,7 +494,7 @@ def run_built(args, tools: Path) -> int:
     try:
         results = backend_corpus.observe(
             output, tools, args.refine, programs, [(args.optimize, args.specialize)],
-            [cortex_level(args.level)], args.root)
+            [cortex_level(args.level)], args.root, library=args.library)
     except RuntimeError as error:
         raise Failure(str(error)) from error
     for one in results:
@@ -530,6 +531,10 @@ def run_built_hosted(args) -> int:
                    *([f"--library={args.library}"] if args.library else []),
                    str(program), "-o", str(image)]
         built = subprocess.run(command, capture_output=True, text=True)
+        if built.returncode != 0:
+            import lane_refine  # what a refusal of refine's library says
+            missing = lane_refine.missing_library(built.stderr, "--library DIR")
+            require(missing is None, f"refine did not build {name}: {missing}")
         require(built.returncode == 0, f"refine did not build {name}:"
                 f" {' '.join(command)}\n{built.stderr.strip()}")
         for index in range(args.repeat):
@@ -557,6 +562,8 @@ def run_count(args) -> int:
     built = bool(args.fixture or args.source)
     require(built != (args.image is not None), "count takes an IMAGE, or --fixture"
             " or --source to build one, not both")
+    require(built or not args.library, "--library is the library a --fixture or --source"
+            " is built with; an IMAGE is built already")
     if built:
         return run_built(args, tools)
     results = []
@@ -746,15 +753,14 @@ def add_commands(commands) -> None:
                           " directory; repeat for more")
     one.add_argument("--root", action="append", default=[],
                      help="a module root --source needs, passed to refine")
-    one.add_argument("--library", type=Path,
-                     help="a hosted build: where core, hosted and platform are, for a"
-                          " refine copied away from its checkout")
     one.add_argument("--optimize", default="speed", choices=("none", "size", "speed"),
                      help="the objective a built program is compiled at")
     one.add_argument("--specialize", default="auto", choices=("off", "auto", "all"),
                      help="the specialization a built program is compiled at")
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(one, required=False, environment=True)
+    lane_refine.library_argument(one, help="where core, hosted and platform are, for a"
+                                           " --refine copied out of its build directory")
     one.set_defaults(arguments=[])
     one.add_argument("--stdin", type=Path, help="a hosted program's standard input")
     one.add_argument("--from", metavar="SYMBOL",

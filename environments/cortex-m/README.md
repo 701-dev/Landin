@@ -38,7 +38,7 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 | Assembler/linker | GNU Binutils 2.46.1, from the same archive |
 | Debugger | GDB 16.3 for Arm and RISC-V with Python 3.13, a static build by 701-dev/nix-packages without debuginfod, unpacked into the tool root's `gdb`; loopback QEMU remote stub |
 | Probe options | `-mcpu=cortex-m0 -mthumb -mfloat-abi=soft -mabi=aapcs -fno-short-enums -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
-| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, built from that tag as a static, headless binary by [701-dev/nix-packages](https://github.com/701-dev/nix-packages), whose one archive holds `qemu-system-riscv32` and `qemu-system-xtensa` and is unpacked into the tool root's `qemu-espressif` and `qemu-xtensa` (D695, D2551) |
+| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, built from that tag as a static, headless binary by [701-dev/nix-packages](https://github.com/701-dev/nix-packages), whose one archive holds `qemu-system-riscv32` and `qemu-system-xtensa` and is unpacked into the tool root's `qemu-espressif` and `qemu-xtensa` (D695, D2571) |
 | rv32imc corpus lane | `-M esp32c3 -cpu espressif,a=false,zawrs=false,f=false,d=false,zfa=false`: the ESP32-C3 machine with its core's A, F and D removed, which the C3 has not (D696), for the whole corpus at `rv32imc` in `run.py`'s `esp32c3` lane, on the lane description `lanes/descriptions/esp32c3` |
 | rv32imac corpus lane | `-M sifive_e`: a SiFive E31, rv32imac, for the whole corpus at `rv32imac` in `run.py`'s `sifive-e` lane, on the RV32 reference's map, 32 KiB of flash at `0x2040_0000` and the 16 KiB DTIM at `0x8000_0000` |
 | RV32 compiler | `riscv64-elf-gcc` 16.1.0 with Binutils 2.46.1, GNAT's riscv64-elf archive `16.1.0-1`, pinned in `environments/pins.sh`; libgcc from `rv32im/ilp32` at rv32imc and `rv32imac/ilp32` at rv32imac |
@@ -873,6 +873,13 @@ rv32imac` for both RV32 lanes, each line naming a level other than
 `armv6-m`. It belongs to `--program` and is refused without it: the
 corpus runs each row at `armv6-m` and at its fixture's `levels:`, and
 `--lane` runs every row on one lane.
+
+A `refine` copied out of its build directory looks for its library at
+`../lib/landin` beside itself; `--library DIR` names it for every
+compilation, the corpus's and `--program`'s alike. A run whose compiler
+found no library, or one without `platform/cortex_m/reference` (L0006,
+L0518), fails saying so and naming `--library`, never as a row's changed
+verdict.
 
 A program that traps says `trapped: HardFault at` the faulting routine and
 line, and whether it was the UDF #1 a check emits; one that does not fit
