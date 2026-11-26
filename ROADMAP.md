@@ -3623,7 +3623,7 @@ program that uses one locale carries only its data.
 
 ### R22.60 — Regular expressions
 
-Status: planned
+Status: active
 Depends on: R22.30
 
 `core/regex`, SR-100: patterns compiled at run time with the caller's
