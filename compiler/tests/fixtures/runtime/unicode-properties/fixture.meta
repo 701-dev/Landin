@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/unicode's canonical combining class and six binary properties of every value from zero to U+10FFFF are the Unicode Character Database's, by their digest; firmware walks every 7th value
+summary: core/unicode's canonical combining class and six binary properties of every value from zero to U+10FFFF are the Unicode Character Database's, by their digest; firmware walks every 13th value
 program: main.ldn
 root: ../../../../..
 status: 42

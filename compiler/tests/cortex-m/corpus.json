@@ -5711,7 +5711,17 @@
       }
     },
     "runtime/unicode-case-scalars": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40508 of this lane's 32 KiB, over by 7740."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40764 of this lane's 32 KiB, over by 7996."
+        }
+      }
     },
     "runtime/unicode-case-title": {
       "mode": "execute",
@@ -5756,7 +5766,13 @@
       "reason": "At none/off the image is 33,624 bytes, over Cortex-M0's 32 KiB of flash by 856: the word table and the first part of WordBreakTest.txt with the word rules unoptimized. size/off, size/auto and speed/auto fit, 28,276 bytes at size/auto, and execute every line of the part; this image limit is not runtime evidence."
     },
     "runtime/unicode-words-2": {
-      "mode": "execute"
+      "mode": "execute",
+      "lanes": {
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 32992 of this lane's 32 KiB, over by 224."
+        }
+      }
     },
     "runtime/unnamed-view-finished-or-apart": {
       "codes": [

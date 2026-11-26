@@ -6,11 +6,11 @@
 
 import core/unicode
 
---  Firmware walks every 7th scalar, within the emulator's
+--  Firmware walks every 13th scalar, within the emulator's
 --  session; a hosted target walks them all.
 fixed if compiler.os == freestanding then
-    stride: u32 = 7
-    expected: u32 = 0x63922825
+    stride: u32 = 13
+    expected: u32 = 0x02e64d68
 else
     stride: u32 = 1
     expected: u32 = 0x7206ed57

@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: Small shared core/unicode consumer finds a letter's general category, counts the grapheme clusters of an accent spelled apart and a flag, and uppercases ß to SS
+summary: Small shared core/unicode consumer finds a letter's general category, counts the grapheme clusters of an accent spelled apart and a flag, and gives a letter's simple uppercase
 program: main.ldn
 root: ../../../../..
 status: 42

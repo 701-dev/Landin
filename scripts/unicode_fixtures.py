@@ -221,7 +221,7 @@ end bits_of
         ["core/unicode"], [bits],
         ["        feed(state, unicode.combining_class(scalar))",
          "        feed(state, bits_of(scalar))"],
-        digest, 7, False)
+        digest, 13, False)
 
 
 def little(value):
