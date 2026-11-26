@@ -497,8 +497,11 @@ RAM_IMAGES = {
     'sifive_e_text_in_ram': ('rv32', 'sifive_e', 'text'),
     'sifive_e_rodata_in_ram': ('rv32', 'sifive_e', 'rodata'),
 }
-#  A constant table, a string and an evidence table, `text.format`'s for
-#  its `any`, all read only once reset has run.
+#  A constant table, a string and an evidence table, `text.formattable`'s
+#  for an `any` whose entry writes the line, all read only once reset has
+#  run.  The entry is called directly rather than through `text.format`,
+#  whose template parsing and padding no longer fit SiFive E's 12 KiB of
+#  code in RAM beside the rest.
 RAM_PROGRAM = (
     'import core/text\n'
     'import descriptions/{name}\n'
@@ -511,7 +514,10 @@ RAM_PROGRAM = (
     'start: () -> none =\n'
     '    observed = initialized + cleared + table[0] + table[3]\n'
     '    mut line := text.over(said_room)\n'
-    '    text.format(line, "observed {{}}\\n", [any(addr observed)]) else none\n'
+    '    value: any text.formattable = any(addr observed)\n'
+    '    text.append(line, "observed ") else none\n'
+    '    value.append(line) else none\n'
+    '    text.append_byte(line, u8(\'\\n\')) else none\n'
     '    said_length = text.length(line)\n'
     'end start\n')
 RAM_SAID = b'observed 305419922\n'
