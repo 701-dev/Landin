@@ -45935,3 +45935,43 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
+
+### D2634 — `core/complex` is one generic struct and one routine per function over `math.floating`
+
+**The tour said** nothing about complex numbers; the roadmap asks for them over `f32` and `f64` with C's Annex G treatment of infinities.
+
+**Chosen:** `core/complex` declares `number(item: type is math.floating)`, a struct of `real` and `imaginary`, made with a struct literal, and every routine is generic over the same concept, `complex.exp(z)`, written once: its body uses the parts' own arithmetic, which each instance checks at its width [1290], and calls `core/math`'s generic routines. The functions keep C's names where they are the mathematics' own (`exp`, `log`, `pow`, `sqrt`, the trigonometric and hyperbolic functions and their inverses, `abs` and `arg`), as D2552 has it for `core/math`; the others are named for what they do: `add`, `subtract`, `multiply`, `divide` and `negate` for the operators, `conjugate` for `conj`, `project` for `cproj`, `polar` for the magnitude and angle together, and `from_polar` for the number they name. A constant of one width is chosen by the width's size and converted only there, so no `f64` constant an `f32` cannot hold is converted to one.
+
+**The alternatives:** per-width routines behind a concept's entries, as `core/math` has them, which would double every routine for no difference between the widths' algorithms; operators, which Landin does not overload; and C's `creal`, `cimag` and `re`, `im` field names, which save letters a reader then has to know.
+
+**Pinned by** the `complex-*` runtime fixtures, which call every routine at both widths, and `runtime/library-shared-complex`.
+
+### D2635 — `core/complex` keeps Annex G's special values, and a sign the annex leaves open is not part of a result
+
+**The tour said** nothing; C's Annex G gives each function's results at zeros, infinities and NaN, and leaves the sign of some parts open, written `±`.
+
+**Chosen:** every routine gives Annex G's values, and its signed zeros on each side of a cut. Multiplication recovers an infinite product from IEEE's NaN as the annex's sample does, where an operand is infinite, but not where a finite product overflowed beside a NaN, which the annex's rule for `*` does not ask and MPC does not do; division by a finite number turns an infinite numerator into an infinity in the quotient's direction whatever IEEE's arithmetic gives, as MPC does, and division by zero gives an infinity in the numerator's direction. `acosh(x + i·NaN)` is NaN + i·NaN for every finite `x`, zero included, as C's text has it. Where the annex leaves a sign open, nearly always that of a zero or an infinity beside a NaN, the routines give whichever their arithmetic gives, and the checks compare a part beside a NaN by magnitude.
+
+**The alternatives:** MPC's own choice of every open sign, which differs between functions the annex relates (MPC's `cos(NaN + 0i)` and `cosh(-0 + NaN·i)`) and would make the routines copy that; and the annex's sample multiplication whole, which turns `(NaN + 10^300·i) · 10^300` into an infinity no rule asks for.
+
+**Pinned by** the special values of every `complex-*` fixture: each table's grid of zeros, ones, the least and greatest finite values, infinities and NaN in each part.
+
+### D2636 — `core/complex` states each part's error and pins it against MPC on every target
+
+**The tour said** nothing; D2553 states `core/math`'s errors in units in the last place and pins them against MPFR.
+
+**Chosen:** each routine's doc comment states its error in units in the last place of each part of the exact result, measured as D2553 measures `core/math`'s, against MPC's correctly rounded parts: a million random inputs per routine and width, the largest error rounded up. The `complex-*` runtime fixtures, written by `scripts/math_oracle.py` from compiler/tests/math/cases, hold MPC's results for special values, random inputs and the hardest to round of a larger pool, and exit 42 only when each part is within its table's bound, on every target the gate runs. `pow`'s error grows with `|w · log z|`, since a product of that size rounds to that many units of its parts, so it is stated in units of the larger part, over `|z|` and `|w|` of a few units, where the tables draw them. MPC is evaluated in MPFR's whole exponent range and rounded into the format's once, since its intermediate values underflow in the format's; `tanh`'s and `tan`'s tables stop at |x| = 2^59, past which MPC's own e^(2x) overflows MPFR's range and loses the imaginary zero's sign.
+
+**The alternatives:** a bound on the larger part for every routine, which would hide a part that cancels; and stating `pow` componentwise, where an exact zero part beside a rounded one, as `(-2)^0.5` has, has no finite error.
+
+**Pinned by** the `complex-*` runtime fixtures and compiler/tests/math/README.md's measurements.
+
+### D2637 — `core/complex` is written from the mathematics, porting nothing
+
+**The tour said** nothing; D2554 ports only msun code under Sun's notice.
+
+**Chosen:** msun's complex routines, `s_cexp.c`, `s_csqrt.c`, `s_ccosh.c`, `s_ctanh.c`, `catrig.c` and the rest, are BSD-2-Clause, so under D2554 none is ported, and each routine is written from the mathematics and the published methods its comment names: Kahan's for the square root, the hyperbolic tangent and the inverse hyperbolic tangent and his recovered product's error for multiplication; Hull, Fairgrieve and Tang's for the arcsine and arccosine. `LICENSE` gains nothing.
+
+**The alternatives:** porting `catrig.c` and the others with their notices, which every program linking `core/complex` would then carry, against `LICENSE`'s promise; and porting musl's, MIT-licensed, with the same cost.
+
+**Pinned by** `core/complex/complex.ldn`'s opening comment, which says nothing is ported.
