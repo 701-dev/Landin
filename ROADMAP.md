@@ -3213,7 +3213,7 @@ defaults.
 
 ### R22.11 — Complex numbers
 
-Status: planned
+Status: complete
 Depends on: R22.10
 
 A complex number over `f32` and `f64`: arithmetic with C's Annex G
@@ -3227,6 +3227,39 @@ later addition by Q-67's answer.
 
 Exit evidence: each function within its stated error of MPC's values,
 with branch cuts and signed zeros as Annex G gives them, on every target.
+
+Done: `core/complex` holds `number(item)`, a struct of `real` and
+`imaginary` over `math.floating`, and every routine R22.11 names, each
+written once over the concept with the parts' own arithmetic, under C's
+names where they are the mathematics' own and words elsewhere: `add`,
+`subtract`, `multiply`, `divide`, `negate`, `conjugate`, `project`,
+`polar` and `from_polar` (D2634). Annex G's special values and its signed
+zeros on each side of a cut hold throughout; a sign the annex leaves open
+is whatever the arithmetic gives (D2635). Nothing is ported, msun's
+complex files being BSD-2-Clause under Q-306's default: the square root,
+`tanh` and `atanh` are Kahan's, the arcsine and arccosine Hull, Fairgrieve
+and Tang's, and `multiply` and `divide` sum their products with an fma's
+recovered error, each product over its own exponents, so that no
+magnitudes overflow or lose a part (D2637). Each routine states its error
+per part, from 1.0 ulp for `multiply` to 6.1 for `tanh`, and `pow`'s, 19
+ulp of the larger part on bounded domains, grows with |w·log z|
+(`SR-1949`). `scripts/math_oracle.py` gained MPC beside MPFR: complex
+shapes of up to four input floats, MPC evaluated in MPFR's whole exponent
+range, where its intermediates no longer underflow, a part beside NaN
+compared by magnitude, and a normwise bound for `pow` (D2636). The 30
+`complex-*` fixtures and `library-shared-complex` pass on every target the
+gate runs, the firmware lanes included. A single elementary function at
+`f64`, or a trigonometric one at either width, is past Cortex-M0's 32 KiB
+with the `core/math` it calls and the soft float, whose `f32` sine
+reduces in `f64` (`SR-1950`); so the families whose `f32` half fits have
+a fixture per width, thirteen fixtures run on Cortex-M0, eight at every
+profile, and the rest are recorded as image limits and run on the
+Cortex-M7 lane. That lane found `tanh` taking the sign of an imaginary
+zero from the sine of an overflowed `2y`, a NaN whose sign is each
+target's own (`SR-1895`), fixed with `sin y · cos y`. A million random
+inputs per routine and width were measured against MPC on Linux x86-64.
+Filed: `SR-1948`, generic float code naming no width's facts, and
+`SR-1951`, `item.py boards --watch` dispatching again over a queued run.
 
 ### R22.12 — Special functions
 
@@ -3555,7 +3588,7 @@ SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Character properties, case, normalisation and segmentation over `utf8`,
@@ -3565,6 +3598,25 @@ sink it writes to, the end-of-iteration form segmentation uses, and
 whether it iterates through `iterable`.
 Exit evidence: the Unicode conformance test files pass; the generator's
 check in the gate; table cost on Cortex-M0 measured.
+
+Done: `core/unicode` (D2615) has the general category, the combining
+class and six binary properties, simple and full case mapping with the
+final sigma and title case (D2619), the four normalization forms with no
+buffer (D2620), and grapheme, word and sentence boundaries with `for`
+walks over `iter.iterable` (D2618), every text routine appending whole or
+nothing to a `text.utf8_builder` (D2616). `scripts/unicode_tables.py`
+writes its tables from the pinned Unicode 18.0.0 database in stages of
+repeated blocks (D2614), and the fixtures' oracles: Unicode's normalization test
+and its three break test files pass on every hosted target, every table
+is checked against the database by a digest of every scalar, and firmware
+walks every Nth scalar within the corpus's 20 seconds; the script test
+holds the tables to the pin in the gate. On Cortex-M0 at `size/auto` a
+program links only the tables it reaches (D2617): 5,388 bytes for
+grapheme clusters, 12,420 for the general category, 19,817 for NFC and
+NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
+Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
+hosted backends' writable sections for immutable data, met laying out
+the tables.
 
 ### R22.40 — Character encodings
 

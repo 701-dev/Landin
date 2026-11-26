@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: Small shared core/unicode consumer reads the database's version, two scalars' general categories and a letter's simple uppercase
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0600, 1150

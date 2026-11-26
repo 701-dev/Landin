@@ -981,6 +981,34 @@ injector as arguments, as providers.
   where there is one (D2551, D2552). Each routine's error is stated and
   checked against MPFR on every target, and measured on every input of
   each one-argument `f32` routine (D2553).
+- **Unicode text.** `core/unicode` follows Unicode 18.0.0, its tables
+  generated from a pinned copy of the Unicode Character Database: a
+  scalar's general category, combining class and six binary properties;
+  simple case mappings and the default full upper, lower, title and
+  folded case of a text, with final sigma and without the Turkish,
+  Azerbaijani and Lithuanian tailorings, which need a locale; the NFC,
+  NFD, NFKC and NFKD normalization forms; and UAX #29's default grapheme
+  cluster, word and sentence boundaries, as positions or as walks a `for`
+  loop takes. It is written in Landin and allocates nothing: a routine
+  that writes appends to a `text.utf8_builder`, whole or not at all.
+  Unicode's normalization and break conformance files pass on every
+  hosted target, where every table is checked against the database, and
+  firmware checks a sample of the scalars. An image links only the
+  tables its routines reach, which stay in flash; NFKC and NFKD alone do
+  not fit Cortex-M0's 32 KiB profile. Scripts, line breaking, collation,
+  locale-tailored case and encodings other than UTF-8 are not covered.
+- **Complex numbers.** `core/complex` has `complex.number(f32)` and
+  `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
+  named routines generic over both: the arithmetic, the conjugate and the
+  projection, magnitude, angle and polar form, `exp`, `log`, `pow` and
+  `sqrt`, and the trigonometric and hyperbolic functions and their
+  inverses (D2634). Infinities, NaN, signed zeros and branch cuts follow
+  C's Annex G (D2635). Nothing is ported: each routine is written from the
+  mathematics and published methods (D2637). Each routine's error is
+  stated for each part and checked against MPC on every target the gate
+  runs (D2636). On Cortex-M0 the arithmetic, `sqrt`, `atan` and `atanh` fit
+  at `f32`; the larger functions pass 32 KiB and run on the Cortex-M7
+  emulator lane instead.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,

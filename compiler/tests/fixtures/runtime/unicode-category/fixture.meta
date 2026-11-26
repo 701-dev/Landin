@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/unicode's general category of every value from zero to U+10FFFF is the Unicode Character Database's, by the digest of each one's code; firmware walks every 7th value
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
+constructs: 0640, 1140, 1210

@@ -2742,7 +2742,8 @@ even inside `unchecked`.
 `text.from_bytes` and `text.from_c` validate the same way but fail with
 `invalid_text` instead of trapping; call them before traversing. The module
 also has exact byte equality, substring search, decimal parsing and bounded
-writing into a buffer you supply. It never normalizes or silently truncates.
+writing into a buffer you supply. It never normalizes or silently truncates;
+normalization, case and a reader's characters and words are `core/unicode`'s.
 It allocates only in a builder made by `text.growing`, which takes an
 allocator.
 

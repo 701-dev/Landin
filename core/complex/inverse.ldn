@@ -1,0 +1,250 @@
+--  The inverse trigonometric and hyperbolic functions.  The arcsine and
+--  arccosine follow Hull, Fairgrieve and Tang, "Implementing the complex
+--  arcsine and arccosine functions using exception handling", ACM TOMS
+--  23(3), 1997; the inverse hyperbolic tangent follows Kahan, "Branch
+--  cuts for complex elementary functions, or much ado about nothing's
+--  sign bit", 1987.  The others are these turned a quarter, as Annex G
+--  defines them: asin z = -i·asinh(iz) and atan z = -i·atanh(iz), and
+--  acosh z is ±i·acos z, whichever has a nonnegative real part.
+import core/math
+
+--  π/2, π/4 and 3π/4 rounded to the width, written for each so that no
+--  f64 arithmetic is done at run time to make an f32 one, and π/2's
+--  rounding error.
+half_pi_high: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.921fb54442d18p0, narrow: 0x1.921fb6p0)
+end half_pi_high
+
+quarter_pi: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.921fb54442d18p-1, narrow: 0x1.921fb6p-1)
+end quarter_pi
+
+three_quarters_pi: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.2d97c7f3321d2p1, narrow: 0x1.2d97c8p1)
+end three_quarters_pi
+
+half_pi_low: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.1a62633145c07p-54, narrow: -0x1.777a5cp-25)
+end half_pi_low
+
+--  2^(p/2 + 1) for a format of p bits: past it a part's square is
+--  beyond the format's precision beside the other's, and below its
+--  inverse, z³ is beside z.
+large: (item: type is math.floating) -> (value: item) =
+    value = math.scale(item(1), precision(item: item) / 2 + 1)
+end large
+
+--  Hull, Fairgrieve and Tang's arcsine and arccosine for x, y ≥ 0 finite:
+--  `sine` and `cosine` are the real parts of asin(x + iy) and acos(x +
+--  iy), and `imaginary` the magnitude of their imaginary parts, the same
+--  for both.  With R = |z + 1| and S = |z - 1|, A = (R + S)/2 and B = x/A,
+--  the real parts are asin B and acos B, taken through an arctangent
+--  where B is near 1, and the imaginary part is log(A + √(A² - 1)),
+--  taken through log1p where A is near 1.
+arcsine_parts: (item: type is math.floating, x: item, y: item)
+               -> (sine: item, cosine: item, imaginary: item) =
+    one: item = item(1)
+    half: item = item(0.5)
+    big := large(item: item)
+    half_pi := half_pi_high(item: item)
+    if x > big or y > big then
+        --  |z| ≫ 1: A is |z| and A + √(A² - 1) is 2|z|.
+        sine = math.atan2(x, y)
+        cosine = math.atan2(y, x)
+        imaginary = ln_2_high(item: item)
+                    + (ln_2_low(item: item) + log_magnitude(math.max(x, y), math.min(x, y)))
+        return
+    end if
+    if x < one / big and y < one / big then
+        --  |z| ≪ 1: asin z is z.
+        sine = x
+        cosine = half_pi - x
+        imaginary = y
+        return
+    end if
+    if x < one and y < math.sqrt(epsilon(item: item)) * (one - x) / item(4) then
+        --  y ≪ 1 - x: asin z is asin x + iy/√(1 - x²).
+        sine = math.asin(x)
+        cosine = math.acos(x)
+        imaginary = y / math.sqrt((one - x) * (one + x))
+        return
+    end if
+    r := math.hypot(x + one, y)
+    s := math.hypot(x - one, y)
+    a := half * (r + s)
+    b := x / a
+    y2 := y * y
+    if b <= item(0.6417) then
+        sine = math.asin(b)
+        cosine = math.acos(b)
+    elsif x <= one then
+        d := math.sqrt(half * (a + x) * (y2 / (r + (x + one)) + (s + (one - x))))
+        sine = math.atan(x / d)
+        cosine = math.atan(d / x)
+    else
+        d := y * math.sqrt(half * ((a + x) / (r + (x + one)) + (a + x) / (s + (x - one))))
+        sine = math.atan(x / d)
+        cosine = math.atan(d / x)
+    end if
+    if a <= item(1.5) then
+        --  Twice A - 1, which halving would lose to underflow beside the
+        --  branch point 1, where the imaginary part is √(2(A - 1)).
+        twice := if x < one then y2 / (r + (x + one)) + y2 / (s + (one - x))
+                 else y2 / (r + (x + one)) + (s + (x - one)) end if
+        imaginary = math.log1p(half * twice + math.sqrt(twice * (half * (a + one))))
+    else
+        imaginary = math.log(a + math.sqrt((a - one) * (a + one)))
+    end if
+end arcsine_parts
+
+--- The inverse hyperbolic sine, with the cuts along the imaginary axis
+--- beyond ±i: `i·asin(-i·z)`.  Each part within 3.31 ulp at f64 and 3.63
+--- at f32.  Annex G's special values: +∞ for an infinite part, with the
+--- angle of its direction.  C's `casinh`.
+public asinh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    half_pi := half_pi_high(item: item)
+    if math.is_infinite(y) then
+        if math.is_nan(x) then
+            result = (real: y, imaginary: x)
+        elsif math.is_infinite(x) then
+            result = (real: x, imaginary: math.copy_sign(quarter_pi(item: item), y))
+        else
+            result = (real: math.copy_sign(math.abs(y), x), imaginary: math.copy_sign(half_pi, y))
+        end if
+    elsif math.is_infinite(x) then
+        result = (real: x, imaginary: if math.is_nan(y) then y else math.copy_sign(zero, y) end if)
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: if y == zero then y else x end if)
+    elsif math.is_nan(y) then
+        result = (real: y, imaginary: y)
+    else
+        (sine: sine, cosine: cosine, imaginary: imaginary) := arcsine_parts(math.abs(y), math.abs(x))
+        result = (real: math.copy_sign(imaginary, x), imaginary: math.copy_sign(sine, y))
+    end if
+end asinh
+
+--- The arcsine: `-i·asinh(i·z)`, with the cuts along the real axis beyond
+--- ±1, each part within 3.05 ulp at f64 and 3.22 at f32, and `asinh`'s
+--- special values turned a quarter.  C's `casin`.
+public asin: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = times_minus_i(asinh(times_i(z)))
+end asin
+
+--- The arccosine, its real part in [0, π], with the cuts along the real
+--- axis beyond ±1.  Each part within 3.30 ulp at f64 and 3.40 at f32.
+--- Annex G's special values: -i·∞ times the sign of the imaginary part for
+--- an infinite part, with the angle of its direction.  C's `cacos`.
+public acos: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    half_pi := half_pi_high(item: item)
+    pi := pick(item: item, wide: 0x1.921fb54442d18p1, narrow: 0x1.921fb6p1)
+    if math.is_infinite(y) then
+        mut angle := half_pi
+        if math.is_nan(x) then
+            angle = x
+        elsif math.is_infinite(x) then
+            angle = if x > zero then quarter_pi(item: item) else three_quarters_pi(item: item) end if
+        end if
+        result = (real: angle, imaginary: -y)
+    elsif math.is_infinite(x) then
+        if math.is_nan(y) then
+            result = (real: y, imaginary: x)
+        else
+            result = (real: if x > zero then zero else pi end if,
+                      imaginary: -math.copy_sign(math.abs(x), y))
+        end if
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: x)
+    elsif math.is_nan(y) then
+        result = (real: if x == zero then half_pi else y end if, imaginary: y)
+    else
+        (sine: sine, cosine: cosine, imaginary: imaginary) := arcsine_parts(math.abs(x), math.abs(y))
+        --  acos(-x) is π - acos(x), with π's rounding error added back.
+        real := if x < zero then
+            (pi - cosine) + item(2) * half_pi_low(item: item)
+                else cosine end if
+        result = (real: real, imaginary: -math.copy_sign(imaginary, y))
+    end if
+end acos
+
+--- The inverse hyperbolic cosine, with a nonnegative real part and the
+--- cut along the real axis below 1: `i·acos z` or `-i·acos z`, whichever
+--- has it, so the imaginary part takes the sign of `z`'s, and with `acos`'s
+--- error.  NaN + i·NaN for a NaN imaginary part beside a finite real part,
+--- as C's `cacosh`.
+public acosh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    if math.is_nan(z.imaginary) and math.is_finite(z.real) then
+        --  C's cacosh(x + iNaN) for every finite x, 0 included, where
+        --  acos keeps π/2.
+        result = (real: z.imaginary, imaginary: z.imaginary)
+        return
+    end if
+    w := acos(z)
+    result = (real: math.abs(w.imaginary), imaginary: math.copy_sign(w.real, z.imaginary))
+end acosh
+
+--- The inverse hyperbolic tangent, with the cuts along the real axis
+--- beyond ±1, by Kahan's form: `¼·log1p(4x / ((1 - x)² + y²)) + ½·i·
+--- atan2(2y, (1 - x)(1 + x) - y²)`, and its limits where |z| is far from
+--- 1.  Each part within 3.30 ulp at f64 and 3.54 at f32.  `atanh(±1)` is
+--- ±∞.  Annex G's special values: ±i·π/2 with a signed zero for an
+--- infinite part.  C's `catanh`.
+public atanh: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    one: item = item(1)
+    half: item = item(0.5)
+    half_pi := half_pi_high(item: item)
+    if math.is_infinite(y) then
+        result = (real: math.copy_sign(zero, x), imaginary: math.copy_sign(half_pi, y))
+        return
+    elsif math.is_infinite(x) then
+        result = (real: math.copy_sign(zero, x),
+                  imaginary: if math.is_nan(y) then y else math.copy_sign(half_pi, y) end if)
+        return
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: x)
+        return
+    elsif math.is_nan(y) then
+        result = (real: if x == zero then x else y end if, imaginary: y)
+        return
+    end if
+    a := math.abs(x)
+    b := math.abs(y)
+    big := large(item: item)
+    mut real := zero
+    mut imaginary := zero
+    if a > big or b > big then
+        --  |z| ≫ 1: the real part is x/|z|², and the imaginary π/2 less
+        --  y/|z|², both taken from the parts scaled by 2^-e so that |z|
+        --  does not overflow.
+        e := exponent(math.max(a, b))
+        s := math.scale(a, -e)
+        t := math.scale(b, -e)
+        h := math.hypot(s, t)
+        real = math.scale((s / h) / h, -e)
+        imaginary = half_pi - (math.scale((t / h) / h, -e) - half_pi_low(item: item))
+    elsif a == one and b < math.scale(one, -(greatest_exponent(item: item) / 2) + 12) then
+        --  1 + iy with y² beyond the format: the real part is ½(ln 2 - ln y).
+        real = half * (ln_2_high(item: item) - math.log(b) + ln_2_low(item: item))
+        imaginary = half * math.atan2(b + b, -(b * b) + zero)
+    else
+        less := one - a
+        real = item(0.25) * math.log1p(item(4) * a / (less * less + b * b))
+        imaginary = half * math.atan2(b + b, less * (one + a) - b * b)
+    end if
+    result = (real: math.copy_sign(real, x), imaginary: math.copy_sign(imaginary, y))
+end atanh
+
+--- The arctangent: `-i·atanh(i·z)`, with the cuts along the imaginary
+--- axis beyond ±i, each part within 3.44 ulp at f64 and 3.52 at f32, and
+--- `atanh`'s special values turned a quarter.  C's `catan`.
+public atan: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    result = times_minus_i(atanh(times_i(z)))
+end atan
