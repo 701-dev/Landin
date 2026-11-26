@@ -3148,7 +3148,7 @@ defaults.
 
 ### R22.11 — Complex numbers
 
-Status: planned
+Status: active
 Depends on: R22.10
 
 A complex number over `f32` and `f64`: arithmetic with C's Annex G
