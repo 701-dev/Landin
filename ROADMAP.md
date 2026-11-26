@@ -1357,6 +1357,54 @@ keeps, `SR-1919` the refusal `item.py start` met. The candidate passed
 its [gate](https://github.com/701-dev/Landin/actions/runs/45795175499)
 and [boards](https://github.com/701-dev/Landin/actions/runs/45795196472).
 
+### R16.42 — A byte is loaded into the register it is kept in
+
+Status: complete
+Depends on: R16.10
+
+reverse-complement spends seven tenths of its x86-64 instructions at
+speed in `write_reversed`, whose loop turns each byte of a line around
+through a table of complements. Two of its fifteen instructions a byte
+move nothing: the byte is loaded into a register of its own and copied
+with `movzbl` into the register its variable `base` is kept in, since
+that variable's interval opens only at the store, and widening it to
+index the table extends it again into a third register, though every
+value `base` ever holds is a loaded byte already zero-extended. With
+both left out, reverse-complement executes 1.359 G instructions against
+1.488 G, 8.7% fewer, and about 11% fewer cycles on a Zen 2 host, with
+the same output. The item makes a value in its slot's register when the
+slot's interval opens at the value's store, and widens a byte or
+halfword where it lies when its slot holds only zero-extended values.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, cycles reported beside
+them; every benchmark program's instructions and image size reported
+against that base, arm64 as well; and no other combination over its own.
+
+Done: at size and speed x86-64 makes a value in the register of the slot
+its first store writes when that slot's interval opens at the store and
+nothing holds the register before it, and widens a byte or halfword
+slot whose every store leaves its register zero-extended there, with no
+move; an unsigned widening may take the register of a variable it reads
+for the last time (D2654). `write_reversed`'s loop falls from fifteen
+x86-64 instructions a byte to thirteen: against the item's base under
+QEMU at speed reverse-complement executes 8.7% fewer instructions,
+binary-trees 3.2%, fasta and the switch measurements 0.8% to 0.9%,
+every other x86-64 figure within 0.03% and every arm64 figure the same,
+every output the same. On a Zen 2 host reverse-complement runs 11.0%
+fewer cycles and binary-trees 18 1.4% fewer, the others within 0.2%.
+168 x86-64 images on each of Linux and Windows are 24 to 512 bytes
+smaller; FreeBSD's keep their totals, RELRO padding taking up what the
+text gives back. binary-trees' `aligned_offset`, whose copy into `room` by
+hand saved 8.1% of its instructions, stays a call: it weighs 85,
+its call recovers with `else`, and copies are one level deep. `SR-1958`
+records arm64's three copies in the same loop, 11.4% of
+reverse-complement there by a hand patch, and `SR-1959` the overflow
+check of the increment after the line's bounds check, 4.0% on x86-64.
+The merged candidate, with `gate-watcher` riding it, passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45855807406),
+after `freebsd-host-release` was run again over a mirror's refusal, and
+its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
+
 ### The continuous items
 
 Numbered on from R16.20, each is added when it is taken up, or planned when

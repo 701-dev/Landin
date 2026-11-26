@@ -58,7 +58,9 @@ what a successor needs is never only in the conversation.
    gate at the same time shares the runners and both take longer.
 4. **Boards.** Once main is an ancestor of the head, dispatch the boards
    beside its gate rather than after it: `item.py push ITEM --boards
-   --watch` at the push, or `item.py boards ITEM --watch`. It refuses
+   --watch` at the push, or `item.py boards ITEM --watch`, which also
+   follows a boards run already queued or running on the head rather
+   than dispatching another (`--again` dispatches anyway). It refuses
    while main is not an ancestor of the head: merge main first (step 6),
    and dispatch no boards on a tree main will move under. A closing commit that says
    `Gate: explanatory` may be pushed beside it: a dispatch is not
