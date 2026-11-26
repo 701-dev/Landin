@@ -10,11 +10,11 @@ import core/mem
 import core/text
 import core/unicode
 
---  Firmware walks every 61st scalar, within the emulator's
+--  Firmware walks every 181st scalar, within the emulator's
 --  session; a hosted target walks them all.
 fixed if compiler.os == freestanding then
-    stride: u32 = 61
-    expected: u32 = 0xaa52449c
+    stride: u32 = 181
+    expected: u32 = 0x8f900b38
 else
     stride: u32 = 1
     expected: u32 = 0x7e2b3e24

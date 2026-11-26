@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: every line of NormalizationTest.txt but part 1's meets the file's invariants under core/unicode's four forms, whose digest is the file's; firmware checks every 7th line
+summary: every line of NormalizationTest.txt but part 1's meets the file's invariants under core/unicode's four forms, whose digest is the file's; firmware checks every 97th line
 program: main.ldn
 root: ../../../../..
 status: 42

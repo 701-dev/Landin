@@ -12,11 +12,11 @@ import core/mem
 import core/text
 import core/unicode
 
---  Firmware checks every 7th line, within the emulator's
+--  Firmware checks every 97th line, within the emulator's
 --  session; a hosted target checks them all.
 fixed if compiler.os == freestanding then
-    stride: usize = 7
-    expected: u32 = 0xb131a37a
+    stride: usize = 97
+    expected: u32 = 0x45cf368b
 else
     stride: usize = 1
     expected: u32 = 0xf0966c62

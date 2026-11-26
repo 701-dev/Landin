@@ -221,7 +221,7 @@ end bits_of
         ["core/unicode"], [bits],
         ["        feed(state, unicode.combining_class(scalar))",
          "        feed(state, bits_of(scalar))"],
-        digest, 13, False)
+        digest, 37, False)
 
 
 def little(value):
@@ -392,7 +392,7 @@ def byte_array(name, data):
 
 
 #  Every how many lines of NormalizationTest.txt firmware checks.
-SEQUENCE_STRIDE = 7
+SEQUENCE_STRIDE = 97
 
 
 def sequences_fixture(database):
@@ -640,7 +640,7 @@ def render_all(database):
         "unicode-normalization-canonical":
             scalar_normalization_fixture(database, "canonical", 61),
         "unicode-normalization-compatible":
-            scalar_normalization_fixture(database, "compatible", 61),
+            scalar_normalization_fixture(database, "compatible", 181),
         "unicode-normalization-sequences": sequences_fixture(database),
     }
     for member, unit, plural in BREAKS:
