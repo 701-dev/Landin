@@ -61,6 +61,10 @@ for run, first, after in re.findall(
                       len(states) - 1)]
     start, size = int(after or 0), int(first)
     jobs = held["jobs"]
+    short = number(".short")
+    if short:
+        open(base + ".short", "w").write(str(short - 1))
+    shown = jobs[start:start + size][:len(jobs) - 1 if short else None]
     data["r" + run] = {"databaseId": int(run),
         "runAttempt": held.get("attempt", 1), "event": "push",
         "url": held["url"], "displayTitle": "gate", "createdAt": "",
@@ -77,7 +81,7 @@ for run, first, after in re.findall(
                     "conclusion": upper(j["conclusion"]),
                     "startedAt": j["startedAt"],
                     "completedAt": j["completedAt"]}
-                    for j in jobs[start:start + size]]}}}
+                    for j in shown]}}}
 commits = re.findall(r'c(\\d+): object\\(oid: "(\\w+)"\\)', query)
 if commits:
     unlisted = number(".unlisted")
@@ -464,6 +468,25 @@ class GateWatch(Fixture):
                                  result.stdout + result.stderr)
                 self.assertIn("asking again (2 of 4)", result.stdout)
 
+    def test_a_poll_github_answered_badly_is_asked_again_next_interval(self):
+        #  gh's "unexpected end of JSON input" once outlasted its four
+        #  requests and ended the watch while the run went on.
+        (self.states.parent / "states.json.fail").write_text(json.dumps(
+            [4, "unexpected end of JSON input"]))
+        result = self.watch([state("completed", [job(1, "gate")],
+                                   conclusion="success")], "--run=7")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("poll 1 of 4 failed, the run is asked again", result.stdout)
+
+    def test_a_listing_short_of_its_count_is_asked_again(self):
+        (self.states.parent / "states.json.short").write_text("1")
+        result = self.watch([state("completed", [job(1, "documents"),
+                                                 job(2, "gate")],
+                                   conclusion="success")], "--run=7")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("ended at 1 of its 2", result.stdout)
+        self.assertIn("judged on 2 jobs", result.stdout)
+
     def test_a_request_that_stays_unanswered_is_named_without_a_traceback(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
             [99, "gh: Server Error (HTTP 502)"]))
@@ -474,8 +497,10 @@ class GateWatch(Fixture):
         self.assertIn("gate_watch: GitHub did not answer: gh api graphql "
                       "(gate runs 7)", result.stderr)
         self.assertIn("HTTP 502", result.stderr)
+        #  Four polls in a row, each of four requests, before it ends.
         self.assertEqual(
-            len([call for call in self.calls() if call[0] == "api"]), 4)
+            len([call for call in self.calls() if call[0] == "api"]), 16)
+        self.assertIn("poll 3 of 4 failed", result.stdout)
 
     def test_a_refusal_that_is_no_server_error_is_not_asked_again(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
@@ -603,7 +628,7 @@ class SharedPoller(Fixture):
         self.assertIn("no push on main gate run for aaaaaaaaaaaa yet", out)
         self.assertIn("following gate run 7 (push on main)", out)
 
-    def test_an_unexpected_answer_ends_the_watches_not_the_poller(self):
+    def test_a_lasting_answer_that_is_not_json_ends_the_watches_not_the_poller(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
             [0, ""]))
         self.states.write_text(json.dumps(self.running(0)))
@@ -613,7 +638,7 @@ class SharedPoller(Fixture):
         self.addCleanup(gh.write_text, real)
         status, out = self.finish(self.start("--run=7"))
         self.assertEqual(status, 3, out)
-        self.assertIn("JSONDecodeError", out)
+        self.assertIn("an answer that is not JSON: 'not json'", out)
         self.assertNotIn("Traceback", out)
         starts = (self.shared / "poller.log").read_text().count("started")
         self.assertEqual(starts, 1)

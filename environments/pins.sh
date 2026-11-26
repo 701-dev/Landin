@@ -17,15 +17,17 @@ LANDIN_RELEASES=https://github.com/alire-project/GNAT-FSF-builds/releases/downlo
 #  environments/images to it.  Nothing else reads it.
 LANDIN_BASE_IMAGE=docker.io/library/debian@sha256:f324c7ff54321e8d9c588493a20244965938ce0aa50bbd1022d38010e9ffc4b1
 
-#  The gate's other tools.  The C binding generator's Clang is Ubuntu 24.04's
-#  clang-19 package at this exact version, installed and asserted by the
-#  bindings job; compiler/ada/TOOLCHAIN.md records it.  The structural editor
+#  The gate's other tools.  The C binding generator's Clang, and the LLVM 19
+#  the FreeBSD and Windows lanes cross-compile and link with, are nixpkgs'
+#  llvmPackages_19 at flake.lock's revision, served by the nix-packages
+#  cache; flake.nix refuses a lock whose Clang is another, and the jobs
+#  assert it.  compiler/ada/TOOLCHAIN.md records it.  The structural editor
 #  grammar's CLI is the release binary tree-sitter publishes for this version,
 #  checked against this sha256 before it replaces the npm package's
 #  unverified download; highlight/tree-sitter/package.json names the same
 #  version.  check.py holds all three to agreeing.  The nix shell fetches
 #  the same release binary for its own system, held to the same checksums.
-LANDIN_CLANG_UBUNTU=1:19.1.1-1ubuntu1~24.04.2
+LANDIN_CLANG_NIX=19.1.7
 LANDIN_TREE_SITTER_VERSION=0.26.9
 LANDIN_TREE_SITTER_SHA256_X86_64_LINUX=9ce82137caa65864e7ca8b869fd391cef88c9bd2a01c4371b9c4dd26c2585efb
 LANDIN_TREE_SITTER_SHA256_AARCH64_LINUX=c8feeb32115958cb44442ca4d68f6d66cf7605dbd65681e62342181ebdd6db3b
@@ -66,14 +68,20 @@ LANDIN_ALPINE_RELEASES=https://dl-cdn.alpinelinux.org/alpine/v3.24/releases
 LANDIN_ALPINE_SHA256_X86_64_LINUX=cdaa38cb8de3537967ee5b6c9b6cd00cc962da2b018e6eea48696bb274923012
 LANDIN_ALPINE_SHA256_AARCH64_LINUX=4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de
 
+#  The binary cache of 701-dev/nix-packages, flake.nix's input, and the key
+#  its paths are signed with.  The gate's jobs that take a tool through
+#  .github/actions/nix-tools substitute from this cache alone, so a path it
+#  lacks is refused there rather than built or fetched from elsewhere.
+LANDIN_NIX_PACKAGES_CACHE=https://701-nix-packages.nbg1.your-objectstorage.com
+LANDIN_NIX_PACKAGES_KEY=701-nix-packages-1:Nb/iOvlOiXg+1FzHGZyyNI4nE5pxNuQybb8WIhuW85Y=
+
 #  The cross lane: QEMU's user emulation and the cross drivers that link
 #  another Linux target's executables.  The nix shell takes both from
 #  flake.lock's nixpkgs and refuses to build when that revision's versions
 #  are not these, so moving the lock moves these on purpose.  The gate's
 #  linux-rv64 lane runs the same QEMU, the flake's qemu-user, and refuses
-#  another; it links with Ubuntu 24.04's riscv64 cross packages, whose
-#  version is not this GCC and which it prints.  check.py holds flake.nix
-#  to reading these.
+#  another; it links with the same riscv64 cross driver, the flake's
+#  cross-riscv64.  check.py holds flake.nix to reading these.
 LANDIN_CROSS_QEMU_NIX=11.1.0
 LANDIN_CROSS_GCC_NIX=15.3.0
 

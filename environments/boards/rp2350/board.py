@@ -393,6 +393,10 @@ def main():
         # Every step from here reaches the rig, which one run holds at a
         # time (D725).
         lock = common.rig_lock('rp2350 board.py').acquire()
+        # Every Arm run leaves the board off its resting image: a boot
+        # check restores the Arm fixed image, and a RAM run needs the cores
+        # on Arm already.  Only the Hazard3 boot check puts it back.
+        pico2.leaving_rest('rp2350 %s run' % args.mode)
         result.update(image_sha256=sha(elf), image_name=elf.name)
         if args.mode == 'boot':
             if manual_boot:
