@@ -30364,8 +30364,10 @@ unpushed tree; or automatically refreshing a hardware record from a build.
 
 ### D904 — Physical boards run in the gate on trusted events only, and their evidence is never reused
 
-**Superseded in part by D1647:** a push to `main` takes its boards from a
-passed run of the same tree instead of running them again.
+**Superseded in part by D1647, D2774 and D2775:** a push to `main` takes its
+boards from a passed run of the same tree instead of running them again, a
+dispatch and `main`'s push take their legs from a passed run of the same
+board identity, and the schedule runs daily.
 
 **The tour said** nothing about where physical evidence comes from; D901
 and D902 made boot checks and RAM runs the closing evidence of a board
@@ -30423,6 +30425,11 @@ verdict; and `scripts/tests/test_board_gate.py`'s `Sequence`.
 
 ### D1647 — Main's push takes its boards from a passed run of the same tree
 
+**Superseded in part by D2774 and D2775:** a dispatch, and `main`'s push on
+another tree, take their board legs from a passed run of the same board
+identity, and the schedule runs daily and leaves out a commit it already
+ran.
+
 **The tour said** nothing. D904 ran the boards fresh on every push to
 `main` and listed reusing a candidate's board evidence at promotion among
 its alternatives without a reason. In the 3.4 days surveyed on 2026-11-20,
@@ -30461,7 +30468,84 @@ difference.
 
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `BoardsReuse` cases and
 `BoardVerdict`'s `test_a_main_push_may_take_its_boards_from_a_passed_run`
-and `test_a_dispatch_or_the_schedule_never_takes_boards`.
+and `test_a_dispatch_never_takes_boards`.
+
+### D2774 — Board legs are taken from a passed run of the same board identity
+
+**The tour said** nothing. D904 ran every leg on every board-scope event
+and D1647 let `main`'s push take a passed run of the identical tree. The
+gate-time study of 2026-11-26 found 31 of the 39 boards runs from
+2026-11-20 ran boot, RAM and timing images byte-identical to the passed run
+before them, 23 of those with the board harness and the whole workflow
+unchanged too, while the rig, one leg at a time, was busy seven to eleven
+hours a day and found two defects in about 270 runs, both in its own
+harness. The maintainer accepted reuse on byte-identical images and inputs
+that day.
+
+**Chosen:** `board-bundles` still builds every bundle on a board-scope
+event, strict against the hardware records, and then writes its board
+identity as an annotation titled `board identity`: digests of every file
+the bundles hold but `provenance.json` and `files.sha256`, with
+`bundle.json` read without its compiler and source identities; the timing
+bundle's files likewise, `timing.json` without its compiler, source identity
+and build time and `commands.json` without each command's seconds, or none
+when the event builds no timing images; the blobs and modes of every file
+under `environments/boards/` and `compiler/tests/board/` but the hardware
+records, which are a part of their own; and the text of the `board-bundles`
+and `board` jobs less their comment lines. A dispatch, or `main`'s push
+that D1647 does not cover, skips its legs when a run of `gate.yml` in this
+repository on a board-scope event, under a week old and successful, ran and
+passed `board-bundles` and every leg in a complete listing and recorded an
+identity whose every part is this run's, its timing part too when this run
+times. The aggregate downloads that run's leg evidence, holds every leg's
+`transfer.json` to its run id, requires every port `passed`, compares its
+cycles with this tree's base when the event times the boards, and names the
+run in its summary. A run that took its legs is never a source, and the
+schedule always runs its own.
+
+**The reason:** a leg's verdict is a function of the bytes it loads, the
+harness that loads and judges them and the rig; the identity holds the
+first two exactly and leaves out only what names the commit or the build's
+clock, so a run taken is evidence of the same inputs on the rig at most a
+week ago, which the daily schedule (D2775) and every dispatch with new
+images keep sampling. The library roots the legs' checkout also carries
+reach a board only through the images, so they are not part of it.
+
+**The alternatives:** hashing `files.sha256`, which names the commit
+through `bundle.json` and so never repeats; keying by the gate's tree key,
+which changes with any source file and so reuses no more than D1647; the
+library roots in the harness part, which a change to an unrelated module
+would break; storing the identity as an artifact, which the reading run
+would have to download for every candidate; and boards on a schedule
+alone, which turns `main` red a day after the candidate that broke them.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Identity`,
+`LegsReuse` and `LegsVerdict` cases.
+
+### D2775 — The schedule runs the boards daily, and an unmoved main weekly
+
+**The tour said** nothing; D904 ran the boards weekly on `main`, and D1647
+listed a daily schedule among its alternatives. With legs taken by identity
+(D2774) a board or probe that degrades would show only when the images
+change; the maintainer's rhythm of 2026-11-26 runs the complete evidence on
+`main` once a day when it moved.
+
+**Chosen:** the schedule fires at 04:00 UTC every day. Its `inputs` job
+leaves out its boards and its timing together when a schedule run of the
+same commit under a week old succeeded with every board job and timing leg
+run and passed, and the aggregate accepts that on the schedule and names
+the run. A schedule run never takes its legs by identity.
+
+**The reason:** a day bounds how long a degraded board goes unseen while
+work lands; an unmoved `main` has nothing new to test, and the week bound
+still samples an idle rig once a week, as before.
+
+**The alternatives:** a daily run whatever main did, which spends a rig
+hour a day on a tree already tested; and keeping the weekly run, which
+leaves a degraded board unseen for days now that dispatches take legs.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
+`BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
 
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 

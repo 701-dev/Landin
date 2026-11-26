@@ -292,7 +292,7 @@ the Linux, RV64 and firmware targets in one job inside the pinned
 environment, Darwin on its native runner and FreeBSD beside its lanes.
 The instruction counts, exact and a few minutes each, run on every push
 too: RV64's in the same job, Cortex-M's in the `cortex-m` job, which has
-the lanes' tools. Wall time and board cycles run on the weekly schedule
+the lanes' tools. Wall time and board cycles run on the daily schedule
 and on a dispatch, `scope=boards` included, in timing jobs beside the
 boards, unless a passed dispatch on the branch already timed the same key
 over the same base (D1649). The pilot over the whole matrix, recorded in

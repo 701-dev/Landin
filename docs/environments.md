@@ -55,7 +55,7 @@ needs tools that policy admits, and the
 happens with a newer Xcode. The repository is
 public, so these minutes are free. The one exception is the gate's
 physical board legs, which run on the self-hosted `landin-rig` runner on
-the rig host for a push to `main`, the weekly schedule and a manual
+the rig host for a push to `main`, the daily schedule and a manual
 dispatch, and never for a pull request; its job-started hook refuses
 every other job. The [boards guide](../environments/boards/README.md#the-board-gate-on-the-rig)
 and the [gate reference](process.md#physical-boards-and-promotion) describe them.
