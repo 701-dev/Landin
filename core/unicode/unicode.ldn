@@ -1,0 +1,189 @@
+--  Unicode's character properties, case mapping, normalization and text
+--  segmentation, over `utf8` and its scalars, from the tables of the
+--  Unicode Character Database that tables.ldn holds, which
+--  scripts/unicode_tables.py generates from a pinned release.  It is a
+--  module of its own, beside core/text rather than in it, so that a
+--  program that only builds and searches text checks none of its tables.
+--
+--  A routine that writes text appends it to a caller's `text.utf8_builder`
+--  whole or not at all: on `mem.out_of_memory` the builder holds what it
+--  held before the call.  Nothing is allocated, and nothing depends on a
+--  locale: case mapping is Unicode's default, which is right for every
+--  language but Turkish, Azerbaijani and Lithuanian, whose rules wait for
+--  a locale value.  A routine that takes a position into text takes a
+--  scalar's start, as `text.step` gives one.
+--
+--  The `unicode-*` runtime fixtures check every table against the
+--  database and every algorithm against Unicode's conformance files, on
+--  every target, as scripts/unicode_tables.py writes them.
+
+--- A release of the Unicode Standard, as `unicode_version` names the one
+--- this module follows.
+public version_number: type = struct
+    major: u8
+    minor: u8
+    update: u8
+end version_number
+
+--- Each general category, named as the Unicode Character Database's long
+--- names are, in lower case: `uppercase_letter` is Lu.
+public uppercase_letter: atom
+--- Ll.
+public lowercase_letter: atom
+--- Lt, a digraph whose first part is a capital, such as U+01C5.
+public titlecase_letter: atom
+--- Lm.
+public modifier_letter: atom
+--- Lo, a letter of a script without case, such as a CJK ideograph.
+public other_letter: atom
+--- Mn.
+public nonspacing_mark: atom
+--- Mc.
+public spacing_mark: atom
+--- Me.
+public enclosing_mark: atom
+--- Nd, a digit of a decimal system.
+public decimal_number: atom
+--- Nl.
+public letter_number: atom
+--- No.
+public other_number: atom
+--- Pc.
+public connector_punctuation: atom
+--- Pd.
+public dash_punctuation: atom
+--- Ps.
+public open_punctuation: atom
+--- Pe.
+public close_punctuation: atom
+--- Pi.
+public initial_punctuation: atom
+--- Pf.
+public final_punctuation: atom
+--- Po.
+public other_punctuation: atom
+--- Sm.
+public math_symbol: atom
+--- Sc.
+public currency_symbol: atom
+--- Sk.
+public modifier_symbol: atom
+--- So.
+public other_symbol: atom
+--- Zs.
+public space_separator: atom
+--- Zl, U+2028 alone.
+public line_separator: atom
+--- Zp, U+2029 alone.
+public paragraph_separator: atom
+--- Cc.
+public control: atom
+--- Cf.
+public format: atom
+--- Cs, U+D800 to U+DFFF, which no text holds.
+public surrogate: atom
+--- Co.
+public private_use: atom
+--- Cn: no character is assigned to the value, or it is above U+10FFFF.
+public unassigned: atom
+
+--- What `category` answers: one of the thirty general categories.
+public general_category: type = uppercase_letter | lowercase_letter
+    | titlecase_letter | modifier_letter | other_letter | nonspacing_mark
+    | spacing_mark | enclosing_mark | decimal_number | letter_number
+    | other_number | connector_punctuation | dash_punctuation
+    | open_punctuation | close_punctuation | initial_punctuation
+    | final_punctuation | other_punctuation | math_symbol | currency_symbol
+    | modifier_symbol | other_symbol | space_separator | line_separator
+    | paragraph_separator | control | format | surrogate | private_use
+    | unassigned
+
+--- The general category of `scalar`; a value above U+10FFFF is
+--- `unassigned`.
+public category: (scalar: u32) -> (kind: general_category) =
+    kind = unassigned
+    return when scalar > 0x10ffff
+    kind = categories[usize(category_code(scalar))]
+end category
+
+--- The canonical combining class of `scalar`, which orders the marks after
+--- a base: zero for a base and for any scalar that is no mark.
+public combining_class: (scalar: u32) -> (class: u8) =
+    class = combining_code(scalar)
+end combining_class
+
+--- Whether `scalar` is Alphabetic: a letter, or a mark or number that
+--- writes part of a word.
+public is_alphabetic: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & alphabetic_bit <> 0
+end is_alphabetic
+
+--- Whether `scalar` is White_Space: a space, a tab, a line or paragraph end.
+public is_white_space: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & white_space_bit <> 0
+end is_white_space
+
+--- Whether `scalar` is Uppercase.
+public is_uppercase: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & uppercase_bit <> 0
+end is_uppercase
+
+--- Whether `scalar` is Lowercase.
+public is_lowercase: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & lowercase_bit <> 0
+end is_lowercase
+
+--- Whether `scalar` is Cased: upper, lower or title case.
+public is_cased: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & cased_bit <> 0
+end is_cased
+
+--- Whether `scalar` is Case_Ignorable, which case mapping passes over when
+--- it looks for the letters around a sigma or a word's first letter.
+public is_case_ignorable: (scalar: u32) -> (yes: bool) =
+    yes = flag_code(scalar) & case_ignorable_bit <> 0
+end is_case_ignorable
+
+--  Decode the scalar of `bytes` that begins at `at`, which is well-formed
+--  UTF-8 there, and the offset after it.
+decoded: (bytes: []u8, at: usize) -> (scalar: u32, after: usize) =
+    lead: u8 = bytes[at]
+    if lead < 0x80 then
+        scalar = u32(lead)
+        after = at + 1
+    elsif lead < 0xe0 then
+        scalar = (u32(lead & 0x1f) << 6) | u32(bytes[at + 1] & 0x3f)
+        after = at + 2
+    elsif lead < 0xf0 then
+        scalar = (u32(lead & 0x0f) << 12) | (u32(bytes[at + 1] & 0x3f) << 6)
+                 | u32(bytes[at + 2] & 0x3f)
+        after = at + 3
+    else
+        scalar = (u32(lead & 0x07) << 18) | (u32(bytes[at + 1] & 0x3f) << 12)
+                 | (u32(bytes[at + 2] & 0x3f) << 6) | u32(bytes[at + 3] & 0x3f)
+        after = at + 4
+    end if
+end decoded
+
+--  Where the entry of `scalar` begins in a sparse map's pool, and its
+--  length, or a length of zero when the map has none for it: its block's
+--  mask says whether it has one, and the entries of the scalars below it
+--  in the block come first.
+entry_of: (block: usize, masks: []u64, bases: []u16, pool: []u8,
+           scalar: u32) -> (at: usize, count: usize) =
+    at = 0
+    count = 0
+    mask: u64 = masks[block]
+    bit: u64 = u64(scalar & 63)
+    return when (mask >> bit) & 1 == 0
+    mut place: usize = usize(bases[block])
+    mut below: u64 = 0
+    while below < bit do
+        if (mask >> below) & 1 <> 0 then
+            place += 1 + usize(pool[place])
+        end if
+        inc below
+    end while
+    at = place + 1
+    count = usize(pool[place])
+end entry_of

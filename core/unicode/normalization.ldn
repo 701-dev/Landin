@@ -1,0 +1,376 @@
+--  Normalization, Unicode's UAX #15: the four forms of a text, NFD and
+--  NFKD decomposed, NFC and NFKC composed again, as its chapter 3.11
+--  defines them.
+--
+--  It holds no buffer of its own and asks for no allocator.  A text's
+--  decomposition is read a scalar at a time from the source, each scalar's
+--  full decomposition from a table, Hangul's by arithmetic.  A run of marks
+--  is put in canonical order as it is read, by walking the run once for
+--  each combining class it holds when it is not in order already, which
+--  is stable and needs no room.  Composition walks each stretch that can
+--  compose twice, once to find what its starter becomes and once to write
+--  the marks that did not combine with it.  So every form takes time
+--  linear in the text, but for a run of marks out of canonical order,
+--  which takes time in its length times the classes it holds.
+
+import core/mem
+import core/text
+
+--  A place in a text's decomposition: the source scalar at byte `source`
+--  and the scalar `part` of its full decomposition, counting from zero.
+place: type = struct
+    source: usize
+    part: usize
+end place
+
+--  A text's decomposition as it is read, in canonical order: `at` is the
+--  place of the scalar it yields next.  In a run of marks out of order,
+--  `run` and `ends` are the run's bounds and `pass` the class whose marks
+--  it is yielding; otherwise `pass` is zero, and `marks` says whether `at`
+--  is inside a run already in order.
+reader: type = struct
+    bytes: []u8
+    compatible: bool
+    at: place
+    run: place
+    ends: place
+    pass: u8
+    marks: bool
+end reader
+
+--  Hangul's constants (Unicode's chapter 3.12).
+s_base: u32 = 0xac00
+l_base: u32 = 0x1100
+v_base: u32 = 0x1161
+t_base: u32 = 0x11a7
+l_count: u32 = 19
+v_count: u32 = 21
+t_count: u32 = 28
+n_count: u32 = 588
+s_count: u32 = 11172
+
+--  The scalar at part `part` of the full decomposition of `scalar`, and
+--  how many parts that decomposition has.
+part_of: (scalar: u32, part: usize, compatible: bool)
+         -> (value: u32, parts: usize) =
+    if scalar >= s_base and scalar < s_base + s_count then
+        index: u32 = scalar - s_base
+        parts = if index % t_count == 0 then 2 else 3 end if
+        value = if part == 0 then
+                    l_base + index / n_count
+                elsif part == 1 then
+                    v_base + (index % n_count) / t_count
+                else
+                    t_base + index % t_count
+                end if
+        return
+    end if
+    if compatible then
+        wide := entry_of(compatible_block(scalar >> 6), compatible_masks,
+                         compatible_bases, compatible_pool, scalar)
+        if wide.count > 0 then
+            found := nth(compatible_pool[wide.at..<wide.at + wide.count],
+                         part)
+            value = found.value
+            parts = found.parts
+            return
+        end if
+    end if
+    exact := entry_of(canonical_block(scalar >> 6), canonical_masks,
+                      canonical_bases, canonical_pool, scalar)
+    value = scalar
+    parts = 1
+    return when exact.count == 0
+    found := nth(canonical_pool[exact.at..<exact.at + exact.count], part)
+    value = found.value
+    parts = found.parts
+end part_of
+
+--  The scalar `part` of the UTF-8 `bytes`, from zero, and how many scalars
+--  they hold.
+nth: (bytes: []u8, part: usize) -> (value: u32, parts: usize) =
+    value = 0
+    parts = 0
+    mut at: usize = 0
+    while at < lenof bytes do
+        (scalar, after) := decoded(bytes, at)
+        if parts == part then
+            value = scalar
+        end if
+        inc parts
+        at = after
+    end while
+end nth
+
+--  Whether `at` is past the decomposition's end.
+done: (bytes: []u8, at: place) -> (yes: bool) =
+    yes = at.source >= lenof bytes
+end done
+
+--  The scalar of the decomposition at `at`, which is not past its end.
+scalar_at: (bytes: []u8, compatible: bool, at: place) -> (value: u32) =
+    (scalar, _) := decoded(bytes, at.source)
+    (value: found) := part_of(scalar, at.part, compatible)
+    value = found
+end scalar_at
+
+--  The place after `at`.
+following: (bytes: []u8, compatible: bool, at: place) -> (next: place) =
+    (scalar, after) := decoded(bytes, at.source)
+    (parts, _) := part_of(scalar, at.part, compatible)
+    next = if at.part + 1 < parts then
+               (source: at.source, part: at.part + 1)
+           else
+               (source: after, part: 0)
+           end if
+end following
+
+--  Whether two places are one.
+same: (left: place, right: place) -> (yes: bool) =
+    yes = left.source == right.source and left.part == right.part
+end same
+
+--  The class of the scalar at `at`, which is not past the end.
+class_at: (r: reader, at: place) -> (class: u8) =
+    class = combining_class(scalar_at(r.bytes, r.compatible, at))
+end class_at
+
+--  A reader at the start of `bytes`' decomposition.
+reading: (bytes: []u8, compatible: bool) -> (result: reader from bytes) =
+    start: place = (source: 0, part: 0)
+    result = (bytes: bytes, compatible: compatible, at: start, run: start,
+              ends: start, pass: 0, marks: false)
+    enter(result)
+end reading
+
+--  Whether the reader has yielded every scalar.
+finished: (r: reader) -> (yes: bool) =
+    yes = done(r.bytes, r.at)
+end finished
+
+--  The scalar the reader yields next, which it has.
+current: (r: reader) -> (value: u32) =
+    value = scalar_at(r.bytes, r.compatible, r.at)
+end current
+
+--  At `r.at`, which a starter or the start of the text comes before: a
+--  starter is read as it stands, and so is a run of marks already in
+--  canonical order; a run out of order starts its first pass, at the
+--  smallest class it holds.
+enter: (inout r: reader) -> none =
+    r.pass = 0
+    r.marks = false
+    return when done(r.bytes, r.at)
+    return when class_at(r, r.at) == 0
+    mut probe: place = r.at
+    mut ordered: bool = true
+    mut last: u8 = 0
+    mut least: u8 = 255
+    while not done(r.bytes, probe) do
+        class: u8 = class_at(r, probe)
+        break when class == 0
+        if class < last then
+            ordered = false
+        end if
+        last = class
+        if class < least then
+            least = class
+        end if
+        probe = following(r.bytes, r.compatible, probe)
+    end while
+    if ordered then
+        r.marks = true
+        return
+    end if
+    r.run = r.at
+    r.ends = probe
+    r.pass = least
+    r.at = first_of(r, r.run, least)
+end enter
+
+--  The first place at or after `start` in the run whose scalar has class
+--  `class`, or the run's end.
+first_of: (r: reader, start: place, class: u8) -> (found: place) =
+    found = start
+    while not same(found, r.ends) do
+        return when class_at(r, found) == class
+        found = following(r.bytes, r.compatible, found)
+    end while
+end first_of
+
+--  Move the reader past the scalar it yields now.
+advance: (inout r: reader) -> none =
+    if r.pass == 0 then
+        within: bool = r.marks
+        r.at = following(r.bytes, r.compatible, r.at)
+        if done(r.bytes, r.at) or class_at(r, r.at) == 0 then
+            r.marks = false
+        elsif not within then
+            enter(r)
+        end if
+        return
+    end if
+    next: place = first_of(r, following(r.bytes, r.compatible, r.at),
+                           r.pass)
+    if not same(next, r.ends) then
+        r.at = next
+        return
+    end if
+    --  The pass is done: the next is the least class above it.
+    mut probe: place = r.run
+    mut least: u16 = 256
+    while not same(probe, r.ends) do
+        class: u8 = class_at(r, probe)
+        if class > r.pass and u16(class) < least then
+            least = u16(class)
+        end if
+        probe = following(r.bytes, r.compatible, probe)
+    end while
+    if least == 256 then
+        r.at = r.ends
+        r.pass = 0
+        r.marks = false
+        return
+    end if
+    r.pass = u8(least)
+    r.at = first_of(r, r.run, r.pass)
+end advance
+
+--  Append the decomposition `bytes`, read in canonical order.
+decompose: (inout into: text.utf8_builder, bytes: []u8, compatible: bool)
+           -> none ! mem.out_of_memory =
+    mut r: reader = reading(bytes, compatible)
+    while not finished(r) do
+        try put(into, current(r))
+        advance(r)
+    end while
+end decompose
+
+--  The primary composite of `first` and `second`, or zero: Hangul's by
+--  arithmetic, the rest from the table, which leaves out every composite
+--  the composition exclusions name.
+composite_of: (first: u32, second: u32) -> (result: u32) =
+    result = 0
+    if first >= l_base and first < l_base + l_count and second >= v_base
+      and second < v_base + v_count
+    then
+        result = s_base + ((first - l_base) * v_count + second - v_base)
+                          * t_count
+        return
+    end if
+    if first >= s_base and first < s_base + s_count
+      and (first - s_base) % t_count == 0 and second > t_base
+      and second < t_base + t_count
+    then
+        result = first + second - t_base
+        return
+    end if
+    found := entry_of(composite_block(first >> 6), composite_masks,
+                      composite_bases, composite_pool, first)
+    pairs: []u8 = composite_pool[found.at..<found.at + found.count]
+    mut at: usize = 0
+    while at < lenof pairs do
+        (scalar: partner, after: past) := decoded(pairs, at)
+        (scalar: made, after) := decoded(pairs, past)
+        if partner == second then
+            result = made
+            return
+        end if
+        at = after
+    end while
+end composite_of
+
+--  Compose from a starter, `starter`, with the scalars `r` yields after it,
+--  as UAX #15's D117 does: a scalar combines with the starter when no
+--  scalar between them was left uncombined with a class of zero or of its
+--  own class or more, and they have a primary composite.  It stops at the
+--  starter that does not combine, which begins the next stretch, or at the
+--  end; with `writing`, it appends each scalar left uncombined, and either
+--  way it answers what the starter became.
+stretch: (inout into: text.utf8_builder, inout r: reader, starter: u32,
+          writing: bool) -> (result: u32) ! mem.out_of_memory =
+    result = starter
+    --  The class of the last scalar left uncombined, or none.
+    mut left: bool = false
+    mut highest: u8 = 0
+    while not finished(r) do
+        scalar: u32 = current(r)
+        class: u8 = combining_class(scalar)
+        if not left or (class <> 0 and highest < class) then
+            made: u32 = composite_of(result, scalar)
+            if made <> 0 then
+                result = made
+                advance(r)
+                continue
+            end if
+        end if
+        return when class == 0
+        left = true
+        highest = class
+        if writing then
+            try put(into, scalar)
+        end if
+        advance(r)
+    end while
+end stretch
+
+--  Append the composition of the decomposition `bytes`.
+compose: (inout into: text.utf8_builder, bytes: []u8, compatible: bool)
+         -> none ! mem.out_of_memory =
+    mut r: reader = reading(bytes, compatible)
+    --  Marks before any starter combine with nothing.
+    while not finished(r) and combining_class(current(r)) <> 0 do
+        try put(into, current(r))
+        advance(r)
+    end while
+    while not finished(r) do
+        starter: u32 = current(r)
+        advance(r)
+        mut ahead: reader = r
+        final: u32 = try stretch(into, ahead, starter, false)
+        try put(into, final)
+        _ = try stretch(into, r, starter, true)
+    end while
+end compose
+
+--- Append the NFD form of `source` to `into`: every scalar canonically
+--- decomposed, its marks in canonical order.  On `mem.out_of_memory` the
+--- builder holds what it held.
+public append_nfd: (inout into: text.utf8_builder, source: utf8)
+                   -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    try decompose(into, text.bytes(source), false)
+end append_nfd
+
+--- Append the NFC form of `source` to `into`: canonically decomposed and
+--- composed again, so "e" and U+0301 give "é", U+00E9, as a text written
+--- precomposed already has it.  The form to store and compare text in.
+--- On `mem.out_of_memory` the builder holds what it held.
+public append_nfc: (inout into: text.utf8_builder, source: utf8)
+                   -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    try compose(into, text.bytes(source), false)
+end append_nfc
+
+--- Append the NFKD form of `source` to `into`: decomposed by the
+--- compatibility mappings too, so "ﬁ" gives "fi" and "²" gives "2", which
+--- loses formatting a reader may have meant.  On `mem.out_of_memory` the
+--- builder holds what it held.
+public append_nfkd: (inout into: text.utf8_builder, source: utf8)
+                    -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    try decompose(into, text.bytes(source), true)
+end append_nfkd
+
+--- Append the NFKC form of `source` to `into`: compatibility decomposed
+--- and canonically composed again, the form to match identifiers and
+--- search terms in.  On `mem.out_of_memory` the builder holds what it held.
+public append_nfkc: (inout into: text.utf8_builder, source: utf8)
+                    -> none ! mem.out_of_memory =
+    start: usize = text.utf8_length(into)
+    undo text.utf8_truncate(into, start)
+    try compose(into, text.bytes(source), true)
+end append_nfkc

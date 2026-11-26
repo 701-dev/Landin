@@ -1,0 +1,116 @@
+--  Text segmentation, Unicode's UAX #29: where a text's extended grapheme
+--  clusters, words and sentences begin and end, by its default rules.
+
+import core/iter
+import core/text
+
+--- A piece of a text, from the position `begins` to the position `ends`,
+--- which ends it: `source[text.offset(piece.begins)..<text.offset(
+--- piece.ends)]` is its text.  It holds positions, not the text, so it is
+--- a value of its own.
+public segment: type = struct
+    begins: text.position
+    ends: text.position
+end segment
+
+--  What a walk segments a text into.
+grapheme_unit: atom
+word_unit: atom
+sentence_unit: atom
+unit: type = grapheme_unit | word_unit | sentence_unit
+
+segments_value: type = struct
+    source: utf8
+    by: unit
+end segments_value
+
+--- A text's segments, one unit at a time, for `for` to walk: what
+--- `graphemes`, `words` and `sentences` give.  Each item is a `segment`,
+--- in order, and together they cover the text.
+public segments: type = segments_value
+
+--- The extended grapheme clusters of `source`, each what a reader takes
+--- for one character: "é" written as "e" and U+0301 is one, as is a flag
+--- or a family emoji.  `for cluster in unicode.graphemes(source)` walks
+--- them.
+public graphemes: (source: utf8) -> (result: segments from source) =
+    result = (source: source, by: grapheme_unit)
+end graphemes
+
+--- The pieces of `source` between its word boundaries: each word, and
+--- each run of spaces or single punctuation mark between words, so that
+--- the pieces cover the text.  Whether a piece is a word is the caller's
+--- question; one holding an alphabetic scalar or a digit is.
+public words: (source: utf8) -> (result: segments from source) =
+    result = (source: source, by: word_unit)
+end words
+
+--- The sentences of `source`, each with the spaces after it.
+public sentences: (source: utf8) -> (result: segments from source) =
+    result = (source: source, by: sentence_unit)
+end sentences
+
+--  Where the piece of the walk's unit that begins at `at` ends.
+end_of: (walk: ptr segments_value, at: text.position)
+        -> (after: text.position) =
+    after = match walk.val.by
+        grapheme_unit: grapheme_end(walk.val.source, at)
+        word_unit: word_end(walk.val.source, at)
+        sentence_unit: sentence_end(walk.val.source, at)
+    end match
+end end_of
+
+walk_first: (walk: ptr segments_value) -> (piece: segment) =
+    begins: text.position = text.start(walk.val.source)
+    piece = (begins: begins, ends: end_of(walk, begins))
+end walk_first
+
+walk_at_end: (walk: ptr segments_value, piece: segment) -> (yes: bool) =
+    yes = text.utf8_at_end(walk.val.source, piece.begins)
+end walk_at_end
+
+walk_item: (walk: ptr segments_value, piece: segment) -> (value: segment) =
+    _ = walk
+    value = (begins: text.copied(piece.begins),
+             ends: text.copied(piece.ends))
+end walk_item
+
+walk_next: (walk: ptr segments_value, piece: segment) -> (next: segment) =
+    begins: text.position = text.copied(piece.ends)
+    next = (begins: begins, ends: end_of(walk, begins))
+end walk_next
+
+segments_value is iter.iterable (cur: segment, item_type: segment,
+                                 first: walk_first, at_end: walk_at_end,
+                                 item: walk_item, next: walk_next)
+
+--- The position where the extended grapheme cluster that begins at `at`
+--- ends: the next grapheme boundary of `source` after `at`, or `at` itself
+--- at the end.  `at` is a boundary: the text's start, or a position this
+--- returned.
+public grapheme_end: (source: utf8, at: text.position)
+                     -> (after: text.position) =
+    after = at
+    return when text.utf8_at_end(source, at)
+    after = text.step(source, at)
+end grapheme_end
+
+--- The position where the piece that begins at `at` ends: the next word
+--- boundary of `source` after `at`, or `at` itself at the end.  `at` is a
+--- boundary, as for `grapheme_end`.
+public word_end: (source: utf8, at: text.position)
+                 -> (after: text.position) =
+    after = at
+    return when text.utf8_at_end(source, at)
+    after = text.step(source, at)
+end word_end
+
+--- The position where the sentence that begins at `at` ends: the next
+--- sentence boundary of `source` after `at`, or `at` itself at the end.
+--- `at` is a boundary, as for `grapheme_end`.
+public sentence_end: (source: utf8, at: text.position)
+                     -> (after: text.position) =
+    after = at
+    return when text.utf8_at_end(source, at)
+    after = text.step(source, at)
+end sentence_end
