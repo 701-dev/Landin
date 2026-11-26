@@ -346,7 +346,7 @@ class FreeBSDControls(unittest.TestCase):
 
     def test_the_results_are_archived_from_a_list_not_the_command_line(self):
         #  Every fixture's result files on one tar command line outgrew the
-        #  FreeBSD guest's argument limit at R22.11's corpus; tar reads
+        #  FreeBSD guest's argument limit once the corpus grew; tar reads
         #  their names from a list the lane writes beside the script.
         lane = LANE.Lane.__new__(LANE.Lane)
         lane.source_root = Path('/home/runner/work/Landin/Landin')
