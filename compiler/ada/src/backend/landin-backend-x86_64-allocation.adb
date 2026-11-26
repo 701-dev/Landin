@@ -847,6 +847,7 @@ package body Landin.Backend.X86_64.Allocation is
          function Forwardable (Value : Positive) return Boolean;
          function Overwrites (Value : Positive) return Natural;
          function Folds (Value : Positive) return Boolean;
+         function Float_Forwardable (Value : Positive) return Boolean;
 
          --  The left operand of an operation selection computes where its
          --  result lives, when that operand's last use is this one; else 0.
@@ -1381,6 +1382,76 @@ package body Landin.Backend.X86_64.Allocation is
                        when others => False);
             end;
          end Forwardable;
+
+         --  D2574: D2156 for a float load.  Its one use, the first
+         --  operation after it that selection emits anything for, reads it
+         --  through a memory operand, as Takes_Memory says, before it
+         --  writes any register.  Only constants with an immediate and
+         --  loads read in place may lie between, and neither emits an
+         --  instruction, so the registers the load's memory operand names
+         --  still hold.
+         --  `cumulative[at]` compared with a float in a loop then costs
+         --  no `movsd` of its own.
+         function Float_Forwardable (Value : Positive) return Boolean is
+            use type Landin.IR.Value_Id;
+            Id : constant Landin.IR.Value_Id := Landin.IR.Value_Id (Value);
+            Op : constant Landin.IR.Opcode :=
+              Landin.IR.Op_Of (Of_Unit, Item, Id);
+         begin
+            if Has_Assembly or else Result.Value (Value).Address_Required
+              or else Landin.IR.Result_Of (Of_Unit, Item, Id)
+                not in Landin.Types.Float_Name
+              or else Lasts (Value) <= Starts (Value)
+              or else Op not in Landin.IR.Load | Landin.IR.Load_Datum
+                | Landin.IR.Load_Element | Landin.IR.Load_Field
+                | Landin.IR.Load_Indirect
+              or else (Op = Landin.IR.Load
+                       and then Result.Slot (Slot_Read (Value)).Kind /= Stack)
+              or else (Op in Landin.IR.Load_Element | Landin.IR.Load_Field
+                       and then Packed_Part (Of_Unit, Item, Id))
+            then
+               return False;
+            end if;
+            declare
+               User : constant Landin.IR.Value_Id :=
+                 Landin.IR.Value_Id (Sequence (Lasts (Value)));
+               Reads : Natural := 0;
+               Read_At : Natural := 0;
+            begin
+               if Landin.IR.Block_Of (Of_Unit, Item, User)
+                 /= Landin.IR.Block_Of (Of_Unit, Item, Id)
+               then
+                  return False;
+               end if;
+               for Position in Starts (Value) + 1 .. Lasts (Value) - 1 loop
+                  declare
+                     Between : constant Positive := Sequence (Position);
+                     Between_Op : constant Landin.IR.Opcode :=
+                       Landin.IR.Op_Of
+                         (Of_Unit, Item, Landin.IR.Value_Id (Between));
+                  begin
+                     if not ((Between_Op = Landin.IR.Number
+                              and then Result.Value (Between).Kind = Absent)
+                             or else Read_In_Place (Between))
+                     then
+                        return False;
+                     end if;
+                  end;
+               end loop;
+               for Position in 1 .. Landin.IR.Operand_Count
+                 (Of_Unit, Item, User)
+               loop
+                  if Landin.IR.Nth_Operand (Of_Unit, Item, User, Position)
+                    = Id
+                  then
+                     Reads := Reads + 1;
+                     Read_At := Position;
+                  end if;
+               end loop;
+               return Reads = 1
+                 and then Takes_Memory (Of_Unit, Item, User, Read_At);
+            end;
+         end Float_Forwardable;
 
          procedure Pin (Place : Landin.IR.Storage) is
          begin
@@ -2297,6 +2368,12 @@ package body Landin.Backend.X86_64.Allocation is
                      then
                         Variable_Held (Place.Register) := False;
                      end if;
+                  end if;
+                  if Place.Kind = Stack and then Allocate_SSE
+                    and then Float_Forwardable (Index)
+                  then
+                     Place.Kind := Absent;
+                     Place.Forwarded := True;
                   end if;
                   if Place.Kind = Stack
                     and then Allocate_SSE and then Float_Eligible (Index)
