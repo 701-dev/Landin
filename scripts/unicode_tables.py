@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write core/unicode's tables, and its conformance fixtures, from a pinned UCD.
 
-    scripts/unicode_tables.py --fetch DIR
+    scripts/unicode_tables.py --fetch [DIR]
     scripts/unicode_tables.py --zip UCD.zip
     scripts/unicode_tables.py --zip UCD.zip --check
     scripts/unicode_tables.py --check
@@ -10,7 +10,10 @@ The tables are the Unicode Character Database's own, read out of the
 release's UCD.zip named by VERSION, URL and SHA256 below and never typed by
 hand.  `--fetch` downloads that archive into DIR, which must be new or
 empty, and `--zip` names one already downloaded; either way its SHA-256
-must be the pinned one before a byte of it is read.  The members are read
+must be the pinned one before a byte of it is read.  `--fetch` without a
+DIR downloads it into the inputs cache, $LANDIN_INPUTS or
+~/.cache/landin/inputs, as unicode-VERSION/UCD.zip, where the script test
+finds it and then holds every generated file to it.  The members are read
 straight out of the archive and nothing is extracted.
 
 It writes core/unicode/tables.ldn, every table core/unicode reads, private
@@ -33,6 +36,7 @@ Standard library only, so it runs wherever check.py does.
 
 import argparse
 import hashlib
+import os
 import pathlib
 import re
 import sys
@@ -141,15 +145,25 @@ def read_archive(path, digest=SHA256):
     return members
 
 
-def fetch(directory):
+def cached_archive():
+    """Where `--fetch` without a directory puts the pinned archive."""
+    named = os.environ.get("LANDIN_INPUTS")
+    root = (pathlib.Path(named) if named
+            else pathlib.Path.home() / ".cache/landin/inputs")
+    return root / ("unicode-%s" % VERSION) / "UCD.zip"
+
+
+def fetch(directory=None):
     """Download the pinned archive into DIRECTORY, new or empty."""
-    directory = pathlib.Path(directory)
+    directory = (pathlib.Path(directory) if directory
+                 else cached_archive().parent)
     if directory.exists() and any(directory.iterdir()):
         raise GeneratorError("%s is not empty" % directory)
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / "UCD.zip"
     with urllib.request.urlopen(URL) as response:
         target.write_bytes(response.read())
+    read_archive(target)
     return target
 
 
@@ -758,15 +772,15 @@ def sizes(database):
 def main(arguments=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     source = parser.add_mutually_exclusive_group()
-    source.add_argument("--fetch", metavar="DIR")
+    source.add_argument("--fetch", metavar="DIR", nargs="?", const="")
     source.add_argument("--zip", metavar="PATH")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--sizes", action="store_true")
     options = parser.parse_args(arguments)
     try:
         path = options.zip
-        if options.fetch:
-            path = fetch(options.fetch)
+        if options.fetch is not None:
+            path = fetch(options.fetch or None)
         if path is None:
             if not options.check:
                 parser.error("name the release with --zip or --fetch")

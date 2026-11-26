@@ -5701,6 +5701,33 @@
         }
       }
     },
+    "runtime/unicode-case-scalars": {
+      "mode": "execute"
+    },
+    "runtime/unicode-category": {
+      "mode": "execute"
+    },
+    "runtime/unicode-graphemes": {
+      "mode": "execute"
+    },
+    "runtime/unicode-normalization-canonical": {
+      "mode": "execute"
+    },
+    "runtime/unicode-normalization-compatible": {
+      "mode": "execute"
+    },
+    "runtime/unicode-normalization-sequences": {
+      "mode": "execute"
+    },
+    "runtime/unicode-properties": {
+      "mode": "execute"
+    },
+    "runtime/unicode-sentences": {
+      "mode": "execute"
+    },
+    "runtime/unicode-words": {
+      "mode": "execute"
+    },
     "runtime/unnamed-view-finished-or-apart": {
       "codes": [
         "L0015"

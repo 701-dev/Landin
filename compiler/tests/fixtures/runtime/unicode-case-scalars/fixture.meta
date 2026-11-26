@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/unicode's simple and full upper, lower, title and folded mappings of every scalar are the Unicode Character Database's, by their digest
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64, cortex-m0
+constructs: 0600, 1140
