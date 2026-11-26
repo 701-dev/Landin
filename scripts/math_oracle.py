@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""core/math against MPFR: the fixtures' tables, and the larger runs.
+"""core/math against MPFR and core/complex against MPC: the fixtures'
+tables, and the larger runs.
 
     python3 scripts/math_oracle.py fixtures [NAME...]
     python3 scripts/math_oracle.py measure FUNCTION WIDTH [--count N] [--seed N]
     python3 scripts/math_oracle.py exhaustive FUNCTION [--jobs N]
     python3 scripts/math_oracle.py digest FUNCTION [--target T] [--runner P] [--jobs N]
 
-`fixtures` writes each `math-*` runtime fixture compiler/tests/math/
-cases/*.json describes, or the ones named: a program whose tables hold
+`fixtures` writes each `math-*` and `complex-*` runtime fixture
+compiler/tests/math/cases/*.json describes, or the ones named: a program
+whose tables hold
 inputs and MPFR's correctly rounded results, and which checks that every
 result core/math gives is within the table's bound of it, counted in
-representable floats, on every target the fixture names.  It writes
+representable floats, each part of a complex result on its own, on
+every target the fixture names.  It writes
 compiler/tests/math/evaluate.ldn too, the program the other two run.
 
 `measure` draws COUNT inputs (a million by default) from the function's
@@ -23,9 +26,10 @@ those 2^32 results as a target gives them, compiled with `--target` and
 run through `--runner`, such as qemu-aarch64, so that another target's
 results are compared with the checked host's bit for bit.
 
-The oracle is compiler/tests/math/oracle.c, built here against the MPFR
-and GMP of flake.lock's nixpkgs, which `nix build --inputs-from .`
-fetches, or of the prefixes $LANDIN_MPFR and $LANDIN_GMP name.  The
+The oracle is compiler/tests/math/oracle.c, built here against the MPFR,
+MPC and GMP of flake.lock's nixpkgs, which `nix build --inputs-from .`
+fetches, or of the prefixes $LANDIN_MPFR, $LANDIN_MPC and $LANDIN_GMP
+name.  The
 programs are compiled with `--refine`, $LANDIN_REFINE, or the refine this
 checkout built last.  compiler/tests/math/README.md says what the
 evidence is.
@@ -76,8 +80,52 @@ ARITY = {
     'erfc': 1, 'gamma': 1, 'log_gamma': 1,
 }
 
+#  core/complex's functions, by their shape: `z` a complex argument or
+#  result, two floats, the real part first, and `r` a real one.
+COMPLEX = {
+    'complex.add': ('zz', 'z'), 'complex.subtract': ('zz', 'z'),
+    'complex.multiply': ('zz', 'z'), 'complex.divide': ('zz', 'z'),
+    'complex.negate': ('z', 'z'), 'complex.conjugate': ('z', 'z'),
+    'complex.project': ('z', 'z'), 'complex.abs': ('z', 'r'),
+    'complex.arg': ('z', 'r'), 'complex.from_polar': ('rr', 'z'),
+    'complex.exp': ('z', 'z'), 'complex.log': ('z', 'z'),
+    'complex.pow': ('zz', 'z'), 'complex.sqrt': ('z', 'z'),
+    'complex.sin': ('z', 'z'), 'complex.cos': ('z', 'z'),
+    'complex.tan': ('z', 'z'), 'complex.asin': ('z', 'z'),
+    'complex.acos': ('z', 'z'), 'complex.atan': ('z', 'z'),
+    'complex.sinh': ('z', 'z'), 'complex.cosh': ('z', 'z'),
+    'complex.tanh': ('z', 'z'), 'complex.asinh': ('z', 'z'),
+    'complex.acosh': ('z', 'z'), 'complex.atanh': ('z', 'z'),
+}
+
+
+def shape(fn):
+    """FN's arguments and result, `z` complex and `r` real."""
+    if fn in COMPLEX:
+        return COMPLEX[fn]
+    return ('r' * ARITY[fn], 'r')
+
+
+def width_of(kinds):
+    """How many floats the arguments or result KINDS take."""
+    return sum(2 if kind == 'z' else 1 for kind in kinds)
+
+
+def inputs_of(fn):
+    return width_of(shape(fn)[0])
+
+
+def outputs_of(fn):
+    return width_of(shape(fn)[1])
+
+
+def known(fn):
+    return fn in ARITY or fn in COMPLEX
+
+
 #  Each argument's name in the routine, for the generated calls.
 PARAMETERS = {1: ('x',), 2: ('x', 'y'), 3: ('x', 'y', 'z')}
+COMPLEX_PARAMETERS = {'z': ('z',), 'zz': ('z', 'w'), 'rr': ('magnitude', 'angle')}
 
 
 class Failure(Exception):
@@ -90,8 +138,9 @@ def nix_prefix(attribute):
          '--no-link', '--print-out-paths'],
         capture_output=True, text=True, check=False)
     if found.returncode != 0:
-        raise Failure('nix build nixpkgs#%s failed; name the prefix with $LANDIN_MPFR'
-                      ' and $LANDIN_GMP instead:\n%s' % (attribute, found.stderr))
+        raise Failure('nix build nixpkgs#%s failed; name the prefixes with $LANDIN_MPFR,'
+                      ' $LANDIN_MPC and $LANDIN_GMP instead:\n%s'
+                      % (attribute, found.stderr))
     return Path(found.stdout.split()[-1])
 
 
@@ -104,20 +153,24 @@ def build_oracle():
     binary = out / 'oracle'
     if binary.exists() and binary.stat().st_mtime >= source.stat().st_mtime:
         return binary
-    if os.environ.get('LANDIN_MPFR') and os.environ.get('LANDIN_GMP'):
+    if all(os.environ.get(name) for name in ('LANDIN_MPFR', 'LANDIN_MPC', 'LANDIN_GMP')):
         mpfr_include = mpfr_lib = Path(os.environ['LANDIN_MPFR'])
+        mpc_include = mpc_lib = Path(os.environ['LANDIN_MPC'])
         gmp_include = gmp_lib = Path(os.environ['LANDIN_GMP'])
     else:
         mpfr_include, mpfr_lib = nix_prefix('mpfr.dev'), nix_prefix('mpfr.out')
+        mpc_include = mpc_lib = nix_prefix('libmpc')
         gmp_include, gmp_lib = nix_prefix('gmp.dev'), nix_prefix('gmp.out')
     compiler = shutil.which('cc') or shutil.which('clang')
     if compiler is None:
         raise Failure('no C compiler on PATH: run inside nix develop')
     command = [compiler, '-O2', '-o', str(binary), str(source),
-               '-I%s/include' % mpfr_include, '-I%s/include' % gmp_include,
-               '-L%s/lib' % mpfr_lib, '-L%s/lib' % gmp_lib,
-               '-Wl,-rpath,%s/lib' % mpfr_lib, '-Wl,-rpath,%s/lib' % gmp_lib,
-               '-lmpfr', '-lgmp', '-lm']
+               '-I%s/include' % mpfr_include, '-I%s/include' % mpc_include,
+               '-I%s/include' % gmp_include,
+               '-L%s/lib' % mpfr_lib, '-L%s/lib' % mpc_lib, '-L%s/lib' % gmp_lib,
+               '-Wl,-rpath,%s/lib' % mpfr_lib, '-Wl,-rpath,%s/lib' % mpc_lib,
+               '-Wl,-rpath,%s/lib' % gmp_lib,
+               '-lmpc', '-lmpfr', '-lgmp', '-lm']
     built = subprocess.run(command, capture_output=True, text=True, check=False)
     if built.returncode != 0:
         raise Failure('building the oracle failed:\n' + built.stderr)
@@ -163,12 +216,12 @@ def table_cases(oracle, table, seed):
     """The oracle's lines for TABLE: lists of integers, the inputs and the
     correctly rounded result."""
     width = table['width']
-    arity = ARITY[table['fn']]
+    arity = inputs_of(table['fn'])
     command = [str(oracle), 'cases', '--fn', table['fn'], '--width', str(width),
                '--seed', str(seed), '--random', str(table.get('random', 0)),
                '--hard', str(table.get('hard', 0)),
                '--pool', str(table.get('pool', 20000))]
-    for argument, flag in ((0, '--domain'), (1, '--domain2'), (2, '--domain3')):
+    for argument, flag in enumerate(DOMAIN_FLAGS):
         for domain in domains_of(table, argument):
             command += [flag, domain]
     for special in table.get('specials', []):
@@ -180,6 +233,9 @@ def table_cases(oracle, table, seed):
     if made.returncode != 0:
         raise Failure('the oracle refused %s:\n%s' % (' '.join(command), made.stderr))
     return [[int(word, 16) for word in line.split()] for line in made.stdout.splitlines()]
+
+
+DOMAIN_FLAGS = ('--domain', '--domain2', '--domain3', '--domain4')
 
 
 def domains_of(table, argument):
@@ -275,7 +331,33 @@ end within_32
 '''
 
 
-def runner(width, arity):
+def signature_of(fn, width):
+    """FN's parameters and result type at WIDTH, and its parameters' names."""
+    kind = 'f%d' % width
+    number = 'complex.number(%s)' % kind
+    arguments, result = shape(fn)
+    if fn in COMPLEX:
+        names = COMPLEX_PARAMETERS[arguments]
+    else:
+        names = PARAMETERS[len(arguments)]
+    parameters = ', '.join('%s: %s' % (name, number if a == 'z' else kind)
+                           for name, a in zip(names, arguments))
+    return parameters, number if result == 'z' else kind, names
+
+
+def runner_name(fn, width):
+    arguments, result = shape(fn)
+    if fn not in COMPLEX:
+        return 'run_%d_%d' % (width, len(arguments))
+    return 'run_%d_%s_%s' % (width, arguments, result)
+
+
+def table_runner(table):
+    """The name of the routine TABLE is run through."""
+    return runner_name(table['fn'], table['width']) + ('_norm' if table.get('norm') else '')
+
+
+def real_runner(width, arity):
     """The routine that runs a table of WIDTH and ARITY through a routine
     given as a value, counting the results past the bound."""
     kind = 'f%d' % width
@@ -300,17 +382,146 @@ end run_{width}_{arity}
            arguments=', '.join(parameters), stride=arity + 1)
 
 
+PART_CHECKER = '''\
+--  Whether a part `got` of a complex result is within `bound` floats of
+--  `want`, as `within` has it, save that beside a NaN part, the result's
+--  `other`, it is compared by magnitude: Annex G leaves the sign of
+--  nearly every zero or infinity beside a NaN unspecified.
+within_part_64: (got: f64, want: u64, other: u64, bound: u64) -> (yes: bool) =
+    if other & 0x7fffffffffffffff > 0x7ff0000000000000 then
+        yes = within_64(from_64(bits_64(got) & 0x7fffffffffffffff), want & 0x7fffffffffffffff,
+                        bound)
+    else
+        yes = within_64(got, want, bound)
+    end if
+end within_part_64
+
+within_part_32: (got: f32, want: u32, other: u32, bound: u32) -> (yes: bool) =
+    if other & 0x7fffffff > 0x7f800000 then
+        yes = within_32(from_32(bits_32(got) & 0x7fffffff), want & 0x7fffffff, bound)
+    else
+        yes = within_32(got, want, bound)
+    end if
+end within_part_32
+'''
+
+NORM_CHECKER = '''\
+--  Whether `got` is within `bound` floats of `want`, counted in units in
+--  the last place of `larger`, the larger part of the result in
+--  magnitude: NaN only for NaN, an infinity only for itself, a zero's
+--  sign kept where both parts are zero, and beside a NaN part, `other`,
+--  the magnitude alone compared, as `within_part` does.
+within_norm_64: (got: f64, want: u64, other: u64, larger: u64, bound: u64) -> (yes: bool) =
+    expected := from_64(want)
+    have := bits_64(got)
+    e := (larger >> 52) & 0x7ff
+    if expected <> expected or got <> got then
+        yes = expected <> expected and got <> got
+    elsif want & 0x7fffffffffffffff == 0x7ff0000000000000
+      or have & 0x7fffffffffffffff == 0x7ff0000000000000 then
+        yes = have == want
+    elsif larger & 0x7fffffffffffffff == 0 or other & 0x7fffffffffffffff > 0x7ff0000000000000 then
+        yes = within_part_64(got, want, other, bound)
+    else
+        ulp: u64 = if e > 52 then (e - 52) << 52 elsif e > 0 then u64(1) << (e - 1) else 1 end if
+        difference := if got > expected then got - expected else expected - got end if
+        yes = difference <= f64(bound) * from_64(ulp)
+    end if
+end within_norm_64
+
+within_norm_32: (got: f32, want: u32, other: u32, larger: u32, bound: u32) -> (yes: bool) =
+    expected := from_32(want)
+    have := bits_32(got)
+    e := (larger >> 23) & 0xff
+    if expected <> expected or got <> got then
+        yes = expected <> expected and got <> got
+    elsif want & 0x7fffffff == 0x7f800000 or have & 0x7fffffff == 0x7f800000 then
+        yes = have == want
+    elsif larger & 0x7fffffff == 0 or other & 0x7fffffff > 0x7f800000 then
+        yes = within_part_32(got, want, other, bound)
+    else
+        ulp: u32 = if e > 23 then (e - 23) << 23 elsif e > 0 then u32(1) << (e - 1) else 1 end if
+        difference := if got > expected then got - expected else expected - got end if
+        yes = difference <= f32(bound) * from_32(ulp)
+    end if
+end within_norm_32
+
+--  The larger of two parts in magnitude, as bits.
+larger_64: (a: u64, b: u64) -> (bits: u64) =
+    bits = if a & 0x7fffffffffffffff >= b & 0x7fffffffffffffff then a & 0x7fffffffffffffff
+           else b & 0x7fffffffffffffff end if
+end larger_64
+
+larger_32: (a: u32, b: u32) -> (bits: u32) =
+    bits = if a & 0x7fffffff >= b & 0x7fffffff then a & 0x7fffffff else b & 0x7fffffff end if
+end larger_32
+'''
+
+
+def runner(fn, width, norm=False):
+    """The routine that runs a table of FN's shape at WIDTH through a
+    routine given as a value, counting the results past the bound: each
+    part of a complex result is within it, in units of its own last place
+    or, with NORM, of the larger part's, or the case fails."""
+    if fn not in COMPLEX:
+        return real_runner(width, ARITY[fn])
+    parameters, result, names = signature_of(fn, width)
+    arguments, given = shape(fn)
+    reads, word = [], 0
+    for name, a in zip(names, arguments):
+        if a == 'z':
+            reads.append('        %s: complex.number(f%d) = (real: from_%d(cases[at + %d]),'
+                         ' imaginary: from_%d(cases[at + %d]))'
+                         % (name, width, width, word, width, word + 1))
+            word += 2
+        else:
+            reads.append('        %s := from_%d(cases[at + %d])' % (name, width, word))
+            word += 1
+    if given == 'z' and norm:
+        reads.append('        larger := larger_{w}(cases[at + {k}], cases[at + {k1}])'.format(
+            w=width, k=word, k1=word + 1))
+        check = ('not within_norm_{w}(got.real, cases[at + {k}], cases[at + {k1}], larger, bound)\n'
+                 '          or not within_norm_{w}(got.imaginary, cases[at + {k1}], cases[at + {k}],'
+                 ' larger, bound)').format(w=width, k=word, k1=word + 1)
+        stride = word + 2
+    elif given == 'z':
+        check = ('not within_part_{w}(got.real, cases[at + {k}], cases[at + {k1}], bound)\n'
+                 '          or not within_part_{w}(got.imaginary, cases[at + {k1}], cases[at + {k}],'
+                 ' bound)').format(w=width, k=word, k1=word + 1)
+        stride = word + 2
+    else:
+        check = 'not within_{w}(got, cases[at + {k}], bound)'.format(w=width, k=word)
+        stride = word + 1
+    name = runner_name(fn, width) + ('_norm' if norm else '')
+    return '''\
+{name}: (cases: []u{width}, routine: ({parameters}) -> (result: {result}),
+         bound: u{width}) -> (failures: u32) =
+    failures = 0
+    mut at: usize = 0
+    while at < lenof cases do
+{reads}
+        got := routine({arguments})
+        if {check} then
+            failures = failures + 1
+        end if
+        at = at + {stride}
+    end while
+end {name}
+'''.format(name=name, width=width, parameters=parameters,
+           result=result, reads='\n'.join(reads), arguments=', '.join(names),
+           check=check, stride=stride)
+
+
 def wrapper(table, index):
     """The routine value table INDEX is run through: one width's call."""
-    arity = ARITY[table['fn']]
-    kind = 'f%d' % table['width']
-    parameters = PARAMETERS[arity]
+    parameters, result, names = signature_of(table['fn'], table['width'])
+    fn = table['fn'] if table['fn'] in COMPLEX else 'math.' + table['fn']
     return '''\
-call_{index}: ({signature}) -> (result: {kind}) =
-    result = math.{fn}({arguments})
+call_{index}: ({parameters}) -> (result: {result}) =
+    result = {fn}({arguments})
 end call_{index}
-'''.format(index=index, signature=', '.join('%s: %s' % (p, kind) for p in parameters),
-           kind=kind, fn=table['fn'], arguments=', '.join(parameters))
+'''.format(index=index, parameters=parameters, result=result, fn=fn,
+           arguments=', '.join(names))
 
 
 def fixture_program(name, fixture, oracle):
@@ -318,16 +529,33 @@ def fixture_program(name, fixture, oracle):
     tables = fixture['tables']
     if len(tables) > 40:
         raise Failure('%s has more than 40 tables, which its status cannot name' % name)
-    parts = ['''\
---  Generated by scripts/math_oracle.py from {source}: edit that and run
---  `python3 scripts/math_oracle.py fixtures {name}`, never this file.
+    complex_tables = any(t['fn'] in COMPLEX for t in tables)
+    if complex_tables:
+        opening = '''\
+--  Each table holds inputs and MPC's correctly rounded result for them;
+--  the program exits 42 when each part of every result core/complex
+--  gives is within the table's bound of that part, counted in floats,
+--  and otherwise with the number of the first table that was not, from 1.
+import core/complex
+import core/math
+'''
+    else:
+        opening = '''\
 --  Each table holds inputs and MPFR's correctly rounded result for them;
 --  the program exits 42 when every result core/math gives is within the
 --  table's bound of it, counted in floats, and otherwise with the number
 --  of the first table that was not, from 1.
 import core/math
-'''.format(source=fixture['source'].relative_to(ROOT).as_posix(), name=name),
+'''
+    parts = ['''\
+--  Generated by scripts/math_oracle.py from {source}: edit that and run
+--  `python3 scripts/math_oracle.py fixtures {name}`, never this file.
+'''.format(source=fixture['source'].relative_to(ROOT).as_posix(), name=name) + opening,
              CHECKER]
+    if complex_tables:
+        parts.append(PART_CHECKER)
+    if any(t.get('norm') for t in tables):
+        parts.append(NORM_CHECKER)
     for index, table in enumerate(tables, start=1):
         seed = table.get('seed', index)
         words = [word for case in table_cases(oracle, table, seed) for word in case]
@@ -337,12 +565,15 @@ import core/math
                                             table.get('hard', 0), table.get('pool', 20000)))
         parts.append(landin_array('cases_%d' % index, 'u%d' % width, words, width))
         parts.append(wrapper(table, index))
-    for width, arity in sorted({(t['width'], ARITY[t['fn']]) for t in tables}):
-        parts.append(runner(width, arity))
+    seen = {}
+    for table in tables:
+        seen.setdefault(table_runner(table), (table['fn'], table['width'], bool(table.get('norm'))))
+    for key in sorted(seen):
+        parts.append(runner(*seen[key]))
     calls = '\n'.join('''\
-    if run_{width}_{arity}(cases_{i}, call_{i}, {bound}) <> 0 and code == 42 then
+    if {run}(cases_{i}, call_{i}, {bound}) <> 0 and code == 42 then
         code = {status}
-    end if'''.format(i=i, width=t['width'], arity=ARITY[t['fn']], bound=t['bound'],
+    end if'''.format(i=i, run=table_runner(t), bound=t['bound'],
                  status=i if i < 42 else i + 1)
                       for i, t in enumerate(tables, start=1))
     parts.append('''\
@@ -381,46 +612,64 @@ constructs: {constructs}
 def evaluate_program():
     """compiler/tests/math/evaluate.ldn: every function, at either width,
     over inputs read from standard input or over a range of f32 bits."""
+    names = list(ARITY) + list(COMPLEX)
+
     def arm(number, fn, width):
-        arity = ARITY[fn]
-        reads = ', '.join('from_%d(take_%d(record, %d))' % (width, width, k)
-                          for k in range(arity))
+        arguments, result = shape(fn)
+        reads, binds, word = [], [], 0
+        for a in arguments:
+            if a == 'z':
+                name = 'zw'[len(binds)]
+                binds.append('        {n}: complex.number(f{w}) = (real: from_{w}(take_{w}(record, {k})),'
+                             ' imaginary: from_{w}(take_{w}(record, {k1})))\n'.format(
+                                 n=name, w=width, k=word, k1=word + 1))
+                reads.append(name)
+                word += 2
+            else:
+                reads.append('from_%d(take_%d(record, %d))' % (width, width, word))
+                word += 1
+        call = '%s(%s)' % (fn if fn in COMPLEX else 'math.' + fn, ', '.join(reads))
+        if result == 'z':
+            return '''\
+    elsif which == {number} then
+{binds}        got: complex.number(f{w}) = {call}
+        put(into, at, canonical_{w}(bits_{w}(got.real)), {b})
+        put(into, at + {b}, canonical_{w}(bits_{w}(got.imaginary)), {b})'''.format(
+                number=number, w=width, call=call, b=width // 8, binds=''.join(binds))
         return '''\
     elsif which == {number} then
-        result = canonical_{width}(bits_{width}(math.{fn}({reads})))'''.format(number=number, fn=fn, width=width,
-                                                       reads=reads)
+{binds}        put(into, at, canonical_{w}(bits_{w}({call})), {b})'''.format(
+            number=number, w=width, call=call, b=width // 8, binds=''.join(binds))
     arms = {}
     for width in (64, 32):
         body = '\n'.join(arm(number, fn, width)
-                         for number, fn in enumerate(ARITY, start=1))
+                         for number, fn in enumerate(names, start=1))
         arms[width] = body.replace('    elsif', '    if', 1)
     numbers = '\n'.join('''\
     elsif same(name, "{fn}") then
         which = {number}'''.format(fn=fn, number=number)
-                        for number, fn in enumerate(ARITY, start=1)).replace('    elsif', '    if', 1)
+                        for number, fn in enumerate(names, start=1)).replace('    elsif', '    if', 1)
+    counts = '\n'.join('''\
+    elsif which == {number} then
+        inputs = {inputs}
+        outputs = {outputs}'''.format(number=number, inputs=inputs_of(fn),
+                                     outputs=outputs_of(fn))
+                       for number, fn in enumerate(names, start=1)
+                       if (inputs_of(fn), outputs_of(fn)) != (1, 1)).replace('    elsif', '    if', 1)
     return '''\
 --  Generated by scripts/math_oracle.py: run `python3 scripts/math_oracle.py
 --  fixtures` to write it again.  The program `measure` and `exhaustive`
 --  run: `evaluate FUNCTION WIDTH` reads records of the function's inputs,
 --  little-endian at WIDTH bits, from standard input and writes each
---  record back with core/math's result after it;  `evaluate FUNCTION 32
---  FIRST COUNT` writes the records of COUNT f32 inputs, every bit pattern
---  from FIRST up, without reading any.
+--  record back with the result after it, a complex number as its real
+--  and imaginary parts;  `evaluate FUNCTION 32 FIRST COUNT` writes the
+--  records of COUNT f32 inputs, every bit pattern from FIRST up, without
+--  reading any.
+import core/complex
 import core/io
 import core/math
 import core/text
 import hosted/blocking
-
-arity: (name: []u8) -> (count: usize) =
-    count = 1
-    if same(name, "hypot") or same(name, "remainder")
-      or same(name, "remainder_nearest") or same(name, "pow")
-      or same(name, "atan2") then
-        count = 2
-    elsif same(name, "fma") then
-        count = 3
-    end if
-end arity
 
 same: (left: []u8, right: []u8) -> (yes: bool) =
     yes = lenof left == lenof right
@@ -493,17 +742,25 @@ number: (name: []u8) -> (which: u32) =
     end if
 end number
 
-result_64: (which: u32, record: []u8) -> (result: u64) =
-    result = 0
+--  How many floats the function takes and gives.
+shape: (which: u32) -> (inputs: usize, outputs: usize) =
+    inputs = 1
+    outputs = 1
+{counts}
+    end if
+end shape
+
+--  The function's result for the inputs in `record`, written into `into`
+--  from `at`.
+apply_64: (which: u32, record: []u8, into: []mut u8, at: usize) -> none =
 {arms64}
     end if
-end result_64
+end apply_64
 
-result_32: (which: u32, record: []u8) -> (result: u64) =
-    result = 0
+apply_32: (which: u32, record: []u8, into: []mut u8, at: usize) -> none =
 {arms32}
     end if
-end result_32
+end apply_32
 
 argument_number: (host: blocking.host, index: usize) -> (value: u64) =
     value = 0
@@ -518,9 +775,9 @@ public main: () -> (code: i32) =
     name := text.os_string_bytes(given)
     width := argument_number(host, 1)
     bytes: usize = if width == 64 then 8 else 4 end if
-    inputs := arity(name)
     which := number(name)
-    record_bytes := (inputs + 1) * bytes
+    (inputs: inputs, outputs: outputs) := shape(which)
+    record_bytes := (inputs + outputs) * bytes
     mut buffer: [32768]u8 = zeroed
     mut output: [65536]u8 = zeroed
     per_block := lenof output / record_bytes
@@ -533,8 +790,7 @@ public main: () -> (code: i32) =
             while filled < per_block and done < count do
                 at := filled * record_bytes
                 put(output, at, first + done, 4)
-                result := result_32(which, output[at..<at + record_bytes])
-                put(output, at + 4, result, 4)
+                apply_32(which, output[at..<at + 4], output, at + 4)
                 filled = filled + 1
                 done = done + 1
             end while
@@ -556,9 +812,11 @@ public main: () -> (code: i32) =
                 output[to + k] = buffer[at + k]
             end for
             record := buffer[at..<at + input_bytes]
-            result := if width == 64 then result_64(which, record)
-                      else result_32(which, record) end if
-            put(output, to + input_bytes, result, bytes)
+            if width == 64 then
+                apply_64(which, record, output, to + input_bytes)
+            else
+                apply_32(which, record, output, to + input_bytes)
+            end if
         end for
         io.write(host, io.out(host), output[0..<whole * record_bytes]) else begin return end
         rest := held - whole * input_bytes
@@ -570,7 +828,7 @@ public main: () -> (code: i32) =
     end loop
     code = 0
 end main
-'''.format(arms64=arms[64], arms32=arms[32], numbers=numbers)
+'''.format(arms64=arms[64], arms32=arms[32], numbers=numbers, counts=counts)
 
 
 def compile_evaluate(refine, directory):
@@ -596,8 +854,8 @@ def measure(args, oracle, refine):
         evaluate = compile_evaluate(refine, scratch)
         command = [str(oracle), 'inputs', '--fn', args.function, '--width', str(args.width),
                    '--seed', str(args.seed), '--count', str(args.count)]
-        given = {0: args.domain, 1: args.domain2, 2: args.domain3}
-        for argument, flag in ((0, '--domain'), (1, '--domain2'), (2, '--domain3')):
+        given = {0: args.domain, 1: args.domain2, 2: args.domain3, 3: args.domain4}
+        for argument, flag in enumerate(DOMAIN_FLAGS):
             for domain in given[argument] or domains_of(table, argument):
                 command += [flag, domain]
         inputs = subprocess.Popen(command, stdout=subprocess.PIPE)
@@ -606,7 +864,7 @@ def measure(args, oracle, refine):
         inputs.stdout.close()
         checked = subprocess.run([str(oracle), 'check', '--fn', args.function,
                                   '--width', str(args.width), '--bound', str(table['bound']),
-                                  '--show', '5'],
+                                  '--show', '5', '--norm', 'yes' if table.get('norm') else 'no'],
                                  stdin=evaluated.stdout, capture_output=True, text=True,
                                  check=False)
         evaluated.stdout.close()
@@ -725,7 +983,7 @@ def main():
     measured.add_argument('width', type=int, choices=(32, 64))
     measured.add_argument('--count', type=int, default=1000000)
     measured.add_argument('--seed', type=int, default=2551)
-    for flag in ('--domain', '--domain2', '--domain3'):
+    for flag in DOMAIN_FLAGS:
         measured.add_argument(flag, action='append', default=[],
                               help='draw that argument from these domains instead'
                                    ' of its fixture\'s')

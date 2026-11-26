@@ -997,6 +997,18 @@ injector as arguments, as providers.
   tables its routines reach, which stay in flash; NFKC and NFKD alone do
   not fit Cortex-M0's 32 KiB profile. Scripts, line breaking, collation,
   locale-tailored case and encodings other than UTF-8 are not covered.
+- **Complex numbers.** `core/complex` has `complex.number(f32)` and
+  `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
+  named routines generic over both: the arithmetic, the conjugate and the
+  projection, magnitude, angle and polar form, `exp`, `log`, `pow` and
+  `sqrt`, and the trigonometric and hyperbolic functions and their
+  inverses (D2634). Infinities, NaN, signed zeros and branch cuts follow
+  C's Annex G (D2635). Nothing is ported: each routine is written from the
+  mathematics and published methods (D2637). Each routine's error is
+  stated for each part and checked against MPC on every target the gate
+  runs (D2636). On Cortex-M0 the arithmetic, `sqrt`, `atan` and `atanh` fit
+  at `f32`; the larger functions pass 32 KiB and run on the Cortex-M7
+  emulator lane instead.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,

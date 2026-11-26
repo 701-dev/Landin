@@ -1,0 +1,195 @@
+--  The exponential, the logarithm, powers and the square root.
+import core/math
+
+--  ln 2 in two parts: `high` has so few bits that its product with any
+--  exponent of the format is exact, and `high + low` is ln 2 to twice
+--  the format's precision.
+ln_2_high: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.62e42fee00000p-1, narrow: 0x1.62ep-1)
+end ln_2_high
+
+ln_2_low: (item: type is math.floating) -> (value: item) =
+    value = pick(item: item, wide: 0x1.a39ef35793c76p-33, narrow: 0x1.0bfbe8p-15)
+end ln_2_low
+
+--  `e^x · factor · 2^shift` for a finite `x` and a `factor` of magnitude
+--  at most 2, within 1.5 ulp, and without overflow or underflow on the
+--  way where the product is finite: the factor is scaled to [1, 2), and
+--  where e^x itself would overflow or be subnormal, e^x is e^r · 2^k with
+--  r = x - k·ln 2 in [0, ln 2), so that the product is rounded once and
+--  then scaled by a power of 2.
+exp_times: (item: type is math.floating, x: item, factor: item, shift: i32) -> (result: item) =
+    zero: item = item(0)
+    if factor == zero or not math.is_finite(factor) then
+        result = math.exp(x) * factor
+        return
+    end if
+    f := exponent(factor)
+    scaled := math.scale(factor, -f)
+    edge := pick(item: item, wide: 708.0, narrow: 87.0)
+    if math.abs(x) < edge then
+        result = math.scale(math.exp(x) * scaled, f + shift)
+        return
+    end if
+    --  Past this, the product overflows or underflows whatever the factor.
+    limit := pick(item: item, wide: 1500.0, narrow: 200.0)
+    clamped := math.max(math.min(x, limit), -limit)
+    k := math.floor(clamped * pick(item: item, wide: 0x1.71547652b82fep0, narrow: 0x1.715476p0))
+    r := (clamped - k * ln_2_high(item: item)) - k * ln_2_low(item: item)
+    result = math.scale(math.exp(r) * scaled, i32(k) + f + shift)
+end exp_times
+
+--- e to the power `z`: `e^x · (cos y + i·sin y)` for `z = x + iy`, each
+--- part within 2.10 ulp at f64 and 2.03 at f32, finite wherever the exact
+--- part is, even where e^x alone would overflow.  A zero imaginary part
+--- gives a real result with that zero.  Annex G's special values: +∞ in
+--- the direction y for `+∞ + iy`, a zero in it for `-∞ + iy`, and NaN where
+--- the direction is undefined.  C's `cexp`.
+public exp: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    if y == zero then
+        result = (real: math.exp(x), imaginary: y)
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: x)
+    elsif math.is_infinite(x) then
+        if math.is_finite(y) then
+            magnitude := if x > zero then x else zero end if
+            result = (real: magnitude * math.cos(y), imaginary: magnitude * math.sin(y))
+        elsif x > zero then
+            result = (real: x, imaginary: y - y)
+        else
+            result = (real: zero, imaginary: zero)
+        end if
+    elsif not math.is_finite(y) then
+        result = (real: y - y, imaginary: y - y)
+    else
+        result = (real: exp_times(x, math.cos(y), 0), imaginary: exp_times(x, math.sin(y), 0))
+    end if
+end exp
+
+--  (a, b) with a + b = x + y exactly and b the rounding error of a.
+two_sum: (item: type is math.floating, x: item, y: item) -> (sum: item, error: item) =
+    sum = x + y
+    v := sum - x
+    error = (x - (sum - v)) + (y - v)
+end two_sum
+
+--  a² + b² - 1, for a and b at most 2 in magnitude, to nearly the
+--  format's precision even where it cancels: the squares are split
+--  exactly by fused multiply-adds, and the five parts summed with each
+--  addition's error kept.
+squares_less_one: (item: type is math.floating, a: item, b: item) -> (result: item) =
+    p := a * a
+    p_error := math.fma(a, a, -p)
+    q := b * b
+    q_error := math.fma(b, b, -q)
+    (sum: s1, error: e1) := two_sum(p, item(-1))
+    (sum: s2, error: e2) := two_sum(s1, q)
+    (sum: s3, error: e3) := two_sum(s2, p_error)
+    (sum: s4, error: e4) := two_sum(s3, q_error)
+    result = s4 + ((e1 + e2) + (e3 + e4))
+end squares_less_one
+
+--  ln √(a² + b²) for finite a ≥ b ≥ 0, a nonzero, within 1 ulp: both
+--  are scaled by 2^-e so that a² + b² lies in [0.5, 2), and the result
+--  is e·ln 2 + ½·log1p(a² + b² - 1), whose two terms never cancel.
+log_magnitude: (item: type is math.floating, a: item, b: item) -> (result: item) =
+    mut e := exponent(a)
+    mut s := math.scale(a, -e)
+    mut t := math.scale(b, -e)
+    if s * s + t * t >= item(2) then
+        e = e + 1
+        s = math.scale(s, -1)
+        t = math.scale(t, -1)
+    end if
+    half: item = item(0.5)
+    k := item(e)
+    result = k * ln_2_high(item: item)
+             + (k * ln_2_low(item: item) + half * math.log1p(squares_less_one(s, t)))
+end log_magnitude
+
+--- The principal natural logarithm: `ln |z| + i·arg z`, its imaginary
+--- part in [-π, π] and its cut along the negative real axis, where a +0
+--- imaginary part gives π and -0 gives -π.  Each part within 1.47 ulp at
+--- f64 and 1.45 at f32, the real part also near |z| = 1, where it cancels.
+--- `log(0)` is -∞ with `arg`'s angle, and an infinite part gives +∞.  C's
+--- `clog`.
+public log: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    a := math.abs(x)
+    b := math.abs(y)
+    angle := math.atan2(y, x)
+    if math.is_infinite(a) or math.is_infinite(b) then
+        result = (real: infinity(item: item, sign: item(1)), imaginary: angle)
+    elsif math.is_nan(a) or math.is_nan(b) then
+        result = (real: a + b, imaginary: angle)
+    elsif a == item(0) and b == item(0) then
+        result = (real: -item(1) / a, imaginary: angle)
+    else
+        result = (real: log_magnitude(math.max(a, b), math.min(a, b)), imaginary: angle)
+    end if
+end log
+
+--- `z` to the power `w`: `exp(w · log z)`, with `log`'s cut, and 1 for `w
+--- = 0`.  Its error grows with |w · log z|, since rounding a product of that
+--- size moves its parts by that many units: within 19.1 ulp of the larger
+--- part at f64 and 19.3 at f32 for parts of `z` up to 4 and of `w` up to 2
+--- in magnitude.  C's `cpow`.
+public pow: (item: type is math.floating, z: number(item), w: number(item))
+            -> (result: number(item)) =
+    zero: item = item(0)
+    if w.real == zero and w.imaginary == zero then
+        result = (real: item(1), imaginary: zero)
+        return
+    end if
+    result = exp(multiply(w, log(z)))
+end pow
+
+--- The principal square root, with a nonnegative real part and the cut
+--- along the negative real axis: a +0 imaginary part gives the positive
+--- imaginary root and -0 the negative.  Each part within 2.00 ulp at both
+--- widths, by Kahan's form, which cancels nowhere: t = √((|x| + |z|)/2),
+--- and the other part y/(2t).  Annex G's special values: +∞ + i·y for an
+--- infinite imaginary part y, even beside NaN.  C's `csqrt`.
+public sqrt: (item: type is math.floating, z: number(item)) -> (result: number(item)) =
+    x := z.real
+    y := z.imaginary
+    zero: item = item(0)
+    if math.is_infinite(y) then
+        result = (real: math.abs(y), imaginary: y)
+    elsif math.is_nan(x) then
+        result = (real: x, imaginary: x)
+    elsif math.is_infinite(x) then
+        if x > zero then
+            result = (real: x, imaginary: if math.is_nan(y) then y else math.copy_sign(zero, y) end if)
+        else
+            result = (real: if math.is_nan(y) then y else zero end if,
+                      imaginary: math.copy_sign(-x, y))
+        end if
+    elsif math.is_nan(y) then
+        result = (real: y, imaginary: y)
+    elsif x == zero and y == zero then
+        result = (real: zero, imaginary: y)
+    else
+        --  Scaled by an even power of 2 so that the larger part lies in
+        --  [1, 4), which neither overflows nor loses a subnormal's bits.
+        e := exponent(math.max(math.abs(x), math.abs(y)))
+        k := if e >= 0 then e / 2 else -((1 - e) / 2) end if
+        s := math.scale(x, -2 * k)
+        u := math.scale(y, -2 * k)
+        half: item = item(0.5)
+        t := math.scale(math.sqrt(half * (math.abs(s) + math.hypot(s, u))), k)
+        other := y / (t + t)
+        if x == zero then
+            --  √(iy) has equal parts, each t.
+            result = (real: t, imaginary: math.copy_sign(t, y))
+        elsif x > zero then
+            result = (real: t, imaginary: other)
+        else
+            result = (real: math.abs(other), imaginary: math.copy_sign(t, y))
+        end if
+    end if
+end sqrt

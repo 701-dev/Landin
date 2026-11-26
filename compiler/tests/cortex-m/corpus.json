@@ -1930,6 +1930,180 @@
     "runtime/compiler-unreachable-in-unchecked-traps": {
       "mode": "execute"
     },
+    "runtime/complex-acosh": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding acosh at f64 and f32 with the arccosines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 77,336 bytes of flash at size/auto, over by 44,568. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-arccosine": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding acos at f64 and f32 with the arccosines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 76,552 bytes of flash at size/auto, over by 43,784. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-arcsine": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding asin at f64 and f32 with the arcsines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 76,488 bytes of flash at size/auto, over by 43,720. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-arctangent-f32": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45688 of this lane's 32 KiB, over by 12920."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47696 of this lane's 32 KiB, over by 14928."
+        }
+      }
+    },
+    "runtime/complex-arctangent-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding atan's f64 routine with the logarithm and arctangent it calls, and libgcc's soft float, is past the 32 KiB profile: 36,728 bytes of flash at size/auto, over by 3,960. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-arithmetic-f32": {
+      "mode": "execute"
+    },
+    "runtime/complex-arithmetic-f64": {
+      "mode": "execute"
+    },
+    "runtime/complex-asinh": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding asinh at f64 and f32 with the arcsines, arctangents, logarithms and roots it calls, and libgcc's soft float, is past the 32 KiB profile: 75,872 bytes of flash at size/auto, over by 43,104. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-atanh-f32": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45168 of this lane's 32 KiB, over by 12400."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47168 of this lane's 32 KiB, over by 14400."
+        }
+      }
+    },
+    "runtime/complex-atanh-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding atanh's f64 routine with the logarithm and arctangent it calls, and libgcc's soft float, is past the 32 KiB profile: 36,384 bytes of flash at size/auto, over by 3,616. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-cosh": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding cosh at f64 and f32 with the hyperbolic functions, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 64,344 bytes of flash at size/auto, over by 31,576. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-cosine": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding cos at f64 and f32 with the hyperbolic functions, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 64,736 bytes of flash at size/auto, over by 31,968. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-divide-f32": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 43296 of this lane's 32 KiB, over by 10528."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 47080 of this lane's 32 KiB, over by 14312; at size/auto RV32's needs FLASH 35704 of this lane's 32 KiB, over by 2936; at size/off RV32's needs FLASH 35648 of this lane's 32 KiB, over by 2880; at speed/auto RV32's needs FLASH 34424 of this lane's 32 KiB, over by 1656."
+        }
+      }
+    },
+    "runtime/complex-divide-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding divide's f64 routine with the software fma it calls, and libgcc's soft float, is past the 32 KiB profile: 36,688 bytes of flash at size/auto, over by 3,920. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-exp-f32": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image holding exp's f32 routine with the exponential, sine and cosine it calls, whose argument reduction is in f64, is 44,240 bytes of flash, over the 32 KiB profile by 11,472: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/complex-exp-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding exp's f64 routine with the exponential, sine and cosine it calls, and libgcc's soft float, is past the 32 KiB profile: 37,088 bytes of flash at size/auto, over by 4,320. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-log-f32": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image holding log's f32 routine with the logarithm and arctangent it calls is 33,376 bytes of flash, over the 32 KiB profile by 608: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/complex-log-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding log's f64 routine with the logarithm and arctangent it calls, and libgcc's soft float, is past the 32 KiB profile: 36,312 bytes of flash at size/auto, over by 3,544. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-multiply-f32": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 39040 of this lane's 32 KiB, over by 6272."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 42480 of this lane's 32 KiB, over by 9712."
+        }
+      }
+    },
+    "runtime/complex-multiply-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image holding multiply's f64 routine with the software fma it calls is 44,080 bytes of flash, over the 32 KiB profile by 11,312: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/complex-polar": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding abs, arg and from_polar at f64 and f32 with the hypotenuse, arctangent, sine and cosine they call, and libgcc's soft float, is past the 32 KiB profile: 67,536 bytes of flash at size/auto, over by 34,768. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-polar-form": {
+      "mode": "execute"
+    },
+    "runtime/complex-pow": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding pow at f64 and f32 with the exponentials, logarithms, sines, cosines and arctangents it calls, and libgcc's soft float, is past the 32 KiB profile: 91,240 bytes of flash at size/auto, over by 58,472. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-signs": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image holding negate, conjugate and project's three tables at each width is 36,856 bytes of flash, over the 32 KiB profile by 4,088: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/complex-sine": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding sin at f64 and f32 with the hyperbolic functions, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 64,384 bytes of flash at size/auto, over by 31,616. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-sinh": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding sinh at f64 and f32 with the hyperbolic functions, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 63,768 bytes of flash at size/auto, over by 31,000. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-sqrt-f32": {
+      "mode": "execute"
+    },
+    "runtime/complex-sqrt-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image holding sqrt's f64 routine with the software square root and hypotenuse it calls is 33,120 bytes of flash, over the 32 KiB profile by 352: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/complex-tangent": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding tan at f64 and f32 with the hyperbolic sine, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 63,280 bytes of flash at size/auto, over by 30,512. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/complex-tanh": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding tanh at f64 and f32 with the hyperbolic sine, exponentials and trigonometric argument reduction it calls, and libgcc's soft float, is past the 32 KiB profile: 62,664 bytes of flash at size/auto, over by 29,896. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
     "runtime/compound-assignment": {
       "mode": "execute"
     },
@@ -3332,6 +3506,19 @@
     },
     "runtime/library-shared-cmp": {
       "mode": "execute"
+    },
+    "runtime/library-shared-complex": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 45112 of this lane's 32 KiB, over by 12344."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 48888 of this lane's 32 KiB, over by 16120; at size/auto RV32's needs FLASH 35104 of this lane's 32 KiB, over by 2336; at size/off RV32's needs FLASH 35064 of this lane's 32 KiB, over by 2296; at speed/auto RV32's needs FLASH 33552 of this lane's 32 KiB, over by 784."
+        }
+      }
     },
     "runtime/library-shared-diag": {
       "mode": "execute"
