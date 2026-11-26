@@ -392,6 +392,10 @@ package body Landin.Backend.X86_64 is
    package Trap_Vectors is new Ada.Containers.Vectors
      (Positive, Pending_Trap);
 
+   --  The memory operands Emit's folded addresses are read through.
+   package Operand_Vectors is new Ada.Containers.Vectors
+     (Positive, Unbounded.Unbounded_String, Unbounded."=");
+
    procedure Emit
      (Of_Unit  : Landin.IR.Unit;
       Meanings : Landin.Resolution.Table;
@@ -1769,6 +1773,20 @@ package body Landin.Backend.X86_64 is
          --  load between, neither moves anything the fold leaves behind.
          Skipped_Store, Skipped_Load : Landin.IR.Value_Id :=
            Landin.IR.No_Value;
+         --  An element address carried to several accesses, each through
+         --  a temporary of its own or the address itself, as an element
+         --  swapped in place is, is not formed either while the registers
+         --  its memory operand names hold through the last of them: each
+         --  access reads through that operand, Reached naming it in
+         --  Reach_Operands, and the temporaries' stores and loads, which
+         --  Carrying marks, move nothing.
+         Reached_Data : Use_Buffers.Buffer
+           (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
+         Reached : Use_Counts renames Reached_Data.Data.all;
+         Carrying_Data : Use_Buffers.Buffer
+           (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
+         Carrying : Use_Counts renames Carrying_Data.Data.all;
+         Reach_Operands : Operand_Vectors.Vector;
          Exit_Count : Natural := 0;
          Shared_Epilogue : constant String := Label (Item, 1) & "_epilogue";
 
@@ -3860,6 +3878,169 @@ package body Landin.Backend.X86_64 is
                Field : Natural;
                Nested : Landin.IR.Path_Step_Array);
 
+            --  Whether every use of this instruction's address, Address, is
+            --  an indirect access later in its block, through the address
+            --  itself or a temporary carrying it, while the registers
+            --  Address names keep their values; if so, each access is
+            --  marked to read through Address, and the temporaries' stores
+            --  and loads to move nothing.
+            function Reach (Address : String) return Boolean;
+
+            function Reach (Address : String) return Boolean is
+               Found : constant Address_Reach :=
+                 Reach_Of (Of_Unit, Item, Current_Block, Current_Position,
+                           Uses, References);
+               --  The registers Address names, %rbp and %rip apart, at
+               --  most a base and an index.
+               Names : array (1 .. 2) of Unbounded.Unbounded_String;
+               Named : Natural := 0;
+
+               function Names_Register (Name : String) return Boolean;
+
+               function Names_Register (Name : String) return Boolean is
+                 (for some Index in 1 .. Named =>
+                    Unbounded.To_String (Names (Index)) = Name);
+
+               function Carrier (Other : Landin.IR.Value_Id) return Boolean;
+
+               function Carrier (Other : Landin.IR.Value_Id) return Boolean
+                 is (Landin.IR.Op_Of (Of_Unit, Item, Other)
+                       in Landin.IR.Load | Landin.IR.Store);
+
+               --  Whether selection writes a register Address names in
+               --  emitting Other.
+               function Clobbers (Other : Landin.IR.Value_Id)
+                 return Boolean;
+
+               function Clobbers (Other : Landin.IR.Value_Id)
+                 return Boolean
+               is
+                  Op_Other : constant Landin.IR.Opcode :=
+                    Landin.IR.Op_Of (Of_Unit, Item, Other);
+                  Place : Allocation.Location renames
+                    Allocation_Plan.Value (Positive (Other));
+               begin
+                  if Op_Other in Landin.IR.Call | Landin.IR.Indirect_Call
+                       | Landin.IR.Assembly
+                    or else Allocation.Is_Switch (Of_Unit, Item, Other)
+                  then
+                     return True;
+                  elsif Op_Other = Landin.IR.Load
+                    and then Place.Kind = Allocation.GP
+                    and then Allocation_Plan.Slot (Positive
+                      (Landin.IR.Slot_Of (Of_Unit, Item, Other))).Kind
+                        = Allocation.GP
+                    and then Allocation."="
+                      (Allocation_Plan.Slot (Positive
+                         (Landin.IR.Slot_Of (Of_Unit, Item, Other))).Register,
+                       Place.Register)
+                  then
+                     --  A load into its slot's own register leaves it as
+                     --  it was.
+                     return False;
+                  elsif Place.Kind = Allocation.GP
+                    and then Names_Register
+                      (Allocation.Name (Place.Register,
+                                        Landin.Targets.Byte_8))
+                  then
+                     return True;
+                  elsif Op_Other = Landin.IR.Store then
+                     declare
+                        Slot_Place : Allocation.Location renames
+                          Allocation_Plan.Slot (Positive
+                            (Landin.IR.Slot_Of (Of_Unit, Item, Other)));
+                     begin
+                        if Slot_Place.Kind = Allocation.GP
+                          and then Names_Register
+                            (Allocation.Name (Slot_Place.Register,
+                                              Landin.Targets.Byte_8))
+                        then
+                           return True;
+                        end if;
+                     end;
+                  end if;
+                  for Register in Allocation.Caller_Saved loop
+                     if Names_Register
+                         (Allocation.Name (Register, Landin.Targets.Byte_8))
+                       and then Allocation.Touches
+                         (Of_Unit, Item, Other, Register)
+                     then
+                        return True;
+                     end if;
+                  end loop;
+                  return False;
+               end Clobbers;
+            begin
+               if Found.Count = 0 then
+                  return False;
+               end if;
+               declare
+                  At_Char : Natural := Address'First;
+               begin
+                  while At_Char <= Address'Last loop
+                     if Address (At_Char) = '%' then
+                        declare
+                           Stop : Natural := At_Char + 1;
+                        begin
+                           while Stop <= Address'Last
+                             and then Address (Stop) not in ',' | ')'
+                           loop
+                              Stop := Stop + 1;
+                           end loop;
+                           declare
+                              Name : constant String :=
+                                Address (At_Char .. Stop - 1);
+                           begin
+                              --  Selection's scratch holds nothing long.
+                              if Name in "%rax" | "%rcx" | "%rdx" then
+                                 return False;
+                              elsif Name not in "%rbp" | "%rip" then
+                                 if Named = Names'Last then
+                                    return False;
+                                 end if;
+                                 Named := Named + 1;
+                                 Names (Named) :=
+                                   Unbounded.To_Unbounded_String (Name);
+                              end if;
+                           end;
+                           At_Char := Stop;
+                        end;
+                     else
+                        At_Char := At_Char + 1;
+                     end if;
+                  end loop;
+               end;
+               --  An access reads Address before it writes anything, so
+               --  only what lies before the last access matters; the
+               --  carrying stores and loads are not emitted.
+               for Position in Current_Position + 1 .. Found.Last - 1 loop
+                  declare
+                     Other : constant Landin.IR.Value_Id :=
+                       Landin.IR.Nth_Value
+                         (Of_Unit, Item, Current_Block, Position);
+                  begin
+                     if not (Carrier (Other)
+                             and then (for some Index in 1 .. Found.Count =>
+                                         Found.Values (Index) = Other))
+                       and then Clobbers (Other)
+                     then
+                        return False;
+                     end if;
+                  end;
+               end loop;
+               Reach_Operands.Append
+                 (Unbounded.To_Unbounded_String (Address));
+               for Index in 1 .. Found.Count loop
+                  if Carrier (Found.Values (Index)) then
+                     Carrying (Positive (Found.Values (Index))) := 1;
+                  else
+                     Reached (Positive (Found.Values (Index))) :=
+                       Natural (Reach_Operands.Last_Index);
+                  end if;
+               end loop;
+               return True;
+            end Reach;
+
             procedure Deliver_Address (Address : String) is
                Fold : constant Address_Fold :=
                  Fold_Of (Of_Unit, Item, Current_Block, Current_Position,
@@ -3870,6 +4051,8 @@ package body Landin.Backend.X86_64 is
                   Skipped_Load := Fold.Load;
                   Folded_User := Fold.Access_Value;
                   Folded_Address := Unbounded.To_Unbounded_String (Address);
+               elsif Optimized and then Reach (Address) then
+                  null;
                elsif Allocation_Plan.Value (Positive (Value)).Kind
                  = Allocation.GP
                then
@@ -3944,6 +4127,9 @@ package body Landin.Backend.X86_64 is
                if Folded_User = Value then
                   Folded_User := Landin.IR.No_Value;
                   return Unbounded.To_String (Folded_Address);
+               elsif Optimized and then Reached (Positive (Value)) > 0 then
+                  return Unbounded.To_String
+                    (Reach_Operands (Reached (Positive (Value))));
                elsif Optimized
                  and then Allocation_Plan.Value (Positive (Operand (1))).Kind
                    = Allocation.GP
@@ -4293,7 +4479,9 @@ package body Landin.Backend.X86_64 is
                Put (Done & ":");
             end Packed_Atom;
          begin
-            if Value = Skipped_Store or else Value = Skipped_Load then
+            if Value = Skipped_Store or else Value = Skipped_Load
+              or else (Optimized and then Carrying (Positive (Value)) > 0)
+            then
                return;
             end if;
             --  D2492: a load whose every use is the length of a slice

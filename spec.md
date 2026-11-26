@@ -28667,6 +28667,46 @@ reverse-complement's loop, so they need no such rule.
 
 **Pinned by** x86-64's `counted-down slices` at size.
 
+### D2573 — An element address reaches every access carried from it
+
+**The tour said** nothing. Lowering carries an element's address to its
+access through a compiler temporary, the access's type witness, and an
+address used twice, as `values[left]` is when a swap reads and writes it,
+went into a temporary for each access. The backends folded an address
+into its access only when that access came straight after it, through
+one temporary at most, so a swap formed each address in a register first:
+fannkuch-redux's `reverse_prefix` spent two of its fourteen x86-64
+instructions a step on `leaq`, and arm64 two `add`s and a copy of its
+fifteen.
+
+**Chosen:** at size and speed, an element address of an array or a slice
+whose every use is, later in its block, an indirect load or store through
+it or a load of a temporary stored once with it, and whose temporaries no
+other instruction names and no binding the debugger shows is described
+through, as `for element in values` describes its element, is not formed
+on x86-64 or arm64. Each of those
+accesses reads through the memory operand the address would have been
+formed from, `(%base,%index,scale)` or `[xB, xI, lsl #s]`, and the
+temporaries' stores and loads move nothing, when no instruction before the
+last access writes a register that operand names: none is given one of
+them as its location, none stores to a slot in one, none is a call, a
+switch or an assembly block, and none writes one as selection's scratch.
+arm64 folds a scaled index only when every access moves the element's
+bytes. Every bounds check stays where the address was made, so each
+access traps, reads and writes exactly as before. RISC-V has no register
+plus register address, and Cortex-M and Xtensa still form theirs.
+
+**The alternatives:** rewriting the IR to make the address again at each
+access, which would put a second, unchecked address operation beside
+every checked one and lengthen every index's interval on targets that
+gain nothing from it; and having the allocator extend the base's and the
+index's intervals over the accesses, which selection's check of the
+registers already in place makes unnecessary.
+
+**Pinned by** x86-64's and arm64's `an address reaches every access` at
+none, size and speed, and the debugger sessions' `loop-element-locals`,
+which read a loop's element through its temporary at size.
+
 ### D2247 — A constant left operand of a commutative integer operation goes right
 
 **The tour said** nothing. Lowering keeps the source's order, so `4 * t`
