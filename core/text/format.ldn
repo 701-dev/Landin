@@ -4,43 +4,189 @@
 
 import core/mem
 
---- The template does not fit its values: its `{}` placeholders and the
---- values differ in number, or a brace is neither part of a `{}` nor
---- doubled.
+--- The template does not fit its values: its placeholders and the values
+--- differ in number, a placeholder's specification does not parse, or a
+--- brace is neither part of a placeholder nor doubled.
 public invalid_format: atom
 
 --- A value that writes its own text into a builder, which `format` fills
---- a placeholder with.  The library supplies it for the ten integer types
---- in decimal, `bool` as `true` or `false`, `utf8`, `[]u8` and host
---- strings as their bytes.  Floats, `f32` and `f64`, are not formattable
---- yet: scale one to an integer and append the parts, as this module's
---- reference program does for two decimals.  A type of the program's own
---- conforms with a function that appends its text.  For a different
---- reading of a supplied type, hexadecimal for one, call a typed
---- `append` routine, or declare a `distinct` wrapper with its own
---- conformance [1280].
+--- a placeholder with.  The library supplies it for the ten integer types,
+--- `f32` and `f64`, `bool` as `true` or `false`, `utf8`, `[]u8` and host
+--- strings as their bytes.  A type of the program's own conforms with a
+--- function that appends its text.  While a placeholder is filled,
+--- `placeholder` gives the conformance what the placeholder asked for:
+--- the library's integers read its radix and `+` and `#`, its floats its
+--- precision and exponent form, and `utf8` its precision as a number of
+--- scalars, and a conformance of the program's own may read any of it.
+--- The width, fill and alignment are applied to whatever the conformance
+--- wrote, by the template.  For a different reading of a supplied type,
+--- call a typed `append` routine, or declare a `distinct` wrapper with its
+--- own conformance [1280].
 public formattable: type = concept (item: type)
     --- Append the value's text, or report `mem.out_of_memory` and leave the
     --- builder as it was.
     append: (self: ptr item, inout into: builder) -> none ! mem.out_of_memory
 end formattable
 
---  Check the template against the number of values: every `{` begins `{}`
---  or `{{`, every `}` not closing a placeholder is doubled, and there are
---  as many placeholders as values.
-checked: (source: []u8, count: usize) -> none ! invalid_format =
+--- No alignment written: a number goes to the right of its width and
+--- anything else to the left.
+public unaligned: atom
+--- `<`: the text at the left of its width, the fill after it.
+public left_aligned: atom
+--- `>`: the text at the right of its width, the fill before it.
+public right_aligned: atom
+--- `^`: the text in the middle, half the fill before it and the rest,
+--- one more when it is odd, after it.
+public centred: atom
+--- Where a placeholder's width puts the value's text.
+public alignment: type = unaligned | left_aligned | right_aligned | centred
+
+--- What a placeholder asks for, `{:fill align + # 0 width .precision
+--- kind}` with every part optional, as Rust's format specification spells
+--- it.  `fill` is the scalar the width pads with, a space unless one is
+--- written before the alignment; `plus` asks for a `+` before a number
+--- that is not negative, `alternate` (`#`) for `0x`, `0o` or `0b` before a
+--- number in that radix, and `zero` (`0`) for zeros between a number's
+--- sign or prefix and its digits up to the width.  `width` counts scalars,
+--- zero for none; `precision` is meant only when `precise` is set.
+--- `kind` is the letter at the end, `x`, `X`, `o`, `b`, `e` or `E`, or zero
+--- for none.
+public format_spec: type = struct
+    fill: u32
+    align: alignment
+    plus: bool
+    alternate: bool
+    zero: bool
+    width: usize
+    precise: bool
+    precision: usize
+    kind: u8
+end format_spec
+
+--- What `{}` asks for: nothing.
+public plain: format_spec = (fill: 32, align: unaligned, plus: false,
+                             alternate: false, zero: false, width: 0,
+                             precise: false, precision: 0, kind: 0)
+
+--- What the placeholder being filled asked for, while `format` or
+--- `format_onto` has a conformance write into `source`, and `plain` at any
+--- other time, an append called outside a format and one inside a nested
+--- format's `{}` included.
+public placeholder: (source: builder) -> (result: format_spec) =
+    result = source.filling
+end placeholder
+
+--  The byte at `at` of `source`, or zero past its end, which no
+--  specification holds.
+byte_at: (source: []u8, at: usize) -> (byte: u8) =
+    byte = if at < lenof source then source[at] else 0 end if
+end byte_at
+
+--  Decimal digits from `at` into a count, moving `at` past them; a count
+--  that would pass a million is `invalid_format`.
+counted: (source: []u8, inout at: usize) -> (value: usize) ! invalid_format =
+    value = 0
+    while byte_at(source, at) >= u8('0') and byte_at(source, at) <= u8('9') do
+        value = value * 10 + usize(source[at] - u8('0'))
+        fail invalid_format when value > 1000000
+        inc at
+    end while
+end counted
+
+--  Which alignment `byte` writes, `unaligned` for none.
+alignment_of: (byte: u8) -> (align: alignment) =
+    align = if byte == u8('<') then left_aligned
+            elsif byte == u8('>') then right_aligned
+            elsif byte == u8('^') then centred
+            else unaligned end if
+end alignment_of
+
+--  The scalar whose `width` bytes begin at `at` of a template, which is
+--  UTF-8.
+decoded: (source: []u8, at: usize, width: usize) -> (scalar: u32) =
+    lead: u32 = u32(source[at])
+    scalar = if width == 1 then lead
+             elsif width == 2 then lead & 31
+             elsif width == 3 then lead & 15
+             else lead & 7 end if
+    for step in usize(1)..<width do
+        scalar = (scalar << 6) | (u32(source[at + step]) & 63)
+    end for
+end decoded
+
+--  Read the placeholder whose `{` is at `at`, which the caller knows is
+--  not `{{`, into `spec`, which is `plain`, and give the offset past its
+--  `}`.
+parsed: (source: []u8, at: usize, inout spec: format_spec)
+        -> (after: usize) ! invalid_format =
+    mut next: usize = at + 1
+    if byte_at(source, next) == u8('}') then
+        after = next + 1
+        return
+    end if
+    fail invalid_format when byte_at(source, next) <> u8(':')
+    inc next
+    --  A fill is a scalar before an alignment, and not a brace.
+    lead: u8 = byte_at(source, next)
+    width: usize = if lead < 0xc0 then 1 elsif lead < 0xe0 then 2
+                   elsif lead < 0xf0 then 3 else 4 end if
+    if alignment_of(byte_at(source, next + width)) <> unaligned
+      and lead <> u8('{') and lead <> u8('}') then
+        spec.fill = decoded(source, next, width)
+        next += width
+    end if
+    spec.align = alignment_of(byte_at(source, next))
+    if spec.align <> unaligned then inc next end if
+    if byte_at(source, next) == u8('+') then
+        spec.plus = true
+        inc next
+    end if
+    if byte_at(source, next) == u8('#') then
+        spec.alternate = true
+        inc next
+    end if
+    if byte_at(source, next) == u8('0') then
+        spec.zero = true
+        inc next
+    end if
+    spec.width = try counted(source, next)
+    if byte_at(source, next) == u8('.') then
+        inc next
+        fail invalid_format when byte_at(source, next) < u8('0')
+          or byte_at(source, next) > u8('9')
+        spec.precise = true
+        spec.precision = try counted(source, next)
+    end if
+    kind: u8 = byte_at(source, next)
+    if kind == u8('x') or kind == u8('X') or kind == u8('o') or kind == u8('b')
+      or kind == u8('e') or kind == u8('E') then
+        spec.kind = kind
+        inc next
+    end if
+    fail invalid_format when byte_at(source, next) <> u8('}')
+    after = next + 1
+end parsed
+
+--  Check the template against the number of values: every `{` begins a
+--  placeholder, `{}` or one of `parsed`'s, or is doubled, every `}` not
+--  closing a placeholder is doubled, and there are as many placeholders as
+--  values.
+checked: (template: utf8, count: usize) -> none ! invalid_format =
+    source: []u8 = bytes(template)
     mut wanted: usize = 0
     mut at: usize = 0
     while at < lenof source do
         current: u8 = source[at]
-        if current == u8('{') or current == u8('}') then
+        if current == u8('{') and at + 1 < lenof source
+          and source[at + 1] == u8('{') then
+            at += 2
+        elsif current == u8('{') then
+            mut spec: format_spec = plain
+            at = try parsed(source, at, spec)
+            inc wanted
+        elsif current == u8('}') then
             fail invalid_format when at + 1 >= lenof source
-            following: u8 = source[at + 1]
-            if current == u8('{') and following == u8('}') then
-                inc wanted
-            elsif following <> current then
-                fail invalid_format
-            end if
+              or source[at + 1] <> u8('}')
             at += 2
         else
             inc at
@@ -49,24 +195,137 @@ checked: (source: []u8, count: usize) -> none ! invalid_format =
     fail invalid_format when wanted <> count
 end checked
 
+--  The scalars of the bytes `piece`, each byte that does not continue
+--  one counted.
+scalars_in: (piece: []u8) -> (count: usize) =
+    count = 0
+    for byte in piece do
+        if byte < 128 or byte >= 192 then inc count end if
+    end for
+end scalars_in
+
+--  Put `count` copies of `pattern` at `at`, an offset in what the
+--  builder has written, moving what follows up; the bytes from `at` must
+--  be in the builder still (D1123).
+inserted: (inout into: builder, at: usize, pattern: []u8, count: usize)
+          -> none ! mem.out_of_memory =
+    return when count == 0
+    width: usize = lenof pattern
+    total: usize = width * count
+    fail mem.out_of_memory when at < into.handed
+    try room(into, total)
+    --  A draining builder made the room by handing the piece on.
+    fail mem.out_of_memory when at < into.handed
+    begins: usize = at - into.handed
+    ends: usize = into.used + total
+    moved: usize = begins + total
+    mem.copy(into.buffer[moved..<ends], into.buffer[begins..<into.used])
+        else (problem)
+        _ = problem
+        fail mem.out_of_memory
+    end
+    for copy in usize(0)..<count do
+        for byte, offset in pattern do
+            into.buffer[begins + copy * width + offset] = byte
+        end for
+    end for
+    into.used = ends
+end inserted
+
+--  Pad the piece written since `start` to the placeholder's width:
+--  zeros after a number's sign and prefix for `0`, else the fill before,
+--  after or around it, a number going right and anything else left when
+--  the placeholder names no side.
+padded: (inout into: builder, start: usize, spec: format_spec, numeric: bool)
+        -> none ! mem.out_of_memory =
+    return when spec.width == 0
+    held: usize = if start < into.handed then 0 else start - into.handed end if
+    piece: []u8 = into.buffer[held..<into.used]
+    mut have: usize = scalars_in(piece)
+    if start < into.handed then have += into.handed - start end if
+    return when have >= spec.width
+    count: usize = spec.width - have
+    mut at: usize = start
+    mut fill: u32 = spec.fill
+    mut side: alignment = spec.align
+    if spec.zero and numeric then
+        side = right_aligned
+        mut lead: usize = 0
+        if byte_at(piece, 0) == u8('-') or byte_at(piece, 0) == u8('+') then
+            inc lead
+        end if
+        if spec.alternate and byte_at(piece, lead) == u8('0')
+          and hex_value(byte_at(piece, lead + 1)) == 16 then
+            lead += 2
+        end if
+        --  An infinity or a NaN has no digits to pad.
+        fill = u32(' ')
+        if hex_value(byte_at(piece, lead)) < 16 then
+            fill = u32('0')
+            at = start + lead
+        end if
+    elsif side == unaligned then
+        side = if numeric then right_aligned else left_aligned end if
+    end if
+    before: usize = if side == right_aligned then count
+                    elsif side == centred then count / 2
+                    else 0 end if
+    mut pattern: [4]u8 = zeroed
+    width: usize = encoded_width(fill)
+    stored(fill, width, pattern[0..<width])
+    try inserted(into, at, pattern[0..<width], before)
+    try inserted(into, length(into), pattern[0..<width], count - before)
+end padded
+
+--  Fill one placeholder: the value written by its conformance, which
+--  `placeholder` tells what the placeholder asked for, then padded to its
+--  width; the builder's placeholder is put back as it was, for a
+--  conformance that formats inside another's.
+placed: (inout into: builder, value: any formattable, spec: format_spec)
+        -> none ! mem.out_of_memory =
+    outer: format_spec = into.filling
+    outer_numeric: bool = into.numeric
+    into.filling = spec
+    into.numeric = false
+    start: usize = length(into)
+    value.append(into) else (problem)
+        into.filling = outer
+        into.numeric = outer_numeric
+        fail problem
+    end
+    numeric: bool = into.numeric
+    into.filling = outer
+    into.numeric = outer_numeric
+    padded(into, start, spec, numeric) else (problem)
+        truncate(into, start)
+        fail problem
+    end
+end placed
+
 --  Write a checked template: each run of plain bytes, one brace of each
 --  doubled pair, and each value where its placeholder stands.
-written: (inout into: builder, source: []u8, values: []any formattable)
+written: (inout into: builder, template: utf8, values: []any formattable)
          -> none ! mem.out_of_memory =
+    source: []u8 = bytes(template)
     mut run: usize = 0
     mut at: usize = 0
     mut next: usize = 0
     while at < lenof source do
         current: u8 = source[at]
-        if current == u8('{') or current == u8('}') then
-            if current == u8('{') and source[at + 1] == u8('}') then
-                try append(into, source[run..<at])
-                value: any formattable = values[next]
-                try value.append(into)
-                inc next
-            else
-                try append(into, source[run..<at + 1])
-            end if
+        if current == u8('{') and source[at + 1] <> u8('{') then
+            try append(into, source[run..<at])
+            --  The template was checked, so its placeholders parse.
+            mut spec: format_spec = plain
+            after: usize = parsed(source, at, spec) else (problem)
+                _ = problem
+                fail mem.out_of_memory
+            end
+            try placed(into, values[next], spec)
+            inc next
+            at = after
+            run = at
+        elsif current == u8('{') or current == u8('}') then
+            try append(into, source[run..<at + 1])
             at += 2
             run = at
         else
@@ -105,10 +364,11 @@ settled: (inout into: builder, outer_keeping: bool, outer_kept: usize,
     end match
 end settled
 
---- Append `template` with each `{}` replaced by the next of `values`, in
---- order, written by its own `formattable` conformance; `{{` writes `{`
---- and `}}` writes `}`.  A placeholder takes nothing else: width, padding
---- and hexadecimal are the typed `append` and `align` calls.  The template
+--- Append `template` with each placeholder replaced by the next of
+--- `values`, in order, written by its own `formattable` conformance; `{{`
+--- writes `{` and `}}` writes `}`.  A placeholder is `{}` or `{:spec}`,
+--- Rust's `[[fill]align][+][#][0][width][.precision][kind]`, which
+--- `format_spec` describes: `{:8}`, `{:<8}`, `{:08.3}`, `{:#x}`.  The template
 --- is checked first, so `invalid_format` writes nothing, and a builder that
 --- fills partway is put back as it was before `mem.out_of_memory` is reported.
 --- No locale is consulted: the text is the same everywhere.  The template
@@ -123,15 +383,14 @@ end settled
 public format: (inout into: builder, template: utf8,
                 values: []any formattable)
                -> none ! mem.out_of_memory | invalid_format =
-    source: []u8 = bytes(template)
-    try checked(source, lenof values)
+    try checked(template, lenof values)
     start: usize = length(into)
     outer_keeping: bool = into.keeping
     outer_kept: usize = into.kept
     outer_extent: usize = into.kept_extent
     into.keeping = true
     into.kept = 0
-    written(into, source, values) else (problem)
+    written(into, template, values) else (problem)
         truncate(into, start)
         settled(into, outer_keeping, outer_kept, outer_extent)
         fail problem
@@ -147,14 +406,14 @@ end format
 --  offsets are the buffer's own for every value the store can hold, and
 --  for a longer one they count what was handed on (D1123).
 streamed_value: (provider: type is outlet, inout into: builder,
-                 onto: ptr mut provider, value: any formattable)
-                -> none ! mem.out_of_memory =
-    count: usize = fitted(into.buffer, into.used, value) else (problem)
+                 onto: ptr mut provider, value: any formattable,
+                 spec: format_spec) -> none ! mem.out_of_memory =
+    count: usize = fitted(into.buffer, into.used, value, spec) else (problem)
         _ = problem
         try handed(into, onto)
-        whole: usize = fitted(into.buffer, 0, value) else (again)
+        whole: usize = fitted(into.buffer, 0, value, spec) else (again)
             _ = again
-            try value.append(into)
+            try placed(into, value, spec)
             return
         end
         into.used = whole
@@ -163,13 +422,14 @@ streamed_value: (provider: type is outlet, inout into: builder,
     into.used = count
 end streamed_value
 
---  Append `value` to a bounded builder over `buffer` after the `used` bytes
---  already there, and say how many bytes it then holds.
-fitted: (buffer: []mut u8, used: usize, value: any formattable)
-        -> (count: usize) ! mem.out_of_memory =
+--  Fill a placeholder with `value` in a bounded builder over `buffer`
+--  after the `used` bytes already there, and say how many bytes it then
+--  holds.
+fitted: (buffer: []mut u8, used: usize, value: any formattable,
+         spec: format_spec) -> (count: usize) ! mem.out_of_memory =
     mut fitting := over(buffer)
     fitting.used = used
-    try value.append(fitting)
+    try placed(fitting, value, spec)
     count = fitting.used
 end fitted
 
@@ -177,21 +437,27 @@ end fitted
 --  may be handed on in pieces, and each value as `streamed_value` writes
 --  it.
 streamed: (provider: type is outlet, inout into: builder,
-           onto: ptr mut provider, source: []u8,
+           onto: ptr mut provider, template: utf8,
            values: []any formattable) -> none ! mem.out_of_memory =
+    source: []u8 = bytes(template)
     mut run: usize = 0
     mut at: usize = 0
     mut next: usize = 0
     while at < lenof source do
         current: u8 = source[at]
-        if current == u8('{') or current == u8('}') then
-            if current == u8('{') and source[at + 1] == u8('}') then
-                try append(into, source[run..<at])
-                try streamed_value(into, onto, values[next])
-                inc next
-            else
-                try append(into, source[run..<at + 1])
-            end if
+        if current == u8('{') and source[at + 1] <> u8('{') then
+            try append(into, source[run..<at])
+            mut spec: format_spec = plain
+            after: usize = parsed(source, at, spec) else (problem)
+                _ = problem
+                fail mem.out_of_memory
+            end
+            try streamed_value(into, onto, values[next], spec)
+            inc next
+            at = after
+            run = at
+        elsif current == u8('{') or current == u8('}') then
+            try append(into, source[run..<at + 1])
             at += 2
             run = at
         else
@@ -217,58 +483,228 @@ public format_onto: (provider: type is outlet, store: []mut u8,
                      onto: provider, template: utf8,
                      values: []any formattable)
                     -> none ! mem.out_of_memory | invalid_format =
-    source: []u8 = bytes(template)
-    try checked(source, lenof values)
+    try checked(template, lenof values)
     --  The builder's policy holds the outlet's address for the call alone.
     mut taking: provider = onto
     draining: draining_value(provider) = (onto: addr taking)
     policy: any grower = any(addr draining)
     mut line: builder = (buffer: store, used: 0, handed: 0,
                          held: not_allocated, keeping: false, kept: 0,
-                         kept_extent: 0, policy: policy, growth: bounded)
-    try streamed(line, addr taking, source, values)
+                         kept_extent: 0, filling: plain, numeric: false,
+                         policy: policy, growth: bounded)
+    try streamed(line, addr taking, template, values)
     try handed(line, addr taking)
 end format_onto
 
+upper_digits: []u8 = "0123456789ABCDEF"
+
+--  The digit `digit` of a radix, upper case for `upper`.
+radix_digit: (digit: usize, upper: bool) -> (byte: u8) =
+    byte = if upper then upper_digits[digit] else hex_digits[digit] end if
+end radix_digit
+
+--  What an integer's text begins with, as its placeholder asks: `-` for
+--  a negative decimal and `+` before any other number when asked, and
+--  `0x`, `0o` or `0b` before a radix's digits for `#`; and the radix's
+--  bits a digit, 4, 3 or 1, or zero for decimal.  A negative integer in a
+--  radix is written as its two's complement at its own width, as Rust
+--  writes it.
+lead_value: type = struct
+    bytes: [3]u8
+    count: usize
+    bits: u32
+end lead_value
+
+lead_of: (negative: bool, spec: format_spec) -> (result: lead_value) =
+    kind: u8 = spec.kind
+    bits: u32 = if kind == u8('x') or kind == u8('X') then 4
+                elsif kind == u8('o') then 3
+                elsif kind == u8('b') then 1
+                else 0 end if
+    result = (bytes: zeroed, count: 0, bits: bits)
+    if negative and bits == 0 then
+        result.bytes[0] = u8('-')
+        result.count = 1
+    elsif spec.plus then
+        result.bytes[0] = u8('+')
+        result.count = 1
+    end if
+    if bits <> 0 and spec.alternate then
+        result.bytes[result.count] = u8('0')
+        result.bytes[result.count + 1] = if kind == u8('X') then u8('x') else kind end if
+        result.count += 2
+    end if
+end lead_of
+
+--  Write the lead into the room the builder has made, from `at`.
+lead_written: (inout into: builder, lead: lead_value) -> none =
+    for at in usize(0)..<lead.count do
+        into.buffer[into.used + at] = lead.bytes[at]
+    end for
+    into.used += lead.count
+end lead_written
+
+--  Append an integer as its placeholder asks, in decimal or in its radix,
+--  at each width, so that a 32-bit image writes a 32-bit value with 32-bit
+--  arithmetic and links no wider: `magnitude` is the decimal's and
+--  `pattern` the value as the unsigned integer of its width.  The room
+--  for the lead and the digits is made at once, so the text is written
+--  whole or not at all.
+integer_32: (inout into: builder, negative: bool, magnitude: u32, pattern: u32)
+            -> none ! mem.out_of_memory =
+    spec: format_spec = into.filling
+    into.numeric = true
+    lead: lead_value = lead_of(negative, spec)
+    shift: u32 = lead.bits
+    mut count: usize = 1
+    mut scan: u32 = if shift == 0 then magnitude / 10 else pattern >> shift end if
+    while scan <> 0 do
+        inc count
+        scan = if shift == 0 then scan / 10 else scan >> shift end if
+    end while
+    try room(into, lead.count + count)
+    lead_written(into, lead)
+    mut remaining: u32 = if shift == 0 then magnitude else pattern end if
+    mut at: usize = into.used + count
+    while at > into.used do
+        dec at
+        if shift == 0 then
+            into.buffer[at] = u8(remaining % 10) + u8('0')
+            remaining /= 10
+        else
+            into.buffer[at] = radix_digit(usize(remaining & ((u32(1) << shift) - 1)),
+                                          spec.kind == u8('X'))
+            remaining = remaining >> shift
+        end if
+    end while
+    into.used += count
+end integer_32
+
+integer_64: (inout into: builder, negative: bool, magnitude: u64, pattern: u64)
+            -> none ! mem.out_of_memory =
+    spec: format_spec = into.filling
+    into.numeric = true
+    lead: lead_value = lead_of(negative, spec)
+    shift: u64 = u64(lead.bits)
+    mut count: usize = 1
+    mut scan: u64 = if shift == 0 then magnitude / 10 else pattern >> shift end if
+    while scan <> 0 do
+        inc count
+        scan = if shift == 0 then scan / 10 else scan >> shift end if
+    end while
+    try room(into, lead.count + count)
+    lead_written(into, lead)
+    mut remaining: u64 = if shift == 0 then magnitude else pattern end if
+    mut at: usize = into.used + count
+    while at > into.used do
+        dec at
+        if shift == 0 then
+            into.buffer[at] = u8(remaining % 10) + u8('0')
+            remaining /= 10
+        else
+            into.buffer[at] = radix_digit(usize(remaining & ((u64(1) << shift) - 1)),
+                                          spec.kind == u8('X'))
+            remaining = remaining >> shift
+        end if
+    end while
+    into.used += count
+end integer_64
+
+integer_size: (inout into: builder, negative: bool, magnitude: usize,
+               pattern: usize) -> none ! mem.out_of_memory =
+    spec: format_spec = into.filling
+    into.numeric = true
+    lead: lead_value = lead_of(negative, spec)
+    shift: usize = usize(lead.bits)
+    mut count: usize = 1
+    mut scan: usize = if shift == 0 then magnitude / 10 else pattern >> shift end if
+    while scan <> 0 do
+        inc count
+        scan = if shift == 0 then scan / 10 else scan >> shift end if
+    end while
+    try room(into, lead.count + count)
+    lead_written(into, lead)
+    mut remaining: usize = if shift == 0 then magnitude else pattern end if
+    mut at: usize = into.used + count
+    while at > into.used do
+        dec at
+        if shift == 0 then
+            into.buffer[at] = u8(remaining % 10) + u8('0')
+            remaining /= 10
+        else
+            into.buffer[at] = radix_digit(remaining & ((usize(1) << shift) - 1),
+                                          spec.kind == u8('X'))
+            remaining = remaining >> shift
+        end if
+    end while
+    into.used += count
+end integer_size
+
 append_u8_value: (self: ptr u8, inout into: builder)
                  -> none ! mem.out_of_memory =
-    try append_u32(into, u32(self.val))
+    try integer_32(into, false, u32(self.val), u32(self.val))
 end append_u8_value
 append_u16_value: (self: ptr u16, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_u32(into, u32(self.val))
+    try integer_32(into, false, u32(self.val), u32(self.val))
 end append_u16_value
 append_u32_value: (self: ptr u32, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_u32(into, self.val)
+    try integer_32(into, false, self.val, self.val)
 end append_u32_value
 append_u64_value: (self: ptr u64, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_u64(into, self.val)
+    try integer_64(into, false, self.val, self.val)
 end append_u64_value
 append_usize_value: (self: ptr usize, inout into: builder)
                     -> none ! mem.out_of_memory =
-    try append_usize(into, self.val)
+    try integer_size(into, false, self.val, self.val)
 end append_usize_value
+
+--  Fill a placeholder with a signed value of 32 bits or fewer: its
+--  magnitude for the decimal, and its bits within `mask`, two's
+--  complement, for a radix.
+signed_32: (inout into: builder, value: i32, mask: u32)
+           -> none ! mem.out_of_memory =
+    if value >= 0 then
+        try integer_32(into, false, u32(value), u32(value))
+        return
+    end if
+    below: u32 = u32(0 - (value + 1))
+    try integer_32(into, true, below + 1, (below ^ 0xffffffff) & mask)
+end signed_32
+
 append_i8_value: (self: ptr i8, inout into: builder)
                  -> none ! mem.out_of_memory =
-    try append_i32(into, i32(self.val))
+    try signed_32(into, i32(self.val), 0xff)
 end append_i8_value
 append_i16_value: (self: ptr i16, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_i32(into, i32(self.val))
+    try signed_32(into, i32(self.val), 0xffff)
 end append_i16_value
 append_i32_value: (self: ptr i32, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_i32(into, self.val)
+    try signed_32(into, self.val, 0xffffffff)
 end append_i32_value
 append_i64_value: (self: ptr i64, inout into: builder)
                   -> none ! mem.out_of_memory =
-    try append_i64(into, self.val)
+    value: i64 = self.val
+    if value >= 0 then
+        try integer_64(into, false, u64(value), u64(value))
+        return
+    end if
+    below: u64 = u64(0 - (value + 1))
+    try integer_64(into, true, below + 1, below ^ 0xffffffffffffffff)
 end append_i64_value
 append_isize_value: (self: ptr isize, inout into: builder)
                     -> none ! mem.out_of_memory =
-    try append_isize(into, self.val)
+    value: isize = self.val
+    if value >= 0 then
+        try integer_size(into, false, usize(value), usize(value))
+        return
+    end if
+    below: usize = usize(0 - (value + 1))
+    try integer_size(into, true, below + 1, below ^ (0 -% 1))
 end append_isize_value
 append_bool_value: (self: ptr bool, inout into: builder)
                    -> none ! mem.out_of_memory =
@@ -278,9 +714,23 @@ append_bool_value: (self: ptr bool, inout into: builder)
         try append(into, "false")
     end if
 end append_bool_value
+--  Text to at most the placeholder's precision in scalars.
 append_text_value: (self: ptr utf8, inout into: builder)
                    -> none ! mem.out_of_memory =
-    try append_text(into, self.val)
+    spec: format_spec = into.filling
+    source: []u8 = bytes(self.val)
+    if not spec.precise then
+        try append(into, source)
+        return
+    end if
+    mut at: usize = 0
+    mut taken: usize = 0
+    while at < lenof source and taken < spec.precision do
+        place: position = (offset: at)
+        at += scalar_length(self.val, place)
+        inc taken
+    end while
+    try append(into, source[0..<at])
 end append_text_value
 append_bytes_value: (self: ptr []u8, inout into: builder)
                     -> none ! mem.out_of_memory =
@@ -290,6 +740,34 @@ append_os_string_value: (self: ptr os_string, inout into: builder)
                         -> none ! mem.out_of_memory =
     try append_os_string(into, self.val)
 end append_os_string_value
+
+--  A float as its placeholder asks: the shortest literal for `{}`, the
+--  shortest in the exponent form for `e` or `E`, and rounded to the
+--  precision after the point, or after the first digit with `e` or `E`.
+float_form_of: (spec: format_spec) -> (form: float_form) =
+    exponent: bool = spec.kind == u8('e') or spec.kind == u8('E')
+    form = if exponent and spec.precise then places_form
+           elsif exponent then exponent_form
+           elsif spec.precise then fixed_form
+           else literal_form end if
+end float_form_of
+
+append_f64_value: (self: ptr f64, inout into: builder)
+                  -> none ! mem.out_of_memory =
+    spec: format_spec = into.filling
+    into.numeric = true
+    letter: u8 = if spec.kind == u8('E') then u8('E') else u8('e') end if
+    try f64_text(into, self.val, spec.plus, float_form_of(spec), spec.precision,
+                 letter)
+end append_f64_value
+append_f32_value: (self: ptr f32, inout into: builder)
+                  -> none ! mem.out_of_memory =
+    spec: format_spec = into.filling
+    into.numeric = true
+    letter: u8 = if spec.kind == u8('E') then u8('E') else u8('e') end if
+    try f32_text(into, self.val, spec.plus, float_form_of(spec), spec.precision,
+                 letter)
+end append_f32_value
 
 u8 is formattable (append: append_u8_value)
 u16 is formattable (append: append_u16_value)
@@ -305,3 +783,5 @@ bool is formattable (append: append_bool_value)
 utf8 is formattable (append: append_text_value)
 []u8 is formattable (append: append_bytes_value)
 os_string_value is formattable (append: append_os_string_value)
+f64 is formattable (append: append_f64_value)
+f32 is formattable (append: append_f32_value)

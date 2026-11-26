@@ -19215,11 +19215,12 @@ unqualified, as before.
 declaration that made its identity, which names the library's private
 `cell_value` for the public `cell` a program wrote; and recovering the
 spelling from the source text at the refused node, which knows nothing of a
-type that reached it by deduction, the `f64` an `any(addr ratio)` erased
-among them.
+type that reached it by deduction, the `[2]f64` an `any(addr ratios)`
+erased among them.
 
-**Pinned by** `negative/format-float-names-its-type`, whose refusal names
-`f64` and `text.formattable`; `negative/any-construction-qualifies-library-concepts`,
+**Pinned by** `negative/format-array-names-its-type`, whose refusal names
+`[2]f64` and `text.formattable` (an `f64` before floats were
+formattable); `negative/any-construction-qualifies-library-concepts`,
 whose list holds the program's own `display` and the library's
 `text.formattable`; `negative/atomic-builtin-on-cell-names-its-operations`,
 whose pointer is `ptr mut atomic.cell(u32)`; `negative/r630-optional`'s
@@ -46167,3 +46168,63 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** porting `catrig.c` and the others with their notices, which every program linking `core/complex` would then carry, against `LICENSE`'s promise; and porting musl's, MIT-licensed, with the same cost.
 
 **Pinned by** `core/complex/complex.ldn`'s opening comment, which says nothing is ported.
+
+### D2754 — A float is written as the shortest text that reads back, laid out as a Landin float literal
+
+**The tour said** at [0210] that a float literal always has a point, and nothing about writing a float as text; `core/text` wrote only integers.
+
+**Chosen:** `text.append_f64`, `text.append_f32` and a float's `{}` write the shortest decimal that reads back as the same float, and of the decimals of that length the one nearest it, ties to even; an `f32` is written for its own interval, `0.1` for the `f32` nearest a tenth. The text is spelled as Landin spells a float literal, digits on both sides of a point: `1.0`, `0.001`, `123.456`, and below 0.0001 or from 10^16 up an exponent, `1.0e16`, `2.5e-7`, where Rust's `Debug` changes form. A negative value, negative zero included, begins with `-`; the infinities are `inf` and `-inf`, and every NaN is `NaN`, its sign and payload unwritten. So the text a program prints for a float is, apart from the three non-finite values, a literal that denotes it.
+
+**The alternatives:** Rust's `Display`, which writes `1` for one and every digit of 10^300, three hundred of them; Python's `repr`, `1e+16`, which is no Landin literal; C's `%g`, six significant digits that do not read back; and a fixed number of digits, seventeen or nine, which reads back but shows a reader digits that say nothing.
+
+**Pinned by** `runtime/float-text-shortest`, whose table and ten thousand drawn `f64`s agree with Python's `repr`; `runtime/float-text-single`, whose `f32`s agree with digits found by exact rounding; and compiler/tests/float-text/README.md's exhaustive run of every `f32`.
+
+### D2755 — The shortest digits come from Ryu's method, with its powers of five computed from 28 bases
+
+**The tour said** nothing; the item asks for shortest writing and its size measured on Cortex-M0's soft float.
+
+**Chosen:** the digits are found by Ryu's method (Ulf Adams, PLDI 2018), written here from the paper: the float's rounding interval is scaled by a 125-bit power of five into 64-bit integers and digits are taken off its ends while they differ. One routine serves both widths, an `f32` entering with its shorter significand. The 668 powers an `f64` meets are not stored: 13 bases of 5^(26n) and 15 of their inverses, 448 bytes, are scaled by one 64-bit power of five and corrected by a two-bit entry, 172 bytes, each power exactly the one a full table would hold, which `scripts/float_text.py tables` generates and `--check` holds current. No float arithmetic is used, so every target writes the same text, and nothing is ported, so no notice travels with a program.
+
+**The alternatives:** Ryu's full tables, 10.7 KB of flash every program that writes an `f64` would carry; Steele and White's or Dragon4's big-integer search, small but a hundred times slower; Grisu, which needs a slower fallback for a few values in a thousand; and porting Ryu's C, whose Apache-2.0 or Boost notice `LICENSE`'s promise keeps out of `core/*`.
+
+**Pinned by** `core/text/powers.ldn`, which the generator checks against Python's exact powers; the shortest fixtures above; and the exhaustive run.
+
+### D2756 — Rounded float text is the exact value rounded once, ties to even, byte for byte C's `printf`
+
+**The tour said** nothing; the item asks for fixed-precision writing byte-equal to C's `printf` over an oracle set.
+
+**Chosen:** `text.append_f64_fixed` and a float's `{:.N}` write `places` digits after the point, and `text.append_f64_exponent` and `{:.Ne}` one digit before it, `places` after and the power of ten, `6.022e23`, each from the float's exact value rounded once to nearest with ties to even: `0.125` to two places is `0.12`, `2.5` to none is `2`, and `-0.001` to two is `-0.00`, as glibc's `printf` writes them. The exact value, a whole significand times a power of two, is multiplied out in `core/big/limbs` in the caller's stack: 82 limbs and 821 bytes for an `f64`, 13 and 131 for an `f32`. The exponent is written without a sign for a positive one or leading zeros, `1e-3`, as Rust writes it, where C writes `1e-03`. The non-finite values are written as the shortest form writes them, so a NaN is `NaN` where C writes `nan`.
+
+**The alternatives:** rounding through float arithmetic, scaling by a power of ten, which rounds twice and differs from `printf` on ties and large exponents; Ryu's `printf` tables, about a hundred kilobytes; and C's spellings of the exponent and of NaN, which would make one placeholder's text disagree with the next's.
+
+**Pinned by** `runtime/float-text-rounded`, whose 130 edge values at two and seventeen places and sixty drawn values and precisions agree with C's `snprintf`, called from the generator through `ctypes`, and `runtime/float-text-single`.
+
+### D2757 — A float is parsed rounded once, by Clinger's fast path or exactly in big/limbs
+
+**The tour said** nothing; D355 makes `core/text` the home of parsing, and its integer parses refuse a `+`.
+
+**Chosen:** `text.parse_f64` and `text.parse_f32` read an optional `-`, digits with an optional point and at least one digit beside it, `2.` and `.25` included, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case. A `+` before the number, whitespace, `_` and hexadecimal are `invalid_number`, as the integer parses refuse them; a finite decimal whose nearest float is beyond the greatest is `number_overflow`, and one below half the least subnormal is zero of its sign. Any number of digits is read and the result rounded once from the decimal, an `f32` never through an `f64`. Fifteen digits or fewer, seven for an `f32`, times a power of ten an `f64` holds exactly, 10^22 at most, is one correctly rounded multiplication or division; every other decimal is computed exactly, the first 780 significant digits, 120 for an `f32`, over a power of five in limbs on the stack, the quotient's top bits rounded as D2598 rounds with the dropped digits as sticky bits. Halfway points between `f64`s have at most 767 significant digits, so no rounding depends on the digits dropped.
+
+**The alternatives:** Eisel and Lemire's fast path, which needs a 10 KB table of 128-bit powers; `strtod`'s acceptance of whitespace, hexadecimal and a `+`, which no writer here produces; and an infinity for overflow, which would make the parse of `1e400` succeed where `parse_u32` of a long number fails.
+
+**Pinned by** `runtime/float-text-parse`, whose table of halfway decimals and their neighbours, long digit strings, refusals and limits agree with Python's exact fractions, with five thousand drawn decimals and the shortest text of five thousand drawn `f64`s read back; `runtime/float-text-single`'s readings; and the exhaustive run.
+
+### D2758 — A placeholder takes Rust's format specification, without arguments named or counted
+
+**The tour said** nothing; D527 kept `{}` alone, and the maintainer left the template's syntax to this item.
+
+**Chosen:** a placeholder is `{}` or `{:spec}`, the spec Rust's: `[[fill]align][+][#][0][width][.precision][kind]`. The fill is any scalar but a brace, the alignment `<`, `>` or `^`, `+` a sign before a number that is not negative, `#` a `0x`, `0o` or `0b` before one in that radix, `0` zeros between a number's sign and prefix and its digits, which an infinity or a NaN, having none, takes as spaces before it; the width and precision are decimal, a million at most, and the kind one of `x`, `X`, `o`, `b`, `e` and `E`. The width counts scalars, so `{:8}` pads `naïve` with three spaces. Without an alignment a number goes to the right and anything else to the left, as in Rust. The library's integers read the radix, `+` and `#`, writing a negative one in a radix as its two's complement at its own width, as Rust does; its floats read `+`, the precision and `e` or `E`, and `utf8` the precision as the most scalars written. A part a value does not read changes nothing: `{:.2}` of an integer is the integer. A spec that does not parse is `invalid_format`, found when the template is checked, before anything is written.
+
+**The alternatives:** positional and named arguments, `{0}` and `{name}`, which a slice of values does not need; a width or precision taken from an argument, `{:1$}` and `{:.*}`, which would read a number out of an `any formattable`; the `?` kind, for which there is no debugging concept; Rust's `-`, which has no meaning there either; and C's `%5.2f`, whose letters say the type a template here cannot check.
+
+**Pinned by** `runtime/core-text-format-spec`, whose templates cover every part and whose malformed specs write nothing, and `runtime/float-text-rounded`'s templates built at run time.
+
+### D2759 — A conformance reads its placeholder from the builder, and the template pads what it wrote
+
+**The tour said** at [1230] that a concept has no default bodies, so a new entry in `text.formattable` would be one every conformance in every program must supply.
+
+**Chosen:** `text.formattable` is unchanged. While `format` or `format_onto` fills a placeholder, the builder carries what it asked for, and `text.placeholder(into)` gives a conformance that `text.format_spec`; at any other time, and inside a nested format's own placeholders, it is `text.plain`, and the outer one is put back when the nested format ends. The template applies the width, fill and alignment to the bytes the conformance wrote, in the store for `format_onto` wherever the padded value fits it, so a conformance of the program's own is padded without reading anything, and one that wants a radix or a precision reads it as the library's do. A library number's conformance marks its text as a number, which is what sends it to the right.
+
+**The alternatives:** a second entry taking the spec, which every existing conformance would have to add; a concept of its own for values that read a spec, which an `any formattable` cannot be asked for; and refusing a part a value does not read, which needs the value's type when the template is checked, before any value is looked at.
+
+**Pinned by** `runtime/core-text-format-spec`'s program types, one reading `x` through `text.placeholder` and one formatting a pair inside its own conformance, padded by the outer placeholder.

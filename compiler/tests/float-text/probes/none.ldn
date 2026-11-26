@@ -1,0 +1,12 @@
+--  A Cortex-M0 size probe, compiler/tests/float-text/README.md: none.
+import core/cmp
+import core/text
+
+public main: () -> (code: i32) =
+    code = 1
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage[0..<64])
+    text.append_u32(line, 7) else begin return end
+    return when text.length(line) <> 1
+    code = 42
+end main

@@ -942,12 +942,20 @@ injector as arguments, as providers.
   always holds UTF-8 and lends it as one `utf8` view with no scan (D948).
   `compiler.utf8_unvalidated` makes such a view of bytes valid by
   construction, admitted only inside `unchecked` (D949).
-  `text.format` fills a template's `{}` with any value that has
-  `formattable` evidence, checked against its values when it runs, and
+  `text.format` fills a template's placeholders with any value that has
+  `formattable` evidence, checked against its values when it runs, each
+  `{}` or Rust's `{:spec}`: fill, alignment, sign, `#`, zero padding, a
+  width in scalars, precision and a radix or exponent kind, which a
+  conformance reads through `text.placeholder` (D2758, D2759).
   `io.write_format` writes one to a file in a single call, through a
   128-byte store on its own stack that goes out whenever it fills, so a
-  value of any length is printed on every target (D527). Every width
-  parses back from bytes, and no locale is consulted.
+  value of any length is printed on every target (D527). Floats are
+  written as the shortest text that reads back, spelled as a Landin
+  literal, by Ryu's method from 620 bytes of tables (D2754, D2755), or
+  rounded once to places after the point or the first digit, byte for
+  byte C's `printf` (D2756), and are parsed rounded once, an `f32` at its
+  own width, every `f32` checked exhaustively (D2757). Every width parses
+  back from bytes, and no locale is consulted.
 - **Bytes.** Byte slices copy, with overlap allowed either way, fill,
   compare and search with their lengths checked.
 - **Failures and panics.** Bulk cleanup, panic dispatch, the

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: a placeholder's format specification as Rust spells it, fill, alignment, sign, alternate prefix, zero padding, width in scalars, precision and radix or exponent kind, read by the library's integers, floats and text and by a program's own conformance through text.placeholder, a nested format's placeholders their own, every malformed specification invalid_format writing nothing, and a padded value through format_onto
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0520, 0570, 0900, 0940, 0960, 1030, 1230, 1240, 1370, 1380, 1390
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

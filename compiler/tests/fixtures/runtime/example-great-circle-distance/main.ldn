@@ -43,12 +43,9 @@ public main: () -> (code: i32) =
     for pair in usize(0)..<3 do
         start := places[2 * pair]
         finish := places[2 * pair + 1]
-        --  Floats are not yet formattable: print whole tenths of a kilometre.
-        tenths := i64(math.round(distance(start, finish) * 10.0))
-        whole := tenths / 10
-        tenth := tenths % 10
-        io.format(out, "{} to {}: {}.{} km\n",
-                  [any(addr start.name), any(addr finish.name), any(addr whole), any(addr tenth)])
+        kilometres := distance(start, finish)
+        io.format(out, "{} to {}: {:.1} km\n",
+                  [any(addr start.name), any(addr finish.name), any(addr kilometres)])
             else none
     end for
     code = 0
