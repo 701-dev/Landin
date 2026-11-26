@@ -1,0 +1,100 @@
+import core/math
+
+--  The routines that work on a float's representation: each result is
+--  exact, so each is compared with the one value IEEE 754 and C give.
+--  Every check is made at both widths.
+
+bits_64: (x: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits = view.val
+end bits_64
+
+bits_32: (x: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr x))
+    bits = view.val
+end bits_32
+
+--  Classification, the sign bit, the magnitude and copying a sign.
+classes: (zero: f64) -> (wrong: i32) =
+    wrong = 0
+    tiny := zero + 0x1.0p-1074
+    narrow := f32(zero) + 0x1.0p-149
+    infinity := 1.0 / zero
+    nan := zero / zero
+    if math.classify(zero) <> math.zero or math.classify(tiny) <> math.subnormal
+      or math.classify(1.5 + zero) <> math.normal
+      or math.classify(infinity) <> math.infinite
+      or math.classify(nan) <> math.not_a_number
+      or math.classify(narrow) <> math.subnormal
+      or math.classify(f32(infinity)) <> math.infinite then
+        wrong = 1
+    end if
+    if not math.is_nan(nan) or math.is_nan(infinity) or not math.is_infinite(-infinity)
+      or math.is_infinite(nan) or not math.is_finite(tiny) or math.is_finite(nan)
+      or math.is_finite(f32(infinity)) or not math.is_normal(f32(1.5))
+      or math.is_normal(narrow) or math.is_normal(zero) then
+        wrong = 2
+    end if
+    if not math.is_negative(-zero) or math.is_negative(zero)
+      or not math.is_negative(f32(-1.0)) or not math.is_negative(math.copy_sign(nan, -1.0)) then
+        wrong = 3
+    end if
+    if bits_64(math.abs(-zero)) <> 0 or math.abs(f32(-2.5)) <> 2.5
+      or bits_64(math.abs(math.copy_sign(nan, -1.0))) >> 63 <> 0
+      or bits_64(math.copy_sign(3.0 + zero, -zero)) <> bits_64(-3.0)
+      or bits_32(math.copy_sign(f32(zero), f32(-1.0))) <> 0x80000000 then
+        wrong = 4
+    end if
+end classes
+
+--  Stepping, scaling and splitting.
+steps: (zero: f64) -> (wrong: i32) =
+    wrong = 0
+    one := 1.0 + zero
+    if math.next_after(one, 2.0) <> 0x1.0000000000001p0
+      or math.next_after(one, zero) <> 0x1.fffffffffffffp-1
+      or bits_64(math.next_after(zero, -one)) <> 0x8000000000000001
+      or math.next_after(f32(one), f32(2.0)) <> 0x1.000002p0
+      or math.next_after(f32(0x1.fffffep127), f32(1.0 / zero)) <> f32(1.0 / zero)
+      or math.next_after(one, one) <> one or not math.is_nan(math.next_after(one, zero / zero)) then
+        wrong = 1
+    end if
+    if math.scale(one, 1023) <> 0x1.0p1023 or math.scale(one, 1024) <> 1.0 / zero
+      or math.scale(one, -1074) <> 0x1.0p-1074 or math.scale(one, -1075) <> zero
+      or math.scale(0x1.8p-1074 + zero, -1) <> 0x1.0p-1074
+      or math.scale(0x1.0p-1074 + zero, 2000) <> 0x1.0p926
+      or math.scale(f32(one), -149) <> 0x1.0p-149 or math.scale(f32(one), 128) <> f32(1.0 / zero) then
+        wrong = 2
+    end if
+    (fraction: fraction, power: power) := math.split(0x1.0p-1074 + zero)
+    (fraction: narrow, power: narrow_power) := math.split(f32(-48.0))
+    (fraction: infinite, power: infinite_power) := math.split(1.0 / zero)
+    if fraction <> 0.5 or power <> -1073 or narrow <> -0.75 or narrow_power <> 6
+      or infinite <> 1.0 / zero or infinite_power <> 0 then
+        wrong = 3
+    end if
+    (whole: whole, fraction: part) := math.whole_and_fraction(-2.75 + zero)
+    (whole: big, fraction: none_left) := math.whole_and_fraction(f32(0x1.0p30))
+    (whole: small, fraction: all) := math.whole_and_fraction(f32(-0.25))
+    if whole <> -2.0 or part <> -0.75 or big <> 0x1.0p30 or bits_32(none_left) <> 0
+      or bits_32(small) <> 0x80000000 or all <> -0.25 then
+        wrong = 4
+    end if
+    nan := zero / zero
+    if math.min(nan, one) <> one or math.max(one, nan) <> one
+      or bits_64(math.min(zero, -zero)) <> 0x8000000000000000
+      or bits_64(math.max(-zero, zero)) <> 0
+      or math.min(f32(2.0), f32(-3.0)) <> -3.0 or math.max(f32(2.0), f32(-3.0)) <> 2.0 then
+        wrong = 5
+    end if
+end steps
+
+public main: () -> (code: i32) =
+    zero: f64 = 0.0
+    code = 42
+    if classes(zero) <> 0 then
+        code = 10 + classes(zero)
+    elsif steps(zero) <> 0 then
+        code = 20 + steps(zero)
+    end if
+end main

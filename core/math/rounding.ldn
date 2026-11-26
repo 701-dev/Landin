@@ -1,0 +1,400 @@
+--  Rounding to an integer and the two remainders.  Each is exact, and
+--  each works on the bits: clearing the fraction bits below the units
+--  truncates the magnitude, and adding to the bits first rounds it up,
+--  the carry passing into the exponent as it should.
+
+--  The fraction bits below the units of a float whose unbiased exponent
+--  `exponent` is in [0, 52) or [0, 23).
+fraction_mask_f64: (exponent: u64) -> (mask: u64) =
+    mask = u64(0xfffffffffffff) >> exponent
+end fraction_mask_f64
+
+fraction_mask_f32: (exponent: u32) -> (mask: u32) =
+    mask = u32(0x7fffff) >> exponent
+end fraction_mask_f32
+
+trunc_f64: (x: f64) -> (result: f64) =
+    bits := bits_f64(x)
+    exponent := (bits >> 52) & 0x7ff
+    if exponent >= 0x3ff + 52 then
+        result = x
+    elsif exponent < 0x3ff then
+        result = from_bits_f64(bits & 0x8000000000000000)
+    else
+        result = from_bits_f64(bits & ~fraction_mask_f64(exponent - 0x3ff))
+    end if
+end trunc_f64
+
+trunc_f32: (x: f32) -> (result: f32) =
+    bits := bits_f32(x)
+    exponent := (bits >> 23) & 0xff
+    if exponent >= 0x7f + 23 then
+        result = x
+    elsif exponent < 0x7f then
+        result = from_bits_f32(bits & 0x80000000)
+    else
+        result = from_bits_f32(bits & ~fraction_mask_f32(exponent - 0x7f))
+    end if
+end trunc_f32
+
+--  Truncate, or round the magnitude up when `up` holds for the sign:
+--  floor rounds a negative value's magnitude up, ceil a positive one's.
+toward_f64: (x: f64, up_when_negative: bool) -> (result: f64) =
+    bits := bits_f64(x)
+    exponent := (bits >> 52) & 0x7ff
+    negative := bits >> 63 == 1
+    up := negative == up_when_negative
+    if exponent >= 0x3ff + 52 or bits << 1 == 0 then
+        result = x
+    elsif exponent < 0x3ff then
+        result = if up then from_bits_f64((bits & 0x8000000000000000) | 0x3ff0000000000000)
+                 else from_bits_f64(bits & 0x8000000000000000) end if
+    else
+        mask := fraction_mask_f64(exponent - 0x3ff)
+        if bits & mask == 0 then
+            result = x
+        elsif up then
+            result = from_bits_f64((bits + mask) & ~mask)
+        else
+            result = from_bits_f64(bits & ~mask)
+        end if
+    end if
+end toward_f64
+
+toward_f32: (x: f32, up_when_negative: bool) -> (result: f32) =
+    bits := bits_f32(x)
+    exponent := (bits >> 23) & 0xff
+    negative := bits >> 31 == 1
+    up := negative == up_when_negative
+    if exponent >= 0x7f + 23 or bits << 1 == 0 then
+        result = x
+    elsif exponent < 0x7f then
+        result = if up then from_bits_f32((bits & 0x80000000) | 0x3f800000)
+                 else from_bits_f32(bits & 0x80000000) end if
+    else
+        mask := fraction_mask_f32(exponent - 0x7f)
+        if bits & mask == 0 then
+            result = x
+        elsif up then
+            result = from_bits_f32((bits + mask) & ~mask)
+        else
+            result = from_bits_f32(bits & ~mask)
+        end if
+    end if
+end toward_f32
+
+floor_f64: (x: f64) -> (result: f64) =
+    result = toward_f64(x, true)
+end floor_f64
+
+floor_f32: (x: f32) -> (result: f32) =
+    result = toward_f32(x, true)
+end floor_f32
+
+ceil_f64: (x: f64) -> (result: f64) =
+    result = toward_f64(x, false)
+end ceil_f64
+
+ceil_f32: (x: f32) -> (result: f32) =
+    result = toward_f32(x, false)
+end ceil_f32
+
+--  Round to nearest: add half a unit to the magnitude and truncate, which
+--  rounds a half away from zero; for `even`, a half is rounded down
+--  instead when the units digit is even.
+nearest_f64: (x: f64, even: bool) -> (result: f64) =
+    bits := bits_f64(x)
+    exponent := (bits >> 52) & 0x7ff
+    sign := bits & 0x8000000000000000
+    if exponent >= 0x3ff + 52 then
+        result = x
+    elsif exponent < 0x3fe then
+        result = from_bits_f64(sign)
+    elsif exponent == 0x3fe then
+        --  [0.5, 1): one, but zero for an even half.
+        result = if even and bits << 1 == 0x7fc0000000000000 then from_bits_f64(sign)
+                 else from_bits_f64(sign | 0x3ff0000000000000) end if
+    else
+        mask := fraction_mask_f64(exponent - 0x3ff)
+        half := (mask >> 1) + 1
+        fraction := bits & mask
+        units_odd := ((bits >> (52 - (exponent - 0x3ff))) & 1) == 1
+        if fraction == 0 then
+            result = x
+        elsif fraction > half or (fraction == half and (not even or units_odd)) then
+            result = from_bits_f64((bits + mask) & ~mask)
+        else
+            result = from_bits_f64(bits & ~mask)
+        end if
+    end if
+end nearest_f64
+
+nearest_f32: (x: f32, even: bool) -> (result: f32) =
+    bits := bits_f32(x)
+    exponent := (bits >> 23) & 0xff
+    sign := bits & 0x80000000
+    if exponent >= 0x7f + 23 then
+        result = x
+    elsif exponent < 0x7e then
+        result = from_bits_f32(sign)
+    elsif exponent == 0x7e then
+        result = if even and bits << 1 == 0x7e000000 then from_bits_f32(sign)
+                 else from_bits_f32(sign | 0x3f800000) end if
+    else
+        mask := fraction_mask_f32(exponent - 0x7f)
+        half := (mask >> 1) + 1
+        fraction := bits & mask
+        units_odd := ((bits >> (23 - (exponent - 0x7f))) & 1) == 1
+        if fraction == 0 then
+            result = x
+        elsif fraction > half or (fraction == half and (not even or units_odd)) then
+            result = from_bits_f32((bits + mask) & ~mask)
+        else
+            result = from_bits_f32(bits & ~mask)
+        end if
+    end if
+end nearest_f32
+
+round_f64: (x: f64) -> (result: f64) =
+    result = nearest_f64(x, false)
+end round_f64
+
+round_f32: (x: f32) -> (result: f32) =
+    result = nearest_f32(x, false)
+end round_f32
+
+round_even_f64: (x: f64) -> (result: f64) =
+    result = nearest_f64(x, true)
+end round_even_f64
+
+round_even_f32: (x: f32) -> (result: f32) =
+    result = nearest_f32(x, true)
+end round_even_f32
+
+--  x - n*y for n = trunc(x/y), by long division on the significands: the
+--  remainder of each step is shifted up one place until the exponents
+--  meet, so every step is an exact integer subtraction.
+remainder_f64: (x: f64, y: f64) -> (result: f64) =
+    ux := bits_f64(x)
+    uy := bits_f64(y)
+    mut ex: i32 = i32((ux >> 52) & 0x7ff)
+    mut ey: i32 = i32((uy >> 52) & 0x7ff)
+    sign := ux & 0x8000000000000000
+    if uy << 1 == 0 or y <> y or ex == 0x7ff then
+        result = (x * y) / (x * y)
+        return
+    end if
+    if ux << 1 <= uy << 1 then
+        result = if ux << 1 == uy << 1 then from_bits_f64(sign) else x end if
+        return
+    end if
+    --  The significands, with the leading bit at bit 52.
+    mut mx: u64 = ux & 0xfffffffffffff
+    if ex == 0 then
+        mx = ux << 12
+        ex = 0
+        while mx & 0x8000000000000000 == 0 do
+            mx = mx << 1
+            ex = ex - 1
+        end while
+        mx = mx >> 11
+    else
+        mx = mx | 0x10000000000000
+    end if
+    mut my: u64 = uy & 0xfffffffffffff
+    if ey == 0 then
+        my = uy << 12
+        ey = 0
+        while my & 0x8000000000000000 == 0 do
+            my = my << 1
+            ey = ey - 1
+        end while
+        my = my >> 11
+    else
+        my = my | 0x10000000000000
+    end if
+    while ex > ey do
+        if mx >= my then
+            mx = mx - my
+            if mx == 0 then
+                result = from_bits_f64(sign)
+                return
+            end if
+        end if
+        mx = mx << 1
+        ex = ex - 1
+    end while
+    if mx >= my then
+        mx = mx - my
+        if mx == 0 then
+            result = from_bits_f64(sign)
+            return
+        end if
+    end if
+    while mx >> 52 == 0 do
+        mx = mx << 1
+        ex = ex - 1
+    end while
+    if ex > 0 then
+        mx = (mx - 0x10000000000000) | (u64(ex) << 52)
+    else
+        mx = mx >> u64(1 - ex)
+    end if
+    result = from_bits_f64(mx | sign)
+end remainder_f64
+
+remainder_f32: (x: f32, y: f32) -> (result: f32) =
+    ux := bits_f32(x)
+    uy := bits_f32(y)
+    mut ex: i32 = i32((ux >> 23) & 0xff)
+    mut ey: i32 = i32((uy >> 23) & 0xff)
+    sign := ux & 0x80000000
+    if uy << 1 == 0 or y <> y or ex == 0xff then
+        result = (x * y) / (x * y)
+        return
+    end if
+    if ux << 1 <= uy << 1 then
+        result = if ux << 1 == uy << 1 then from_bits_f32(sign) else x end if
+        return
+    end if
+    mut mx: u32 = ux & 0x7fffff
+    if ex == 0 then
+        mx = ux << 9
+        ex = 0
+        while mx & 0x80000000 == 0 do
+            mx = mx << 1
+            ex = ex - 1
+        end while
+        mx = mx >> 8
+    else
+        mx = mx | 0x800000
+    end if
+    mut my: u32 = uy & 0x7fffff
+    if ey == 0 then
+        my = uy << 9
+        ey = 0
+        while my & 0x80000000 == 0 do
+            my = my << 1
+            ey = ey - 1
+        end while
+        my = my >> 8
+    else
+        my = my | 0x800000
+    end if
+    while ex > ey do
+        if mx >= my then
+            mx = mx - my
+            if mx == 0 then
+                result = from_bits_f32(sign)
+                return
+            end if
+        end if
+        mx = mx << 1
+        ex = ex - 1
+    end while
+    if mx >= my then
+        mx = mx - my
+        if mx == 0 then
+            result = from_bits_f32(sign)
+            return
+        end if
+    end if
+    while mx >> 23 == 0 do
+        mx = mx << 1
+        ex = ex - 1
+    end while
+    if ex > 0 then
+        mx = (mx - 0x800000) | (u32(ex) << 23)
+    else
+        mx = mx >> u32(1 - ex)
+    end if
+    result = from_bits_f32(mx | sign)
+end remainder_f32
+
+--  msun's e_remainder.c: reduce below 2|y| with the truncating remainder,
+--  then take |y| away once or twice to come within half of it.
+remainder_nearest_f64: (x: f64, y: f64) -> (result: f64) =
+    hx := high_word(x)
+    sign := hx & 0x80000000
+    ax := hx & 0x7fffffff
+    hp := high_word(y) & 0x7fffffff
+    lp := low_word(y)
+    if (hp | lp) == 0 or ax >= 0x7ff00000
+      or (hp >= 0x7ff00000 and ((hp - 0x7ff00000) | lp) <> 0) then
+        result = (x * y) / (x * y)
+        return
+    end if
+    mut r: f64 = x
+    if hp <= 0x7fdfffff then
+        r = remainder_f64(x, y + y)
+    end if
+    p := abs_f64(y)
+    if abs_f64(r) == p then
+        result = 0.0 * x
+        return
+    end if
+    r = abs_f64(r)
+    if hp < 0x00200000 then
+        if r + r > p then
+            r = r - p
+            if r + r >= p then
+                r = r - p
+            end if
+        end if
+    else
+        half := 0.5 * p
+        if r > half then
+            r = r - p
+            if r >= half then
+                r = r - p
+            end if
+        end if
+    end if
+    mut hr: u32 = high_word(r)
+    if hr & 0x7fffffff == 0 and low_word(r) == 0 then
+        hr = 0
+    end if
+    result = with_high_word(r, hr ^ sign)
+end remainder_nearest_f64
+
+remainder_nearest_f32: (x: f32, y: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    sign := hx & 0x80000000
+    ax := hx & 0x7fffffff
+    hp := bits_f32(y) & 0x7fffffff
+    if hp == 0 or ax >= 0x7f800000 or hp > 0x7f800000 then
+        result = (x * y) / (x * y)
+        return
+    end if
+    mut r: f32 = x
+    if hp <= 0x7effffff then
+        r = remainder_f32(x, y + y)
+    end if
+    p := abs_f32(y)
+    if abs_f32(r) == p then
+        result = 0.0 * x
+        return
+    end if
+    r = abs_f32(r)
+    if hp < 0x01000000 then
+        if r + r > p then
+            r = r - p
+            if r + r >= p then
+                r = r - p
+            end if
+        end if
+    else
+        half := 0.5 * p
+        if r > half then
+            r = r - p
+            if r >= half then
+                r = r - p
+            end if
+        end if
+    end if
+    mut hr: u32 = bits_f32(r)
+    if hr & 0x7fffffff == 0 then
+        hr = 0
+    end if
+    result = from_bits_f32(hr ^ sign)
+end remainder_nearest_f32

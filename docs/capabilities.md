@@ -970,6 +970,17 @@ injector as arguments, as providers.
   xoshiro256**, seeded from a fixed seed or from entropy, which draws the
   same sequence on every target, Cortex-M0 included, with unbiased bounded
   draws and shuffles.
+- **Mathematics.** `core/math` has the functions of C's `<math.h>` that
+  most programs use, each generic over `f32` and `f64`: roots, `hypot` and
+  `fma`, exponentials, logarithms and powers, the trigonometric and
+  hyperbolic functions and their inverses, `erf`, `erfc`, `gamma` and
+  `log_gamma`, rounding, remainders, classification and the
+  representation, and the constants. It is written in Landin, from msun,
+  so a result is the same on every target, Cortex-M0's soft float
+  included; the square root and `fma` are the float unit's instructions
+  where there is one (D2551, D2552). Each routine's error is stated and
+  checked against MPFR on every target, and measured on every input of
+  each one-argument `f32` routine (D2553).
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,

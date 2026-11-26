@@ -1,0 +1,550 @@
+--  The elementary functions of C's <math.h> that most programs use, over
+--  f32 and f64, written in Landin from FreeBSD's msun, so that a result is
+--  the same on every target, Cortex-M0's soft float included: the same
+--  bits, save which NaN a NaN result is, which is the target's own.  Every
+--  routine is generic over `floating`, which f32 and f64 meet, so one name
+--  serves both widths; the evidence below names each width's own routine,
+--  in the module's other files by subject.
+--
+--  Each routine's error is stated in units in the last place of the exact
+--  result: the largest MPFR measured, over every input of a one-argument
+--  f32 routine and over a million random inputs otherwise, rounded up.
+--  The `math-*` runtime fixtures pin it against MPFR's correctly rounded
+--  values on every target, as compiler/tests/math/README.md describes.  Results are rounded to
+--  nearest; the float unit's other rounding modes and its exception
+--  flags are neither read nor set.
+--
+--  The routines ported from msun carry Sun's notice, which is preserved
+--  in each file that holds them:
+--
+--      Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+--
+--      Developed at SunPro, a Sun Microsystems, Inc. business.
+--      Permission to use, copy, modify, and distribute this
+--      software is freely granted, provided that this notice
+--      is preserved.
+
+--- The kind of value a float holds, as `classify` tells it.
+public not_a_number: atom
+--- An infinity of either sign.
+public infinite: atom
+--- A finite nonzero value with the format's full precision.
+public normal: atom
+--- A nonzero value below the least normal, with less precision.
+public subnormal: atom
+--- Zero of either sign.
+public zero: atom
+--- What `classify` answers.
+public category: type = not_a_number | infinite | normal | subnormal | zero
+
+--- The two float types, f32 and f64.  The entries are each width's own
+--- routines; they back the generic routines below, which are what to call.
+public floating: type = concept (item: type)
+    classify: (x: item) -> (kind: category)
+    is_negative: (x: item) -> (yes: bool)
+    abs: (x: item) -> (result: item)
+    copy_sign: (magnitude: item, sign: item) -> (result: item)
+    next_after: (x: item, toward: item) -> (result: item)
+    scale: (x: item, power: i32) -> (result: item)
+    split: (x: item) -> (fraction: item, power: i32)
+    whole_and_fraction: (x: item) -> (whole: item, fraction: item)
+    min: (x: item, y: item) -> (result: item)
+    max: (x: item, y: item) -> (result: item)
+    floor: (x: item) -> (result: item)
+    ceil: (x: item) -> (result: item)
+    trunc: (x: item) -> (result: item)
+    round: (x: item) -> (result: item)
+    round_even: (x: item) -> (result: item)
+    remainder: (x: item, y: item) -> (result: item)
+    remainder_nearest: (x: item, y: item) -> (result: item)
+    sqrt: (x: item) -> (result: item)
+    cbrt: (x: item) -> (result: item)
+    hypot: (x: item, y: item) -> (result: item)
+    fma: (x: item, y: item, z: item) -> (result: item)
+    exp: (x: item) -> (result: item)
+    exp2: (x: item) -> (result: item)
+    expm1: (x: item) -> (result: item)
+    log: (x: item) -> (result: item)
+    log2: (x: item) -> (result: item)
+    log10: (x: item) -> (result: item)
+    log1p: (x: item) -> (result: item)
+    pow: (x: item, y: item) -> (result: item)
+    sin: (x: item) -> (result: item)
+    cos: (x: item) -> (result: item)
+    tan: (x: item) -> (result: item)
+    asin: (x: item) -> (result: item)
+    acos: (x: item) -> (result: item)
+    atan: (x: item) -> (result: item)
+    atan2: (y: item, x: item) -> (result: item)
+    sinh: (x: item) -> (result: item)
+    cosh: (x: item) -> (result: item)
+    tanh: (x: item) -> (result: item)
+    asinh: (x: item) -> (result: item)
+    acosh: (x: item) -> (result: item)
+    atanh: (x: item) -> (result: item)
+    erf: (x: item) -> (result: item)
+    erfc: (x: item) -> (result: item)
+    gamma: (x: item) -> (result: item)
+    log_gamma: (x: item) -> (result: item)
+end floating
+
+f64 is floating (classify: classify_f64, is_negative: is_negative_f64,
+                 abs: abs_f64, copy_sign: copy_sign_f64,
+                 next_after: next_after_f64, scale: scale_f64,
+                 split: split_f64,
+                 whole_and_fraction: whole_and_fraction_f64,
+                 min: min_f64, max: max_f64,
+                 floor: floor_f64, ceil: ceil_f64, trunc: trunc_f64,
+                 round: round_f64, round_even: round_even_f64,
+                 remainder: remainder_f64,
+                 remainder_nearest: remainder_nearest_f64,
+                 sqrt: sqrt_f64, cbrt: cbrt_f64, hypot: hypot_f64,
+                 fma: fma_f64,
+                 exp: exp_f64, exp2: exp2_f64, expm1: expm1_f64,
+                 log: log_f64, log2: log2_f64, log10: log10_f64,
+                 log1p: log1p_f64, pow: pow_f64,
+                 sin: sin_f64, cos: cos_f64, tan: tan_f64,
+                 asin: asin_f64, acos: acos_f64, atan: atan_f64,
+                 atan2: atan2_f64,
+                 sinh: sinh_f64, cosh: cosh_f64, tanh: tanh_f64,
+                 asinh: asinh_f64, acosh: acosh_f64, atanh: atanh_f64,
+                 erf: erf_f64, erfc: erfc_f64, gamma: gamma_f64,
+                 log_gamma: log_gamma_f64)
+
+f32 is floating (classify: classify_f32, is_negative: is_negative_f32,
+                 abs: abs_f32, copy_sign: copy_sign_f32,
+                 next_after: next_after_f32, scale: scale_f32,
+                 split: split_f32,
+                 whole_and_fraction: whole_and_fraction_f32,
+                 min: min_f32, max: max_f32,
+                 floor: floor_f32, ceil: ceil_f32, trunc: trunc_f32,
+                 round: round_f32, round_even: round_even_f32,
+                 remainder: remainder_f32,
+                 remainder_nearest: remainder_nearest_f32,
+                 sqrt: sqrt_f32, cbrt: cbrt_f32, hypot: hypot_f32,
+                 fma: fma_f32,
+                 exp: exp_f32, exp2: exp2_f32, expm1: expm1_f32,
+                 log: log_f32, log2: log2_f32, log10: log10_f32,
+                 log1p: log1p_f32, pow: pow_f32,
+                 sin: sin_f32, cos: cos_f32, tan: tan_f32,
+                 asin: asin_f32, acos: acos_f32, atan: atan_f32,
+                 atan2: atan2_f32,
+                 sinh: sinh_f32, cosh: cosh_f32, tanh: tanh_f32,
+                 asinh: asinh_f32, acosh: acosh_f32, atanh: atanh_f32,
+                 erf: erf_f32, erfc: erfc_f32, gamma: gamma_f32,
+                 log_gamma: log_gamma_f32)
+
+--  The constants, each the f64 nearest the real number.  Converting one
+--  with f32() gives the f32 nearest the real number too: each lies at
+--  least an eighth of an f32 unit from an f32 rounding boundary, far
+--  beyond the f64 rounding's error, so the two roundings agree.
+
+--- π, the ratio of a circle's circumference to its diameter.
+public pi: f64 = 0x1.921fb54442d18p1
+--- τ = 2π, a full turn in radians.
+public tau: f64 = 0x1.921fb54442d18p2
+--- e, the base of the natural logarithm.
+public e: f64 = 0x1.5bf0a8b145769p1
+--- The natural logarithm of 2.
+public ln_2: f64 = 0x1.62e42fefa39efp-1
+--- The natural logarithm of 10.
+public ln_10: f64 = 0x1.26bb1bbb55516p1
+--- The base-2 logarithm of e.
+public log2_e: f64 = 0x1.71547652b82fep0
+--- The base-10 logarithm of e.
+public log10_e: f64 = 0x1.bcb7b1526e50ep-2
+--- The square root of 2.
+public sqrt_2: f64 = 0x1.6a09e667f3bcdp0
+--- One over the square root of 2, or the square root of one half.
+public sqrt_half: f64 = 0x1.6a09e667f3bcdp-1
+
+--  Reading and writing a float's bits.  Landin converts values, never
+--  bits, so a float's bits are read through its address, as docs/from-c.md
+--  shows; a pointer made from an integer borrows nothing.
+
+bits_f64: (x: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits = view.val
+end bits_f64
+
+from_bits_f64: (bits: u64) -> (x: f64) =
+    view: ptr f64 = ptr(usize(addr bits))
+    x = view.val
+end from_bits_f64
+
+bits_f32: (x: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr x))
+    bits = view.val
+end bits_f32
+
+from_bits_f32: (bits: u32) -> (x: f32) =
+    view: ptr f32 = ptr(usize(addr bits))
+    x = view.val
+end from_bits_f32
+
+--  msun's word access: the high and low 32 bits of an f64, and an f64
+--  made from them.
+high_word: (x: f64) -> (word: u32) =
+    word = u32(bits_f64(x) >> 32)
+end high_word
+
+low_word: (x: f64) -> (word: u32) =
+    word = u32(bits_f64(x) & 0xffffffff)
+end low_word
+
+from_words: (high: u32, low: u32) -> (x: f64) =
+    x = from_bits_f64((u64(high) << 32) | u64(low))
+end from_words
+
+with_low_word: (x: f64, low: u32) -> (result: f64) =
+    result = from_bits_f64((bits_f64(x) & 0xffffffff00000000) | u64(low))
+end with_low_word
+
+with_high_word: (x: f64, high: u32) -> (result: f64) =
+    result = from_bits_f64((bits_f64(x) & 0xffffffff) | (u64(high) << 32))
+end with_high_word
+
+--  msun keeps words in C's int32_t and compares them signed.  Landin's
+--  conversions keep values, so a word's two's-complement reading is
+--  made explicitly.
+signed_word: (word: u32) -> (value: i32) =
+    value = if word < 0x80000000 then i32(word)
+            else i32(i64(word) - 0x100000000) end if
+end signed_word
+
+unsigned_word: (value: i32) -> (word: u32) =
+    word = if value >= 0 then u32(value)
+           else u32(i64(value) + 0x100000000) end if
+end unsigned_word
+
+--- What kind of value `x` holds: `not_a_number`, `infinite`, `normal`,
+--- `subnormal` or `zero`.  C's `fpclassify`.
+public classify: (item: type is floating, x: item) -> (kind: category) =
+    kind = item.classify(x)
+end classify
+
+--- Whether `x` is NaN.  C's `isnan`.
+public is_nan: (item: type is floating, x: item) -> (yes: bool) =
+    yes = item.classify(x) == not_a_number
+end is_nan
+
+--- Whether `x` is an infinity of either sign.  C's `isinf`.
+public is_infinite: (item: type is floating, x: item) -> (yes: bool) =
+    yes = item.classify(x) == infinite
+end is_infinite
+
+--- Whether `x` is neither an infinity nor NaN.  C's `isfinite`.
+public is_finite: (item: type is floating, x: item) -> (yes: bool) =
+    kind := item.classify(x)
+    yes = kind <> infinite and kind <> not_a_number
+end is_finite
+
+--- Whether `x` is normal: finite, nonzero and not subnormal.  C's
+--- `isnormal`.
+public is_normal: (item: type is floating, x: item) -> (yes: bool) =
+    yes = item.classify(x) == normal
+end is_normal
+
+--- Whether `x`'s sign bit is set: true for -0.0, a negative value, and a
+--- NaN whose sign bit is set.  C's `signbit`.
+public is_negative: (item: type is floating, x: item) -> (yes: bool) =
+    yes = item.is_negative(x)
+end is_negative
+
+--- The magnitude of `x`, its sign bit cleared, NaN included.  Exact.
+--- C's `fabs`.
+public abs: (item: type is floating, x: item) -> (result: item) =
+    result = item.abs(x)
+end abs
+
+--- `magnitude`'s magnitude with `sign`'s sign bit.  Exact.  C's
+--- `copysign`.
+public copy_sign: (item: type is floating, magnitude: item, sign: item)
+                  -> (result: item) =
+    result = item.copy_sign(magnitude, sign)
+end copy_sign
+
+--- The float next to `x` in the direction of `toward`: `toward` itself if
+--- the two are equal, and NaN if either is.  Exact.  C's `nextafter`.
+public next_after: (item: type is floating, x: item, toward: item)
+                   -> (result: item) =
+    result = item.next_after(x, toward)
+end next_after
+
+--- `x` times 2 to the power `power`, rounded once: exact unless the
+--- result is subnormal or overflows to an infinity.  C's `scalbn` and
+--- `ldexp`.
+public scale: (item: type is floating, x: item, power: i32)
+              -> (result: item) =
+    result = item.scale(x, power)
+end scale
+
+--- `x` as a fraction of magnitude in [0.5, 1) with `x`'s sign and a power
+--- of 2, so that `x` is `fraction` times 2 to `power`.  A zero, an
+--- infinity or NaN is its own fraction, with power 0.  Exact.  C's
+--- `frexp`.
+public split: (item: type is floating, x: item)
+              -> (fraction: item, power: i32) =
+    (fraction: parts_fraction, power: parts_power) := item.split(x)
+    fraction = parts_fraction
+    power = parts_power
+end split
+
+--- `x`'s integer part and fractional part, each with `x`'s sign.  An
+--- infinity's whole part is itself and its fraction a zero; NaN gives NaN
+--- for both.  Exact.  C's `modf`.
+public whole_and_fraction: (item: type is floating, x: item)
+                           -> (whole: item, fraction: item) =
+    (whole: parts_whole, fraction: parts_fraction) := item.whole_and_fraction(x)
+    whole = parts_whole
+    fraction = parts_fraction
+end whole_and_fraction
+
+--- The lesser of `x` and `y`; if one is NaN, the other.  -0.0 is taken as
+--- less than +0.0.  Exact.  C's `fmin`.
+public min: (item: type is floating, x: item, y: item) -> (result: item) =
+    result = item.min(x, y)
+end min
+
+--- The greater of `x` and `y`; if one is NaN, the other.  +0.0 is taken
+--- as greater than -0.0.  Exact.  C's `fmax`.
+public max: (item: type is floating, x: item, y: item) -> (result: item) =
+    result = item.max(x, y)
+end max
+
+--- The greatest integer not above `x`.  Exact.  C's `floor`.
+public floor: (item: type is floating, x: item) -> (result: item) =
+    result = item.floor(x)
+end floor
+
+--- The least integer not below `x`.  Exact.  C's `ceil`.
+public ceil: (item: type is floating, x: item) -> (result: item) =
+    result = item.ceil(x)
+end ceil
+
+--- `x` with its fraction dropped: the integer nearest `x` toward zero.
+--- Exact.  C's `trunc`.
+public trunc: (item: type is floating, x: item) -> (result: item) =
+    result = item.trunc(x)
+end trunc
+
+--- The integer nearest `x`, a half rounded away from zero.  Exact.  C's
+--- `round`.
+public round: (item: type is floating, x: item) -> (result: item) =
+    result = item.round(x)
+end round
+
+--- The integer nearest `x`, a half rounded to the even neighbour, as the
+--- float unit rounds.  Exact.  C23's `roundeven`, and `rint` and
+--- `nearbyint` in the default rounding mode.
+public round_even: (item: type is floating, x: item) -> (result: item) =
+    result = item.round_even(x)
+end round_even
+
+--- `x - n * y` for the integer `n` nearest `x / y` toward zero, so the
+--- result has `x`'s sign and is less than `y` in magnitude, as Landin's
+--- integer `%` is.  NaN if `y` is zero or `x` infinite.  Exact.  C's
+--- `fmod`.
+public remainder: (item: type is floating, x: item, y: item)
+                  -> (result: item) =
+    result = item.remainder(x, y)
+end remainder
+
+--- `x - n * y` for the integer `n` nearest `x / y`, a half rounded to
+--- even, so the result is at most half `y` in magnitude.  NaN if `y` is
+--- zero or `x` infinite.  Exact.  IEEE 754's remainder, C's `remainder`.
+public remainder_nearest: (item: type is floating, x: item, y: item)
+                          -> (result: item) =
+    result = item.remainder_nearest(x, y)
+end remainder_nearest
+
+--- The square root of `x`, correctly rounded; NaN below zero, and -0.0
+--- for -0.0.  The float unit's own instruction where the target has one.
+--- C's `sqrt`.
+public sqrt: (item: type is floating, x: item) -> (result: item) =
+    result = item.sqrt(x)
+end sqrt
+
+--- The cube root of `x`: within 0.667 ulp at f64, and correctly rounded
+--- at f32.  C's `cbrt`.
+public cbrt: (item: type is floating, x: item) -> (result: item) =
+    result = item.cbrt(x)
+end cbrt
+
+--- The square root of `x * x + y * y`, without the overflow or underflow
+--- of computing it that way; an infinity if either is infinite, even if
+--- the other is NaN.  Within 0.9 ulp at f64, and 1.05 ulp at f32, as
+--- msun's own routine is.  C's `hypot`.
+public hypot: (item: type is floating, x: item, y: item) -> (result: item) =
+    result = item.hypot(x, y)
+end hypot
+
+--- `x * y + z` rounded once, correctly.  The float unit's own instruction
+--- where the target has one.  C's `fma`.
+public fma: (item: type is floating, x: item, y: item, z: item)
+            -> (result: item) =
+    result = item.fma(x, y, z)
+end fma
+
+--- e to the power `x`.  Within 0.86 ulp at f64 and 0.92 at f32.  C's
+--- `exp`.
+public exp: (item: type is floating, x: item) -> (result: item) =
+    result = item.exp(x)
+end exp
+
+--- 2 to the power `x`.  Within 0.87 ulp at f64 and 0.90 at f32.  C's
+--- `exp2`.
+public exp2: (item: type is floating, x: item) -> (result: item) =
+    result = item.exp2(x)
+end exp2
+
+--- e to the power `x`, less one, accurate where `x` is near zero.  Within
+--- 0.84 ulp at f64 and 0.82 at f32.  C's `expm1`.
+public expm1: (item: type is floating, x: item) -> (result: item) =
+    result = item.expm1(x)
+end expm1
+
+--- The natural logarithm of `x`: -infinity at zero, NaN below it.  Within
+--- 0.88 ulp at f64 and 0.89 at f32.  C's `log`.
+public log: (item: type is floating, x: item) -> (result: item) =
+    result = item.log(x)
+end log
+
+--- The base-2 logarithm of `x`.  Within 0.80 ulp at f64 and 0.87 at f32.
+--- C's `log2`.
+public log2: (item: type is floating, x: item) -> (result: item) =
+    result = item.log2(x)
+end log2
+
+--- The base-10 logarithm of `x`.  Within 0.67 ulp at f64 and 0.84 at
+--- f32.  C's `log10`.
+public log10: (item: type is floating, x: item) -> (result: item) =
+    result = item.log10(x)
+end log10
+
+--- The natural logarithm of `1 + x`, accurate where `x` is near zero.
+--- Within 0.80 ulp at f64 and 0.84 at f32.  C's `log1p`.
+public log1p: (item: type is floating, x: item) -> (result: item) =
+    result = item.log1p(x)
+end log1p
+
+--- `x` to the power `y`, with C's special cases: `pow(x, 0)` and
+--- `pow(1, y)` are 1 even for NaN, and a negative `x` has a power only
+--- for an integer `y`.  Within 0.82 ulp at f64 and 0.84 at f32 on the
+--- random sets.  C's `pow`.
+public pow: (item: type is floating, x: item, y: item) -> (result: item) =
+    result = item.pow(x, y)
+end pow
+
+--- The sine of `x` radians, with the argument reduced exactly, so a
+--- large `x` keeps its accuracy.  Within 0.76 ulp at f64 and 0.51 at
+--- f32.  C's `sin`.
+public sin: (item: type is floating, x: item) -> (result: item) =
+    result = item.sin(x)
+end sin
+
+--- The cosine of `x` radians.  Within 0.75 ulp at f64 and 0.51 at f32.
+--- C's `cos`.
+public cos: (item: type is floating, x: item) -> (result: item) =
+    result = item.cos(x)
+end cos
+
+--- The tangent of `x` radians.  Within 0.81 ulp at f64 and 0.80 at f32.
+--- C's `tan`.
+public tan: (item: type is floating, x: item) -> (result: item) =
+    result = item.tan(x)
+end tan
+
+--- The arcsine of `x`, in [-π/2, π/2]; NaN outside [-1, 1].  Within 0.85
+--- ulp at f64 and 0.68 at f32.  C's `asin`.
+public asin: (item: type is floating, x: item) -> (result: item) =
+    result = item.asin(x)
+end asin
+
+--- The arccosine of `x`, in [0, π]; NaN outside [-1, 1].  Within 0.87
+--- ulp at f64 and 0.90 at f32.  C's `acos`.
+public acos: (item: type is floating, x: item) -> (result: item) =
+    result = item.acos(x)
+end acos
+
+--- The arctangent of `x`, in [-π/2, π/2].  Within 0.82 ulp at f64 and
+--- 0.86 at f32.  C's `atan`.
+public atan: (item: type is floating, x: item) -> (result: item) =
+    result = item.atan(x)
+end atan
+
+--- The angle of the point (`x`, `y`) from the positive x axis, in
+--- [-π, π], with C's signed zeros and infinities.  Within 1.4 ulp at
+--- both widths, as msun's own routine is: it rounds `y / x` before
+--- taking the arctangent.  C's `atan2`, whose argument order it keeps.
+public atan2: (item: type is floating, y: item, x: item) -> (result: item) =
+    result = item.atan2(y, x)
+end atan2
+
+--- The hyperbolic sine of `x`.  Within 1.9 ulp at f64 and 2.5 at f32, as
+--- msun's own routines are.  C's `sinh`.
+public sinh: (item: type is floating, x: item) -> (result: item) =
+    result = item.sinh(x)
+end sinh
+
+--- The hyperbolic cosine of `x`.  Within 1.9 ulp at f64 and 2.5 at f32,
+--- as msun's own routines are.  C's `cosh`.
+public cosh: (item: type is floating, x: item) -> (result: item) =
+    result = item.cosh(x)
+end cosh
+
+--- The hyperbolic tangent of `x`.  Within 2.1 ulp at f64 and 2.2 at
+--- f32, as msun's own routines are.  C's `tanh`.
+public tanh: (item: type is floating, x: item) -> (result: item) =
+    result = item.tanh(x)
+end tanh
+
+--- The inverse hyperbolic sine of `x`.  Within 1.7 ulp at f64 and 1.8
+--- at f32, as msun's own routines are.  C's `asinh`.
+public asinh: (item: type is floating, x: item) -> (result: item) =
+    result = item.asinh(x)
+end asinh
+
+--- The inverse hyperbolic cosine of `x`; NaN below 1.  Within 1.8 ulp at
+--- f64 and 2.1 at f32, as msun's own routines are.  C's `acosh`.
+public acosh: (item: type is floating, x: item) -> (result: item) =
+    result = item.acosh(x)
+end acosh
+
+--- The inverse hyperbolic tangent of `x`: an infinity at ±1, NaN beyond.
+--- Within 1.6 ulp at f64 and 1.8 at f32, as msun's own routines are.
+--- C's `atanh`.
+public atanh: (item: type is floating, x: item) -> (result: item) =
+    result = item.atanh(x)
+end atanh
+
+--- The error function of `x`.  Within 0.91 ulp at f64 and 0.89 at f32.
+--- C's `erf`.
+public erf: (item: type is floating, x: item) -> (result: item) =
+    result = item.erf(x)
+end erf
+
+--- The complementary error function of `x`, `1 - erf(x)`, accurate where
+--- `x` is large.  Within 2.7 ulp at f64 and 3.2 at f32, as msun's own
+--- routines are.  C's `erfc`.
+public erfc: (item: type is floating, x: item) -> (result: item) =
+    result = item.erfc(x)
+end erfc
+
+--- The gamma function of `x`: NaN at a negative integer, an infinity of
+--- zero's sign at zero.  Within 0.81 ulp at f64 and 0.51 at f32.  C's
+--- `tgamma`.
+public gamma: (item: type is floating, x: item) -> (result: item) =
+    result = item.gamma(x)
+end gamma
+
+--- The natural logarithm of the gamma function's magnitude at `x`:
+--- +infinity at zero and at a negative integer.  Within 3.6 ulp at f64
+--- and 4.2 at f32 for `x` above -2, and 2.6 above zero, as msun's own
+--- routines are.  Below -2, near each point where the function is zero,
+--- its relative error grows to some 10^5 ulp: msun's reflection formula
+--- subtracts two nearly equal logarithms there.  C's `lgamma`, without
+--- its sign, which `gamma`'s sign gives where it is finite.
+public log_gamma: (item: type is floating, x: item) -> (result: item) =
+    result = item.log_gamma(x)
+end log_gamma

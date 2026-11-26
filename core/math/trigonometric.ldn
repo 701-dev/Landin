@@ -1,0 +1,1204 @@
+--  The trigonometric functions and their inverses.  msun's k_sin.c,
+--  k_cos.c, k_tan.c, s_sin.c, s_cos.c, s_tan.c, e_rem_pio2.c,
+--  k_rem_pio2.c, k_sinf.c, k_cosf.c, k_tanf.c, s_sinf.c, s_cosf.c,
+--  s_tanf.c, e_rem_pio2f.c, e_asin.c, e_asinf.c, e_acos.c, e_acosf.c,
+--  s_atan.c, s_atanf.c, e_atan2.c and e_atan2f.c, under Sun's notice in
+--  math.ldn.
+--
+--  sin, cos and tan reduce their argument to r in [-π/4, π/4] and a
+--  quadrant n with x = n·π/2 + r, and evaluate a polynomial kernel on r.
+--  The reduction is exact for every finite argument: with π/2 in three
+--  pieces for arguments below 2^20·π/2, and Payne and Hanek's method,
+--  with 2/π to 1584 bits, beyond.  The f32 routines compute in f64, which
+--  their reduction and kernels need far fewer bits of.
+
+--  Payne-Hanek reduction.  `two_over_pi_digits[i]` holds bits 24i to
+--  24i+23 of 2/π after the binary point; `pi_over_2_pieces` is π/2 in
+--  pieces of 24 bits.
+
+two_over_pi_digits: [66]i32 = [
+    0xa2f983, 0x6e4e44, 0x1529fc, 0x2757d1, 0xf534dd, 0xc0db62,
+    0x95993c, 0x439041, 0xfe5163, 0xabdebb, 0xc561b7, 0x246e3a,
+    0x424dd2, 0xe00649, 0x2eea09, 0xd1921c, 0xfe1deb, 0x1cb129,
+    0xa73ee8, 0x8235f5, 0x2ebb44, 0x84e99c, 0x7026b4, 0x5f7e41,
+    0x3991d6, 0x398353, 0x39f49c, 0x845f8b, 0xbdf928, 0x3b1ff8,
+    0x97ffde, 0x05980f, 0xef2f11, 0x8b5a0a, 0x6d1f6d, 0x367ecf,
+    0x27cb09, 0xb74f46, 0x3f669e, 0x5fea2d, 0x7527ba, 0xc7ebe5,
+    0xf17b3d, 0x0739f7, 0x8a5292, 0xea6bfb, 0x5fb11f, 0x8d5d08,
+    0x560330, 0x46fc7b, 0x6babf0, 0xcfbc20, 0x9af436, 0x1da9e3,
+    0x91615e, 0xe61b08, 0x659985, 0x5f14a0, 0x68408d, 0xffd880,
+    0x4d7327, 0x310606, 0x1556ca, 0x73a8c9, 0x60e27b, 0xc08c6b]
+
+pi_over_2_pieces: [8]f64 = [
+    0x1.921fb40000000p+0, 0x1.4442d00000000p-24, 0x1.8469880000000p-48,
+    0x1.8cc5160000000p-72, 0x1.01b8380000000p-96, 0x1.a252040000000p-120,
+    0x1.3822280000000p-145, 0x1.9f31d00000000p-169]
+
+--  msun's __kernel_rem_pio2: `x` is |argument| / 2^e0 in up to three
+--  24-bit pieces, of which `nx` count, and the result is the argument
+--  less the nearest multiple of π/2, as `high` + `low`, with the
+--  multiple's last three bits in `n`.  `prec` 0 gives 24 bits of `high`
+--  alone, for f32; 1 gives 53 bits and `low`.  The bits of 2/π below
+--  2^e0's place, which would give only multiples of 8, are skipped; the
+--  product is taken to as many more pieces as a result near zero needs.
+rem_pio2_large: (x: [3]f64, e0: i32, nx: i32, prec: i32)
+                -> (n: i32, high: f64, low: f64) =
+    two24: f64 = 0x1.0p24
+    twon24: f64 = 0x1.0p-24
+    jk: i32 = if prec == 0 then 3 else 4 end if
+    jp := jk
+    jx := nx - 1
+    mut jv: i32 = (e0 - 3) / 24
+    if jv < 0 then
+        jv = 0
+    end if
+    mut q0: i32 = e0 - 24 * (jv + 1)
+    mut f: [20]f64 = zeroed
+    mut q: [20]f64 = zeroed
+    mut fq: [20]f64 = zeroed
+    mut iq: [20]i32 = zeroed
+    --  f[0] to f[jx+jk] are the digits of 2/π that matter.
+    mut j: i32 = jv - jx
+    for i in 0..jx + jk do
+        f[usize(i)] = if j < 0 then 0.0 else f64(two_over_pi_digits[usize(j)]) end if
+        j = j + 1
+    end for
+    for i in 0..jk do
+        mut fw: f64 = 0.0
+        for k in 0..jx do
+            fw = fw + x[usize(k)] * f[usize(jx + i - k)]
+        end for
+        q[usize(i)] = fw
+    end for
+    mut jz: i32 = jk
+    mut z: f64 = 0.0
+    mut ih: i32 = 0
+    mut carry: i32 = 0
+    recompute: loop do
+        --  Distill q[] into 24-bit integers, last piece first.
+        mut i: i32 = 0
+        j = jz
+        z = q[usize(jz)]
+        while j > 0 do
+            fw := f64(i32(twon24 * z))
+            iq[usize(i)] = i32(z - two24 * fw)
+            z = q[usize(j - 1)] + fw
+            i = i + 1
+            j = j - 1
+        end while
+        --  The integer part, less multiples of 8.
+        z = scale_f64(z, q0)
+        z = z - 8.0 * floor_f64(z * 0.125)
+        n = i32(z)
+        z = z - f64(n)
+        ih = 0
+        if q0 > 0 then
+            top := iq[usize(jz - 1)] >> (24 - q0)
+            n = n + top
+            iq[usize(jz - 1)] = iq[usize(jz - 1)] - (top << (24 - q0))
+            ih = iq[usize(jz - 1)] >> (23 - q0)
+        elsif q0 == 0 then
+            ih = iq[usize(jz - 1)] >> 23
+        elsif z >= 0.5 then
+            ih = 2
+        end if
+        --  The fraction is above one half: take 1 - fraction.
+        carry = 0
+        if ih > 0 then
+            n = n + 1
+            for k in 0..<jz do
+                digit := iq[usize(k)]
+                if carry == 0 then
+                    if digit <> 0 then
+                        carry = 1
+                        iq[usize(k)] = 0x1000000 - digit
+                    end if
+                else
+                    iq[usize(k)] = 0xffffff - digit
+                end if
+            end for
+            if q0 == 1 then
+                iq[usize(jz - 1)] = iq[usize(jz - 1)] & 0x7fffff
+            elsif q0 == 2 then
+                iq[usize(jz - 1)] = iq[usize(jz - 1)] & 0x3fffff
+            end if
+            if ih == 2 then
+                z = 1.0 - z
+                if carry <> 0 then
+                    z = z - scale_f64(1.0, q0)
+                end if
+            end if
+        end if
+        --  A fraction whose leading pieces are all zero needs more digits.
+        if z == 0.0 then
+            mut nonzero: i32 = 0
+            mut k: i32 = jz - 1
+            while k >= jk do
+                nonzero = nonzero | iq[usize(k)]
+                k = k - 1
+            end while
+            if nonzero == 0 then
+                mut more: i32 = 1
+                while iq[usize(jk - more)] == 0 do
+                    more = more + 1
+                end while
+                for m in jz + 1..jz + more do
+                    f[usize(jx + m)] = f64(two_over_pi_digits[usize(jv + m)])
+                    mut fw: f64 = 0.0
+                    for t in 0..jx do
+                        fw = fw + x[usize(t)] * f[usize(jx + m - t)]
+                    end for
+                    q[usize(m)] = fw
+                end for
+                jz = jz + more
+                continue recompute
+            end if
+        end if
+        break recompute
+    end recompute
+    --  Drop zero pieces, or split the last into 24-bit ones.
+    if z == 0.0 then
+        jz = jz - 1
+        q0 = q0 - 24
+        while iq[usize(jz)] == 0 do
+            jz = jz - 1
+            q0 = q0 - 24
+        end while
+    else
+        z = scale_f64(z, -q0)
+        if z >= two24 then
+            fw := f64(i32(twon24 * z))
+            iq[usize(jz)] = i32(z - two24 * fw)
+            jz = jz + 1
+            q0 = q0 + 24
+            iq[usize(jz)] = i32(fw)
+        else
+            iq[usize(jz)] = i32(z)
+        end if
+    end if
+    --  The pieces as floats, then times π/2.
+    mut fw: f64 = scale_f64(1.0, q0)
+    mut i: i32 = jz
+    while i >= 0 do
+        q[usize(i)] = fw * f64(iq[usize(i)])
+        fw = fw * twon24
+        i = i - 1
+    end while
+    i = jz
+    while i >= 0 do
+        fw = 0.0
+        mut k: i32 = 0
+        while k <= jp and k <= jz - i do
+            fw = fw + pi_over_2_pieces[usize(k)] * q[usize(i + k)]
+            k = k + 1
+        end while
+        fq[usize(jz - i)] = fw
+        i = i - 1
+    end while
+    --  Sum the products, smallest first.
+    fw = 0.0
+    i = jz
+    while i >= 0 do
+        fw = fw + fq[usize(i)]
+        i = i - 1
+    end while
+    high = if ih == 0 then fw else -fw end if
+    low = 0.0
+    if prec <> 0 then
+        fw = fq[0] - fw
+        for k in 1..jz do
+            fw = fw + fq[usize(k)]
+        end for
+        low = if ih == 0 then fw else -fw end if
+    end if
+    n = n & 7
+end rem_pio2_large
+
+--  msun's __ieee754_rem_pio2: x - n·π/2 as `high` + `low`, for |x| above
+--  π/4.  Near the small multiples of π/2 one subtraction of 33+53 bits of
+--  π/2 is enough; below 2^20·π/2, n is x·2/π rounded and π/2 is taken in
+--  pieces of 33 bits, as many as the cancellation needs, to 151 bits;
+--  beyond, rem_pio2_large.
+rem_pio2_f64: (x: f64) -> (n: i32, high: f64, low: f64) =
+    invpio2: f64 = 0x1.45f306dc9c883p-1
+    pio2_1: f64 = 0x1.921fb54400000p+0
+    pio2_1t: f64 = 0x1.0b4611a626331p-34
+    pio2_2: f64 = 0x1.0b4611a600000p-34
+    pio2_2t: f64 = 0x1.3198a2e037073p-69
+    pio2_3: f64 = 0x1.3198a2e000000p-69
+    pio2_3t: f64 = 0x1.b839a252049c1p-104
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    positive := hx < 0x80000000
+    --  |x| near 1, 2, 3 or 4 times π/2, but not so near that the
+    --  subtraction cancels: one round good to 85 bits.
+    mut multiple: i32 = 0
+    if ix <= 0x400f6a7a then
+        if (ix & 0xfffff) <> 0x921fb then
+            multiple = if ix <= 0x4002d97c then 1 else 2 end if
+        end if
+    elsif ix <= 0x401c463b and ix <> 0x4012d97c and ix <> 0x401921fb then
+        multiple = if ix <= 0x4015fdbc then 3 else 4 end if
+    end if
+    if multiple > 0 then
+        m := f64(multiple)
+        if positive then
+            z := x - m * pio2_1
+            high = z - m * pio2_1t
+            low = (z - high) - m * pio2_1t
+            n = multiple
+        else
+            z := x + m * pio2_1
+            high = z + m * pio2_1t
+            low = (z - high) + m * pio2_1t
+            n = -multiple
+        end if
+        return
+    end if
+    if ix < 0x413921fb then
+        fn := (x * invpio2 + 0x1.8p52) - 0x1.8p52
+        n = i32(fn)
+        mut r: f64 = x - fn * pio2_1
+        mut w: f64 = fn * pio2_1t
+        j := i32(ix >> 20)
+        high = r - w
+        if j - i32((high_word(high) >> 20) & 0x7ff) > 16 then
+            --  Second round, good to 118 bits.
+            t := r
+            w = fn * pio2_2
+            r = t - w
+            w = fn * pio2_2t - ((t - r) - w)
+            high = r - w
+            if j - i32((high_word(high) >> 20) & 0x7ff) > 49 then
+                --  Third round, 151 bits, covers every case.
+                t3 := r
+                w = fn * pio2_3
+                r = t3 - w
+                w = fn * pio2_3t - ((t3 - r) - w)
+                high = r - w
+            end if
+        end if
+        low = (r - high) - w
+        return
+    end if
+    if ix >= 0x7ff00000 then
+        high = x - x
+        low = high
+        n = 0
+        return
+    end if
+    --  z = |x| scaled to [2^23, 2^24), cut into three 24-bit pieces.
+    e0 := i32(ix >> 20) - 1046
+    mut z: f64 = from_words(u32(i64(ix) - i64(e0) * 0x100000), low_word(x))
+    mut pieces: [3]f64 = zeroed
+    pieces[0] = f64(i32(z))
+    z = (z - pieces[0]) * 0x1.0p24
+    pieces[1] = f64(i32(z))
+    z = (z - pieces[1]) * 0x1.0p24
+    pieces[2] = z
+    mut count: i32 = 3
+    while pieces[usize(count - 1)] == 0.0 do
+        count = count - 1
+    end while
+    (n: quadrant, high: reduced, low: tail) := rem_pio2_large(pieces, e0, count, 1)
+    if positive then
+        n = quadrant
+        high = reduced
+        low = tail
+    else
+        n = -quadrant
+        high = -reduced
+        low = -tail
+    end if
+end rem_pio2_f64
+
+--  msun's __kernel_sin on [-π/4, π/4], x + y with y the tail of the
+--  reduced argument and `tail` 0 when there is none: sin(x) ~ x +
+--  x³·(S1 + x²·(S2 + ... + x²·S6)), whose error is below 2^-58.
+sin_kernel_f64: (x: f64, y: f64, tail: i32) -> (result: f64) =
+    half: f64 = 0.5
+    s1: f64 = -0x1.5555555555549p-3
+    s2: f64 = 0x1.111111110f8a6p-7
+    s3: f64 = -0x1.a01a019c161d5p-13
+    s4: f64 = 0x1.71de357b1fe7dp-19
+    s5: f64 = -0x1.ae5e68a2b9cebp-26
+    s6: f64 = 0x1.5d93a5acfd57cp-33
+    z := x * x
+    w := z * z
+    r := s2 + z * (s3 + z * s4) + z * w * (s5 + z * s6)
+    v := z * x
+    if tail == 0 then
+        result = x + v * (s1 + z * r)
+    else
+        result = x - ((z * (half * y - v * r) - y) - v * s1)
+    end if
+end sin_kernel_f64
+
+--  msun's __kernel_cos on [-π/4, π/4]: cos(x) ~ 1 - x²/2 + x⁴·(C1 + ...
+--  + x²·C6), error below 2^-58, with 1 - x²/2 added so as to keep its
+--  rounding error, and the tail y's first-order term -x·y.
+cos_kernel_f64: (x: f64, y: f64) -> (result: f64) =
+    one: f64 = 1.0
+    c1: f64 = 0x1.555555555554cp-5
+    c2: f64 = -0x1.6c16c16c15177p-10
+    c3: f64 = 0x1.a01a019cb1590p-16
+    c4: f64 = -0x1.27e4f809c52adp-22
+    c5: f64 = 0x1.1ee9ebdb4b1c4p-29
+    c6: f64 = -0x1.8fae9be8838d4p-37
+    z := x * x
+    mut w: f64 = z * z
+    r := z * (c1 + z * (c2 + z * c3)) + w * w * (c4 + z * (c5 + z * c6))
+    hz := 0.5 * z
+    w = one - hz
+    result = w + (((one - w) - hz) + (z * r - x * y))
+end cos_kernel_f64
+
+--  msun's __kernel_tan on [-π/4, π/4]: tan(x) for `odd` 1, -1/tan(x) for
+--  -1.  tan(x) ~ x + T0·x³ + ... + T12·x²⁷, error below 2^-59.2; above
+--  0.6744, tan(x) = tan(π/4 - y') is computed from y' = π/4 - x instead.
+tan_kernel_f64: (x: f64, y: f64, odd: i32) -> (result: f64) =
+    t0: f64 = 0x1.5555555555563p-2
+    t1: f64 = 0x1.111111110fe7ap-3
+    t2: f64 = 0x1.ba1ba1bb341fep-5
+    t3: f64 = 0x1.664f48406d637p-6
+    t4: f64 = 0x1.226e3e96e8493p-7
+    t5: f64 = 0x1.d6d22c9560328p-9
+    t6: f64 = 0x1.7dbc8fee08315p-10
+    t7: f64 = 0x1.344d8f2f26501p-11
+    t8: f64 = 0x1.026f71a8d1068p-12
+    t9: f64 = 0x1.47e88a03792a6p-14
+    t10: f64 = 0x1.2b80f32f0a7e9p-14
+    t11: f64 = -0x1.375cbdb605373p-16
+    t12: f64 = 0x1.b2a7074bf7ad4p-16
+    pio4: f64 = 0x1.921fb54442d18p-1
+    pio4lo: f64 = 0x1.1a62633145c07p-55
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    big := ix >= 0x3fe59428
+    mut a: f64 = x
+    mut b: f64 = y
+    mut z: f64 = 0.0
+    mut w: f64 = 0.0
+    if big then
+        if hx >= 0x80000000 then
+            a = -a
+            b = -b
+        end if
+        z = pio4 - a
+        w = pio4lo - b
+        a = z + w
+        b = 0.0
+    end if
+    z = a * a
+    w = z * z
+    --  x⁵·(T1 + x⁴·T3 + ... + x²⁰·T11) + x⁵·x²·(T2 + x⁴·T4 + ... + x²⁰·T12)
+    mut r: f64 = t1 + w * (t3 + w * (t5 + w * (t7 + w * (t9 + w * t11))))
+    mut v: f64 = z * (t2 + w * (t4 + w * (t6 + w * (t8 + w * (t10 + w * t12)))))
+    mut s: f64 = z * a
+    r = b + z * (s * (r + v) + b)
+    r = r + t0 * s
+    w = a + r
+    if big then
+        v = f64(odd)
+        result = f64(1 - ((signed_word(hx) >> 30) & 2))
+                 * (v - 2.0 * (a - (w * w / (w + v) - r)))
+        return
+    end if
+    if odd == 1 then
+        result = w
+        return
+    end if
+    --  -1/(a + r) to full accuracy: z + v = a + r with z's low word
+    --  cleared, and one Newton correction of t = -1/w.
+    z = with_low_word(w, 0)
+    v = r - (z - a)
+    q := -1.0 / w
+    t := with_low_word(q, 0)
+    s = 1.0 + t * z
+    result = t + q * (s + t * v)
+end tan_kernel_f64
+
+sin_f64: (x: f64) -> (result: f64) =
+    ix := high_word(x) & 0x7fffffff
+    if ix <= 0x3fe921fb then
+        --  |x| ~< π/4; below 2^-26, sin(x) rounds to x.
+        result = if ix < 0x3e500000 then x else sin_kernel_f64(x, 0.0, 0) end if
+    elsif ix >= 0x7ff00000 then
+        result = x - x
+    else
+        (n: quadrant, high: high, low: low) := rem_pio2_f64(x)
+        result = match_quadrant_sin_f64(quadrant, high, low)
+    end if
+end sin_f64
+
+match_quadrant_sin_f64: (n: i32, high: f64, low: f64) -> (result: f64) =
+    quadrant := n & 3
+    if quadrant == 0 then
+        result = sin_kernel_f64(high, low, 1)
+    elsif quadrant == 1 then
+        result = cos_kernel_f64(high, low)
+    elsif quadrant == 2 then
+        result = -sin_kernel_f64(high, low, 1)
+    else
+        result = -cos_kernel_f64(high, low)
+    end if
+end match_quadrant_sin_f64
+
+cos_f64: (x: f64) -> (result: f64) =
+    ix := high_word(x) & 0x7fffffff
+    if ix <= 0x3fe921fb then
+        --  |x| ~< π/4; below 2^-27·√2, cos(x) rounds to 1.
+        result = if ix < 0x3e46a09e then 1.0 else cos_kernel_f64(x, 0.0) end if
+    elsif ix >= 0x7ff00000 then
+        result = x - x
+    else
+        (n: quadrant, high: high, low: low) := rem_pio2_f64(x)
+        result = match_quadrant_sin_f64(quadrant + 1, high, low)
+    end if
+end cos_f64
+
+tan_f64: (x: f64) -> (result: f64) =
+    ix := high_word(x) & 0x7fffffff
+    if ix <= 0x3fe921fb then
+        --  |x| ~< π/4; below 2^-27, tan(x) rounds to x.
+        result = if ix < 0x3e400000 then x else tan_kernel_f64(x, 0.0, 1) end if
+    elsif ix >= 0x7ff00000 then
+        result = x - x
+    else
+        (n: quadrant, high: high, low: low) := rem_pio2_f64(x)
+        --  1 for an even quadrant, -1 for an odd one.
+        result = tan_kernel_f64(high, low, 1 - ((quadrant & 1) << 1))
+    end if
+end tan_f64
+
+--  msun's __ieee754_rem_pio2f: x - n·π/2 in f64, for |x| above π/4.
+--  Below 2^28·π/2, 33+53 bits of π/2 are enough; beyond,
+--  rem_pio2_large on the one 24-bit piece x is.
+rem_pio2_f32: (x: f32) -> (n: i32, reduced: f64) =
+    invpio2: f64 = 0x1.45f306dc9c883p-1
+    pio2_1: f64 = 0x1.921fb50000000p+0
+    pio2_1t: f64 = 0x1.110b4611a6263p-26
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    if ix < 0x4dc90fdb then
+        fn := (f64(x) * invpio2 + 0x1.8p52) - 0x1.8p52
+        n = i32(fn)
+        r := f64(x) - fn * pio2_1
+        w := fn * pio2_1t
+        reduced = r - w
+        return
+    end if
+    if ix >= 0x7f800000 then
+        reduced = f64(x - x)
+        n = 0
+        return
+    end if
+    --  z = |x| scaled to [2^23, 2^24).
+    e0 := i32(ix >> 23) - 150
+    mut pieces: [3]f64 = zeroed
+    pieces[0] = f64(from_bits_f32(ix - (u32(e0) << 23)))
+    (n: quadrant, high: high, low: _) := rem_pio2_large(pieces, e0, 1, 0)
+    if hx < 0x80000000 then
+        n = quadrant
+        reduced = high
+    else
+        n = -quadrant
+        reduced = -high
+    end if
+end rem_pio2_f32
+
+--  msun's __kernel_sindf: sin(x) on [-π/4, π/4] in f64, |sin(x)/x -
+--  s(x)| < 2^-37.5.
+sin_kernel_f32: (x: f64) -> (result: f32) =
+    s1: f64 = -0x1.5555554cbac77p-3
+    s2: f64 = 0x1.11110896efbb2p-7
+    s3: f64 = -0x1.a00f9e2cae774p-13
+    s4: f64 = 0x1.6cd878c3b46a7p-19
+    z := x * x
+    w := z * z
+    r := s3 + z * s4
+    s := z * x
+    result = f32((x + s * (s1 + z * s2)) + s * w * r)
+end sin_kernel_f32
+
+--  msun's __kernel_cosdf: cos(x) on [-π/4, π/4] in f64, |cos(x) - c(x)|
+--  < 2^-34.1.
+cos_kernel_f32: (x: f64) -> (result: f32) =
+    one: f64 = 1.0
+    c0: f64 = -0x1.ffffffd0c5e81p-2
+    c1: f64 = 0x1.55553e1053a42p-5
+    c2: f64 = -0x1.6c087e80f1e27p-10
+    c3: f64 = 0x1.99342e0ee5069p-16
+    z := x * x
+    w := z * z
+    r := c2 + z * c3
+    result = f32(((one + z * c0) + w * c1) + (w * z) * r)
+end cos_kernel_f32
+
+--  msun's __kernel_tandf: tan(x), or -1/tan(x) for `odd` -1, on
+--  [-π/4, π/4] in f64, |tan(x)/x - t(x)| < 2^-25.5.  The polynomial is
+--  split into small terms added from the lowest degree up.
+tan_kernel_f32: (x: f64, odd: i32) -> (result: f32) =
+    t0: f64 = 0x1.5554d3418c99fp-2
+    t1: f64 = 0x1.112fd38999f72p-3
+    t2: f64 = 0x1.b54c91d865afep-5
+    t3: f64 = 0x1.91df3908c33cep-6
+    t4: f64 = 0x1.85dadfcecf44ep-9
+    t5: f64 = 0x1.362b9bf971bcdp-7
+    z := x * x
+    mut r: f64 = t4 + z * t5
+    t := t2 + z * t3
+    w := z * z
+    s := z * x
+    u := t0 + z * t1
+    r = (x + s * u) + (s * w) * (t + w * r)
+    result = if odd == 1 then f32(r) else f32(-1.0 / r) end if
+end tan_kernel_f32
+
+--  The quadrant's kernel for sin_f32 and, a quadrant on, cos_f32.
+sin_quadrant_f32: (n: i32, y: f64) -> (result: f32) =
+    quadrant := n & 3
+    if quadrant == 0 then
+        result = sin_kernel_f32(y)
+    elsif quadrant == 1 then
+        result = cos_kernel_f32(y)
+    elsif quadrant == 2 then
+        result = sin_kernel_f32(-y)
+    else
+        result = -cos_kernel_f32(y)
+    end if
+end sin_quadrant_f32
+
+--  Small multiples of π/2 in f64, so that x less one is exact.
+pio2_f64: f64 = 0x1.921fb54442d18p+0
+pi_f64: f64 = 0x1.921fb54442d18p+1
+three_pio2_f64: f64 = 0x1.2d97c7f3321d2p+2
+two_pi_f64: f64 = 0x1.921fb54442d18p+2
+
+sin_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    positive := hx < 0x80000000
+    wide := f64(x)
+    if ix <= 0x3f490fda then
+        --  |x| ~<= π/4; below 2^-12, sin(x) rounds to x.
+        result = if ix < 0x39800000 then x else sin_kernel_f32(wide) end if
+    elsif ix <= 0x407b53d1 then
+        --  |x| ~<= 5π/4
+        if ix <= 0x4016cbe3 then
+            --  |x| ~<= 3π/4
+            result = if positive then cos_kernel_f32(wide - pio2_f64)
+                     else -cos_kernel_f32(wide + pio2_f64) end if
+        else
+            result = sin_kernel_f32((if positive then pi_f64 else -pi_f64 end if) - wide)
+        end if
+    elsif ix <= 0x40e231d5 then
+        --  |x| ~<= 9π/4
+        if ix <= 0x40afeddf then
+            --  |x| ~<= 7π/4
+            result = if positive then -cos_kernel_f32(wide - three_pio2_f64)
+                     else cos_kernel_f32(wide + three_pio2_f64) end if
+        else
+            result = sin_kernel_f32(wide + (if positive then -two_pi_f64 else two_pi_f64 end if))
+        end if
+    elsif ix >= 0x7f800000 then
+        result = x - x
+    else
+        (n: quadrant, reduced: y) := rem_pio2_f32(x)
+        result = sin_quadrant_f32(quadrant, y)
+    end if
+end sin_f32
+
+cos_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    positive := hx < 0x80000000
+    wide := f64(x)
+    if ix <= 0x3f490fda then
+        --  |x| ~<= π/4; below 2^-12, cos(x) rounds to 1.
+        result = if ix < 0x39800000 then 1.0 else cos_kernel_f32(wide) end if
+    elsif ix <= 0x407b53d1 then
+        --  |x| ~<= 5π/4
+        if ix > 0x4016cbe3 then
+            --  |x| ~> 3π/4
+            result = -cos_kernel_f32(wide + (if positive then -pi_f64 else pi_f64 end if))
+        else
+            result = if positive then sin_kernel_f32(pio2_f64 - wide)
+                     else sin_kernel_f32(wide + pio2_f64) end if
+        end if
+    elsif ix <= 0x40e231d5 then
+        --  |x| ~<= 9π/4
+        if ix > 0x40afeddf then
+            --  |x| ~> 7π/4
+            result = cos_kernel_f32(wide + (if positive then -two_pi_f64 else two_pi_f64 end if))
+        else
+            result = if positive then sin_kernel_f32(wide - three_pio2_f64)
+                     else sin_kernel_f32(-three_pio2_f64 - wide) end if
+        end if
+    elsif ix >= 0x7f800000 then
+        result = x - x
+    else
+        (n: quadrant, reduced: y) := rem_pio2_f32(x)
+        result = sin_quadrant_f32(quadrant + 1, y)
+    end if
+end cos_f32
+
+tan_f32: (x: f32) -> (result: f32) =
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    positive := hx < 0x80000000
+    wide := f64(x)
+    if ix <= 0x3f490fda then
+        --  |x| ~<= π/4; below 2^-12, tan(x) rounds to x.
+        result = if ix < 0x39800000 then x else tan_kernel_f32(wide, 1) end if
+    elsif ix <= 0x407b53d1 then
+        --  |x| ~<= 5π/4
+        if ix <= 0x4016cbe3 then
+            result = tan_kernel_f32(wide + (if positive then -pio2_f64 else pio2_f64 end if), -1)
+        else
+            result = tan_kernel_f32(wide + (if positive then -pi_f64 else pi_f64 end if), 1)
+        end if
+    elsif ix <= 0x40e231d5 then
+        --  |x| ~<= 9π/4
+        if ix <= 0x40afeddf then
+            result = tan_kernel_f32(wide + (if positive then -three_pio2_f64 else three_pio2_f64 end if), -1)
+        else
+            result = tan_kernel_f32(wide + (if positive then -two_pi_f64 else two_pi_f64 end if), 1)
+        end if
+    elsif ix >= 0x7f800000 then
+        result = x - x
+    else
+        (n: quadrant, reduced: y) := rem_pio2_f32(x)
+        result = tan_kernel_f32(y, 1 - ((quadrant & 1) << 1))
+    end if
+end tan_f32
+
+--  The rational approximation msun's asin and acos share:
+--  asin(x) = x + x·x²·R(x²) on [0, 0.5], R = P/Q, error below 2^-58.75.
+asin_ratio_f64: (t: f64) -> (result: f64) =
+    one: f64 = 1.0
+    ps0: f64 = 0x1.5555555555555p-3
+    ps1: f64 = -0x1.4d61203eb6f7dp-2
+    ps2: f64 = 0x1.9c1550e884455p-3
+    ps3: f64 = -0x1.48228b5688f3bp-5
+    ps4: f64 = 0x1.9efe07501b288p-11
+    ps5: f64 = 0x1.23de10dfdf709p-15
+    qs1: f64 = -0x1.33a271c8a2d4bp+1
+    qs2: f64 = 0x1.02ae59c598ac8p+1
+    qs3: f64 = -0x1.6066c1b8d0159p-1
+    qs4: f64 = 0x1.3b8c5b12e9282p-4
+    p := t * (ps0 + t * (ps1 + t * (ps2 + t * (ps3 + t * (ps4 + t * ps5)))))
+    q := one + t * (qs1 + t * (qs2 + t * (qs3 + t * qs4)))
+    result = p / q
+end asin_ratio_f64
+
+--  msun's asin: below 0.5, x + x·R(x²); above, with t = (1 - |x|)/2,
+--  asin(x) = π/2 - 2·asin(√t), √t split into a 26-bit head and a tail
+--  for |x| up to 0.975 so that the subtraction keeps its accuracy.
+asin_f64: (x: f64) -> (result: f64) =
+    one: f64 = 1.0
+    pio2_hi: f64 = 0x1.921fb54442d18p+0
+    pio2_lo: f64 = 0x1.1a62633145c07p-54
+    pio4_hi: f64 = 0x1.921fb54442d18p-1
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x3ff00000 then
+        if ((ix - 0x3ff00000) | low_word(x)) == 0 then
+            --  asin(±1) = ±π/2
+            result = x * pio2_hi + x * pio2_lo
+        else
+            result = (x - x) / (x - x)
+        end if
+        return
+    end if
+    if ix < 0x3fe00000 then
+        --  |x| < 0.5; below 2^-26, asin(x) rounds to x.
+        if ix < 0x3e500000 then
+            result = x
+            return
+        end if
+        result = x + x * asin_ratio_f64(x * x)
+        return
+    end if
+    w0 := one - abs_f64(x)
+    mut t: f64 = w0 * 0.5
+    s := sqrt_f64(t)
+    r := asin_ratio_f64(t)
+    if ix >= 0x3fef3333 then
+        --  |x| > 0.975
+        t = pio2_hi - (2.0 * (s + s * r) - pio2_lo)
+    else
+        w := with_low_word(s, 0)
+        c := (t - w * w) / (s + w)
+        p := 2.0 * s * r - (pio2_lo - 2.0 * c)
+        q := pio4_hi - 2.0 * w
+        t = pio4_hi - (p - q)
+    end if
+    result = if hx < 0x80000000 then t else -t end if
+end asin_f64
+
+--  msun's acos: below 0.5, π/2 - asin(x); beyond, from
+--  acos(x) = 2·asin(√((1 - x)/2)) for x > 0.5 and
+--  π - 2·asin(√((1 + x)/2)) for x < -0.5.
+acos_f64: (x: f64) -> (result: f64) =
+    pi: f64 = 0x1.921fb54442d18p+1
+    pio2_hi: f64 = 0x1.921fb54442d18p+0
+    pio2_lo: f64 = 0x1.1a62633145c07p-54
+    one: f64 = 1.0
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x3ff00000 then
+        if ((ix - 0x3ff00000) | low_word(x)) == 0 then
+            result = if hx < 0x80000000 then 0.0 else pi + 2.0 * pio2_lo end if
+        else
+            result = (x - x) / (x - x)
+        end if
+        return
+    end if
+    if ix < 0x3fe00000 then
+        --  |x| < 0.5; below 2^-57, acos(x) rounds to π/2.
+        if ix <= 0x3c600000 then
+            result = pio2_hi + pio2_lo
+            return
+        end if
+        r := asin_ratio_f64(x * x)
+        result = pio2_hi - (x - (pio2_lo - x * r))
+    elsif hx >= 0x80000000 then
+        --  x < -0.5
+        z := (one + x) * 0.5
+        s := sqrt_f64(z)
+        r := asin_ratio_f64(z)
+        w := r * s - pio2_lo
+        result = pi - 2.0 * (s + w)
+    else
+        --  x > 0.5
+        z := (one - x) * 0.5
+        s := sqrt_f64(z)
+        df := with_low_word(s, 0)
+        c := (z - df * df) / (s + df)
+        r := asin_ratio_f64(z)
+        w := r * s + c
+        result = 2.0 * (df + w)
+    end if
+end acos_f64
+
+--  atan at 0.5, 1, 1.5 and infinity, each as a head and a tail.
+atan_high_f64: [4]f64 = [0x1.dac670561bb4fp-2, 0x1.921fb54442d18p-1,
+                         0x1.f730bd281f69bp-1, 0x1.921fb54442d18p+0]
+atan_low_f64: [4]f64 = [0x1.a2b7f222f65e2p-56, 0x1.1a62633145c07p-55,
+                        0x1.007887af0cbbdp-56, 0x1.1a62633145c07p-54]
+
+--  msun's atan: |x| is reduced to [0, 7/16] by atan(x) = atan(c) +
+--  atan((x - c)/(1 + x·c)) for c = 0.5, 1, 1.5 or infinity, then
+--  atan(x) ~ x - x³·(aT0 + x²·aT1 + ... + x²⁰·aT10), error below 2^-56.9.
+atan_f64: (x: f64) -> (result: f64) =
+    one: f64 = 1.0
+    at0: f64 = 0x1.555555555550dp-2
+    at1: f64 = -0x1.999999998ebc4p-3
+    at2: f64 = 0x1.24924920083ffp-3
+    at3: f64 = -0x1.c71c6fe231671p-4
+    at4: f64 = 0x1.745cdc54c206ep-4
+    at5: f64 = -0x1.3b0f2af749a6dp-4
+    at6: f64 = 0x1.10d66a0d03d51p-4
+    at7: f64 = -0x1.dde2d52defd9ap-5
+    at8: f64 = 0x1.97b4b24760debp-5
+    at9: f64 = -0x1.2b4442c6a6c2fp-5
+    at10: f64 = 0x1.0ad3ae322da11p-6
+    hx := high_word(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x44100000 then
+        --  |x| >= 2^66: ±π/2, or NaN.
+        if ix > 0x7ff00000 or (ix == 0x7ff00000 and low_word(x) <> 0) then
+            result = x + x
+        elsif negative then
+            result = -atan_high_f64[3] - atan_low_f64[3]
+        else
+            result = atan_high_f64[3] + atan_low_f64[3]
+        end if
+        return
+    end if
+    mut a: f64 = x
+    mut id: i32 = -1
+    if ix < 0x3fdc0000 then
+        --  |x| < 0.4375; below 2^-27, atan(x) rounds to x.
+        if ix < 0x3e400000 then
+            result = x
+            return
+        end if
+    else
+        a = abs_f64(x)
+        if ix < 0x3ff30000 then
+            --  |x| < 1.1875
+            if ix < 0x3fe60000 then
+                --  7/16 <= |x| < 11/16
+                id = 0
+                a = (2.0 * a - one) / (2.0 + a)
+            else
+                --  11/16 <= |x| < 19/16
+                id = 1
+                a = (a - one) / (a + one)
+            end if
+        elsif ix < 0x40038000 then
+            --  |x| < 2.4375
+            id = 2
+            a = (a - 1.5) / (one + 1.5 * a)
+        else
+            --  2.4375 <= |x| < 2^66
+            id = 3
+            a = -1.0 / a
+        end if
+    end if
+    z := a * a
+    w := z * z
+    --  The sum of aT[i]·z^(i+1), split into odd and even terms.
+    s1 := z * (at0 + w * (at2 + w * (at4 + w * (at6 + w * (at8 + w * at10)))))
+    s2 := w * (at1 + w * (at3 + w * (at5 + w * (at7 + w * at9))))
+    if id < 0 then
+        result = a - a * (s1 + s2)
+        return
+    end if
+    z2 := atan_high_f64[usize(id)] - ((a * (s1 + s2) - atan_low_f64[usize(id)]) - a)
+    result = if negative then -z2 else z2 end if
+end atan_f64
+
+--  msun's atan2: C99's special cases of signed zeros and infinities,
+--  then atan(|y/x|) placed in the quadrant of (x, y), with π's tail
+--  added where π is.
+atan2_f64: (y: f64, x: f64) -> (result: f64) =
+    tiny: f64 = 0x1.0p-997
+    pi_o_4: f64 = 0x1.921fb54442d18p-1
+    pi_o_2: f64 = 0x1.921fb54442d18p+0
+    pi: f64 = 0x1.921fb54442d18p+1
+    pi_lo: f64 = 0x1.1a62633145c07p-53
+    hx := high_word(x)
+    lx := low_word(x)
+    ix := hx & 0x7fffffff
+    hy := high_word(y)
+    ly := low_word(y)
+    iy := hy & 0x7fffffff
+    if (ix | (if lx <> 0 then 1 else 0 end if)) > 0x7ff00000
+      or (iy | (if ly <> 0 then 1 else 0 end if)) > 0x7ff00000 then
+        result = x + y
+        return
+    end if
+    if hx == 0x3ff00000 and lx == 0 then
+        --  x = 1
+        result = atan_f64(y)
+        return
+    end if
+    --  2·sign(x) + sign(y)
+    mut m: u32 = (hy >> 31) | ((hx >> 30) & 2)
+    if (iy | ly) == 0 then
+        --  y = 0: atan2(±0, +anything) = ±0, atan2(±0, -anything) = ±π.
+        if m <= 1 then
+            result = y
+        elsif m == 2 then
+            result = pi + tiny
+        else
+            result = -pi - tiny
+        end if
+        return
+    end if
+    if (ix | lx) == 0 then
+        result = if hy >= 0x80000000 then -pi_o_2 - tiny else pi_o_2 + tiny end if
+        return
+    end if
+    if ix == 0x7ff00000 then
+        if iy == 0x7ff00000 then
+            if m == 0 then
+                result = pi_o_4 + tiny
+            elsif m == 1 then
+                result = -pi_o_4 - tiny
+            elsif m == 2 then
+                result = 3.0 * pi_o_4 + tiny
+            else
+                result = -3.0 * pi_o_4 - tiny
+            end if
+        else
+            if m == 0 then
+                result = 0.0
+            elsif m == 1 then
+                result = -0.0
+            elsif m == 2 then
+                result = pi + tiny
+            else
+                result = -pi - tiny
+            end if
+        end if
+        return
+    end if
+    if iy == 0x7ff00000 then
+        result = if hy >= 0x80000000 then -pi_o_2 - tiny else pi_o_2 + tiny end if
+        return
+    end if
+    --  y/x
+    k := (signed_word(iy) - signed_word(ix)) >> 20
+    mut z: f64 = 0.0
+    if k > 60 then
+        --  |y/x| > 2^60
+        z = pi_o_2 + 0.5 * pi_lo
+        m = m & 1
+    elsif hx >= 0x80000000 and k < -60 then
+        --  0 > |y|/x > -2^-60
+        z = 0.0
+    else
+        z = atan_f64(abs_f64(y / x))
+    end if
+    if m == 0 then
+        result = z
+    elsif m == 1 then
+        result = -z
+    elsif m == 2 then
+        result = pi - (z - pi_lo)
+    else
+        result = (z - pi_lo) - pi
+    end if
+end atan2_f64
+
+--  msun's asinf: as asin, with R(x²) of degree 2/2, error below 2^-30,
+--  and the step from √t in f64 instead of splitting it.
+asin_f32: (x: f32) -> (result: f32) =
+    one: f32 = 1.0
+    ps0: f32 = 0x1.555556p-3
+    ps1: f32 = -0x1.e983a2p-4
+    ps2: f32 = 0x1.667bd2p-8
+    qs1: f32 = -0x1.2ac480p+0
+    qs2: f32 = 0x1.2913f2p-2
+    pio2: f64 = 0x1.921fb54442d18p+0
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x3f800000 then
+        if ix == 0x3f800000 then
+            --  asin(±1) = ±π/2
+            result = f32(f64(x) * pio2)
+        else
+            result = (x - x) / (x - x)
+        end if
+        return
+    end if
+    if ix < 0x3f000000 then
+        --  |x| < 0.5; below 2^-12, asin(x) rounds to x.
+        if ix < 0x39800000 then
+            result = x
+            return
+        end if
+        t := x * x
+        p := t * (ps0 + t * (ps1 + t * ps2))
+        q := one + t * (qs1 + t * qs2)
+        w := p / q
+        result = x + x * w
+        return
+    end if
+    mut w: f32 = one - abs_f32(x)
+    t := w * 0.5
+    p := t * (ps0 + t * (ps1 + t * ps2))
+    q := one + t * (qs1 + t * qs2)
+    s := sqrt_f64(f64(t))
+    w = p / q
+    r := f32(pio2 - 2.0 * (s + s * f64(w)))
+    result = if hx < 0x80000000 then r else -r end if
+end asin_f32
+
+--  msun's acosf, as acos with asinf's R.
+acos_f32: (x: f32) -> (result: f32) =
+    one: f32 = 1.0
+    pi: f32 = 0x1.921fb4p+1
+    pio2_hi: f32 = 0x1.921fb4p+0
+    pio2_lo: f32 = 0x1.4442d0p-24
+    ps0: f32 = 0x1.555556p-3
+    ps1: f32 = -0x1.e983a2p-4
+    ps2: f32 = 0x1.667bd2p-8
+    qs1: f32 = -0x1.2ac480p+0
+    qs2: f32 = 0x1.2913f2p-2
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    if ix >= 0x3f800000 then
+        if ix == 0x3f800000 then
+            result = if hx < 0x80000000 then 0.0 else pi + 2.0 * pio2_lo end if
+        else
+            result = (x - x) / (x - x)
+        end if
+        return
+    end if
+    if ix < 0x3f000000 then
+        --  |x| < 0.5; below 2^-26, acos(x) rounds to π/2.
+        if ix <= 0x32800000 then
+            result = pio2_hi + pio2_lo
+            return
+        end if
+        z := x * x
+        p := z * (ps0 + z * (ps1 + z * ps2))
+        q := one + z * (qs1 + z * qs2)
+        r := p / q
+        result = pio2_hi - (x - (pio2_lo - x * r))
+    elsif hx >= 0x80000000 then
+        --  x < -0.5
+        z := (one + x) * 0.5
+        p := z * (ps0 + z * (ps1 + z * ps2))
+        q := one + z * (qs1 + z * qs2)
+        s := sqrt_f32(z)
+        r := p / q
+        w := r * s - pio2_lo
+        result = pi - 2.0 * (s + w)
+    else
+        --  x > 0.5
+        z := (one - x) * 0.5
+        s := sqrt_f32(z)
+        df := from_bits_f32(bits_f32(s) & 0xfffff000)
+        c := (z - df * df) / (s + df)
+        p := z * (ps0 + z * (ps1 + z * ps2))
+        q := one + z * (qs1 + z * qs2)
+        r := p / q
+        w := r * s + c
+        result = 2.0 * (df + w)
+    end if
+end acos_f32
+
+atan_high_f32: [4]f32 = [0x1.dac670p-2, 0x1.921fb4p-1, 0x1.f730bcp-1, 0x1.921fb4p+0]
+atan_low_f32: [4]f32 = [0x1.586ed2p-28, 0x1.4442d0p-25, 0x1.281f68p-25, 0x1.4442d0p-24]
+
+--  msun's atanf, as atan with a polynomial of five terms.
+atan_f32: (x: f32) -> (result: f32) =
+    one: f32 = 1.0
+    at0: f32 = 0x1.555552p-2
+    at1: f32 = -0x1.999530p-3
+    at2: f32 = 0x1.23ea1ap-3
+    at3: f32 = -0x1.b4248ep-4
+    at4: f32 = 0x1.f9584ap-5
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    negative := hx >= 0x80000000
+    if ix >= 0x4c800000 then
+        --  |x| >= 2^26: ±π/2, or NaN.
+        if ix > 0x7f800000 then
+            result = x + x
+        elsif negative then
+            result = -atan_high_f32[3] - atan_low_f32[3]
+        else
+            result = atan_high_f32[3] + atan_low_f32[3]
+        end if
+        return
+    end if
+    mut a: f32 = x
+    mut id: i32 = -1
+    if ix < 0x3ee00000 then
+        --  |x| < 0.4375; below 2^-12, atan(x) rounds to x.
+        if ix < 0x39800000 then
+            result = x
+            return
+        end if
+    else
+        a = abs_f32(x)
+        if ix < 0x3f980000 then
+            if ix < 0x3f300000 then
+                id = 0
+                a = (2.0 * a - one) / (2.0 + a)
+            else
+                id = 1
+                a = (a - one) / (a + one)
+            end if
+        elsif ix < 0x401c0000 then
+            id = 2
+            a = (a - 1.5) / (one + 1.5 * a)
+        else
+            id = 3
+            a = -1.0 / a
+        end if
+    end if
+    z := a * a
+    w := z * z
+    s1 := z * (at0 + w * (at2 + w * at4))
+    s2 := w * (at1 + w * at3)
+    if id < 0 then
+        result = a - a * (s1 + s2)
+        return
+    end if
+    z2 := atan_high_f32[usize(id)] - ((a * (s1 + s2) - atan_low_f32[usize(id)]) - a)
+    result = if negative then -z2 else z2 end if
+end atan_f32
+
+--  msun's atan2f, as atan2.
+atan2_f32: (y: f32, x: f32) -> (result: f32) =
+    tiny: f32 = 0x1.4484c0p-100
+    pi_o_4: f32 = 0x1.921fb6p-1
+    pi_o_2: f32 = 0x1.921fb6p+0
+    pi: f32 = 0x1.921fb6p+1
+    pi_lo: f32 = -0x1.777a5cp-24
+    hx := bits_f32(x)
+    ix := hx & 0x7fffffff
+    hy := bits_f32(y)
+    iy := hy & 0x7fffffff
+    if ix > 0x7f800000 or iy > 0x7f800000 then
+        result = x + y
+        return
+    end if
+    if hx == 0x3f800000 then
+        result = atan_f32(y)
+        return
+    end if
+    mut m: u32 = (hy >> 31) | ((hx >> 30) & 2)
+    if iy == 0 then
+        if m <= 1 then
+            result = y
+        elsif m == 2 then
+            result = pi + tiny
+        else
+            result = -pi - tiny
+        end if
+        return
+    end if
+    if ix == 0 then
+        result = if hy >= 0x80000000 then -pi_o_2 - tiny else pi_o_2 + tiny end if
+        return
+    end if
+    if ix == 0x7f800000 then
+        if iy == 0x7f800000 then
+            if m == 0 then
+                result = pi_o_4 + tiny
+            elsif m == 1 then
+                result = -pi_o_4 - tiny
+            elsif m == 2 then
+                result = 3.0 * pi_o_4 + tiny
+            else
+                result = -3.0 * pi_o_4 - tiny
+            end if
+        else
+            if m == 0 then
+                result = 0.0
+            elsif m == 1 then
+                result = -0.0
+            elsif m == 2 then
+                result = pi + tiny
+            else
+                result = -pi - tiny
+            end if
+        end if
+        return
+    end if
+    if iy == 0x7f800000 then
+        result = if hy >= 0x80000000 then -pi_o_2 - tiny else pi_o_2 + tiny end if
+        return
+    end if
+    k := (signed_word(iy) - signed_word(ix)) >> 23
+    mut z: f32 = 0.0
+    if k > 26 then
+        --  |y/x| > 2^26
+        z = pi_o_2 + 0.5 * pi_lo
+        m = m & 1
+    elsif k < -26 and hx >= 0x80000000 then
+        --  0 > |y|/x > -2^-26
+        z = 0.0
+    else
+        z = atan_f32(abs_f32(y / x))
+    end if
+    if m == 0 then
+        result = z
+    elsif m == 1 then
+        result = -z
+    elsif m == 2 then
+        result = pi - (z - pi_lo)
+    else
+        result = (z - pi_lo) - pi
+    end if
+end atan2_f32
