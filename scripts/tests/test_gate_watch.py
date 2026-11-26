@@ -16,13 +16,20 @@ ROOT = Path(__file__).resolve().parents[2]
 #  because scripts/script_tests.py's own workers load the host.
 HANG = 300
 WATCH = ROOT / "scripts" / "gate_watch.py"
+sys.path.insert(0, str(ROOT / "scripts"))
+import gate_watch  # noqa: E402 -- the module under test
+#  The workflow file whose runs the watcher follows, as GitHub names it.
+WORKFLOW_PATH = gate_watch.WORKFLOW
 
-#  Answers each `gh run view` of a run's status with the next recorded
-#  state, holding the last, and the job listing in pages of the size asked
-#  for.  Every call's arguments are appended to STATES.calls.  STATES.fail,
-#  when present, is [count, message]: that many job-listing requests are
-#  refused with the message before one is answered.  STATES.unlisted is
-#  the number of `run list` requests answered with no run.
+#  Answers GitHub's GraphQL API as gate_watch.py asks it.  A query naming
+#  runs is answered with the next recorded state, holding the last; its
+#  check runs are the state's jobs, a page of the size asked for after the
+#  cursor given, and a query for steps gives the failed steps of the state
+#  last answered.  A query naming commits lists run 7 for each.  Every
+#  call's arguments are appended to STATES.calls.  STATES.fail, when
+#  present, is [count, message]: that many requests are refused with the
+#  message before one is answered.  STATES.unlisted is the number of commit
+#  queries answered with no run.
 FAKE_GH = '''#!%s
 import json, os, re, sys
 base = os.environ["STATES"]
@@ -31,39 +38,67 @@ with open(base + ".calls", "a") as calls:
     calls.write(json.dumps(sys.argv[1:]) + "\\n")
 def number(suffix):
     return int(open(base + suffix).read()) if os.path.exists(base + suffix) else 0
+if os.path.exists(base + ".fail"):
+    left, message = json.load(open(base + ".fail"))
+    if left:
+        json.dump([left - 1, message], open(base + ".fail", "w"))
+        sys.stderr.write(message + "\\n")
+        sys.exit(1)
+if sys.argv[1:3] != ["api", "graphql"]:
+    sys.exit("the fake answers only GraphQL: %%s" %% sys.argv[1:])
+query = sys.argv[sys.argv.index("-f") + 1][len("query="):]
 seen = number(".count")
-if sys.argv[1] == "api":
-    if os.path.exists(base + ".fail"):
-        left, message = json.load(open(base + ".fail"))
-        if left:
-            json.dump([left - 1, message], open(base + ".fail", "w"))
-            sys.stderr.write(message + "\\n")
-            sys.exit(1)
-    #  The jobs of the state the last `run view` answered, as GitHub's
-    #  listing of every attempt gives them.
-    jobs = states[min(max(seen - 1, 0), len(states) - 1)]["jobs"]
-    size = int(re.search(r"per_page=(\\d+)", sys.argv[2]).group(1))
-    page = int(re.search(r"[?&]page=(\\d+)", sys.argv[2]).group(1))
-    print(json.dumps({"total_count": len(jobs), "jobs": [
-        {"id": j["databaseId"], "name": j["name"], "status": j["status"],
-         "conclusion": j["conclusion"] or None, "started_at": j["startedAt"],
-         "completed_at": j["completedAt"], "steps": j["steps"],
-         "run_attempt": j.get("run_attempt", 1)}
-        for j in jobs[(page - 1) * size:page * size]]}))
-elif sys.argv[1:3] == ["run", "list"]:
+data = {}
+def upper(value):
+    return value.upper() if value else None
+for run, first, after in re.findall(
+        r'r(\\d+): resource\\(url: "[^"]*"\\) \\{ \\.\\.\\. on WorkflowRun'
+        r' \\{[^(]*checkRuns\\(first: (\\d+)(?:, after: "(\\d+)")?', query):
+    if not after:
+        open(base + ".count", "w").write(str(seen + 1))
+    held = states[min(seen if not after else max(seen - 1, 0),
+                      len(states) - 1)]
+    start, size = int(after or 0), int(first)
+    jobs = held["jobs"]
+    data["r" + run] = {"databaseId": int(run),
+        "runAttempt": held.get("attempt", 1), "event": "push",
+        "url": held["url"], "displayTitle": "gate", "createdAt": "",
+        "file": {"path": os.environ["WORKFLOW"]},
+        "checkSuite": {"status": upper(held["status"]),
+            "conclusion": upper(held["conclusion"]),
+            "branch": {"name": "main"},
+            "checkRuns": {"totalCount": len(jobs),
+                "pageInfo": {"hasNextPage": start + size < len(jobs),
+                             "endCursor": str(start + size)},
+                "nodes": [{"id": "N%%d" %% j["databaseId"],
+                    "databaseId": j["databaseId"], "name": j["name"],
+                    "status": upper(j["status"]),
+                    "conclusion": upper(j["conclusion"]),
+                    "startedAt": j["startedAt"],
+                    "completedAt": j["completedAt"]}
+                    for j in jobs[start:start + size]]}}}
+commits = re.findall(r'c(\\d+): object\\(oid: "(\\w+)"\\)', query)
+if commits:
     unlisted = number(".unlisted")
     if unlisted:
         open(base + ".unlisted", "w").write(str(unlisted - 1))
-        print("[]")
-    else:
-        print(json.dumps([{"databaseId": 7}]))
-elif "event,headBranch" in sys.argv:
-    print(json.dumps({"event": "push", "headBranch": "main"}))
-else:
-    open(base + ".count", "w").write(str(seen + 1))
-    view = dict(states[min(seen, len(states) - 1)])
-    view.pop("jobs")
-    print(json.dumps(view))
+    suites = [] if unlisted else [{"status": "COMPLETED",
+        "conclusion": "SUCCESS", "branch": {"name": "main"},
+        "workflowRun": {"databaseId": 7, "runAttempt": 1, "event": "push",
+            "url": "", "displayTitle": "gate", "createdAt": "",
+            "file": {"path": os.environ["WORKFLOW"]}}}]
+    data["repository"] = {"c" + index: {"checkSuites": {"nodes": suites}}
+                          for index, _ in commits}
+ids = re.search(r"nodes\\(ids: \\[([^]]*)\\]", query)
+if ids:
+    held = states[min(max(seen - 1, 0), len(states) - 1)]
+    steps = {"N%%d" %% j["databaseId"]: j["steps"] for j in held["jobs"]}
+    data["nodes"] = [{"id": node, "steps": {"nodes": [
+        {"name": step["name"], "number": 1,
+         "conclusion": step["conclusion"].upper()}
+        for step in steps.get(node, [])]}}
+        for node in re.findall(r'"([^"]+)"', ids.group(1))]
+print(json.dumps({"data": data}))
 '''
 
 
@@ -97,6 +132,8 @@ class GateWatch(unittest.TestCase):
     def watch(self, states, *arguments):
         self.states.write_text(json.dumps(states))
         environment = {**os.environ, "STATES": str(self.states),
+                       "GH_REPO": "example/landin",
+                       "WORKFLOW": WORKFLOW_PATH,
                        "PATH": "%s%s%s" % (self.temporary.name, os.pathsep,
                                            os.environ["PATH"])}
         return subprocess.run(
@@ -110,9 +147,14 @@ class GateWatch(unittest.TestCase):
             return []
         return [json.loads(line) for line in recorded.read_text().splitlines()]
 
+    def queries(self):
+        return [call[call.index("-f") + 1] for call in self.calls()
+                if call[:2] == ["api", "graphql"]]
+
     def asked_for(self):
-        listed = [call for call in self.calls() if call[:2] == ["run", "list"]]
-        return listed[0][listed[0].index("--commit") + 1]
+        import re
+        return [re.search(r'oid: "(\w+)"', query).group(1)
+                for query in self.queries() if "oid:" in query][0]
 
     def test_the_first_failed_job_ends_the_watch_while_others_run(self):
         result = self.watch([
@@ -278,11 +320,8 @@ class GateWatch(unittest.TestCase):
         self.assertEqual(
             result.stdout.count("no push on main gate run for aaaaaaaaaaaa yet"),
             2, result.stdout)
-        listed = [call for call in self.calls() if call[:2] == ["run", "list"]]
+        listed = [query for query in self.queries() if "oid:" in query]
         self.assertEqual(len(listed), 3)
-        for call in listed:
-            self.assertEqual(call[call.index("--event") + 1], "push")
-            self.assertEqual(call[call.index("--branch") + 1], "main")
 
     def test_an_event_with_a_run_number_is_refused(self):
         result = self.watch([state("completed", [job(1, "gate")],
@@ -316,7 +355,8 @@ class GateWatch(unittest.TestCase):
         passed = job(3, "scripts")
         passed["run_attempt"] = 2
         result = self.watch([state("completed", [job(1, "documents"), failed,
-                                                 passed], conclusion="success")],
+                                                 passed], conclusion="success",
+                                   attempt=2)],
                             "--run=7", "--all")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertNotIn("FAILED", result.stdout)
@@ -369,16 +409,27 @@ class GateWatch(unittest.TestCase):
         self.assertIn("FAILED: scripts", result.stdout)
         self.assertIn("failed jobs: scripts", result.stdout)
 
-    def test_the_listing_is_read_in_pages_github_answers(self):
-        jobs = [job(number, "lane-%d" % number) for number in range(1, 72)]
+    def test_a_run_of_more_than_a_page_of_jobs_is_read_whole(self):
+        #  GraphQL gives a hundred check runs to a page; the rest of a run
+        #  of 171 is asked for after the first page's cursor.
+        jobs = [job(number, "lane-%d" % number) for number in range(1, 172)]
         result = self.watch([state("completed", jobs, conclusion="success")],
                             "--run=7")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("judged on 71 jobs", result.stdout)
-        asked = [call[1] for call in self.calls() if call[0] == "api"]
-        self.assertEqual(asked, [
-            "repos/{owner}/{repo}/actions/runs/7/jobs"
-            "?filter=all&per_page=30&page=%d" % page for page in (1, 2, 3)])
+        self.assertIn("judged on 171 jobs", result.stdout)
+        runs = [query for query in self.queries() if "resource(" in query]
+        self.assertIn('after: "100"', runs[-1])
+        self.assertNotIn("after:", runs[-2])
+
+    def test_one_query_asks_for_a_run_and_its_jobs(self):
+        #  The REST listing cost a run view and a page per thirty jobs at
+        #  every poll; the GraphQL query is one request.
+        jobs = [job(number, "lane-%d" % number) for number in range(1, 60)]
+        result = self.watch([state("in_progress", jobs),
+                             state("completed", jobs, conclusion="success")],
+                            "--run=7")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(self.calls()), 2, self.calls())
 
     def test_a_server_error_is_asked_again(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
@@ -411,9 +462,8 @@ class GateWatch(unittest.TestCase):
                                    conclusion="success")], "--run=7")
         self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         self.assertNotIn("Traceback", result.stderr)
-        self.assertIn("gate_watch: GitHub did not answer: gh api "
-                      "repos/{owner}/{repo}/actions/runs/7/jobs"
-                      "?filter=all&per_page=30&page=1", result.stderr)
+        self.assertIn("gate_watch: GitHub did not answer: gh api graphql "
+                      "(gate runs 7)", result.stderr)
         self.assertIn("HTTP 502", result.stderr)
         self.assertEqual(
             len([call for call in self.calls() if call[0] == "api"]), 4)

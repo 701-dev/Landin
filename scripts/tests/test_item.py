@@ -755,6 +755,63 @@ class Timing(Promote):
                 self.assertEqual(asked, [])
                 self.assertIn("did not fail in timing alone", out)
 
+    def boards_beside(self, listed, *extra):
+        """`item.py boards` with LISTED as GitHub's runs of the head; the
+        dispatches it asked for, and its status and output."""
+        head = getattr(self, "head", None) or self.commit("work")
+        self.head = head
+        git(self.worktree, "push", "-q", "origin", self.state["branch"])
+        asked, real = [], item.subprocess.run
+
+        def run(command, *arguments, **options):
+            if command[0] == "gh":
+                asked.append(command)
+                return item.subprocess.CompletedProcess(
+                    command, 1, "", "refused by the test")
+            return real(command, *arguments, **options)
+        saved = item.runs_of, item.record_gates, item.subprocess.run
+        item.runs_of = lambda commit: [dict(found, headBranch=self.state[
+            "branch"]) for found in listed]
+        item.record_gates = lambda state, commit: state
+        item.subprocess.run = run
+        try:
+            status, out = self.item("boards", FIRST, *extra)
+        finally:
+            item.runs_of, item.record_gates, item.subprocess.run = saved
+        return head, asked, status, out
+
+    def test_a_queued_boards_run_is_followed_not_dispatched_again(self):
+        queued = {"databaseId": 9, "event": "workflow_dispatch",
+                  "status": "queued", "conclusion": "",
+                  "displayTitle": "gate (boards)", "attempt": 1}
+        head, asked, status, out = self.boards_beside([queued])
+        self.assertEqual(status, 0, out)
+        self.assertEqual(asked, [])
+        self.assertIn("boards run 9 on %s is queued: followed, not"
+                      " dispatched again" % head[:12], out)
+
+    def test_a_passed_boards_run_is_named_not_dispatched_again(self):
+        passed = {"databaseId": 9, "event": "workflow_dispatch",
+                  "status": "completed", "conclusion": "success",
+                  "displayTitle": "gate (boards)", "attempt": 1}
+        _, asked, status, out = self.boards_beside([passed])
+        self.assertEqual(status, 0, out)
+        self.assertEqual(asked, [])
+        self.assertIn("boards run 9 on", out)
+        self.assertIn("passed: not dispatched again", out)
+
+    def test_again_or_a_failed_boards_run_dispatches(self):
+        failed = {"databaseId": 9, "event": "workflow_dispatch",
+                  "status": "completed", "conclusion": "failure",
+                  "displayTitle": "gate (boards)", "attempt": 1}
+        queued = dict(failed, status="queued", conclusion="")
+        for listed, extra in (([failed], ()), ([queued], ("--again",))):
+            with self.subTest(extra=extra):
+                _, asked, status, out = self.boards_beside(listed, *extra)
+                self.assertEqual(len(asked), 1, out)
+                self.assertEqual(asked[0][:3], ["gh", "workflow", "run"])
+                self.assertIn("refused by the test", out)
+
     def test_a_timing_failure_reads_as_timing(self):
         entry = dict(self.gate(self.commit("work"), "boards"),
                      conclusion="failure", failed="timing")

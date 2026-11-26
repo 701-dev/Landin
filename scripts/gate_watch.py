@@ -45,10 +45,13 @@ jobs, is printed as such and does not end the watch: it counts only if it
 is still the job's latest attempt when the run ends.  Failures a rerun
 replaced are named apart from the verdict.
 
-The listing is read thirty jobs to a page, since GitHub answered 502 for
-hundred-job pages of a run holding 193 jobs, and a server error is asked
+Each poll is one query to GitHub's GraphQL API, for the run's status and
+every attempt's check runs, which are its jobs; GraphQL's quota is apart
+from REST's, which the job listing's pages once spent in an hour for every
+watch on the host.  A server error, a rate limit or a hung request is asked
 again a bounded number of times.  A request that still fails is named, with
-GitHub's answer, and ends the watch with status 3.
+GitHub's answer, and ends the watch with status 3.  Only the command that
+shows a failed job's log, printed for whoever reads it, is REST's.
 
 A failed run whose board legs all passed and whose only failures are the
 timing jobs, `measure-time-*` and the aggregate after them, is named a
@@ -64,6 +67,7 @@ when the run ended otherwise, for instance cancelled by a newer push, and
 """
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -71,18 +75,15 @@ import time
 from datetime import datetime
 
 FAILED = ("failure", "timed_out", "startup_failure")
-#  Jobs to a page of the listing.  GitHub answered 502 for hundred-job
-#  pages once a run held 193 jobs over four attempts; thirty-job pages
-#  answered.
-PAGE = 30
-#  Pages read before the listing is called endless: 3000 jobs.
-PAGES = 100
 #  Times one request is asked while GitHub answers a server error.
 TRIES = 4
 #  A rate limit and a connection that broke before an answer are asked
 #  again as a server error is: one of them ended a watch with exit 3.
 SERVER_ERROR = re.compile(r"HTTP (5\d\d|429)|timed? ?out|connection "
-                          r"(reset|refused)|unexpected EOF", re.IGNORECASE)
+                          r"(reset|refused)|unexpected EOF|rate.?limit",
+                          re.IGNORECASE)
+#  Seconds before one request is called hung and asked again.
+REQUEST_LIMIT = 120
 #  Seconds between those tries; main lowers it to a shorter --interval.
 retry_pause = 5.0
 
@@ -91,37 +92,45 @@ class Unanswered(Exception):
     """A request GitHub did not answer, with what `gh` said."""
 
 
-def gh(*arguments):
+def gh(*arguments, label=None):
     """`gh ARGUMENTS`'s JSON answer, asking again after a server error.
 
     A 502 from the job listing once ended the watch with a traceback.  A
-    server error is retried TRIES times; any other refusal, or the last
-    server error, raises Unanswered naming the request.
+    server error, a rate limit or a request hung past REQUEST_LIMIT is
+    asked again TRIES times; any other refusal, or the last server error,
+    raises Unanswered naming the request, by LABEL when given rather than
+    by a query's whole text.
     """
     said = ""
+    named = "gh %s" % (" ".join(arguments[:2]) + " (%s)" % label if label
+                       else " ".join(arguments))
     for attempt in range(1, TRIES + 1):
-        done = subprocess.run(("gh",) + arguments, capture_output=True,
-                              text=True)
-        if done.returncode == 0:
-            return json.loads(done.stdout)
-        said = (done.stderr.strip() or done.stdout.strip()
-                or "exit status %d" % done.returncode)
+        try:
+            done = subprocess.run(("gh",) + arguments, capture_output=True,
+                                  text=True, timeout=REQUEST_LIMIT)
+        except subprocess.TimeoutExpired:
+            said = "timed out after %d s" % REQUEST_LIMIT
+        else:
+            if done.returncode == 0:
+                return json.loads(done.stdout)
+            said = (done.stderr.strip() or done.stdout.strip()
+                    or "exit status %d" % done.returncode)
         if not SERVER_ERROR.search(said):
             break
         if attempt < TRIES:
-            print("gh %s: %s; asking again (%d of %d)"
-                  % (" ".join(arguments), said.splitlines()[-1], attempt + 1,
-                     TRIES), flush=True)
+            print("%s: %s; asking again (%d of %d)"
+                  % (named, said.splitlines()[-1], attempt + 1, TRIES),
+                  flush=True)
             time.sleep(retry_pause * attempt)
-    raise Unanswered("gh %s\n  %s" % (" ".join(arguments), said))
+    raise Unanswered("%s\n  %s" % (named, said))
 
 
 def full_commit(name):
     """The full hash `name` stands for, or None when it names nothing here.
 
-    `gh run list --commit` compares the whole hash, so a short one matches no
-    run, and the watcher used to wait for ever beside a run that had passed.
-    A full hash this clone lacks is still a commit GitHub may know.
+    GitHub compares the whole hash, so a short one matches no run, and the
+    watcher used to wait for ever beside a run that had passed.  A full
+    hash this clone lacks is still a commit GitHub may know.
     """
     found = subprocess.run(
         ("git", "rev-parse", "--verify", "--quiet", name + "^{commit}"),
@@ -133,20 +142,190 @@ def full_commit(name):
     return None
 
 
-def find_run(commit, interval, event=None, branch=None):
+# ------------------------------------------------------ GitHub's GraphQL API
+#
+#  Four items' watches spent the account's 5,000 REST requests an hour in
+#  one hour: each poll was a run view and a job listing of four pages.  One
+#  GraphQL query answers the status and every check run of several runs and
+#  the gate runs of several commits at once, and GraphQL keeps a quota apart
+#  from REST's, of points: such a query costs one.  A job's check run is the
+#  job: the same number, the same name and conclusion.
+
+#  The GitHub Actions app, whose check suites are the workflow runs.
+ACTIONS_APP = 15368
+WORKFLOW = ".github/workflows/gate.yml"
+#  Check runs to a page; GraphQL's limit.
+CHECKS_PAGE = 100
+
+RUN_FIELDS = """databaseId runAttempt event url displayTitle createdAt
+file { path }
+checkSuite { status conclusion branch { name }
+  checkRuns(first: %d%%s, filterBy: {checkType: ALL}) {
+    totalCount pageInfo { hasNextPage endCursor }
+    nodes { id databaseId name status conclusion startedAt completedAt } } }
+""" % CHECKS_PAGE
+
+COMMIT_FIELDS = """checkSuites(first: 50, filterBy: {appId: %d}) { nodes {
+  status conclusion branch { name }
+  workflowRun { databaseId runAttempt event url displayTitle createdAt
+    file { path } } } }""" % ACTIONS_APP
+
+
+def repository(cwd=None):
+    """OWNER/NAME of the GitHub repository: $GH_REPO, as `gh` reads it, or
+    the `origin` of the clone at CWD."""
+    named = os.environ.get("GH_REPO", "")
+    if not named:
+        url = subprocess.run(("git", "remote", "get-url", "origin"), cwd=cwd,
+                             capture_output=True, text=True).stdout.strip()
+        found = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?/?$", url)
+        named = found.group(1) if found else ""
+    if not named:
+        named = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+    return named.split("github.com/")[-1]
+
+
+def graphql(query, label):
+    """The data GitHub's GraphQL API answers QUERY with; LABEL names the
+    request when it is not answered."""
+    return gh("api", "graphql", "-f", "query=" + query, label=label)["data"]
+
+
+def lower(value):
+    return (value or "").lower()
+
+
+def checks_of(suite):
+    return [{"node": check["id"], "id": check["databaseId"],
+             "name": check["name"], "status": lower(check["status"]),
+             "conclusion": lower(check["conclusion"]),
+             "started_at": check.get("startedAt") or "",
+             "completed_at": check.get("completedAt") or ""}
+            for check in suite["checkRuns"]["nodes"]]
+
+
+def ask(repo, runs=(), commits=()):
+    """One query for RUNS' views and COMMITS' gate runs.
+
+    Returns ({run: view or None}, {commit: [run, newest first] or None}),
+    None for a run or commit GitHub does not know.  A view holds the run's
+    status, conclusion, url, attempt, event, branch and title, and `checks`,
+    every attempt's check runs; a run of more than a page of them is asked
+    again for the rest, those runs alone.
+    """
+    owner, name = repo.split("/", 1)
+    parts = ["r%d: resource(url: \"https://github.com/%s/actions/runs/%d\")"
+             " { ... on WorkflowRun { %s } }" % (run, repo, run,
+                                                  RUN_FIELDS % "")
+             for run in runs]
+    if commits:
+        parts.append("repository(owner: \"%s\", name: \"%s\") { %s }" % (
+            owner, name, " ".join(
+                "c%d: object(oid: \"%s\") { ... on Commit { %s } }"
+                % (index, commit, COMMIT_FIELDS)
+                for index, commit in enumerate(commits))))
+    label = "gate runs %s" % " ".join(
+        [str(run) for run in runs] + [commit[:12] for commit in commits])
+    data = graphql("{ %s }" % " ".join(parts), label)
+    views, cursors = {}, {}
+    for run in runs:
+        found = data.get("r%d" % run)
+        if not found or not found.get("checkSuite"):
+            views[run] = None
+            continue
+        suite = found["checkSuite"]
+        views[run] = {"run": run, "status": lower(suite["status"]),
+                      "conclusion": lower(suite["conclusion"]),
+                      "url": found["url"], "attempt": found["runAttempt"],
+                      "event": found["event"],
+                      "headBranch": (suite.get("branch") or {}).get("name")
+                      or "",
+                      "displayTitle": found.get("displayTitle") or "",
+                      "checks": checks_of(suite),
+                      "total": suite["checkRuns"]["totalCount"]}
+        page = suite["checkRuns"]["pageInfo"]
+        if page["hasNextPage"]:
+            cursors[run] = page["endCursor"]
+    while cursors:
+        more = graphql("{ %s }" % " ".join(
+            "r%d: resource(url: \"https://github.com/%s/actions/runs/%d\")"
+            " { ... on WorkflowRun { %s } }" % (
+                run, repo, run, RUN_FIELDS % (", after: \"%s\"" % cursor))
+            for run, cursor in cursors.items()), label + " (more checks)")
+        for run in list(cursors):
+            suite = (more.get("r%d" % run) or {}).get("checkSuite")
+            if not suite or not suite["checkRuns"]["nodes"]:
+                raise Unanswered("the check runs of run %d ended at %d of"
+                                 " its %d" % (run, len(views[run]["checks"]),
+                                              views[run]["total"]))
+            views[run]["checks"].extend(checks_of(suite))
+            page = suite["checkRuns"]["pageInfo"]
+            cursors[run] = page["endCursor"] if page["hasNextPage"] else None
+            if cursors[run] is None:
+                del cursors[run]
+    listed = {}
+    for index, commit in enumerate(commits):
+        found = (data.get("repository") or {}).get("c%d" % index)
+        if found is None:
+            listed[commit] = None
+            continue
+        gates = []
+        for suite in found["checkSuites"]["nodes"]:
+            run = suite.get("workflowRun")
+            if not run or (run.get("file") or {}).get("path") != WORKFLOW:
+                continue
+            gates.append({"databaseId": run["databaseId"],
+                          "event": run["event"],
+                          "headBranch": (suite.get("branch") or {}).get(
+                              "name") or "",
+                          "status": lower(suite["status"]),
+                          "conclusion": lower(suite["conclusion"]),
+                          "displayTitle": run.get("displayTitle") or "",
+                          "createdAt": run.get("createdAt") or "",
+                          "attempt": run.get("runAttempt") or 1,
+                          "url": run.get("url") or ""})
+        listed[commit] = sorted(gates, key=lambda run: -run["databaseId"])
+    return views, listed
+
+
+def steps_of(nodes):
+    """{check node: [{name, conclusion}]} for the check runs NODES."""
+    if not nodes:
+        return {}
+    data = graphql("{ nodes(ids: [%s]) { ... on CheckRun { id steps(first:"
+                   " 100) { nodes { name number conclusion } } } } }"
+                   % ", ".join('"%s"' % node for node in nodes),
+                   "the steps of %d failed jobs" % len(nodes))
+    return {found["id"]: [{"name": step["name"],
+                           "conclusion": lower(step["conclusion"])}
+                          for step in found["steps"]["nodes"]]
+            for found in data["nodes"] if found}
+
+
+def runs_of_commit(commit, event=None, branch=None, repo=None):
+    """COMMIT's gate runs, newest first, of EVENT and BRANCH when given, in
+    the fields `gh run list --json` names: databaseId, event, headBranch,
+    status, conclusion, displayTitle, createdAt, attempt."""
+    _, listed = ask(repo or repository(), commits=[commit])
+    return [run for run in listed[commit] or []
+            if (not event or run["event"] == event)
+            and (not branch or run["headBranch"] == branch)]
+
+
+def find_run(commit, interval, event=None, branch=None, source=None):
     """The newest gate run of COMMIT, of EVENT and BRANCH when given.
 
     Waits until GitHub lists one.  Without EVENT and BRANCH the newest run
     of any kind is taken, which right after a promotion is the branch's
     finished run, not main's.
     """
-    wanted = (["--event", event] if event else []) + (
-        ["--branch", branch] if branch else [])
     kind = " ".join(part for part in (event, "on " + branch if branch else "")
                     if part)
+    source = source or Direct()
     while True:
-        runs = gh("run", "list", "--workflow=gate.yml", "--commit", commit,
-                  *wanted, "--limit", "1", "--json", "databaseId")
+        runs = [run for run in source.runs(commit)
+                if (not event or run["event"] == event)
+                and (not branch or run["headBranch"] == branch)]
         if runs:
             return runs[0]["databaseId"]
         print("no %sgate run for %s yet" % (kind + " " if kind else "",
@@ -154,53 +333,84 @@ def find_run(commit, interval, event=None, branch=None):
         time.sleep(interval)
 
 
-def jobs_of(run):
-    """RUN's jobs, each name's latest attempt, from GitHub's job listing.
+def split(view):
+    """A view's jobs, each name's latest attempt, and the jobs of earlier
+    attempts that a later attempt of their name replaced.
 
-    `gh run view --json jobs` once named three of a run's 47 jobs, as
-    GitHub's latest-attempt listing did, and the watcher called the run
-    green on those three.  Every attempt's jobs are read here, every page
-    of them, and each name's latest attempt kept: all its jobs, so two of
-    one name in one attempt are both seen.  The second value is the jobs
-    of earlier attempts that a later attempt of their name replaced.
-
-    Each page is its own request, PAGE jobs long, so a server error costs
-    one page's retry and the failing request can be named.
+    `gh run view --json jobs` once named three of a run's 47 jobs, and the
+    watcher called the run green on those three, so every attempt's check
+    runs are read.  A check run says no attempt: a re-run, of every job or
+    of the failed ones, lists every job of the run again under a new number
+    (the jobs it does not run are copied, with their old times), so a
+    name's check runs in the order of their numbers are its attempts.  A
+    run of one attempt keeps every job of a name.
     """
-    listed, total = [], None
-    for page in range(1, PAGES + 1):
-        listing = gh("api", "repos/{owner}/{repo}/actions/runs/%s/jobs"
-                     "?filter=all&per_page=%d&page=%d" % (run, PAGE, page))
-        total = listing.get("total_count")
-        batch = listing.get("jobs") or []
-        listed.extend(batch)
-        if not batch or total is None or len(listed) >= total:
-            break
-    if total is not None and len(listed) < total:
-        raise Unanswered("the job listing of run %s ended at %d of its %d jobs"
-                         % (run, len(listed), total))
-    latest, replaced = {}, []
-    for job in listed:
-        attempt = job.get("run_attempt", 1)
-        held = latest.setdefault(job["name"], (attempt, []))
-        if attempt > held[0]:
-            replaced.extend(held[1])
-            latest[job["name"]] = (attempt, [job])
-        elif attempt == held[0]:
-            held[1].append(job)
-        else:
-            replaced.append(job)
+    named = {}
+    for check in sorted(view["checks"], key=lambda check: check["id"]):
+        named.setdefault(check["name"], []).append(check)
+    latest, replaced = [], []
+    for checks in named.values():
+        if view["attempt"] <= 1:
+            latest.extend((1, check) for check in checks)
+            continue
+        replaced.extend((number, check)
+                        for number, check in enumerate(checks[:-1], 1))
+        latest.append((len(checks), checks[-1]))
 
-    def shown(job):
-        return {"databaseId": job["id"], "name": job["name"],
-                "status": job["status"],
-                "conclusion": job.get("conclusion") or "",
-                "attempt": job.get("run_attempt", 1),
-                "startedAt": job.get("started_at") or "",
-                "completedAt": job.get("completed_at") or "",
-                "steps": job.get("steps") or []}
-    return ([shown(job) for _, named in latest.values() for job in named],
-            [shown(job) for job in replaced])
+    def shown(number, check):
+        return {"databaseId": check["id"], "name": check["name"],
+                "status": check["status"], "conclusion": check["conclusion"],
+                "attempt": number, "startedAt": check["started_at"],
+                "completedAt": check["completed_at"],
+                "node": check.get("node"),
+                "steps": check.get("steps") or []}
+    return ([shown(*pair) for pair in latest],
+            [shown(*pair) for pair in replaced])
+
+
+def add_steps(jobs, known):
+    """Give each failed job of JOBS its steps, asking GitHub only for those
+    KNOWN, {check node: steps}, does not hold yet."""
+    wanted = [job["node"] for job in jobs if job["conclusion"] in FAILED
+              and job.get("node") and job["node"] not in known]
+    known.update(steps_of(wanted))
+    for job in jobs:
+        if job.get("node") in known:
+            job["steps"] = known[job["node"]]
+
+
+class Direct:
+    """Asks GitHub itself at each poll."""
+
+    def __init__(self, repo=None):
+        self.repo = repo
+        self.steps = {}
+
+    def name(self):
+        if self.repo is None:
+            self.repo = repository()
+        return self.repo
+
+    def view(self, run):
+        views, _ = ask(self.name(), runs=[run])
+        if views[run] is None:
+            raise Unanswered("GitHub names no workflow run %d in %s"
+                             % (run, self.name()))
+        return views[run]
+
+    def runs(self, commit):
+        _, listed = ask(self.name(), commits=[commit])
+        return listed[commit] or []
+
+
+def jobs_of(run, source=None, view=None):
+    """RUN's jobs, each name's latest attempt, and the earlier attempts'
+    jobs replaced since, each failed one with its steps."""
+    source = source or Direct()
+    view = view or source.view(run)
+    jobs, replaced = split(view)
+    add_steps(jobs + replaced, source.steps)
+    return jobs, replaced
 
 
 TIMING_PREFIX = "measure-time-"
@@ -267,7 +477,7 @@ def failed_step(job):
     return steps[0] if steps else None
 
 
-def watch(run, interval, every=False, verdict=False):
+def watch(run, interval, every=False, verdict=False, source=None, view=None):
     """Follow RUN; the verdict is read from the last complete listing.
 
     A failed job of the run's current attempt ends the watch at once unless
@@ -275,14 +485,15 @@ def watch(run, interval, every=False, verdict=False):
     the run is active, because the rerun that made the newer attempt may be
     about to replace it; whether it failed the run is read when the run
     ends.  With VERDICT the watch ends when the aggregate job of the
-    current attempt concludes, with its conclusion.
+    current attempt concludes, with its conclusion.  VIEW, when given, is
+    the run as already asked for, taken as the first poll's.
     """
+    source = source or Direct()
     reported = set()
     held_back = set()
     while True:
-        view = gh("run", "view", str(run), "--json",
-                  "status,conclusion,url,attempt")
-        jobs, replaced = jobs_of(run)
+        view = view or source.view(run)
+        jobs, replaced = jobs_of(run, source, view)
         ended = view["status"] == "completed"
         current = view.get("attempt") or max(
             [job["attempt"] for job in jobs] or [1])
@@ -359,6 +570,7 @@ def watch(run, interval, every=False, verdict=False):
                           "judges the same figures again")
                 return 1
             return 0 if view["conclusion"] == "success" else 2
+        view = None
         time.sleep(interval)
 
 
@@ -387,18 +599,21 @@ def main(argv):
     global retry_pause
     retry_pause = min(retry_pause, args.interval)
     run = args.run
+    source = Direct()
     try:
         if run is None:
             commit = full_commit(args.commit or "HEAD")
             if commit is None:
                 parser.error("%s names no commit in this clone; fetch it, or "
                              "give its full hash" % args.commit)
-            run = find_run(commit, args.interval, args.event, args.branch)
-        about = gh("run", "view", str(run), "--json", "event,headBranch")
+            run = find_run(commit, args.interval, args.event, args.branch,
+                           source)
+        about = source.view(run)
         print("following gate run %s (%s on %s)"
               % (run, about.get("event") or "unknown event",
                  about.get("headBranch") or "no branch"), flush=True)
-        return watch(run, args.interval, args.all, args.verdict)
+        return watch(run, args.interval, args.all, args.verdict, source,
+                     about)
     except Unanswered as error:
         print("gate_watch: GitHub did not answer: %s" % error, file=sys.stderr)
         return 3
