@@ -1,0 +1,865 @@
+{
+ "fixtures": {
+  "math-sine": {
+   "summary": "core/math's sin is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "sin",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-30:3:+-",
+      "uniform:-8:8",
+      "log:3:22:+-",
+      "log:22:1024:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "0x1p-26",
+      "0x1.921fb54442d18p-1",
+      "0x1.921fb54442d18p0",
+      "-0x1.921fb54442d18p0",
+      "0x1.921fb54442d18p1",
+      "0x1.2d97c7f3321d2p2",
+      "0x1.921fb54442d18p2",
+      "0x1.921fb54442d18p20",
+      "0x1.6ac5b262ca1ffp849",
+      "-0x1.6ac5b262ca1ffp849",
+      "1e22",
+      "1e300"
+     ]
+    },
+    {
+     "fn": "sin",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-14:3:+-",
+      "uniform:-8:8",
+      "log:3:29:+-",
+      "log:29:128:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "0x1p-12",
+      "0x1.921fb6p-1",
+      "0x1.921fb6p0",
+      "-0x1.921fb6p0",
+      "0x1.921fb6p1",
+      "0x1.2d97c8p2",
+      "0x1.921fb6p2",
+      "0x1.921fb6p28",
+      "0x1.f37c8ap95",
+      "-0x1.f37c8ap95",
+      "0x1p100"
+     ]
+    }
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
+  },
+  "math-cosine": {
+   "summary": "core/math's cos is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "cos",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-30:3:+-",
+      "uniform:-8:8",
+      "log:3:22:+-",
+      "log:22:1024:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "0x1p-26",
+      "0x1.921fb54442d18p-1",
+      "0x1.921fb54442d18p0",
+      "-0x1.921fb54442d18p0",
+      "0x1.921fb54442d18p1",
+      "0x1.2d97c7f3321d2p2",
+      "0x1.921fb54442d18p2",
+      "0x1.921fb54442d18p20",
+      "0x1.6ac5b262ca1ffp849",
+      "-0x1.6ac5b262ca1ffp849",
+      "1e22",
+      "1e300"
+     ]
+    },
+    {
+     "fn": "cos",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-14:3:+-",
+      "uniform:-8:8",
+      "log:3:29:+-",
+      "log:29:128:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "0x1p-12",
+      "0x1.921fb6p-1",
+      "0x1.921fb6p0",
+      "-0x1.921fb6p0",
+      "0x1.921fb6p1",
+      "0x1.2d97c8p2",
+      "0x1.921fb6p2",
+      "0x1.921fb6p28",
+      "0x1.f37c8ap95",
+      "-0x1.f37c8ap95",
+      "0x1p100"
+     ]
+    }
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
+  },
+  "math-tangent": {
+   "summary": "core/math's tan is within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "tan",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-30:3:+-",
+      "uniform:-8:8",
+      "log:3:22:+-",
+      "log:22:1024:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "0x1p-26",
+      "0x1.921fb54442d18p-1",
+      "0x1.921fb54442d18p0",
+      "-0x1.921fb54442d18p0",
+      "0x1.921fb54442d18p1",
+      "0x1.2d97c7f3321d2p2",
+      "0x1.921fb54442d18p2",
+      "0x1.921fb54442d18p20",
+      "0x1.6ac5b262ca1ffp849",
+      "-0x1.6ac5b262ca1ffp849",
+      "1e22",
+      "1e300"
+     ]
+    },
+    {
+     "fn": "tan",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-14:3:+-",
+      "uniform:-8:8",
+      "log:3:29:+-",
+      "log:29:128:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "0x1p-12",
+      "0x1.921fb6p-1",
+      "0x1.921fb6p0",
+      "-0x1.921fb6p0",
+      "0x1.921fb6p1",
+      "0x1.2d97c8p2",
+      "0x1.921fb6p2",
+      "0x1.921fb6p28",
+      "0x1.f37c8ap95",
+      "-0x1.f37c8ap95",
+      "0x1p100"
+     ]
+    }
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
+  },
+  "math-arcsine": {
+   "summary": "core/math's asin and acos are within one float of MPFR's correctly rounded result, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "asin",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-1:1",
+      "log:-60:0:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "-1",
+      "0.5",
+      "-0.5",
+      "0x1.fffffffffffffp-1",
+      "-0x1.fffffffffffffp-1",
+      "0x1.0000000000001p0",
+      "0x1.f333333333333p-1",
+      "0x1p-26",
+      "0x1p-57"
+     ]
+    },
+    {
+     "fn": "asin",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-1:1",
+      "log:-30:0:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "-1",
+      "0.5",
+      "-0.5",
+      "0x1.fffffep-1",
+      "-0x1.fffffep-1",
+      "0x1.000002p0",
+      "0x1.f33334p-1",
+      "0x1p-12",
+      "0x1p-26"
+     ]
+    },
+    {
+     "fn": "acos",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-1:1",
+      "log:-60:0:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "-1",
+      "0.5",
+      "-0.5",
+      "0x1.fffffffffffffp-1",
+      "-0x1.fffffffffffffp-1",
+      "0x1.0000000000001p0",
+      "0x1.f333333333333p-1",
+      "0x1p-26",
+      "0x1p-57"
+     ]
+    },
+    {
+     "fn": "acos",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-1:1",
+      "log:-30:0:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "-1",
+      "0.5",
+      "-0.5",
+      "0x1.fffffep-1",
+      "-0x1.fffffep-1",
+      "0x1.000002p0",
+      "0x1.f33334p-1",
+      "0x1p-12",
+      "0x1p-26"
+     ]
+    }
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
+  },
+  "math-arctangent": {
+   "summary": "core/math's atan is within one float of MPFR's correctly rounded result, and atan2, whose quotient y/x is rounded before its arctangent as msun's is, within two, for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "atan",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-3:3",
+      "log:-30:70:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1p-1022",
+      "0x1.fffffffffffffp1023",
+      "-0x1.fffffffffffffp1023",
+      "1",
+      "-1",
+      "0x1p-27",
+      "0.4375",
+      "0.6875",
+      "1.1875",
+      "2.4375",
+      "0x1p66",
+      "-0x1p66"
+     ]
+    },
+    {
+     "fn": "atan",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-3:3",
+      "log:-14:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1p-126",
+      "0x1.fffffep127",
+      "-0x1.fffffep127",
+      "1",
+      "-1",
+      "0x1p-12",
+      "0.4375",
+      "0.6875",
+      "1.1875",
+      "2.4375",
+      "0x1p26",
+      "-0x1p26"
+     ]
+    },
+    {
+     "fn": "atan2",
+     "width": 64,
+     "bound": 2,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-4:4",
+      "log:-80:80:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-4:4",
+      "log:-80:80:+-"
+     ],
+     "specials": [
+      [
+       "0",
+       "-0"
+      ],
+      [
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "-1"
+      ],
+      [
+       "0",
+       "1"
+      ],
+      [
+       "0",
+       "-inf"
+      ],
+      [
+       "0",
+       "inf"
+      ],
+      [
+       "-0",
+       "-0"
+      ],
+      [
+       "-0",
+       "0"
+      ],
+      [
+       "-0",
+       "-1"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "-0",
+       "-inf"
+      ],
+      [
+       "-0",
+       "inf"
+      ],
+      [
+       "-1",
+       "0"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "-1",
+       "-0"
+      ],
+      [
+       "1",
+       "-0"
+      ],
+      [
+       "1",
+       "-inf"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-1",
+       "-inf"
+      ],
+      [
+       "-1",
+       "inf"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "inf",
+       "-1"
+      ],
+      [
+       "inf",
+       "-inf"
+      ],
+      [
+       "inf",
+       "inf"
+      ],
+      [
+       "inf",
+       "0"
+      ],
+      [
+       "-inf",
+       "1"
+      ],
+      [
+       "-inf",
+       "-1"
+      ],
+      [
+       "-inf",
+       "-inf"
+      ],
+      [
+       "-inf",
+       "inf"
+      ],
+      [
+       "-inf",
+       "0"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "nan",
+       "nan"
+      ],
+      [
+       "nan",
+       "inf"
+      ],
+      [
+       "inf",
+       "nan"
+      ],
+      [
+       "0.5",
+       "1"
+      ],
+      [
+       "-0.5",
+       "1"
+      ],
+      [
+       "1",
+       "1"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "0x1p-1074"
+      ],
+      [
+       "0x1p-1074",
+       "0x1.fffffffffffffp1023"
+      ],
+      [
+       "0x1p-1074",
+       "-0x1.fffffffffffffp1023"
+      ],
+      [
+       "-0x1p-1074",
+       "-0x1.fffffffffffffp1023"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "0x1.fffffffffffffp1023"
+      ],
+      [
+       "3",
+       "-4"
+      ]
+     ]
+    },
+    {
+     "fn": "atan2",
+     "width": 32,
+     "bound": 2,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-4:4",
+      "log:-40:40:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-4:4",
+      "log:-40:40:+-"
+     ],
+     "specials": [
+      [
+       "0",
+       "-0"
+      ],
+      [
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "-1"
+      ],
+      [
+       "0",
+       "1"
+      ],
+      [
+       "0",
+       "-inf"
+      ],
+      [
+       "0",
+       "inf"
+      ],
+      [
+       "-0",
+       "-0"
+      ],
+      [
+       "-0",
+       "0"
+      ],
+      [
+       "-0",
+       "-1"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "-0",
+       "-inf"
+      ],
+      [
+       "-0",
+       "inf"
+      ],
+      [
+       "-1",
+       "0"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "-1",
+       "-0"
+      ],
+      [
+       "1",
+       "-0"
+      ],
+      [
+       "1",
+       "-inf"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-1",
+       "-inf"
+      ],
+      [
+       "-1",
+       "inf"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "inf",
+       "-1"
+      ],
+      [
+       "inf",
+       "-inf"
+      ],
+      [
+       "inf",
+       "inf"
+      ],
+      [
+       "inf",
+       "0"
+      ],
+      [
+       "-inf",
+       "1"
+      ],
+      [
+       "-inf",
+       "-1"
+      ],
+      [
+       "-inf",
+       "-inf"
+      ],
+      [
+       "-inf",
+       "inf"
+      ],
+      [
+       "-inf",
+       "0"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "nan",
+       "nan"
+      ],
+      [
+       "nan",
+       "inf"
+      ],
+      [
+       "inf",
+       "nan"
+      ],
+      [
+       "0.5",
+       "1"
+      ],
+      [
+       "-0.5",
+       "1"
+      ],
+      [
+       "1",
+       "1"
+      ],
+      [
+       "0x1.fffffep127",
+       "0x1p-149"
+      ],
+      [
+       "0x1p-149",
+       "0x1.fffffep127"
+      ],
+      [
+       "0x1p-149",
+       "-0x1.fffffep127"
+      ],
+      [
+       "-0x1p-149",
+       "-0x1.fffffep127"
+      ],
+      [
+       "0x1.fffffep127",
+       "0x1.fffffep127"
+      ],
+      [
+       "3",
+       "-4"
+      ]
+     ]
+    }
+   ],
+   "targets": "linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64"
+  }
+ }
+}

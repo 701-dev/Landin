@@ -1,0 +1,508 @@
+{
+ "fixtures": {
+  "math-sqrt": {
+   "summary": "core/math's sqrt gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "sqrt",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-1074:1024:+",
+      "uniform:0:4"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "2",
+      "4",
+      "0.25"
+     ]
+    },
+    {
+     "fn": "sqrt",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-149:128:+",
+      "uniform:0:4"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "2",
+      "4",
+      "0.25"
+     ]
+    }
+   ]
+  },
+  "math-cbrt": {
+   "summary": "core/math's cbrt is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "cbrt",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-1074:1024:+-",
+      "uniform:-8:8"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "8",
+      "-27",
+      "0.125"
+     ]
+    },
+    {
+     "fn": "cbrt",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-149:128:+-",
+      "uniform:-8:8"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "8",
+      "-27",
+      "0.125"
+     ]
+    }
+   ]
+  },
+  "math-hypot-f64": {
+   "summary": "core/math's hypot is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64",
+   "tables": [
+    {
+     "fn": "hypot",
+     "width": 64,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-600:600:+-",
+      "uniform:-4:4"
+     ],
+     "domains2": [
+      "bits",
+      "log:-600:600:+-",
+      "uniform:-4:4"
+     ],
+     "specials": [
+      [
+       "inf",
+       "nan"
+      ],
+      [
+       "nan",
+       "inf"
+      ],
+      [
+       "-inf",
+       "nan"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0",
+       "0"
+      ],
+      [
+       "-0",
+       "-0"
+      ],
+      [
+       "3",
+       "4"
+      ],
+      [
+       "-3",
+       "4"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "0x1p-1074",
+       "-0x1p-1074"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "0x1.fffffffffffffp1023"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "1"
+      ]
+     ]
+    }
+   ]
+  },
+  "math-hypot-f32": {
+   "summary": "core/math's hypot is within one float of MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f32",
+   "tables": [
+    {
+     "fn": "hypot",
+     "width": 32,
+     "bound": 1,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "log:-70:70:+-",
+      "uniform:-4:4"
+     ],
+     "domains2": [
+      "bits",
+      "log:-70:70:+-",
+      "uniform:-4:4"
+     ],
+     "specials": [
+      [
+       "inf",
+       "nan"
+      ],
+      [
+       "nan",
+       "inf"
+      ],
+      [
+       "-inf",
+       "nan"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0",
+       "0"
+      ],
+      [
+       "-0",
+       "-0"
+      ],
+      [
+       "3",
+       "4"
+      ],
+      [
+       "-3",
+       "4"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "0x1p-149",
+       "-0x1p-149"
+      ],
+      [
+       "0x1.fffffep127",
+       "0x1.fffffep127"
+      ],
+      [
+       "0x1.fffffep127",
+       "1"
+      ]
+     ]
+    }
+   ]
+  },
+  "math-fma-f64": {
+   "summary": "core/math's fma gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f64",
+   "tables": [
+    {
+     "fn": "fma",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-2:2",
+      "log:-1074:1024:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-2:2",
+      "log:-1074:1024:+-"
+     ],
+     "domains3": [
+      "bits",
+      "uniform:-4:4",
+      "log:-1074:1024:+-"
+     ],
+     "specials": [
+      [
+       "0.1",
+       "10",
+       "-1"
+      ],
+      [
+       "inf",
+       "0",
+       "1"
+      ],
+      [
+       "nan",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "nan"
+      ],
+      [
+       "inf",
+       "1",
+       "-inf"
+      ],
+      [
+       "1e308",
+       "10",
+       "-inf"
+      ],
+      [
+       "0x1p-1074",
+       "0.5",
+       "0"
+      ],
+      [
+       "0x1p-1074",
+       "0.5",
+       "-0"
+      ],
+      [
+       "-0x1p-1074",
+       "0x1.8p-1",
+       "0"
+      ],
+      [
+       "1",
+       "-1",
+       "1"
+      ],
+      [
+       "-1",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "-1",
+       "0"
+      ],
+      [
+       "-0",
+       "1",
+       "-0"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "2",
+       "-0x1.fffffffffffffp1023"
+      ],
+      [
+       "0x1.0000000000001p0",
+       "0x1.0000000000001p0",
+       "-1"
+      ],
+      [
+       "0x1.0000000000001p0",
+       "0x1.fffffffffffffp-1",
+       "-1"
+      ]
+     ]
+    }
+   ]
+  },
+  "math-fma-f32": {
+   "summary": "core/math's fma gives MPFR's correctly rounded result for each table's specials, random inputs and hardest-to-round inputs, at f32",
+   "tables": [
+    {
+     "fn": "fma",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 12,
+     "pool": 20000,
+     "domains": [
+      "bits",
+      "uniform:-2:2",
+      "log:-149:128:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-2:2",
+      "log:-149:128:+-"
+     ],
+     "domains3": [
+      "bits",
+      "uniform:-4:4",
+      "log:-149:128:+-"
+     ],
+     "specials": [
+      [
+       "0x1.99999ap-4",
+       "10",
+       "-1"
+      ],
+      [
+       "inf",
+       "0",
+       "1"
+      ],
+      [
+       "nan",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "nan"
+      ],
+      [
+       "inf",
+       "1",
+       "-inf"
+      ],
+      [
+       "0x1p126",
+       "10",
+       "-inf"
+      ],
+      [
+       "0x1p-149",
+       "0.5",
+       "0"
+      ],
+      [
+       "0x1p-149",
+       "0.5",
+       "-0"
+      ],
+      [
+       "-0x1p-149",
+       "0x1.8p-1",
+       "0"
+      ],
+      [
+       "1",
+       "-1",
+       "1"
+      ],
+      [
+       "-1",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "-1",
+       "0"
+      ],
+      [
+       "-0",
+       "1",
+       "-0"
+      ],
+      [
+       "0x1.fffffep127",
+       "2",
+       "-0x1.fffffep127"
+      ],
+      [
+       "0x1.000002p0",
+       "0x1.000002p0",
+       "-1"
+      ],
+      [
+       "0x1.000002p0",
+       "0x1.fffffep-1",
+       "-1"
+      ]
+     ]
+    }
+   ]
+  }
+ }
+}

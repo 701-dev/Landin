@@ -559,7 +559,8 @@ run records and what the gate checks for each target.
   modules, atomics, volatile access and packed register images, and
   stackful fibres on every native target.
 - **The library:** `core` modules of allocators, containers, text, I/O,
-  time, networking, random numbers and atomic cells, each provider with a
+  time, networking, random numbers, atomic cells and the elementary
+  mathematical functions, each provider with a
   fake for testing, and `hosted` providers over POSIX, among them threads
   started as a group a function joins. A Linux executable links no C
   library unless `--link=libc` asks for one.
@@ -596,7 +597,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.10 — Elementary functions (planned).**
+**Next roadmap item: R22.11 — Complex numbers (planned).**
 
 ## Questions, bugs and ideas
 

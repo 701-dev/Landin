@@ -1,0 +1,684 @@
+{
+ "fixtures": {
+  "math-floor": {
+   "summary": "core/math's floor, ceil and trunc give MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "floor",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:60:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffffffffffp-2",
+      "0x1.ffffffffffffep51",
+      "0x1.fffffffffffffp52",
+      "-0x1.0000000000001p52"
+     ]
+    },
+    {
+     "fn": "floor",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffep-2",
+      "0x1.fffffcp22",
+      "0x1.fffffep23",
+      "-0x1.000002p23"
+     ]
+    },
+    {
+     "fn": "ceil",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:60:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffffffffffp-2",
+      "0x1.ffffffffffffep51",
+      "0x1.fffffffffffffp52",
+      "-0x1.0000000000001p52"
+     ]
+    },
+    {
+     "fn": "ceil",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffep-2",
+      "0x1.fffffcp22",
+      "0x1.fffffep23",
+      "-0x1.000002p23"
+     ]
+    },
+    {
+     "fn": "trunc",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:60:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffffffffffp-2",
+      "0x1.ffffffffffffep51",
+      "0x1.fffffffffffffp52",
+      "-0x1.0000000000001p52"
+     ]
+    },
+    {
+     "fn": "trunc",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffep-2",
+      "0x1.fffffcp22",
+      "0x1.fffffep23",
+      "-0x1.000002p23"
+     ]
+    }
+   ]
+  },
+  "math-round": {
+   "summary": "core/math's round and round_even give MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "round",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:60:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffffffffffp-2",
+      "0x1.ffffffffffffep51",
+      "0x1.fffffffffffffp52",
+      "-0x1.0000000000001p52"
+     ]
+    },
+    {
+     "fn": "round",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffep-2",
+      "0x1.fffffcp22",
+      "0x1.fffffep23",
+      "-0x1.000002p23"
+     ]
+    },
+    {
+     "fn": "round_even",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:60:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-1074",
+      "-0x1p-1074",
+      "0x1.fffffffffffffp1023",
+      "0x1p-1022",
+      "0x0.fffffffffffffp-1022",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffffffffffp-2",
+      "0x1.ffffffffffffep51",
+      "0x1.fffffffffffffp52",
+      "-0x1.0000000000001p52"
+     ]
+    },
+    {
+     "fn": "round_even",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-10:10",
+      "log:-2:30:+-"
+     ],
+     "specials": [
+      "0",
+      "-0",
+      "inf",
+      "-inf",
+      "nan",
+      "1",
+      "-1",
+      "0x1p-149",
+      "-0x1p-149",
+      "0x1.fffffep127",
+      "0x1p-126",
+      "0x0.fffffep-126",
+      "0.5",
+      "-0.5",
+      "1.5",
+      "2.5",
+      "-2.5",
+      "3.5",
+      "0x1.fffffep-2",
+      "0x1.fffffcp22",
+      "0x1.fffffep23",
+      "-0x1.000002p23"
+     ]
+    }
+   ]
+  },
+  "math-remainder": {
+   "summary": "core/math's remainder, C's fmod, gives MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "remainder",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-100:100",
+      "log:-1074:1024:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-10:10",
+      "log:-1074:1024:+-"
+     ],
+     "specials": [
+      [
+       "7.5",
+       "2"
+      ],
+      [
+       "-7.5",
+       "2"
+      ],
+      [
+       "6.5",
+       "2"
+      ],
+      [
+       "5",
+       "2"
+      ],
+      [
+       "-5",
+       "2"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0x1p1023",
+       "0x1p-1074"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "0x1.8p-1070"
+      ],
+      [
+       "0x1p-1073",
+       "0x1p-1074"
+      ]
+     ]
+    },
+    {
+     "fn": "remainder",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-100:100",
+      "log:-149:128:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-10:10",
+      "log:-149:128:+-"
+     ],
+     "specials": [
+      [
+       "7.5",
+       "2"
+      ],
+      [
+       "-7.5",
+       "2"
+      ],
+      [
+       "6.5",
+       "2"
+      ],
+      [
+       "5",
+       "2"
+      ],
+      [
+       "-5",
+       "2"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0x1p127",
+       "0x1p-149"
+      ],
+      [
+       "0x1.fffffep127",
+       "0x1.8p-147"
+      ],
+      [
+       "0x1p-148",
+       "0x1p-149"
+      ]
+     ]
+    }
+   ]
+  },
+  "math-remainder-nearest": {
+   "summary": "core/math's remainder_nearest, IEEE's remainder, gives MPFR's exact result for each table's specials and random inputs, at f64 and f32",
+   "tables": [
+    {
+     "fn": "remainder_nearest",
+     "width": 64,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-100:100",
+      "log:-1074:1024:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-10:10",
+      "log:-1074:1024:+-"
+     ],
+     "specials": [
+      [
+       "7.5",
+       "2"
+      ],
+      [
+       "-7.5",
+       "2"
+      ],
+      [
+       "6.5",
+       "2"
+      ],
+      [
+       "5",
+       "2"
+      ],
+      [
+       "-5",
+       "2"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0x1p1023",
+       "0x1p-1074"
+      ],
+      [
+       "0x1.fffffffffffffp1023",
+       "0x1.8p-1070"
+      ],
+      [
+       "0x1p-1073",
+       "0x1p-1074"
+      ]
+     ]
+    },
+    {
+     "fn": "remainder_nearest",
+     "width": 32,
+     "bound": 0,
+     "random": 24,
+     "hard": 0,
+     "domains": [
+      "bits",
+      "uniform:-100:100",
+      "log:-149:128:+-"
+     ],
+     "domains2": [
+      "bits",
+      "uniform:-10:10",
+      "log:-149:128:+-"
+     ],
+     "specials": [
+      [
+       "7.5",
+       "2"
+      ],
+      [
+       "-7.5",
+       "2"
+      ],
+      [
+       "6.5",
+       "2"
+      ],
+      [
+       "5",
+       "2"
+      ],
+      [
+       "-5",
+       "2"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "inf",
+       "1"
+      ],
+      [
+       "1",
+       "inf"
+      ],
+      [
+       "-0",
+       "1"
+      ],
+      [
+       "nan",
+       "1"
+      ],
+      [
+       "1",
+       "nan"
+      ],
+      [
+       "0x1p127",
+       "0x1p-149"
+      ],
+      [
+       "0x1.fffffep127",
+       "0x1.8p-147"
+      ],
+      [
+       "0x1p-148",
+       "0x1p-149"
+      ]
+     ]
+    }
+   ]
+  }
+ }
+}
