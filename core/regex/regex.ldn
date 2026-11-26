@@ -39,6 +39,21 @@ public unicode_unavailable: atom
 public compile_failure: type = invalid_pattern | unsupported_pattern
     | pattern_too_large | unicode_unavailable | mem.out_of_memory
 
+--- A short English phrase for a failure of `compile`, in lower case with
+--- no final stop, as `failure.words` gives one for the rest of the
+--- library.  `core/regex` keeps its own words rather than `failure.reason`
+--- holding them, so that a program that reports failures, every hosted one
+--- among them, does not check this module and its tables (D2683).
+public words: (problem: compile_failure) -> (phrase: []u8) =
+    phrase = match problem
+        invalid_pattern: "invalid regular expression"
+        unsupported_pattern: "regular expression feature not supported"
+        pattern_too_large: "regular expression too large"
+        unicode_unavailable: "regular expression needs unicode tables"
+        mem.out_of_memory: "out of memory"
+    end match
+end words
+
 --- How a pattern is compiled: `defaults` gives the usual options, and
 --- `lean` the same without Unicode's tables.
 public options: type = options_value

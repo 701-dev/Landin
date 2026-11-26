@@ -46135,3 +46135,13 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a table of every orbit, as the crate keeps, 2,800 entries where 31 suffice; and full case folding, by which `ß` would match `ss`, which the crate does not do and which a byte automaton over single scalars cannot. Both were declined.
 
 **Pinned by** `runtime/regex-rust-suite`'s `flags` and `unicode` cases and `runtime/regex-api`'s `(?i)straße`.
+
+### D2683 — `core/regex` keeps its failures' words, so that `core/failure` does not import it
+
+**The tour said** nothing; D388 gives every library failure atom its words in `failure.reason`, and D1950 keeps that one registry until a measurement shows its cost, naming the alternative of a module keeping its atoms' words itself.
+
+**Chosen:** `core/regex` declares `regex.words(problem)` for its four atoms and `mem.out_of_memory`, phrases in the form `failure.words` gives, and `failure.reason` does not hold its atoms; `check.py`'s rule for D388 excuses an atom whose module's own `public words` names it, and still reports one that neither holds. The measurement is the time a check takes: every hosted program reaches `core/failure` through `hosted/system`, and a program that imports only `core/failure` checks in 0.8 seconds, one that also imports `core/regex` in 3.0, `core/regex` reaching `core/unicode`'s tables for `defaults()`; the registry would have added those seconds to every hosted program's check. An image is unchanged either way, since a type costs no bytes and `words` is linked only where it is called (D1950).
+
+**The alternatives:** `core/failure` importing `core/regex`, which costs every hosted program those 2.2 seconds; the atoms in `core/text`, which `core/failure` already imports, under names that would say `text` for a regular expression's failure; and a submodule holding the atoms alone, which a program would import to name them. All were declined.
+
+**Pinned by** `scripts/tests/test_check_controls.py`'s `FailureWords`, which holds a module's own words to its atoms, and `runtime/regex-api`.

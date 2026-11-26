@@ -1115,6 +1115,7 @@ left out.
 | `regex.captures`, `regex.captures_at`, `regex.group`, `regex.group_count`, `regex.group_named` | Find a match with what each group matched. |
 | `regex.walk_start`, `regex.next_match`, `regex.matches` | Walk every match of a text. |
 | `regex.replace_all` | Append a text with every match replaced from a template. |
+| `regex.words` | A short phrase for a failure of `compile`. |
 | `regex.work`, `regex.fallbacks`, `regex.prepared`, `regex.program_size` | Measure a compiled pattern and its searches. |
 
 A match is a `regex.span` holding two `text.position`s, `begins` and
@@ -1189,6 +1190,10 @@ A pattern means what it means to Rust's `regex` crate:
   ignored, so `\p{L}`, `\p{Letter}` and `\p{letter}` are one.
 - The word looks are `\b`, `\B`, `\b{start}` or `\<`, `\b{end}` or
   `\>`, `\b{start-half}` and `\b{end-half}`.
+
+A failure has its words from `regex.words(problem)`, a short phrase as
+`failure.words` gives for the rest of the library, whose `failure.reason`
+does not hold these atoms.
 
 ### Searching and groups
 
@@ -1274,7 +1279,7 @@ each search uses the cheapest that can answer it, as RE2 and Rust's
 |---|---|---|
 | Pike VM | `pike_vm` | Runs every thread of the program in step over the text. It answers every search and finds the groups, and is the slowest. |
 | Lazy DFA | `lazy_dfa` | Finds where a match ends, and run backward over the reversed pattern, where it begins. It builds its states as a search needs them, in a cache of bounded size. |
-| One-pass DFA | `one_pass_dfa` | Finds the groups of a match in one pass, for a pattern in which the next byte always decides the one way on, as in `a(b|c)d` and not in `(a|ab)c`. |
+| One-pass DFA | `one_pass_dfa` | Finds the groups of a match in one pass, for a pattern in which the next byte always decides the one way on, as in `a[bc]d`, and not where one branch's text begins another's, as `a` begins `ab`. |
 | Literal prefilter | `literal_prefilter` | Skips to where a match can begin, for a pattern whose every match begins with one of a few fixed texts, as `(?i)hello` does. |
 
 The lazy DFA clears its cache when it fills. It gives a search up to the

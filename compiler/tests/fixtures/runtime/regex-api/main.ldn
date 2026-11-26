@@ -37,6 +37,8 @@ failures_hold: () -> (yes: bool) =
     return when not refused("a{100001}", full, regex.pattern_too_large)
     small: regex.options = regex.with_size_limit(full, 50)
     return when not refused("\\w{3}", small, regex.pattern_too_large)
+    return when not text.equal(utf8(regex.words(regex.invalid_pattern)),
+                               "invalid regular expression")
     --  `(?-u)` gives the ASCII classes without the tables.
     return when refused("(?-u)\\w\\d\\s\\b(?i)k", lean,
                         regex.unicode_unavailable)
