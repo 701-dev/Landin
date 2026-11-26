@@ -124,10 +124,9 @@ class Run:
         self.out, self.tools = output, tools
         self.commands = []
         self.env = dict(os.environ, LC_ALL='C', LANG='C')
-        #  Debian's libpulse, which Espressif's QEMU loads through SDL,
-        #  finds its own common library through a RUNPATH under /usr.
-        libraries = tools / 'root/usr/lib/x86_64-linux-gnu'
-        self.env['LD_LIBRARY_PATH'] = '%s:%s' % (libraries, libraries / 'pulseaudio')
+        #  Debian's QEMU and GDB load the installation's libraries; the
+        #  Espressif QEMU is a static build and loads none (D2571).
+        self.env['LD_LIBRARY_PATH'] = str(tools / 'root/usr/lib/x86_64-linux-gnu')
         self.bin = tools / 'root/usr/bin'
         self.arm = tools / 'gnat-arm-elf/bin'
         self.riscv = tools / RISCV / 'bin'

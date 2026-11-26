@@ -1734,6 +1734,12 @@ package body Landin.Backend.X86_64 is
          Proven_Data : Use_Buffers.Buffer
            (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
          Proven : Use_Counts renames Proven_Data.Data.all;
+         --  At size and speed, how many of each value's uses are the
+         --  length of a slice address whose check is removed, which reads
+         --  no length: a load read only there is not made.
+         Unread_Data : Use_Buffers.Buffer
+           (if Optimized then Landin.IR.Value_Count (Of_Unit, Item) else 0);
+         Unread : Use_Counts renames Unread_Data.Data.all;
          --  At speed, one for each block a loop begins at.
          Head_Data : Use_Buffers.Buffer
            (if Options.Optimize = Landin.Optimization.Speed
@@ -4288,6 +4294,20 @@ package body Landin.Backend.X86_64 is
             end Packed_Atom;
          begin
             if Value = Skipped_Store or else Value = Skipped_Load then
+               return;
+            end if;
+            --  D2492: a load whose every use is the length of a slice
+            --  address with its check removed is read by none of them.
+            --  A slot's load, or its field's, cannot trap, so it need not
+            --  be made.
+            if Optimized
+              and then (Op = Landin.IR.Load
+                        or else (Op = Landin.IR.Load_Field
+                                 and then Landin.IR.Reaches_A_Slot
+                                   (Of_Unit, Item, Value)))
+              and then Uses (Positive (Value)) > 0
+              and then Unread (Positive (Value)) = Uses (Positive (Value))
+            then
                return;
             end if;
             if Offset_Folds (Value) then
@@ -8149,6 +8169,25 @@ package body Landin.Backend.X86_64 is
          if Optimized then
             Count_Uses (Of_Unit, Item, Uses, References);
             Prove_Atom_Loads;
+            Unread := [others => 0];
+            for Index in Unread'Range loop
+               declare
+                  Value : constant Landin.IR.Value_Id :=
+                    Landin.IR.Value_Id (Index);
+               begin
+                  if Landin.IR.Op_Of (Of_Unit, Item, Value)
+                       = Landin.IR.Slice_Address
+                    and then Landin.IR.Is_Unchecked (Of_Unit, Item, Value)
+                  then
+                     declare
+                        Length : constant Positive := Positive
+                          (Landin.IR.Nth_Operand (Of_Unit, Item, Value, 2));
+                     begin
+                        Unread (Length) := Unread (Length) + 1;
+                     end;
+                  end if;
+               end;
+            end loop;
          end if;
          if Options.Optimize = Landin.Optimization.Speed then
             Find_Loop_Heads;

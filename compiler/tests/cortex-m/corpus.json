@@ -2791,6 +2791,9 @@
     "runtime/file-system-firmware": {
       "mode": "execute"
     },
+    "runtime/find-program-volume": {
+      "mode": "execute"
+    },
     "runtime/firmware-fannkuch-redux": {
       "mode": "execute"
     },
@@ -3031,6 +3034,12 @@
     },
     "runtime/greatest-common-divisor": {
       "mode": "execute"
+    },
+    "runtime/heap-in-use": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/held-references-go-back": {
       "codes": [
@@ -3542,6 +3551,9 @@
       "mode": "execute",
       "reason": "Cortex-M0 32-bit layout/ABI or explicit Cortex architecture branch; exact source differences are retained in counterparts.json."
     },
+    "runtime/mem-allocate-copy": {
+      "mode": "execute"
+    },
     "runtime/merge-sort": {
       "mode": "execute"
     },
@@ -4008,6 +4020,9 @@
       "mode": "refuse"
     },
     "runtime/private-alias-of-constrained-template": {
+      "mode": "execute"
+    },
+    "runtime/programs-by-name-memory": {
       "mode": "execute"
     },
     "runtime/qualified-module-array-copied-and-lent": {
@@ -4861,6 +4876,12 @@
       ],
       "mode": "refuse",
       "reason": "Firmware starts no program and has no environment. runtime/run-memory-firmware starts core/io's scripted programs and reads a memory environment here instead."
+    },
+    "runtime/run-itself-in-directory": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/run-large-output": {
       "codes": [

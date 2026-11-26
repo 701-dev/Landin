@@ -921,7 +921,10 @@ injector as arguments, as providers.
   before the old block is released. An arena is an ordinary
   allocator, not syntax (D212). A zone is a bump allocator that grows
   by taking blocks from another allocator. `zone.reset` gives its
-  allocations back through the handle (D2449).
+  allocations back through the handle (D2449), and a lifetime nested in a
+  region's takes one, since a free into a region gives nothing back
+  (D2531). `mem.allocate_copy` keeps lent bytes as a `[]mut u8` in the
+  caller's allocator (D2532).
 - **Comparison.** The comparison concepts are a module of their own,
   `core/cmp`, with library-supplied evidence for integer keys and ordering,
   Boolean and byte slice keys, and UTF-8 keys and ordering. Every shipped
@@ -988,14 +991,14 @@ providers are `core/io/fake`'s, each named for what it fakes.
 | concept | what it does | its fake |
 | --- | --- | --- |
 | reader, writer, file | caller-backed I/O; a streaming log needs only a writer; `write_format` writes a template and its values in one call, a buffered writer gathers many writes in a caller's buffer until it is flushed, and a line reader lends each line until the next read | the memory world |
-| process | lends standard input beside standard output and error | the memory world |
+| process | lends standard input beside standard output and error, the arguments and the name the program was run by, `argv[0]` (D2536) | the memory world, named by `memory_named` |
 | directories | lists a directory through a buffer its caller supplies, lending each name until the next read, and makes and removes directories and files | the memory world |
 | environment | lends the read-only environment | an environment over data |
-| programs | starts a program by its path with the arguments and environment its parent builds, each standard stream inherited, discarded or piped; reads its output and errors together while it runs, and waits for it to exit with a code or be ended by a signal | scripted programs |
+| programs | starts a program by its path with the arguments and environment its parent builds, in the parent's working directory or another (D2534), each standard stream inherited, discarded or piped; reads its output and errors together while it runs, and waits for it to exit with a code or be ended by a signal; `find_program` finds a name on a `PATH` value as a shell does (D2535) | scripted programs, each in a directory |
 | clocks, in `core/time` | a monotonic clock with sleeping and a wall clock, with time in nanoseconds in a `u64` and no floating point; on Linux the clock is read through the vDSO the auxiliary vector names, falling back to the system call | `fake.clock`, a manual clock |
 | entropy | the system's entropy | `fake.entropy`, scripted entropy |
 | network, in `core/net` | TCP and UDP over IPv4 and IPv6 that listen, accept, connect, send and receive, blocking the thread over `hosted/blocking` and letting other fibres run over `hosted/events`; address values read from and written to their text, an IPv6 address's zone among it, `fe80::1%eth0`, which the hosted providers turn into the interface's number and back (D581); time limits whose passing is an atom, a connection's own among them (D580); a connection read and written as a file, a line reader and a buffered writer among them | `fake.network`, loopback addresses in the caller's buffers, whose calls take turns where they would wait when it is given a `fibre.turns`, beside a `fake.clock` whose sleepers it waits for (D483, D493) |
-| file system | opening with options, appending and exclusive creation among them, and a directory opened as a file refused as `io.is_a_directory`; renaming that replaces a taken name in one step; a status of size, kind, modification time and a read-only flag; read-only files, synchronizing, truncation, reading and writing at an offset; temporary files created exclusively under names drawn from entropy; the working directory's path | `fake.volume`, over the caller's nodes |
+| file system | opening with options, appending and exclusive creation among them, and a directory opened as a file refused as `io.is_a_directory`; renaming that replaces a taken name in one step; a status of size, kind, modification time, a read-only flag and whether a file is executable (D2535); read-only files, synchronizing, truncation, reading and writing at an offset; temporary files created exclusively under names drawn from entropy; the working directory's path | `fake.volume`, over the caller's nodes |
 | terminals | whether a stream is one, and its size | `fake.terminals` |
 | signals, in `core/io/signal` | the signals a server cares about, delivered as events: `signals` refines `fibre.turns`, so only a provider whose fibres take turns delivers them, and a fibre waits for the next one as for a receive (D477, D482) | `fake.signals`, those a test raises, on Cortex-M0 too |
 
@@ -1008,6 +1011,8 @@ process ignores SIGPIPE and gives its children the default back.
 - `hosted/thread/lock` is a lock that waits through the system's wait on
   an address, beside the flag that a thread has started, and `hosted/heap`
   keeps its size classes behind it once one has (D501, D502, D513).
+  `hosted/heap` says the bytes it holds for live blocks, their peak, and
+  the process's peak resident size as the system counts it (D2533).
 - `hosted/heap`, `hosted/system`, `hosted/blocking` and `hosted/events`
   supply the hosted heap, what the system offers that does not wait, the I/O
   provider that blocks the thread while it waits and the one that switches
@@ -1156,7 +1161,9 @@ process ignores SIGPIPE and gives its children the default back.
   constant wherever the store dominates (D2148). A loop's index is
   bounded below by its first value and above by its test, and those
   bounds carry through a constant offset or multiple, so `w[t - 15]` and
-  `4 * t + 3` in SHA-256's loops keep no check (D2207); one product
+  `4 * t + 3` in SHA-256's loops keep no check (D2207); an index counted
+  down from a slice's length, as reverse-complement's, keeps none either
+  (D2491, D2492); one product
   written four times is made once (D2247, D2248). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction, and a proved
   product by a power of two is a shift (D1624, D2251). SHA-256's majority

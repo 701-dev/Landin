@@ -2257,6 +2257,7 @@ runtime/fibre-turns-interleave | linux-x86-64, linux-arm64, linux-rv64, darwin-a
 runtime/field-conformance | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/fields-lent-apart | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/file-system-firmware | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+runtime/find-program-volume | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/firmware-fannkuch-redux | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/firmware-mandelbrot | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/first-program | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
@@ -2324,6 +2325,7 @@ runtime/generic-text-literal-deduction | linux-x86-64, linux-arm64, darwin-arm64
 runtime/generic-try-effective-signature | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/generic-zero-nominal-array-signatures | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/greatest-common-divisor | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/heap-in-use | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/held-references-go-back | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/hosted-assembly-reaches-no-evidence-entry | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0
 runtime/hosted-heap-after-thread-start | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
@@ -2444,6 +2446,7 @@ runtime/match-sink-binding | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x8
 runtime/measure-fibre-switches | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/measure-thread-switches | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64
 runtime/measurements-answer-for-the-target | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+runtime/mem-allocate-copy | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/merge-sort | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/minimum-remainder-minus-one-is-zero | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/mixed-array-repetition-assignment-reads-old-value | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
@@ -2547,6 +2550,7 @@ runtime/posix-terminals | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-6
 runtime/posix-transfer-above-int-max | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/posix-wait-on-address | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/private-alias-of-constrained-template | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+runtime/programs-by-name-memory | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/qualified-module-array-copied-and-lent | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/qualified-module-binding-is-a-place | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/qualified-module-binding-is-sunk | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
@@ -2740,6 +2744,7 @@ runtime/region-beside-parent | linux-x86-64, linux-arm64, linux-rv64, darwin-arm
 runtime/region-bounded-pool | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
 runtime/region-ledger-blocks | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
 runtime/run-environment | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+runtime/run-itself-in-directory | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64
 runtime/run-large-output | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
 runtime/run-length-encoding | linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
 runtime/run-memory-firmware | linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D2535 io.find_program over the memory volume finds the executable regular file of a name on a search path past an empty entry, a directory marked executable, a file not executable and an entry without the name, checks a name holding a / where it is, refuses an empty name not_found and a path longer than the caller's buffer io_failed, with Windows' ; entries and .exe names
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0570, 0680, 0900, 1030, 1210, 1680
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

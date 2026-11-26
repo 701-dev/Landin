@@ -34,4 +34,27 @@ fixed if compiler.os == windows then
     public extern(c) link(symbol: "VirtualQuery") virtual_query:
         (address: usize, into: ptr mut memory_information, bytes: usize)
         -> (written: usize)
+
+    --- `PROCESS_MEMORY_COUNTERS`: `size` is the structure's own, which the
+    --- caller sets, and `peak_working_set` the most bytes the process has
+    --- held resident at once.
+    public memory_counters: type = struct
+        size: u32
+        page_faults: u32
+        peak_working_set: usize
+        working_set: usize
+        quota_peak_paged_pool: usize
+        quota_paged_pool: usize
+        quota_peak_nonpaged_pool: usize
+        quota_nonpaged_pool: usize
+        page_file: usize
+        peak_page_file: usize
+    end memory_counters
+
+    --- Describe the memory of `process`, `K32GetProcessMemoryInfo`, which
+    --- kernel32 exports, into `into`, whose `size` the caller sets to
+    --- `bytes`: nonzero, or zero with the reason in `last_error`.
+    public extern(c) link(symbol: "K32GetProcessMemoryInfo") process_memory:
+        (process: handle, into: ptr mut memory_counters, bytes: u32)
+        -> (succeeded: i32)
 end if

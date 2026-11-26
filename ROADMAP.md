@@ -104,9 +104,13 @@ reasoning goes in the commits and in `spec.md`'s register of decisions.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without
-asking again. An item opts out with one line, `Promotion: maintainer`,
-which returns that step to the maintainer; `check.py` refuses any other
-spelling. Releases and versions are never covered.
+asking again. The session that runs the roadmap, or a train's integrator,
+may also promote other items' gated candidates inside a train: merged into
+the promotion token's holder, they land as one tree on its own gate and
+boards (`docs/process.md`, "A train"). An item opts out with one line,
+`Promotion: maintainer`, which returns that step to the maintainer and
+keeps it off every train; `check.py` refuses any other spelling. Releases
+and versions are never covered.
 
 **The register.** A row is only for what outlives the item that met it
 and waits for a trigger. A finding the item fixes is named in its commit
@@ -1231,6 +1235,44 @@ embedded tools fetch from a pool that drops superseded versions. The
 merged candidate passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45543519666) and
 [boards](https://github.com/701-dev/Landin/actions/runs/45547023934).
+
+### R16.39 — An index counted down proves its own checks
+
+Status: complete
+Depends on: R16.10
+
+reverse-complement spends 70% of its x86-64 instructions at speed in
+`write_reversed`, which walks a sequence from its end, `while at > 0 do
+dec at` reading `sequence[at]` from `at = lenof sequence`: 7.10 G on
+fasta 25,000,000's output against C's 2.10 G. D2207's counted slot
+bounds only an index that counts up, so each byte still pays a bounds
+check and a reload of the length it compares with, three of the loop's
+sixteen instructions. No open row names the cost. The item proves an
+index counted down from a length below that length, and leaves unloaded
+a length no remaining check reads.
+Exit evidence: reverse-complement at speed on x86-64 executing more than
+5% fewer instructions than at the item's base, measured on arm64 as
+well; every benchmark program's instructions and image size reported
+against that base; and no other combination over its own.
+
+Done: a slot stored with a first value and stepped by its own load less
+a constant counts down and is never above that first value, so a
+checked `x - k` of its load is below a length the first value names,
+the proof waiting for the walk to see the step, as D2207's do (D2491);
+x86-64 makes no load of a length only proved checks name (D2492).
+reverse-complement keeps no check in its byte loop: against the item's
+base under QEMU it executes 12.4% fewer x86-64 instructions at speed
+and 12.7% at size, 7.0% and 5.5% on arm64, and 2.5% and 2.0% on RV64;
+fasta 4.1% fewer at x86-64 size, every other hosted program within
+0.2%, every output the same. Every image's code and data are the same
+size or smaller; FreeBSD's reverse-complement at speed is 28 and 16
+bytes larger in all, its RELRO padding growing by more than its text
+shrinks. Choosing the subject, nested copies of the allocator chain gave
+binary-trees under 3%, and a call's failure status, sealed and its test
+fused into the branch, 3.9%; `SR-1861` files the second. The merged
+candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45708189957) and
+[boards](https://github.com/701-dev/Landin/actions/runs/45714601151).
 
 ### The continuous items
 
@@ -3326,7 +3368,7 @@ that wraps a line.
 
 ### R22.26 — What refine-build wanted from the library
 
-Status: planned
+Status: complete
 Depends on: none
 
 The hosted and allocator calls that writing refine-build, the contributed
@@ -3342,6 +3384,34 @@ nothing back and says nothing, and `core/README.md` naming `core/zone`
 Exit evidence: each call with a runtime fixture on every hosted target and
 its fake where the concept has one, `docs/library.md` saying where a
 reader looks, and refine-build's workaround for each removed or named.
+
+Done: a child's working directory is the spawn's (D2534): `io.spawn_in`
+names one, and `programs`' `spawn` entry, `posix.spawn_in` and
+`system.start` take it, a relative program found from the child's
+directory on every system, `chdir` in Linux's cloned child,
+`posix_spawn_file_actions_addchdir_np` on Darwin and FreeBSD, and on
+Windows `CreateProcessW`'s directory with a relative program joined to
+it. `io.status` says `executable` and `io.find_program` finds a name on a
+`PATH` value as a shell does, passing empty entries over (D2535);
+`io.program_name` lends `argv[0]` on every hosted system, Windows' parsed
+command line among them, and `io.memory_named` names the memory world
+(D2536). `mem.allocate_copy` keeps lent bytes as a `[]mut u8` (D2532).
+`heap.in_use`, `heap.peak_in_use` and `heap.peak_resident`, the last
+`getrusage` or `K32GetProcessMemoryInfo` (D2533). The region's type,
+`vec.release`, `core/README.md` and `docs/library.md` say that a free
+into a region gives nothing back and that a nested lifetime takes a zone
+(D2531). Pinned by `runtime/run-itself-in-directory` and
+`runtime/heap-in-use` and `runtime/find-program-volume` on every hosted
+target and `runtime/programs-by-name-memory` and
+`runtime/mem-allocate-copy` on every target, the scripted programs, the
+volume and the memory world their fakes. refine-build's workarounds, each named here and left to its
+own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
+`files/files.ldn` is `io.find_program`; the name written into its
+`--describe` is `io.program_name`; `strings.keep` is
+`mem.allocate_copy`; the heap handed beside a region is a zone over the
+region's parent; and `time -f %M` is `heap.in_use` and
+`heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
+SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.30 — Text and Unicode
 

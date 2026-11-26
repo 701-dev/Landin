@@ -38,7 +38,7 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 | Assembler/linker | GNU Binutils 2.46.1, from the same archive |
 | Debugger | `gdb-multiarch` 16.3, Debian `16.3-1`, loopback QEMU remote stub |
 | Probe options | `-mcpu=cortex-m0 -mthumb -mfloat-abi=soft -mabi=aapcs -fno-short-enums -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
-| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, the release's Linux x86-64 `qemu-system-riscv32` archive, unpacked into the tool root's `qemu-espressif` (D695) |
+| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, built from that tag as a static, headless binary by [701-dev/nix-packages](https://github.com/701-dev/nix-packages), whose one archive holds `qemu-system-riscv32` and `qemu-system-xtensa` and is unpacked into the tool root's `qemu-espressif` and `qemu-xtensa` (D695, D2571) |
 | rv32imc corpus lane | `-M esp32c3 -cpu espressif,a=false,zawrs=false,f=false,d=false,zfa=false`: the ESP32-C3 machine with its core's A, F and D removed, which the C3 has not (D696), for the whole corpus at `rv32imc` in `run.py`'s `esp32c3` lane, on the lane description `lanes/descriptions/esp32c3` |
 | rv32imac corpus lane | `-M sifive_e`: a SiFive E31, rv32imac, for the whole corpus at `rv32imac` in `run.py`'s `sifive-e` lane, on the RV32 reference's map, 32 KiB of flash at `0x2040_0000` and the 16 KiB DTIM at `0x8000_0000` |
 | RV32 compiler | `riscv64-elf-gcc` 16.1.0 with Binutils 2.46.1, GNAT's riscv64-elf archive `16.1.0-1`, pinned in `environments/pins.sh`; libgcc from `rv32im/ilp32` at rv32imc and `rv32imac/ilp32` at rv32imac |
@@ -47,14 +47,12 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 `tools.lock.json` pins URLs and SHA-256 for every downloaded package: QEMU
 and GDB, and the whole Debian 13 runtime closure they load, down to
 the libraries and embedded Python 3.13 a Debian 13 base image would have
-supplied, and Espressif's QEMU release archive with the Debian libraries it
-loads: SDL2 and the sound, X11 and Wayland libraries SDL2 links, and
-libgcrypt, 36 packages chosen by following each binary's `NEEDED` entries
-rather than the packages' dependencies, which would add Mesa and LLVM that
-nothing loads. Debian's libpulse finds its common library through a
-`RUNPATH` under `/usr`, so the lanes put the tool root's
-`lib/x86_64-linux-gnu/pulseaudio` on `LD_LIBRARY_PATH` beside the library
-directory itself. GCC and binutils come from the arm-elf and riscv64-elf
+supplied, 80 packages chosen by following the `NEEDED` entries of every
+binary and library in them rather than the packages' dependencies, which
+would add Mesa and LLVM that nothing loads; and the Espressif QEMU
+archive, which needs no library. The lanes put the tool root's
+`lib/x86_64-linux-gnu` on `LD_LIBRARY_PATH` for Debian's QEMU and GDB.
+GCC and binutils come from the arm-elf and riscv64-elf
 archives whose version and checksums `environments/pins.sh` holds beside
 the host GNAT's; the arm-elf GDB is
 built without the Python the debugger sessions run, so GDB stays Debian's.
@@ -369,18 +367,17 @@ lanes, Espressif's `qemu-system-riscv32`, with `gdb-multiarch` for both;
 `--part=rv32` or `--lane rv32-controls` takes the same route, and so do the
 [Xtensa runners](../xtensa/README.md) with `--tools`.
 
-To run an emulator or GDB by hand, to try a machine, run it under
+To run Debian's QEMU or GDB by hand, to try a machine, run it under
 `landin-fhs` and give it the tool root's libraries as the lanes do: they
-are found only through `LD_LIBRARY_PATH`, and Debian's libpulse, which
-Espressif's QEMU loads through SDL2, looks for its own common library in a
-`pulseaudio` directory beside them. Set the variable for that program
-alone: the shell's own programs would load the root's Debian libraries
-too, and its bash fails on their readline.
+are found only through `LD_LIBRARY_PATH`. Set the variable for that
+program alone: the shell's own programs would load the root's Debian
+libraries too, and its bash fails on their readline. The Espressif QEMU
+is static and runs as it is, on NixOS too.
 
 ```sh
 T=$HOME/.cache/landin/TOOL-ROOT L=$T/root/usr/lib/x86_64-linux-gnu
-nix develop -c landin-fhs env LD_LIBRARY_PATH=$L:$L/pulseaudio \
-  $T/qemu-espressif/bin/qemu-system-riscv32 -M help
+nix develop -c landin-fhs env LD_LIBRARY_PATH=$L $T/root/usr/bin/qemu-system-arm -M help
+$T/qemu-espressif/bin/qemu-system-riscv32 -M help
 ```
 
 Without `landin-fhs` on `PATH`, a lane on NixOS's stub loader is refused

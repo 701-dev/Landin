@@ -180,7 +180,9 @@ landin_fetch() {
     #  a 404 ends at once.  curl does not ask again when a transfer it
     #  began breaks off, a connection reset or a body cut short, which
     #  failed a gate's toolchain fetch, so this asks again for every
-    #  failure but an HTTP status (curl's 22), as many times.  A failure
+    #  failure but an HTTP status (curl's 22), as many times, and for a
+    #  403, which GitHub's release downloads answered once in passing and
+    #  failed a whole gate's job with (2026-11-24).  A failure
     #  names the archive, its URL and the status, so an upstream outage is
     #  told from a broken pin.
     Attempt=0
@@ -190,7 +192,7 @@ landin_fetch() {
             -w '%{http_code}' -o "$Into/$Archive" "$From/$Archive") && break
         Code=$?
         Attempt=$((Attempt + 1))
-        if [ "$Code" -eq 22 ] \
+        if { [ "$Code" -eq 22 ] && [ "$Status" != 403 ]; } \
             || [ "$Attempt" -gt "${LANDIN_FETCH_RETRIES:-3}" ]; then
             echo "landin_fetch: $Archive: cannot fetch $From/$Archive:" \
                 "HTTP status ${Status:-none} after up to" \

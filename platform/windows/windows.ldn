@@ -496,6 +496,28 @@ fixed if compiler.os == windows then
         end match
     end argument
 
+    --- The program's name as the command line gave it, the first of the
+    --- vectors the entry read, read as the C runtime reads `argv[0]`: what
+    --- its parent called it, as a host string lending the process's own
+    --- storage.  Empty when the command line was empty; it traps before the
+    --- argument root exists, as `arguments` does.
+    public program_name: () -> (name: text.os_string) =
+        held: ptr ptr u8 = match root_values
+            no_table: compiler.unreachable()
+            ptr (found): found
+        end match
+        name = text.os_string_over(no_name[0..<0])
+        return when root_count < 1
+        first: ptr argument_string = ptr(usize(held))
+        match first.val
+            no_string: return
+            ptr (data): name = text.os_string_over(view(data,
+                                                        terminated_length(data)))
+        end match
+    end program_name
+
+    no_name: [1]u8 = [0]
+
     --- The process's environment as the entry read it, and the count of its
     --- entries.  `variable` reads it.
     public environment_table: type = struct

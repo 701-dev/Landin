@@ -386,6 +386,15 @@ fixed if compiler.os == linux then
                                    i64(usize(into)), i64(length), 0, 0, 0))
     end getdents64
 
+    --- Make `path` the process's working directory: zero, or minus the
+    --- errno.  The library calls it only in a child between its copy and
+    --- its program, where the change is the child's alone.
+    public chdir:
+        (path: ptr u8) -> (result: i32) =
+        result = i32(system_call(chdir_number, i64(usize(path)), 0, 0, 0, 0,
+                                 0))
+    end chdir
+
     --- Make the directory `path`, relative to `directory` (or `at_fdcwd`),
     --- with the permission bits `mode`, which the process umask filters:
     --- zero, or minus the errno, EEXIST when the name is taken.
@@ -420,6 +429,18 @@ fixed if compiler.os == linux then
         result = i32(system_call(munmap_number, i64(address), i64(length), 0,
                                  0, 0, 0))
     end munmap
+
+    --- `getrusage`'s `who` for the calling process itself.
+    public rusage_self: i32 = 0
+
+    --- The resource use of `who` into the 144-byte `struct rusage` at
+    --- `usage`: zero, or minus the errno.  Its `ru_maxrss`, the peak
+    --- resident set in KiB, is the word at byte 32.
+    public getrusage:
+        (who: i32, usage: usize) -> (result: i32) =
+        result = i32(system_call(getrusage_number, i64(who), i64(usage), 0, 0,
+                                 0, 0))
+    end getrusage
 
     --- Make the mapping of `length` bytes at `address` `new_length` bytes
     --- long: where it is, or with `mremap_maymove` wherever the kernel

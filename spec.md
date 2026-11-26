@@ -28532,6 +28532,42 @@ does not do and its proofs do not need.
 
 **Pinned by** the IR optimization suite's `proved checks`.
 
+### D2491 — An index counted down from a length is below that length
+
+**The tour said** nothing. D2207 counts a slot that steps up and bounds
+it below by its first value; a slot that steps down was not counted, so
+nothing bounded it above. reverse-complement walks a sequence from its
+end, `at = lenof sequence` and then `while at > 0 do dec at` reading
+`sequence[at]`, and every byte kept a bounds check and a reload of the
+length it compared with: three of its loop's sixteen x86-64
+instructions, in a loop that is 70% of the program's.
+
+**Chosen:** a slot stored twice, once with a first value and once with
+its own load less a constant at least zero, its first store's block
+strictly dominating the step's and the step's load's, counts down: every
+value it holds where the first store strictly dominates is at most the
+first value, provided the step does not wrap. When the first value is a
+constant or a part nothing in the routine writes, such as a slice
+parameter's length, a checked `x - k` with `k` above zero that did not
+trap, where `x` is a load of the slot, is below that first value, and so
+proves the bounds check of an element `s[x - k]` when the first value is
+`s`'s length. `dec at` then `s[at]` is that form, the load of `at` after
+the step being the step's value. As with D2207, the walk learns that the
+step cannot wrap only when it reaches the step, so a proof resting on
+the slot is applied after the walk, and only if the step is checked, or
+the bounds where it stands leave room for its constant. A slot counted
+down gives no least of its first value, which D2207's rule gives a slot
+counted up, and a slot with two steps, or one stepped both ways, is not
+counted.
+
+**The alternatives:** a general range analysis over the loop, which
+D2207 declined; rewriting a descending loop to count up in lowering,
+which would leave the same loop written with its own index unproved and
+change the order a debugger shows.
+
+**Pinned by** the IR optimization suite's `proved checks`, with five
+controls, at size and speed, and x86-64's `counted-down slices`.
+
 ### D2447 — An identity may make the instruction it needs
 
 **The tour said** nothing. SHA-256's majority `(a & b) ^ (a & c) ^ (b &
@@ -28601,6 +28637,28 @@ selection of immediates.
 
 **Pinned by** SHA-256's measured load loop and the runtime fixtures'
 products at size and speed.
+
+### D2492 — x86-64 does not load a length no check reads
+
+**The tour said** nothing. An element of a slice is the inclusive range
+from its index to itself, and the operation names the slice's length
+for its bound; once the bound is proved (D2491) the operation reads the
+length no more, but the load that made it stayed: reverse-complement
+still loaded the length from its frame every byte and threw it away.
+
+**Chosen:** at size and speed x86-64 makes no instruction for a load of
+a slot, or of a field of one, whose every use is the length of a slice
+address whose check was removed. Such a load cannot trap and writes
+nothing, so leaving it out changes nothing the program observes; every
+other backend still makes it.
+
+**The alternatives:** giving the unchecked operation another operand in
+its length's place in the simplifier, which every backend would have
+read and which an operation that names a length it does not check would
+then have stated falsely. arm64 and RISC-V make no load of it in
+reverse-complement's loop, so they need no such rule.
+
+**Pinned by** x86-64's `counted-down slices` at size.
 
 ### D2247 — A constant left operand of a commutative integer operation goes right
 
@@ -38531,8 +38589,8 @@ machine with a description of its map (D607, D619), and RV32 had no
 emulator lane.
 
 **Chosen:** one pinned emulator, Espressif's QEMU `esp-develop-9.2.2-20260417`,
-locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json` with
-the Debian 13 libraries its binary's `NEEDED` entries reach, carries both
+locked by URL and SHA-256 in `environments/cortex-m/tools.lock.json`
+(since D2571 a static build of that tag, which needs no library), carries both
 levels: `rv32imc` on its `esp32c3` machine, on the lane description
 `environments/cortex-m/lanes/descriptions/esp32c3` (the reference's
 capacities in SRAM1: 32 KiB of text at 0x4038_0000, 16 KiB of data at the
@@ -38604,6 +38662,52 @@ the packages in a release of the project's own, a second store to keep.
 **Pinned by** `environments/cortex-m/test.py`'s
 `test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash`
 and `test_every_locked_debian_package_has_its_snapshot_url`.
+
+### D2571 — The Espressif QEMU the RV32 and Xtensa lanes run is a static build of its tag from 701-dev/nix-packages
+
+**The discrepancy:** the locked `qemu-espressif` and `qemu-xtensa` areas
+held Espressif's own release binaries of `esp-develop-9.2.2-20260417`,
+`qemu-system-riscv32` and `qemu-system-xtensa`. They are linked to SDL2
+and the rest of a graphical stack, so the lock carried 36 Debian packages
+no lane uses (`-nographic` and `-display none` throughout: SDL2, X11,
+xcb, Wayland, DRM, PulseAudio, ALSA, the audio codecs, D-Bus, libsystemd,
+libgcrypt), the lanes set `LD_LIBRARY_PATH` to the installation's Debian
+root with PulseAudio's directory beside it, and on NixOS the emulators
+started only under `landin-fhs`, which an Xtensa run with `--qemu` alone
+did not go through.
+
+**Chosen:** the lock's one Espressif QEMU entry names the archive
+`qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz` from the binary
+cache of 701-dev/nix-packages, the project's repository of tools built
+from source with Nix: the same tag, headless, `xtensa-softmmu` and
+`riscv32-softmmu` only, statically linked against musl, with
+Espressif's ROM images and its `--with-pkgversion`, so `--version` still
+answers `9.2.2 (esp_develop_9.2.2_20260417)`. `setup.py` fetches and
+holds it to its SHA-256 like any locked archive, and the cache keeps the
+sources of every path in its build beside it. The archive holds both
+emulators, so its entry's `into` lists both areas and `setup.py` unpacks
+it into each, keeping every lane's paths. The binaries need no library:
+the 36 packages leave the lock, 116 to 80, the 80 being the closure of
+the `NEEDED` entries of every binary and library in the packages of
+Debian's `qemu-system-arm` and `gdb-multiarch` with GDB's data and
+Python's standard library; `environments/xtensa/tools.py` and the gate's
+Xtensa jobs no longer set `LD_LIBRARY_PATH`, the Cortex-M lanes set it
+without PulseAudio's directory, and both emulators start on NixOS as
+they are. The lock's check and the `--tools`/`--qemu` rules are
+unchanged.
+
+**The alternatives:** keeping Espressif's binary, with the graphical
+stack it drags in; Espressif's binary with a stub `libSDL2` of our own,
+whose symbol list follows each Espressif release; a dynamic build linked
+to the lock's Debian libraries, which keeps the FHS route on NixOS; and
+the Nix package taken through a flake input, which needs Nix in the
+emulator jobs, the later stage of moving CI onto Nix; and two copies of
+the archive in the lock, one per area, which its check refuses as a
+repeated entry.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_unpacks_espressif_qemu_into_its_own_area`, which also
+refuses SDL2's packages back into the lock.
 
 ### D696 — The rv32imc lane refuses the A extension statically and in its core
 
@@ -42095,6 +42199,57 @@ round for good.
 on every target, Cortex-M0 among them, and
 `runtime/benchmark-game-binary-trees`.
 
+### D2531 — A nested lifetime takes a zone, and a region's free says so in its documentation
+
+**The tour said** nothing, and `core/README.md` said that a region's
+single free returns nothing, leaving the reader to conclude that nesting
+regions reclaims nothing. refine-build handed every routine that started
+a shorter lifetime the heap beside its region, and code it moved from the
+heap onto a region compiled and ran unchanged while `vec.release` and a
+fresh list each round kept every temporary until the region ended, so a
+loop took memory by the square of its steps.
+
+**Chosen:** a lifetime nested inside a region's takes a `core/zone` over
+the region's parent, reset at the end of each round, which D2449 made
+possible; `core/README.md`, the region's type and `vec.release` say so,
+and that a free into a region or a zone gives nothing back before it is
+released or reset. The allocator concept is unchanged: nothing a caller
+could do with a provider's answer would stop the growth, which only a
+different allocator stops.
+
+**The alternatives:** an entry of `mem.allocator` saying whether a free
+reclaims, which every provider and fake would have to answer and no
+container could act on; a region that frees a payload back to its parent,
+which loses the region's one release and costs a ledger search per free;
+and a check, which would need to know which frees run in a loop.
+
+**Pinned by** `runtime/library-shared-zone` and `runtime/core-zone-blocks`,
+which show the zone's reset keeping one block, on every target.
+
+### D2532 — A copy of lent bytes into an allocator returns the bytes
+
+**The tour said** at [1360] that storage comes from an allocator passed
+in, and no call copied a `[]u8` into allocated storage and returned a
+`[]u8`: `mem.allocate_bytes` gives a `byte_buffer` whose view is lent from
+the local binding, so its copy cannot be kept, and the five-call form
+that can was shown only in one example. refine-build's `strings.keep`,
+which the whole tool rests on, wrote it out.
+
+**Chosen:** `mem.allocate_copy(memory, bytes)` takes a block of exactly
+`lenof bytes` from the provider, copies the bytes in and returns it as a
+`[]mut u8` that borrows nothing, and `mem.release_copy(memory, copied)`
+gives it back with its own length. An empty copy asks the provider for
+nothing and releasing one does nothing; a refusal is `out_of_memory`
+with nothing taken.
+
+**The alternatives:** documenting the five calls, which every program
+that keeps a line or an argument would write out again; returning a
+`byte_buffer`, which is the form that cannot be kept; and a `text`
+builder, which is for text that grows.
+
+**Pinned by** `runtime/mem-allocate-copy` on every target, Cortex-M0 among
+them.
+
 ### D387 — `core/sort` takes a comparison with a context
 
 **The tour said** at [1290] that a generic function takes a type as an
@@ -43024,6 +43179,105 @@ Darwin and FreeBSD headers; and `runtime/run-shell`, `runtime/run-streams`,
 `runtime/run-large-output`, `runtime/run-signalled` and the other programs
 fixtures, unchanged, over `blocking.new()`.
 
+### D2534 — A child's working directory is the spawn's, and a relative program is found from it
+
+**The tour said** nothing, and `io.spawn` and `posix.spawn` took no
+working directory while nothing changed the process's own, which is not
+safe beside threads. So a child always started where its parent was, and
+refine-build, the contributed build command, started every step as
+`env -C VIEW PROGRAM`, which needs GNU coreutils' `env` and is not on
+macOS.
+
+**Chosen:** `io.programs`' `spawn` entry takes the child's directory, an
+OS string, empty for the parent's own. `io.spawn` keeps its signature and
+passes the empty one; `io.spawn_in(host, directory, path, ...)` names a
+directory and refuses an empty one `mem.not_found` before it asks, since
+it names none. The child changes to it before its program is executed,
+so a relative program is found from there, as `env -C` and
+`posix_spawn_file_actions_addchdir` find one: on Linux the cloned child
+calls `chdir` first, on Darwin and FreeBSD it is
+`posix_spawn_file_actions_addchdir_np`, and on Windows `CreateProcessW`'s
+directory, a relative program joined to it with `\` because Windows
+finds one from the parent's. A missing directory is `mem.not_found`, one
+the caller may not enter `no_access`, and no child is left.
+`platform/posix` gains `spawn_in` beside `spawn`, and `hosted/system`'s
+`start`, the provider builders' call, takes the directory. The scripted
+fake matches a record by its path and its `directory`, so one program
+may be scripted apart in two directories.
+
+**The alternatives:** a new parameter of `io.spawn` itself, which breaks
+every caller for a want most do not have; changing the process's own
+directory, which every thread shares; a relative program found from the
+parent's directory, which Windows does and POSIX's spawn does not, and
+which would need the parent's path on POSIX; and a field of
+`child_streams`, which says how streams connect.
+
+**Pinned by** `runtime/run-itself-in-directory` on every hosted target and
+`runtime/programs-by-name-memory` on every target.
+
+### D2535 — A file says whether it runs, and the library searches `PATH` for a name
+
+**The tour said** nothing, and `io.spawn` rightly searches no path, but
+nothing else did either, and `io.status` had no executable bit, so a tool
+wrote its own search, 30 lines in refine-build, and took the first
+regular file of the name, executable or not.
+
+**Chosen:** `io.status` gains `executable`: a regular file some
+permission bit lets someone execute on POSIX, and on Windows, which keeps
+no such bit, a regular file whose final path ends in `.exe` or `.com`; a
+directory never is. `io.find_program(host, name, search, into)`, over
+`file_system`, finds a name as a shell does and puts its path in the
+caller's buffer: the first entry of `search`, a `PATH` value the caller
+reads through `environment`, holding an executable regular file of that
+name, after following links, joined to the entry with the separator the
+entry writes, `\` for a Windows entry that has one and `/` otherwise,
+which Windows takes too. Entries divide at `:`, on Windows at `;`,
+where a name whose last part has no extension is looked for with `.exe`
+after it as `CreateProcessW` looks. An empty entry is passed over rather
+than read as the current directory, so a program there never runs by
+accident. A name holding a separator, or a drive on Windows, names its
+own place and is checked, not searched. Nothing is found `mem.not_found`;
+a path too long for the buffer `io_failed`. The volume fake's nodes carry
+`executable`.
+
+**The alternatives:** searching inside `spawn`, which a caller could not
+see or refuse and which the library rejected for the shell's reasons;
+taking the provider's environment itself, which would make the search
+need two concepts and a fake of both; reading an empty entry as `.`, as
+POSIX's shells do, which runs a program from wherever the caller stands;
+and `access(X_OK)`, which asks about this process and is not a status.
+
+**Pinned by** `runtime/run-itself-in-directory` and
+`runtime/find-program-volume`, the search over the volume fake, on every
+hosted target.
+
+### D2536 — A program reads the name it was run by
+
+**The tour said** nothing, and `io.argument` starts after the program's
+name, C's `argv[1]`, with nothing in `core/io` giving `argv[0]`. A
+contributed command answering `--describe`, which the dispatcher holds to
+its file's name, wrote its name in, so a copy under another name was
+refused; a usage line could not say the name it was called by; and
+the Windows events stream's fixture, whose child was to be itself, started
+the command processor instead.
+
+**Chosen:** `process` gains `program_name`, and `io.program_name(host)`
+lends the name as the host passed it, C's `argv[0]`, empty when none was
+given: on POSIX the entry's vector, and on Windows the first part of the
+command line the entry reads, the same `argv[0]` the C runtime gives. It
+is the name to say, not proof of where the file is. The memory world has
+none unless `io.memory_named(world, name)` gives one.
+
+**The alternatives:** Windows' `GetModuleFileNameW`, which gives the
+executable's path rather than the name it was run by, and has no POSIX
+counterpart; index zero of `argument`, which would shift every existing
+caller's arguments; and a parameter of `memory_over`, which every memory
+world would have to give.
+
+**Pinned by** `runtime/run-itself-in-directory`, which finds itself by the
+name and starts itself, on every hosted target, and
+`runtime/programs-by-name-memory` on every target.
+
 ### D480 — The event loop sleeps in its wait, and needs no descriptor to wake it
 
 **The tour said** nothing. D449 lets a fibre wait for a descriptor, a
@@ -43906,6 +44160,38 @@ Both were declined.
 `runtime/hosted-heap-provider` and `runtime/linux-heap-size-classes` with it
 clear, and `runtime/linux-vdso` and `runtime/clock-system-libc` over the
 relaxed cache; D514 records what the lock costs.
+
+### D2533 — The heap counts what it holds, and the process says its peak
+
+**The tour said** nothing, and neither `hosted/heap` nor `core/io`
+reported the heap's bytes in use or the process's peak size, while
+`core/pool` keeps counters. A test that repeated work does not grow
+could not be written in Landin, and refine-build measured it with GNU
+`time -f %M` around its executable, skipped where that is missing.
+
+**Chosen:** `heap.in_use(memory)` is the bytes the heap holds for blocks
+not yet freed, each counted as its size class or its own mapping's
+pages, header and alignment included, and `heap.peak_in_use(memory)` the
+most it has held at once. The counts change with the size classes under
+their lock once a thread has started, and a mapping, made without the
+lock, takes it only to count. `heap.peak_resident(memory)` is the
+process's peak resident size in bytes as the system counts it: POSIX's
+`getrusage` maximum resident set, KiB on Linux and FreeBSD and bytes on
+Darwin, through the new `posix.peak_resident`, and Windows' peak working
+set through `K32GetProcessMemoryInfo`; zero when the system does not say.
+It counts the pages a program touched, so it may be less than the heap's
+peak, whose mapped pages need not all be touched, and FreeBSD reads it at
+its statistics clock, so a program shorter than a tick may not be seen at
+its largest.
+
+**The alternatives:** counting the bytes asked for, which the heap does
+not keep, since a free trusts its header and not the size passed; atomic
+counters, which every allocation would pay for beside a lock it already
+takes; a concept for memory measurement with a fake, when the heap is
+the process's own and a fake heap measures nothing; and a resident size
+in `core/io`, which a firmware image would carry.
+
+**Pinned by** `runtime/heap-in-use` on every hosted target.
 
 ### D503 — The process's own state beside threads
 

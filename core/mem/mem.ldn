@@ -141,6 +141,31 @@ public release: (provider: type is allocator, memory: provider,
     provider.free(memory, block, size)
 end release
 
+--- Copy `bytes` into a block taken from `memory` and return the copy, which
+--- borrows nothing and lasts until `release_copy` gives it back through the
+--- same provider: the way to keep bytes a caller only lent, such as a line
+--- read into a buffer or an argument, past their lender. An empty `bytes`
+--- returns an empty copy without calling the provider. Reports
+--- `out_of_memory`, having taken nothing, when the provider refuses.
+public allocate_copy: (provider: type is allocator, memory: provider,
+                       bytes: []u8)
+                      -> (copied: []mut u8) ! out_of_memory =
+    copied = []
+    return when lenof bytes == 0
+    block: ptr mut u8 = try provider.alloc(memory, lenof bytes, alignof u8)
+    copied = block_bytes(block, lenof bytes)
+    --  A fresh block of exactly `lenof bytes` bytes: the copy always fits.
+    copy(copied, bytes) else none
+end allocate_copy
+
+--- Give a copy `allocate_copy` made back to the provider it came from. The
+--- caller ends every use of it first. An empty copy needs no provider call.
+public release_copy: (provider: type is allocator, memory: provider,
+                      copied: []mut u8) -> none =
+    return when lenof copied == 0
+    provider.free(memory, addr copied[0], lenof copied)
+end release_copy
+
 --- Create an empty descriptor without allocating backing.
 ---
 --- A descriptor without an allocation is not a zero-address allocation.

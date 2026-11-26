@@ -1,0 +1,61 @@
+--  A program measures its own memory: the heap's bytes in use rise by at
+--  least what a block asks for and fall back when it is freed, so work
+--  repeated a hundred times that frees what it takes leaves them where
+--  they were; the heap's peak keeps the most it held, a mapping of its
+--  own among it; and the process's peak resident size, which the system
+--  counts in the pages a program touched, is at least the mebibyte this
+--  one fills.  FreeBSD reads its peak at the statistics clock, so a
+--  program as short as this may not be seen at its largest there, and the
+--  size is only read.
+import core/mem
+import hosted/heap
+
+--  Whether the system reads the peak at a clock rather than as it grows.
+sampled: bool = compiler.os == freebsd
+
+--  Take and free a small block and a large one, as a round of work.
+round: (memory: heap.heap) -> none ! mem.out_of_memory =
+    small: ptr mut u8 = try mem.allocate(memory, usize(100), usize(8))
+    large: ptr mut u8 = try mem.allocate(memory, usize(100000), usize(8))
+    mem.release(memory, large, 100000)
+    mem.release(memory, small, 100)
+end round
+
+public main: () -> (code: i32) =
+    memory := heap.new()
+    code = 1
+    before: usize = heap.in_use(memory)
+    block: ptr mut u8 = mem.allocate(memory, usize(1000), usize(8)) else (problem)
+        _ = problem
+        return
+    end
+    held: usize = heap.in_use(memory)
+    return when held < before + 1000
+    code = 2
+    mem.release(memory, block, 1000)
+    return when heap.in_use(memory) <> before
+    code = 3
+    for times in usize(0)..<100 do
+        _ = times
+        round(memory) else (problem)
+            _ = problem
+            return
+        end
+    end for
+    return when heap.in_use(memory) <> before
+    code = 4
+    peak: usize = heap.peak_in_use(memory)
+    return when peak < before + 100100
+    code = 5
+    whole: usize = 1048576
+    touched: ptr mut u8 = mem.allocate(memory, whole, usize(8)) else (problem)
+        _ = problem
+        return
+    end
+    filled: ptr mut [1048576]u8 = ptr(usize(touched))
+    mem.fill(filled.val[0..<whole], 1)
+    resident: usize = heap.peak_resident(memory)
+    return when resident < whole and not sampled
+    mem.release(memory, touched, whole)
+    code = 42
+end main
