@@ -3407,9 +3407,13 @@ at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
 8.2 times, mostly vector instructions refine does not emit (D2703).
 Found and fixed: a trap given a `caller` parameter whose type `site` is
 declared nowhere stopped checking on an internal defect, pinned by
-`negative/compiler-unreachable-undeclared-site`; and `check.py`'s
-parameter-order control counted a `math.floating` operand as a
-capability. Filed: `SR-1978`, the scalar kernel's loop and the missing
+`negative/compiler-unreachable-undeclared-site`; the Cortex-M backend
+freed the home of a deferred widening's operand (D2120) while the
+widening was still read, so `k * ((k + 1) * k)` gave 4 for 2 at size,
+met by level 2's own check on the Cortex-M7 lane and pinned by
+`runtime/widening-operand-outlives-product`, with Cortex-M0's measured
+sizes and instructions unchanged; and `check.py`'s parameter-order
+control counted a `math.floating` operand as a capability. Filed: `SR-1978`, the scalar kernel's loop and the missing
 vector instructions.
 
 ### R22.16 — Linear systems and least squares
