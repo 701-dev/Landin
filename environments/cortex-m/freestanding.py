@@ -19,7 +19,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import lane_refine  # noqa: E402
 MODULES = tuple('core/'+name for name in
-                ('arena', 'atomic', 'cache', 'cmp', 'complex', 'diag', 'failure', 'fault', 'fibre',
+                ('arena', 'atomic', 'big', 'cache', 'cmp', 'complex', 'diag', 'failure', 'fault', 'fibre',
                  'io', 'iter', 'line', 'map', 'math', 'mem', 'net', 'panic', 'pool', 'random',
                  'region', 'sort', 'spill', 'text', 'time', 'tree', 'unicode', 'vec',
                  'zone')) + ('platform/cortex_m',)

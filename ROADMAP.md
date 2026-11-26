@@ -3360,7 +3360,7 @@ every target.
 
 ### R22.13 — Big integers and rationals
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Arbitrary-precision arithmetic in two layers. The lower works on
@@ -3383,6 +3383,38 @@ constant-time operations, since Landin writes no cryptography.
 Exit evidence: an oracle set computed by another implementation passes
 on every target; multiplication and division timed from one limb to a
 million bits; the lower layer's image size on Cortex-M0 measured.
+
+Done: `core/big/limbs` holds naturals in the caller's 32-bit limbs on
+every target, with no allocator, and `core/big` the `integer` and the
+`rational` over them, each routine writing a destination the caller's
+allocator grows (D2594). A destination may be an operand, a copy is made
+with `set` (D2595), and every loop keeps its temporaries, so an arena
+holds a call whatever its length (D2596). A zero divisor stops the
+program and only foreseeable conditions fail (D2597); conversions to a
+float round once, ties to even (D2598); bit operations read two's
+complement without end (D2599); rationals stay in lowest terms under
+`rational_` names (D2600); multiplication is schoolbook, Karatsuba and
+Toom-3, division Knuth's Algorithm D (D2601). `scripts/big_oracle.py`
+writes the 16 `big-*` fixtures from Python's integers and fractions,
+with operands to 320 limbs drawn from `core/random` and compared by
+digest; they pass on every target the gate runs. On Cortex-M0's 32 KiB
+reference, sums, products, quotients, powers, the greatest common
+divisor, bits, conversions and text execute at every optimized profile;
+roots, the modular inverse and power and the rationals need both
+multiplication and division and outgrow it, so their corpus rows record
+profile limits and the `mps2-an500` lane executes them, `SR-1929`. The
+limb layer is 20,310 bytes at `size/auto` there, and a million-bit
+product takes 58 ms on x86-64 against 2.1 s for a division, whose
+subquadratic form waits in `SR-1928` (compiler/tests/big/README.md).
+`examples.md` computes 50 factorial and a harmonic number exactly. The
+`mps2-an500` lane found Cortex-M frames freeing a deferred widening's
+operand home at the widening rather than at its reader, so that at
+`armv7-m` and `armv8-m.main` `u64(a[i]) + u64(b[i])` after a call added
+`b[i]` twice (D2120), fixed with
+`runtime/widened-operands-keep-their-homes`. Fixed on the way:
+`refine fmt core/big core/big/limbs` refused the nested directory as
+holding no source (D385), and `scripts/add_fixture.py` printed that
+command.
 
 ### R22.14 — Fixed-point arithmetic
 
