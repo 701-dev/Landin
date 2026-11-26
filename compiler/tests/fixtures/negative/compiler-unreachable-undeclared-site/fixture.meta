@@ -1,0 +1,9 @@
+class: negative
+summary: D1262 a trap naming a `caller` parameter whose type `site` is declared nowhere is refused for the type alone, L0339 and L0201, where checking once stopped on an internal defect
+program: program.ldn
+codes: L0339, L0201
+constructs: 1040, 1560, 1860
+targets: linux-x86-64, linux-arm64, freebsd-x86-64, freebsd-arm64
+args: ../tests/fixtures/negative/compiler-unreachable-undeclared-site/program.ldn
+expect: expected.txt
+status: 1

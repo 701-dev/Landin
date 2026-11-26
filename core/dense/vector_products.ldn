@@ -1,0 +1,271 @@
+--  The products of a matrix and vectors, the BLAS's second level:
+--  matrix-vector products, rank-one and symmetric rank-one and rank-two
+--  updates, and triangular products and solves.  A transposed product
+--  is the product with a transposed view, so no routine takes a flag
+--  for it.
+import core/math
+
+--  `y ← β·y`, with `y` not read when `beta` is 0, and left as it is
+--  when `beta` is 1.
+scale_result: (item: type is math.floating, y: vector(item), beta: item)
+              -> none =
+    if beta == item(0) then
+        fill(y, item(0))
+    elsif beta <> item(1) then
+        scale(y, beta)
+    end if
+end scale_result
+
+--- `y ← α·A·x + β·y`, the BLAS's `gemv`; `A·x` with `A`
+--- transposed is this with `dense.transposed(a)`.  When `beta` is 0,
+--- `into` is not read, and when `alpha` is 0, `a` and `x` are not.
+--- Stops the program when `a` is not `into.length` by `x.length`.
+public multiply_vector: (item: type is math.floating, into: vector(item),
+                         alpha: item, a: matrix(item), x: vector(item),
+                         beta: item, caller where: site) -> none =
+    require(a.rows == into.length and a.columns == x.length, where: where)
+    if into.length == 0 then
+        return
+    end if
+    scale_result(into, beta)
+    if alpha == item(0) or x.length == 0 then
+        return
+    end if
+    if a.column_step <= a.row_step then
+        --  Along rows: each element of `into` is a dot product.
+        mut to: usize = 0
+        for i in 0..<a.rows do
+            mut total := item(0)
+            mut at_a: usize = i * a.row_step
+            mut at_x: usize = 0
+            for j in 0..<a.columns do
+                total = total + a.values[at_a] * x.values[at_x]
+                at_a += a.column_step
+                at_x += x.step
+            end for
+            into.values[to] = into.values[to] + alpha * total
+            to += into.step
+        end for
+    else
+        --  Down columns: `into` gathers each column scaled.
+        mut at_x: usize = 0
+        for j in 0..<a.columns do
+            factor := alpha * x.values[at_x]
+            mut at_a: usize = j * a.column_step
+            mut to: usize = 0
+            for i in 0..<a.rows do
+                into.values[to] = into.values[to] + factor * a.values[at_a]
+                at_a += a.row_step
+                to += into.step
+            end for
+            at_x += x.step
+        end for
+    end if
+end multiply_vector
+
+--- `A ← α·x·yᵀ + A`, the rank-one update, the BLAS's `ger`.  When
+--- `alpha` is 0 nothing is read or written.  Stops the program when
+--- `into` is not `x.length` by `y.length`.
+public add_outer: (item: type is math.floating, into: matrix(item),
+                   alpha: item, x: vector(item), y: vector(item),
+                   caller where: site) -> none =
+    require(into.rows == x.length and into.columns == y.length, where: where)
+    if alpha == item(0) then
+        return
+    end if
+    if into.column_step <= into.row_step then
+        mut at_x: usize = 0
+        for i in 0..<into.rows do
+            factor := alpha * x.values[at_x]
+            mut to: usize = i * into.row_step
+            mut at_y: usize = 0
+            for j in 0..<into.columns do
+                into.values[to] = into.values[to] + factor * y.values[at_y]
+                to += into.column_step
+                at_y += y.step
+            end for
+            at_x += x.step
+        end for
+    else
+        mut at_y: usize = 0
+        for j in 0..<into.columns do
+            factor := alpha * y.values[at_y]
+            mut to: usize = j * into.column_step
+            mut at_x: usize = 0
+            for i in 0..<into.rows do
+                into.values[to] = into.values[to] + x.values[at_x] * factor
+                to += into.row_step
+                at_x += x.step
+            end for
+            at_y += y.step
+        end for
+    end if
+end add_outer
+
+--  Whether element (i, j) lies in `part` of a square matrix.
+in_triangle: (part: triangle, i: usize, j: usize) -> (yes: bool) =
+    yes = if part == upper then i <= j else i >= j end if
+end in_triangle
+
+--- `y ← α·A·x + β·y` for a symmetric `A` of which only the triangle
+--- `part` is read, the other taken to mirror it, the BLAS's `symv`.
+--- When `beta` is 0 `into` is not read, and when `alpha` is 0 `a` and
+--- `x` are not.  Stops the program when `a` is not square of
+--- `x.length`, or `into` not as long.
+public multiply_symmetric_vector: (item: type is math.floating,
+                                   into: vector(item), alpha: item,
+                                   a: matrix(item), part: triangle,
+                                   x: vector(item), beta: item,
+                                   caller where: site) -> none =
+    n := x.length
+    require(a.rows == n and a.columns == n and into.length == n, where: where)
+    if n == 0 then
+        return
+    end if
+    scale_result(into, beta)
+    if alpha == item(0) then
+        return
+    end if
+    for j in 0..<n do
+        factor := alpha * x.values[j * x.step]
+        mut total := item(0)
+        first: usize = if part == upper then 0 else j + 1 end if
+        last := if part == upper then j else n end if
+        mut at_a: usize = first * a.row_step + j * a.column_step
+        mut at_x: usize = first * x.step
+        mut to: usize = first * into.step
+        for i in first..<last do
+            element := a.values[at_a]
+            into.values[to] = into.values[to] + factor * element
+            total = total + element * x.values[at_x]
+            at_a += a.row_step
+            at_x += x.step
+            to += into.step
+        end for
+        diagonal_at := j * a.row_step + j * a.column_step
+        into.values[j * into.step] = into.values[j * into.step]
+                                     + factor * a.values[diagonal_at] + alpha * total
+    end for
+end multiply_symmetric_vector
+
+--- `A ← α·x·xᵀ + A` on the triangle `part` of a symmetric `A`, the
+--- other triangle neither read nor written, the BLAS's `syr`.  When
+--- `alpha` is 0 nothing is read or written.  Stops the program when
+--- `into` is not square of `x.length`.
+public add_symmetric_outer: (item: type is math.floating, into: matrix(item),
+                             part: triangle, alpha: item, x: vector(item),
+                             caller where: site) -> none =
+    n := x.length
+    require(into.rows == n and into.columns == n, where: where)
+    if alpha == item(0) then
+        return
+    end if
+    for j in 0..<n do
+        factor := alpha * x.values[j * x.step]
+        first: usize = if part == upper then 0 else j end if
+        last := if part == upper then j + 1 else n end if
+        mut to: usize = first * into.row_step + j * into.column_step
+        mut at_x: usize = first * x.step
+        for i in first..<last do
+            into.values[to] = into.values[to] + x.values[at_x] * factor
+            to += into.row_step
+            at_x += x.step
+        end for
+    end for
+end add_symmetric_outer
+
+--- `A ← α·x·yᵀ + α·y·xᵀ + A` on the triangle `part` of a symmetric
+--- `A`, the other triangle neither read nor written, the BLAS's
+--- `syr2`.  When `alpha` is 0 nothing is read or written.  Stops the
+--- program when `into` is not square of `x.length`, or `y` not as long.
+public add_symmetric_outers: (item: type is math.floating, into: matrix(item),
+                              part: triangle, alpha: item, x: vector(item),
+                              y: vector(item), caller where: site) -> none =
+    n := x.length
+    require(into.rows == n and into.columns == n and y.length == n, where: where)
+    if alpha == item(0) then
+        return
+    end if
+    for j in 0..<n do
+        factor_y := alpha * y.values[j * y.step]
+        factor_x := alpha * x.values[j * x.step]
+        first: usize = if part == upper then 0 else j end if
+        last := if part == upper then j + 1 else n end if
+        mut to: usize = first * into.row_step + j * into.column_step
+        mut at_x: usize = first * x.step
+        mut at_y: usize = first * y.step
+        for i in first..<last do
+            into.values[to] = into.values[to] + x.values[at_x] * factor_y
+                              + y.values[at_y] * factor_x
+            to += into.row_step
+            at_x += x.step
+            at_y += y.step
+        end for
+    end for
+end add_symmetric_outers
+
+--- `x ← A·x` for a triangular `A`, the triangle `part` and its
+--- diagonal as `diagonal` says, in place, the BLAS's `trmv`; `Aᵀ·x` is
+--- this with `dense.transposed(a)` and the other triangle.  Stops the
+--- program when `a` is not square of `into.length`.
+public multiply_triangular_vector: (item: type is math.floating,
+                                    into: vector(item), a: matrix(item),
+                                    part: triangle, diagonal: diagonal_kind,
+                                    caller where: site) -> none =
+    n := into.length
+    require(a.rows == n and a.columns == n, where: where)
+    for k in 0..<n do
+        --  Upper: rows from the first, each reading only later elements;
+        --  lower: rows from the last, each reading only earlier ones.
+        i := if part == upper then k else n - 1 - k end if
+        mut total := item(0)
+        if diagonal == unit then
+            total = into.values[i * into.step]
+        else
+            total = a.values[i * a.row_step + i * a.column_step]
+                    * into.values[i * into.step]
+        end if
+        first := if part == upper then i + 1 else 0 end if
+        last := if part == upper then n else i end if
+        mut at_a: usize = i * a.row_step + first * a.column_step
+        mut at_x: usize = first * into.step
+        for j in first..<last do
+            total = total + a.values[at_a] * into.values[at_x]
+            at_a += a.column_step
+            at_x += into.step
+        end for
+        into.values[i * into.step] = total
+    end for
+end multiply_triangular_vector
+
+--- `x ← A⁻¹·x` for a triangular `A`, the triangle `part` and its
+--- diagonal as `diagonal` says, in place, by substitution, the BLAS's
+--- `trsv`; `A` is not checked for singularity, and a zero on its stored
+--- diagonal gives infinities or NaNs.  Stops the program when `a` is
+--- not square of `into.length`.
+public solve_triangular_vector: (item: type is math.floating,
+                                 into: vector(item), a: matrix(item),
+                                 part: triangle, diagonal: diagonal_kind,
+                                 caller where: site) -> none =
+    n := into.length
+    require(a.rows == n and a.columns == n, where: where)
+    for k in 0..<n do
+        --  Upper: back substitution from the last row; lower: forward
+        --  from the first.
+        i := if part == upper then n - 1 - k else k end if
+        first := if part == upper then i + 1 else 0 end if
+        last := if part == upper then n else i end if
+        mut total := into.values[i * into.step]
+        mut at_a: usize = i * a.row_step + first * a.column_step
+        mut at_x: usize = first * into.step
+        for j in first..<last do
+            total = total - a.values[at_a] * into.values[at_x]
+            at_a += a.column_step
+            at_x += into.step
+        end for
+        if diagonal == stored then
+            total = total / a.values[i * a.row_step + i * a.column_step]
+        end if
+        into.values[i * into.step] = total
+    end for
+end solve_triangular_vector

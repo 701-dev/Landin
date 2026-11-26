@@ -51679,6 +51679,57 @@ file negative/compiler-unreachable-not-a-caller/program.ldn tokens 96
   618 619 )
   620 623 end
   624 629 given
+file negative/compiler-unreachable-undeclared-site/program.ldn tokens 50
+  150 157 require
+  157 158 :
+  159 160 (
+  160 165 holds
+  165 166 :
+  167 171 bool
+  171 172 ,
+  173 179 caller
+  180 185 where
+  185 186 :
+  187 191 site
+  191 192 )
+  193 195 ->
+  196 200 none
+  201 202 =
+  207 209 if
+  210 213 not
+  214 219 holds
+  220 224 then
+  233 241 compiler
+  241 242 .
+  242 253 unreachable
+  253 254 (
+  254 259 where
+  259 260 )
+  265 268 end
+  269 271 if
+  272 275 end
+  276 283 require
+  285 291 public
+  292 296 main
+  296 297 :
+  298 299 (
+  299 300 )
+  301 303 ->
+  304 305 (
+  305 309 code
+  309 310 :
+  311 314 i32
+  314 315 )
+  316 317 =
+  322 329 require
+  329 330 (
+  330 334 true
+  334 335 )
+  340 344 code
+  345 346 =
+  347 348 0
+  349 352 end
+  353 357 main
 file negative/compiler-unreachable-value/program.ldn tokens 20
   0 4 pick
   4 5 :

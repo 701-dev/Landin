@@ -2517,6 +2517,31 @@
     "runtime/deferred-call-drops-its-result": {
       "mode": "execute"
     },
+    "runtime/dense-blas-level-1": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat1's tables and checks at both widths, with libgcc's soft double, is past the 32 KiB profile: 89,376 bytes of flash at size/auto, over by 56,608. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-2": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat2's generator, reference computation and checks of seven routines at both widths, with libgcc's soft double, is past the 32 KiB profile: 79,384 bytes of flash at size/auto, over by 46,616, and 12,336 bytes of RAM, over by 48. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-3-f32": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat3's generator, reference computation and checks of six routines at f32 is past the 32 KiB profile: 42,076 bytes of flash at size/auto, over by 9,308. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the fixture's every sixth case; this image limit is not runtime evidence."
+    },
+    "runtime/dense-blas-level-3-f64": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding dblat3's generator, reference computation and checks of six routines at f64, with libgcc's soft double, is past the 32 KiB profile: 48,492 bytes of flash at size/auto, over by 15,724. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the fixture's every sixth case; this image limit is not runtime evidence."
+    },
+    "runtime/dense-views-and-norms": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At every profile the image holding the checks of views, element-wise operations and norms at both widths, with libgcc's soft double, is past the 32 KiB profile: 52,812 bytes of flash at size/auto, over by 20,044. Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
     "runtime/derived-address-empty-slice-traps": {
       "mode": "execute"
     },
@@ -3519,6 +3544,9 @@
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 48888 of this lane's 32 KiB, over by 16120; at size/auto RV32's needs FLASH 35104 of this lane's 32 KiB, over by 2336; at size/off RV32's needs FLASH 35064 of this lane's 32 KiB, over by 2296; at speed/auto RV32's needs FLASH 33552 of this lane's 32 KiB, over by 784."
         }
       }
+    },
+    "runtime/library-shared-dense": {
+      "mode": "execute"
     },
     "runtime/library-shared-diag": {
       "mode": "execute"

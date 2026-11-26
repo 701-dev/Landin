@@ -1,0 +1,296 @@
+--  Dense vectors and matrices over f32 and f64, as linear algebra sees
+--  them: a vector or a matrix is a view over the caller's storage, and
+--  the routines compute on views without allocating.  A matrix's rows
+--  and columns each have their own step through the storage, so one laid
+--  out by rows and one laid out by columns are read alike, and its
+--  transpose and its blocks are further views of the same storage.  On
+--  the views are the element-wise operations, the reductions and norms,
+--  and the products of the BLAS's three levels: scaled sums and dot
+--  products, plane rotations, matrix-vector products and rank-one
+--  updates, matrix products, triangular products and solves, and
+--  symmetric rank-k updates.  Every routine is generic over
+--  `math.floating`, which f32 and f64 meet, and is written once.
+--
+--  A view holds a writable slice: a routine writes only the views its
+--  signature names `into`, and reads the rest.  The routines that write
+--  one view while reading another expect them not to overlap, as the
+--  BLAS does, unless the routine says it works in place.  A view whose
+--  extent passes its storage, or operands whose shapes disagree, is a
+--  mistake in the calling program, and stops it, reported at the call.
+--
+--  Nothing here is ported: each routine is written from the mathematics,
+--  and the ones whose accuracy or speed needs care from the published
+--  methods its comment names.  The `dense-*` runtime fixtures translate
+--  the cases of the reference BLAS's test programs and hold every test
+--  ratio under their threshold on every target, as
+--  compiler/tests/dense/README.md describes.
+import core/math
+
+--- A vector of `length` elements, element `i` at `values[i * step]`.
+--- `dense.vector_over` and `dense.strided_over` make one, and a matrix's
+--- `row`, `column` and `diagonal` are vectors over its storage.
+public vector: type (item: type is math.floating) = struct
+    values: []mut item
+    length: usize
+    step: usize
+end vector
+
+--- A matrix of `rows` by `columns` elements, the element in row `i` and
+--- column `j` at `values[i * row_step + j * column_step]`.  Laid out by
+--- rows, `column_step` is 1 and `row_step` the distance between rows;
+--- laid out by columns, the reverse.  `dense.rows_over`,
+--- `dense.columns_over` and `dense.matrix_over` make one.
+public matrix: type (item: type is math.floating) = struct
+    values: []mut item
+    rows: usize
+    columns: usize
+    row_step: usize
+    column_step: usize
+end matrix
+
+--- Which triangle of a square matrix a routine reads or writes: the
+--- `upper`, on and above the diagonal, or the `lower`, on and below it.
+--- The triangle is the view's own, so the upper triangle of a transposed
+--- view is the lower triangle of the storage.
+public triangle: type = upper | lower
+--- The triangle on and above the diagonal.
+public upper: atom
+--- The triangle on and below the diagonal.
+public lower: atom
+
+--- Whether a triangular matrix's diagonal is read from its storage,
+--- `stored`, or taken to be all ones, `unit`, and not read.
+public diagonal_kind: type = stored | unit
+--- The diagonal is read from the storage.
+public stored: atom
+--- The diagonal is all ones and is not read.
+public unit: atom
+
+--- Which side of the other operand a square matrix multiplies: `left`,
+--- `A·B`, or `right`, `B·A`.
+public side: type = left | right
+--- The square matrix is on the left: `A·B`.
+public left: atom
+--- The square matrix is on the right: `B·A`.
+public right: atom
+
+--  Where a call was written, the struct a `caller` parameter takes
+--  ([1560]): a mistaken call stops the program and is reported there.
+site: type = struct
+    file_id: u32
+    line: u32
+    column: u32
+end site
+
+--  Stop the program at the caller's call when `holds` is false.
+require: (holds: bool, caller where: site) -> none =
+    if not holds then
+        compiler.unreachable(where)
+    end if
+end require
+
+--  Whether a vector's extent lies within its storage.  An empty view
+--  needs none.
+vector_fits: (item: type is math.floating, v: vector(item)) -> (yes: bool) =
+    yes = true
+    if v.length > 0 then
+        count := lenof v.values
+        yes = count > 0 and (v.step == 0 or v.length - 1 <= (count - 1) / v.step)
+    end if
+end vector_fits
+
+--  Whether a matrix's extent lies within its storage.
+matrix_fits: (item: type is math.floating, m: matrix(item)) -> (yes: bool) =
+    yes = true
+    if m.rows > 0 and m.columns > 0 then
+        yes = false
+        count := lenof m.values
+        if count > 0 then
+            last_row := m.rows - 1
+            last_column := m.columns - 1
+            room := count - 1
+            if m.row_step == 0 or last_row <= room / m.row_step then
+                used := last_row * m.row_step
+                rest := room - used
+                yes = m.column_step == 0 or last_column <= rest / m.column_step
+            end if
+        end if
+    end if
+end matrix_fits
+
+--- A vector of every element of `values`, in order.
+public vector_over: (item: type is math.floating, values: []mut item)
+                    -> (v: vector(item) from values) =
+    v = (values: values, length: lenof values, step: 1)
+end vector_over
+
+--- A vector of `length` elements of `values`, element `i` at
+--- `values[i * step]`.  A step of 0 repeats one element.  Stops the
+--- program when the last element passes `values`.
+public strided_over: (item: type is math.floating, values: []mut item,
+                      length: usize, step: usize, caller where: site)
+                     -> (v: vector(item) from values) =
+    v = (values: values, length: length, step: step)
+    require(vector_fits(v), where: where)
+end strided_over
+
+--- A matrix of `rows` by `columns` laid out by rows with no gap: row
+--- `i` begins at `values[i * columns]`.  Stops the program when
+--- `values` holds fewer than `rows * columns` elements.
+public rows_over: (item: type is math.floating, values: []mut item,
+                   rows: usize, columns: usize, caller where: site)
+                  -> (m: matrix(item) from values) =
+    m = (values: values, rows: rows, columns: columns,
+         row_step: columns, column_step: 1)
+    require(matrix_fits(m), where: where)
+end rows_over
+
+--- A matrix of `rows` by `columns` laid out by columns with no gap:
+--- column `j` begins at `values[j * rows]`, Fortran's and the BLAS's
+--- order.  Stops the program when `values` holds fewer than
+--- `rows * columns` elements.
+public columns_over: (item: type is math.floating, values: []mut item,
+                      rows: usize, columns: usize, caller where: site)
+                     -> (m: matrix(item) from values) =
+    m = (values: values, rows: rows, columns: columns,
+         row_step: 1, column_step: rows)
+    require(matrix_fits(m), where: where)
+end columns_over
+
+--- A matrix of `rows` by `columns` whose element in row `i` and column
+--- `j` is `values[i * row_step + j * column_step]`: a layout with a
+--- leading dimension larger than the matrix, as the BLAS's `lda`.
+--- Stops the program when the last element passes `values`.
+public matrix_over: (item: type is math.floating, values: []mut item,
+                     rows: usize, columns: usize,
+                     row_step: usize, column_step: usize, caller where: site)
+                    -> (m: matrix(item) from values) =
+    m = (values: values, rows: rows, columns: columns,
+         row_step: row_step, column_step: column_step)
+    require(matrix_fits(m), where: where)
+end matrix_over
+
+--- The transpose of `m`, over the same storage: its rows are `m`'s
+--- columns.  Nothing is copied.
+public transposed: (item: type is math.floating, m: matrix(item))
+                   -> (t: matrix(item) from m) =
+    t = (values: m.values, rows: m.columns, columns: m.rows,
+         row_step: m.column_step, column_step: m.row_step)
+end transposed
+
+--  The storage from element (row, column) on; empty when the view is.
+storage_from: (item: type is math.floating, m: matrix(item),
+               row: usize, column: usize)
+              -> (values: []mut item from m) =
+    at := row * m.row_step + column * m.column_step
+    if at >= lenof m.values then
+        values = m.values[0..<0]
+    else
+        values = m.values[at..<lenof m.values]
+    end if
+end storage_from
+
+--- The block of `rows` by `columns` elements of `m` whose first element
+--- is `m`'s in row `row` and column `column`, over the same storage.
+--- Stops the program when the block passes `m`.
+public block: (item: type is math.floating, m: matrix(item),
+               row: usize, column: usize, rows: usize, columns: usize,
+               caller where: site)
+              -> (b: matrix(item) from m) =
+    require(row <= m.rows and rows <= m.rows - row
+            and column <= m.columns and columns <= m.columns - column,
+            where: where)
+    b = (values: m.values, rows: rows, columns: columns,
+         row_step: m.row_step, column_step: m.column_step)
+    if rows > 0 and columns > 0 then
+        b.values = storage_from(m, row, column)
+    end if
+end block
+
+--- The `length` elements of `v` from element `first` on, over the same
+--- storage.  Stops the program when they pass `v`.
+public segment: (item: type is math.floating, v: vector(item),
+                 first: usize, length: usize, caller where: site)
+                -> (s: vector(item) from v) =
+    require(first <= v.length and length <= v.length - first, where: where)
+    s = (values: v.values, length: length, step: v.step)
+    if length > 0 then
+        s.values = v.values[first * v.step..<lenof v.values]
+    end if
+end segment
+
+--- Row `row` of `m`, as a vector over its storage.
+public row: (item: type is math.floating, m: matrix(item), row: usize,
+             caller where: site)
+            -> (v: vector(item) from m) =
+    require(row < m.rows, where: where)
+    v = (values: m.values, length: m.columns, step: m.column_step)
+    if m.columns > 0 then
+        v.values = storage_from(m, row, 0)
+    end if
+end row
+
+--- Column `column` of `m`, as a vector over its storage.
+public column: (item: type is math.floating, m: matrix(item), column: usize,
+                caller where: site)
+               -> (v: vector(item) from m) =
+    require(column < m.columns, where: where)
+    v = (values: m.values, length: m.rows, step: m.row_step)
+    if m.rows > 0 then
+        v.values = storage_from(m, 0, column)
+    end if
+end column
+
+--- The diagonal of `m`, its elements in rows and columns of the same
+--- index, as a vector over its storage: as long as the lesser of its
+--- rows and columns.
+public diagonal: (item: type is math.floating, m: matrix(item))
+                 -> (v: vector(item) from m) =
+    count := if m.rows < m.columns then m.rows else m.columns end if
+    v = (values: m.values, length: count, step: m.row_step + m.column_step)
+end diagonal
+
+--- A matrix of one column, `v` as a column vector, over its storage.
+public as_column: (item: type is math.floating, v: vector(item))
+                  -> (m: matrix(item) from v) =
+    m = (values: v.values, rows: v.length, columns: 1,
+         row_step: v.step, column_step: 1)
+end as_column
+
+--- A matrix of one row, `v` as a row vector, over its storage.
+public as_row: (item: type is math.floating, v: vector(item))
+               -> (m: matrix(item) from v) =
+    m = (values: v.values, rows: 1, columns: v.length,
+         row_step: 1, column_step: v.step)
+end as_row
+
+--- Element `index` of `v`.
+public get: (item: type is math.floating, v: vector(item), index: usize,
+             caller where: site)
+            -> (value: item) =
+    require(index < v.length, where: where)
+    value = v.values[index * v.step]
+end get
+
+--- Set element `index` of `v` to `value`.
+public set: (item: type is math.floating, v: vector(item), index: usize,
+             value: item, caller where: site) -> none =
+    require(index < v.length, where: where)
+    v.values[index * v.step] = value
+end set
+
+--- The element of `m` in row `row` and column `column`.
+public element: (item: type is math.floating, m: matrix(item),
+                 row: usize, column: usize, caller where: site)
+                -> (value: item) =
+    require(row < m.rows and column < m.columns, where: where)
+    value = m.values[row * m.row_step + column * m.column_step]
+end element
+
+--- Set the element of `m` in row `row` and column `column` to `value`.
+public set_element: (item: type is math.floating, m: matrix(item),
+                     row: usize, column: usize, value: item,
+                     caller where: site) -> none =
+    require(row < m.rows and column < m.columns, where: where)
+    m.values[row * m.row_step + column * m.column_step] = value
+end set_element

@@ -1,0 +1,236 @@
+--  Reductions and norms: sums, the dot product, the largest magnitude
+--  and the norms of vectors and matrices.
+import core/math
+
+--- The sum of `x`'s elements, added in order.  0 when `x` is empty.
+public sum: (item: type is math.floating, x: vector(item)) -> (total: item) =
+    total = item(0)
+    mut at: usize = 0
+    for i in 0..<x.length do
+        total = total + x.values[at]
+        at += x.step
+    end for
+end sum
+
+--- The sum of the magnitudes of `x`'s elements: `Σ|xᵢ|`, the 1-norm,
+--- the BLAS's `asum`.
+public sum_magnitudes: (item: type is math.floating, x: vector(item))
+                       -> (total: item) =
+    total = item(0)
+    mut at: usize = 0
+    for i in 0..<x.length do
+        total = total + math.abs(x.values[at])
+        at += x.step
+    end for
+end sum_magnitudes
+
+--- The dot product `Σ xᵢ·yᵢ`, added in order: the BLAS's `dot`.  Stops
+--- the program when their lengths differ.
+public dot: (item: type is math.floating, x: vector(item), y: vector(item),
+             caller where: site) -> (total: item) =
+    require(x.length == y.length, where: where)
+    total = item(0)
+    mut at_x: usize = 0
+    mut at_y: usize = 0
+    for i in 0..<x.length do
+        total = total + x.values[at_x] * y.values[at_y]
+        at_x += x.step
+        at_y += y.step
+    end for
+end dot
+
+--- The index of the first element of greatest magnitude, the BLAS's
+--- `iamax`, counting from 0; 0 when `x` is empty.  Magnitudes are
+--- compared by `>`, as the reference BLAS compares them, so a NaN after
+--- the first element is passed over and a NaN first is kept.
+public largest_magnitude: (item: type is math.floating, x: vector(item))
+                          -> (index: usize) =
+    index = 0
+    if x.length > 0 then
+        mut largest := math.abs(x.values[0])
+        mut at: usize = x.step
+        for i in 1..<x.length do
+            here := math.abs(x.values[at])
+            if here > largest then
+                largest = here
+                index = i
+            end if
+            at += x.step
+        end for
+    end if
+end largest_magnitude
+
+--- The greatest magnitude of `x`'s elements: the ∞-norm, 0 when `x` is
+--- empty.  A NaN element makes it NaN.
+public norm_infinity: (item: type is math.floating, x: vector(item))
+                      -> (result: item) =
+    result = item(0)
+    mut at: usize = 0
+    for i in 0..<x.length do
+        here := math.abs(x.values[at])
+        if here > result or math.is_nan(here) then
+            result = here
+        end if
+        at += x.step
+    end for
+end norm_infinity
+
+--  The thresholds and scales of Blue's sum of squares, for a format of
+--  `digits` significand bits whose normal exponents run from
+--  `least` to `greatest`, as C's `FLT_MIN_EXP` and `FLT_MAX_EXP` count
+--  them: squares of magnitudes below `small` are taken scaled up by
+--  `scale_small`, above `big` scaled down by `scale_big`, and between
+--  them unscaled, so no square overflows or underflows unless the
+--  result does.  The powers are Anderson's, "Algorithm 978: Safe
+--  scaling in the level 1 BLAS", ACM TOMS 44 (2017).
+blue: type (item: type is math.floating) = struct
+    small: item
+    big: item
+    scale_small: item
+    scale_big: item
+end blue
+
+blue_constants: (item: type is math.floating) -> (c: blue(item)) =
+    one: item = item(1)
+    if sizeof item == 8 then
+        --  digits 53, exponents -1021 to 1024.
+        c = (small: math.scale(one, -511), big: math.scale(one, 486),
+             scale_small: math.scale(one, 537),
+             scale_big: math.scale(one, -538))
+    else
+        --  digits 24, exponents -125 to 128.
+        c = (small: math.scale(one, -63), big: math.scale(one, 52),
+             scale_small: math.scale(one, 75),
+             scale_big: math.scale(one, -76))
+    end if
+end blue_constants
+
+--- The Euclidean norm `√(Σ xᵢ²)`, the BLAS's `nrm2`, by Blue's method
+--- of three accumulators, in Anderson's form: it neither overflows nor
+--- underflows unless the norm itself does, in one pass.  An infinite
+--- element makes it infinite, and a NaN with no infinity NaN.
+public norm_two: (item: type is math.floating, x: vector(item))
+                 -> (result: item) =
+    c := blue_constants(item: item)
+    zero: item = item(0)
+    one: item = item(1)
+    mut big_sum := zero
+    mut middle_sum := zero
+    mut small_sum := zero
+    mut not_big := true
+    mut at: usize = 0
+    for i in 0..<x.length do
+        magnitude := math.abs(x.values[at])
+        if magnitude > c.big then
+            scaled := magnitude * c.scale_big
+            big_sum = big_sum + scaled * scaled
+            not_big = false
+        elsif magnitude < c.small then
+            if not_big then
+                scaled := magnitude * c.scale_small
+                small_sum = small_sum + scaled * scaled
+            end if
+        else
+            middle_sum = middle_sum + magnitude * magnitude
+        end if
+        at += x.step
+    end for
+    mut scale_by := one
+    mut sum_of_squares := middle_sum
+    if big_sum > zero then
+        if middle_sum > zero or math.is_nan(middle_sum) then
+            big_sum = big_sum + (middle_sum * c.scale_big) * c.scale_big
+        end if
+        scale_by = one / c.scale_big
+        sum_of_squares = big_sum
+    elsif small_sum > zero then
+        if middle_sum > zero or math.is_nan(middle_sum) then
+            middle := math.sqrt(middle_sum)
+            small := math.sqrt(small_sum) / c.scale_small
+            mut least := small
+            mut most := middle
+            if small > middle then
+                least = middle
+                most = small
+            end if
+            ratio := least / most
+            sum_of_squares = most * most * (one + ratio * ratio)
+        else
+            scale_by = one / c.scale_small
+            sum_of_squares = small_sum
+        end if
+    end if
+    result = scale_by * math.sqrt(sum_of_squares)
+end norm_two
+
+--- The 1-norm of `m`: the greatest sum of magnitudes of a column.
+public matrix_norm_one: (item: type is math.floating, m: matrix(item))
+                        -> (result: item) =
+    result = item(0)
+    for j in 0..<m.columns do
+        mut total := item(0)
+        mut at: usize = j * m.column_step
+        for i in 0..<m.rows do
+            total = total + math.abs(m.values[at])
+            at += m.row_step
+        end for
+        if total > result or math.is_nan(total) then
+            result = total
+        end if
+    end for
+end matrix_norm_one
+
+--- The ∞-norm of `m`: the greatest sum of magnitudes of a row.
+public matrix_norm_infinity: (item: type is math.floating, m: matrix(item))
+                             -> (result: item) =
+    result = matrix_norm_one(transposed(m))
+end matrix_norm_infinity
+
+--- The greatest magnitude of `m`'s elements; 0 when `m` is empty.
+public matrix_norm_max: (item: type is math.floating, m: matrix(item))
+                        -> (result: item) =
+    result = item(0)
+    for i in 0..<m.rows do
+        mut at: usize = i * m.row_step
+        for j in 0..<m.columns do
+            here := math.abs(m.values[at])
+            if here > result or math.is_nan(here) then
+                result = here
+            end if
+            at += m.column_step
+        end for
+    end for
+end matrix_norm_max
+
+--- The Frobenius norm of `m`, `√(Σ mᵢⱼ²)`, by `norm_two`'s method row
+--- by row, so that it neither overflows nor underflows unless the norm
+--- does.
+public matrix_norm_frobenius: (item: type is math.floating, m: matrix(item))
+                              -> (result: item) =
+    zero: item = item(0)
+    mut scale_by := zero
+    mut sum_of_squares: item = item(1)
+    for i in 0..<m.rows do
+        row_norm := norm_two(row(m, i))
+        if math.is_nan(row_norm) or math.is_infinite(row_norm) then
+            if not math.is_nan(scale_by) then
+                scale_by = row_norm
+            end if
+        elsif row_norm > zero and not math.is_infinite(scale_by) then
+            --  LAPACK's running scale: keep `scale_by·√sum_of_squares`.
+            if scale_by < row_norm then
+                ratio := scale_by / row_norm
+                sum_of_squares = item(1) + sum_of_squares * ratio * ratio
+                scale_by = row_norm
+            else
+                ratio := row_norm / scale_by
+                sum_of_squares = sum_of_squares + ratio * ratio
+            end if
+        end if
+    end for
+    if math.is_nan(scale_by) or math.is_infinite(scale_by) then
+        result = scale_by
+    else
+        result = scale_by * math.sqrt(sum_of_squares)
+    end if
+end matrix_norm_frobenius

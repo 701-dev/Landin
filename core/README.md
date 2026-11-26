@@ -20,7 +20,7 @@ executes them on Cortex-M0.
 ## Availability inventory
 
 The shared freestanding modules are `core/arena`, `core/atomic`, `core/cache`,
-`core/cmp`, `core/complex`,
+`core/cmp`, `core/complex`, `core/dense`,
 `core/diag`,
 `core/failure`, `core/fault`, `core/fibre` with its submodule
 `core/fibre/stacks`, `core/io` with its submodules `core/io/fake` and

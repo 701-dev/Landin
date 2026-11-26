@@ -12137,7 +12137,8 @@ def check_library_module_names(full_run):
 #  one is an input in D1954's order.  Every other library concept is a
 #  capability, so a new evidence concept is named here.
 LIBRARY_EVIDENCE_CONCEPTS = ("scalar", "exchangeable", "equatable",
-                             "hashable", "ordered", "formattable", "task")
+                             "hashable", "ordered", "formattable", "task",
+                             "floating")
 
 #  The parameter names core/README.md fixes for a capability (D269).
 LIBRARY_CAPABILITY_NAMES = ("memory", "host")

@@ -1,0 +1,13 @@
+--- `site` is declared nowhere, so the `caller` parameter's type is
+--- refused, and the trap that names the parameter adds no report of its
+--- own.
+require: (holds: bool, caller where: site) -> none =
+    if not holds then
+        compiler.unreachable(where)
+    end if
+end require
+
+public main: () -> (code: i32) =
+    require(true)
+    code = 0
+end main
