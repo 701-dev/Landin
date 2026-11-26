@@ -3828,7 +3828,7 @@ control it names.
 
 ### R22.33 — Boards reused on identical images
 
-Status: active
+Status: complete
 Depends on: none
 
 A promotion's boards taken from the last passed boards run when every
@@ -3859,6 +3859,22 @@ does not; a dispatch whose images match a passed run's taking it and one
 whose images differ running the legs, both named runs; the nightly run's
 first pass; process.md's "Physical boards and promotion" and AGENTS.md's
 gate paragraph saying the rule.
+
+Done: `board-bundles` writes the board identity as its annotation, digests
+of the bundles' files less what names the tree or the build's clock, of the
+timing bundle when the event times, of the blobs under
+`environments/boards/` and `compiler/tests/board/` with the hardware
+records apart, and of the board jobs' text less comments, and
+`gate_inputs.py legs` takes the legs of a passed run under a week old whose
+identity matches part for part, naming each part that differed (D2774); the
+aggregate reads the taken run's evidence, held to its run id, and compares
+its cycles. The schedule runs daily and leaves out a commit a passed
+schedule run already ran (D2775). Two board-bundles artifacts of different
+commits, runs 45840509189 and 45855853447, give one identity. Boards run
+45893119145 ran every leg and passed; dispatch 45906315984 on the same
+head took its legs and passed in 13 minutes. `item.py boards` met no
+SR-1988 of its own: the item fixes that landed first record a queued
+dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
