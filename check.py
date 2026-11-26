@@ -3502,7 +3502,7 @@ def check_pinned_toolchain(full_run):
     return out
 
 
-GATE_TOOL_PINS = ("LANDIN_CLANG_UBUNTU", "LANDIN_TREE_SITTER_VERSION",
+GATE_TOOL_PINS = ("LANDIN_CLANG_NIX", "LANDIN_TREE_SITTER_VERSION",
                   "LANDIN_TREE_SITTER_SHA256_X86_64_LINUX",
                   "LANDIN_TREE_SITTER_SHA256_AARCH64_LINUX",
                   "LANDIN_TREE_SITTER_SHA256_AARCH64_DARWIN",
@@ -3515,9 +3515,10 @@ GATE_TOOL_PINS = ("LANDIN_CLANG_UBUNTU", "LANDIN_TREE_SITTER_VERSION",
                   "LANDIN_SHELLCHECK_SHA256_X86_64_LINUX",
                   "LANDIN_SHELLCHECK_SHA256_AARCH64_LINUX",
                   "LANDIN_SHELLCHECK_SHA256_AARCH64_DARWIN")
-#  The cross lane's versions, which the nix shell holds its package set to:
-#  read from the pins by name, and never written in flake.nix itself.
-CROSS_LANE_PINS = ("LANDIN_CROSS_QEMU_NIX", "LANDIN_CROSS_GCC_NIX")
+#  The versions the nix shell, and the gate's jobs through it, hold the
+#  package set to: read from the pins by name, and never written in
+#  flake.nix itself.
+CROSS_LANE_PINS = ("LANDIN_CROSS_QEMU_NIX", "LANDIN_CROSS_GCC_NIX", "LANDIN_CLANG_NIX")
 #  The shell's tree-sitter CLI is the gate's release binary, fetched by the
 #  pinned version and checked against the pinned sha256 for its system.
 SHELL_TREE_SITTER_READS = ('pin "LANDIN_TREE_SITTER_VERSION"',
@@ -3654,7 +3655,7 @@ def gate_tool_pin_problems(pins, pins_text, record, record_text):
             out.append((pins, 1, "%s is not pinned in environments/pins.sh" % name))
     if out:
         return out
-    clang = values["LANDIN_CLANG_UBUNTU"]
+    clang = values["LANDIN_CLANG_NIX"]
     version = values["LANDIN_TREE_SITTER_VERSION"]
     for name in GATE_TOOL_PINS:
         if values[name] not in record_text:
@@ -3688,16 +3689,16 @@ def gate_tool_pin_problems(pins, pins_text, record, record_text):
                 out.append((gate, 1, "gate.yml names %s's %s literally instead"
                                      " of reading it from environments/pins.sh"
                             % (name, values[name])))
-    if not clang.startswith("1:19."):
-        out.append((pins, 1, "LANDIN_CLANG_UBUNTU %s is not a clang-19 package "
-                             "version" % clang))
+    if not clang.startswith("19."):
+        out.append((pins, 1, "LANDIN_CLANG_NIX %s is not a Clang 19 version"
+                    % clang))
     flake = os.path.join(ROOT, "flake.nix")
     if not os.path.exists(flake):
         return out
     flake_text = read_file(flake, encoding="utf-8")
     for name in CROSS_LANE_PINS:
         if 'pin "%s"' % name not in flake_text:
-            out.append((flake, 1, "flake.nix does not hold its cross lane to "
+            out.append((flake, 1, "flake.nix does not hold its package set to "
                                   "%s from environments/pins.sh" % name))
         if '"%s"' % values[name] in flake_text:
             out.append((flake, 1, "flake.nix names %s's %s literally instead "

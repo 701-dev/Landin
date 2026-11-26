@@ -34,7 +34,7 @@ probes.
 
 RV64 Linux LP64D runs in the gate's `rv64-qemu` jobs: the release
 compiler's whole test program with `linux-rv64` as its lane on
-`ubuntu-24.04`, linked by Ubuntu's riscv64 cross packages and run under
+`ubuntu-24.04`, linked by the flake's riscv64 cross driver and run under
 the flake's pinned QEMU user emulation, the emulator's own failures listed in
 `compiler/tests/cross-lanes.json`. That is evidence about the emitted code,
 none about RV64 hardware. Its physical lanes, cross-emitted for the RISE
@@ -70,19 +70,49 @@ measured slower; their setup is in this document as of da765093.
 
 Each job installs what it needs on a fresh image. The pinned-toolchain
 action fetches the Ada archives checksummed in `environments/pins.sh`, in
-4 to 15 seconds on the hosted images. `scripts/ci_packages.sh` verifies the
-requested packages, including Clang's exact version, and runs apt only for
+4 to 15 seconds on the hosted images. The other tools a Linux job needs
+come from the flake, through the nix-packages cache (below). Ubuntu's
+archive serves only the stock-system jobs, which test a distribution's own
+compilers on purpose, and the release workflow's `gh` when an image lacks
+it; `scripts/ci_packages.sh` verifies those packages and runs apt only for
 missing or mismatched ones. The hosted images have four vCPUs, and the
 widths measured on them are four GPRbuild workers on Linux, three on Darwin
 and eight fixture workers. The gate shares each host's checked debug and
 release builds with that host's lanes and determinism manifest; standalone
 determinism builds its own compiler.
 
-The compiler job installs Ubuntu's Emacs for the `refine lsp` smoke, which
-needs no tree-sitter. The editor grammar's Emacs checks run only where
-Emacs is installed, and the hosted image has none: the grammar needs
-tree-sitter ABI 15, which Ubuntu's Emacs 29 lacks. LLDB launches programs
-on the hosted macOS image, as it did before the switch.
+The compiler job takes the flake's Emacs for the `refine lsp` smoke, and
+the editor-grammar job the flake's Neovim and Emacs, so the integration pass
+runs their parser and tree-sitter smokes there. LLDB launches programs on the hosted macOS image, as
+it did before the switch.
+
+### Tools from nix-packages
+
+A Linux job that needs Clang, LLD, LLDB's adapter, QEMU, the riscv64 cross
+driver, GDB, bubblewrap, Emacs or Neovim takes it through
+`.github/actions/nix-tools` with the flake's package names: `llvm-19`,
+`qemu-system`, `qemu-user`, `cross-riscv64`, `gdb-multiarch`, `bubblewrap`,
+`emacs-nox` and `neovim` (`flake.nix`, `ciTools`). They are the derivations
+`nix develop` holds, so a job and a contributor's shell run one tool. The
+action installs Nix with the binary cache of
+[701-dev/nix-packages](https://github.com/701-dev/nix-packages), the
+flake's input, as its only substituter and that cache's key as the only
+trusted one, both from `environments/pins.sh`. `scripts/nix_tools.py` then
+asks Nix what building the packages would take: anything but the flake's
+own `landin-*` wrappers is a path the cache lacks, and it stops and names
+it rather than compile a toolchain on the runner or fetch it from
+somewhere the gate does not record.
+
+The flake's `nixpkgs` follows nix-packages' own, so the one input revision
+fixes both, and the cache holds every path those packages need: the tools
+nix-packages builds itself, such as `qemu-system` and the headless
+`emacs-nox`, and the nixpkgs packages it serves unchanged, listed as its
+flake's `served` outputs. A change that needs a path the cache lacks, a
+new tool or an input moved to another revision, uploads it from
+nix-packages first, as [its uploading guide](https://github.com/701-dev/nix-packages/blob/main/docs/uploading.md) says, and the job's refusal
+names what is missing. Moving the input is moving every tool it fixes,
+Clang among them (`LANDIN_CLANG_NIX`), so it is a change the gate judges
+like any other.
 
 See the [FreeBSD VMs](../environments/freebsd/README.md) for the guests.
 
@@ -281,7 +311,7 @@ from the pinned GNAT that builds `refine`: Clang supplies an external JSON AST,
 not a product backend. Its package comes from the container's existing Debian
 channel rather than a third download authority. The C boundary work refreshed
 that one base pin from Debian 12 to the official Debian 13 `trixie-20260824` image index,
-which gives the local loop Clang 19.1.7. The gate installs Ubuntu 24.04's
+which gives the local loop Clang 19.1.7. The gate runs the flake's
 clang-19 at the exact version `environments/pins.sh` names; `refine
 bindings`' tests pass on both. GNAT and GPRbuild retain their
 existing versions and archive checksums.
@@ -390,10 +420,9 @@ isolated build directory. `python3` comes with
 it, so `check.py` and `scripts/site.sh` work in that shell too. On Linux it
 also selects `llvmPackages."19".clang` and `glibc.dev` from the package set
 fixed by `flake.lock`, matching the Debian environments' Clang major without
-following nixpkgs' default. Its `clang-19` is that package set's 19.1.7, not
-the gate's: the `bindings` job runs Ubuntu 24.04's clang-19 at the version
-`LANDIN_CLANG_UBUNTU` pins, 19.1.1, and `refine bindings`' tests pass on
-both. The Darwin shell does not pretend that its SDK is a
+following nixpkgs' default. Its `clang-19` is that package set's 19.1.7, the
+version `LANDIN_CLANG_NIX` pins, and the gate's `bindings` job runs the
+same one. The Darwin shell does not pretend that its SDK is a
 Linux sysroot; run binding-generator tests through `scripts/linux-loop.sh`
 there.
 
