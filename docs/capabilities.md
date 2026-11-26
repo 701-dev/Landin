@@ -1021,9 +1021,24 @@ injector as arguments, as providers.
   (D2702). The reference BLAS's test programs, translated, hold every test
   ratio under their threshold of 16 at both widths on every hosted target
   and on the Cortex-M7 and Xtensa emulators; past 32 KiB, they are image
-  limits on Cortex-M0 and RV32. The `f64` product at n=1000 takes 8.2 times OpenBLAS's time
-  on one core, without vector instructions (D2703). Banded and packed
-  storage and complex elements are not covered.
+  limits on Cortex-M0 and RV32. The `f64` product at n=1000 takes 8.2
+  times OpenBLAS's time on one core, without vector instructions (D2703).
+  Banded and packed storage and complex elements are not covered.
+- **Big numbers.** `core/big` has integers and rationals of any size over
+  the caller's allocator, and `core/big/limbs` the natural numbers in
+  caller-supplied slices of `u32` limbs beneath them, which allocates
+  nothing. A limb is 32 bits on every target, so a result is the same
+  limbs everywhere, Cortex-M0 included (D2594). A destination may be one
+  of the operands, and the routines that loop keep their temporaries, so
+  an arena holds them (D2595, D2596). Multiplication is schoolbook,
+  Karatsuba and Toom-3 by size, and division Knuth's Algorithm D (D2601);
+  the integers add powers, roots, the greatest common divisor, modular
+  inverse and power, two's complement bit operations (D2599) and decimal
+  and hex text. A mistake in the program, as a zero divisor is, stops it,
+  and what a caller can foresee fails (D2597). A conversion to a float
+  rounds once, to nearest with ties to even (D2598), and a rational is
+  always in lowest terms (D2600). The `big-*` fixtures check every
+  routine against Python's integers and fractions on every target.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,

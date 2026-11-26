@@ -1,0 +1,188 @@
+--  Decimal and hexadecimal text of a natural number: digits written most
+--  significant first into the caller's bytes, and digits read back into
+--  the caller's limbs.  Decimal goes nine digits at a time, the most whole
+--  digits below 2^32, and each step is one pass over the limbs, so the
+--  work grows with the square of the length.
+
+import core/panic
+import core/text
+
+nine_digits: u32 = 1000000000
+
+--- The most bytes `write_decimal` writes for a number of `count` limbs:
+--- ten a limb, since a limb has fewer than ten decimal digits, and one for
+--- zero.
+public decimal_length: (count: usize) -> (bytes: usize) =
+    bytes = 10 * count + 1
+end decimal_length
+
+--- The most bytes `write_hex` writes for a number of `count` limbs: eight
+--- a limb, and one for zero.
+public hex_length: (count: usize) -> (bytes: usize) =
+    bytes = 8 * count + 1
+end hex_length
+
+--- The limbs `read_decimal` may write for `count` digits: one for every
+--- nine, since nine digits are below 2^32, and one more.
+public decimal_limbs: (count: usize) -> (slots: usize) =
+    slots = count / 9 + 1
+end decimal_limbs
+
+--- The limbs `read_hex` may write for `count` digits: one for every
+--- eight, and one more.
+public hex_limbs: (count: usize) -> (slots: usize) =
+    slots = count / 8 + 1
+end hex_limbs
+
+--  Move the `count` bytes that end `into` to its start.
+move_down: (into: []mut u8, count: usize) -> none =
+    start: usize = lenof into - count
+    return when start == 0
+    for at in usize(0)..<count do
+        into[at] = into[start + at]
+    end for
+end move_down
+
+--- Write `value`'s decimal digits into the start of `into`, most
+--- significant first with no leading zero, `0` for zero, and return how
+--- many.  `into` is at least `decimal_length(lenof value)` bytes, and
+--- `scratch`, which the digits are divided out of, at least `lenof value`
+--- limbs.
+public write_decimal: (into: []mut u8, value: []u32, scratch: []mut u32)
+                      -> (count: usize) =
+    mut length: usize = significant(value)
+    panic.require(lenof into >= decimal_length(length))
+    panic.require(lenof scratch >= length)
+    count = 0
+    if length == 0 then
+        into[0] = u8('0')
+        count = 1
+        return
+    end if
+    rest: []mut u32 = scratch[0..<length]
+    copy(rest, value[0..<length])
+    mut end_at: usize = lenof into
+    while length > 0 do
+        mut chunk: u32 = divide_limb(rest[0..<length], rest[0..<length],
+                                     nine_digits)
+        length = significant(rest[0..<length])
+        --  Nine digits a chunk, save the highest, which keeps no zeros.
+        mut digits: usize = 0
+        while digits < 9 and (length > 0 or chunk > 0) do
+            dec end_at
+            into[end_at] = u8('0') + u8(chunk % 10)
+            chunk = chunk / 10
+            inc digits
+        end while
+    end while
+    count = lenof into - end_at
+    move_down(into, count)
+end write_decimal
+
+--- Write `value`'s hexadecimal digits into the start of `into`, most
+--- significant first with no leading zero, in lower case, `0` for zero,
+--- and return how many.  `into` is at least `hex_length(lenof value)`
+--- bytes.
+public write_hex: (into: []mut u8, value: []u32) -> (count: usize) =
+    length: usize = significant(value)
+    panic.require(lenof into >= hex_length(length))
+    count = 0
+    if length == 0 then
+        into[0] = u8('0')
+        count = 1
+        return
+    end if
+    top: u32 = value[length - 1]
+    mut digits: u32 = 8 - leading_zeros(top) / 4
+    mut at: usize = length
+    while at > 0 do
+        dec at
+        limb: u32 = value[at]
+        while digits > 0 do
+            dec digits
+            nibble: u32 = (limb >> (4 * digits)) & 0xf
+            into[count] = if nibble < 10 then u8('0') + u8(nibble)
+                          else u8('a') + u8(nibble - 10) end if
+            inc count
+        end while
+        digits = 8
+    end while
+end write_hex
+
+--- Read nonempty ASCII decimal digits into `into`, the least significant
+--- limb first, and return how many limbs the number takes, high zeros
+--- left out.  `into` is at least `decimal_limbs(lenof digits)` limbs, and
+--- its limbs past the count hold nothing promised.  Refuses an empty slice,
+--- a sign and any byte but a digit with `text.invalid_number`, having
+--- written nothing it promises.
+public read_decimal: (into: []mut u32, digits: []u8)
+                     -> (count: usize) ! text.invalid_number =
+    panic.require(lenof into >= decimal_limbs(lenof digits))
+    fail text.invalid_number when lenof digits == 0
+    for byte in digits do
+        fail text.invalid_number when byte < u8('0') or byte > u8('9')
+    end for
+    count = 0
+    mut at: usize = 0
+    --  The first chunk is what is left over above whole nines.
+    mut take: usize = lenof digits % 9
+    if take == 0 then take = 9 end if
+    while at < lenof digits do
+        mut chunk: u32 = 0
+        mut scale: u32 = 1
+        for byte in digits[at..<at + take] do
+            chunk = chunk * 10 + u32(byte - u8('0'))
+            scale = scale * 10
+        end for
+        high: u32 = multiply_limb(into[0..<count], into[0..<count], scale)
+        if high <> 0 then
+            into[count] = high
+            inc count
+        end if
+        carry: u32 = add_limb(into[0..<count], into[0..<count], chunk)
+        if carry <> 0 then
+            into[count] = carry
+            inc count
+        end if
+        at = at + take
+        take = 9
+    end while
+end read_decimal
+
+--- Read nonempty ASCII hexadecimal digits, of either case, into `into`,
+--- as `read_decimal` reads decimal ones: `into` is at least
+--- `hex_limbs(lenof digits)` limbs, and anything but a hexadecimal digit
+--- is `text.invalid_number`.
+public read_hex: (into: []mut u32, digits: []u8)
+                 -> (count: usize) ! text.invalid_number =
+    panic.require(lenof into >= hex_limbs(lenof digits))
+    fail text.invalid_number when lenof digits == 0
+    for byte in digits do
+        fail text.invalid_number when hex_value(byte) > 15
+    end for
+    mut length: usize = 0
+    mut at: usize = lenof digits
+    while at > 0 do
+        start: usize = if at >= 8 then at - 8 else 0 end if
+        mut limb: u32 = 0
+        for byte in digits[start..<at] do
+            limb = (limb << 4) | hex_value(byte)
+        end for
+        into[length] = limb
+        inc length
+        at = start
+    end while
+    count = significant(into[0..<length])
+end read_hex
+
+--  A hexadecimal digit's value, or 16 for any other byte.
+hex_value: (byte: u8) -> (value: u32) =
+    value = 16
+    if byte >= u8('0') and byte <= u8('9') then
+        value = u32(byte - u8('0'))
+    elsif byte >= u8('a') and byte <= u8('f') then
+        value = u32(byte - u8('a')) + 10
+    elsif byte >= u8('A') and byte <= u8('F') then
+        value = u32(byte - u8('A')) + 10
+    end if
+end hex_value

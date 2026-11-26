@@ -1194,9 +1194,9 @@ package body Landin.Backend.Cortex_M is
    end Find_Refusal;
 
    --  D1567: a slot or value Registers holds in a register has no home.
-   --  Deferring: the emission makes a deferred widening where it is read
-   --  (D2120), from its operand's home, so that home is kept as long as
-   --  the widening is read, as Allocate_Registers keeps its register.
+   --  Deferring says that the emission the frame is for makes each
+   --  D2120 widening where it is read, so that the widening's operand is
+   --  read there too and keeps its home until then.
    function Allocated_Frame
      (Of_Unit : Landin.IR.Unit; Item : Landin.IR.Item_Id;
       Facts : Landin.Targets.Target_Facts;
@@ -1369,9 +1369,12 @@ package body Landin.Backend.Cortex_M is
                end loop;
             end;
          end loop;
-         --  D2120: a widening made where it is read reads its operand's
-         --  home there, so the operand's home outlives the widening.
          if Deferring then
+            --  D2120: a widening made where it is read reads its operand
+            --  there, so the operand's home stays its own until the
+            --  widening's last reader, as its register does in the plan.
+            --  Freed at the widening, it went to the next value, which a
+            --  second widened operand of the same reader overwrote.
             for Position in 1 .. IR.Length
               (Of_Unit, Item, IR.Block_Id (Block))
             loop
@@ -1381,12 +1384,11 @@ package body Landin.Backend.Cortex_M is
                begin
                   if Deferred_Widening (Of_Unit, Item, Facts, Value) then
                      declare
-                        Source : constant Positive := Positive
-                          (IR.Nth_Operand (Of_Unit, Item, Value, 1));
+                        Source : constant Positive :=
+                          Positive (IR.Nth_Operand (Of_Unit, Item, Value, 1));
                      begin
                         Last.Data (Source) := Natural'Max
-                          (Last.Data (Source),
-                           Last.Data (Positive (Value)));
+                          (Last.Data (Source), Last.Data (Positive (Value)));
                      end;
                   end if;
                end;
@@ -1548,7 +1550,6 @@ package body Landin.Backend.Cortex_M is
       Facts : Landin.Targets.Target_Facts;
       Options : Landin.Optimization.Options) return Boolean
    is
-      pragma Unreferenced (Options);
       Limit : constant Landin.Targets.Byte_Count := 16#FFFF_FFC0#;
       Bound : Landin.Targets.Byte_Count;
 
@@ -1601,8 +1602,11 @@ package body Landin.Backend.Cortex_M is
          return True;
       end if;
       declare
+         use type Landin.Optimization.Objective;
          Reserved : constant Landin.Targets.Byte_Count :=
-           Extent (Allocated_Frame (Of_Unit, Item, Facts, Limit));
+           Extent (Allocated_Frame
+             (Of_Unit, Item, Facts, Limit,
+              Deferring => Options.Optimize /= Landin.Optimization.None));
       begin
          return Reserved <= Limit and then Calls_Fit (Reserved);
       end;

@@ -7893,6 +7893,18 @@ package body Landin.Tests.Driver_Suite is
               (Item, Host.Write_Count, 0, "--check writes nothing");
          end;
          declare
+            Nested : constant Landin.Driver.Outcome :=
+              Run (Host, Words (["--check", "tree", "tree/inner"]));
+            Report : constant String := Unbounded.To_String (Nested.Report);
+         begin
+            Landin.Testing.Check
+              (Item, Nested.Status = Landin.Driver.Status_Reported
+                     and then Landin.Diagnostics.Count (Nested.Found) = 6
+                     and then not Contains (Report, "L0002"),
+               "a directory under one already named holds sources, so it"
+               & " is no refusal and its sources are read once: " & Report);
+         end;
+         declare
             Rewritten : constant Landin.Driver.Outcome :=
               Run (Host, Words (["tree"]));
          begin

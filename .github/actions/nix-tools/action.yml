@@ -1,0 +1,42 @@
+#  Tools from the flake, served by the nix-packages cache, on PATH.
+#
+#  Installs Nix with the cache environments/pins.sh names as its only
+#  substituter and its key as the only trusted one, then builds the named
+#  packages of this repository's flake and puts each one's bin directory on
+#  PATH for the job's later steps.  They are the derivations `nix develop`
+#  holds (flake.nix, ciTools), so a job runs the tool a contributor's shell
+#  does.  Before building it asks Nix what it would build: anything but the
+#  flake's own small wrappers, named landin-*, is a path the cache lacks,
+#  and the action stops and names it rather than compile it here or fetch
+#  it from elsewhere.  docs/environments.md says how the cache is filled.
+
+name: Tools from nix-packages
+description: Put flake packages from the nix-packages cache on PATH.
+
+inputs:
+  packages:
+    description: the flake's package names, separated by spaces
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: The cache and its key
+      id: pins
+      shell: bash
+      run: |
+        set -eu
+        . ./environments/pins.sh
+        echo "cache=$LANDIN_NIX_PACKAGES_CACHE" >> "$GITHUB_OUTPUT"
+        echo "key=$LANDIN_NIX_PACKAGES_KEY" >> "$GITHUB_OUTPUT"
+    - name: Install Nix
+      uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      with:
+        extra_nix_config: |
+          substituters = ${{ steps.pins.outputs.cache }}
+          trusted-public-keys = ${{ steps.pins.outputs.key }}
+    - name: Build ${{ inputs.packages }} from the cache
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: python3 scripts/nix_tools.py $PACKAGES

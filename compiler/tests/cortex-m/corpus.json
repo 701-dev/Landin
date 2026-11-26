@@ -1692,6 +1692,102 @@
       ],
       "mode": "refuse"
     },
+    "runtime/big-integer": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40400 of this lane's 32 KiB, over by 7632."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 40656 of this lane's 32 KiB, over by 7888."
+        }
+      }
+    },
+    "runtime/big-integer-bits": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's bit operations take the image to 43,104 bytes of flash, over the 32 KiB profile by 10,336: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-integer-conversion": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's conversions to and from the machine integers and floats take the image to 37,288 bytes of flash, over the 32 KiB profile by 4,520: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-integer-gcd": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 50640 of this lane's 32 KiB, over by 17872."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 51168 of this lane's 32 KiB, over by 18400."
+        }
+      }
+    },
+    "runtime/big-integer-modular": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's inverse and power modulo a modulus, which need its multiplication through Toom-3 and its division both, take the image to 39,508 bytes of flash at size/auto, over the 32 KiB profile by 6,740, and to 75,520 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
+    "runtime/big-integer-powers": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's powers over its multiplication take the image to 54,488 bytes of flash, over the 32 KiB profile by 21,720: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-integer-products": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's multiplication through Toom-3 take the image to 57,564 bytes of flash, over the 32 KiB profile by 24,796: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-integer-quotients": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's two divisions take the image to 44,816 bytes of flash, over the 32 KiB profile by 12,048: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-integer-roots": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's integer roots, which need its multiplication through Toom-3 and its division both, take the image to 36,588 bytes of flash at size/auto, over the 32 KiB profile by 3,820, and to 71,872 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
+    "runtime/big-integer-text": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's text and core/text's builder take the image to 39,020 bytes of flash, over the 32 KiB profile by 6,252: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-limbs": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the limb layer's routines and the fixture's dispatcher take the image to 43,196 bytes of flash, over the 32 KiB profile by 10,428: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-limbs-products": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the limb layer's multiplication through Toom-3 and its division take the image to 51,372 bytes of flash, over the 32 KiB profile by 18,604: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
+    },
+    "runtime/big-rational": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's rationals, which keep lowest terms through the greatest common divisor and multiply through Toom-3, take the image to 43,128 bytes of flash at size/auto, over the 32 KiB profile by 10,360, and to 78,728 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
+    "runtime/big-rational-floats": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's rationals' conversions to and from floats, over the greatest common divisor, multiplication and division, take the image to 50,968 bytes of flash at size/auto, over the 32 KiB profile by 18,200, and to 92,064 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
+    "runtime/big-rational-products": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's rational products, quotients and powers, over the greatest common divisor, multiplication and division, take the image to 48,788 bytes of flash at size/auto, over the 32 KiB profile by 16,020, and to 86,440 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
+    "runtime/big-rational-text": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "core/big's rationals' text, over the greatest common divisor, multiplication, division and core/text's builder, take the image to 47,212 bytes of flash at size/auto, over the 32 KiB profile by 14,444, and to 90,908 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
+    },
     "runtime/binary-search": {
       "mode": "execute"
     },
@@ -2860,6 +2956,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-exact-numbers": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-failure-words": {
       "codes": [
         "L0015"
@@ -3524,6 +3626,9 @@
       "mode": "execute"
     },
     "runtime/library-shared-atomic": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-big": {
       "mode": "execute"
     },
     "runtime/library-shared-cache": {
@@ -6132,6 +6237,9 @@
       "mode": "execute"
     },
     "runtime/whole-arrays-copy-between-storage": {
+      "mode": "execute"
+    },
+    "runtime/widened-operands-keep-their-homes": {
       "mode": "execute"
     },
     "runtime/widening-operand-outlives-product": {

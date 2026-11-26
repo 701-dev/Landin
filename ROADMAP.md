@@ -88,7 +88,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.30, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -1404,6 +1404,55 @@ The merged candidate, with `gate-watcher` riding it, passed its
 [gate](https://github.com/701-dev/Landin/actions/runs/45855807406),
 after `freebsd-host-release` was run again over a mirror's refusal, and
 its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
+
+### R16.43 — An increment proved by the check before it
+
+Status: planned
+Depends on: R16.10
+
+Two increments keep an overflow check that cannot fail. SR-1959's index,
+checked below a constant bound by the bounds check just before it in the
+same block, then incremented: reverse-complement's `write_reversed`,
+4.0% of its x86-64 instructions at speed by a hand patch. SR-1918's
+count, incremented at most once a step of a counted loop from zero:
+fasta's `select_symbol`, 5.0% on x86-64 and 5.4% on arm64 by its step
+count. The first needs only the fact the block's own check leaves; the
+second needs the count's bound related to the loop's, an invariant the
+simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
+Exit evidence: each check proved and removed on every target, the two
+programs' instructions measured against the item's base, and no other
+combination over its own.
+
+### R16.44 — arm64 keeps a stored value in its slot's register
+
+Status: planned
+Depends on: R16.10
+
+SR-1958: arm64 makes a stored value in its slot's register only when the
+store is the value's last use (D2164), so reverse-complement's
+`write_reversed` copies three values a byte into their slots' registers,
+11.4% of its instructions by a hand patch. x86-64 already lets later
+uses read the slot's register (D2157) and makes a value there when the
+slot's interval opens at its store (D2654). Scheduled by the register
+sweep of 2026-11-26. Exit evidence: reverse-complement at speed on arm64
+executing fewer instructions than at the item's base by most of the hand
+patch's margin, and no other combination over its own.
+
+### R16.45 — A call's failure tested once
+
+Status: planned
+Depends on: R16.10
+
+SR-1861: every call that can fail costs x86-64 about eleven instructions
+on its succeeding way where two would do, its status stored, loaded back,
+validated against its atom set and tested through a byte. R16.39
+measured sealing the call's failure slot and fusing the test into its
+branch at about 5% of binary-trees' cycles. Sealing changes every
+backend's validation, so firmware images and board records move with
+it. Scheduled by the register sweep of 2026-11-26. Exit evidence: a
+call's succeeding way testing its status once, in a register, on every
+target, binary-trees measured against the item's base, and no other
+combination over its own.
 
 ### The continuous items
 
@@ -3296,7 +3345,11 @@ elementary ones: the incomplete gamma and beta functions and their
 inverses, the logarithm of the beta function, the digamma function, the
 inverse error function, the exponential integral, and the Bessel
 functions of the first and second kind and their modified forms for real
-order and argument. R22.74's distributions stand on them.
+order and argument. R22.74's distributions stand on them. SR-1897's
+`math.log_gamma` below -2, on which the incomplete gamma and beta
+stand, and SR-1948's facts of a width, which generic code over
+`math.floating` cannot name, are scheduled here by the register sweep of
+2026-11-26.
 
 Leaves out: elliptic integrals and functions, hypergeometric and Airy
 functions, the zeta function, spherical harmonics, and complex arguments.
@@ -3307,7 +3360,7 @@ every target.
 
 ### R22.13 — Big integers and rationals
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Arbitrary-precision arithmetic in two layers. The lower works on
@@ -3330,6 +3383,38 @@ constant-time operations, since Landin writes no cryptography.
 Exit evidence: an oracle set computed by another implementation passes
 on every target; multiplication and division timed from one limb to a
 million bits; the lower layer's image size on Cortex-M0 measured.
+
+Done: `core/big/limbs` holds naturals in the caller's 32-bit limbs on
+every target, with no allocator, and `core/big` the `integer` and the
+`rational` over them, each routine writing a destination the caller's
+allocator grows (D2594). A destination may be an operand, a copy is made
+with `set` (D2595), and every loop keeps its temporaries, so an arena
+holds a call whatever its length (D2596). A zero divisor stops the
+program and only foreseeable conditions fail (D2597); conversions to a
+float round once, ties to even (D2598); bit operations read two's
+complement without end (D2599); rationals stay in lowest terms under
+`rational_` names (D2600); multiplication is schoolbook, Karatsuba and
+Toom-3, division Knuth's Algorithm D (D2601). `scripts/big_oracle.py`
+writes the 16 `big-*` fixtures from Python's integers and fractions,
+with operands to 320 limbs drawn from `core/random` and compared by
+digest; they pass on every target the gate runs. On Cortex-M0's 32 KiB
+reference, sums, products, quotients, powers, the greatest common
+divisor, bits, conversions and text execute at every optimized profile;
+roots, the modular inverse and power and the rationals need both
+multiplication and division and outgrow it, so their corpus rows record
+profile limits and the `mps2-an500` lane executes them, `SR-1929`. The
+limb layer is 20,310 bytes at `size/auto` there, and a million-bit
+product takes 58 ms on x86-64 against 2.1 s for a division, whose
+subquadratic form waits in `SR-1928` (compiler/tests/big/README.md).
+`examples.md` computes 50 factorial and a harmonic number exactly. The
+`mps2-an500` lane found Cortex-M frames freeing a deferred widening's
+operand home at the widening rather than at its reader, so that at
+`armv7-m` and `armv8-m.main` `u64(a[i]) + u64(b[i])` after a call added
+`b[i]` twice (D2120), fixed with
+`runtime/widened-operands-keep-their-homes`. Fixed on the way:
+`refine fmt core/big core/big/limbs` refused the nested directory as
+holding no source (D385), and `scripts/add_fixture.py` printed that
+command.
 
 ### R22.14 — Fixed-point arithmetic
 
@@ -3407,14 +3492,16 @@ at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
 8.2 times, mostly vector instructions refine does not emit (D2703).
 Found and fixed: a trap given a `caller` parameter whose type `site` is
 declared nowhere stopped checking on an internal defect, pinned by
-`negative/compiler-unreachable-undeclared-site`; the Cortex-M backend
-freed the home of a deferred widening's operand (D2120) while the
-widening was still read, so `k * ((k + 1) * k)` gave 4 for 2 at size,
-met by level 2's own check on the Cortex-M7 lane and pinned by
-`runtime/widening-operand-outlives-product`, with Cortex-M0's measured
-sizes and instructions unchanged; and `check.py`'s parameter-order
-control counted a `math.floating` operand as a capability. Filed: `SR-1978`, the scalar kernel's loop and the missing
-vector instructions.
+`negative/compiler-unreachable-undeclared-site`; and `check.py`'s
+parameter-order control counted a `math.floating` operand as a
+capability. Level 2's own check on the Cortex-M7 lane met the Cortex-M
+backend freeing a deferred widening's operand home (D2120) while the
+widening was still read, `k * ((k + 1) * k)` giving 4 for 2 at size;
+R22.13 fixed the same on main first, and the merge keeps its fix with
+`runtime/widening-operand-outlives-product` beside its fixture. Filed: `SR-1978`, the scalar kernel's loop and the missing
+vector instructions, and `SR-1979`, an `if` expression's or a literal
+range's type taken from a literal or an atom with no note of the written
+type that fixes it.
 
 ### R22.16 — Linear systems and least squares
 
@@ -3654,6 +3741,62 @@ region's parent; and `time -f %M` is `heap.in_use` and
 `heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
 SR-1881 records the misleading refusal a new Linux wrapper meets.
 
+### R22.27 — Process tools' remaining faults
+
+Status: planned
+Depends on: none
+
+The faults of the process tools met since R22.24, scheduled by the
+register sweep of 2026-11-26. In `item.py`: SR-1905's older copy whose
+queue wait drops waiters that are no item; and SR-1919's `start`
+refusing a continuous item whose text the branch adds without naming
+`--base`. In the other tools: SR-1906's `register_next.py --decision` that answers
+from a branch behind main's reservations; SR-1917's age rule that differs
+during an uncommitted merge; SR-1859's full `check.py` reading untracked
+notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
+back to its user; and SR-1991's item identity that no rule retires.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: each script's or check's tests pinning its change, and the
+documents that name a step saying the new one.
+
+### R22.28 — What Windows still lacks after R21.70
+
+Status: planned
+Depends on: none
+
+The Windows gaps R21.70 left or met, scheduled by the register sweep of
+2026-11-26: SR-1746's inlined copies, which CodeView does not describe;
+SR-1767's Microsoft lanes, which link with whatever Clang and Visual
+Studio the runner image carries; SR-1851's C symbol whose link name
+begins with `.L`, which COFF's assembler takes as private; SR-1852's
+eight ABI fixtures whose C peers are not Windows C; and SR-1940's arm64
+LLDB session that did not step through `landin.stack_switch` once.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: each row's completion on both Windows architectures, in
+the gate's Windows lanes.
+
+### R22.29 — Release archives that say where they run
+
+Status: planned
+Depends on: none
+
+What a user installing a release meets, scheduled by the register sweep
+of 2026-11-26, before the next release: SR-1850's macOS archive, which
+needs macOS 26 and says so nowhere, Q-347 asking which minimum it states;
+SR-1820's `install.sh`, which refuses the FreeBSD archive the release
+workflow now publishes; SR-1516's flake, which nothing builds on
+`aarch64-linux`; and SR-1894's locked Debian packages, which nothing
+fetches until a candidate's gate does. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: the release workflow's checks and `install.sh`'s tests
+holding each change, the flake built for `aarch64-linux` in the gate,
+and the scheduled package fetch's first run.
+
 ### R22.30 — Text and Unicode
 
 Status: complete
@@ -3685,6 +3828,235 @@ NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
 Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
 hosted backends' writable sections for immutable data, met laying out
 the tables.
+
+### R22.31 — Refusals that say what to do
+
+Status: planned
+Depends on: none
+
+Refusals met since R20.61 that do not say what to do, or say something
+misleading, scheduled by the register sweep of 2026-11-26: SR-1693's
+L0201 at a library module no import reaches, and SR-1881's at an
+undeclared `*_number` of `platform/linux`, both with [1860]'s note to
+check the spelling; SR-1896's L0011 at a hexadecimal float without its
+point; SR-1714's internal defect where a firmware assembly operand is
+linked; SR-1716's developer's linker script that puts a routine at
+address zero without a refusal; and SR-1214's misuse traps of the root,
+which carry no words. Placed here so that no phase gate waits for it; it
+depends on no other item.
+
+Exit evidence: each refusal pinned by a negative fixture or a driver
+case, and `docs/diagnostics.md` saying the new notes.
+
+### R22.32 — Defects the library work met
+
+Status: planned
+Depends on: none
+
+Defects R19 to R22.30 met beside their own work, scheduled by the
+register sweep of 2026-11-26: SR-1938's immutable module arrays in a
+hosted image's writable section; SR-1939's Tree-sitter grammar, which
+misreads a sum of three operands followed by a statement; SR-1568's
+anonymous-function paths that nothing reaches since D1654; SR-1882's
+cancellation test, which signals `refine` before its handlers are
+installed on a loaded host; and SR-1740's runtime outcome that never
+ends and holds the whole test program until the job's limit. Placed
+here so that no phase gate waits for it; it depends on no other item.
+
+Exit evidence: each row's completion with the fixture, corpus test or
+control it names.
+
+### R22.33 — Boards reused on identical images
+
+Status: planned
+Depends on: none
+
+A promotion's boards taken from the last passed boards run when every
+input of the board jobs is the same bytes, which the maintainer accepted
+on 2026-11-26 from the gate-time study of that day: 31 of the 39 boards
+runs from 2026-11-20 ran images byte-identical to the passed run before
+them, while the rig, one leg at a time, was busy seven to eleven hours a
+day and found two defects in about 270 runs, both in its own harness.
+The identity is every boot, RAM and timing image and link script
+`board-bundles` builds, the harness the legs run and the hardware
+records the strict build reads, each path named by the item, and the
+board jobs' own workflow text. `files.sha256` mixes in `bundle.json`,
+`timing.json` and `commands.json`, which name the commit, so the
+identity is a list of its own that leaves out what names the tree and
+nothing else. A boards dispatch, or main's push, whose identity equals
+that of a passed boards run under a week old takes that run's legs and
+cycles, as main's push already takes a passed run of the same tree
+(D1647), and the aggregate names the run it took. The weekly boards run
+becomes daily on main when main moved, so a board or probe that degrades
+shows within a day, until R22.37's daily complete gate takes it over. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: controls that an image, harness, record or workflow change
+each breaks the identity and a change that only names another commit
+does not; a dispatch whose images match a passed run's taking it and one
+whose images differ running the legs, both named runs; the nightly run's
+first pass; process.md's "Physical boards and promotion" and AGENTS.md's
+gate paragraph saying the rule.
+
+### R22.34 — Figures recorded from the run that measured them
+
+Status: planned
+Depends on: none
+
+The size, instruction-count and cycles figures an emission change moves,
+the gate's largest single cause of failure since the week of 2026-11-16:
+48 of the 254 defects the gate-time study of 2026-11-26 classified, 18
+that week and 25 in the three days after it, each a whole gate cycle
+spent only to record what the failed run had measured. The maintainer
+accepted the change that day. On a branch push the measurement lanes,
+`measure-size`, Darwin's and FreeBSD's size steps, the Cortex-M
+instruction counts and the boards' cycles comparison, report an
+undeclared move in the run's summary and artifact and pass. A commit
+that records exactly the figures of a passed run's artifact
+(`measure.py record --from-run`, `timing.py record`) and changes nothing
+else reuses that run's pass, as the cycles baselines' leaving the key
+already lets (D1650); the `inputs` job holds the recorded files to the
+artifact rather than trusting the declaration. A pass that reported a
+move can be reused only by the commit that records it, and main's push
+refuses a tree whose last pass reported a move not recorded since.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: controls that a branch push with an undeclared move passes
+and names it, that main refuses one not recorded, and that a recording
+commit reuses only when its figures equal the artifact's; one
+emission-changing candidate landed on one gate, its recording commit
+reusing it, named runs; `docs/measurement.md` and process.md saying the
+steps.
+
+### R22.35 — Checks too long for a gate, by record
+
+Status: planned
+Depends on: none
+
+The exhaustive and other checks too long for any regular gate, which the
+maintainer excluded from them in general on 2026-11-26, answering Q-307.
+Such a check runs on a host and is recorded in a file beside it: the
+command, the host, the date, the result and the digest of the emitted
+code it checked, for R22.10's exhaustive `f32` run each checked
+function's object code on each target the record claims. A script the
+`scripts` job runs in seconds compiles the same code and says whether
+each record is fresh or stale since a commit. A stale record fails no
+push; it blocks a release, or a phase-gate claim, that cites it. The
+rule is recorded as a decision in `spec.md`, and R22.10's runs are the
+first record. Placed here so that no phase gate waits for it; it
+depends on no other item.
+
+Exit evidence: the script's tests, a record fresh after a change
+elsewhere and stale after a change to the code it checked; R22.10's
+record and its check in the `scripts` job; the release checklist in
+process.md naming stale records.
+
+### R22.36 — Failure causes recorded, and the selection in shadow
+
+Status: planned
+Depends on: none
+
+Why a gate job failed is recorded nowhere: the gate-time study of
+2026-11-26 rebuilt it from 1,024 job logs. The gate records it itself:
+for each failed job, whether a re-run of the same tree passed it and
+whether the branch's next push changed the tree, the rule that agreed
+with the study's readers on 90% of the jobs it called defects and found
+97% of theirs, refined by recorded outside signatures, a mirror's 403 or
+a probe's DMI timeout among them. From that history a script keeps the
+lane table the selection reads, a file in the tree, so the same tree
+always selects the same lanes; each lane declares its inputs there, and
+a control keeps every gate job in it. A branch job whose failure matches
+an outside signature is re-run once, automatically, and the summary
+names the re-run; main's gate is still investigated, never rerun
+blindly.
+
+The `inputs` job then computes the selected gate and writes into the
+summary what it would have skipped, skipping nothing: it keeps each lane
+whose declared inputs the change reaches; each lane that runs emitted
+code whose target's emission digest, from the determinism manifests,
+its harness or its expectations differ from those of a passed run; each
+lane that in the last eight weeks was the only lane to show a defect, is
+under four weeks old, costs under five job-minutes or checks the
+evidence itself, the build comparisons; and every other lane on one
+selected gate in four, drawn from the tree's hash. The maintainer
+accepted those values on 2026-11-26, and that shadow mode comes first.
+It runs for about 200 complete gates, the length Q-364 asks the
+maintainer to confirm. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: a cause recorded for every failed job of the shadow
+period, with the outside signatures that re-ran; the lane table and its
+control; every gate's summary naming the lanes it would have skipped;
+and the measured miss rate, the defects that only skipped lanes showed,
+set against the study's replay of November, 1.7 a week.
+
+### R22.37 — The selected gate applied
+
+Status: planned
+Depends on: R22.36
+Promotion: maintainer
+
+The selected gate R22.36 measured, applied once the maintainer accepts
+its miss rate. A development push runs it unless it asks for the
+complete gate, and an item lands on main on the selected gate and main's
+own gate: an item's landing is no longer tied to a complete gate
+(the maintainer, 2026-11-26). The complete gate, every lane and the
+boards with no reuse, runs at every phase's gate claim, and on main once
+a day when no phase gate ran that day and main moved (the maintainer's
+answer to Q-363); a phase gate is claimed on a commit a complete gate
+passed, and R22.38 puts each release on such a tree. A scheduled
+complete gate that fails holds only the landings whose changes reach the
+failing lanes; those lanes alone are dispatched on each tree landed
+since the last complete pass to name the commit, and its item fixes
+forward at the head of the line.
+Mechanics' completion rule, "the complete gate passed on the completing
+commit", becomes the selected gate on the landed tree and the first
+complete gate that covers it; R16's and R22's standing baselines hold on
+every push that changes the emitted code and on every complete gate.
+Placed here so that no phase gate waits for it; it depends on R22.36
+alone.
+
+Exit evidence: controls that a selected pass is enough for a branch and
+for main's push, and that a phase-gate claim refuses a commit no
+complete gate covered; the search command's tests; the first
+scheduled complete gate; a week of landings on the selected gate with
+the complete gates that covered them named; AGENTS.md's "The mechanical
+gate", process.md's gate reference and the landin-change skill saying
+the rule.
+
+### R22.38 — Releases on a gate that runs anyway
+
+Status: planned
+Depends on: R22.37
+
+A release runs no complete gate of its own: the maintainer asked on
+2026-11-26 that releases be planned to reuse or share an existing gate.
+Today the recipe's declaration commit is a candidate like any other, its
+own gate, boards and promotion, and the flake-hash commit after the tag
+is gated and promoted again, two complete gates for one release. The
+recipe in process.md's "Releasing a version" changes so that the
+declaration lands on, or provably beside, a tree a complete gate passes
+anyway: made before a phase-gate claim, so that the claim's complete
+gate is also the release's, or onto the day's complete gate. It can
+then reuse that pass only if it changes nothing a lane reads, which it
+does not today: besides the explanatory README, `handoff.md`,
+`docs/capabilities.md` and the site's `VERSION_LINE`, it edits the
+version line of `tour.md` and each prototype's "Current with" line, so
+the item either leaves those lines out of the key or moves the version
+out of them, and `release.py gated` accepts a tag on the declaration
+when the pass it reused was complete. The flake-hash commit changes only
+`releaseVersion` and `releaseHashes`, which no lane but the flake jobs
+reads: it reuses the pass and runs those jobs alone. The version, the
+declaration and the tag stay the maintainer's; the item changes the
+recipe and releases nothing. Placed here so that no phase gate waits for
+it; it depends on R22.37 alone.
+
+Exit evidence: controls that a declaration commit reuses a complete pass
+and a change to anything a lane reads does not, that `release.py gated`
+takes a declaration on a reused complete pass, and that a flake-hash
+commit reuses and runs the flake jobs; a rehearsal of the release
+workflow on such a tree; process.md's recipe saying the steps.
 
 ### R22.40 — Character encodings
 
@@ -3861,6 +4233,9 @@ inverse and the DCT-II and DCT-III; convolution and correlation directly
 and by transform; window functions; FIR filters, IIR filters as biquad
 sections, and the design of windowed-sinc and Butterworth filters. The
 transform and filters in Q15 and Q31 through R22.14, for firmware.
+SR-1949's `core/complex` errors, `tanh`, `tan` and `pow`, are brought
+within a few ulp first, since the transforms take its arithmetic and
+`exp` as their kernels (register sweep of 2026-11-26).
 
 Leaves out: wavelets, the other DCT and DST kinds, more than two
 dimensions, number-theoretic transforms, and adaptive filters.

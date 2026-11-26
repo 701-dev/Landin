@@ -42,8 +42,9 @@ runs:
         key: freebsd-gnat-${{ inputs.arch }}-${{ steps.archive.outputs.key }}
     - name: Install QEMU
       if: steps.cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: ./scripts/ci_packages.sh libarchive-tools qemu-utils qemu-system-x86
+      uses: ./.github/actions/nix-tools
+      with:
+        packages: qemu-system
     - name: Let the job open KVM
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
