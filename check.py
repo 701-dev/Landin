@@ -11033,8 +11033,9 @@ PROCESS_SECTION_BUDGETS = {
     #  when refine built on FreeBSD added two rows, again when the
     #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
     #  main added in the same weeks, and again when trains, boards beside
-    #  the gate and main's verdict joined the promotion rule.
-    "The mechanical gate": 52700,
+    #  the gate and main's verdict joined the promotion rule; and again
+    #  when the failure causes and the selection in shadow joined it.
+    "The mechanical gate": 55400,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

@@ -27189,6 +27189,163 @@ which was not asked for; and keeping the files in the key.
 `test_cycles_baselines_do_not_count_and_other_baselines_do` and its
 `DocumentReaders` case.
 
+### D2794 — The gate records why a job failed, by rule and by outside signature
+
+**The tour said** nothing. Why a gate job failed was recorded nowhere: the
+gate-time study of 2026-11-26 rebuilt it from 1,024 job logs read by eight
+readers, and found that a rule agreed with them on 90% of the jobs it
+called defects and found 97% of theirs. The maintainer accepted the
+recording that day.
+
+**Chosen:** `scripts/gate_history.py` gives each failed attempt of a job
+one cause. It is `outside` when the job's log matches an outside
+signature of `.github/gate-lanes.json`, a regular expression with its
+example, which the aggregate `gate` job reads from the failed jobs' logs
+and records on the run as a `gate-causes` annotation. It is also `outside`
+when a later attempt, or a run of the identical tree, passed the same job;
+`defect` when the branch's next push changed the tree; `pending` before
+that push; and `unresolved` when it pushed the same tree. The history is
+read by GraphQL into a cache outside the tree, and `table --write` writes
+every cause into `.github/gate-causes.jsonl`. Seventeen signatures came
+from the study's outside failures, none of which matches any of its 860
+defect jobs. A probe's DMI timeout, which the maintainer named and no run
+had met, is an eighteenth. With them the rule agreed with the readers on
+96.5% of its defects and found 97.3% of theirs, on the same logs the
+signatures were fitted to.
+
+**The reason:** a cause recorded as the run ends needs nobody to read a
+log later. Only the next push can say whether the tree was at fault, so
+the rule reads it from the history rather than guessing at the run.
+
+**The alternatives:** asking a reader of each failure, which is what the
+study cost; classifying by log alone, which no signature does for a defect;
+and keeping the causes in an artifact, which expires.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Causes` cases and
+`Lanes.test_signatures_match_their_examples`.
+
+### D2795 — The lane table declares each lane's inputs and keeps its figures, in the tree
+
+**The tour said** nothing. The study's selection reads each lane's
+frequency from the history and narrows by the paths a change reaches.
+
+**Chosen:** `.github/gate-lanes.json` groups every job the aggregate needs
+into lanes, a matrix's legs together and the determinism manifests by
+host. Each lane declares by hand its jobs, the lanes it needs, the paths
+whose change reaches it (named sets such as `build` and `library`), the
+targets whose emitted code it alone runs, and whether it checks the
+evidence itself (the release builds' comparisons and their clean builds).
+`table --write` keeps the rest from the history: when the lane was first
+seen, the median of its job-minutes over the window's complete gates, and
+the last day it was the only lane with a defect job in a run. The two
+branches that demonstrated a failure on purpose count for nothing. No lane
+declares emission targets yet. The determinism manifests digest only the
+positive fixtures, and every lane that runs emitted code also runs the
+runtime, ABI or firmware corpus, or programs of its own. The emission part
+of the rule is written and tested, and selects nothing until a manifest
+covers what a lane runs, which a register row records.
+
+**The reason:** a table in the tree makes the same tree select the same
+lanes, and a lane's inputs are known best by whoever changes the lane, in
+the same change; `Lanes` fails when a gate job is in no lane.
+
+**The alternatives:** a path map apart from the frequencies, which two
+files would let drift; reading `needs` and paths from the workflow, which
+says what a job runs but not what it reads; and declaring emission lanes
+over the positive manifest, which would key a lane by code it does not
+run.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Lanes` cases.
+
+### D2796 — The selected gate is computed beside every complete gate and skips nothing
+
+**The tour said** nothing. The maintainer accepted the selection's values
+on 2026-11-26, and that it runs in shadow before it is applied.
+
+**Chosen:** the `inputs` job's last step, when the software lanes run and
+no pass is reused, finds the base. That is the newest successful push run
+on this commit's history whose `determinism / agree` passed, asked by
+GraphQL with the job's own token. The step lists the paths changed since
+the base and selects by D2795's table. It keeps a lane that runs always,
+a physical one, one that checks the evidence, one under four weeks old,
+one under five job-minutes and one that was alone in the last eight weeks.
+It keeps one whose inputs the change reaches, and every lane a kept lane
+needs. An emission lane is left to the aggregate, which settles it from
+this run's and the base run's x86-64 manifests. Any other lane runs on one
+tree in four, drawn from a hash of the tree and the lane's name, so each
+lane is drawn apart. The step writes the selection to the summary; the
+aggregate writes the final one, the lanes skipped and their job-minutes,
+and records it as a `gate-shadow` annotation. Both steps
+`continue-on-error`, and no job's condition reads them, so a failure there
+selects every lane and changes nothing that runs.
+
+**The reason:** shadow mode measures the rule on the gates that run
+anyway, at a few seconds of the `inputs` job, so its misses are known
+before it may skip anything.
+
+**The alternatives:** one draw for all sampled lanes, which runs all of
+them on one gate in four and none on the rest; the merge base with `main`
+as the base, which a reused main push gives no manifests for; and
+computing everything at the end, which the applied selection could
+not use before its lanes start.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Selection` and
+`Wiring.test_the_selection_never_fails_or_skips_a_job`.
+
+### D2797 — A branch run that failed only outside the change is re-run once
+
+**The tour said** nothing. From 7 to 17 runs a week failed for outside
+causes alone, and each was re-run by hand or by a new push.
+
+**Chosen:** `.github/workflows/gate-rerun.yml` runs when a gate run
+completes. When the run failed on its first attempt and was a push to a
+branch other than `main` of this repository, it reads the failed jobs'
+logs. If every failed job matches a signature marked `rerun` and the branch
+still points at the run's commit, it re-runs the failed jobs once and names
+the run, the jobs and the signatures in its summary. The re-run's aggregate
+names its attempt and who started it. A signature a second attempt cannot
+pass, such as a stale image, is marked so and not re-run. `main`'s gate is
+investigated, never re-run blindly.
+
+**The reason:** a failure every one of whose jobs is a known outside cause
+says nothing of the tree, and one more attempt is cheaper than an agent
+reading the log to decide the same. A run with any unmatched failure needs
+a new push anyway.
+
+**The alternatives:** re-running each matched job alone, which leaves the
+run failed on the others; re-running `main`; and re-running more than once.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Rerun` cases and
+`Wiring.test_the_rerun_is_a_branch_push_first_attempt_only`.
+
+### D2798 — A miss is a complete gate whose defect only skipped lanes showed
+
+**The tour said** nothing. The study's replay of November expected 1.7
+misses a week, defects a later draw or the next complete gate shows.
+
+**Chosen:** in the shadow period, a complete gate is a miss when every
+lane with a defect job in it is one the selection recorded on the run
+would have skipped. A branch's consecutive misses on the same lanes are
+one missed defect. `gate_history.py shadow` prints the period's complete
+gates, its weeks, the missed runs and defects and their rate a week, and
+sets them against the study's. `table --write` keeps the same figures
+in the lane table's `shadow` entry, so each weekly update of the table
+carries them. The maintainer reads them there before the selection is applied,
+after about 200 complete gates, the length the maintainer is asked to
+confirm.
+
+**The reason:** under the selected gate such a tree would have passed;
+when a kept lane failed too, the selected gate would have failed it as
+well.
+
+**The alternatives:** counting a run with a skipped lane's defect beside a
+kept lane's, which counts a defect the selected gate also stops; and
+counting every missed run, which counts one defect again on every push
+until it is fixed.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s
+`Shadow.test_a_defect_only_skipped_lanes_showed_is_a_miss`.
+
 ### D1379 — The instruction counter declares the plugin calls it makes
 
 **The tour said** nothing.

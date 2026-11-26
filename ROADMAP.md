@@ -3953,6 +3953,21 @@ control; every gate's summary naming the lanes it would have skipped;
 and the measured miss rate, the defects that only skipped lanes showed,
 set against the study's replay of November, 1.7 a week.
 
+Landed, the shadow period to run: `scripts/gate_history.py`, the lane
+table `.github/gate-lanes.json` with its control, the causes of the
+1,025 failed jobs from 2026-09-21 in `.github/gate-causes.jsonl`, the
+`inputs` job's selection and the aggregate's record of it and of the
+outside signatures, and `gate-rerun.yml` (D2794-D2798). Against the
+study's readers the rule with its signatures agreed on 96.5% of its
+defects and found 97.3% of theirs, on the logs the signatures came from.
+On the history to that day it samples `arm64-compiler`,
+`arm64-compiler-checks`, `build-modes`, `darwin-host`,
+`darwin-debug-build`, `rv64-qemu`, the three determinism hosts and
+`freebsd-arm64-runtime`; the study's replay sampled the same but
+`rv64-qemu` and `darwin-debug-build`. No lane is keyed by its emission
+yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
+the table's `shadow` entry, which the weekly `table --write` keeps.
+
 ### R22.37 — The selected gate applied
 
 Status: planned

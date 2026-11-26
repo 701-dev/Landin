@@ -1,0 +1,1739 @@
+{
+ "about": "The gate's lanes, read by scripts/gate_history.py's selection (docs/process.md, \"Failure causes and the selection in shadow\"). Declared by hand: jobs, needs, inputs, emission, evidence, always, physical, note; kept by `gate_history.py table --write`: first_seen, minutes, alone, defect_jobs, outside_jobs, history, shadow.",
+ "rules": {
+  "alone_weeks": 8,
+  "new_weeks": 4,
+  "cheap_minutes": 5,
+  "one_in": 4,
+  "shadow_gates": 200,
+  "study_misses_per_week": 1.7,
+  "ignored_branches": [
+   "r16-10-demo-slower",
+   "r16-10-demo-larger"
+  ]
+ },
+ "signatures": [
+  {
+   "name": "http-error-from-curl",
+   "cause": "network",
+   "pattern": "curl: \\(\\d+\\) (The requested URL returned error: (403|408|429|5\\d\\d)|Recv failure)",
+   "rerun": true,
+   "description": "A curl download (pinned toolchain/tools) got an HTTP 403, 408, 429 or 5xx from the server or a connection reset.",
+   "example": "curl: (35) Recv failure: Connection reset by peer"
+  },
+  {
+   "name": "fetch-http-error",
+   "cause": "network",
+   "pattern": "(cannot fetch https?://\\S+: HTTP (Error 5\\d\\d|status (403|5\\d\\d))|urllib\\.error\\.HTTPError: HTTP Error 5\\d\\d|pkg: Error: Unknown HTTP error)",
+   "rerun": true,
+   "description": "landin_fetch/fetch_inputs python or FreeBSD pkg download got an HTTP 403/5xx (a 404 is excluded: pinned-file removals are real).",
+   "example": "urllib.error.HTTPError: HTTP Error 504: Gateway Time-out"
+  },
+  {
+   "name": "apt-mirror-failure",
+   "cause": "network",
+   "pattern": "(E: Failed to fetch .*(Service Unavailable|Forbidden|Connection failed|unexpected size|timed out)|apt_install: .*out of time after \\d+s|Could not connect to \\S+:\\d+ .*connection timed out)",
+   "rerun": true,
+   "description": "An Ubuntu apt mirror answered 503/403, was out of sync (unexpected size), unreachable, or apt_install ran out of time.",
+   "example": "apt_install: the image's mirrors: out of time after 396s"
+  },
+  {
+   "name": "actions-download-429",
+   "cause": "network",
+   "pattern": "Failed to download archive 'https://\\S+' after \\d+ attempts",
+   "rerun": true,
+   "description": "The runner could not download an action tarball (codeload 429 rate limit) after retries; job fails before any step.",
+   "example": "##[error]Failed to download archive 'https://codeload.github.com/actions/checkout/tar.gz/3d3c42e5aac5ba805825da76410c181273ba90b1' after 3 attempts."
+  },
+  {
+   "name": "artifact-service-error",
+   "cause": "runner",
+   "pattern": "Failed to (Create|Finalize)Artifact",
+   "rerun": true,
+   "description": "actions/upload-artifact could not reach/finish GitHub's artifact service (ENOTFOUND, 404).",
+   "example": "##[error]Failed to CreateArtifact: Unable to make request: ENOTFOUND"
+  },
+  {
+   "name": "mac-homebrew-python-dyld",
+   "cause": "runner",
+   "pattern": "dyld\\[\\d+\\]: Library not loaded: /opt/homebrew",
+   "rerun": false,
+   "description": "Self-hosted Mac's Homebrew python was upgraded under the toolchain installer (dyld missing library).",
+   "example": "dyld[78209]: Library not loaded: /opt/homebrew/Cellar/python@3.14/3.14.8/Frameworks/Python.framework/Versions/3.14/Python"
+  },
+  {
+   "name": "apt-dpkg-lock",
+   "cause": "runner",
+   "pattern": "Unable to acquire the dpkg frontend lock",
+   "rerun": true,
+   "description": "Self-hosted runner: another apt-get holds the dpkg lock.",
+   "example": "E: Unable to acquire the dpkg frontend lock (/var/lib/dpkg/lock-frontend), is another process using it?"
+  },
+  {
+   "name": "disk-full",
+   "cause": "runner",
+   "pattern": "(^error: disk full writing |^fatal error: disk full$|cp: error copying .*: No space left on device)",
+   "rerun": true,
+   "description": "The runner ran out of disk (GNAT output write or nix store copy).",
+   "example": "fatal error: disk full"
+  },
+  {
+   "name": "emacs-treesit-version-mismatch",
+   "cause": "runner",
+   "pattern": "Cannot activate tree-sitter, because language grammar for landin is unavailable \\(version-mismatch\\)",
+   "rerun": false,
+   "description": "Self-hosted runner's Emacs tree-sitter library does not match the built grammar (editor-grammar lane).",
+   "example": "Warning (treesit): Cannot activate tree-sitter, because language grammar for landin is unavailable (version-mismatch): 15"
+  },
+  {
+   "name": "gprbuild-closed-pipe",
+   "cause": "flaky",
+   "pattern": "gprbuild: raised ADA\\.IO_EXCEPTIONS\\.DEVICE_ERROR : a-textio\\.adb",
+   "rerun": true,
+   "description": "gprbuild/gnat --version | head -1 wrote to a closed pipe (SIGPIPE ignored by host); a rerun passes.",
+   "example": "gprbuild: raised ADA.IO_EXCEPTIONS.DEVICE_ERROR : a-textio.adb:1451"
+  },
+  {
+   "name": "probe-dmi-timeout",
+   "cause": "rig",
+   "pattern": "\\bDMI\\b.*\\b[Tt]ime(d )?out|\\b[Tt]ime(d )?out\\b.*\\bDMI\\b",
+   "rerun": true,
+   "description": "a RISC-V probe's debug-module access timed out, the maintainer's example; no run of the study met it",
+   "example": "Error: Timeout during DMI access"
+  },
+  {
+   "name": "rig-probe-unreachable",
+   "cause": "rig",
+   "pattern": "probe at \\S+ does not answer ping",
+   "rerun": true,
+   "description": "The rig probe did not answer ping after a power cycle.",
+   "example": "board failed: /run/github-runner/rigpi/_temp/board-leg/pico2/evidence/rp2350-boot: after the cycle the probe at 10.42.0.50 does not answer ping; stopping; resident image restoration pending: after the"
+  },
+  {
+   "name": "rig-gpio-shell-timeout",
+   "cause": "rig",
+   "pattern": "probehive's lightweight GPIO shell, .* did not open within \\d+ s",
+   "rerun": true,
+   "description": "The probehive GPIO shell on the rig never opened (300 s timeout).",
+   "example": "board failed: /run/github-runner/rigpi/_temp/board-leg/rp2040/evidence/rp2040-ram: probehive's lightweight GPIO shell, which gives scripts/gpio.py its LiteX, did not open within 300 s; prepare it with"
+  },
+  {
+   "name": "rig-board-step-failed",
+   "cause": "rig",
+   "pattern": "/run/github-runner/rigpi/\\S+: .*\\b(ram-load|flash|resident-ready) failed \\(\\d+\\)",
+   "rerun": true,
+   "description": "A rig board step (RAM load, flash, resident-ready) failed through the probe on the physical rig.",
+   "example": "board failed: /run/github-runner/rigpi/_temp/board-leg/rp2040/evidence/rp2040-boot: flash failed (1); see /run/github-runner/rigpi/_temp/board-leg/rp2040/evidence/rp2040-boot/flash.log; resident image"
+  },
+  {
+   "name": "rig-board-readback-glitch",
+   "cause": "rig",
+   "pattern": "(\\d+ bytes? had arrived when the boot frame was written|waited \\d+ s for the boot frame; received \\d+ bytes?|recoveries reads? \\d+ over JTAG, \\d+ in the frame|esp32c3 ram: the unhandled entry took \\d+ trap)",
+   "rerun": true,
+   "description": "A board harness read-back glitch on the rig: stray UART bytes before the stm32h753 boot frame, esp32c3 JTAG counter skew, or a spurious trap at boot. Passes on rerun.",
+   "example": "boards esp32c3: failed: esp32c3 ram: the unhandled entry took 1 trap(s), the last mcause 0x0 at 0x0, mtval 0x0, sp 0x3fcc7c90"
+  },
+  {
+   "name": "board-console-first-echo-race",
+   "cause": "flaky",
+   "pattern": "stm32h753 ram: the shared scenario was not echoed",
+   "rerun": true,
+   "description": "stm32h753 console first-echo race in the board harness; passes on rerun.",
+   "example": "boards stm32h753: failed: stm32h753 ram: the shared scenario was not echoed"
+  },
+  {
+   "name": "emulator-guest-banner-timeout",
+   "cause": "emulator",
+   "pattern": "Connection timed out during banner exchange",
+   "rerun": true,
+   "description": "FreeBSD VM guest ssh connection timed out during banner exchange.",
+   "example": "Connection timed out during banner exchange"
+  },
+  {
+   "name": "stale-ubuntu-qemu-8",
+   "cause": "emulator",
+   "pattern": "^qemu-riscv64 version 8\\.",
+   "rerun": false,
+   "description": "Ubuntu QEMU 8.2 user emulation in the job (known-bad sigaction size); failures in that lane are the emulator, not the code. Condition, not error line.",
+   "example": "qemu-riscv64 version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)"
+  }
+ ],
+ "sets": {
+  "workflow": [
+   ".github/workflows/gate.yml"
+  ],
+  "determinism-workflow": [
+   ".github/workflows/determinism.yml"
+  ],
+  "toolchain": [
+   "environments/pins.sh",
+   ".github/actions/pinned-toolchain/**",
+   "scripts/toolchain_cache.py"
+  ],
+  "packages": [
+   "scripts/ci_packages.sh",
+   "scripts/apt_install.sh"
+  ],
+  "build-scripts": [
+   "scripts/build.sh",
+   "scripts/dev-build.sh",
+   "scripts/env.sh",
+   "scripts/toolchain.sh",
+   "scripts/build_lock.py",
+   "scripts/build_link.py",
+   "scripts/build_identity.py",
+   "scripts/build_config.py",
+   "scripts/refine_revision.py",
+   "scripts/source_times.py",
+   "scripts/release_cache_key.py"
+  ],
+  "build": [
+   "compiler/ada/**"
+  ],
+  "library": [
+   "core/**",
+   "hosted/**",
+   "platform/**",
+   "citations.txt"
+  ],
+  "corpus": [
+   "compiler/tests/**",
+   "devices/**",
+   "examples/**"
+  ],
+  "prose-read": [
+   "spec.md",
+   "tour.md",
+   "examples.md",
+   "prototype-*.md",
+   "docs/format.md",
+   "docs/from-c.md",
+   "docs/commands.md",
+   "docs/library.md"
+  ],
+  "install-scripts": [
+   "scripts/package.sh",
+   "scripts/outside_user.py",
+   "scripts/install_check.py",
+   "scripts/static_check.py",
+   "scripts/program_interpreter.py",
+   "scripts/container_image.py",
+   "install.sh",
+   "environments/images/**",
+   "scripts/tests/test_cli_native.py",
+   "README.md"
+  ],
+  "debug-scripts": [
+   "scripts/debug.sh",
+   "scripts/dap_bridge.py",
+   "scripts/lane_refine.py",
+   "scripts/cortex_debug.py",
+   "compiler/tests/debugging/**",
+   "compiler/tests/dap/**"
+  ],
+  "measure": [
+   "scripts/measure.py",
+   "scripts/measure_count.py",
+   "scripts/measure_costs.py",
+   "scripts/image_bounds.py",
+   "compiler/tests/measure/**",
+   "docs/measurement.md"
+  ],
+  "firmware-env": [
+   "environments/cortex-m/**",
+   "environments/xtensa/**",
+   "environments/boards/**",
+   "scripts/fetch_inputs.py",
+   "scripts/download.py",
+   "scripts/gpio.py",
+   "scripts/assemble_targets.py",
+   "scripts/lane_refine.py",
+   "scripts/dap_bridge.py",
+   "scripts/add_fixture.py",
+   "scripts/measure_count.py",
+   "scripts/image_bounds.py"
+  ],
+  "darwin-env": [
+   "environments/macos-arm64/**",
+   "scripts/macos.sh",
+   "scripts/macos_environment.py",
+   "scripts/macho_identity.py",
+   "compiler/tests/darwin/**"
+  ],
+  "freebsd-env": [
+   "environments/freebsd/**",
+   ".github/actions/freebsd-toolchain/**",
+   "compiler/tests/freebsd/**"
+  ],
+  "nix": [
+   "flake.nix",
+   "flake.lock"
+  ],
+  "compare-scripts": [
+   "scripts/compare_builds.py",
+   "scripts/compare_images.py"
+  ],
+  "emit-manifest": [
+   "scripts/emit_manifest.py",
+   "scripts/build_lock.py",
+   "compiler/tests/fixture_meta.py",
+   "compiler/tests/fixtures/**",
+   "compiler/tests/cortex-m/**",
+   "compiler/tests/cortex-m.contract",
+   "devices/**",
+   "examples/**"
+  ],
+  "test-program": [
+   "@build",
+   "@build-scripts",
+   "@toolchain",
+   "@library",
+   "@corpus",
+   "@prose-read"
+  ]
+ },
+ "lanes": {
+  "documents": {
+   "jobs": [
+    "documents"
+   ],
+   "needs": [],
+   "inputs": [
+    "**"
+   ],
+   "note": "check.py over every document, grammar table and generated page; full history checkout.",
+   "always": true,
+   "first_seen": "2026-09-22",
+   "minutes": 1.3,
+   "alone": "2026-11-25",
+   "defect_jobs": 17,
+   "outside_jobs": 0
+  },
+  "scripts": {
+   "jobs": [
+    "scripts"
+   ],
+   "needs": [],
+   "inputs": [
+    "**"
+   ],
+   "note": "scripts/script_tests.py (every scripts/tests module and check.py's controls), actionlint, determinism/quality/debugging controls.",
+   "always": true,
+   "first_seen": "2026-09-26",
+   "minutes": 4.3,
+   "alone": "2026-11-22",
+   "defect_jobs": 46,
+   "outside_jobs": 2
+  },
+  "linux-debug-build": {
+   "jobs": [
+    "linux-debug-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@workflow"
+   ],
+   "note": "Debug refine and test program on Linux x86-64, packaged for the debug lanes.",
+   "first_seen": "2026-10-16",
+   "minutes": 4.0,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 1
+  },
+  "compiler": {
+   "jobs": [
+    "compiler-1",
+    "compiler-2",
+    "compiler-3",
+    "compiler-4"
+   ],
+   "needs": [
+    "linux-debug-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "scripts/test.sh --shard=I/4 with the debug compiler: the whole Ada test program and fixture corpus. Compiles negatives, unit tests and everything else, not only positives.",
+   "first_seen": "2026-09-22",
+   "minutes": 29.4,
+   "alone": "2026-11-19",
+   "defect_jobs": 39,
+   "outside_jobs": 6
+  },
+  "compiler-checks": {
+   "jobs": [
+    "compiler-checks"
+   ],
+   "needs": [
+    "linux-debug-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@packages",
+    "highlight/**",
+    "scripts/tests/test_cli_native.py",
+    "README.md",
+    "@workflow"
+   ],
+   "note": "Emacs lsp, determinism closures, native report identity, publication/cancellation, server sessions and the mutation fuzzer with the debug compiler.",
+   "first_seen": "2026-10-16",
+   "minutes": 7.7,
+   "alone": "2026-11-23",
+   "defect_jobs": 14,
+   "outside_jobs": 2
+  },
+  "linux-release-build": {
+   "jobs": [
+    "linux-release-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@workflow"
+   ],
+   "note": "Release refine over the cached object tree; the compiler every later Linux lane takes.",
+   "first_seen": "2026-10-04",
+   "minutes": 5.7,
+   "alone": "2026-11-16",
+   "defect_jobs": 2,
+   "outside_jobs": 3
+  },
+  "linux-release-clean": {
+   "jobs": [
+    "linux-release-clean"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@workflow"
+   ],
+   "note": "Release refine from clean; consumed only by linux-release-compare.",
+   "evidence": true,
+   "first_seen": "2026-11-16",
+   "minutes": 9.0,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 2
+  },
+  "linux-release-compare": {
+   "jobs": [
+    "linux-release-compare"
+   ],
+   "needs": [
+    "linux-release-build",
+    "linux-release-clean"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@compare-scripts",
+    "@workflow"
+   ],
+   "note": "Cached and clean release builds must be byte-identical (compare_builds.py).",
+   "evidence": true,
+   "first_seen": "2026-11-16",
+   "minutes": 0.3,
+   "alone": "2026-11-18",
+   "defect_jobs": 1,
+   "outside_jobs": 0
+  },
+  "release": {
+   "jobs": [
+    "release"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@install-scripts",
+    "@debug-scripts",
+    "@packages",
+    "scripts/verifier_resources.py",
+    "scripts/scaling.py",
+    "scripts/quality.sh",
+    "environments/images/**",
+    "@workflow"
+   ],
+   "note": "Release compiler: full corpus, verifier resources, closures/server, installed toolchain outside the checkout, install script, static archive on Alpine, object quality, GDB and DAP sessions.",
+   "first_seen": "2026-09-26",
+   "minutes": 10.2,
+   "alone": "2026-10-16",
+   "defect_jobs": 30,
+   "outside_jobs": 1
+  },
+  "outside-user-stock": {
+   "jobs": [
+    "outside-user-stock"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@packages",
+    "@install-scripts",
+    "examples.md",
+    "compiler/tests/fixtures/runtime/**",
+    "@workflow"
+   ],
+   "note": "Packaged release compiler used from outside the checkout on stock Ubuntu, plus the user container image.",
+   "first_seen": "2026-10-18",
+   "minutes": 1.6,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 5
+  },
+  "build-modes": {
+   "jobs": [
+    "build-modes-1",
+    "build-modes-2",
+    "build-modes-3",
+    "build-modes-4"
+   ],
+   "needs": [
+    "linux-debug-build",
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@emit-manifest",
+    "@workflow"
+   ],
+   "note": "emit_manifest.py modes --shard=I/4: debug and release compilers must emit identical bytes for positive+runtime+Cortex-M corpora at the standard profiles.",
+   "first_seen": "2026-10-17",
+   "minutes": 37.8,
+   "alone": null,
+   "defect_jobs": 3,
+   "outside_jobs": 2
+  },
+  "bindings": {
+   "jobs": [
+    "bindings"
+   ],
+   "needs": [
+    "linux-debug-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "bindings/**",
+    "compiler/tests/fixtures/abi/**",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "refine bindings against the pinned Clang with the debug compiler; regenerates the committed fixture byte for byte.",
+   "first_seen": "2026-09-26",
+   "minutes": 1.6,
+   "alone": null,
+   "defect_jobs": 2,
+   "outside_jobs": 2
+  },
+  "editor-grammar": {
+   "jobs": [
+    "editor-grammar"
+   ],
+   "needs": [],
+   "inputs": [
+    "highlight/**",
+    "compiler/tests/fixtures/**",
+    "compiler/tests/lexical.tokens",
+    "core/**",
+    "spec.md",
+    "environments/pins.sh",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Tree-sitter grammar parses every positive/runtime/abi fixture and core; committed parser regenerates; Neovim smoke. Uses no compiler.",
+   "first_seen": "2026-09-26",
+   "minutes": 1.2,
+   "alone": "2026-10-30",
+   "defect_jobs": 7,
+   "outside_jobs": 2
+  },
+  "flake-compiler": {
+   "jobs": [
+    "flake-compiler"
+   ],
+   "needs": [],
+   "inputs": [
+    "@nix",
+    "@build",
+    "@build-scripts",
+    "@library",
+    "README.md",
+    "environments/pins.sh",
+    "scripts/nix_route.py",
+    "scripts/outside_user.py",
+    "compiler/tests/fixtures/runtime/first-program/**",
+    "environments/boards/ram-run/**",
+    "environments/cortex-m/tools.lock.json",
+    "@workflow"
+   ],
+   "note": "nix build .#refine and .#refine-bin, flake check over all systems, dev shell, README nix route. The flake source is the whole tree (version read from README.md); listed paths are what its build and checks read.",
+   "first_seen": "2026-11-17",
+   "minutes": 8.8,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "flake-ram-run": {
+   "jobs": [
+    "flake-ram-run"
+   ],
+   "needs": [],
+   "inputs": [
+    "@nix",
+    "environments/pins.sh",
+    "environments/boards/ram-run/**",
+    "@workflow"
+   ],
+   "note": "nix build .#board-ram-run (native board RAM helper).",
+   "first_seen": "2026-11-17",
+   "minutes": 7.2,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "flake-ram-run-rigpi": {
+   "jobs": [
+    "flake-ram-run-rigpi"
+   ],
+   "needs": [],
+   "inputs": [
+    "@nix",
+    "environments/pins.sh",
+    "environments/boards/ram-run/**",
+    "@workflow"
+   ],
+   "note": "nix build .#board-ram-run-rigpi (the rig Pi's helper).",
+   "first_seen": "2026-11-17",
+   "minutes": 5.2,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "measure-size": {
+   "jobs": [
+    "measure-size"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@measure",
+    "@nix",
+    "environments/pins.sh",
+    "environments/cortex-m/setup.py",
+    "environments/cortex-m/tools.lock.json",
+    "@workflow"
+   ],
+   "note": "Code size of every measured workload at every level/profile for Linux, RV64, Windows and firmware targets, linked by nix-pinned linkers, held to the base commit's baselines; plus RV64 instruction counts.",
+   "first_seen": "2026-11-17",
+   "minutes": 4.9,
+   "alone": "2026-11-24",
+   "defect_jobs": 29,
+   "outside_jobs": 0
+  },
+  "cortex-m-programs": {
+   "jobs": [
+    "cortex-m-programs"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@measure",
+    "@toolchain",
+    "@packages",
+    "@debug-scripts",
+    "@workflow"
+   ],
+   "note": "Cortex-M part 'programs' on locked QEMU/GDB: probe controls, M0 instruction counts vs baselines, devices from SVD, every board port built offline, lanes abi/memory/packed/etc.",
+   "first_seen": "2026-11-02",
+   "minutes": 9.2,
+   "alone": "2026-11-21",
+   "defect_jobs": 13,
+   "outside_jobs": 2
+  },
+  "cortex-m-corpus": {
+   "jobs": [
+    "cortex-m-corpus"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Cortex-M part 'corpus': the freestanding runtime/abi corpus on the Arm lanes under QEMU.",
+   "first_seen": "2026-11-02",
+   "minutes": 11.6,
+   "alone": "2026-11-24",
+   "defect_jobs": 13,
+   "outside_jobs": 1
+  },
+  "cortex-m-rv32": {
+   "jobs": [
+    "cortex-m-rv32"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Cortex-M harness part 'rv32': RV32 controls and corpora on Espressif's QEMU.",
+   "first_seen": "2026-11-02",
+   "minutes": 7.3,
+   "alone": "2026-11-26",
+   "defect_jobs": 11,
+   "outside_jobs": 3
+  },
+  "xtensa-esp32": {
+   "jobs": [
+    "xtensa-esp32-1",
+    "xtensa-esp32-2",
+    "xtensa-esp32-3"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Xtensa esp32: native controls (shard 1) and one third of the complete freestanding corpus under Espressif's QEMU. Compiles runtime/abi fixtures and hand-written control programs.",
+   "first_seen": "2026-11-04",
+   "minutes": 25.0,
+   "alone": "2026-11-12",
+   "defect_jobs": 11,
+   "outside_jobs": 5
+  },
+  "xtensa-esp32s3": {
+   "jobs": [
+    "xtensa-esp32s3-1",
+    "xtensa-esp32s3-2",
+    "xtensa-esp32s3-3"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Xtensa esp32s3: native controls (shard 1) and one third of the complete freestanding corpus under Espressif's QEMU. Compiles runtime/abi fixtures and hand-written control programs.",
+   "first_seen": "2026-11-04",
+   "minutes": 24.8,
+   "alone": null,
+   "defect_jobs": 11,
+   "outside_jobs": 5
+  },
+  "scaling": {
+   "jobs": [
+    "scaling"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "scripts/scaling.sh",
+    "scripts/scaling.py",
+    "scripts/scaling_exec.c",
+    "scripts/image_bounds.py",
+    "examples/derived_hosted/**",
+    "compiler/tests/fixtures/runtime/derived-*/**",
+    "@workflow"
+   ],
+   "note": "Generated 1k-16k declaration programs checked and emitted with the release compiler; doubling time ratio bound.",
+   "first_seen": "2026-09-25",
+   "minutes": 3.6,
+   "alone": "2026-11-08",
+   "defect_jobs": 6,
+   "outside_jobs": 6
+  },
+  "darwin-release-build": {
+   "jobs": [
+    "darwin-release-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@darwin-env",
+    "@workflow"
+   ],
+   "note": "Release refine on macOS over the cached object tree (ZERO_AR_DATE).",
+   "first_seen": "2026-10-04",
+   "minutes": 4.5,
+   "alone": null,
+   "defect_jobs": 5,
+   "outside_jobs": 3
+  },
+  "darwin-release-clean": {
+   "jobs": [
+    "darwin-release-clean"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@darwin-env",
+    "@workflow"
+   ],
+   "note": "Release refine on macOS from clean; consumed only by darwin-release-compare.",
+   "evidence": true,
+   "first_seen": "2026-11-17",
+   "minutes": 13.1,
+   "alone": null,
+   "defect_jobs": 2,
+   "outside_jobs": 0
+  },
+  "darwin-release-compare": {
+   "jobs": [
+    "darwin-release-compare"
+   ],
+   "needs": [
+    "darwin-release-build",
+    "darwin-release-clean"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@compare-scripts",
+    "@workflow"
+   ],
+   "note": "Cached and clean macOS release builds must be byte-identical.",
+   "evidence": true,
+   "first_seen": "2026-11-17",
+   "minutes": 0.2,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "darwin-debug-build": {
+   "jobs": [
+    "darwin-debug-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@darwin-env",
+    "@workflow"
+   ],
+   "note": "Debug refine and test program on macOS.",
+   "first_seen": "2026-10-16",
+   "minutes": 6.3,
+   "alone": null,
+   "defect_jobs": 5,
+   "outside_jobs": 0
+  },
+  "darwin-host": {
+   "jobs": [
+    "darwin-host-1",
+    "darwin-host-2",
+    "darwin-host-3",
+    "darwin-host-4"
+   ],
+   "needs": [
+    "darwin-debug-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@toolchain",
+    "@darwin-env",
+    "scripts/verifier_resources.py",
+    "@workflow"
+   ],
+   "note": "test.sh --host --target=linux-x86-64 --shard=I/4 on a Mac with the debug compiler, plus closures, publication/cancellation and server sessions.",
+   "first_seen": "2026-10-04",
+   "minutes": 27.5,
+   "alone": null,
+   "defect_jobs": 28,
+   "outside_jobs": 7
+  },
+  "darwin-host-release": {
+   "jobs": [
+    "darwin-host-release-1",
+    "darwin-host-release-2"
+   ],
+   "needs": [
+    "darwin-release-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@toolchain",
+    "@darwin-env",
+    "@install-scripts",
+    "@debug-scripts",
+    "@measure",
+    "scripts/verifier_resources.py",
+    "@workflow"
+   ],
+   "note": "Release-compiler host suite on a Mac (2 shards), Darwin sizes vs baselines, installed toolchain, install script, LLDB sessions and DAP over lldb-dap.",
+   "first_seen": "2026-10-04",
+   "minutes": 13.7,
+   "alone": "2026-11-25",
+   "defect_jobs": 55,
+   "outside_jobs": 4
+  },
+  "darwin-parity": {
+   "jobs": [
+    "darwin-parity-1",
+    "darwin-parity-2"
+   ],
+   "needs": [
+    "darwin-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@prose-read",
+    "@toolchain",
+    "@darwin-env",
+    "scripts/tests/test_darwin_assembly.py",
+    "@workflow"
+   ],
+   "note": "Native execution of the shared runtime/abi corpus (check.py --parity), source verdicts for positives and negatives (diagnostics.py) and bindings archives. Runs runtime, negative and abi fixtures.",
+   "first_seen": "2026-09-26",
+   "minutes": 14.3,
+   "alone": "2026-10-19",
+   "defect_jobs": 24,
+   "outside_jobs": 4
+  },
+  "arm64-debug-build": {
+   "jobs": [
+    "arm64-debug-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@workflow"
+   ],
+   "note": "Debug refine on Linux arm64.",
+   "first_seen": "2026-10-16",
+   "minutes": 3.5,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 1
+  },
+  "arm64-compiler": {
+   "jobs": [
+    "arm64-compiler-1",
+    "arm64-compiler-2",
+    "arm64-compiler-3"
+   ],
+   "needs": [
+    "arm64-debug-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "scripts/test.sh --shard=I/3 on arm64 with the debug compiler.",
+   "first_seen": "2026-10-03",
+   "minutes": 30.9,
+   "alone": null,
+   "defect_jobs": 32,
+   "outside_jobs": 1
+  },
+  "arm64-compiler-checks": {
+   "jobs": [
+    "arm64-compiler-checks"
+   ],
+   "needs": [
+    "arm64-debug-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "scripts/verifier_resources.py",
+    "@workflow"
+   ],
+   "note": "arm64 debug compiler: verifier observations, default target, determinism closures, publication/cancellation, server sessions.",
+   "first_seen": "2026-10-16",
+   "minutes": 6.5,
+   "alone": null,
+   "defect_jobs": 8,
+   "outside_jobs": 1
+  },
+  "arm64-release-build": {
+   "jobs": [
+    "arm64-release-build"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@workflow"
+   ],
+   "note": "Release refine on Linux arm64.",
+   "first_seen": "2026-11-21",
+   "minutes": 8.3,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "arm64-release": {
+   "jobs": [
+    "arm64-release"
+   ],
+   "needs": [
+    "arm64-release-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "scripts/verifier_resources.py",
+    "@workflow"
+   ],
+   "note": "Full test.sh corpus on arm64 with the release compiler.",
+   "first_seen": "2026-10-03",
+   "minutes": 10.3,
+   "alone": "2026-10-30",
+   "defect_jobs": 37,
+   "outside_jobs": 3
+  },
+  "arm64-release-checks": {
+   "jobs": [
+    "arm64-release-checks"
+   ],
+   "needs": [
+    "arm64-release-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@install-scripts",
+    "@debug-scripts",
+    "@packages",
+    "compiler/tests/linux-arm64/**",
+    "bindings/**",
+    "@workflow"
+   ],
+   "note": "arm64 release: default target/server, installed toolchain, install script, static archive on Alpine, user image, GDB and DAP sessions, AAPCS64 bindings against pinned Clang.",
+   "first_seen": "2026-11-21",
+   "minutes": 4.4,
+   "alone": null,
+   "defect_jobs": 4,
+   "outside_jobs": 0
+  },
+  "freebsd-amd64-runtime": {
+   "jobs": [
+    "freebsd-amd64-runtime"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "Linux-built FreeBSD x86-64 runtime corpus emitted, booted and executed in a QEMU guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 6.4,
+   "alone": "2026-11-26",
+   "defect_jobs": 12,
+   "outside_jobs": 2
+  },
+  "freebsd-amd64-debugger": {
+   "jobs": [
+    "freebsd-amd64-debugger"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@debug-scripts",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD x86-64 LLDB debugger sessions in the guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 2.8,
+   "alone": null,
+   "defect_jobs": 4,
+   "outside_jobs": 2
+  },
+  "freebsd-amd64-abi": {
+   "jobs": [
+    "freebsd-amd64-abi"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD x86-64 ABI fixtures with their C peers in the guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 3.3,
+   "alone": null,
+   "defect_jobs": 3,
+   "outside_jobs": 2
+  },
+  "freebsd-arm64-runtime": {
+   "jobs": [
+    "freebsd-arm64-runtime-1",
+    "freebsd-arm64-runtime-2"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD arm64 runtime corpus in two shards (--shard=I/2) in a QEMU guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 17.4,
+   "alone": null,
+   "defect_jobs": 11,
+   "outside_jobs": 4
+  },
+  "freebsd-arm64-debugger": {
+   "jobs": [
+    "freebsd-arm64-debugger"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@debug-scripts",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD arm64 LLDB debugger sessions in the guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 4.1,
+   "alone": "2026-10-28",
+   "defect_jobs": 5,
+   "outside_jobs": 5
+  },
+  "freebsd-arm64-abi": {
+   "jobs": [
+    "freebsd-arm64-abi"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD arm64 ABI fixtures with their C peers in the guest.",
+   "first_seen": "2026-10-07",
+   "minutes": 4.7,
+   "alone": null,
+   "defect_jobs": 4,
+   "outside_jobs": 3
+  },
+  "freebsd-amd64-size": {
+   "jobs": [
+    "freebsd-amd64-size"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@measure",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD x86-64 section sizes of the measured workloads vs baselines.",
+   "first_seen": "2026-11-17",
+   "minutes": 2.0,
+   "alone": null,
+   "defect_jobs": 24,
+   "outside_jobs": 1
+  },
+  "freebsd-arm64-size": {
+   "jobs": [
+    "freebsd-arm64-size"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@freebsd-env",
+    "@measure",
+    "@toolchain",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "FreeBSD arm64 section sizes of the measured workloads vs baselines.",
+   "first_seen": "2026-11-17",
+   "minutes": 1.9,
+   "alone": null,
+   "defect_jobs": 23,
+   "outside_jobs": 1
+  },
+  "freebsd-toolchain": {
+   "jobs": [
+    "freebsd-toolchain"
+   ],
+   "needs": [],
+   "inputs": [
+    "environments/freebsd/**",
+    ".github/actions/freebsd-toolchain/**",
+    "environments/pins.sh",
+    "scripts/ci_packages.sh",
+    "compiler/ada/TOOLCHAIN.md",
+    "@workflow"
+   ],
+   "note": "Restore or build the pinned GNAT/GPRbuild for FreeBSD x86-64 (cache or a guest build).",
+   "first_seen": "2026-11-24",
+   "minutes": 0.2,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "freebsd-host": {
+   "jobs": [
+    "freebsd-host-1",
+    "freebsd-host-2"
+   ],
+   "needs": [
+    "freebsd-toolchain"
+   ],
+   "inputs": [
+    "@test-program",
+    "@freebsd-env",
+    "@packages",
+    "@install-scripts",
+    "@workflow"
+   ],
+   "note": "refine built in a FreeBSD x86-64 guest and the Ada test program run there in two shards (git bundle of the whole tree).",
+   "first_seen": "2026-11-24",
+   "minutes": 39.3,
+   "alone": null,
+   "defect_jobs": 4,
+   "outside_jobs": 1
+  },
+  "freebsd-host-release": {
+   "jobs": [
+    "freebsd-host-release"
+   ],
+   "needs": [
+    "freebsd-toolchain"
+   ],
+   "inputs": [
+    "@test-program",
+    "@freebsd-env",
+    "@packages",
+    "@install-scripts",
+    "@workflow"
+   ],
+   "note": "Release build and package archive made and smoke-tested in the FreeBSD guest.",
+   "first_seen": "2026-11-24",
+   "minutes": 12.6,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 1
+  },
+  "windows-emit": {
+   "jobs": [
+    "windows-emit"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "scripts/tests/test_cli_native.py",
+    "@workflow"
+   ],
+   "note": "Linux release compiler emits the Windows x86-64 runtime/abi/Microsoft-link/debugger bundles; NativeWindowsLink unit tests.",
+   "first_seen": "2026-11-23",
+   "minutes": 9.5,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 0
+  },
+  "windows-runtime": {
+   "jobs": [
+    "windows-runtime"
+   ],
+   "needs": [
+    "windows-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@workflow"
+   ],
+   "note": "Windows runner executes the x86-64 corpus bundle and the ABI fixtures with C peers. Verdict is a function of windows-emit's bundle plus the harness, but the bundle comes from runtime/abi fixtures, so compiler inputs are listed.",
+   "first_seen": "2026-11-23",
+   "minutes": 1.4,
+   "alone": "2026-11-23",
+   "defect_jobs": 5,
+   "outside_jobs": 0
+  },
+  "windows-microsoft": {
+   "jobs": [
+    "windows-microsoft"
+   ],
+   "needs": [
+    "windows-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@workflow"
+   ],
+   "note": "Windows runner links the x86-64 bundle with Microsoft's link.exe and executes it.",
+   "first_seen": "2026-11-24",
+   "minutes": 3.5,
+   "alone": "2026-11-24",
+   "defect_jobs": 3,
+   "outside_jobs": 0
+  },
+  "windows-debugger": {
+   "jobs": [
+    "windows-debugger"
+   ],
+   "needs": [
+    "linux-release-build",
+    "windows-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@debug-scripts",
+    "@workflow"
+   ],
+   "note": "Windows LLDB sessions over images and PDBs, and a refine dap session from WSL.",
+   "first_seen": "2026-11-23",
+   "minutes": 2.2,
+   "alone": "2026-11-24",
+   "defect_jobs": 9,
+   "outside_jobs": 1
+  },
+  "windows-arm64-emit": {
+   "jobs": [
+    "windows-arm64-emit"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "scripts/tests/test_cli_native.py",
+    "@workflow"
+   ],
+   "note": "As windows-emit for windows-arm64 (llvm-mingw arm64 import libraries).",
+   "first_seen": "2026-11-24",
+   "minutes": 10.4,
+   "alone": "2026-11-24",
+   "defect_jobs": 2,
+   "outside_jobs": 1
+  },
+  "windows-arm64-runtime": {
+   "jobs": [
+    "windows-arm64-runtime"
+   ],
+   "needs": [
+    "windows-arm64-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@workflow"
+   ],
+   "note": "Windows 11 arm64 runner executes the arm64 corpus and ABI fixtures.",
+   "first_seen": "2026-11-24",
+   "minutes": 2.3,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 0
+  },
+  "windows-arm64-microsoft": {
+   "jobs": [
+    "windows-arm64-microsoft"
+   ],
+   "needs": [
+    "windows-arm64-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@workflow"
+   ],
+   "note": "Windows 11 arm64 runner links with Microsoft's arm64 linker and executes.",
+   "first_seen": "2026-11-24",
+   "minutes": 6.8,
+   "alone": null,
+   "defect_jobs": 1,
+   "outside_jobs": 0
+  },
+  "windows-arm64-debugger": {
+   "jobs": [
+    "windows-arm64-debugger"
+   ],
+   "needs": [
+    "arm64-release-build",
+    "windows-arm64-emit"
+   ],
+   "inputs": [
+    "@build",
+    "@library",
+    "@corpus",
+    "@toolchain",
+    "@packages",
+    "compiler/tests/windows/**",
+    "@debug-scripts",
+    "@workflow"
+   ],
+   "note": "Windows arm64 LLDB sessions and a refine dap session from WSL 1 over the arm64 release compiler.",
+   "first_seen": "2026-11-24",
+   "minutes": 4.2,
+   "alone": null,
+   "defect_jobs": 2,
+   "outside_jobs": 1
+  },
+  "rv64-qemu": {
+   "jobs": [
+    "rv64-qemu-1",
+    "rv64-qemu-2"
+   ],
+   "needs": [
+    "linux-release-build"
+   ],
+   "inputs": [
+    "@test-program",
+    "@nix",
+    "compiler/tests/rv64/**",
+    "@debug-scripts",
+    "@packages",
+    "@workflow"
+   ],
+   "note": "test.sh --target=linux-rv64 --runner=qemu-riscv64 --shard=I/2 under the pinned QEMU user emulation; shard 1 also RV64 GDB and DAP sessions.",
+   "first_seen": "2026-10-18",
+   "minutes": 10.8,
+   "alone": null,
+   "defect_jobs": 26,
+   "outside_jobs": 2
+  },
+  "determinism / manifest (x86_64-linux)": {
+   "jobs": [
+    "determinism / manifest (x86_64-linux 1)",
+    "determinism / manifest (x86_64-linux 2)",
+    "determinism / manifest (x86_64-linux 3)",
+    "determinism / manifest (x86_64-linux 4)"
+   ],
+   "needs": [
+    "linux-debug-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@emit-manifest",
+    "@determinism-workflow",
+    "@workflow"
+   ],
+   "note": "emit_manifest.py emit --shard=I/4: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "first_seen": "2026-10-04",
+   "minutes": 25.4,
+   "alone": null,
+   "defect_jobs": 20,
+   "outside_jobs": 1
+  },
+  "determinism / manifest (aarch64-linux)": {
+   "jobs": [
+    "determinism / manifest (aarch64-linux 1)",
+    "determinism / manifest (aarch64-linux 2)",
+    "determinism / manifest (aarch64-linux 3)"
+   ],
+   "needs": [
+    "arm64-debug-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@emit-manifest",
+    "@determinism-workflow",
+    "@workflow"
+   ],
+   "note": "emit_manifest.py emit --shard=I/3: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "first_seen": "2026-10-04",
+   "minutes": 19.6,
+   "alone": null,
+   "defect_jobs": 16,
+   "outside_jobs": 0
+  },
+  "determinism / manifest (aarch64-darwin)": {
+   "jobs": [
+    "determinism / manifest (aarch64-darwin 1)",
+    "determinism / manifest (aarch64-darwin 2)",
+    "determinism / manifest (aarch64-darwin 3)",
+    "determinism / manifest (aarch64-darwin 4)"
+   ],
+   "needs": [
+    "darwin-debug-build"
+   ],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@emit-manifest",
+    "@determinism-workflow",
+    "@workflow",
+    "environments/macos-arm64/**",
+    "scripts/macos_environment.py"
+   ],
+   "note": "emit_manifest.py emit --shard=I/4: this host's debug compiler emits assembly digests of every positive fixture on all 11 targets, 9 profiles, both modes. Output consumed only by agree. Workflow-level needs name all three debug builds.",
+   "first_seen": "2026-10-04",
+   "minutes": 30.3,
+   "alone": null,
+   "defect_jobs": 19,
+   "outside_jobs": 3
+  },
+  "determinism / agree": {
+   "jobs": [
+    "determinism / agree"
+   ],
+   "needs": [
+    "determinism / manifest (x86_64-linux)",
+    "determinism / manifest (aarch64-linux)",
+    "determinism / manifest (aarch64-darwin)"
+   ],
+   "inputs": [
+    "scripts/emit_manifest.py",
+    "@determinism-workflow",
+    "@workflow"
+   ],
+   "note": "Merges each host's shards and requires every host's manifest to agree (emit_manifest.py compare).",
+   "first_seen": "2026-10-04",
+   "minutes": 0.2,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "board-bundles": {
+   "jobs": [
+    "board-bundles"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@corpus",
+    "@firmware-env",
+    "@measure",
+    "scripts/gate_inputs.py",
+    "@workflow"
+   ],
+   "note": "Release compiler builds every board's boot and RAM bundles strict against the hardware records (and timing images on a timed event); one artifact with provenance.",
+   "physical": true,
+   "first_seen": "2026-11-05",
+   "minutes": null,
+   "alone": "2026-11-26",
+   "defect_jobs": 7,
+   "outside_jobs": 3
+  },
+  "board": {
+   "jobs": [
+    "board-rp2040",
+    "board-pico2",
+    "board-stm32h753",
+    "board-esp32c3",
+    "board-esp32c5",
+    "board-esp32",
+    "board-esp32s3"
+   ],
+   "needs": [
+    "board-bundles"
+   ],
+   "inputs": [
+    "environments/boards/**",
+    "compiler/tests/board/**",
+    "compiler/tests/driver/**",
+    "devices/**",
+    "core/**",
+    "hosted/**",
+    "platform/**",
+    "@workflow"
+   ],
+   "note": "One leg per port on the rig runner: RAM and boot runs on hardware (and timing runs on a timed event). Checkout is sparse to these roots.",
+   "physical": true,
+   "first_seen": "2026-11-05",
+   "minutes": null,
+   "alone": "2026-11-12",
+   "defect_jobs": 11,
+   "outside_jobs": 28
+  },
+  "measure-time": {
+   "jobs": [
+    "measure-time-linux-x86-64",
+    "measure-time-linux-arm64",
+    "measure-time-darwin-arm64"
+   ],
+   "needs": [],
+   "inputs": [
+    "@build",
+    "@build-scripts",
+    "@toolchain",
+    "@library",
+    "@corpus",
+    "@measure",
+    "@workflow"
+   ],
+   "note": "Paired wall-time of candidate vs base compiler's images on each native runner; schedule and dispatch only.",
+   "physical": true,
+   "first_seen": "2026-11-18",
+   "minutes": null,
+   "alone": "2026-11-23",
+   "defect_jobs": 14,
+   "outside_jobs": 1
+  }
+ },
+ "history": {
+  "from": "2026-09-21",
+  "to": "2026-11-26",
+  "runs": 1267,
+  "failed_jobs": 1025,
+  "updated": "2026-11-26"
+ },
+ "shadow": {
+  "since": null,
+  "complete_gates": 0,
+  "target_gates": 200,
+  "weeks": 0,
+  "missed_runs": 0,
+  "missed_defects": 0,
+  "per_week": null,
+  "study_per_week": 1.7,
+  "misses": []
+ }
+}

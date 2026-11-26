@@ -1230,13 +1230,51 @@ the full run being reused. Target and build jobs, including `determinism`,
 appear as skipped; `inputs`, `documents`, `scripts` and the final `gate`
 still succeed. The linked full run contains the target-test results.
 
+### Failure causes and the selection in shadow
+
+Every failed gate job gets a cause, and every complete gate computes the
+selected gate that would be applied, skipping nothing (D2794-D2798).
+`scripts/gate_history.py` does both, and `.github/gate-lanes.json`, the
+lane table, is what it reads. The table groups every job the aggregate
+needs into lanes. Each lane declares the paths whose change reaches it,
+the lanes it needs and whether it checks the evidence. Its first day,
+job-minutes and last day as the only lane with a defect are kept from
+the history. A job added to the gate goes into a lane in the same
+change, or `test_gate_history`'s `Lanes` fails.
+
+- The `inputs` job's last step finds the base, the newest passed complete
+  gate on the commit's history. It writes the selection into the run's
+  summary. The aggregate finishes it, records it on the run as a
+  `gate-shadow` annotation, and records each failed job's outside
+  signature, matched in its log, as `gate-causes`. Neither step can fail
+  or skip a job.
+- `.github/workflows/gate-rerun.yml` re-runs a branch push's failed jobs
+  once when every one of them matched a signature a second attempt can
+  pass, and its run's summary names them. `main`'s gate is never re-run
+  by it.
+- `python3 scripts/gate_history.py fetch` caches the gate's runs by
+  GraphQL, never REST, in `~/.cache/landin/gate-history`. `causes`
+  prints each failed job's cause. `table --write`, run weekly by the
+  roadmap manager and committed, updates the table's figures and writes
+  `.github/gate-causes.jsonl`.
+- **The miss rate** is read with `python3 scripts/gate_history.py
+  shadow`, and in the table's `shadow` entry as of its last update. It
+  gives the complete gates since shadow mode began against the about
+  200 the maintainer is asked to confirm, and the defects only lanes the selection would have
+  skipped showed, a week, against the study's 1.7. The maintainer reads
+  it before the selected gate is applied.
+- A new outside cause is a signature in the table: a pattern, its
+  example, which `Lanes` matches against it, and whether a re-run can
+  pass it.
+
 ### The controls that hold the job inventory
 
 A change to a gate job's name, matrix, condition or needs is held by
 controls in several files. Read this list before the change, and run them
 together afterwards: `python3 scripts/script_tests.py test_gate_inputs
 test_rv64_lanes test_build_inventory test_compare_builds
-test_host_determinism test_rig_runner_hook test_release`, and `python3
+test_host_determinism test_rig_runner_hook test_release
+test_gate_history`, and `python3
 environments/cortex-m/test.py`, which `check.py` runs.
 
 | file | what it holds of `gate.yml` |
@@ -1250,6 +1288,7 @@ environments/cortex-m/test.py`, which `check.py` runs.
 | `scripts/tests/test_rig_runner_hook.py` | nothing of the jobs: it passes the workflow's path to the rig runner's hook. |
 | `scripts/tests/test_release.py` | nothing of the jobs: it names the workflow in the API path the release check asks for main's run. |
 | `scripts/tests/test_nix_route.py` | `Gate`: the `flake-compiler` leg runs `scripts/nix_route.py` (D1707); it holds the matrix's `compiler` part by that step's condition. |
+| `scripts/tests/test_gate_history.py` | `Lanes`: every job the aggregate needs is in exactly one lane of `.github/gate-lanes.json`. `Wiring`: the selection's steps `continue-on-error`, no job's condition reads them, and `gate-rerun.yml` re-runs only a branch push's first attempt. |
 | `scripts/tests/test_check_controls.py` | nothing of the jobs: `PinnedToolchain` copies the workflow, so that `check.py` can hold the scripts job's actionlint step to `scripts/actionlint.py --install` and to no literal pin. |
 
 ### Physical boards and promotion
