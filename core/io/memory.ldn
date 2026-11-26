@@ -56,6 +56,7 @@ memory_value: type = struct
     state: ptr mut memory_space
     files: []mut memory_file
     arguments: [][]u8
+    name: []u8
     input: []u8
     output: []mut u8
     errors: []mut u8
@@ -84,8 +85,18 @@ public memory_over: (inout state: memory_space, files: []mut memory_file,
              fail_read_at: 0, fail_write_at: 0, fail_close_at: 0,
              reads: 0, writes: 0, closes: 0, opens: 0)
     host = (state: addr state, files: files, arguments: arguments,
-            input: input, output: output, errors: errors)
+            name: "", input: input, output: output, errors: errors)
 end memory_over
+
+--- A copy of the memory world `world` whose program was run by the name
+--- `name`, which `io.program_name` lends; `memory_over` makes a world whose
+--- program was given none.  The copy shares the world's state and records.
+public memory_named: (world: memory, name: []u8)
+                     -> (host: memory from world, name) =
+    host = (state: world.state, files: world.files,
+            arguments: world.arguments, name: name, input: world.input,
+            output: world.output, errors: world.errors)
+end memory_named
 
 memory_open: (self: memory, path: text.os_string, writing: bool)
              -> (opened: file) ! mem.not_found | no_access | io_failed =
@@ -296,6 +307,9 @@ memory_argument: (self: memory, index: usize)
     fail mem.not_found when index >= lenof self.arguments
     value = text.os_string_over(self.arguments[index])
 end memory_argument
+memory_program_name: (self: memory) -> (name: text.os_string from self) =
+    name = text.os_string_over(self.name)
+end memory_program_name
 
 memory is reader (read: memory_read)
 memory is writer (write: memory_write, write_some: memory_write_some)
@@ -304,7 +318,8 @@ memory is files
      same_file: memory_same_file, close: memory_close)
 memory is process
     (input: memory_input, out: memory_out, err: memory_err,
-     arguments_length: memory_arguments_length, argument: memory_argument)
+     arguments_length: memory_arguments_length, argument: memory_argument,
+     program_name: memory_program_name)
 memory is world ()
 
 --  The memory world's directories are the parts of its slots' names before
@@ -594,7 +609,9 @@ end scripted_value
 
 --- A scripted child: a program a scripted provider runs in place of a real
 --- one.  What it writes and how it ends are given, and what it was given is
---- recorded.  `spawn` of a path equal to `path` starts it.  It writes
+--- recorded.  `spawn` of a path equal to `path` in the directory
+--- `directory`, empty for the parent's own, starts it, so that one program
+--- may be scripted apart in two directories.  It writes
 --- `output` and `errors` all at once when it starts: to the world's own
 --- standard output and error when a stream is inherited, to nothing when
 --- one is discarded, and into its pipe when one is piped, from which
@@ -604,13 +621,15 @@ end scripted_value
 --- `input_length` bytes, and a write that does not fit is `io_failed`,
 --- where a real pipe would wait.  The child's pipes are no files of the
 --- world: `reader` and `writer` refuse them.  The caller sets `path`,
---- `output`, `errors`, `ending` and `input` and zeroes the rest, which the
+--- `directory`, `output`, `errors`, `ending` and `input` and zeroes the
+--- rest, which the
 --- provider keeps: how many times it was started, how many arguments and
 --- variables its last start gave it, how much of its output and errors the
 --- parent has read, and whether it is running.  One record is one child at
 --- a time: starting a running one is `io_failed`.
 public scripted_program: type = struct
     path: []u8
+    directory: []u8
     output: []u8
     errors: []u8
     ending: ending
@@ -682,9 +701,9 @@ memory_name_valid: (name: []u8) -> (yes: bool) =
           and mem.find(name, 0) == lenof name
 end memory_name_valid
 
-memory_spawn: (self: scripted_programs, path: text.os_string,
-               arguments: []text.os_string, environment: []text.os_variable,
-               streams: child_streams)
+memory_spawn: (self: scripted_programs, directory: text.os_string,
+               path: text.os_string, arguments: []text.os_string,
+               environment: []text.os_variable, streams: child_streams)
               -> (started: child) ! mem.not_found | no_access | io_failed =
     inc self.world.state.val.opens
     for item in environment do
@@ -692,9 +711,11 @@ memory_spawn: (self: scripted_programs, path: text.os_string,
         fail io_failed when not memory_name_valid(name)
     end for
     wanted: []u8 = text.os_string_bytes(path)
+    place: []u8 = text.os_string_bytes(directory)
     for index in usize(0)..<lenof self.programs do
         program: ptr mut scripted_program = addr self.programs[index]
-        if memory_same_bytes(wanted, program.val.path) then
+        if memory_same_bytes(wanted, program.val.path)
+          and memory_same_bytes(place, program.val.directory) then
             fail io_failed when program.val.running
             inc program.val.starts
             program.val.arguments = lenof arguments

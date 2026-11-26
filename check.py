@@ -10700,6 +10700,64 @@ def check_comment_forms(full_run):
 COMMAND_FENCES = frozenset(("sh", "shell", "bash", "console"))
 
 
+#  What Windows refuses in a path component: the characters Win32 file
+#  names exclude, a component ending in a space or a dot, and the device
+#  names with any extension.
+WINDOWS_REFUSED = re.compile(r'[<>:"|?*\\\x00-\x1f]')
+WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)")
+
+
+def windows_path_problem(path):
+    """Why a checkout on Windows cannot hold `path`, or None."""
+    for part in path.split("/"):
+        if WINDOWS_REFUSED.search(part):
+            return ("component %r holds a character Windows refuses in a"
+                    " file name" % part)
+        if part.endswith((" ", ".")):
+            return "component %r ends in a space or a dot" % part
+        if WINDOWS_DEVICES.match(part):
+            return "component %r is a Windows device name" % part
+    return None
+
+
+def check_portable_paths(full_run):
+    """Every tracked path is one a Windows or macOS checkout can hold.
+
+    A debugger case kept its source as `caller"\\path.ldn`, a name
+    Git for Windows refuses, so no Windows runner could check the
+    repository out and every Windows job took its lane from a bundle.  A
+    name a test needs that Windows refuses is written at run time, as
+    `compiler/tests/debugging/check.py` writes that one.  Two paths that
+    differ only in case are refused too, since both systems' default file
+    systems fold case and a checkout keeps only one of them.  The paths
+    are Git's index, or the tree's files where Git cannot answer.
+    """
+    if not full_run:
+        return []
+    listed = _git(ROOT, "ls-files", "-z")
+    if listed is not None:
+        paths = [name for name in listed.split("\0") if name]
+    else:
+        paths = []
+        for directory, names, files in os.walk(ROOT):
+            names[:] = [name for name in names if name != ".git"]
+            for name in files:
+                paths.append(os.path.relpath(os.path.join(directory, name),
+                                             ROOT).replace(os.sep, "/"))
+    out = []
+    folded = {}
+    for path in sorted(paths):
+        problem = windows_path_problem(path)
+        if problem:
+            out.append((path, 1, problem + "; write it at run time instead"))
+        twin = folded.setdefault(path.casefold(), path)
+        if twin != path:
+            out.append((path, 1, "differs from %s only in case, which a"
+                        " Windows or macOS checkout cannot hold both of"
+                        % twin))
+    return out
+
+
 def check_named_files(full_run):
     """A document or source file that names another names one that exists.
 
@@ -10957,16 +11015,22 @@ PROCESS_SECTION_BUDGETS = {
     #  refusal and register_next.py's --delete and --decision, which an
     #  item's agent meets in these steps and nowhere else; and again when
     #  push and merge-main learned the register check, merge-main a named
-    #  branch and the queue a line for work that is no item.
-    "Running an item": 5700,
+    #  branch and the queue a line for work that is no item; and again
+    #  when push learned the pre-push checks and boards beside the gate,
+    #  gate the first-failure watch and main's verdict, merge-main trains.
+    "Running an item": 6700,
     "Closing an item": 6400,
     "Local agent feedback": 16800,
     "Parallel sessions and shared resources": 14600,
-    "Command reference": 8400,
+    #  Raised when gate_watch.py learned --verdict.
+    "Command reference": 8500,
     #  Raised when Windows arm64 added its three gate jobs, each a
-    #  row of the job table, and its Microsoft link a fourth, and again
-    #  when refine built on FreeBSD added two rows.
-    "The mechanical gate": 49300,
+    #  row of the job table, and its Microsoft link a fourth, again
+    #  when refine built on FreeBSD added two rows, again when the
+    #  Windows runtime jobs took the ABI fixtures' C peers, beside a row
+    #  main added in the same weeks, and again when trains, boards beside
+    #  the gate and main's verdict joined the promotion rule.
+    "The mechanical gate": 52700,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,
@@ -13027,6 +13091,7 @@ def main(argv):
     extra += check_discussion_targets(full_run)
     extra += check_target_lists(full_run)
     extra += check_named_files(full_run)
+    extra += check_portable_paths(full_run)
     extra += check_record_hints(full_run)
     extra += check_server_targets(full_run)
     extra += check_build_paths(full_run)

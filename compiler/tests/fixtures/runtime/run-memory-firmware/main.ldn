@@ -17,7 +17,7 @@ public main: () -> (code: i32) =
           writable: false, state: io.closed_slot)]
     world := io.memory_over(state, slots[0..<1], [], "", [], [])
     mut programs: [1]io.scripted_program =
-        [(path: "/bin/tool", output: "done\n", errors: "",
+        [(path: "/bin/tool", directory: "", output: "done\n", errors: "",
           ending: (how: io.exited(code: 3)), input: [], input_length: 0,
           starts: 0,
           arguments: 0, variables: 0, output_read: 0, errors_read: 0,

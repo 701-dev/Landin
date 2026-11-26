@@ -1,0 +1,55 @@
+--  Bytes a caller was only lent are kept by copying them into its
+--  allocator: `mem.allocate_copy` returns the copy itself, a `[]mut u8`
+--  that outlives the buffer it was copied from, and `mem.release_copy`
+--  gives it back.  Over an arena, so the copy's place is known: the arena
+--  takes exactly its length, an empty copy takes nothing, and a copy the
+--  arena has no room for is `out_of_memory` and takes nothing either.
+import core/arena
+import core/cmp
+import core/mem
+
+--  Copy LINE, which only this routine's buffer holds, into MEMORY.
+kept: (memory: arena.arena, line: []u8) -> (copied: []mut u8)
+      ! mem.out_of_memory =
+    mut buffer: [16]u8 = zeroed
+    mem.copy(buffer[0..<lenof line], line) else none
+    copied = try mem.allocate_copy(memory, buffer[0..<lenof line])
+end kept
+
+public main: () -> (code: i32) =
+    code = 1
+    mut backing: [16]u8 = zeroed
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], 16)
+    first: []mut u8 = kept(memory, "refine") else (problem)
+        _ = problem
+        return
+    end
+    return when cmp.compare(first, "refine") <> cmp.equal
+    return when arena.length(memory) <> 6
+    code = 2
+    first[0] = u8('R')
+    second: []mut u8 = kept(memory, "build") else (problem)
+        _ = problem
+        return
+    end
+    return when cmp.compare(first, "Refine") <> cmp.equal
+      or cmp.compare(second, "build") <> cmp.equal
+    code = 3
+    empty: []mut u8 = mem.allocate_copy(memory, "") else (problem)
+        _ = problem
+        return
+    end
+    return when lenof empty <> 0 or arena.length(memory) <> 11
+    mem.release_copy(memory, empty)
+    code = 4
+    refused: []mut u8 = mem.allocate_copy(memory, "too long") else (problem)
+        return when problem <> mem.out_of_memory
+        return when arena.length(memory) <> 11
+        mem.release_copy(memory, second)
+        mem.release_copy(memory, first)
+        code = 42
+        return
+    end
+    _ = refused
+end main

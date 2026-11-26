@@ -156,19 +156,7 @@ class Fetchers(unittest.TestCase):
                                      r' [0-9a-f]{64}, not the pinned [0-9a-f]{64}')
         self.assertEqual((opener.calls, waits), (1, []))
 
-    def test_setup_takes_a_package_the_pool_fails_from_its_snapshot_url(self):
-        pool = 'https://deb.debian.org/debian/pool/main/o/openssl/libssl3t64_1_amd64.deb'
-        snapshot = 'https://snapshot.debian.org/file/' + '0' * 40
-        for status in (404, 403):
-            asked = []
-            def opener(url, timeout, status=status):
-                asked.append(url)
-                return Scripted([status] if url == pool else [])(url, timeout)
-            item = dict(self.item(), url=pool, snapshot=snapshot)
-            self.assertEqual(self.setup_fetch(opener, item), (GOOD, []))
-            self.assertEqual(asked, [pool, snapshot])
-
-    def test_setup_asks_no_other_server_for_an_entry_without_a_snapshot_url(self):
+    def test_setup_asks_no_server_but_the_locked_url(self):
         asked = []
         def opener(url, timeout):
             asked.append(url)
@@ -264,6 +252,12 @@ class LandinFetch(unittest.TestCase):
         self.assertEqual((done.returncode, server.requests), (1, 2))
         self.assertIn('after up to 2 attempts', done.stderr)
         self.assertFalse((into / 'a.tar.gz').exists())
+
+    def test_a_refusal_in_passing_is_asked_again(self):
+        #  GitHub's release downloads answered 403 once and then served.
+        done, server, into = self.fetch([403])
+        self.assertEqual((done.returncode, server.requests), (0, 2), done.stderr)
+        self.assertEqual((into / 'unpacked/hello').read_text(), 'hi\n')
 
     def test_a_missing_archive_ends_at_once(self):
         done, server, _ = self.fetch([404, 404])

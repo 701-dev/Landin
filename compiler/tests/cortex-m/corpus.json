@@ -1300,6 +1300,43 @@
         }
       }
     },
+    "abi/windows-c-entry-saves": {
+      "mode": "restriction",
+      "reason": "Its C peer includes stdio.h, which the freestanding Cortex-M build has none of, and is Win64 assembly that sets and checks x86-64's callee-saved registers by name, so it compiles for no Arm M-profile core.",
+      "stops": "c-headers",
+      "lanes": {
+        "esp32c3": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "RV32's ilp32 C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        },
+        "sifive-e": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "RV32's ilp32 C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        }
+      },
+      "targets": {
+        "xtensa": {
+          "mode": "refuse",
+          "codes": [
+            "L0346"
+          ],
+          "reason": "Xtensa's windowed C ABI is not enabled (D920): refine refuses the fixture's C signatures and layout(c) records there (L0346)."
+        }
+      }
+    },
+    "abi/windows-variadic-floats": {
+      "codes": [
+        "L0346"
+      ],
+      "mode": "refuse",
+      "reason": "Its program calls a variadic C function, which AAPCS32 does not enable (D922); its C peer also prints its oracle through the C library."
+    },
     "runtime/a-zero-divisor-traps": {
       "mode": "execute",
       "selects": {
@@ -2760,6 +2797,9 @@
     "runtime/file-system-firmware": {
       "mode": "execute"
     },
+    "runtime/find-program-volume": {
+      "mode": "execute"
+    },
     "runtime/firmware-fannkuch-redux": {
       "mode": "execute"
     },
@@ -3000,6 +3040,12 @@
     },
     "runtime/greatest-common-divisor": {
       "mode": "execute"
+    },
+    "runtime/heap-in-use": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/held-references-go-back": {
       "codes": [
@@ -3778,6 +3824,9 @@
       "mode": "execute",
       "reason": "Cortex-M0 32-bit layout/ABI or explicit Cortex architecture branch; exact source differences are retained in counterparts.json."
     },
+    "runtime/mem-allocate-copy": {
+      "mode": "execute"
+    },
     "runtime/merge-sort": {
       "mode": "execute"
     },
@@ -4244,6 +4293,9 @@
       "mode": "refuse"
     },
     "runtime/private-alias-of-constrained-template": {
+      "mode": "execute"
+    },
+    "runtime/programs-by-name-memory": {
       "mode": "execute"
     },
     "runtime/qualified-module-array-copied-and-lent": {
@@ -5098,6 +5150,12 @@
       "mode": "refuse",
       "reason": "Firmware starts no program and has no environment. runtime/run-memory-firmware starts core/io's scripted programs and reads a memory environment here instead."
     },
+    "runtime/run-itself-in-directory": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/run-large-output": {
       "codes": [
         "L0015"
@@ -5795,6 +5853,19 @@
         "L0015"
       ],
       "mode": "refuse"
+    },
+    "runtime/windows-level-check": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/windows-prepared-stack-is-the-threads": {
+      "codes": [
+        "L0324"
+      ],
+      "mode": "refuse",
+      "reason": "a Windows fixture: it declares kernel32's calls, which no firmware image links, and asserts compiler.os == windows (L0324)"
     },
     "runtime/windows-run-programs": {
       "codes": [

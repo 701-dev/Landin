@@ -50,12 +50,15 @@ fixed if compiler.os <> windows then
     end system_rename
 
     --  What core/io says of a status: no permission bit lets anyone write a
-    --  read-only file.
+    --  read-only file, and some bit lets someone execute an executable one.
     status_from: (found: posix.status) -> (result: io.status) =
-        result = (size: found.size, kind: kind_of(found.kind),
+        kind: io.entry_kind = kind_of(found.kind)
+        result = (size: found.size, kind: kind,
                   modified: (seconds: found.modified.seconds,
                              nanoseconds: found.modified.nanoseconds),
-                  read_only: (found.permissions & 0o222) == 0)
+                  read_only: (found.permissions & 0o222) == 0,
+                  executable: kind == io.regular
+                              and (found.permissions & 0o111) <> 0)
     end status_from
 
     system_status_of: (self: host, path: text.os_string,

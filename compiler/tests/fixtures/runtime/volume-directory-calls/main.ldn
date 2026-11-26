@@ -38,10 +38,12 @@ public main: () -> (code: i32) =
     mut nodes: [2]fake.volume_node = [
         (path: first_path[0..<4], path_length: 4,
          contents: first_bytes[0..<1], length: 1, kind: io.regular,
-         read_only: false, modified: (seconds: 0, nanoseconds: 0)),
+         read_only: false, executable: false,
+         modified: (seconds: 0, nanoseconds: 0)),
         (path: second_path[0..<4], path_length: 4,
          contents: second_bytes[0..<3], length: 3, kind: io.regular,
-         read_only: false, modified: (seconds: 0, nanoseconds: 0))]
+         read_only: false, executable: false,
+         modified: (seconds: 0, nanoseconds: 0))]
     mut state: fake.volume_space = zeroed
     host := fake.volume_over(state, nodes[0..<2], "/volume")
     mut buffer: [64]u8 = zeroed

@@ -671,7 +671,11 @@ in `for t in usize(16)..<64` is at least 16, so `t - 15` cannot
 underflow. That holds only if the step cannot wrap, which the walk
 learns when it reaches the step, so a proof resting on it is applied
 after the walk, and only when the step is checked or the bounds there
-leave room for its constant. A `u8` widened to `usize` is always inside a `[256]`
+leave room for its constant. A slot stepped instead by its own content
+less a constant counts down and is never above its first value, so when
+that is a slice's length, `at = lenof s` and then `while at > 0 do dec
+at` reading `s[at]`, the element is within the slice (D2491); x86-64
+then makes no load of a length only proved checks name (D2492). A `u8` widened to `usize` is always inside a `[256]`
 array, and an index that passed a fixed array's check in a block passes any
 at least as long later in that block. Such a check cannot fail, so its
 instruction keeps its operation and is marked unchecked, which every

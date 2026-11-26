@@ -1,0 +1,1393 @@
+{
+ "schema": 1,
+ "target": "windows-arm64",
+ "entries": {
+  "armv8-a/none-all/binary-trees": {
+   "sections": {
+    ".text": 158448,
+    ".rdata": 22864,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-all/fannkuch-redux": {
+   "sections": {
+    ".text": 111036,
+    ".rdata": 18680,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-all/fasta": {
+   "sections": {
+    ".text": 98360,
+    ".rdata": 15248,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/none-all/fibre": {
+   "sections": {
+    ".text": 145344,
+    ".rdata": 25732,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/none-all/mandelbrot": {
+   "sections": {
+    ".text": 161152,
+    ".rdata": 22840,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-all/reverse-complement": {
+   "sections": {
+    ".text": 159448,
+    ".rdata": 21180,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/none-all/thread": {
+   "sections": {
+    ".text": 176380,
+    ".rdata": 30928,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/none-auto/binary-trees": {
+   "sections": {
+    ".text": 158448,
+    ".rdata": 22864,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 111036,
+    ".rdata": 18680,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-auto/fasta": {
+   "sections": {
+    ".text": 98360,
+    ".rdata": 15248,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/none-auto/fibre": {
+   "sections": {
+    ".text": 145344,
+    ".rdata": 25732,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/none-auto/mandelbrot": {
+   "sections": {
+    ".text": 161152,
+    ".rdata": 22840,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/none-auto/reverse-complement": {
+   "sections": {
+    ".text": 159448,
+    ".rdata": 21180,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/none-auto/thread": {
+   "sections": {
+    ".text": 176380,
+    ".rdata": 30928,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/none-off/binary-trees": {
+   "sections": {
+    ".text": 158560,
+    ".rdata": 22864,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/none-off/fannkuch-redux": {
+   "sections": {
+    ".text": 111068,
+    ".rdata": 18680,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/none-off/fasta": {
+   "sections": {
+    ".text": 98440,
+    ".rdata": 15248,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/none-off/fibre": {
+   "sections": {
+    ".text": 145376,
+    ".rdata": 25732,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8-a/none-off/mandelbrot": {
+   "sections": {
+    ".text": 161360,
+    ".rdata": 22840,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/none-off/reverse-complement": {
+   "sections": {
+    ".text": 159592,
+    ".rdata": 21180,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8-a/none-off/thread": {
+   "sections": {
+    ".text": 176444,
+    ".rdata": 30928,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  },
+  "armv8-a/size-all/binary-trees": {
+   "sections": {
+    ".text": 48324,
+    ".rdata": 20128,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-all/fannkuch-redux": {
+   "sections": {
+    ".text": 32896,
+    ".rdata": 15880,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-all/fasta": {
+   "sections": {
+    ".text": 28736,
+    ".rdata": 13456,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/size-all/fibre": {
+   "sections": {
+    ".text": 47824,
+    ".rdata": 22196,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/size-all/mandelbrot": {
+   "sections": {
+    ".text": 48388,
+    ".rdata": 20088,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-all/reverse-complement": {
+   "sections": {
+    ".text": 46828,
+    ".rdata": 18956,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/size-all/thread": {
+   "sections": {
+    ".text": 59576,
+    ".rdata": 26416,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/size-auto/binary-trees": {
+   "sections": {
+    ".text": 48324,
+    ".rdata": 20128,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 32896,
+    ".rdata": 15880,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-auto/fasta": {
+   "sections": {
+    ".text": 28736,
+    ".rdata": 13456,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/size-auto/fibre": {
+   "sections": {
+    ".text": 47824,
+    ".rdata": 22196,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/size-auto/mandelbrot": {
+   "sections": {
+    ".text": 48388,
+    ".rdata": 20088,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/size-auto/reverse-complement": {
+   "sections": {
+    ".text": 46828,
+    ".rdata": 18956,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/size-auto/thread": {
+   "sections": {
+    ".text": 59576,
+    ".rdata": 26416,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/size-off/binary-trees": {
+   "sections": {
+    ".text": 48368,
+    ".rdata": 20128,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/size-off/fannkuch-redux": {
+   "sections": {
+    ".text": 32920,
+    ".rdata": 15880,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/size-off/fasta": {
+   "sections": {
+    ".text": 28784,
+    ".rdata": 13456,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/size-off/fibre": {
+   "sections": {
+    ".text": 47848,
+    ".rdata": 22196,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8-a/size-off/mandelbrot": {
+   "sections": {
+    ".text": 48468,
+    ".rdata": 20088,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/size-off/reverse-complement": {
+   "sections": {
+    ".text": 46900,
+    ".rdata": 18956,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8-a/size-off/thread": {
+   "sections": {
+    ".text": 59576,
+    ".rdata": 26416,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  },
+  "armv8-a/speed-all/binary-trees": {
+   "sections": {
+    ".text": 57004,
+    ".rdata": 19776,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-all/fannkuch-redux": {
+   "sections": {
+    ".text": 36572,
+    ".rdata": 15560,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-all/fasta": {
+   "sections": {
+    ".text": 31784,
+    ".rdata": 13320,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/speed-all/fibre": {
+   "sections": {
+    ".text": 50048,
+    ".rdata": 21868,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/speed-all/mandelbrot": {
+   "sections": {
+    ".text": 56104,
+    ".rdata": 19736,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-all/reverse-complement": {
+   "sections": {
+    ".text": 53564,
+    ".rdata": 18652,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/speed-all/thread": {
+   "sections": {
+    ".text": 63252,
+    ".rdata": 26024,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/speed-auto/binary-trees": {
+   "sections": {
+    ".text": 57004,
+    ".rdata": 19776,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 36572,
+    ".rdata": 15560,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-auto/fasta": {
+   "sections": {
+    ".text": 31784,
+    ".rdata": 13320,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8-a/speed-auto/fibre": {
+   "sections": {
+    ".text": 50048,
+    ".rdata": 21868,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/speed-auto/mandelbrot": {
+   "sections": {
+    ".text": 56104,
+    ".rdata": 19736,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8-a/speed-auto/reverse-complement": {
+   "sections": {
+    ".text": 53564,
+    ".rdata": 18652,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8-a/speed-auto/thread": {
+   "sections": {
+    ".text": 63252,
+    ".rdata": 26024,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/speed-off/binary-trees": {
+   "sections": {
+    ".text": 56856,
+    ".rdata": 19776,
+    ".buildid": 81,
+    ".data": 404,
+    ".pdata": 1048,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/speed-off/fannkuch-redux": {
+   "sections": {
+    ".text": 36632,
+    ".rdata": 15560,
+    ".buildid": 81,
+    ".data": 184,
+    ".pdata": 640,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/speed-off/fasta": {
+   "sections": {
+    ".text": 31820,
+    ".rdata": 13320,
+    ".buildid": 81,
+    ".data": 376,
+    ".pdata": 544,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8-a/speed-off/fibre": {
+   "sections": {
+    ".text": 50108,
+    ".rdata": 21868,
+    ".buildid": 81,
+    ".data": 16624,
+    ".pdata": 808,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8-a/speed-off/mandelbrot": {
+   "sections": {
+    ".text": 55892,
+    ".rdata": 19736,
+    ".buildid": 81,
+    ".data": 380,
+    ".pdata": 1056,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8-a/speed-off/reverse-complement": {
+   "sections": {
+    ".text": 53308,
+    ".rdata": 18652,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 896,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8-a/speed-off/thread": {
+   "sections": {
+    ".text": 63376,
+    ".rdata": 26024,
+    ".buildid": 81,
+    ".data": 147760,
+    ".pdata": 1040,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  },
+  "armv8.1-a/none-all/binary-trees": {
+   "sections": {
+    ".text": 162404,
+    ".rdata": 23412,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-all/fannkuch-redux": {
+   "sections": {
+    ".text": 115024,
+    ".rdata": 19228,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-all/fasta": {
+   "sections": {
+    ".text": 102348,
+    ".rdata": 15796,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/none-all/fibre": {
+   "sections": {
+    ".text": 149692,
+    ".rdata": 26616,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/none-all/mandelbrot": {
+   "sections": {
+    ".text": 165108,
+    ".rdata": 23380,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-all/reverse-complement": {
+   "sections": {
+    ".text": 163404,
+    ".rdata": 21728,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/none-all/thread": {
+   "sections": {
+    ".text": 180708,
+    ".rdata": 31820,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-auto/binary-trees": {
+   "sections": {
+    ".text": 162404,
+    ".rdata": 23412,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 115024,
+    ".rdata": 19228,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-auto/fasta": {
+   "sections": {
+    ".text": 102348,
+    ".rdata": 15796,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/none-auto/fibre": {
+   "sections": {
+    ".text": 149692,
+    ".rdata": 26616,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/none-auto/mandelbrot": {
+   "sections": {
+    ".text": 165108,
+    ".rdata": 23380,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/none-auto/reverse-complement": {
+   "sections": {
+    ".text": 163404,
+    ".rdata": 21728,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/none-auto/thread": {
+   "sections": {
+    ".text": 180708,
+    ".rdata": 31820,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-off/binary-trees": {
+   "sections": {
+    ".text": 162516,
+    ".rdata": 23412,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-off/fannkuch-redux": {
+   "sections": {
+    ".text": 115056,
+    ".rdata": 19228,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/none-off/fasta": {
+   "sections": {
+    ".text": 102428,
+    ".rdata": 15796,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/none-off/fibre": {
+   "sections": {
+    ".text": 149724,
+    ".rdata": 26616,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8.1-a/none-off/mandelbrot": {
+   "sections": {
+    ".text": 165316,
+    ".rdata": 23380,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/none-off/reverse-complement": {
+   "sections": {
+    ".text": 163548,
+    ".rdata": 21728,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8.1-a/none-off/thread": {
+   "sections": {
+    ".text": 180772,
+    ".rdata": 31820,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  },
+  "armv8.1-a/size-all/binary-trees": {
+   "sections": {
+    ".text": 49776,
+    ".rdata": 20676,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-all/fannkuch-redux": {
+   "sections": {
+    ".text": 34380,
+    ".rdata": 16428,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-all/fasta": {
+   "sections": {
+    ".text": 30220,
+    ".rdata": 14004,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/size-all/fibre": {
+   "sections": {
+    ".text": 49608,
+    ".rdata": 23032,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/size-all/mandelbrot": {
+   "sections": {
+    ".text": 49840,
+    ".rdata": 20636,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-all/reverse-complement": {
+   "sections": {
+    ".text": 48280,
+    ".rdata": 19504,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/size-all/thread": {
+   "sections": {
+    ".text": 61340,
+    ".rdata": 27244,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/size-auto/binary-trees": {
+   "sections": {
+    ".text": 49776,
+    ".rdata": 20676,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 34380,
+    ".rdata": 16428,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-auto/fasta": {
+   "sections": {
+    ".text": 30220,
+    ".rdata": 14004,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/size-auto/fibre": {
+   "sections": {
+    ".text": 49608,
+    ".rdata": 23032,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/size-auto/mandelbrot": {
+   "sections": {
+    ".text": 49840,
+    ".rdata": 20636,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/size-auto/reverse-complement": {
+   "sections": {
+    ".text": 48280,
+    ".rdata": 19504,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/size-auto/thread": {
+   "sections": {
+    ".text": 61340,
+    ".rdata": 27244,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/size-off/binary-trees": {
+   "sections": {
+    ".text": 49820,
+    ".rdata": 20676,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/size-off/fannkuch-redux": {
+   "sections": {
+    ".text": 34404,
+    ".rdata": 16428,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/size-off/fasta": {
+   "sections": {
+    ".text": 30268,
+    ".rdata": 14004,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/size-off/fibre": {
+   "sections": {
+    ".text": 49632,
+    ".rdata": 23032,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8.1-a/size-off/mandelbrot": {
+   "sections": {
+    ".text": 49920,
+    ".rdata": 20636,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/size-off/reverse-complement": {
+   "sections": {
+    ".text": 48352,
+    ".rdata": 19504,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8.1-a/size-off/thread": {
+   "sections": {
+    ".text": 61340,
+    ".rdata": 27244,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  },
+  "armv8.1-a/speed-all/binary-trees": {
+   "sections": {
+    ".text": 58536,
+    ".rdata": 20324,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-all/fannkuch-redux": {
+   "sections": {
+    ".text": 38136,
+    ".rdata": 16108,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-all/fasta": {
+   "sections": {
+    ".text": 33348,
+    ".rdata": 13868,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/speed-all/fibre": {
+   "sections": {
+    ".text": 51912,
+    ".rdata": 22696,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/speed-all/mandelbrot": {
+   "sections": {
+    ".text": 57636,
+    ".rdata": 20284,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-all/reverse-complement": {
+   "sections": {
+    ".text": 55096,
+    ".rdata": 19200,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/speed-all/thread": {
+   "sections": {
+    ".text": 65096,
+    ".rdata": 26860,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-auto/binary-trees": {
+   "sections": {
+    ".text": 58536,
+    ".rdata": 20324,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-auto/fannkuch-redux": {
+   "sections": {
+    ".text": 38136,
+    ".rdata": 16108,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-auto/fasta": {
+   "sections": {
+    ".text": 33348,
+    ".rdata": 13868,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 24
+   }
+  },
+  "armv8.1-a/speed-auto/fibre": {
+   "sections": {
+    ".text": 51912,
+    ".rdata": 22696,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/speed-auto/mandelbrot": {
+   "sections": {
+    ".text": 57636,
+    ".rdata": 20284,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 32
+   }
+  },
+  "armv8.1-a/speed-auto/reverse-complement": {
+   "sections": {
+    ".text": 55096,
+    ".rdata": 19200,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 40
+   }
+  },
+  "armv8.1-a/speed-auto/thread": {
+   "sections": {
+    ".text": 65096,
+    ".rdata": 26860,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-off/binary-trees": {
+   "sections": {
+    ".text": 58388,
+    ".rdata": 20324,
+    ".buildid": 81,
+    ".data": 436,
+    ".pdata": 1096,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-off/fannkuch-redux": {
+   "sections": {
+    ".text": 38196,
+    ".rdata": 16108,
+    ".buildid": 81,
+    ".data": 216,
+    ".pdata": 688,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/speed-off/fasta": {
+   "sections": {
+    ".text": 33384,
+    ".rdata": 13868,
+    ".buildid": 81,
+    ".data": 408,
+    ".pdata": 592,
+    ".tls": 8,
+    ".reloc": 48
+   }
+  },
+  "armv8.1-a/speed-off/fibre": {
+   "sections": {
+    ".text": 51972,
+    ".rdata": 22696,
+    ".buildid": 81,
+    ".data": 16656,
+    ".pdata": 856,
+    ".tls": 16,
+    ".reloc": 64
+   }
+  },
+  "armv8.1-a/speed-off/mandelbrot": {
+   "sections": {
+    ".text": 57424,
+    ".rdata": 20284,
+    ".buildid": 81,
+    ".data": 412,
+    ".pdata": 1104,
+    ".tls": 8,
+    ".reloc": 52
+   }
+  },
+  "armv8.1-a/speed-off/reverse-complement": {
+   "sections": {
+    ".text": 54840,
+    ".rdata": 19200,
+    ".buildid": 81,
+    ".data": 468,
+    ".pdata": 944,
+    ".tls": 8,
+    ".reloc": 60
+   }
+  },
+  "armv8.1-a/speed-off/thread": {
+   "sections": {
+    ".text": 65220,
+    ".rdata": 26860,
+    ".buildid": 81,
+    ".data": 147792,
+    ".pdata": 1088,
+    ".tls": 24,
+    ".reloc": 72
+   }
+  }
+ },
+ "environment": "nix; LLD 19.1.7 (compatible with GNU linkers)"
+}

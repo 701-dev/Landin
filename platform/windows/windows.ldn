@@ -15,7 +15,8 @@
 --  `environment` read as platform/posix's do on a POSIX system (D2269).
 --
 --  Each facility has a file of its own: this one the entry, the root, the
---  handles and the calls every other file shares; wide.ldn the conversion
+--  handles and the calls every other file shares; level.ldn the processor's
+--  CPU feature level, which the entry checks first; wide.ldn the conversion
 --  between host strings and the system's 16-bit units; files.ldn files,
 --  directories and the console; processes.ldn pipes and child processes;
 --  time.ldn the clocks; threads.ldn threads, their storage and waiting on
@@ -398,10 +399,12 @@ fixed if compiler.os == windows then
 
     --- The process entry.  Windows starts a process at the image's entry with
     --- the stack aligned as after a call, which a routine's prologue expects,
-    --- so the entry is an ordinary routine: it reads the command line and the
+    --- so the entry is an ordinary routine: it holds the processor to the
+    --- image's level (level.ldn), reads the command line and the
     --- environment, calls the program's `main` with them as C's runtime would,
     --- and ends the process with main's result as the exit code.
     public extern(c) _landin_start: () -> noreturn =
+        check_level()
         tables: start_tables = read_start()
         keep_root(tables)
         code: i32 = program_main(i32(tables.count), tables.values,
@@ -492,6 +495,28 @@ fixed if compiler.os == windows then
                                                          terminated_length(data)))
         end match
     end argument
+
+    --- The program's name as the command line gave it, the first of the
+    --- vectors the entry read, read as the C runtime reads `argv[0]`: what
+    --- its parent called it, as a host string lending the process's own
+    --- storage.  Empty when the command line was empty; it traps before the
+    --- argument root exists, as `arguments` does.
+    public program_name: () -> (name: text.os_string) =
+        held: ptr ptr u8 = match root_values
+            no_table: compiler.unreachable()
+            ptr (found): found
+        end match
+        name = text.os_string_over(no_name[0..<0])
+        return when root_count < 1
+        first: ptr argument_string = ptr(usize(held))
+        match first.val
+            no_string: return
+            ptr (data): name = text.os_string_over(view(data,
+                                                        terminated_length(data)))
+        end match
+    end program_name
+
+    no_name: [1]u8 = [0]
 
     --- The process's environment as the entry read it, and the count of its
     --- entries.  `variable` reads it.

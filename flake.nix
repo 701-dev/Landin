@@ -646,11 +646,12 @@
           };
 
           #  The Cortex-M, RV32 and Xtensa lanes' QEMU 10.0.13, GDB 16.3
-          #  and Espressif's QEMU 9.2.2 are Debian and release binaries,
-          #  locked with every library they load but the C and C++
-          #  runtimes in environments/cortex-m/tools.lock.json and
-          #  installed by environments/cortex-m/setup.py; they are the
-          #  binaries the gate runs, and the lock stays their one source.
+          #  and Espressif's QEMU 9.2.2 are archives 701-dev/nix-packages
+          #  built, locked in environments/cortex-m/tools.lock.json and
+          #  installed by environments/cortex-m/setup.py; they need
+          #  nothing of the host's.  The cross compilers setup.py installs
+          #  beside them, GNAT's arm-elf and riscv64-elf archives and
+          #  Espressif's Xtensa GCC, are release binaries for glibc, and
           #  NixOS's /lib64/ld-linux-x86-64.so.2 is a stub that refuses
           #  them, so `landin-fhs CMD` runs CMD in a bubblewrap namespace
           #  holding the store's glibc and libstdc++ at their FHS paths,
@@ -661,9 +662,13 @@
           #  puts its own /usr/bin first on PATH; this restores the
           #  shell's, so a lane finds the same tools inside as out, and
           #  LANDIN_FHS tells a lane it is inside.  Linux x86-64 only: the
-          #  lock holds amd64 binaries, and the lanes refuse other hosts.
+          #  pins are amd64 binaries, and the lanes refuse other hosts.
           lockedToolsFhs = pkgs.buildFHSEnv {
             name = "landin-fhs";
+            #  GNAT's cc1, lto1 and gnat1 load libzstd.so.1 from the host,
+            #  as every distribution supplies it; until the lock lost its
+            #  Debian root, its library directory did so on LD_LIBRARY_PATH.
+            targetPkgs = p: [ p.zstd ];
             extraPreBwrapCmds = ''
               export LANDIN_FHS_PATH="$PATH"
             '';
@@ -916,11 +921,8 @@
               pkgs.perf
               pkgs.valgrind
             ] ++ lib.optionals (system == "x86_64-linux") [
-              #  The embedded lanes' locked binaries on NixOS, and the
-              #  Debian archive unpacker environments/cortex-m/setup.py
-              #  installs them with.
+              #  The embedded lanes' pinned cross compilers on NixOS.
               lockedToolsFhs
-              pkgs.dpkg
             ] ++ crossTools;
 
             #  The binding generator's Linux C model comes from the same
@@ -955,6 +957,12 @@
               export LANDIN_GPRBUILD_HOME="${gprbuild}"
               export LANDIN_BUILD_TAG=nix-${system}
               export LANDIN_ENV_KEY=${environmentKey}
+              #  stdenv exports a fixed SOURCE_DATE_EPOCH, which no runner
+              #  job outside `nix develop` has: lld stamped the link time
+              #  into Windows images, two links here agreed and two on a
+              #  runner a second apart differed, which only the gate saw.
+              #  A build or test that wants a fixed time sets its own.
+              unset SOURCE_DATE_EPOCH
               #  On standard error: `nix develop -c cmd > file` runs this hook
               #  too, and the banner written to standard output went into the
               #  file -- a source rewritten that way was silently corrupted.

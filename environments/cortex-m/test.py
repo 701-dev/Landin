@@ -1228,9 +1228,9 @@ class ProbeFailures(unittest.TestCase):
         """A Run whose debugger is the stand-in, with a server of its own."""
         import run as run_module
         from unittest.mock import patch
-        (root / 'gdb-multiarch').symlink_to(HERE / 'probes/fake_gdb.py')
+        (root / 'gdb').symlink_to(HERE / 'probes/fake_gdb.py')
         run = Run(root, root)
-        run.bin = root
+        run.gdb = root / 'gdb'
         return run, patch.object(run_module, 'SERVERS', threading.local())
 
     def script(self, root, name, *lines):
@@ -1321,7 +1321,7 @@ class ProbeFailures(unittest.TestCase):
                     out = root / ('w%d' % index)
                     out.mkdir()
                     worker = Run(out, root)
-                    worker.bin = root
+                    worker.gdb = root / 'gdb'
                     name = self.script(out, 'w.gdb', 'python',
                                        'import os, time',
                                        'assert "mine" not in globals()',
@@ -1643,15 +1643,15 @@ class ProbeFailures(unittest.TestCase):
         from setup import supported_host
         with patch('platform.system', return_value='Darwin'), self.assertRaises(RuntimeError):
             supported_host()
-        # The locked binaries ask for glibc 2.38; an older one, or another C
-        # library, cannot load them, whatever the distribution.
-        for libc in (('glibc', '2.37'), ('glibc', '2.9'), ('musl', '1.2.5'), ('', '')):
+        # The pinned cross compilers ask for glibc 2.35; an older one, or
+        # another C library, cannot load them, whatever the distribution.
+        for libc in (('glibc', '2.34'), ('glibc', '2.9'), ('musl', '1.2.5'), ('', '')):
             with patch('platform.system', return_value='Linux'), \
                     patch('platform.machine', return_value='x86_64'), \
                     patch('platform.libc_ver', return_value=libc), \
                     self.assertRaises(RuntimeError):
                 supported_host()
-        for libc in (('glibc', '2.38'), ('glibc', '2.39'), ('glibc', '3.0')):
+        for libc in (('glibc', '2.35'), ('glibc', '2.39'), ('glibc', '3.0')):
             with patch('platform.system', return_value='Linux'), \
                     patch('platform.machine', return_value='x86_64'), \
                     patch('platform.libc_ver', return_value=libc), \
@@ -1838,8 +1838,10 @@ class RV32Lanes(unittest.TestCase):
         self.assertTrue(lane_inputs('rv32imc', ['a.ldn'])[-1].endswith('lanes/lane-esp32c3.ldn'))
         self.assertEqual(lane_inputs('rv32imac', ['a.ldn']), ['a.ldn'])
         self.assertEqual(run.espressif, Path('/tools/qemu-espressif/bin'))
-        self.assertIn('/tools/root/usr/lib/x86_64-linux-gnu/pulseaudio',
-                      run.env['LD_LIBRARY_PATH'].split(':'))
+        #  The locked QEMU and GDB need no library path of the installation's.
+        self.assertEqual(run.bin, Path('/tools/qemu-arm/bin'))
+        self.assertEqual(run.gdb, Path('/tools/gdb/bin/gdb'))
+        self.assertNotIn('/tools/', run.env.get('LD_LIBRARY_PATH', ''))
 
     def test_the_esp32c3_lane_record_is_its_description(self):
         from backend import LANE_PROFILES, LANE_ROOT, device_target, region
@@ -1930,22 +1932,27 @@ class RV32Lanes(unittest.TestCase):
         self.assertEqual({level for _, levels, _ in CONTROLS.values() for level in levels},
                          {'rv32imc', 'rv32imac'})
 
-    def test_the_lock_unpacks_espressif_qemu_into_its_own_area(self):
-        from setup import AREAS, ESPRESSIF, ESPRESSIF_XTENSA, riscv_archive, xtensa_archive
+    def test_the_lock_is_nix_packages_archives_only(self):
+        from setup import (AREAS, ESPRESSIF, ESPRESSIF_XTENSA, GDB, LOCKED, QEMU_ARM,
+                           riscv_archive, xtensa_archive)
         lock = json.loads((HERE / 'tools.lock.json').read_text())
-        self.assertEqual({item['kind'] for item in lock}, {'deb', 'tar.xz'})
-        archives = [item for item in lock if item['kind'] == 'tar.xz']
-        self.assertEqual([item['into'] for item in archives], [ESPRESSIF, ESPRESSIF_XTENSA])
-        self.assertIn(ESPRESSIF, AREAS)
-        self.assertIn(ESPRESSIF_XTENSA, AREAS)
-        for item in archives:
-            self.assertIn('esp_develop_9.2.2_20260417', item['file'])
-        self.assertEqual(archives[1]['sha256'],
-                         '0eecb2a34a5586c0e59110f77b9343b7b336e82fdb0e1a30e1dc1bab8a547e35')
+        #  No Debian package is left (D2572): the emulators and GDB are
+        #  archives 701-dev/nix-packages built, each unpacked into its area.
+        self.assertEqual({item['kind'] for item in lock}, {'tar.xz'})
+        self.assertEqual([item['into'] for item in lock],
+                         [[ESPRESSIF, ESPRESSIF_XTENSA], QEMU_ARM, GDB])
+        self.assertTrue(set(LOCKED) <= set(AREAS))
+        pinned = {
+            'qemu-espressif-9.2.2-20260417-x86_64-linux.tar.xz':
+                'cf503257027d34a77867ef833d17c5a74aac37eca60a48737b1e409e1c11f54d',
+            'qemu-arm-10.0.13-x86_64-linux.tar.xz': 'e6d296decd5abee0855ed706a91c153c72e7a0e0cb933cbe059e2e800c36a093',
+            'gdb-16.3-x86_64-linux.tar.xz': '9862b2f8263407d6665f5767af157bbf799a2b1937afba21ddb8791ad98ff4ba',
+        }
+        self.assertEqual({item['file']: item['sha256'] for item in lock}, pinned)
         for item in lock:
-            self.assertRegex(item['sha256'], '^[0-9a-f]{64}$')
-        files = [item['file'] for item in lock]
-        self.assertEqual(len(files), len(set(files)), 'a lock entry is repeated')
+            self.assertEqual(item['url'], 'https://701-nix-packages.nbg1.your-objectstorage.com'
+                             '/exports/%s/%s' % (item['file'][:-len('.tar.xz')], item['file']))
+            self.assertEqual(set(item), {'url', 'file', 'sha256', 'kind', 'into'})
         archive = riscv_archive()
         self.assertEqual(archive['file'],
                          'gnat-riscv64-elf-linux64-x86_64-%s.tar.gz' % archive['version'])
@@ -1994,17 +2001,11 @@ class RV32Lanes(unittest.TestCase):
             def unpack(archive, into, mode):
                 into.mkdir()
                 (into / 'installed').write_bytes(archive.name.encode())
-            def deb(*args, **kwargs):
-                into = root / 'root'
-                into.mkdir(exist_ok=True)
-                (into / 'installed').write_bytes(b'debian tools')
             with patch.object(sys, 'argv', ['setup.py', '--tools', str(root)]), \
                     patch.object(setup, 'supported_host'), \
                     patch.object(setup, 'installer_tools'), \
                     patch.object(setup, 'fetch', side_effect=fetch), \
                     patch.object(setup, 'unpack', side_effect=unpack) as unpacked, \
-                    patch.object(setup.subprocess, 'run', side_effect=deb), \
-                    patch.object(setup, 'compile_gdb_python'), \
                     contextlib.redirect_stdout(io.StringIO()):
                 setup.main()
             record = json.loads((root / 'installation.json').read_text())
@@ -2018,11 +2019,12 @@ class RV32Lanes(unittest.TestCase):
                 self.assertEqual(record[name], {key: archive[key] for key in ('version', 'sha256')})
             self.assertEqual({call.args[1].name: call.args[2] for call in unpacked.call_args_list},
                              {setup.ARM: '-xzf', setup.RISCV: '-xzf', setup.XTENSA: '-xJf',
-                              setup.ESPRESSIF: '-xJf', setup.ESPRESSIF_XTENSA: '-xJf'})
+                              setup.ESPRESSIF: '-xJf', setup.ESPRESSIF_XTENSA: '-xJf',
+                              setup.QEMU_ARM: '-xJf', setup.GDB: '-xJf'})
             (root / setup.XTENSA / 'installed').write_bytes(b'changed compiler')
             self.assertNotEqual(record['files'][setup.XTENSA], setup.inventory(root / setup.XTENSA))
 
-    def test_missing_dpkg_is_refused_before_creating_a_partial_installation(self):
+    def test_a_missing_unpacker_is_refused_before_creating_a_partial_installation(self):
         import setup
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as directory:
@@ -2030,11 +2032,11 @@ class RV32Lanes(unittest.TestCase):
             with patch.object(sys, 'argv', ['setup.py', '--tools', str(root)]), \
                     patch.object(setup, 'supported_host'), \
                     patch.object(setup.shutil, 'which', side_effect=lambda tool:
-                                 None if tool == 'dpkg-deb' else '/tools/' + tool), \
+                                 None if tool == 'xz' else '/tools/' + tool), \
                     patch.object(setup, 'fetch') as fetch:
-                with self.assertRaisesRegex(RuntimeError, 'needs dpkg-deb on PATH') as refused:
+                with self.assertRaisesRegex(RuntimeError, 'needs xz on PATH') as refused:
                     setup.main()
-            self.assertIn('`nix develop` provides all three', str(refused.exception))
+            self.assertIn('`nix develop` provides both', str(refused.exception))
             self.assertIn('environments/cortex-m/README.md#on-nixos', str(refused.exception))
             self.assertFalse(root.exists())
             fetch.assert_not_called()
@@ -2054,64 +2056,6 @@ class RV32Lanes(unittest.TestCase):
             with patch.object(setup.urllib.request, 'urlopen', return_value=io.BytesIO(body + b'changed')):
                 with self.assertRaisesRegex(RuntimeError, 'archive hash mismatch: control.tar.xz'):
                     setup.fetch(root, item)
-
-    def test_a_package_the_pool_dropped_comes_from_snapshot_by_the_same_hash(self):
-        import hashlib
-        import io
-        import urllib.error
-        import setup
-        from unittest.mock import patch
-        body = b'a superseded Debian package'
-        pool, snapshot = 'https://invalid.example/pool/p.deb', 'https://invalid.example/file/0'
-        item = {'file': 'p.deb', 'url': pool, 'snapshot': snapshot, 'kind': 'deb',
-                'sha256': hashlib.sha256(body).hexdigest()}
-
-        def answer(responses):
-            asked = []
-
-            def urlopen(url, timeout):
-                asked.append(url)
-                found = responses[url]
-                if isinstance(found, int):
-                    raise urllib.error.HTTPError(url, found, 'Not Found', {}, io.BytesIO())
-                return io.BytesIO(found)
-            return asked, urlopen
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            asked, urlopen = answer({pool: body, snapshot: 404})
-            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen):
-                self.assertEqual(setup.fetch(root, item).read_bytes(), body)
-            self.assertEqual(asked, [pool], 'the pool is asked first and enough')
-            asked, urlopen = answer({pool: 404, snapshot: body})
-            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
-                    patch.object(setup.sys, 'stderr', io.StringIO()) as said:
-                self.assertEqual(setup.fetch(root, item).read_bytes(), body)
-            self.assertEqual(asked, [pool, snapshot])
-            self.assertIn('HTTP 404 Not Found; trying ' + snapshot, said.getvalue())
-            asked, urlopen = answer({pool: 404, snapshot: body + b'changed'})
-            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
-                    patch.object(setup.sys, 'stderr', io.StringIO()):
-                with self.assertRaisesRegex(RuntimeError, 'p.deb from %s has SHA-256' % snapshot):
-                    setup.fetch(root, item)
-            asked, urlopen = answer({pool: 404, snapshot: 404})
-            with patch.object(setup.urllib.request, 'urlopen', side_effect=urlopen), \
-                    patch.object(setup.sys, 'stderr', io.StringIO()):
-                with self.assertRaises(SystemExit) as refused:
-                    setup.fetch(root, item)
-            self.assertIn('cannot fetch %s: HTTP 404' % pool, str(refused.exception))
-            self.assertIn('and then p.deb: cannot fetch %s: HTTP 404' % snapshot,
-                          str(refused.exception))
-
-    def test_every_locked_debian_package_has_its_snapshot_url(self):
-        from lock_snapshot import FILE_URL, LOCK, missing
-        lock = json.loads(LOCK.read_text())
-        self.assertEqual(missing(lock), [])
-        for item in lock:
-            if item['kind'] == 'deb':
-                self.assertRegex(item['snapshot'], FILE_URL)
-                self.assertTrue(item['url'].startswith('https://deb.debian.org/debian/pool/'))
-            else:
-                self.assertNotIn('snapshot', item)
 
     def test_the_atomics_probes_name_every_refused_use(self):
         from rv32_controls import READ_MODIFY_WRITE, REFUSED_USES, WIDE

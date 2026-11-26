@@ -203,6 +203,7 @@ package body Landin.Tests.X86_Optimization_Suite is
    procedure Speed_Unrolls_Transfers (Item : in out Landin.Testing.Context);
    procedure Slice_Elements_Check_Once
      (Item : in out Landin.Testing.Context);
+   procedure Counted_Down_Slices (Item : in out Landin.Testing.Context);
    procedure Arithmetic_Shapes (Item : in out Landin.Testing.Context);
    procedure Shifts_Rotate (Item : in out Landin.Testing.Context);
    procedure Operands_In_Place (Item : in out Landin.Testing.Context);
@@ -1276,6 +1277,86 @@ package body Landin.Tests.X86_Optimization_Suite is
          end;
       end loop;
    end Slice_Elements_Check_Once;
+
+   --  D2491 and D2492: an index counted down from a slice's length keeps
+   --  no bound trap, and the length the check would have read is not
+   --  loaded, so speed's loop is the step, the add and its test.
+   procedure Counted_Down_Slices (Item : in out Landin.Testing.Context) is
+      use type Opt.Objective;
+      Work : Landin.Stages.Compilation :=
+        Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      HT : constant Character := Character'Val (9);
+   begin
+      Lower
+        (Item, Work,
+         "public probe: (words: []u64) -> (r: u64) = r = 0 "
+         & "mut at: usize = lenof words "
+         & "while at > 0 do dec at r +%= words[at] end while end probe");
+      for Objective in Opt.Size .. Opt.Speed loop
+         declare
+            Text : constant String := Emitted (Work, (Objective, Opt.Off));
+         begin
+            Check_Assembly
+              (Item, Text,
+               Ada.Strings.Fixed.Count (Text, "_trap_range") = 0,
+               "an index counted down from the length keeps no bound trap");
+            if Objective = Opt.Speed then
+               declare
+                  Loop_At : constant Natural :=
+                    Ada.Strings.Fixed.Index (Text, ".p2align 5" & [LF]);
+                  Back : constant Natural :=
+                    (if Loop_At = 0 then 0
+                     else Ada.Strings.Fixed.Index
+                       (Text (Loop_At .. Text'Last), HT & "ja "));
+               begin
+                  Check_Assembly
+                    (Item, Text,
+                     Back /= 0
+                     and then Ada.Strings.Fixed.Count
+                       (Text (Loop_At .. Back), [LF] & HT) = 4,
+                     "the counted-down loop loads no length: a step, an "
+                     & "add and a comparison before its branch");
+               end;
+            end if;
+         end;
+      end loop;
+      --  At size the slice stays whole in the frame, its base word below
+      --  its length: the loop reads the base each time and the length,
+      --  a field load of the parameter's copy, never.
+      declare
+         Pressed : Landin.Stages.Compilation :=
+           Landin.Stages.Create (Landin.Targets.Linux_X86_64);
+      begin
+         Lower
+           (Item, Pressed,
+            "mix: (x: u64, a: u64, b: u64, c: u64, d: u64) -> (r: u64) = "
+            & "r = x ^ a ^ b ^ c ^ d end mix "
+            & "public probe: (words: []u64, a: u64, b: u64, c: u64, "
+            & "d: u64) -> (r: u64) = r = 0 mut at: usize = lenof words "
+            & "while at > 0 do dec at r +%= mix(words[at], a, b, c, d) "
+            & "end while end probe");
+         declare
+            Whole : constant String :=
+              Emitted (Pressed, (Opt.Size, Opt.Off));
+            From : constant Natural :=
+              Ada.Strings.Fixed.Index (Whole, [LF] & "probe:");
+            Upto : constant Natural :=
+              (if From = 0 then 0
+               else Ada.Strings.Fixed.Index
+                 (Whole (From .. Whole'Last), ".size probe"));
+            Text : constant String :=
+              (if Upto = 0 then "" else Whole (From .. Upto));
+         begin
+            --  Once before the loop and once in it; the length once,
+            --  before the loop, as the count's first value.
+            Check_Assembly
+              (Item, Whole,
+               Ada.Strings.Fixed.Count (Text, "movq -16(%rbp), %rsi") = 2
+               and then Ada.Strings.Fixed.Count (Text, "-8(%rbp)") = 1,
+               "a length only an unchecked element reads is not loaded");
+         end;
+      end;
+   end Counted_Down_Slices;
 
    --  Every reciprocal Landin.Backend.Reciprocals gives, applied exactly as
    --  the backend applies it, against Ada's own division and remainder:
@@ -2682,6 +2763,8 @@ package body Landin.Tests.X86_Optimization_Suite is
       Landin.Testing.Register
         (Into, "x86 opt", "slice elements check once",
          Slice_Elements_Check_Once'Access);
+      Landin.Testing.Register
+        (Into, "x86 opt", "counted-down slices", Counted_Down_Slices'Access);
       Landin.Testing.Register
         (Into, "x86 opt", "reciprocals divide exactly",
          Reciprocals_Divide_Exactly'Access);

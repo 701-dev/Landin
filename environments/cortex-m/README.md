@@ -27,8 +27,8 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 
 | Component | Exact selection |
 |---|---|
-| Probe host | native Linux x86-64 with glibc 2.38 or later, `dpkg-deb`, `tar` and `xz`; the gate runs it on GitHub's `ubuntu-24.04` |
-| CPU/startup lane | QEMU 10.0.13, Debian `1:10.0.13+ds-0+deb13u1`, `-M microbit -accel tcg,thread=single` |
+| Probe host | native Linux x86-64 with glibc 2.35 or later, `libzstd.so.1`, `tar` and `xz`; the gate runs it on GitHub's `ubuntu-24.04` |
+| CPU/startup lane | QEMU 10.0.13, upstream's release built by [701-dev/nix-packages](https://github.com/701-dev/nix-packages) for `arm-softmmu` with only the microbit and MPS2 machines and TCG plugins, unpacked into the tool root's `qemu-arm` (D2572), `-M microbit -accel tcg,thread=single` |
 | Armv7-M corpus lane | the same QEMU binary, `-M mps2-an385`: a Cortex-M3, for corpus fixtures whose `levels:` name `armv7-m` (D255) |
 | Armv8-M corpus lane | the same QEMU binary, `-M mps2-an505`: a Cortex-M33 r0p3 in Secure state, for the whole corpus at `armv8-m.main` in `run.py`'s `mps2-an505` lane and for fixtures whose `levels:` name it, on the lane description `lanes/descriptions/mps2_an505` (D607, D619); libgcc from `thumb/v8-m.main/nofp` |
 | M7 corpus lane | the same QEMU binary, `-M mps2-an500`: a Cortex-M7 r1p2 with the double-precision FPv5-D16, for the whole corpus at `armv7e-m` hard-float in `run.py`'s `mps2-an500` lane, on the lane description `lanes/descriptions/mps2_an500` (D619), and for the VFP ABI control and the firmware lane's `float-unit` and `cache-sequence` cases, the latter on `lanes/descriptions/mps2_an500_cached` (D977); libgcc from `thumb/v7e-m+dp/hard` |
@@ -36,40 +36,35 @@ in `spec.md`, and `[1990]` a numbered paragraph of `tour.md` or `spec.md`;
 | Peripheral lane | the same QEMU, with `machine.py` serving `models.py`'s synthetic devices through its debugger stub; `-icount shift=0` |
 | EABI compiler | `arm-eabi-gcc` 16.1.0, GNAT's arm-elf archive `16.1.0-1` from the host GNAT's release, pinned in `environments/pins.sh` |
 | Assembler/linker | GNU Binutils 2.46.1, from the same archive |
-| Debugger | `gdb-multiarch` 16.3, Debian `16.3-1`, loopback QEMU remote stub |
+| Debugger | GDB 16.3 for Arm and RISC-V with Python 3.13, a static build by 701-dev/nix-packages without debuginfod, unpacked into the tool root's `gdb`; loopback QEMU remote stub |
 | Probe options | `-mcpu=cortex-m0 -mthumb -mfloat-abi=soft -mabi=aapcs -fno-short-enums -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
-| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, the release's Linux x86-64 `qemu-system-riscv32` archive, unpacked into the tool root's `qemu-espressif` (D695) |
+| RV32 emulator | Espressif's QEMU `esp-develop-9.2.2-20260417`, built from that tag as a static, headless binary by [701-dev/nix-packages](https://github.com/701-dev/nix-packages), whose one archive holds `qemu-system-riscv32` and `qemu-system-xtensa` and is unpacked into the tool root's `qemu-espressif` and `qemu-xtensa` (D695, D2571) |
 | rv32imc corpus lane | `-M esp32c3 -cpu espressif,a=false,zawrs=false,f=false,d=false,zfa=false`: the ESP32-C3 machine with its core's A, F and D removed, which the C3 has not (D696), for the whole corpus at `rv32imc` in `run.py`'s `esp32c3` lane, on the lane description `lanes/descriptions/esp32c3` |
 | rv32imac corpus lane | `-M sifive_e`: a SiFive E31, rv32imac, for the whole corpus at `rv32imac` in `run.py`'s `sifive-e` lane, on the RV32 reference's map, 32 KiB of flash at `0x2040_0000` and the 16 KiB DTIM at `0x8000_0000` |
 | RV32 compiler | `riscv64-elf-gcc` 16.1.0 with Binutils 2.46.1, GNAT's riscv64-elf archive `16.1.0-1`, pinned in `environments/pins.sh`; libgcc from `rv32im/ilp32` at rv32imc and `rv32imac/ilp32` at rv32imac |
 | RV32 options | `-march=rv32imc_zicsr_zifencei` or `-march=rv32imac_zicsr_zifencei`, then `-mabi=ilp32 -ffreestanding -fno-builtin -fno-omit-frame-pointer -g3 -O1 -nostdlib`; warnings are errors |
 
-`tools.lock.json` pins URLs and SHA-256 for every downloaded package: QEMU
-and GDB, and the whole Debian 13 runtime closure they load, down to
-the libraries and embedded Python 3.13 a Debian 13 base image would have
-supplied, and Espressif's QEMU release archive with the Debian libraries it
-loads: SDL2 and the sound, X11 and Wayland libraries SDL2 links, and
-libgcrypt, 36 packages chosen by following each binary's `NEEDED` entries
-rather than the packages' dependencies, which would add Mesa and LLVM that
-nothing loads. Debian's libpulse finds its common library through a
-`RUNPATH` under `/usr`, so the lanes put the tool root's
-`lib/x86_64-linux-gnu/pulseaudio` on `LD_LIBRARY_PATH` beside the library
-directory itself. GCC and binutils come from the arm-elf and riscv64-elf
-archives whose version and checksums `environments/pins.sh` holds beside
-the host GNAT's; the arm-elf GDB is
-built without the Python the debugger sessions run, so GDB stays Debian's.
-Debian's pool drops a version once a newer one supersedes it, so each
-Debian package also names the `snapshot.debian.org/file/SHA1` URL that
-keeps the same file for good, and `setup.py` fetches from there when the
-pool fails (D2489). After adding or changing a Debian package in the lock,
-`python3 environments/cortex-m/lock_snapshot.py` finds its snapshot URL,
-downloads it and refuses it unless its SHA-256 is the locked one.
+`tools.lock.json` pins the URL and SHA-256 of three archives, each built
+from source by 701-dev/nix-packages and served from its cache: QEMU for
+the Cortex-M machines, GDB, and Espressif's QEMU. None needs a library
+of the host's. GDB and the Espressif QEMU are static, GDB with its
+Python linked in and the standard library beside it. QEMU loads the
+counting plugin of `scripts/measure_count.py` with `dlopen`, so it is
+dynamic and carries what it loads: its `bin/qemu-system-arm` is a launcher
+that runs `libexec/qemu-system-arm` through the glibc loader and libraries
+in the archive's `lib/` (D2572). GCC and binutils come from the arm-elf and
+riscv64-elf archives whose version and checksums `environments/pins.sh`
+holds beside the host GNAT's; the arm-elf GDB is built without the Python
+the debugger sessions run, so GDB is nix-packages' build.
 The installer verifies archives before extraction. Each probe verifies the
 installation inventory and versions before execution, checks it again afterward,
-and retains that inventory. The host supplies only the C and C++ runtimes
-and the Python that drives the probes, so any glibc 2.38 host runs the same
-locked binaries; the newest of them asks for exactly that glibc. This is a
-supported host profile, not a hermetic operating-system image.
+and retains that inventory. The host supplies the Python that drives the
+probes, and for the cross compilers the C and C++ runtimes, which they
+ask of glibc 2.35 or later, and the zstd library GNAT's `cc1`, `lto1` and
+`gnat1` load, `libzstd.so.1`, which every distribution supplies (Debian's
+and Ubuntu's `libzstd1`); `landin-fhs` holds it on NixOS. So any such host
+runs the same locked binaries. This is a supported host profile, not a
+hermetic operating-system image.
 
 These C probe flags select base AAPCS soft-float transport and ELF32 EABI;
 the internal Landin transport is selected separately, as the
@@ -233,7 +228,7 @@ by itself establish language concurrency semantics.
 
 ## Reproduction and evidence
 
-On the documented native Linux host, with Python 3, `dpkg-deb` and `tar`:
+On the documented native Linux host, with Python 3, `tar` and `xz`:
 
 ```sh
 python3 environments/cortex-m/setup.py
@@ -295,7 +290,7 @@ it ([comparing the images two compilers link](../../docs/process.md#comparing-th
 ### Debugger sessions share a GDB per worker
 
 Every lane's debugger sessions go through `Run.debug`, which serves them
-from one `gdb-multiarch` per worker thread (`gdb_server.py`) rather than
+from one GDB per worker thread (`gdb_server.py`) rather than
 one batch GDB each, since starting GDB is most of what a session costs. A
 session therefore runs after whatever the sessions before it on that
 thread debugged, in any lane and for either architecture, which a lane run
@@ -333,7 +328,8 @@ find and read the binding's spelling.
 
 ### On NixOS
 
-The locked QEMU and GDB are Debian binaries, and NixOS's own
+The pinned cross compilers, GNAT's arm-elf and riscv64-elf archives and
+Espressif's Xtensa GCC, are release binaries for glibc, and NixOS's own
 `/lib64/ld-linux-x86-64.so.2` is a stub that refuses them. Run the lanes
 from `nix develop`: on Linux x86-64 its shell holds `landin-fhs`, the
 flake's FHS environment, which runs a command in a bubblewrap namespace
@@ -350,11 +346,11 @@ nix develop -c python3 environments/cortex-m/run.py \
 ```
 
 The locked binaries are the gate's, from the same lock and checked by the
-same hashes; only the loader that starts them differs. `landin-fhs` keeps
+same hashes. `landin-fhs` keeps
 the host's `/tmp`, so `TMPDIR` and an `--output` there need nothing, and it
 restores the shell's `PATH` inside, so a lane finds the tools it finds
 outside. It sets `LANDIN_FHS` inside. Setup runs the same way, and the
-shell holds the unpackers it needs, `dpkg-deb`, `xz` and `tar`:
+shell holds the unpackers it needs, `xz` and `tar`:
 
 ```sh
 nix develop -c python3 environments/cortex-m/setup.py \
@@ -365,22 +361,18 @@ nix develop -c python3 environments/cortex-m/setup.py \
 names this route if one is missing.
 
 Both emulators run there, QEMU's `qemu-system-arm` and, for the RV32
-lanes, Espressif's `qemu-system-riscv32`, with `gdb-multiarch` for both;
+lanes, Espressif's `qemu-system-riscv32`, with the locked GDB for both;
 `--part=rv32` or `--lane rv32-controls` takes the same route, and so do the
 [Xtensa runners](../xtensa/README.md) with `--tools`.
 
-To run an emulator or GDB by hand, to try a machine, run it under
-`landin-fhs` and give it the tool root's libraries as the lanes do: they
-are found only through `LD_LIBRARY_PATH`, and Debian's libpulse, which
-Espressif's QEMU loads through SDL2, looks for its own common library in a
-`pulseaudio` directory beside them. Set the variable for that program
-alone: the shell's own programs would load the root's Debian libraries
-too, and its bash fails on their readline.
+The emulators and GDB run by hand as they are, on NixOS too, to try a
+machine or a session; none needs `landin-fhs` or a library path:
 
 ```sh
-T=$HOME/.cache/landin/TOOL-ROOT L=$T/root/usr/lib/x86_64-linux-gnu
-nix develop -c landin-fhs env LD_LIBRARY_PATH=$L:$L/pulseaudio \
-  $T/qemu-espressif/bin/qemu-system-riscv32 -M help
+T=$HOME/.cache/landin/TOOL-ROOT
+$T/qemu-arm/bin/qemu-system-arm -M help
+$T/qemu-espressif/bin/qemu-system-riscv32 -M help
+$T/gdb/bin/gdb -q -nx -batch -ex 'set architecture armv7e-m'
 ```
 
 Without `landin-fhs` on `PATH`, a lane on NixOS's stub loader is refused
@@ -389,7 +381,7 @@ environment that gives `/tmp` a private namespace, as steam-run's does, a
 lane refuses a `TMPDIR` that does not exist inside it and an `--output`
 under that `/tmp`, which would vanish when the lane ended, and names the
 same route. The firmware link driver
-is not among the Debian binaries: `nix develop` carries the pinned
+needs no tool root: `nix develop` carries the pinned
 `arm-eabi-gcc` (D532), so `refine compile --target=cortex-m0
 --firmware-entry=NAME` links in the shell itself, and the locked
 installation keeps its own copy for the lanes.

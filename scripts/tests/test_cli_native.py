@@ -687,5 +687,180 @@ class NativeCLI(unittest.TestCase):
         make(4)
 
 
+def pe_sections(image):
+    """(name, file offset, size) of each section of a PE image, and of its
+    headers as `headers`."""
+    head = int.from_bytes(image[0x3c:0x40], 'little')
+    count = int.from_bytes(image[head + 6:head + 8], 'little')
+    optional = int.from_bytes(image[head + 20:head + 22], 'little')
+    table = head + 24 + optional
+    found = [('headers', 0, table + 40 * count)]
+    for index in range(count):
+        entry = image[table + 40 * index:table + 40 * (index + 1)]
+        name = entry[:8].rstrip(b'\0').decode(errors='replace')
+        size = int.from_bytes(entry[16:20], 'little')
+        start = int.from_bytes(entry[20:24], 'little')
+        found.append((name, start, size))
+    return found
+
+
+def image_differences(first, second):
+    """Where two PE images differ, by section, for a reader of a failed
+    comparison: each section's count of differing bytes and the first."""
+    if len(first) != len(second):
+        return 'sizes %d and %d' % (len(first), len(second))
+    said = []
+    for name, start, size in pe_sections(first):
+        differing = [at for at in range(start, min(start + size, len(first)))
+                     if first[at] != second[at]]
+        if differing:
+            said.append('%s: %d bytes, first at 0x%x' % (name, len(differing), differing[0]))
+    return '; '.join(said) or 'bytes outside every section'
+
+
+def string_differences(first, second, limit=12):
+    """The printable runs of four bytes or more that one file holds and the
+    other does not, each side's, at most LIMIT of each."""
+    def runs(data):
+        return set(re.findall(rb'[\x20-\x7e]{4,}', data))
+    left, right = runs(first), runs(second)
+    def shown(items):
+        return ', '.join(repr(item.decode()) for item in sorted(items)[:limit])
+    return 'first only: [%s]; second only: [%s]' % (shown(left - right), shown(right - left))
+
+
+def first_line_difference(first, second):
+    for number, (a, b) in enumerate(zip(first.splitlines(), second.splitlines()), 1):
+        if a != b:
+            return 'line %d: %r and %r' % (number, a[:120], b[:120])
+    return 'line counts %d and %d' % (len(first.splitlines()), len(second.splitlines()))
+
+
+#  llvm-mingw's driver for each Windows target, as refine names it.
+WINDOWS_DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
+                   'windows-arm64': 'aarch64-w64-mingw32-clang'}
+
+
+@unittest.skipUnless(REFINE, 'set LANDIN_REFINE for native CLI integration')
+class NativeWindowsLink(unittest.TestCase):
+    """A Windows link on this host, with each target's llvm-mingw driver on
+    PATH, as the gate's Windows emission jobs and `nix develop` have them;
+    a target without its driver is skipped."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='landin windows link ')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.refine = str(Path(REFINE).resolve())
+        (self.root / 'main.ldn').write_text(SOURCE)
+
+    def targets(self):
+        found = [target for target, driver in WINDOWS_DRIVERS.items()
+                 if shutil.which(driver)]
+        if not found:
+            self.skipTest('no llvm-mingw driver on PATH')
+        return found
+
+    def compile(self, target, *args, status=0):
+        # D2487: no SOURCE_DATE_EPOCH, which the development shell sets and
+        # a runner does not, and which LLD would take as the link's time.
+        environment = {name: value for name, value in os.environ.items()
+                       if name != 'SOURCE_DATE_EPOCH'}
+        result = subprocess.run(
+            [self.refine, 'compile', '--target=' + target, *args],
+            cwd=self.root, text=True, capture_output=True, timeout=120,
+            env=environment)
+        self.assertEqual(result.returncode, status, result.stdout + result.stderr)
+        return result
+
+    def leftovers(self):
+        return sorted(path.name for path in self.root.iterdir()
+                      if path.name.startswith('.refine-'))
+
+    def test_an_image_without_exe_keeps_its_name(self):
+        """D2485: llvm-mingw's driver writes `out.exe` for `-o out`; refine
+        publishes the image as `out` and leaves no private directory."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                self.compile(target, 'main.ldn', '--emit=exe', '-o', 'out')
+                self.assertEqual((self.root / 'out').read_bytes()[:2], b'MZ')
+                self.assertFalse((self.root / 'out.exe').exists())
+                self.assertEqual(self.leftovers(), [])
+                (self.root / 'out').unlink()
+
+    def test_a_failed_link_leaves_nothing(self):
+        """D2485: a link that fails reports the linker's text and no
+        cleanup failure, and leaves neither the image nor a private
+        directory."""
+        (self.root / 'bad.ldn').write_text(
+            'extern(c) landin_missing_symbol: () -> none\n'
+            'public main: () -> (code: i32) =\n'
+            '    landin_missing_symbol()\n'
+            '    code = 0\n'
+            'end main\n')
+        for target in self.targets():
+            with self.subTest(target=target):
+                failed = self.compile(target, 'bad.ldn', '--emit=exe',
+                                      '--debug=full', '-o', 'bad', status=1)
+                said = failed.stdout + failed.stderr
+                self.assertIn('error[L0501]', said)
+                self.assertIn('landin_missing_symbol', said)
+                self.assertNotIn('L0005', said)
+                self.assertEqual(sorted(path.name for path in self.root.iterdir()),
+                                 ['bad.ldn', 'main.ldn'])
+
+    def test_two_builds_are_the_same_bytes(self):
+        """D2487: an image without debug information carries no link time
+        either: two links a second or more apart are the same bytes."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                images = []
+                for build in range(2):
+                    if build:
+                        time.sleep(1.1)
+                    self.compile(target, 'main.ldn', '--emit=exe',
+                                 '-o', 'program.exe')
+                    images.append((self.root / 'program.exe').read_bytes())
+                self.assertTrue(images[0] == images[1],
+                                'the images differ in '
+                                + image_differences(images[0], images[1]))
+
+    def test_two_debug_builds_are_the_same_bytes(self):
+        """D2486 and D2487: two `--debug=full` links of one program into one
+        directory, a second or more apart, give the same image and PDB."""
+        for target in self.targets():
+            with self.subTest(target=target):
+                kept = []
+                for build in range(2):
+                    if build:
+                        # Past a second's boundary, where a link's time
+                        # would differ.
+                        time.sleep(1.1)
+                    self.compile(target, 'main.ldn', '--emit=exe',
+                                 '--debug=full', '-o', 'program.exe')
+                    # A full-debug build keeps the assembly it linked.
+                    kept.append(((self.root / 'program.exe').read_bytes(),
+                                 (self.root / 'program.pdb').read_bytes(),
+                                 (self.root / 'program.exe.s').read_bytes()))
+                self.assertEqual(self.leftovers(), [])
+                # A difference is reported where it is: the assembly refine
+                # handed the link first, since everything follows from it.
+                self.assertTrue(kept[0][2] == kept[1][2],
+                                'the assemblies differ, at '
+                                + first_line_difference(kept[0][2], kept[1][2]))
+                self.assertTrue(kept[0][1] == kept[1][1],
+                                'the PDBs differ: '
+                                + string_differences(kept[0][1], kept[1][1]))
+                self.assertTrue(kept[0][0] == kept[1][0],
+                                'the images differ in '
+                                + image_differences(kept[0][0], kept[1][0])
+                                + '; ' + string_differences(kept[0][0], kept[1][0]))
+                # The source named relatively is named where it is, in the
+                # directory refine ran in, and no private directory is.
+                pdb = kept[0][1]
+                self.assertIn(os.fsencode(self.root.resolve() / 'main.ldn'), pdb)
+                self.assertNotIn(b'.refine-publication-', pdb)
+
+
 if __name__ == '__main__':
     unittest.main()

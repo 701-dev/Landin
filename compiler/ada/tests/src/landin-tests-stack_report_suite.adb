@@ -434,6 +434,27 @@ package body Landin.Tests.Stack_Report_Suite is
               and then Float.Handler_Entry = 260,
             "a float unit's switch, first frame, margin and handler entry");
       end;
+      --  D2479: a Windows switch saves the TEB's three bounds as well, and
+      --  D2480's first frame lays two zero words above the start routine's
+      --  return address, below which the entry is called.
+      declare
+         use type Landin.Targets.Byte_Count;
+         X86 : constant Landin.Backend.Dispatch.Stack_Facts :=
+           Landin.Backend.Dispatch.Stack_Facts_Of
+             (Landin.Targets.Windows_X86_64);
+         Arm : constant Landin.Backend.Dispatch.Stack_Facts :=
+           Landin.Backend.Dispatch.Stack_Facts_Of
+             (Landin.Targets.Windows_Arm64);
+      begin
+         Landin.Testing.Check
+           (Item, X86.Switch_Bytes = 88 and then X86.Prepared_Bytes = 104
+              and then X86.Entry_Bytes = 16,
+            "windows-x86-64: the switch, first frame and entry");
+         Landin.Testing.Check
+           (Item, Arm.Switch_Bytes = 192 and then Arm.Prepared_Bytes = 208
+              and then Arm.Entry_Bytes = 16,
+            "windows-arm64: the switch, first frame and entry");
+      end;
    end A_Switch_Costs_Its_Frame;
 
    Trap_Program : constant String :=

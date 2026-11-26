@@ -225,13 +225,14 @@ fixed if compiler.os == windows then
 
     host is time.clock (now: blocking_now, sleep: blocking_sleep)
 
-    blocking_spawn: (self: host, path: text.os_string,
+    blocking_spawn: (self: host, directory: text.os_string,
+                     path: text.os_string,
                      arguments: []text.os_string,
                      environment: []text.os_variable,
                      streams: io.child_streams)
                     -> (started: io.child)
                     ! mem.not_found | io.no_access | io.io_failed =
-        started = try system.start(self.services, path, arguments,
+        started = try system.start(self.services, directory, path, arguments,
                                    environment, streams)
     end blocking_spawn
 

@@ -35,4 +35,8 @@ int landin_publication_stage_write_reason(const char *, const char *, size_t,
    0 success, -1 claimed private path refused, -2 outside the registry.
    A claimed path must never fall back to pathname-based creation. */
 int landin_publication_stage_mkdir(const char *);
+/* Move a regular file to an absent name in the same live stage, by
+   descriptor. 1 moved, 0 source absent, -1 refused or failed, -2 neither
+   path is in the registry (a reserved spelling outside it refuses). */
+int landin_publication_stage_move(const char *, const char *);
 #endif
