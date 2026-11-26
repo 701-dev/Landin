@@ -35,6 +35,7 @@ Standard library only, so it runs wherever check.py does.
 """
 
 import argparse
+from array import array as words
 import hashlib
 import os
 import pathlib
@@ -358,15 +359,19 @@ def width(count):
 
 def dedupe(values, size):
     """Split VALUES into blocks of SIZE: the distinct blocks, and each one's."""
+    values = list(values)
+    if len(values) % size:
+        values += [0] * (size - len(values) % size)
+    packed = words("I", values).tobytes()
+    step = size * 4
     blocks, index, where = [], [], {}
-    for start in range(0, len(values), size):
-        block = tuple(values[start:start + size])
-        if len(block) < size:
-            block = block + (0,) * (size - len(block))
-        if block not in where:
-            where[block] = len(blocks)
-            blocks.append(block)
-        index.append(where[block])
+    for start in range(0, len(packed), step):
+        block = packed[start:start + step]
+        found = where.get(block)
+        if found is None:
+            found = where[block] = len(blocks)
+            blocks.append(tuple(words("I", block)))
+        index.append(found)
     return blocks, index
 
 
@@ -497,7 +502,11 @@ def case_records(database):
     found = {(0, 0, 0, 0, 0): 0}
     table = [(0, 0, 0, 0, 0)]
     specials = {}
-    for scalar in range(LIMIT):
+    mapped = set(database.upper) | set(database.lower) | set(database.title)
+    mapped |= set(database.fold_simple) | set(database.fold_full)
+    for kind in ("upper", "lower", "title"):
+        mapped |= set(database.special[kind])
+    for scalar in sorted(mapped):
         if scalar in SURROGATES:
             continue
         deltas = tuple(database.simple(kind, scalar) - scalar

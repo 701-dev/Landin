@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/unicode's word boundaries of every line of WordBreakTest.txt are the file's, by word_end and by walking words
+summary: core/unicode's word boundaries of each line of the first part of WordBreakTest.txt are the file's, by word_end and by walking words
 program: main.ldn
 root: ../../../../..
 status: 42

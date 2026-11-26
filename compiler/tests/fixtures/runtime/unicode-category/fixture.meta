@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/unicode's general category of every value from zero to U+10FFFF is the Unicode Character Database's, by the digest of each one's code
+summary: core/unicode's general category of every value from zero to U+10FFFF is the Unicode Character Database's, by the digest of each one's code; firmware walks every 7th value
 program: main.ldn
 root: ../../../../..
 status: 42

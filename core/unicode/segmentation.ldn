@@ -13,15 +13,15 @@ public segment: type = struct
     ends: text.position
 end segment
 
---  What a walk segments a text into.
-grapheme_unit: atom
-word_unit: atom
-sentence_unit: atom
-unit: type = grapheme_unit | word_unit | sentence_unit
+--  Where the piece that begins at a boundary of a text ends: one of
+--  `grapheme_end`, `word_end` and `sentence_end`.  A walk holds the one it
+--  segments by rather than naming its unit, so that an image links only
+--  the tables of the units its walks use (D2617).
+boundary: type = (source: utf8, at: text.position) -> (after: text.position)
 
 segments_value: type = struct
     source: utf8
-    by: unit
+    step: boundary
 end segments_value
 
 --- A text's segments, one unit at a time, for `for` to walk: what
@@ -34,7 +34,7 @@ public segments: type = segments_value
 --- or a family emoji.  `for cluster in unicode.graphemes(source)` walks
 --- them.
 public graphemes: (source: utf8) -> (result: segments from source) =
-    result = (source: source, by: grapheme_unit)
+    result = (source: source, step: grapheme_end)
 end graphemes
 
 --- The pieces of `source` between its word boundaries: each word, and
@@ -42,22 +42,18 @@ end graphemes
 --- the pieces cover the text.  Whether a piece is a word is the caller's
 --- question; one holding an alphabetic scalar or a digit is.
 public words: (source: utf8) -> (result: segments from source) =
-    result = (source: source, by: word_unit)
+    result = (source: source, step: word_end)
 end words
 
 --- The sentences of `source`, each with the spaces after it.
 public sentences: (source: utf8) -> (result: segments from source) =
-    result = (source: source, by: sentence_unit)
+    result = (source: source, step: sentence_end)
 end sentences
 
 --  Where the piece of the walk's unit that begins at `at` ends.
 end_of: (walk: ptr segments_value, at: text.position)
         -> (after: text.position) =
-    after = match walk.val.by
-        grapheme_unit: grapheme_end(walk.val.source, at)
-        word_unit: word_end(walk.val.source, at)
-        sentence_unit: sentence_end(walk.val.source, at)
-    end match
+    after = walk.val.step(walk.val.source, at)
 end end_of
 
 walk_first: (walk: ptr segments_value) -> (piece: segment) =

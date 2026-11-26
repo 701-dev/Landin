@@ -11,10 +11,12 @@ import hosted/blocking
 counts: (source: utf8) -> (scalars: usize, characters: usize) =
     scalars = 0
     characters = 0
-    for _ in source do
+    for scalar in source do
+        _ = scalar
         inc scalars
     end for
-    for _ in unicode.graphemes(source) do
+    for cluster in unicode.graphemes(source) do
+        _ = cluster
         inc characters
     end for
 end counts
@@ -51,7 +53,8 @@ public main: () -> (code: i32) =
 
     --  "Amélie" with its é written as e and a combining acute, and two
     --  flags, each two regional indicators.
-    for sample in ["Ame\u{301}lie", "\u{1f1f3}\u{1f1f1}\u{1f1ef}\u{1f1f5}"] do
+    samples: [2]utf8 = ["Ame\u{301}lie", "\u{1f1f3}\u{1f1f1}\u{1f1ef}\u{1f1f5}"]
+    for sample in samples do
         (scalars, characters) := counts(sample)
         bytes := lenof text.bytes(sample)
         io.format(out, "{}: {} bytes, {} scalars, {} characters\n",
@@ -63,6 +66,7 @@ public main: () -> (code: i32) =
     --  The words of a sentence: the pieces between word boundaries that
     --  hold a letter or a digit, not the spaces and punctuation between.
     sentence: utf8 = "Don't panic: it's 3.14, not π."
+    mut separator: utf8 = ""
     for piece in unicode.words(sentence) do
         word: utf8 = sentence[text.offset(piece.begins)..<text.offset(piece.ends)]
         mut wordlike: bool = false
@@ -74,7 +78,9 @@ public main: () -> (code: i32) =
             end if
         end for
         if wordlike then
-            io.format(out, "[{}] ", [any(addr word)]) else none
+            io.format(out, "{}[{}]", [any(addr separator), any(addr word)])
+                else none
+            separator = " "
         end if
     end for
     io.format(out, "\n", []) else none

@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: core/unicode's simple and full upper, lower, title and folded mappings of every scalar are the Unicode Character Database's, by their digest
+summary: core/unicode's simple upper, lower, title and folded mappings and full upper, lower and folded ones of every scalar are the Unicode Character Database's, by their digest; firmware walks every 31st scalar
 program: main.ldn
 root: ../../../../..
 status: 42

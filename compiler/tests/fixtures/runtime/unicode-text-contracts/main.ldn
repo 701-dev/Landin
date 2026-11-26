@@ -1,0 +1,117 @@
+--  What core/unicode's text routines promise beyond each scalar's mapping:
+--  the final sigma by its context, title case word by word, Hangul
+--  composed by arithmetic, a long run of marks out of canonical order put
+--  in order, and every routine writing whole or not at all into a builder
+--  that is full.
+import core/mem
+import core/text
+import core/unicode
+
+--  Which routine `check` runs.
+upper: u8 = 0
+lower: u8 = 1
+title: u8 = 2
+folded: u8 = 3
+nfc: u8 = 4
+nfd: u8 = 5
+nfkc: u8 = 6
+
+run: (inout into: text.utf8_builder, routine: u8, source: utf8)
+     -> none ! mem.out_of_memory =
+    if routine == upper then
+        try unicode.append_upper(into, source)
+    elsif routine == lower then
+        try unicode.append_lower(into, source)
+    elsif routine == title then
+        try unicode.append_title(into, source)
+    elsif routine == folded then
+        try unicode.append_folded(into, source)
+    elsif routine == nfc then
+        try unicode.append_nfc(into, source)
+    elsif routine == nfd then
+        try unicode.append_nfd(into, source)
+    else
+        try unicode.append_nfkc(into, source)
+    end if
+end run
+
+--  Whether `routine` of `source` appends `wanted` after what the builder
+--  holds, and, into a buffer one byte too short, appends nothing.
+check: (routine: u8, source: utf8, wanted: utf8) -> (yes: bool) =
+    yes = false
+    mut storage: [96]u8 = zeroed
+    mut into: text.utf8_builder = text.utf8_over(storage)
+    text.utf8_append_text(into, "<") else begin return end
+    run(into, routine, source) else begin return end
+    held: []u8 = text.utf8_bytes(into)
+    return when lenof held <> lenof text.bytes(wanted) + 1
+    return when not text.equal(text.from_bytes(held[1..<lenof held])
+                               else begin return end, wanted)
+    short: usize = lenof held - 1
+    mut cramped: text.utf8_builder = text.utf8_over(storage[0..<short])
+    text.utf8_append_text(cramped, "<") else begin return end
+    run(cramped, routine, source) else (problem)
+        _ = problem
+        yes = text.utf8_length(cramped) == 1
+        return
+    end
+end check
+
+public main: () -> (code: i32) =
+    code = 1
+    --  The final sigma: lowercase at a word's end, not inside one, nor
+    --  alone, and across a case-ignorable apostrophe.
+    return when not check(lower, "ΟΔΥΣΣΕΥΣ", "οδυσσευς")
+    return when not check(lower, "ΣΑ Σ", "σα σ")
+    return when not check(lower, "ΑΣ'", "ας'")
+    return when not check(lower, "ΑΣ'Α", "ασ'α")
+    --  Full mappings that change the length, both ways.
+    return when not check(upper, "straße ﬁ", "STRASSE FI")
+    return when not check(lower, "İ", "i\u{307}")
+    return when not check(folded, "Straße ΣΑΣ", "strasse σασ")
+    --  Title case is per word: a digraph's titlecase, and the first cased
+    --  scalar of a word that begins with digits.
+    return when not check(title, "ǆungla 'oDD' WORD", "ǅungla 'Odd' Word")
+    return when not check(title, "123abc", "123Abc")
+    --  Hangul: jamo compose to a syllable and back.
+    return when not check(nfc, "\u{1100}\u{1161}\u{11a8}", "\u{ac01}")
+    return when not check(nfd, "\u{ac01}", "\u{1100}\u{1161}\u{11a8}")
+    --  Twelve marks out of order, more than a buffer would hold, are put
+    --  in order, and the acute that composes with the base still does.
+    marks: [12]u32 = [0x301, 0x301, 0x301, 0x316, 0x301, 0x316, 0x301, 0x301,
+                      0x316, 0x301, 0x301, 0x316]
+    mut spelled: [40]u8 = zeroed
+    mut long: text.utf8_builder = text.utf8_over(spelled)
+    text.utf8_append_text(long, "a") else begin return end
+    for mark in marks do
+        text.utf8_append_scalar(long, mark) else begin return end
+    end for
+    mut sorted_storage: [40]u8 = zeroed
+    mut sorted: text.utf8_builder = text.utf8_over(sorted_storage)
+    text.utf8_append_scalar(sorted, 0xe1) else begin return end
+    for mark in marks do
+        continue when mark <> 0x316
+        text.utf8_append_scalar(sorted, mark) else begin return end
+    end for
+    mut acutes: usize = 0
+    while acutes < 7 do
+        text.utf8_append_scalar(sorted, 0x301) else begin return end
+        inc acutes
+    end while
+    return when not check(nfc, text.utf8_used(long), text.utf8_used(sorted))
+    return when not check(nfd, "\u{e1}\u{316}", "a\u{316}\u{301}")
+    return when not check(nfc, "\u{e1}\u{316}", "\u{e1}\u{316}")
+    return when not check(nfkc, "ﬁ\u{2075}", "fi5")
+    --  An empty text has no segment, and a walk of one covers it.
+    for piece in unicode.graphemes("") do
+        _ = piece
+        return
+    end for
+    mut pieces: usize = 0
+    for piece in unicode.sentences("One. Two? Three") do
+        _ = piece
+        inc pieces
+    end for
+    return when pieces <> 3
+    code = 42
+end main

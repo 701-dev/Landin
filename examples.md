@@ -580,6 +580,136 @@ Big Ben to the Eiffel Tower: 340.6 km
 the Sydney Opera House to the Statue of Liberty: 15988.8 km
 ```
 
+## Text as a reader sees it
+
+What a person counts as a character, a word and the same text, with
+`core/unicode`. A character on the screen can be several scalars: an
+accent written apart from its letter, or a flag, which is two regional
+indicators. `unicode.graphemes` walks the characters, `unicode.words` the
+pieces between word boundaries, and case mapping writes into a
+`text.utf8_builder` over the caller's buffer, so nothing is allocated.
+Two texts that differ in case, or in how an accent is written, compare
+equal once each is folded and put in NFC.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-text-as-read/main.ldn`.
+
+```landin
+--  Text as a reader sees it: the characters a person counts, the words
+--  in a sentence, and case that a comparison ignores, by core/unicode.
+import core/io
+import core/mem
+import core/text
+import core/unicode
+import hosted/blocking
+
+--  How many scalars and how many characters `source` holds: a character
+--  is what a reader takes for one, an extended grapheme cluster.
+counts: (source: utf8) -> (scalars: usize, characters: usize) =
+    scalars = 0
+    characters = 0
+    for scalar in source do
+        _ = scalar
+        inc scalars
+    end for
+    for cluster in unicode.graphemes(source) do
+        _ = cluster
+        inc characters
+    end for
+end counts
+
+--  Whether two texts say the same words whatever their case and however
+--  their accents are spelled: each folded, then put in NFC, compares
+--  equal.
+same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
+    mut folded: [64]u8 = zeroed
+    mut left_storage: [64]u8 = zeroed
+    mut right_storage: [64]u8 = zeroed
+    mut scratch: text.utf8_builder = text.utf8_over(folded)
+    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
+    try unicode.append_folded(scratch, left)
+    try unicode.append_nfc(left_form, text.utf8_used(scratch))
+    text.utf8_clear(scratch)
+    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
+    try unicode.append_folded(scratch, right)
+    try unicode.append_nfc(right_form, text.utf8_used(scratch))
+    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
+end same_words
+
+public main: () -> (code: i32) =
+    code = 1
+    host := blocking.new()
+    mut storage: [256]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    version := unicode.unicode_version
+    io.format(out, "Unicode {}.{}.{}\n", [any(addr version.major),
+                                          any(addr version.minor),
+                                          any(addr version.update)])
+        else none
+
+    --  "Amélie" with its é written as e and a combining acute, and two
+    --  flags, each two regional indicators.
+    samples: [2]utf8 = ["Ame\u{301}lie", "\u{1f1f3}\u{1f1f1}\u{1f1ef}\u{1f1f5}"]
+    for sample in samples do
+        (scalars, characters) := counts(sample)
+        bytes := lenof text.bytes(sample)
+        io.format(out, "{}: {} bytes, {} scalars, {} characters\n",
+                  [any(addr sample), any(addr bytes), any(addr scalars),
+                   any(addr characters)])
+            else none
+    end for
+
+    --  The words of a sentence: the pieces between word boundaries that
+    --  hold a letter or a digit, not the spaces and punctuation between.
+    sentence: utf8 = "Don't panic: it's 3.14, not π."
+    mut separator: utf8 = ""
+    for piece in unicode.words(sentence) do
+        word: utf8 = sentence[text.offset(piece.begins)..<text.offset(piece.ends)]
+        mut wordlike: bool = false
+        for scalar in word do
+            if unicode.is_alphabetic(scalar)
+              or unicode.category(scalar) == unicode.decimal_number
+            then
+                wordlike = true
+            end if
+        end for
+        if wordlike then
+            io.format(out, "{}[{}]", [any(addr separator), any(addr word)])
+                else none
+            separator = " "
+        end if
+    end for
+    io.format(out, "\n", []) else none
+
+    mut cased: [64]u8 = zeroed
+    mut into: text.utf8_builder = text.utf8_over(cased)
+    unicode.append_upper(into, "Straße") else begin return end
+    upper: utf8 = text.utf8_used(into)
+    io.format(out, "{}\n", [any(addr upper)]) else none
+    text.utf8_clear(into)
+    unicode.append_title(into, "the ǆungla of ΟΔΥΣΣΕΥΣ") else begin return end
+    title: utf8 = text.utf8_used(into)
+    io.format(out, "{}\n", [any(addr title)]) else none
+
+    same: bool = same_words("STRASSE", "Stra\u{df}e") else begin return end
+    io.format(out, "STRASSE and Straße say the same: {}\n", [any(addr same)])
+        else none
+    code = 0
+end main
+```
+
+It prints
+
+```text
+Unicode 18.0.0
+Amélie: 8 bytes, 7 scalars, 6 characters
+🇳🇱🇯🇵: 16 bytes, 4 scalars, 2 characters
+[Don't] [panic] [it's] [3.14] [not] [π]
+STRASSE
+The ǅungla Of Οδυσσευς
+STRASSE and Straße say the same: true
+```
+
 ## Insertion sort
 
 Insertion sort grows a sorted prefix, moving each new value left past the

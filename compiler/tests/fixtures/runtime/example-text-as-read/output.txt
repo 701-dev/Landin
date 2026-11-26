@@ -1,0 +1,7 @@
+Unicode 18.0.0
+Amélie: 8 bytes, 7 scalars, 6 characters
+🇳🇱🇯🇵: 16 bytes, 4 scalars, 2 characters
+[Don't] [panic] [it's] [3.14] [not] [π]
+STRASSE
+The ǅungla Of Οδυσσευς
+STRASSE and Straße say the same: true

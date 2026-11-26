@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/unicode's case mapping, normalization and segmentation of whole texts keep their contracts: the final sigma by context, title case per word, Hangul, a long run of marks out of order, and whole or nothing into a full builder
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0600, 1150, 1110

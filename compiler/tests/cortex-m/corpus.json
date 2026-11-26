@@ -2742,6 +2742,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/example-text-as-read": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/failure-words": {
       "mode": "execute"
     },
@@ -5704,6 +5710,9 @@
     "runtime/unicode-case-scalars": {
       "mode": "execute"
     },
+    "runtime/unicode-case-title": {
+      "mode": "execute"
+    },
     "runtime/unicode-category": {
       "mode": "execute"
     },
@@ -5725,7 +5734,13 @@
     "runtime/unicode-sentences": {
       "mode": "execute"
     },
-    "runtime/unicode-words": {
+    "runtime/unicode-text-contracts": {
+      "mode": "execute"
+    },
+    "runtime/unicode-words-1": {
+      "mode": "execute"
+    },
+    "runtime/unicode-words-2": {
       "mode": "execute"
     },
     "runtime/unnamed-view-finished-or-apart": {
