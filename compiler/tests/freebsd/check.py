@@ -449,10 +449,10 @@ class Lane:
         names = [r['label'] + ext for r in results for ext in
                  (('.stdout', '.status') if r['meta'].get('stream', 'merged') == 'merged'
                   else ('.stdout', '.stderr', '.status'))]
-        guest.checked('cat > ' + shlex.quote(remote_names), input=('\n'.join(names) + '\n').encode())
         script += ['tar -czf ' + shlex.quote(remote_results) + ' -C ' + shlex.quote(str(self.remote_bundle))
                    + ' -T ' + shlex.quote(remote_names)]
         guest.checked('cat > ' + shlex.quote(remote_script), input=('\n'.join(script) + '\n').encode())
+        guest.checked('cat > ' + shlex.quote(remote_names), input=('\n'.join(names) + '\n').encode())
         transcript = guest.checked('sh ' + shlex.quote(remote_script), timeout=max(900, 90 * len(results)))
         (self.output / 'guest-execute.log').write_bytes(transcript)
         archive = self.output / 'results.tar.gz'
