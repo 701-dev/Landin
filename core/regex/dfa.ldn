@@ -26,6 +26,9 @@ before_return: u8 = 2
 before_word: u8 = 3
 before_other: u8 = 4
 match_flag: u8 = 8
+--  Set on the unanchored search's start state, where a search may skip
+--  ahead to the next place a literal prefix occurs.
+start_flag: u8 = 16
 
 dead_state: u32 = 0
 unknown_state: u32 = 0xffff_ffff
@@ -71,6 +74,7 @@ dfa_cache: type = struct
     stack: vec.list(u32)
     starts: [10]u32
     clears: usize
+    unanchored_seed: u32
 end dfa_cache
 
 new_work_set: () -> (result: work_set) =
@@ -83,7 +87,8 @@ new_dfa_cache: () -> (result: dfa_cache) =
               states: vec.new(item: dfa_state), pool: vec.new(item: u32),
               hash: vec.new(item: u32), state_count: 0, pool_used: 0,
               resolved: new_work_set(), stepped: new_work_set(),
-              stack: vec.new(item: u32), starts: zeroed, clears: 0)
+              stack: vec.new(item: u32), starts: zeroed, clears: 0,
+              unanchored_seed: nothing)
 end new_dfa_cache
 
 release_dfa_cache: (provider: type is mem.allocator, inout cache: dfa_cache,
@@ -108,6 +113,7 @@ size_dfa_cache: (provider: type is mem.allocator, inout cache: dfa_cache,
                  memory: provider, code: program, budget: usize,
                  longest: bool) -> none ! mem.out_of_memory =
     cache.longest = longest
+    cache.unanchored_seed = if longest then nothing else code.unanchored end if
     states: usize = vec.length(code.insts)
     mut marks: [257]bool = zeroed
     marks[0] = true
@@ -345,8 +351,15 @@ end step_state
 --  The state of the first `count` instructions of `stepped`, with `flags`: one already cached, or a new one.  It clears the
 --  cache when that is full, and gives `quit_state` when it has been
 --  cleared too often or the state is too large for it.
-intern: (inout cache: dfa_cache, insts: []inst, count: usize, flags: u8)
-        -> (target: u32) =
+intern: (inout cache: dfa_cache, insts: []inst, count: usize,
+         given_flags: u8) -> (target: u32) =
+    mut flags: u8 = given_flags
+    if count == 1 and flags & match_flag == 0 then
+        dense_view: []u32 = vec.used(cache.stepped.dense)
+        if dense_view[0] == cache.unanchored_seed then
+            flags = flags | start_flag
+        end if
+    end if
     mut hash: u32 = 2166136261 ^ u32(flags)
     mut listed: usize = 0
     hash_slots: usize = vec.length(cache.hash)
@@ -444,8 +457,8 @@ end before_position
 
 --  Search forward from `origin` for where the leftmost-first match ends,
 --  or with `earliest` for where any match first ends.
-dfa_forward: (inout cache: dfa_cache, code: program, bytes: []u8,
-              origin: usize, anchored: bool, earliest: bool)
+dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
+              bytes: []u8, origin: usize, anchored: bool, earliest: bool)
              -> (outcome: u8, ends: usize) =
     outcome = dfa_gave_up
     ends = 0
@@ -461,8 +474,11 @@ dfa_forward: (inout cache: dfa_cache, code: program, bytes: []u8,
     return when state == quit_state
     mut found: bool = false
     mut at: usize = origin
+    skipping: bool = literals.usable and not anchored
+    mut skipped_at: usize = unset
     loop do
         mut pending: bool = false
+        mut skip: bool = false
         begin
             --  Run over the bytes whose transitions are built; the views
             --  end before a new state is built.
@@ -470,6 +486,11 @@ dfa_forward: (inout cache: dfa_cache, code: program, bytes: []u8,
             table: []u32 = vec.used(cache.table)
             states: []dfa_state = vec.used(cache.states)
             while at < lenof bytes do
+                if skipping and at <> skipped_at
+                  and states[usize(state)].flags & start_flag <> 0 then
+                    skip = true
+                    break
+                end if
                 class: usize = usize(classes[usize(bytes[at])])
                 return when class >= cache.quit_from
                 target: u32 = table[usize(state) * cache.stride + class]
@@ -490,6 +511,27 @@ dfa_forward: (inout cache: dfa_cache, code: program, bytes: []u8,
                 break when state == dead_state
             end while
         end
+        if skip then
+            --  Nothing has begun: go to where a literal prefix next
+            --  occurs, and start there afresh.
+            (at: next_at, length: _) := next_literal(literals, bytes, at)
+            if next_at > lenof bytes then
+                at = lenof bytes
+                state = dead_state
+                break
+            end if
+            skipped_at = next_at
+            if next_at > at then
+                at = next_at
+                (before: skip_before, quit: skip_quit) := before_position(
+                    cache, bytes, at)
+                return when skip_quit
+                state = start_state(cache, code, code.unanchored, skip_before,
+                                    usize(skip_before) * 2)
+                return when state == quit_state
+            end if
+            continue
+        end if
         break when not pending
         target: u32 = step_state(cache, code, state, bytes[at])
         return when target == quit_state

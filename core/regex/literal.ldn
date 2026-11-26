@@ -1,0 +1,309 @@
+--  The literal prefilter: the set of byte strings every match begins
+--  with, when the pattern has a small one, as `agggtaaa|tttaccct` or
+--  `(?i)hello` has, found by walking the tree from its start.  A search
+--  skips to where one of them occurs rather than running the DFA over
+--  every byte; and when the strings are the whole pattern, as in the
+--  first of those, the search is over once one is found, each position
+--  trying them in the pattern's order of preference, which is
+--  leftmost-first's.  Looking at each position takes at most every
+--  string's length, which is bounded, so a search stays linear.
+
+import core/mem
+import core/vec
+
+--  The most strings, and the longest, the set keeps.
+literal_limit: usize = 16
+literal_length_limit: usize = 16
+
+--  A set of literals: their bytes one after another, where each ends,
+--  and which bytes one begins with.
+literal_set: type = struct
+    usable: bool
+    exact: bool
+    bytes: vec.list(u8)
+    ends: vec.list(u32)
+    first: [256]bool
+end literal_set
+
+new_literal_set: () -> (result: literal_set) =
+    result = (usable: false, exact: true, bytes: vec.new(item: u8),
+              ends: vec.new(item: u32), first: zeroed)
+end new_literal_set
+
+release_literal_set: (provider: type is mem.allocator,
+                      inout set: literal_set, memory: provider) -> none =
+    vec.release(set.bytes, memory)
+    vec.release(set.ends, memory)
+    set.usable = false
+end release_literal_set
+
+--  The `index`th literal of a set.
+literal_at: (set: literal_set, index: usize) -> (bytes: []u8 from set) =
+    ends: []u32 = vec.used(set.ends)
+    begins: usize = if index == 0 then 0 else usize(ends[index - 1]) end if
+    held: []u8 = vec.used(set.bytes)
+    bytes = held[begins..<usize(ends[index])]
+end literal_at
+
+literal_count: (set: literal_set) -> (count: usize) =
+    count = vec.length(set.ends)
+end literal_count
+
+--  Replace `set` by `{""}`.
+reset_literals: (provider: type is mem.allocator, inout set: literal_set,
+                 memory: provider) -> none ! mem.out_of_memory =
+    vec.clear(set.bytes)
+    vec.clear(set.ends)
+    try vec.push(set.ends, memory, u32(0))
+    set.exact = true
+end reset_literals
+
+--  Append a literal.
+add_literal: (provider: type is mem.allocator, inout set: literal_set,
+              memory: provider, bytes: []u8) -> none ! mem.out_of_memory =
+    for byte in bytes do try vec.push(set.bytes, memory, byte) end for
+    try vec.push(set.ends, memory, u32(vec.length(set.bytes)))
+end add_literal
+
+--  Find the literal prefixes of `tree`'s pattern, and whether they are
+--  the whole of it; leave `set` unusable when there are none worth
+--  searching for.
+extract_literals: (provider: type is mem.allocator, inout set: literal_set,
+                   memory: provider, tree: hir) -> none ! mem.out_of_memory =
+    try reset_literals(set, memory)
+    _ = try literals_of(set, memory, tree, tree.root)
+    for index in usize(0)..<literal_count(set) do
+        piece: []u8 = literal_at(set, index)
+        return when lenof piece == 0
+        set.first[usize(piece[0])] = true
+    end for
+    set.usable = literal_count(set) > 0
+end extract_literals
+
+--  Extend every literal of `set` by what node `index` begins with.  The
+--  set stays a set of prefixes of every match; `exact` is cleared once
+--  it stops being the matches themselves.  Give whether a later node may
+--  extend it further.
+literals_of: (provider: type is mem.allocator, inout set: literal_set,
+              memory: provider, tree: hir, index: u32)
+             -> (more: bool) ! mem.out_of_memory =
+    node: hir_node = node_at(tree, index)
+    kind: u8 = node.kind
+    more = true
+    if kind == node_empty then
+        return
+    elsif kind == node_look then
+        set.exact = false
+    elsif kind == node_capture then
+        more = try literals_of(set, memory, tree, node.child)
+    elsif kind == node_concat then
+        mut at: u32 = node.child
+        while at <> nothing do
+            more = try literals_of(set, memory, tree, at)
+            if not more then
+                set.exact = false
+                return
+            end if
+            held: hir_node = node_at(tree, at)
+            at = held.sibling
+        end while
+    elsif kind == node_literal then
+        sequence: byte_sequence = encoded_sequence(node.value)
+        more = try cross(set, memory, sequence.low[0..<sequence.count])
+    elsif kind == node_class then
+        more = try cross_class(set, memory, tree, node)
+    elsif kind == node_repeat and node.low >= 1 then
+        if node.low == 1 and node.high == 1 then
+            more = try literals_of(set, memory, tree, node.child)
+        else
+            _ = try literals_of(set, memory, tree, node.child)
+            set.exact = false
+            more = false
+        end if
+    elsif kind == node_alternate then
+        more = try cross_alternate(set, memory, tree, node)
+    else
+        --  A repetition that may be empty: the literals so far are still
+        --  prefixes of every match, but nothing after it extends them.
+        set.exact = false
+        more = false
+    end if
+end literals_of
+
+--  Extend every literal by `bytes`, or give false, leaving the set as it
+--  was but inexact, when that would make one too long.
+cross: (provider: type is mem.allocator, inout set: literal_set,
+        memory: provider, bytes: []u8) -> (more: bool) ! mem.out_of_memory =
+    more = false
+    count: usize = literal_count(set)
+    for index in usize(0)..<count do
+        if lenof literal_at(set, index) + lenof bytes > literal_length_limit
+        then
+            set.exact = false
+            return
+        end if
+    end for
+    mut next: literal_set = new_literal_set()
+    defer release_literal_set(next, memory)
+    for index in usize(0)..<count do
+        try copy_extended(next, memory, set, index, bytes)
+    end for
+    try take_literals(set, memory, next)
+    more = true
+end cross
+
+--  Append literal `index` of `source` followed by `bytes` to `target`.
+copy_extended: (provider: type is mem.allocator, inout target: literal_set,
+                memory: provider, source: literal_set, index: usize,
+                bytes: []u8) -> none ! mem.out_of_memory =
+    for byte in literal_at(source, index) do
+        try vec.push(target.bytes, memory, byte)
+    end for
+    for byte in bytes do try vec.push(target.bytes, memory, byte) end for
+    try vec.push(target.ends, memory, u32(vec.length(target.bytes)))
+end copy_extended
+
+--  Make `set` hold `next`'s literals, keeping its `exact`.
+take_literals: (provider: type is mem.allocator, inout set: literal_set,
+                memory: provider, next: literal_set)
+               -> none ! mem.out_of_memory =
+    vec.clear(set.bytes)
+    vec.clear(set.ends)
+    for byte in vec.used(next.bytes) do
+        try vec.push(set.bytes, memory, byte)
+    end for
+    for ending in vec.used(next.ends) do
+        try vec.push(set.ends, memory, ending)
+    end for
+end take_literals
+
+--  Extend every literal by each scalar of a small class.
+cross_class: (provider: type is mem.allocator, inout set: literal_set,
+              memory: provider, tree: hir, node: hir_node)
+             -> (more: bool) ! mem.out_of_memory =
+    more = false
+    ranges: []scalar_range = vec.used(tree.ranges)
+    first: usize = usize(node.child)
+    mut scalars: usize = 0
+    for at in first..<first + usize(node.count) do
+        scalars += usize(ranges[at].high - ranges[at].low) + 1
+        if scalars * literal_count(set) > literal_limit then
+            set.exact = false
+            return
+        end if
+    end for
+    if scalars == 0 then
+        set.exact = false
+        return
+    end if
+    for index in usize(0)..<literal_count(set) do
+        if lenof literal_at(set, index) + 4 > literal_length_limit then
+            set.exact = false
+            return
+        end if
+    end for
+    mut next: literal_set = new_literal_set()
+    defer release_literal_set(next, memory)
+    for index in usize(0)..<literal_count(set) do
+        for at in first..<first + usize(node.count) do
+            mut scalar: u32 = ranges[at].low
+            while scalar <= ranges[at].high do
+                if scalar < 0xd800 or scalar > 0xdfff then
+                    sequence: byte_sequence = encoded_sequence(scalar)
+                    try copy_extended(next, memory, set, index,
+                                      sequence.low[0..<sequence.count])
+                end if
+                inc scalar
+            end while
+        end for
+    end for
+    try take_literals(set, memory, next)
+    more = true
+end cross_class
+
+--  Extend every literal by each branch's literals in turn, in the
+--  branches' order, when every branch has a small set of its own.
+cross_alternate: (provider: type is mem.allocator, inout set: literal_set,
+                  memory: provider, tree: hir, node: hir_node)
+                 -> (more: bool) ! mem.out_of_memory =
+    more = false
+    mut branches: literal_set = new_literal_set()
+    defer release_literal_set(branches, memory)
+    vec.clear(branches.ends)
+    mut all_exact: bool = true
+    mut at: u32 = node.child
+    while at <> nothing do
+        mut branch: literal_set = new_literal_set()
+        defer release_literal_set(branch, memory)
+        try reset_literals(branch, memory)
+        _ = try literals_of(branch, memory, tree, at)
+        if not branch.exact then all_exact = false end if
+        for index in usize(0)..<literal_count(branch) do
+            if lenof literal_at(branch, index) == 0 then
+                --  A branch that may begin with anything extends nothing.
+                set.exact = false
+                return
+            end if
+            try copy_extended(branches, memory, branch, index, [])
+        end for
+        if literal_count(branches) > literal_limit then
+            set.exact = false
+            return
+        end if
+        held: hir_node = node_at(tree, at)
+        at = held.sibling
+    end while
+    if literal_count(branches) * literal_count(set) > literal_limit then
+        set.exact = false
+        return
+    end if
+    mut next: literal_set = new_literal_set()
+    defer release_literal_set(next, memory)
+    for index in usize(0)..<literal_count(set) do
+        for branch in usize(0)..<literal_count(branches) do
+            piece: []u8 = literal_at(branches, branch)
+            if lenof literal_at(set, index) + lenof piece
+              > literal_length_limit then
+                set.exact = false
+                return
+            end if
+            try copy_extended(next, memory, set, index, piece)
+        end for
+    end for
+    try take_literals(set, memory, next)
+    if not all_exact then set.exact = false end if
+    more = all_exact
+end cross_alternate
+
+--  The first position at or after `origin` where a literal of the set
+--  begins, and the length of the first in its order that does, or
+--  `lenof bytes + 1` and zero when none does.
+next_literal: (set: literal_set, bytes: []u8, origin: usize)
+              -> (at: usize, length: usize) =
+    length = 0
+    count: usize = literal_count(set)
+    mut place: usize = origin
+    while place < lenof bytes do
+        if set.first[usize(bytes[place])] then
+            for index in usize(0)..<count do
+                piece: []u8 = literal_at(set, index)
+                if begins_with(bytes, place, piece) then
+                    at = place
+                    length = lenof piece
+                    return
+                end if
+            end for
+        end if
+        inc place
+    end while
+    at = lenof bytes + 1
+end next_literal
+
+begins_with: (bytes: []u8, at: usize, piece: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof bytes - at < lenof piece
+    for byte, index in piece do
+        return when bytes[at + index] <> byte
+    end for
+    yes = true
+end begins_with
