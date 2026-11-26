@@ -1852,7 +1852,11 @@ rounding modes and exception flags are neither read nor set. Nothing keeps
 state, and nothing allocates.
 
 On Cortex-M0, a program takes only the routines it calls, beside libgcc's
-soft float, which every float program there takes.
+soft float, which every float program there takes. A routine at both widths
+is 3 to 6 KiB at `size/auto` for most, and up to 15 KiB for the
+trigonometric functions, whose argument reduction is exact for every
+argument; [the measurements](../compiler/tests/math/README.md#size-on-cortex-m0)
+give each fixture's figures.
 
 [Executable example](../compiler/tests/fixtures/runtime/library-shared-math/main.ldn)
 
