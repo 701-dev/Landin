@@ -43,6 +43,8 @@ unicode_source: type = struct
     upper: (scalar: u32) -> (result: u32)
     lower: (scalar: u32) -> (result: u32)
     title: (scalar: u32) -> (result: u32)
+    category_run: (scalar: u32) -> (last: u32)
+    property_run: (scalar: u32) -> (last: u32)
 end unicode_source
 
 --  Whether `scalar` is a word scalar by Unicode's \w: Alphabetic, a mark,
@@ -267,6 +269,13 @@ fold_unicode: (provider: type is mem.allocator,
                    else cased_limit - 1 end if
         mut scalar: u32 = piece.low
         while scalar <= top do
+            --  Every scalar whose orbit holds another is Cased, so a run
+            --  of uncased scalars is passed over whole.
+            if source.flags_of(scalar) & cased_flag == 0 then
+                last: u32 = source.property_run(scalar)
+                scalar = (if last < top then last else top end if) + 1
+                continue
+            end if
             try add_orbit(set, memory, source, scalar, piece)
             inc scalar
         end while
@@ -345,37 +354,27 @@ fold_ascii_part: (provider: type is mem.allocator,
 end fold_ascii_part
 
 --  Add the scalars whose general category is one of `categories`' bits,
---  or which have one of the binary properties `flags`' bits name, walking
---  every scalar.
+--  or which have one of the binary properties `flags`' bits name, a run
+--  of scalars that share their category and properties at a time.
 add_property: (provider: type is mem.allocator,
                inout set: vec.list(scalar_range), memory: provider,
                source: unicode_source, categories: u32, flags: u8)
               -> none ! mem.out_of_memory =
-    mut open: bool = false
-    mut first: u32 = 0
     mut scalar: u32 = 0
     while scalar <= scalar_limit do
-        if scalar == 0xd800 then
-            if open then
-                try add_range(set, memory, first, scalar - 1)
-                open = false
-            end if
-            scalar = 0xe000
+        if scalar == 0xd800 then scalar = 0xe000 end if
+        mut last: u32 = scalar_limit
+        if categories <> 0 then last = source.category_run(scalar) end if
+        if flags <> 0 then
+            property_last: u32 = source.property_run(scalar)
+            if property_last < last then last = property_last end if
         end if
+        if scalar < 0xd800 and last >= 0xd800 then last = 0xd7ff end if
         held: bool = categories & category_bit(source.category_of(scalar)) <> 0
                      or flags <> 0 and source.flags_of(scalar) & flags <> 0
-        if held and not open then
-            first = scalar
-            open = true
-        elsif open and not held then
-            try add_range(set, memory, first, scalar - 1)
-            open = false
-        end if
-        inc scalar
+        if held then try add_range(set, memory, scalar, last) end if
+        scalar = last + 1
     end while
-    if open then
-        try add_range(set, memory, first, scalar_limit)
-    end if
     canonical(set)
 end add_property
 

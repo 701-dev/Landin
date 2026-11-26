@@ -425,6 +425,27 @@ class Trie:
         self.memo[key] = best
         return best
 
+    def uniform(self):
+        """For each stage below the top, each of its blocks' one value
+        when every key under the block has it, and UNIFORM otherwise."""
+        found = []
+        for level, shift in enumerate(self.shifts):
+            size = 1 << shift
+            stage = self.stages[level]
+            values = []
+            for start in range(0, len(stage), size):
+                block = stage[start:start + size]
+                if level == 0:
+                    first = block[0]
+                    same = all(value == first for value in block)
+                else:
+                    below = found[level - 1]
+                    first = below[block[0]]
+                    same = all(below[number] == first for number in block)
+                values.append(first if same else UNIFORM)
+            found.append(values)
+        return found
+
     def lookup(self, key):
         if key >= self.domain:
             return 0
@@ -611,8 +632,67 @@ def stage_name(name, level, top):
     return "%s_stage%d" % (name, level)
 
 
-def render_trie(name, comment, trie, result):
-    """The arrays of TRIE and the routine that reads it, named NAME."""
+#  A block's value in a `_uniform` array when its keys' values differ.
+UNIFORM = 255
+
+
+def render_runs(name, trie):
+    """TRIE's `_uniform` arrays and NAME_run, which gives the last key of
+    the run of keys from KEY on that share KEY's value: it steps over a
+    block whose keys all have that value at once, the largest first."""
+    lines = ["", "--  For each block of each stage of `%s` below its top, the"
+             % name, "--  value every key under it has, or %d when they differ."
+             % UNIFORM]
+    top = len(trie.shifts)
+    for level, values in enumerate(trie.uniform()):
+        lines += array("%s_uniform%d" % (name, level), "u8", values)
+    low = sum(trie.shifts)
+    lines += [
+        "",
+        "%s_run: (key: u32) -> (last: u32) =" % name,
+        "    last = key",
+        "    return when key >= %s" % hex(trie.domain),
+        "    value: u8 = u8(%s(key))" % name,
+        "    mut next: u32 = key",
+        "    loop do",
+        "        mut at: usize = usize(%s[usize(next >> %d)])"
+        % (stage_name(name, top, top), low),
+    ]
+    span = low
+    indent = "        "
+    closes = []
+    for level in range(top - 1, -1, -1):
+        lines.append("%sif %s_uniform%d[at] == value then" % (indent, name,
+                                                             level))
+        lines.append("%s    next = (next | %s) + 1" % (indent,
+                                                       hex((1 << span) - 1)))
+        lines.append("%selse" % indent)
+        shift = trie.shifts[level]
+        span -= shift
+        part = ("usize(next & %d)" % ((1 << shift) - 1) if span == 0 else
+                "usize((next >> %d) & %d)" % (span, (1 << shift) - 1))
+        read = "%s[(at << %d) | %s]" % (stage_name(name, level, top), shift,
+                                       part)
+        indent += "    "
+        if level:
+            lines.append("%sat = usize(%s)" % (indent, read))
+        else:
+            lines.append("%sbreak when u8(%s) <> value" % (indent, read))
+            lines.append("%snext = next + 1" % indent)
+        closes.append(indent[:-4] + "end if")
+    lines += list(reversed(closes))
+    lines += [
+        "        last = next - 1",
+        "        break when next >= %s" % hex(trie.domain),
+        "    end loop",
+        "end %s_run" % name,
+    ]
+    return lines
+
+
+def render_trie(name, comment, trie, result, runs=False):
+    """The arrays of TRIE and the routine that reads it, named NAME, and
+    with RUNS its run routine."""
     lines = ["", "--  " + comment]
     top = len(trie.shifts)
     for level in range(top, -1, -1):
@@ -643,6 +723,8 @@ def render_trie(name, comment, trie, result):
         else:
             lines.append("    value = %s(%s)" % (result, read))
     lines.append("end %s" % name)
+    if runs:
+        lines += render_runs(name, trie)
     return lines
 
 
@@ -679,7 +761,7 @@ def render(database, version=VERSION, url=URL, sha256=SHA256):
     lines += render_trie("category_code",
                          "Each scalar's general category, a code of"
                          " `categories`.",
-                         Trie(database.category, 8), "u8")
+                         Trie(database.category, 8), "u8", runs=True)
     lines += render_trie("combining_code",
                          "Each scalar's canonical combining class.",
                          Trie(database.combining, 8), "u8")
@@ -692,11 +774,13 @@ def render(database, version=VERSION, url=URL, sha256=SHA256):
                          "Each scalar's binary properties but the case"
                          " context's, one bit each.",
                          Trie([flags & ((1 << CONTEXT_BIT) - 1)
-                               for flags in database.flags], 8), "u8")
+                               for flags in database.flags], 8), "u8",
+                         runs=True)
     lines += render_trie("case_context_code",
                          "Each scalar's Cased and Case_Ignorable bits.",
                          Trie([flags >> CONTEXT_BIT
-                               for flags in database.flags], 8), "u8")
+                               for flags in database.flags], 8), "u8",
+                         runs=True)
 
     numbers, table, specials = case_records(database)
     lines += render_trie("case_code",

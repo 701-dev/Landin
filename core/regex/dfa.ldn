@@ -75,6 +75,7 @@ dfa_cache: type = struct
     starts: [10]u32
     clears: usize
     unanchored_seed: u32
+    work: u64
 end dfa_cache
 
 new_work_set: () -> (result: work_set) =
@@ -88,7 +89,7 @@ new_dfa_cache: () -> (result: dfa_cache) =
               hash: vec.new(item: u32), state_count: 0, pool_used: 0,
               resolved: new_work_set(), stepped: new_work_set(),
               stack: vec.new(item: u32), starts: zeroed, clears: 0,
-              unanchored_seed: nothing)
+              unanchored_seed: nothing, work: 0)
 end new_dfa_cache
 
 release_dfa_cache: (provider: type is mem.allocator, inout cache: dfa_cache,
@@ -318,6 +319,7 @@ step_state: (inout cache: dfa_cache, code: program, state: u32, byte: u8)
     insts: []inst = vec.used(code.insts)
     edges: []edge = vec.used(code.edges)
     count: usize = resolve_state(cache, insts, state, usize(byte))
+    cache.work += u64(count)
     resolved: []u32 = vec.used(cache.resolved.dense)
     mut matched: bool = false
     mut stepped: usize = 0
@@ -500,6 +502,7 @@ dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
                 end if
                 state = target
                 inc at
+                inc cache.work
                 if states[usize(state)].flags & match_flag <> 0 then
                     found = true
                     ends = at - 1
@@ -515,6 +518,8 @@ dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
             --  Nothing has begun: go to where a literal prefix next
             --  occurs, and start there afresh.
             (at: next_at, length: _) := next_literal(literals, bytes, at)
+            cache.work += u64(if next_at > lenof bytes then lenof bytes - at
+                              else next_at - at end if) + 1
             if next_at > lenof bytes then
                 at = lenof bytes
                 state = dead_state
@@ -592,6 +597,7 @@ dfa_reverse: (inout cache: dfa_cache, code: program, bytes: []u8,
                 end if
                 state = target
                 dec at
+                inc cache.work
                 if states[usize(state)].flags & match_flag <> 0 then
                     found = true
                     begins = at + 1

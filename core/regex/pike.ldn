@@ -39,6 +39,7 @@ pike_cache: type = struct
     scratch: vec.list(usize)
     found: vec.list(usize)
     slot_count: usize
+    work: u64
 end pike_cache
 
 new_thread_list: () -> (result: thread_list) =
@@ -49,7 +50,7 @@ end new_thread_list
 new_pike_cache: () -> (result: pike_cache) =
     result = (current: new_thread_list(), following: new_thread_list(),
               stack: vec.new(item: frame), scratch: vec.new(item: usize),
-              found: vec.new(item: usize), slot_count: 0)
+              found: vec.new(item: usize), slot_count: 0, work: 0)
 end new_pike_cache
 
 release_thread_list: (provider: type is mem.allocator,
@@ -144,6 +145,7 @@ pike_search: (inout cache: pike_cache, code: program, source: unicode_source,
                                    source, bytes, code.start, at)
         end if
         break when now.count == 0 and (matched or anchored or at >= stop)
+        cache.work += u64(now.count) + 1
         --  Step every thread over the byte at `at`, in priority order; a
         --  match ends the threads after it.
         later.count = 0

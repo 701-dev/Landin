@@ -119,13 +119,17 @@ end add_pass_state
 --  priority order: false when two paths reach one instruction, or two
 --  transitions claim one byte class, or two paths reach the match, which
 --  makes the pattern not one-pass.  A transition after a match on the
---  walk is one leftmost-first never takes, and is left out.
+--  walk is one leftmost-first never takes, and is left out, unless the
+--  match needs a look, which makes the pattern not one-pass either.
 fill_pass_state: (provider: type is mem.allocator, inout table: one_pass,
                   memory: provider, insts: []inst, edges: []edge,
                   state: usize, start: u32)
                  -> (held: bool) ! mem.out_of_memory =
     held = false
     mut matched: bool = false
+    --  Whether the match needs a look, which may not hold where the
+    --  search is: then a transition after it is not out of reach.
+    mut guarded: bool = false
     mut top: usize = 1
     begin
         stack: []mut pass_step = vec.used(table.stack)
@@ -169,17 +173,21 @@ fill_pass_state: (provider: type is mem.allocator, inout table: one_pass,
         elsif item.kind == inst_match then
             return when matched
             matched = true
+            guarded = here.looks <> 0
             entry := vec.at(table.accepting, state) else (problem)
                 _ = problem
                 return
             end
             entry.val = (next: 0, slots: here.slots, looks: here.looks)
-        elsif not matched and item.kind == inst_range then
+        elsif matched and (item.kind == inst_range
+                           or item.kind == inst_sparse) then
+            return when guarded
+        elsif item.kind == inst_range then
             target: u32 = try add_pass_state(table, memory, item.next)
             claimed: bool = claim(table, state, item.low, item.high,
                                   target, here)
             return when not claimed
-        elsif not matched and item.kind == inst_sparse then
+        elsif item.kind == inst_sparse then
             for at in usize(item.next)..<usize(item.next + item.arg) do
                 step_edge: edge = edges[at]
                 target: u32 = try add_pass_state(table, memory, step_edge.next)
@@ -221,6 +229,7 @@ pass_looks_hold: (looks: u32, source: unicode_source, bytes: []u8,
                   at: usize) -> (yes: bool) =
     yes = true
     return when looks == 0
+    yes = false
     for kind in u8(1)..<u8(19) do
         if looks & u32(1) << u32(kind) <> 0 then
             return when not look_holds(kind, source, bytes, at)

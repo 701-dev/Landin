@@ -132,6 +132,7 @@ regex_value: type = struct
     literals: literal_set
     engine: engine
     fallbacks: usize
+    scanned: u64
     groups: u32
     names: vec.list(group_name)
     name_bytes: vec.list(u8)
@@ -167,7 +168,7 @@ public compile_with: (provider: type is mem.allocator, memory: provider,
               forward_dfa: new_dfa_cache(), backward_dfa: new_dfa_cache(),
               pass_table: new_one_pass(), literals: new_literal_set(),
               engine: settings.engine,
-              fallbacks: 0, groups: tree.groups,
+              fallbacks: 0, scanned: 0, groups: tree.groups,
               names: vec.new(item: group_name),
               name_bytes: vec.new(item: u8), pike: new_pike_cache(),
               source: settings.unicode, anchored: settings.anchored,
@@ -236,6 +237,27 @@ end release
 public fallbacks: (expression: regex) -> (count: usize) =
     count = expression.fallbacks
 end fallbacks
+
+--- A measure of the work the pattern's searches have done since it was
+--- compiled: the threads the Pike VM stepped, the bytes the DFAs read and
+--- the instructions their new states reached, and the bytes the
+--- prefilter and the one-pass DFA read.  A search's work grows at most
+--- linearly with the text, which is what the tests hold it to.
+public work: (expression: regex) -> (steps: u64) =
+    steps = expression.pike.work + expression.forward_dfa.work
+            + expression.backward_dfa.work + expression.scanned
+end work
+
+--- Which engines `compile` prepared for the pattern beside the Pike VM:
+--- the lazy DFA, whose cache the options' size allowed; the one-pass DFA,
+--- for a one-pass pattern with groups; and the literal prefilter, for a
+--- pattern every match of which begins with one of a few literals.
+public prepared: (expression: regex)
+                 -> (lazy: bool, one_pass: bool, literals: bool) =
+    lazy = expression.forward_dfa.usable
+    one_pass = expression.pass_table.usable
+    literals = expression.literals.usable
+end prepared
 
 --- How many groups the pattern has, the whole match, group zero, among
 --- them: one more than its capturing groups.
@@ -320,6 +342,7 @@ search: (inout expression: regex, bytes: []u8, origin: usize,
         matched = one_pass_search(expression.pass_table, expression.source,
                                   bytes, start, lenof bytes,
                                   vec.used(expression.pike.found), width)
+        expression.scanned += u64(lenof bytes - start) + 1
         if matched then expression.captured = width end if
         return
     end if
@@ -328,6 +351,9 @@ search: (inout expression: regex, bytes: []u8, origin: usize,
         --  The pattern is its literals: the first found is the match.
         (at: literal_at_position, length: length) := next_literal(
             expression.literals, bytes, start)
+        stopped: usize = if literal_at_position > lenof bytes then lenof bytes
+                         else literal_at_position end if
+        expression.scanned += u64(stopped - start) + 1
         return when literal_at_position > lenof bytes
         matched = true
         if width > 0 then
@@ -372,6 +398,7 @@ search: (inout expression: regex, bytes: []u8, origin: usize,
                                               begins, ends,
                                               vec.used(expression.pike.found),
                                               width)
+                    expression.scanned += u64(ends - begins) + 1
                 else
                     matched = pike_search(expression.pike, expression.forward,
                                           expression.source, bytes, begins,
@@ -620,13 +647,16 @@ unicode_tables: () -> (source: unicode_source) =
     source = (present: true, category_of: unicode_category,
               flags_of: unicode_flags, fold: unicode.simple_fold,
               upper: unicode.simple_upper, lower: unicode.simple_lower,
-              title: unicode.simple_title)
+              title: unicode.simple_title,
+              category_run: unicode.category_run_end,
+              property_run: unicode.property_run_end)
 end unicode_tables
 
 no_tables: () -> (source: unicode_source) =
     source = (present: false, category_of: no_category, flags_of: no_flags,
               fold: same_scalar, upper: same_scalar, lower: same_scalar,
-              title: same_scalar)
+              title: same_scalar, category_run: same_scalar,
+              property_run: same_scalar)
 end no_tables
 
 no_category: (scalar: u32) -> (index: u8) =
