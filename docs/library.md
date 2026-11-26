@@ -908,7 +908,7 @@ decimals.
 ## core/unicode
 
 What the Unicode Standard says about a scalar and about text, where
-[core/text](../core/text) reads and writes UTF-8 without interpreting it:
+`core/text` reads and writes UTF-8 without interpreting it:
 a scalar's properties, case mapping, the four normalization forms, and
 where a reader's characters, words and sentences begin and end. The data
 is Unicode 18.0.0, which `unicode.unicode_version` names as a
