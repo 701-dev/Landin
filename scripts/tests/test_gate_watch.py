@@ -603,6 +603,21 @@ class SharedPoller(Fixture):
         self.assertIn("no push on main gate run for aaaaaaaaaaaa yet", out)
         self.assertIn("following gate run 7 (push on main)", out)
 
+    def test_an_unexpected_answer_ends_the_watches_not_the_poller(self):
+        (self.states.parent / "states.json.fail").write_text(json.dumps(
+            [0, ""]))
+        self.states.write_text(json.dumps(self.running(0)))
+        gh = Path(self.temporary.name) / "gh"
+        real = gh.read_text()
+        gh.write_text("#!/bin/sh\necho not json\n")
+        self.addCleanup(gh.write_text, real)
+        status, out = self.finish(self.start("--run=7"))
+        self.assertEqual(status, 3, out)
+        self.assertIn("JSONDecodeError", out)
+        self.assertNotIn("Traceback", out)
+        starts = (self.shared / "poller.log").read_text().count("started")
+        self.assertEqual(starts, 1)
+
     def test_a_refusal_ends_the_watch_with_the_pollers_error(self):
         (self.states.parent / "states.json.fail").write_text(json.dumps(
             [99, "gh: Not Found (HTTP 404)"]))

@@ -602,7 +602,13 @@ def poll(place, repo, runs, commits, steps, failures):
                 add_steps(jobs + replaced, steps)
                 view["steps"] = {job["node"]: job["steps"]
                                  for job in jobs + replaced if job["steps"]}
-    except Unanswered as error:
+    except Exception as error:  # noqa: BLE001 -- the poller outlives it
+        #  An answer this script did not expect is written as a refusal,
+        #  which ends the watches with its text, rather than ending the
+        #  poller: the watches would start it again, and each start would
+        #  ask GitHub once more.
+        if not isinstance(error, Unanswered):
+            error = Unanswered("%s: %s" % (type(error).__name__, error))
         print("%s %s: %s" % (stamp(), repo, error), flush=True)
         for kind, whats in (("run", runs), ("commit", commits)):
             for what in whats:
@@ -639,6 +645,8 @@ class Shared:
         self.out = out
         self.direct = Direct(self.repo)
         self.said = set()
+        #  When this watch last started a poller.
+        self.started = 0.0
 
     def say(self, text):
         if text not in self.said:
@@ -681,11 +689,16 @@ class Shared:
                 elif held.get("failures", 0) >= TRIES:
                     raise Unanswered(error)
             if not poller_running(self.place):
-                if self.place.joinpath("poller.json").exists():
-                    self.say("the shared gate poller had ended; started it"
-                             " again (log: %s)" % (self.place / "poller.log"))
-                start_poller(self.place)
-                time.sleep(0.2)
+                #  At most one start a floor interval, so a poller that
+                #  cannot start does not cost a query a second.
+                if time.time() - self.started >= setting("FLOOR", FLOOR):
+                    if self.place.joinpath("poller.json").exists():
+                        self.say("the shared gate poller had ended; started"
+                                 " it again (log: %s)"
+                                 % (self.place / "poller.log"))
+                    self.started = time.time()
+                    start_poller(self.place)
+                    time.sleep(0.2)
             elif time.time() - waited > stuck:
                 self.say("the shared gate poller has not answered for %d s"
                          " (log: %s); asking GitHub directly meanwhile"
