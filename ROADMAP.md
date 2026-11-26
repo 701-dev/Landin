@@ -88,7 +88,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -3825,6 +3825,200 @@ here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each row's completion with the fixture, corpus test or
 control it names.
+
+### R22.33 — Boards reused on identical images
+
+Status: planned
+Depends on: none
+
+A promotion's boards taken from the last passed boards run when every
+input of the board jobs is the same bytes, which the maintainer accepted
+on 2026-11-26 from the gate-time study of that day: 31 of the 39 boards
+runs from 2026-11-20 ran images byte-identical to the passed run before
+them, while the rig, one leg at a time, was busy seven to eleven hours a
+day and found two defects in about 270 runs, both in its own harness.
+The identity is every boot, RAM and timing image and link script
+`board-bundles` builds, the harness the legs run and the hardware
+records the strict build reads, each path named by the item, and the
+board jobs' own workflow text. `files.sha256` mixes in `bundle.json`,
+`timing.json` and `commands.json`, which name the commit, so the
+identity is a list of its own that leaves out what names the tree and
+nothing else. A boards dispatch, or main's push, whose identity equals
+that of a passed boards run under a week old takes that run's legs and
+cycles, as main's push already takes a passed run of the same tree
+(D1647), and the aggregate names the run it took. The weekly boards run
+becomes daily on main when main moved, so a board or probe that degrades
+shows within a day, until R22.37's daily complete gate takes it over. `item.py boards` meets R22.27's SR-1988, a boards run
+recorded while queued that `promote` does not find; the item that lands
+second takes the other's change. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: controls that an image, harness, record or workflow change
+each breaks the identity and a change that only names another commit
+does not; a dispatch whose images match a passed run's taking it and one
+whose images differ running the legs, both named runs; the nightly run's
+first pass; process.md's "Physical boards and promotion" and AGENTS.md's
+gate paragraph saying the rule.
+
+### R22.34 — Figures recorded from the run that measured them
+
+Status: planned
+Depends on: none
+
+The size, instruction-count and cycles figures an emission change moves,
+the gate's largest single cause of failure since the week of 2026-11-16:
+48 of the 254 defects the gate-time study of 2026-11-26 classified, 18
+that week and 25 in the three days after it, each a whole gate cycle
+spent only to record what the failed run had measured. The maintainer
+accepted the change that day. On a branch push the measurement lanes,
+`measure-size`, Darwin's and FreeBSD's size steps, the Cortex-M
+instruction counts and the boards' cycles comparison, report an
+undeclared move in the run's summary and artifact and pass. A commit
+that records exactly the figures of a passed run's artifact
+(`measure.py record --from-run`, `timing.py record`) and changes nothing
+else reuses that run's pass, as the cycles baselines' leaving the key
+already lets (D1650); the `inputs` job holds the recorded files to the
+artifact rather than trusting the declaration. A pass that reported a
+move can be reused only by the commit that records it, and main's push
+refuses a tree whose last pass reported a move not recorded since.
+Placed here so that no phase gate waits for it; it depends on no other
+item.
+
+Exit evidence: controls that a branch push with an undeclared move passes
+and names it, that main refuses one not recorded, and that a recording
+commit reuses only when its figures equal the artifact's; one
+emission-changing candidate landed on one gate, its recording commit
+reusing it, named runs; `docs/measurement.md` and process.md saying the
+steps.
+
+### R22.35 — Checks too long for a gate, by record
+
+Status: planned
+Depends on: none
+
+The exhaustive and other checks too long for any regular gate, which the
+maintainer excluded from them in general on 2026-11-26, answering Q-307.
+Such a check runs on a host and is recorded in a file beside it: the
+command, the host, the date, the result and the digest of the emitted
+code it checked, for R22.10's exhaustive `f32` run each checked
+function's object code on each target the record claims. A script the
+`scripts` job runs in seconds compiles the same code and says whether
+each record is fresh or stale since a commit. A stale record fails no
+push; it blocks a release, or a phase-gate claim, that cites it. The
+rule is recorded as a decision in `spec.md`, and R22.10's runs are the
+first record. Placed here so that no phase gate waits for it; it
+depends on no other item.
+
+Exit evidence: the script's tests, a record fresh after a change
+elsewhere and stale after a change to the code it checked; R22.10's
+record and its check in the `scripts` job; the release checklist in
+process.md naming stale records.
+
+### R22.36 — Failure causes recorded, and the selection in shadow
+
+Status: planned
+Depends on: none
+
+Why a gate job failed is recorded nowhere: the gate-time study of
+2026-11-26 rebuilt it from 1,024 job logs. The gate records it itself:
+for each failed job, whether a re-run of the same tree passed it and
+whether the branch's next push changed the tree, the rule that agreed
+with the study's readers on 90% of the jobs it called defects and found
+97% of theirs, refined by recorded outside signatures, a mirror's 403 or
+a probe's DMI timeout among them. From that history a script keeps the
+lane table the selection reads, a file in the tree, so the same tree
+always selects the same lanes; each lane declares its inputs there, and
+a control keeps every gate job in it. A branch job whose failure matches
+an outside signature is re-run once, automatically, and the summary
+names the re-run; main's gate is still investigated, never rerun
+blindly.
+
+The `inputs` job then computes the selected gate and writes into the
+summary what it would have skipped, skipping nothing: it keeps each lane
+whose declared inputs the change reaches; each lane that runs emitted
+code whose target's emission digest, from the determinism manifests,
+its harness or its expectations differ from those of a passed run; each
+lane that in the last eight weeks was the only lane to show a defect, is
+under four weeks old, costs under five job-minutes or checks the
+evidence itself, the build comparisons; and every other lane on one
+selected gate in four, drawn from the tree's hash. The maintainer
+accepted those values on 2026-11-26, and that shadow mode comes first.
+It runs for about 200 complete gates, the length Q-364 asks the
+maintainer to confirm. Placed here so that no phase gate
+waits for it; it depends on no other item.
+
+Exit evidence: a cause recorded for every failed job of the shadow
+period, with the outside signatures that re-ran; the lane table and its
+control; every gate's summary naming the lanes it would have skipped;
+and the measured miss rate, the defects that only skipped lanes showed,
+set against the study's replay of November, 1.7 a week.
+
+### R22.37 — The selected gate applied
+
+Status: planned
+Depends on: R22.36
+Promotion: maintainer
+
+The selected gate R22.36 measured, applied once the maintainer accepts
+its miss rate. A development push runs it unless it asks for the
+complete gate, and an item lands on main on the selected gate and main's
+own gate: an item's landing is no longer tied to a complete gate
+(the maintainer, 2026-11-26). The complete gate, every lane and the
+boards with no reuse, runs at every phase's gate claim, and on main once
+a day when no phase gate ran that day and main moved (the maintainer's
+answer to Q-363); a phase gate is claimed on a commit a complete gate
+passed, and R22.38 puts each release on such a tree. A scheduled
+complete gate that fails holds only the landings whose changes reach the
+failing lanes; those lanes alone are dispatched on each tree landed
+since the last complete pass to name the commit, and its item fixes
+forward at the head of the line.
+Mechanics' completion rule, "the complete gate passed on the completing
+commit", becomes the selected gate on the landed tree and the first
+complete gate that covers it; R16's and R22's standing baselines hold on
+every push that changes the emitted code and on every complete gate.
+Placed here so that no phase gate waits for it; it depends on R22.36
+alone.
+
+Exit evidence: controls that a selected pass is enough for a branch and
+for main's push, and that a phase-gate claim refuses a commit no
+complete gate covered; the search command's tests; the first
+scheduled complete gate; a week of landings on the selected gate with
+the complete gates that covered them named; AGENTS.md's "The mechanical
+gate", process.md's gate reference and the landin-change skill saying
+the rule.
+
+### R22.38 — Releases on a gate that runs anyway
+
+Status: planned
+Depends on: R22.37
+
+A release runs no complete gate of its own: the maintainer asked on
+2026-11-26 that releases be planned to reuse or share an existing gate.
+Today the recipe's declaration commit is a candidate like any other, its
+own gate, boards and promotion, and the flake-hash commit after the tag
+is gated and promoted again, two complete gates for one release. The
+recipe in process.md's "Releasing a version" changes so that the
+declaration lands on, or provably beside, a tree a complete gate passes
+anyway: made before a phase-gate claim, so that the claim's complete
+gate is also the release's, or onto the day's complete gate. It can
+then reuse that pass only if it changes nothing a lane reads, which it
+does not today: besides the explanatory README, `handoff.md`,
+`docs/capabilities.md` and the site's `VERSION_LINE`, it edits the
+version line of `tour.md` and each prototype's "Current with" line, so
+the item either leaves those lines out of the key or moves the version
+out of them, and `release.py gated` accepts a tag on the declaration
+when the pass it reused was complete. The flake-hash commit changes only
+`releaseVersion` and `releaseHashes`, which no lane but the flake jobs
+reads: it reuses the pass and runs those jobs alone. The version, the
+declaration and the tag stay the maintainer's; the item changes the
+recipe and releases nothing. Placed here so that no phase gate waits for
+it; it depends on R22.37 alone.
+
+Exit evidence: controls that a declaration commit reuses a complete pass
+and a change to anything a lane reads does not, that `release.py gated`
+takes a declaration on a reused complete pass, and that a flake-hash
+commit reuses and runs the flake jobs; a rehearsal of the release
+workflow on such a tree; process.md's recipe saying the steps.
 
 ### R22.40 — Character encodings
 
