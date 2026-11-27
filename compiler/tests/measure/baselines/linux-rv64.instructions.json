@@ -102,7 +102,7 @@
    "instructions": 3350448
   },
   "rv64gc/size-all/regex-redux": {
-   "instructions": 363126112
+   "instructions": 363124126
   },
   "rv64gc/size-all/reverse-complement": {
    "instructions": 1447686
@@ -129,7 +129,7 @@
    "instructions": 3350448
   },
   "rv64gc/size-auto/regex-redux": {
-   "instructions": 363141144
+   "instructions": 363139158
   },
   "rv64gc/size-auto/reverse-complement": {
    "instructions": 1447686
@@ -156,7 +156,7 @@
    "instructions": 3353059
   },
   "rv64gc/size-off/regex-redux": {
-   "instructions": 363142823
+   "instructions": 363140837
   },
   "rv64gc/size-off/reverse-complement": {
    "instructions": 1448419
@@ -183,7 +183,7 @@
    "instructions": 3284717
   },
   "rv64gc/speed-all/regex-redux": {
-   "instructions": 585583033
+   "instructions": 585549345
   },
   "rv64gc/speed-all/reverse-complement": {
    "instructions": 1195412
@@ -210,7 +210,7 @@
    "instructions": 3284717
   },
   "rv64gc/speed-auto/regex-redux": {
-   "instructions": 585583033
+   "instructions": 585549345
   },
   "rv64gc/speed-auto/reverse-complement": {
    "instructions": 1195412
@@ -237,7 +237,7 @@
    "instructions": 3297339
   },
   "rv64gc/speed-off/regex-redux": {
-   "instructions": 585508656
+   "instructions": 585538372
   },
   "rv64gc/speed-off/reverse-complement": {
    "instructions": 1196121
@@ -345,7 +345,7 @@
    "instructions": 3350264
   },
   "rv64gc_xtheadba/size-all/regex-redux": {
-   "instructions": 362976987
+   "instructions": 362975001
   },
   "rv64gc_xtheadba/size-all/reverse-complement": {
    "instructions": 1447686
@@ -372,7 +372,7 @@
    "instructions": 3350264
   },
   "rv64gc_xtheadba/size-auto/regex-redux": {
-   "instructions": 362992019
+   "instructions": 362990033
   },
   "rv64gc_xtheadba/size-auto/reverse-complement": {
    "instructions": 1447686
@@ -399,7 +399,7 @@
    "instructions": 3352875
   },
   "rv64gc_xtheadba/size-off/regex-redux": {
-   "instructions": 362993698
+   "instructions": 362991712
   },
   "rv64gc_xtheadba/size-off/reverse-complement": {
    "instructions": 1448419
@@ -426,7 +426,7 @@
    "instructions": 3284533
   },
   "rv64gc_xtheadba/speed-all/regex-redux": {
-   "instructions": 585569772
+   "instructions": 585536084
   },
   "rv64gc_xtheadba/speed-all/reverse-complement": {
    "instructions": 1195412
@@ -453,7 +453,7 @@
    "instructions": 3284533
   },
   "rv64gc_xtheadba/speed-auto/regex-redux": {
-   "instructions": 585569772
+   "instructions": 585536084
   },
   "rv64gc_xtheadba/speed-auto/reverse-complement": {
    "instructions": 1195412
@@ -480,7 +480,7 @@
    "instructions": 3297155
   },
   "rv64gc_xtheadba/speed-off/regex-redux": {
-   "instructions": 585495395
+   "instructions": 585525111
   },
   "rv64gc_xtheadba/speed-off/reverse-complement": {
    "instructions": 1196121
@@ -588,7 +588,7 @@
    "instructions": 3350688
   },
   "rv64gc_zba/size-all/regex-redux": {
-   "instructions": 362977411
+   "instructions": 362975425
   },
   "rv64gc_zba/size-all/reverse-complement": {
    "instructions": 1448110
@@ -615,7 +615,7 @@
    "instructions": 3350688
   },
   "rv64gc_zba/size-auto/regex-redux": {
-   "instructions": 362992443
+   "instructions": 362990457
   },
   "rv64gc_zba/size-auto/reverse-complement": {
    "instructions": 1448110
@@ -642,7 +642,7 @@
    "instructions": 3353299
   },
   "rv64gc_zba/size-off/regex-redux": {
-   "instructions": 362994122
+   "instructions": 362992136
   },
   "rv64gc_zba/size-off/reverse-complement": {
    "instructions": 1448843
@@ -669,7 +669,7 @@
    "instructions": 3284805
   },
   "rv64gc_zba/speed-all/regex-redux": {
-   "instructions": 585570044
+   "instructions": 585536356
   },
   "rv64gc_zba/speed-all/reverse-complement": {
    "instructions": 1195684
@@ -696,7 +696,7 @@
    "instructions": 3284805
   },
   "rv64gc_zba/speed-auto/regex-redux": {
-   "instructions": 585570044
+   "instructions": 585536356
   },
   "rv64gc_zba/speed-auto/reverse-complement": {
    "instructions": 1195684
@@ -723,7 +723,7 @@
    "instructions": 3297427
   },
   "rv64gc_zba/speed-off/regex-redux": {
-   "instructions": 585495667
+   "instructions": 585525383
   },
   "rv64gc_zba/speed-off/reverse-complement": {
    "instructions": 1196393
@@ -831,7 +831,7 @@
    "instructions": 3350688
   },
   "rv64gc_zba_xtheadba/size-all/regex-redux": {
-   "instructions": 362977411
+   "instructions": 362975425
   },
   "rv64gc_zba_xtheadba/size-all/reverse-complement": {
    "instructions": 1448110
@@ -858,7 +858,7 @@
    "instructions": 3350688
   },
   "rv64gc_zba_xtheadba/size-auto/regex-redux": {
-   "instructions": 362992443
+   "instructions": 362990457
   },
   "rv64gc_zba_xtheadba/size-auto/reverse-complement": {
    "instructions": 1448110
@@ -885,7 +885,7 @@
    "instructions": 3353299
   },
   "rv64gc_zba_xtheadba/size-off/regex-redux": {
-   "instructions": 362994122
+   "instructions": 362992136
   },
   "rv64gc_zba_xtheadba/size-off/reverse-complement": {
    "instructions": 1448843
@@ -912,7 +912,7 @@
    "instructions": 3284805
   },
   "rv64gc_zba_xtheadba/speed-all/regex-redux": {
-   "instructions": 585570044
+   "instructions": 585536356
   },
   "rv64gc_zba_xtheadba/speed-all/reverse-complement": {
    "instructions": 1195684
@@ -939,7 +939,7 @@
    "instructions": 3284805
   },
   "rv64gc_zba_xtheadba/speed-auto/regex-redux": {
-   "instructions": 585570044
+   "instructions": 585536356
   },
   "rv64gc_zba_xtheadba/speed-auto/reverse-complement": {
    "instructions": 1195684
@@ -966,7 +966,7 @@
    "instructions": 3297427
   },
   "rv64gc_zba_xtheadba/speed-off/regex-redux": {
-   "instructions": 585495667
+   "instructions": 585525383
   },
   "rv64gc_zba_xtheadba/speed-off/reverse-complement": {
    "instructions": 1196393

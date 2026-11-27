@@ -404,8 +404,8 @@
   },
   "rv64gc/size-all/regex-redux": {
    "sections": {
-    ".text": 402224,
-    ".rodata": 82872,
+    ".text": 401920,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -513,8 +513,8 @@
   },
   "rv64gc/size-auto/regex-redux": {
    "sections": {
-    ".text": 402368,
-    ".rodata": 82872,
+    ".text": 402064,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1112,
@@ -622,8 +622,8 @@
   },
   "rv64gc/size-off/regex-redux": {
    "sections": {
-    ".text": 402480,
-    ".rodata": 82872,
+    ".text": 402176,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1032,
@@ -731,8 +731,8 @@
   },
   "rv64gc/speed-all/regex-redux": {
    "sections": {
-    ".text": 451280,
-    ".rodata": 82065,
+    ".text": 450980,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -840,8 +840,8 @@
   },
   "rv64gc/speed-auto/regex-redux": {
    "sections": {
-    ".text": 451280,
-    ".rodata": 82065,
+    ".text": 450980,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -949,8 +949,8 @@
   },
   "rv64gc/speed-off/regex-redux": {
    "sections": {
-    ".text": 451948,
-    ".rodata": 82065,
+    ".text": 451648,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1032,
@@ -1385,8 +1385,8 @@
   },
   "rv64gc_xtheadba/size-all/regex-redux": {
    "sections": {
-    ".text": 402148,
-    ".rodata": 82872,
+    ".text": 401844,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -1494,8 +1494,8 @@
   },
   "rv64gc_xtheadba/size-auto/regex-redux": {
    "sections": {
-    ".text": 402292,
-    ".rodata": 82872,
+    ".text": 401988,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1112,
@@ -1603,8 +1603,8 @@
   },
   "rv64gc_xtheadba/size-off/regex-redux": {
    "sections": {
-    ".text": 402404,
-    ".rodata": 82872,
+    ".text": 402100,
+    ".rodata": 82403,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1032,
@@ -1712,8 +1712,8 @@
   },
   "rv64gc_xtheadba/speed-all/regex-redux": {
    "sections": {
-    ".text": 451192,
-    ".rodata": 82065,
+    ".text": 450892,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -1821,8 +1821,8 @@
   },
   "rv64gc_xtheadba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 451192,
-    ".rodata": 82065,
+    ".text": 450892,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1120,
@@ -1930,8 +1930,8 @@
   },
   "rv64gc_xtheadba/speed-off/regex-redux": {
    "sections": {
-    ".text": 451860,
-    ".rodata": 82065,
+    ".text": 451560,
+    ".rodata": 81596,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1032,
@@ -2366,8 +2366,8 @@
   },
   "rv64gc_zba/size-all/regex-redux": {
    "sections": {
-    ".text": 403660,
-    ".rodata": 83371,
+    ".text": 403356,
+    ".rodata": 82902,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -2475,8 +2475,8 @@
   },
   "rv64gc_zba/size-auto/regex-redux": {
    "sections": {
-    ".text": 403804,
-    ".rodata": 83371,
+    ".text": 403500,
+    ".rodata": 82902,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1152,
@@ -2584,8 +2584,8 @@
   },
   "rv64gc_zba/size-off/regex-redux": {
    "sections": {
-    ".text": 403916,
-    ".rodata": 83371,
+    ".text": 403612,
+    ".rodata": 82902,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1072,
@@ -2693,8 +2693,8 @@
   },
   "rv64gc_zba/speed-all/regex-redux": {
    "sections": {
-    ".text": 452496,
-    ".rodata": 82508,
+    ".text": 452196,
+    ".rodata": 82039,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -2802,8 +2802,8 @@
   },
   "rv64gc_zba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 452496,
-    ".rodata": 82508,
+    ".text": 452196,
+    ".rodata": 82039,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -2911,8 +2911,8 @@
   },
   "rv64gc_zba/speed-off/regex-redux": {
    "sections": {
-    ".text": 453164,
-    ".rodata": 82508,
+    ".text": 452864,
+    ".rodata": 82039,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1072,
@@ -3347,8 +3347,8 @@
   },
   "rv64gc_zba_xtheadba/size-all/regex-redux": {
    "sections": {
-    ".text": 403660,
-    ".rodata": 83380,
+    ".text": 403356,
+    ".rodata": 82911,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -3456,8 +3456,8 @@
   },
   "rv64gc_zba_xtheadba/size-auto/regex-redux": {
    "sections": {
-    ".text": 403804,
-    ".rodata": 83380,
+    ".text": 403500,
+    ".rodata": 82911,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1152,
@@ -3565,8 +3565,8 @@
   },
   "rv64gc_zba_xtheadba/size-off/regex-redux": {
    "sections": {
-    ".text": 403916,
-    ".rodata": 83380,
+    ".text": 403612,
+    ".rodata": 82911,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1072,
@@ -3674,8 +3674,8 @@
   },
   "rv64gc_zba_xtheadba/speed-all/regex-redux": {
    "sections": {
-    ".text": 452496,
-    ".rodata": 82517,
+    ".text": 452196,
+    ".rodata": 82048,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -3783,8 +3783,8 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 452496,
-    ".rodata": 82517,
+    ".text": 452196,
+    ".rodata": 82048,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1160,
@@ -3892,8 +3892,8 @@
   },
   "rv64gc_zba_xtheadba/speed-off/regex-redux": {
    "sections": {
-    ".text": 453164,
-    ".rodata": 82517,
+    ".text": 452864,
+    ".rodata": 82048,
     ".tbss": 4,
     ".data.rel.ro": 360,
     ".got": 1072,
