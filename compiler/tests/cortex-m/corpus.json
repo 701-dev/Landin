@@ -1680,6 +1680,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-k-nucleotide": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-mandelbrot": {
       "codes": [
         "L0015"

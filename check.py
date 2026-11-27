@@ -237,6 +237,8 @@ RUNNING_EXAMPLES = [
      "compiler/tests/fixtures/runtime/benchmark-game-binary-trees/main.ldn"),
     ("Benchmark Game pidigits",
      "compiler/tests/fixtures/runtime/benchmark-game-pidigits/main.ldn"),
+    ("Benchmark Game k-nucleotide",
+     "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/main.ldn"),
 ]
 
 #  A firmware example is a program a reader copies too, and no host runs
@@ -257,7 +259,8 @@ FIRMWARE_LANE = "environments/cortex-m/firmware.py"
 #  input, or works on its arguments, as a Benchmark Game program takes its
 #  size, also names the input or the arguments its fixture gives it.
 READING_EXAMPLES = {"Word count", "Line numbers",
-                    "Benchmark Game reverse-complement"}
+                    "Benchmark Game reverse-complement",
+                    "Benchmark Game k-nucleotide"}
 ARGUMENT_EXAMPLES = {"Adding up the arguments",
                      "Benchmark Game fannkuch-redux",
                      "Benchmark Game Mandelbrot", "Benchmark Game FASTA",
@@ -308,6 +311,10 @@ BENCHMARK_GAME_ORACLES = {
         "b7f92c56b5d8aeb0a4d698842d1d87a57b4909865c3c84e5e10313e16663c3cb",
     "compiler/tests/fixtures/runtime/benchmark-game-pidigits/output.txt":
         "dbf95cc20ad23ff1a385d30436f0c63b5ae7f41bb1003cf204f5e4888b74a39c",
+    "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/input.txt":
+        "62d1e8d0df7938d2aefda9a37887e0389231ea72c099c29a51afb6edca1bdc73",
+    "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/output.txt":
+        "baa63c46addb89c63e68ea0055952847fbccf450e89997b2b62234c90e66f500",
 }
 
 #  Every word the language reserves. Kept here rather than imported from

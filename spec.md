@@ -37778,6 +37778,16 @@ another; `runtime/map-seeded-from-entropy`, a hosted map seeded by
 `random.hash_seed`; `runtime/map-firmware-seed`, a map given its seed on
 the firmware corpus lanes; and `runtime/library-builtin-evidence`.
 
+### D2934 — k-nucleotide's key is a word of two-bit bases whose hash is its own bits
+
+**The tour said** that a conformance is declared once [1280], and D1360 that a hash should depend on the seed, which the hashes `core/cmp` ships do through SipHash-1-3; the Benchmark Game's k-nucleotide requires the library's hash table and lets a program give its key a hash function of its own.
+
+**Chosen:** `runtime/benchmark-game-k-nucleotide` counts runs of up to 18 bases as a distinct `u64` of two bits a base, the first base highest, one map for each length, so the word alone tells the keys apart, and the key's `hashable` returns the word without the seed: `core/map` puts every hash through MurmurHash3's finalizer before it chooses a slot, which D1360 kept for a program's own hash that is a key's value. The map is the library's, unchanged, made with a constant seed; `core/cmp`'s seed stays opaque and the library gains no unkeyed hash. Over FASTA's output for 25,000,000 the run took 61 s on the EPYC host with this hash and 96 s with `cmp.hash_word`, and the map's lookups, with the key's equality and hash, which the backend does not inline, were 85 per cent of it.
+
+**The alternatives:** `cmp.hash_word` of the word, D1360's keyed hash, measured above; a cheap keyed mixer, the word added to a seed word and multiplied, which needs the seed's words and so a public accessor D1360 declined for keeping the key's form the module's own; and the bases' text as a `[]u8` key, which hashes and compares bytes where a word does in one step, and which the game's fastest programs replace with a packed word too.
+
+**Pinned by** `runtime/benchmark-game-k-nucleotide`, the game's output for its 1,000 input byte for byte, its digest in `check.py`.
+
 ### D1032 — A handle that borrows nothing is `new`, and a second way to make one keeps `over`
 
 **The tour said** nothing of names; D269 has a module's principal type
