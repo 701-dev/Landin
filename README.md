@@ -605,7 +605,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.22 — k-nucleotide ported (planned).**
+**Next roadmap item: R22.28 — What Windows still lacks after R21.70 (planned).**
 
 ## Questions, bugs and ideas
 
