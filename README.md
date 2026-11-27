@@ -605,7 +605,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.35 — Checks too long for a gate, by record (planned).**
+**Current roadmap work: R22.36 — Failure causes recorded, and the selection in shadow.**
 
 ## Questions, bugs and ideas
 
