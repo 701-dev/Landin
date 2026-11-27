@@ -593,7 +593,7 @@
   },
   "armv8-a/speed-all/pidigits": {
    "sections": {
-    ".text": 119996,
+    ".text": 119312,
     ".rdata": 37840,
     ".buildid": 81,
     ".data": 396,
@@ -682,7 +682,7 @@
   },
   "armv8-a/speed-auto/pidigits": {
    "sections": {
-    ".text": 119996,
+    ".text": 119312,
     ".rdata": 37840,
     ".buildid": 81,
     ".data": 396,
@@ -771,7 +771,7 @@
   },
   "armv8-a/speed-off/pidigits": {
    "sections": {
-    ".text": 119884,
+    ".text": 119208,
     ".rdata": 37840,
     ".buildid": 81,
     ".data": 396,
@@ -1394,7 +1394,7 @@
   },
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
-    ".text": 121528,
+    ".text": 120836,
     ".rdata": 38388,
     ".buildid": 81,
     ".data": 428,
@@ -1483,7 +1483,7 @@
   },
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
-    ".text": 121528,
+    ".text": 120836,
     ".rdata": 38388,
     ".buildid": 81,
     ".data": 428,
@@ -1572,7 +1572,7 @@
   },
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
-    ".text": 121416,
+    ".text": 120732,
     ".rdata": 38388,
     ".buildid": 81,
     ".data": 428,

@@ -765,7 +765,7 @@
   },
   "armv8-a/speed-all/pidigits": {
    "sections": {
-    "__TEXT,__text": 103180,
+    "__TEXT,__text": 102628,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,
@@ -880,7 +880,7 @@
   },
   "armv8-a/speed-auto/pidigits": {
    "sections": {
-    "__TEXT,__text": 103180,
+    "__TEXT,__text": 102628,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,
@@ -995,7 +995,7 @@
   },
   "armv8-a/speed-off/pidigits": {
    "sections": {
-    "__TEXT,__text": 103624,
+    "__TEXT,__text": 103080,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,
@@ -1800,7 +1800,7 @@
   },
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
-    "__TEXT,__text": 103148,
+    "__TEXT,__text": 102596,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,
@@ -1915,7 +1915,7 @@
   },
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
-    "__TEXT,__text": 103148,
+    "__TEXT,__text": 102596,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,
@@ -2030,7 +2030,7 @@
   },
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
-    "__TEXT,__text": 103592,
+    "__TEXT,__text": 103048,
     "__TEXT,__stubs": 120,
     "__TEXT,__const": 166,
     "__TEXT,__cstring": 31516,

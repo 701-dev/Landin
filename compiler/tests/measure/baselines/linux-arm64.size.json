@@ -541,7 +541,7 @@
   "armv8-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109380,
+    ".text": 108796,
     ".rodata": 36966,
     ".tbss": 4,
     ".data.rel.ro": 240,
@@ -622,7 +622,7 @@
   "armv8-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109380,
+    ".text": 108796,
     ".rodata": 36966,
     ".tbss": 4,
     ".data.rel.ro": 240,
@@ -703,7 +703,7 @@
   "armv8-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109824,
+    ".text": 109248,
     ".rodata": 36966,
     ".tbss": 4,
     ".data.rel.ro": 240,
@@ -1270,7 +1270,7 @@
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 110196,
+    ".text": 109608,
     ".rodata": 37362,
     ".tbss": 4,
     ".data.rel.ro": 240,
@@ -1351,7 +1351,7 @@
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 110196,
+    ".text": 109608,
     ".rodata": 37362,
     ".tbss": 4,
     ".data.rel.ro": 240,
@@ -1432,7 +1432,7 @@
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 110640,
+    ".text": 110060,
     ".rodata": 37362,
     ".tbss": 4,
     ".data.rel.ro": 240,
