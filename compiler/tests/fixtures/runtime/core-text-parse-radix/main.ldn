@@ -1,0 +1,159 @@
+--  Parsing in a radix, and parsing a `bool`, at the edges of each width.
+import core/text
+
+--  What a parse gives as a code: 0 for a value, 1 for `invalid_number`,
+--  2 for `number_overflow`.
+value_code: u8 = 0
+invalid_code: u8 = 1
+overflow_code: u8 = 2
+
+--  A `u64` parse's code, and the value when there is one.
+u64_of: (source: []u8, radix: u32) -> (code: u8, value: u64) =
+    value = 0
+    code = value_code
+    value = text.parse_radix_u64(source, radix) else (problem)
+        code = if problem == text.invalid_number then invalid_code
+               else overflow_code end if
+        return
+    end
+end u64_of
+
+--  An `i64` parse's code, and the value when there is one.
+i64_of: (source: []u8, radix: u32) -> (code: u8, value: i64) =
+    value = 0
+    code = value_code
+    value = text.parse_radix_i64(source, radix) else (problem)
+        code = if problem == text.invalid_number then invalid_code
+               else overflow_code end if
+        return
+    end
+end i64_of
+
+--  Whether the `u64` parse gives `expected`.
+unsigned: (source: []u8, radix: u32, expected: u64) -> (yes: bool) =
+    found := u64_of(source, radix)
+    yes = found.code == value_code and found.value == expected
+end unsigned
+
+--  Whether the `i64` parse gives `expected`.
+signed: (source: []u8, radix: u32, expected: i64) -> (yes: bool) =
+    found := i64_of(source, radix)
+    yes = found.code == value_code and found.value == expected
+end signed
+
+--  Whether both parses refuse with `code`.
+refused: (source: []u8, radix: u32, code: u8) -> (yes: bool) =
+    yes = unsigned_code(source, radix) == code
+          and signed_code(source, radix) == code
+end refused
+
+--  The `u64` parse's code alone.
+unsigned_code: (source: []u8, radix: u32) -> (code: u8) =
+    found := u64_of(source, radix)
+    code = found.code
+end unsigned_code
+
+--  The `i64` parse's code alone.
+signed_code: (source: []u8, radix: u32) -> (code: u8) =
+    found := i64_of(source, radix)
+    code = found.code
+end signed_code
+
+--  Radixes, prefixes and digits.
+digits: () -> (yes: bool) =
+    yes = unsigned("101", 2, 5) and unsigned("0b101", 2, 5)
+      and unsigned("0B101", 2, 5) and unsigned("777", 8, 511)
+      and unsigned("0o777", 8, 511) and unsigned("0O17", 8, 15)
+      and unsigned("ff", 16, 255) and unsigned("0xFF", 16, 255)
+      and unsigned("0Xff", 16, 255) and unsigned("0b1", 16, 0xb1)
+      and unsigned("zZ", 36, 1295) and unsigned("10", 36, 36)
+      and unsigned("0019", 10, 19) and unsigned("0", 2, 0)
+      and unsigned("ffffffffffffffff", 16, 0xffffffffffffffff)
+      and signed("-0x80", 16, 0 - 128) and signed("-101", 2, 0 - 5)
+      and signed("0o7", 8, 7)
+      and signed("-8000000000000000", 16, 0 - 9223372036854775807 - 1)
+      and signed("7fffffffffffffff", 16, 9223372036854775807)
+      and refused("", 10, invalid_code) and refused("0x", 16, invalid_code)
+      and refused("-", 10, invalid_code) and refused("+1", 10, invalid_code)
+      and refused("2", 2, invalid_code) and refused("0x1", 10, invalid_code)
+      and refused("0o7", 16, invalid_code) and refused("1", 1, invalid_code)
+      and refused("1", 37, invalid_code) and refused("1", 0, invalid_code)
+      and refused(" 1", 10, invalid_code) and refused("1_0", 10, invalid_code)
+      and refused("10000000000000000", 16, overflow_code)
+      and unsigned_code("-1", 10) == invalid_code
+      and signed_code("8000000000000000", 16) == overflow_code
+      and signed_code("-8000000000000001", 16) == overflow_code
+end digits
+
+--  Each narrower width at its bounds and one past them.
+widths: () -> (yes: bool) =
+    yes = false
+    small := text.parse_radix_u8("0xff", 16) else begin
+        return
+    end
+    _ = text.parse_radix_u8("100", 16) else (problem)
+        return when problem <> text.number_overflow
+        least := text.parse_radix_i8("-0b10000000", 2) else begin
+            return
+        end
+        great := text.parse_radix_i8("7f", 16) else begin
+            return
+        end
+        _ = text.parse_radix_i8("80", 16) else (past)
+            return when past <> text.number_overflow
+            wide := text.parse_radix_u16("ffff", 16) else begin
+                return
+            end
+            low := text.parse_radix_i16("-8000", 16) else begin
+                return
+            end
+            word := text.parse_radix_u32("1z141z3", 36) else begin
+                return
+            end
+            negative := text.parse_radix_i32("-2147483648", 10) else begin
+                return
+            end
+            size := text.parse_radix_usize("0o17", 8) else begin
+                return
+            end
+            index := text.parse_radix_isize("-z", 36) else begin
+                return
+            end
+            _ = text.parse_radix_u32("1z141z4", 36) else (beyond)
+                yes = small == 255 and least == 0 - 127 - 1 and great == 127
+                      and wide == 65535 and low == 0 - 32767 - 1
+                      and word == 4294967295
+                      and negative == 0 - 2147483647 - 1 and size == 15
+                      and index == 0 - 35
+                      and beyond == text.number_overflow
+                return
+            end
+            return
+        end
+        return
+    end
+end widths
+
+--  Whether `source` parses as a `bool` to `expected`, or is refused when
+--  `valid` is false.
+boolean: (source: []u8, valid: bool, expected: bool) -> (yes: bool) =
+    found := text.parse_bool(source) else (problem)
+        yes = not valid and problem == text.invalid_bool
+        return
+    end
+    yes = valid and found == expected
+end boolean
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not digits()
+    code = 2
+    return when not widths()
+    code = 3
+    return when not boolean("true", true, true)
+      or not boolean("false", true, false)
+      or not boolean("True", false, false) or not boolean("1", false, false)
+      or not boolean("", false, false) or not boolean("truee", false, false)
+      or not boolean("tru", false, false)
+    code = 42
+end main

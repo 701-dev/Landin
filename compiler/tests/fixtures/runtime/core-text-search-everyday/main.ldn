@@ -1,0 +1,152 @@
+--  The everyday searches: a prefix and a suffix, the last occurrence,
+--  how many occurrences, and the byte searches, each at its edges: the
+--  empty text, a match at either end, overlapping occurrences and
+--  scalars of every width, "é" two bytes, "€" three and "😀" four.
+import core/mem
+import core/text
+
+--  What `last_of` gives when the search reports `not_found`.
+nowhere: usize = 1000
+
+--  Where `sought` last begins in `source`, or `nowhere`.
+last_of: (source: utf8, sought: utf8) -> (offset: usize) =
+    found := text.find_last(source, sought) else (problem)
+        offset = if problem == mem.not_found then nowhere else 2000 end if
+        return
+    end
+    offset = text.offset(found)
+end last_of
+
+--  Where `scalar` last is in `source`, or `nowhere`.
+last_scalar_of: (source: utf8, scalar: u32) -> (offset: usize) =
+    found := text.find_last_scalar(source, scalar) else (problem)
+        offset = if problem == mem.not_found then nowhere else 2000 end if
+        return
+    end
+    offset = text.offset(found)
+end last_scalar_of
+
+--  The prefix and suffix tests.
+affixes: () -> (yes: bool) =
+    yes = text.starts_with("", "") and text.ends_with("", "")
+      and text.starts_with("abc", "") and text.ends_with("abc", "")
+      and text.starts_with("abc", "abc") and text.ends_with("abc", "abc")
+      and not text.starts_with("abc", "abcd")
+      and not text.ends_with("abc", "zabc")
+      and text.starts_with("é€😀", "é") and text.ends_with("é€😀", "😀")
+      and text.starts_with("é€😀", "é€") and text.ends_with("é€😀", "€😀")
+      and not text.starts_with("é€😀", "€")
+      and not text.ends_with("é€😀", "€")
+      and not text.starts_with("", "a") and not text.ends_with("", "a")
+end affixes
+
+--  The last occurrence of text and of a scalar.
+last: () -> (yes: bool) =
+    yes = last_of("abcabc", "abc") == 3 and last_of("abcabc", "a") == 3
+      and last_of("abcabc", "c") == 5 and last_of("abcabc", "x") == nowhere
+      and last_of("aaaa", "aa") == 2 and last_of("abc", "") == 3
+      and last_of("", "") == 0 and last_of("", "a") == nowhere
+      and last_of("a", "ab") == nowhere and last_of("abc", "abc") == 0
+      and last_of("é€😀é€😀", "€😀") == 11 and last_of("é€😀é", "é") == 9
+      and last_scalar_of("é€😀é€😀", '😀') == 14
+      and last_scalar_of("é€😀é€😀", 'é') == 9
+      and last_scalar_of("é€😀", 'a') == nowhere
+      and last_scalar_of("abc", 0xd800) == nowhere
+      and last_scalar_of("abc", 0x110000) == nowhere
+      and last_scalar_of("aXa", 'a') == 2
+end last
+
+--  How many times text occurs.
+counts: () -> (yes: bool) =
+    yes = text.occurrences("aaaa", "aa") == 2
+      and text.occurrences("aaaaa", "aa") == 2
+      and text.occurrences("abcabc", "abc") == 2
+      and text.occurrences("abc", "x") == 0
+      and text.occurrences("abc", "abcd") == 0
+      and text.occurrences("", "a") == 0
+      and text.occurrences("", "") == 1
+      and text.occurrences("é€😀", "") == 4
+      and text.occurrences("é€😀é€😀", "€") == 2
+      and text.occurrences(",a,,b,", ",") == 4
+end counts
+
+--  Where the first `value` at or after `start` is, or `nowhere`.
+byte_at: (source: []u8, value: u8, start: usize) -> (offset: usize) =
+    offset = nowhere
+    found := text.find_byte_from(source, value,
+                                 text.from_offset(source, start)) else begin
+        return
+    end
+    offset = text.offset(found)
+end byte_at
+
+--  Where the last `value` is, or `nowhere`.
+last_byte_at: (source: []u8, value: u8) -> (offset: usize) =
+    offset = nowhere
+    found := text.find_last_byte(source, value) else begin
+        return
+    end
+    offset = text.offset(found)
+end last_byte_at
+
+--  Where `sought` first occurs at or after `start`, or `nowhere`.
+bytes_at: (source: []u8, sought: []u8, start: usize) -> (offset: usize) =
+    offset = nowhere
+    found := text.find_bytes_from(source, sought,
+                                  text.from_offset(source, start)) else begin
+        return
+    end
+    offset = text.offset(found)
+end bytes_at
+
+--  Where `sought` last occurs, or `nowhere`.
+last_bytes_at: (source: []u8, sought: []u8) -> (offset: usize) =
+    offset = nowhere
+    found := text.find_last_bytes(source, sought) else begin
+        return
+    end
+    offset = text.offset(found)
+end last_bytes_at
+
+--  The byte searches over bytes that are not UTF-8.
+byte_searches: () -> (yes: bool) =
+    raw: []u8 = "\xff\x00ab\xff\x00ab\xfe"
+    empty: []u8 = ""
+    first := text.find_byte(raw, 0xff) else begin
+        yes = false
+        return
+    end
+    whole := text.find_bytes(raw, "ab\xfe") else begin
+        yes = false
+        return
+    end
+    yes = text.offset(first) == 0 and text.offset(whole) == 6
+      and byte_at(raw, 0xff, 1) == 4
+      and byte_at(raw, 0xfe, 0) == 8
+      and byte_at(raw, 0x01, 0) == nowhere
+      and byte_at(raw, 0xff, 9) == nowhere
+      and last_byte_at(raw, 0x00) == 5
+      and last_byte_at(raw, 0xfe) == 8
+      and last_byte_at(empty, 0x00) == nowhere
+      and bytes_at(raw, "\x00ab", 0) == 1
+      and bytes_at(raw, "\x00ab", 2) == 5
+      and bytes_at(raw, "\x00ab", 6) == nowhere
+      and bytes_at(raw, "", 3) == 3
+      and last_bytes_at(raw, "\x00ab") == 5
+      and last_bytes_at(raw, "\xff\x00") == 4
+      and last_bytes_at(raw, "") == 9
+      and last_bytes_at(raw, "abc") == nowhere
+      and bytes_at(empty, "a", 0) == nowhere
+end byte_searches
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not affixes()
+    code = 2
+    return when not last()
+    code = 3
+    return when not counts()
+    code = 4
+    return when not byte_searches()
+    code = 42
+end main

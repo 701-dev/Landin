@@ -1,0 +1,152 @@
+--  The everyday writers, each into a buffer that fits its result and
+--  into one a byte short, which must hold what it held.
+import core/mem
+import core/text
+
+--  Which writer a check runs.
+joined: u8 = 0
+replaced: u8 = 1
+repeated: u8 = 2
+quoted: u8 = 3
+
+--  Run writer `kind` over `source`, `sought` and `other`, whose meaning
+--  is the writer's, into `out`.
+run: (inout out: text.utf8_builder, kind: u8, source: utf8, sought: utf8,
+      other: utf8, times: usize) -> none ! mem.out_of_memory =
+    if kind == joined then
+        parts: [3]utf8 = [source, sought, other]
+        try text.utf8_append_joined(out, parts[0..<times], "--")
+    elsif kind == replaced then
+        try text.utf8_append_replaced(out, source, sought, other)
+    elsif kind == repeated then
+        try text.utf8_append_repeated(out, source, times)
+    else
+        try text.utf8_append_quoted(out, source)
+    end if
+end run
+
+--  Whether writer `kind` writes `expected` after a mark, and into a
+--  buffer one byte short of it fails, leaving the mark alone.
+writes: (kind: u8, source: utf8, sought: utf8, other: utf8, times: usize,
+         expected: utf8) -> (yes: bool) =
+    yes = false
+    mut storage: [128]u8 = zeroed
+    mut out: text.utf8_builder = text.utf8_over(storage)
+    text.utf8_append_text(out, "#") else begin
+        return
+    end
+    run(out, kind, source, sought, other, times) else begin
+        return
+    end
+    held: utf8 = text.utf8_used(out)
+    return when not text.equal(held[1..<lenof held], expected)
+    if lenof expected == 0 then
+        yes = true
+        return
+    end if
+    mut spare: [128]u8 = zeroed
+    mut short: text.utf8_builder = text.utf8_over(spare[0..<lenof expected])
+    text.utf8_append_text(short, "#") else begin
+        return
+    end
+    run(short, kind, source, sought, other, times) else (problem)
+        yes = problem == mem.out_of_memory
+              and text.equal(text.utf8_used(short), "#")
+        return
+    end
+end writes
+
+--  The same through the byte builder, for one case of each.
+bytes_write: () -> (yes: bool) =
+    yes = false
+    mut storage: [64]u8 = zeroed
+    mut out: text.builder = text.over(storage)
+    parts: [2]utf8 = ["a", "b"]
+    text.append_joined(out, parts, ", ") else begin
+        return
+    end
+    text.append_replaced(out, "xyx", "y", "_") else begin
+        return
+    end
+    text.append_repeated(out, "ab", 2) else begin
+        return
+    end
+    text.append_quoted(out, "a\"") else begin
+        return
+    end
+    yes = text.equal(utf8(text.used(out)), "a, bx_xabab\"a\\\"\"")
+end bytes_write
+
+--  The narrow integers at their bounds.
+narrow: () -> (yes: bool) =
+    yes = false
+    mut storage: [64]u8 = zeroed
+    mut out: text.utf8_builder = text.utf8_over(storage)
+    text.utf8_append_u8(out, 0) else begin
+        return
+    end
+    text.utf8_append_u8(out, 255) else begin
+        return
+    end
+    text.utf8_append_u16(out, 65535) else begin
+        return
+    end
+    text.utf8_append_i8(out, 0 - 127 - 1) else begin
+        return
+    end
+    text.utf8_append_i8(out, 127) else begin
+        return
+    end
+    text.utf8_append_i16(out, 0 - 32767 - 1) else begin
+        return
+    end
+    text.utf8_append_i16(out, 32767) else begin
+        return
+    end
+    mut bytes_storage: [16]u8 = zeroed
+    mut raw: text.builder = text.over(bytes_storage)
+    text.append_i8(raw, 0 - 1) else begin
+        return
+    end
+    text.append_u16(raw, 7) else begin
+        return
+    end
+    yes = text.equal(text.utf8_used(out), "025565535-128127-3276832767")
+          and text.equal(utf8(text.used(raw)), "-17")
+end narrow
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not writes(joined, "a", "b", "c", 3, "a--b--c")
+      or not writes(joined, "a", "b", "c", 1, "a")
+      or not writes(joined, "a", "b", "c", 0, "")
+      or not writes(joined, "", "", "é", 3, "----é")
+    code = 2
+    return when not writes(replaced, "a.b.c", ".", "::", 0, "a::b::c")
+      or not writes(replaced, "aaaa", "aa", "b", 0, "bb")
+      or not writes(replaced, "aaa", "aa", "b", 0, "ba")
+      or not writes(replaced, "ab", "", "-", 0, "-a-b-")
+      or not writes(replaced, "", "", "-", 0, "-")
+      or not writes(replaced, "é€😀", "€", "", 0, "é😀")
+      or not writes(replaced, "abc", "x", "y", 0, "abc")
+      or not writes(replaced, "é€😀", "", "|", 0, "|é|€|😀|")
+    code = 3
+    return when not writes(repeated, "ab", "", "", 3, "ababab")
+      or not writes(repeated, "😀", "", "", 2, "😀😀")
+      or not writes(repeated, "ab", "", "", 0, "")
+    code = 4
+    return when not writes(quoted, "", "", "", 0, "\"\"")
+      or not writes(quoted, "a\nb\r\t\e", "", "", 0,
+                    "\"a\\nb\\r\\t\\e\"")
+      or not writes(quoted, "\\\"'", "", "", 0, "\"\\\\\\\"'\"")
+      or not writes(quoted, "\u{0}\u{7f}\u{85}", "", "", 0,
+                    "\"\\u{0}\\u{7f}\\u{85}\"")
+      or not writes(quoted, "a\u{202e}b\u{2028}\u{feff}", "", "", 0,
+                    "\"a\\u{202e}b\\u{2028}\\u{feff}\"")
+      or not writes(quoted, "é€😀\u{a0}", "", "", 0, "\"é€😀\u{a0}\"")
+    code = 5
+    return when not bytes_write()
+    code = 6
+    return when not narrow()
+    code = 42
+end main

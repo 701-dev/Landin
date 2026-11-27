@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.parse_radix_u8 to parse_radix_isize read digits in radixes 2, 8, 10, 16 and 36 of either case, each width's least and greatest value and one past it, the prefix that names radix 16, 8 or 2 after an optional sign and in no other radix; refuse an empty slice, a lone prefix or sign, a +, a digit not below the radix and a radix outside 2 to 36 with invalid_number; and text.parse_bool reads true and false and refuses any other spelling with invalid_bool
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

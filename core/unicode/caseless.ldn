@@ -1,0 +1,364 @@
+--  Comparing texts without case, by full case folding, as Unicode's
+--  chapter 3.13 defines a caseless match (its D144) and a canonical
+--  caseless match (its D145).  Neither keeps a buffer: each side's folding
+--  is read a scalar at a time from its source, and the canonical match
+--  reads its forms the way the normalizer reads a decomposition, from the
+--  source again for each pass it makes.
+
+import core/text
+
+--  Part `part` of the full case folding of `scalar`, from zero, and how
+--  many scalars the folding has: one, or up to three for a special
+--  record, as "ß" folds to "ss".
+folded_part: (scalar: u32, part: usize) -> (value: u32, parts: usize) =
+    record: usize = record_of(scalar)
+    if not case_special[record] then
+        value = moved(scalar, case_fold[record])
+        parts = 1
+        return
+    end if
+    (at: entry) := entry_of(case_full_block(scalar >> 6), case_full_masks,
+                            case_full_bases, case_full_pool, scalar)
+    mut at: usize = entry
+    mut left: usize = fold_kind
+    while left > 0 do
+        at += 1 + usize(case_full_pool[at])
+        dec left
+    end while
+    found := nth(case_full_pool[at + 1..<at + 1 + usize(case_full_pool[at])],
+                 part)
+    value = found.value
+    parts = found.parts
+end folded_part
+
+--  A place in a text's folding read forward: the source scalar at byte
+--  `at`, and the part `part` of its folding.
+forward: type = struct
+    at: usize
+    part: usize
+end forward
+
+--  The scalar of the folding of `bytes` at `c`, which is not at the end,
+--  and the place after it.  ASCII folds A to Z and nothing else, without
+--  the tables.
+fold_next: (bytes: []u8, c: forward) -> (value: u32, next: forward) =
+    lead: u8 = bytes[c.at]
+    if lead < 0x80 then
+        value = u32(lead)
+        if lead >= u8('A') and lead <= u8('Z') then
+            value = u32(lead) + 32
+        end if
+        next = (at: c.at + 1, part: 0)
+        return
+    end if
+    (scalar, after) := decoded(bytes, c.at)
+    found := folded_part(scalar, c.part)
+    value = found.value
+    next = if c.part + 1 < found.parts then
+               (at: c.at, part: c.part + 1)
+           else
+               (at: after, part: 0)
+           end if
+end fold_next
+
+--  Whether the folding of `prefix` is the folding of the scalars of
+--  `source` before some byte `ends`, which is then a scalar's start or
+--  the end.
+folded_prefix: (source: []u8, prefix: []u8) -> (yes: bool, ends: usize) =
+    yes = false
+    ends = 0
+    mut left: forward = (at: 0, part: 0)
+    mut right: forward = (at: 0, part: 0)
+    while right.at < lenof prefix do
+        return when left.at >= lenof source
+        theirs := fold_next(source, left)
+        ours := fold_next(prefix, right)
+        return when theirs.value <> ours.value
+        left = theirs.next
+        right = ours.next
+    end while
+    return when left.part <> 0
+    yes = true
+    ends = left.at
+end folded_prefix
+
+--  A place in a text's folding read backward: the scalars before byte
+--  `ends` are unread, but for the last `left` parts of the folding of the
+--  scalar that ends there, when `left` is not zero.
+backward: type = struct
+    ends: usize
+    left: usize
+end backward
+
+--  The last unread scalar of the folding of `bytes` before `c`, which is
+--  not at the start, and the place before it.
+fold_previous: (bytes: []u8, c: backward) -> (value: u32, next: backward) =
+    mut begins: usize = c.ends - 1
+    while bytes[begins] >= 0x80 and bytes[begins] < 0xc0 do
+        dec begins
+    end while
+    lead: u8 = bytes[begins]
+    if lead < 0x80 then
+        value = u32(lead)
+        if lead >= u8('A') and lead <= u8('Z') then
+            value = u32(lead) + 32
+        end if
+        next = (ends: begins, left: 0)
+        return
+    end if
+    (scalar, _) := decoded(bytes, begins)
+    mut remaining: usize = c.left
+    if remaining == 0 then
+        (parts: count) := folded_part(scalar, 0)
+        remaining = count
+    end if
+    found := folded_part(scalar, remaining - 1)
+    value = found.value
+    next = if remaining == 1 then
+               (ends: begins, left: 0)
+           else
+               (ends: c.ends, left: remaining - 1)
+           end if
+end fold_previous
+
+--- Whether `left` and `right` are equal without case: each scalar's full
+--- case folding, compared scalar by scalar, so "Straße" equals "STRASSE"
+--- and "ΣΑΣ" equals "σας".  It compares no normalization form: "é" as one
+--- scalar and as "e" with U+0301 differ here, and are equal under
+--- `equal_canonical_caseless`.  The folding is Unicode's default, which
+--- is wrong for Turkish, Azerbaijani and Lithuanian; without the tables,
+--- `text.equal_ascii_caseless` folds only A to Z.
+public equal_caseless: (left: utf8, right: utf8) -> (yes: bool) =
+    held: []u8 = text.bytes(left)
+    found := folded_prefix(held, text.bytes(right))
+    yes = found.yes and found.ends == lenof held
+end equal_caseless
+
+--- Whether `source` begins with `prefix` without case: whether the
+--- folding of `prefix` is the folding of the scalars of `source` up to
+--- one of them, so "STRASSE" begins with "straß" but "ß" does not begin
+--- with "s", whose folding ends inside the folding of ß.
+public starts_with_caseless: (source: utf8, prefix: utf8) -> (yes: bool) =
+    found := folded_prefix(text.bytes(source), text.bytes(prefix))
+    yes = found.yes
+end starts_with_caseless
+
+--- Whether `source` ends with `suffix` without case, as
+--- `starts_with_caseless` asks of its start.
+public ends_with_caseless: (source: utf8, suffix: utf8) -> (yes: bool) =
+    yes = false
+    held: []u8 = text.bytes(source)
+    sought: []u8 = text.bytes(suffix)
+    mut theirs: backward = (ends: lenof held, left: 0)
+    mut ours: backward = (ends: lenof sought, left: 0)
+    while ours.ends > 0 do
+        return when theirs.ends == 0
+        mine := fold_previous(sought, ours)
+        other := fold_previous(held, theirs)
+        return when mine.value <> other.value
+        ours = mine.next
+        theirs = other.next
+    end while
+    yes = theirs.left == 0
+end ends_with_caseless
+
+--  The canonical caseless match compares NFD(fold(NFD(text))) of the two
+--  texts.  The inner NFD is the normalizer's reader; what it yields is
+--  folded and canonically decomposed again, scalar by scalar, and put in
+--  canonical order by a second reader, whose places hold the inner
+--  reader's state.  The second order is needed: U+0345, the combining
+--  ypogegrammeni, is a mark of class 240 the inner NFD orders last, and
+--  it folds to ι, a starter.
+
+--  The inner reader's state, without the bytes it reads.
+inner_state: type = struct
+    at: place
+    run: place
+    ends: place
+    pass: u8
+    marks: bool
+end inner_state
+
+--  A place in the folded decomposition: the inner reader at the scalar it
+--  yields next, the part `fold` of that scalar's folding, and the part
+--  `part` of that one's canonical decomposition.
+folded_place: type = struct
+    inner: inner_state
+    fold: usize
+    part: usize
+end folded_place
+
+--  The inner reader over `bytes` in state `state`.
+rebuilt: (bytes: []u8, state: inner_state) -> (r: reader from bytes) =
+    r = (bytes: bytes, parts: canonical_part, at: state.at, run: state.run,
+         ends: state.ends, pass: state.pass, marks: state.marks)
+end rebuilt
+
+--  The state of the inner reader `r`.
+kept: (r: reader) -> (state: inner_state) =
+    state = (at: r.at, run: r.run, ends: r.ends, pass: r.pass,
+             marks: r.marks)
+end kept
+
+--  Whether `at` is past the folded decomposition's end.
+folded_done: (bytes: []u8, at: folded_place) -> (yes: bool) =
+    yes = done(bytes, at.inner.at)
+end folded_done
+
+--  The scalar of the folded decomposition at `at`, which is not past it.
+folded_scalar: (bytes: []u8, at: folded_place) -> (value: u32) =
+    source: u32 = current(rebuilt(bytes, at.inner))
+    (value: folded) := folded_part(source, at.fold)
+    (value: found) := canonical_part(folded, at.part)
+    value = found
+end folded_scalar
+
+--  The place after `at`.
+folded_following: (bytes: []u8, at: folded_place) -> (next: folded_place) =
+    source: u32 = current(rebuilt(bytes, at.inner))
+    fold := folded_part(source, at.fold)
+    (parts: count) := canonical_part(fold.value, at.part)
+    if at.part + 1 < count then
+        next = (inner: at.inner, fold: at.fold, part: at.part + 1)
+    elsif at.fold + 1 < fold.parts then
+        next = (inner: at.inner, fold: at.fold + 1, part: 0)
+    else
+        mut r: reader = rebuilt(bytes, at.inner)
+        advance(r)
+        next = (inner: kept(r), fold: 0, part: 0)
+    end if
+end folded_following
+
+--  Whether two places are one: the inner reader yields each of its places
+--  once, so its place says where it is.
+folded_same: (left: folded_place, right: folded_place) -> (yes: bool) =
+    yes = same(left.inner.at, right.inner.at) and left.fold == right.fold
+          and left.part == right.part
+end folded_same
+
+--  The class of the scalar at `at`, which is not past the end.
+folded_class: (bytes: []u8, at: folded_place) -> (class: u8) =
+    class = combining_class(folded_scalar(bytes, at))
+end folded_class
+
+--  The folded decomposition in canonical order, as `reader` reads a
+--  decomposition: its fields mean what that reader's do.
+folded_reader: type = struct
+    at: folded_place
+    run: folded_place
+    ends: folded_place
+    pass: u8
+    marks: bool
+end folded_reader
+
+--  A folded reader at the start of `bytes`.
+folded_reading: (bytes: []u8) -> (result: folded_reader) =
+    start: folded_place = (inner: kept(reading(bytes, canonical_part)),
+                           fold: 0, part: 0)
+    result = (at: start, run: start, ends: start, pass: 0, marks: false)
+    folded_enter(bytes, result)
+end folded_reading
+
+--  As `enter` does for `reader`.
+folded_enter: (bytes: []u8, inout r: folded_reader) -> none =
+    r.pass = 0
+    r.marks = false
+    return when folded_done(bytes, r.at)
+    return when folded_class(bytes, r.at) == 0
+    mut probe: folded_place = r.at
+    mut ordered: bool = true
+    mut last: u8 = 0
+    mut least: u8 = 255
+    while not folded_done(bytes, probe) do
+        class: u8 = folded_class(bytes, probe)
+        break when class == 0
+        if class < last then
+            ordered = false
+        end if
+        last = class
+        if class < least then
+            least = class
+        end if
+        probe = folded_following(bytes, probe)
+    end while
+    if ordered then
+        r.marks = true
+        return
+    end if
+    r.run = r.at
+    r.ends = probe
+    r.pass = least
+    r.at = folded_first_of(bytes, r, r.run, least)
+end folded_enter
+
+--  As `first_of` does for `reader`.
+folded_first_of: (bytes: []u8, r: folded_reader, start: folded_place,
+                  class: u8) -> (found: folded_place) =
+    found = start
+    while not folded_same(found, r.ends) do
+        return when folded_class(bytes, found) == class
+        found = folded_following(bytes, found)
+    end while
+end folded_first_of
+
+--  As `advance` does for `reader`.
+folded_advance: (bytes: []u8, inout r: folded_reader) -> none =
+    if r.pass == 0 then
+        within: bool = r.marks
+        r.at = folded_following(bytes, r.at)
+        if folded_done(bytes, r.at) or folded_class(bytes, r.at) == 0 then
+            r.marks = false
+        elsif not within then
+            folded_enter(bytes, r)
+        end if
+        return
+    end if
+    next: folded_place = folded_first_of(bytes, r,
+                                         folded_following(bytes, r.at),
+                                         r.pass)
+    if not folded_same(next, r.ends) then
+        r.at = next
+        return
+    end if
+    mut probe: folded_place = r.run
+    mut least: u16 = 256
+    while not folded_same(probe, r.ends) do
+        class: u8 = folded_class(bytes, probe)
+        if class > r.pass and u16(class) < least then
+            least = u16(class)
+        end if
+        probe = folded_following(bytes, probe)
+    end while
+    if least == 256 then
+        r.at = r.ends
+        r.pass = 0
+        r.marks = false
+        return
+    end if
+    r.pass = u8(least)
+    r.at = folded_first_of(bytes, r, r.run, r.pass)
+end folded_advance
+
+--- Whether `left` and `right` are canonically equal without case:
+--- Unicode's canonical caseless match, which compares the NFD form of the
+--- folding of each text's NFD form, so "Å" written as U+00C5, as "A" with
+--- U+030A and as U+212B, the angstrom sign, all equal "å".  It holds no
+--- buffer, and takes time linear in the texts but for runs of combining
+--- marks out of canonical order, as the normal forms do.
+public equal_canonical_caseless: (left: utf8, right: utf8) -> (yes: bool) =
+    yes = true
+    return when text.equal(left, right)
+    yes = false
+    left_bytes: []u8 = text.bytes(left)
+    right_bytes: []u8 = text.bytes(right)
+    mut ours: folded_reader = folded_reading(left_bytes)
+    mut theirs: folded_reader = folded_reading(right_bytes)
+    while not folded_done(left_bytes, ours.at) do
+        return when folded_done(right_bytes, theirs.at)
+        return when folded_scalar(left_bytes, ours.at)
+                    <> folded_scalar(right_bytes, theirs.at)
+        folded_advance(left_bytes, ours)
+        folded_advance(right_bytes, theirs)
+    end while
+    yes = folded_done(right_bytes, theirs.at)
+end equal_canonical_caseless

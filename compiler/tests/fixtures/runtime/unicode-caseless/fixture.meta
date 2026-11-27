@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: unicode.equal_caseless, starts_with_caseless and ends_with_caseless compare by full case folding, so Straße equals STRASSE, a prefix or suffix ends only where a scalar does, and an accent spelled apart differs; unicode.equal_canonical_caseless also equates canonical spellings, U+00C5, A with U+030A and U+212B, and orders U+0345 after its folding; the ASCII forms in core/text fold only A to Z
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.trim and its start and end forms remove Unicode White_Space, U+00A0, U+2029 and U+3000 among it, and keep a scalar that is none, U+200B; text.trim_scalar and its forms remove one scalar of each width; text.split walks the parts between a separator with empty parts at either end and between two separators, one empty part for empty text, each scalar for an empty separator and none for both empty; text.split_scalar splits at a scalar of each width and leaves a surrogate's text whole; text.fields walks the runs between White_Space; text.lines drops each line feed and a carriage return before it but no other, and begins no line after a final line feed
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0610, 0940, 1030, 1320
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64
