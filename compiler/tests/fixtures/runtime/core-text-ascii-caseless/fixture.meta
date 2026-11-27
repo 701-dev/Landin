@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.equal_ascii_caseless, starts_with_ascii_caseless and ends_with_ascii_caseless fold A to Z alone, so Hello equals hELLO, Straße does not equal STRASSE, é does not equal É, and @ and [ stay apart from ` and {
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

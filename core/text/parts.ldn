@@ -24,13 +24,13 @@ end part
 --  is needed.
 white_space: (scalar: u32) -> (yes: bool) =
     yes = if scalar < 0x80 then
-              (scalar >= 0x09 and scalar <= 0x0d) or scalar == 0x20
+        (scalar >= 0x09 and scalar <= 0x0d) or scalar == 0x20
           elsif scalar < 0x1680 then
               scalar == 0x85 or scalar == 0xa0
           else
               scalar == 0x1680 or (scalar >= 0x2000 and scalar <= 0x200a)
-                or scalar == 0x2028 or scalar == 0x2029 or scalar == 0x202f
-                or scalar == 0x205f or scalar == 0x3000
+              or scalar == 0x2028 or scalar == 0x2029 or scalar == 0x202f
+              or scalar == 0x205f or scalar == 0x3000
           end if
 end white_space
 
@@ -57,7 +57,7 @@ leading: (source: utf8, spaces: bool, scalar: u32) -> (at: usize) =
     while at < lenof source do
         found := scalar_at(source, at)
         return when (spaces and not white_space(found.scalar))
-                    or (not spaces and found.scalar <> scalar)
+          or (not spaces and found.scalar <> scalar)
         at = found.after
     end while
 end leading
@@ -71,7 +71,7 @@ trailing: (source: utf8, floor: usize, spaces: bool, scalar: u32)
         begins: usize = scalar_before(source, ends)
         found := scalar_at(source, begins)
         return when (spaces and not white_space(found.scalar))
-                    or (not spaces and found.scalar <> scalar)
+          or (not spaces and found.scalar <> scalar)
         ends = begins
     end while
 end trailing
@@ -300,5 +300,5 @@ parts_next: (walk: ptr split_walk, cursor: parts_cursor)
 end parts_next
 
 split_walk is iter.iterable (cur: parts_cursor, item_type: span,
-                              first: parts_first, at_end: parts_at_end,
-                              item: parts_item, next: parts_next)
+                             first: parts_first, at_end: parts_at_end,
+                             item: parts_item, next: parts_next)

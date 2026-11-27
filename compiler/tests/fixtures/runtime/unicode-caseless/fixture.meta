@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: unicode.equal_caseless, starts_with_caseless and ends_with_caseless compare by full case folding, so Straße equals STRASSE, a prefix or suffix ends only where a scalar does, and an accent spelled apart differs; unicode.equal_canonical_caseless also equates canonical spellings, U+00C5, A with U+030A and U+212B, and orders U+0345 after its folding; the ASCII forms in core/text fold only A to Z
+summary: unicode.equal_caseless, starts_with_caseless and ends_with_caseless compare by full case folding, so Straße equals STRASSE and ΣΑΣ equals σας, a prefix or suffix ends only where a scalar of the source does, so ß does not begin with s, and an accent spelled apart differs
 program: main.ldn
 root: ../../../../..
 status: 42

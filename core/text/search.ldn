@@ -221,7 +221,7 @@ ascii_agree: (left: []u8, left_at: usize, right: []u8, right_at: usize,
     mut index: usize = 0
     while index < count do
         return when ascii_folded(left[left_at + index])
-                    <> ascii_folded(right[right_at + index])
+          <> ascii_folded(right[right_at + index])
         inc index
     end while
     yes = true

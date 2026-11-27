@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: text.append_u8, append_u16, append_i8 and append_i16 write each width's least and greatest values; append_joined, append_replaced, append_repeated and append_quoted write their whole results into both builders, the empty and the overlapping cases included, and into a buffer one byte short write nothing and fail mem.out_of_memory; append_quoted writes the literal escapes, a control and a bidirectional control as \u{...}, and every other scalar of each width as itself
+summary: text.utf8_append_joined, utf8_append_replaced, utf8_append_repeated and utf8_append_quoted write their whole results, the empty and the overlapping cases included, and into a buffer one byte short write nothing and fail mem.out_of_memory; the quoted form writes the literal escapes, a control and a bidirectional control as \u{...}, and every other scalar of each width as itself
 program: main.ldn
 root: ../../../../..
 status: 42

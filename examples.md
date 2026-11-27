@@ -692,8 +692,8 @@ accent written apart from its letter, or a flag, which is two regional
 indicators. `unicode.graphemes` walks the characters, `unicode.words` the
 pieces between word boundaries, and case mapping writes into a
 `text.utf8_builder` over the caller's buffer, so nothing is allocated.
-Two texts that differ in case, or in how an accent is written, compare
-equal once each is folded and put in NFC.
+Two texts that differ in case, or in how an accent is written, are equal
+under `unicode.equal_canonical_caseless`, which needs no buffer at all.
 
 Fixture source: `compiler/tests/fixtures/runtime/example-text-as-read/main.ldn`.
 
@@ -701,7 +701,6 @@ Fixture source: `compiler/tests/fixtures/runtime/example-text-as-read/main.ldn`.
 --  Text as a reader sees it: the characters a person counts, the words
 --  in a sentence, and case that a comparison ignores, by core/unicode.
 import core/io
-import core/mem
 import core/text
 import core/unicode
 import hosted/blocking
@@ -720,24 +719,6 @@ counts: (source: utf8) -> (scalars: usize, characters: usize) =
         inc characters
     end for
 end counts
-
---  Whether two texts say the same words whatever their case and however
---  their accents are spelled: each folded, then put in NFC, compares
---  equal.
-same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
-    mut folded: [64]u8 = zeroed
-    mut left_storage: [64]u8 = zeroed
-    mut right_storage: [64]u8 = zeroed
-    mut scratch: text.utf8_builder = text.utf8_over(folded)
-    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
-    try unicode.append_folded(scratch, left)
-    try unicode.append_nfc(left_form, text.utf8_used(scratch))
-    text.utf8_clear(scratch)
-    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
-    try unicode.append_folded(scratch, right)
-    try unicode.append_nfc(right_form, text.utf8_used(scratch))
-    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
-end same_words
 
 public main: () -> (code: i32) =
     code = 1
@@ -798,7 +779,9 @@ public main: () -> (code: i32) =
     title: utf8 = text.utf8_used(into)
     io.format(out, "{}\n", [any(addr title)]) else none
 
-    same: bool = same_words("STRASSE", "Stra\u{df}e") else begin return end
+    --  The same text whatever its case and however its accents are
+    --  spelled: Unicode's canonical caseless match.
+    same: bool = unicode.equal_canonical_caseless("STRASSE", "Stra\u{df}e")
     io.format(out, "STRASSE and Straße say the same: {}\n", [any(addr same)])
         else none
     code = 0

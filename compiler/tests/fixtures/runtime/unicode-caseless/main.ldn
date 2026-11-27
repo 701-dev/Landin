@@ -1,82 +1,41 @@
---  Comparing without case: by full folding, by the canonical caseless
---  match, and by the ASCII forms, which fold only A to Z.
-import core/text
+--  Comparing without case by full folding, a scalar at a time: equality,
+--  a prefix and a suffix, each ending only where a scalar does.
 import core/unicode
 
 --  Equality without case, and its prefix and suffix forms.
 caseless: () -> (yes: bool) =
     yes = unicode.equal_caseless("Straße", "STRASSE")
-      and unicode.equal_caseless("STRASSE", "straße")
-      and unicode.equal_caseless("", "")
-      and not unicode.equal_caseless("", "a")
-      and not unicode.equal_caseless("ß", "s")
-      and unicode.equal_caseless("ΣΑΣ", "σας")
-      and unicode.equal_caseless("ﬃ", "FFI")
-      and unicode.equal_caseless("Ǆ", "ǅ")
-      and unicode.equal_caseless("😀aÉ€", "😀Aé€")
-      and not unicode.equal_caseless("é", "e\u{301}")
-      and not unicode.equal_caseless("abc", "abd")
-      and unicode.equal_caseless("\u{10400}", "\u{10428}")
-      and unicode.starts_with_caseless("STRASSE", "straß")
-      and unicode.starts_with_caseless("Straße", "STRA")
-      and unicode.starts_with_caseless("Straße", "strasse")
-      and not unicode.starts_with_caseless("ß", "s")
-      and unicode.starts_with_caseless("abc", "")
-      and not unicode.starts_with_caseless("", "a")
-      and not unicode.starts_with_caseless("ab", "abc")
-      and unicode.ends_with_caseless("Straße", "SSE")
-      and unicode.ends_with_caseless("Straße", "ASSE")
-      and not unicode.ends_with_caseless("ß", "s")
-      and unicode.ends_with_caseless("xﬃ", "FFI")
-      and not unicode.ends_with_caseless("xﬃ", "fi")
-      and not unicode.ends_with_caseless("ﬃ", "i")
-      and unicode.ends_with_caseless("abc", "")
-      and unicode.ends_with_caseless("ÉTÉ", "té")
-      and not unicode.ends_with_caseless("", "a")
+          and unicode.equal_caseless("STRASSE", "straße")
+          and unicode.equal_caseless("", "")
+          and not unicode.equal_caseless("", "a")
+          and not unicode.equal_caseless("ß", "s")
+          and unicode.equal_caseless("ΣΑΣ", "σας")
+          and unicode.equal_caseless("ﬃ", "FFI")
+          and unicode.equal_caseless("Ǆ", "ǅ")
+          and unicode.equal_caseless("😀aÉ€", "😀Aé€")
+          and not unicode.equal_caseless("é", "e\u{301}")
+          and not unicode.equal_caseless("abc", "abd")
+          and unicode.equal_caseless("\u{10400}", "\u{10428}")
+          and unicode.starts_with_caseless("STRASSE", "straß")
+          and unicode.starts_with_caseless("Straße", "STRA")
+          and unicode.starts_with_caseless("Straße", "strasse")
+          and not unicode.starts_with_caseless("ß", "s")
+          and unicode.starts_with_caseless("abc", "")
+          and not unicode.starts_with_caseless("", "a")
+          and not unicode.starts_with_caseless("ab", "abc")
+          and unicode.ends_with_caseless("Straße", "SSE")
+          and unicode.ends_with_caseless("Straße", "ASSE")
+          and not unicode.ends_with_caseless("ß", "s")
+          and unicode.ends_with_caseless("xﬃ", "FFI")
+          and not unicode.ends_with_caseless("xﬃ", "fi")
+          and not unicode.ends_with_caseless("ﬃ", "i")
+          and unicode.ends_with_caseless("abc", "")
+          and unicode.ends_with_caseless("ÉTÉ", "té")
+          and not unicode.ends_with_caseless("", "a")
 end caseless
-
---  The canonical caseless match.
-canonical: () -> (yes: bool) =
-    yes = unicode.equal_canonical_caseless("\u{c5}", "a\u{30a}")
-      and unicode.equal_canonical_caseless("\u{212b}", "\u{e5}")
-      and unicode.equal_canonical_caseless("Straße", "STRASSE")
-      and unicode.equal_canonical_caseless("é", "E\u{301}")
-      and unicode.equal_canonical_caseless("", "")
-      and not unicode.equal_canonical_caseless("", "a")
-      and not unicode.equal_canonical_caseless("e", "e\u{301}")
-      and unicode.equal_canonical_caseless("a\u{323}\u{302}",
-                                           "A\u{302}\u{323}")
-      and unicode.equal_canonical_caseless("\u{1f80}", "\u{1f00}\u{3b9}")
-      and unicode.equal_canonical_caseless("a\u{345}\u{301}",
-                                           "a\u{301}\u{3b9}")
-      and not unicode.equal_canonical_caseless("a\u{345}\u{301}",
-                                               "a\u{3b9}\u{301}")
-      and unicode.equal_canonical_caseless("\u{130}", "i\u{307}")
-end canonical
-
---  The ASCII forms.
-ascii: () -> (yes: bool) =
-    yes = text.equal_ascii_caseless("Hello", "hELLO")
-      and not text.equal_ascii_caseless("Straße", "STRASSE")
-      and not text.equal_ascii_caseless("é", "É")
-      and text.equal_ascii_caseless("é", "é")
-      and text.equal_ascii_caseless("", "")
-      and not text.equal_ascii_caseless("a", "ab")
-      and not text.equal_ascii_caseless("@", "`")
-      and not text.equal_ascii_caseless("[", "{")
-      and text.starts_with_ascii_caseless("Content-Type", "content-")
-      and not text.starts_with_ascii_caseless("Con", "content")
-      and text.ends_with_ascii_caseless("FILE.TXT", ".txt")
-      and not text.ends_with_ascii_caseless("txt", ".txt")
-      and text.starts_with_ascii_caseless("x", "")
-end ascii
 
 public main: () -> (code: i32) =
     code = 1
     return when not caseless()
-    code = 2
-    return when not canonical()
-    code = 3
-    return when not ascii()
     code = 42
 end main

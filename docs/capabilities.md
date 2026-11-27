@@ -936,11 +936,19 @@ injector as arguments, as providers.
 - **Text.** Byte-oriented and validated text. Positions over `utf8` step
   a whole scalar and keep its byte offset, and searches for text or a
   scalar return where the match begins, so the parts around it are
-  zero-copy `utf8` views of the source (D945, D946). A scalar encodes into
+  zero-copy `utf8` views of the source (D945, D946). Beside them are a
+  prefix and a suffix test, the last occurrence, a count of occurrences
+  without overlap and byte searches over `[]u8` (D3114); trimming Unicode's
+  White_Space, which `core/text` holds as 25 scalars the Unicode generator
+  checks, or a named scalar (D3115); and `for` walks over the parts
+  between a separator, the fields between spaces and the lines, each part
+  a span of the source (D3116). A scalar encodes into
   a caller's buffer whole or not at all (D947). A builder over a caller's
   buffer, or one an allocator grows, takes bytes, scalars, text, host
   strings, decimals of every integer width and hexadecimal, aligned in a
-  field, and a `utf8_builder` takes only text, scalars and numbers, so it
+  field, parts joined by a separator, a text with each occurrence
+  replaced or repeated, and a text quoted as a Landin literal spells it,
+  which reads back as the text (D3117, D3118), and a `utf8_builder` takes only text, scalars and numbers, so it
   always holds UTF-8 and lends it as one `utf8` view with no scan (D948).
   `compiler.utf8_unvalidated` makes such a view of bytes valid by
   construction, admitted only inside `unchecked` (D949).
@@ -957,7 +965,12 @@ injector as arguments, as providers.
   rounded once to places after the point or the first digit, byte for
   byte C's `printf` (D2756), and are parsed rounded once, an `f32` at its
   own width, every `f32` checked exhaustively (D2757). Every width parses
-  back from bytes, and no locale is consulted.
+  back from bytes, in decimal or in any radix from 2 to 36 with the
+  prefix that names 16, 8 or 2, checked against Python at every width,
+  prefix and radix, and a `bool` parses from `true` or `false` (D3119);
+  no locale is consulted. Comparing without case by A to Z alone, for an
+  image without `core/unicode`, is here too; text a person wrote is
+  compared by `core/unicode`'s full folding.
 - **Bytes.** Byte slices copy, with overlap allowed either way, fill,
   compare and search with their lengths checked.
 - **Failures and panics.** Bulk cleanup, panic dispatch, the
@@ -996,7 +1009,10 @@ injector as arguments, as providers.
   scalar's general category, combining class and six binary properties;
   simple case mappings and the default full upper, lower, title and
   folded case of a text, with final sigma and without the Turkish,
-  Azerbaijani and Lithuanian tailorings, which need a locale; the NFC,
+  Azerbaijani and Lithuanian tailorings, which need a locale; equality, a
+  prefix and a suffix without case by full folding with no buffer, and
+  the canonical caseless match, checked against the database over every
+  scalar and against every NormalizationTest line (D3120); the NFC,
   NFD, NFKC and NFKD normalization forms; and UAX #29's default grapheme
   cluster, word and sentence boundaries, as positions or as walks a `for`
   loop takes. It is written in Landin and allocates nothing: a routine

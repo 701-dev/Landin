@@ -29,45 +29,45 @@ end last_scalar_of
 --  The prefix and suffix tests.
 affixes: () -> (yes: bool) =
     yes = text.starts_with("", "") and text.ends_with("", "")
-      and text.starts_with("abc", "") and text.ends_with("abc", "")
-      and text.starts_with("abc", "abc") and text.ends_with("abc", "abc")
-      and not text.starts_with("abc", "abcd")
-      and not text.ends_with("abc", "zabc")
-      and text.starts_with("é€😀", "é") and text.ends_with("é€😀", "😀")
-      and text.starts_with("é€😀", "é€") and text.ends_with("é€😀", "€😀")
-      and not text.starts_with("é€😀", "€")
-      and not text.ends_with("é€😀", "€")
-      and not text.starts_with("", "a") and not text.ends_with("", "a")
+          and text.starts_with("abc", "") and text.ends_with("abc", "")
+          and text.starts_with("abc", "abc") and text.ends_with("abc", "abc")
+          and not text.starts_with("abc", "abcd")
+          and not text.ends_with("abc", "zabc")
+          and text.starts_with("é€😀", "é") and text.ends_with("é€😀", "😀")
+          and text.starts_with("é€😀", "é€") and text.ends_with("é€😀", "€😀")
+          and not text.starts_with("é€😀", "€")
+          and not text.ends_with("é€😀", "€")
+          and not text.starts_with("", "a") and not text.ends_with("", "a")
 end affixes
 
 --  The last occurrence of text and of a scalar.
 last: () -> (yes: bool) =
     yes = last_of("abcabc", "abc") == 3 and last_of("abcabc", "a") == 3
-      and last_of("abcabc", "c") == 5 and last_of("abcabc", "x") == nowhere
-      and last_of("aaaa", "aa") == 2 and last_of("abc", "") == 3
-      and last_of("", "") == 0 and last_of("", "a") == nowhere
-      and last_of("a", "ab") == nowhere and last_of("abc", "abc") == 0
-      and last_of("é€😀é€😀", "€😀") == 11 and last_of("é€😀é", "é") == 9
-      and last_scalar_of("é€😀é€😀", '😀') == 14
-      and last_scalar_of("é€😀é€😀", 'é') == 9
-      and last_scalar_of("é€😀", 'a') == nowhere
-      and last_scalar_of("abc", 0xd800) == nowhere
-      and last_scalar_of("abc", 0x110000) == nowhere
-      and last_scalar_of("aXa", 'a') == 2
+          and last_of("abcabc", "c") == 5 and last_of("abcabc", "x") == nowhere
+          and last_of("aaaa", "aa") == 2 and last_of("abc", "") == 3
+          and last_of("", "") == 0 and last_of("", "a") == nowhere
+          and last_of("a", "ab") == nowhere and last_of("abc", "abc") == 0
+          and last_of("é€😀é€😀", "€😀") == 11 and last_of("é€😀é", "é") == 9
+          and last_scalar_of("é€😀é€😀", '😀') == 14
+          and last_scalar_of("é€😀é€😀", 'é') == 9
+          and last_scalar_of("é€😀", 'a') == nowhere
+          and last_scalar_of("abc", 0xd800) == nowhere
+          and last_scalar_of("abc", 0x110000) == nowhere
+          and last_scalar_of("aXa", 'a') == 2
 end last
 
 --  How many times text occurs.
 counts: () -> (yes: bool) =
     yes = text.occurrences("aaaa", "aa") == 2
-      and text.occurrences("aaaaa", "aa") == 2
-      and text.occurrences("abcabc", "abc") == 2
-      and text.occurrences("abc", "x") == 0
-      and text.occurrences("abc", "abcd") == 0
-      and text.occurrences("", "a") == 0
-      and text.occurrences("", "") == 1
-      and text.occurrences("é€😀", "") == 4
-      and text.occurrences("é€😀é€😀", "€") == 2
-      and text.occurrences(",a,,b,", ",") == 4
+          and text.occurrences("aaaaa", "aa") == 2
+          and text.occurrences("abcabc", "abc") == 2
+          and text.occurrences("abc", "x") == 0
+          and text.occurrences("abc", "abcd") == 0
+          and text.occurrences("", "a") == 0
+          and text.occurrences("", "") == 1
+          and text.occurrences("é€😀", "") == 4
+          and text.occurrences("é€😀é€😀", "€") == 2
+          and text.occurrences(",a,,b,", ",") == 4
 end counts
 
 --  Where the first `value` at or after `start` is, or `nowhere`.
@@ -75,8 +75,8 @@ byte_at: (source: []u8, value: u8, start: usize) -> (offset: usize) =
     offset = nowhere
     found := text.find_byte_from(source, value,
                                  text.from_offset(source, start)) else begin
-        return
-    end
+                                     return
+                                 end
     offset = text.offset(found)
 end byte_at
 
@@ -94,8 +94,8 @@ bytes_at: (source: []u8, sought: []u8, start: usize) -> (offset: usize) =
     offset = nowhere
     found := text.find_bytes_from(source, sought,
                                   text.from_offset(source, start)) else begin
-        return
-    end
+                                      return
+                                  end
     offset = text.offset(found)
 end bytes_at
 
@@ -121,22 +121,22 @@ byte_searches: () -> (yes: bool) =
         return
     end
     yes = text.offset(first) == 0 and text.offset(whole) == 6
-      and byte_at(raw, 0xff, 1) == 4
-      and byte_at(raw, 0xfe, 0) == 8
-      and byte_at(raw, 0x01, 0) == nowhere
-      and byte_at(raw, 0xff, 9) == nowhere
-      and last_byte_at(raw, 0x00) == 5
-      and last_byte_at(raw, 0xfe) == 8
-      and last_byte_at(empty, 0x00) == nowhere
-      and bytes_at(raw, "\x00ab", 0) == 1
-      and bytes_at(raw, "\x00ab", 2) == 5
-      and bytes_at(raw, "\x00ab", 6) == nowhere
-      and bytes_at(raw, "", 3) == 3
-      and last_bytes_at(raw, "\x00ab") == 5
-      and last_bytes_at(raw, "\xff\x00") == 4
-      and last_bytes_at(raw, "") == 9
-      and last_bytes_at(raw, "abc") == nowhere
-      and bytes_at(empty, "a", 0) == nowhere
+          and byte_at(raw, 0xff, 1) == 4
+          and byte_at(raw, 0xfe, 0) == 8
+          and byte_at(raw, 0x01, 0) == nowhere
+          and byte_at(raw, 0xff, 9) == nowhere
+          and last_byte_at(raw, 0x00) == 5
+          and last_byte_at(raw, 0xfe) == 8
+          and last_byte_at(empty, 0x00) == nowhere
+          and bytes_at(raw, "\x00ab", 0) == 1
+          and bytes_at(raw, "\x00ab", 2) == 5
+          and bytes_at(raw, "\x00ab", 6) == nowhere
+          and bytes_at(raw, "", 3) == 3
+          and last_bytes_at(raw, "\x00ab") == 5
+          and last_bytes_at(raw, "\xff\x00") == 4
+          and last_bytes_at(raw, "") == 9
+          and last_bytes_at(raw, "abc") == nowhere
+          and bytes_at(empty, "a", 0) == nowhere
 end byte_searches
 
 public main: () -> (code: i32) =

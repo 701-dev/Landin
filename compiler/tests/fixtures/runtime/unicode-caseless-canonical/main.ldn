@@ -1,0 +1,29 @@
+--  The canonical caseless match: Unicode's D145, which equates the
+--  spellings of an accent as well as case, and orders U+0345 after its
+--  folding.
+import core/unicode
+
+--  The canonical caseless match.
+canonical: () -> (yes: bool) =
+    yes = unicode.equal_canonical_caseless("\u{c5}", "a\u{30a}")
+          and unicode.equal_canonical_caseless("\u{212b}", "\u{e5}")
+          and unicode.equal_canonical_caseless("Straße", "STRASSE")
+          and unicode.equal_canonical_caseless("é", "E\u{301}")
+          and unicode.equal_canonical_caseless("", "")
+          and not unicode.equal_canonical_caseless("", "a")
+          and not unicode.equal_canonical_caseless("e", "e\u{301}")
+          and unicode.equal_canonical_caseless("a\u{323}\u{302}",
+                                               "A\u{302}\u{323}")
+          and unicode.equal_canonical_caseless("\u{1f80}", "\u{1f00}\u{3b9}")
+          and unicode.equal_canonical_caseless("a\u{345}\u{301}",
+                                               "a\u{301}\u{3b9}")
+          and not unicode.equal_canonical_caseless("a\u{345}\u{301}",
+                                                   "a\u{3b9}\u{301}")
+          and unicode.equal_canonical_caseless("\u{130}", "i\u{307}")
+end canonical
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not canonical()
+    code = 42
+end main

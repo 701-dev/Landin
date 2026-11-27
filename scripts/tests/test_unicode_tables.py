@@ -165,6 +165,25 @@ class Small(unittest.TestCase):
         moved = text.replace("\n    ", "\n     ", 1)
         self.assertTrue(unicode_tables.form_problems(moved))
 
+    def test_core_texts_white_space_is_held_to_the_database(self):
+        database = self.database()
+        #  The small database's White_Space is the space alone.
+        alone = ("white_space: (scalar: u32) -> (yes: bool) =\n"
+                 "    yes = scalar == 0x20\nend white_space\n")
+        self.assertEqual(unicode_tables.white_space_problems(database,
+                                                             alone), "")
+        widened = alone.replace("scalar == 0x20",
+                                "(scalar >= 0x09 and scalar <= 0x0d)"
+                                " or scalar == 0x20")
+        self.assertIn("0009", unicode_tables.white_space_problems(
+            database, widened))
+        narrowed = alone.replace("scalar == 0x20", "false")
+        self.assertIn("leaves out ['0020']",
+                      unicode_tables.white_space_problems(database,
+                                                          narrowed))
+        self.assertIn("no white_space routine",
+                      unicode_tables.white_space_problems(database, ""))
+
     def test_the_fixtures_take_their_oracle_from_the_files(self):
         import unicode_fixtures
         written = unicode_fixtures.render_all(self.database())
@@ -184,7 +203,8 @@ class CheckedIn(unittest.TestCase):
         for name in ("category", "properties", "case-scalars", "case-title",
                      "normalization-canonical", "normalization-compatible",
                      "normalization-sequences", "graphemes", "words-1",
-                     "words-2", "sentences"):
+                     "words-2", "sentences", "caseless-scalars",
+                     "caseless-sequences"):
             path = unicode_tables.FIXTURES / ("unicode-" + name) / "main.ldn"
             self.assertIn("Database %s;" % unicode_tables.VERSION,
                           path.read_text(encoding="utf-8"), path)

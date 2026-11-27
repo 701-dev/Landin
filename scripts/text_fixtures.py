@@ -395,10 +395,12 @@ def spelled(text):
 
 
 def quoted_cases():
+    #  Each class of control is one text, so that the program fits
+    #  Cortex-M0's flash at every profile.
     cases = ["", "plain", "a\"b\\c'd", "\n\r\t\x1b", "tab\there"]
-    cases += [chr(scalar) for scalar in range(0x00, 0x20)]
-    cases += [chr(scalar) for scalar in range(0x7F, 0xA1)]
-    cases += [chr(scalar) for scalar in sorted(UNSEEN)]
+    cases.append("".join(chr(scalar) for scalar in range(0x00, 0x20)))
+    cases.append("".join(chr(scalar) for scalar in range(0x7F, 0xA1)))
+    cases.append("".join(chr(scalar) for scalar in sorted(UNSEEN)))
     cases += ["é", "€", "\U0001f600", " ", "́",
               "​", "‧", " ", "⁥", "⁪",
               "\U0010ffff", "", "�", "﻾",
@@ -425,7 +427,7 @@ def quoted_fixture():
              "quotes: (source: utf8, wanted: utf8, read: utf8) ->"
              " (yes: bool) =",
              "    yes = false",
-             "    mut storage: [128]u8 = zeroed",
+             "    mut storage: [512]u8 = zeroed",
              "    mut into: text.utf8_builder = text.utf8_over(storage)",
              "    text.utf8_append_quoted(into, source) else begin",
              "        return",

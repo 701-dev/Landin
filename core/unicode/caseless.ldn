@@ -356,7 +356,7 @@ public equal_canonical_caseless: (left: utf8, right: utf8) -> (yes: bool) =
     while not folded_done(left_bytes, ours.at) do
         return when folded_done(right_bytes, theirs.at)
         return when folded_scalar(left_bytes, ours.at)
-                    <> folded_scalar(right_bytes, theirs.at)
+          <> folded_scalar(right_bytes, theirs.at)
         folded_advance(left_bytes, ours)
         folded_advance(right_bytes, theirs)
     end while

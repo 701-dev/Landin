@@ -46513,6 +46513,76 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** `runtime/unicode-normalization-sequences`, `runtime/unicode-normalization-canonical`, `runtime/unicode-normalization-compatible` and the long run of marks in `runtime/unicode-text-contracts`.
 
+### D3114 — Text's everyday searches stand beside `find`, over encoded bytes, with byte forms over `[]u8`
+
+**The tour said** at [0600] that text is UTF-8 and that `core/text` compares encoded bytes; D2028 makes absence `mem.not_found`, and D2031 names a count of what a value does not hold for what it counts.
+
+**Chosen:** `text.starts_with(source, prefix)` and `text.ends_with(source, suffix)` answer a `bool`, every text beginning and ending with the empty one. `text.find_last` and `text.find_last_scalar` give the position where the last match begins, the empty text at the end, or fail `mem.not_found`. `text.occurrences(source, sought)` counts from the left without overlapping, as Go's `strings.Count` does, so "aaaa" holds "aa" twice and the empty text occurs once more than the source has scalars; it is named for what it counts, as D2031 asks. Each works on encoded bytes, which valid UTF-8 makes the same as working on scalars, since a match of whole scalars can begin only where a scalar does. The byte searches `find_byte`, `find_bytes`, their `_from` forms and `find_last_byte` and `find_last_bytes` take a `[]u8` that need not be text and give a byte `position`, as C's `memchr`, `memrchr` and `memmem` do, since `find` takes only `utf8`; the forward ones share `find`'s Two-Way search.
+
+**The alternatives:** a count named `count`, which D2031 declined; overlapping occurrences, which Go and Rust both decline and which `find_from` already walks; and byte searches over `utf8` too, which `find` already is.
+
+**Pinned by** `runtime/core-text-search-everyday`.
+
+### D3115 — Trimming reads White_Space from 25 scalars `core/text` writes, which the Unicode generator holds to the database
+
+**The tour said** nothing; D2615 keeps Unicode's tables out of `core/text`, so that a program that only builds and searches text checks none of them.
+
+**Chosen:** `text.trim`, `trim_start` and `trim_end` take Unicode's White_Space off the ends of a text and give a view of it. White_Space is a property of 25 scalars, which `core/text` writes as comparisons in one routine, `white_space`, rather than reading `core/unicode`'s table, which it cannot import; `scripts/unicode_tables.py` reads the routine's scalars out of `core/text/parts.ldn` and refuses to write the tables unless they are the pinned database's property, so a change of either side fails its check. `trim_scalar(source, scalar)` and its `_start` and `_end` forms take a scalar the caller names off instead.
+
+**The alternatives:** ASCII spaces alone, which leave U+00A0 and U+3000 in a trimmed field; importing `core/unicode`, which D2615 declined; and a set of scalars to trim, Go's cutset, which a program that needs one writes with `trim_scalar` or a loop over `for`.
+
+**Pinned by** `runtime/core-text-parts` and `scripts/tests/test_unicode_tables.py`, whose case for `white_space_problems` refuses a list that names too many scalars or too few.
+
+### D3116 — A text's parts are walked as spans, and the edges are Go's for a separator and Rust's for lines
+
+**The tour said** at [1320] that a `for` item is a value of its own; D2618 makes a segment two positions for that reason.
+
+**Chosen:** `text.split(source, separator)`, `text.split_scalar(source, scalar)`, `text.fields(source)` and `text.lines(source)` give one walk type, `text.parts`, that conforms to `iter.iterable` with a `text.span` as its item, two positions as `regex.span` and `unicode.segment` are, and `text.part(source, piece)` gives its text. `split` finds the separators as `find_from` does; a separator at either end gives an empty part there, an empty source is one empty part, and an empty separator gives each scalar as a part, none for an empty source, as Go's `strings.Split` has it. `split_scalar` of a value that is no scalar gives the source whole. `fields` gives the runs between runs of White_Space, none for text that is empty or only spaces, as Go's `strings.Fields`. `lines` splits at line feeds, drops a carriage return before one and keeps any other, and begins no line after a final line feed, as Rust's `str::lines`, so a file's last line is one line whether or not a line feed ends it. `split`'s walk borrows from both texts, `from source, separator`.
+
+**The alternatives:** an item that is the part's text, which [1320] does not allow; a walk type per kind, which multiplies the conformance by four; Rust's `split` with an empty separator, which gives an empty part at either end; and lines that keep their line ends, which every caller would trim.
+
+**Pinned by** `runtime/core-text-parts`.
+
+### D3117 — Joining, replacing, repeating and quoting append to the caller's builder, whole or not at all
+
+**The tour said** nothing; D2616 makes a routine that writes text append to a builder, whole or not at all, and the item leaves out a replacement that allocates a new string.
+
+**Chosen:** `append_joined(into, parts, separator)` writes a `[]utf8`'s parts with the separator between each two; `append_replaced(into, source, sought, replacement)` writes `source` with each occurrence `occurrences` counts replaced, an empty `sought` occurring before each scalar and at the end, as Go's `strings.ReplaceAll`; `append_repeated(into, source, times)` writes it `times` over. Each, and `append_u8`, `append_u16`, `append_i8` and `append_i16`, is a byte builder's call with a `utf8_` partner for the UTF-8 builder, as the module's other appends are, and on `mem.out_of_memory` leaves the builder as it was by an `undo` that truncates it.
+
+**The alternatives:** results returned as new storage from an allocator, which the item leaves out because the builder is the caller's; and a count of replacements returned, which `occurrences` already gives.
+
+**Pinned by** `runtime/core-text-writers`, which writes each into a buffer one byte short and requires the builder unchanged.
+
+### D3118 — The quoted form escapes what a reader cannot see, and reads back as its text
+
+**The tour said** at [0270] which escapes a text literal has.
+
+**Chosen:** `append_quoted(into, source)` writes `source` between double quotes as a Landin literal spells it: `\n`, `\r`, `\t`, `\e`, `\\` and `\"` for those scalars, `\u{...}` in lower-case hexadecimal for the other C0 and C1 controls and DEL, and for each scalar that changes how the text around it reads without being seen, the bidirectional controls U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069, the separators U+2028 and U+2029 and the byte order mark; every other scalar is written as itself, so text a person reads stays readable. The quote is not escaped, since only double quotes delimit the form. What it writes reads back as the text it was given.
+
+**The alternatives:** escaping every scalar outside ASCII, which makes "é" unreadable; Rust's escape of every grapheme extender and unprintable scalar, which needs `core/unicode`'s tables in `core/text`; and Go's `\x` escapes, which a text literal does not have.
+
+**Pinned by** `runtime/core-text-quoted`, which `scripts/text_fixtures.py` writes with each quoted form pasted in as a literal that `refine` must read back as the text, and `runtime/core-text-writers`.
+
+### D3119 — A radix parse reads the prefix that names its radix and no other, and a `bool` is `true` or `false`
+
+**The tour said** nothing; D355 makes `core/text`'s parses the library's one parser, the mirror of its appends.
+
+**Chosen:** `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize` and `parse_radix_i8` to `parse_radix_isize` take `(source, radix)` and read digits `0` to `9` and then `a` to `z` in either case below the radix, after an optional `0x` when the radix is 16, `0o` when it is 8 and `0b` when it is 2, in either case and after a signed value's `-`; no other radix reads a prefix, so "0b1" in radix 16 is 0xb1 and "0x1" in radix 36 is its digits. A radix outside 2 to 36 refuses every source with `invalid_number`, the scan's other refusals are the decimal parses' own, the first the scan meets kept, and each width checks its bound before it multiplies, so a 32-bit target parses a `u32` with 32-bit division. `parse_bool` reads `true` and `false` exactly, as `format` writes a `bool`, and refuses anything else with a new atom, `text.invalid_bool`, since a `bool` is not a number.
+
+**The alternatives:** Go's radix zero, which infers the radix from the prefix and would make zero mean something no radix is; a trap for a radix out of range, which leaves a radix read from input to the caller to check first; and Go's `1`, `t` and `True` for a `bool`, which nothing in the library writes.
+
+**Pinned by** `runtime/core-text-parse-radix` and `runtime/core-text-parse-radix-oracle`, which `scripts/text_fixtures.py` writes from Python's `int` at every width, prefix and radix.
+
+### D3120 — Comparing without case is `core/unicode`'s, by full folding a scalar at a time, and an ASCII form stands beside it
+
+**The tour said** nothing; D2619 makes case Unicode's default mappings, and Q-410's answer leaves tailoring to R22.50.
+
+**Chosen:** `unicode.equal_caseless`, `starts_with_caseless` and `ends_with_caseless` compare each side's full case folding, read a scalar at a time from the source with no buffer, so "Straße" equals "STRASSE": Unicode's caseless match, its D144. A prefix or suffix must end where a scalar of the source does, so "STRASSE" begins with "straß" and "ß" does not begin with "s"; the source can then be sliced there. `equal_canonical_caseless` is Unicode's canonical caseless match, D145, the NFD of the folding of each text's NFD, so "Å" as U+00C5, as "A" with U+030A and as U+212B all equal "å"; the normalizer's reader yields the inner NFD, and a second reader of the same algorithm, whose places hold the first's state, puts what folding and decomposing give in canonical order again, which U+0345, a mark that folds to the starter ι, requires. No caseless search is given beside these: `core/regex`'s `(?i)` searches by simple folding, and a search by full folding folds both texts and searches with `text.find`. `text.equal_ascii_caseless`, `starts_with_ascii_caseless` and `ends_with_ascii_caseless` fold A to Z alone, named as the ASCII variant, for an image that cannot carry the case tables and for protocols whose names are ASCII.
+
+**The alternatives:** comparing `append_folded`'s results, which needs a buffer as long as each folding; simple folding, which leaves "ß" apart from "ss"; a caseless `find`, which full folding makes a search over a text that is not the source's bytes, and which no measured caller needs beside `(?i)`; and the ASCII form as the only one, which Jan declined on 2026-11-27, since Landin's text is Unicode.
+
+**Pinned by** `runtime/unicode-caseless`, `runtime/unicode-caseless-scalars`, which holds every scalar's comparisons with its mappings and its neighbour to the database's folding by digest, and `runtime/unicode-caseless-sequences`, which holds the canonical match among every NormalizationTest line's forms to D145 over the database.
+
 ### D2634 — `core/complex` is one generic struct and one routine per function over `math.floating`
 
 **The tour said** nothing about complex numbers; the roadmap asks for them over `f32` and `f64` with C's Annex G treatment of infinities.

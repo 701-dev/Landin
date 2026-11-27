@@ -62,27 +62,27 @@ end signed_code
 --  Radixes, prefixes and digits.
 digits: () -> (yes: bool) =
     yes = unsigned("101", 2, 5) and unsigned("0b101", 2, 5)
-      and unsigned("0B101", 2, 5) and unsigned("777", 8, 511)
-      and unsigned("0o777", 8, 511) and unsigned("0O17", 8, 15)
-      and unsigned("ff", 16, 255) and unsigned("0xFF", 16, 255)
-      and unsigned("0Xff", 16, 255) and unsigned("0b1", 16, 0xb1)
-      and unsigned("zZ", 36, 1295) and unsigned("10", 36, 36)
-      and unsigned("0019", 10, 19) and unsigned("0", 2, 0)
-      and unsigned("ffffffffffffffff", 16, 0xffffffffffffffff)
-      and signed("-0x80", 16, 0 - 128) and signed("-101", 2, 0 - 5)
-      and signed("0o7", 8, 7)
-      and signed("-8000000000000000", 16, 0 - 9223372036854775807 - 1)
-      and signed("7fffffffffffffff", 16, 9223372036854775807)
-      and refused("", 10, invalid_code) and refused("0x", 16, invalid_code)
-      and refused("-", 10, invalid_code) and refused("+1", 10, invalid_code)
-      and refused("2", 2, invalid_code) and refused("0x1", 10, invalid_code)
-      and refused("0o7", 16, invalid_code) and refused("1", 1, invalid_code)
-      and refused("1", 37, invalid_code) and refused("1", 0, invalid_code)
-      and refused(" 1", 10, invalid_code) and refused("1_0", 10, invalid_code)
-      and refused("10000000000000000", 16, overflow_code)
-      and unsigned_code("-1", 10) == invalid_code
-      and signed_code("8000000000000000", 16) == overflow_code
-      and signed_code("-8000000000000001", 16) == overflow_code
+          and unsigned("0B101", 2, 5) and unsigned("777", 8, 511)
+          and unsigned("0o777", 8, 511) and unsigned("0O17", 8, 15)
+          and unsigned("ff", 16, 255) and unsigned("0xFF", 16, 255)
+          and unsigned("0Xff", 16, 255) and unsigned("0b1", 16, 0xb1)
+          and unsigned("zZ", 36, 1295) and unsigned("10", 36, 36)
+          and unsigned("0019", 10, 19) and unsigned("0", 2, 0)
+          and unsigned("ffffffffffffffff", 16, 0xffffffffffffffff)
+          and signed("-0x80", 16, 0 - 128) and signed("-101", 2, 0 - 5)
+          and signed("0o7", 8, 7)
+          and signed("-8000000000000000", 16, 0 - 9223372036854775807 - 1)
+          and signed("7fffffffffffffff", 16, 9223372036854775807)
+          and refused("", 10, invalid_code) and refused("0x", 16, invalid_code)
+          and refused("-", 10, invalid_code) and refused("+1", 10, invalid_code)
+          and refused("2", 2, invalid_code) and refused("0x1", 10, invalid_code)
+          and refused("0o7", 16, invalid_code) and refused("1", 1, invalid_code)
+          and refused("1", 37, invalid_code) and refused("1", 0, invalid_code)
+          and refused(" 1", 10, invalid_code) and refused("1_0", 10, invalid_code)
+          and refused("10000000000000000", 16, overflow_code)
+          and unsigned_code("-1", 10) == invalid_code
+          and signed_code("8000000000000000", 16) == overflow_code
+          and signed_code("-8000000000000001", 16) == overflow_code
 end digits
 
 --  Each narrower width at its bounds and one past them.
