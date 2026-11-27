@@ -1276,8 +1276,8 @@ change, or `test_gate_history`'s `Lanes` fails.
   `.github/gate-causes.jsonl`.
 - **The miss rate** is read with `python3 scripts/gate_history.py
   shadow`, and in the table's `shadow` entry as of its last update. It
-  gives the complete gates since shadow mode began against the about
-  200 the maintainer is asked to confirm, and the defects only lanes the selection would have
+  gives the complete gates since shadow mode began against the 20 the
+  maintainer set, and the defects only lanes the selection would have
   skipped showed, a week, against the study's 1.7. The maintainer reads
   it before the selected gate is applied.
 - A new outside cause is a signature in the table: a pattern, its

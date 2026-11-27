@@ -4076,8 +4076,8 @@ under four weeks old, costs under five job-minutes or checks the
 evidence itself, the build comparisons; and every other lane on one
 selected gate in four, drawn from the tree's hash. The maintainer
 accepted those values on 2026-11-26, and that shadow mode comes first.
-It runs for about 200 complete gates, the length the maintainer
-confirmed answering Q-364. Placed here so that no phase gate
+It runs for 20 complete gates, the length the maintainer set
+answering Q-364. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: a cause recorded for every failed job of the shadow

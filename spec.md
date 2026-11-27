@@ -27373,8 +27373,8 @@ gates, its weeks, the missed runs and defects and their rate a week, and
 sets them against the study's. `table --write` keeps the same figures
 in the lane table's `shadow` entry, so each weekly update of the table
 carries them. The maintainer reads them there before the selection is applied,
-after about 200 complete gates, the length the maintainer is asked to
-confirm.
+after 20 complete gates, the length the maintainer set on
+2026-11-27.
 
 **The reason:** under the selected gate such a tree would have passed;
 when a kept lane failed too, the selected gate would have failed it as
