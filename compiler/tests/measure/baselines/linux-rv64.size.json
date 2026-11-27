@@ -77,13 +77,13 @@
   },
   "rv64gc/none-all/regex-redux": {
    "sections": {
-    ".text": 750696,
-    ".rodata": 107716,
+    ".text": 780688,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2080,
+    ".got": 2104,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -186,13 +186,13 @@
   },
   "rv64gc/none-auto/regex-redux": {
    "sections": {
-    ".text": 750792,
-    ".rodata": 107716,
+    ".text": 780784,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2072,
+    ".got": 2096,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -295,13 +295,13 @@
   },
   "rv64gc/none-off/regex-redux": {
    "sections": {
-    ".text": 750832,
-    ".rodata": 107716,
+    ".text": 780824,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1992,
+    ".got": 2016,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -404,13 +404,13 @@
   },
   "rv64gc/size-all/regex-redux": {
    "sections": {
-    ".text": 388428,
-    ".rodata": 78034,
+    ".text": 402224,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -513,13 +513,13 @@
   },
   "rv64gc/size-auto/regex-redux": {
    "sections": {
-    ".text": 388572,
-    ".rodata": 78034,
+    ".text": 402368,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1088,
+    ".got": 1112,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -622,13 +622,13 @@
   },
   "rv64gc/size-off/regex-redux": {
    "sections": {
-    ".text": 388684,
-    ".rodata": 78034,
+    ".text": 402480,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1008,
+    ".got": 1032,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -731,13 +731,13 @@
   },
   "rv64gc/speed-all/regex-redux": {
    "sections": {
-    ".text": 434384,
-    ".rodata": 77227,
+    ".text": 451280,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -840,13 +840,13 @@
   },
   "rv64gc/speed-auto/regex-redux": {
    "sections": {
-    ".text": 434384,
-    ".rodata": 77227,
+    ".text": 451280,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -949,13 +949,13 @@
   },
   "rv64gc/speed-off/regex-redux": {
    "sections": {
-    ".text": 435052,
-    ".rodata": 77227,
+    ".text": 451948,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1008,
+    ".got": 1032,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1058,13 +1058,13 @@
   },
   "rv64gc_xtheadba/none-all/regex-redux": {
    "sections": {
-    ".text": 750628,
-    ".rodata": 107716,
+    ".text": 780620,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2080,
+    ".got": 2104,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -1167,13 +1167,13 @@
   },
   "rv64gc_xtheadba/none-auto/regex-redux": {
    "sections": {
-    ".text": 750724,
-    ".rodata": 107716,
+    ".text": 780716,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2072,
+    ".got": 2096,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -1276,13 +1276,13 @@
   },
   "rv64gc_xtheadba/none-off/regex-redux": {
    "sections": {
-    ".text": 750764,
-    ".rodata": 107716,
+    ".text": 780756,
+    ".rodata": 115925,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1992,
+    ".got": 2016,
     ".got.plt": 16,
-    ".data": 33408,
+    ".data": 33488,
     ".bss": 272
    }
   },
@@ -1385,13 +1385,13 @@
   },
   "rv64gc_xtheadba/size-all/regex-redux": {
    "sections": {
-    ".text": 388352,
-    ".rodata": 78034,
+    ".text": 402148,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1494,13 +1494,13 @@
   },
   "rv64gc_xtheadba/size-auto/regex-redux": {
    "sections": {
-    ".text": 388496,
-    ".rodata": 78034,
+    ".text": 402292,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1088,
+    ".got": 1112,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1603,13 +1603,13 @@
   },
   "rv64gc_xtheadba/size-off/regex-redux": {
    "sections": {
-    ".text": 388608,
-    ".rodata": 78034,
+    ".text": 402404,
+    ".rodata": 82872,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1008,
+    ".got": 1032,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1712,13 +1712,13 @@
   },
   "rv64gc_xtheadba/speed-all/regex-redux": {
    "sections": {
-    ".text": 434296,
-    ".rodata": 77227,
+    ".text": 451192,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1821,13 +1821,13 @@
   },
   "rv64gc_xtheadba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 434296,
-    ".rodata": 77227,
+    ".text": 451192,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1096,
+    ".got": 1120,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -1930,13 +1930,13 @@
   },
   "rv64gc_xtheadba/speed-off/regex-redux": {
    "sections": {
-    ".text": 434964,
-    ".rodata": 77227,
+    ".text": 451860,
+    ".rodata": 82065,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1008,
+    ".got": 1032,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2039,13 +2039,13 @@
   },
   "rv64gc_zba/none-all/regex-redux": {
    "sections": {
-    ".text": 752832,
-    ".rodata": 108215,
+    ".text": 782824,
+    ".rodata": 116424,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2136,
+    ".got": 2160,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -2148,13 +2148,13 @@
   },
   "rv64gc_zba/none-auto/regex-redux": {
    "sections": {
-    ".text": 752928,
-    ".rodata": 108215,
+    ".text": 782920,
+    ".rodata": 116424,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2128,
+    ".got": 2152,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -2257,13 +2257,13 @@
   },
   "rv64gc_zba/none-off/regex-redux": {
    "sections": {
-    ".text": 752968,
-    ".rodata": 108215,
+    ".text": 782960,
+    ".rodata": 116424,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2048,
+    ".got": 2072,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -2366,13 +2366,13 @@
   },
   "rv64gc_zba/size-all/regex-redux": {
    "sections": {
-    ".text": 389864,
-    ".rodata": 78533,
+    ".text": 403660,
+    ".rodata": 83371,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2475,13 +2475,13 @@
   },
   "rv64gc_zba/size-auto/regex-redux": {
    "sections": {
-    ".text": 390008,
-    ".rodata": 78533,
+    ".text": 403804,
+    ".rodata": 83371,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1128,
+    ".got": 1152,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2584,13 +2584,13 @@
   },
   "rv64gc_zba/size-off/regex-redux": {
    "sections": {
-    ".text": 390120,
-    ".rodata": 78533,
+    ".text": 403916,
+    ".rodata": 83371,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1048,
+    ".got": 1072,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2693,13 +2693,13 @@
   },
   "rv64gc_zba/speed-all/regex-redux": {
    "sections": {
-    ".text": 435600,
-    ".rodata": 77670,
+    ".text": 452496,
+    ".rodata": 82508,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2802,13 +2802,13 @@
   },
   "rv64gc_zba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 435600,
-    ".rodata": 77670,
+    ".text": 452496,
+    ".rodata": 82508,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -2911,13 +2911,13 @@
   },
   "rv64gc_zba/speed-off/regex-redux": {
    "sections": {
-    ".text": 436268,
-    ".rodata": 77670,
+    ".text": 453164,
+    ".rodata": 82508,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1048,
+    ".got": 1072,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3020,13 +3020,13 @@
   },
   "rv64gc_zba_xtheadba/none-all/regex-redux": {
    "sections": {
-    ".text": 752832,
-    ".rodata": 108224,
+    ".text": 782824,
+    ".rodata": 116433,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2136,
+    ".got": 2160,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -3129,13 +3129,13 @@
   },
   "rv64gc_zba_xtheadba/none-auto/regex-redux": {
    "sections": {
-    ".text": 752928,
-    ".rodata": 108224,
+    ".text": 782920,
+    ".rodata": 116433,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2128,
+    ".got": 2152,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -3238,13 +3238,13 @@
   },
   "rv64gc_zba_xtheadba/none-off/regex-redux": {
    "sections": {
-    ".text": 752968,
-    ".rodata": 108224,
+    ".text": 782960,
+    ".rodata": 116433,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 2048,
+    ".got": 2072,
     ".got.plt": 16,
-    ".data": 33424,
+    ".data": 33504,
     ".bss": 272
    }
   },
@@ -3347,13 +3347,13 @@
   },
   "rv64gc_zba_xtheadba/size-all/regex-redux": {
    "sections": {
-    ".text": 389864,
-    ".rodata": 78542,
+    ".text": 403660,
+    ".rodata": 83380,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3456,13 +3456,13 @@
   },
   "rv64gc_zba_xtheadba/size-auto/regex-redux": {
    "sections": {
-    ".text": 390008,
-    ".rodata": 78542,
+    ".text": 403804,
+    ".rodata": 83380,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1128,
+    ".got": 1152,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3565,13 +3565,13 @@
   },
   "rv64gc_zba_xtheadba/size-off/regex-redux": {
    "sections": {
-    ".text": 390120,
-    ".rodata": 78542,
+    ".text": 403916,
+    ".rodata": 83380,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1048,
+    ".got": 1072,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3674,13 +3674,13 @@
   },
   "rv64gc_zba_xtheadba/speed-all/regex-redux": {
    "sections": {
-    ".text": 435600,
-    ".rodata": 77679,
+    ".text": 452496,
+    ".rodata": 82517,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3783,13 +3783,13 @@
   },
   "rv64gc_zba_xtheadba/speed-auto/regex-redux": {
    "sections": {
-    ".text": 435600,
-    ".rodata": 77679,
+    ".text": 452496,
+    ".rodata": 82517,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1136,
+    ".got": 1160,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
@@ -3892,13 +3892,13 @@
   },
   "rv64gc_zba_xtheadba/speed-off/regex-redux": {
    "sections": {
-    ".text": 436268,
-    ".rodata": 77679,
+    ".text": 453164,
+    ".rodata": 82517,
     ".tbss": 4,
     ".data.rel.ro": 360,
-    ".got": 1048,
+    ".got": 1072,
     ".got.plt": 16,
-    ".data": 32960,
+    ".data": 33040,
     ".bss": 240
    }
   },
