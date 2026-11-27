@@ -3939,6 +3939,28 @@ depends on no other item.
 Exit evidence: each refusal pinned by a negative fixture or a driver
 case, and `docs/diagnostics.md` saying the new notes.
 
+Done: L0201 names the import of a library module no import of the program
+reaches, from a listing of the library the driver hands the stages (D2994,
+SR-1693), and inside `platform/linux` says that an undeclared `*_number`
+is `wrapped.ldn`'s and to run its generator (D2999, SR-1881). A float that
+lacks only its point, `0x1p-20` or `1e10`, is L0321 with an exact fix
+writing `.0` before the exponent (D2995, SR-1896). A firmware target's
+assembly operand is L0002 saying how it links, no longer an internal
+defect (D2996, SR-1714). D546's fifth clause holds the startup routines,
+so a script that puts reset at address zero is L0519 (D2997, SR-1716).
+The root's other misuses say what was misused before they trap (D2998,
+SR-1214), and L0329's note in an `if` arm writes the leaving recovery in
+parentheses, which L0102's fix left out (D3000, SR-2012). Pinned by
+`negative/unreached-library-module-prefix-names-its-import`,
+`negative/hexadecimal-float-without-point-is-fixed`,
+`negative/leaving-recovery-in-an-if-arm-is-parenthesised`,
+`abi/r440-native-startup-invalid`, the `trap_report` of
+`abi/r440-native-startup-replaced`, the driver cases `an unwritten call
+number names its generator` and `an assembly operand links`, and
+`environments/cortex-m/descriptions.py`'s `reset.ld`. SR-1979, offered
+beside the item, stays open: its notes need the inferred type each
+inference path decides, not a note's words.
+
 ### R22.32 — Defects the library work met
 
 Status: planned
