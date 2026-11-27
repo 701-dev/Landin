@@ -4204,7 +4204,7 @@ admits.
 
 ### R22.41 — Bits and byte order
 
-Status: planned
+Status: active
 Depends on: R20
 
 Counting and moving bits, and integers read and written in a stated byte
