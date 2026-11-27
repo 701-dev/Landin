@@ -1502,7 +1502,7 @@ and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R16.45 — A call's failure tested once
 
-Status: planned
+Status: active
 Depends on: R16.10
 
 SR-1861: every call that can fail costs x86-64 about eleven instructions
