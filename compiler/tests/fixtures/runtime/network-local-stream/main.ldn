@@ -1,0 +1,128 @@
+--  A Unix-domain stream exchange through hosted/blocking and through
+--  hosted/events: a listener at a path no other run takes, a second
+--  listener there `address_in_use`, a connection to it accepted and a
+--  word sent each way, a connection once the listener has closed
+--  `refused`, and once the path is removed `refused` too; an empty path
+--  and one too long for the system are `invalid_address`.
+import core/cmp
+import core/io
+import core/net
+import core/text
+import hosted/blocking
+import hosted/events
+
+--- Something came back other than was sent, or a call did not fail as
+--- it should.
+wrong: atom
+
+--- A path in the working directory no other run takes.
+fresh_path: (host: blocking.host, into: []mut u8)
+            -> (path: text.os_string from into) ! ... =
+    mut drawn: [8]u8 = zeroed
+    try io.fill_random(host, drawn[0..<8])
+    path = try io.temporary_path(text.os_string_over(""), drawn, into)
+end fresh_path
+
+--- Receive exactly `wanted` on `connection`.
+received: (provider: type is net.network, host: provider, connection: io.file,
+           wanted: []u8) -> none ! ... =
+    mut buffer: [8]u8 = zeroed
+    got: usize = try net.receive(host, connection, buffer[0..<8])
+    fail wrong when cmp.compare(buffer[0..<got], wanted) <> cmp.equal
+end received
+
+--- Whether a listener at `path` fails as `expected`.
+listen_fails: (provider: type is net.network, host: provider,
+               path: text.os_string, expected: net.address_in_use
+               | net.invalid_address) -> (yes: bool) ! ... =
+    yes = false
+    extra: io.file = net.listen_local(host, path) else (problem)
+        yes = problem == expected
+        return
+    end
+    try net.close(host, extra)
+end listen_fails
+
+--- Whether a connection to `path` fails as `expected`.
+connect_fails: (provider: type is net.network, host: provider,
+                path: text.os_string, expected: net.refused
+                | net.invalid_address) -> (yes: bool) ! ... =
+    yes = false
+    extra: io.file = net.connect_local(host, path) else (problem)
+        yes = problem == expected
+        return
+    end
+    try net.close(host, extra)
+end connect_fails
+
+--- The exchange over `host` at `path`, which `remover` removes once the
+--- listener has closed.
+exchange: (provider: type is net.network, host: provider, path: text.os_string,
+           remover: blocking.host) -> none ! ... =
+    listener: io.file = try net.listen_local(host, path)
+    fail wrong when not try listen_fails(host, path, net.address_in_use)
+    connection: io.file = try net.connect_local(host, path)
+    accepted: io.file = try net.accept(host, listener)
+    try net.send(host, connection, "ping")
+    try received(host, accepted, "ping")
+    try net.send(host, accepted, "pong")
+    try received(host, connection, "pong")
+    try net.close(host, accepted)
+    try net.close(host, connection)
+    try net.close(host, listener)
+    fail wrong when not try connect_fails(host, path, net.refused)
+    try io.remove_file(remover, path)
+    fail wrong when not try connect_fails(host, path, net.refused)
+end exchange
+
+--- Paths no system takes.
+bad_paths: (provider: type is net.network, host: provider) -> none ! ... =
+    fail wrong when not try listen_fails(host, text.os_string_over(""),
+                                         net.invalid_address)
+    long: [200]u8 = [200 of u8('x')]
+    fail wrong when not try connect_fails(host, text.os_string_over(long[0..<200]),
+                                          net.invalid_address)
+end bad_paths
+
+public main: () -> (code: i32) =
+    code = 1
+    blocked := blocking.new()
+    mut state: events.space = zeroed
+    mut entries: [3]usize = zeroed
+    evented := events.over(state, entries) else (problem)
+        _ = problem
+        return
+    end
+    mut room: [64]u8 = zeroed
+    first: text.os_string = fresh_path(blocked, room[0..<64]) else (problem)
+        _ = problem
+        return
+    end
+    code = 2
+    exchange(blocked, first, blocked) else (problem)
+        _ = problem
+        io.remove_file(blocked, first) else none
+        return
+    end
+    mut more: [64]u8 = zeroed
+    second: text.os_string = fresh_path(blocked, more[0..<64]) else (problem)
+        _ = problem
+        return
+    end
+    code = 3
+    exchange(evented, second, blocked) else (problem)
+        _ = problem
+        io.remove_file(blocked, second) else none
+        return
+    end
+    code = 4
+    bad_paths(blocked) else (problem)
+        _ = problem
+        return
+    end
+    bad_paths(evented) else (problem)
+        _ = problem
+        return
+    end
+    code = 42
+end main

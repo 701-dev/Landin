@@ -4392,7 +4392,7 @@ against the reference implementation's; the example program D1956 gave
 
 ### R22.43 — Sockets by name, with their options
 
-Status: planned
+Status: complete
 Depends on: R20, R21.70
 
 What `core/net` lacks beside Rust's `socket2` and `mio` and Go's `net`.
@@ -4421,7 +4421,36 @@ server that does not answer, both the system's and the static Linux one;
 a multicast exchange and a Unix-domain exchange on one host; the fake
 network's tests for each; an example program in `examples.md` that
 connects by name; `docs/library.md`'s table of routes without the
-resolver's row, and its dates row pointing at no missing record, SR-2112.
+resolver's row, and its dates row pointing at no missing record, `SR-2112`.
+
+Done: `net.network` gains the options as entries by the kind of value an
+option holds, `set_flag`, `set_number`, `set_span`, `set_linger` and
+their readers, with group membership and the interface a group's
+datagram leaves by, which the exchange on one host needs to keep to the
+loopback; an option a system lacks is `unsupported`, as SO_REUSEPORT on
+Windows (D3074). `resolve` is the system resolver's where one is the
+authority, the C library's or Windows', and a static Linux program reads
+/etc/hosts and asks the servers /etc/resolv.conf names through
+`core/net`'s `hosts_lookup`, `name_service_of` and `ask`, over UDP and
+then TCP after a truncated answer, so an event provider's fibre waits for
+them (D3075); `connect_by_name` tries each address in turn (D3076). The
+five Unix-domain entries take a path, Windows making streams alone
+(D3077), and the fake keeps options, names given by `with_names`, paths
+and one group a socket (D3078). `runtime/network-options`,
+`network-local-stream`, `network-local-datagram`, `network-multicast`,
+`network-resolver` and, under `--link=libc`, `network-resolver-libc` run
+on the hosted targets, `network-fake-names` asks a name-server fibre that
+answers, denies a name and cuts an answer short, and the examples page
+connects by name. The resolver's system side is shown against `localhost`
+and a `.invalid` name; a server that never answers is shown through
+`ask`, since no system resolver can be pointed at one. The library page's
+routes table lost the resolver's row and its dates row points at the next
+roadmap's library, taking `SR-2112`. `failure.words` words the two new
+atoms. Met on the way: a binding named `any` is refused without saying
+it is a keyword, `SR-2173`; a type parameter passed to a generic call is
+refused with a count that reads as wrong, `SR-2174`; and a `refine`
+built in one checkout checks another worktree's program against its own
+library unless given `--library=.`, `SR-2175`.
 
 ### R22.44 — Command-line arguments parsed
 

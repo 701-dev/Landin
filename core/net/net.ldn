@@ -2,7 +2,9 @@
 --  core/io's and outside `world` through which a program connects,
 --  listens, accepts and sends and receives over TCP and UDP.  A provider
 --  without a network, and a firmware image that never asks for one,
---  carries none of it.  Resolving a name to an address is not here.
+--  carries none of it.  The provider resolves a name to its addresses;
+--  names.ldn reads a hosts file and a resolver's settings and asks name
+--  servers over any network, as a provider without the C library does.
 
 import core/cmp
 import core/io
@@ -37,6 +39,14 @@ public timed_out: atom
 --- what is sent cannot be delivered.  A write to such a connection is this
 --- atom on a hosted system, never the end of the process.
 public disconnected: atom
+--- No address answers to the name: neither the hosts file nor a name
+--- server knows it, or it cannot be a host's name at all, being empty,
+--- longer than 253 bytes or holding an empty label or one longer than 63.
+public unknown_name: atom
+--- The system does not have what was asked: an option it does not set, as
+--- Windows sets no `reuse_port`, or a Unix-domain socket of a kind it does
+--- not make, as Windows makes no datagram one.
+public unsupported: atom
 
 --- An IPv4 address: four bytes, `127.0.0.1` in its text.
 public ipv4: atom
@@ -89,6 +99,55 @@ public both_directions: atom
 --- Which way of a connection `shutdown` stops: `receiving`, `sending` or
 --- `both_directions`.
 public direction: type = receiving | sending | both_directions
+
+--- Let a socket bind an address and port that earlier connections still
+--- hold while they close, SO_REUSEADDR.  Set it before the socket is
+--- bound; every listener of a hosted provider has it already.
+public reuse_address: atom
+--- Let several sockets bind one address and port, SO_REUSEPORT, the
+--- system sharing what arrives among them.  Each sets it before it is
+--- bound.  Windows has none, and it is `unsupported` there.
+public reuse_port: atom
+--- Probe an idle connection now and then, and end it once its peer stops
+--- answering, SO_KEEPALIVE.  `keep_alive_idle` and `keep_alive_interval`
+--- say how often.
+public keep_alive: atom
+--- Let a datagram socket send to a broadcast address, SO_BROADCAST.
+public broadcast: atom
+--- Let an IPv6 socket take IPv6 alone, never IPv4 through mapped
+--- addresses, IPV6_V6ONLY.  Every IPv6 socket of a hosted provider is
+--- made with it on.  An IPv4 socket fails `io_failed` for it.
+public ipv6_only: atom
+--- A socket option that is on or off, `set_flag`'s and `flag`'s.
+public flag_option: type = reuse_address | reuse_port | keep_alive | broadcast
+    | ipv6_only
+
+--- How many bytes the system keeps for what arrives, SO_RCVBUF.  The
+--- system rounds what it is given, and Linux doubles it, so read it back.
+public receive_buffer: atom
+--- How many bytes the system keeps for what is sent, SO_SNDBUF, rounded as
+--- `receive_buffer` is.
+public send_buffer: atom
+--- How many routers what a socket sends to one address may cross, IP_TTL
+--- or IPV6_UNICAST_HOPS by the socket's family: 1 to 255.
+public unicast_hops: atom
+--- How many routers a datagram sent to a multicast group may cross,
+--- IP_MULTICAST_TTL or IPV6_MULTICAST_HOPS: 0 to 255, and 1, this
+--- network alone, until it is set.
+public multicast_hops: atom
+--- A socket option that is a number, `set_number`'s and `number`'s.
+public number_option: type = receive_buffer | send_buffer | unicast_hops
+    | multicast_hops
+
+--- How long a connection with `keep_alive` is idle before its first
+--- probe, TCP_KEEPIDLE, or TCP_KEEPALIVE on Darwin.
+public keep_alive_idle: atom
+--- How long a connection with `keep_alive` waits between probes,
+--- TCP_KEEPINTVL.
+public keep_alive_interval: atom
+--- A socket option that is a span of time, kept in whole seconds:
+--- `set_span`'s and `span`'s.
+public span_option: type = keep_alive_idle | keep_alive_interval
 
 --- The network: TCP connections and UDP datagram sockets over IPv4 and
 --- IPv6, each a `file` of the provider.  It is a reader and a writer of
@@ -168,6 +227,96 @@ public network: type = concept (provider: type) is io.reader, io.writer
                   ! io.io_failed
     --- Close a socket, which is consumed even when this fails.
     close: (self: provider, sink socket: io.file) -> none ! io.io_failed
+    --- Turn the option `which` on or off for `socket`.
+    set_flag: (self: provider, socket: io.file, which: flag_option, on: bool)
+              -> none ! unsupported | io.io_failed
+    --- Whether the option `which` is on for `socket`.
+    flag: (self: provider, socket: io.file, which: flag_option)
+          -> (on: bool) ! unsupported | io.io_failed
+    --- Set the option `which` of `socket` to `value`.
+    set_number: (self: provider, socket: io.file, which: number_option,
+                 value: u32) -> none ! unsupported | io.io_failed
+    --- The option `which` of `socket`, as the system keeps it.
+    number: (self: provider, socket: io.file, which: number_option)
+            -> (value: u32) ! unsupported | io.io_failed
+    --- Set the option `which` of `socket` to `value`, kept in whole seconds,
+    --- a part of one rounded up; zero is `io_failed`.
+    set_span: (self: provider, socket: io.file, which: span_option,
+               value: time.duration) -> none ! unsupported | io.io_failed
+    --- The option `which` of `socket`, in whole seconds.
+    span: (self: provider, socket: io.file, which: span_option)
+          -> (value: time.duration) ! unsupported | io.io_failed
+    --- With `on`, make closing `socket` wait up to `limit`, kept in whole
+    --- seconds, for what it has sent to be delivered, SO_LINGER, and a
+    --- limit of zero reset the connection at the close.  Without, a close
+    --- returns at once and the system delivers what is left on its own.
+    set_linger: (self: provider, socket: io.file, on: bool,
+                 limit: time.duration) -> none ! io.io_failed
+    --- Whether closing `socket` lingers, and how long.
+    linger: (self: provider, socket: io.file)
+            -> (on: bool, limit: time.duration) ! io.io_failed
+    --- Make the datagram socket `socket` take what is sent to the multicast
+    --- group `group`, through the interface whose address `through` is for
+    --- IPv4, or whose name or number `through`'s zone is for IPv6; an
+    --- unspecified `through` without a zone lets the system choose.  An
+    --- address that is no group is `address_unavailable`.
+    join_group: (self: provider, socket: io.file, group: address,
+                 through: address) -> none ! address_unavailable | io.io_failed
+    --- Stop taking what is sent to a group `join_group` joined.
+    leave_group: (self: provider, socket: io.file, group: address,
+                  through: address) -> none ! address_unavailable | io.io_failed
+    --- Send what `socket` sends to a multicast group out through the
+    --- interface `through` names, as `join_group` reads it: IP_MULTICAST_IF
+    --- or IPV6_MULTICAST_IF.  An unspecified address gives the choice back
+    --- to the system; an interface it does not have is
+    --- `address_unavailable`.
+    set_multicast_interface: (self: provider, socket: io.file,
+                              through: address)
+                             -> none ! address_unavailable | io.io_failed
+    --- The interface `socket` sends to groups through, as
+    --- `set_multicast_interface` set it: unspecified for the system's
+    --- choice.  An IPv6 interface is the address `::` with its zone.
+    multicast_interface: (self: provider, socket: io.file)
+                         -> (through: address) ! io.io_failed
+    --- Write into `into` the addresses the host name `name` has, each with
+    --- `port`, in the order the system's resolver gives them, and return
+    --- how many, as many as `into` holds.  It waits as a receive does while
+    --- name servers are asked, which may take seconds, and fails
+    --- `timed_out` when none answers.
+    resolve: (self: provider, name: []u8, port: u16, into: []mut address)
+             -> (count: usize) ! unknown_name | timed_out | io.io_failed
+    --- Connect to the Unix-domain listener at `path`.  A path no socket
+    --- listens at is `refused`; an empty one, one holding a NUL or one
+    --- longer than the system takes is `invalid_address`.
+    connect_local: (self: provider, path: text.os_string)
+                   -> (connected: io.file)
+                   ! refused | invalid_address | unsupported | io.no_access
+                   | io.io_failed
+    --- Listen for Unix-domain connections at `path`, which the listener
+    --- makes and which stays after it closes, for the program to remove.  A
+    --- path that already exists is `address_in_use`.
+    listen_local: (self: provider, path: text.os_string)
+                  -> (listener: io.file)
+                  ! address_in_use | invalid_address | unsupported
+                  | io.no_access | io.io_failed
+    --- Open a Unix-domain datagram socket bound to `path`, as
+    --- `listen_local` binds one.
+    open_local_datagram: (self: provider, path: text.os_string)
+                         -> (socket: io.file)
+                         ! address_in_use | invalid_address | unsupported
+                         | io.no_access | io.io_failed
+    --- Send `bytes` as one datagram to the Unix-domain socket at `path`.  A
+    --- path no socket is bound to is `refused`.
+    send_to_local: (self: provider, socket: io.file, bytes: []u8,
+                    path: text.os_string)
+                   -> none ! refused | invalid_address | timed_out | io.io_failed
+    --- Receive the next datagram of a Unix-domain datagram socket into
+    --- `into`, waiting for one, and the path of the socket that sent it
+    --- into `room`, lent from it: empty when the sender is bound to none.
+    receive_from_local: (self: provider, socket: io.file, into: []mut u8,
+                         room: []mut u8)
+                        -> (count: usize, sender: text.os_string from room)
+                        ! timed_out | io.io_failed
 end network
 
 --- An IPv4 address `a.b.c.d` and a port.
@@ -680,3 +829,191 @@ public close: (provider: type is network, host: provider,
                sink socket: io.file) -> none ! io.io_failed =
     try provider.close(host, socket)
 end close
+
+--- Turn the option `which` on or off for `socket`.
+public set_flag: (provider: type is network, host: provider, socket: io.file,
+                  which: flag_option, on: bool)
+                 -> none ! unsupported | io.io_failed =
+    try provider.set_flag(host, socket, which, on)
+end set_flag
+
+--- Whether the option `which` is on for `socket`.
+public flag: (provider: type is network, host: provider, socket: io.file,
+              which: flag_option) -> (on: bool) ! unsupported | io.io_failed =
+    on = try provider.flag(host, socket, which)
+end flag
+
+--- Set the option `which` of `socket` to `value`: a buffer's bytes or a
+--- count of hops.
+public set_number: (provider: type is network, host: provider,
+                    socket: io.file, which: number_option, value: u32)
+                   -> none ! unsupported | io.io_failed =
+    try provider.set_number(host, socket, which, value)
+end set_number
+
+--- The option `which` of `socket` as the system keeps it, which for a
+--- buffer may differ from what was set.
+public number: (provider: type is network, host: provider, socket: io.file,
+                which: number_option)
+               -> (value: u32) ! unsupported | io.io_failed =
+    value = try provider.number(host, socket, which)
+end number
+
+--- Set the keep-alive span `which` of `socket`, kept in whole seconds.
+public set_span: (provider: type is network, host: provider, socket: io.file,
+                  which: span_option, value: time.duration)
+                 -> none ! unsupported | io.io_failed =
+    try provider.set_span(host, socket, which, value)
+end set_span
+
+--- The keep-alive span `which` of `socket`.
+public span: (provider: type is network, host: provider, socket: io.file,
+              which: span_option)
+             -> (value: time.duration) ! unsupported | io.io_failed =
+    value = try provider.span(host, socket, which)
+end span
+
+--- Make closing `socket` linger up to `limit` for what it sent, with
+--- `on`, or return at once, without.
+public set_linger: (provider: type is network, host: provider,
+                    socket: io.file, on: bool, limit: time.duration)
+                   -> none ! io.io_failed =
+    try provider.set_linger(host, socket, on, limit)
+end set_linger
+
+--- Whether closing `socket` lingers, and how long.
+public linger: (provider: type is network, host: provider, socket: io.file)
+               -> (on: bool, limit: time.duration) ! io.io_failed =
+    (on: held, limit: kept) := try provider.linger(host, socket)
+    on = held
+    limit = kept
+end linger
+
+--- Make a datagram socket take what is sent to the multicast group
+--- `group`, through the interface `through` names, the unspecified
+--- address for the system's choice.
+public join_group: (provider: type is network, host: provider,
+                    socket: io.file, group: address, through: address)
+                   -> none ! address_unavailable | io.io_failed =
+    try provider.join_group(host, socket, group, through)
+end join_group
+
+--- Send what `socket` sends to groups out through the interface
+--- `through` names, unspecified for the system's choice.
+public set_multicast_interface: (provider: type is network, host: provider,
+                                 socket: io.file, through: address)
+                                -> none ! address_unavailable | io.io_failed =
+    try provider.set_multicast_interface(host, socket, through)
+end set_multicast_interface
+
+--- The interface `socket` sends to groups through.
+public multicast_interface: (provider: type is network, host: provider,
+                             socket: io.file)
+                            -> (through: address) ! io.io_failed =
+    through = try provider.multicast_interface(host, socket)
+end multicast_interface
+
+--- Stop taking what is sent to a group `join_group` joined.
+public leave_group: (provider: type is network, host: provider,
+                     socket: io.file, group: address, through: address)
+                    -> none ! address_unavailable | io.io_failed =
+    try provider.leave_group(host, socket, group, through)
+end leave_group
+
+--- Write into `into` the addresses `name` has, each with `port`, and
+--- return how many.  A name that is an address's own text, `127.0.0.1` or
+--- `::1`, is that address, read as `parse_ip` reads one and asking no
+--- one; any other is the provider's to resolve, as `network`'s `resolve`
+--- says.  A name of no address is `unknown_name`, and `into` without room
+--- holds none and returns zero.
+public resolve: (provider: type is network, host: provider, name: []u8,
+                 port: u16, into: []mut address)
+                -> (count: usize) ! unknown_name | timed_out | io.io_failed =
+    count = 0
+    literal: address = parse_ip(name) else (problem)
+        _ = problem
+        return when lenof into == 0
+        count = try provider.resolve(host, name, port, into)
+        fail unknown_name when count == 0
+        return
+    end
+    return when lenof into == 0
+    into[0] = with_port(literal, port)
+    count = 1
+end resolve
+
+--  Why the last of `connect_by_name`'s attempts failed.
+attempt_failure: type = refused | unreachable | address_unavailable | timed_out
+    | io.io_failed
+
+--- Connect to the host `name` at `port`: resolve it, as `resolve` does,
+--- to at most sixteen addresses, and try each in the resolver's order,
+--- as Go's `Dial` does, until one connects, each attempt within `limit`
+--- as `connect_within` limits one, zero for no limit.  When none
+--- connects, it fails as the last attempt did.
+public connect_by_name: (provider: type is network, host: provider,
+                         name: []u8, port: u16, limit: time.duration)
+                        -> (connected: io.file)
+                        ! unknown_name | refused | unreachable
+                        | address_unavailable | timed_out | io.io_failed =
+    mut found: [16]address = [16 of unspecified(ipv4, 0)]
+    count: usize = try resolve(host, name, port, found[0..<16])
+    mut last: attempt_failure = io.io_failed
+    for index in usize(0)..<count do
+        connected = provider.connect_within(host, found[index], limit)
+            else (problem)
+            last = problem
+            continue
+        end
+        return
+    end for
+    fail last
+end connect_by_name
+
+--- Connect to the Unix-domain listener at `path`.
+public connect_local: (provider: type is network, host: provider,
+                       path: text.os_string)
+                      -> (connected: io.file)
+                      ! refused | invalid_address | unsupported | io.no_access
+                      | io.io_failed =
+    connected = try provider.connect_local(host, path)
+end connect_local
+
+--- Listen for Unix-domain connections at `path`, which the listener makes
+--- and the program removes once it is done.
+public listen_local: (provider: type is network, host: provider,
+                      path: text.os_string)
+                     -> (listener: io.file)
+                     ! address_in_use | invalid_address | unsupported
+                     | io.no_access | io.io_failed =
+    listener = try provider.listen_local(host, path)
+end listen_local
+
+--- Open a Unix-domain datagram socket bound to `path`.
+public open_local_datagram: (provider: type is network, host: provider,
+                             path: text.os_string)
+                            -> (socket: io.file)
+                            ! address_in_use | invalid_address | unsupported
+                            | io.no_access | io.io_failed =
+    socket = try provider.open_local_datagram(host, path)
+end open_local_datagram
+
+--- Send `bytes` as one datagram to the Unix-domain socket at `path`.
+public send_to_local: (provider: type is network, host: provider,
+                       socket: io.file, bytes: []u8, path: text.os_string)
+                      -> none ! refused | invalid_address | timed_out
+                              | io.io_failed =
+    try provider.send_to_local(host, socket, bytes, path)
+end send_to_local
+
+--- Receive the next Unix-domain datagram into `into`, and its sender's
+--- path into `room`.
+public receive_from_local: (provider: type is network, host: provider,
+                            socket: io.file, into: []mut u8, room: []mut u8)
+                           -> (count: usize, sender: text.os_string from room)
+                           ! timed_out | io.io_failed =
+    (count: got, sender: who) := try provider.receive_from_local(host, socket,
+                                                                 into, room)
+    count = got
+    sender = who
+end receive_from_local

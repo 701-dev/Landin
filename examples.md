@@ -2381,6 +2381,90 @@ UDP over ::1: the server echoed 2 datagrams
 | hello, datagram
 ```
 
+## Connecting by name
+
+A client that reaches a server by its host's name instead of its address:
+the program listens on `127.0.0.1` and connects to `localhost`, which the
+system resolves. Read `exchange` first, then `serve`, the server's side of
+it.
+
+- `net.connect_by_name` resolves the name and tries each address it has in
+  turn, each within the limit given, here five seconds. It connects even
+  where the resolver gives `::1` first, which nothing here listens at.
+- The listener asks for port 0, and the client takes the port from
+  `net.local_address`, so the name supplies the address alone.
+- Had no address connected, the call would fail as its last attempt did,
+  and a name no one knows is `net.unknown_name`. Every failure is an atom
+  of its concept [0940].
+- The client sends before the server accepts, as in the echo above: one
+  thread does both, and the system completes the handshake.
+- The program reports a failure in words on standard error and returns 1.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-connect-by-name/main.ldn`.
+
+```landin
+--  Connecting by name: a server on 127.0.0.1 and a client that reaches it
+--  by the name `localhost`, which the system resolves.  The client tries
+--  each address the name has in turn, so it connects even where the
+--  resolver gives ::1 first, which nothing here listens at.
+import core/failure
+import core/io
+import core/net
+import core/time
+import hosted/blocking
+
+--- The server's answer was not what it sent.
+wrong_answer: atom
+
+--- Serve one connection on `listener`: read a word and send it back.
+serve: (host: blocking.host, listener: io.file) -> none ! ... =
+    accepted: io.file = try net.accept(host, listener)
+    defer net.close(host, accepted) else none
+    mut buffer: [16]u8 = zeroed
+    got: usize = try net.receive(host, accepted, buffer[0..<16])
+    try net.send(host, accepted, buffer[0..<got])
+end serve
+
+--- Listen on 127.0.0.1, connect to `localhost` at its port, and have the
+--- word sent come back.
+exchange: (host: blocking.host, out: io.file) -> none ! ... =
+    listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, listener) else none
+    at: net.address = try net.local_address(host, listener)
+    connection: io.file = try net.connect_by_name(host, "localhost", at.port,
+                                                  time.seconds(5))
+    defer net.close(host, connection) else none
+    try net.send(host, connection, "hello")
+    try serve(host, listener)
+    mut buffer: [16]u8 = zeroed
+    got: usize = try net.receive(host, connection, buffer[0..<16])
+    fail wrong_answer when got <> 5
+    try io.write(host, out, "connected to localhost and read back: ")
+    try io.write(host, out, buffer[0..<got])
+    try io.write(host, out, "\n")
+end exchange
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 0
+    exchange(host, io.out(host)) else (problem)
+        message: []u8 = match problem
+            wrong_answer: "the answer differed"
+            _ (rest): failure.words(rest)
+        end match
+        io.write(host, io.err(host), message) else none
+        io.write(host, io.err(host), "\n") else none
+        code = 1
+    end
+end main
+```
+
+It prints
+
+```text
+connected to localhost and read back: hello
+```
+
 ## Directory listing
 
 `ls -l` cut down to what every hosted system agrees on: each entry of a

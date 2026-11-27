@@ -87,6 +87,9 @@ fixed if compiler.os == windows then
     --- What `AcceptEx` takes for each address: the largest socket address
     --- and 16 bytes more.
     public address_room: u32 = 44
+    --- What `AcceptEx` takes for each address of a Unix-domain socket: a
+    --- `SOCKADDR_UN`, 110 bytes, and 16 more.
+    public local_address_room: u32 = 126
 
     --- The option that gives a socket `ConnectEx` connected the state
     --- `getpeername`, `shutdown` and the rest expect,

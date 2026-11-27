@@ -54,7 +54,12 @@ fixed if compiler.os <> windows then
     --- its family.
     public address_of:
         (at: posix.socket_address) -> (result: net.address) ! posix.errno =
-        endpoint: posix.internet_endpoint = try posix.endpoint_of(at)
+        result = endpoint_address(try posix.endpoint_of(at))
+    end address_of
+
+    --  The internet address and port of an endpoint, its scope its zone.
+    endpoint_address:
+        (endpoint: posix.internet_endpoint) -> (result: net.address) =
         if endpoint.family == posix.internet then
             result = net.ipv4_address(endpoint.octets[0], endpoint.octets[1],
                                       endpoint.octets[2], endpoint.octets[3],
@@ -66,7 +71,7 @@ fixed if compiler.os <> windows then
                 result.zone = zone_named(endpoint.scope)
             end if
         end if
-    end address_of
+    end endpoint_address
 
     --  The zone a received address's scope names: its interface's name, or,
     --  for an interface that has gone, its number in decimal.

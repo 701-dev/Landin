@@ -187,6 +187,8 @@ RUNNING_EXAMPLES = [
      "compiler/tests/fixtures/runtime/plugin-loading/main.ldn"),
     ("Echo over loopback",
      "compiler/tests/fixtures/runtime/network-echo/main.ldn"),
+    ("Connecting by name",
+     "compiler/tests/fixtures/runtime/example-connect-by-name/main.ldn"),
     ("Printing formatted values",
      "compiler/tests/fixtures/runtime/example-formatted-output/main.ldn"),
     ("Reporting a failure in words",

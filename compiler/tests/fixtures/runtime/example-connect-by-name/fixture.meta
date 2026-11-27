@@ -1,0 +1,10 @@
+class: runtime
+profiles: standard
+summary: the examples page's connection by name: a server on 127.0.0.1 and a client that reaches it through net.connect_by_name and the name localhost, trying each address the resolver gives, sends a word and reads it back
+program: main.ldn
+root: ../../../../..
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, windows-x86-64, windows-arm64

@@ -225,6 +225,32 @@ class Check(unittest.TestCase):
             for directory, meta in found:
                 self.assertEqual(meta["link"], "libc", directory)
 
+    def test_a_program_another_fixture_holds_is_compiled_in_the_checkout(self):
+        directory = (ROOT / "compiler/tests/fixtures/runtime"
+                     / "network-resolver-libc")
+        meta = static_check.fixture_meta(directory / "fixture.meta")
+        self.assertTrue(meta["program"].startswith("../"))
+        calls = []
+
+        def recorded(root_args, command, cwd="/", env=None, timeout=600,
+                     stdin=b""):
+            calls.append((command, cwd))
+            return subprocess.CompletedProcess(command, 1, b"", b"")
+
+        kept = static_check.bwrap
+        static_check.bwrap = recorded
+        try:
+            with TemporaryDirectory() as alpine:
+                checks = static_check.Checks(Path(alpine))
+                static_check.run_fixture(checks, Path(alpine), [], {},
+                                         directory, meta)
+        finally:
+            static_check.bwrap = kept
+        command, cwd = calls[-1]
+        self.assertEqual(command[-1], meta["program"])
+        self.assertEqual(cwd, "/src/compiler/tests/fixtures/runtime/"
+                              "network-resolver-libc")
+
     def test_needed_libraries_reads_a_dynamic_and_a_static_executable(self):
         self.assertEqual(static_check.needed_libraries(elf(62)), 0)
         if platform.system() == "Linux":

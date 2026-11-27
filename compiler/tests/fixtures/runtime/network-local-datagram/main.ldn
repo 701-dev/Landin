@@ -1,0 +1,113 @@
+--  A Unix-domain datagram exchange through hosted/blocking and through
+--  hosted/events, on the systems that have such sockets: two sockets at
+--  paths no other run takes, a datagram each way with its sender's path,
+--  a third socket at a taken path `address_in_use`, and a datagram to a
+--  path no socket holds `refused`.
+import core/cmp
+import core/io
+import core/net
+import core/text
+import hosted/blocking
+import hosted/events
+
+--- Something came back other than was sent, or a call did not fail as
+--- it should.
+wrong: atom
+
+--- A path in the working directory no other run takes.
+fresh_path: (host: blocking.host, into: []mut u8)
+            -> (path: text.os_string from into) ! ... =
+    mut drawn: [8]u8 = zeroed
+    try io.fill_random(host, drawn[0..<8])
+    path = try io.temporary_path(text.os_string_over(""), drawn, into)
+end fresh_path
+
+--- Receive `wanted` on `socket`, sent from `sender`.
+received: (provider: type is net.network, host: provider, socket: io.file,
+           wanted: []u8, sender: text.os_string) -> none ! ... =
+    mut buffer: [8]u8 = zeroed
+    mut room: [64]u8 = zeroed
+    (count: got, sender: from_path) :=
+        try net.receive_from_local(host, socket, buffer[0..<8], room[0..<64])
+    fail wrong when cmp.compare(buffer[0..<got], wanted) <> cmp.equal
+      or cmp.compare(text.os_string_bytes(from_path),
+                     text.os_string_bytes(sender)) <> cmp.equal
+end received
+
+--- Whether a socket at `path` is `address_in_use`.
+taken: (provider: type is net.network, host: provider, path: text.os_string)
+       -> (yes: bool) ! ... =
+    yes = false
+    extra: io.file = net.open_local_datagram(host, path) else (problem)
+        yes = problem == net.address_in_use
+        return
+    end
+    try net.close(host, extra)
+end taken
+
+--- Whether a datagram to `path` is `refused`.
+refused: (provider: type is net.network, host: provider, socket: io.file,
+          path: text.os_string) -> (yes: bool) =
+    yes = false
+    net.send_to_local(host, socket, "lost", path) else (problem)
+        yes = problem == net.refused
+    end
+end refused
+
+--- The exchange over `host` between `first` and `second`.
+exchange: (provider: type is net.network, host: provider, first: text.os_string,
+           second: text.os_string) -> none ! ... =
+    one: io.file = try net.open_local_datagram(host, first)
+    defer net.close(host, one) else none
+    two: io.file = try net.open_local_datagram(host, second)
+    try net.send_to_local(host, one, "ping", second)
+    try received(host, two, "ping", first)
+    try net.send_to_local(host, two, "pong", first)
+    try received(host, one, "pong", second)
+    fail wrong when not try taken(host, first)
+    try net.close(host, two)
+end exchange
+
+--- Run the exchange at two fresh paths and remove them; then a socket at
+--- the first again, whose datagram to the removed second is refused.
+round: (provider: type is net.network, host: provider, files: blocking.host)
+       -> none ! ... =
+    mut a: [64]u8 = zeroed
+    mut b: [64]u8 = zeroed
+    first: text.os_string = try fresh_path(files, a[0..<64])
+    second: text.os_string = try fresh_path(files, b[0..<64])
+    exchange(host, first, second) else (problem)
+        io.remove_file(files, first) else none
+        io.remove_file(files, second) else none
+        fail problem
+    end
+    try io.remove_file(files, second)
+    try io.remove_file(files, first)
+    one: io.file = try net.open_local_datagram(host, first)
+    gone: bool = refused(host, one, second)
+    try net.close(host, one)
+    try io.remove_file(files, first)
+    fail wrong when not gone
+end round
+
+public main: () -> (code: i32) =
+    code = 1
+    blocked := blocking.new()
+    mut state: events.space = zeroed
+    mut entries: [3]usize = zeroed
+    evented := events.over(state, entries) else (problem)
+        _ = problem
+        return
+    end
+    code = 2
+    round(blocked, blocked) else (problem)
+        _ = problem
+        return
+    end
+    code = 3
+    round(evented, blocked) else (problem)
+        _ = problem
+        return
+    end
+    code = 42
+end main
