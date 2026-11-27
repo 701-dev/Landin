@@ -1,0 +1,7 @@
+class: runtime
+profiles: standard
+summary: [0920] an element stored below a struct result of a routine with two results is stored in that result's field of the caller's result, at every depth, and read back there
+constructs: 0520, 0540, 0670, 0920, 0990, 1810
+program: main.ldn
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

@@ -4360,6 +4360,9 @@
     "runtime/module-variant-images": {
       "mode": "execute"
     },
+    "runtime/multi-result-field-element-store": {
+      "mode": "execute"
+    },
     "runtime/multiple-named-returns": {
       "mode": "execute"
     },
