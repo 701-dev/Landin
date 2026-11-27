@@ -4002,7 +4002,7 @@ steps.
 
 ### R22.35 — Checks too long for a gate, by record
 
-Status: planned
+Status: active
 Depends on: none
 
 The exhaustive and other checks too long for any regular gate, which the
