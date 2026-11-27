@@ -1,8 +1,8 @@
---  core/bits's operations at u8 against references written bit by bit
---  here, sharing no code with core/bits: every input of each one-operand
---  operation, every rotation count up to twice the width, and every pair of operands.
---  The program exits 42 when all agree, and otherwise the number of the
---  first operation that did not.
+--  core/bits's operations at u8 against references written here bit by
+--  bit or by arithmetic, sharing no code with core/bits: every input of
+--  each one-operand operation, every rotation count up to twice the
+--  width, and every pair of operands.  The program exits 42 when all agree, and
+--  otherwise the number of the first operation that did not.
 import core/bits
 
 width: u32 = 8
@@ -38,15 +38,15 @@ trailing_by_bits: (value: u32) -> (count: u32) =
     end for
 end trailing_by_bits
 
---  Each bit moved `count` places up, the top bits coming in at the bottom.
-rotated_by_bits: (value: u32, count: u32) -> (result: u32) =
-    result = 0
-    for index in u32(0)..<width do
-        if bit(value, index) then
-            result = result | (u32(1) << ((index + count) % width))
-        end if
-    end for
-end rotated_by_bits
+--  One place up, the top bit coming in at the bottom, by arithmetic.
+up_one: (value: u32) -> (result: u32) =
+    result = (value * 2) % (top + 1) + value / ((top + 1) / 2)
+end up_one
+
+--  One place down, the bottom bit coming in at the top.
+down_one: (value: u32) -> (result: u32) =
+    result = value / 2 + (value % 2) * ((top + 1) / 2)
+end down_one
 
 mirrored_by_bits: (value: u32) -> (result: u32) =
     result = 0
@@ -65,14 +65,6 @@ swapped_by_bytes: (value: u32) -> (result: u32) =
     end for
 end swapped_by_bytes
 
---  The product by shifts and additions, in a u64 so nothing is lost.
-product_by_bits: (x: u32, y: u32) -> (product: u64) =
-    product = 0
-    for index in u32(0)..<width do
-        if bit(y, index) then product = product + (u64(x) << u64(index)) end if
-    end for
-end product_by_bits
-
 --  Every operation on one operand, `x`, against the references.
 single: (x: u32) -> (failed: i32) =
     value: u8 = u8(x)
@@ -88,13 +80,16 @@ single: (x: u32) -> (failed: i32) =
     return when u32(bits.reverse_bits(value)) <> mirrored_by_bits(x)
     failed = 6
     return when u32(bits.reverse_bytes(value)) <> swapped_by_bytes(x)
+    --  Each count from the one before it, a place at a time.
+    mut left: u32 = x
+    mut right: u32 = x
     for count in u32(0)..<2 * width + 1 do
         failed = 7
-        return when u32(bits.rotate_left(value, count))
-          <> rotated_by_bits(x, count % width)
+        return when u32(bits.rotate_left(value, count)) <> left
         failed = 8
-        return when u32(bits.rotate_right(value, count))
-          <> rotated_by_bits(x, (width - count % width) % width)
+        return when u32(bits.rotate_right(value, count)) <> right
+        left = up_one(left)
+        right = down_one(right)
     end for
     failed = 0
 end single
@@ -103,7 +98,7 @@ end single
 pair: (x: u32, y: u32) -> (failed: i32) =
     left: u8 = u8(x)
     right: u8 = u8(y)
-    product: u64 = product_by_bits(x, y)
+    product: u64 = u64(x) * u64(y)
     (high: high, low: low) := bits.multiply_wide(left, right)
     failed = 9
     return when u64(high) <> product >> u64(width)

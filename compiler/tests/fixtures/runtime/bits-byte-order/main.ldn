@@ -1,6 +1,7 @@
---  core/bits's reader and writer: every width written and read back in
---  both byte orders, the bytes each order lays down, short input and a
---  full buffer refused without moving, and LEB128 varints: known
+--  core/bits's reads and writes over a caller's bytes: every width
+--  written and read back in both byte orders, the bytes each order lays
+--  down, short input and a full buffer refused without moving, a view
+--  taken that lasts while reading goes on, and LEB128 varints: known
 --  encodings, round trips at every length, padding accepted, and
 --  truncated, overlong and overflowing ones refused.  The program exits
 --  42 when every check holds, and otherwise the number of the first that
@@ -8,7 +9,7 @@
 import core/bits
 import core/mem
 
---  Whether the first bytes of `bytes` are `expected`.
+--  Whether `bytes` are `expected`.
 same: (bytes: []u8, expected: []u8) -> (yes: bool) =
     yes = lenof bytes == lenof expected
     return when not yes
@@ -20,160 +21,179 @@ same: (bytes: []u8, expected: []u8) -> (yes: bool) =
     end for
 end same
 
---  Every width in both orders, written then read back.
+--  Every width in `order`, written then read back.
 round_trips: (order: bits.byte_order) -> (failed: i32) =
     mut buffer: [30]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<30])
+    mut at: usize = 0
     failed = 1
-    bits.write_u8(out, 0xfe) else begin return end
-    bits.write_i8(out, -2) else begin return end
-    bits.write_u16(out, 0xbeef, order) else begin return end
-    bits.write_i16(out, -32768, order) else begin return end
-    bits.write_u32(out, 0xdeadbeef, order) else begin return end
-    bits.write_i32(out, -123456789, order) else begin return end
-    bits.write_u64(out, 0x0123456789abcdef, order) else begin return end
-    bits.write_i64(out, -9223372036854775807 - 1, order) else begin return end
+    bits.write_u8(buffer, at, 0xfe) else begin return end
+    bits.write_i8(buffer, at, -2) else begin return end
+    bits.write_u16(buffer, at, 0xbeef, order) else begin return end
+    bits.write_i16(buffer, at, -32768, order) else begin return end
+    bits.write_u32(buffer, at, 0xdeadbeef, order) else begin return end
+    bits.write_i32(buffer, at, -123456789, order) else begin return end
+    bits.write_u64(buffer, at, 0x0123456789abcdef, order)
+        else begin return end
+    bits.write_i64(buffer, at, -9223372036854775807 - 1, order)
+        else begin return end
     failed = 2
-    return when bits.written(out) <> 30
-    mut source := bits.reader_over(bits.used(out))
+    return when at <> 30
+    bytes: []u8 = buffer[0..<30]
+    mut next: usize = 0
     failed = 3
-    return when (bits.read_u8(source) else 0) <> 0xfe
-    return when (bits.read_i8(source) else 0) <> -2
-    return when (bits.read_u16(source, order) else 0) <> 0xbeef
-    return when (bits.read_i16(source, order) else 0) <> -32768
-    return when (bits.read_u32(source, order) else 0) <> 0xdeadbeef
-    return when (bits.read_i32(source, order) else 0) <> -123456789
-    return when (bits.read_u64(source, order) else 0) <> 0x0123456789abcdef
-    return when (bits.read_i64(source, order) else 0)
+    return when (bits.read_u8(bytes, next) else 0) <> 0xfe
+    return when (bits.read_i8(bytes, next) else 0) <> -2
+    return when (bits.read_u16(bytes, next, order) else 0) <> 0xbeef
+    return when (bits.read_i16(bytes, next, order) else 0) <> -32768
+    return when (bits.read_u32(bytes, next, order) else 0) <> 0xdeadbeef
+    return when (bits.read_i32(bytes, next, order) else 0) <> -123456789
+    return when (bits.read_u64(bytes, next, order) else 0)
+      <> 0x0123456789abcdef
+    return when (bits.read_i64(bytes, next, order) else 0)
       <> -9223372036854775807 - 1
     failed = 4
-    return when bits.remaining(source) <> 0
+    return when next <> 30
     failed = 0
 end round_trips
 
---  The bytes each order lays down, and the signed reading of each.
+--  The bytes each order lays down, the signed reading of each, and a
+--  view taken that outlives the reads after it.
 layouts: () -> (failed: i32) =
     mut buffer: [8]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<8])
+    mut at: usize = 0
     failed = 5
-    bits.write_u32(out, 0x01020304, bits.little) else begin return end
-    bits.write_u32(out, 0x01020304, bits.big) else begin return end
-    return when not same(bits.used(out), [4, 3, 2, 1, 1, 2, 3, 4])
+    bits.write_u32(buffer, at, 0x01020304, bits.little) else begin return end
+    bits.write_u32(buffer, at, 0x01020304, bits.big) else begin return end
+    return when not same(buffer[0..<8], [4, 3, 2, 1, 1, 2, 3, 4])
     bytes: [8]u8 = [0xff, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80]
-    mut source := bits.reader_over(bytes[0..<8])
+    mut next: usize = 0
     failed = 6
-    return when (bits.read_i16(source, bits.little) else 0) <> -1
-    return when (bits.read_i16(source, bits.big) else 0) <> -32768
-    return when (bits.read_i32(source, bits.little) else 0)
+    return when (bits.read_i16(bytes, next, bits.little) else 0) <> -1
+    return when (bits.read_i16(bytes, next, bits.big) else 0) <> -32768
+    return when (bits.read_i32(bytes, next, bits.little) else 0)
       <> -2147483647 - 1
     failed = 7
-    mut again := bits.reader_over(bytes[0..<8])
-    return when (bits.read_u64(again, bits.big) else 0) <> 0xffff800000000080
+    next = 0
+    return when (bits.read_u64(bytes, next, bits.big) else 0)
+      <> 0xffff800000000080
     failed = 8
-    mut whole := bits.reader_over(bytes[0..<8])
-    bits.skip(whole, 2) else begin return end
-    return when bits.position(whole) <> 2
-    taken: []u8 = bits.take(whole, 2) else begin return end
-    return when not same(taken, [0x80, 0x00])
+    next = 0
+    bits.skip(bytes, next, 2) else begin return end
+    return when next <> 2
+    taken: []u8 = bits.take(bytes, next, 2) else begin return end
+    last: u32 = bits.read_u32(bytes, next, bits.big) else 0
+    return when not same(taken, [0x80, 0x00]) or last <> 0x80 or next <> 8
     failed = 0
 end layouts
 
 --  A read with too few bytes and a write with too little room fail with
---  the library's atoms and move nothing.
+--  the library's atoms and move nothing, and so does a read from past
+--  the end.
 refusals: () -> (failed: i32) =
     bytes: [7]u8 = [1, 2, 3, 4, 5, 6, 7]
     failed = 9
     for length in usize(0)..<8 do
-        mut source := bits.reader_over(bytes[0..<length])
+        short: []u8 = bytes[0..<length]
+        mut at: usize = 0
         if length < 2 then
-            _ = bits.read_u16(source, bits.big) else (problem)
+            _ = bits.read_u16(short, at, bits.big) else (problem)
                 return when problem <> mem.out_of_bounds
                 0
             end
-            return when bits.position(source) <> 0
+            return when at <> 0
         end if
         if length < 4 then
-            _ = bits.read_i32(source, bits.little) else (problem)
+            _ = bits.read_i32(short, at, bits.little) else (problem)
                 return when problem <> mem.out_of_bounds
                 0
             end
-            return when bits.position(source) <> 0
+            return when at <> 0
         end if
-        _ = bits.read_u64(source, bits.little) else (problem)
+        _ = bits.read_u64(short, at, bits.little) else (problem)
             return when problem <> mem.out_of_bounds
             0
         end
-        return when bits.position(source) <> 0
-        bits.skip(source, length + 1) else (problem)
+        return when at <> 0
+        bits.skip(short, at, length + 1) else (problem)
             return when problem <> mem.out_of_bounds
         end
-        return when bits.position(source) <> 0
-        _ = bits.take(source, length + 1) else (problem)
+        return when at <> 0
+        _ = bits.take(short, at, length + 1) else (problem)
             return when problem <> mem.out_of_bounds
-            bytes[0..<0]
+            short
         end
-        return when bits.position(source) <> 0
+        return when at <> 0
     end for
+    mut beyond: usize = 9
+    _ = bits.read_u8(bytes, beyond) else (problem)
+        return when problem <> mem.out_of_bounds
+        0
+    end
+    return when beyond <> 9
     failed = 10
     mut buffer: [7]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<7])
-    bits.write_u32(out, 1, bits.big) else begin return end
-    bits.write_u32(out, 2, bits.big) else (problem)
+    mut at: usize = 0
+    bits.write_u32(buffer, at, 1, bits.big) else begin return end
+    bits.write_u32(buffer, at, 2, bits.big) else (problem)
         return when problem <> mem.out_of_memory
     end
-    return when bits.written(out) <> 4
-    bits.write_uleb128(out, 0xffffffff) else (problem)
+    return when at <> 4
+    bits.write_uleb128(buffer, at, 0xffffffff) else (problem)
         return when problem <> mem.out_of_memory
     end
-    return when bits.written(out) <> 4
-    bits.write_sleb128(out, -0x10000000) else (problem)
+    return when at <> 4
+    bits.write_sleb128(buffer, at, -0x10000000) else (problem)
         return when problem <> mem.out_of_memory
     end
-    return when bits.written(out) <> 4 or buffer[4] <> 0
+    return when at <> 4 or buffer[4] <> 0
     failed = 0
 end refusals
 
 --  The unsigned encoding of `value` is `expected`, and reads back.
 unsigned_known: (value: u64, expected: []u8) -> (yes: bool) =
     mut buffer: [10]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<10])
+    mut at: usize = 0
     yes = false
-    bits.write_uleb128(out, value) else begin return end
-    return when not same(bits.used(out), expected)
-    mut source := bits.reader_over(bits.used(out))
-    yes = (bits.read_uleb128(source) else value +% 1) == value
-          and bits.remaining(source) == 0
+    bits.write_uleb128(buffer, at, value) else begin return end
+    return when not same(buffer[0..<at], expected)
+    mut next: usize = 0
+    read: u64 = bits.read_uleb128(buffer[0..<at], next) else value +% 1
+    yes = read == value and next == at
 end unsigned_known
 
 --  The signed encoding of `value` is `expected`, and reads back.
 signed_known: (value: i64, expected: []u8) -> (yes: bool) =
     mut buffer: [10]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<10])
+    mut at: usize = 0
     yes = false
-    bits.write_sleb128(out, value) else begin return end
-    return when not same(bits.used(out), expected)
-    mut source := bits.reader_over(bits.used(out))
-    read: i64 = bits.read_sleb128(source) else (if value == 0 then 1 else 0 end if)
-    yes = read == value and bits.remaining(source) == 0
+    bits.write_sleb128(buffer, at, value) else begin return end
+    return when not same(buffer[0..<at], expected)
+    mut next: usize = 0
+    read: i64 = bits.read_sleb128(buffer[0..<at], next)
+        else (if value == 0 then 1 else 0 end if)
+    yes = read == value and next == at
 end signed_known
 
 --  Reading `bytes` as an unsigned varint fails `wanted`, and moves nothing.
-unsigned_refused: (bytes: []u8, wanted: bits.invalid_varint | mem.out_of_bounds)
+unsigned_refused: (bytes: []u8,
+                   wanted: bits.invalid_varint | mem.out_of_bounds)
                   -> (yes: bool) =
-    mut source := bits.reader_over(bytes)
+    mut at: usize = 0
     yes = false
-    _ = bits.read_uleb128(source) else (problem)
-        yes = problem == wanted and bits.position(source) == 0
+    _ = bits.read_uleb128(bytes, at) else (problem)
+        yes = problem == wanted and at == 0
         0
     end
 end unsigned_refused
 
-signed_refused: (bytes: []u8, wanted: bits.invalid_varint | mem.out_of_bounds)
+--  Reading `bytes` as a signed varint fails `wanted`, and moves nothing.
+signed_refused: (bytes: []u8,
+                 wanted: bits.invalid_varint | mem.out_of_bounds)
                 -> (yes: bool) =
-    mut source := bits.reader_over(bytes)
+    mut at: usize = 0
     yes = false
-    _ = bits.read_sleb128(source) else (problem)
-        yes = problem == wanted and bits.position(source) == 0
+    _ = bits.read_sleb128(bytes, at) else (problem)
+        yes = problem == wanted and at == 0
         0
     end
 end signed_refused
@@ -204,26 +224,28 @@ varints: () -> (failed: i32) =
     --  Every length from one byte to ten, in both encodings.
     failed = 13
     mut buffer: [700]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<700])
+    mut at: usize = 0
     for shift in u64(0)..<64 do
-        bits.write_uleb128(out, u64(1) << shift) else begin return end
-        bits.write_sleb128(out, 0 - i64(u64(1) << (shift % 63))) else begin return end
+        bits.write_uleb128(buffer, at, u64(1) << shift) else begin return end
+        bits.write_sleb128(buffer, at, 0 - i64(u64(1) << (shift % 63)))
+            else begin return end
     end for
-    mut source := bits.reader_over(bits.used(out))
+    written: []u8 = buffer[0..<at]
+    mut next: usize = 0
     for shift in u64(0)..<64 do
-        return when (bits.read_uleb128(source) else 0) <> u64(1) << shift
-        return when (bits.read_sleb128(source) else 0)
+        return when (bits.read_uleb128(written, next) else 0)
+          <> u64(1) << shift
+        return when (bits.read_sleb128(written, next) else 0)
           <> 0 - i64(u64(1) << (shift % 63))
     end for
-    return when bits.remaining(source) <> 0
+    return when next <> at
     --  Padding to the ten bytes 64 bits take is accepted, as linkers
     --  write it.
     failed = 14
-    padded: [4]u8 = [0x85, 0x80, 0x80, 0x00]
-    mut pad := bits.reader_over(padded[0..<4])
-    return when (bits.read_uleb128(pad) else 0) <> 5
-    mut negative_pad := bits.reader_over([0xff, 0xff, 0x7f])
-    return when (bits.read_sleb128(negative_pad) else 0) <> -1
+    mut pad: usize = 0
+    return when (bits.read_uleb128([0x85, 0x80, 0x80, 0x00], pad) else 0) <> 5
+    pad = 0
+    return when (bits.read_sleb128([0xff, 0xff, 0x7f], pad) else 0) <> -1
     failed = 15
     return when not unsigned_refused([0x80, 0x80], mem.out_of_bounds)
     return when not unsigned_refused([], mem.out_of_bounds)

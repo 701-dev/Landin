@@ -60,11 +60,11 @@ public from_entropy: (provider: type is io.entropy, host: provider)
     mut bytes: [32]u8 = zeroed
     try io.fill_random(host, bytes[0..<32])
     --  Thirty-two bytes hold the four words, so no read falls short.
-    mut words := bits.reader_over(bytes[0..<32])
-    result = (s0: bits.read_u64(words, bits.little) else 0,
-              s1: bits.read_u64(words, bits.little) else 0,
-              s2: bits.read_u64(words, bits.little) else 0,
-              s3: bits.read_u64(words, bits.little) else 0)
+    mut at: usize = 0
+    result = (s0: bits.read_u64(bytes, at, bits.little) else 0,
+              s1: bits.read_u64(bytes, at, bits.little) else 0,
+              s2: bits.read_u64(bytes, at, bits.little) else 0,
+              s3: bits.read_u64(bytes, at, bits.little) else 0)
     if result.s0 == 0 and result.s1 == 0 and result.s2 == 0
       and result.s3 == 0 then
         result = new(0)
@@ -79,9 +79,9 @@ public hash_seed: (provider: type is io.entropy, host: provider)
                   -> (seed: cmp.hash_seed) ! io.io_failed =
     mut bytes: [16]u8 = zeroed
     try io.fill_random(host, bytes[0..<16])
-    mut words := bits.reader_over(bytes[0..<16])
-    first: u64 = bits.read_u64(words, bits.little) else 0
-    second: u64 = bits.read_u64(words, bits.little) else 0
+    mut at: usize = 0
+    first: u64 = bits.read_u64(bytes, at, bits.little) else 0
+    second: u64 = bits.read_u64(bytes, at, bits.little) else 0
     seed = cmp.seed_from(first, second)
 end hash_seed
 

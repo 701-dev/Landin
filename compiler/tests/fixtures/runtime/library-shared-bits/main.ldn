@@ -20,14 +20,15 @@ exercise: () -> (ok: bool) =
                                                  u64(0x100000001))
     return when high <> 1 or low <> 0x100000000
     mut buffer: [8]u8 = zeroed
-    mut out := bits.writer_over(buffer[0..<8])
-    bits.write_u32(out, 0xcafef00d, bits.big) else begin return end
-    bits.write_uleb128(out, 300) else begin return end
+    mut at: usize = 0
+    bits.write_u32(buffer, at, 0xcafef00d, bits.big) else begin return end
+    bits.write_uleb128(buffer, at, 300) else begin return end
     return when buffer[0] <> 0xca or buffer[4] <> 0xac or buffer[5] <> 0x02
-    mut source := bits.reader_over(bits.used(out))
-    return when (bits.read_u32(source, bits.big) else 0) <> 0xcafef00d
-      or (bits.read_uleb128(source) else 0) <> 300
-    _ = bits.read_u16(source, bits.little) else (problem)
+    written: []u8 = buffer[0..<at]
+    mut next: usize = 0
+    return when (bits.read_u32(written, next, bits.big) else 0) <> 0xcafef00d
+      or (bits.read_uleb128(written, next) else 0) <> 300
+    _ = bits.read_u16(written, next, bits.little) else (problem)
         ok = problem == mem.out_of_bounds
         0
     end
