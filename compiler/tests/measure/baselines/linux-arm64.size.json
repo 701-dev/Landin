@@ -55,11 +55,11 @@
   "armv8-a/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387068,
-    ".rodata": 48116,
+    ".text": 438020,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -136,11 +136,11 @@
   "armv8-a/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387068,
-    ".rodata": 48116,
+    ".text": 438020,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -217,11 +217,11 @@
   "armv8-a/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387228,
-    ".rodata": 48116,
+    ".text": 438180,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -298,11 +298,11 @@
   "armv8-a/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102348,
-    ".rodata": 37346,
+    ".text": 113284,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -379,11 +379,11 @@
   "armv8-a/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102348,
-    ".rodata": 37346,
+    ".text": 113284,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -460,11 +460,11 @@
   "armv8-a/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102416,
-    ".rodata": 37346,
+    ".text": 113352,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -541,11 +541,11 @@
   "armv8-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 108796,
-    ".rodata": 36966,
+    ".text": 121272,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -622,11 +622,11 @@
   "armv8-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 108796,
-    ".rodata": 36966,
+    ".text": 121272,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -703,11 +703,11 @@
   "armv8-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109248,
-    ".rodata": 36966,
+    ".text": 121724,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -784,11 +784,11 @@
   "armv8.1-a/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390276,
-    ".rodata": 48568,
+    ".text": 441228,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -865,11 +865,11 @@
   "armv8.1-a/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390276,
-    ".rodata": 48568,
+    ".text": 441228,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -946,11 +946,11 @@
   "armv8.1-a/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390436,
-    ".rodata": 48568,
+    ".text": 441388,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -1027,11 +1027,11 @@
   "armv8.1-a/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103524,
-    ".rodata": 37798,
+    ".text": 114460,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1108,11 +1108,11 @@
   "armv8.1-a/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103524,
-    ".rodata": 37798,
+    ".text": 114460,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1189,11 +1189,11 @@
   "armv8.1-a/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103592,
-    ".rodata": 37798,
+    ".text": 114528,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1270,11 +1270,11 @@
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109608,
-    ".rodata": 37362,
+    ".text": 122084,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1351,11 +1351,11 @@
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109608,
-    ".rodata": 37362,
+    ".text": 122084,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1432,11 +1432,11 @@
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 110060,
-    ".rodata": 37362,
+    ".text": 122536,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },

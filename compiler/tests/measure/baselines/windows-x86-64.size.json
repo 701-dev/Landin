@@ -59,14 +59,14 @@
   },
   "x86-64-v1/none-all/pidigits": {
    "sections": {
-    ".text": 260744,
-    ".rdata": 48392,
+    ".text": 295924,
+    ".rdata": 56304,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/none-all/reverse-complement": {
@@ -148,14 +148,14 @@
   },
   "x86-64-v1/none-auto/pidigits": {
    "sections": {
-    ".text": 260744,
-    ".rdata": 48392,
+    ".text": 295924,
+    ".rdata": 56304,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/none-auto/reverse-complement": {
@@ -237,14 +237,14 @@
   },
   "x86-64-v1/none-off/pidigits": {
    "sections": {
-    ".text": 260772,
-    ".rdata": 48392,
+    ".text": 295952,
+    ".rdata": 56304,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v1/none-off/reverse-complement": {
@@ -326,14 +326,14 @@
   },
   "x86-64-v1/size-all/pidigits": {
    "sections": {
-    ".text": 86451,
-    ".rdata": 37056,
+    ".text": 96135,
+    ".rdata": 41376,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/size-all/reverse-complement": {
@@ -415,14 +415,14 @@
   },
   "x86-64-v1/size-auto/pidigits": {
    "sections": {
-    ".text": 86451,
-    ".rdata": 37056,
+    ".text": 96135,
+    ".rdata": 41376,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/size-auto/reverse-complement": {
@@ -504,14 +504,14 @@
   },
   "x86-64-v1/size-off/pidigits": {
    "sections": {
-    ".text": 86523,
-    ".rdata": 37056,
+    ".text": 96207,
+    ".rdata": 41376,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v1/size-off/reverse-complement": {
@@ -593,14 +593,14 @@
   },
   "x86-64-v1/speed-all/pidigits": {
    "sections": {
-    ".text": 121559,
-    ".rdata": 36760,
+    ".text": 133867,
+    ".rdata": 41088,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/speed-all/reverse-complement": {
@@ -682,14 +682,14 @@
   },
   "x86-64-v1/speed-auto/pidigits": {
    "sections": {
-    ".text": 121559,
-    ".rdata": 36760,
+    ".text": 133867,
+    ".rdata": 41088,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v1/speed-auto/reverse-complement": {
@@ -771,14 +771,14 @@
   },
   "x86-64-v1/speed-off/pidigits": {
    "sections": {
-    ".text": 121495,
-    ".rdata": 36760,
+    ".text": 133803,
+    ".rdata": 41088,
     ".buildid": 81,
-    ".data": 404,
-    ".pdata": 2148,
+    ".data": 484,
+    ".pdata": 2316,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v1/speed-off/reverse-complement": {
@@ -860,14 +860,14 @@
   },
   "x86-64-v2/none-all/pidigits": {
    "sections": {
-    ".text": 265667,
-    ".rdata": 48952,
+    ".text": 300847,
+    ".rdata": 56864,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/none-all/reverse-complement": {
@@ -949,14 +949,14 @@
   },
   "x86-64-v2/none-auto/pidigits": {
    "sections": {
-    ".text": 265667,
-    ".rdata": 48952,
+    ".text": 300847,
+    ".rdata": 56864,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/none-auto/reverse-complement": {
@@ -1038,14 +1038,14 @@
   },
   "x86-64-v2/none-off/pidigits": {
    "sections": {
-    ".text": 265695,
-    ".rdata": 48952,
+    ".text": 300875,
+    ".rdata": 56864,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v2/none-off/reverse-complement": {
@@ -1127,14 +1127,14 @@
   },
   "x86-64-v2/size-all/pidigits": {
    "sections": {
-    ".text": 88470,
-    ".rdata": 37616,
+    ".text": 98154,
+    ".rdata": 41944,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/size-all/reverse-complement": {
@@ -1216,14 +1216,14 @@
   },
   "x86-64-v2/size-auto/pidigits": {
    "sections": {
-    ".text": 88470,
-    ".rdata": 37616,
+    ".text": 98154,
+    ".rdata": 41944,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/size-auto/reverse-complement": {
@@ -1305,14 +1305,14 @@
   },
   "x86-64-v2/size-off/pidigits": {
    "sections": {
-    ".text": 88542,
-    ".rdata": 37616,
+    ".text": 98226,
+    ".rdata": 41944,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v2/size-off/reverse-complement": {
@@ -1394,14 +1394,14 @@
   },
   "x86-64-v2/speed-all/pidigits": {
    "sections": {
-    ".text": 123927,
-    ".rdata": 37328,
+    ".text": 136235,
+    ".rdata": 41656,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/speed-all/reverse-complement": {
@@ -1483,14 +1483,14 @@
   },
   "x86-64-v2/speed-auto/pidigits": {
    "sections": {
-    ".text": 123927,
-    ".rdata": 37328,
+    ".text": 136235,
+    ".rdata": 41656,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v2/speed-auto/reverse-complement": {
@@ -1572,14 +1572,14 @@
   },
   "x86-64-v2/speed-off/pidigits": {
    "sections": {
-    ".text": 123863,
-    ".rdata": 37328,
+    ".text": 136171,
+    ".rdata": 41656,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2256,
+    ".data": 508,
+    ".pdata": 2424,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v2/speed-off/reverse-complement": {
@@ -1661,14 +1661,14 @@
   },
   "x86-64-v3/none-all/pidigits": {
    "sections": {
-    ".text": 268018,
-    ".rdata": 49016,
+    ".text": 303160,
+    ".rdata": 56928,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/none-all/reverse-complement": {
@@ -1750,14 +1750,14 @@
   },
   "x86-64-v3/none-auto/pidigits": {
    "sections": {
-    ".text": 268018,
-    ".rdata": 49016,
+    ".text": 303160,
+    ".rdata": 56928,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/none-auto/reverse-complement": {
@@ -1839,14 +1839,14 @@
   },
   "x86-64-v3/none-off/pidigits": {
    "sections": {
-    ".text": 268046,
-    ".rdata": 49016,
+    ".text": 303188,
+    ".rdata": 56928,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v3/none-off/reverse-complement": {
@@ -1928,14 +1928,14 @@
   },
   "x86-64-v3/size-all/pidigits": {
    "sections": {
-    ".text": 89175,
-    ".rdata": 37680,
+    ".text": 98839,
+    ".rdata": 42008,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/size-all/reverse-complement": {
@@ -2017,14 +2017,14 @@
   },
   "x86-64-v3/size-auto/pidigits": {
    "sections": {
-    ".text": 89175,
-    ".rdata": 37680,
+    ".text": 98839,
+    ".rdata": 42008,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/size-auto/reverse-complement": {
@@ -2106,14 +2106,14 @@
   },
   "x86-64-v3/size-off/pidigits": {
    "sections": {
-    ".text": 89247,
-    ".rdata": 37680,
+    ".text": 98911,
+    ".rdata": 42008,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v3/size-off/reverse-complement": {
@@ -2195,14 +2195,14 @@
   },
   "x86-64-v3/speed-all/pidigits": {
    "sections": {
-    ".text": 124695,
-    ".rdata": 37392,
+    ".text": 136939,
+    ".rdata": 41720,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/speed-all/reverse-complement": {
@@ -2284,14 +2284,14 @@
   },
   "x86-64-v3/speed-auto/pidigits": {
    "sections": {
-    ".text": 124695,
-    ".rdata": 37392,
+    ".text": 136939,
+    ".rdata": 41720,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v3/speed-auto/reverse-complement": {
@@ -2373,14 +2373,14 @@
   },
   "x86-64-v3/speed-off/pidigits": {
    "sections": {
-    ".text": 124631,
-    ".rdata": 37392,
+    ".text": 136875,
+    ".rdata": 41720,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2268,
+    ".data": 508,
+    ".pdata": 2436,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v3/speed-off/reverse-complement": {
@@ -2462,14 +2462,14 @@
   },
   "x86-64-v4/none-all/pidigits": {
    "sections": {
-    ".text": 269427,
-    ".rdata": 49080,
+    ".text": 304569,
+    ".rdata": 56992,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/none-all/reverse-complement": {
@@ -2551,14 +2551,14 @@
   },
   "x86-64-v4/none-auto/pidigits": {
    "sections": {
-    ".text": 269427,
-    ".rdata": 49080,
+    ".text": 304569,
+    ".rdata": 56992,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/none-auto/reverse-complement": {
@@ -2640,14 +2640,14 @@
   },
   "x86-64-v4/none-off/pidigits": {
    "sections": {
-    ".text": 269455,
-    ".rdata": 49080,
+    ".text": 304597,
+    ".rdata": 56992,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v4/none-off/reverse-complement": {
@@ -2729,14 +2729,14 @@
   },
   "x86-64-v4/size-all/pidigits": {
    "sections": {
-    ".text": 89562,
-    ".rdata": 37744,
+    ".text": 99226,
+    ".rdata": 42072,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/size-all/reverse-complement": {
@@ -2818,14 +2818,14 @@
   },
   "x86-64-v4/size-auto/pidigits": {
    "sections": {
-    ".text": 89562,
-    ".rdata": 37744,
+    ".text": 99226,
+    ".rdata": 42072,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/size-auto/reverse-complement": {
@@ -2907,14 +2907,14 @@
   },
   "x86-64-v4/size-off/pidigits": {
    "sections": {
-    ".text": 89634,
-    ".rdata": 37744,
+    ".text": 99298,
+    ".rdata": 42072,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v4/size-off/reverse-complement": {
@@ -2996,14 +2996,14 @@
   },
   "x86-64-v4/speed-all/pidigits": {
    "sections": {
-    ".text": 125207,
-    ".rdata": 37456,
+    ".text": 137451,
+    ".rdata": 41784,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/speed-all/reverse-complement": {
@@ -3085,14 +3085,14 @@
   },
   "x86-64-v4/speed-auto/pidigits": {
    "sections": {
-    ".text": 125207,
-    ".rdata": 37456,
+    ".text": 137451,
+    ".rdata": 41784,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 32
+    ".reloc": 36
    }
   },
   "x86-64-v4/speed-auto/reverse-complement": {
@@ -3174,14 +3174,14 @@
   },
   "x86-64-v4/speed-off/pidigits": {
    "sections": {
-    ".text": 125143,
-    ".rdata": 37456,
+    ".text": 137387,
+    ".rdata": 41784,
     ".buildid": 81,
-    ".data": 428,
-    ".pdata": 2280,
+    ".data": 508,
+    ".pdata": 2448,
     ".landin": 64,
     ".tls": 8,
-    ".reloc": 52
+    ".reloc": 56
    }
   },
   "x86-64-v4/speed-off/reverse-complement": {
