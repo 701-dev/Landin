@@ -3703,7 +3703,7 @@ digests pinned in `check.py`, both in `examples.md` and in
 
 ### R22.22 — k-nucleotide ported
 
-Status: planned
+Status: complete
 Depends on: R22.20
 
 Counted with `core/map`, as the game requires the library's table: the
@@ -3714,6 +3714,23 @@ three places by R22.20.
 Exit evidence: the game's output for its 1,000 input as a runtime
 fixture, pinned and published as R22.21's are; the time at 25,000,000
 recorded with the map's share measured.
+
+Done: `runtime/benchmark-game-k-nucleotide` reads FASTA's output, takes
+record THREE's bases as two-bit codes and counts every run of 1, 2, 3,
+4, 6, 12 and 18 of them in a `core/map` table, one a length, and prints
+the game's 1,000 file byte for byte, the shares through `{:.3}`; its
+input and output digests are pinned in `check.py`, it is in
+`examples.md`, and `workloads.json`'s hosted set times it over the
+game's file repeated 300 times, a later header left out of the sequence.
+The key is a distinct word of two bits a base whose hash is its own
+bits, which the map's finalizer spreads, and the map is the library's
+with a constant seed (D2934). At 25,000,000 the run took 61 s on the
+EPYC host, loaded by another item's job, its counts equal to Python's;
+with `cmp.hash_word` as the key's hash it took 96 s. The map's share is
+85 per cent: `locate`'s probing 60, the key's equality and hash, called
+rather than inlined, 17, and the storage's length and view 9; the calls
+are `R551-12`'s evidence entries D339 never copies, where the
+measurement is added.
 
 ### R22.23 — pidigits ported
 

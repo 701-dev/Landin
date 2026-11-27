@@ -689,7 +689,7 @@ machine and holds what the serial port carried to the fixture's
 | everyday tools | `line-count`, `example-sum-arguments`, `word-count`, `line-numbers`, `plugin-loading`, `directory-listing`, `run-shell`, `tree-copy`, `network-echo` |
 | printing and failures | `example-formatted-output`, `example-failure-words` |
 | classic exercises | `example-fizzbuzz`, `example-greatest-common-divisor`, `example-insertion-sort`, `example-binary-search`, `example-sieve-of-eratosthenes`, `example-run-length-encoding`, `example-merge-sort`, `example-sensors` |
-| Benchmark Game ports | `benchmark-game-fannkuch-redux`, `benchmark-game-mandelbrot`, `benchmark-game-fasta`, `benchmark-game-reverse-complement`, `benchmark-game-binary-trees`, `benchmark-game-pidigits`, `benchmark-game-regex-redux` |
+| Benchmark Game ports | `benchmark-game-fannkuch-redux`, `benchmark-game-mandelbrot`, `benchmark-game-fasta`, `benchmark-game-reverse-complement`, `benchmark-game-binary-trees`, `benchmark-game-pidigits`, `benchmark-game-regex-redux`, `benchmark-game-k-nucleotide` |
 
 The `example-*` fixtures print, so they are hosted only. Each classic
 exercise also has a test of the same algorithm without the `example-`
@@ -709,8 +709,9 @@ targets. Their oracles are byte for byte the official
 [FASTA](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fasta.html),
 [reverse-complement](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/revcomp.html),
 [binary-trees](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/binarytrees.html),
-[pidigits](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/pidigits.html)
-and [regex-redux](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/regexredux.html)
+[pidigits](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/pidigits.html),
+[regex-redux](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/regexredux.html)
+and [k-nucleotide](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/knucleotide.html)
 outputs, and `check.py` holds each to its official digest.
 
 On Linux x86-64, compile one of the status-42 tests from the repository

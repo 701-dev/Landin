@@ -61,6 +61,13 @@
    }
   },
   {
+   "name": "k-nucleotide",
+   "fixture": "runtime/benchmark-game-k-nucleotide",
+   "timing": {
+    "stdin_repeat": 300
+   }
+  },
+  {
    "name": "fibre",
    "fixture": "runtime/measure-fibre-switches",
    "timing": {

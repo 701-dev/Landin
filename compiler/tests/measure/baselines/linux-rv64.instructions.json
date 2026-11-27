@@ -14,6 +14,9 @@
   "rv64gc/none-all/fibre": {
    "instructions": 5696391
   },
+  "rv64gc/none-all/k-nucleotide": {
+   "instructions": 324232987
+  },
   "rv64gc/none-all/mandelbrot": {
    "instructions": 170088359
   },
@@ -40,6 +43,9 @@
   },
   "rv64gc/none-auto/fibre": {
    "instructions": 5696391
+  },
+  "rv64gc/none-auto/k-nucleotide": {
+   "instructions": 324235419
   },
   "rv64gc/none-auto/mandelbrot": {
    "instructions": 170088359
@@ -68,6 +74,9 @@
   "rv64gc/none-off/fibre": {
    "instructions": 5696394
   },
+  "rv64gc/none-off/k-nucleotide": {
+   "instructions": 324390996
+  },
   "rv64gc/none-off/mandelbrot": {
    "instructions": 170088364
   },
@@ -94,6 +103,9 @@
   },
   "rv64gc/size-all/fibre": {
    "instructions": 3746499
+  },
+  "rv64gc/size-all/k-nucleotide": {
+   "instructions": 247476894
   },
   "rv64gc/size-all/mandelbrot": {
    "instructions": 55115384
@@ -122,6 +134,9 @@
   "rv64gc/size-auto/fibre": {
    "instructions": 3746499
   },
+  "rv64gc/size-auto/k-nucleotide": {
+   "instructions": 247479214
+  },
   "rv64gc/size-auto/mandelbrot": {
    "instructions": 55115384
   },
@@ -148,6 +163,9 @@
   },
   "rv64gc/size-off/fibre": {
    "instructions": 3746514
+  },
+  "rv64gc/size-off/k-nucleotide": {
+   "instructions": 251768253
   },
   "rv64gc/size-off/mandelbrot": {
    "instructions": 55115850
@@ -176,6 +194,9 @@
   "rv64gc/speed-all/fibre": {
    "instructions": 3481790
   },
+  "rv64gc/speed-all/k-nucleotide": {
+   "instructions": 270527898
+  },
   "rv64gc/speed-all/mandelbrot": {
    "instructions": 46975226
   },
@@ -202,6 +223,9 @@
   },
   "rv64gc/speed-auto/fibre": {
    "instructions": 3481790
+  },
+  "rv64gc/speed-auto/k-nucleotide": {
+   "instructions": 270527898
   },
   "rv64gc/speed-auto/mandelbrot": {
    "instructions": 46975226
@@ -230,6 +254,9 @@
   "rv64gc/speed-off/fibre": {
    "instructions": 3481807
   },
+  "rv64gc/speed-off/k-nucleotide": {
+   "instructions": 274911584
+  },
   "rv64gc/speed-off/mandelbrot": {
    "instructions": 46975957
   },
@@ -256,6 +283,9 @@
   },
   "rv64gc_xtheadba/none-all/fibre": {
    "instructions": 5696391
+  },
+  "rv64gc_xtheadba/none-all/k-nucleotide": {
+   "instructions": 324234718
   },
   "rv64gc_xtheadba/none-all/mandelbrot": {
    "instructions": 170088353
@@ -284,6 +314,9 @@
   "rv64gc_xtheadba/none-auto/fibre": {
    "instructions": 5696391
   },
+  "rv64gc_xtheadba/none-auto/k-nucleotide": {
+   "instructions": 324232574
+  },
   "rv64gc_xtheadba/none-auto/mandelbrot": {
    "instructions": 170088353
   },
@@ -310,6 +343,9 @@
   },
   "rv64gc_xtheadba/none-off/fibre": {
    "instructions": 5696394
+  },
+  "rv64gc_xtheadba/none-off/k-nucleotide": {
+   "instructions": 324388151
   },
   "rv64gc_xtheadba/none-off/mandelbrot": {
    "instructions": 170088358
@@ -338,6 +374,9 @@
   "rv64gc_xtheadba/size-all/fibre": {
    "instructions": 3746499
   },
+  "rv64gc_xtheadba/size-all/k-nucleotide": {
+   "instructions": 247476337
+  },
   "rv64gc_xtheadba/size-all/mandelbrot": {
    "instructions": 55115378
   },
@@ -364,6 +403,9 @@
   },
   "rv64gc_xtheadba/size-auto/fibre": {
    "instructions": 3746499
+  },
+  "rv64gc_xtheadba/size-auto/k-nucleotide": {
+   "instructions": 247478657
   },
   "rv64gc_xtheadba/size-auto/mandelbrot": {
    "instructions": 55115378
@@ -392,6 +434,9 @@
   "rv64gc_xtheadba/size-off/fibre": {
    "instructions": 3746514
   },
+  "rv64gc_xtheadba/size-off/k-nucleotide": {
+   "instructions": 251767696
+  },
   "rv64gc_xtheadba/size-off/mandelbrot": {
    "instructions": 55115844
   },
@@ -418,6 +463,9 @@
   },
   "rv64gc_xtheadba/speed-all/fibre": {
    "instructions": 3481790
+  },
+  "rv64gc_xtheadba/speed-all/k-nucleotide": {
+   "instructions": 270527341
   },
   "rv64gc_xtheadba/speed-all/mandelbrot": {
    "instructions": 46975220
@@ -446,6 +494,9 @@
   "rv64gc_xtheadba/speed-auto/fibre": {
    "instructions": 3481790
   },
+  "rv64gc_xtheadba/speed-auto/k-nucleotide": {
+   "instructions": 270527341
+  },
   "rv64gc_xtheadba/speed-auto/mandelbrot": {
    "instructions": 46975220
   },
@@ -472,6 +523,9 @@
   },
   "rv64gc_xtheadba/speed-off/fibre": {
    "instructions": 3481807
+  },
+  "rv64gc_xtheadba/speed-off/k-nucleotide": {
+   "instructions": 274911027
   },
   "rv64gc_xtheadba/speed-off/mandelbrot": {
    "instructions": 46975951
@@ -500,6 +554,9 @@
   "rv64gc_zba/none-all/fibre": {
    "instructions": 5696932
   },
+  "rv64gc_zba/none-all/k-nucleotide": {
+   "instructions": 324232942
+  },
   "rv64gc_zba/none-all/mandelbrot": {
    "instructions": 170088293
   },
@@ -526,6 +583,9 @@
   },
   "rv64gc_zba/none-auto/fibre": {
    "instructions": 5696932
+  },
+  "rv64gc_zba/none-auto/k-nucleotide": {
+   "instructions": 324235374
   },
   "rv64gc_zba/none-auto/mandelbrot": {
    "instructions": 170088293
@@ -554,6 +614,9 @@
   "rv64gc_zba/none-off/fibre": {
    "instructions": 5696935
   },
+  "rv64gc_zba/none-off/k-nucleotide": {
+   "instructions": 324390951
+  },
   "rv64gc_zba/none-off/mandelbrot": {
    "instructions": 170088298
   },
@@ -580,6 +643,9 @@
   },
   "rv64gc_zba/size-all/fibre": {
    "instructions": 3746946
+  },
+  "rv64gc_zba/size-all/k-nucleotide": {
+   "instructions": 247476761
   },
   "rv64gc_zba/size-all/mandelbrot": {
    "instructions": 55115802
@@ -608,6 +674,9 @@
   "rv64gc_zba/size-auto/fibre": {
    "instructions": 3746946
   },
+  "rv64gc_zba/size-auto/k-nucleotide": {
+   "instructions": 247479081
+  },
   "rv64gc_zba/size-auto/mandelbrot": {
    "instructions": 55115802
   },
@@ -634,6 +703,9 @@
   },
   "rv64gc_zba/size-off/fibre": {
    "instructions": 3746961
+  },
+  "rv64gc_zba/size-off/k-nucleotide": {
+   "instructions": 251768120
   },
   "rv64gc_zba/size-off/mandelbrot": {
    "instructions": 55116268
@@ -662,6 +734,9 @@
   "rv64gc_zba/speed-all/fibre": {
    "instructions": 3482074
   },
+  "rv64gc_zba/speed-all/k-nucleotide": {
+   "instructions": 270527613
+  },
   "rv64gc_zba/speed-all/mandelbrot": {
    "instructions": 46975492
   },
@@ -688,6 +763,9 @@
   },
   "rv64gc_zba/speed-auto/fibre": {
    "instructions": 3482074
+  },
+  "rv64gc_zba/speed-auto/k-nucleotide": {
+   "instructions": 270527613
   },
   "rv64gc_zba/speed-auto/mandelbrot": {
    "instructions": 46975492
@@ -716,6 +794,9 @@
   "rv64gc_zba/speed-off/fibre": {
    "instructions": 3482091
   },
+  "rv64gc_zba/speed-off/k-nucleotide": {
+   "instructions": 274911299
+  },
   "rv64gc_zba/speed-off/mandelbrot": {
    "instructions": 46976223
   },
@@ -742,6 +823,9 @@
   },
   "rv64gc_zba_xtheadba/none-all/fibre": {
    "instructions": 5696932
+  },
+  "rv64gc_zba_xtheadba/none-all/k-nucleotide": {
+   "instructions": 324232942
   },
   "rv64gc_zba_xtheadba/none-all/mandelbrot": {
    "instructions": 170088293
@@ -770,6 +854,9 @@
   "rv64gc_zba_xtheadba/none-auto/fibre": {
    "instructions": 5696932
   },
+  "rv64gc_zba_xtheadba/none-auto/k-nucleotide": {
+   "instructions": 324235374
+  },
   "rv64gc_zba_xtheadba/none-auto/mandelbrot": {
    "instructions": 170088293
   },
@@ -796,6 +883,9 @@
   },
   "rv64gc_zba_xtheadba/none-off/fibre": {
    "instructions": 5696935
+  },
+  "rv64gc_zba_xtheadba/none-off/k-nucleotide": {
+   "instructions": 324390951
   },
   "rv64gc_zba_xtheadba/none-off/mandelbrot": {
    "instructions": 170088298
@@ -824,6 +914,9 @@
   "rv64gc_zba_xtheadba/size-all/fibre": {
    "instructions": 3746946
   },
+  "rv64gc_zba_xtheadba/size-all/k-nucleotide": {
+   "instructions": 247476761
+  },
   "rv64gc_zba_xtheadba/size-all/mandelbrot": {
    "instructions": 55115802
   },
@@ -850,6 +943,9 @@
   },
   "rv64gc_zba_xtheadba/size-auto/fibre": {
    "instructions": 3746946
+  },
+  "rv64gc_zba_xtheadba/size-auto/k-nucleotide": {
+   "instructions": 247479081
   },
   "rv64gc_zba_xtheadba/size-auto/mandelbrot": {
    "instructions": 55115802
@@ -878,6 +974,9 @@
   "rv64gc_zba_xtheadba/size-off/fibre": {
    "instructions": 3746961
   },
+  "rv64gc_zba_xtheadba/size-off/k-nucleotide": {
+   "instructions": 251768120
+  },
   "rv64gc_zba_xtheadba/size-off/mandelbrot": {
    "instructions": 55116268
   },
@@ -904,6 +1003,9 @@
   },
   "rv64gc_zba_xtheadba/speed-all/fibre": {
    "instructions": 3482074
+  },
+  "rv64gc_zba_xtheadba/speed-all/k-nucleotide": {
+   "instructions": 270527613
   },
   "rv64gc_zba_xtheadba/speed-all/mandelbrot": {
    "instructions": 46975492
@@ -932,6 +1034,9 @@
   "rv64gc_zba_xtheadba/speed-auto/fibre": {
    "instructions": 3482074
   },
+  "rv64gc_zba_xtheadba/speed-auto/k-nucleotide": {
+   "instructions": 270527613
+  },
   "rv64gc_zba_xtheadba/speed-auto/mandelbrot": {
    "instructions": 46975492
   },
@@ -958,6 +1063,9 @@
   },
   "rv64gc_zba_xtheadba/speed-off/fibre": {
    "instructions": 3482091
+  },
+  "rv64gc_zba_xtheadba/speed-off/k-nucleotide": {
+   "instructions": 274911299
   },
   "rv64gc_zba_xtheadba/speed-off/mandelbrot": {
    "instructions": 46976223

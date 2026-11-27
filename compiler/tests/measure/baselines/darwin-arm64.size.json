@@ -59,6 +59,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8-a/none-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455488,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8-a/none-all/mandelbrot": {
    "sections": {
     "__TEXT,__text": 166492,
@@ -186,6 +201,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8-a/none-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455536,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
    }
   },
   "armv8-a/none-auto/mandelbrot": {
@@ -317,6 +347,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8-a/none-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455856,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8-a/none-off/mandelbrot": {
    "sections": {
     "__TEXT,__text": 166660,
@@ -444,6 +489,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8-a/size-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 136836,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8-a/size-all/mandelbrot": {
@@ -575,6 +635,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8-a/size-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 136872,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/size-auto/mandelbrot": {
    "sections": {
     "__TEXT,__text": 51592,
@@ -702,6 +777,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8-a/size-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 137048,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8-a/size-off/mandelbrot": {
@@ -833,6 +923,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8-a/speed-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 139552,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/speed-all/mandelbrot": {
    "sections": {
     "__TEXT,__text": 47768,
@@ -960,6 +1065,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8-a/speed-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 139552,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8-a/speed-auto/mandelbrot": {
@@ -1091,6 +1211,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8-a/speed-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 140104,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8-a/speed-off/mandelbrot": {
    "sections": {
     "__TEXT,__text": 47868,
@@ -1218,6 +1353,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8.1-a/none-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455456,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
    }
   },
   "armv8.1-a/none-all/mandelbrot": {
@@ -1349,6 +1499,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8.1-a/none-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455504,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
+   }
+  },
   "armv8.1-a/none-auto/mandelbrot": {
    "sections": {
     "__TEXT,__text": 166460,
@@ -1476,6 +1641,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8.1-a/none-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 455824,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 57140,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1600,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 136
    }
   },
   "armv8.1-a/none-off/mandelbrot": {
@@ -1607,6 +1787,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8.1-a/size-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 136804,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/size-all/mandelbrot": {
    "sections": {
     "__TEXT,__text": 51560,
@@ -1734,6 +1929,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8.1-a/size-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 136840,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8.1-a/size-auto/mandelbrot": {
@@ -1865,6 +2075,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8.1-a/size-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 137016,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 44289,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/size-off/mandelbrot": {
    "sections": {
     "__TEXT,__text": 51620,
@@ -1992,6 +2217,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8.1-a/speed-all/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 139520,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8.1-a/speed-all/mandelbrot": {
@@ -2123,6 +2363,21 @@
     "__DATA,__bss": 16468
    }
   },
+  "armv8.1-a/speed-auto/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 139520,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
+   }
+  },
   "armv8.1-a/speed-auto/mandelbrot": {
    "sections": {
     "__TEXT,__text": 47736,
@@ -2250,6 +2505,21 @@
     "__DATA,__thread_vars": 24,
     "__DATA,__thread_bss": 4,
     "__DATA,__bss": 16468
+   }
+  },
+  "armv8.1-a/speed-off/k-nucleotide": {
+   "sections": {
+    "__TEXT,__text": 140072,
+    "__TEXT,__stubs": 132,
+    "__TEXT,__const": 338,
+    "__TEXT,__cstring": 42563,
+    "__TEXT,__landin_id": 64,
+    "__DATA_CONST,__got": 88,
+    "__DATA_CONST,__const": 504,
+    "__DATA,__data": 1432,
+    "__DATA,__thread_vars": 24,
+    "__DATA,__thread_bss": 4,
+    "__DATA,__bss": 116
    }
   },
   "armv8.1-a/speed-off/mandelbrot": {

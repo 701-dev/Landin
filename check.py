@@ -239,6 +239,8 @@ RUNNING_EXAMPLES = [
      "compiler/tests/fixtures/runtime/benchmark-game-pidigits/main.ldn"),
     ("Benchmark Game regex-redux",
      "compiler/tests/fixtures/runtime/benchmark-game-regex-redux/main.ldn"),
+    ("Benchmark Game k-nucleotide",
+     "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/main.ldn"),
 ]
 
 #  A firmware example is a program a reader copies too, and no host runs
@@ -260,7 +262,8 @@ FIRMWARE_LANE = "environments/cortex-m/firmware.py"
 #  size, also names the input or the arguments its fixture gives it.
 READING_EXAMPLES = {"Word count", "Line numbers",
                     "Benchmark Game reverse-complement",
-                    "Benchmark Game regex-redux"}
+                    "Benchmark Game regex-redux",
+                    "Benchmark Game k-nucleotide"}
 ARGUMENT_EXAMPLES = {"Adding up the arguments",
                      "Benchmark Game fannkuch-redux",
                      "Benchmark Game Mandelbrot", "Benchmark Game FASTA",
@@ -315,6 +318,10 @@ BENCHMARK_GAME_ORACLES = {
         "62d1e8d0df7938d2aefda9a37887e0389231ea72c099c29a51afb6edca1bdc73",
     "compiler/tests/fixtures/runtime/benchmark-game-regex-redux/output.txt":
         "9f417691b946e86f2a86df4340c17f8b5c7bd5f977df525072c66c89b8a656f1",
+    "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/input.txt":
+        "62d1e8d0df7938d2aefda9a37887e0389231ea72c099c29a51afb6edca1bdc73",
+    "compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/output.txt":
+        "baa63c46addb89c63e68ea0055952847fbccf450e89997b2b62234c90e66f500",
 }
 
 #  Every word the language reserves. Kept here rather than imported from

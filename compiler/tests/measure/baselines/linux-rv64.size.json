@@ -50,6 +50,19 @@
     ".bss": 176
    }
   },
+  "rv64gc/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314072,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 984,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
+   }
+  },
   "rv64gc/none-all/mandelbrot": {
    "sections": {
     ".text": 125224,
@@ -157,6 +170,19 @@
     ".got.plt": 16,
     ".data": 808,
     ".bss": 176
+   }
+  },
+  "rv64gc/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314084,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 984,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
    }
   },
   "rv64gc/none-auto/mandelbrot": {
@@ -268,6 +294,19 @@
     ".bss": 176
    }
   },
+  "rv64gc/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314180,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 880,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
+   }
+  },
   "rv64gc/none-off/mandelbrot": {
    "sections": {
     ".text": 125264,
@@ -375,6 +414,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165520,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc/size-all/mandelbrot": {
@@ -486,6 +538,19 @@
     ".bss": 160
    }
   },
+  "rv64gc/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165556,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc/size-auto/mandelbrot": {
    "sections": {
     ".text": 67608,
@@ -593,6 +658,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165548,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 552,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc/size-off/mandelbrot": {
@@ -704,6 +782,19 @@
     ".bss": 160
    }
   },
+  "rv64gc/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 173892,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc/speed-all/mandelbrot": {
    "sections": {
     ".text": 65816,
@@ -811,6 +902,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 173892,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc/speed-auto/mandelbrot": {
@@ -922,6 +1026,19 @@
     ".bss": 160
    }
   },
+  "rv64gc/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 174288,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 552,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc/speed-off/mandelbrot": {
    "sections": {
     ".text": 65804,
@@ -1029,6 +1146,19 @@
     ".got.plt": 16,
     ".data": 808,
     ".bss": 176
+   }
+  },
+  "rv64gc_xtheadba/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314044,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 984,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
    }
   },
   "rv64gc_xtheadba/none-all/mandelbrot": {
@@ -1140,6 +1270,19 @@
     ".bss": 176
    }
   },
+  "rv64gc_xtheadba/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314056,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 984,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
+   }
+  },
   "rv64gc_xtheadba/none-auto/mandelbrot": {
    "sections": {
     ".text": 125208,
@@ -1247,6 +1390,19 @@
     ".got.plt": 16,
     ".data": 808,
     ".bss": 176
+   }
+  },
+  "rv64gc_xtheadba/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 314152,
+    ".rodata": 63643,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 880,
+    ".got.plt": 16,
+    ".data": 1792,
+    ".bss": 264
    }
   },
   "rv64gc_xtheadba/none-off/mandelbrot": {
@@ -1358,6 +1514,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_xtheadba/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165496,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_xtheadba/size-all/mandelbrot": {
    "sections": {
     ".text": 67592,
@@ -1465,6 +1634,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_xtheadba/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165532,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/size-auto/mandelbrot": {
@@ -1576,6 +1758,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_xtheadba/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 165524,
+    ".rodata": 50519,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 552,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_xtheadba/size-off/mandelbrot": {
    "sections": {
     ".text": 67724,
@@ -1683,6 +1878,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_xtheadba/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 173860,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/speed-all/mandelbrot": {
@@ -1794,6 +2002,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_xtheadba/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 173860,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 656,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_xtheadba/speed-auto/mandelbrot": {
    "sections": {
     ".text": 65800,
@@ -1901,6 +2122,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_xtheadba/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 174256,
+    ".rodata": 49913,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 552,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_xtheadba/speed-off/mandelbrot": {
@@ -2012,6 +2246,19 @@
     ".bss": 176
    }
   },
+  "rv64gc_zba/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316248,
+    ".rodata": 64140,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 1032,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
+   }
+  },
   "rv64gc_zba/none-all/mandelbrot": {
    "sections": {
     ".text": 127412,
@@ -2119,6 +2366,19 @@
     ".got.plt": 16,
     ".data": 824,
     ".bss": 176
+   }
+  },
+  "rv64gc_zba/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316260,
+    ".rodata": 64140,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 1032,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
    }
   },
   "rv64gc_zba/none-auto/mandelbrot": {
@@ -2230,6 +2490,19 @@
     ".bss": 176
    }
   },
+  "rv64gc_zba/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316356,
+    ".rodata": 64140,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 928,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
+   }
+  },
   "rv64gc_zba/none-off/mandelbrot": {
    "sections": {
     ".text": 127452,
@@ -2337,6 +2610,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167008,
+    ".rodata": 51016,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba/size-all/mandelbrot": {
@@ -2448,6 +2734,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167044,
+    ".rodata": 51016,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba/size-auto/mandelbrot": {
    "sections": {
     ".text": 69104,
@@ -2555,6 +2854,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167036,
+    ".rodata": 51016,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 584,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba/size-off/mandelbrot": {
@@ -2666,6 +2978,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175164,
+    ".rodata": 50354,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba/speed-all/mandelbrot": {
    "sections": {
     ".text": 67104,
@@ -2773,6 +3098,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175164,
+    ".rodata": 50354,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba/speed-auto/mandelbrot": {
@@ -2884,6 +3222,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175560,
+    ".rodata": 50354,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 584,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba/speed-off/mandelbrot": {
    "sections": {
     ".text": 67092,
@@ -2991,6 +3342,19 @@
     ".got.plt": 16,
     ".data": 824,
     ".bss": 176
+   }
+  },
+  "rv64gc_zba_xtheadba/none-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316248,
+    ".rodata": 64149,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 1032,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
    }
   },
   "rv64gc_zba_xtheadba/none-all/mandelbrot": {
@@ -3102,6 +3466,19 @@
     ".bss": 176
    }
   },
+  "rv64gc_zba_xtheadba/none-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316260,
+    ".rodata": 64149,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 1032,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
+   }
+  },
   "rv64gc_zba_xtheadba/none-auto/mandelbrot": {
    "sections": {
     ".text": 127412,
@@ -3209,6 +3586,19 @@
     ".got.plt": 16,
     ".data": 824,
     ".bss": 176
+   }
+  },
+  "rv64gc_zba_xtheadba/none-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 316356,
+    ".rodata": 64149,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 928,
+    ".got.plt": 16,
+    ".data": 1808,
+    ".bss": 264
    }
   },
   "rv64gc_zba_xtheadba/none-off/mandelbrot": {
@@ -3320,6 +3710,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba_xtheadba/size-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167008,
+    ".rodata": 51025,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba_xtheadba/size-all/mandelbrot": {
    "sections": {
     ".text": 69104,
@@ -3427,6 +3830,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba_xtheadba/size-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167044,
+    ".rodata": 51025,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/size-auto/mandelbrot": {
@@ -3538,6 +3954,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba_xtheadba/size-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 167036,
+    ".rodata": 51025,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 584,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba_xtheadba/size-off/mandelbrot": {
    "sections": {
     ".text": 69236,
@@ -3645,6 +4074,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba_xtheadba/speed-all/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175164,
+    ".rodata": 50363,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/speed-all/mandelbrot": {
@@ -3756,6 +4198,19 @@
     ".bss": 160
    }
   },
+  "rv64gc_zba_xtheadba/speed-auto/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175164,
+    ".rodata": 50363,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 688,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
+   }
+  },
   "rv64gc_zba_xtheadba/speed-auto/mandelbrot": {
    "sections": {
     ".text": 67104,
@@ -3863,6 +4318,19 @@
     ".got.plt": 16,
     ".data": 664,
     ".bss": 160
+   }
+  },
+  "rv64gc_zba_xtheadba/speed-off/k-nucleotide": {
+   "sections": {
+    ".note.gnu.build-id": 48,
+    ".text": 175560,
+    ".rodata": 50363,
+    ".tbss": 4,
+    ".data.rel.ro": 384,
+    ".got": 584,
+    ".got.plt": 16,
+    ".data": 1528,
+    ".bss": 240
    }
   },
   "rv64gc_zba_xtheadba/speed-off/mandelbrot": {

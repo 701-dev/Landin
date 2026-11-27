@@ -126,6 +126,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v1/none-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314910,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3056,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v1/none-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -404,6 +436,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v1/none-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314926,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3040,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v1/none-auto/mandelbrot": {
@@ -686,6 +750,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v1/none-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314990,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 2976,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v1/none-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -964,6 +1060,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v1/size-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112558,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3776,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v1/size-all/mandelbrot": {
@@ -1246,6 +1374,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v1/size-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112622,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3712,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v1/size-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -1524,6 +1684,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v1/size-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112830,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3504,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v1/size-off/mandelbrot": {
@@ -1806,6 +1998,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v1/speed-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131982,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1120,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v1/speed-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -2084,6 +2308,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v1/speed-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131982,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1120,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v1/speed-auto/mandelbrot": {
@@ -2366,6 +2622,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v1/speed-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 132494,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 608,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v1/speed-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -2644,6 +2932,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v2/none-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314910,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3056,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v2/none-all/mandelbrot": {
@@ -2926,6 +3246,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v2/none-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314926,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3040,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v2/none-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -3204,6 +3556,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v2/none-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314990,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 2976,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v2/none-off/mandelbrot": {
@@ -3486,6 +3870,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v2/size-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112558,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3776,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v2/size-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -3764,6 +4180,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v2/size-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112622,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3712,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v2/size-auto/mandelbrot": {
@@ -4046,6 +4494,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v2/size-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112830,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3504,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v2/size-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -4324,6 +4804,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v2/speed-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131982,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1120,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v2/speed-all/mandelbrot": {
@@ -4606,6 +5118,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v2/speed-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131982,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1120,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v2/speed-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -4884,6 +5428,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v2/speed-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 132494,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 608,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v2/speed-off/mandelbrot": {
@@ -5166,6 +5742,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v3/none-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314590,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3376,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v3/none-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -5444,6 +6052,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v3/none-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314606,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3360,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v3/none-auto/mandelbrot": {
@@ -5726,6 +6366,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v3/none-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314670,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3296,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v3/none-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -6004,6 +6676,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v3/size-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112446,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3888,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v3/size-all/mandelbrot": {
@@ -6286,6 +6990,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v3/size-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112494,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3840,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v3/size-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -6564,6 +7300,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v3/size-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112702,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3632,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v3/size-off/mandelbrot": {
@@ -6846,6 +7614,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v3/speed-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131918,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1184,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v3/speed-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -7124,6 +7924,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v3/speed-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131918,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1184,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v3/speed-auto/mandelbrot": {
@@ -7406,6 +8238,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v3/speed-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 132430,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 672,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v3/speed-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -7684,6 +8548,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v4/none-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314590,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3376,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v4/none-all/mandelbrot": {
@@ -7966,6 +8862,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v4/none-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314606,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3360,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
+   }
+  },
   "x86-64-v4/none-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -8244,6 +9172,38 @@
     ".data": 640,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v4/none-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 55781,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 314670,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3296,
+    ".data": 1584,
+    ".got.plt": 112,
+    ".bss": 128
    }
   },
   "x86-64-v4/none-off/mandelbrot": {
@@ -8526,6 +9486,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v4/size-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112446,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3888,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v4/size-all/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -8804,6 +9796,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v4/size-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112494,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3840,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v4/size-auto/mandelbrot": {
@@ -9086,6 +10110,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v4/size-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 40330,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 112702,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 3632,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v4/size-off/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -9364,6 +10420,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v4/speed-all/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131918,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1184,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v4/speed-all/mandelbrot": {
@@ -9646,6 +10734,38 @@
     ".bss": 16436
    }
   },
+  "x86-64-v4/speed-auto/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 131918,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 1184,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
+   }
+  },
   "x86-64-v4/speed-auto/mandelbrot": {
    "sections": {
     ".interp": 21,
@@ -9924,6 +11044,38 @@
     ".data": 528,
     ".got.plt": 72,
     ".bss": 16436
+   }
+  },
+  "x86-64-v4/speed-off/k-nucleotide": {
+   "sections": {
+    ".interp": 21,
+    ".note.tag": 72,
+    ".note.gnu.build-id": 48,
+    ".dynsym": 336,
+    ".gnu.version": 28,
+    ".gnu.version_r": 48,
+    ".gnu.hash": 36,
+    ".hash": 120,
+    ".dynstr": 149,
+    ".rela.plt": 264,
+    ".rodata": 39890,
+    ".eh_frame_hdr": 44,
+    ".eh_frame": 180,
+    ".text": 132430,
+    ".init": 11,
+    ".fini": 11,
+    ".plt": 192,
+    ".tbss": 4,
+    ".ctors": 16,
+    ".dtors": 16,
+    ".jcr": 8,
+    ".init_array": 8,
+    ".data.rel.ro": 384,
+    ".dynamic": 320,
+    ".relro_padding": 672,
+    ".data": 1392,
+    ".got.plt": 112,
+    ".bss": 120
    }
   },
   "x86-64-v4/speed-off/mandelbrot": {

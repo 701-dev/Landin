@@ -3792,7 +3792,7 @@ systems the others run on.
 
 ## Benchmark Game programs
 
-The last seven programs are direct ports of
+The last eight programs are direct ports of
 [the Benchmark Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/)'s
 workloads, there to compare Landin with other languages.
 [docs/benchmarks.md](docs/benchmarks.md) has the measurements. The ports
@@ -4918,4 +4918,308 @@ agggtaa[cgt]|[acg]ttaccct 2
 10245
 10000
 5262
+```
+
+## Benchmark Game k-nucleotide
+
+[k-nucleotide](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/knucleotide.html)
+reads FASTA's output on its standard input and counts every run of 1, 2,
+3, 4, 6, 12 and 18 bases in the sequence named THREE, in the library's
+hash map, as the game requires. A run is a word of two bits a base, a
+distinct type whose hash is its own bits [0650] [1240]; the map spreads
+every hash before it picks a slot. The shares are written to three
+places with `{:.3}`. The performance input is FASTA's output for
+25000000:
+
+```sh
+./fasta 25000000 | ./k-nucleotide
+```
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/main.ldn`.
+
+```landin
+--  The Benchmark Game's k-nucleotide workload: read a FASTA file on
+--  standard input, take the sequence of the record named THREE, and count
+--  every run of k bases in it in a core/map table, for k of 1, 2, 3, 4, 6,
+--  12 and 18.  Each base and each pair is written with its share of all
+--  the runs of its length, as a percentage to three places, most frequent
+--  first; then the count of each of five given runs.
+--
+--  A run of up to 32 bases is a word of two bits a base, so the table's
+--  key is that word, and its hash is the word itself: the game lets a
+--  program give its key a hash of its own, and the map spreads every
+--  hash through MurmurHash3's finalizer before it picks a slot.  The map
+--  is the library's, seeded as every map is.
+import core/cmp
+import core/io
+import core/map
+import core/mem
+import core/sort
+import core/text
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- A run of bases, two bits each from A, C, G and T as 0 to 3, the first
+--- base the most significant.  Runs of one length are one table's keys,
+--- so the word alone tells them apart.
+frame: type = distinct u64
+
+same_frame: (left: frame, right: frame) -> (yes: bool) =
+    yes = u64(left) == u64(right)
+end same_frame
+
+--- The run's own bits, unkeyed: the map spreads them before it picks a
+--- slot, and these keys come from the input rather than from one who
+--- could choose them against the table.
+frame_hash: (value: frame, seed: cmp.hash_seed) -> (result: u64) =
+    _ = seed
+    result = u64(value)
+end frame_hash
+
+frame is cmp.equatable (equal: same_frame)
+frame is cmp.hashable (hash: frame_hash)
+
+counts: type = map.map(frame, u32)
+
+--- A run and how often it occurs, ordered most frequent first and, among
+--- equal counts, by its bases.
+tally: type = struct
+    run: frame
+    count: u32
+end tally
+
+before: (left: tally, right: tally) -> (yes: bool) =
+    yes = left.count > right.count
+          or (left.count == right.count and u64(left.run) < u64(right.run))
+end before
+
+tally is cmp.ordered (less: before)
+
+bases: []u8 = "ACGT"
+
+--- Each byte's base, 0 to 3, or 4 for a byte that is none.
+codes: () -> (table: [256]u8) =
+    table = zeroed
+    for at in usize(0)..<256 do
+        table[at] = 4
+    end for
+    for at in usize(0)..<4 do
+        table[usize(bases[at])] = u8(at)
+        table[usize(bases[at]) + 32] = u8(at)
+    end for
+end codes
+
+--- Append all of standard input to `whole`, a read at a time.
+read_all: (host: blocking.host, inout whole: text.builder)
+          -> none ! io.io_failed | mem.out_of_memory =
+    input: io.file = io.input(host)
+    mut chunk: [65536]u8 = zeroed
+    loop do
+        got: usize = try io.read(host, input, chunk)
+        break when got == 0
+        try text.append(whole, chunk[0..<got])
+    end loop
+end read_all
+
+--- Whether the line at `at` of `input` begins with `wanted`.
+begins: (input: []u8, at: usize, wanted: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof input - at < lenof wanted
+    for offset in usize(0)..<lenof wanted do
+        return when input[at + offset] <> wanted[offset]
+    end for
+    yes = true
+end begins
+
+--- Append to `sequence` the bases of record THREE in `input`, each as its
+--- code, from the line after its header to the end of the input.  A
+--- later header line is left out, so a timing input that repeats the
+--- game's file is read as one long sequence.
+sequence_of: (input: []u8, inout sequence: text.builder)
+             -> none ! mem.out_of_memory =
+    table: [256]u8 = codes()
+    mut at: usize = 0
+    while at < lenof input and not begins(input, at, ">THREE") do
+        at += mem.find(input[at..<lenof input], u8('\n'))
+        if at < lenof input then inc at end if
+    end while
+    mut chunk: [4096]u8 = zeroed
+    mut used: usize = 0
+    mut header: bool = true
+    while at < lenof input do
+        byte: u8 = input[at]
+        inc at
+        if byte == 10 then
+            header = false
+        elsif byte == 62 then
+            header = true
+        elsif not header then
+            code: u8 = table[usize(byte)]
+            if code < 4 then
+                chunk[used] = code
+                inc used
+                if used == lenof chunk then
+                    try text.append(sequence, chunk)
+                    used = 0
+                end if
+            end if
+        end if
+    end while
+    try text.append(sequence, chunk[0..<used])
+end sequence_of
+
+--- Count every run of `length` bases in `sequence` into `table`.
+count_runs: (memory: memory_of, inout table: counts, sequence: []u8,
+             length: usize) -> none ! mem.out_of_memory =
+    return when lenof sequence < length
+    mask: u64 = (u64(1) << u64(2 * length)) - 1
+    mut word: u64 = 0
+    for at in usize(0)..<length - 1 do
+        word = (word << 2) | u64(sequence[at])
+    end for
+    for at in length - 1..<lenof sequence do
+        word = ((word << 2) | u64(sequence[at])) & mask
+        slot: ptr mut u32 = map.at(table, frame(word)) else (problem)
+            _ = problem
+            try map.insert(table, memory, frame(word), u32(1))
+            continue
+        end
+        slot.val = slot.val + 1
+    end for
+end count_runs
+
+--- Write the `length` bases of `run`.
+put_run: (inout out: io.buffered_writer(blocking.host), run: frame,
+          length: usize) -> none ! mem.out_of_memory | io.io_failed =
+    mut letters: [32]u8 = zeroed
+    mut word: u64 = u64(run)
+    mut at: usize = length
+    while at > 0 do
+        dec at
+        letters[at] = bases[usize(word & 3)]
+        word = word >> 2
+    end while
+    try io.put(out, letters[0..<length])
+end put_run
+
+--- Write every run of `length` bases with its share of them all, most
+--- frequent first, and then an empty line.
+frequencies: (inout out: io.buffered_writer(blocking.host), memory: memory_of,
+              sequence: []u8, length: usize, seed: cmp.hash_seed)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    mut table: counts = map.new(key: frame, item: u32, seed: seed)
+    defer map.release(table, memory)
+    try count_runs(memory, table, sequence, length)
+    mut ranked: [16]tally = zeroed
+    mut found: usize = 0
+    mut walk := map.entries()
+    while not map.at_end(table, walk) do
+        pair := map.next_entry(table, walk)
+        ranked[found] = (run: pair.key, count: pair.item)
+        inc found
+    end while
+    sort.sort(ranked[0..<found])
+    total: f64 = f64(lenof sequence - length + 1)
+    for at in usize(0)..<found do
+        try put_run(out, ranked[at].run, length)
+        share: f64 = 100.0 * f64(ranked[at].count) / total
+        try io.format(out, " {:.3}\n", [any(addr share)])
+    end for
+    try io.put(out, "\n")
+end frequencies
+
+--- Write how often `wanted` occurs in `sequence`, a tab and `wanted`.
+occurrences: (inout out: io.buffered_writer(blocking.host), memory: memory_of,
+              sequence: []u8, wanted: []u8, seed: cmp.hash_seed)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    table: [256]u8 = codes()
+    mut word: u64 = 0
+    for letter in wanted do
+        word = (word << 2) | u64(table[usize(letter)])
+    end for
+    mut runs: counts = map.new(key: frame, item: u32, seed: seed)
+    defer map.release(runs, memory)
+    try count_runs(memory, runs, sequence, lenof wanted)
+    count: u32 = map.get(runs, frame(word)) else (problem)
+        _ = problem
+        u32(0)
+    end
+    try io.format(out, "{}\t", [any(addr count)])
+    try io.put(out, wanted)
+    try io.put(out, "\n")
+end occurrences
+
+knucleotide: (host: blocking.host, memory: memory_of)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    mut storage: [65536]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    mut whole := text.growing(any(addr memory))
+    defer text.release(whole)
+    try read_all(host, whole)
+    mut sequence := text.growing(any(addr memory))
+    defer text.release(sequence)
+    try sequence_of(text.used(whole), sequence)
+    text.release(whole)
+    bases_of: []u8 = text.used(sequence)
+    --  A constant seed, so that every run takes the same probes.
+    seed := cmp.seed_from(0x6b6e75636c656f74, 0x6964652d72756e73)
+    try frequencies(out, memory, bases_of, 1, seed)
+    try frequencies(out, memory, bases_of, 2, seed)
+    wanted: [5][]u8 = ["GGT", "GGTA", "GGTATT", "GGTATTTTAATT",
+                       "GGTATTTTAATTTATAGT"]
+    for run in wanted do
+        try occurrences(out, memory, bases_of, run, seed)
+    end for
+    try io.flush(out)
+end knucleotide
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    knucleotide(host, memory) else (problem)
+        if problem == mem.out_of_memory then
+            io.write(host, io.err(host), "knucleotide: out of memory\n") else none
+        elsif problem == io.io_failed then
+            io.write(host, io.err(host), "knucleotide: input or output failed\n")
+                else none
+        end if
+        return
+    end
+    code = 0
+end main
+```
+
+`./fasta 1000 | ./k-nucleotide` prints
+
+```text
+T 31.520
+A 29.600
+C 19.480
+G 19.400
+
+AT 9.922
+TT 9.602
+TA 9.402
+AA 8.402
+GA 6.321
+TC 6.301
+TG 6.201
+GT 6.041
+CT 5.961
+AG 5.841
+CA 5.461
+AC 5.441
+CC 4.041
+CG 4.021
+GC 3.701
+GG 3.341
+
+54	GGT
+24	GGTA
+4	GGTATT
+0	GGTATTTTAATT
+0	GGTATTTTAATTTATAGT
 ```
