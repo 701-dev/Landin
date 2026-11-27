@@ -4448,7 +4448,7 @@ workflow on such a tree; process.md's recipe saying the steps.
 
 ### R22.39 — Tools that share a host's memory
 
-Status: planned
+Status: active
 Depends on: none
 
 A host shared by many agents ran out of memory when each of them built
