@@ -27,6 +27,12 @@ int64_t r450_step(int64_t x)
         "cc", "memory");
 #elif defined(__riscv)
     __asm__ volatile ("" : : : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", "ft8", "ft9", "ft10", "ft11", "memory");
+#elif defined(_WIN32)
+    /* Win64's volatile bank keeps rsi and rdi out of it, and holds xmm0 to
+       xmm5. */
+    __asm__ volatile ("" : : : "rax", "rcx", "rdx", "r8", "r9", "r10", "r11",
+                      "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+                      "cc", "memory");
 #else
     __asm__ volatile ("" : : : "rax", "rcx", "rdx", "rsi", "rdi",
                       "r8", "r9", "r10", "r11", "cc", "memory");
@@ -46,7 +52,8 @@ struct large r450_large(struct large value)
 /* This peer owns the host boundary deliberately.  On x86-64 five pushes
  * leave the call site 16-byte aligned; on arm64 one frame holds every
  * callee save.  All original saves are restored even when an observed
- * Landin return is wrong. */
+ * Landin return is wrong.  On arm64 Windows keeps the same callee saves
+ * and x18 for itself, which nothing here touches. */
 #if defined(__aarch64__)
 __asm__(
     ".text\n"
@@ -317,6 +324,65 @@ __asm__(
     "addi sp, sp, 208\n"
     "ret\n"
     ".size r450_registers,.-r450_registers\n"
+);
+#elif defined(_WIN32)
+/* Win64 makes a callee save rbx, rbp, rdi, rsi and r12 to r15 (XMM6 to
+ * XMM15 are another fixture's).  Eight pushes leave rsp 8 off sixteen;
+ * forty bytes hold the shadow area and align the call. */
+__asm__(
+    ".text\n"
+    ".globl r450_registers\n"
+    "r450_registers:\n"
+    "pushq %rbx\n"
+    "pushq %rbp\n"
+    "pushq %rdi\n"
+    "pushq %rsi\n"
+    "pushq %r12\n"
+    "pushq %r13\n"
+    "pushq %r14\n"
+    "pushq %r15\n"
+    "subq $40,%rsp\n"
+    "movq $101,%rbx\n"
+    "movq $102,%r12\n"
+    "movq $103,%r13\n"
+    "movq $104,%r14\n"
+    "movq $105,%r15\n"
+    "movq $106,%rbp\n"
+    "movq $107,%rdi\n"
+    "movq $108,%rsi\n"
+    "movl $10,%ecx\n"
+    "call r450_loop\n"
+    "cmpq $145,%rax\n"
+    "jne 1f\n"
+    "cmpq $101,%rbx\n"
+    "jne 1f\n"
+    "cmpq $102,%r12\n"
+    "jne 1f\n"
+    "cmpq $103,%r13\n"
+    "jne 1f\n"
+    "cmpq $104,%r14\n"
+    "jne 1f\n"
+    "cmpq $105,%r15\n"
+    "jne 1f\n"
+    "cmpq $106,%rbp\n"
+    "jne 1f\n"
+    "cmpq $107,%rdi\n"
+    "jne 1f\n"
+    "cmpq $108,%rsi\n"
+    "jne 1f\n"
+    "xorl %eax,%eax\n"
+    "jmp 2f\n"
+    "1: movl $1,%eax\n"
+    "2: addq $40,%rsp\n"
+    "popq %r15\n"
+    "popq %r14\n"
+    "popq %r13\n"
+    "popq %r12\n"
+    "popq %rsi\n"
+    "popq %rdi\n"
+    "popq %rbp\n"
+    "popq %rbx\n"
+    "ret\n"
 );
 #else
 __asm__(

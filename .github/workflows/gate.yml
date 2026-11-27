@@ -2766,11 +2766,13 @@ jobs:
             ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
-  #  D2327: Microsoft's toolchain, the optional second one.  The runner's
-  #  Clang runs each link command refine chose in windows-emit, which hands
-  #  the link to Visual Studio's link.exe with the Windows SDK's import
+  #  D2327: Microsoft's toolchain, the optional second one.  llvm-mingw's
+  #  pinned Clang runs each link command refine chose in windows-emit, which
+  #  hands the link to Visual Studio's link.exe with the Windows SDK's import
   #  libraries, and the lane requires that linker before it runs and holds
-  #  each program as windows-runtime does.
+  #  each program as windows-runtime does.  D2969: the toolset and SDK are
+  #  the versions environments/pins.sh names, selected among those the image
+  #  installs; an image that lacks either fails the job, naming what it has.
   windows-microsoft:
     needs: [inputs, windows-emit]
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
@@ -2781,12 +2783,27 @@ jobs:
         with:
           name: windows-x86-64-microsoft-bundle
           path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Install llvm-mingw's Windows Clang
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-x86_64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
       - name: Link with Microsoft's linker and execute the corpus
-        run: >-
-          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
-          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
-          --driver=clang --expect-linker=link.exe
-          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          python "$RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py" \
+            --prepared="$RUNNER_TEMP/windows-microsoft-prepared" \
+            --driver="$RUNNER_TEMP/llvm-mingw/bin/clang.exe" --expect-linker=link.exe \
+            --msvc-toolset="$LANDIN_MSVC_TOOLSET_VERSION" \
+            --windows-sdk="$LANDIN_WINDOWS_SDK_VERSION" \
+            --output="$RUNNER_TEMP/windows-microsoft-evidence"
       - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -3034,9 +3051,10 @@ jobs:
             ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
-  #  D2387: windows-microsoft's link on the arm64 runner, whose Clang
-  #  hands each command windows-arm64-emit kept to Visual Studio's arm64
-  #  link.exe with the Windows SDK's arm64 import libraries.
+  #  D2387: windows-microsoft's link on the arm64 runner, where llvm-mingw's
+  #  arm64 Clang hands each command windows-arm64-emit kept to Visual
+  #  Studio's arm64 link.exe with the Windows SDK's arm64 import libraries,
+  #  the toolset and SDK D2969 names.
   windows-arm64-microsoft:
     needs: [inputs, windows-arm64-emit]
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
@@ -3047,13 +3065,27 @@ jobs:
         with:
           name: windows-arm64-microsoft-bundle
           path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Install llvm-mingw's Windows Clang
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-aarch64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
       - name: Link with Microsoft's arm64 linker and execute the corpus
-        run: >-
-          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
-          --target=windows-arm64
-          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
-          --driver=clang --expect-linker=link.exe
-          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          python "$RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py" \
+            --target=windows-arm64 --prepared="$RUNNER_TEMP/windows-microsoft-prepared" \
+            --driver="$RUNNER_TEMP/llvm-mingw/bin/clang.exe" --expect-linker=link.exe \
+            --msvc-toolset="$LANDIN_MSVC_TOOLSET_VERSION" \
+            --windows-sdk="$LANDIN_WINDOWS_SDK_VERSION" \
+            --output="$RUNNER_TEMP/windows-microsoft-evidence"
       - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

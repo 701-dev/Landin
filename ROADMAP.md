@@ -2908,7 +2908,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
+refine dap's group (D2292). Rows `SR-1746` to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -3539,7 +3539,7 @@ vector instructions, and `SR-1979`, an `if` expression's or a literal
 range's type taken from a literal or an atom with no note of the written
 type that fixes it. It landed in R22.36's train: gate run 45920421418,
 passed on its second attempt after the first failed only in SR-1882's
-cancellation race and SR-1940's stack-switch step, and boards run
+cancellation race and `SR-1940`'s stack-switch step, and boards run
 45920432106.
 
 ### R22.16 — Linear systems and least squares
@@ -3927,21 +3927,44 @@ Q-347 are answered.
 
 ### R22.28 — What Windows still lacks after R21.70
 
-Status: planned
+Status: complete
 Depends on: none
 
 The Windows gaps R21.70 left or met, scheduled by the register sweep of
-2026-11-26: SR-1746's inlined copies, which CodeView does not describe;
-SR-1767's Microsoft lanes, which link with whatever Clang and Visual
-Studio the runner image carries; SR-1851's C symbol whose link name
-begins with `.L`, which COFF's assembler takes as private; SR-1852's
-eight ABI fixtures whose C peers are not Windows C; and SR-1940's arm64
+2026-11-26: `SR-1746`'s inlined copies, which CodeView does not describe;
+`SR-1767`'s Microsoft lanes, which link with whatever Clang and Visual
+Studio the runner image carries; `SR-1851`'s C symbol whose link name
+begins with `.L`, which COFF's assembler takes as private; `SR-1852`'s
+eight ABI fixtures whose C peers are not Windows C; and `SR-1940`'s arm64
 LLDB session that did not step through `landin.stack_switch` once.
 Placed here so that no phase gate waits for it; it depends on no other
 item.
 
 Exit evidence: each row's completion on both Windows architectures, in
 the gate's Windows lanes.
+
+Done: a Windows program's CodeView describes each of D339's inlined
+copies as an inline site of the copied routine, holding its own
+parameters, locals and blocks, so LLDB shows a stop in a copy as that
+routine's frame with its locals (D2964, superseding D2290); a session of
+the Windows debugger lane holds it on both architectures. A COFF object
+names a `.L` link name through a substitute that `/alternatename` binds
+to it (D2954), so `abi/r440-native-link-namespace` names both Windows
+targets; the Darwin parity lane met that fixture's `-Wa,-L` at a link of
+objects, and now gives assembler options to the peers' compiles alone.
+Seven of the eight ABI fixtures whose peers were POSIX have Windows arms,
+a peer starting itself again where a POSIX one forks and the two
+conventions' own register and result rules (D2960-D2962);
+`r440-native-renamed-main` has no Windows form while Windows has no
+C-callable argument root (D2963, Q-411). The Microsoft lanes link with
+llvm-mingw's pinned Clang against the MSVC toolset and Windows SDK
+`environments/pins.sh` names, refusing an image that lacks them and
+recording what ran (D2969). The arm64 stack-switch session was LLDB
+losing a `thread step-inst` about one session in fifty, never the
+switch's code: the lane recognises a lost step exactly and runs the
+session again, three attempts at most (D2970). The friction items the
+Windows VM's build met were already settled by R21.70; SR-2113 records
+a probe branch's delete failing at the sr.ht mirror.
 
 ### R22.29 — Release archives that say where they run
 
@@ -4229,7 +4252,7 @@ yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
 the table's `shadow` entry, which the weekly `table --write` keeps.
 Its own gate run 45902780283 and boards run 45902794687 passed; it landed
 with R22.15 as one train on gate run 45920421418, passed on its second
-attempt after two known flakes (SR-1882, SR-1940), and boards run
+attempt after two known flakes (SR-1882, `SR-1940`), and boards run
 45920432106. The shadow period, the causes it records and the measured
 miss rate remain for the item to close.
 

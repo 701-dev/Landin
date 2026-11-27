@@ -1,3 +1,5 @@
+with Landin.Targets.Capabilities;
+
 --  COFF assembly spellings, for every backend whose objects are COFF.
 --
 --  A backend that writes ELF's spellings writes a COFF object by passing
@@ -28,5 +30,17 @@ package Landin.Backend.COFF is
    --  An ELF `.section NAME,FLAGS` or `.pushsection NAME,FLAGS` directive
    --  in COFF's spelling; any other directive unchanged.
    function Directive (ELF_Directive : String) return String;
+
+   --  D2954: the `.drectve` line that binds the substitute spelling of
+   --  Name, a link name beginning with `.L`, to Name itself.  An import's
+   --  substitute, undefined in the object, resolves to Name; an export's
+   --  Name, wherever another object leaves it undefined, resolves to the
+   --  substitute this object defines.  LLD and Microsoft's linker both
+   --  take `/alternatename` from an object's directives.
+   function Alternate_Name (Name : String; Defined : Boolean) return String
+     with Pre => Landin.Targets.Capabilities.Is_COFF_Private (Name);
+
+   --  The section that carries Alternate_Name's lines.
+   Directives_Section : constant String := ".section .drectve,""yni""";
 
 end Landin.Backend.COFF;

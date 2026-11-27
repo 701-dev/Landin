@@ -703,6 +703,24 @@ class SwitchFramesTests(unittest.TestCase):
         with self.assertRaises(SWITCH.Mismatch):
             SWITCH.assembly_instruction_count("main:\n\tret\n")
 
+    def test_a_lost_step_is_told_from_a_step(self) -> None:
+        #  D2970: LLDB on windows-11-arm now and then runs on from a step,
+        #  to the next switch's breakpoint or to the exit.
+        def stop(reason, where):
+            return (f"Process 1 stopped\n* thread #1, stop reason = {reason}\n"
+                    f"      frame #0: 0x00007ff64c193a80 a.exe`{where}\n")
+        made = ("(lldb) continue\n" + stop("breakpoint 2.1", SWITCH.SWITCH)
+                + "(lldb) thread step-inst\n"
+                + stop("instruction step into", SWITCH.SWITCH + " + 132"))
+        self.assertIsNone(SWITCH.lldb_lost_step(made))
+        ran_on = made + "(lldb) thread step-inst\n" + stop("breakpoint 2.1", SWITCH.SWITCH)
+        self.assertEqual(SWITCH.lldb_lost_step(ran_on),
+                         f"the step from {SWITCH.SWITCH}+132 ran on to a breakpoint")
+        exited = made + ("(lldb) thread step-inst\n"
+                         "Process 1 exited with status = 42 (0x0000002a)\n")
+        self.assertEqual(SWITCH.lldb_lost_step(exited),
+                         f"the step from {SWITCH.SWITCH}+132 ran on to the program's exit")
+
     def test_the_windows_arm64_turn_is_at_its_record(self) -> None:
         #  D2479: Windows saves the TEB's bounds below the frame record.
         swap = re.compile(SWITCH.SWAP[SWITCH.ARCH["windows-arm64"]])

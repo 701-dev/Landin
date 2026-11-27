@@ -34744,9 +34744,11 @@ where they are on PATH, and the publication native control
 
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
-**Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
+**Amended by D2387, D2388 and D2969.** The policy covers windows-arm64 too, under
 `aarch64-pc-windows-msvc`, and refine names `link.exe` with
-`-fuse-ld=link` rather than leaving the linker to Clang's default.
+`-fuse-ld=link` rather than leaving the linker to Clang's default; the
+gate's Microsoft link is llvm-mingw's pinned Clang with the MSVC toolset
+and Windows SDK `environments/pins.sh` names.
 
 **From** [1550], D2189.
 
@@ -34871,6 +34873,70 @@ whose link commands end in `-fuse-ld=link`, and the gate's
 `windows-microsoft` and `windows-arm64-microsoft` jobs, which require
 `link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
 the default reaching `lld-link`.
+
+### D2969 — The gate's Microsoft link names its Clang, MSVC toolset and Windows SDK
+
+**From** D2327, D2387 and D2388.
+
+**The discrepancy:** D2327 had the gate's `windows-microsoft` job run each
+link with the runner's Clang, which found the Visual Studio and Windows
+SDK the image carries, so nothing said which tools a verdict was about:
+GitHub's image update could change the Clang, the toolset whose `link.exe`
+ran and the SDK between two runs of one tree. The `windows-2025` image of
+2026-11-16 carried Clang 20.1.8 and the `windows-11-arm` image of
+2026-11-15 Clang 22.1.8, each with Visual Studio 18.12 and its toolsets
+14.29.30133, 14.44.35207 and 14.52.37025 side by side, the last the
+default, and the Windows SDK 10.0.26100.0, the arm64 image also
+10.0.22621.0.
+
+**Chosen:** the job's Clang is the one in llvm-mingw's release
+`environments/pins.sh` already pins by checksum for the debugger and the C
+peers, LLVM 23, for both architectures. The MSVC toolset and the Windows
+SDK cannot be fetched by checksum, since Microsoft's licence keeps them on
+the image, so `pins.sh` names them by version, `14.44.35207` and
+`10.0.26100.0`, and the lane selects them among what the image installs:
+the toolset among the Visual Studio installations `vswhere` lists, holding
+a `link.exe` for the target's machine, and the SDK by its `um` import
+libraries for that machine. It passes them to Clang as
+`-Xmicrosoft-visualc-tools-root` and `-Xmicrosoft-windows-sdk-root` and
+`-version`, which llvm-mingw's Clang needs, as it has no way to ask Visual
+Studio's setup interface where Visual Studio is. Every link must then run that
+toolset's `link.exe` and read that SDK's import libraries, since Clang
+takes another SDK silently when the named one is missing.
+`summary.json` records the Clang's version, the Visual Studio
+installation, the toolset, the SDK and the linker's own version.
+
+The toolset is 14.44.35207, Visual Studio 2022's last, which Visual Studio
+2026 installs as a separate component and does not update, where its own
+default toolset, 14.52, moves with Visual Studio's updates. When an image
+no longer carries a pinned version the job refuses before it links,
+naming the toolsets or SDKs the image does carry and the two files that
+name the pin; moving it is a change of `pins.sh` and
+`compiler/ada/TOOLCHAIN.md`, which `check.py` holds to agree, gated like
+any other tool's. A frozen toolset makes such a refusal rare, and when it
+comes it stops the Microsoft jobs of every item's gate until the pin moves:
+the price of a verdict that names its tools.
+
+**The alternatives:** the image's tools as they are, which was the gap;
+the image's default toolset pinned by version, which an update to
+Visual Studio 2026 replaces in place, stopping every gate each time; a
+fallback to whatever the image carries when the pin is gone, which is the
+unpinned verdict again on exactly the runs where the tools changed; LLVM's
+own Windows release pinned by checksum beside llvm-mingw's, a second Clang
+download where one already serves both targets; and Visual Studio's newest
+toolset left as the evidence, the one a user installing Visual Studio
+today gets, which would surface a change in `link.exe` sooner, but at a
+moment no change to Landin caused and in a gate run that names no tool
+the change was in. A newer toolset reaches the gate as a deliberate pin
+change.
+
+**Pinned by** `scripts/tests/test_windows_lane.py`'s `MicrosoftTools`,
+`check.py`'s pinned-toolchain check, and the gate's `windows-microsoft` and
+`windows-arm64-microsoft` jobs; probe run 45964811589 linked and ran the whole
+corpus with these tools on both runners, 4,144 and 4,136 outcomes, and
+refused a toolset the images do not carry. Between it and probe run
+45963302773 the images had moved Visual Studio from 18.12.12405.243 to
+18.12.12412.261, toolsets unchanged.
 
 ### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
 
@@ -35333,6 +35399,117 @@ path before it runs and changes the user's settings.
 
 **Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
+### D2960 — A Windows peer starts itself again where a POSIX peer forks
+
+**From** D2473 and D2474.
+
+**The discrepancy:** D2473 left off the Windows targets every ABI fixture
+whose peer includes a POSIX header. Four of them hold what no other
+Windows fixture holds: copies bounded by a page Windows refuses to read,
+every raw image of an encoding with its holes trapping, a reserved
+pattern trapping before the store that would change shared memory, and a
+`noreturn` path ending the process or trapping at a C callee that returns.
+Three fork a child for each case that traps or ends, and read its signal or
+status from `waitpid`; Windows has no `fork`.
+
+**Chosen:** under `_WIN32` a peer starts its own image again with
+`CreateProcess`, naming the case on the command line, waits for it and
+reads its exit code: a trap is `STATUS_ILLEGAL_INSTRUCTION`, `ud2`'s on
+x86-64 and `brk`'s on arm64, and an ending is the code the program gave.
+The copy inherits the lane's error mode and job (D2474), so a trap reaches
+no error report. Memory both see is a page of an anonymous file mapping
+whose handle the copy inherits and is named on its command line. The
+guard pages are `VirtualAlloc`'s, the second made `PAGE_NOACCESS` by
+`VirtualProtect`. Each fixture keeps one peer, its POSIX arm unchanged,
+and names both Windows targets.
+
+**The alternatives:** a Windows twin of each fixture, which would let the
+two copies of one oracle drift apart; threads with a vectored exception
+handler in place of a second process, which observes a trap the program
+handles rather than one that ends it, as the POSIX children's do; and
+leaving the fixtures off Windows, with these observations met by no
+Windows C code.
+
+**Pinned by** `abi/r440-native-bounds`, `abi/r640-exhaustive-encodings`,
+`abi/r640-reserved-trap` and `abi/r670-noreturn` on both Windows targets.
+
+### D2961 — On Windows the variadic probe holds a float in both banks
+
+**From** D2473 and [1580].
+
+**The discrepancy:** `abi/r440-native-varargs` observes, besides the
+variadic values C reads by `va_arg`, the count of vector registers a SysV
+caller leaves in `al`, through a probe in assembly. Neither Windows
+convention has that count: Win64 puts a variadic float in the first four
+slots in both its integer register and its XMM register, and arm64
+Windows passes every variadic in the integer registers and the stack.
+
+**Chosen:** on Windows the probe answers what `al`'s would, the floats'
+count with eight at most, from the floats C reads by `va_arg`; on x86-64
+an assembly entry first compares each float in the register slots with
+its copy in the slot's XMM register and answers -1 when they differ,
+which a callee that reads either bank needs. The fixture names both
+Windows targets.
+
+**The alternatives:** leaving the fixture off Windows, since
+`windows-variadic-floats` holds the values past the register slots, which
+leaves the second bank unobserved; and a probe answering the floats'
+count alone, which observes nothing the C oracle does not.
+
+**Pinned by** `abi/r440-native-varargs` on both Windows targets.
+
+### D2962 — Win64's hidden result address comes back in rax; arm64 has none to return
+
+**From** D2473 and [1600].
+
+**The discrepancy:** `abi/r440-sret-pointer-observation` holds a callee
+to returning the hidden result address in `rax`, which SysV requires, and
+`abi/r450-x86-callee-probes` holds SysV's and AAPCS64's callee saves
+across a Landin routine C enters, through assembly in each peer that
+carries ELF's `.type` and `.size`.
+
+**Chosen:** Win64 requires the hidden address back in `rax` too, so the
+sret peer has a Win64 arm: the address arrives in `rcx`, the explicit
+arguments move one slot along, and each probe takes the 32-byte shadow
+area. The fixture names windows-x86-64 alone: arm64 Windows, as AAPCS64
+does, passes the address in `x8` and asks nothing of what comes back, as
+Darwin's and Linux arm64's lanes already record. The callee probe's Win64
+arm sets and checks every register Win64 makes a callee save but the XMM
+ones, which `windows-c-entry-saves` holds: `rbx`, `rbp`, `rdi`, `rsi` and
+`r12` to `r15`. Its arm64 assembly is arm64 Windows' as it is, with `x18`,
+which Windows keeps, untouched, and the fixture names both Windows
+targets.
+
+**The alternatives:** a returned-address probe for arm64 Windows, which
+would hold refine to a rule the convention does not make.
+
+**Pinned by** `abi/r440-sret-pointer-observation` on windows-x86-64 and
+`abi/r450-x86-callee-probes` on both Windows targets.
+
+### D2963 — A renamed `main` called from C has no Windows form yet
+
+**From** D2269 and D2473.
+
+**The discrepancy:** `abi/r440-native-renamed-main` holds that a C
+callback a Landin program names `main` neither establishes nor replaces
+the argument root, which its C peer establishes through
+`_landin_host_initialize_arguments`, and that a foreign symbol spelled
+`.Llandin_host_argv` stays the foreign one.
+
+**Chosen:** the fixture names no Windows target. Windows has no C-callable
+initializer: `_landin_start` keeps the root itself (D2269), so a C program
+on Windows has no root to establish and the fixture's observation no form
+there. Its foreign `.L` name, which COFF's assembler takes as private, a
+Windows image now binds as D2954 says; the initializer is what is left.
+
+**The alternatives:** a Windows twin that drops the root and the `.L`
+name, which would hold only that a renamed callback is callable, as
+every Windows ABI fixture's callbacks already are; and a C-callable
+initializer in `hosted/system` for Windows, which changes what D2269 chose
+and is a decision of its own.
+
+**Pinned by** the fixture's `targets:`, which name no Windows target.
+
 ### D2487 — A Windows image carries no time of its link
 
 **From** D2189, D2327 and D2486.
@@ -35365,7 +35542,38 @@ cases `test_two_builds_are_the_same_bytes` and
 `test_two_debug_builds_are_the_same_bytes`, which link twice more than a
 second apart without `SOURCE_DATE_EPOCH`.
 
+### D2954 — A COFF object names a `.L` link name through a substitute
+
+**The tour said** nothing; [1610]'s `link(symbol: text)` takes any
+spelling, and D417 keeps a foreign name from capturing a native one.
+
+**Chosen:** on Windows an import or export whose link name begins with
+`.L` is spelled in the assembly as `__landin_dot` followed by the name,
+and the object's `.drectve` section binds the two with
+`/alternatename`: an import's substitute, which the object leaves
+undefined, resolves to the name, and an export's name, wherever another
+object leaves it undefined, resolves to the substitute the object
+defines. LLVM's COFF assembler takes every `.L` name as its own label,
+so it refuses one undefined ("can not be undefined") and leaves one
+defined out of the symbol table; `/alternatename` is read by LLD and by
+Microsoft's linker alike. Every other name, and every native local
+label, is spelled as before. A C object holds such a name only where its
+assembler was told to keep its labels, Clang's `-Wa,-L`, since Clang's
+own C code generation meets the same assembler.
+
+**The alternatives:** assembling refine's objects with `-Wa,-L`, which
+puts every one of its own `.L` labels in the symbol table, where a
+debugger then names code by label; renaming the symbol after assembly,
+a step of its own in every link; and leaving such names to ELF and
+Mach-O, which is what the targets did before.
+
+**Pinned by** `abi/r440-native-link-namespace`, which binds `.L1_1` and
+`.L_1_1` to C functions of a companion compiled with `-Wa,-L`, on both
+Windows targets in the gate's ABI lanes.
+
 ### D2290 — CodeView describes no inlined copy yet
+
+**Superseded by D2964.** A Windows routine's CodeView describes each inlined copy as an inline site with its own variables; what follows is history.
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
 
@@ -35374,6 +35582,16 @@ second apart without `SOURCE_DATE_EPOCH`.
 **The alternatives:** writing `S_INLINESITE` records now, whose line directives the backend would name by copy, for a Windows session that does not yet stop in a copy.
 
 **Pinned by** the sessions of `compiler/tests/windows/debug.py`, which call through function values so that no stop is in a copy.
+
+### D2964 — CodeView describes each inlined copy as an inline site
+
+**The tour said** nothing; D339 describes each inlined copy to DWARF, and D2290 left CodeView's copies undescribed.
+
+**Chosen:** with `--debug=full` each of D339's copies in a Windows routine is an `S_INLINESITE`, closed by `S_INLINESITE_END`, inside the lexical block its call stood in. It names the copied routine's `LF_FUNC_ID`, the one that routine's own procedure names, and holds the copy's parameters, locals, source aliases and lexical blocks, each described as the routine's own are, from the same availability. The copy's code has a function identity of its own, numbered after every item's, which `.cv_inline_site_id` declares inlined at the call's line inside the routine's, and its lines are `.cv_loc` directives under that identity, its traps' among them; the assembler's `.cv_inline_linetable` writes them as the site's annotations, and in the routine's own line table they become the call's line. A `DEBUG_S_INLINEELINES` subsection names where each copied routine begins, which LLDB reads a site's routine from. A lexical block covers the copies called inside it. A copy whose call has no known site, or none of whose code is left, has no inline site.
+
+**The alternatives:** describing a copy's variables as the routine's own in a lexical block, which LLDB shows in the caller's frame, under the caller's name; and keeping D2290, under which a stop in a copy showed the caller's frame and none of the copy's variables.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s copy session over `compiler/tests/debugging/registers.ldn` at `speed`, which stops inside `inline_leaf`'s copy in `inline_outer` and requires the frames `inline_leaf`, `inline_outer` and `main` and the copy's own values, run by the gate's `windows-debugger` and `windows-arm64-debugger` jobs.
 
 ### D2291 — A Windows image carries its build's digest in a `.landin` section
 
@@ -35599,6 +35817,55 @@ to kernel32's own handler, and traps there; and `stack report/a switch
 costs its frame`. Before the change the fixture ended with 1 on both
 architectures' Windows hosts, on x86-64 with its two checks of the bounds
 on the prepared stack failing.
+
+### D2970 — The Windows arm64 switch session runs again when LLDB loses a step
+
+**From** D469, D2348 and D2481.
+
+**The discrepancy:** the `windows-arm64-debugger` job's switch sessions
+failed now and then, in four gate runs of trees whose arm64 code did not
+differ from passing ones, with "the session did not step from
+landin.stack_switch's first instruction through its return". Each
+transcript shows one `thread step-inst` from an ordinary load or store of
+the routine, at +60, +120, +132 or +160, after which the thread ran on to
+the next switch's breakpoint. Run on fresh `windows-11-arm` runners, the
+four sessions failed 14 of 800 times the same way, the lost step at
+offsets from +56 to +160, in either switch, sometimes running on to the
+program's exit; with LLDB's `windows` log on, which slows it, 0 of 400
+failed. The loss is in LLDB's timing on that runner, as the arm64 KVM
+guest's LLDB loses steps far more often, and not in the routine or its
+unwind data: every stop LLDB did make held the record.
+
+**Chosen:** a lost step is recognised exactly and the session runs again.
+Every step a switch session makes stays in the routine or returns from it,
+where no breakpoint is, so a `thread step-inst` that ends at a breakpoint
+or at the program's exit is one LLDB did not make. On a target
+`switch_frames.LOST_STEP_ATTEMPTS` names, windows-arm64 with three
+attempts, the Windows lane runs such a session again, keeps each lost
+attempt's transcript and names its lost step in `switch-frames.json`, and
+holds the last attempt's stops to the record as before; any other
+mismatch fails at once. At the measured rate, 26 lost of 1,212 attempts
+or about one in fifty, a session fails only when all three attempts lose
+a step, about once in 100,000. The entry goes when a runner's sessions
+lose no step.
+
+**The alternatives:** a breakpoint on each of the routine's instructions,
+so that a lost step stops at the next one anyway, which on Windows LLDB
+reports a step onto a breakpoint as a second stop at the same instruction,
+doubling every stop (probe run 45984035570 failed all 400 such sessions);
+holding the stops a session made and skipping those after a lost step,
+which leaves a switch's instructions unheld in exactly the run where they
+were not seen; and a change to LLDB's Windows process plugin, in whose
+handling of the step no cause was found and which this repository does
+not build.
+
+**Pinned by** `compiler/tests/debugging/test_check.py`'s
+`test_a_lost_step_is_told_from_a_step`, which also told all 18 lost
+sessions met in the gate and the probes from their transcripts, and the
+`windows-arm64-debugger` job; probe runs 45963663891 and 45984035570
+measured the loss, and probe run 45987118367 ran the lane's sessions 100
+times on four fresh runners with the retry: 400 switch sessions passed, 12
+of them after an attempt that lost a step.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 

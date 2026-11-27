@@ -121,7 +121,8 @@ Windows host" below says. A Windows 11 arm64 guest under KVM on an arm64
 Linux host is one: it has run the whole `windows-arm64-runtime` corpus,
 the ABI kind and the LLDB source sessions from their bundles, but its
 LLDB lost a single step every few dozen, so the stack switch's stepping
-session timed out there while it passes on the gate's runner. Wine runs
+session timed out there; on the gate's runner the same LLDB loses about
+one in five thousand, which the lane's second attempt below absorbs. Wine runs
 an arm64 program only on an arm64 Linux host, and has not been tried.
 On an x86-64 host `--target=windows-arm64 --prepare-only` emits and links
 the whole corpus, which finds every refusal and link failure; the gate's
@@ -154,6 +155,22 @@ symbols are in its PDB; the session breaks on the routine by name, which is
 how LLDB finds a PDB's procedure, and asks for the instruction at every stop
 (D2481). Each session's verdict is in `switch-frames.json` beside the
 transcripts.
+
+On arm64 LLDB now and then loses a `thread step-inst`: the thread runs on
+as if continued, to the next switch's breakpoint or to the program's exit,
+about one session in fifty on the gate's runner. Every step the session
+makes stays in the switch routine or returns from it, where no breakpoint
+is, so a step that ends at a breakpoint or at the exit is a lost one, and
+the lane runs that session again, up to three times in all (D2970). It
+keeps each lost attempt's transcript as `LABEL.lost-N.transcript`, names
+the lost steps in `switch-frames.json`, and holds the last attempt's stops
+as it holds every other session's.
+
+`debug.py` also compiles `compiler/tests/debugging/registers.ldn` at `speed`, where
+D339 copies `inline_leaf` into `inline_outer`, and runs the copy session:
+a stop at a line inside the copy, which must be `inline_leaf`'s frame with
+its own `base` and `doubled` above `inline_outer`'s with its `first`, and
+the backtrace `inline_leaf`, `inline_outer`, `main` (D2964).
 
 The gate splits it as it splits the corpus: `windows-emit` adds
 `--prepare-only` and keeps a second bundle, and `windows-debugger` runs it
@@ -217,9 +234,32 @@ writes Clang's account of the link to `LABEL.link.log`. In the gate
 `windows-emit` and `windows-arm64-emit` prepare this bundle too, and the
 `windows-microsoft` job runs x86-64's on `windows-2025` and
 `windows-arm64-microsoft` arm64's on `windows-11-arm`, each with the
-runner's Clang and `--expect-linker=link.exe`, so a link that reached any
-linker but Visual Studio's fails, and `summary.json` names the driver's
-version and every linker that ran.
+Clang of llvm-mingw's pinned release and `--expect-linker=link.exe`, so a
+link that reached any linker but Visual Studio's fails.
+
+The gate also names the Microsoft tools themselves (D2969):
+`--msvc-toolset=` and `--windows-sdk=` take the versions
+`environments/pins.sh` names, `LANDIN_MSVC_TOOLSET_VERSION` and
+`LANDIN_WINDOWS_SDK_VERSION`. The lane finds that MSVC toolset, with a
+`link.exe` for the target, among the Visual Studio installations
+`vswhere.exe` lists, and that SDK's import libraries under `Windows
+Kits\10`, and gives Clang `-Xmicrosoft-visualc-tools-root` and the
+`-Xmicrosoft-windows-sdk-` options, which llvm-mingw's Clang needs: built
+without Visual Studio's setup interface, it finds no installation by
+itself. Each link must then run that toolset's `link.exe` and read that
+SDK's libraries, since Clang takes another SDK without a word when the one
+named is missing. `summary.json` names the driver's version, the Visual
+Studio installation, the toolset, the SDK, the linker's own version and
+every linker that ran.
+
+Microsoft's licence keeps these tools on the runner image, which GitHub
+updates, so a job can find a pinned version gone. It then refuses before
+it links, naming the toolsets or SDKs the image carries. To move the pin,
+choose one of those, change it in `environments/pins.sh` and
+`compiler/ada/TOOLCHAIN.md`, which `python3 check.py` holds to agree, and
+let both jobs show the corpus passing with it. Pinned at Visual Studio
+2022's last toolset, which Visual Studio 2026 installs beside its own and
+does not update, the job should rarely meet this.
 
 Locally, LLVM's `lld-link` stands in for `link.exe` and MinGW-w64's
 import libraries for the Windows SDK's. `nix develop` puts `lld-link`
@@ -262,10 +302,11 @@ python DIR\lane\compiler\tests\windows\check.py --prepared=DIR --output=EVIDENCE
 ```
 
 with `--target=windows-arm64` for an arm64 bundle. A `--link=microsoft`
-bundle also needs `--driver=` a Clang for the MSVC target, LLVM's Windows
-release for instance, `--expect-linker=link.exe`, and Visual Studio's C++
-build tools for the architecture and the Windows SDK, which Clang finds
-without a developer prompt. The debugger bundle runs with
+bundle also needs `--driver=` a Clang for the MSVC target,
+`--expect-linker=link.exe`, and Visual Studio's C++ build tools for the
+architecture and the Windows SDK. LLVM's Windows release finds them
+without a developer prompt; llvm-mingw's Clang, as the gate runs, needs
+`--msvc-toolset=` and `--windows-sdk=` naming versions the machine has. The debugger bundle runs with
 `debug.py --prepared=DIR --lldb=PATH\lldb.exe`, llvm-mingw's LLDB for
 Windows; its `--dap` step runs in WSL 1, with a Linux `refine` there and
 the bundle and `lldb-dap.exe` at their `/mnt/c` paths, as the gate's

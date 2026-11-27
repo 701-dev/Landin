@@ -10,13 +10,15 @@ a Windows job and WSL on that Windows runner:
 
   --prepare-only   on Linux, compile compiler/tests/freebsd/debug.ldn and
                    the stack switch's workload (D469) at the four
-                   profiles and compiler/tests/dap/main.ldn with
+                   profiles, compiler/tests/debugging/registers.ldn at
+                   speed and compiler/tests/dap/main.ldn with
                    --panic-map, each with --debug=full, and write the
                    images, their PDBs and prepared.json into OUTPUT;
   --prepared=DIR   on Windows, run LLDB's batch sessions over each
-                   debug.ldn image and each switch image and hold their
-                   transcripts to compiler/tests/debugging/lldb_batch.py's
-                   verdicts, the second switch_frames.py's;
+                   debug.ldn image, each switch image and the copy image
+                   and hold their transcripts to
+                   compiler/tests/debugging/lldb_batch.py's verdicts, the
+                   second switch_frames.py's and the third this file's;
   --dap            with --prepared, on Linux or in WSL, run
                    compiler/tests/dap/session.py's scripted session
                    through `refine dap` (--refine) over the Windows
@@ -33,6 +35,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
@@ -50,6 +53,16 @@ DRIVERS = {'windows-x86-64': 'x86_64-w64-mingw32-clang',
            'windows-arm64': 'aarch64-w64-mingw32-clang'}
 PROFILES = (('none', 'off'), ('size', 'off'), ('size', 'auto'),
             ('speed', 'auto'))
+#  D339 copies `inline_leaf` into `inline_outer` at speed.  The copy
+#  session stops inside the copy, where LLDB must show `inline_leaf`'s frame
+#  with its own parameter and local above `inline_outer`'s, which shows its
+#  own: the inline site CodeView describes the copy by.
+COPY_SOURCE = ROOT / 'compiler/tests/debugging/registers.ldn'
+COPY_NEEDLE = 'total = doubled + 1'
+COPY_FRAMES = ('inline_leaf', 'inline_outer', 'main')
+COPY_VALUES = (('base', 2), ('doubled', 4))
+COPY_CALLER_VALUES = (('first', 2),)
+COPY_STATUS = 42
 #  Where the DAP program is compiled from: a path a WSL distribution
 #  recreates, since the debugger matches a breakpoint's source against the
 #  path the program recorded.
@@ -135,6 +148,14 @@ def prepare(args):
             + '\n')
         switches.append(dict(built, label=label, switch_instructions=count))
         print(TARGET + ': built ' + label, flush=True)
+    copies = []
+    label = 'copy-speed-auto'
+    built = compile_one(args, COPY_SOURCE, bundle / (label + '.exe'),
+                        '--optimize=speed', '--specialize=auto')
+    (bundle / (label + '.lldb')).write_text(
+        '\n'.join(copy_commands(copy_line())) + '\n')
+    copies.append(dict(built, label=label))
+    print(TARGET + ': built ' + label, flush=True)
     DAP_SOURCE.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / 'compiler/tests/dap/main.ldn', DAP_SOURCE)
     dap = compile_one(args, DAP_SOURCE, bundle / 'program.exe',
@@ -147,11 +168,64 @@ def prepare(args):
         shutil.copyfile(ROOT / file, args.output / 'lane' / file)
     manifest = {'target': TARGET, 'revision': os.environ.get('GITHUB_SHA'),
                 'refine_sha256': sha(args.refine), 'lines': lines,
-                'sessions': sessions, 'switches': switches, 'dap': dap,
+                'sessions': sessions, 'switches': switches,
+                'copies': copies, 'copy_line': copy_line(), 'dap': dap,
                 'dap_source': str(DAP_SOURCE)}
     (args.output / 'prepared.json').write_text(json.dumps(manifest, indent=2)
                                                + '\n')
     return manifest
+
+
+def copy_line():
+    """The line of COPY_NEEDLE in COPY_SOURCE."""
+    return next(i for i, line in
+                enumerate(COPY_SOURCE.read_text().splitlines(), 1)
+                if COPY_NEEDLE in line)
+
+
+def copy_commands(line):
+    """The copy session: a stop inside the copy, its frame and values,
+    its caller's frame and values, the frame below, and the exit.
+
+    The verdict reads each frame where `frame select` shows it: under
+    Wine llvm-mingw's LLDB now and then printed no frame below an inlined
+    one in `thread backtrace`, over Clang's PDB as well as this one, while
+    each frame below was there to select; the backtrace stays in the
+    transcript."""
+    return ['settings set target.disable-aslr false',
+            'breakpoint set --file %s --line %d' % (COPY_SOURCE.name, line),
+            'run', 'frame info',
+            'frame variable ' + ' '.join(name for name, _ in COPY_VALUES),
+            'thread backtrace', 'frame select 1',
+            'frame variable '
+            + ' '.join(name for name, _ in COPY_CALLER_VALUES),
+            'frame select 2', 'breakpoint delete --force', 'continue']
+
+
+def check_copy(text, line, label):
+    """Hold a copy session's transcript to its stop, frames and values."""
+    def section(command):
+        return text.split('(lldb) ' + command, 1)[-1].split('(lldb) ', 1)[0]
+    require(re.search(re.escape(COPY_SOURCE.name) + ':' + str(line)
+                      + r'[:\s]', section('frame info')),
+            label + ': no stop at the line inside the copy')
+    for frame, name in enumerate(COPY_FRAMES):
+        shown = section('frame info' if frame == 0
+                        else 'frame select %d' % frame)
+        require(re.search(r'frame #%d:.*`%s\b' % (frame, name), shown),
+                label + ': frame #%d is not %s' % (frame, name))
+    shown = section('frame variable '
+                    + ' '.join(name for name, _ in COPY_VALUES))
+    for name, value in COPY_VALUES:
+        require(re.search(r'\b%s = %d\b' % (name, value), shown),
+                label + ': the copy\'s %s is not %d' % (name, value))
+    shown = section('frame variable '
+                    + ' '.join(name for name, _ in COPY_CALLER_VALUES))
+    for name, value in COPY_CALLER_VALUES:
+        require(re.search(r'\b%s = %d\b' % (name, value), shown),
+                label + ': the caller\'s %s is not %d' % (name, value))
+    require(re.search(r'exited with status = %d\b' % COPY_STATUS, text),
+            label + ': the program did not exit %d' % COPY_STATUS)
 
 
 def verify(bundle, built):
@@ -162,36 +236,57 @@ def verify(bundle, built):
 
 
 def direct(bundle, manifest, lldb, output):
-    """LLDB's batch sessions over each debug.ldn image and each switch
-    image; the failures."""
+    """LLDB's batch sessions over each debug.ldn image, each switch
+    image and the copy image; the failures."""
     failures = []
     lines = {key: int(value) for key, value in manifest['lines'].items()}
     summary = {}
-    for built in manifest['sessions'] + manifest['switches']:
+    for built in (manifest['sessions'] + manifest['switches']
+                  + manifest['copies']):
         label = built['label']
+        #  D2970: a switch session in which LLDB lost a step runs again.
+        attempts = (switch_frames.LOST_STEP_ATTEMPTS.get(TARGET, 1)
+                    if 'switch_instructions' in built else 1)
+        lost = []
         try:
             verify(bundle, built)
-            try:
-                done = subprocess.run(
-                    [*lldb, '--batch', '-s', label + '.lldb', built['image']],
-                    cwd=bundle, stdin=subprocess.DEVNULL,
-                    capture_output=True, timeout=300)
-            except subprocess.TimeoutExpired as late:
-                #  What it printed before then, which says where it stopped.
-                (output / (label + '.transcript')).write_bytes(
-                    (late.stdout or b'') + (late.stderr or b''))
-                raise Refused(label + ': LLDB did not finish within 300'
-                              ' seconds')
-            text = (done.stdout + done.stderr).decode(errors='replace')
-            (output / (label + '.transcript')).write_text(text)
+            for attempt in range(1, attempts + 1):
+                try:
+                    done = subprocess.run(
+                        [*lldb, '--batch', '-s', label + '.lldb', built['image']],
+                        cwd=bundle, stdin=subprocess.DEVNULL,
+                        capture_output=True, timeout=300)
+                except subprocess.TimeoutExpired as late:
+                    #  What it printed before then, which says where it stopped.
+                    (output / (label + '.transcript')).write_bytes(
+                        (late.stdout or b'') + (late.stderr or b''))
+                    raise Refused(label + ': LLDB did not finish within 300'
+                                  ' seconds')
+                text = (done.stdout + done.stderr).decode(errors='replace')
+                (output / (label + '.transcript')).write_text(text)
+                step = (switch_frames.lldb_lost_step(text)
+                        if attempts > 1 else None)
+                if step is None or attempt == attempts:
+                    break
+                lost.append(step)
+                (output / ('%s.lost-%d.transcript' % (label, attempt))
+                 ).write_text(text)
+                print('%s: %s: LLDB lost a step, %s; again' % (TARGET, label, step),
+                      flush=True)
             try:
                 if 'switch_instructions' in built:
                     summary[label] = lldb_batch.check_switch(
                         text, label, TARGET)
+                    if lost:
+                        summary[label]['lost steps'] = lost
+                elif built in manifest['copies']:
+                    check_copy(text, manifest['copy_line'], label)
                 else:
                     lldb_batch.check_source(text, lines, label)
             except lldb_batch.Mismatch as error:
-                raise Refused(str(error))
+                raise Refused(str(error) + ''.join(
+                    '; attempt %d: %s' % (number, step)
+                    for number, step in enumerate(lost, 1)))
             print('%s: LLDB session passed %s' % (TARGET, label), flush=True)
         except Refused as error:
             failures.append(str(error))
@@ -290,7 +385,8 @@ def main():
                 print('%s: %d LLDB sessions and the refine dap session'
                       ' emitted; running them is pending'
                       % (TARGET, len(manifest['sessions'])
-                         + len(manifest['switches'])))
+                         + len(manifest['switches'])
+                         + len(manifest['copies'])))
                 return
         failures = []
         if not args.dap:

@@ -1422,7 +1422,8 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [debugging from an editor](targets.md#debugging-from-an-editor).
 - Debug provenance stays independent of its formats: DWARF and CodeView
   are two serializations of the same source, IR and allocation facts. A
-  Windows image's CodeView describes no inlined copy yet (D2290).
+  Windows image's CodeView describes each inlined copy as an inline site,
+  a frame of its routine with its own variables, as DWARF does (D2964).
 
 ## Programs that run
 

@@ -8,10 +8,22 @@ package Landin.Backend.X86_64.Codeview is
 
    function Files (Info : Landin.Debugging.Information) return String;
    function Function_Id (Item : Landin.IR.Item_Id) return String;
+   function Inline_Site_Id
+     (Info : Landin.Debugging.Information;
+      Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Copy : Positive) return String
+     renames Landin.Backend.Codeview.Inline_Site_Id;
+   function Copy_Identity
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Copy : Positive) return Positive
+     renames Landin.Backend.Codeview.Copy_Identity;
    function Source_Line
      (Info : Landin.Debugging.Information;
       Item : Landin.IR.Item_Id;
-      Site : Landin.Provenance.Origin) return String;
+      Site : Landin.Provenance.Origin;
+      Copy : Natural := 0) return String;
 
    function Sections
      (Of_Unit : Landin.IR.Unit;
