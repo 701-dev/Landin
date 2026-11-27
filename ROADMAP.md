@@ -3696,7 +3696,7 @@ digests pinned in `check.py`, both in `examples.md` and in
 
 ### R22.22 — k-nucleotide ported
 
-Status: planned
+Status: active
 Depends on: R22.20
 
 Counted with `core/map`, as the game requires the library's table: the
