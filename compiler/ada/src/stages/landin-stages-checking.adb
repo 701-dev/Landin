@@ -28124,18 +28124,24 @@ package body Landin.Stages.Checking is
                              Syn.Nth_Argument (Of_Tree, Node, 1))))
                   then
                      --  The argument is a place, read where the trap is
-                     --  lowered, and has the parameter's struct type.
+                     --  lowered, and has the parameter's struct type.  A
+                     --  parameter whose written type was refused, as L0339
+                     --  and L0201 refuse an undeclared `site`, has no
+                     --  nominal type to note.
                      declare
                         Given : constant Syn.Node_Id :=
                           Syn.Nth_Argument (Of_Tree, Node, 1);
+                        Nominal : constant Landin.Checking.Nominal_Type_Id :=
+                          Landin.Checking.Nominal_Of
+                            (Types.all,
+                             Res.Bound_To (Meanings.all, Of_Tree, Given));
                      begin
                         Landin.Checking.Note
                           (Types.all, Of_Tree, Given, Ty.Aggregate);
-                        Landin.Checking.Note_Nominal
-                          (Types.all, Of_Tree, Given,
-                           Landin.Checking.Nominal_Of
-                             (Types.all,
-                              Res.Bound_To (Meanings.all, Of_Tree, Given)));
+                        if Landin.Checking.Holds (Types.all, Nominal) then
+                           Landin.Checking.Note_Nominal
+                             (Types.all, Of_Tree, Given, Nominal);
+                        end if;
                      end;
                   elsif Syn.Argument_Count (Of_Tree, Node) /= 0 then
                      Bad.Report

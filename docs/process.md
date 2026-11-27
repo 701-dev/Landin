@@ -134,7 +134,7 @@ puts the steps in order:
 | push | `item.py push ITEM [--watch] [--boards] [--no-check]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; refuses a tree the register's age check refuses, or the whole `check.py` when the push changes the roadmap; runs the pre-push checks the paths changed since the last push select, in one `dev-test.sh` invocation where it can (an `.ldn` file: the formatting case; `compiler/` or the library: the `lowering` suite; a new library module: the debugger workloads' closures; the library: `script_tests.py test_library_docs`; a merge: the whole `check.py`), refusing with the failed command and its log, `--no-check` to push regardless; notes when the measured sizes may move; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does; `--boards` dispatches its boards beside the gate |
 | gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, naming each run's branch; follows a branch's run in two detached runs, `gate_watch.py`, which returns at the first failed job so the fix starts at once, and `gate_watch.py --all`, which names every failure at the end for the push that fixes them; follows main's with `--verdict`, to its aggregate `gate` job, where the token is released; a failed boards run is named a timing failure when only timing jobs failed |
 | boards | `item.py boards ITEM [--watch] [--unmerged] [--rerun-failed] [--again]` | dispatches `scope=boards` on the pushed head, records the run and with `--watch` follows it in a detached run; a queued, running or passed one is followed or named instead (`--again` dispatches anyway); refuses while `main` is not an ancestor of the head, since promotion would refuse that tree (`--unmerged` dispatches anyway, for early board feedback); `--rerun-failed` re-runs only the failed jobs of a boards run that [failed in timing alone](#a-timing-failure-is-not-a-boards-failure) |
-| merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue] [--with OTHER ...] [--drop OTHER ...]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work. `--with` and `--drop` make and change [a train](#a-train) |
+| merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue] [--with OTHER ...] [--drop OTHER ...]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work. `--with`, `--with-branch` and `--drop` make [a train](#a-train) |
 | promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
 | finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, its verdict or the whole run, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
 | watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait NAME [--why TEXT] \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released, in line when held |
@@ -949,7 +949,7 @@ python3 scripts/static_check.py --archive landin.tar.gz \
 ## The mechanical gate
 
 `.github/workflows/gate.yml` is the mechanical gate, and it runs on every
-push and pull request, weekly on `main` and on a manual dispatch. A new
+push and pull request, daily on `main` and on a manual dispatch. A new
 candidate runs every target the compiler has,
 in jobs that report separate verdicts. RV64 runs under QEMU's user
 emulation on an x86-64 runner, which is evidence about its emitted code and
@@ -1002,7 +1002,7 @@ program corpus; it is not a FreeBSD-hosted Ada compiler claim.
 
 | job | runner | runs |
 |---|---|---|
-| `inputs` | `ubuntu-24.04-arm` | verify a recent full pass for an identical candidate, or a full push pass of main or a branch for a declared explanatory edit; on a push to `main`, a passed board run of the same tree or an explanatory base whose boards the push takes (D1647); on a dispatch, a timed dispatch of the same key on the branch whose timing it takes (D1649) |
+| `inputs` | `ubuntu-24.04-arm` | verify a recent full pass for an identical candidate, or a full push pass of main or a branch for a declared explanatory edit; on a push to `main`, a passed board run of the same tree or an explanatory base whose boards the push takes (D1647); on a dispatch, a timed dispatch of the same key on the branch whose timing it takes (D1649); on the schedule, a passed schedule run of the same commit whose boards and timing it takes (D2775) |
 | `documents` | `ubuntu-24.04` | under the image's own Python 3.12, `check.py` over a checkout with the whole history, which the register's age rule reads, about ninety seconds, needing neither the toolchain nor a built compiler |
 | `scripts` | `ubuntu-24.04` | under the image's own Python 3.12, every `scripts/tests` module at once through `scripts/script_tests.py`, `check.py`'s controls among them in shards, every workflow through the pinned actionlint and its `run:` scripts through the pinned shellcheck, which `scripts/actionlint.py --install` fetches and verifies, and the determinism, quality and debugging controls |
 | `linux-debug-build` | `ubuntu-24.04` | build the debug executables once for the `compiler` shards, `compiler-checks`, `build-modes` and the Linux x86-64 determinism manifest |
@@ -1021,7 +1021,7 @@ program corpus; it is not a FreeBSD-hosted Ada compiler claim.
 | `cortex-m` matrix | `ubuntu-24.04` | every Cortex-M and RV32 lane on the locked QEMU and GDB, at `LANDIN_CORTEX_JOBS=4`, as `run.py`'s three parts, which together are every lane once: the probes, firmware, device programs and debug evidence in `cortex-m-programs`, which also builds all eight board ports in boot and RAM layouts without hardware and keeps their build/drift evidence, the stack-switch consumer's capacity report (D470) and prototype 5's firmware counterpart's traces (D1035), and every firmware workload's instructions counted on each M-profile machine at all nine profiles and compared with the base commit's baselines (`docs/measurement.md`); the whole corpus on the M0, the M33 and the M7 in `cortex-m-corpus`; and the RV32 controls and corpora on Espressif's QEMU in `cortex-m-rv32` |
 | `xtensa` matrix | `ubuntu-24.04` | three jobs a chip, `xtensa-esp32-1` to `-3` and `xtensa-esp32s3-1` to `-3`: the first of each runs bounded chip-machine window, scalar, floating, assembly and completion-oracle controls, independent vendor-C layout/carrier probes, strict configured-assembler and baseline compatibility controls, and each runs its `corpus.py --shard` third of the complete freestanding inventory, the three together every run once, on the pinned Espressif QEMU's `sim` machine with the exact selected CPU and explicitly virtual RAM; logs and per-fixture verdicts are retained |
 | `measure-size` | `ubuntu-24.04` | with the checked release compiler, inside the pinned environment: every measured workload at every level and all nine profiles for Linux x86-64, arm64 and RV64, Windows x86-64 and arm64 through the pinned llvm-mingw drivers, Cortex-M, RV32 and both Xtensa chips, each image's allocated sections compared with the base commit's baselines by `scripts/measure.py` (`docs/measurement.md`), then every hosted workload's instructions counted under the pinned `qemu-riscv64` at every RV64 level and profile and compared the same way; the figures kept 30 days as `measure-size-linux`, which `measure.py record --from-run` reads; Darwin's are measured in `darwin-host-release-2` and FreeBSD's in `freebsd-amd64-size` and `freebsd-arm64-size`, which link with the lane's cross driver and boot no guest |
-| `measure-time` matrix | `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-26` | on the weekly schedule and a dispatch alone, whatever its scope (`gate_inputs.py scope`'s `timing`): each builds the candidate's debug compiler and its base's, then `measure.py time` runs every timed configuration's two images interleaved, fresh copies each run, and judges the ratio against the class's noise study; left out of a dispatch whose key a passed dispatch on the branch already timed (D1649) |
+| `measure-time` matrix | `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-26` | on the daily schedule and a dispatch alone, whatever its scope (`gate_inputs.py scope`'s `timing`): each builds the candidate's debug compiler and its base's, then `measure.py time` runs every timed configuration's two images interleaved, fresh copies each run, and judges the ratio against the class's noise study; left out of a dispatch whose key a passed dispatch on the branch already timed (D1649) |
 | `scaling` | `ubuntu-24.04` | `scripts/scaling.sh`, failing when frontend time, emission time or peak memory grows more than 2.5 times per doubling, or when a compact static image's assembly, object or assembler memory outgrows its bound |
 | `darwin-debug-build` | `macos-26` | build the debug executables once for the `darwin-host` job and the Darwin determinism manifest |
 | `darwin-release-build` | `macos-26` | build the release executables over the object tree an earlier run left in the cache, with `ZERO_AR_DATE=1`, for the `darwin-host-release` and `darwin-parity` jobs |
@@ -1054,15 +1054,15 @@ program corpus; it is not a FreeBSD-hosted Ada compiler claim.
 | `rv64-qemu` matrix | `ubuntu-24.04` | the release compiler's whole test program on the Linux RV64 lane in two `--shard` jobs, `rv64-qemu-1` and `rv64-qemu-2`, linked by Ubuntu's riscv64 cross driver and run under the flake's pinned `qemu-riscv64`, its CPU's every level confirmed, with that emulator registered as the riscv64 binfmt_misc handler so a program that starts itself again runs (D1037); the emulator's own failures listed in `compiler/tests/cross-lanes.json` are reported and not counted; the first shard also runs the RV64 GDB sessions, the stack switch's among them, and the DAP session through `refine dap`, under the same emulator's GDB stub |
 | `rv64-emit` matrix | `ubuntu-24.04` | suspended since 2026-10-13 and not required by `gate`; when running, cross-emit checked RV64 runtime, GDB, C ABI and ISA payloads for RISE; source/hash checks, invalid IR register regression and instruction inspection |
 | `rv64-runtime`, `rv64-debugger`, `rv64-abi`, `rv64-isa` | ubuntu-24.04-riscv | suspended since 2026-10-13 and not required by `gate`; when running, separate corpus, native GDB, nonempty independent C peers and hardware-confirmed baseline/extended ISA execution on physical RISE runners |
-| `board-bundles` | `ubuntu-24.04` | on a board-scope event only, whatever the software lanes reuse: the release compiler built from the commit, every board's boot and RAM bundles by `environments/boards/build.py --mode=both --records=strict`, so drift from a hardware record fails before a board runs, on an event that times the boards also the timing runs' images, every firmware workload at every profile on each port by `environments/boards/timing.py build`, in `timing/`, bound to the same compiler and source, and one 14-day artifact with `provenance.json` and `files.sha256`; skipped on a push to `main` that takes its boards from a passed run (D1647) |
+| `board-bundles` | `ubuntu-24.04` | on a board-scope event only, whatever the software lanes reuse: the release compiler built from the commit, every board's boot and RAM bundles by `environments/boards/build.py --mode=both --records=strict`, so drift from a hardware record fails before a board runs, on an event that times the boards also the timing runs' images, every firmware workload at every profile on each port by `environments/boards/timing.py build`, in `timing/`, bound to the same compiler and source, and one 14-day artifact with `provenance.json` and `files.sha256`; then the board identity as its annotation and `gate_inputs.py legs`, which takes the legs of a passed run of the same identity (D2774); skipped on a push to `main` that takes its boards from a passed run (D1647) |
 | `linux-release-main-cache` | `ubuntu-24.04` | on a push to `main` only, unless `main`'s entry for the tree's gate key already exists: build the release executables from clean and save the tree as `main`'s cache entry, which `linux-release-build` restores on a branch's first run; `gate` does not need it |
-| `board` matrix | `[landin-rig]`, the rig's self-hosted runner | `board-rp2040`, `board-pico2`, `board-stm32h753`, `board-esp32c3`, `board-esp32c5`, `board-esp32` and `board-esp32s3`, one at a time on the rig's one runner: a sparse checkout of the exact commit, the bundles downloaded by artifact id against their digest, their file list and provenance checked, then `environments/boards/gate.py --lock-wait=1200`, each port's RAM run and then its boot check, and on an event that times the boards, with `--timing`, rig.json's time steps before the boot check, each image three times through the SRAM helper's timing plan: measured at 20 s to 6 minutes a leg, about 13 minutes over the seven; 50 minutes a leg, 70 for the Pico 2's six steps; each leg's evidence, `board-evidence-PORT-ATTEMPT`, one per run attempt, kept 90 days, also after a failure or a cancellation, and the aggregate judges each port by its latest attempt and, when the event times the boards and every leg passed, holds the legs' timing runs to the base commit's baselines, `compiler/tests/measure/baselines/BOARD.cycles.json`, within each port's tolerance from `compiler/tests/measure/noise/cycles.json`, by `timing.py figures --evidence` and `timing.py compare`, from a full-history checkout, and keeps the figures as `measure-cycles`; never reused |
+| `board` matrix | `[landin-rig]`, the rig's self-hosted runner | `board-rp2040`, `board-pico2`, `board-stm32h753`, `board-esp32c3`, `board-esp32c5`, `board-esp32` and `board-esp32s3`, one at a time on the rig's one runner: a sparse checkout of the exact commit, the bundles downloaded by artifact id against their digest, their file list and provenance checked, then `environments/boards/gate.py --lock-wait=1200`, each port's RAM run and then its boot check, and on an event that times the boards, with `--timing`, rig.json's time steps before the boot check, each image three times through the SRAM helper's timing plan: measured at 20 s to 6 minutes a leg, about 13 minutes over the seven; 50 minutes a leg, 70 for the Pico 2's six steps; each leg's evidence, `board-evidence-PORT-ATTEMPT`, one per run attempt, kept 90 days, also after a failure or a cancellation, and the aggregate judges each port by its latest attempt and, when the event times the boards and every leg passed, holds the legs' timing runs to the base commit's baselines, `compiler/tests/measure/baselines/BOARD.cycles.json`, within each port's tolerance from `compiler/tests/measure/noise/cycles.json`, by `timing.py figures --evidence` and `timing.py compare`, from a full-history checkout, and keeps the figures as `measure-cycles`; skipped when `board-bundles` takes a passed run's legs, whose evidence and cycles the aggregate then judges (D2774) |
 | `determinism` | `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-26` | the called workflow emits the fixture manifest for all ten targets on each host, including both Xtensa levels, in `emit --shard` shards that deal its requests by their keys' digests, four on Linux x86-64 and on Darwin and three on Linux arm64, joins each host's shards and compares the three, starting once the three debug builds succeed rather than after their suites |
 
 Linux and Darwin lanes run on GitHub-hosted images for every event, as do
 the called determinism workflow and the links, Pages and release workflows;
 the board legs alone run on the self-hosted rig runner described below,
-and only for a push to `main`, the weekly schedule or a manual dispatch. The
+and only for a push to `main`, the daily schedule or a manual dispatch. The
 FreeBSD lanes boot their VMs inside the hosted job, arm64 under emulation
 because GitHub's arm64 images offer no KVM. See [the runner environment requirements](environments.md#github-actions-runners).
 
@@ -1230,18 +1230,56 @@ the full run being reused. Target and build jobs, including `determinism`,
 appear as skipped; `inputs`, `documents`, `scripts` and the final `gate`
 still succeed. The linked full run contains the target-test results.
 
+### Failure causes and the selection in shadow
+
+Every failed gate job gets a cause, and every complete gate computes the
+selected gate that would be applied, skipping nothing (D2794-D2798).
+`scripts/gate_history.py` does both, and `.github/gate-lanes.json`, the
+lane table, is what it reads. The table groups every job the aggregate
+needs into lanes. Each lane declares the paths whose change reaches it,
+the lanes it needs and whether it checks the evidence. Its first day,
+job-minutes and last day as the only lane with a defect are kept from
+the history. A job added to the gate goes into a lane in the same
+change, or `test_gate_history`'s `Lanes` fails.
+
+- The `inputs` job's last step finds the base, the newest passed complete
+  gate on the commit's history. It writes the selection into the run's
+  summary. The aggregate finishes it, records it on the run as a
+  `gate-shadow` annotation, and records each failed job's outside
+  signature, matched in its log, as `gate-causes`. Neither step can fail
+  or skip a job.
+- `.github/workflows/gate-rerun.yml` re-runs a branch push's failed jobs
+  once when every one of them matched a signature a second attempt can
+  pass, and its run's summary names them. `main`'s gate is never re-run
+  by it.
+- `python3 scripts/gate_history.py fetch` caches the gate's runs by
+  GraphQL, never REST, in `~/.cache/landin/gate-history`. `causes`
+  prints each failed job's cause. `table --write`, run weekly by the
+  roadmap manager and committed, updates the table's figures and writes
+  `.github/gate-causes.jsonl`.
+- **The miss rate** is read with `python3 scripts/gate_history.py
+  shadow`, and in the table's `shadow` entry as of its last update. It
+  gives the complete gates since shadow mode began against the about
+  200 the maintainer is asked to confirm, and the defects only lanes the selection would have
+  skipped showed, a week, against the study's 1.7. The maintainer reads
+  it before the selected gate is applied.
+- A new outside cause is a signature in the table: a pattern, its
+  example, which `Lanes` matches against it, and whether a re-run can
+  pass it.
+
 ### The controls that hold the job inventory
 
 A change to a gate job's name, matrix, condition or needs is held by
 controls in several files. Read this list before the change, and run them
 together afterwards: `python3 scripts/script_tests.py test_gate_inputs
 test_rv64_lanes test_build_inventory test_compare_builds
-test_host_determinism test_rig_runner_hook test_release`, and `python3
+test_host_determinism test_rig_runner_hook test_release
+test_gate_history`, and `python3
 environments/cortex-m/test.py`, which `check.py` runs.
 
 | file | what it holds of `gate.yml` |
 |---|---|
-| `scripts/tests/test_gate_inputs.py` | `Workflow`: the reuse list is exactly the jobs the aggregate needs, every matrix leg by its rendered name. `Physical`: every job's condition follows the event's scope, a software lane skipping for a reused pass and a boards-only event and a board job running by the boards scope alone, the boards' timing images built, run and compared by the timing scope alone and compared only once every leg passed, the board matrix is every port once, and the aggregate keeps documents and scripts always. `BoardsReuse` and `TimingReuse`: main's push takes boards, and a dispatch its timing, only from a run D1647 and D1649 allow; `BoardVerdict` accepts their skip only on those events. `DocumentReaders`: every tracked file naming a guide, the site or the cycles baselines that the key leaves out says why no lane reads it, the scripts tests a lane runs included. `Inventory`: this list names every test file that names the workflow. Its matrix reader takes axis lines or one `include:` list, never both. |
+| `scripts/tests/test_gate_inputs.py` | `Workflow`: the reuse list is exactly the jobs the aggregate needs, every matrix leg by its rendered name. `Physical`: every job's condition follows the event's scope, a software lane skipping for a reused pass and a boards-only event and a board job running by the boards scope alone, the boards' timing images built, run and compared by the timing scope alone and compared only once every leg passed, the board matrix is every port once, and the aggregate keeps documents and scripts always. `BoardsReuse` and `TimingReuse`: main's push takes boards, and a dispatch its timing, only from a run D1647 and D1649 allow; `Unmoved`: the schedule leaves out only a commit a passed schedule run ran (D2775); `Identity` and `LegsReuse`: an image, the harness, a record or the board jobs' text each breaks the board identity and what names another commit does not, and only a passed run that ran its legs is taken (D2774); `BoardVerdict` and `LegsVerdict` accept those skips only on those events, with the taken run's evidence. `DocumentReaders`: every tracked file naming a guide, the site or the cycles baselines that the key leaves out says why no lane reads it, the scripts tests a lane runs included. `Inventory`: this list names every test file that names the workflow. Its matrix reader takes axis lines or one `include:` list, never both. |
 | `scripts/tests/test_rv64_lanes.py` | the RV64 jobs: the two hardware jobs are suspended, by a `false` conjunct in their condition, and absent from the aggregate and the reuse list; the emulated job is not suspended, has both shards and its packages, and its evidence is packaged. It compares conditions by that conjunct alone, so a scope change does not concern it. |
 | `scripts/tests/test_build_inventory.py` | `BuildArchives`: the archives the build jobs hand to their consumers hold the executables and both stamps. |
 | `scripts/tests/test_compare_builds.py` | the comparison over ELF and Mach-O files written by the test, a Mach-O debug map alone still failing, every file under `libexec/` compared unnamed. `Workflow`: only `linux-release-compare` takes Linux x86-64's clean release build, `release` and `outside-user-stock` the cached one, the clean build never touches the cache, `linux-release-compare` compares both builds' `refine` and `landin_tests` and is among the jobs `gate` needs, and only `linux-release-cache`, after the comparison, and `board-bundles` save a release object tree; the key names the C headers and compiler, not the image, and every saved tree carries the sources' times, which the cached build gives back before it builds. `DarwinWorkflow`: only `darwin-release-compare` takes Darwin's clean build, both Darwin builds set `ZERO_AR_DATE=1`, only the cached one restores the cache and only `darwin-release-cache`, after the comparison, which `gate` needs, and `darwin-release-main-cache`, a clean build on a push to `main`, save it, with the same key and times, and `darwin-host-release` starts at the cached build's end. |
@@ -1250,12 +1288,13 @@ environments/cortex-m/test.py`, which `check.py` runs.
 | `scripts/tests/test_rig_runner_hook.py` | nothing of the jobs: it passes the workflow's path to the rig runner's hook. |
 | `scripts/tests/test_release.py` | nothing of the jobs: it names the workflow in the API path the release check asks for main's run. |
 | `scripts/tests/test_nix_route.py` | `Gate`: the `flake-compiler` leg runs `scripts/nix_route.py` (D1707); it holds the matrix's `compiler` part by that step's condition. |
+| `scripts/tests/test_gate_history.py` | `Lanes`: every job the aggregate needs is in exactly one lane of `.github/gate-lanes.json`. `Wiring`: the selection's steps `continue-on-error`, no job's condition reads them, and `gate-rerun.yml` re-runs only a branch push's first attempt. |
 | `scripts/tests/test_check_controls.py` | nothing of the jobs: `PinnedToolchain` copies the workflow, so that `check.py` can hold the scripts job's actionlint step to `scripts/actionlint.py --install` and to no literal pin. |
 
 ### Physical boards and promotion
 
-A board-scope event is a push to `main`, the weekly schedule at 04:00 UTC
-on Mondays, or a manual dispatch, in this repository only;
+A board-scope event is a push to `main`, the daily schedule at 04:00 UTC,
+or a manual dispatch, in this repository only;
 `scripts/gate_inputs.py scope` decides it from the event. On such an event
 `board-bundles` and every board leg run whether or not the software lanes
 reuse a pass, and the aggregate requires each of them to succeed and every
@@ -1284,9 +1323,29 @@ on a board-scope event under a week old, whose `board-bundles` and every
 leg ran and passed, on the identical tree or on a base the explanatory rule
 accepts (D1647): `gate_inputs.py physical` decides it in `inputs`, the
 board jobs are skipped, and the aggregate accepts that on a push to `main`
-alone and names the run. The schedule and a dispatch always run the boards.
-A main run whose boards fail has a failed gate, and so cannot serve as a
-reuse base, and a run that took its boards is never a boards base.
+alone and names the run.
+
+A dispatch, or a push to `main` that D1647 does not cover, still builds its
+bundles strict against the records, then takes its legs from a passed run
+whose board identity is its own (D2774). `board-bundles` writes the identity
+as its annotation `board identity`: every file of the bundles but
+`provenance.json` and `files.sha256`, `bundle.json` without its compiler
+and source identities, the timing bundle's files without the compiler,
+source identity and build seconds when the event times the boards; the
+blobs under `environments/boards/` and `compiler/tests/board/`, the hardware
+records apart; and the `board-bundles` and `board` jobs' text less
+comments. `gate_inputs.py legs` takes a run of a board-scope event under a
+week old whose `board-bundles` and every leg ran and passed and whose
+identity matches part for part, a timed one when this run times; it names
+each part that differed. The legs are then skipped, and the aggregate
+downloads that run's leg evidence, holds it to that run's id, requires
+every port `passed`, compares the cycles with this tree's base when the
+event times the boards, and names the run in its summary. The schedule runs
+its legs: it leaves its boards and timing out only on a commit a passed
+schedule run under a week old ran (D2775), so an unmoved `main` is sampled
+weekly and a moved one daily. A main run whose boards fail has a failed
+gate, and so cannot serve as a reuse base, and a run that took its boards or
+its legs is never a source.
 
 The board legs run on one non-ephemeral GitHub Actions runner on rigpi,
 labelled `landin-rig` alone, as the system user `landin-rig`. That user is
@@ -1346,6 +1405,7 @@ it up when that gate has its verdict (`item.py gate ITEM --main`, or
 `finish`) or with `item.py queue --release ITEM`. An item that finds the token held is put
 in line and waits with `item.py queue --wait ITEM`, which returns once the
 token is its own; it keeps working meanwhile, but takes no final merge.
+An item takes it only once its head's push gate passed.
 Work that is no item waits for it with `queue --wait NAME --why TEXT`.
 A holder this clone no longer runs, or whose `main` gate has ended, holds
 nothing. A merge whose main side is all `Gate: explanatory` and leaves the
@@ -1361,7 +1421,8 @@ The holder may bring other items' gated candidates into its final merge,
 own as one integrated tree: one gate, one boards dispatch and one `main`
 gate instead of one each. The holder's agent, or the session that runs
 the roadmap, is the train's integrator; `ROADMAP.md`'s Mechanics give it
-the authority. A member rides when its pushed head is its worktree's head,
+the authority. A branch no item owns rides by `--with-branch` on its head's passed
+gate; its owner leaves it be meanwhile. A member rides when its pushed head is its worktree's head,
 a push gate on that head passed with its whole listing, it is complete in
 its own `ROADMAP.md`, it lands on `main` and it does not say
 `Promotion: maintainer`. Each is merged after `origin/main`, in order. A

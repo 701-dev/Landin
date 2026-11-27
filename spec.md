@@ -27189,6 +27189,163 @@ which was not asked for; and keeping the files in the key.
 `test_cycles_baselines_do_not_count_and_other_baselines_do` and its
 `DocumentReaders` case.
 
+### D2794 — The gate records why a job failed, by rule and by outside signature
+
+**The tour said** nothing. Why a gate job failed was recorded nowhere: the
+gate-time study of 2026-11-26 rebuilt it from 1,024 job logs read by eight
+readers, and found that a rule agreed with them on 90% of the jobs it
+called defects and found 97% of theirs. The maintainer accepted the
+recording that day.
+
+**Chosen:** `scripts/gate_history.py` gives each failed attempt of a job
+one cause. It is `outside` when the job's log matches an outside
+signature of `.github/gate-lanes.json`, a regular expression with its
+example, which the aggregate `gate` job reads from the failed jobs' logs
+and records on the run as a `gate-causes` annotation. It is also `outside`
+when a later attempt, or a run of the identical tree, passed the same job;
+`defect` when the branch's next push changed the tree; `pending` before
+that push; and `unresolved` when it pushed the same tree. The history is
+read by GraphQL into a cache outside the tree, and `table --write` writes
+every cause into `.github/gate-causes.jsonl`. Seventeen signatures came
+from the study's outside failures, none of which matches any of its 860
+defect jobs. A probe's DMI timeout, which the maintainer named and no run
+had met, is an eighteenth. With them the rule agreed with the readers on
+96.5% of its defects and found 97.3% of theirs, on the same logs the
+signatures were fitted to.
+
+**The reason:** a cause recorded as the run ends needs nobody to read a
+log later. Only the next push can say whether the tree was at fault, so
+the rule reads it from the history rather than guessing at the run.
+
+**The alternatives:** asking a reader of each failure, which is what the
+study cost; classifying by log alone, which no signature does for a defect;
+and keeping the causes in an artifact, which expires.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Causes` cases and
+`Lanes.test_signatures_match_their_examples`.
+
+### D2795 — The lane table declares each lane's inputs and keeps its figures, in the tree
+
+**The tour said** nothing. The study's selection reads each lane's
+frequency from the history and narrows by the paths a change reaches.
+
+**Chosen:** `.github/gate-lanes.json` groups every job the aggregate needs
+into lanes, a matrix's legs together and the determinism manifests by
+host. Each lane declares by hand its jobs, the lanes it needs, the paths
+whose change reaches it (named sets such as `build` and `library`), the
+targets whose emitted code it alone runs, and whether it checks the
+evidence itself (the release builds' comparisons and their clean builds).
+`table --write` keeps the rest from the history: when the lane was first
+seen, the median of its job-minutes over the window's complete gates, and
+the last day it was the only lane with a defect job in a run. The two
+branches that demonstrated a failure on purpose count for nothing. No lane
+declares emission targets yet. The determinism manifests digest only the
+positive fixtures, and every lane that runs emitted code also runs the
+runtime, ABI or firmware corpus, or programs of its own. The emission part
+of the rule is written and tested, and selects nothing until a manifest
+covers what a lane runs, which a register row records.
+
+**The reason:** a table in the tree makes the same tree select the same
+lanes, and a lane's inputs are known best by whoever changes the lane, in
+the same change; `Lanes` fails when a gate job is in no lane.
+
+**The alternatives:** a path map apart from the frequencies, which two
+files would let drift; reading `needs` and paths from the workflow, which
+says what a job runs but not what it reads; and declaring emission lanes
+over the positive manifest, which would key a lane by code it does not
+run.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Lanes` cases.
+
+### D2796 — The selected gate is computed beside every complete gate and skips nothing
+
+**The tour said** nothing. The maintainer accepted the selection's values
+on 2026-11-26, and that it runs in shadow before it is applied.
+
+**Chosen:** the `inputs` job's last step, when the software lanes run and
+no pass is reused, finds the base. That is the newest successful push run
+on this commit's history whose `determinism / agree` passed, asked by
+GraphQL with the job's own token. The step lists the paths changed since
+the base and selects by D2795's table. It keeps a lane that runs always,
+a physical one, one that checks the evidence, one under four weeks old,
+one under five job-minutes and one that was alone in the last eight weeks.
+It keeps one whose inputs the change reaches, and every lane a kept lane
+needs. An emission lane is left to the aggregate, which settles it from
+this run's and the base run's x86-64 manifests. Any other lane runs on one
+tree in four, drawn from a hash of the tree and the lane's name, so each
+lane is drawn apart. The step writes the selection to the summary; the
+aggregate writes the final one, the lanes skipped and their job-minutes,
+and records it as a `gate-shadow` annotation. Both steps
+`continue-on-error`, and no job's condition reads them, so a failure there
+selects every lane and changes nothing that runs.
+
+**The reason:** shadow mode measures the rule on the gates that run
+anyway, at a few seconds of the `inputs` job, so its misses are known
+before it may skip anything.
+
+**The alternatives:** one draw for all sampled lanes, which runs all of
+them on one gate in four and none on the rest; the merge base with `main`
+as the base, which a reused main push gives no manifests for; and
+computing everything at the end, which the applied selection could
+not use before its lanes start.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Selection` and
+`Wiring.test_the_selection_never_fails_or_skips_a_job`.
+
+### D2797 — A branch run that failed only outside the change is re-run once
+
+**The tour said** nothing. From 7 to 17 runs a week failed for outside
+causes alone, and each was re-run by hand or by a new push.
+
+**Chosen:** `.github/workflows/gate-rerun.yml` runs when a gate run
+completes. When the run failed on its first attempt and was a push to a
+branch other than `main` of this repository, it reads the failed jobs'
+logs. If every failed job matches a signature marked `rerun` and the branch
+still points at the run's commit, it re-runs the failed jobs once and names
+the run, the jobs and the signatures in its summary. The re-run's aggregate
+names its attempt and who started it. A signature a second attempt cannot
+pass, such as a stale image, is marked so and not re-run. `main`'s gate is
+investigated, never re-run blindly.
+
+**The reason:** a failure every one of whose jobs is a known outside cause
+says nothing of the tree, and one more attempt is cheaper than an agent
+reading the log to decide the same. A run with any unmatched failure needs
+a new push anyway.
+
+**The alternatives:** re-running each matched job alone, which leaves the
+run failed on the others; re-running `main`; and re-running more than once.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s `Rerun` cases and
+`Wiring.test_the_rerun_is_a_branch_push_first_attempt_only`.
+
+### D2798 — A miss is a complete gate whose defect only skipped lanes showed
+
+**The tour said** nothing. The study's replay of November expected 1.7
+misses a week, defects a later draw or the next complete gate shows.
+
+**Chosen:** in the shadow period, a complete gate is a miss when every
+lane with a defect job in it is one the selection recorded on the run
+would have skipped. A branch's consecutive misses on the same lanes are
+one missed defect. `gate_history.py shadow` prints the period's complete
+gates, its weeks, the missed runs and defects and their rate a week, and
+sets them against the study's. `table --write` keeps the same figures
+in the lane table's `shadow` entry, so each weekly update of the table
+carries them. The maintainer reads them there before the selection is applied,
+after about 200 complete gates, the length the maintainer is asked to
+confirm.
+
+**The reason:** under the selected gate such a tree would have passed;
+when a kept lane failed too, the selected gate would have failed it as
+well.
+
+**The alternatives:** counting a run with a skipped lane's defect beside a
+kept lane's, which counts a defect the selected gate also stops; and
+counting every missed run, which counts one defect again on every push
+until it is fixed.
+
+**Pinned by** `scripts/tests/test_gate_history.py`'s
+`Shadow.test_a_defect_only_skipped_lanes_showed_is_a_miss`.
+
 ### D1379 — The instruction counter declares the plugin calls it makes
 
 **The tour said** nothing.
@@ -27398,6 +27555,45 @@ routine for the debugger (D1404).
 
 **Pinned by** `arm64 selection/a stored value is made in its slot` and
 `compiler/tests/measure/baselines/`.
+
+### D2714 — arm64 makes a value read after its store in its slot's register
+
+**The tour said** nothing. D2164 made a value in its slot's register
+only when the store was the value's last use, so one read again after
+its store was made in a register of its own and moved: three of
+reverse-complement's eighteen instructions a byte in `write_reversed`
+copied `at - 1` into `at`, the loaded byte into `base` and `width + 1`
+into `width`, and mandelbrot's real and imaginary parts were moved the
+same way.
+
+**Chosen:** at `speed`, in a routine with no assembly block, a value
+read after its first store, within 32 positions of its definition, is
+made in the register of the slot that store writes when the slot is
+placed in that register over an interval running through the value's
+last use, nothing else stores the slot within the value's span, and
+either the slot already holds the register at the definition, no value
+given the register is read after the definition and nothing loads the
+slot before the store, or the slot's interval opens at the store and
+nothing holds the register at the definition, but for an indirect
+load, what that load itself reads for the last time: its address is
+formed before the one load writes the register. The store moves
+nothing, and the uses after it read the slot's register. A debugger
+stepping between the definition and the store sees the variable's new
+value early, as under D2164. Under QEMU at armv8-a, `speed` executes
+12.0% fewer instructions on mandelbrot, 11.7% on reverse-complement,
+1.9% on the switch measurements, 1.8% on fasta and 1.4% on
+binary-trees, every output the same; on a Cortex-X925 core the first
+two run 16.1% and 15.5% faster.
+
+**The alternatives:** x86-64's D2157 chain of values each the next
+one's left operand, which no measured arm64 loop needs; the rule at
+`size`, which D2164 left alone for the debugger (D1404); and letting
+any operation's result take an operand's register at its own position,
+which needs every selected sequence to read its operands before it
+writes and so is left to the indirect load, whose emission was read.
+
+**Pinned by** `arm64 selection/a value read again is made in its slot`
+and `compiler/tests/measure/baselines/`.
 
 ### D2165 — arm64 complements a 32-bit value in its 32-bit view
 
@@ -30364,8 +30560,10 @@ unpushed tree; or automatically refreshing a hardware record from a build.
 
 ### D904 — Physical boards run in the gate on trusted events only, and their evidence is never reused
 
-**Superseded in part by D1647:** a push to `main` takes its boards from a
-passed run of the same tree instead of running them again.
+**Superseded in part by D1647, D2774 and D2775:** a push to `main` takes its
+boards from a passed run of the same tree instead of running them again, a
+dispatch and `main`'s push take their legs from a passed run of the same
+board identity, and the schedule runs daily.
 
 **The tour said** nothing about where physical evidence comes from; D901
 and D902 made boot checks and RAM runs the closing evidence of a board
@@ -30423,6 +30621,11 @@ verdict; and `scripts/tests/test_board_gate.py`'s `Sequence`.
 
 ### D1647 — Main's push takes its boards from a passed run of the same tree
 
+**Superseded in part by D2774 and D2775:** a dispatch, and `main`'s push on
+another tree, take their board legs from a passed run of the same board
+identity, and the schedule runs daily and leaves out a commit it already
+ran.
+
 **The tour said** nothing. D904 ran the boards fresh on every push to
 `main` and listed reusing a candidate's board evidence at promotion among
 its alternatives without a reason. In the 3.4 days surveyed on 2026-11-20,
@@ -30461,7 +30664,84 @@ difference.
 
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `BoardsReuse` cases and
 `BoardVerdict`'s `test_a_main_push_may_take_its_boards_from_a_passed_run`
-and `test_a_dispatch_or_the_schedule_never_takes_boards`.
+and `test_a_dispatch_never_takes_boards`.
+
+### D2774 — Board legs are taken from a passed run of the same board identity
+
+**The tour said** nothing. D904 ran every leg on every board-scope event
+and D1647 let `main`'s push take a passed run of the identical tree. The
+gate-time study of 2026-11-26 found 31 of the 39 boards runs from
+2026-11-20 ran boot, RAM and timing images byte-identical to the passed run
+before them, 23 of those with the board harness and the whole workflow
+unchanged too, while the rig, one leg at a time, was busy seven to eleven
+hours a day and found two defects in about 270 runs, both in its own
+harness. The maintainer accepted reuse on byte-identical images and inputs
+that day.
+
+**Chosen:** `board-bundles` still builds every bundle on a board-scope
+event, strict against the hardware records, and then writes its board
+identity as an annotation titled `board identity`: digests of every file
+the bundles hold but `provenance.json` and `files.sha256`, with
+`bundle.json` read without its compiler and source identities; the timing
+bundle's files likewise, `timing.json` without its compiler, source identity
+and build time and `commands.json` without each command's seconds, or none
+when the event builds no timing images; the blobs and modes of every file
+under `environments/boards/` and `compiler/tests/board/` but the hardware
+records, which are a part of their own; and the text of the `board-bundles`
+and `board` jobs less their comment lines. A dispatch, or `main`'s push
+that D1647 does not cover, skips its legs when a run of `gate.yml` in this
+repository on a board-scope event, under a week old and successful, ran and
+passed `board-bundles` and every leg in a complete listing and recorded an
+identity whose every part is this run's, its timing part too when this run
+times. The aggregate downloads that run's leg evidence, holds every leg's
+`transfer.json` to its run id, requires every port `passed`, compares its
+cycles with this tree's base when the event times the boards, and names the
+run in its summary. A run that took its legs is never a source, and the
+schedule always runs its own.
+
+**The reason:** a leg's verdict is a function of the bytes it loads, the
+harness that loads and judges them and the rig; the identity holds the
+first two exactly and leaves out only what names the commit or the build's
+clock, so a run taken is evidence of the same inputs on the rig at most a
+week ago, which the daily schedule (D2775) and every dispatch with new
+images keep sampling. The library roots the legs' checkout also carries
+reach a board only through the images, so they are not part of it.
+
+**The alternatives:** hashing `files.sha256`, which names the commit
+through `bundle.json` and so never repeats; keying by the gate's tree key,
+which changes with any source file and so reuses no more than D1647; the
+library roots in the harness part, which a change to an unrelated module
+would break; storing the identity as an artifact, which the reading run
+would have to download for every candidate; and boards on a schedule
+alone, which turns `main` red a day after the candidate that broke them.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Identity`,
+`LegsReuse` and `LegsVerdict` cases.
+
+### D2775 — The schedule runs the boards daily, and an unmoved main weekly
+
+**The tour said** nothing; D904 ran the boards weekly on `main`, and D1647
+listed a daily schedule among its alternatives. With legs taken by identity
+(D2774) a board or probe that degrades would show only when the images
+change; the maintainer's rhythm of 2026-11-26 runs the complete evidence on
+`main` once a day when it moved.
+
+**Chosen:** the schedule fires at 04:00 UTC every day. Its `inputs` job
+leaves out its boards and its timing together when a schedule run of the
+same commit under a week old succeeded with every board job and timing leg
+run and passed, and the aggregate accepts that on the schedule and names
+the run. A schedule run never takes its legs by identity.
+
+**The reason:** a day bounds how long a degraded board goes unseen while
+work lands; an unmoved `main` has nothing new to test, and the week bound
+still samples an idle rig once a week, as before.
+
+**The alternatives:** a daily run whatever main did, which spends a rig
+hour a day on a tree already tested; and keeping the weekly run, which
+leaves a degraded board unseen for days now that dispatches take legs.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
+`BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
 
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 
@@ -42137,6 +42417,16 @@ and for a host string is not defined.
 `runtime/core-mem-blocks`, `runtime/tree-copy`,
 `runtime/directory-listing` and `runtime/library-builtin-evidence`.
 
+### D2815 — `f32` and `f64` are `cmp.ordered` by IEEE 754's totalOrder
+
+**The tour said** at [1280] that a type has one evidence for a concept and no override, and `cmp.ordered`'s `less` must be a strict weak order. IEEE's `<` is not one once a NaN is among the values, so floats had no evidence and a sort of them declared its own.
+
+**Chosen:** the maintainer's answer: `core/cmp` declares `f32 is ordered` and `f64 is ordered` by IEEE 754's totalOrder, a strict order of every bit pattern: negative NaNs, a larger payload first, negative infinity, the negative numbers, -0.0, +0.0, the positive numbers, infinity, and positive NaNs, a larger payload last. It agrees with `<` on every pair of numbers except the two zeros, so a sort of measurements is the order a reader expects and a NaN has one place, at an end. `less` reads each float's bits through its address and compares keys as unsigned integers: a negative float's bits inverted, a positive one's sign bit set. Another order goes on a distinct type, as for an integer.
+
+**The alternatives:** no evidence, a program declaring a distinct type with the order it wants; and evidence by `<`, valid only where no NaN is sorted, which breaks the concept's own requirement on the values a float can hold.
+
+**Pinned by** `runtime/cmp-float-total-order`, which sorts NaNs of both signs, quiet and signalling, the infinities, both zeros, subnormals and ordinary numbers at both widths on every hosted target and on Cortex-M0.
+
 ### D353 — The hosted provider maps a path's errno, opens and closes once
 
 **The tour said** nothing of the providers' insides, and D297 wrote the
@@ -46047,12 +46337,21 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The tour said** nothing; `LICENSE` says that linking `core/*` places no condition on a program. The roadmap names musl's and FreeBSD's msun and CORE-MATH as sources.
 
-**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. It is the default of a question the maintainer has not yet answered.
+**Chosen:** `core/math` ports FreeBSD's msun files that carry Sun's notice, which asks only that the notice stay with the source; `core/math/math.ldn` preserves it, and `LICENSE` names it among the third-party material. A routine whose msun source is BSD-2-Clause or BSD-3-Clause, whose notice must go with a binary's documentation, is written here instead, from the mathematics: `exp2`, the software `fma` and `gamma`. musl's routines are MIT-licensed and are not copied. The maintainer kept it, and D2814 makes its condition the rule for all of `core/*`.
 
 **The alternatives:** admitting MIT and BSD-2-Clause sources, with a notice every program linking `core/math` would carry; and writing every routine anew, which would replace decades of measured code with new code for no licensing gain.
 
 **Pinned by** the opening comment of each `core/math` file, which names the msun files it ports.
 
+### D2814 — Third-party code enters `core/*` only under terms that ask no more than a notice kept with its source
+
+**The tour said** nothing; `LICENSE` says that compiling a program places no licensing condition on it, and neither does linking `core/*` into it. D2554 kept that promise for `core/math` and `core/unicode`'s tables kept it by the same reading, each as the default of a question.
+
+**Chosen:** the maintainer's rule: material from outside the project enters `core/*` only under terms whose sole condition is a notice kept with the source, and that ask nothing of a program that links it: no notice in its documentation, no attribution at run time, no licence of its own. The notice stays in the files that hold the material, and `LICENSE` names each such source among its third-party material without changing its promise. `core/math`'s msun code under Sun's notice and `core/unicode`'s tables, generated from the Unicode Character Database, whose notice is `core/unicode/LICENSE.unicode` and is named in the header of `tables.ldn`, are the two today: a compiled program carries the tables' values, not the Data Files. Code under terms that ask more, BSD-2-Clause's notice in a binary's documentation or MIT's notice with substantial portions, is written here from the mathematics or the standard instead.
+
+**The alternatives:** admitting BSD and MIT sources with a notice every linking program reproduces, which would add an obligation for the project's users, and which the maintainer refused; and porting nothing, which replaces measured code with new code for no licensing gain.
+
+**Pinned by** `LICENSE`'s list of third-party material, the notice in `core/math/math.ldn` and each `core/math` file's opening comment naming the msun files it ports, and `core/unicode/LICENSE.unicode` named in `tables.ldn`'s header.
 ### D2594 — `core/big` keeps a number in 32-bit limbs on every target, in two layers
 
 **The tour said** nothing about numbers wider than `u64`, and D237 left `u128` out of the language. The roadmap asks for arbitrary precision in two layers: one over the caller's limbs with no allocator, as GMP's `mpn` is, for firmware and a parser that may not allocate, and one that grows through the caller's allocator.
@@ -46132,6 +46431,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** Toom-4 and FFT multiplication, which the roadmap leaves out; and divide-and-conquer division now, which no consumer in the repository reaches at the lengths where it wins.
 
 **Pinned by** `runtime/big-limbs`'s drawn products and quotients, at lengths on either side of each threshold and with operands of all one bits, and compiler/tests/big/README.md's timing.
+
+### D2735 — A `core/big` product by one limb, and a division's scratch, take no block a step
+
+**The tour said** that arenas are the idiom [1360]; D2595 worked a result written over an operand out on the stack up to 64 limbs and apart above, and D2596 kept a looping routine's temporaries, which left the public routines themselves taking a block a call.
+
+**Chosen:** `big.multiply` of a value by an integer of one limb is one pass of the limb layer's `multiply_limb`, in place when the destination is the long operand, so `x = x * k` takes nothing from the allocator but `x`'s growth at any length. A division into results that are not its operands takes its scratch from the remainder's block, past the limbs it keeps, which the division reserves for it, so a loop dividing into the same quotient and remainder allocates only while they grow; the remainder keeps a block as long as the numerator and twice the divisor in consequence. pidigits' 10,000 digits took 9.5 s, 4.5 of them in the system's mapping and unmapping of a block a step, before this, and 4.6 s, 0.02 in the system, after, on the host of compiler/tests/big/README.md.
+
+**The alternatives:** a public room parameter, `divide_with`'s, on every division, which would put the layer's bookkeeping into every caller's signature as D2596 declined; and leaving it to the caller to multiply into a value of its own and exchange the handles, which `core/big` gives no public routine for.
+
+**Pinned by** `runtime/big-integer-in-place`, which multiplies a hundred-limb value by one limb in place and divides it by that limb a thousand times in an 8 KiB arena, and which runs out of the arena without either change; and `runtime/benchmark-game-pidigits`.
 
 ### D2614 — `core/unicode`'s tables are generated from a pinned database into multi-stage tables a program links only in part
 
@@ -46342,3 +46651,103 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** `core/failure` importing `core/regex`, which costs every hosted program those 2.2 seconds; the atoms in `core/text`, which `core/failure` already imports, under names that would say `text` for a regular expression's failure; and a submodule holding the atoms alone, which a program would import to name them. All were declined.
 
 **Pinned by** `scripts/tests/test_check_controls.py`'s `FailureWords`, which holds a module's own words to its atoms, and `runtime/regex-api`.
+
+### D2694 — `core/dense` is a vector and a matrix view over the caller's storage, generic over `math.floating`
+
+**The tour said** nothing about linear algebra; the roadmap asks for a vector or matrix as a view over caller storage, with rows, columns and strides in either order and transposed and sub-matrix views without copying, its elements real, with room left for complex ones.
+
+**Chosen:** `core/dense` declares `vector(item: type is math.floating)`, a slice, a `length` and a `step`, and `matrix(item)`, a slice, `rows`, `columns`, a `row_step` and a `column_step`: the element in row `i` and column `j` is `values[i * row_step + j * column_step]`. A matrix laid out by rows has `column_step` 1, one laid out by columns, the BLAS's order, `row_step` 1, and a leading dimension larger than the matrix is a larger step, so `rows_over`, `columns_over` and `matrix_over` make any of them and every routine reads them alike. `transposed` swaps the counts and the steps; `block`, `segment`, `row`, `column` and `diagonal` are further views of the same storage, made as `over` makes a view (D269). Every routine is generic over `math.floating` and written once, its arithmetic the element type's own [1290]. The routines are named for what they compute, `multiply_vector`, `add_outer`, `solve_triangular`, with the BLAS's name in each doc comment. Element type is the struct's one parameter, so a complex element type can later meet a concept beside `math.floating` without changing the views' shape.
+
+**The alternatives:** a matrix that owns its storage, which an allocator in every value would need and the library's conventions refuse (D269); one layout only, which makes every caller of the other layout copy; and the BLAS's names (`dgemm`, `dtrsm`), which a reader must already know.
+
+**Pinned by** `runtime/library-shared-dense` and the `dense-blas-*` runtime fixtures, which run every routine over views laid out by columns with a leading dimension and again laid out by rows.
+
+### D2695 — A view holds a writable slice, and a routine writes only the view it names `into`
+
+**The tour said** at [0790] that a reference's permission is part of its type; no overloading lets one routine take a readable and a writable view.
+
+**Chosen:** both views hold `[]mut item`. A routine's signature names the view it writes `into`, and reads the rest; storage that is only readable, a constant table, is copied into writable storage before it is viewed. Views a routine writes and reads must not overlap unless the routine says it works in place, as the BLAS asks.
+
+**The alternatives:** a readable and a writable type of each view, whose every constructor, transposition and block would come in two forms without overloading, and whose every result needs a conversion before it is the next routine's operand. Declined: it doubles the module's surface for the rarer case.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the `dense-blas-*` fixtures' checks that every operand but `into` is unchanged.
+
+### D2696 — A view's steps are unsigned, and the BLAS's negative increments have no counterpart
+
+**The tour said** nothing; the BLAS lets an increment be negative, which walks a vector from its last element.
+
+**Chosen:** `step`, `row_step` and `column_step` are `usize`, and a view's first element is its slice's first. A reversed vector is not a view. The translated BLAS tests run each case of a negative increment at its magnitude, which gives the routines the same logical operands; dblat1's expected values for negative increments, which differ, are left out and counted in its fixture.
+
+**The alternatives:** signed steps with a first index, so a view may run backwards, which puts a signed index computation and a checked conversion in every element access of every routine, the packed product's copying included, for a layout few programs use. Declined; a reversed view can be added as its own form if one is wanted.
+
+**Pinned by** the `dense-blas-*` fixtures' header comments, which name the departure.
+
+### D2697 — A transposed operand is a transposed view, and a triangle is the view's own
+
+**The tour said** nothing; the BLAS passes `TRANS`, `UPLO`, `DIAG` and `SIDE` as characters.
+
+**Chosen:** no routine takes a transposition flag: `multiply_vector(into, alpha, dense.transposed(a), x, beta)` is `gemv` with `'T'`. A triangle is `dense.upper` or `dense.lower` of the view as given, so a transposed view's upper triangle is its storage's lower one, and `trmv` with `UPLO 'U'` and `TRANS 'T'` is `multiply_triangular_vector` over the transposed view with `dense.lower`. The diagonal is `dense.stored` or `dense.unit`, and a square operand multiplies on the `dense.left` or `dense.right`: atom types of the module, `triangle`, `diagonal_kind` and `side`.
+
+**The alternatives:** the BLAS's flags beside the views, which give two spellings of one product and a triangle that refers to the storage rather than to the matrix the routine sees. Declined.
+
+**Pinned by** the `dense-blas-*` fixtures, which run each transposed case of the BLAS's tests as a transposed view.
+
+### D2698 — A mistaken call stops the program, reported at the call
+
+**The tour said** at [1560] that a check that stops the program gives its `caller` parameter to `compiler.unreachable`.
+
+**Chosen:** a view whose extent passes its storage, made by `strided_over`, `rows_over`, `columns_over`, `matrix_over`, `block` or `segment`, and operands whose shapes disagree stop the program, reported at the caller's call through a `caller` parameter. Nothing in `core/dense` fails: every condition a routine meets is the calling program's mistake, as an index out of range is. A singular triangular matrix is not checked; its solve gives infinities or NaNs, as the BLAS's does.
+
+**The alternatives:** a declared failure for a shape mismatch, which every call of every product would then handle though a correct program never meets it; and no check, as the BLAS's XERBLA reports and continues, which turns a mismatch into a read of the wrong elements. Declined.
+
+**Pinned by** `core/dense/dense.ldn`'s `require`; a trap given a `caller` parameter whose type `site` is declared nowhere is refused for the type alone, where checking once stopped on an internal defect, pinned by `negative/compiler-unreachable-undeclared-site`.
+
+### D2699 — `alpha` and `beta` are read as the BLAS reads them, and an empty product is zero
+
+**The tour said** nothing; the reference BLAS does not read the output when `beta` is 0 and does not read the operands when `alpha` is 0, and returns early when a dimension is 0.
+
+**Chosen:** when `beta` is 0 the output is set without being read, so a NaN there does not survive, and when `alpha` is 0 the operands are not read; `beta` 1 leaves the output's elements as they are. An empty product is the mathematics' zero: `multiply_vector` with an `x` of no elements gives `beta·y`, and `multiply` with no depth `beta·C`, where the reference BLAS leaves `y` and `C` as they were. The translated tests check such cases by the same reference computation and ratio as the others.
+
+**The alternatives:** the BLAS's early return, which makes `beta·y` depend on whether a dimension happens to be zero. Declined.
+
+**Pinned by** the empty-dimension cases of the `dense-blas-level-2` and `dense-blas-level-3` fixtures.
+
+### D2700 — The matrix product is packed into the caller's scratch and blocked for the cache
+
+**The tour said** nothing; the roadmap asks for the product blocked and packed for the cache from the start, the established strategy, and the library allocates only through a provider the caller passes.
+
+**Chosen:** `multiply(into, alpha, a, b, beta, scratch)` follows Goto and van de Geijn: a panel of `b`, up to 256 rows deep and 1024 columns wide, is copied into the scratch in slivers two columns wide, and for each block of `a`, up to 128 rows by the same depth, copied in slivers four rows high, a kernel multiplies one sliver of each with its eight sums in registers. `product_scratch(rows, columns, depth)` gives the length the largest blocks need, at most 294,912 elements; a shorter scratch cuts smaller blocks, and one that holds less than eight elements per row of the depth, an empty slice included, multiplies without packing, each element a dot product. The 4 by 2 kernel was measured against a 4 by 4 one, which spilled half its sums on x86-64's sixteen float registers: 4.9 GFLOP/s against 3.6 at n=1000. The other third-level routines are loops over the second level's and are not blocked.
+
+**The alternatives:** a packing buffer on the stack, which no fibre's or firmware's stack can hold at a useful size; thread storage, which every thread would pay for; an allocator in the signature, which makes every product fallible for a buffer the caller can as well give; and an unblocked product, which the roadmap rules out.
+
+**Pinned by** the `dense-blas-level-3` fixture, which runs every product with the full scratch and with a short one, and a 70 by 70 product across several blocks on hosted targets.
+
+### D2701 — The norm and the rotations are scaled as Blue and Anderson describe, and the modified rotation keeps its rescaled entries
+
+**The tour said** nothing; the reference BLAS's `nrm2` and `rotg` follow Anderson's "Algorithm 978: Safe scaling in the level 1 BLAS" (2017), and its `rotmg` follows Lawson, Hanson, Kincaid and Krogh (1979).
+
+**Chosen:** `norm_two` sums squares in three accumulators by Blue's thresholds, in Anderson's form and constants, so it neither overflows nor underflows unless the norm does, in one pass; `matrix_norm_frobenius` combines its rows' norms by a running scale. `rotation` scales its operands into range before the square root, as Anderson's `rotg` does, and returns `r` and `z` beside `c` and `s`. `modified_rotation` returns its matrix with every entry filled in and the BLAS's flag as a `rotation_form` atom; it rescales by 4096 while a scale lies outside [2^-24, 2^24], the bound exact where the reference writes 5.9604645D-8, and when the rescaling runs more than once it keeps the entries it has already scaled, where the reference sets `H21` and `H12` to -1 and 1 again on every pass.
+
+**The alternatives:** the reference's repeated reset, which discards the scaling of the passes before; and an unscaled norm, which overflows at a magnitude of 10^154 in `f64`.
+
+**Pinned by** `runtime/dense-blas-level-1`, whose DB1NRM2 cases hold special and extreme values, and its DROTG and DROTMG tables.
+
+### D2702 — `core/dense` is written from the mathematics, and its tests are translated from the reference BLAS's
+
+**The tour said** nothing; `LICENSE` promises that linking `core/*` places no condition on a program, and the reference BLAS is under LAPACK's modified BSD licence, whose second clause asks a binary's documentation to reproduce its notice.
+
+**Chosen:** nothing in `core/dense` is ported: each routine is written from the mathematics and the published methods its comment names, and `LICENSE` gains nothing for it. The test programs, BLAS/TESTING's `dblat1.f`, `dblat2.f` and `dblat3.f` of Reference-LAPACK 3.12.1, are translated into the `dense-blas-*` fixtures, with their generator, parameters, reference computation, test ratio and threshold, and each fixture's directory holds LAPACK's licence in its NOTICE, which `LICENSE` names among the third-party material. A fixture is test material and is linked into no program.
+
+**The alternatives:** porting the reference BLAS's routines, which would put LAPACK's notice on every program that links `core/dense`; and tests of the library's own design, which would not be the BLAS's cases the roadmap asks for.
+
+**Pinned by** `core/dense/dense.ldn`'s opening comment and the fixtures' NOTICE files.
+
+### D2703 — The `f64` product at n=1000 takes 8.2 times OpenBLAS's time on one core
+
+**The tour said** nothing; the roadmap asks for the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+**Chosen:** `scripts/dense_timing.py` builds `compiler/tests/dense/timing.ldn` at `--optimize speed` and `timing.c` against the pinned nixpkgs's OpenBLAS, runs them interleaved on one pinned core with OpenBLAS on one thread, checks that their products' checksums agree and reports the median of the product's own time. On an AMD EPYC 7302 core `core/dense` took 0.41 s, 4.9 GFLOP/s, and OpenBLAS 0.3.33 0.049 s, 41 GFLOP/s. The difference is mostly vector instructions, which refine does not emit, and partly the scalar kernel's code, which the register records.
+
+**The alternatives:** a kernel per target in assembly, as OpenBLAS's are, which would leave the language's own code generation unmeasured. Declined for now.
+
+**Pinned by** `compiler/tests/dense/README.md`, which records the measurement and how to repeat it.

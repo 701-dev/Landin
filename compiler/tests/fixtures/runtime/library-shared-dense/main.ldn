@@ -1,0 +1,49 @@
+import core/dense
+
+--  A few routines whose results are exact, at f32, whose image fits
+--  Cortex-M0's flash: a dot product and a sum of magnitudes, a
+--  matrix-vector product through a transposed view, the packed matrix product with a short
+--  scratch and with none, and a triangular solve.
+exercise: () -> (ok: bool) =
+    ok = false
+    mut x_values: [3]f32 = [3.0, 0.0, 4.0]
+    mut y_values: [3]f32 = [1.0, 2.0, 3.0]
+    x := dense.vector_over(x_values[0..<3])
+    y := dense.vector_over(y_values[0..<3])
+    return when dense.dot(x, y) <> 15.0 or dense.sum_magnitudes(x) <> 7.0
+
+    --  A is 2 by 3 laid out by rows; Aᵀ·(1, 1) sums its columns.
+    mut a_values: [6]f32 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    a := dense.rows_over(a_values[0..<6], 2, 3)
+    mut ones_values: [2]f32 = [1.0, 1.0]
+    ones := dense.vector_over(ones_values[0..<2])
+    dense.multiply_vector(y, 1.0, dense.transposed(a), ones, 0.0)
+    return when dense.get(y, 0) <> 5.0 or dense.get(y, 1) <> 7.0
+      or dense.get(y, 2) <> 9.0
+
+    --  C = A·Aᵀ, packed and unpacked.
+    mut c_values: [4]f32 = zeroed
+    c := dense.columns_over(c_values[0..<4], 2, 2)
+    mut scratch: [24]f32 = zeroed
+    dense.multiply(c, 1.0, a, dense.transposed(a), 0.0, scratch[0..<24])
+    return when dense.element(c, 0, 0) <> 14.0 or dense.element(c, 0, 1) <> 32.0
+      or dense.element(c, 1, 0) <> 32.0 or dense.element(c, 1, 1) <> 77.0
+    dense.multiply(c, 1.0, a, dense.transposed(a), -1.0, scratch[0..<0])
+    return when dense.element(c, 0, 0) <> 0.0 or dense.element(c, 1, 1) <> 0.0
+
+    --  The upper triangle of [2 1; 0 4] solves to (1, 1) from (3, 4).
+    mut t_values: [4]f32 = [2.0, 1.0, 0.0, 4.0]
+    t := dense.rows_over(t_values[0..<4], 2, 2)
+    mut b_values: [2]f32 = [3.0, 4.0]
+    b := dense.vector_over(b_values[0..<2])
+    dense.solve_triangular_vector(b, t, dense.upper, dense.stored)
+    ok = dense.get(b, 0) == 1.0 and dense.get(b, 1) == 1.0
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    ok := exercise()
+    if ok then
+        code = 42
+    end if
+end main

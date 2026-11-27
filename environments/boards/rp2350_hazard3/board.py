@@ -546,6 +546,9 @@ def main():
                 if not manual_boot:
                     raise
                 manual.interrupted(manual_boot, result, 'restoration')
+            if args.mode == 'boot' and result.get('fixed_restore', {}).get(
+                    'status') == 'passed':
+                pico2.at_rest()
         common.retain_kernel_usb(args.pace, result)
         if manual_boot:
             manual_boot.close(result)

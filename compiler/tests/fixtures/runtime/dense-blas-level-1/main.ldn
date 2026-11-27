@@ -1,0 +1,799 @@
+--  The cases of the reference BLAS's level 1 test programs, translated
+--  from BLAS/TESTING/dblat1.f (and sblat1.f for the f32 width) of
+--  Reference-LAPACK v3.12.1 into core/dense: DROTG and DROTMG (CHECK0),
+--  DNRM2, DASUM, DSCAL and IDAMAX (CHECK1, with DB1NRM2, the nrm2 test of
+--  special values and its own threshold), DDOT, DAXPY, DCOPY, DSWAP and
+--  DROTM (CHECK2) and DROT (CHECK3, with the MWPC/MWPS cases), at f64 and
+--  at f32.  The NOTICE in this directory carries LAPACK's licence.  The
+--  tables are dblat1's own DATA statements, written as f64 and converted to
+--  the element type, which is the same decimal rounded once more at f32;
+--  the values the program computes (DTRUE of CHECK0, DBTRUE) are computed
+--  here at the element type, as the program does.  The tables of CHECK2
+--  and CHECK3 are in Fortran order, the first index fastest.
+--
+--  Each comparison is dblat1's STEST: a value passes when
+--  |SFAC * (computed - true)| <= |size| * epsilon, SFAC = 2^-10, epsilon
+--  the machine epsilon of the width, 2^-52 or 2^-23.  A size of 0 asks
+--  for equality.  DB1NRM2 passes when its ratio, the relative error in
+--  units of N * ulp, is below its own threshold of 10.  The random numbers
+--  DB1NRM2 draws are a fixed xorshift sequence, the program's
+--  RANDOM_NUMBER being the compiler's.
+--
+--  The mapping to core/dense: DROTG is dense.rotation, DROTMG
+--  dense.modified_rotation, with the BLAS's DPARAM read from the result's
+--  `form` (the flag: identity -2, general -1, unit_diagonal 0,
+--  unit_antidiagonal 1) and only the entries the flag stores compared, the
+--  others as dblat1's zeros; DROTM is dense.rotate_modified with the
+--  DPARAM made into the same record; DROT dense.rotate; DNRM2
+--  dense.norm_two; DASUM dense.sum_magnitudes; DSCAL dense.scale; DDOT
+--  dense.dot; DAXPY dense.add_scaled; DCOPY dense.copy; DSWAP dense.swap.
+--  IDAMAX is dense.largest_magnitude, which counts from 0 and gives 0 for an
+--  empty vector where the BLAS counts from 1 and gives 0: the result here
+--  is 0 when N is 0 and the index plus one otherwise.
+--
+--  Departures from the program:
+--  1. Steps are unsigned.  The cases with a negative INCX or INCY are left
+--  out where the program holds their expected values: DDOT, DAXPY, DCOPY,
+--  DSWAP and DROT's 12 cases of each in the three increment pairs that
+--  have one, DROTM's 48, the 6 of DROT's 11 MWPC/MWPS cases that have one,
+--  and the 5 calls of DB1NRM2 with INCX = -2: 119 cases at each width.  Run
+--  in their place, with the increments' magnitudes, are the same routines
+--  against an index-by-index reference loop written here (the
+--  "magnitude" cases), compared by STEST's rule with the reference's
+--  results as the true values and their magnitudes as sizes.  DB1NRM2's
+--  INCX = 0 is a step of 0, which core/dense accepts; its N = 0 calls
+--  return at once in the program and are not made here.
+--  2. DSDOT, the program's case 13, is not translated: core/dense leaves
+--  extended-precision accumulation out.
+--  3. Of the tables of CHECK2 and CHECK3 only the entries for INCX = INCY
+--  = 1 are kept, the one pair of steps with none negative: 28 of the 112
+--  entries of each, and DROTM's first block of four.  The program tests
+--  no error exits in level 1.  The threshold of the program, 10, is kept
+--  for DB1NRM2; STEST has none.
+--
+--  Exit status: 42 when every case passes.  Otherwise the code of the
+--  first case that fails, plus 50 at f32:
+--    1 DROTG          2 DROTMG         3 DNRM2          4 DASUM
+--    5 DSCAL          6 IDAMAX         7 DDOT           8 DAXPY
+--    9 DCOPY         10 DCOPY, steps 0                 11 DSWAP
+--   12 DROTM         13 DROT          14 DROT's MWPC/MWPS cases
+--   15 DB1NRM2
+--   16 DDOT, 17 DAXPY, 18 DCOPY, 19 DSWAP, 20 DROT and 21 DROTM, in the
+--      magnitude cases.
+import core/dense
+import core/math
+
+--  The code of the first failed case, 0 while none has, and the amount
+--  added to a code at f32.
+mut failure: i32 = 0
+mut offset: i32 = 0
+
+record_failure: (code: i32) -> none =
+    if failure == 0 then
+        failure = code + offset
+    end if
+end record_failure
+
+--  The machine epsilon of the width: the gap above 1.
+epsilon: (item: type is math.floating) -> (value: item) =
+    one: item = item(1)
+    value = if sizeof item == 8 then math.scale(one, -52) else math.scale(one, -23) end if
+end epsilon
+
+--  STEST's test of one value: |factor * (got - want)| <= |size| * epsilon.
+close: (item: type is math.floating, got: item, want: item, size: item,
+        factor: item, code: i32) -> none =
+    difference := got - want
+    ratio_limit := math.abs(size) * epsilon(item: item)
+    if not (math.abs(factor * difference) <= ratio_limit) then
+        record_failure(code)
+    end if
+    --  MEASURE
+end close
+
+--  STEST: the first `count` of `got` against `want`, sizes `size`.
+agree: (item: type is math.floating, got: []item, want: []item, size: []item,
+        count: usize, factor: item, code: i32) -> none =
+    for i in 0..<count do
+        close(got[i], want[i], size[i], factor, code)
+    end for
+end agree
+
+--  Copy `count` entries of a table, from entry `at`, as the element type.
+fetch: (item: type is math.floating, into: []mut item, table: []f64, at: usize,
+        count: usize) -> none =
+    for i in 0..<count do
+        into[i] = item(table[at + i])
+    end for
+end fetch
+
+--  Whether two counts agree: ITEST1.
+same: (got: usize, want: usize, code: i32) -> none =
+    if got <> want then
+        record_failure(code)
+    end if
+end same
+
+--  The BLAS's IDAMAX: from 1, and 0 for no elements.
+iamax: (item: type is math.floating, x: dense.vector(item)) -> (place: usize) =
+    place = if x.length == 0 then 0 else dense.largest_magnitude(x) + 1 end if
+end iamax
+
+--  The factor of every STEST of the program.
+sfac_of: (item: type is math.floating) -> (factor: item) =
+    factor = item(0.0009765625)
+end sfac_of
+
+--  DB1NRM2's model parameters: BIGNUM, SAFMAX, SAFMIN, SMLNUM and ULP of
+--  dblat1 (first five) and of sblat1 (last five).
+model: [10]f64 = [
+    0.99792015476735990583e292, 0.44942328371557897693e308,
+    0.22250738585072013831e-307, 0.10020841800044863890e-291,
+    0.22204460492503130808e-15,
+    0.1014120480e32, 0.8507059173e38, 0.1175494351e-37,
+    0.9860761315e-31, 0.1192092896e-6
+]
+
+--  The tables of dblat1, from its DATA statements, in Fortran order: the
+--  first index runs fastest.
+
+rotg_a: [8]f64 = [
+    0.3, 0.4, -0.3, -0.4, -0.3, 0.0, 0.0, 1.0
+]
+
+rotg_b: [8]f64 = [
+    0.4, 0.3, 0.4, 0.3, -0.4, 0.0, 1.0, 0.0
+]
+
+rotg_c: [8]f64 = [
+    0.6, 0.8, -0.6, 0.8, 0.6, 1.0, 0.0, 1.0
+]
+
+rotg_s: [8]f64 = [
+    0.8, 0.6, 0.8, -0.6, 0.8, 0.0, 1.0, 0.0
+]
+
+rotg_r_true: [8]f64 = [
+    0.5, 0.5, 0.5, -0.5, -0.5, 0.0, 1.0, 1.0
+]
+
+rotg_z_true: [8]f64 = [
+    0.0, 0.6, 0.0, -0.6, 0.0, 0.0, 1.0, 0.0
+]
+
+rotmg_input: [36]f64 = [
+    0.1, 0.3, 1.2, 0.2, 0.7, 0.2, 0.6, 4.2, 0.0, 0.0, 0.0, 0.0, 4.0, -1.0, 2.0,
+    4.0, 6.0e-10, 0.02, 100000.0, 10.0, 40000000000.0, 0.02, 1.0e-5, 10.0, 2.0e-10,
+    0.04, 100000.0, 10.0, 20000000000.0, 0.04, 1.0e-5, 10.0, 4.0, -2.0, 8.0, 4.0
+]
+
+rotmg_true: [81]f64 = [
+    0.0, 0.0, 1.3, 0.2, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 4.5, 4.2, 1.0, 0.5, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0,
+    -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.0, 10.0, -1.0, 0.0, -0.0001, 0.0, 1.0,
+    0.0, 0.0, 0.06144, 10.0, -1.0, 4096.0, -1000000.0, 0.0, 1.0, 0.0, 0.0, 15.0,
+    10.0, -1.0, 5.0e-5, 0.0, 1.0, 0.0, 0.0, 0.0, 15.0, 10.0, -1.0, 500000.0,
+    -4096.0, 1.0, 0.004096, 0.0, 0.0, 7.0, 4.0, 0.0, 0.0, -0.5, -0.25, 0.0
+]
+
+scal_alpha: [10]f64 = [
+    0.3, -1.0, 0.0, 1.0, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3
+]
+
+level1_x: [80]f64 = [
+    0.1, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 0.3, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
+    0.3, -0.4, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 0.2, -0.6, 0.3, 5.0, 5.0, 5.0, 5.0,
+    5.0, 0.1, -0.3, 0.5, -0.1, 6.0, 6.0, 6.0, 6.0, 0.1, 8.0, 8.0, 8.0, 8.0, 8.0,
+    8.0, 8.0, 0.3, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 0.3, 2.0, -0.4, 2.0, 2.0,
+    2.0, 2.0, 2.0, 0.2, 3.0, -0.6, 5.0, 0.3, 2.0, 2.0, 2.0, 0.1, 4.0, -0.3, 6.0,
+    -0.5, 7.0, -0.1, 3.0
+]
+
+iamax_spread: [8]f64 = [
+    8.0, -7.0, 9.0, 5.0, 9.0, 8.0, 7.0, 7.0
+]
+
+nrm2_true: [5]f64 = [
+    0.0, 0.3, 0.5, 0.7, 0.6
+]
+
+asum_true: [5]f64 = [
+    0.0, 0.3, 0.7, 1.1, 1.0
+]
+
+scal_true: [80]f64 = [
+    0.1, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, -0.3, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
+    3.0, 0.0, 0.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 0.2, -0.6, 0.3, 5.0, 5.0, 5.0,
+    5.0, 5.0, 0.03, -0.09, 0.15, -0.03, 6.0, 6.0, 6.0, 6.0, 0.1, 8.0, 8.0, 8.0,
+    8.0, 8.0, 8.0, 8.0, 0.09, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 0.09, 2.0, -0.12,
+    2.0, 2.0, 2.0, 2.0, 2.0, 0.06, 3.0, -0.18, 5.0, 0.09, 2.0, 2.0, 2.0, 0.03, 4.0,
+    -0.09, 6.0, -0.15, 7.0, -0.03, 3.0
+]
+
+vector_x: [7]f64 = [
+    0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4
+]
+
+vector_y: [7]f64 = [
+    0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8
+]
+
+dot_true: [4]f64 = [
+    0.0, 0.3, 0.21, 0.62
+]
+
+axpy_true: [28]f64 = [
+    0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.68, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.68,
+    -0.87, 0.0, 0.0, 0.0, 0.0, 0.0, 0.68, -0.87, 0.15, 0.94, 0.0, 0.0, 0.0
+]
+
+swap_x_true: [28]f64 = [
+    0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5,
+    -0.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, -0.9, 0.3, 0.7, 0.0, 0.0, 0.0
+]
+
+swap_y_true: [28]f64 = [
+    0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.1,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.1, -0.5, 0.8, 0.0, 0.0, 0.0
+]
+
+dot_size: [4]f64 = [
+    0.0, 0.3, 1.6, 3.2
+]
+
+rotm_parameters: [20]f64 = [
+    -2.0, 0.0, 0.0, 0.0, 0.0, -1.0, 2.0, -3.0, -4.0, 5.0, 0.0, 0.0, 2.0, -3.0, 0.0,
+    1.0, 5.0, 2.0, 0.0, -4.0
+]
+
+rotm_x_true: [112]f64 = [
+    0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, -0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.9, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
+    -0.8, 3.8, 0.0, 0.0, 0.0, 0.0, 0.0, -0.9, 2.8, 0.0, 0.0, 0.0, 0.0, 0.0, 3.5,
+    -0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.1, -0.5, 0.8, 0.0, 0.0, 0.0, -0.8, 3.8,
+    -2.2, -1.2, 0.0, 0.0, 0.0, -0.9, 2.8, -1.4, -1.3, 0.0, 0.0, 0.0, 3.5, -0.4,
+    -2.2, 4.7, 0.0, 0.0, 0.0
+]
+
+rotm_y_true: [112]f64 = [
+    0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.7, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, -2.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, -0.9, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.7, -4.8, 0.0, 0.0, 0.0, 0.0, 0.0, 1.7, -0.7, 0.0, 0.0, 0.0, 0.0, 0.0, -2.6,
+    3.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, -0.9, 0.3, 0.7, 0.0, 0.0, 0.0, 0.7, -4.8,
+    3.0, 1.1, 0.0, 0.0, 0.0, 1.7, -0.7, -0.7, 2.3, 0.0, 0.0, 0.0, -2.6, 3.5, -0.7,
+    -3.6, 0.0, 0.0, 0.0
+]
+
+rot_x_true: [28]f64 = [
+    0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.78,
+    -0.46, 0.0, 0.0, 0.0, 0.0, 0.0, 0.78, -0.46, -0.22, 1.06, 0.0, 0.0, 0.0
+]
+
+rot_y_true: [28]f64 = [
+    0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04,
+    -0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, -0.78, 0.54, 0.08, 0.0, 0.0, 0.0
+]
+--  CHECK0: DROTG.  The rotation of each of eight pairs: `r` is the
+--  program's SA, `z` its SB, then C and S.
+check_rotg: (item: type is math.floating) -> none =
+    sfac := sfac_of(item: item)
+    for k in 0..<usize(8) do
+        g := dense.rotation(item(rotg_a[k]), item(rotg_b[k]))
+        r_true := item(rotg_r_true[k])
+        mut z_true := item(rotg_z_true[k])
+        if k == 0 or k == 4 then
+            z_true = item(1) / item(0.6)
+        elsif k == 2 then
+            z_true = -item(1) / item(0.6)
+        end if
+        c_true := item(rotg_c[k])
+        s_true := item(rotg_s[k])
+        close(g.r, r_true, r_true, sfac, 1)
+        close(g.z, z_true, z_true, sfac, 1)
+        close(g.c, c_true, c_true, sfac, 1)
+        close(g.s, s_true, s_true, sfac, 1)
+    end for
+end check_rotg
+
+--  The true values DROTMG's case `k` holds, nine of them: D1, D2, X1, Y1,
+--  then the flag and H11, H21, H12, H22 as DPARAM holds them.  Those the
+--  program computes it computes here, at the element type.
+rotmg_expected: (item: type is math.floating, k: usize, want: []mut item)
+                -> none =
+    fetch(want, rotmg_true, 9 * k, 9)
+    d12 := item(4096)
+    if k == 0 then
+        want[0] = item(12) / item(130)
+        want[1] = item(36) / item(130)
+        want[6] = -item(1) / item(6)
+    elsif k == 1 then
+        want[0] = item(14) / item(75)
+        want[1] = item(49) / item(75)
+        want[8] = item(1) / item(7)
+    elsif k == 4 then
+        want[0] = item(45.0e-11) * (d12 * d12)
+        want[2] = item(4.0e5) / (item(3) * d12)
+        want[5] = item(1) / d12
+        want[7] = item(1.0e4) / (item(3) * d12)
+    elsif k == 5 then
+        want[0] = item(4.0e10) / (item(1.5) * d12 * d12)
+        want[1] = item(2.0e-2) / item(1.5)
+        want[7] = item(5.0e-7) * d12
+    elsif k == 6 then
+        want[0] = item(4) / item(150)
+        want[1] = (item(2.0e-10) / item(1.5)) * (d12 * d12)
+        want[6] = -(item(1) / d12)
+        want[8] = item(1.0e4) / d12
+    elsif k == 7 then
+        want[0] = item(4) / item(150)
+        want[1] = item(2.0e10) / (item(1.5) * d12 * d12)
+    elsif k == 8 then
+        want[0] = item(32) / item(7)
+        want[1] = -item(16) / item(7)
+    end if
+end rotmg_expected
+
+--  CHECK0: DROTMG.  Nine inputs, the scales and first component after
+--  the rotation, and the parameters the flag says are stored.
+check_rotmg: (item: type is math.floating) -> none =
+    sfac := sfac_of(item: item)
+    for k in 0..<usize(9) do
+        mut d1 := item(rotmg_input[4 * k])
+        mut d2 := item(rotmg_input[4 * k + 1])
+        mut x1 := item(rotmg_input[4 * k + 2])
+        y1 := item(rotmg_input[4 * k + 3])
+        h := dense.modified_rotation(d1, d2, x1, y1)
+        mut got: [9]item = zeroed
+        got[0] = d1
+        got[1] = d2
+        got[2] = x1
+        got[3] = y1
+        if h.form == dense.identity then
+            got[4] = item(-2)
+        elsif h.form == dense.general then
+            got[4] = item(-1)
+            got[5] = h.h11
+            got[6] = h.h21
+            got[7] = h.h12
+            got[8] = h.h22
+        elsif h.form == dense.unit_diagonal then
+            got[6] = h.h21
+            got[7] = h.h12
+        else
+            got[4] = item(1)
+            got[5] = h.h11
+            got[8] = h.h22
+        end if
+        mut want: [9]item = zeroed
+        rotmg_expected(k, want[0..<9])
+        agree(got[0..<9], want[0..<9], want[0..<9], 9, sfac, 2)
+    end for
+end check_rotmg
+
+--  DB1NRM2: DNRM2 of N elements with step `incx` against the norm of the
+--  same elements by the program's own formula, its ratio in units of
+--  N * ulp under the threshold 10, over every pairing of its ten special
+--  and extreme values for the first element and for the rest.
+db1nrm2: (item: type is math.floating, n: usize, incx: usize,
+          inout state: u64) -> none =
+    if n == 0 then
+        return
+    end if
+    zero: item = item(0)
+    one: item = item(1)
+    half: item = item(0.5)
+    two: item = item(2)
+    at: usize = if sizeof item == 8 then 0 else 5 end if
+    bignum := item(model[at])
+    safmax := item(model[at + 1])
+    safmin := item(model[at + 2])
+    smlnum := item(model[at + 3])
+    ulp := item(model[at + 4])
+    threshold: item = item(10)
+    mut values: [10]item = zeroed
+    infinity := math.scale(one, 2000)
+    values[0] = zero
+    values[1] = two * safmin
+    values[2] = smlnum
+    values[3] = ulp
+    values[4] = one
+    values[5] = one / ulp
+    values[6] = bignum
+    values[7] = safmax
+    values[8] = infinity
+    values[9] = infinity - infinity
+    rogue: item = item(-1234.5678)
+    mut work: [20]item = zeroed
+    mut x: [20]item = zeroed
+    mut z: [20]item = zeroed
+    for i in 1..<n do
+        state = state ^ (state << 13)
+        state = state ^ (state >> 7)
+        state = state ^ (state << 17)
+        draw := item(f64(state >> 11) / 9007199254740992.0)
+        work[i] = one - two * draw
+    end for
+    mut workssq := zero
+    for i in 1..<n do
+        workssq = workssq + work[i] * work[i]
+    end for
+    count := item(n)
+    for iv in 0..<usize(10) do
+        mut v0 := values[iv]
+        if math.abs(v0) > one then
+            v0 = v0 * half
+        end if
+        z[0] = v0
+        for iw in 0..<usize(10) do
+            mut v1 := values[iw]
+            if math.abs(v1) > one then
+                v1 = (v1 * half) / math.sqrt(count)
+            end if
+            for i in 1..<n do
+                z[i] = v1 * work[i]
+            end for
+            y1 := math.abs(v0)
+            mut y2 := zero
+            if n > 1 then
+                y2 = math.abs(v1) * math.sqrt(workssq)
+            end if
+            ymin := math.min(y1, y2)
+            ymax := math.max(y1, y2)
+            mut ynrm := zero
+            if y1 <> y1 or y2 <> y2 then
+                ynrm = y1 + y2
+            elsif ymax == zero then
+                ynrm = zero
+            elsif ymin == ymax then
+                ynrm = math.sqrt(two) * ymax
+            else
+                ratio := ymin / ymax
+                ynrm = ymax * math.sqrt(one + ratio * ratio)
+            end if
+            for i in 0..<n do
+                x[i] = rogue
+            end for
+            mut place: usize = 0
+            for i in 0..<n do
+                x[place] = z[i]
+                place += incx
+            end for
+            snrm := dense.norm_two(dense.strided_over(x[0..<20], n, incx))
+            mut znrm := ynrm
+            if incx == 0 then
+                znrm = math.sqrt(count) * math.abs(x[0])
+            end if
+            mut trat := zero
+            if snrm <> snrm or znrm <> znrm then
+                if (snrm <> snrm and znrm == znrm) or (znrm <> znrm and snrm == snrm) then
+                    trat = one / ulp
+                end if
+            elsif snrm == znrm then
+                trat = zero
+            elsif znrm == zero then
+                trat = snrm / ulp
+            else
+                trat = (math.abs(snrm - znrm) / znrm) / (count * ulp)
+            end if
+            --  MEASURE-NRM2
+            if trat <> trat or trat >= threshold then
+                record_failure(15)
+            end if
+        end for
+    end for
+end db1nrm2
+
+--  CHECK1: DNRM2, DASUM, DSCAL and IDAMAX of 0 to 4 elements with steps
+--  1 and 2.
+check_level1: (item: type is math.floating) -> none =
+    sfac := sfac_of(item: item)
+    mut state: u64 = 0x9e3779b97f4a7c15
+    iamax_true: [5]usize = [0, 1, 2, 2, 3]
+    iamax_same: [5]usize = [0, 1, 1, 1, 1]
+    mut sx: [8]item = zeroed
+    mut want: [8]item = zeroed
+    for ix in 0..<usize(2) do
+        incx: usize = if ix == 0 then 1 else 2 end if
+        for n in 0..<usize(5) do
+            length: usize = if n == 0 then 2 else 2 * n end if
+            at: usize = 8 * n + 40 * ix
+            --  DNRM2: INCX 0 where the program's loop gives it, then INCX
+            fetch(sx[0..<8], level1_x, at, 8)
+            if ix == 1 then
+                db1nrm2(n, 0, state, item: item)
+            end if
+            db1nrm2(n, incx, state, item: item)
+            mut norm_true := item(nrm2_true[n])
+            mut norm := dense.norm_two(dense.strided_over(sx[0..<8], n, incx))
+            close(norm, norm_true, norm_true, sfac, 3)
+            --  DASUM
+            norm_true = item(asum_true[n])
+            norm = dense.sum_magnitudes(dense.strided_over(sx[0..<8], n, incx))
+            close(norm, norm_true, norm_true, sfac, 4)
+            --  DSCAL
+            dense.scale(dense.strided_over(sx[0..<8], n, incx),
+                        item(scal_alpha[5 * ix + n]))
+            fetch(want[0..<8], scal_true, at, 8)
+            agree(sx[0..<8], want[0..<8], want[0..<8], length, sfac, 5)
+            --  IDAMAX, on the table's elements and then on equal ones
+            fetch(sx[0..<8], level1_x, at, 8)
+            same(iamax(dense.strided_over(sx[0..<8], n, incx)), iamax_true[n], 6)
+            for i in 0..<length do
+                sx[i] = item(42)
+            end for
+            same(iamax(dense.strided_over(sx[0..<8], n, incx)), iamax_same[n], 6)
+        end for
+        mut spread: [15]item = zeroed
+        for i in 0..<usize(8) do
+            spread[i * incx] = item(iamax_spread[i])
+        end for
+        same(iamax(dense.strided_over(spread[0..<15], 8, incx)), 3, 6)
+    end for
+end check_level1
+
+--  The BLAS's DPARAM as a modified rotation, for parameter set `k` of
+--  the table: the entries the flag does not store are the implied ones.
+modified_from: (item: type is math.floating, k: usize)
+               -> (h: dense.modified(item)) =
+    flag := rotm_parameters[5 * k]
+    p1 := item(rotm_parameters[5 * k + 1])
+    p2 := item(rotm_parameters[5 * k + 2])
+    p3 := item(rotm_parameters[5 * k + 3])
+    p4 := item(rotm_parameters[5 * k + 4])
+    zero: item = item(0)
+    one: item = item(1)
+    if flag == -2.0 then
+        h = (form: dense.identity, h11: one, h21: zero, h12: zero, h22: one)
+    elsif flag == -1.0 then
+        h = (form: dense.general, h11: p1, h21: p2, h12: p3, h22: p4)
+    elsif flag == 0.0 then
+        h = (form: dense.unit_diagonal, h11: one, h21: p2, h12: p3, h22: one)
+    else
+        h = (form: dense.unit_antidiagonal, h11: p1, h21: -one, h12: one, h22: p4)
+    end if
+end modified_from
+
+--  CHECK2 and CHECK3 with INCX = INCY = 1, the one pair of the program's
+--  four that has no negative step: DDOT, DAXPY, DCOPY (and the copy of one
+--  element by a step of 0), DSWAP, DROTM and DROT for N = 0, 1, 2 and 4.
+check_pairs: (item: type is math.floating) -> none =
+    sfac := sfac_of(item: item)
+    one: item = item(1)
+    ns: [4]usize = [0, 1, 2, 4]
+    lens: [4]usize = [1, 1, 2, 4]
+    mut sx: [7]item = zeroed
+    mut sy: [7]item = zeroed
+    mut stx: [7]item = zeroed
+    mut sty: [7]item = zeroed
+    mut size: [7]item = zeroed
+    mut ssize: [7]item = zeroed
+    for kn in 0..<usize(4) do
+        n := ns[kn]
+        length := lens[kn]
+        at := 7 * kn
+        --  1.17 for N > 0, as SSIZE2(1,KSIZE) has it, 0 for none
+        for i in 0..<usize(7) do
+            ssize[i] = if kn == 0 then item(0) else item(1.17) end if
+            size[i] = item(0)
+        end for
+        --  DDOT
+        fetch(sx[0..<7], vector_x, 0, 7)
+        fetch(sy[0..<7], vector_y, 0, 7)
+        product := dense.dot(dense.strided_over(sx[0..<7], n, 1),
+                             dense.strided_over(sy[0..<7], n, 1))
+        close(product, item(dot_true[kn]), item(dot_size[kn]), sfac, 7)
+        --  DAXPY
+        dense.add_scaled(dense.strided_over(sy[0..<7], n, 1), item(0.3),
+                         dense.strided_over(sx[0..<7], n, 1))
+        fetch(sty[0..<7], axpy_true, at, 7)
+        agree(sy[0..<7], sty[0..<7], ssize[0..<7], length, sfac, 8)
+        --  DCOPY
+        fetch(sx[0..<7], vector_x, 0, 7)
+        fetch(sy[0..<7], vector_y, 0, 7)
+        dense.copy(dense.strided_over(sy[0..<7], n, 1),
+                   dense.strided_over(sx[0..<7], n, 1))
+        fetch(sty[0..<7], swap_y_true, at, 7)
+        agree(sy[0..<7], sty[0..<7], size[0..<7], length, one, 9)
+        --  DCOPY with INCX = INCY = 0: one element, or none
+        mut x0: [1]item = zeroed
+        mut y0: [1]item = zeroed
+        x0[0] = item(42)
+        y0[0] = item(43)
+        dense.copy(dense.strided_over(y0[0..<1], n, 0), dense.strided_over(x0[0..<1], n, 0))
+        close(y0[0], if n == 0 then item(43) else item(42) end if, item(0), one, 10)
+        --  DSWAP
+        fetch(sx[0..<7], vector_x, 0, 7)
+        fetch(sy[0..<7], vector_y, 0, 7)
+        dense.swap(dense.strided_over(sx[0..<7], n, 1), dense.strided_over(sy[0..<7], n, 1))
+        fetch(stx[0..<7], swap_x_true, at, 7)
+        fetch(sty[0..<7], swap_y_true, at, 7)
+        agree(sx[0..<7], stx[0..<7], size[0..<7], length, one, 11)
+        agree(sy[0..<7], sty[0..<7], size[0..<7], length, one, 11)
+        --  DROTM, for each of the four parameter sets
+        for kpar in 0..<usize(4) do
+            fetch(sx[0..<7], vector_x, 0, 7)
+            fetch(sy[0..<7], vector_y, 0, 7)
+            place := 7 * kpar + 28 * kn
+            fetch(stx[0..<7], rotm_x_true, place, 7)
+            fetch(sty[0..<7], rotm_y_true, place, 7)
+            dense.rotate_modified(dense.strided_over(sx[0..<7], n, 1),
+                                  dense.strided_over(sy[0..<7], n, 1),
+                                  modified_from(kpar, item: item))
+            agree(sx[0..<7], stx[0..<7], stx[0..<7], length, sfac, 12)
+            agree(sy[0..<7], sty[0..<7], sty[0..<7], length, sfac, 12)
+        end for
+        --  DROT with C = 0.8 and S = 0.6
+        fetch(sx[0..<7], vector_x, 0, 7)
+        fetch(sy[0..<7], vector_y, 0, 7)
+        dense.rotate(dense.strided_over(sx[0..<7], n, 1), dense.strided_over(sy[0..<7], n, 1),
+                     item(0.8), item(0.6))
+        fetch(stx[0..<7], rot_x_true, at, 7)
+        fetch(sty[0..<7], rot_y_true, at, 7)
+        agree(sx[0..<7], stx[0..<7], ssize[0..<7], length, sfac, 13)
+        agree(sy[0..<7], sty[0..<7], ssize[0..<7], length, sfac, 13)
+    end for
+end check_pairs
+
+--  One of DROT's MWPC/MWPS cases that has no negative step: five elements
+--  or three, the rotation (`c`, `s`), x by 1 and y by `incy`, from
+--  1, 2, 3, 4, 5 in both, against the true x and y the program lists.
+mwp_case: (item: type is math.floating, n: usize, incy: usize, c: item,
+           s: item, tx: [5]f64, ty: [5]f64) -> none =
+    sfac := sfac_of(item: item)
+    mut copy_x: [5]item = zeroed
+    mut copy_y: [5]item = zeroed
+    mut true_x: [5]item = zeroed
+    mut true_y: [5]item = zeroed
+    for k in 0..<usize(5) do
+        copy_x[k] = item(k + 1)
+        copy_y[k] = item(k + 1)
+        true_x[k] = item(tx[k])
+        true_y[k] = item(ty[k])
+    end for
+    dense.rotate(dense.strided_over(copy_x[0..<5], n, 1),
+                 dense.strided_over(copy_y[0..<5], n, incy), c, s)
+    agree(copy_x[0..<5], true_x[0..<5], true_x[0..<5], 5, sfac, 14)
+    agree(copy_y[0..<5], true_y[0..<5], true_y[0..<5], 5, sfac, 14)
+end mwp_case
+
+--  CHECK3's MWPC/MWPS cases 1, 2, 5, 7 and 10: the others have a
+--  negative step.
+check_mwp: (item: type is math.floating) -> none =
+    zero: item = item(0)
+    one: item = item(1)
+    mwp_case(5, 1, one, zero, [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], item: item)
+    mwp_case(5, 1, zero, one, [1.0, 2.0, 3.0, 4.0, 5.0], [-1.0, -2.0, -3.0, -4.0, -5.0],
+             item: item)
+    mwp_case(3, 2, zero, one, [1.0, 3.0, 5.0, 4.0, 5.0], [-1.0, 2.0, -2.0, 4.0, -3.0],
+             item: item)
+    mwp_case(5, 1, zero, -one, [-1.0, -2.0, -3.0, -4.0, -5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
+             item: item)
+    mwp_case(3, 2, zero, -one, [-1.0, -3.0, -5.0, 4.0, 5.0], [1.0, 2.0, 2.0, 4.0, 3.0],
+             item: item)
+end check_mwp
+
+--  The magnitude cases: the six routines at the steps `incx` and `incy`,
+--  N elements, against loops that index as the program's Fortran does,
+--  the loops' results the true values and their magnitudes the sizes.
+magnitude_case: (item: type is math.floating, incx: usize, incy: usize,
+                 n: usize) -> none =
+    sfac := sfac_of(item: item)
+    mut sx: [7]item = zeroed
+    mut sy: [7]item = zeroed
+    mut rx: [7]item = zeroed
+    mut ry: [7]item = zeroed
+    alpha: item = item(0.3)
+    --  DDOT
+    fetch(sx[0..<7], vector_x, 0, 7)
+    fetch(sy[0..<7], vector_y, 0, 7)
+    mut total: item = item(0)
+    for k in 0..<n do
+        total = total + sx[k * incx] * sy[k * incy]
+    end for
+    got := dense.dot(dense.strided_over(sx[0..<7], n, incx),
+                     dense.strided_over(sy[0..<7], n, incy))
+    close(got, total, total, sfac, 16)
+    --  DAXPY
+    fetch(ry[0..<7], vector_y, 0, 7)
+    for k in 0..<n do
+        ry[k * incy] = ry[k * incy] + alpha * sx[k * incx]
+    end for
+    dense.add_scaled(dense.strided_over(sy[0..<7], n, incy), alpha,
+                     dense.strided_over(sx[0..<7], n, incx))
+    agree(sy[0..<7], ry[0..<7], ry[0..<7], 7, sfac, 17)
+    --  DCOPY
+    fetch(sy[0..<7], vector_y, 0, 7)
+    fetch(ry[0..<7], vector_y, 0, 7)
+    for k in 0..<n do
+        ry[k * incy] = sx[k * incx]
+    end for
+    dense.copy(dense.strided_over(sy[0..<7], n, incy), dense.strided_over(sx[0..<7], n, incx))
+    agree(sy[0..<7], ry[0..<7], ry[0..<7], 7, sfac, 18)
+    --  DSWAP
+    fetch(sy[0..<7], vector_y, 0, 7)
+    fetch(rx[0..<7], vector_y, 0, 7)
+    fetch(ry[0..<7], vector_x, 0, 7)
+    fetch(sx[0..<7], vector_x, 0, 7)
+    mut kept: [7]item = zeroed
+    fetch(kept[0..<7], vector_x, 0, 7)
+    for k in 0..<n do
+        kept[k * incx] = sy[k * incy]
+        rx[k * incy] = sx[k * incx]
+    end for
+    dense.swap(dense.strided_over(sx[0..<7], n, incx), dense.strided_over(sy[0..<7], n, incy))
+    agree(sx[0..<7], kept[0..<7], kept[0..<7], 7, sfac, 19)
+    agree(sy[0..<7], rx[0..<7], rx[0..<7], 7, sfac, 19)
+    --  DROT with C = 0.8 and S = 0.6
+    fetch(sx[0..<7], vector_x, 0, 7)
+    fetch(sy[0..<7], vector_y, 0, 7)
+    fetch(rx[0..<7], vector_x, 0, 7)
+    fetch(ry[0..<7], vector_y, 0, 7)
+    for k in 0..<n do
+        u := sx[k * incx]
+        v := sy[k * incy]
+        rx[k * incx] = item(0.8) * u + item(0.6) * v
+        ry[k * incy] = item(0.8) * v - item(0.6) * u
+    end for
+    dense.rotate(dense.strided_over(sx[0..<7], n, incx), dense.strided_over(sy[0..<7], n, incy),
+                 item(0.8), item(0.6))
+    agree(sx[0..<7], rx[0..<7], rx[0..<7], 7, sfac, 20)
+    agree(sy[0..<7], ry[0..<7], ry[0..<7], 7, sfac, 20)
+    --  DROTM
+    for kpar in 0..<usize(4) do
+        h := modified_from(kpar, item: item)
+        fetch(sx[0..<7], vector_x, 0, 7)
+        fetch(sy[0..<7], vector_y, 0, 7)
+        fetch(rx[0..<7], vector_x, 0, 7)
+        fetch(ry[0..<7], vector_y, 0, 7)
+        if h.form <> dense.identity then
+            for k in 0..<n do
+                u := sx[k * incx]
+                v := sy[k * incy]
+                if h.form == dense.general then
+                    rx[k * incx] = u * h.h11 + v * h.h12
+                    ry[k * incy] = u * h.h21 + v * h.h22
+                elsif h.form == dense.unit_diagonal then
+                    rx[k * incx] = u + v * h.h12
+                    ry[k * incy] = u * h.h21 + v
+                else
+                    rx[k * incx] = u * h.h11 + v
+                    ry[k * incy] = -u + h.h22 * v
+                end if
+            end for
+        end if
+        dense.rotate_modified(dense.strided_over(sx[0..<7], n, incx),
+                              dense.strided_over(sy[0..<7], n, incy), h)
+        agree(sx[0..<7], rx[0..<7], rx[0..<7], 7, sfac, 21)
+        agree(sy[0..<7], ry[0..<7], ry[0..<7], 7, sfac, 21)
+    end for
+end magnitude_case
+
+check_magnitudes: (item: type is math.floating) -> none =
+    ns: [4]usize = [0, 1, 2, 4]
+    for kn in 0..<usize(4) do
+        magnitude_case(2, 2, ns[kn], item: item)
+        magnitude_case(2, 1, ns[kn], item: item)
+        magnitude_case(1, 2, ns[kn], item: item)
+    end for
+end check_magnitudes
+
+check_all: (item: type is math.floating) -> none =
+    check_rotg(item: item)
+    check_rotmg(item: item)
+    check_level1(item: item)
+    check_pairs(item: item)
+    check_mwp(item: item)
+    check_magnitudes(item: item)
+end check_all
+
+public main: () -> (code: i32) =
+    offset = 0
+    check_all(item: f64)
+    offset = 50
+    check_all(item: f32)
+    code = if failure == 0 then 42 else failure end if
+end main

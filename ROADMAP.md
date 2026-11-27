@@ -1405,7 +1405,51 @@ The merged candidate, with `gate-watcher` riding it, passed its
 after `freebsd-host-release` was run again over a mirror's refusal, and
 its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
 
-### R16.43 — An increment proved by the check before it
+### R16.43 — A value read after its store is made in its slot's register on arm64
+
+Status: complete
+Depends on: R16.10
+
+arm64 makes a value in the register of the slot it is stored into only
+when the store is the value's last use (D2164), so a value read again
+after its store is made in a register of its own and copied:
+reverse-complement's `write_reversed` copies `at - 1` into `at`, the
+loaded byte into `base` and `width + 1` into `width`, three `mov`s of
+its eighteen instructions a byte. Removed by hand they leave 1.415 G
+instructions under QEMU against 1.597 G, 11.4% fewer, with the same
+output (`SR-1958`). The item makes such a value in its slot's register
+at speed when the slot holds that register over the value's span or
+opens it at the store, as x86-64's D2157 and D2654 do.
+Exit evidence: reverse-complement at speed on arm64 executing more than
+5% fewer instructions than at the item's base, its time on an arm64
+host reported beside them; every benchmark program's instructions and
+image size reported against that base, x86-64 as well; and no other
+combination over its own.
+
+Done: at speed arm64 makes a value read again after its first store in
+the register of the slot that store writes when the slot holds that
+register over the value's span, or its interval opens at the store,
+and nothing else stores the slot inside the span; an indirect load may
+take the register of what it reads for the last time (D2714). The
+three copies of `write_reversed`'s loop and mandelbrot's two float
+moves go. Against the item's base under QEMU at armv8-a speed
+mandelbrot executes 12.0% fewer instructions, reverse-complement
+11.7%, the switch measurements 1.9%, fasta 1.8% and binary-trees 1.4%;
+fannkuch-redux, every size figure and every x86-64 figure are the
+same, every output the same. Timed on one 3.9 GHz big core of an arm64 host, where no
+cycle counter is open to an unprivileged user, mandelbrot runs 16.1%
+faster and reverse-complement 15.5%, the others within 1%. arm64
+images at speed are 24 to 2,332 bytes smaller over seven workloads a
+configuration; none grew. `SR-1958`, which measured the copies by
+hand, is completed and deleted. The register sweep had planned this
+work as R16.44 and the increment checks as R16.43; the increment item
+is R16.44 now. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45907130369),
+after `windows-arm64-debugger` was run again over `SR-1940`'s step
+through the stack switch, and its
+[boards](https://github.com/701-dev/Landin/actions/runs/45907141173).
+
+### R16.44 — An increment proved by the check before it
 
 Status: planned
 Depends on: R16.10
@@ -1422,21 +1466,6 @@ simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
 Exit evidence: each check proved and removed on every target, the two
 programs' instructions measured against the item's base, and no other
 combination over its own.
-
-### R16.44 — arm64 keeps a stored value in its slot's register
-
-Status: planned
-Depends on: R16.10
-
-SR-1958: arm64 makes a stored value in its slot's register only when the
-store is the value's last use (D2164), so reverse-complement's
-`write_reversed` copies three values a byte into their slots' registers,
-11.4% of its instructions by a hand patch. x86-64 already lets later
-uses read the slot's register (D2157) and makes a value there when the
-slot's interval opens at its store (D2654). Scheduled by the register
-sweep of 2026-11-26. Exit evidence: reverse-complement at speed on arm64
-executing fewer instructions than at the item's base by most of the hand
-patch's margin, and no other combination over its own.
 
 ### R16.45 — A call's failure tested once
 
@@ -3435,7 +3464,7 @@ soft float recorded on Cortex-M0 on the rig.
 
 ### R22.15 — Dense vectors and matrices
 
-Status: planned
+Status: complete
 Depends on: R22.10
 
 The dense array as linear algebra sees it: a vector or matrix as a view
@@ -3457,6 +3486,54 @@ lazily fused expressions, which need templates Landin does not have.
 Exit evidence: the cases of BLAS's own test programs translated as a
 fixture, every test ratio under their threshold of 16, on every target;
 the `f64` matrix product at n=1000 timed against OpenBLAS on one core.
+
+Done: `core/dense` holds `vector(item)` and `matrix(item)` over
+`math.floating`, views over the caller's storage with a step for rows and
+one for columns, so either layout, a leading dimension, a transpose and a
+block are views of one storage (D2694); a view holds a writable slice and
+a routine writes only its `into` (D2695); steps are unsigned, so the
+BLAS's negative increments have no counterpart (D2696); a transposed
+operand is a transposed view and a triangle the view's own, with
+`upper`/`lower`, `stored`/`unit` and `left`/`right` atoms in place of the
+BLAS's flags (D2697). A shape mismatch or a view past its storage stops
+the program at the call (D2698); `beta` 0 reads no output, `alpha` 0 no
+operand, and an empty product is `beta` times the output where the
+reference BLAS returns early (D2699). The element-wise operations,
+reductions and norms, the rotations, the second level and the third are
+written from the mathematics (D2702); `norm_two` and `rotation` scale as
+Anderson's Algorithm 978 does, and `modified_rotation` keeps its rescaled
+entries where the reference resets them on a second pass (D2701). The
+product packs `b`'s panels and `a`'s blocks into a scratch the caller
+gives, `product_scratch` long, and multiplies with a 4 by 2 register
+kernel, which beat a 4 by 4 one that spilled its sums; a short scratch
+cuts smaller blocks and none multiplies unpacked (D2700). `dblat1`,
+`dblat2` and `dblat3` of Reference-LAPACK 3.12.1 are translated, their
+licence in each fixture's NOTICE and named in `LICENSE`, into
+`runtime/dense-blas-level-1`, `-level-2`, `-level-3-f64` and
+`-level-3-f32`: every case at both widths, laid out by columns with a
+leading dimension and again by rows, every test ratio under 16, the
+largest 2.3, on every hosted target; firmware runs every eighth case of
+level 2 and every sixth of level 3 in its 20 seconds, and the five large
+fixtures, past the 32 KiB of Cortex-M0 and the RV32 lanes, are image
+limits there and run on the Cortex-M7 and Xtensa lanes. `runtime/dense-views-and-norms` and `runtime/library-shared-dense`
+check the rest exactly. `scripts/dense_timing.py` times the `f64` product
+at n=1000 on one Zen 2 core: 0.41 s against OpenBLAS 0.3.33's 0.049 s,
+8.2 times, mostly vector instructions refine does not emit (D2703).
+Found and fixed: a trap given a `caller` parameter whose type `site` is
+declared nowhere stopped checking on an internal defect, pinned by
+`negative/compiler-unreachable-undeclared-site`; and `check.py`'s
+parameter-order control counted a `math.floating` operand as a
+capability. Level 2's own check on the Cortex-M7 lane met the Cortex-M
+backend freeing a deferred widening's operand home (D2120) while the
+widening was still read, `k * ((k + 1) * k)` giving 4 for 2 at size;
+R22.13 fixed the same on main first, and the merge keeps its fix with
+`runtime/widening-operand-outlives-product` beside its fixture. Filed: `SR-1978`, the scalar kernel's loop and the missing
+vector instructions, and `SR-1979`, an `if` expression's or a literal
+range's type taken from a literal or an atom with no note of the written
+type that fixes it. It landed in R22.36's train: gate run 45920421418,
+passed on its second attempt after the first failed only in SR-1882's
+cancellation race and SR-1940's stack-switch step, and boards run
+45920432106.
 
 ### R22.16 — Linear systems and least squares
 
@@ -3594,13 +3671,33 @@ recorded with the map's share measured.
 
 ### R22.23 — pidigits ported
 
-Status: planned
+Status: complete
 Depends on: R22.13
 
 Gibbons' spigot over R22.13's integers, with no GMP.
 
 Exit evidence: the game's output for 30 digits as a runtime fixture,
 pinned and published as R22.21's are; 10,000 digits timed.
+
+Done: `runtime/benchmark-game-pidigits` runs the game's step-by-step
+spigot over `core/big`, both extractions kept, and prints the game's
+30-digit file byte for byte, its digest pinned in `check.py`; it is in
+`examples.md` and in `workloads.json`'s hosted set, timed at 500 digits.
+10,000 digits, the output equal to Python's, took 9.5 s on the EPYC
+host, 4.5 of them the system's: a product written over an operand above
+64 limbs and every division's scratch each took a block of their own,
+which the hosted heap maps and unmaps. `big.multiply` by one limb now
+works in place and a division takes its scratch from the remainder's
+block (D2735, pinned by `runtime/big-integer-in-place` in an 8 KiB
+arena), and the run takes 4.6 s, 0.02 of it the system's, against 0.49 s
+for the game's C program over GMP; 56% of it is Algorithm D's
+normalizing passes for a quotient of a limb or two, so `SR-1928` is
+restated rather than met. Met on the way and fixed: `compiler/tests/README.md`
+counted twenty-three examples where the gate runs thirty, and `measure.py
+time` refused a hosted workload the base's tree has no fixture for, so the
+commit adding one failed every dispatch's timing; it is now named new.
+Landed on R22.33's train: gate 45932328693, boards 45927672738 and
+45933311148.
 
 ### R22.24 — Tools that say what they need
 
@@ -3702,15 +3799,10 @@ Status: planned
 Depends on: none
 
 The faults of the process tools met since R22.24, scheduled by the
-register sweep of 2026-11-26. In `item.py`: SR-1988's boards run
-recorded while queued, which `promote` then does not find; SR-1989's
-token taken before the candidate's gate passed; SR-1990's `push
---boards` that ends at a ref-lock race before its dispatch; SR-1905's
-older copy whose queue wait drops waiters that are no item; SR-1919's
-`start` refusing a continuous item whose text the branch adds without
-naming `--base`; and SR-1893's train, which takes only items. In the
-other tools: SR-1839's gate watch that ends at one malformed or short
-answer from GitHub; SR-1906's `register_next.py --decision` that answers
+register sweep of 2026-11-26. In `item.py`: SR-1905's older copy whose
+queue wait drops waiters that are no item; and SR-1919's `start`
+refusing a continuous item whose text the branch adds without naming
+`--base`. In the other tools: SR-1906's `register_next.py --decision` that answers
 from a branch behind main's reservations; SR-1917's age rule that differs
 during an uncommitted merge; SR-1859's full `check.py` reading untracked
 notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
@@ -3828,7 +3920,7 @@ control it names.
 
 ### R22.33 — Boards reused on identical images
 
-Status: planned
+Status: complete
 Depends on: none
 
 A promotion's boards taken from the last passed boards run when every
@@ -3848,9 +3940,7 @@ that of a passed boards run under a week old takes that run's legs and
 cycles, as main's push already takes a passed run of the same tree
 (D1647), and the aggregate names the run it took. The weekly boards run
 becomes daily on main when main moved, so a board or probe that degrades
-shows within a day, until R22.37's daily complete gate takes it over. `item.py boards` meets R22.27's SR-1988, a boards run
-recorded while queued that `promote` does not find; the item that lands
-second takes the other's change. Placed here so that no phase gate
+shows within a day, until R22.37's daily complete gate takes it over. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: controls that an image, harness, record or workflow change
@@ -3859,6 +3949,25 @@ does not; a dispatch whose images match a passed run's taking it and one
 whose images differ running the legs, both named runs; the nightly run's
 first pass; process.md's "Physical boards and promotion" and AGENTS.md's
 gate paragraph saying the rule.
+
+Done: `board-bundles` writes the board identity as its annotation, digests
+of the bundles' files less what names the tree or the build's clock, of the
+timing bundle when the event times, of the blobs under
+`environments/boards/` and `compiler/tests/board/` with the hardware
+records apart, and of the board jobs' text less comments, and
+`gate_inputs.py legs` takes the legs of a passed run under a week old whose
+identity matches part for part, naming each part that differed (D2774); the
+aggregate reads the taken run's evidence, held to its run id, and compares
+its cycles. The schedule runs daily and leaves out a commit a passed
+schedule run already ran (D2775). Two board-bundles artifacts of different
+commits, runs 45840509189 and 45855853447, give one identity. Boards run
+45893119145 ran every leg and passed; dispatch 45906315984 on the same
+head took its legs and passed in 13 minutes. On the train with R22.23,
+boards 45927672738 refused that run's legs, its harness alone differing,
+and ran them, and 45933311148 on the next commit took 45927672738's legs,
+timing images included; the train's gate is 45932328693. `item.py boards` met no
+`SR-1988` of its own: the item fixes that landed first record a queued
+dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
@@ -3916,7 +4025,7 @@ process.md naming stale records.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 
-Status: planned
+Status: active
 Depends on: none
 
 Why a gate job failed is recorded nowhere: the gate-time study of
@@ -3952,6 +4061,26 @@ period, with the outside signatures that re-ran; the lane table and its
 control; every gate's summary naming the lanes it would have skipped;
 and the measured miss rate, the defects that only skipped lanes showed,
 set against the study's replay of November, 1.7 a week.
+
+Landed, the shadow period to run: `scripts/gate_history.py`, the lane
+table `.github/gate-lanes.json` with its control, the causes of the
+1,025 failed jobs from 2026-09-21 in `.github/gate-causes.jsonl`, the
+`inputs` job's selection and the aggregate's record of it and of the
+outside signatures, and `gate-rerun.yml` (D2794-D2798). Against the
+study's readers the rule with its signatures agreed on 96.5% of its
+defects and found 97.3% of theirs, on the logs the signatures came from.
+On the history to that day it samples `arm64-compiler`,
+`arm64-compiler-checks`, `build-modes`, `darwin-host`,
+`darwin-debug-build`, `rv64-qemu`, the three determinism hosts and
+`freebsd-arm64-runtime`; the study's replay sampled the same but
+`rv64-qemu` and `darwin-debug-build`. No lane is keyed by its emission
+yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
+the table's `shadow` entry, which the weekly `table --write` keeps.
+Its own gate run 45902780283 and boards run 45902794687 passed; it landed
+with R22.15 as one train on gate run 45920421418, passed on its second
+attempt after two known flakes (SR-1882, SR-1940), and boards run
+45920432106. The shadow period, the causes it records and the measured
+miss rate remain for the item to close.
 
 ### R22.37 — The selected gate applied
 

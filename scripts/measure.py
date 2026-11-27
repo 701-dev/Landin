@@ -538,6 +538,19 @@ def measure_time(args) -> int:
             " neither its fixtures nor its library are known: name the base"
             " commit's tree with --base-checkout DIR")
     base_library = args.base_checkout
+    #  A workload this candidate adds has no fixture in the base's tree, so
+    #  no pair to time: it is named as new, and timed from the next commit.
+    added = sorted({w["name"] for _, _, w in work
+                    if not (base_root / "compiler/tests/fixtures"
+                            / w["fixture"]).is_dir()})
+    figures, outputs = {}, {}
+    for level, profile, workload in work:
+        if workload["name"] in added:
+            figures[key(level, profile, workload["name"])] = {"new": True}
+    for name in added:
+        print(f"  {name}: new, the base's tree has no fixture for it, so it"
+              " has no pair to time", flush=True)
+    work = [item for item in work if item[2]["name"] not in added]
 
     def built(item):
         level, profile, workload = item
@@ -560,7 +573,6 @@ def measure_time(args) -> int:
         distinct.setdefault(identity, []).append(((level, profile, workload), pair))
     print(f"{len(work)} configurations, {len(distinct)} distinct image pairs,"
           f" {args.samples} interleaved runs of each side", flush=True)
-    figures, outputs = {}, {}
     tolerance = wall_tolerance()
 
     def timed(pair, workload, stdin, count):
@@ -662,10 +674,14 @@ def judge_time(result: dict) -> int:
               for f in t.values() if "ratio" in f]
     identical = sum(1 for t in result["targets"].values()
                     for f in t.values() if f.get("identical"))
+    added = sum(1 for t in result["targets"].values()
+                for f in t.values() if f.get("new"))
     print(f"wall: {len(ratios)} timed pairs"
           + (f", ratio median {median(ratios):.4f}, range {min(ratios):.4f}"
              f" to {max(ratios):.4f}" if ratios else "")
-          + f", {identical} the base's own images; tolerance "
+          + f", {identical} the base's own images"
+          + (f", {added} new with no base to pair" if added else "")
+          + "; tolerance "
           + (f"{tolerance:.2%}" if tolerance is not None else
              "not yet set by a noise study, so nothing fails"))
     for line in slower:

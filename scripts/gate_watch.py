@@ -49,9 +49,11 @@ replaced are named apart from the verdict.
 Each poll is one query to GitHub's GraphQL API, for the run's status and
 every attempt's check runs, which are its jobs; GraphQL's quota is apart
 from REST's, which the job listing's pages once spent in an hour for every
-watch on the host.  A server error, a rate limit or a hung request is asked
-again a bounded number of times.  A request that still fails is named, with
-GitHub's answer, and ends the watch with status 3.  Only the command that
+watch on the host.  A server error, a rate limit, a hung request, an
+answer that is not JSON or a listing short of its count is asked again a
+bounded number of times, and a poll that still fails is tried again at the
+next interval; only four such polls in a row, or a refusal that is none of
+these, end the watch with status 3, naming the request and GitHub's answer.  Only the command that
 shows a failed job's log, printed for whoever reads it, is REST's.
 
 A failed run whose board legs all passed and whose only failures are the
@@ -94,8 +96,12 @@ FAILED = ("failure", "timed_out", "startup_failure")
 TRIES = 4
 #  A rate limit and a connection that broke before an answer are asked
 #  again as a server error is: one of them ended a watch with exit 3.
+#  A malformed or short answer is asked again too: "unexpected end of
+#  JSON input" from gh, and a check-run listing that ended short of its
+#  count, each once ended a watch while the run went on.
 SERVER_ERROR = re.compile(r"HTTP (5\d\d|429)|timed? ?out|connection "
-                          r"(reset|refused)|unexpected EOF|rate.?limit",
+                          r"(reset|refused)|unexpected EOF|rate.?limit"
+                          r"|unexpected end of JSON|not JSON|ended at \d+ of",
                           re.IGNORECASE)
 #  Seconds before one request is called hung and asked again.
 REQUEST_LIMIT = 120
@@ -129,9 +135,14 @@ def gh(*arguments, label=None):
             raise Unanswered("%s\n  `gh` is not on PATH" % named)
         else:
             if done.returncode == 0:
-                return json.loads(done.stdout)
-            said = (done.stderr.strip() or done.stdout.strip()
-                    or "exit status %d" % done.returncode)
+                try:
+                    return json.loads(done.stdout)
+                except ValueError:
+                    said = "an answer that is not JSON: %r" % (
+                        done.stdout.strip()[:80])
+            else:
+                said = (done.stderr.strip() or done.stdout.strip()
+                        or "exit status %d" % done.returncode)
         if not SERVER_ERROR.search(said):
             break
         if attempt < TRIES:
@@ -280,6 +291,10 @@ def ask(repo, runs=(), commits=()):
             cursors[run] = page["endCursor"] if page["hasNextPage"] else None
             if cursors[run] is None:
                 del cursors[run]
+    for run, view in views.items():
+        if view is not None and len(view["checks"]) < view["total"]:
+            raise Unanswered("the check runs of run %d ended at %d of its %d"
+                             % (run, len(view["checks"]), view["total"]))
     listed = {}
     for index, commit in enumerate(commits):
         found = (data.get("repository") or {}).get("c%d" % index)
@@ -555,6 +570,8 @@ def serve():
     except BlockingIOError:
         return 0
     floor, idle = setting("FLOOR", FLOOR), setting("IDLE", IDLE)
+    global retry_pause
+    retry_pause = min(retry_pause, floor)
     print("%s poller %d started" % (stamp(), os.getpid()), flush=True)
     write_json(place / "poller.json", {"pid": os.getpid(),
                                        "started": time.time()})
@@ -800,7 +817,8 @@ def failed_step(job):
     return steps[0] if steps else None
 
 
-def watch(run, interval, every=False, verdict=False, source=None, view=None):
+def watch(run, interval, every=False, verdict=False, source=None, view=None,
+          announce=False):
     """Follow RUN; the verdict is read from the last complete listing.
 
     A failed job of the run's current attempt ends the watch at once unless
@@ -809,14 +827,37 @@ def watch(run, interval, every=False, verdict=False, source=None, view=None):
     about to replace it; whether it failed the run is read when the run
     ends.  With VERDICT the watch ends when the aggregate job of the
     current attempt concludes, with its conclusion.  VIEW, when given, is
-    the run as already asked for, taken as the first poll's.
+    the run as already asked for, taken as the first poll's; ANNOUNCE
+    names the run's event and branch once it is first answered.
     """
     source = source or Direct()
     reported = set()
     held_back = set()
+    failing = 0
     while True:
-        view = view or source.view(run)
-        jobs, replaced = jobs_of(run, source, view)
+        try:
+            view = view or source.view(run)
+            jobs, replaced = jobs_of(run, source, view)
+        except Unanswered as error:
+            #  A poll GitHub answered badly, after its own retries, costs
+            #  that poll; the watch ends only once TRIES polls in a row
+            #  failed, or at once on a refusal that is no server error.
+            failing += 1
+            if not SERVER_ERROR.search(str(error)) or failing >= TRIES:
+                raise
+            print("poll %d of %d failed, the run is asked again next"
+                  " interval: %s" % (failing, TRIES,
+                                     str(error).splitlines()[-1].strip()),
+                  flush=True)
+            view = None
+            time.sleep(interval)
+            continue
+        failing = 0
+        if announce:
+            announce = False
+            print("following gate run %s (%s on %s)"
+                  % (run, view.get("event") or "unknown event",
+                     view.get("headBranch") or "no branch"), flush=True)
         ended = view["status"] == "completed"
         current = view.get("attempt") or max(
             [job["attempt"] for job in jobs] or [1])
@@ -944,12 +985,8 @@ def main(argv):
             run = find_run(commit, args.interval, args.event, args.branch,
                            source)
             source.unfollow("commit", commit)
-        about = source.view(run)
-        print("following gate run %s (%s on %s)"
-              % (run, about.get("event") or "unknown event",
-                 about.get("headBranch") or "no branch"), flush=True)
         return watch(run, args.interval, args.all, args.verdict, source,
-                     about)
+                     announce=True)
     except Unanswered as error:
         print("gate_watch: GitHub did not answer: %s" % error, file=sys.stderr)
         return 3
