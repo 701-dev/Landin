@@ -1230,8 +1230,11 @@ unchanged OS-observed signal policy and complete advice with long tool paths,
 and that a signal ends a process holding nothing at once, is recorded while
 something is held, and ends it after the grace period when never answered.
 The `unheld-check` and `held-run` commands send their signal only once the
-kernel shows `refine`'s handler installed, `/proc`'s `SigCgt` on Linux and
-`ps -o caught` elsewhere, and a run only once it holds its directory; each
+kernel shows `refine`'s handler installed, `/proc`'s `SigCgt` on Linux,
+`ps -o caught` on FreeBSD and the `p_sigcatch` that `sysctl` gives of a
+process on Darwin, whose `ps` has no such column, its offset checked
+against the test's own handler first; and a run only once it holds its
+directory; each
 has a `-delayed` case, `refine` started a second late as on a loaded host,
 which a signal sent at a fixed time would have ended by its default action.
 `test_compile_publication.py`'s `host-` controls hold the native adapter's

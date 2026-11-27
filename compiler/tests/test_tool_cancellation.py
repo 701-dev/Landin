@@ -26,26 +26,73 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 import lane_refine  # noqa: E402
 
 
+#  Darwin's struct kinfo_proc, from sysctl's KERN_PROC_PID, begins with its
+#  struct extern_proc, whose p_sigcatch is the caught mask; its offset on a
+#  64-bit Darwin, checked against this process's own mask before it is
+#  believed (_darwin_checked).
+DARWIN_KINFO_SIZE = 648
+DARWIN_SIGCATCH = 236
+_darwin_checked = []
+
+
+def _darwin_mask(pid):
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    mib = (ctypes.c_int * 4)(1, 14, 1, pid)  # CTL_KERN, KERN_PROC, KERN_PROC_PID
+    buffer = ctypes.create_string_buffer(DARWIN_KINFO_SIZE)
+    size = ctypes.c_size_t(DARWIN_KINFO_SIZE)
+    if libc.sysctl(mib, 4, buffer, ctypes.byref(size), None, 0) != 0:
+        raise OSError(ctypes.get_errno(), 'sysctl KERN_PROC_PID %d' % pid)
+    if size.value < DARWIN_SIGCATCH + 4:
+        return None  # no such process
+    return int.from_bytes(buffer.raw[DARWIN_SIGCATCH:DARWIN_SIGCATCH + 4],
+                          'little')
+
+
+def _check_darwin_layout():
+    """This process's mask holds SIGUSR2 exactly while it has a handler."""
+    if _darwin_checked:
+        return
+    bit = 1 << (int(signal.SIGUSR2) - 1)
+    before = signal.signal(signal.SIGUSR2, lambda number, frame: None)
+    try:
+        held = _darwin_mask(os.getpid())
+    finally:
+        signal.signal(signal.SIGUSR2, before)
+    released = _darwin_mask(os.getpid())
+    if not (held is not None and held & bit and not released & bit):
+        raise AssertionError('kinfo_proc.kp_proc.p_sigcatch is not at offset %d'
+                             ' on this Darwin: %r then %r'
+                             % (DARWIN_SIGCATCH, held, released))
+    _darwin_checked.append(True)
+
+
 def catches(pid, number):
     """Whether process PID has a handler installed for signal NUMBER.
 
-    Linux says so in /proc; Darwin's and FreeBSD's ps print the same mask as
-    its `caught` column.  Both are the kernel's word, not a timing guess."""
-    status = Path('/proc/%d/status' % pid)
+    Linux says so in /proc's SigCgt, FreeBSD's ps prints the same mask as
+    its `caught` column, and Darwin, whose ps has no such column, in the
+    p_sigcatch sysctl gives of a process.  Each is the kernel's word, not a
+    timing guess."""
     if sys.platform.startswith('linux'):
         try:
-            text = status.read_text()
+            text = Path('/proc/%d/status' % pid).read_text()
         except FileNotFoundError:
             return False
-        mask = next(line.split()[1] for line in text.splitlines()
-                    if line.startswith('SigCgt:'))
+        mask = int(next(line.split()[1] for line in text.splitlines()
+                        if line.startswith('SigCgt:')), 16)
+    elif sys.platform == 'darwin':
+        _check_darwin_layout()
+        mask = _darwin_mask(pid)
+        if mask is None:
+            return False
     else:
         shown = subprocess.run(['ps', '-o', 'caught=', '-p', str(pid)],
                                capture_output=True, text=True, timeout=30)
-        mask = shown.stdout.strip()
-        if shown.returncode or not mask:
+        if shown.returncode or not shown.stdout.strip():
             return False
-    return bool(int(mask, 16) >> (int(number) - 1) & 1)
+        mask = int(shown.stdout.strip(), 16)
+    return bool(mask >> (int(number) - 1) & 1)
 
 
 def await_handlers(process, number, ready=lambda: True, limit=60):
