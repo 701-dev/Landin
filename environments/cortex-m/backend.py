@@ -116,6 +116,8 @@ THUMB_2 = ('armv7-m', 'armv7e-m', 'armv8-m.main')
 
 #  The root the lanes' descriptions and entry-module files are found under.
 LANE_ROOT = HERE / 'lanes'
+#  The seconds `objdump -dr` may take over a program's object or image.
+DISASSEMBLY_LIMIT = 120
 
 
 #  What every RV32 compilation and link passes beside the level's -march:
@@ -1194,7 +1196,11 @@ def build(run, refine, inputs, optimize, specialize, extra=(), linker=None,
         run.command('assemble-' + str(index), [tool(run, level, 'gcc'), *flags,
                     '-c', source, '-o', obj])
         objects.append(obj)
-    run.command('object-disassembly', [tool(run, level, 'objdump'), '-dr', objects[1]])
+    #  objdump over an object with a section per routine takes 12 s idle for
+    #  the largest unoptimized RV32 regex images and 28-30 s on a loaded
+    #  runner, past the command's 30-second default.
+    run.command('object-disassembly', [tool(run, level, 'objdump'), '-dr', objects[1]],
+                timeout=DISASSEMBLY_LIMIT)
     check_datum_symbols(run, objects[1], level)
     if peers and not rv32(level):
         conventions(run, [objects[1], *peers], level)
@@ -1205,7 +1211,8 @@ def build(run, refine, inputs, optimize, specialize, extra=(), linker=None,
     image['profile'] = profile['device']
     (run.out / 'image.json').write_text(json.dumps(image, indent=2)+'\n')
     attributes = run.command('elf', [tool(run, level, 'readelf'), '-h', '-A', '-S', elf])
-    disassembly = run.command('disassembly', [tool(run, level, 'objdump'), '-dr', elf])
+    disassembly = run.command('disassembly', [tool(run, level, 'objdump'), '-dr', elf],
+                              timeout=DISASSEMBLY_LIMIT)
     if rv32(level):
         #  The program's object was assembled with the level's -march, and
         #  its own `.attribute arch`, which refine writes, names no
