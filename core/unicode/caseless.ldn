@@ -168,7 +168,7 @@ end ends_with_caseless
 --  canonical order by a second reader, whose places hold the inner
 --  reader's state.  The second order is needed: U+0345, the combining
 --  ypogegrammeni, is a mark of class 240 the inner NFD orders last, and
---  it folds to ι, a starter.
+--  it folds to U+03B9, a starter.
 
 --  The inner reader's state, without the bytes it reads.
 inner_state: type = struct

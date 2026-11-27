@@ -730,6 +730,9 @@ filled: (record: utf8) -> (yes: bool) =
 end filled
 ```
 
+[The parts](../compiler/tests/fixtures/runtime/core-text-parts/main.ldn)
+walks each kind at its edges.
+
 The edges:
 
 - A separator at either end gives an empty part there, and an empty

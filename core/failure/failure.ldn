@@ -29,7 +29,8 @@ public reason: type = mem.out_of_bounds | mem.empty | mem.not_empty
     | text.invalid_text | text.invalid_number
     | text.number_overflow
     | text.invalid_format
-    | text.invalid_scalar | cache.misaligned | cache.bad_line
+    | text.invalid_scalar | text.invalid_bool | cache.misaligned
+    | cache.bad_line
     | line.unsupported_rate | line.unsupported_format
     | big.not_invertible | big.not_finite
 
@@ -66,6 +67,7 @@ public words: (problem: reason) -> (phrase: []u8) =
         text.number_overflow: "number out of range"
         text.invalid_format: "template does not fit its values"
         text.invalid_scalar: "not a Unicode scalar value"
+        text.invalid_bool: "not true or false"
         cache.misaligned: "not whole cache lines"
         cache.bad_line: "cache line not a power of two"
         line.unsupported_rate: "unsupported line rate"

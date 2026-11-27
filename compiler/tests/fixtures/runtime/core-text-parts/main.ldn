@@ -80,6 +80,19 @@ lines: () -> (yes: bool) =
           and gives("é\n😀", text.lines("é\n😀"), "é|😀|")
 end lines
 
+--  Whether every field of a record such as "a, b, c" holds something
+--  once the spaces around it are trimmed.
+filled: (record: utf8) -> (yes: bool) =
+    yes = true
+    for piece in text.split(record, ",") do
+        field: utf8 = text.trim(text.part(record, piece))
+        if lenof field == 0 then
+            yes = false
+            return
+        end if
+    end for
+end filled
+
 public main: () -> (code: i32) =
     code = 1
     return when not trims()
@@ -89,5 +102,7 @@ public main: () -> (code: i32) =
     return when not fields()
     code = 4
     return when not lines()
+    code = 5
+    return when not filled("a, b ,c") or filled("a, ,c") or filled(",a")
     code = 42
 end main

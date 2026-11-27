@@ -6219,7 +6219,9 @@
       "mode": "execute"
     },
     "runtime/unicode-caseless-canonical": {
-      "mode": "execute"
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 39,371 bytes, over Cortex-M0's 32 KiB of flash by 6,603: the canonical caseless match reads the canonical decompositions beside the case tables, with two readers' code unoptimized. size/off, size/auto and speed/auto fit, 30,555 bytes at size/auto, and execute the whole fixture; this image limit is not runtime evidence."
     },
     "runtime/unicode-caseless-scalars": {
       "mode": "execute",

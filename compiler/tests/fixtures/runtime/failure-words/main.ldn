@@ -11,7 +11,7 @@ import core/net
 import core/text
 import core/tree
 
-reasons: [29]failure.reason = [mem.out_of_bounds, mem.empty,
+reasons: [30]failure.reason = [mem.out_of_bounds, mem.empty,
                                mem.not_empty, mem.out_of_memory, mem.not_found,
                                tree.invalid_children, tree.too_many_nodes,
                                tree.too_many_leaves, io.no_access,
@@ -23,10 +23,11 @@ reasons: [29]failure.reason = [mem.out_of_bounds, mem.empty,
                                net.disconnected, text.invalid_text,
                                text.invalid_number, text.number_overflow,
                                text.invalid_format, text.invalid_scalar,
+                               text.invalid_bool,
                                cache.misaligned, cache.bad_line,
                                line.unsupported_rate, line.unsupported_format]
 
-phrases: [29][]u8 = ["index out of bounds", "nothing to take",
+phrases: [30][]u8 = ["index out of bounds", "nothing to take",
                      "storage still holds items", "out of memory",
                      "not found", "children outside the tree",
                      "too many nodes", "too many leaves",
@@ -38,7 +39,8 @@ phrases: [29][]u8 = ["index out of bounds", "nothing to take",
                      "peer disconnected", "invalid UTF-8", "not a number",
                      "number out of range",
                      "template does not fit its values",
-                     "not a Unicode scalar value", "not whole cache lines",
+                     "not a Unicode scalar value", "not true or false",
+                     "not whole cache lines",
                      "cache line not a power of two",
                      "unsupported line rate", "unsupported frame format"]
 
@@ -51,7 +53,7 @@ end plain
 
 public main: () -> (code: i32) =
     code = 1
-    for at in usize(0)..<usize(29) do
+    for at in usize(0)..<usize(30) do
         phrase: []u8 = failure.words(reasons[at])
         return when cmp.compare(phrase, phrases[at]) <> cmp.equal
           or not plain(phrase)
