@@ -158,7 +158,7 @@ unsigned_bounds_hold: () -> (yes: bool) =
                     if small then seen = seen | (u32(1) << u32(x - low)) end if
                 end for
                 return when small
-                            and seen <> (u32(1) << u32(high - low + 1)) - 1
+                  and seen <> (u32(1) << u32(high - low + 1)) - 1
             end if
         end for
     end for
