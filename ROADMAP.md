@@ -89,9 +89,10 @@ breaking window (R19, then R20) keeps its serial items on one integration
 branch and promotes them once, at its gate; a continuous item lands on
 main meanwhile and the branch takes it. The phase declares it in one line
 of its opening paragraphs, `Window: r20-integration`, naming the branch;
-`scripts/item.py` starts the phase's items from it and lands them on it in
-place of main, after their push gate and without boards, which the
-window's one promotion dispatches on the integrated tree.
+`scripts/item.py` starts the phase's items from it, and a batch formed on
+it lands them there in place of main, after the batch's push gate and
+without boards, which the window's one promotion dispatches on the
+integrated tree.
 
 ```text
 Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.39, R22.46, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
@@ -102,25 +103,31 @@ Continuous: R16.20 onward, R22.90 onward
 exit evidence, its continuous items apart. R16's gate is different: once
 its basis is complete it is a standing invariant every later push must
 keep, not a milestone; R22's is claimed with its serial items and then
-holds the library's baselines in the same way. An item is
-complete when its exit evidence exists: the complete gate passed on the
-completing commit and, for a claim about a host the gate does not run, a
-named run recorded in the item. It then gets a short `Done:` paragraph; the
-reasoning goes in the commits and in `spec.md`'s register of decisions.
+holds the library's baselines in the same way. The complete gate belongs
+to a batch, a phase gate or the day, not to an item. An item is complete
+when its exit evidence exists: the complete gate and boards of the batch
+that lands it passed on the batch's merged tree, which holds the
+completing commit, the target's gate following on it, and, for a claim
+about a host the gate does not run, a named run recorded in the item. It
+then gets a short `Done:` paragraph naming the batch's runs; the reasoning
+goes in the commits and in `spec.md`'s register of decisions.
 A check too long for any gate is a record under `compiler/tests/records/`
 instead (D2874): a phase's gate whose items' evidence cites one is claimed
 only on a commit where `python3 scripts/records.py check --fail-stale`
 passes on it, R22's on R22.10's.
 
-**Authority.** An item's agent may push its candidate, promote it to main
-once its gate has passed, and remove its worktrees and branches, without
-asking again. The session that runs the roadmap, or a train's integrator,
-may also promote other items' gated candidates inside a train: merged into
-the promotion token's holder, they land as one tree on its own gate and
-boards (`docs/process.md`, "A train"). An item opts out with one line,
-`Promotion: maintainer`, which returns that step to the maintainer and
-keeps it off every train; `check.py` refuses any other spelling. Releases
-and versions are never covered.
+**Authority.** An item's agent checks its item with the exact selectors
+for what it touches, commits it complete on its branch, its closing commit
+included, and removes its worktrees and branches once it has landed,
+without asking again; it does not push or gate alone. The session that
+runs the roadmap forms batches of such branches, `item.py batch`, and
+names each batch's integrator, which may push, gate and promote the batch
+as one tree on its own gate and boards (`docs/process.md`, "A batch"). A
+change to the toolchain, CI or the rig gates alone, as a batch of one,
+which its own agent may push and promote. An item opts out with one line,
+`Promotion: maintainer`, which returns promotion of any batch holding it
+to the maintainer; `check.py` refuses any other spelling. Releases and
+versions are never covered.
 
 **The register.** A row is only for what outlives the item that met it
 and waits for a trigger. A finding the item fixes is named in its commit
@@ -4790,7 +4797,7 @@ and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.46 — The complete gate belongs to a batch
 
-Status: planned
+Status: complete
 Depends on: none
 Promotion: maintainer
 
@@ -4836,6 +4843,41 @@ holding AGENTS.md, process.md, the skill and the brief to the batch
 wording and refusing the per-item gate wording; the first batch landed
 on one complete gate and one boards run, named runs, each member's
 `Done:` paragraph naming them.
+
+Done: `item.py batch` forms a batch, its own worktree and branch from
+`main` or a window's branch with a named integrator, adds members'
+local branches after the target in order, items complete in their own
+`ROADMAP.md` or branches that are no item's, none gated first, drops one
+by rebuilding from the tree before the members, lists them, and routes
+a failed job, by `--run`, to the member whose change reaches its lane's
+inputs in `.github/gate-lanes.json`, the last joined of those, or the
+one that joined last when none does, writing it into that member's
+journal. The train and `merge-main --with`, `--with-branch` and `--drop`
+are gone. `push` and `promote` refuse an item's own gate unless its
+change reaches `environments/pins.sh`, `flake.nix`, `flake.lock`,
+`.github/`, `environments/boards/` or `compiler/tests/board/`, a batch of
+one, which `batch add` refuses beside other members, or every commit
+says `Gate: explanatory`; `promote` writes a batch's member items
+promoted with its runs, marked `via`, and leaves a batch with a
+`Promotion: maintainer` member to the maintainer's `--maintainer`. The
+brief, AGENTS.md, `docs/process.md`'s loop, its steps and its gate
+reference, whose train became "A batch", the Mechanics' Lanes, Gates and
+Authority paragraphs and the landin-change skill say it, and `check.py`
+holds the four sources the agents read to "the complete gate belongs to
+a batch" and `item.py batch` and refuses the per-item wording they held.
+Batch-1's friction fixed here: `queue --take` takes the token for work
+this clone runs, a batch's members leave every line so no stale place
+sits ahead of its promotion, `merge-main` of an item a batch takes no
+longer asks for the token its ungated head cannot have, and `push`'s
+pre-push checks select the corpus's layout case for a new fixture
+source. `SR-2213` records `build-modes`'s margin to its limit,
+`SR-2214` lock files committed under a checkout-relative path,
+`SR-2215` the counts each member set for its own tree, `SR-2216`
+the Darwin LLDB archive step failing after an earlier failure, and
+`SR-2217` again the Windows arm64 LLDB step whose row had been deleted.
+`item.py gate --watch` starts a watch again when the one it names ended
+at its limit before its run, which retires `SR-2134` and `SR-2164`.
+
 
 ### R22.50 — Locale formatting
 

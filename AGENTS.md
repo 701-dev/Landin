@@ -102,14 +102,14 @@ report the command's scope and status, `FILTERED` or `HOST-ONLY` included;
 an exit-zero summary alone is not full-suite evidence. Never pipe a check
 through a filter that hides its failure status. See [the local feedback recipe](docs/process.md#local-agent-feedback).
 
-Once a push is authorized, push the candidate as soon as it builds and the
-checks for what it touches pass. Run further local lanes beside its gate,
-not before the push: the lanes that fail a gate are mostly ones no local
-host has, so an hour on the local matrix first only delays hearing from
-them. A change to
+An item does not push or gate alone. Check it with the exact selectors
+for what it touches, commit it complete on its branch, its closing commit
+included, and report it; a batch takes it. Run no further local lanes
+first: the lanes that fail a gate are mostly ones no local host has, so an
+hour on the local matrix only delays hearing from them. A change to
 the grammar, `highlight/tree-sitter/`, a positive, runtime or ABI fixture
 or `core/` also runs `./highlight/test.sh --integration`, about a minute,
-before the push.
+before it is committed complete.
 
 A question to the user holds up only the work its answer decides. Complete
 an authorized promotion whose gate passed, start what the answer cannot
@@ -142,12 +142,16 @@ and log paths instead of repeatedly pasting complete transcripts.
 
 ## The mechanical gate
 
-An authorized promotion to main needs the candidate's complete multi-host
-software gate passed, a `scope=boards` dispatch passed on the identical
-tree, or before only commits declared `Gate: explanatory`, unless the edit
+The complete gate belongs to a batch, not to an item: `item.py batch`
+merges locally checked item branches onto `main` or a window's branch, and
+its integrator pushes the merged tree once. A change to the toolchain, CI
+or the rig gates alone, as a batch of one. An authorized promotion to main
+needs the batch's complete multi-host software gate passed, a
+`scope=boards` dispatch passed on the identical tree, or before only commits declared `Gate: explanatory`, unless the edit
 is itself declared explanatory, and main's own push
 gate followed to its verdict, which takes that dispatch's boards rather than
-running them again; the promoted tree must be the one tested. A boards
+running them again; the promoted tree must be the one tested, and those
+runs are every member's exit evidence. A boards
 dispatch builds its images and takes its legs from a passed run under a
 week old whose images, board harness, hardware records and board jobs are
 the same bytes, and runs them otherwise. A

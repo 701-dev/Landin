@@ -114,6 +114,43 @@ class AgentGuidance(unittest.TestCase):
         self.assertTrue(any("needed by a check" in why for why in said))
 
 
+class BatchRule(unittest.TestCase):
+    """The guide, the process, the skill and the brief say that the
+    complete gate belongs to a batch, and none says the per-item rule."""
+
+    def sources(self, **changed):
+        said = ("The complete gate belongs to a batch, not to an item;\n"
+                "`item.py batch` forms one.\n")
+        files = {name: said for name in checker.BATCH_RULE_SOURCES}
+        files.update(changed)
+        return files
+
+    def test_the_batch_wording_passes(self):
+        self.assertEqual(faults(checker.check_batch_rule,
+                                written=self.sources()), [])
+
+    def test_a_retired_phrase_across_a_line_break_is_refused(self):
+        said = faults(checker.check_batch_rule, written=self.sources(**{
+            "AGENTS.md": self.sources()["AGENTS.md"] + "Once a push is"
+            " authorized, push the\ncandidate as soon as it builds.\n"}))
+        self.assertEqual([(path, line) for path, line, _ in said],
+                         [("AGENTS.md", 3)])
+        self.assertIn("push the candidate as soon as it builds", said[0][2])
+
+    def test_a_source_without_the_rule_or_the_command_is_refused(self):
+        said = reasons(checker.check_batch_rule, written=self.sources(**{
+            "scripts/item.py": "push the candidate and follow its gate\n"}))
+        self.assertEqual(len(said), 3, said)
+        self.assertTrue(any("belongs to a batch" in why for why in said))
+        self.assertTrue(any("`item.py batch`" in why for why in said))
+
+    def test_a_missing_source_is_reported(self):
+        files = self.sources()
+        del files["docs/process.md"]
+        said = reasons(checker.check_batch_rule, written=files)
+        self.assertTrue(any("needed by a check" in why for why in said))
+
+
 class DocumentReachability(unittest.TestCase):
     """Every tracked document is reachable from README.md."""
 

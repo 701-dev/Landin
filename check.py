@@ -11125,7 +11125,9 @@ def check_document_anchors(full_run):
 #  the closing checklist, which every item reads, have the least.
 PROCESS_SECTION_BUDGETS = {
     "": 1000,
-    "The loop that runs now": 9200,
+    #  Raised when the complete gate moved from the item to a batch, which
+    #  the loop now says before its push.
+    "The loop that runs now": 9600,
     #  Both raised when item.py learned breaking windows, the mirror's
     #  refusal and register_next.py's --delete and --decision, which an
     #  item's agent meets in these steps and nowhere else; and again when
@@ -11135,8 +11137,10 @@ PROCESS_SECTION_BUDGETS = {
     #  gate the first-failure watch and main's verdict, merge-main trains;
     #  and again when start learned work that is no item, an adopted
     #  branch's own item and retired items, and the queue its version;
-    #  and again when promotion refused unrecorded figures (D2854).
-    "Running an item": 7400,
+    #  and again when promotion refused unrecorded figures (D2854); and
+    #  again when `item.py batch` replaced the train and push and promote
+    #  learned to refuse an item that does not gate alone.
+    "Running an item": 8000,
     "Closing an item": 6400,
     #  Raised when resume_tests.py continued a cut-off complete run and
     #  the checks learned to name a shell of another flake.
@@ -11156,8 +11160,9 @@ PROCESS_SECTION_BUDGETS = {
     #  joined it, and when board legs taken by identity and the daily
     #  schedule did; and again when figures were recorded from the run
     #  that measured them (D2854), and when the records of checks too
-    #  long for a gate did.
-    "The mechanical gate": 60000,
+    #  long for a gate did; and again when the batch, its failure routing
+    #  and what gates alone replaced the train.
+    "The mechanical gate": 61500,
     #  Raised when the install script's check joined the recipe's step 6,
     #  again when the static Linux archive's check did, again when the
     #  formula came to depend on the macOS archive's stated minimum, and
@@ -11250,6 +11255,63 @@ def check_agent_guidance(full_run):
         out.append(("CLAUDE.md", 1,
                     "must be a symlink to AGENTS.md so both providers "
                     "read the same guide"))
+    return out
+
+
+#  The complete gate belongs to a batch, not to an item.  The
+#  sources an item's agent reads for the rule, each held to say so, and the
+#  per-item gate wording they said before, which none may say again.
+BATCH_RULE_SOURCES = ("AGENTS.md", "docs/process.md",
+                      ".agents/skills/landin-change/SKILL.md",
+                      "scripts/item.py")
+BATCH_RULE = "the complete gate belongs to a batch"
+BATCH_COMMAND = "item.py batch"
+PER_ITEM_GATE = (
+    "push the candidate as soon as it builds",
+    "the candidate's complete multi-host software gate",
+    "Its complete software push gate passes on its branch",
+    "An item takes it only once its head's push gate passed",
+    "merge-main HOLDER --with",
+    "merge-main ITEM\n   --with",
+    "promote it to main once its gate and boards dispatch pass",
+    "push the candidate and follow its gate",
+)
+
+
+def check_batch_rule(full_run):
+    """AGENTS.md, process.md, the landin-change skill and the brief
+    `item.py start` writes say that the complete gate belongs to a batch,
+    name `item.py batch`, and say none of the per-item gate wording they
+    held before the batch rule: an agent that read one of them as before pushed
+    and gated each item alone, about fifty complete gates in a day against
+    the account's sixty jobs at once."""
+    if not full_run:
+        return []
+    paths = [os.path.join(ROOT, name) for name in BATCH_RULE_SOURCES]
+    missing = absent(paths)
+    if missing:
+        return missing
+    out = []
+    for name, path in zip(BATCH_RULE_SOURCES, paths):
+        text = read_file(path, encoding="utf-8")
+        flat = " ".join(text.replace("\\n", " ").split())
+        if BATCH_RULE not in flat.lower():
+            out.append((name, 1, "does not say that %s, in those words"
+                        % BATCH_RULE))
+        if BATCH_COMMAND not in flat:
+            out.append((name, 1, "does not name `%s`, which forms the"
+                        " batches" % BATCH_COMMAND))
+        for wording in PER_ITEM_GATE:
+            phrase = " ".join(wording.split())
+            if phrase not in flat:
+                continue
+            rows = [" ".join(row.split()) for row in text.splitlines()]
+            line = next((n for size in (4, 3, 2) for n, row in enumerate(
+                rows, 1) if " ".join(phrase.split()[:size]) in row), 1)
+            out.append((name, line, "says \"%s\", the per-item gate rule"
+                        " the batch rule retired: an item does not push or"
+                        " gate alone; its batch's gate is its evidence"
+                        % phrase))
     return out
 
 
@@ -13220,6 +13282,7 @@ def main(argv):
     stale_paths = LIVE_DOCS if full_run else paths
     extra += check_stale_backlog(stale_paths, full_run)
     extra += check_agent_guidance(full_run)
+    extra += check_batch_rule(full_run)
     extra += check_document_anchors(full_run)
     extra += check_process_budgets(full_run)
     extra += check_document_reachability(full_run)

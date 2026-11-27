@@ -87,10 +87,16 @@ class Clone(unittest.TestCase):
         #  `GatedToken` holds the token to the real rule.
         self.saved_gated = item.gated
         item.gated = lambda name, refresh=False: True
+        #  And every change may gate alone, so the push, merge and
+        #  promotion cases need no toolchain change: `Batch` and `Lone`
+        #  hold the batch rule itself.
+        self.saved_lone = item.lone_problem
+        item.lone_problem = lambda state, commit: None
 
     def tearDown(self):
         item.verdict_of = self.saved_verdict
         item.gated = self.saved_gated
+        item.lone_problem = self.saved_lone
         item.REPOSITORY[0] = item.ROOT
         self.scratch.cleanup()
 
@@ -458,6 +464,41 @@ class Promote(Clone):
                                    (prefix + "1", ["--run", "5"]),
                                    (prefix + "2-first", ["--run", "5"]),
                                    (prefix + "2", ["--run", "5"])])
+
+    def test_a_watch_that_ended_before_its_run_is_started_again(self):
+        #  A watch that reached its limit while its run still waited for
+        #  runners is no watch: `gate --watch` starts another.
+        head = self.commit("work")
+        git(self.worktree, "push", "-q", "origin", self.state["branch"])
+        listing = [{"databaseId": 5, "event": "push",
+                    "headBranch": self.state["branch"],
+                    "status": "in_progress", "conclusion": "",
+                    "displayTitle": "x", "attempt": 1}]
+        started = []
+
+        def run(arguments):
+            directory = item.item_directory(FIRST) / "runs" / arguments.name
+            directory.mkdir(parents=True)
+            (directory / "result.json").write_text('{"exit_status": 143}')
+            started.append(arguments.name)
+            return 0
+
+        saved = item.runs_of, item.run
+        item.runs_of, item.run = (lambda commit: listing), run
+        try:
+            self.item("gate", FIRST, "--watch")
+            status, out = self.item("gate", FIRST, "--watch")
+            self.assertIn("watching it again", out)
+            listing[0].update(status="completed", conclusion="success")
+            status, again = self.item("gate", FIRST, "--watch")
+        finally:
+            item.runs_of, item.run = saved
+        self.assertEqual(status, 0, out)
+        self.assertIn("already watched", again)
+        prefix = "gate-branch-%s-run5-attempt1" % head[:12]
+        self.assertEqual(started, [prefix + "-first", prefix,
+                                   prefix + "-again2-first",
+                                   prefix + "-again2"])
 
     def test_run_in_another_directory_is_kept_and_reported(self):
         elsewhere = self.top / "stream"
@@ -1034,8 +1075,8 @@ class Window(Clone):
         self.assertEqual(state["base"], self.window)
         self.assertIn("lands on %s" % WINDOW_BRANCH, out)
         brief = (item.item_directory(FIRST) / "brief.md").read_text()
-        self.assertIn("land it on the window's integration branch %s"
-                      % WINDOW_BRANCH, brief)
+        self.assertIn("merges it with others onto %s" % WINDOW_BRANCH,
+                      brief)
         self.assertFalse((worktree / "main.txt").exists())
 
     def test_promote_lands_on_the_window_without_boards(self):
@@ -1140,8 +1181,11 @@ class SessionToken(Clone):
         #  Not dropped for want of an item's state.
         status, out = self.item("queue")
         self.assertIn("promotion token: sweep since", out)
+        #  An item, or a batch, of this clone takes it as an item does,
+        #  put in line behind the holder.
         status, out = self.item("queue", "--take", FIRST)
-        self.assertEqual(status, 2, out)
+        self.assertEqual(status, 1, out)
+        self.assertIn("number 1 in line", out)
         status, out = self.item("queue", "--release", "sweep")
         self.assertIn("released", out)
         self.assertEqual(item.take(FIRST, "test"), (True, None))
@@ -1310,6 +1354,13 @@ class PrePush(Promote):
         self.assertIn("measured sizes", item.baseline_warning(
             str(self.worktree), base))
 
+    def test_a_new_fixture_selects_the_corpus_layout(self):
+        base = git(self.worktree, "rev-parse", "HEAD")
+        self.change("compiler/tests/fixtures/positive/new/main.ldn")
+        self.assertEqual(self.selected(base)[0], [
+            "./scripts/dev-test.sh", "--case=" + item.FORMAT_CASE,
+            "--case=" + item.CORPUS_CASE, "--suite=lowering"])
+
     def test_a_changed_compiler_source_selects_lowering_alone(self):
         self.change("compiler/ada/src/a.adb", message="first")
         base = git(self.worktree, "rev-parse", "HEAD")
@@ -1422,216 +1473,316 @@ class PrePush(Promote):
         self.assertEqual(sleeps, [1, 2])
 
 
-class Train(Clone):
-    """A train: the holder's final merge brings other gated candidates."""
+LANES = {"sets": {"compiler": ["compiler/**"]}, "lanes": {
+    "documents": {"jobs": ["documents"], "inputs": ["**"]},
+    "lowering": {"jobs": ["lowering-x86"], "inputs": ["@compiler"]},
+    "boards": {"jobs": ["board"], "inputs": ["environments/boards/**"]}}}
+
+
+class Batch(Clone):
+    """The complete gate belongs to a batch: members are merged ungated,
+    one gate and boards on the merged tree land them all."""
 
     def setUp(self):
         super().setUp()
+        item.lone_problem = self.saved_lone
+        (self.clone / ".github").mkdir()
+        (self.clone / ".github/gate-lanes.json").write_text(json.dumps(LANES))
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "lanes")
+        git(self.clone, "push", "-q", "origin", "main")
         self.item("start", FIRST)
         self.item("start", THIRD, "--force")
         self.item("start", SECOND)
         item.REPOSITORY[0] = self.clone
-        self.saved = (item.runs_of, item.complete_listing, item.unrecorded_figures)
-        item.runs_of = lambda commit: []
+        saved = (item.record_gates, item.complete_listing, item.gh,
+                 item.unrecorded_figures)
+
+        def record(state, commit):
+            if state.get("passes") and not any(
+                    entry["commit"] == commit for entry in state["gates"]):
+                state["gates"].append({
+                    "run": 500, "commit": commit, "kind": "software",
+                    "tree": git(state["worktree"], "rev-parse",
+                                commit + "^{tree}"),
+                    "status": "completed", "conclusion": "success"})
+            return state
+        item.record_gates = record
         item.complete_listing = lambda run: None
+        item.gh = lambda *arguments: []
         item.unrecorded_figures = lambda run: {}
-        self.holder = Path(item.load(FIRST)["worktree"])
+        self.addCleanup(lambda: (
+            setattr(item, "record_gates", saved[0]),
+            setattr(item, "complete_listing", saved[1]),
+            setattr(item, "gh", saved[2]),
+            setattr(item, "unrecorded_figures", saved[3])))
 
-    def tearDown(self):
-        item.runs_of, item.complete_listing, item.unrecorded_figures = self.saved
-        super().tearDown()
-
-    def gated(self, name, path):
-        """NAME's candidate: complete, pushed, its push gate passed."""
-        state = item.load(name)
-        worktree = Path(state["worktree"])
+    def complete(self, name, path):
+        """NAME's candidate: complete and committed on its local branch,
+        never pushed or gated."""
+        worktree = Path(item.load(name)["worktree"])
         roadmap = (worktree / "ROADMAP.md").read_text()
         heading = roadmap.index("### %s " % name)
         start = roadmap.index("Status: active", heading)
         roadmap = roadmap[:start] + "Status: complete" + roadmap[
             start + len("Status: active"):]
         (worktree / "ROADMAP.md").write_text(roadmap)
+        (worktree / path).parent.mkdir(parents=True, exist_ok=True)
         (worktree / path).write_text(name + "\n")
         git(worktree, "add", "-A")
         git(worktree, "commit", "-q", "-m", "Close " + name)
-        git(worktree, "push", "-q", "origin", "HEAD:" + state["branch"])
-        head = git(worktree, "rev-parse", "HEAD")
-        state = item.load(name)
-        state["gates"].append({"run": 100 + len(state["gates"]),
-                               "commit": head, "tree": "t", "kind":
-                               "software", "status": "completed",
-                               "conclusion": "success"})
-        item.save(state)
-        git(self.holder, "fetch", "-q", "origin")
-        return head
+        return git(worktree, "rev-parse", "HEAD")
 
-    def test_a_gated_member_rides_and_lands_with_the_holder(self):
-        self.gated(FIRST, "first.txt")
-        head = self.gated(THIRD, "third.txt")
-        item.take(THIRD, "test")
-        item.release(THIRD, "test")
-        item.take(FIRST, "test")
-        self.assertFalse(item.take(THIRD, "test")[0])
-        status, out = self.item("merge-main", FIRST, "--with", THIRD)
+    def formed(self, name="batch-1"):
+        status, out = self.item("batch", "form", name, "--integrator",
+                                "the manager")
         self.assertEqual(status, 0, out)
-        self.assertIn("%s's train: %s %s" % (FIRST, THIRD, head[:12]), out)
-        self.assertTrue((self.holder / "third.txt").exists())
-        member = item.load(THIRD)
-        self.assertEqual(member["train"]["holder"], FIRST)
-        status, out = self.item("queue")
-        self.assertIn("waiting: nobody", out)
-        #  A member does not push, wait for the token or promote itself.
+        return Path(item.load(name)["worktree"])
+
+    def test_two_ungated_branches_route_drop_and_land_on_one_gate(self):
+        first = self.complete(FIRST, "compiler/first.ldn")
+        third = self.complete(THIRD, "third.txt")
+        #  Alone, neither pushes nor promotes.
+        status, out = self.item("push", FIRST, "--no-check")
+        self.assertEqual(status, 2, out)
+        self.assertIn("does not gate alone", out)
+        self.assertIn("batch add BATCH %s" % FIRST, out)
+        self.assertIn("continue the work", item.next_step(item.load(FIRST)))
+        batch = self.formed()
+        status, out = self.item("batch", "add", "batch-1", FIRST, THIRD)
+        self.assertEqual(status, 0, out)
+        self.assertIn("item %s %s" % (FIRST, first[:12]), out)
+        self.assertIn("item %s %s" % (THIRD, third[:12]), out)
+        self.assertTrue((batch / "compiler/first.ldn").exists())
+        self.assertTrue((batch / "third.txt").exists())
+        self.assertEqual(item.load(THIRD)["in_batch"]["name"], "batch-1")
         for command in (("push", THIRD), ("queue", "--wait", THIRD),
                         ("promote", THIRD), ("merge-main", THIRD)):
             status, out = self.item(*command)
             self.assertEqual(status, 2, (command, out))
-            self.assertIn("rides %s's train" % FIRST, out)
-        status, out = self.item("resume", THIRD)
-        self.assertIn("ride %s's train" % FIRST, out)
-        #  Promotion writes the member as promoted, with the holder's runs.
-        holder = item.load(FIRST)
-        commit = git(self.holder, "rev-parse", "HEAD")
-        items, _ = item.roadmap_items((self.holder / "ROADMAP.md").read_text())
-        self.assertEqual(item.train_landing_problems(holder, commit, items,
-                                                     False), [])
-        holder["gates"].append({"run": 7, "commit": commit, "tree": "t",
-                                "kind": "software", "status": "completed",
-                                "conclusion": "success"})
-        item.land_train(holder, commit)
-        member = item.load(THIRD)
-        self.assertEqual((member["phase"], member["promoted"]),
-                         ("promoted", commit))
-        self.assertEqual([entry.get("via") for entry in member["gates"]
-                          if entry["run"] == 7], [FIRST])
-        self.assertIsNone(item.riding(member))
+            self.assertIn("member of batch batch-1", out)
+        self.assertIn("a member of batch batch-1",
+                      item.next_step(item.load(THIRD)))
+        #  A failure goes to the member whose change reaches its lane, the
+        #  last joined when several or none do.
+        routed = item.route(item.load("batch-1"),
+                            ["lowering-x86", "documents", "board"])
+        self.assertEqual(routed, [
+            ("lowering-x86", "lowering", FIRST, "compiler/first.ldn"),
+            ("documents", "documents", THIRD, "ROADMAP.md"),
+            ("board", "boards", THIRD, None)])
+        status, out = self.item("batch", "route", "batch-1", "lowering-x86")
+        self.assertEqual(status, 0, out)
+        self.assertIn("%s, whose change reaches" % FIRST, out)
+        status, out = self.item("resume", FIRST)
+        self.assertIn("lowering-x86 failed and is this member's", out)
+        #  A member that cannot be fixed there is dropped, its branch left
+        #  as it was.
+        status, out = self.item("batch", "drop", "batch-1", THIRD)
+        self.assertEqual(status, 0, out)
+        self.assertFalse((batch / "third.txt").exists())
+        self.assertTrue((batch / "compiler/first.ldn").exists())
+        self.assertNotIn("in_batch", item.load(THIRD))
+        self.assertEqual(git(Path(item.load(THIRD)["worktree"]),
+                             "rev-parse", "HEAD"), third)
+        self.assertEqual([member["name"] for member in item.load(
+            "batch-1")["batch"]["members"]], [FIRST])
+        self.assertEqual(self.item("batch", "add", "batch-1", THIRD)[0], 0)
+        #  One gate and one boards run on the merged tree land both.
+        state = item.load("batch-1")
+        state["passes"] = True
+        item.save(state)
+        status, out = self.item("push", "batch-1", "--no-check")
+        self.assertEqual(status, 0, out)
+        head = git(batch, "rev-parse", "HEAD")
+        state = item.load("batch-1")
+        state["gates"].append({
+            "run": 501, "commit": head, "kind": "boards",
+            "tree": git(batch, "rev-parse", head + "^{tree}"),
+            "status": "completed", "conclusion": "success"})
+        item.save(state)
+        status, out = self.item("promote", "batch-1")
+        self.assertEqual(status, 0, out)
+        self.assertEqual(git(self.clone, "ls-remote", "origin",
+                             "refs/heads/main").split()[0], head)
+        for name in (FIRST, THIRD):
+            member = item.load(name)
+            self.assertEqual((member["phase"], member["promoted"]),
+                             ("promoted", head))
+            self.assertEqual(sorted(entry["run"] for entry in member["gates"]
+                                    if entry.get("via") == "batch-1"),
+                             [500, 501])
+            self.assertIsNone(item.in_batch(member))
+        status, out = self.item("batch", "list")
+        self.assertIn("batch batch-1: lands on main", out)
+
+    def test_a_member_is_measured_from_the_target_not_the_first_base(self):
+        self.complete(FIRST, "first.txt")
+        self.formed()
+        self.assertEqual(self.item("batch", "add", "batch-1", FIRST)[0], 0)
+        #  Main gains a CI change; a later member merges it.
+        (self.clone / ".github/x.yml").write_text("x\n")
+        git(self.clone, "add", "-A")
+        git(self.clone, "commit", "-q", "-m", "ci")
+        git(self.clone, "push", "-q", "origin", "main")
+        worktree = Path(item.load(THIRD)["worktree"])
+        git(worktree, "fetch", "-q", "origin")
+        git(worktree, "merge", "-q", "--no-edit", "origin/main")
+        self.complete(THIRD, "third.txt")
+        status, out = self.item("batch", "add", "batch-1", THIRD)
+        self.assertEqual(status, 0, out)
+        self.assertNotIn("gates alone", out)
+
+    def test_a_drop_that_cannot_rebuild_leaves_the_batch_as_it_was(self):
+        self.complete(FIRST, "first.txt")
+        self.complete(THIRD, "third.txt")
+        batch = self.formed()
+        self.assertEqual(self.item("batch", "add", "batch-1", FIRST,
+                                   THIRD)[0], 0)
+        (batch / "fix.txt").write_text("fix\n")
+        git(batch, "add", "-A")
+        git(batch, "commit", "-q", "-m", "a fix")
+        head = git(batch, "rev-parse", "HEAD")
+        saved = item.merge_member
+        item.merge_member = lambda *arguments: "it conflicts now"
+        self.addCleanup(setattr, item, "merge_member", saved)
+        status, out = self.item("batch", "drop", "batch-1", FIRST)
+        self.assertEqual(status, 2, out)
+        self.assertIn("left as it was", out)
+        self.assertEqual(git(batch, "rev-parse", "HEAD"), head)
+        self.assertEqual(item.load(FIRST)["in_batch"]["name"], "batch-1")
+        self.assertEqual(len(item.load("batch-1")["batch"]["members"]), 2)
 
     def test_a_member_that_moved_is_named_at_promotion(self):
-        self.gated(FIRST, "first.txt")
-        self.gated(THIRD, "third.txt")
-        item.take(FIRST, "test")
-        self.assertEqual(self.item("merge-main", FIRST, "--with", THIRD)[0],
-                         0)
-        worktree = Path(item.load(THIRD)["worktree"])
+        self.complete(FIRST, "first.txt")
+        batch = self.formed()
+        self.assertEqual(self.item("batch", "add", "batch-1", FIRST)[0], 0)
+        worktree = Path(item.load(FIRST)["worktree"])
         (worktree / "later.txt").write_text("later\n")
         git(worktree, "add", "-A")
         git(worktree, "commit", "-q", "-m", "later")
-        git(worktree, "push", "-q", "origin", "HEAD:" + item.load(
-            THIRD)["branch"])
-        commit = git(self.holder, "rev-parse", "HEAD")
-        items, _ = item.roadmap_items((self.holder / "ROADMAP.md").read_text())
-        git(self.holder, "fetch", "-q", "origin")
-        problems = item.train_landing_problems(item.load(FIRST), commit,
+        commit = git(batch, "rev-parse", "HEAD")
+        items, _ = item.roadmap_items((batch / "ROADMAP.md").read_text())
+        problems = item.batch_landing_problems(item.load("batch-1"), commit,
                                                items, False)
         self.assertTrue(any("moved past" in one for one in problems),
                         problems)
 
-    def plain_branch(self, name, path):
-        """A branch that is no item, pushed with one commit; its head."""
-        git(self.clone, "checkout", "-q", "-b", name, "main")
-        (self.clone / path).write_text(name + "\n")
+    def test_a_maintainer_member_is_the_maintainers_to_promote(self):
+        self.complete(SECOND, "second.txt")
+        batch = self.formed()
+        self.assertEqual(self.item("batch", "add", "batch-1", SECOND)[0], 0)
+        state = item.load("batch-1")
+        state["passes"] = True
+        item.save(state)
+        self.assertEqual(self.item("push", "batch-1", "--no-check")[0], 0)
+        head = git(batch, "rev-parse", "HEAD")
+        state = item.load("batch-1")
+        state["gates"].append({
+            "run": 501, "commit": head, "kind": "boards",
+            "tree": git(batch, "rev-parse", head + "^{tree}"),
+            "status": "completed", "conclusion": "success"})
+        item.save(state)
+        status, out = self.item("promote", "batch-1")
+        self.assertEqual(status, 2, out)
+        self.assertIn("maintainer's to promote", out)
+        status, out = self.item("promote", "batch-1", "--maintainer")
+        self.assertEqual(status, 0, out)
+        self.assertEqual(item.load(SECOND)["promoted"], head)
+
+    def test_a_toolchain_ci_or_rig_change_is_a_batch_of_one(self):
+        for path in ("flake.nix", ".github/actionlint.yaml",
+                     "environments/boards/rig.json"):
+            self.assertEqual(item.alone_paths(["docs/x.md", path]), [path])
+        head = self.complete(FIRST, "flake.nix")
+        self.complete(THIRD, "third.txt")
+        state = item.load(FIRST)
+        self.assertIsNone(item.lone_problem(state, head))
+        self.formed()
+        status, out = self.item("batch", "add", "batch-1", FIRST, THIRD)
+        self.assertEqual(status, 1, out)
+        self.assertIn("not added: %s: it changes flake.nix, which gates"
+                      " alone" % FIRST, out)
+        #  Not beside a member already there either.
+        status, out = self.item("batch", "add", "batch-1", FIRST)
+        self.assertEqual(status, 1, out)
+        self.assertIn("which gates alone, as a batch of one", out)
+        self.formed("batch-2")
+        status, out = self.item("batch", "add", "batch-2", FIRST)
+        self.assertEqual(status, 0, out)
+        self.assertIn("item %s %s, gates alone" % (FIRST, head[:12]), out)
+        #  And nothing joins a batch of one.
+        status, out = self.item("batch", "add", "batch-2", THIRD)
+        self.assertEqual(status, 1, out)
+        self.assertIn("the batch holds %s, which gates alone" % FIRST, out)
+
+    def test_conflicting_and_unknown_members_are_refused(self):
+        self.complete(FIRST, "same.txt")
+        self.complete(THIRD, "same.txt")
+        batch = self.formed()
+        status, out = self.item("batch", "add", "batch-1", FIRST, THIRD,
+                                "absent", SECOND)
+        self.assertEqual(status, 1, out)
+        self.assertIn("conflicts outside the generated files: same.txt", out)
+        self.assertIn("there is no item or branch absent", out)
+        self.assertIn("%s is not complete in its own ROADMAP.md" % SECOND,
+                      out)
+        self.assertEqual(git(batch, "status", "--porcelain"), "")
+        self.assertNotIn("in_batch", item.load(THIRD))
+
+    def test_a_branch_that_is_no_item_joins_unpushed(self):
+        git(self.clone, "checkout", "-q", "-b", "sweep", "main")
+        (self.clone / "sweep.txt").write_text("sweep\n")
         git(self.clone, "add", "-A")
         git(self.clone, "commit", "-q", "-m", "sweep")
-        git(self.clone, "push", "-q", "origin", name)
         git(self.clone, "checkout", "-q", "main")
-        return git(self.clone, "rev-parse", name)
+        batch = self.formed()
+        status, out = self.item("batch", "add", "batch-1", "sweep",
+                                item.load(THIRD)["branch"])
+        self.assertEqual(status, 1, out)
+        self.assertIn("  branch sweep %s" % git(self.clone, "rev-parse",
+                                                "sweep")[:12], out)
+        self.assertIn("is an item's branch: name the item", out)
+        self.assertTrue((batch / "sweep.txt").exists())
 
-    def test_a_branch_that_is_no_item_rides_on_its_passed_gate(self):
-        self.gated(FIRST, "first.txt")
-        head = self.plain_branch("sweep", "sweep.txt")
-        item.take(FIRST, "test")
-        item.runs_of = lambda commit: [{
-            "databaseId": 9, "event": "push", "headBranch": "sweep",
-            "status": "completed", "conclusion": "success",
-            "displayTitle": "sweep", "attempt": 1}] if commit == head else []
-        status, out = self.item("merge-main", FIRST, "--with-branch", "sweep")
-        self.assertEqual(status, 0, out)
-        self.assertIn("branch sweep %s" % head[:12], out)
-        self.assertIn("leave their branches alone", out)
-        self.assertTrue((self.holder / "sweep.txt").exists())
-        holder = item.load(FIRST)
-        self.assertEqual(holder["train"]["branches"], {"sweep": head})
-        commit = git(self.holder, "rev-parse", "HEAD")
-        items, _ = item.roadmap_items((self.holder / "ROADMAP.md").read_text())
-        self.assertEqual(item.train_landing_problems(holder, commit, items,
-                                                     False), [])
-        #  Moved after its merge: named at promotion, and dropped.
-        git(self.clone, "checkout", "-q", "sweep")
-        (self.clone / "later.txt").write_text("later\n")
+
+class Lone(Promote):
+    """An item's own gate is no evidence where a batch is required."""
+
+    def setUp(self):
+        super().setUp()
+        item.lone_problem = self.saved_lone
+
+    def test_promote_refuses_a_lone_items_gate_and_boards(self):
+        head = self.commit("work")
+        git(self.worktree, "push", "-q", "origin", "HEAD:" + self.state[
+            "branch"])
+        self.state["gates"] += [self.gate(head, "software"),
+                                self.gate(head, "boards")]
+        item.save(self.state)
+        saved = item.record_gates
+        item.record_gates = lambda state, commit: state
+        self.addCleanup(setattr, item, "record_gates", saved)
+        status, out = self.item("promote", FIRST, "--partial")
+        self.assertEqual(status, 2, out)
+        self.assertIn("does not gate alone", out)
+
+    def test_an_explanatory_change_is_not_refused(self):
+        head = self.commit("Words\n\n" + item.EXPLANATORY)
+        self.assertIsNone(item.lone_problem(self.state, head))
+        #  Nor once it has merged a main that moved by an undeclared
+        #  commit: the merge is not the item's change.
+        (self.clone / "main.txt").write_text("main\n")
         git(self.clone, "add", "-A")
-        git(self.clone, "commit", "-q", "-m", "later")
-        git(self.clone, "push", "-q", "origin", "sweep")
-        git(self.clone, "checkout", "-q", "main")
-        git(self.holder, "fetch", "-q", "origin")
-        problems = item.train_landing_problems(holder, commit, items, False)
-        self.assertTrue(any("branch sweep moved past" in one
-                            for one in problems), problems)
-        status, out = self.item("merge-main", FIRST, "--drop", "sweep")
-        self.assertEqual(status, 0, out)
-        self.assertFalse((self.holder / "sweep.txt").exists())
-        self.assertEqual(item.load(FIRST)["train"]["branches"], {})
-
-    def test_an_ungated_or_item_branch_does_not_ride(self):
-        self.gated(FIRST, "first.txt")
-        self.plain_branch("sweep", "sweep.txt")
-        item.take(FIRST, "test")
-        status, out = self.item("merge-main", FIRST, "--with-branch",
-                                "sweep", "--with-branch",
-                                item.load(THIRD)["branch"],
-                                "--with-branch", "absent")
-        self.assertEqual(status, 1, out)
-        self.assertIn("sweep has no passed push gate", out)
-        self.assertIn("is an item's: name the item with --with", out)
-        self.assertIn("the branch absent is not on GitHub", out)
-        self.assertFalse((self.holder / "sweep.txt").exists())
-
-    def test_maintainer_ungated_and_conflicting_members_are_refused(self):
-        self.gated(FIRST, "first.txt")
-        #  The maintainer's item is pushed, its gate not passed.
-        second = item.load(SECOND)
-        git(Path(second["worktree"]), "push", "-q", "origin",
-            "HEAD:" + second["branch"])
-        git(self.holder, "fetch", "-q", "origin")
-        item.take(FIRST, "test")
-        status, out = self.item("merge-main", FIRST, "--with", SECOND)
-        self.assertEqual(status, 1, out)
-        self.assertIn("`Promotion: maintainer`", out)
-        self.assertIn("no passed push gate", out)
-        self.assertNotIn("train", item.load(SECOND))
-        self.gated(THIRD, "first.txt")
-        status, out = self.item("merge-main", FIRST, "--with", THIRD)
-        self.assertEqual(status, 1, out)
-        self.assertIn("conflicts outside the generated files: first.txt",
-                      out)
-        self.assertEqual(git(self.holder, "status", "--porcelain"), "")
-        self.assertNotIn("train", item.load(THIRD))
-
-    def test_drop_rebuilds_without_the_member_and_puts_it_first(self):
-        self.gated(FIRST, "first.txt")
-        self.gated(THIRD, "third.txt")
-        item.take(FIRST, "test")
-        self.assertEqual(self.item("merge-main", FIRST, "--with", THIRD)[0],
-                         0)
-        (self.holder / "done.txt").write_text("done\n")
-        git(self.holder, "add", "-A")
-        git(self.holder, "commit", "-q", "-m", "Done paragraphs")
-        git(self.holder, "push", "-q", "origin", "HEAD:" + item.load(
-            FIRST)["branch"])
-        status, out = self.item("merge-main", FIRST, "--drop", THIRD)
-        self.assertEqual(status, 0, out)
-        self.assertIn("1 commit(s) made after the members' merges", out)
-        self.assertFalse((self.holder / "third.txt").exists())
-        self.assertIsNone(item.riding(item.load(THIRD)))
-        self.assertTrue(item.load(FIRST)["train"]["rebuilt"])
-        status, out = self.item("queue")
-        self.assertIn("waiting: %s" % THIRD, out)
-        #  The rebuilt branch replaces the pushed one, which it does not
-        #  contain.
-        status, out = self.item("push", FIRST, "--no-check")
-        self.assertEqual(status, 0, out)
-        self.assertEqual(git(self.holder, "rev-parse", "HEAD"),
-                         git(self.holder, "rev-parse", "origin/" + item.load(
-                             FIRST)["branch"]))
-        self.assertNotIn("rebuilt", item.load(FIRST)["train"])
+        git(self.clone, "commit", "-q", "-m", "on main")
+        git(self.clone, "push", "-q", "origin", "main")
+        git(self.worktree, "fetch", "-q", "origin")
+        git(self.worktree, "merge", "-q", "--no-edit", "origin/main")
+        self.assertIsNone(item.lone_problem(
+            self.state, git(self.worktree, "rev-parse", "HEAD")))
+        later = self.commit("work")
+        self.assertIn("does not gate alone",
+                      item.lone_problem(self.state, later))
 
 
 if __name__ == "__main__":
