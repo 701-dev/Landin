@@ -3805,23 +3805,50 @@ SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.27 — Process tools' remaining faults
 
-Status: active
+Status: complete
 Depends on: none
 
 The faults of the process tools met since R22.24, scheduled by the
-register sweep of 2026-11-26. In `item.py`: SR-1905's older copy whose
-queue wait drops waiters that are no item; and SR-1919's `start`
+register sweep of 2026-11-26. In `item.py`: `SR-1905`'s older copy whose
+queue wait drops waiters that are no item; and `SR-1919`'s `start`
 refusing a continuous item whose text the branch adds without naming
-`--base`. In the other tools: SR-1906's `register_next.py --decision` that answers
-from a branch behind main's reservations; SR-1917's age rule that differs
-during an uncommitted merge; SR-1859's full `check.py` reading untracked
+`--base`. In the other tools: `SR-1906`'s `register_next.py --decision` that answers
+from a branch behind main's reservations; `SR-1917`'s age rule that differs
+during an uncommitted merge; `SR-1859`'s full `check.py` reading untracked
 notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
-back to its user; and SR-1991's item identity that no rule retires.
+back to its user; and `SR-1991`'s item identity that no rule retires.
 Placed here so that no phase gate waits for it; it depends on no other
 item.
 
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
+
+Done: `register_next.py --decision` reads `spec.md` at the head of every
+branch of the clone, `origin/main`'s among them, and claims the numbers it
+gives outside a running item's block for fourteen days, so that neither a
+later call nor `item.py start`'s reservation gives them again: D2734 and
+D2814 had been taken on branches main did not yet hold (`SR-1906`). The
+promotion queue's file names the version of its rules, and an older
+`item.py` refuses to rewrite it, naming the newer copy (`SR-1905`). `start
+--adopt` starts an item from the branch head that adds its text, and the
+refusal names the commit and `--base` (`SR-1919`); `start NAME --work TEXT`
+gives work that is no item its own state, reservations, push, gate,
+boards and promotion. `check.py` reads a resolved merge not yet committed
+as the commit it will make when it ages rows (`SR-1917`), says of a refused
+untracked file that a note goes under `.scratch/` (`SR-1859`), takes a
+Cortex-X925 for no prototype finding, and refuses an item heading gone
+from `origin/main` that is not kept marked `(retired)` with a paragraph
+saying why, the form R22.25's heading now has (`SR-1991`). `resume_tests.py`
+runs the suites a cut-off complete run did not pass. `check.py` and
+`script_tests.py` say when the shell is another flake's, as after a merge
+that changed the flake; the failure this was asked for was not
+reproduced. Met on the way and fixed: `test_item.py` called
+`unittest.main()` in the middle of the file, so its last 44 cases, the
+train's refusals among them, had never run under `script_tests.py` or in
+the gate, and one of them failed; they run, and a control holds every
+module's to its end. `SR-1871` stays open with a `Kept:` line: switching
+the Pico 2's cores needs the rig and the port's boot image. Q-346 and
+Q-347 are answered.
 
 ### R22.28 — What Windows still lacks after R21.70
 

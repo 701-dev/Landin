@@ -11097,10 +11097,14 @@ PROCESS_SECTION_BUDGETS = {
     #  push and merge-main learned the register check, merge-main a named
     #  branch and the queue a line for work that is no item; and again
     #  when push learned the pre-push checks and boards beside the gate,
-    #  gate the first-failure watch and main's verdict, merge-main trains.
-    "Running an item": 6700,
+    #  gate the first-failure watch and main's verdict, merge-main trains;
+    #  and again when start learned work that is no item, an adopted
+    #  branch's own item and retired items, and the queue its version.
+    "Running an item": 7300,
     "Closing an item": 6400,
-    "Local agent feedback": 16800,
+    #  Raised when resume_tests.py continued a cut-off complete run and
+    #  the checks learned to name a shell of another flake.
+    "Local agent feedback": 17400,
     "Parallel sessions and shared resources": 14600,
     #  Raised when gate_watch.py learned --verdict.
     "Command reference": 8500,
