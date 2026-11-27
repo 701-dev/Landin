@@ -35737,9 +35737,10 @@ or at the program's exit is one LLDB did not make. On a target
 attempts, the Windows lane runs such a session again, keeps each lost
 attempt's transcript and names its lost step in `switch-frames.json`, and
 holds the last attempt's stops to the record as before; any other
-mismatch fails at once. At the measured rate of one session in fifty, a
-session fails only when all three attempts lose a step, about once in
-125,000. The entry goes when a runner's sessions lose no step.
+mismatch fails at once. At the measured rate, 26 lost of 1,212 attempts
+or about one in fifty, a session fails only when all three attempts lose
+a step, about once in 100,000. The entry goes when a runner's sessions
+lose no step.
 
 **The alternatives:** a breakpoint on each of the routine's instructions,
 so that a lost step stops at the next one anyway, which on Windows LLDB
@@ -35755,7 +35756,9 @@ not build.
 `test_a_lost_step_is_told_from_a_step`, which also told all 18 lost
 sessions met in the gate and the probes from their transcripts, and the
 `windows-arm64-debugger` job; probe runs 45963663891 and 45984035570
-measured the loss and AFTER ran the lane's sessions with the retry.
+measured the loss, and probe run 45987118367 ran the lane's sessions 100
+times on four fresh runners with the retry: 400 switch sessions passed, 12
+of them after an attempt that lost a step.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 
