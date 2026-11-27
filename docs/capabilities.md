@@ -1017,7 +1017,21 @@ injector as arguments, as providers.
   runs (D2636). On Cortex-M0 the arithmetic, `sqrt`, `atan` and `atanh` fit
   at `f32`; the larger functions pass 32 KiB and run on the Cortex-M7
   emulator lane instead.
-
+- **Dense vectors and matrices.** `core/dense` has `dense.vector` and
+  `dense.matrix`, views over the caller's storage generic over `f32` and
+  `f64`, with a step for rows and one for columns, so either layout, a
+  transpose and a block are views of the same storage (D2694-D2697); the
+  element-wise operations, reductions and norms; and the BLAS's three
+  levels on them, plane rotations, matrix-vector products and rank-one
+  updates, symmetric and triangular products and solves, symmetric rank-k
+  updates, and the matrix product, packed into the caller's scratch and
+  blocked for the cache (D2700). Nothing allocates and nothing is ported
+  (D2702). The reference BLAS's test programs, translated, hold every test
+  ratio under their threshold of 16 at both widths on every hosted target
+  and on the Cortex-M7 and Xtensa emulators; past 32 KiB, they are image
+  limits on Cortex-M0 and RV32. The `f64` product at n=1000 takes 8.2
+  times OpenBLAS's time on one core, without vector instructions (D2703).
+  Banded and packed storage and complex elements are not covered.
 - **Big numbers.** `core/big` has integers and rationals of any size over
   the caller's allocator, and `core/big/limbs` the natural numbers in
   caller-supplied slices of `u32` limbs beneath them, which allocates
@@ -1275,7 +1289,8 @@ process ignores SIGPIPE and gives its children the default back.
   constants, invariant arithmetic and the addresses of arrays it indexes
   are made once before it, within a register budget of the target's
   (D2149, D2150). arm64 makes a value stored into a slot's register in
-  that register (D2164).
+  that register, also when the value is read again after its store
+  (D2164, D2714).
 - **Reachability.** A program with a public `main` lowers, emits and
   assembles only the routines it can reach, so it pays for the library it
   calls rather than everything it imports, and a firmware image only those

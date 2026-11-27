@@ -1816,6 +1816,8 @@ READERS = {
     "scripts/register_next.py": "allocates register identities, run by hand when a row is filed; its test is in scripts/tests",
     "scripts/item.py": "runs a roadmap item's steps by hand, reading ROADMAP.md and the pointers; its test is in scripts/tests",
     "scripts/gate_inputs.py": "the inputs job",
+    ".github/gate-lanes.json": "the shadow selection's path globs, which decide no job "
+                               "and are read by no lane",
     #  The gate's flake job builds it, skipped with the other lanes under
     #  reuse; README.md's status line gives the package only its version
     #  string, which falls back to 0 rather than failing.
@@ -1909,6 +1911,9 @@ DOCUMENT_READERS = {
     ".github/workflows/gate.yml": COMMENT,
     ".github/workflows/determinism.yml": COMMENT,
     ".github/workflows/release.yml": COMMENT,
+    ".github/workflows/gate-rerun.yml": COMMENT,
+    ".github/gate-lanes.json": "the shadow selection's path globs, which decide no job",
+    "scripts/gate_history.py": COMMENT,
     ".github/actions/nix-tools/action.yml": COMMENT,
     ".gitignore": "the rendered site's output directory",
     "lychee.toml": "links.yml, which always runs",

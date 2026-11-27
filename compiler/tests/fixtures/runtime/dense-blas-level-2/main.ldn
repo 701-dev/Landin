@@ -1,0 +1,947 @@
+--  The reference BLAS's test of its second level, BLAS/TESTING/dblat2.f
+--  of Reference-LAPACK v3.12.1, translated for core/dense, with the
+--  parameters of its dblat2.in: N in 0 1 2 3 5 9, the increments 1 2
+--  -1 -2, ALPHA in 0 1 0.7, BETA in 0 1 0.9 and the threshold 16.  The
+--  NOTICE beside this file carries LAPACK's licence.
+--
+--  DCHK1 is translated for DGEMV, DCHK2 for DSYMV, DCHK3 for DTRMV and
+--  DTRSV, DCHK4 for DGER, DCHK5 for DSYR and DCHK6 for DSYR2, with the
+--  data generator DMAKE and DBEG, the reference product and test ratio
+--  DMVCH, the checks LDE and LDERES that storage the routine must not
+--  write is unchanged, the main program's check of DMVCH itself and the
+--  regression case DREGR1.  The routines map to core/dense as
+--      DGEMV  dense.multiply_vector, TRANS 'T' as dense.transposed(A)
+--      DSYMV  dense.multiply_symmetric_vector
+--      DTRMV  dense.multiply_triangular_vector, TRANS 'T' as the
+--             transposed view and the opposite triangle
+--      DTRSV  dense.solve_triangular_vector, likewise
+--      DGER   dense.add_outer
+--      DSYR   dense.add_symmetric_outer
+--      DSYR2  dense.add_symmetric_outers
+--  TRANS 'C' is 'T' for a real matrix and runs as it, so the generator
+--  draws the same sequence as dblat2's.  Every case is checked at f64
+--  with dblat2's epsilon, 2^-52, and at f32 with sblat2's, 2^-23, and
+--  each runs twice: on the matrix laid out by columns with dblat2's
+--  leading dimension, rows + 1, and on the same matrix laid out by rows
+--  with the leading dimension columns + 1, the gaps in both holding
+--  DMAKE's ROGUE value.
+--
+--  Where this departs from dblat2:
+--  1. Negative increments: core/dense's steps are unsigned, so the
+--     cases dblat2 runs at -1 and -2 run at 1 and 2.  DMVCH keeps its
+--     backward walk, which its own check in the main program uses.
+--  2. Empty dimensions: the reference BLAS returns at once when M or N
+--     is 0 and dblat2 then expects the output unchanged; core/dense
+--     computes the mathematical result, so an empty product is `β·y`.
+--     DGEMV's and DSYMV's empty cases are checked by DMVCH, whose empty
+--     sum gives exactly that, like the others, and so is DREGR1, whose
+--     M of 0 with TRANS 'T' dblat2 expects to leave Y alone.  For the
+--     rank updates an empty or zero-α update leaves A as it is in both,
+--     and is checked as dblat2 does.  dblat2 leaves the rest of a
+--     dimension's cases out after its first empty one; every case runs
+--     here.
+--  3. No error exits (DCHKE, CHKXER, XERBLA): a misused core/dense
+--     routine stops the program.
+--  4. The banded and packed routines DGBMV, DSBMV, DSPMV, DTBMV, DTPMV,
+--     DTBSV, DTPSV, DSPR and DSPR2 are not in core/dense and are not
+--     translated, nor DCHK3's K loop, which only they use.  For the
+--     full forms DMAKE's band test always holds and is left out.
+--  5. dblat2's ISAME checks of scalar arguments, TRANS, M, N, ALPHA,
+--     LDA, INCX and the rest, have nothing to check: Landin passes them
+--     by value.  The checks of the arrays, LDE and LDERES, are kept.
+--  6. NMAX is 32 on hosted targets and 16 on firmware, whose RAM holds
+--     no more, rather than 65.  It decides only the order of DMVCH's own
+--     check, MIN(32, NMAX): the largest M here is 14 either way.
+--  7. Firmware runs every 8th case of each routine, its first and last
+--     among them, with the data of every case generated as on a hosted
+--     target, and DMVCH's own check and DREGR1 whole: the firmware
+--     corpora give a run 20 seconds of an emulator.
+--
+--  The exit code is 42 when every check passes.  Otherwise it is
+--  10 + 2·r at f64, or 50 + 2·r at f32, for a test ratio not under 16,
+--  and one more for storage changed that must not have been, where r
+--  names the check: 0 DMVCH's own, 1 DGEMV, 2 DSYMV, 3 DTRMV, 4 DTRSV,
+--  5 DGER, 6 DSYR, 7 DSYR2, 8 DREGR1.
+import core/dense
+import core/math
+
+--  dblat2's NMAX, as far as the checks here need it: the reference
+--  matrix's leading dimension, and the bound on the order of DMVCH's
+--  own check, MIN(32, NMAX).  Firmware's RAM holds the arrays at 16.
+fixed if compiler.os == freestanding then
+    nmax: usize = 16
+else
+    nmax: usize = 32
+end if
+
+--  The values of N, of INCX and INCY (dblat2's -1 and -2 as 1 and 2),
+--  of ALPHA and of BETA, from dblat2.in.
+dimensions: [6]usize = [0, 1, 2, 3, 5, 9]
+increments: [4]usize = [1, 2, 1, 2]
+value_count: usize = 3
+
+alpha_value: (item: type is math.floating, index: usize) -> (value: item) =
+    value = if index == 0 then item(0.0) elsif index == 1 then item(1.0) else item(0.7) end if
+end alpha_value
+
+beta_value: (item: type is math.floating, index: usize) -> (value: item) =
+    value = if index == 0 then item(0.0) elsif index == 1 then item(1.0) else item(0.9) end if
+end beta_value
+
+--  The arrays of dblat2's main program, one set for each width.
+work: type (item: type is math.floating) = struct
+    --  A(NMAX, NMAX), the matrix as the checks know it, by columns.
+    a: []mut item
+    --  AA, the matrix as the routine is given it, and AS, its copy.
+    aa: []mut item
+    a_saved: []mut item
+    --  X and Y as the checks know them, XX and YY as the routine is
+    --  given them, XS and YS their copies.
+    x: []mut item
+    xx: []mut item
+    x_saved: []mut item
+    y: []mut item
+    yy: []mut item
+    y_saved: []mut item
+    --  DMVCH's result and gauge.
+    yt: []mut item
+    g: []mut item
+    --  Z(NMAX, 2) and W(2).
+    z: []mut item
+    w: []mut item
+end work
+
+mut a_64: [nmax * nmax]f64 = zeroed
+mut aa_64: [nmax * nmax]f64 = zeroed
+mut as_64: [nmax * nmax]f64 = zeroed
+mut x_64: [2 * nmax]f64 = zeroed
+mut xx_64: [2 * nmax]f64 = zeroed
+mut xs_64: [2 * nmax]f64 = zeroed
+mut y_64: [2 * nmax]f64 = zeroed
+mut yy_64: [2 * nmax]f64 = zeroed
+mut ys_64: [2 * nmax]f64 = zeroed
+mut yt_64: [nmax]f64 = zeroed
+mut g_64: [nmax]f64 = zeroed
+mut z_64: [2 * nmax]f64 = zeroed
+mut w_64: [2]f64 = zeroed
+
+mut a_32: [nmax * nmax]f32 = zeroed
+mut aa_32: [nmax * nmax]f32 = zeroed
+mut as_32: [nmax * nmax]f32 = zeroed
+mut x_32: [2 * nmax]f32 = zeroed
+mut xx_32: [2 * nmax]f32 = zeroed
+mut xs_32: [2 * nmax]f32 = zeroed
+mut y_32: [2 * nmax]f32 = zeroed
+mut yy_32: [2 * nmax]f32 = zeroed
+mut ys_32: [2 * nmax]f32 = zeroed
+mut yt_32: [nmax]f32 = zeroed
+mut g_32: [nmax]f32 = zeroed
+mut z_32: [2 * nmax]f32 = zeroed
+mut w_32: [2]f32 = zeroed
+
+--  DBEG's saved state: the generator of the test data.
+generator: type = struct
+    i: i32
+    count: i32
+end generator
+
+--  DBEG with RESET set: the sequence from its start.
+restart: () -> (g: generator) =
+    g = (i: 7, count: 0)
+end restart
+
+--  DBEG: the next value, in (-0.5, 0.5), every fifth step skipped.
+next_value: (item: type is math.floating, inout g: generator) -> (value: item) =
+    g.count += 1
+    g.i = g.i * 891
+    g.i = g.i - 1000 * (g.i / 1000)
+    if g.count >= 5 then
+        g.count = 0
+        g.i = g.i * 891
+        g.i = g.i - 1000 * (g.i / 1000)
+    end if
+    value = item(g.i - 500) / item(1001)
+end next_value
+
+--  DMAKE's ROGUE: what the gaps around a matrix or vector hold.
+rogue: (item: type is math.floating) -> (value: item) =
+    value = item(-1.0e10)
+end rogue
+
+--  DMAKE's TYPE: a general, symmetric or triangular matrix.
+shape: type = general | symmetric | triangular
+general: atom
+symmetric: atom
+triangular: atom
+
+--  Whether element (i, j) is in `part`.
+in_part: (part: dense.triangle, i: usize, j: usize) -> (yes: bool) =
+    yes = if part == dense.upper then i <= j else i >= j end if
+end in_part
+
+--  The first half of DMAKE: the matrix A, m by n, as the checks know
+--  it, at a[i + j * nmax], from the generator.  A symmetric matrix is
+--  made whole from its triangle `part`, and a triangular one has zeros
+--  in the other triangle and one added to its diagonal, or a diagonal
+--  of ones when `unit`.
+make_matrix: (item: type is math.floating, kind: shape, part: dense.triangle,
+              unit: bool, m: usize, n: usize, a: []mut item,
+              inout g: generator, shift: item) -> none =
+    for j in 0..<n do
+        for i in 0..<m do
+            if kind == general or in_part(part, i, j) then
+                a[i + j * nmax] = next_value(g, item: item) + shift
+                if i <> j then
+                    if kind == symmetric then
+                        a[j + i * nmax] = a[i + j * nmax]
+                    elsif kind == triangular then
+                        a[j + i * nmax] = item(0)
+                    end if
+                end if
+            end if
+        end for
+        if kind == triangular then
+            a[j + j * nmax] = a[j + j * nmax] + item(1)
+            if unit then
+                a[j + j * nmax] = item(1)
+            end if
+        end if
+    end for
+end make_matrix
+
+--  A layout of an m by n matrix in AA: by columns, element (i, j) at
+--  i + j * lead, or by rows, at i * lead + j, `length` elements in all.
+layout: type = struct
+    by_rows: bool
+    lead: usize
+    length: usize
+end layout
+
+--  The layout of an m by n matrix: by columns with dblat2's LDA, m + 1,
+--  or by rows with n + 1.
+layout_of: (by_rows: bool, m: usize, n: usize) -> (l: layout) =
+    mut lead: usize = if by_rows then n else m end if
+    if lead < nmax then
+        lead += 1
+    end if
+    l = (by_rows: by_rows, lead: lead, length: lead * (if by_rows then m else n end if))
+end layout_of
+
+--  Where element (i, j) lies in a layout.
+place: (l: layout, i: usize, j: usize) -> (at: usize) =
+    at = if l.by_rows then i * l.lead + j else i + j * l.lead end if
+end place
+
+--  The distance between elements of a column in a layout.
+column_step: (l: layout) -> (step: usize) =
+    step = if l.by_rows then l.lead else 1 end if
+end column_step
+
+--  The row and column of storage element `at` in a layout, or
+--  rows and columns past the matrix for a gap.
+row_of: (l: layout, at: usize) -> (i: usize) =
+    i = if l.by_rows then at / l.lead else at % l.lead end if
+end row_of
+
+column_of: (l: layout, at: usize) -> (j: usize) =
+    j = if l.by_rows then at % l.lead else at / l.lead end if
+end column_of
+
+--  Whether DMAKE puts element (i, j) of A in AA: all of a general
+--  matrix, the triangle `part` of the others, but not a unit diagonal.
+given: (kind: shape, part: dense.triangle, unit: bool, i: usize, j: usize)
+       -> (yes: bool) =
+    yes = kind == general or (in_part(part, i, j) and not (unit and i == j))
+end given
+
+--  The second half of DMAKE: AA from A, in the layout, the gaps and the
+--  elements not given ROGUE.
+lay_out: (item: type is math.floating, kind: shape, part: dense.triangle,
+          unit: bool, m: usize, n: usize, a: []item, aa: []mut item,
+          l: layout) -> none =
+    for at in 0..<l.length do
+        i := row_of(l, at)
+        j := column_of(l, at)
+        if i < m and j < n and given(kind, part, unit, i, j) then
+            aa[at] = a[i + j * nmax]
+        else
+            aa[at] = rogue(item: item)
+        end if
+    end for
+end lay_out
+
+--  DMAKE for a vector: X from the generator, n elements, and XX the
+--  same with `step` - 1 elements of ROGUE after each.
+make_vector: (item: type is math.floating, x: []mut item, xx: []mut item,
+              n: usize, step: usize, inout g: generator, shift: item) -> none =
+    for j in 0..<n do
+        x[j] = next_value(g, item: item) + shift
+        for i in 0..<step do
+            xx[j * step + i] = if i == 0 then x[j] else rogue(item: item) end if
+        end for
+    end for
+end make_vector
+
+--  dblat2's X(N/2) = 0, in both copies, when there are two or more.
+clear_middle: (item: type is math.floating, x: []mut item, xx: []mut item,
+               n: usize, step: usize) -> none =
+    if n > 1 then
+        x[n / 2 - 1] = item(0)
+        xx[step * (n / 2 - 1)] = item(0)
+    end if
+end clear_middle
+
+--  Copy `count` elements.
+copy_elements: (item: type is math.floating, into: []mut item, source: []item,
+                count: usize) -> none =
+    for i in 0..<count do
+        into[i] = source[i]
+    end for
+end copy_elements
+
+--  LDE: whether the first `count` elements are the same.
+same: (item: type is math.floating, x: []item, y: []item, count: usize)
+      -> (yes: bool) =
+    yes = true
+    for i in 0..<count do
+        if x[i] <> y[i] then
+            yes = false
+            return
+        end if
+    end for
+end same
+
+--  LDERES for a vector: whether the gaps between a vector's n elements
+--  `step` apart are the same.
+same_gaps: (item: type is math.floating, x: []item, y: []item, n: usize,
+            step: usize) -> (yes: bool) =
+    yes = true
+    for at in 0..<n * step do
+        if at % step <> 0 and x[at] <> y[at] then
+            yes = false
+            return
+        end if
+    end for
+end same_gaps
+
+--  LDERES for a matrix: whether every element of the layout outside
+--  the m by n matrix, or for a symmetric one outside its triangle
+--  `part`, is the same.
+same_outside: (item: type is math.floating, kind: shape, part: dense.triangle,
+               m: usize, n: usize, x: []item, y: []item, l: layout)
+              -> (yes: bool) =
+    yes = true
+    for at in 0..<l.length do
+        i := row_of(l, at)
+        j := column_of(l, at)
+        written := i < m and j < n and (kind == general or in_part(part, i, j))
+        if not written and x[at] <> y[at] then
+            yes = false
+            return
+        end if
+    end for
+end same_outside
+
+--  DMVCH: the test ratio of YY, `yy_step` apart from yy[yy_at], as
+--  α·A·X + β·Y, or α·Aᵀ·X + β·Y when `transpose`, for the m by n matrix
+--  A at a[i + j * lead]; `x_back` and `y_back` walk X and Y from their
+--  last element, as a negative INCX and INCY do.  The ratio is each
+--  element's error in units of eps of the sum of its terms' magnitudes;
+--  the check stops at a ratio past 1/√eps, which dblat2 takes as fatal.
+reference: (item: type is math.floating, transpose: bool, m: usize, n: usize,
+            alpha: item, a: []item, lead: usize, x: []item, x_back: bool,
+            beta: item, y: []item, y_back: bool, yt: []mut item,
+            g: []mut item, yy: []item, yy_at: usize, yy_step: usize, eps: item)
+           -> (err: item) =
+    rows := if transpose then n else m end if
+    columns := if transpose then m else n end if
+    for i in 0..<rows do
+        at_y := if y_back then rows - 1 - i else i end if
+        mut total := item(0)
+        mut gauge := item(0)
+        for p in 0..<columns do
+            at_x := if x_back then columns - 1 - p else p end if
+            element := if transpose then a[p + i * lead] else a[i + p * lead] end if
+            term := element * x[at_x]
+            total = total + term
+            gauge = gauge + math.abs(term)
+        end for
+        yt[at_y] = alpha * total + beta * y[at_y]
+        g[at_y] = math.abs(alpha) * gauge + math.abs(beta * y[at_y])
+    end for
+    err = item(0)
+    limit := item(1) / math.sqrt(eps)
+    for i in 0..<rows do
+        mut ratio := math.abs(yt[i] - yy[yy_at + i * yy_step]) / eps
+        if g[i] <> item(0) then
+            ratio = ratio / g[i]
+        end if
+        err = math.max(err, ratio)
+        if err >= limit then
+            return
+        end if
+    end for
+end reference
+
+--  A check's outcome: 0 when it passed, otherwise 1 for a test ratio
+--  not under the threshold and 2 for storage changed, and the largest
+--  ratio it saw, dblat2's ERRMAX.
+outcome: type (item: type is math.floating) = struct
+    failure: i32
+    worst: item
+end outcome
+
+threshold: (item: type is math.floating) -> (value: item) =
+    value = item(16.0)
+end threshold
+
+--  Fold one test ratio into an outcome: whether it failed.
+judge: (item: type is math.floating, inout o: outcome(item), err: item)
+       -> (failed: bool) =
+    o.worst = math.max(o.worst, err)
+    failed = not (err < threshold(item: item))
+    if failed then
+        o.failure = 1
+    end if
+end judge
+
+--  Firmware runs every `stride`-th case of a routine, its first and its
+--  last, within the 20 seconds an emulator gives it; a hosted target
+--  runs them all.
+fixed if compiler.os == freestanding then
+    stride: usize = 8
+else
+    stride: usize = 1
+end if
+
+--  Whether the case numbered `count`, from 1, of `total` runs, and so
+--  in how many layouts: every `stride`-th case, the first and the last.
+layouts: (count: usize, total: usize) -> (orders: usize) =
+    orders = if (count - 1) % stride == 0 or count == total then 2 else 0 end if
+end layouts
+
+lesser: (x: usize, y: usize) -> (result: usize) =
+    result = if x < y then x else y end if
+end lesser
+
+--  The main program's check of DMVCH on exact data: A(i, j) is
+--  max(i - j + 1, 0), X(j) is j, from 1, and the product is known.
+check_reference: (item: type is math.floating, w: work(item), eps: item)
+                 -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    n := lesser(32, nmax)
+    for j in 0..<n do
+        for i in 0..<n do
+            w.a[i + j * nmax] = if i + 1 >= j then item(i64(i + 1) - i64(j)) else item(0) end if
+        end for
+        w.x[j] = item(i64(j + 1))
+        w.y[j] = item(0)
+    end for
+    for j in 0..<n do
+        k := i64(j + 1)
+        w.yy[j] = item(k * ((k + 1) * k) / 2 - ((k + 1) * k * (k - 1)) / 3)
+    end for
+    for pass in 0..<2 do
+        back := pass == 1
+        err := reference(back, n, n, item(1), w.a, nmax, w.x, back, item(0),
+                         w.y, back, w.yt, w.g, w.yy, 0, 1, eps)
+        if not same(w.yy, w.yt, n) or err <> item(0) then
+            o.failure = 1
+            return
+        end if
+    end for
+end check_reference
+
+--  DCHK1 for DGEMV, and DREGR1.
+check_gemv: (item: type is math.floating, w: work(item), eps: item)
+            -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    mut g := restart()
+    mut count: usize = 0
+    half := item(0.5)
+    for d in 0..<lenof dimensions do
+        n := dimensions[d]
+        nd := n / 2 + 1
+        for im in 0..<2 do
+            m: usize = if im == 0 then (if n > nd then n - nd else 0 end if)
+                       else lesser(n + nd, nmax) end if
+            make_matrix(general, dense.upper, false, m, n, w.a, g, item(0))
+            for trans in 0..<3 do
+                transpose := trans > 0
+                rows := if transpose then n else m end if
+                columns := if transpose then m else n end if
+                for ix in 0..<lenof increments do
+                    incx := increments[ix]
+                    lx := incx * columns
+                    make_vector(w.x, w.xx, columns, incx, g, half)
+                    clear_middle(w.x, w.xx, columns, incx)
+                    for iy in 0..<lenof increments do
+                        incy := increments[iy]
+                        ly := incy * rows
+                        for ia in 0..<value_count do
+                            alpha := alpha_value(ia, item: item)
+                            for ib in 0..<value_count do
+                                beta := beta_value(ib, item: item)
+                                make_vector(w.y, w.yy, rows, incy, g, item(0))
+                                copy_elements(w.x_saved, w.xx, lx)
+                                copy_elements(w.y_saved, w.yy, ly)
+                                count += 1
+                                for order in usize(0)..<layouts(count, 5184) do
+                                    l := layout_of(order == 1, m, n)
+                                    lay_out(general, dense.upper, false, m, n, w.a, w.aa, l)
+                                    copy_elements(w.a_saved, w.aa, l.length)
+                                    copy_elements(w.yy, w.y_saved, ly)
+                                    a := dense.matrix_over(w.aa[0..<l.length], m, n,
+                                                           place(l, 1, 0), place(l, 0, 1))
+                                    x := dense.strided_over(w.xx[0..<lx], columns, incx)
+                                    y := dense.strided_over(w.yy[0..<ly], rows, incy)
+                                    if transpose then
+                                        dense.multiply_vector(y, alpha, dense.transposed(a), x, beta)
+                                    else
+                                        dense.multiply_vector(y, alpha, a, x, beta)
+                                    end if
+                                    if not same(w.a_saved, w.aa, l.length)
+                                      or not same(w.x_saved, w.xx, lx)
+                                      or not same_gaps(w.y_saved, w.yy, rows, incy) then
+                                        o.failure = 2
+                                        return
+                                    end if
+                                    err := reference(transpose, m, n, alpha, w.a, nmax, w.x,
+                                                     false, beta, w.y, false, w.yt, w.g, w.yy,
+                                                     0, incy, eps)
+                                    if judge(o, err) then
+                                        return
+                                    end if
+                                end for
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+    --  DREGR1: TRANS 'T', M 0, N 5, ALPHA 1, BETA -0.7, Y(i) 42 + i.
+    regression: usize = 5
+    for i in 0..<regression do
+        w.y[i] = item(42) + item(i64(i + 1))
+        w.yy[i] = w.y[i]
+    end for
+    a := dense.matrix_over(w.aa[0..<5], 0, 5, 1, 1)
+    x := dense.strided_over(w.xx[0..<0], 0, 1)
+    y := dense.strided_over(w.yy[0..<5], 5, 1)
+    beta := item(-0.7)
+    dense.multiply_vector(y, item(1), dense.transposed(a), x, beta)
+    err := reference(true, 0, 5, item(1), w.a, nmax, w.x, false, beta, w.y, false,
+                     w.yt, w.g, w.yy, 0, 1, eps)
+    if judge(o, err) then
+        o.failure = 3
+    end if
+end check_gemv
+
+--  DCHK2 for DSYMV.
+check_symv: (item: type is math.floating, w: work(item), eps: item)
+            -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    mut g := restart()
+    mut count: usize = 0
+    half := item(0.5)
+    for d in 0..<lenof dimensions do
+        n := dimensions[d]
+        for ic in 0..<2 do
+            part: dense.triangle = if ic == 0 then dense.upper else dense.lower end if
+            make_matrix(symmetric, part, false, n, n, w.a, g, item(0))
+            for ix in 0..<lenof increments do
+                incx := increments[ix]
+                lx := incx * n
+                make_vector(w.x, w.xx, n, incx, g, half)
+                clear_middle(w.x, w.xx, n, incx)
+                for iy in 0..<lenof increments do
+                    incy := increments[iy]
+                    ly := incy * n
+                    for ia in 0..<value_count do
+                        alpha := alpha_value(ia, item: item)
+                        for ib in 0..<value_count do
+                            beta := beta_value(ib, item: item)
+                            make_vector(w.y, w.yy, n, incy, g, item(0))
+                            copy_elements(w.x_saved, w.xx, lx)
+                            copy_elements(w.y_saved, w.yy, ly)
+                            count += 1
+                            for order in usize(0)..<layouts(count, 3456) do
+                                l := layout_of(order == 1, n, n)
+                                lay_out(symmetric, part, false, n, n, w.a, w.aa, l)
+                                copy_elements(w.a_saved, w.aa, l.length)
+                                copy_elements(w.yy, w.y_saved, ly)
+                                a := dense.matrix_over(w.aa[0..<l.length], n, n,
+                                                       place(l, 1, 0), place(l, 0, 1))
+                                x := dense.strided_over(w.xx[0..<lx], n, incx)
+                                y := dense.strided_over(w.yy[0..<ly], n, incy)
+                                dense.multiply_symmetric_vector(y, alpha, a, part, x, beta)
+                                if not same(w.a_saved, w.aa, l.length)
+                                  or not same(w.x_saved, w.xx, lx)
+                                  or not same_gaps(w.y_saved, w.yy, n, incy) then
+                                    o.failure = 2
+                                    return
+                                end if
+                                err := reference(false, n, n, alpha, w.a, nmax, w.x, false,
+                                                 beta, w.y, false, w.yt, w.g, w.yy, 0, incy,
+                                                 eps)
+                                if judge(o, err) then
+                                    return
+                                end if
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+end check_symv
+
+--  The other triangle.
+opposite: (part: dense.triangle) -> (other: dense.triangle) =
+    other = if part == dense.upper then dense.lower else dense.upper end if
+end opposite
+
+--  DCHK3 for DTRMV, or for DTRSV when `solve`.
+check_triangular: (item: type is math.floating, w: work(item), eps: item,
+                   solve: bool) -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    mut g := restart()
+    mut count: usize = 0
+    half := item(0.5)
+    for i in 0..<nmax do
+        w.z[i] = item(0)
+    end for
+    for d in 0..<lenof dimensions do
+        n := dimensions[d]
+        for icu in 0..<2 do
+            part: dense.triangle = if icu == 0 then dense.upper else dense.lower end if
+            for ict in 0..<3 do
+                transpose := ict > 0
+                for icd in 0..<2 do
+                    unit := icd == 0
+                    diagonal: dense.diagonal_kind = if unit then dense.unit else dense.stored end if
+                    make_matrix(triangular, part, unit, n, n, w.a, g, item(0))
+                    for ix in 0..<lenof increments do
+                        incx := increments[ix]
+                        lx := incx * n
+                        make_vector(w.x, w.xx, n, incx, g, half)
+                        clear_middle(w.x, w.xx, n, incx)
+                        copy_elements(w.x_saved, w.xx, lx)
+                        count += 1
+                        for order in usize(0)..<layouts(count, 288) do
+                            l := layout_of(order == 1, n, n)
+                            lay_out(triangular, part, unit, n, n, w.a, w.aa, l)
+                            copy_elements(w.a_saved, w.aa, l.length)
+                            copy_elements(w.xx, w.x_saved, lx)
+                            a := dense.matrix_over(w.aa[0..<l.length], n, n,
+                                                   place(l, 1, 0), place(l, 0, 1))
+                            x := dense.strided_over(w.xx[0..<lx], n, incx)
+                            if solve then
+                                if transpose then
+                                    dense.solve_triangular_vector(x, dense.transposed(a),
+                                                                  opposite(part), diagonal)
+                                else
+                                    dense.solve_triangular_vector(x, a, part, diagonal)
+                                end if
+                            else
+                                if transpose then
+                                    dense.multiply_triangular_vector(x, dense.transposed(a),
+                                                                     opposite(part), diagonal)
+                                else
+                                    dense.multiply_triangular_vector(x, a, part, diagonal)
+                                end if
+                            end if
+                            if not same(w.a_saved, w.aa, l.length)
+                              or not same_gaps(w.x_saved, w.xx, n, incx) then
+                                o.failure = 2
+                                return
+                            end if
+                            mut err := item(0)
+                            if solve then
+                                --  A times the solution is the right-hand side.
+                                for i in 0..<n do
+                                    w.z[i] = w.xx[i * incx]
+                                    w.xx[i * incx] = w.x[i]
+                                end for
+                                err = reference(transpose, n, n, item(1), w.a, nmax, w.z,
+                                                false, item(0), w.x, false, w.yt, w.g, w.xx,
+                                                0, incx, eps)
+                            else
+                                err = reference(transpose, n, n, item(1), w.a, nmax, w.x,
+                                                false, item(0), w.z, false, w.yt, w.g, w.xx,
+                                                0, incx, eps)
+                            end if
+                            if judge(o, err) then
+                                return
+                            end if
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+end check_triangular
+
+--  DCHK4 for DGER.
+check_ger: (item: type is math.floating, w: work(item), eps: item)
+           -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    mut g := restart()
+    mut count: usize = 0
+    half := item(0.5)
+    for d in 0..<lenof dimensions do
+        n := dimensions[d]
+        nd := n / 2 + 1
+        for im in 0..<2 do
+            m: usize = if im == 0 then (if n > nd then n - nd else 0 end if)
+                       else lesser(n + nd, nmax) end if
+            empty := n == 0 or m == 0
+            for ix in 0..<lenof increments do
+                incx := increments[ix]
+                lx := incx * m
+                make_vector(w.x, w.xx, m, incx, g, half)
+                clear_middle(w.x, w.xx, m, incx)
+                for iy in 0..<lenof increments do
+                    incy := increments[iy]
+                    ly := incy * n
+                    make_vector(w.y, w.yy, n, incy, g, item(0))
+                    clear_middle(w.y, w.yy, n, incy)
+                    for ia in 0..<value_count do
+                        alpha := alpha_value(ia, item: item)
+                        make_matrix(general, dense.upper, false, m, n, w.a, g, item(0))
+                        copy_elements(w.x_saved, w.xx, lx)
+                        copy_elements(w.y_saved, w.yy, ly)
+                        count += 1
+                        for order in usize(0)..<layouts(count, 576) do
+                            l := layout_of(order == 1, m, n)
+                            lay_out(general, dense.upper, false, m, n, w.a, w.aa, l)
+                            copy_elements(w.a_saved, w.aa, l.length)
+                            a := dense.matrix_over(w.aa[0..<l.length], m, n,
+                                                   place(l, 1, 0), place(l, 0, 1))
+                            x := dense.strided_over(w.xx[0..<lx], m, incx)
+                            y := dense.strided_over(w.yy[0..<ly], n, incy)
+                            dense.add_outer(a, alpha, x, y)
+                            mut kept := same(w.x_saved, w.xx, lx) and same(w.y_saved, w.yy, ly)
+                            if empty then
+                                kept = kept and same(w.a_saved, w.aa, l.length)
+                            else
+                                kept = kept and same_outside(general, dense.upper, m, n,
+                                                             w.a_saved, w.aa, l)
+                            end if
+                            if not kept then
+                                o.failure = 2
+                                return
+                            end if
+                            --  Column j is α·x·y(j) + A(:, j); X stands as
+                            --  dblat2's Z, an m by 1 matrix.
+                            for j in 0..<n do
+                                w.w[0] = w.y[j]
+                                err := reference(false, m, 1, alpha, w.x, nmax, w.w, false,
+                                                 item(1), w.a[j * nmax..<lenof w.a], false,
+                                                 w.yt, w.g, w.aa, place(l, 0, j),
+                                                 column_step(l), eps)
+                                if judge(o, err) then
+                                    return
+                                end if
+                            end for
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+end check_ger
+
+--  DCHK5 for DSYR, or DCHK6 for DSYR2 when `two`.
+check_syr: (item: type is math.floating, w: work(item), eps: item, two: bool)
+           -> (o: outcome(item)) =
+    o = (failure: 0, worst: item(0))
+    mut g := restart()
+    mut count: usize = 0
+    half := item(0.5)
+    count_y: usize = if two then 4 else 1 end if
+    cases: usize = if two then 576 else 144 end if
+    for d in 0..<lenof dimensions do
+        n := dimensions[d]
+        for ic in 0..<2 do
+            part: dense.triangle = if ic == 0 then dense.upper else dense.lower end if
+            for ix in 0..<lenof increments do
+                incx := increments[ix]
+                lx := incx * n
+                make_vector(w.x, w.xx, n, incx, g, half)
+                clear_middle(w.x, w.xx, n, incx)
+                for iy in 0..<count_y do
+                    incy := increments[iy]
+                    ly := incy * n
+                    if two then
+                        make_vector(w.y, w.yy, n, incy, g, item(0))
+                        clear_middle(w.y, w.yy, n, incy)
+                    end if
+                    for ia in 0..<value_count do
+                        alpha := alpha_value(ia, item: item)
+                        empty := n == 0 or alpha == item(0)
+                        make_matrix(symmetric, part, false, n, n, w.a, g, item(0))
+                        copy_elements(w.x_saved, w.xx, lx)
+                        if two then
+                            copy_elements(w.y_saved, w.yy, ly)
+                        end if
+                        count += 1
+                        for order in usize(0)..<layouts(count, cases) do
+                            l := layout_of(order == 1, n, n)
+                            lay_out(symmetric, part, false, n, n, w.a, w.aa, l)
+                            copy_elements(w.a_saved, w.aa, l.length)
+                            a := dense.matrix_over(w.aa[0..<l.length], n, n,
+                                                   place(l, 1, 0), place(l, 0, 1))
+                            x := dense.strided_over(w.xx[0..<lx], n, incx)
+                            if two then
+                                y := dense.strided_over(w.yy[0..<ly], n, incy)
+                                dense.add_symmetric_outers(a, part, alpha, x, y)
+                            else
+                                dense.add_symmetric_outer(a, part, alpha, x)
+                            end if
+                            mut kept := same(w.x_saved, w.xx, lx)
+                            if two then
+                                kept = kept and same(w.y_saved, w.yy, ly)
+                            end if
+                            if empty then
+                                kept = kept and same(w.a_saved, w.aa, l.length)
+                            else
+                                kept = kept and same_outside(symmetric, part, n, n,
+                                                             w.a_saved, w.aa, l)
+                            end if
+                            if not kept then
+                                o.failure = 2
+                                return
+                            end if
+                            if not empty then
+                                --  Z holds X, and Y beside it for DSYR2.
+                                for i in 0..<n do
+                                    w.z[i] = w.x[i]
+                                    w.z[nmax + i] = w.y[i]
+                                end for
+                                for j in 0..<n do
+                                    first: usize = if part == dense.upper then 0 else j end if
+                                    length := if part == dense.upper then j + 1 else n - j end if
+                                    mut err := item(0)
+                                    if two then
+                                        w.w[0] = w.z[nmax + j]
+                                        w.w[1] = w.z[j]
+                                        err = reference(false, length, 2, alpha,
+                                                        w.z[first..<lenof w.z], nmax, w.w,
+                                                        false, item(1),
+                                                        w.a[first + j * nmax..<lenof w.a],
+                                                        false, w.yt, w.g, w.aa,
+                                                        place(l, first, j), column_step(l),
+                                                        eps)
+                                    else
+                                        w.w[0] = w.z[j]
+                                        err = reference(false, length, 1, alpha,
+                                                        w.z[first..<lenof w.z], length, w.w,
+                                                        false, item(1),
+                                                        w.a[first + j * nmax..<lenof w.a],
+                                                        false, w.yt, w.g, w.aa,
+                                                        place(l, first, j), column_step(l),
+                                                        eps)
+                                    end if
+                                    if judge(o, err) then
+                                        return
+                                    end if
+                                end for
+                            end if
+                        end for
+                    end for
+                end for
+            end for
+        end for
+    end for
+end check_syr
+
+--  Every check at one width: 0 when all pass, otherwise one more than
+--  the failure's place after the width's base.
+check_all: (item: type is math.floating, w: work(item), eps: item) -> (code: i32) =
+    code = 0
+    mut o := check_reference(w, eps)
+    if o.failure <> 0 then
+        code = o.failure
+        return
+    end if
+    o = check_gemv(w, eps)
+    if o.failure == 3 then
+        code = 17
+        return
+    elsif o.failure <> 0 then
+        code = 2 + o.failure
+        return
+    end if
+    o = check_symv(w, eps)
+    if o.failure <> 0 then
+        code = 4 + o.failure
+        return
+    end if
+    o = check_triangular(w, eps, false)
+    if o.failure <> 0 then
+        code = 6 + o.failure
+        return
+    end if
+    o = check_triangular(w, eps, true)
+    if o.failure <> 0 then
+        code = 8 + o.failure
+        return
+    end if
+    o = check_ger(w, eps)
+    if o.failure <> 0 then
+        code = 10 + o.failure
+        return
+    end if
+    o = check_syr(w, eps, false)
+    if o.failure <> 0 then
+        code = 12 + o.failure
+        return
+    end if
+    o = check_syr(w, eps, true)
+    if o.failure <> 0 then
+        code = 14 + o.failure
+        return
+    end if
+end check_all
+
+public main: () -> (code: i32) =
+    w64: work(f64) = (a: a_64[0..<lenof a_64],
+                      aa: aa_64[0..<lenof aa_64],
+                      a_saved: as_64[0..<lenof as_64],
+                      x: x_64[0..<lenof x_64],
+                      xx: xx_64[0..<lenof xx_64],
+                      x_saved: xs_64[0..<lenof xs_64],
+                      y: y_64[0..<lenof y_64],
+                      yy: yy_64[0..<lenof yy_64],
+                      y_saved: ys_64[0..<lenof ys_64],
+                      yt: yt_64[0..<lenof yt_64],
+                      g: g_64[0..<lenof g_64],
+                      z: z_64[0..<lenof z_64],
+                      w: w_64[0..<lenof w_64])
+    mut failed := check_all(w64, 0x1.0p-52)
+    if failed <> 0 then
+        code = 9 + failed
+        return
+    end if
+    w32: work(f32) = (a: a_32[0..<lenof a_32],
+                      aa: aa_32[0..<lenof aa_32],
+                      a_saved: as_32[0..<lenof as_32],
+                      x: x_32[0..<lenof x_32],
+                      xx: xx_32[0..<lenof xx_32],
+                      x_saved: xs_32[0..<lenof xs_32],
+                      y: y_32[0..<lenof y_32],
+                      yy: yy_32[0..<lenof yy_32],
+                      y_saved: ys_32[0..<lenof ys_32],
+                      yt: yt_32[0..<lenof yt_32],
+                      g: g_32[0..<lenof g_32],
+                      z: z_32[0..<lenof z_32],
+                      w: w_32[0..<lenof w_32])
+    failed = check_all(w32, 0x1.0p-23)
+    if failed <> 0 then
+        code = 49 + failed
+        return
+    end if
+    code = 42
+end main
