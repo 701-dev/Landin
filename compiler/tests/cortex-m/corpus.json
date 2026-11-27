@@ -841,6 +841,13 @@
       ],
       "reason": "The hosted startup's argument root exists only in a hosted process."
     },
+    "abi/r440-native-startup-invalid": {
+      "mode": "refuse",
+      "codes": [
+        "L0015"
+      ],
+      "reason": "The hosted startup's argument root exists only in a hosted process."
+    },
     "abi/r440-native-startup-replaced": {
       "mode": "refuse",
       "codes": [

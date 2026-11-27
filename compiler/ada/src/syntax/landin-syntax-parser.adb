@@ -9970,12 +9970,15 @@ package body Landin.Syntax.Parser is
                                                   & " rather than recovering"
                                                   & " the call",
                                        Note    => "[1820]: in an `if` arm,"
-                                                  & " recover a call with"
+                                                  & " put the call and its"
+                                                  & " recovery in"
                                                   & " parentheses,"
                                                   & " `(call(...) else"
-                                                  & " value)`, or bind the"
-                                                  & " error, `else (problem)"
-                                                  & " ... end`");
+                                                  & " value)` or"
+                                                  & " `(call(...) else begin"
+                                                  & " return end)`, or bind"
+                                                  & " the error, `else"
+                                                  & " (problem) ... end`");
                                     if not Begins_Line (Index) then
                                        Skip_Rest_Of_Line;
                                     end if;
@@ -14657,7 +14660,9 @@ package body Landin.Syntax.Parser is
                                          & " it the call's by binding the"
                                          & " error, `else (problem) ..."
                                          & " end`, or with parentheses,"
-                                         & " `(call(...) else value)`");
+                                         & " `(call(...) else value)` or"
+                                         & " `(call(...) else begin return"
+                                         & " end)`");
                         end if;
                         Else_Closes_Arm := False;
                         Advance;

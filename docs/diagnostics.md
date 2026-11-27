@@ -175,6 +175,12 @@ Linux target, and a target with no hosted system takes neither. `check`
 takes `--firmware-entry` and `--build-report` as `compile` does, and refuses
 an entry that names no firmware routine (D383).
 
+An assembly operand is linked only for a hosted target. A firmware image
+is laid out by its description, which assembly does not carry, so a `.s`
+operand with a firmware target is refused here: compile the program's source
+with `--root` and `--firmware-entry`, or assemble the `--keep-asm` output and
+link it with the toolchain and the `OUT.ld` written beside the image (D2996).
+
 `refine` has no `build` command of its own: `refine build` runs a
 contributed `refine-build` on PATH. With none there, `refine build` and
 `refine help build` are refused here, saying so; install one, or compile a
@@ -576,7 +582,9 @@ An expression was required and none begins here [1820]: an operator with no
 operand, or a separator where a value belongs. An exit written as a call's
 `else` value, `f() else return`, is refused here too, because a recovery that
 leaves holds its `return`, `fail`, `break` or `continue` in a block [1030]:
-the likely fix writes `else begin return end` (D870). A `[` that begins a
+the likely fix writes `else begin return end` (D870). As an `if` arm's
+statement the call and that recovery go in parentheses, `(f() else begin
+return end)`, since a bare `else` there divides the `if` (L0329). A `[` that begins a
 line continues the line above as an index when that line ends in a name
 [1750], so `[]` there is an empty index, and the refusal says the line was
 continued and that the name in parentheses, `(name)`, lets the `[` begin a
@@ -786,9 +794,17 @@ prefix another file of the module imports, or whose prefix is the last
 segment of a library module the program reaches [1420], is told which import
 this file lacks (D2174), and the exact fix, which `refine fix` applies,
 inserts the line, `import core/mem`. A type argument written with such a
-prefix, `vec.list(mem.allocator)`, is reported the same way. A library
-module no import of the program reaches is not known here, so its name is
-reported as a misspelling.
+prefix, `vec.list(mem.allocator)`, is reported the same way. So is a
+prefix that is the last segment of exactly one library module no import of
+the program reaches, `text.length(value)` in a program that imports
+`core/text` nowhere: the driver lists the library's modules for this
+target and the note names the one meant (D2994).
+
+Inside `platform/linux`, a name ending in `_number` that nothing declares is
+a system call's number that `platform/linux/wrapped.ldn` does not hold yet.
+That file is generated: the note says to run `python3
+scripts/linux_syscalls.py`, which writes the number of every call the
+module's other files name (D2999).
 
 An option is read only in fixed conditions, option defaults and compiler
 assertions (D202) [1530], so a module value or a routine that reads one is
@@ -1255,7 +1271,10 @@ name: []u8 = "bad\q"
 A float literal needs its fraction, and an exponent where its form requires
 one [0210] [0220] [0230]. It also needs a separator before a following name
 [1770], so a width suffix such as `f32` makes the whole literal malformed:
-drop the suffix and let the binding's type give the width.
+drop the suffix and let the binding's type give the width. A literal that
+lacks only its point, `1e10` or C's hexadecimal `0x1p-20`, is told that the
+point goes before the exponent, and the exact fix writes `.0` there:
+`1.0e10`, `0x1.0p-20` (D2995).
 
 ```landin
 ratio: f64 = 1e10
@@ -1384,8 +1403,9 @@ atom to the error set, handle or propagate the call, or remove the handling
 from an infallible call.
 
 In an `if` arm, `else value` after a call is read as the `if`'s own `else`
-[1820], so the call is left unrecovered: write `(f() else 0)`, or bind the
-error with `else (problem)`. A failing call that ends a body with returns is
+[1820], so the call is left unrecovered: put the call and its recovery in
+parentheses, `(f() else 0)` or `(f() else begin return end)`, or bind the
+error with `else (problem) ... end` (D3000). A failing call that ends a body with returns is
 the routine's value [1080], and the message says so; its result is checked
 against the returns once the failure is handled (D871). The hosted `main`
 declares no `!` set [1970], so widening one cannot mend a `try` or an
@@ -2327,7 +2347,8 @@ vector table at the description's boot address with its whole length, a
 region of the description, of another size or reached by a section of the
 image (D1114), an initialized image whose load address is not in the region
 text is placed in, or a datum or routine at address zero, where a pointer
-is null (D1115, D1323). A description-owned
+is null (D1115, D1323); a startup routine is held to it too, and only the
+vector table and the RISC-V entry word may begin there (D2997). A description-owned
 initialization stage is the reset-vector entry when present. In RAM layout,
 loaded sections must be in SRAM, their load and runtime addresses equal,
 and their ranges clear of the reserved stack. Change the script so the

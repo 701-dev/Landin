@@ -3467,6 +3467,27 @@ declined.
 `negative/malformed-hex-float-exponent`, the lexer cases, and the `float.ieee`
 and `source.lexical` guarantee rows.
 
+
+### D2995 — A float that lacks only its point is told where it goes
+
+**The discrepancy:** C's hexadecimal float without a point, `0x1p-20`, was
+L0011, "this is not an integer any base spells", whose note spoke of digits
+and underscores; nothing said that [0220]'s hexadecimal float has a point,
+`0x1.0p-20` (SR-1896). `1e10` was L0321 with the general note.
+
+**Chosen:** a digit run, decimal or after `0x`, followed directly by its
+exponent, `e` or `p` with an optional sign and a digit, is L0321 over the
+whole literal. When the run before the exponent is well formed the note
+says that a float with an exponent still has a point with digits on both
+sides, and an exact fix writes `.0` before the exponent, which keeps the
+value; `refine fix` applies it.
+
+**The alternatives:** accepting C's form, a second spelling of one value;
+and keeping `0x1p-20` an integer error, whose words point at the wrong rule.
+
+**Pinned by** `negative/hexadecimal-float-without-point-is-fixed`, whose
+fixed program compiles with no report.
+
 ### D167 — IEEE special values are inherent type-qualified constants
 
 **The tour said** that [0240] writes infinity and NaN as members of a float
@@ -15672,7 +15693,7 @@ classified failure boundary before the repository gate can pass.
 | `functions.caller` | static | 0670, 0790, 1000, 1040, 1800, 1920 | caller positions have immutable three-u32 struct values (file_id, line, column) and structural signature identity, are compiler-filled without source strings, and accept an explicit argument only as a named forwarding of another caller parameter; L0339 rejects an invalid site type, L0301 a different signature, L0327 an extra positional argument or invalid forwarding source and L0303 rejects mutation, and `caller` decided on two tokens leaves the spelling an ordinary name | `negative/caller-parameter-extra-field`, `negative/caller-parameter-field-order`, `negative/caller-parameter-field-width`, `negative/caller-parameter-read-only`, `negative/caller-parameter-forward-copy`, `negative/caller-parameter-forward-needs-caller`, `negative/caller-parameter-needs-site`, `negative/caller-parameter-positional`, `negative/caller-parameter-signature-mismatch`, `runtime/caller-parameters`, `runtime/caller-is-an-ordinary-name` |
 | `extern.c-boundary` | static | 0430, 0570, 0750, 0920, 1000, 1570, 1580, 1600, 1975 | C convention and variadicness remain recursively distinct from the Landin convention; fixed positions at the selected boundary admit integers, bool, pointers, f32/f64, fixed C callbacks and compatible nonempty `layout(c)` structs, while L0346 refuses an ordinary Landin struct, a slice, a Landin error channel or a native-convention callback even when its machine shape matches | `positive/external-scalar-c-boundary`, `positive/r440-external-float`, `positive/r440-c-signatures`, `negative/external-aggregate-boundary`, `negative/r440-c-slice-parameter`, `negative/r440-c-error-channel`, `negative/r440-c-native-callback` |
 | `functions.linkage` | static | 1000, 1570, 1580, 1600, 1610, 1615, 1800, 1975, 1996 | `link(symbol: text)` changes only the linker spelling: standalone use retains the native convention and body requirement, C imports may have compatible repeated declarations, L0347 refuses an assembly expression, incompatible declarations or multiple definitions, and L0301 refuses treating a native linked function as a C callback; `link(thread)` gives a module `mut` binding a zeroed instance in every thread, and L0347 refuses it with a value, without `mut`, on a routine or beside a symbol or section, L0328 for a type with no zero image | `positive/r440-c-signatures`, `positive/r440-compatible-link-declarations`, `negative/r440-link-assembly-expression`, `negative/r440-link-does-not-change-convention`, `negative/r440-link-duplicate-definitions`, `negative/r440-link-incompatible-declarations`, `positive/thread-storage-declarations`, `runtime/thread-storage-holds-its-instance`, `abi/thread-storage-per-thread`, `negative/thread-storage-takes-no-value`, `negative/thread-storage-needs-a-zero-image` |
-| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced` |
+| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced`, `abi/r440-native-startup-invalid` |
 | `host.io` | outside | 0430, 1580, 1650, 1660, 1680, 1975 | non-guarantee: files, descriptors, arguments and streams reflect mutable host state | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/derived-parser` |
 | `capabilities.host-root-exclusion` | outside | 1660, 1680, 1975 | non-guarantee: an ordinary hosted routine without an I/O or allocator parameter may call a public host constructor and use that authority; passing a replacement provider does not exclude this path | `runtime/derived-hosted-memory` |
 | `host.io-failure` | static | 0940, 0960, 1030, 1975 | `hosted/system` and `hosted/blocking` report foreseeable host failure as declared atoms which callers handle or declare | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/diagnostic-loggers-dispatch`, `runtime/derived-parser` |
@@ -19292,6 +19313,55 @@ resolver reads; each fixed program compiles with no report.
 
 The C boundary, the machine directives, the entry point, and the
 contract an optimization has to keep.
+
+
+### D2994 — A prefix naming a library module no import reaches is told its import
+
+**The discrepancy:** D2174 named the import for a prefix whose library
+module the program reached, and left one it did not reach to [1860]'s
+spelling note, because the stages ask the host nothing and the module table
+held only what imports reached. `text.bytes(value)` in a program that
+imports `core/text` nowhere, a newcomer's first use of a module, was told
+to check its spelling (SR-1693).
+
+**Chosen:** the driver lists the library's modules when it loads a program
+with a library: every directory under `core`, `hosted` and `platform` that
+holds a source and whose namespace this target admits (D267), by logical
+path, handed to the compilation. When no module the program reaches has the
+prefix as its last segment and exactly one listed module has, L0201's note
+and its exact fix name that module as D2174's do. The listing is no
+dependency of the build, since it changes only a refusal's note, and a
+request with no library lists nothing.
+
+**The alternatives:** the loader resolving the prefix as an import on a
+refusal and checking again, which would load a module the program does not
+name to word one report; and reading the directories from a stage, which
+D2174 declined.
+
+**Pinned by** `negative/unreached-library-module-prefix-names-its-import`,
+whose program imports nothing and whose fixed program compiles with no
+report.
+
+### D2999 — An undeclared call number of `platform/linux` names its generator
+
+**The discrepancy:** a wrapper added to `platform/linux` for a call the
+library did not make before is L0201 on its `*_number`, with [1860]'s
+spelling note and near guesses; only `wrapped.ldn`'s header said that
+`scripts/linux_syscalls.py` writes those numbers from the names the
+module's other files use (SR-1881).
+
+**Chosen:** a name ending in `_number` that resolves to nothing in a file of
+`platform/linux` is L0201 whose note says the numbers are `wrapped.ldn`'s
+and to run `python3 scripts/linux_syscalls.py` after adding a wrapper, and
+offers no near spelling. Every other module keeps [1860]'s note.
+
+**The alternatives:** `check.py` refusing a stale `wrapped.ldn`, which the
+script controls already hold and which a developer meets only after the
+compiler refused; and a generic note for any `_number`, which would
+misdirect a program's own names.
+
+**Pinned by** the driver case `an unwritten call number names its
+generator`, on a fake library.
 
 ### D267 — Library source namespaces declare target availability
 
@@ -23629,6 +23699,28 @@ statement on a line of its own.
 
 **Pinned by** `negative/recovery-exit-is-held-in-a-block`, whose fix the
 `fixes` suite compiles clean.
+
+
+### D3000 — In an `if` arm, L0329 writes the leaving recovery in parentheses
+
+**The discrepancy:** L0102's fix for `f() else return` writes `else begin
+return end`, and the same call written that way as an `if` arm's statement
+is L0329, because the bare `else` divides the `if` [1820]; L0329's note
+offered `(call(...) else value)` and the bound block, so a recovery that
+returns was left only the binding of an error it does not read (SR-2012).
+
+**Chosen:** the grammar is unchanged. L0329's note in an `if` arm, and the
+L0332 note beside it, say to put the call and its recovery in parentheses,
+`(call(...) else value)` or `(call(...) else begin return end)`, or to bind
+the error, and `docs/diagnostics.md`'s L0102 says the parenthesised form is
+the one an `if` arm takes.
+
+**The alternatives:** reading `else begin` after a call in an `if` arm as
+the call's recovery, which makes `if c then f() else begin ... end end if`
+mean two things; and an exact fix wrapping the call, which needs the arm's
+extent the checker does not keep.
+
+**Pinned by** `negative/leaving-recovery-in-an-if-arm-is-parenthesised`.
 
 ### D871 — A failing call that ends a body with returns is refused for its failure alone
 
@@ -33003,6 +33095,25 @@ and `environments/cortex-m/descriptions.py`'s contract case, which links
 RP2040 constants into its stack and an STM32H753 ITCM datum at zero and
 refuses each.
 
+
+### D2997 — A startup routine at address zero breaks D546's fifth clause
+
+**The discrepancy:** the fifth clause skipped every `_landin_firmware_*`
+symbol, so a developer's script that moved the STM32H753's RAM-layout text
+into the ITCM without the derived script's eight bytes linked with
+`_landin_firmware_reset` at address zero and refine exited 0 (SR-1716).
+
+**Chosen:** the fifth clause holds the startup routines and data too; only
+`_landin_firmware_vectors` and `_landin_firmware_entry`, which begin their
+region by D546's first clause and D662, may be at zero. The derived scripts
+keep the clause, so their images are unchanged.
+
+**The alternatives:** refusing any allocated section that begins below 8,
+which would refuse the vector table at zero on every Cortex-M flash.
+
+**Pinned by** `environments/cortex-m/descriptions.py`'s contract case,
+whose `reset.ld` is the derived RAM script with `.text` in the ITCM.
+
 ### D900 — A RAM firmware layout is derived from the same device description
 
 **The tour said** at [1650] that compiler startup initializes RAM; D545
@@ -38294,6 +38405,30 @@ does after emission.
 siblings' `remove` line, and `compiler/tests/test_native_report_identity.py`,
 which finds no assembly after a failed link.
 
+
+### D2996 — A firmware target's assembly operand is refused saying how it links
+
+**The discrepancy:** `refine compile p.s --target=cortex-m0
+--firmware-layout=ram -o p.elf` ended in an internal compiler defect, a
+failed precondition deriving the linker script from a profile no source
+gave, where the help said "a .s operand is linked as a compiled program
+is"; with `--root` or `--firmware-entry` it was L0002 for another reason
+(SR-1714).
+
+**Chosen:** an assembly operand is linked only for a hosted target. With a
+firmware target it is L0002 before anything runs, saying that a firmware
+image is laid out by its description, which assembly does not carry, and
+that its source is compiled with `--root` and `--firmware-entry`, or the
+kept assembly assembled and linked with the toolchain and the `OUT.ld`
+written beside the image. The help says a hosted target's operand.
+
+**The alternatives:** linking with a description named by `--root`, which
+needs the description checked without the program it describes; and
+linking with `--linker-script` alone, which leaves D546's clauses, read
+against the profile, nothing to read.
+
+**Pinned by** the driver case `an assembly operand links`.
+
 ### D364 — Linux links through the GCC a distribution installs
 
 **Amended by D2427.** On a FreeBSD host its own target tries the base
@@ -41388,6 +41523,26 @@ would handle for a mistake only a C `main` can make. All were declined.
 omits the call and whose output must hold that line before it traps.
 Darwin's and FreeBSD's arm was written by reading and is run by their
 lanes.
+
+
+### D2998 — Each misuse of the argument root says what was misused
+
+**The discrepancy:** D1281 gave words to one trap of the root, a read
+before it exists, and left a second triple and a negative count or null
+table as bare traps (SR-1214).
+
+**Chosen:** before each of those traps `platform/posix` writes one line to
+standard error: `landin: _landin_host_initialize_arguments was called again
+with another argc, argv or envp; only the first call's may be repeated`, and
+`landin: _landin_host_initialize_arguments needs a nonnegative argc and a
+non-null argv`. As in D1281 the writes ask nothing of the root and the trap
+follows unchanged.
+
+**The alternatives:** a failure the call returns, which a C `main` has no
+way to read; and one line for every misuse, which would not say which.
+
+**Pinned by** `abi/r440-native-startup-replaced` and
+`abi/r440-native-startup-invalid`, whose `trap_report` holds each line.
 
 ### D323 — `platform/posix` gives sockets in the system's own records
 
