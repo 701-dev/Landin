@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: R22.43 a multicast exchange on one host through hosted/blocking over the loopback interface: joining 239.255.43.43 through 127.0.0.1, sending with one hop out through 127.0.0.1, read back from the system's choice, the datagram arriving with its sender's port, leaving twice and joining no group address_unavailable, and an IPv6 socket's interface the system's choice
+summary: a multicast exchange on one host through hosted/blocking over the loopback interface: joining 239.255.43.43 through 127.0.0.1, sending with one hop out through 127.0.0.1, read back from the system's choice, the datagram arriving with its sender's port, leaving twice and joining no group address_unavailable, and an IPv6 socket's interface the system's choice
 program: main.ldn
 root: ../../../../..
 status: 42

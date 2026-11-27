@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: R22.43 a Unix-domain datagram exchange through hosted/blocking and hosted/events on the systems that have such sockets: a datagram each way with the sender's path, a socket at a taken path address_in_use and a datagram to a removed path refused
+summary: a Unix-domain datagram exchange through hosted/blocking and hosted/events on the systems that have such sockets: a datagram each way with the sender's path, a socket at a taken path address_in_use and a datagram to a removed path refused
 program: main.ldn
 root: ../../../../..
 status: 42

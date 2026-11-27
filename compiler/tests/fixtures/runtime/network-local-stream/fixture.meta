@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: R22.43 a Unix-domain stream exchange through hosted/blocking and hosted/events at a fresh path in the working directory: a second listener there address_in_use, a word each way, a connection after the listener closed refused and after the path is removed refused too, and an empty path and a 200-byte one invalid_address
+summary: a Unix-domain stream exchange through hosted/blocking and hosted/events at a fresh path in the working directory: a second listener there address_in_use, a word each way, a connection after the listener closed refused and after the path is removed refused too, and an empty path and a 200-byte one invalid_address
 program: main.ldn
 root: ../../../../..
 status: 42
