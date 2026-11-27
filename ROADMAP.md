@@ -4262,7 +4262,9 @@ so that none/off ends within the lane's limit; on the two RV32 lanes,
 without a float unit, the two that call `log` record capacity limits at
 none/off, and the float tests on the ESP32-C3 at size too (D698). `core/README.md`'s 8.8 KB
 for `runtime/random-sequence` was stale; it is 6.6 KB. `SR-2163`
-records `refine run`'s refusal of a program argument given without `--`.
+records `refine run`'s refusal of a program argument given without `--`,
+and `SR-2164` `item.py gate --watch` declining to follow a run again
+after its watch reached its limit.
 
 ### R22.43 — Sockets by name, with their options
 
