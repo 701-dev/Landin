@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D3054 core/random's draws give what compiler/tests/random/oracle.c's ports of them give over xoshiro256**'s reference implementation, on every target, Cortex-M0 included at every profile: unit_f64 and unit_f32 bit for bit, between_u64 and between_i64 at small, full and edge ranges, pick, sample in order, weighted with a zero weight, fill's little-endian bytes with a short last part and jump's state as the reference jump leaves it, once and twice
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0150, 0300, 0320, 0330, 0570, 0900, 1290, 1680
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

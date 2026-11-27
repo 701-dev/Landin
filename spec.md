@@ -41063,6 +41063,55 @@ method, with two 64-bit divisions.
 implementation's outputs on every target, Cortex-M0 included, and
 `runtime/library-shared-random`.
 
+### D3054 — `core/random`'s draws: floats from the high bits, ranges with both ends, picks, samples, weights and bytes
+
+**The tour said** nothing of random numbers; D318 gave the generator `next`, `next_u32`, `below` and `shuffle`, and programs ask for what Rust's `rand` and Go's `math/rand/v2` draw beyond them.
+
+**Chosen:** every draw is a routine over `random.generator` passed `inout`, with no state of its own, so a seed gives one sequence on every target.
+
+- `unit_f64` and `unit_f32` are the next draw's upper 53 or 24 bits times 2^-53 or 2^-24: every value in [0, 1) that is a multiple of that power, each equally likely, every one exact and 1 never drawn. These are the values Go's `Float64` and Rust's `Standard` give.
+- `between_u64(source, low, high)` and `between_i64` take both ends, included, and draw `low` plus `below` of the width, or a whole draw when the range is every `u64`. A signed range is placed among the `u64`s by adding 2^63, which keeps its order, so every `i64` range is reached without a 128-bit width. A half-open range is `high - 1`. A `low` above `high` traps with `overflow`, as `below` of zero does (D342). The width's bits are named in the routine because the library has no generic integer concept: `next_u32` and `text.parse_u64` already name theirs.
+- `pick(source, values)` is `values[below(length)]`; an empty slice traps as `below` of zero.
+- `sample(into, source, values)` fills `into` with distinct places of `values` by Knuth's selection sampling, Algorithm S: each of `values` in turn is taken when a draw below those left is under the number still wanted. It makes at most one draw for each of `values`, needs no storage, and keeps the order `values` has; `shuffle` draws an order afterwards. An `into` longer than `values` traps with `overflow`.
+- `weighted(source, weights)` returns the place of a `u64` weight drawn with the chance its weight is of their sum: a draw `below` the sum and the first running total past it. A zero weight is never drawn; a zero or overflowing sum traps with `overflow`.
+- `fill(bytes, source)` writes each draw least significant byte first, and a part shorter than eight takes one more draw's low bytes, as `rand_xoshiro`'s `fill_bytes` does.
+
+The parameters follow D1954: the generator stands where a capability stands, so it comes before an input (`pick`, `weighted`) and after the subject a routine changes (`sample`'s `into`, `fill`'s `bytes`, as `shuffle`'s `values`).
+
+**The alternatives:** a generic `between` over an integer concept, which the library lacks and which this item does not need to add; Lemire's widening multiplication for ranges, which D318 declined for its 128-bit product; a float drawn from every representable value below 1, as Downey's method does, which no program has asked for; a weighted draw over `f64` weights, which rounds differently from integer weights; and `sample` by a partial shuffle of a copy, which needs storage the caller has not given.
+
+**Pinned by** `runtime/random-draws`, which holds what `compiler/tests/random/oracle.c`'s ports of these routines give over the reference implementation, on every target, Cortex-M0 included; `runtime/random-distributions` (D3055); and `runtime/example-dice-and-cards`, the published example D1956 gave, drawing through `between_i64`, `weighted`, `shuffle` and `pick`.
+
+### D3055 — The draws' distributions are tested over samples their seeds pin
+
+**The tour said** nothing of how a draw's distribution is shown; the evidence asked for is a stated test over a pinned sample for each draw, and the floats' bits and the ranges' bounds checked exhaustively at small widths.
+
+**Chosen:** each test draws from a fixed seed, 48,000 values for the integer draws and 16,000 for the floats, whose soft float on Cortex-M0 at none/off must finish within its lane's limit, so every target tests the same sample and passes or fails alike. Each passes a chi-squared test at p = 0.001 for its degrees of freedom, against the standard tables' critical values: a die, picks of ten, the ten pairs a two-of-five `sample` makes, weights 1 to 4 with a zero among them, and `fill`'s bytes in 256 bins in `runtime/random-distributions`, whose statistic is computed in integers, times the count a bin should hold, so its image needs no float arithmetic; and in `runtime/random-float-distributions`, each float width in sixteen bins and the normal and exponential draws in their deciles. There the normal draws' mean is within 0.04 of 0 and their variance within 0.05 of 1, and the exponential draws' mean within 0.04 of 1, each bound more than four standard errors; every float drawn is a multiple of 2^-53 or 2^-24 below 1. Every range between two ends within four of 0, of the largest `u64` and of both ends of the `i64`s, and every range with ends from -8 to 8, gets 128 draws inside its ends, and each one eight wide or less reaches every value.
+
+**The alternatives:** a Kolmogorov–Smirnov test of the continuous draws, which sorts the sample and needs storage that the Cortex-M0 image cannot hold; and a statistical suite such as TestU01 or PractRand over the generator, which its authors ran and the draws over it would not exercise.
+
+**Pinned by** `runtime/random-distributions` and `runtime/random-float-distributions` on every target, Cortex-M0 included.
+
+### D3056 — `normal` is Marsaglia's polar method and `exponential` the inverse of the distribution
+
+**The tour said** nothing of continuous distributions; a normal and an exponential draw each need a stated method.
+
+**Chosen:** `random.normal(source)` is the standard normal distribution by Marsaglia's polar method: a point drawn by `unit_f64` in the square from -1 to 1 is drawn again until it is inside the unit circle and not its centre, and its first coordinate times `sqrt(-2 log s / s)` is returned, `s` its squared distance. The method makes two values; the second is discarded, so the generator remains its 256 bits of state. `random.exponential(source)` is the rate-1 exponential distribution as `-log(1 - u)` for `u` from `unit_f64`, which is below 1, so the logarithm's argument is above 0. A mean and deviation or a rate is applied by the caller's arithmetic. Both call `core/math`'s `log` and `sqrt`, which are the same bits on every target, so the draws are too; the parameterized distributions belong to the statistics library the roadmap plans.
+
+**The alternatives:** the ziggurat, which Go and Rust use and which is several times faster, but carries tables of 128 or 256 entries per distribution into every image that draws one; Box and Muller's transform, which needs `cos` as well; and keeping the polar method's second value in the generator, which changes the generator's size and makes a copied generator's next draw depend on whether it was drawn normally before.
+
+**Pinned by** `runtime/random-normal-draws`, within two units in the last place of the oracle's C library and by a digest of a thousand draws that is the same on every target, and `runtime/random-float-distributions`' tests of both.
+
+### D3057 — `random.jump` is the reference implementation's
+
+**The tour said** nothing of streams; threads or fibres drawing from one seed need xoshiro256**'s `jump` to keep their sequences apart.
+
+**Chosen:** `random.jump(source)` advances the generator as 2^128 draws would, by the reference implementation's polynomial and loop, copied in its four words. A program gives each of its threads or fibres a copy of a generator jumped once more than the last. `long_jump`, for 2^64 starting points each with 2^64 jumps of its own, waits for a program that needs it.
+
+**The alternatives:** seeding each stream from another splitmix64 output, which gives no guarantee that streams do not overlap; and a generator per stream from entropy, which loses the seed's repeatability.
+
+**Pinned by** `runtime/random-draws`, which holds seed 0's state after one jump and after two as the reference `jump` leaves it, on every target.
+
 ### D319 — A network is a concept of its own whose connections are readers and writers
 
 **The tour said** at [1660] that authority is passed, and nothing could talk

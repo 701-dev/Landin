@@ -1157,23 +1157,28 @@ after: -12 -3 0 2 5 5 18 99
 ## Dice and a shuffled deck
 
 The program rolls two dice 600 times and prints how often each total came
-up, then shuffles a deck of cards and deals five. Its draws come from a
-`core/random` generator seeded with the number you give as the argument.
-With no argument the seed comes from the system's entropy.
+up. It then rolls a loaded die sixty times, shuffles a deck of cards,
+deals five and picks a trump suit. Every draw comes from a `core/random`
+generator seeded with the number you give as the argument. With no
+argument the seed comes from the system's entropy.
 
 - `random.new(seed)` makes a generator from a number. A seed gives the same
   sequence on every target, so `./dice 2026` prints the same report
   wherever it runs. The generator is not cryptographic: bytes for a key
   come from `io.fill_random`.
 - `seeded` reads the seed from the first argument [1650], and `try` passes
-  on a failure to read or parse it [0960]. `random.from_entropy(host)`
-  asks the host for a seed instead, since entropy is a capability like any
-  other [1660].
-- `random.below(source, 6)` draws a number from 0 to 5 without bias, each
-  as likely as the others. The generator is an `inout` parameter, because
-  every draw changes it.
+  on a failure to read or parse it [0960]. Without an argument,
+  `random.from_entropy(host)` asks the host for a seed instead, since
+  entropy is a capability like any other [1660].
+- `random.between_i64(source, 1, 6)` draws a number from 1 to 6, both
+  ends included, each equally likely. The generator is an `inout`
+  parameter, because every draw changes it.
+- `random.weighted(source, loaded)` draws a face of the loaded die. A
+  face's chance is its weight's share of all the weights, so the six,
+  weighted 5, comes up five times as often as any other face.
 - `random.shuffle(deck, source)` puts the deck in a random order with the
   Fisher-Yates shuffle, every order equally likely.
+  `random.pick(source, suits)` then draws one of the four suits.
 - A template has no field widths, so `roll_dice` pads its columns by hand,
   writing a space before a short number. A `while` loop draws each bar
   [1140], and `for` walks the totals and the first five cards [1150].
@@ -1183,8 +1188,9 @@ With no argument the seed comes from the system's entropy.
 Fixture source: `compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn`.
 
 ```landin
---  Roll two dice six hundred times and count each total, then shuffle a
---  deck of cards and deal a hand of five.  The draws come from a generator
+--  Roll two dice six hundred times and count each total, roll a loaded
+--  die, then shuffle a deck of cards, deal a hand of five and pick the
+--  trump suit.  The draws come from a generator
 --  seeded with the number given as the argument, so a seed prints the same
 --  report on every target; with no argument the seed comes from the
 --  system's entropy, and every run differs.
@@ -1217,9 +1223,9 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     mut left: u32 = rolls
     while left > 0 do
         dec left
-        first: usize = usize(random.below(source, 6)) + 1
-        second: usize = usize(random.below(source, 6)) + 1
-        inc counts[first + second]
+        first: i64 = random.between_i64(source, 1, 6)
+        second: i64 = random.between_i64(source, 1, 6)
+        inc counts[usize(first + second)]
     end while
     for total in usize(2)..<13 do
         count: u32 = counts[total]
@@ -1238,9 +1244,25 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     end for
 end roll_dice
 
+--- A die loaded so that a six comes up five times as often as each other
+--- face: the weight of each face, one to six.
+loaded: [6]u64 = [1, 1, 1, 1, 1, 5]
+
+--- Roll the loaded die sixty times and print the faces it showed.
+roll_loaded: (host: blocking.host, inout source: random.generator)
+             -> none ! ... =
+    try io.write(host, io.out(host), "loaded:")
+    for roll in usize(0)..<60 do
+        _ = roll
+        face: usize = random.weighted(source, loaded[0..<6]) + 1
+        try io.write_format(host, io.out(host), " {}", [any(addr face)])
+    end for
+    try io.write(host, io.out(host), "\n")
+end roll_loaded
+
 --- Shuffle a deck of 52 cards, each a number from 0 to 51 whose rank is
 --- the number modulo 13 and whose suit is the number divided by 13, and
---- print the first five.
+--- print the first five, then a trump suit picked from the four.
 deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
     ranks: []u8 = "A23456789TJQK"
     suits: []u8 = "SHDC"
@@ -1254,13 +1276,18 @@ deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
         name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
         try io.write(host, io.out(host), name)
     end for
+    trump: [1]u8 = [random.pick(source, suits)]
+    try io.write(host, io.out(host), "\ntrumps: ")
+    try io.write(host, io.out(host), trump)
     try io.write(host, io.out(host), "\n")
 end deal
 
---- Seed a generator, roll the dice and deal a hand from it.
+--- Seed a generator, roll the dice and the loaded die and deal a hand
+--- from it.
 report: (host: blocking.host) -> none ! ... =
     mut source: random.generator = try seeded(host)
     try roll_dice(host, source)
+    try roll_loaded(host, source)
     try deal(host, source)
 end report
 
@@ -1298,7 +1325,9 @@ it prints
 10  51 ##########
 11  37 #######
 12  16 ###
-hand: 2H KD 9H KH KC
+loaded: 1 5 2 6 6 6 6 6 6 6 6 5 5 5 2 4 4 6 3 6 1 3 3 3 2 4 3 6 6 6 2 6 4 6 6 6 3 6 6 1 3 6 6 6 3 6 6 6 1 2 4 5 6 6 6 6 2 3 6 2
+hand: 7D JC AC 7C QD
+trumps: C
 ```
 
 ## Sensors

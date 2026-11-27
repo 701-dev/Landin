@@ -2317,7 +2317,7 @@ a `caller` parameter of that type too and passes it on,
 
 ## core/random
 
-A deterministic generator of pseudorandom numbers, the same sequence for a seed on every target.
+A deterministic generator of pseudorandom numbers. A seed gives the same sequence on every target.
 
 | Call | What it does |
 |---|---|
@@ -2325,26 +2325,55 @@ A deterministic generator of pseudorandom numbers, the same sequence for a seed 
 | `random.from_entropy` | Seed one from 32 bytes of any `io.entropy` provider, the hosted system's or a test's scripted bytes. |
 | `random.hash_seed` | Draw a map's `cmp.hash_seed` from 16 bytes of an `io.entropy` provider, with no generator involved. |
 | `random.next` | Draw 64 bits. |
-| `random.next_u32` | Draw the upper 32. |
+| `random.next_u32` | Draw 32 bits, the upper half of one draw. |
 | `random.below` | Draw a value under a bound, each equally likely. |
 | `random.shuffle` | Put a slice in a uniformly drawn order. |
+| `random.unit_f64`, `random.unit_f32` | Draw a float from 0 up to 1, 1 excluded, from the upper 53 or 24 bits of one draw. |
+| `random.between_u64`, `random.between_i64` | Draw an integer from `low` to `high`, both included, each equally likely. |
+| `random.pick` | Draw one element of a slice, each equally likely. |
+| `random.sample` | Fill a slice with distinct elements of another, in the source's order, every choice equally likely. |
+| `random.weighted` | Draw a position in a slice of `u64` weights. A position's chance is its weight's share of their sum. |
+| `random.fill` | Fill a byte slice from the generator. Never use it for a key. |
+| `random.normal` | Draw from the standard normal distribution. |
+| `random.exponential` | Draw from the exponential distribution of rate 1. |
+| `random.jump` | Advance the generator by 2^128 draws, so copies give separate streams. |
 
-`generator` is xoshiro256** 1.0, Blackman and Vigna's: 256 bits of state
-that each draw advances. It is a value the caller keeps and passes
-`inout`.
+`generator` is xoshiro256** 1.0, by Blackman and Vigna. It holds 256
+bits of state, and each draw advances it. It is a value the caller keeps
+and passes `inout`.
 
-`below` masks to the bound's width and draws again when the value is too
-large, so no division is made and no value is favoured. It traps for a
-bound of zero.
+`below` masks a draw to the bound's width and draws again when the value
+is too large, so it divides nothing and favours no value. A bound of
+zero traps. The ranges, picks, samples and weights draw through `below`,
+and trap the same way when there is nothing to draw: a `low` above
+`high`, an empty slice, weights that sum to zero, or a sample larger
+than its source.
 
-The generator uses shifts, exclusive ors and additions on `u64`, so a
-Cortex-M0 draws what a 64-bit host draws. Its sequences are the reference
-implementation's on every target.
+`sample` is Knuth's selection sampling. It draws at most once for each
+element and needs no storage of its own. The result keeps the source's
+order, so `shuffle` it when the order should be random too.
 
-It is not cryptographic: its outputs reveal its state. A key, a token or
-a password comes from `io.fill_random` directly.
+`normal` is Marsaglia's polar method and `exponential` is `-log(1 - u)`.
+Both are computed with `core/math`, which gives the same bits on every
+target. Scale them yourself: `mean + deviation * random.normal(source)`,
+or `random.exponential(source) / rate`.
 
-[Executable example](../compiler/tests/fixtures/runtime/random-sequence/main.ldn)
+To give threads or fibres their own streams from one seed, copy the
+generator and `jump` each copy once more than the one before. The
+streams then start 2^128 draws apart.
+
+The generator's step uses shifts, exclusive ors and additions on `u64`, so
+a Cortex-M0 draws what a 64-bit host draws. On every target its
+sequences are the reference implementation's.
+
+The generator is not cryptographic: its outputs reveal its state. Take a
+key, a token or a password from `io.fill_random` directly.
+
+[How the draws are checked](../compiler/tests/random/README.md) names
+the reference each one is compared with and the tests of their
+distributions.
+
+[Executable example](../compiler/tests/fixtures/runtime/random-draws/main.ldn)
 
 ## core/math
 

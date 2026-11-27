@@ -6,10 +6,15 @@
 --  seed through their splitmix64.c, as they suggest.  It is written with
 --  shifts, exclusive ors and additions on `u64`, so a seed gives the same
 --  sequence on every target, a 32-bit Cortex-M0 included, and its
---  multiplications by 5 and 9 are a shift and an addition each.
+--  multiplications by 5 and 9 are a shift and an addition each.  Its
+--  `jump` is the same reference implementation's.  The draws over it,
+--  floats, ranges, picks, samples, bytes and the normal and exponential
+--  distributions, are this module's own, each stated where it is written;
+--  `core/math` is the same on every target, so they are too.
 
 import core/cmp
 import core/io
+import core/math
 
 state_value: type = struct
     s0: u64
@@ -152,3 +157,184 @@ public shuffle: (item: type, values: []mut item, inout source: generator)
         values[chosen] = saved
     end while
 end shuffle
+
+--- A float from 0 up to but not including 1: the next draw's upper 53
+--- bits, each of the 2^53 multiples of 2^-53 below 1 equally likely.
+--- Every value is exact, and 1 is never drawn.
+public unit_f64: (inout source: generator) -> (value: f64) =
+    value = f64(next(source) >> 11) * 0x1.0p-53
+end unit_f64
+
+--- A float from 0 up to but not including 1: the next draw's upper 24
+--- bits, each of the 2^24 multiples of 2^-24 below 1 equally likely.
+public unit_f32: (inout source: generator) -> (value: f32) =
+    value = f32(next(source) >> 40) * 0x1.0p-24
+end unit_f32
+
+--- A value from `low` to `high`, both included, each equally likely: `low`
+--- and `below` of the range's width, or the next draw whole when the range
+--- is every `u64`.  A `low` above `high` is no range, and traps with
+--- `overflow`, as the width's checked subtraction does.
+public between_u64: (inout source: generator, low: u64, high: u64)
+                    -> (value: u64) =
+    width: u64 = high - low
+    if width == 18446744073709551615 then
+        value = next(source)
+    else
+        value = low + below(source, width + 1)
+    end if
+end between_u64
+
+--  `value`'s place among the `i64`s as a `u64`, which keeps their order:
+--  -2^63 is 0 and 2^63 - 1 is the largest `u64`.
+signed_place: (value: i64) -> (place: u64) =
+    if value < 0 then
+        place = u64((value + 1) + 9223372036854775807)
+    else
+        place = u64(value) + 9223372036854775808
+    end if
+end signed_place
+
+--  The `i64` at `place`, as `signed_place` numbers them.
+signed_at: (place: u64) -> (value: i64) =
+    if place < 9223372036854775808 then
+        value = (i64(place) - 9223372036854775807) - 1
+    else
+        value = i64(place - 9223372036854775808)
+    end if
+end signed_at
+
+--- A value from `low` to `high`, both included, each equally likely, over
+--- every `i64` from -2^63 to 2^63 - 1.  A half-open range from `low` to
+--- `high` is `between_i64(source, low, high - 1)`.  A `low` above `high`
+--- traps with `overflow`, as `between_u64` does.
+public between_i64: (inout source: generator, low: i64, high: i64)
+                    -> (value: i64) =
+    value = signed_at(between_u64(source, signed_place(low),
+                                  signed_place(high)))
+end between_i64
+
+--- One of `values`, each place equally likely, drawn by `below`.  An empty
+--- slice has none, and traps with `overflow`, as `below` of zero does.
+public pick: (item: type, inout source: generator, values: []item)
+             -> (chosen: item) =
+    chosen = values[usize(below(source, u64(lenof values)))]
+end pick
+
+--- Fill `into` with as many of `values` as it has places, drawn without
+--- replacement, every choice of them equally likely, kept in the order
+--- they have in `values`.  It is Knuth's selection sampling, his Algorithm
+--- S: each of `values` in turn is taken when a draw `below` those left is
+--- under the number still wanted, so it makes at most one draw for each
+--- of `values` and needs no storage of its own.  Put the result through
+--- `shuffle` when its order should be drawn too.  An `into` longer than
+--- `values` cannot be filled, and traps with `overflow`.
+public sample: (item: type, into: []mut item, inout source: generator,
+                values: []item) -> none =
+    mut left: usize = lenof values
+    mut wanted: usize = lenof into
+    --  More wanted than there are is the checked subtraction's overflow.
+    _ = left - wanted
+    mut at: usize = 0
+    for value in values do
+        return when wanted == 0
+        if below(source, u64(left)) < u64(wanted) then
+            into[at] = value
+            inc at
+            dec wanted
+        end if
+        dec left
+    end for
+end sample
+
+--- A place in `weights` drawn with the chance its weight is of their sum:
+--- a draw `below` the sum, and the first place whose running total
+--- passes it.  A weight of zero is never drawn.  Weights whose sum is
+--- zero have no place to draw, and trap with `overflow`, as `below` of
+--- zero does, and so does a sum past the largest `u64`.
+public weighted: (inout source: generator, weights: []u64)
+                 -> (index: usize) =
+    mut total: u64 = 0
+    for weight in weights do
+        total = total + weight
+    end for
+    drawn: u64 = below(source, total)
+    mut running: u64 = 0
+    index = 0
+    for weight in weights do
+        running = running + weight
+        return when drawn < running
+        inc index
+    end for
+end weighted
+
+--- Fill `bytes` from the generator: each eight of them a draw, least
+--- significant byte first, and a last part shorter than eight the low
+--- bytes of one more draw.  Bytes for a key, a token or a password come
+--- from `io.fill_random` instead.
+public fill: (bytes: []mut u8, inout source: generator) -> none =
+    mut at: usize = 0
+    while at < lenof bytes do
+        mut value: u64 = next(source)
+        mut count: usize = 0
+        while count < 8 and at < lenof bytes do
+            bytes[at] = u8(value & 0xff)
+            value = value >> 8
+            inc at
+            inc count
+        end while
+    end while
+end fill
+
+--- A draw from the standard normal distribution, mean 0 and standard
+--- deviation 1; `mean + deviation * normal(source)` draws from any other.
+--- It is Marsaglia's polar method: a point drawn by `unit_f64` in the
+--- square from -1 to 1 is drawn again until it is inside the unit circle
+--- and not its centre, about one time in five, and its first coordinate
+--- times `sqrt(-2 log s / s)`, `s` its squared distance, is normal.  The
+--- method makes two values; the second is not kept, so the generator
+--- holds no more than its state.
+public normal: (inout source: generator) -> (value: f64) =
+    loop do
+        u: f64 = 2.0 * unit_f64(source) - 1.0
+        v: f64 = 2.0 * unit_f64(source) - 1.0
+        s: f64 = u * u + v * v
+        if s < 1.0 and s > 0.0 then
+            value = u * math.sqrt(-2.0 * math.log(s) / s)
+            return
+        end if
+    end loop
+end normal
+
+--- A draw from the exponential distribution of rate 1, whose mean is 1;
+--- dividing it by a rate draws from that rate's.  It is the inverse of
+--- the distribution: `-log(1 - u)` for `u` drawn by `unit_f64`, which is
+--- below 1, so the logarithm is of a value above 0 and the draw is finite.
+public exponential: (inout source: generator) -> (value: f64) =
+    value = 0.0 - math.log(1.0 - unit_f64(source))
+end exponential
+
+--  The reference implementation's polynomial for a jump of 2^128 draws.
+jump_polynomial: [4]u64 = [0x180ec6d33cfd0aba, 0xd5a61266f0c9392c,
+                           0xa9582618e03fc9aa, 0x39abdc4529b1661c]
+
+--- Advance the generator as 2^128 draws would, as the reference
+--- implementation's `jump` does.  A copy of a generator jumped once, a
+--- copy of that jumped again and so on start 2^128 draws apart, so as
+--- many threads or fibres as there are copies each draw a sequence of
+--- their own from one seed, none overlapping another's within 2^128 draws.
+public jump: (inout source: generator) -> none =
+    mut result: generator = (s0: 0, s1: 0, s2: 0, s3: 0)
+    for word in jump_polynomial do
+        for bit in u64(0)..<64 do
+            if (word >> bit) & 1 == 1 then
+                result.s0 = result.s0 ^ source.s0
+                result.s1 = result.s1 ^ source.s1
+                result.s2 = result.s2 ^ source.s2
+                result.s3 = result.s3 ^ source.s3
+            end if
+            _ = next(source)
+        end for
+    end for
+    source = result
+end jump

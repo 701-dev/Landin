@@ -5538,6 +5538,18 @@
       "mode": "refuse",
       "reason": "Its panic handler ends the process through posix.exit; runtime/random-sequence draws through core/random on Cortex-M0."
     },
+    "runtime/random-distributions": {
+      "mode": "execute"
+    },
+    "runtime/random-draws": {
+      "mode": "execute"
+    },
+    "runtime/random-float-distributions": {
+      "mode": "execute"
+    },
+    "runtime/random-normal-draws": {
+      "mode": "execute"
+    },
     "runtime/random-sequence": {
       "mode": "execute"
     },
