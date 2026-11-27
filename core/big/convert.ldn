@@ -158,7 +158,7 @@ rounded_digits: (digits: []u32, sticky: bool, power: i64,
         offset: usize = length - 64
         below: bool = sticky or any_below(digits, offset)
         pattern = rounded(bits_at(digits, offset), below, power + i64(offset),
-                       format)
+                          format)
     end if
 end rounded_digits
 

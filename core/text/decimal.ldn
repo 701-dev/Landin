@@ -265,7 +265,7 @@ nearest_of: (digits: []u32, sticky: bool, power: i64, format: target_value)
         offset: usize = length - 64
         below: bool = sticky or set_below(digits, offset)
         pattern = nearest(bits_from(digits, offset), below, power + i64(offset),
-                       format)
+                          format)
     end if
 end nearest_of
 
