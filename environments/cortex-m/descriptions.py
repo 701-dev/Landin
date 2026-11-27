@@ -1073,9 +1073,21 @@ def contract(run, refine):
            ' . = . + (ABSOLUTE(.) < 8 ? 8 - ABSOLUTE(.) : 0);')
     require(old in rule, 'the derived script lacks %r' % old)
     (run.out / 'zero.ld').write_text(rule.replace(old, '_landin_firmware_text_start = .;'))
+    #  SR-1716: the RAM layout's text moved into the ITCM by hand, without
+    #  the eight bytes, puts reset itself at zero, which startup symbols do
+    #  not excuse.
+    compile_firmware(run, refine, tightly, h7 + ['--firmware-layout=ram'],
+                     name='ram.elf')
+    rule = (run.out / 'ram.elf.ld').read_text()
+    old = '  .text : { *(.text .text.*) } > AXI_SRAM\n'
+    require(old in rule, 'the derived RAM script lacks %r' % old)
+    (run.out / 'reset.ld').write_text(
+        rule.replace(old, '  .text : { *(.text .text.*) } > ITCM\n'))
     for name, program, extra, named in (
             ('stack', constants, [], 'clause 3, the stack: .rodata overlaps it'),
-            ('zero', tightly, h7, ' is at address zero, where a pointer is null')):
+            ('zero', tightly, h7, ' is at address zero, where a pointer is null'),
+            ('reset', tightly, h7 + ['--firmware-layout=ram'],
+             '_landin_firmware_reset is at address zero')):
         said = compile_firmware(run, refine, program,
                                 extra + ['--linker-script=%s.ld' % name],
                                 name='%s.elf' % name, check=False)
