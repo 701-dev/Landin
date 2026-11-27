@@ -25,7 +25,8 @@ that make a release quick to reach. Optimization runs beside all of it.
 Outside it, and staying outside: a build tool and package manager, the
 Companion tool and ecosystem family's; self-hosting and separate
 compilation, Scale and self-hosting's; a browser or WebAssembly target;
-dates and times in the library; and every release or version decision, each
+dates and times in the library, which the Broader standard library
+family below takes first; and every release or version decision, each
 of which needs an explicit decision of its own. Landin does not assume
 SemVer.
 
@@ -88,7 +89,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -3220,8 +3221,9 @@ publishes the FreeBSD arm64 archive, `SR-1892` holds that work.
 What a newcomer expects to find, written against the library R20 left: a
 mathematical basis broad enough that people in most fields need no
 foreign library first, float text, Unicode, encodings, locale formatting
-and regular expressions, the five programs the Benchmarks Game comparison
-lacks, and at the end a measured basis for the library's optimization
+and regular expressions, bits and byte order, random draws, sockets by
+name, command-line arguments, text's everyday calls, the five programs
+the Benchmarks Game comparison lacks, and at the end a measured basis for the library's optimization
 with a continuous lane, as R16 has for code generation.
 
 Placement, data and evidence for each are in `library-inventory.md`'s
@@ -4217,10 +4219,178 @@ the buffer conventions.
 Exit evidence: the WHATWG test data pass on every target the namespace
 admits.
 
+### R22.41 — Bits and byte order
+
+Status: planned
+Depends on: R20
+
+Counting and moving bits, and integers read and written in a stated byte
+order, for a program that reads a file format or a wire protocol. First
+the bit operations of Go's `math/bits` and Rust's integer methods: ones
+counted, leading and trailing zeros, the length in bits, rotation, bytes
+and bits reversed, a product's high word and a sum's carry, at each
+unsigned width. They are written once from shifts and replace the private
+copies in `core/big` and `core/random`. Selecting `popcnt`, `lzcnt` or
+`rbit` for them is R16's lane. Then a reader and a writer over a caller's
+byte slice: `u16` to `u64` and the signed widths in little or big order,
+and LEB128 varints. A read with too few bytes fails rather than traps, as
+reads do with Go's `encoding/binary` and Rust's `byteorder` and
+`bytes::Buf`. Last, union, intersection, difference and an emptiness test
+over a set, [0730]'s packed struct of `bool`, which already names its
+bits, so that flags outside a register need no masks, as with Rust's
+`bitflags`. Whether those set operations need a language rule or are
+library functions is this item's first question. From R20: placement and
+the failure names.
+
+Leaves out: a shared, counted byte buffer, which manual memory has no use
+for; growth stays `text.builder`'s and `mem.storage(u8)`'s.
+
+Exit evidence: each bit operation checked exhaustively at `u8` and `u16`
+and against an oracle at `u32` and `u64` on every target; every width
+round-tripped in both orders, short input and malformed or overlong
+varints refused; `core/big` and `core/random` on the library's operations
+with their fixtures unchanged; an example program in `examples.md` that
+reads a binary format; image size on Cortex-M0 measured.
+
+### R22.42 — Random draws programs use
+
+Status: planned
+Depends on: R20
+
+What `core/random`'s generator lacks, set against Rust's `rand` and Go's
+`math/rand/v2`: a uniform `f32` or `f64` in [0, 1) from the generator's
+high bits; an unbiased value in a signed or inclusive integer range; an
+element picked from a slice, k drawn without replacement and a choice
+weighted by the caller's weights; bytes filled from the generator; normal
+and exponential draws by a method the item states; and xoshiro256**'s
+`jump`, so that threads or fibres take independent streams from one
+seed. The generator stays as it is, and nothing here is cryptographic: a
+key still comes from `io.fill_random`, which is Rust's `getrandom`. From
+R20: placement, and how a draw takes a range.
+
+Leaves out: other generators and distributions beyond the two, until a
+program needs one.
+
+Exit evidence: the same sequences on every target from one seed; each
+draw's distribution checked by a stated test over a pinned sample, the
+floats' bits and the ranges' bounds exhaustively at small widths; `jump`
+against the reference implementation's; the example program D1956 gave
+`core/random` drawing through them; image size on Cortex-M0 measured.
+
+### R22.43 — Sockets by name, with their options
+
+Status: planned
+Depends on: R20, R21.70
+
+What `core/net` lacks beside Rust's `socket2` and `mio` and Go's `net`.
+`hosted/events` already does `mio`'s work, switching fibres over epoll,
+kqueue and Windows' own wait, and each addition here waits through it as
+the existing calls do. First a resolver, `SR-99`'s, retired while no
+consumer asked for it. It uses the system's resolver where that is the
+authority: the C library on Darwin, FreeBSD and Linux under
+`--link=libc`, and Windows' own. A static Linux program gets its own,
+reading `/etc/hosts` and `/etc/resolv.conf` and speaking DNS over UDP
+with TCP after a truncated answer. Beside the resolver comes a connection
+to a host and port that tries each address the name gives in turn, as
+Go's `Dial` does. Then the socket options `socket2` sets: reuse of an
+address and a port, keepalive and its interval, buffer sizes, broadcast,
+multicast membership and hops, IPv6 only, the unicast hop limit and
+linger. Last, Unix-domain stream and datagram sockets in the `network`
+concept where the system has them, which today only `platform/posix`
+gives. The fake network gains each. From R20: placement, and which
+options are a provider's entries.
+
+Leaves out: TLS and HTTP, which are the successor families'; raw sockets.
+
+Exit evidence: each option set and read back on every hosted target; the
+resolver against an unknown name, a name only `/etc/hosts` knows and a
+server that does not answer, both the system's and the static Linux one;
+a multicast exchange and a Unix-domain exchange on one host; the fake
+network's tests for each; an example program in `examples.md` that
+connects by name; `docs/library.md`'s table of routes without the
+resolver's row, and its dates row pointing at no missing record, SR-2112.
+
+### R22.44 — Command-line arguments parsed
+
+Status: planned
+Depends on: R20
+
+A parser over the program's arguments, `io.argument`'s OS strings, with
+what Rust's `clap`, Go's `flag` and Swift's `swift-argument-parser` give:
+short and long options, `--name=value` and `--name value`, clustered short
+flags, `--` to end the options, a repeated or counted flag, values typed
+through `core/text`'s parses with a path kept as an OS string unconverted,
+required and default values, positionals with one trailing list, and
+subcommands. It writes the usage and `--help` text and refuses an argument
+by naming it and what was expected. With no compile-time execution (RP3),
+the program declares its options as a table of values, not by derivation;
+nothing allocates but from an allocator the caller passes, and it parses
+any list of byte slices, so a test or a firmware command line uses it
+too. From R20: placement, and the failure names.
+
+Leaves out: values from environment variables or configuration files,
+and shell completions.
+
+Exit evidence: a fixture for each form and each refusal; the help text
+pinned byte for byte; the example programs that read their arguments by
+hand moved to it; image size on Cortex-M0 measured.
+
+### R22.45 — Text's everyday calls
+
+Status: planned
+Depends on: R20, R22.30
+
+What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
+and Zig's `std.mem`, on Unicode text first. Over `utf8`, by scalars and
+never inside one: a test whether text starts or ends with another, the
+last place it occurs, how many times it occurs without overlap, as Go's
+`Count` counts, trimming White_Space or a given scalar from either end,
+walks over the parts between a scalar or a text, over the fields between
+runs of White_Space and over lines, joining parts with a separator,
+replacing each occurrence, and repeating text. White_Space is Unicode's
+property, 25 scalars written in `core/text` and held to the database by
+R22.30's generator check, so these calls carry no table. Byte forms of
+the searches beside them over `[]u8`, as Rust's `memchr` gives, since
+`find` takes only `utf8`.
+
+Case is `core/unicode`'s, which already has the simple and full mappings
+and folding. This item adds comparing two texts without case, equality, a
+prefix and a suffix, by full case folding scalar by scalar with no
+buffer, so "Straße" equals "STRASSE", and the canonical caseless match,
+with normalization, beside it; case conversion stays `append_upper` and
+`append_lower`. The calls are locale-free, and the default folding is
+wrong for Turkish, Azerbaijani and Lithuanian; R22.50 tailors it (Q-410). Where a 32 KiB image
+cannot carry the case tables, an ASCII variant beside each, named as
+one, folds only A to Z. Which caseless searches beyond the prefix and
+suffix are worth their cost, given `core/regex`'s case-insensitive
+patterns, is this item's to decide.
+
+Parsing in any radix from 2 to 36 with an optional `0x`, `0o` or `0b`
+prefix, and parsing `true` and `false`; a quoted form that writes text
+with its escapes as a Landin literal spells them, as Go's
+`strconv.Quote` and Rust's `{:?}` do; and `append_i8`, `append_i16` and
+their unsigned partners, which parsing has. A walk uses the
+end-of-iteration form R22.30 settled, and each call that writes text
+appends whole or nothing to a builder. From R20: placement and the
+failure names.
+
+Leaves out: collation and splitting by other properties, which a program
+does with `core/unicode` and `core/regex`; a replacement that allocates a
+new string, since the builder is the caller's.
+
+Exit evidence: a fixture for each call, its edges included (empty text,
+an empty separator, a match at either end, overlapping occurrences,
+scalars of every width); caseless equality against the Unicode
+database's case folding over every scalar, and the canonical match against
+the normalization test's pairs; the radix parses against an oracle at
+every width, prefix and radix; the quoted form read back as a literal by
+`refine`; the example programs that write these by hand moved to them;
+image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
 ### R22.50 — Locale formatting
 
 Status: planned
-Depends on: R22.20, R22.30
+Depends on: R22.20, R22.30, R22.45
 
 Numbers and text formatted for a locale, an explicit value from a BCP 47
 identifier and never global state, from generated CLDR data a program
@@ -4228,8 +4398,12 @@ uses in part: SR-98's locale half, with R22.20's template width and
 precision applied to a locale's digits and separators. From R20: a
 locale is an explicit value (D1955), and the host's preferred one is read
 through `hosted/system`; how formatting evidence takes one is this item's.
-Exit evidence: CLDR's own test data pass for the locales generated; a
-program that uses one locale carries only its data.
+With the same locale value it tailors case mapping, folding and
+caseless comparison for Turkish, Azerbaijani and Lithuanian, which
+`core/unicode` and R22.45 leave at Unicode's defaults (Q-410).
+Exit evidence: CLDR's own test data pass for the locales generated; the
+tailored cases pass the Unicode database's special casing for the three
+languages; a program that uses one locale carries only its data.
 
 ### R22.60 — Regular expressions
 
@@ -4483,7 +4657,7 @@ tree queries against brute force; on every target.
 ### R22.80 — The library measured
 
 Status: planned
-Depends on: R22.18, R22.40, R22.50, R22.63, R22.73, R22.75, R22.76
+Depends on: R22.18, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.63, R22.73, R22.75, R22.76
 
 The basis of R22's continuous lane, as R16.10 is of R16's: the time and
 size of the library's own code measured, held in the gate and ranked.
@@ -4818,7 +4992,14 @@ waits for its activation.
   orchestration. A build description between Zig's build program and a
   makefile was discussed when this roadmap was written and left out of it.
 - **Broader standard library:** library facilities beyond what the prototypes
-  needed.
+  needed. The maintainer chose on 2026-11-27 what the next roadmap's library
+  takes first: dates, calendars and time zones over `core/time`; logging;
+  base64, hex, UUIDs and URLs with their percent encoding; and
+  cryptographic hashes, cryptography and TLS bound from an existing
+  library, since Landin writes no cryptography of its own. Serialization
+  and JSON join them, with their shape and formats still open with the
+  maintainer. An HTTP client and server may follow, which nothing decides
+  yet.
 - **Competitive optimization:** optimization beyond correct deterministic
   baseline code.
 - **Language evolution:** parked constructs, watches and proposals whose
