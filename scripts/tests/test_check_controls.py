@@ -2979,6 +2979,47 @@ class RoadmapStructure(unittest.TestCase):
             ages = checker.register_ages(str(root))
         self.assertEqual(ages, {filed: 2, kept: 2})
 
+    def test_an_uncommitted_merge_ages_rows_as_its_commit_will(self):
+        #  SR-1917: a row kept on the line being merged in, the merge
+        #  resolved and not yet committed, has the age the commit gives.
+        from temporary_git import environment
+        def roadmap(statuses):
+            return "".join("### R9.%d — Item\n\nStatus: %s\n\n" % (n, status)
+                           for n, status in enumerate(statuses, 1))
+        row = real_rows()[OPEN_ROW]
+        kept = "SR-%d" % 99021
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            rows = root / checker.REGISTER_DIRECTORY
+            rows.mkdir(parents=True)
+            def git(*arguments, check=True):
+                return subprocess.run(["git", *arguments], cwd=root,
+                                      check=check, env=environment(),
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, text=True)
+            def commit(statuses, *files):
+                (root / "ROADMAP.md").write_text(roadmap(statuses))
+                for name, text in files:
+                    (rows / (name + ".md")).write_text(text)
+                git("add", "-A")
+                git("commit", "-q", "-m", "x")
+            git("init", "-q", "-b", "main")
+            commit(["planned"] * 4, (kept, row))
+            git("checkout", "-q", "-b", "item")
+            commit(["complete"] * 3 + ["planned"])
+            git("checkout", "-q", "main")
+            commit(["planned"] * 4, (kept, row + "Kept: Still wanted.\n"))
+            git("checkout", "-q", "item")
+            git("merge", "-q", "--no-ff", "--no-commit", "main", check=False)
+            (root / "ROADMAP.md").write_text(roadmap(["complete"] * 3
+                                                     + ["planned"]))
+            git("add", "-A")
+            during = checker.register_ages(str(root))
+            git("commit", "-q", "-m", "merge main")
+            after = checker.register_ages(str(root))
+        self.assertEqual(during, after)
+        self.assertEqual(after, {kept: 0})
+
     def test_a_roadmap_identity_cited_elsewhere_is_reported(self):
         #  An item or record of any roadmap: the earlier roadmaps' are
         #  closed and in the history, and no more welcome outside it.

@@ -35,9 +35,12 @@ names an item, or says what the work is.
     python3 scripts/register_next.py --decision 2
 
 gives the next decision numbers, D-n of `spec.md`'s register: past every
-number `spec.md` holds and every running item's reserved block, the
-running item's own block first.  Nothing files a decision; it is taken
-when `spec.md` cites it.
+number `spec.md` holds, in the working tree and at the head of every
+branch of the clone, `origin/main` among them, and every running item's
+reserved block, the running item's own block first.  A number given
+outside a running item's block is claimed in the clone's item state for
+fourteen days, so that neither a later `--decision` nor `item.py start`'s
+reservation gives it again before a branch's `spec.md` cites it.
 
     python3 scripts/register_next.py --delete ROW ...
 
@@ -53,6 +56,7 @@ item's block, so two items of one clone do not propose the same number.
 """
 import argparse
 import datetime
+import json
 import os
 import re
 import subprocess
@@ -135,13 +139,98 @@ def taken(root, question=False):
     return used
 
 
+#  Decision numbers handed out to work that is no running item, kept in
+#  the clone's item state until a branch's `spec.md` holds them.
+CLAIMS = "decisions-claimed.json"
+CLAIM_DAYS = 14
+
+
+def branch_specs(root):
+    """The text of `spec.md` at the head of every local and remote branch
+    of ROOT's clone, each different text once."""
+    def run(*arguments, data=None):
+        return subprocess.run(["git", *arguments], cwd=root, input=data,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, check=True).stdout
+    try:
+        refs = run("for-each-ref", "--format=%(refname)", "refs/heads",
+                   "refs/remotes").decode("utf-8").split()
+        if not refs:
+            return []
+        names = "".join("%s:spec.md\n" % ref for ref in refs).encode()
+        listed = run("cat-file", "--batch-check=%(objectname) %(objecttype)",
+                     data=names).decode("utf-8").splitlines()
+        blobs = sorted({line.split()[0] for line in listed
+                        if line.endswith(" blob")})
+        if not blobs:
+            return []
+        out = run("cat-file", "--batch",
+                  data="".join(blob + "\n" for blob in blobs).encode())
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    texts, at = [], 0
+    while at < len(out):
+        header_end = out.index(b"\n", at)
+        size = int(out[at:header_end].split()[2])
+        texts.append(out[header_end + 1:header_end + 1 + size].decode(
+            "utf-8", "replace"))
+        at = header_end + 1 + size + 1
+    return texts
+
+
+def claims_path(root):
+    """The clone's file of claimed decision numbers, or None outside a
+    clone."""
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=root, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            check=True).stdout.decode("utf-8").strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return Path(common) / "landin-items" / CLAIMS if common else None
+
+
+def claims(root, today=None):
+    """The decision numbers claimed in the last CLAIM_DAYS days."""
+    path = claims_path(root)
+    if path is None or not path.exists():
+        return {}
+    today = today or datetime.date.today()
+    try:
+        recorded = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return {}
+    return {int(number): claim for number, claim in recorded.items()
+            if (today - datetime.date.fromisoformat(claim["date"])).days
+            <= CLAIM_DAYS}
+
+
+def claim(root, numbers, by):
+    """Record NUMBERS, handed out to BY, in the clone's claims."""
+    path = claims_path(root)
+    if path is None:
+        return
+    kept = claims(root)
+    date = datetime.date.today().isoformat()
+    kept.update({number: {"by": by, "date": date} for number in numbers})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps({str(n): kept[n] for n in sorted(kept)},
+                                    indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
 def decisions_taken(root):
-    """Every decision number `spec.md` holds, in the working tree."""
+    """Every decision number taken: in `spec.md`'s working tree, at the
+    head of every branch of the clone, `origin/main`'s among them, and
+    claimed by work that is no running item."""
+    texts = branch_specs(root)
     spec = Path(root) / "spec.md"
-    if not spec.exists():
-        return {0}
-    return {int(n) for n in DECISION.findall(spec.read_text(
-        encoding="utf-8"))} | {0}
+    if spec.exists():
+        texts.append(spec.read_text(encoding="utf-8"))
+    return ({int(n) for text in texts for n in DECISION.findall(text)}
+            | set(claims(root)) | {0})
 
 
 def blocks(root, question=False, kind=None):
@@ -161,7 +250,10 @@ def blocks(root, question=False, kind=None):
             if low is not None:
                 (own if state["item"] == mine else others).append((low, high))
         return own, others
-    except (OSError, ValueError, item.Refused):
+    except (OSError, ValueError, item.Refused) as error:
+        print("register_next.py: the running items' reservations cannot be"
+              " read (%s); the numbers given skip none of them" % error,
+              file=sys.stderr)
         return [], []
 
 
@@ -261,6 +353,19 @@ def main(argv=None):
         parser.error("count must be at least 1")
     identities = allocate(arguments.root, arguments.count, arguments.question,
                           arguments.decision)
+    if arguments.decision:
+        #  Numbers past the running item's own block are claimed, so that
+        #  no item started before they reach a branch reserves them.
+        own, _ = blocks(arguments.root, kind="D")
+        outside = [int(identity[1:]) for identity in identities
+                   if not any(low <= int(identity[1:]) <= high
+                              for low, high in own)]
+        if outside:
+            branch = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=arguments.root, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL).stdout.decode("utf-8").strip()
+            claim(arguments.root, outside, branch or "a checkout")
     date = datetime.date.today().isoformat()
     for identity in identities:
         if arguments.file:

@@ -3838,7 +3838,8 @@ Depends on: none
 
 What a user installing a release meets, scheduled by the register sweep
 of 2026-11-26, before the next release: SR-1850's macOS archive, which
-needs macOS 26 and says so nowhere, Q-347 asking which minimum it states;
+needs macOS 26 and says so nowhere, which Q-347's answer makes the
+minimum it states;
 SR-1820's `install.sh`, which refuses the FreeBSD archive the release
 workflow now publishes; SR-1516's flake, which nothing builds on
 `aarch64-linux`; and SR-1894's locked Debian packages, which nothing

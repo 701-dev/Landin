@@ -141,6 +141,13 @@ GENERATE_ALL = "--generate"
 #  The aggregate job whose conclusion is a gate run's verdict.
 VERDICT_JOB = "gate"
 QUEUE = "queue.json"
+#  The rules a queue file is written under.  Every `item.py` of the clone's
+#  worktrees writes the one file, each its own branch's copy, so a copy
+#  refuses to rewrite a file a newer copy wrote; raise it whenever a change
+#  to `settle` or the file's keys would make an older copy drop or misread
+#  what a newer one keeps (SR-1905: an older copy dropped the waiters that
+#  are no item).  A file without the key is the rules of 1.
+QUEUE_SCHEMA = 2
 #  Every change of a queue's holder or line, one JSON object a line, beside
 #  the queue's own file: queue.json keeps only the present, and the
 #  holds of work that is no item were otherwise lost.
@@ -427,7 +434,8 @@ def reserve(item, revision, cwd):
     sys.path.insert(0, str(ROOT / "scripts"))
     import register_next
     others = reserved(cwd, exclude=item)
-    used = {"D": decisions_used(revision, cwd),
+    used = {"D": decisions_used(revision, cwd)
+                 | register_next.decisions_taken(str(repository(cwd))),
             "SR": register_next.taken(str(repository(cwd))),
             "Q": register_next.taken(str(repository(cwd)), question=True)}
     return {kind: list(next_free(used[kind], others.get(kind, []), size))
@@ -553,8 +561,20 @@ def start(arguments):
         worktree = Path(arguments.worktree or main_checkout(cwd).parent
                         / ("Landin-" + slug(item))).resolve()
     items, _ = roadmap_items(roadmap_at(base, cwd))
+    if item not in items and arguments.adopt and not arguments.base:
+        #  A continuous item whose text the adopted branch adds itself
+        #  (SR-1919) starts from the branch's head, which has the text.
+        head = git("rev-parse", "HEAD", cwd=worktree)
+        at_head, _ = roadmap_items(roadmap_at(head, cwd))
+        if item in at_head:
+            base, items = head, at_head
     if item not in items:
-        raise Refused("ROADMAP.md at %s has no item %s" % (base[:12], item))
+        raise Refused(
+            "ROADMAP.md at %s has no item %s: an item whose text a branch"
+            " adds starts from the commit that adds it; commit the text in"
+            " its worktree, then `item.py start %s --adopt WORKTREE`, which"
+            " starts from the branch's head, or `--base COMMIT`"
+            % (base[:12], item, item))
     entry = items[item]
     if entry["status"] == "complete":
         raise Refused("%s is complete at %s" % (item, base[:12]))
@@ -1075,6 +1095,16 @@ def queue_locked(cwd=None, target=MAIN):
         path = root / name
         data = (json.loads(path.read_text(encoding="utf-8"))
                 if path.exists() else {})
+        schema = data.get("schema", 1)
+        if schema > QUEUE_SCHEMA:
+            raise Refused(
+                "%s was written by a newer scripts/item.py, under the queue's"
+                " rules of %d where this copy, %s, knows those of %d: run the"
+                " newer copy, as `python3 %s/scripts/item.py` once the clone's"
+                " main checkout is current, or merge main into this branch"
+                % (path, schema, Path(__file__).resolve(), QUEUE_SCHEMA,
+                   common_directory(cwd).parent))
+        data["schema"] = QUEUE_SCHEMA
         data.setdefault("holder", None)
         data.setdefault("waiting", [])
         data.setdefault("sessions", {})

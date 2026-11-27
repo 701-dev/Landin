@@ -2422,12 +2422,19 @@ def register_ages(root):
     #  A merge's own diff is read only where it differs from every parent:
     #  a `Kept:` line written in resolving it, not one it brought cleanly,
     #  whose own commit is in the history.
+    #  A merge being resolved is read as the commit it will make: its
+    #  parents HEAD and MERGE_HEAD, the history of both, so that the ages
+    #  are those the committed merge gives (SR-1917).
+    pending = _git(root, "rev-parse", "-q", "--verify", "MERGE_HEAD")
+    pending = pending.strip() if pending else None
+    head = (_git(root, "rev-parse", "-q", "--verify", "HEAD") or "").strip()
+    tips = [head or "HEAD"] + ([pending] if pending else [])
     starts = []
     for arguments in (("--diff-filter=A",),
                       ("--diff-merges=dense-combined", "-G",
                        REGISTER_KEPT_GIT)):
         log = _git(root, "log", "--format=commit %H", "--name-only",
-                   *arguments, "--", REGISTER_DIRECTORY)
+                   *arguments, *tips, "--", REGISTER_DIRECTORY)
         if log is None:
             return None
         newest, commit = {}, None
@@ -2439,8 +2446,6 @@ def register_ages(root):
                                   commit)
         starts.append(newest)
     added, kept = starts
-    pending = _git(root, "rev-parse", "-q", "--verify", "MERGE_HEAD")
-    pending = pending.strip() if pending else None
     complete_at = {}
     def complete(commit):
         if commit not in complete_at:
@@ -2457,20 +2462,19 @@ def register_ages(root):
         if start in before:
             return before[start]
         done = set(complete(start))
-        after = _git(root, "rev-list", "--ancestry-path",
-                     "%s..HEAD" % start)
+        after = _git(root, "rev-list", "--ancestry-path", "^" + start,
+                     *tips)
         descendants = set((after or "").split()) | {start}
         merges = _git(root, "rev-list", "--merges", "--parents",
-                      "--ancestry-path", "%s..HEAD" % start) or ""
+                      "--ancestry-path", "^" + start, *tips) or ""
         joined = [parent for line in merges.splitlines()
                   for parent in line.split()[1:]]
+        #  A merge being resolved joins MERGE_HEAD's line to HEAD's.
+        if pending:
+            joined += tips
         for parent in joined:
             if parent not in descendants:
                 done |= complete(parent)
-        #  A merge being resolved joins MERGE_HEAD's line to HEAD's.
-        if pending and _git(root, "merge-base", "--is-ancestor", start,
-                            pending) is None:
-            done |= complete(pending)
         before[start] = done
         return done
     ages = {}
