@@ -4258,7 +4258,9 @@ dice example draws through `between_i64`, `weighted`, `shuffle` and
 `pick`. On Cortex-M0 at size/auto the integer draws are a 12.8 KB image
 and the normal ones, with `log` and `sqrt`, 17.6 KB; the four fixtures
 fit the 32 KiB profile at every profile, the float tests at 16,000 draws
-so that none/off ends within the lane's limit. `core/README.md`'s 8.8 KB
+so that none/off ends within the lane's limit; on the two RV32 lanes,
+without a float unit, the two that call `log` record capacity limits at
+none/off, and the float tests on the ESP32-C3 at size too (D698). `core/README.md`'s 8.8 KB
 for `runtime/random-sequence` was stale; it is 6.6 KB. `SR-2163`
 records `refine run`'s refusal of a program argument given without `--`.
 
