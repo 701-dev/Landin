@@ -317,6 +317,13 @@ def run_fixture(checks, alpine, root, env, directory, meta):
         ran = run(compile_argv + ["--root=" + str("/src" / rooted),
                                   meta["program"]],
                   cwd=str("/src" / source))
+    elif not (directory / meta["program"]).resolve().is_relative_to(
+            directory.resolve()):
+        #  A program another fixture holds, `../NAME/main.ldn`, is outside
+        #  the work copy, so it is compiled from the directory that names
+        #  it in the checkout, as the harness does.
+        ran = run(compile_argv + [meta["program"]],
+                  cwd=str("/src" / directory.relative_to(ROOT)))
     else:
         ran = run(compile_argv + [meta["program"]])
     if ran.returncode != 0:
