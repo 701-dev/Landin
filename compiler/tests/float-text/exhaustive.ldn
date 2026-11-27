@@ -1,0 +1,163 @@
+--  Every `f32` written and read back, from the first bit pattern given
+--  to the one before the second: `exhaustive FIRST END`, which
+--  scripts/float_text.py runs in slices.  For each finite value the
+--  shortest text must read back as the same bits; no decimal of one digit
+--  fewer near it may; and it must be the decimal of its length nearest the
+--  value, ties to even, as `append_f32_exponent` rounds the exact value,
+--  or that decimal's neighbour when the nearest does not read back.  The
+--  program prints how many it checked and the first that failed, and
+--  exits 0 when none did.
+import core/io
+import core/text
+import hosted/blocking
+
+argument_number: (host: blocking.host, index: usize) -> (value: u64) =
+    value = 0
+    given := io.argument(host, index) else begin return end
+    value = text.parse_u64(text.os_string_bytes(given)) else 0
+end argument_number
+
+float_of: (bits: u32) -> (value: f32) =
+    view: ptr f32 = ptr(usize(addr bits))
+    value = view.val
+end float_of
+
+bits_of: (value: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr value))
+    bits = view.val
+end bits_of
+
+--  Whether `written` reads back as exactly `bits`.
+reads_back: (written: []u8, bits: u32) -> (yes: bool) =
+    value: f32 = text.parse_f32(written) else begin
+        yes = false
+        return
+    end
+    yes = bits_of(value) == bits
+end reads_back
+
+--  A decimal in the exponent form, `d.ddd` then `e` and the exponent,
+--  as its digits without trailing zeros, how many, and the power of ten
+--  of the last.
+decimal_value: type = struct
+    digits: u64
+    count: i32
+    exponent: i32
+end decimal_value
+
+split: (written: []u8) -> (result: decimal_value) =
+    mut digits: u64 = 0
+    mut count: i32 = 0
+    mut at: usize = 0
+    if written[0] == u8('-') then inc at end if
+    while written[at] <> u8('e') do
+        byte: u8 = written[at]
+        if byte <> u8('.') then
+            digits = digits * 10 + u64(byte - u8('0'))
+            inc count
+        end if
+        inc at
+    end while
+    power: i32 = text.parse_i32(written[at + 1..<lenof written]) else 0
+    mut last: i32 = power - count + 1
+    --  A zero after the last digit is no part of the decimal: `1.0e0`.
+    while count > 1 and digits % 10 == 0 do
+        digits /= 10
+        dec count
+        inc last
+    end while
+    result = (digits: digits, count: count, exponent: last)
+end split
+
+--  Whether the decimal `digits` times 10^`exponent` reads back as `bits`.
+candidate_reads_back: (digits: u64, exponent: i32, negative: bool, bits: u32)
+                      -> (yes: bool) =
+    mut storage: [40]u8 = zeroed
+    mut line := text.over(storage[0..<40])
+    yes = false
+    if negative then
+        text.append_byte(line, u8('-')) else (problem)
+            _ = problem
+            return
+        end
+    end if
+    text.append_u64(line, digits) else begin return end
+    text.append_byte(line, u8('e')) else begin return end
+    text.append_i32(line, exponent) else begin return end
+    yes = reads_back(text.used(line), bits)
+end candidate_reads_back
+
+--  The first failure's bits, or `0 -% 1` for none, and the count checked.
+checked_value: (bits: u32) -> (good: bool) =
+    good = false
+    value: f32 = float_of(bits)
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage[0..<64])
+    text.append_f32(line, value) else begin return end
+    return when not reads_back(text.used(line), bits)
+    if bits & 0x7fffffff == 0 then
+        good = true
+        return
+    end if
+    negative: bool = bits >> 31 == 1
+    mut shortest_storage: [64]u8 = zeroed
+    mut shortest := text.over(shortest_storage[0..<64])
+    text.format(shortest, "{:e}", [any(addr value)]) else begin return end
+    found: decimal_value = split(text.used(shortest))
+    mut nearest_storage: [64]u8 = zeroed
+    mut nearest := text.over(nearest_storage[0..<64])
+    text.append_f32_exponent(nearest, value, usize(found.count - 1)) else begin return end
+    rounded: decimal_value = split(text.used(nearest))
+    if reads_back(text.used(nearest), bits) then
+        return when rounded.digits <> found.digits
+          or rounded.exponent <> found.exponent
+    else
+        --  The nearest decimal of the length is outside the interval: the
+        --  one written is its neighbour on the inside.
+        mut near: u64 = rounded.digits
+        mut place: i32 = rounded.exponent
+        while place > found.exponent do
+            near *= 10
+            dec place
+        end while
+        return when place <> found.exponent
+        return when found.digits <> near + 1 and found.digits + 1 <> near
+    end if
+    if found.count > 1 then
+        shorter: u64 = found.digits / 10
+        low: u64 = if shorter > 0 then shorter - 1 else 0 end if
+        for candidate in low..<shorter + 3 do
+            return when candidate > 0 and candidate_reads_back(candidate,
+                                                               found.exponent + 1, negative, bits)
+        end for
+    end if
+    good = true
+end checked_value
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    mut storage: [256]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    first: u64 = argument_number(host, 0)
+    last: u64 = argument_number(host, 1)
+    mut count: u64 = 0
+    mut failures: u64 = 0
+    mut at: u64 = first
+    while at < last do
+        bits: u32 = u32(at)
+        if bits & 0x7f800000 <> 0x7f800000 then
+            inc count
+            if not checked_value(bits) then
+                if failures < 20 then
+                    io.format(out, "failed {:#010x}\n", [any(addr bits)]) else none
+                end if
+                inc failures
+            end if
+        end if
+        inc at
+    end while
+    io.format(out, "checked {} failed {}\n", [any(addr count), any(addr failures)])
+        else none
+    code = if failures == 0 then 0 else 1 end if
+end main

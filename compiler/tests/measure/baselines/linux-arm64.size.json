@@ -4,21 +4,21 @@
  "entries": {
   "armv8-a/none-all/binary-trees": {
    "sections": {
-    ".text": 144272,
-    ".rodata": 20429,
+    ".text": 195120,
+    ".rodata": 28362,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 848,
+    ".data": 928,
     ".bss": 264
    }
   },
   "armv8-a/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 104512,
-    ".rodata": 16586,
+    ".text": 156912,
+    ".rodata": 24192,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 696,
+    ".data": 776,
     ".bss": 168
    }
   },
@@ -34,32 +34,32 @@
   },
   "armv8-a/none-all/fibre": {
    "sections": {
-    ".text": 137176,
-    ".rodata": 23591,
+    ".text": 188944,
+    ".rodata": 32234,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 736,
+    ".data": 816,
     ".bss": 176
    }
   },
   "armv8-a/none-all/mandelbrot": {
    "sections": {
-    ".text": 147564,
-    ".rodata": 20620,
+    ".text": 198444,
+    ".rodata": 28553,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 824,
+    ".data": 904,
     ".bss": 264
    }
   },
   "armv8-a/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387068,
-    ".rodata": 48116,
+    ".text": 438020,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -75,41 +75,41 @@
   },
   "armv8-a/none-all/reverse-complement": {
    "sections": {
-    ".text": 157768,
+    ".text": 158168,
     ".rodata": 21380,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 888,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8-a/none-all/thread": {
    "sections": {
-    ".text": 179580,
-    ".rodata": 31458,
+    ".text": 231528,
+    ".rodata": 40101,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 848,
+    ".data": 928,
     ".bss": 131256
    }
   },
   "armv8-a/none-auto/binary-trees": {
    "sections": {
-    ".text": 144272,
-    ".rodata": 20429,
+    ".text": 195120,
+    ".rodata": 28362,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 848,
+    ".data": 928,
     ".bss": 264
    }
   },
   "armv8-a/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 104512,
-    ".rodata": 16586,
+    ".text": 156912,
+    ".rodata": 24192,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 696,
+    ".data": 776,
     ".bss": 168
    }
   },
@@ -125,32 +125,32 @@
   },
   "armv8-a/none-auto/fibre": {
    "sections": {
-    ".text": 137176,
-    ".rodata": 23591,
+    ".text": 188944,
+    ".rodata": 32234,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 736,
+    ".data": 816,
     ".bss": 176
    }
   },
   "armv8-a/none-auto/mandelbrot": {
    "sections": {
-    ".text": 147564,
-    ".rodata": 20620,
+    ".text": 198444,
+    ".rodata": 28553,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 824,
+    ".data": 904,
     ".bss": 264
    }
   },
   "armv8-a/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387068,
-    ".rodata": 48116,
+    ".text": 438020,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -166,41 +166,41 @@
   },
   "armv8-a/none-auto/reverse-complement": {
    "sections": {
-    ".text": 157768,
+    ".text": 158168,
     ".rodata": 21380,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 888,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8-a/none-auto/thread": {
    "sections": {
-    ".text": 179580,
-    ".rodata": 31458,
+    ".text": 231528,
+    ".rodata": 40101,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 848,
+    ".data": 928,
     ".bss": 131256
    }
   },
   "armv8-a/none-off/binary-trees": {
    "sections": {
-    ".text": 144344,
-    ".rodata": 20429,
+    ".text": 195192,
+    ".rodata": 28362,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 848,
+    ".data": 928,
     ".bss": 264
    }
   },
   "armv8-a/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 104544,
-    ".rodata": 16586,
+    ".text": 156944,
+    ".rodata": 24192,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 696,
+    ".data": 776,
     ".bss": 168
    }
   },
@@ -216,32 +216,32 @@
   },
   "armv8-a/none-off/fibre": {
    "sections": {
-    ".text": 137208,
-    ".rodata": 23591,
+    ".text": 188976,
+    ".rodata": 32234,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 736,
+    ".data": 816,
     ".bss": 176
    }
   },
   "armv8-a/none-off/mandelbrot": {
    "sections": {
-    ".text": 147732,
-    ".rodata": 20620,
+    ".text": 198612,
+    ".rodata": 28553,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 824,
+    ".data": 904,
     ".bss": 264
    }
   },
   "armv8-a/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 387228,
-    ".rodata": 48116,
+    ".text": 438180,
+    ".rodata": 56049,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
@@ -257,41 +257,41 @@
   },
   "armv8-a/none-off/reverse-complement": {
    "sections": {
-    ".text": 157912,
+    ".text": 158312,
     ".rodata": 21380,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 888,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8-a/none-off/thread": {
    "sections": {
-    ".text": 179644,
-    ".rodata": 31458,
+    ".text": 231592,
+    ".rodata": 40101,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 848,
+    ".data": 928,
     ".bss": 131256
    }
   },
   "armv8-a/size-all/binary-trees": {
    "sections": {
-    ".text": 47548,
-    ".rodata": 17427,
+    ".text": 58468,
+    ".rodata": 22082,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 33348,
-    ".rodata": 13493,
+    ".text": 43928,
+    ".rodata": 17732,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -307,32 +307,32 @@
   },
   "armv8-a/size-all/fibre": {
    "sections": {
-    ".text": 47004,
-    ".rodata": 19794,
+    ".text": 58456,
+    ".rodata": 24804,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/size-all/mandelbrot": {
    "sections": {
-    ".text": 47796,
-    ".rodata": 17606,
+    ".text": 58708,
+    ".rodata": 22261,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102348,
-    ".rodata": 37346,
+    ".text": 113284,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -348,41 +348,41 @@
   },
   "armv8-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 51864,
+    ".text": 51956,
     ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/size-all/thread": {
    "sections": {
-    ".text": 63000,
-    ".rodata": 26194,
+    ".text": 74632,
+    ".rodata": 31204,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 47548,
-    ".rodata": 17427,
+    ".text": 58468,
+    ".rodata": 22082,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 33348,
-    ".rodata": 13493,
+    ".text": 43928,
+    ".rodata": 17732,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -398,32 +398,32 @@
   },
   "armv8-a/size-auto/fibre": {
    "sections": {
-    ".text": 47004,
-    ".rodata": 19794,
+    ".text": 58456,
+    ".rodata": 24804,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/size-auto/mandelbrot": {
    "sections": {
-    ".text": 47796,
-    ".rodata": 17606,
+    ".text": 58708,
+    ".rodata": 22261,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102348,
-    ".rodata": 37346,
+    ".text": 113284,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -439,41 +439,41 @@
   },
   "armv8-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 51864,
+    ".text": 51956,
     ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/size-auto/thread": {
    "sections": {
-    ".text": 63000,
-    ".rodata": 26194,
+    ".text": 74632,
+    ".rodata": 31204,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8-a/size-off/binary-trees": {
    "sections": {
-    ".text": 47572,
-    ".rodata": 17427,
+    ".text": 58492,
+    ".rodata": 22082,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 33372,
-    ".rodata": 13493,
+    ".text": 43952,
+    ".rodata": 17732,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -489,32 +489,32 @@
   },
   "armv8-a/size-off/fibre": {
    "sections": {
-    ".text": 47028,
-    ".rodata": 19794,
+    ".text": 58480,
+    ".rodata": 24804,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/size-off/mandelbrot": {
    "sections": {
-    ".text": 47856,
-    ".rodata": 17606,
+    ".text": 58768,
+    ".rodata": 22261,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 102416,
-    ".rodata": 37346,
+    ".text": 113352,
+    ".rodata": 42001,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -530,41 +530,41 @@
   },
   "armv8-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 51936,
+    ".text": 52028,
     ".rodata": 18799,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/size-off/thread": {
    "sections": {
-    ".text": 63000,
-    ".rodata": 26194,
+    ".text": 74632,
+    ".rodata": 31204,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 41592,
-    ".rodata": 17131,
+    ".text": 54052,
+    ".rodata": 21697,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 28584,
-    ".rodata": 13234,
+    ".text": 39996,
+    ".rodata": 17295,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -580,32 +580,32 @@
   },
   "armv8-a/speed-all/fibre": {
    "sections": {
-    ".text": 38808,
-    ".rodata": 18173,
+    ".text": 51812,
+    ".rodata": 23145,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/speed-all/mandelbrot": {
    "sections": {
-    ".text": 41600,
-    ".rodata": 17313,
+    ".text": 54052,
+    ".rodata": 21879,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 108796,
-    ".rodata": 36966,
+    ".text": 121272,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -621,41 +621,41 @@
   },
   "armv8-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 49124,
+    ".text": 49196,
     ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/speed-all/thread": {
    "sections": {
-    ".text": 54976,
-    ".rodata": 23926,
+    ".text": 68160,
+    ".rodata": 28898,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 41592,
-    ".rodata": 17131,
+    ".text": 54052,
+    ".rodata": 21697,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 28584,
-    ".rodata": 13234,
+    ".text": 39996,
+    ".rodata": 17295,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -671,32 +671,32 @@
   },
   "armv8-a/speed-auto/fibre": {
    "sections": {
-    ".text": 38808,
-    ".rodata": 18173,
+    ".text": 51812,
+    ".rodata": 23145,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 41600,
-    ".rodata": 17313,
+    ".text": 54052,
+    ".rodata": 21879,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 108796,
-    ".rodata": 36966,
+    ".text": 121272,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -712,41 +712,41 @@
   },
   "armv8-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 49124,
+    ".text": 49196,
     ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/speed-auto/thread": {
    "sections": {
-    ".text": 54976,
-    ".rodata": 23926,
+    ".text": 68160,
+    ".rodata": 28898,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 41744,
-    ".rodata": 17131,
+    ".text": 54204,
+    ".rodata": 21697,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 28624,
-    ".rodata": 13234,
+    ".text": 40036,
+    ".rodata": 17295,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -762,32 +762,32 @@
   },
   "armv8-a/speed-off/fibre": {
    "sections": {
-    ".text": 38848,
-    ".rodata": 18173,
+    ".text": 51852,
+    ".rodata": 23145,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8-a/speed-off/mandelbrot": {
    "sections": {
-    ".text": 41700,
-    ".rodata": 17313,
+    ".text": 54152,
+    ".rodata": 21879,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109248,
-    ".rodata": 36966,
+    ".text": 121724,
+    ".rodata": 41532,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -803,41 +803,41 @@
   },
   "armv8-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 49456,
+    ".text": 49528,
     ".rodata": 18444,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8-a/speed-off/thread": {
    "sections": {
-    ".text": 55064,
-    ".rodata": 23926,
+    ".text": 68248,
+    ".rodata": 28898,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/none-all/binary-trees": {
    "sections": {
-    ".text": 147480,
-    ".rodata": 20881,
+    ".text": 198328,
+    ".rodata": 28814,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8.1-a/none-all/fannkuch-redux": {
    "sections": {
-    ".text": 109280,
-    ".rodata": 17300,
+    ".text": 161680,
+    ".rodata": 24906,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 704,
+    ".data": 784,
     ".bss": 168
    }
   },
@@ -853,32 +853,32 @@
   },
   "armv8.1-a/none-all/fibre": {
    "sections": {
-    ".text": 142232,
-    ".rodata": 24643,
+    ".text": 194000,
+    ".rodata": 33286,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 744,
+    ".data": 824,
     ".bss": 176
    }
   },
   "armv8.1-a/none-all/mandelbrot": {
    "sections": {
-    ".text": 150772,
-    ".rodata": 21072,
+    ".text": 201652,
+    ".rodata": 29005,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 832,
+    ".data": 912,
     ".bss": 264
    }
   },
   "armv8.1-a/none-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390276,
-    ".rodata": 48568,
+    ".text": 441228,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -894,41 +894,41 @@
   },
   "armv8.1-a/none-all/reverse-complement": {
    "sections": {
-    ".text": 160976,
+    ".text": 161376,
     ".rodata": 21831,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 896,
+    ".data": 944,
     ".bss": 264
    }
   },
   "armv8.1-a/none-all/thread": {
    "sections": {
-    ".text": 184616,
-    ".rodata": 32510,
+    ".text": 236564,
+    ".rodata": 41153,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 856,
+    ".data": 936,
     ".bss": 131256
    }
   },
   "armv8.1-a/none-auto/binary-trees": {
    "sections": {
-    ".text": 147480,
-    ".rodata": 20881,
+    ".text": 198328,
+    ".rodata": 28814,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8.1-a/none-auto/fannkuch-redux": {
    "sections": {
-    ".text": 109280,
-    ".rodata": 17300,
+    ".text": 161680,
+    ".rodata": 24906,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 704,
+    ".data": 784,
     ".bss": 168
    }
   },
@@ -944,32 +944,32 @@
   },
   "armv8.1-a/none-auto/fibre": {
    "sections": {
-    ".text": 142232,
-    ".rodata": 24643,
+    ".text": 194000,
+    ".rodata": 33286,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 744,
+    ".data": 824,
     ".bss": 176
    }
   },
   "armv8.1-a/none-auto/mandelbrot": {
    "sections": {
-    ".text": 150772,
-    ".rodata": 21072,
+    ".text": 201652,
+    ".rodata": 29005,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 832,
+    ".data": 912,
     ".bss": 264
    }
   },
   "armv8.1-a/none-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390276,
-    ".rodata": 48568,
+    ".text": 441228,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -985,41 +985,41 @@
   },
   "armv8.1-a/none-auto/reverse-complement": {
    "sections": {
-    ".text": 160976,
+    ".text": 161376,
     ".rodata": 21831,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 896,
+    ".data": 944,
     ".bss": 264
    }
   },
   "armv8.1-a/none-auto/thread": {
    "sections": {
-    ".text": 184616,
-    ".rodata": 32510,
+    ".text": 236564,
+    ".rodata": 41153,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 856,
+    ".data": 936,
     ".bss": 131256
    }
   },
   "armv8.1-a/none-off/binary-trees": {
    "sections": {
-    ".text": 147552,
-    ".rodata": 20881,
+    ".text": 198400,
+    ".rodata": 28814,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 856,
+    ".data": 936,
     ".bss": 264
    }
   },
   "armv8.1-a/none-off/fannkuch-redux": {
    "sections": {
-    ".text": 109312,
-    ".rodata": 17300,
+    ".text": 161712,
+    ".rodata": 24906,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 704,
+    ".data": 784,
     ".bss": 168
    }
   },
@@ -1035,32 +1035,32 @@
   },
   "armv8.1-a/none-off/fibre": {
    "sections": {
-    ".text": 142264,
-    ".rodata": 24643,
+    ".text": 194032,
+    ".rodata": 33286,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 744,
+    ".data": 824,
     ".bss": 176
    }
   },
   "armv8.1-a/none-off/mandelbrot": {
    "sections": {
-    ".text": 150940,
-    ".rodata": 21072,
+    ".text": 201820,
+    ".rodata": 29005,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 832,
+    ".data": 912,
     ".bss": 264
    }
   },
   "armv8.1-a/none-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 390436,
-    ".rodata": 48568,
+    ".text": 441388,
+    ".rodata": 56501,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 864,
+    ".data": 944,
     ".bss": 264
    }
   },
@@ -1076,41 +1076,41 @@
   },
   "armv8.1-a/none-off/reverse-complement": {
    "sections": {
-    ".text": 161120,
+    ".text": 161520,
     ".rodata": 21831,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 896,
+    ".data": 944,
     ".bss": 264
    }
   },
   "armv8.1-a/none-off/thread": {
    "sections": {
-    ".text": 184680,
-    ".rodata": 32510,
+    ".text": 236628,
+    ".rodata": 41153,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 856,
+    ".data": 936,
     ".bss": 131256
    }
   },
   "armv8.1-a/size-all/binary-trees": {
    "sections": {
-    ".text": 48724,
-    ".rodata": 17879,
+    ".text": 59644,
+    ".rodata": 22534,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-all/fannkuch-redux": {
    "sections": {
-    ".text": 35072,
-    ".rodata": 14157,
+    ".text": 45652,
+    ".rodata": 18396,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1126,32 +1126,32 @@
   },
   "armv8.1-a/size-all/fibre": {
    "sections": {
-    ".text": 49016,
-    ".rodata": 20796,
+    ".text": 60468,
+    ".rodata": 25806,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/size-all/mandelbrot": {
    "sections": {
-    ".text": 48972,
-    ".rodata": 18058,
+    ".text": 59884,
+    ".rodata": 22713,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103524,
-    ".rodata": 37798,
+    ".text": 114460,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1167,41 +1167,41 @@
   },
   "armv8.1-a/size-all/reverse-complement": {
    "sections": {
-    ".text": 53040,
+    ".text": 53132,
     ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/size-all/thread": {
    "sections": {
-    ".text": 64992,
-    ".rodata": 27196,
+    ".text": 76624,
+    ".rodata": 32206,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/size-auto/binary-trees": {
    "sections": {
-    ".text": 48724,
-    ".rodata": 17879,
+    ".text": 59644,
+    ".rodata": 22534,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-auto/fannkuch-redux": {
    "sections": {
-    ".text": 35072,
-    ".rodata": 14157,
+    ".text": 45652,
+    ".rodata": 18396,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1217,32 +1217,32 @@
   },
   "armv8.1-a/size-auto/fibre": {
    "sections": {
-    ".text": 49016,
-    ".rodata": 20796,
+    ".text": 60468,
+    ".rodata": 25806,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/size-auto/mandelbrot": {
    "sections": {
-    ".text": 48972,
-    ".rodata": 18058,
+    ".text": 59884,
+    ".rodata": 22713,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103524,
-    ".rodata": 37798,
+    ".text": 114460,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1258,41 +1258,41 @@
   },
   "armv8.1-a/size-auto/reverse-complement": {
    "sections": {
-    ".text": 53040,
+    ".text": 53132,
     ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/size-auto/thread": {
    "sections": {
-    ".text": 64992,
-    ".rodata": 27196,
+    ".text": 76624,
+    ".rodata": 32206,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/size-off/binary-trees": {
    "sections": {
-    ".text": 48748,
-    ".rodata": 17879,
+    ".text": 59668,
+    ".rodata": 22534,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-off/fannkuch-redux": {
    "sections": {
-    ".text": 35096,
-    ".rodata": 14157,
+    ".text": 45676,
+    ".rodata": 18396,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1308,32 +1308,32 @@
   },
   "armv8.1-a/size-off/fibre": {
    "sections": {
-    ".text": 49040,
-    ".rodata": 20796,
+    ".text": 60492,
+    ".rodata": 25806,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/size-off/mandelbrot": {
    "sections": {
-    ".text": 49032,
-    ".rodata": 18058,
+    ".text": 59944,
+    ".rodata": 22713,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/size-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 103592,
-    ".rodata": 37798,
+    ".text": 114528,
+    ".rodata": 42453,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1349,41 +1349,41 @@
   },
   "armv8.1-a/size-off/reverse-complement": {
    "sections": {
-    ".text": 53112,
+    ".text": 53204,
     ".rodata": 19250,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/size-off/thread": {
    "sections": {
-    ".text": 64992,
-    ".rodata": 27196,
+    ".text": 76624,
+    ".rodata": 32206,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/speed-all/binary-trees": {
    "sections": {
-    ".text": 42404,
-    ".rodata": 17527,
+    ".text": 54864,
+    ".rodata": 22093,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-all/fannkuch-redux": {
    "sections": {
-    ".text": 29760,
-    ".rodata": 13842,
+    ".text": 41172,
+    ".rodata": 17903,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1399,32 +1399,32 @@
   },
   "armv8.1-a/speed-all/fibre": {
    "sections": {
-    ".text": 40128,
-    ".rodata": 18949,
+    ".text": 53132,
+    ".rodata": 23921,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/speed-all/mandelbrot": {
    "sections": {
-    ".text": 42412,
-    ".rodata": 17709,
+    ".text": 54864,
+    ".rodata": 22275,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-all/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109608,
-    ".rodata": 37362,
+    ".text": 122084,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1440,41 +1440,41 @@
   },
   "armv8.1-a/speed-all/reverse-complement": {
    "sections": {
-    ".text": 49936,
+    ".text": 50008,
     ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-all/thread": {
    "sections": {
-    ".text": 56276,
-    ".rodata": 24702,
+    ".text": 69460,
+    ".rodata": 29674,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/speed-auto/binary-trees": {
    "sections": {
-    ".text": 42404,
-    ".rodata": 17527,
+    ".text": 54864,
+    ".rodata": 22093,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-auto/fannkuch-redux": {
    "sections": {
-    ".text": 29760,
-    ".rodata": 13842,
+    ".text": 41172,
+    ".rodata": 17903,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1490,32 +1490,32 @@
   },
   "armv8.1-a/speed-auto/fibre": {
    "sections": {
-    ".text": 40128,
-    ".rodata": 18949,
+    ".text": 53132,
+    ".rodata": 23921,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/speed-auto/mandelbrot": {
    "sections": {
-    ".text": 42412,
-    ".rodata": 17709,
+    ".text": 54864,
+    ".rodata": 22275,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-auto/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 109608,
-    ".rodata": 37362,
+    ".text": 122084,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1531,41 +1531,41 @@
   },
   "armv8.1-a/speed-auto/reverse-complement": {
    "sections": {
-    ".text": 49936,
+    ".text": 50008,
     ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-auto/thread": {
    "sections": {
-    ".text": 56276,
-    ".rodata": 24702,
+    ".text": 69460,
+    ".rodata": 29674,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   },
   "armv8.1-a/speed-off/binary-trees": {
    "sections": {
-    ".text": 42556,
-    ".rodata": 17527,
+    ".text": 55016,
+    ".rodata": 22093,
     ".tbss": 4,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-off/fannkuch-redux": {
    "sections": {
-    ".text": 29800,
-    ".rodata": 13842,
+    ".text": 41212,
+    ".rodata": 17903,
     ".tbss": 4,
     ".data.rel.ro": 192,
-    ".data": 584,
+    ".data": 664,
     ".bss": 152
    }
   },
@@ -1581,32 +1581,32 @@
   },
   "armv8.1-a/speed-off/fibre": {
    "sections": {
-    ".text": 40168,
-    ".rodata": 18949,
+    ".text": 53172,
+    ".rodata": 23921,
     ".tbss": 16,
     ".data.rel.ro": 288,
-    ".data": 584,
+    ".data": 664,
     ".bss": 160
    }
   },
   "armv8.1-a/speed-off/mandelbrot": {
    "sections": {
-    ".text": 42512,
-    ".rodata": 17709,
+    ".text": 54964,
+    ".rodata": 22275,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-off/pidigits": {
    "sections": {
     ".note.gnu.build-id": 48,
-    ".text": 110060,
-    ".rodata": 37362,
+    ".text": 122536,
+    ".rodata": 41928,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 584,
+    ".data": 664,
     ".bss": 248
    }
   },
@@ -1622,21 +1622,21 @@
   },
   "armv8.1-a/speed-off/reverse-complement": {
    "sections": {
-    ".text": 50268,
+    ".text": 50340,
     ".rodata": 18839,
     ".tbss": 4,
     ".data.rel.ro": 240,
-    ".data": 616,
+    ".data": 672,
     ".bss": 248
    }
   },
   "armv8.1-a/speed-off/thread": {
    "sections": {
-    ".text": 56364,
-    ".rodata": 24702,
+    ".text": 69548,
+    ".rodata": 29674,
     ".tbss": 16,
     ".data.rel.ro": 416,
-    ".data": 608,
+    ".data": 688,
     ".bss": 131240
    }
   }

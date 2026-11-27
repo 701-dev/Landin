@@ -74,14 +74,16 @@ the work here:
 - `defer io.flush(out) else none` writes what is left on the way out of
   `main` [1100] [1030]. Without it, the waiting bytes are never written.
 
-Integers, `bool`, `utf8`, `[]u8` and host strings format themselves. Write
-`{{` or `}}` for a brace. The template is checked against its values when
-it runs, and a mismatch is the failure `text.invalid_format`.
+Integers, floats, `bool`, `utf8`, `[]u8` and host strings format
+themselves. Write `{{` or `}}` for a brace. The template is checked
+against its values when it runs, and a mismatch is the failure
+`text.invalid_format`.
 
-A float has no `{}` of its own yet. The program's last lines show what to
-write today: scale the value to a whole number of tenths, then print the
-whole part and the tenth as two integers. A conversion to an integer
-truncates toward zero [0310], so adding 0.5 first rounds.
+A placeholder may say how its value is written, as Rust's do: the
+program's last line writes the average to one place after the point with
+`{:.1}`. `{:8}` pads to eight columns, a number to the right and text to
+the left, and `{:x}` writes an integer in hexadecimal. A float in a plain
+`{}` is the shortest text that reads back as the same value.
 
 A buffered writer has two failures to know about:
 
@@ -128,14 +130,10 @@ public main: () -> (code: i32) =
     count: usize = lenof people
     io.format(out, "{} people in all.\n", [any(addr count)]) else none
 
-    --  A float has no `{}` of its own: scale it to a whole number of
-    --  tenths, rounding, and print the whole part and the tenth apart.
+    --  `{:.1}` writes a float to one place after the point, rounded.
     average: f64 = f64(lived) / f64(count)
-    tenths: u64 = u64(average * 10.0 + 0.5)
-    whole: u64 = tenths / 10
-    tenth: u64 = tenths % 10
-    io.format(out, "They lived {}.{} years on average.\n",
-              [any(addr whole), any(addr tenth)]) else none
+    io.format(out, "They lived {:.1} years on average.\n", [any(addr average)])
+        else none
     code = 0
 end main
 ```
@@ -509,8 +507,7 @@ The distance between two places on the Earth's surface by the haversine
 formula, from [Rosetta Code](https://rosettacode.org/wiki/Haversine_formula),
 with `core/math`'s sine, cosine, arcsine and square root. Every call of
 `core/math` takes either float width, and gives the same result on every
-target. Floats are not yet formattable, so the distance is rounded to whole
-tenths of a kilometre and printed as two integers.
+target. `{:.1}` writes each distance to a tenth of a kilometre.
 
 Fixture source: `compiler/tests/fixtures/runtime/example-great-circle-distance/main.ldn`.
 
@@ -560,12 +557,9 @@ public main: () -> (code: i32) =
     for pair in usize(0)..<3 do
         start := places[2 * pair]
         finish := places[2 * pair + 1]
-        --  Floats are not yet formattable: print whole tenths of a kilometre.
-        tenths := i64(math.round(distance(start, finish) * 10.0))
-        whole := tenths / 10
-        tenth := tenths % 10
-        io.format(out, "{} to {}: {}.{} km\n",
-                  [any(addr start.name), any(addr finish.name), any(addr whole), any(addr tenth)])
+        kilometres := distance(start, finish)
+        io.format(out, "{} to {}: {:.1} km\n",
+                  [any(addr start.name), any(addr finish.name), any(addr kilometres)])
             else none
     end for
     code = 0

@@ -1,5 +1,5 @@
 class: negative
-summary: L0318 names the type that has no conformance and the concept it lacks as the program writes them, `f64` and `text.formattable`
+summary: L0318 names the type that has no conformance and the concept it lacks as the program writes them, `[2]f64` and `text.formattable`
 program: main.ldn
 root: ../../../../..
 args: --target=linux-x86-64

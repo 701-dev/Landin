@@ -50,8 +50,9 @@ several of the tasks together.
 | Write straight to standard error | `io.write(host, io.err(host), bytes)` | [core/io](../core/io) |
 | Turn a failure into words for a person | `failure.words(problem)` | [core/failure](../core/failure) |
 | Turn an errno from `platform/posix` into words | `posix.words(problem)` for an errno alone; `system.words(problem)` for a `system.reason`, an errno or one of the library's failures | [platform/posix](../platform/posix), [hosted/system](../hosted/system) |
-| Right-align a number in a column | `text.over(buffer)` makes a builder, `text.append_u64(line, value)` writes the number, `text.align_right(line, start, width, u8(' '))` pads it from `start`, and `io.put(out, text.used(line))` prints it | [core/text](../core/text) |
-| Print a float with two decimals | Scale it to whole hundredths and print the integer parts, as [core/text](../core/text)'s program shows; floats are not formattable | [core/text](../core/text) |
+| Right-align a number in a column | `io.format(out, "{:8}\n", [any(addr value)])`: a number goes to the right of its width, text to the left, and `{:<8}`, `{:>8}` and `{:^8}` say otherwise | [core/text](../core/text) |
+| Print a float with two decimals | `io.format(out, "{:.2}\n", [any(addr value)])`, or `text.append_f64_fixed(line, value, 2)`: the exact value rounded once, as C's `printf("%.2f")` writes it | [core/text](../core/text) |
+| Read a float from text | `text.parse_f64(bytes)`, rounded once to the nearest `f64`; it reads back everything the library writes | [core/text](../core/text) |
 | Change the case of text | `text.utf8_over(buffer)` makes a builder, `unicode.append_upper(into, source)`, `append_lower` or `append_title` writes the text, and `text.utf8_used(into)` lends it | [core/unicode](../core/unicode) |
 | Count characters as a reader does | `for cluster in unicode.graphemes(source) do`, counting the items | [core/unicode](../core/unicode) |
 | Compare text ignoring case | `unicode.append_folded(into, source)` for each text, `unicode.append_nfc` over each result where accents may be spelled apart, then `text.equal` | [core/unicode](../core/unicode) |
@@ -791,31 +792,69 @@ the cut. A `utf8_builder` has no byte append, no alignment and no
 
 ### Formatting
 
-`format` appends a template to a builder. Each `{}` is replaced by the
-next of an array of `any formattable` values, and `{{` and `}}` are
-written as braces. A placeholder takes nothing else: width, padding and
-hexadecimal are the typed calls.
+`format` appends a template to a builder. Each placeholder is replaced by
+the next of an array of `any formattable` values, and `{{` and `}}` are
+written as braces.
 
 The values are an array literal written at the call, which lends the
 array as a slice:
 `text.format(line, "{} {}\n", [any(addr count), any(addr name)])`.
 
+A placeholder is `{}`, or `{:` and a specification as Rust spells it:
+`[[fill]align][+][#][0][width][.precision][kind]`, every part optional.
+
+| Part | Means |
+|---|---|
+| `8`, the width | At least eight scalars: a number goes to the right, anything else to the left |
+| `<`, `>`, `^` | Left, right or centred in the width; a scalar before it is the fill, `{:*^8}` |
+| `+` | A `+` before a number that is not negative |
+| `#` | `0x`, `0o` or `0b` before a number in that radix |
+| `0` | Zeros between a number's sign or prefix and its digits, `-0042` |
+| `.3`, the precision | A float to three places after the point; text to three scalars |
+| `x`, `X`, `o`, `b` | An integer in hexadecimal, upper-case hexadecimal, octal or binary; a negative one as its two's complement at its width, `-1i8` as `ff` |
+| `e`, `E` | A float with one digit before the point and an exponent, `6.02e23` |
+
+A part a value does not read changes nothing: `{:.2}` of an integer is
+the integer. There are no positional or named arguments, and no width or
+precision taken from an argument.
+
 `formattable` has one entry, `append`, which writes a value into a
 builder through a pointer to the value. The library supplies it for
 these types, and a program declares it for a type of its own:
 
-- the ten integer types, in decimal;
+- the ten integer types, in decimal unless the placeholder names a radix;
+- `f32` and `f64`, as `append_f64` writes them unless it names a precision
+  or `e`;
 - `bool`, as `true` or `false`;
 - `utf8`, `[]u8` and OS strings.
 
-Floats, `f32` and `f64`, are not formattable yet.
+The template applies the width, fill and alignment to whatever a
+conformance wrote, so a type of the program's own is padded without
+reading anything. One that wants the precision or the radix reads the
+placeholder with `text.placeholder(into)`, a `text.format_spec`, whose
+`kind` is the letter or zero. Outside a format, and inside a nested
+format's own placeholders, it is `text.plain`.
 
 Nothing runs at compile time, so the template is checked against the
 values when `format` runs:
 
-- A different number of placeholders, or a brace that is neither part of
-  `{}` nor doubled, is `invalid_format`, and nothing is written.
+- A different number of placeholders, a specification that does not
+  parse, or a brace that is neither part of a placeholder nor doubled, is
+  `invalid_format`, and nothing is written.
 - A builder that fills partway is put back before `mem.out_of_memory` is reported.
+
+A float has three forms, each also a typed call:
+
+| Call | Placeholder | Writes |
+|---|---|---|
+| `append_f64(line, value)` | `{}` | The shortest text that reads back as the same value, as a Landin literal is written: `1.0`, `0.1`, `123.456`, and below 0.0001 or from 10^16 up `1.0e16`, `2.5e-7` |
+| `append_f64_fixed(line, value, 3)` | `{:.3}` | Three places after the point, the exact value rounded once with ties to even, as C's `printf("%.3f")` writes it: `3.142`, and `-0.000` for a small negative |
+| `append_f64_exponent(line, value, 3)` | `{:.3e}` | One digit before the point and three after, then the exponent, rounded as `fixed` is: `6.022e23` |
+
+`{:e}` is the shortest digits in the exponent form, `1.0e0`. The
+infinities are `inf` and `-inf`, and a NaN is `NaN`. Each has an `f32`
+call, `append_f32` and the rest, which writes the `f32`'s own shortest
+text, `0.1` for the `f32` nearest a tenth.
 
 `format_onto` formats text that may be longer than its buffer. It formats
 through a buffer of the caller's, and hands the text to an `outlet` each
@@ -825,14 +864,14 @@ the bytes whole or reports `mem.out_of_memory`.
 
 How a value passes through the buffer:
 
-- A value that fits the buffer is formatted whole into it, so a
+- A value that fits the buffer is formatted and padded whole in it, so a
   conformance's `length` and alignments see its own piece.
 - A library value longer than the whole buffer is handed on in pieces as
-  it is written.
+  it is written; a width can then pad it only after it.
 - The buffer must still hold the largest piece a value asks room for at
-  once. Twenty bytes hold every integer the library formats. A
-  conformance of the program's own that asks for more than the buffer has
-  fails with `mem.out_of_memory`.
+  once. Twenty bytes hold every integer the library formats, and a float
+  writes its digits a run at a time. A conformance of the program's own
+  that asks for more than the buffer has fails with `mem.out_of_memory`.
 
 A conformance of the program's own may be writing a value longer than the
 whole buffer, a row with a long name in it. Its offsets still hold:
@@ -849,39 +888,6 @@ whole buffer, a row with a long name in it. Its offsets still hold:
 - `truncate` cuts what the buffer still holds. What was handed on stays
   written.
 
-To print a float, scale it to an integer and print the parts. Converting
-a float to an integer truncates toward zero, and traps when the value
-does not fit. So this function adds a half to round, and takes the sign
-off first so that a negative value rounds the same way:
-
-```landin
---- Append `value` with two decimals, rounded half away from zero.  Floats
---- are not formattable, so this scales the value to whole hundredths and
---- writes the integer part, a point and the two digits after it.
-append_hundredths: (inout line: text.builder, value: f64)
-                   -> none ! mem.out_of_memory =
-    mut magnitude: f64 = value
-    if value < 0.0 then
-        magnitude = -value
-    end if
-    --  The conversion truncates toward zero, so adding a half rounds.
-    hundredths: u64 = u64(magnitude * 100.0 + 0.5)
-    if value < 0.0 and hundredths > 0 then
-        try text.append_byte(line, u8('-'))
-    end if
-    try text.append_u64(line, hundredths / 100)
-    try text.append_byte(line, u8('.'))
-    start: usize = text.length(line)
-    try text.append_u64(line, hundredths % 100)
-    try text.align_right(line, start, 2, u8('0'))
-end append_hundredths
-```
-
-The `0` fill writes five hundredths as `05`, so 2.05 never prints as
-`2.5`. A value that rounds to zero prints without a sign, `0.00`. A value
-too large for a `u64` once scaled, a NaN or an infinity traps at the
-conversion.
-
 No locale is consulted anywhere. The same values give the same bytes
 everywhere, on Cortex-M0 as on a hosted system.
 
@@ -895,6 +901,7 @@ not be UTF-8:
 | `parse_u8` to `parse_u64`, `parse_usize` | nonempty ASCII digits |
 | `parse_i8` to `parse_i64`, `parse_isize` | an optional `-` before them, never a `+`, since no append writes one |
 | `parse_hex_u32`, `parse_hex_u64`, `parse_hex_usize` | hexadecimal digits of either case, with no `0x` |
+| `parse_f64`, `parse_f32` | an optional `-`, digits with an optional point and a digit beside it, `2.` and `.25` too, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case |
 | `to_u32` | `parse_u32` over a `utf8` view |
 
 A parse fails in two ways. The scan goes from the left and reports
@@ -903,7 +910,12 @@ whichever it meets first:
 - Any input other than what the table allows, a space included, is
   `invalid_number`.
 - A value outside the type, above its maximum or below a signed minimum,
-  is `number_overflow`.
+  is `number_overflow`. A float's is a finite decimal whose nearest float
+  is beyond the greatest; one too small for the least subnormal is zero.
+
+A float is read with any number of digits and rounded once to the
+nearest float of its width, ties to even; an `f32` is never rounded
+through an `f64`.
 
 `usize` and `isize` are the target's, 32 bits on Cortex-M.
 
@@ -1749,10 +1761,8 @@ writer did not take, so the next flush writes each byte once.
 
 `format` refuses a text larger than the whole buffer with
 `mem.out_of_memory`. Its values are `text.formattable`'s types, as
-`text.format`'s are: integers, `bool`, `utf8`, `[]u8` and OS strings.
-Floats are not formattable yet. To print one, scale it to an integer and
-print the parts, as `append_hundredths` in [core/text](../core/text) does
-for two decimals.
+`text.format`'s are: integers, floats, `bool`, `utf8`, `[]u8` and OS
+strings, and its placeholders take `text.format`'s specifications.
 
 There are no destructors: bytes still waiting when the program ends are
 never written. So flush in two places:
