@@ -23,7 +23,7 @@ failed measurement, never a figure.
 
 | set | workloads | runs on |
 |---|---|---|
-| hosted | the five Benchmark Game ports of [`docs/benchmarks.md`](benchmarks.md); `measure-fibre-switches` and `measure-thread-switches`, two fibres taking turns through a chain of calls, on the main stack and on a started thread's, which pay the prologue's stack check on every call | every hosted target |
+| hosted | the five Benchmark Game ports of [`docs/benchmarks.md`](benchmarks.md) and the pidigits port of [`examples.md`](../examples.md); `measure-fibre-switches` and `measure-thread-switches`, two fibres taking turns through a chain of calls, on the main stack and on a started thread's, which pay the prologue's stack check on every call | every hosted target |
 | firmware | `sieve-of-eratosthenes`, `merge-sort`, `binary-search` and `cmp-siphash-vectors`, which the firmware lanes already execute; and firmware forms of fannkuch-redux and mandelbrot, new fixtures, each fitting the constrained 32 KiB reference | every firmware target and level |
 | counterpart | prototype 5's firmware counterpart, which fits the constrained reference's 32 KiB at `size` and `speed` since D1567 | `cortex-m0`, on the 256 KiB description its lane uses (D1036) |
 
@@ -106,7 +106,9 @@ A `wall` figure is compared in pairs because the hosted runners are not one
 machine: GitHub gives a job one of several processor models and moves its
 image weekly, so a committed figure would rarely meet a run on its own
 processor. The ratio of candidate to base in one job, on one processor,
-is what the tolerance judges. The committed `wall` figures record the
+is what the tolerance judges. A workload the candidate adds has no
+fixture in the base's tree and so no pair: the commit that adds it names
+it new and times it from the next. The committed `wall` figures record the
 processor model and image beside the median, a trend and not a threshold.
 
 The `cycles` counters, each enabled by the probe before the run:

@@ -45,6 +45,15 @@
    }
   },
   {
+   "name": "pidigits",
+   "fixture": "runtime/benchmark-game-pidigits",
+   "timing": {
+    "args": [
+     "500"
+    ]
+   }
+  },
+  {
    "name": "fibre",
    "fixture": "runtime/measure-fibre-switches",
    "timing": {

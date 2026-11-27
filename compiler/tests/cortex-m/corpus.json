@@ -1686,6 +1686,12 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-pidigits": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-reverse-complement": {
       "codes": [
         "L0015"
@@ -1727,6 +1733,11 @@
           "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 51168 of this lane's 32 KiB, over by 18400."
         }
       }
+    },
+    "runtime/big-integer-in-place": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/big's multiplication through Toom-3 and its division take the image to 65,776 bytes of flash, over the 32 KiB profile by 33,008: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit and execute the whole fixture, its results checked; this image limit is not runtime evidence."
     },
     "runtime/big-integer-modular": {
       "mode": "execute",
