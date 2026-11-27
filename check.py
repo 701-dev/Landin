@@ -11109,8 +11109,9 @@ PROCESS_SECTION_BUDGETS = {
     #  when push learned the pre-push checks and boards beside the gate,
     #  gate the first-failure watch and main's verdict, merge-main trains;
     #  and again when start learned work that is no item, an adopted
-    #  branch's own item and retired items, and the queue its version.
-    "Running an item": 7300,
+    #  branch's own item and retired items, and the queue its version;
+    #  and again when promotion refused unrecorded figures (D2854).
+    "Running an item": 7400,
     "Closing an item": 6400,
     #  Raised when resume_tests.py continued a cut-off complete run and
     #  the checks learned to name a shell of another flake.
@@ -11128,8 +11129,9 @@ PROCESS_SECTION_BUDGETS = {
     #  item rode trains, beside main's flake-tools row of the same day;
     #  and again when the failure causes and the selection in shadow
     #  joined it, and when board legs taken by identity and the daily
-    #  schedule did.
-    "The mechanical gate": 58000,
+    #  schedule did; and again when figures were recorded from the run
+    #  that measured them (D2854).
+    "The mechanical gate": 59000,
     #  Raised when the install script's check joined the recipe's step 6,
     #  and again when the static Linux archive's check did.
     "Releasing a version": 13000,

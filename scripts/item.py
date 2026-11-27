@@ -2250,6 +2250,60 @@ def explanatory_since(worktree, older, newer):
     return all(declaration.search(body) for body in bodies)
 
 
+def unrecorded_figures(run):
+    """{class: {target: count}} of what RUN's aggregate recorded as figures
+    no baseline records (D2854); {} when it recorded none."""
+    jobs, _ = gate_module("gate_watch").jobs_of(run)
+    inputs = gate_module("gate_inputs")
+    for job in jobs:
+        if job["name"] != "gate":
+            continue
+        notes = gh("api", "repos/{owner}/{repo}/check-runs/%s/annotations"
+                   "?per_page=50" % job["databaseId"]) or []
+        for note in notes:
+            if note.get("title") == inputs.MOVES_TITLE:
+                try:
+                    return json.loads(note.get("message", ""))
+                except ValueError:
+                    return {"unreadable": {"annotation": 1}}
+    return {}
+
+
+def figures_problems(state, commit, software, boards):
+    """Why COMMIT may not land for figures its gate run SOFTWARE, or the
+    boards run BOARDS it takes, reported and no baseline records since:
+    main's push would refuse the tree (D2854)."""
+    worktree = state["worktree"]
+    inputs = gate_module("gate_inputs")
+    problems = []
+    moved = unrecorded_figures(software) if software else {}
+    if moved:
+        problems.append(
+            "run %s reported figures no baseline records (%s), and main"
+            " refuses the tree: `scripts/measure.py record --from-run %s`,"
+            " committed alone with `%s`, reuses the run's pass"
+            % (software, inputs.describe_moves(moved), software, EXPLANATORY))
+    if boards:
+        cycles = {kind: targets for kind, targets in unrecorded_figures(
+            boards["run"]).items() if kind in ("cycles", "unreadable")}
+        if cycles:
+            def read(rev, path):
+                return git("show", "%s:%s" % (commit if rev == "HEAD" else rev,
+                                              path), cwd=worktree, check=False)
+            recorded, why = False, "the boards run's tree is this one"
+            if boards["commit"] != commit:
+                figures, keys = inputs.run_cycles(boards["run"])
+                recorded, why = inputs.cycles_recorded(read, figures, keys)
+            if not recorded:
+                problems.append(
+                    "boards run %s reported cycles no baseline records (%s):"
+                    " %s; `environments/boards/timing.py record` of its"
+                    " measure-cycles artifact, committed with `%s`, records"
+                    " them" % (boards["run"], inputs.describe_moves(cycles),
+                               why, EXPLANATORY))
+    return problems
+
+
 def evidence(state, commit):
     """Problems standing between COMMIT and main; empty when none."""
     worktree = state["worktree"]
@@ -2270,17 +2324,21 @@ def evidence(state, commit):
     if target_of(state) != MAIN:
         #  A window's items land without boards: the window's one
         #  promotion to main dispatches them on the integrated tree.
+        if software:
+            problems += figures_problems(state, commit, software[-1]["run"], None)
         return problems
     passed_boards = [entry for entry in state["gates"]
                      if entry["kind"] == "boards"
                      and entry["conclusion"] == "success"]
     going = [entry for entry in state["gates"] if entry["kind"] == "boards"
              and entry["tree"] == tree and entry.get("status") != "completed"]
-    if not any(entry["tree"] == tree or (
-            git("merge-base", "--is-ancestor", entry["commit"], commit,
-                cwd=worktree, check=False) is not None
-            and explanatory_since(worktree, entry["commit"], commit))
-               for entry in passed_boards):
+    taken = [entry for entry in passed_boards if entry["tree"] == tree or (
+        git("merge-base", "--is-ancestor", entry["commit"], commit,
+            cwd=worktree, check=False) is not None
+        and explanatory_since(worktree, entry["commit"], commit))]
+    problems += figures_problems(state, commit, software[-1]["run"] if software
+                                 else None, taken[-1] if taken else None)
+    if not taken:
         if going:
             problems.append("boards run %s on this tree has not finished:"
                             " `item.py gate %s` refreshes it"

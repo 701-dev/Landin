@@ -857,6 +857,9 @@ def main():
                         help='size: no guest; link every measured workload with the lane\'s'
                              ' cross driver and compare its sections with the baselines'
                              ' (docs/measurement.md)')
+    parser.add_argument('--report', action='store_true',
+                        help='size: report what no baseline records and pass, as a branch\'s'
+                             ' gate does (measure.py compare --report)')
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(parser, required=False)
@@ -908,7 +911,8 @@ def main():
                           '--target', lane.target, '--output', str(measured),
                           '--environment', 'freebsd ' + LOCK['release'] + ' sysroot',
                           '--toolchain', lane.target + '=' + str(lane.driver)],
-                         ['compare', str(measured / 'size.json')]):
+                         ['compare', str(measured / 'size.json')]
+                         + (['--report'] if args.report else [])):
                 done = subprocess.run([sys.executable, str(ROOT / 'scripts/measure.py'), *step])
                 require(done.returncode == 0, 'measure.py ' + step[0] + ' failed for ' + lane.target)
             summary['status'] = 'passed'

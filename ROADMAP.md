@@ -4050,7 +4050,7 @@ dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
-Status: planned
+Status: complete
 Depends on: none
 
 The size, instruction-count and cycles figures an emission change moves,
@@ -4078,6 +4078,30 @@ commit reuses only when its figures equal the artifact's; one
 emission-changing candidate landed on one gate, its recording commit
 reusing it, named runs; `docs/measurement.md` and process.md saying the
 steps.
+
+Done: `measure.py compare` and `timing.py compare` take `--report`, which
+the gate gives on every event but `main`'s; a figure no baseline records
+goes into the summary and a `moves.json` in the figures' artifact, and
+the aggregate's `gate_inputs.py moves` counts it in one `unrecorded
+figures` annotation. `gate_inputs.py`'s reuse holds a recording commit to
+the run's artifacts, an identical branch tree takes the moves with the
+pass, main's push refuses an unrecorded tree in `inputs`, and `item.py
+promote` refuses such a head (D2854). Controls: the `Figures`,
+`FiguresReuse` and `Workflow` cases of `test_gate_inputs.py`, the report
+cases of `test_measure.py` and `test_board_timing.py`, and
+`test_item.py`'s promotion case. Candidate gate 45953203349.
+Demonstration branch `r22-34-demo`, never promoted: one more search in
+`binary-search` passed gate 45953227632, which reported 36 Cortex-M
+instruction counts and 72 firmware sizes; the commit recording them
+with `record --from-run`, a4ee5ec53, reused that pass in gate
+45961142905. The first emission change to land on main this way is the
+next one after this item. The train fault R22.33 met was stale
+figures, not lost keys: R22.23 recorded pidigits' arm64 sizes before
+R16.43's arm64 code generation, and the clean merge kept them. A train's
+gate now reports those keys and passes, and the recording commit reuses
+it. Q-364 answered. Rows filed: SR-2062, the `link.exe` exit of gate
+45932328693, and SR-2063, `network-receive-timeout` on FreeBSD in gate
+45953203349 attempt 1.
 
 ### R22.35 — Checks too long for a gate, by record
 
@@ -4131,8 +4155,8 @@ under four weeks old, costs under five job-minutes or checks the
 evidence itself, the build comparisons; and every other lane on one
 selected gate in four, drawn from the tree's hash. The maintainer
 accepted those values on 2026-11-26, and that shadow mode comes first.
-It runs for about 200 complete gates, the length Q-364 asks the
-maintainer to confirm. Placed here so that no phase gate
+It runs for about 200 complete gates, the length the maintainer
+confirmed answering Q-364. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: a cause recorded for every failed job of the shadow
