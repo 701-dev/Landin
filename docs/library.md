@@ -582,7 +582,7 @@ Byte cursors, validated UTF-8 views, positions and searches inside them, trimmin
 | `text.trim` and its kin | Take White_Space, or a scalar you name, off either end. |
 | `text.split`, `text.split_scalar`, `text.fields`, `text.lines` | Walk the parts between separators, the fields between spaces, or the lines, in a `for` loop. |
 | `text.find_byte`, `text.find_bytes` and their kin | Search bytes that need not be text. |
-| `text.equal_ascii_caseless` and its kin | Compare folding only A to Z, where an image cannot carry `core/unicode`. |
+| `text.equal_ascii_caseless` and its kin | Compare with only A to Z folded, for an image that cannot carry `core/unicode`. |
 | `text.encode` | Write a scalar's UTF-8 bytes into your buffer. |
 | `text.utf8_over` | Make a builder that only ever holds UTF-8. |
 | `text.over`, `text.growing` | Make a builder over your buffer, or one that grows from an allocator. |
@@ -695,13 +695,14 @@ Four more facts about searches:
 ### Trimming and taking text apart
 
 `trim(source)` gives `source` without the White_Space at either end;
-`trim_start` and `trim_end` take it off one end. White_Space is Unicode's
-property, 25 scalars, U+00A0 no-break space and U+3000 ideographic space
-among them; `core/text` holds the list without a table, and
-`scripts/unicode_tables.py` holds it to the database. `trim_scalar(source,
+`trim_start` and `trim_end` take it off one end. `trim_scalar(source,
 scalar)` and its `_start` and `_end` forms take off a scalar you name
 instead, so trimming `'/'` from "//a/b//" gives "a/b". Each gives a view
 of `source`, with nothing copied.
+
+White_Space is Unicode's property: 25 scalars, U+00A0 no-break space and
+U+3000 ideographic space among them. `core/text` holds the list without a
+table, and a check holds it to the Unicode Character Database.
 
 Four walks give a text's parts to a `for` loop:
 
@@ -712,8 +713,8 @@ Four walks give a text's parts to a `for` loop:
 | `fields(source)` | the runs between runs of White_Space: " a  b\t" gives "a" and "b" |
 | `lines(source)` | the lines, each without its line feed or a carriage return before it |
 
-Each item is a `text.span`, two positions as `regex.span` and
-`unicode.segment` are, and `text.part(source, piece)` is its text:
+Each item is a `text.span`: two positions, as `regex.span` and
+`unicode.segment` are. `text.part(source, piece)` is its text:
 
 ```landin
 --  Whether every field of a record such as "a, b, c" holds something
@@ -739,17 +740,18 @@ The edges:
   `source` is one empty part.
 - An empty `separator` gives each scalar as a part, and an empty source
   then has none.
-- `fields` of text that is empty or only White_Space has none.
+- `fields` gives no part for text that is empty or only White_Space.
 - `lines` begins no line after a final line feed, so "a\nb\n" is two
-  lines, and an empty text has none. A carriage return anywhere but
-  before a line feed is kept.
+  lines, and an empty text has none. It keeps a carriage return anywhere
+  but before a line feed.
 
 ### Bytes that are not text
 
 `find_byte(source, value)` and `find_bytes(source, sought)` search a
-`[]u8`, which need not be UTF-8, as C's `memchr` and `memmem` do; each has
+`[]u8`, which need not be UTF-8, as C's `memchr` and `memmem` do. Each has
 a `_from` form, and `find_last_byte` and `find_last_bytes` search from the
-end. A position over bytes is a byte offset, so any offset is one.
+end. A position over bytes is a byte offset, so every offset is a
+position.
 
 ### Comparing without case over ASCII
 
@@ -757,8 +759,8 @@ end. A position over bytes is a byte offset, so any offset is one.
 `ends_with_ascii_caseless` fold A to Z to a to z and nothing else, so
 "Content-Type" begins with "content-" but "Straße" does not equal
 "STRASSE". They are for an image that cannot carry `core/unicode`'s case
-tables, and for protocols whose names are ASCII; text a person wrote is
-compared with `unicode.equal_caseless`.
+tables, and for protocols whose names are ASCII. Compare text a person
+wrote with `unicode.equal_caseless`.
 
 ### Encoding a scalar
 
@@ -837,12 +839,12 @@ Four appends write a text made of others, each whole or not at all:
 | `append_quoted(into, source)` | `source` between double quotes as a Landin literal spells it |
 
 `append_quoted` writes `\n`, `\r`, `\t`, `\e`, `\\` and `\"` for those
-scalars, and `\u{...}` for any other control and for each scalar that
-changes how text around it reads without being seen: the bidirectional
-controls, U+2028, U+2029 and the byte order mark. Every other scalar is
-written as itself. What it writes reads back as the text, so a program
-can print a value a person must see exactly, as Go's `strconv.Quote` and
-Rust's `{:?}` do.
+scalars. It writes `\u{...}` for any other control, and for each scalar
+that is not seen but changes how the text around it reads: the
+bidirectional controls, U+2028, U+2029 and the byte order mark. It writes
+every other scalar as itself. What it writes reads back as the text, so a
+program can print a value a person must see exactly, as Go's
+`strconv.Quote` and Rust's `{:?}` do.
 
 Width and padding apply to whatever was written since an earlier
 `length`:
@@ -1001,7 +1003,7 @@ not be UTF-8:
 | `parse_u8` to `parse_u64`, `parse_usize` | nonempty ASCII digits |
 | `parse_i8` to `parse_i64`, `parse_isize` | an optional `-` before them, never a `+`, since no append writes one |
 | `parse_hex_u32`, `parse_hex_u64`, `parse_hex_usize` | hexadecimal digits of either case, with no `0x` |
-| `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize`, `parse_radix_i8` to `parse_radix_isize`, each `(source, radix)` | digits in a radix from 2 to 36, `a` to `z` in either case for ten and up, after an optional `0x` in radix 16, `0o` in 8 or `0b` in 2, either case, and after the `-` of a signed value; no other radix has a prefix, so "0b1" in radix 16 is 0xb1 |
+| `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize`, `parse_radix_i8` to `parse_radix_isize`, each `(source, radix)` | digits in a radix from 2 to 36, with `a` to `z` in either case for ten and up; before them the `-` of a signed value, then an optional prefix in either case, `0x` in radix 16, `0o` in 8 or `0b` in 2; no other radix has a prefix, so "0b1" in radix 16 is 0xb1 |
 | `parse_bool` | `true` or `false`, exactly, or `invalid_bool` |
 | `parse_f64`, `parse_f32` | an optional `-`, digits with an optional point and a digit beside it, `2.` and `.25` too, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case |
 | `to_u32` | `parse_u32` over a `utf8` view |
@@ -1010,7 +1012,7 @@ A parse fails in two ways. The scan goes from the left and reports
 whichever it meets first:
 
 - Any input other than what the table allows, a space included, is
-  `invalid_number`, and so is every input to a radix parse whose radix is
+  `invalid_number`. So is every input to a radix parse whose radix is
   outside 2 to 36.
 - A value outside the type, above its maximum or below a signed minimum,
   is `number_overflow`. A float's is a finite decimal whose nearest float
@@ -1102,15 +1104,16 @@ folding, and keep no buffer:
 `equal_caseless` compares no normalization form, so "é" as one scalar and
 as "e" with U+0301 differ there and are equal under
 `equal_canonical_caseless`. The folding is Unicode's default, as the
-`append_` routines' is. Each runs in time linear in the texts, but for
-`equal_canonical_caseless` over runs of combining marks out of canonical
-order, which the normal forms share. `text.equal_ascii_caseless` and its
-kin fold only A to Z, for an image that cannot carry the case tables.
+`append_` routines' is. Each runs in time linear in the texts, except
+`equal_canonical_caseless` over a run of combining marks out of canonical
+order, which takes longer, as normalizing it does.
+`text.equal_ascii_caseless` and its kin fold only A to Z, for an image
+that cannot carry the case tables.
 
-No caseless search is given beside these. `core/regex`'s `(?i)` searches
+`core/unicode` has no caseless search. `core/regex`'s `(?i)` searches
 without case by simple folding, a scalar for a scalar, so "ß" does not
-match "ss" there; a search by full folding folds both texts with
-`append_folded` and searches with `text.find`.
+match "ss" there. To search by full folding, fold both texts with
+`append_folded` and search with `text.find`.
 
 ### Normalization
 

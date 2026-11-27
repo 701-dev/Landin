@@ -120,10 +120,10 @@ widths: () -> (yes: bool) =
                 return
             end
             _ = text.parse_radix_u32("1z141z4", 36) else (beyond)
-                yes = small == 255 and least == 0 - 127 - 1 and great == 127
-                      and wide == 65535 and low == 0 - 32767 - 1
+                yes = small == 255 and least + 1 == 0 - 127 and great == 127
+                      and wide == 65535 and low + 1 == 0 - 32767
                       and word == 4294967295
-                      and negative == 0 - 2147483647 - 1 and size == 15
+                      and negative + 1 == 0 - 2147483647 and size == 15
                       and index == 0 - 35
                       and beyond == text.number_overflow
                 return
