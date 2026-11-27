@@ -2272,8 +2272,9 @@ It has each addition of the concept, kept in its records (D3078):
 - It keeps every option a socket is given and reads it back as it was
   set, a span in whole seconds. None of them changes what the network
   does.
-- A Unix-domain socket keeps its path in its record. The network has no
-  files, so a path is in use while a socket bound to it is open.
+- A Unix-domain socket keeps its path in its record, so a path is shorter
+  than `fake.path_room`, 32 bytes. The network has no files, so a path is
+  in use while a socket bound to it is open.
 - A datagram socket joins one group at a time, through the unspecified
   address or a loopback one. A datagram to a group goes to every socket
   that joined it at the port.

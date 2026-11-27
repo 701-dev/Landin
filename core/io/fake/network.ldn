@@ -149,9 +149,9 @@ end network_value
 --- (D3078).  It knows the names `with_names` gave it, and `resolve` never
 --- waits.  A Unix-domain socket keeps its path, shorter than `path_room`,
 --- in its record, and a path is in use while a socket bound to it is open,
---- since the network has no files.  A datagram socket joins one group at a time, through the
---- unspecified or a loopback address, and a datagram sent to a group goes
---- to every socket that joined it at the port.
+--- since the network has no files.  A datagram socket joins one group at
+--- a time, through the unspecified or a loopback address, and a datagram
+--- sent to a group goes to every socket that joined it at the port.
 public network: type = network_value
 
 --  The scheduler of a network that does not take turns: it runs nothing
