@@ -4790,7 +4790,7 @@ and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.46 — The complete gate belongs to a batch
 
-Status: planned
+Status: active
 Depends on: none
 Promotion: maintainer
 
