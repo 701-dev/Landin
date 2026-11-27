@@ -1636,7 +1636,7 @@ package body Landin.Syntax.Parser is
                        Sound
                        and then Result.Items (Positive (Item)).Sound;
                      if Of_Kind in Function_Declaration
-                         | Anonymous_Function | Function_Type | Concept_Entry
+                         | Function_Type | Concept_Entry
                      then
                         case Result.Items (Positive (Item)).Kind is
                            when Parameter =>
@@ -9625,8 +9625,6 @@ package body Landin.Syntax.Parser is
                Returns_Node : Node_Id := No_Node;
                Returns_At   : Landin.Source.Span :=
                  Landin.Source.Empty_Span;
-               Errors_Node  : Node_Id := No_Node;
-               Body_Node    : Node_Id := No_Node;
                Context      : Frame;
                Saved_Target_Floor : constant Natural := Target_Floor;
                Saved_Complete : constant Boolean := Complete_Closes_Block;
@@ -9686,7 +9684,12 @@ package body Landin.Syntax.Parser is
                   Returns_Node := Parse_Returns (Start, Returns_At);
                end if;
 
-               Errors_Node := Parse_Errors (Start);
+               declare
+                  Ignored : constant Node_Id := Parse_Errors (Start);
+                  pragma Unreferenced (Ignored);
+               begin
+                  null;
+               end;
 
                Context :=
                  (Owner   => Start,
@@ -9706,13 +9709,16 @@ package body Landin.Syntax.Parser is
                      Push ((Kind => End_Closer, others => <>));
                      Body_Level := Body_Level + 1;
                      Statement_Reported := False;
-                     Body_Node := Parse_Body (Context);
+                     declare
+                        Ignored : constant Node_Id := Parse_Body (Context);
+                        pragma Unreferenced (Ignored);
+                     begin
+                        null;
+                     end;
                      Body_Level := Body_Level - 1;
                      Statement_Reported := Saved_Reported;
                      Pop;
                   end;
-               else
-                  Body_Node := Add (Error_Statement, After_Previous);
                end if;
 
                if Peek = Tok.Kw_End and then not At_Wall then
@@ -9735,16 +9741,10 @@ package body Landin.Syntax.Parser is
                Else_Closes_Arm := Saved_Else;
                Depth := Depth - 1;
                Refuse_Anonymous_Function (Opens, Closed);
-               declare
-                  Head : constant Slot_List (1 .. 3) :=
-                    [Returns_Node, Errors_Node, Body_Node];
-               begin
-                  return Add
-                    (Of_Kind  => Anonymous_Function,
-                     At_Token => Start,
-                     Extent   => Join (Start, After_Previous),
-                     Children => Head & To_List (Params));
-               end;
+               --  D1654: what was read stands only for its diagnostics;
+               --  the refused form is a hole in the expression it was.
+               return Add (Error_Expression, Start,
+                           Join (Start, After_Previous));
             end Parse_Anonymous_Function;
 
             ------------------------------------------------------------

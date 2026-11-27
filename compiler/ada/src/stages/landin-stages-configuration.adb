@@ -2950,7 +2950,6 @@ package body Landin.Stages.Configuration is
          end Keep;
       begin
          if Node = Syn.No_Node
-           or else Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function
            or else Landin.Configuration.Fact_At
              (Activity.all, Syn.Source_Of (Of_Tree), Node)
                not in Landin.Configuration.No_Fact

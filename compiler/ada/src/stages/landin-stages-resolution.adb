@@ -953,9 +953,6 @@ package body Landin.Stages.Resolution is
          Node : Syn.Node_Id;
          Inside : Landin.Resolution.Scope_Id);
 
-      procedure Resolve_Anonymous
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id);
-
       procedure Associate_Return_Sources
         (Of_Tree : Syn.Tree; Signature_Node : Syn.Node_Id);
 
@@ -1123,52 +1120,6 @@ package body Landin.Stages.Resolution is
                  (Of_Tree, Syn.Nth_Return (Of_Tree, Node, Which)), Inside);
          end loop;
       end Resolve_Runtime_Signature_Types;
-
-      --  [1010]'s anonymous function has a static routine body and captures
-      --  nothing.  Its signature therefore encloses the module scope, not the
-      --  lexical scope of the expression that produced its code address.
-      procedure Resolve_Anonymous
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
-      is
-         Signature : constant Landin.Resolution.Scope_Id :=
-           Landin.Resolution.Open_Scope
-             (Meanings.all, Landin.Resolution.Signature,
-              File_Base (Of_Tree));
-         Runs : constant Syn.Node_Id := Syn.Body_Of (Of_Tree, Node);
-      begin
-         Landin.Resolution.Record_Scope
-           (Meanings.all, Of_Tree, Node, Signature);
-
-         for Which in 1 .. Syn.Parameter_Count (Of_Tree, Node) loop
-            Declare_One
-              (Of_Tree, Syn.Nth_Parameter (Of_Tree, Node, Which), Signature,
-               Resolve_Declared => False);
-         end loop;
-         for Which in 1 .. Syn.Return_Count (Of_Tree, Node) loop
-            Declare_One
-              (Of_Tree, Syn.Nth_Return (Of_Tree, Node, Which), Signature,
-               Resolve_Declared => False);
-         end loop;
-         Resolve_Runtime_Signature_Types (Of_Tree, Node, Signature);
-         Associate_Return_Sources (Of_Tree, Node);
-         Resolve
-           (Of_Tree, Syn.Error_Set_Of (Of_Tree, Node),
-            File_Base (Of_Tree));
-
-         if Syn.Kind (Of_Tree, Runs) = Syn.Block then
-            declare
-               Body_Scope : constant Landin.Resolution.Scope_Id :=
-                 Landin.Resolution.Open_Scope
-                   (Meanings.all, Landin.Resolution.Block, Signature);
-            begin
-               Landin.Resolution.Record_Scope
-                 (Meanings.all, Of_Tree, Runs, Body_Scope);
-               Walk_Block (Of_Tree, Runs, Body_Scope);
-            end;
-         else
-            Resolve (Of_Tree, Runs, Signature);
-         end if;
-      end Resolve_Anonymous;
 
       --  Resolve an ambiguous compact projection as type syntax.  A bare
       --  Name_Reference is intentionally quiet when no declaration matches:
@@ -1659,10 +1610,7 @@ package body Landin.Stages.Resolution is
             end if;
          end;
 
-         if Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function then
-            Resolve_Anonymous (Of_Tree, Node);
-            return;
-         elsif Syn.Kind (Of_Tree, Node)
+         if Syn.Kind (Of_Tree, Node)
            in Syn.Function_Type | Syn.Concept_Entry
          then
             Associate_Return_Sources (Of_Tree, Node);

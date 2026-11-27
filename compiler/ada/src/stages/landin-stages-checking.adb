@@ -2367,32 +2367,6 @@ package body Landin.Stages.Checking is
       function Builds_On
         (Child, Ancestor : Landin.Checking.Concept_Id) return Boolean;
 
-      --  A module binding whose value is written as an anonymous function,
-      --  `less_i32 := (a: i32, b: i32) -> (yes: bool) = a < b end`.
-      function Holds_Anonymous_Function (Id : Res.Declaration_Id)
-        return Boolean;
-
-      function Holds_Anonymous_Function (Id : Res.Declaration_Id)
-        return Boolean
-      is
-      begin
-         if Res.Sort_Of (Meanings.all, Id) /= Res.Module_Binding then
-            return False;
-         end if;
-         declare
-            Its_Tree : constant not null access constant Syn.Tree :=
-              Tree_For (Res.Source_Of (Meanings.all, Id));
-            Its_Node : constant Syn.Node_Id :=
-              Res.Node_Of (Meanings.all, Id);
-         begin
-            return Syn.Kind (Its_Tree.all, Its_Node) = Syn.Binding
-              and then Syn.Value_Of (Its_Tree.all, Its_Node) /= Syn.No_Node
-              and then Syn.Kind
-                (Its_Tree.all, Syn.Value_Of (Its_Tree.all, Its_Node))
-                  = Syn.Anonymous_Function;
-         end;
-      end Holds_Anonymous_Function;
-
       --  A selection of a module-internal type's member that is an entry
       --  of a concept the type conforms to: the public routine of the
       --  concept's module that calls that entry, written as this file
@@ -6247,7 +6221,7 @@ package body Landin.Stages.Checking is
                   end;
                end if;
                --  Type_At may already have refused this exact source name
-               --  while materializing an anonymous signature. Normalization
+               --  while materializing a signature. Normalization
                --  must retain that root report rather than add a feature gate.
                if Landin.Checking.Type_Of (Types.all, Of_Tree, Written)
                   /= Ty.Ill_Typed
@@ -8684,7 +8658,7 @@ package body Landin.Stages.Checking is
                     and then Syn.Kind
                       (Of_Tree, Syn.Enclosing (Of_Tree, Written))
                         in Syn.Function_Declaration
-                         | Syn.Anonymous_Function | Syn.Function_Type
+                         | Syn.Function_Type
                          | Syn.Concept_Entry
                     and then Syn.Error_Set_Of
                       (Of_Tree, Syn.Enclosing (Of_Tree, Written)) = Written
@@ -10286,7 +10260,7 @@ package body Landin.Stages.Checking is
          --  carrier in its enclosing layout and has no routine ABI here.
          if Valid and then Results'Length > 1
            and then Syn.Kind (Of_Tree, Node)
-             in Syn.Function_Declaration | Syn.Anonymous_Function
+             = Syn.Function_Declaration
          then
             for Index in Results'Range loop
                declare
@@ -10304,7 +10278,7 @@ package body Landin.Stages.Checking is
          --  A written function type opens no scope.  Its parameter labels
          --  nevertheless drive [0980]'s named matching and therefore must be
          --  unique.  Labels remain absent from structural signature identity.
-         --  Declared and anonymous routines get the equivalent [1850]
+         --  Declared routines get the equivalent [1850]
          --  diagnosis from their signature scope during resolution.
          if Syn.Kind (Of_Tree, Node) = Syn.Function_Type then
             for Right in 2 .. Syn.Parameter_Count (Of_Tree, Node) loop
@@ -10353,7 +10327,7 @@ package body Landin.Stages.Checking is
 
          if Valid and then Results'Length > 1
            and then Syn.Kind (Of_Tree, Node)
-             in Syn.Function_Declaration | Syn.Anonymous_Function
+             = Syn.Function_Declaration
          then
             Check_Result_Placement
               (Results, Syn.Origin (Of_Tree, Syn.Returns_Of (Of_Tree, Node)),
@@ -14037,11 +14011,7 @@ package body Landin.Stages.Checking is
          if Node = Syn.No_Node then
             return;
          end if;
-         if Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function then
-            --  Anonymous bodies are roots of their own and are discovered
-            --  after every anonymous signature has been materialized.
-            return;
-         elsif Syn.Kind (Of_Tree, Node) = Syn.Binding
+         if Syn.Kind (Of_Tree, Node) = Syn.Binding
            and then Syn.Value_Of (Of_Tree, Node) /= Syn.No_Node
            and then Syn.Kind (Of_Tree, Syn.Value_Of (Of_Tree, Node))
              = Syn.Any_Construction
@@ -21330,19 +21300,6 @@ package body Landin.Stages.Checking is
                                          then Res.Bound_To
                                            (Meanings.all, Of_Tree, RHS)
                                          else Res.No_Declaration);
-                                    --  [1240] names a declared function;
-                                    --  a binding holding one is a value,
-                                    --  so say what to declare instead.
-                                    Holds_Anonymous : constant Boolean :=
-                                      Function_Id /= Res.No_Declaration
-                                      and then Holds_Anonymous_Function
-                                        (Function_Id);
-                                    Held : constant String :=
-                                      (if Holds_Anonymous
-                                       then Spelled
-                                         (Res.Name_Of
-                                            (Meanings.all, Function_Id))
-                                       else "");
                                  begin
                                     if Function_Id = Res.No_Declaration
                                       or else Res.Sort_Of
@@ -21355,32 +21312,12 @@ package body Landin.Stages.Checking is
                                           Where   => Syn.Where
                                             (Of_Tree, RHS),
                                           Message =>
-                                            (if Holds_Anonymous
-                                             then "`" & Held & "` is a"
-                                                  & " binding holding an"
-                                                  & " anonymous function,"
-                                                  & " and a concept entry"
-                                                  & " names a declared"
-                                                  & " function"
-                                             else "a concept entry must be"
-                                                  & " supplied by a"
-                                                  & " function"),
+                                            "a concept entry must be"
+                                            & " supplied by a function",
                                           Note    =>
-                                            (if Holds_Anonymous
-                                             then "[1240]: conformance"
-                                                  & " entries name the"
-                                                  & " functions that"
-                                                  & " implement them, and a"
-                                                  & " binding is a value;"
-                                                  & " declare `" & Held
-                                                  & "` as a function, `"
-                                                  & Held & ": (...) -> (...)"
-                                                  & " = ... end " & Held
-                                                  & "`, and name it here"
-                                             else "[1240]: conformance"
-                                                  & " entries name the"
-                                                  & " functions that"
-                                                  & " implement them"),
+                                            "[1240]: conformance entries"
+                                            & " name the functions that"
+                                            & " implement them",
                                           Related => Syn.Origin
                                             (Concept_Tree.all,
                                              Syn.Nth_Concept_Entry
@@ -26488,7 +26425,6 @@ package body Landin.Stages.Checking is
          begin
             if Below = Syn.No_Node
               or else Contextual_Recovery_Calls.Is_Empty
-              or else Syn.Kind (Of_Tree, Below) = Syn.Anonymous_Function
             then
                return False;
             end if;
@@ -26551,8 +26487,7 @@ package body Landin.Stages.Checking is
       begin
          if Already /= Ty.Undecided then
             --  Cached compound values also retain deferred children. The
-            --  routine walk supplies their actual enclosing loop context;
-            --  anonymous bodies are checked separately in their own view.
+            --  routine walk supplies their actual enclosing loop context.
             if Checking_Routine_Body then
                Replay_Contextual_Recovery (Node);
             end if;
@@ -26920,17 +26855,6 @@ package body Landin.Stages.Checking is
                   Refused => Bad.Array_Value,
                   Into    => Found);
                return Kept (Ty.Ill_Typed);
-
-            when Syn.Anonymous_Function =>
-               declare
-                  Signature : constant Landin.Checking.Signature_Id :=
-                    Signature_At (Of_Tree, Node);
-               begin
-                  if Signature = Landin.Checking.No_Signature then
-                     return Kept (Ty.Ill_Typed);
-                  end if;
-                  return Kept (Ty.Function_Value);
-               end;
 
             when Syn.Name_Reference =>
                if Res.Verdict_Of (Meanings.all, Of_Tree, Node)
@@ -27969,8 +27893,8 @@ package body Landin.Stages.Checking is
                            Parent : constant Syn.Node_Id :=
                              Syn.Node_Id (Index);
                         begin
-                           if Syn.Kind (Of_Tree, Parent) in
-                             Syn.Function_Declaration | Syn.Anonymous_Function
+                           if Syn.Kind (Of_Tree, Parent) =
+                             Syn.Function_Declaration
                              and then Landin.Source.Contains
                                (Syn.Where (Of_Tree, Parent),
                                 Syn.Where (Of_Tree, Node))
@@ -28191,8 +28115,8 @@ package body Landin.Stages.Checking is
                  (Spellings.all, Of_Tree, Node)
                then
                   declare
-                     --  The region is lexical and stops at an anonymous
-                     --  function's body, as lowering's does (D187).
+                     --  The region is lexical and stops at a function's
+                     --  body, as lowering's does (D187).
                      function Inside_Unchecked return Boolean;
 
                      function Inside_Unchecked return Boolean is
@@ -28204,8 +28128,7 @@ package body Landin.Stages.Checking is
                                  if Syn.Is_Unchecked (Of_Tree, Outer) then
                                     return True;
                                  end if;
-                              when Syn.Anonymous_Function
-                                 | Syn.Function_Declaration =>
+                              when Syn.Function_Declaration =>
                                  return False;
                               when others =>
                                  null;
@@ -37478,11 +37401,6 @@ package body Landin.Stages.Checking is
                end loop;
                return True;
 
-            when Syn.Anonymous_Function =>
-               --  Forming the code address does not execute or capture its
-               --  body; the body is checked as its own routine.
-               return True;
-
             when Syn.If_Statement | Syn.Match_Statement | Syn.Bare_Block
                | Syn.Loop_Statement | Syn.While_Statement
                | Syn.For_Statement =>
@@ -37529,9 +37447,7 @@ package body Landin.Stages.Checking is
       function First_Address
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Syn.Node_Id is
       begin
-         if Node = Syn.No_Node
-           or else Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function
-         then
+         if Node = Syn.No_Node then
             return Syn.No_Node;
          elsif Syn.Kind (Of_Tree, Node) = Syn.Len_Of
            and then Syn.Kind (Of_Tree, Syn.Operand_Of (Of_Tree, Node))
@@ -37641,12 +37557,11 @@ package body Landin.Stages.Checking is
                      when Syn.Element_Index    => "an array index",
                      when others               => "");
             begin
-               --  Neither a measurement nor a static anonymous routine
-               --  executes its expression subtree to form this module image:
-               --  a measured type, qualified or not, selects no storage.
+               --  A measurement does not execute its expression subtree to
+               --  form this module image: a measured type, qualified or not,
+               --  selects no storage.
                if Syn.Kind (Of_Tree, Where)
                     in Syn.Len_Of | Syn.Size_Of | Syn.Align_Of | Syn.Offset_Of
-                     | Syn.Anonymous_Function
                then
                   return;
                end if;
@@ -38729,13 +38644,6 @@ package body Landin.Stages.Checking is
          end case;
 
          Function_Images (Id) := Function_Visiting;
-         if Value /= Syn.No_Node
-           and then Syn.Kind (Of_Tree.all, Value) = Syn.Anonymous_Function
-         then
-            Function_Images (Id) := Function_Valid;
-            return True;
-         end if;
-
          if Value /= Syn.No_Node
            and then Syn.Kind (Of_Tree.all, Value) = Syn.Name_Reference
            and then Res.Verdict_Of (Meanings.all, Of_Tree.all, Value)
@@ -40823,8 +40731,7 @@ package body Landin.Stages.Checking is
             Check_Operands
               (Of_Tree, Syn.Slot (Of_Tree, Node, Position), Whole_Fold,
                Evaluated and then Syn.Kind (Of_Tree, Node) not in
-                 Syn.Size_Of | Syn.Align_Of | Syn.Len_Of | Syn.Offset_Of
-                 | Syn.Anonymous_Function);
+                 Syn.Size_Of | Syn.Align_Of | Syn.Len_Of | Syn.Offset_Of);
          end loop;
          if Syn.Kind (Of_Tree, Node) in Syn.Call | Syn.Labeled_Application
            and then Syn.Recovery_Of (Of_Tree, Node) /= Syn.No_Node
@@ -41233,9 +41140,7 @@ package body Landin.Stages.Checking is
 
          procedure Visit (Of_Tree : Syn.Tree; Node : Syn.Node_Id) is
          begin
-            if Node = Syn.No_Node
-              or else Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function
-            then
+            if Node = Syn.No_Node then
                return;
             end if;
             --  D1091: a tried call adds its entry's atoms to the routine's
@@ -41722,10 +41627,6 @@ package body Landin.Stages.Checking is
             end if;
 
             case Syn.Kind (Of_Tree, Node) is
-               when Syn.Anonymous_Function =>
-                  --  Its body has its own signature and is scanned below.
-                  return;
-
                when Syn.Fail_Statement =>
                   Current_Site :=
                     (Syn.Source_Of (Of_Tree), Node, Raised_By_Fail);
@@ -42019,28 +41920,6 @@ package body Landin.Stages.Checking is
                begin
                   Walk (Configurations (Context).all, Of_Tree.all);
                end;
-
-               for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all)
-               loop
-                  if Syn.Kind (Of_Tree.all, Node) = Syn.Anonymous_Function
-                    and then Landin.Configuration.Is_Active
-                      (Configurations (Context).all,
-                       Syn.Source_Of (Of_Tree.all), Node)
-                  then
-                     declare
-                        Signature : constant Landin.Checking.Signature_Id :=
-                          Landin.Checking.Signature_Of
-                            (Types.all, Of_Tree.all, Node);
-                     begin
-                        if Signature /= Landin.Checking.No_Signature then
-                           Owns_Body (Positive (Signature)) := True;
-                           Scan
-                             (Of_Tree.all, Syn.Body_Of (Of_Tree.all, Node),
-                              Positive (Signature));
-                        end if;
-                     end;
-                  end if;
-               end loop;
             end;
          end loop;
 
@@ -42471,9 +42350,7 @@ package body Landin.Stages.Checking is
          end loop;
       end Finalize_Error_Sets;
 
-      --  Declared and anonymous functions share one body rule.  The latter
-      --  reaches this procedure when its expression is synthesized, while a
-      --  module declaration reaches it in pass three below.
+      --  A module declaration reaches this procedure in pass three below.
       procedure Check_Routine_Body
         (Of_Tree : Syn.Tree; Node : Syn.Node_Id)
       is
@@ -43859,8 +43736,7 @@ package body Landin.Stages.Checking is
                for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all)
                loop
                   case Syn.Kind (Of_Tree.all, Node) is
-                     when Syn.Function_Declaration
-                        | Syn.Anonymous_Function =>
+                     when Syn.Function_Declaration =>
                         declare
                            Signature : constant Res.Scope_Id :=
                              Res.Scope_At
@@ -44265,35 +44141,10 @@ package body Landin.Stages.Checking is
          end if;
       end loop;
 
-      --  Materialize every anonymous signature before error inference.  Its
-      --  body is checked only after the recursive `! ...` graph is final.
-      for Index in 1 .. Source_Count (Context) loop
-         declare
-            Of_Tree : constant not null access constant Syn.Tree :=
-              Tree_For (Nth_Source (Context, Index));
-         begin
-            for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all) loop
-               if Syn.Kind (Of_Tree.all, Node) = Syn.Anonymous_Function
-                 and then Landin.Configuration.Is_Active
-                   (Configurations (Context).all,
-                    Syn.Source_Of (Of_Tree.all), Node)
-               then
-                  declare
-                     Held : constant Ty.Type_Kind :=
-                       Synthesise (Of_Tree.all, Node);
-                  begin
-                     pragma Assert
-                       (Held in Ty.Function_Value | Ty.Ill_Typed);
-                  end;
-               end if;
-            end loop;
-         end;
-      end loop;
-
       --  Ordinary conformance providers are frozen before a generic body
-      --  discovers `T.entry` calls.  The declarations and anonymous
-      --  signatures they may name are settled above; table order remains the
-      --  concept declaration's rather than the conformance label order.
+      --  discovers `T.entry` calls.  The declarations they may name are
+      --  settled above; table order remains the concept declaration's
+      --  rather than the conformance label order.
       Validate_Conformance_Entries;
 
       --  Discover instances whose arguments already have complete types.
@@ -44331,16 +44182,6 @@ package body Landin.Stages.Checking is
             begin
                Walk (Configurations (Context).all, Of_Tree.all);
             end;
-            for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all) loop
-               if Syn.Kind (Of_Tree.all, Node) = Syn.Anonymous_Function
-                 and then Landin.Configuration.Is_Active
-                   (Configurations (Context).all,
-                    Syn.Source_Of (Of_Tree.all), Node)
-               then
-                  Discover_Generic_Calls
-                    (Of_Tree.all, Syn.Body_Of (Of_Tree.all, Node));
-               end if;
-            end loop;
          end;
       end loop;
 
@@ -44555,28 +44396,6 @@ package body Landin.Stages.Checking is
                      raise;
                end;
             end if;
-         end;
-      end loop;
-
-      --  Anonymous bodies can now check calls and `fail` against finalized
-      --  concrete sets, including mutually recursive private inference.
-      for Index in 1 .. Source_Count (Context) loop
-         declare
-            Of_Tree : constant not null access constant Syn.Tree :=
-              Tree_For (Nth_Source (Context, Index));
-         begin
-            for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all) loop
-               if Syn.Kind (Of_Tree.all, Node) = Syn.Anonymous_Function
-                 and then Landin.Configuration.Is_Active
-                   (Configurations (Context).all,
-                    Syn.Source_Of (Of_Tree.all), Node)
-                 and then Landin.Checking.Signature_Of
-                   (Types.all, Of_Tree.all, Node)
-                     /= Landin.Checking.No_Signature
-               then
-                  Check_Routine_Body (Of_Tree.all, Node);
-               end if;
-            end loop;
          end;
       end loop;
 

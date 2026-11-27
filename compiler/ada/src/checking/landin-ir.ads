@@ -1037,8 +1037,7 @@ package Landin.IR is
      is (Id /= No_Item and then Natural (Id) <= Item_Count (Of_Unit));
 
    --  One item per module declaration in resolution order, followed by
-   --  D118's anonymous routine items in deterministic source/post-order
-   --  and D161's content-pooled anonymous text datums.
+   --  D161's content-pooled anonymous text datums.
    --
    --  Result is [1800]'s returns for a Routine -- one of [1790]'s scalars,
    --  or Landin.Types.No_Value for `-> none` -- and the declared type for
@@ -1193,7 +1192,7 @@ package Landin.IR is
    function Kind_Of (Of_Unit : Unit; Id : Item_Id) return Item_Kind
      with Pre => Holds (Of_Unit, Id);
 
-   --  No_Declaration for an anonymous function routine.  Such routines are
+   --  No_Declaration for an item no declaration makes.  Such items are
    --  still deterministic Unit items and receive backend-local symbols.
    function Declares (Of_Unit : Unit; Id : Item_Id) return Declaration_Id
      with Pre => Holds (Of_Unit, Id);
@@ -2577,11 +2576,10 @@ package Landin.IR is
 
    --  D187's [1120] region.  The mode is a depth on the item being
    --  filled, so a nested region is idempotent and a region cannot
-   --  reach an item lowered beside it -- an anonymous function body
-   --  [1010] starts its own item with the mode off.  An operation the
-   --  language emits for itself rather than for the source inside the
-   --  region says so at its emitter: Emit_Slice_Address's Required flag
-   --  is how D182--D184's text boundary traps stay.
+   --  reach an item lowered beside it, which starts with the mode off.
+   --  An operation the language emits for itself rather than for the
+   --  source inside the region says so at its emitter: Emit_Slice_Address's
+   --  Required flag is how D182--D184's text boundary traps stay.
    procedure Begin_Unchecked (Into : in out Unit; Item : Item_Id)
      with Pre => Holds (Into, Item);
 
