@@ -3795,7 +3795,7 @@ SR-1881 records the misleading refusal a new Linux wrapper meets.
 
 ### R22.27 — Process tools' remaining faults
 
-Status: planned
+Status: active
 Depends on: none
 
 The faults of the process tools met since R22.24, scheduled by the
