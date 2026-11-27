@@ -244,31 +244,49 @@ def direct(bundle, manifest, lldb, output):
     for built in (manifest['sessions'] + manifest['switches']
                   + manifest['copies']):
         label = built['label']
+        #  D2970: a switch session in which LLDB lost a step runs again.
+        attempts = (switch_frames.LOST_STEP_ATTEMPTS.get(TARGET, 1)
+                    if 'switch_instructions' in built else 1)
+        lost = []
         try:
             verify(bundle, built)
-            try:
-                done = subprocess.run(
-                    [*lldb, '--batch', '-s', label + '.lldb', built['image']],
-                    cwd=bundle, stdin=subprocess.DEVNULL,
-                    capture_output=True, timeout=300)
-            except subprocess.TimeoutExpired as late:
-                #  What it printed before then, which says where it stopped.
-                (output / (label + '.transcript')).write_bytes(
-                    (late.stdout or b'') + (late.stderr or b''))
-                raise Refused(label + ': LLDB did not finish within 300'
-                              ' seconds')
-            text = (done.stdout + done.stderr).decode(errors='replace')
-            (output / (label + '.transcript')).write_text(text)
+            for attempt in range(1, attempts + 1):
+                try:
+                    done = subprocess.run(
+                        [*lldb, '--batch', '-s', label + '.lldb', built['image']],
+                        cwd=bundle, stdin=subprocess.DEVNULL,
+                        capture_output=True, timeout=300)
+                except subprocess.TimeoutExpired as late:
+                    #  What it printed before then, which says where it stopped.
+                    (output / (label + '.transcript')).write_bytes(
+                        (late.stdout or b'') + (late.stderr or b''))
+                    raise Refused(label + ': LLDB did not finish within 300'
+                                  ' seconds')
+                text = (done.stdout + done.stderr).decode(errors='replace')
+                (output / (label + '.transcript')).write_text(text)
+                step = (switch_frames.lldb_lost_step(text)
+                        if attempts > 1 else None)
+                if step is None or attempt == attempts:
+                    break
+                lost.append(step)
+                (output / ('%s.lost-%d.transcript' % (label, attempt))
+                 ).write_text(text)
+                print('%s: %s: LLDB lost a step, %s; again' % (TARGET, label, step),
+                      flush=True)
             try:
                 if 'switch_instructions' in built:
                     summary[label] = lldb_batch.check_switch(
                         text, label, TARGET)
+                    if lost:
+                        summary[label]['lost steps'] = lost
                 elif built in manifest['copies']:
                     check_copy(text, manifest['copy_line'], label)
                 else:
                     lldb_batch.check_source(text, lines, label)
             except lldb_batch.Mismatch as error:
-                raise Refused(str(error))
+                raise Refused(str(error) + ''.join(
+                    '; attempt %d: %s' % (number, step)
+                    for number, step in enumerate(lost, 1)))
             print('%s: LLDB session passed %s' % (TARGET, label), flush=True)
         except Refused as error:
             failures.append(str(error))

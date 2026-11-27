@@ -71,7 +71,8 @@ C_FLAGS = ('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror')
 #  The files a prepared bundle's execution runs, at their own paths under
 #  OUTPUT/lane, so that a Windows host runs a bundle with no checkout.
 LANE = ('compiler/tests/windows/check.py', 'scripts/lane_refine.py',
-        'scripts/refine_revision.py', 'scripts/build_identity.py')
+        'scripts/refine_revision.py', 'scripts/build_identity.py',
+        'environments/pins.sh')
 
 
 class Refused(ValueError):
@@ -388,9 +389,95 @@ def without_wine_report(text):
                     if not line.startswith(b'wine: Unhandled '))
 
 
-def linked(bundle, result, driver, expect_linker):
+#  D2969: the Microsoft tools the gate's link requires, by version, which
+#  environments/pins.sh names and the lane selects among what the host
+#  installs: an MSVC toolset, whose link.exe runs the link, and a Windows
+#  SDK, whose import libraries it reads.  The machine is the SDK's and the
+#  toolset's name for the target's architecture.
+VSWHERE = os.path.join(os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+                       'Microsoft Visual Studio', 'Installer', 'vswhere.exe')
+SDK_ROOT = os.path.join(os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+                        'Windows Kits', '10')
+MACHINES = {'windows-x86-64': 'x64', 'windows-arm64': 'arm64'}
+PIN_ADVICE = ('; the gate names its own as %s in environments/pins.sh, which'
+              ' compiler/ada/TOOLCHAIN.md records: name one this host carries in both'
+              ' (compiler/tests/windows/README.md, "Microsoft\'s link")')
+
+
+def windows_path(path):
+    """PATH as one spelling, for comparing what Clang printed with what
+    the lane chose: backslashes, one each, and no case."""
+    return path.replace('/', '\\').replace('\\\\', '\\').rstrip('\\').lower()
+
+
+def visual_studio_installations():
+    """Each Visual Studio installation vswhere names, as JSON objects."""
+    require(os.path.isfile(VSWHERE),
+            'no Visual Studio installer at %s, so no MSVC toolset to select' % VSWHERE)
+    try:
+        done = subprocess.run([VSWHERE, '-all', '-products', '*', '-format', 'json'],
+                              capture_output=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Refused('vswhere did not list the Visual Studio installations: %s' % error)
+    require(done.returncode == 0, 'vswhere exited %d' % done.returncode)
+    return json.loads(done.stdout.decode(errors='replace') or '[]')
+
+
+def microsoft_tools(toolset, sdk, installations, sdk_root=SDK_ROOT):
+    """The MSVC toolset TOOLSET among INSTALLATIONS with a link.exe for the
+    target, and the Windows SDK SDK under SDK_ROOT with the target's import
+    libraries; refuse, naming what the host carries instead."""
+    machine = MACHINES[TARGET]
+    carried = {}
+    for installation in installations:
+        tools = os.path.join(installation['installationPath'], 'VC', 'Tools', 'MSVC')
+        for name in sorted(os.listdir(tools)) if os.path.isdir(tools) else ():
+            bin_dir = os.path.join(tools, name, 'bin')
+            if any(os.path.isfile(os.path.join(bin_dir, host, machine, 'link.exe'))
+                   for host in (sorted(os.listdir(bin_dir)) if os.path.isdir(bin_dir) else ())):
+                carried.setdefault(name, (os.path.join(tools, name), installation))
+    require(toolset in carried,
+            'this host carries no MSVC toolset %s with a link.exe for %s; it carries %s'
+            % (toolset, machine, ', '.join(sorted(carried)) or 'none')
+            + PIN_ADVICE % 'LANDIN_MSVC_TOOLSET_VERSION')
+    libraries = os.path.join(sdk_root, 'Lib')
+    sdks = sorted(name for name in (os.listdir(libraries) if os.path.isdir(libraries) else ())
+                  if os.path.isfile(os.path.join(libraries, name, 'um', machine,
+                                                 'kernel32.lib')))
+    require(sdk in sdks,
+            'this host carries no Windows SDK %s with %s import libraries under %s; it'
+            ' carries %s' % (sdk, machine, sdk_root, ', '.join(sdks) or 'none')
+            + PIN_ADVICE % 'LANDIN_WINDOWS_SDK_VERSION')
+    root, installation = carried[toolset]
+    return {'toolset': toolset, 'root': root, 'windows_sdk': sdk, 'sdk_root': sdk_root,
+            'machine': machine,
+            'visual_studio': '%s %s' % (installation.get('displayName', 'Visual Studio'),
+                                        installation.get('installationVersion', '?'))}
+
+
+def tools_options(tools):
+    """The Clang options that select TOOLS rather than leave the search to
+    the driver, which a Clang built without Visual Studio's setup API, as
+    llvm-mingw's is, cannot make."""
+    return ['-Xmicrosoft-visualc-tools-root', tools['root'],
+            '-Xmicrosoft-windows-sdk-root', tools['sdk_root'],
+            '-Xmicrosoft-windows-sdk-version', tools['windows_sdk']]
+
+
+def linker_version(linker):
+    """The banner link.exe prints first, which names its own version."""
+    try:
+        done = subprocess.run([linker], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise Refused('could not start the linker %s: %s' % (linker, error))
+    return (done.stdout.decode(errors='replace').splitlines() or [''])[0].strip()
+
+
+def linked(bundle, result, driver, expect_linker, tools=None):
     """Run the link command refine chose for Microsoft's link, with DRIVER,
-    and say which linker it ran; raise what is wrong."""
+    and say which linker it ran; with TOOLS, require that the link ran that
+    toolset's linker over that SDK's import libraries; raise what is
+    wrong."""
     label = result['label']
     assembly = bundle / (label + '.s')
     require(sha(assembly) == result['assembly_sha256'], label + ': assembly checksum')
@@ -417,6 +504,15 @@ def linked(bundle, result, driver, expect_linker):
     name = linker.replace('\\', '/').rsplit('/', 1)[-1].lower()
     require(not expect_linker or name == expect_linker.lower(),
             '%s: the link ran %s, not %s' % (label, linker, expect_linker))
+    if tools:
+        #  Clang ignores an SDK version it does not find and takes another.
+        line = windows_path(ran[-1])
+        require(windows_path(linker).startswith(windows_path(tools['root']) + '\\'),
+                '%s: the link ran %s, not MSVC toolset %s\'s' % (label, linker, tools['toolset']))
+        require(windows_path(os.path.join(tools['sdk_root'], 'Lib', tools['windows_sdk'], 'um',
+                                          tools['machine'])) in line,
+                '%s: the link did not read Windows SDK %s\'s import libraries: %s'
+                % (label, tools['windows_sdk'], ran[-1][-600:]))
     result['linker'] = linker
     result['executable_sha256'] = sha(bundle / (label + '.exe'))
 
@@ -527,7 +623,8 @@ def outcome(bundle, result, runner):
         require(not done.stderr, label + ': unexpected standard error output')
 
 
-def execute(bundle, manifest, runner, jobs, driver=(), expect_linker='', cc=()):
+def execute(bundle, manifest, runner, jobs, driver=(), expect_linker='', cc=(),
+            tools=None):
     windows_error_mode()
     results = manifest['results']
     require(results or manifest.get('build_failures'), 'empty prepared fixture selection')
@@ -535,7 +632,7 @@ def execute(bundle, manifest, runner, jobs, driver=(), expect_linker='', cc=()):
     def one(result):
         try:
             if 'link' in result:
-                linked(bundle, result, driver, expect_linker)
+                linked(bundle, result, driver, expect_linker, tools)
             if 'peer' in result:
                 peer_linked(bundle, result, cc)
             outcome(bundle, result, runner)
@@ -609,6 +706,12 @@ def main():
                         help="the Clang that runs Microsoft's link at execution")
     parser.add_argument('--expect-linker', default='',
                         help="the linker Microsoft's link must run, such as link.exe")
+    parser.add_argument('--msvc-toolset', default='',
+                        help="the MSVC toolset Microsoft's link must run, such as 14.44.35207;"
+                        " with --windows-sdk, selected among what Visual Studio installs")
+    parser.add_argument('--windows-sdk', default='',
+                        help="the Windows SDK whose import libraries Microsoft's link must"
+                        " read, such as 10.0.26100.0")
     parser.add_argument('--runner', default='',
                         help='a command each executable runs under, such as wine; none on Windows')
     parser.add_argument('--prepare-only', action='store_true',
@@ -632,6 +735,8 @@ def main():
         require(not (args.shard and args.case), 'a shard is a share of the complete lane')
         require(KIND == 'runtime' or args.link == 'mingw',
                 "the ABI kind links its C peers with llvm-mingw's C runtime alone")
+        require(bool(args.msvc_toolset) == bool(args.windows_sdk),
+                '--msvc-toolset and --windows-sdk select the Microsoft tools together')
         args.output.mkdir(parents=True, exist_ok=False)
         if args.prepared:
             prepared = args.prepared.resolve()
@@ -660,17 +765,26 @@ def main():
         summary['scope'] = manifest['scope']
         summary['results'] = manifest['results']
         wine_prefix(args.runner.split(), args.output)
+        driver, tools = args.driver.split(), None
         if manifest.get('link') == 'microsoft':
             summary['link'] = 'microsoft'
-            summary['driver'] = driver_version(args.driver.split())
+            summary['driver'] = driver_version(driver)
+            if args.msvc_toolset:
+                tools = microsoft_tools(args.msvc_toolset, args.windows_sdk,
+                                        visual_studio_installations())
+                summary['microsoft'] = {key: tools[key] for key in
+                                        ('visual_studio', 'toolset', 'windows_sdk')}
+                driver += tools_options(tools)
         try:
             execute(bundle, manifest, args.runner.split(), args.jobs,
-                    args.driver.split(), args.expect_linker,
-                    (args.cc or DRIVERS[TARGET]).split())
+                    driver, args.expect_linker,
+                    (args.cc or DRIVERS[TARGET]).split(), tools)
         finally:
             if manifest.get('link') == 'microsoft':
                 summary['linkers'] = sorted({one['linker'] for one in manifest['results']
                                              if 'linker' in one})
+                if tools and summary['linkers']:
+                    summary['microsoft']['linker'] = linker_version(summary['linkers'][0])
         summary['status'] = 'passed'
         print('%s: %d %s outcomes passed' % (TARGET, len(manifest['results']), manifest['scope']))
     except Refused as error:

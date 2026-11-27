@@ -98,5 +98,81 @@ class Replay(unittest.TestCase):
                 LANE.linked(tmp, result, ['clang'], '')
 
 
+class MicrosoftTools(unittest.TestCase):
+    """D2969: the toolset and SDK the gate names, selected among what the
+    host installs, and the link held to them."""
+
+    def host(self, tmp):
+        vs = tmp / 'VS'
+        for toolset, machines in (('14.29.30133', ('x64', 'arm64')), ('14.44.35207', ('x64',))):
+            for machine in machines:
+                link = vs / 'VC/Tools/MSVC' / toolset / 'bin/Hostx64' / machine / 'link.exe'
+                link.parent.mkdir(parents=True)
+                link.write_bytes(b'')
+        for sdk in ('10.0.22621.0', '10.0.26100.0'):
+            lib = tmp / 'Kits/Lib' / sdk / 'um/x64/kernel32.lib'
+            lib.parent.mkdir(parents=True)
+            lib.write_bytes(b'')
+        return [{'installationPath': str(vs), 'displayName': 'Visual Studio Enterprise 2026',
+                 'installationVersion': '18.12.12405.243'}]
+
+    def test_selects_the_named_toolset_and_sdk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            tools = LANE.microsoft_tools('14.44.35207', '10.0.26100.0', self.host(tmp),
+                                         str(tmp / 'Kits'))
+            self.assertEqual(tools['root'], str(tmp / 'VS/VC/Tools/MSVC/14.44.35207'))
+            self.assertEqual(tools['visual_studio'], 'Visual Studio Enterprise 2026 18.12.12405.243')
+            self.assertEqual(LANE.tools_options(tools)[-2:],
+                             ['-Xmicrosoft-windows-sdk-version', '10.0.26100.0'])
+
+    def test_refuses_what_the_host_lacks_and_names_what_it_carries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            installations = self.host(tmp)
+            with self.assertRaisesRegex(
+                    LANE.Refused, r'no MSVC toolset 14\.52\.37025 .*carries 14\.29\.30133,'
+                    r' 14\.44\.35207; .*LANDIN_MSVC_TOOLSET_VERSION'):
+                LANE.microsoft_tools('14.52.37025', '10.0.26100.0', installations,
+                                     str(tmp / 'Kits'))
+            with self.assertRaisesRegex(LANE.Refused, r'no Windows SDK 10\.0\.28000\.0 .*'
+                                        r'carries 10\.0\.22621\.0, 10\.0\.26100\.0; .*'
+                                        r'LANDIN_WINDOWS_SDK_VERSION'):
+                LANE.microsoft_tools('14.44.35207', '10.0.28000.0', installations,
+                                     str(tmp / 'Kits'))
+            #  A toolset with no linker for the target's machine is not one.
+            with patch.object(LANE, 'TARGET', 'windows-arm64'), \
+                    self.assertRaisesRegex(LANE.Refused, 'it carries 14\\.29\\.30133;'):
+                LANE.microsoft_tools('14.44.35207', '10.0.26100.0', installations,
+                                     str(tmp / 'Kits'))
+
+    def test_holds_the_link_to_the_selected_toolset_and_sdk(self):
+        tools = {'toolset': '14.44.35207', 'root': 'C:\\VS\\VC\\Tools\\MSVC\\14.44.35207',
+                 'windows_sdk': '10.0.26100.0', 'sdk_root': 'C:\\Kits\\10', 'machine': 'x64'}
+
+        def log(linker, sdk):
+            return (b'clang version 23.1.6\n "' + linker.replace('\\', '\\\\').encode()
+                    + b'" "-libpath:C:\\\\Kits\\\\10/Lib/' + sdk.encode()
+                    + b'/um/x64" -out:case.exe case.o\n')
+
+        def link(tmp, text):
+            def fake(argv, cwd, capture_output, timeout):
+                (tmp / 'case.exe').write_bytes(b'MZ')
+                return subprocess.CompletedProcess(argv, 0, text, b'')
+            result = Replay.prepared(None, tmp)
+            with patch.object(LANE.subprocess, 'run', fake):
+                LANE.linked(tmp, result, ['clang'], 'link.exe', tools)
+            return result
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            ours = 'C:\\VS\\VC\\Tools\\MSVC\\14.44.35207/bin/Hostx64/x64/link.exe'
+            self.assertEqual(link(tmp, log(ours, '10.0.26100.0'))['linker'], ours)
+            with self.assertRaisesRegex(LANE.Refused, "not MSVC toolset 14.44.35207's"):
+                link(tmp, log('C:\\VS\\VC\\Tools\\MSVC\\14.52.37025\\bin\\Hostx64'
+                              '\\x64\\link.exe', '10.0.26100.0'))
+            with self.assertRaisesRegex(LANE.Refused, "Windows SDK 10.0.26100.0's"):
+                link(tmp, log(ours, '10.0.22621.0'))
+
+
 if __name__ == '__main__':
     unittest.main()

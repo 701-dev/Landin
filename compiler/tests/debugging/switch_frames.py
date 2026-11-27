@@ -83,6 +83,18 @@ SWAP = {
 #  standard epilogue's.  Drop the entry once a FreeBSD LLDB unwinds that
 #  `ret` right, and restate it for a newer version that still does not.
 UNRELIABLE_RETURN = {"freebsd-arm64": "LLDB 19.1.7's arm64 frame-0 emulation"}
+#  The debuggers that now and then lose one `thread step-inst`: the thread
+#  runs on as if continued, at no instruction in particular, to the next
+#  switch's breakpoint or to the program's exit.  On GitHub's
+#  windows-11-arm runner llvm-mingw's LLDB lost 14 of some 77,000 steps
+#  through the switch, at offsets from +56 to +160 and in both switches,
+#  and none of 38,000 more with its `windows` log on, which slows it: the
+#  loss is in LLDB's timing, not in the routine.  A lane runs a session
+#  that lost a step again, up to the number of attempts here, and keeps
+#  each lost session's transcript; a step it did not lose is held as
+#  before.  Drop the entry once a runner's sessions lose none, and restate
+#  it for a newer LLDB that still does.
+LOST_STEP_ATTEMPTS = {"windows-arm64": 3}
 #  How many instructions a session may step inside one switch before it
 #  says the routine never returned.
 STEP_LIMIT = 200
@@ -236,6 +248,25 @@ def lldb_backtrace(text: str) -> list[tuple[str, int | None]]:
     require([n for n, _, _ in frames] == list(range(len(frames))),
             f"LLDB's backtrace is not a numbered sequence:\n{text}")
     return [(name, offset) for _, name, offset in frames]
+
+
+def lldb_lost_step(transcript: str) -> str | None:
+    """The first `thread step-inst` of a switch session that the debugger
+    did not make, said where it was from, or None.  Every step the session
+    makes stays in the switch routine or returns from it, where no
+    breakpoint is, so a step that ends at a breakpoint or at the program's
+    exit ran on instead of stepping."""
+    at = None
+    for command, said in lldb_commands_output(transcript):
+        frame = LLDB_FRAME.search(said)
+        if command == "thread step-inst":
+            if re.search(r"stop reason = breakpoint", said):
+                return f"the step from {at} ran on to a breakpoint"
+            if re.search(r"exited with status", said):
+                return f"the step from {at} ran on to the program's exit"
+        if frame and frame.group(2):
+            at = frame.group(2) + (f"+{frame.group(3)}" if frame.group(3) else "")
+    return None
 
 
 def lldb_stops(transcript: str) -> dict:
