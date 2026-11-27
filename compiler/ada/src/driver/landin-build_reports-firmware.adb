@@ -878,8 +878,15 @@ package body Landin.Build_Reports.Firmware is
                               end if;
                               --  D1115: a datum or a routine, a Thumb
                               --  one's address its value without bit 0,
-                              --  defined in a section of the image.
-                              if not Startup and then Kind in 1 | 2
+                              --  defined in a section of the image.  The
+                              --  startup routines are held too (D2997):
+                              --  only the vector table and the entry word
+                              --  come first in the region they begin.
+                              if (not Startup
+                                  or else Name not in
+                                    "_landin_firmware_vectors"
+                                    | "_landin_firmware_entry")
+                                and then Kind in 1 | 2
                                 and then Section in 1 .. 16#FEFF#
                                 and then Address / 2 = 0
                                 and then (Kind = 2 or else Address = 0)

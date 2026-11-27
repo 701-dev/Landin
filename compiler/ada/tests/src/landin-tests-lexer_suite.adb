@@ -516,9 +516,11 @@ package body Landin.Tests.Lexer_Suite is
       Check ("12abc", Landin.Tokens.Malformed_Integer);
       Check ("1U", Landin.Tokens.Malformed_Integer);
       Check ("0xffg", Landin.Tokens.Malformed_Integer);
-      Check ("0x1p3", Landin.Tokens.Malformed_Integer);
       Check ("0o17z", Landin.Tokens.Malformed_Integer);
       Check ("0b1012", Landin.Tokens.Malformed_Integer);
+      --  D2995: C's hexadecimal float lacks only its point, and is a
+      --  malformed float as `1e5` is.
+      Check ("0x1p3", Landin.Tokens.Malformed_Float);
       Check ("1e5", Landin.Tokens.Malformed_Float);
       Check ("1e5x", Landin.Tokens.Malformed_Float);
       Check ("1.5f32", Landin.Tokens.Malformed_Float);

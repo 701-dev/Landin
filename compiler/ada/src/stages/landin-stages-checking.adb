@@ -42446,10 +42446,13 @@ package body Landin.Stages.Checking is
                         Message => "this failing call is not recovered:"
                                    & " the `else` after it divides the"
                                    & " `if` around it",
-                        Note    => "[1820]: in an `if` arm, recover a call"
-                                   & " with parentheses, `(call(...) else"
-                                   & " value)`, or bind the error, `else"
-                                   & " (problem) ... end`",
+                        Note    => "[1820]: to recover from a failing call"
+                                   & " inside an `if` arm, wrap the call and"
+                                   & " its recovery in parentheses,"
+                                   & " `(call(...) else value)` or"
+                                   & " `(call(...) else begin return end)`,"
+                                   & " or bind the error with `else (problem)"
+                                   & " ... end`",
                         Related => (Source => Issues (Index).Source,
                                     Where  => Left),
                         Because => "this `else` divides the `if`",
