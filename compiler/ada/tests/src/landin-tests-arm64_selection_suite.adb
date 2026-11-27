@@ -74,6 +74,8 @@ package body Landin.Tests.Arm64_Selection_Suite is
      (Item : in out Landin.Testing.Context);
    procedure Stores_Into_Slot_Registers
      (Item : in out Landin.Testing.Context);
+   procedure Stores_Early_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context);
    procedure Slice_Elements_Check_Once
      (Item : in out Landin.Testing.Context);
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context);
@@ -1041,6 +1043,39 @@ package body Landin.Tests.Arm64_Selection_Suite is
       end;
    end Stores_Into_Slot_Registers;
 
+   --  D2714: a value read after its store is made in its slot's
+   --  register too: the decremented index, the loaded byte, whose slot
+   --  opens at its store, and the incremented count, each read after
+   --  its store, are made where they are kept, and the loop moves
+   --  nothing between registers.
+   procedure Stores_Early_Into_Slot_Registers
+     (Item : in out Landin.Testing.Context)
+   is
+      Whole : constant String := Routine
+        (Converted
+           (Item,
+            "public scan: (s: []u8, t: [256]u8) -> (n: usize) = "
+            & "mut at: usize = lenof s mut w: usize = 0 "
+            & "mut sum: usize = 0 "
+            & "while at > 0 do dec at b: u8 = s[at] "
+            & "continue when b == 10 "
+            & "sum = sum +% usize(t[usize(b)]) inc w "
+            & "if w == 60 then sum = sum +% w end if end while "
+            & "n = w +% sum end scan",
+            Opt.Speed),
+         "scan");
+      First : constant Natural :=
+        Ada.Strings.Fixed.Index (Whole, LF & ".L1_2:" & LF);
+      Last : constant Natural :=
+        Ada.Strings.Fixed.Index (Whole, LF & ".L1_4:" & LF);
+   begin
+      Landin.Testing.Check
+        (Item, First /= 0 and then Last > First
+         and then not Contains (Whole (First .. Last), HT & "mov "),
+         "the loop makes each stored value in its slot's register:"
+         & LF & Whole);
+   end Stores_Early_Into_Slot_Registers;
+
    --  A slice element is the inclusive range from its index to itself:
    --  size and speed check the upper edge and leave out the lower one,
    --  the index against itself, which cannot fail.  None checks both.
@@ -1341,6 +1376,9 @@ package body Landin.Tests.Arm64_Selection_Suite is
       Landin.Testing.Register
         (Into, "arm64 selection", "a stored value is made in its slot",
          Stores_Into_Slot_Registers'Access);
+      Landin.Testing.Register
+        (Into, "arm64 selection", "a value read again is made in its slot",
+         Stores_Early_Into_Slot_Registers'Access);
       Landin.Testing.Register
         (Into, "arm64 selection", "slice elements check once",
          Slice_Elements_Check_Once'Access);

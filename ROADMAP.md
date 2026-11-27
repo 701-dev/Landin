@@ -1405,7 +1405,51 @@ The merged candidate, with `gate-watcher` riding it, passed its
 after `freebsd-host-release` was run again over a mirror's refusal, and
 its [boards](https://github.com/701-dev/Landin/actions/runs/45855853447).
 
-### R16.43 — An increment proved by the check before it
+### R16.43 — A value read after its store is made in its slot's register on arm64
+
+Status: complete
+Depends on: R16.10
+
+arm64 makes a value in the register of the slot it is stored into only
+when the store is the value's last use (D2164), so a value read again
+after its store is made in a register of its own and copied:
+reverse-complement's `write_reversed` copies `at - 1` into `at`, the
+loaded byte into `base` and `width + 1` into `width`, three `mov`s of
+its eighteen instructions a byte. Removed by hand they leave 1.415 G
+instructions under QEMU against 1.597 G, 11.4% fewer, with the same
+output (`SR-1958`). The item makes such a value in its slot's register
+at speed when the slot holds that register over the value's span or
+opens it at the store, as x86-64's D2157 and D2654 do.
+Exit evidence: reverse-complement at speed on arm64 executing more than
+5% fewer instructions than at the item's base, its time on an arm64
+host reported beside them; every benchmark program's instructions and
+image size reported against that base, x86-64 as well; and no other
+combination over its own.
+
+Done: at speed arm64 makes a value read again after its first store in
+the register of the slot that store writes when the slot holds that
+register over the value's span, or its interval opens at the store,
+and nothing else stores the slot inside the span; an indirect load may
+take the register of what it reads for the last time (D2714). The
+three copies of `write_reversed`'s loop and mandelbrot's two float
+moves go. Against the item's base under QEMU at armv8-a speed
+mandelbrot executes 12.0% fewer instructions, reverse-complement
+11.7%, the switch measurements 1.9%, fasta 1.8% and binary-trees 1.4%;
+fannkuch-redux, every size figure and every x86-64 figure are the
+same, every output the same. Timed on one 3.9 GHz big core of an arm64 host, where no
+cycle counter is open to an unprivileged user, mandelbrot runs 16.1%
+faster and reverse-complement 15.5%, the others within 1%. arm64
+images at speed are 24 to 2,332 bytes smaller over seven workloads a
+configuration; none grew. `SR-1958`, which measured the copies by
+hand, is completed and deleted. The register sweep had planned this
+work as R16.44 and the increment checks as R16.43; the increment item
+is R16.44 now. The merged candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45907130369),
+after `windows-arm64-debugger` was run again over `SR-1940`'s step
+through the stack switch, and its
+[boards](https://github.com/701-dev/Landin/actions/runs/45907141173).
+
+### R16.44 — An increment proved by the check before it
 
 Status: planned
 Depends on: R16.10
@@ -1422,21 +1466,6 @@ simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
 Exit evidence: each check proved and removed on every target, the two
 programs' instructions measured against the item's base, and no other
 combination over its own.
-
-### R16.44 — arm64 keeps a stored value in its slot's register
-
-Status: planned
-Depends on: R16.10
-
-SR-1958: arm64 makes a stored value in its slot's register only when the
-store is the value's last use (D2164), so reverse-complement's
-`write_reversed` copies three values a byte into their slots' registers,
-11.4% of its instructions by a hand patch. x86-64 already lets later
-uses read the slot's register (D2157) and makes a value there when the
-slot's interval opens at its store (D2654). Scheduled by the register
-sweep of 2026-11-26. Exit evidence: reverse-complement at speed on arm64
-executing fewer instructions than at the item's base by most of the hand
-patch's margin, and no other combination over its own.
 
 ### R16.45 — A call's failure tested once
 

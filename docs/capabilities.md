@@ -1267,7 +1267,8 @@ process ignores SIGPIPE and gives its children the default back.
   constants, invariant arithmetic and the addresses of arrays it indexes
   are made once before it, within a register budget of the target's
   (D2149, D2150). arm64 makes a value stored into a slot's register in
-  that register (D2164).
+  that register, also when the value is read again after its store
+  (D2164, D2714).
 - **Reachability.** A program with a public `main` lowers, emits and
   assembles only the routines it can reach, so it pays for the library it
   calls rather than everything it imports, and a firmware image only those
