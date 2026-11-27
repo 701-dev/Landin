@@ -1303,6 +1303,21 @@ change, or `test_gate_history`'s `Lanes` fails.
   example, which `Lanes` matches against it, and whether a re-run can
   pass it.
 
+### Checks too long for a gate
+
+A check that takes hours, such as the run of every `f32` input of
+`core/math` against MPFR, runs on a host and never in a gate (D2874). It is
+recorded in a file under `compiler/tests/records/`, whose README gives the
+form: the commands, the host, the date, the commit, the results, and each
+checked routine's code digest on each target the record claims.
+`compiler-checks` runs `python3 scripts/records.py check`, which emits the
+records' programs again and says whether each is fresh or stale since its
+commit. A stale record fails no push: the job writes a warning and a
+summary line. It blocks a release and a phase-gate claim that cite it, which
+run `records.py check --fail-stale RECORD`; a stale record's commands are run
+again on a host, then `records.py stamp RECORD` writes the new digests and
+commit, or the claim it supports is withdrawn.
+
 ### The controls that hold the job inventory
 
 A change to a gate job's name, matrix, condition or needs is held by
@@ -1622,7 +1637,12 @@ comments of `.github/workflows/release.yml` and of `flake.nix` beside
    gate, a `scope=boards` dispatch on the same tree, promotion to `main`
    and `main`'s own push gate followed to its end. `scripts/release.py
    gated` refuses a tag on a commit that is not on `main` or whose own
-   push gate there did not pass.
+   push gate there did not pass. Every record under
+   `compiler/tests/records/` backs a claim the release ships, as
+   `math-f32-exhaustive.json` backs the accuracy `core/math` states, so a stale one blocks it: `python3
+   scripts/records.py check --fail-stale` must pass on the commit, or the
+   stale record's commands are run again and stamped first, or its claim
+   withdrawn ([checks too long for a gate](#checks-too-long-for-a-gate)).
 3. **Rehearse.** On that commit of `main`, run the release workflow with
    nothing to publish:
 

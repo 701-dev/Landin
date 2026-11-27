@@ -107,6 +107,10 @@ complete when its exit evidence exists: the complete gate passed on the
 completing commit and, for a claim about a host the gate does not run, a
 named run recorded in the item. It then gets a short `Done:` paragraph; the
 reasoning goes in the commits and in `spec.md`'s register of decisions.
+A check too long for any gate is a record under `compiler/tests/records/`
+instead (D2874): a phase's gate whose items' evidence cites one is claimed
+only on a commit where `python3 scripts/records.py check --fail-stale`
+passes on it, R22's on R22.10's.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without
@@ -4247,7 +4251,7 @@ it. Q-364 answered. Rows filed: SR-2062, the `link.exe` exit of gate
 
 ### R22.35 — Checks too long for a gate, by record
 
-Status: planned
+Status: complete
 Depends on: none
 
 The exhaustive and other checks too long for any regular gate, which the
@@ -4267,6 +4271,34 @@ Exit evidence: the script's tests, a record fresh after a change
 elsewhere and stale after a change to the code it checked; R22.10's
 record and its check in the `scripts` job; the release checklist in
 process.md naming stale records.
+
+Done: a check too long for any gate runs on a host and is a record under
+`compiler/tests/records/` (D2874): its commands, host, date, commit and
+results, and for each routine it checked the SHA-256 of its code on each
+target, the assembly refine emits from the routine's section through
+every section it reaches, local names renumbered and trap positions
+dropped. `scripts/records.py check` emits the records' programs again
+and says fresh or stale since the record's commit, naming the routines
+and targets that changed, in about twenty seconds; `stamp` renews one.
+The freshness check runs in the gate's `compiler-checks` job, which has a
+compiler; the `scripts` job, which has none, runs
+`scripts/tests/test_records.py`, the script on a stand-in refine and
+every record's form. A stale record fails no push, and blocks a release,
+by process.md's step 2, and a phase-gate claim, by the Gates paragraph
+above, that cite it. `test_records_native.py` edits a copy of `core/math`
+on refine's own output for Linux x86-64 and arm64: `sin_f32` stays fresh
+when `tan_f32` changes, a routine is added and every line moves, and goes
+stale when its kernel's coefficient changes; the record also stayed fresh
+over the merge of main's float text and diagnostics changes. R22.10's runs
+had covered several candidates and stream branches with an x86-64
+allocator fix landing among them, and recorded no code, so its commands
+were run again on this tree for the first record,
+`math-f32-exhaustive.json`: all 30 one-argument `f32` routines within
+their bounds, `log_gamma` on its parts above -2, the 2^32 results the
+same bits on Linux x86-64, arm64 and RV64, and the same bits R22.10's
+runs hashed. Filed: `SR-2072`, a detached run stopped when the host ended
+the agents' sessions. Activations read and not met: `SR-1118`, `SR-1859`,
+`SR-1917`, `SR-1919`, `SR-1991`, which match a changed file's path alone.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 

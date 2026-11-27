@@ -11155,12 +11155,14 @@ PROCESS_SECTION_BUDGETS = {
     #  and again when the failure causes and the selection in shadow
     #  joined it, and when board legs taken by identity and the daily
     #  schedule did; and again when figures were recorded from the run
-    #  that measured them (D2854).
-    "The mechanical gate": 59000,
+    #  that measured them (D2854), and when the records of checks too
+    #  long for a gate did.
+    "The mechanical gate": 60000,
     #  Raised when the install script's check joined the recipe's step 6,
-    #  again when the static Linux archive's check did, and again when
-    #  the formula came to depend on the macOS archive's stated minimum.
-    "Releasing a version": 13200,
+    #  again when the static Linux archive's check did, again when the
+    #  formula came to depend on the macOS archive's stated minimum, and
+    #  again when stale records joined step 2.
+    "Releasing a version": 13700,
 }
 
 

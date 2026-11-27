@@ -25,7 +25,10 @@ The results are the same bits on every target, save which NaN a NaN
 result is, since the routines use only IEEE arithmetic, which every target
 rounds alike; the fixtures check the values on each, and `digest` compares
 all 2^32 `f32` results of a routine between targets bit for bit, every NaN
-counted as one.
+counted as one. Both run for hours, so they run on a host and never in a
+gate, and their results are
+[a record](../records/math-f32-exhaustive.json) the gate reports fresh
+or stale against the code they checked (D2874).
 
 ## Files
 

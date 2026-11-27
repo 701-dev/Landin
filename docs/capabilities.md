@@ -1017,7 +1017,8 @@ injector as arguments, as providers.
   included; the square root and `fma` are the float unit's instructions
   where there is one (D2551, D2552). Each routine's error is stated and
   checked against MPFR on every target, and measured on every input of
-  each one-argument `f32` routine (D2553).
+  each one-argument `f32` routine, on a host and recorded against the
+  code it checked, whose freshness the gate reports (D2553, D2874).
 - **Unicode text.** `core/unicode` follows Unicode 18.0.0, its tables
   generated from a pinned copy of the Unicode Character Database: a
   scalar's general category, combining class and six binary properties;

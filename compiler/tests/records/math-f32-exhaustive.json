@@ -1,0 +1,1172 @@
+{
+ "schema": 1,
+ "title": "Every f32 input of core/math's one-argument routines, against MPFR and between targets",
+ "check": "For each one-argument routine of core/math at f32, every one of the 2^32 inputs was evaluated by compiler/tests/math/evaluate.ldn on Linux x86-64 and checked against MPFR's correctly rounded result, in units in the last place: `exhaustive` gives the inputs counted, those not correctly rounded, those past the routine's fixture bound in representable floats, the largest error and an input giving it.  log_gamma is checked from +0 up and from -0 to just above -2 (parts 0:768), where its stated error holds; below -2 it loses its relative accuracy near its zeros, as its doc comment says.  Then the 2^32 results were hashed in order, every NaN as one, on Linux x86-64 natively and on Linux arm64 and RV64 under QEMU's user mode: `outputs` gives each target's SHA-256, and `outputs_agree` that all three are the same bits, so the x86-64 verdict holds for the other two.  `earlier` is the first runs of 2026-11-25 and 26, over the candidates before this tree, which recorded no code digest: their verdicts and their x86-64 output digest, and whether today's outputs are the same bits.",
+ "commands": [
+  "python3 scripts/math_oracle.py exhaustive FUNCTION --jobs 14 --record FILE, for each routine; log_gamma with --parts 0:768",
+  "python3 scripts/math_oracle.py digest FUNCTION --jobs 10",
+  "python3 scripts/math_oracle.py digest FUNCTION --target linux-arm64 --runner qemu-aarch64 --jobs 10",
+  "python3 scripts/math_oracle.py digest FUNCTION --target linux-rv64 --runner qemu-riscv64 --jobs 10"
+ ],
+ "host": "epycmicro: NixOS, Linux 6.18, AMD EPYC 7302, 32 threads, in nix develop; QEMU 11.1's user mode for arm64 and RV64",
+ "date": "2026-11-27",
+ "commit": "94fd734ee0d65fc9738339e05b5defc0416f6764",
+ "program": "compiler/tests/math/evaluate.ldn",
+ "options": [
+  "--optimize",
+  "speed"
+ ],
+ "targets": [
+  "linux-x86-64",
+  "linux-arm64",
+  "linux-rv64"
+ ],
+ "routines": {
+  "sqrt_f32": {
+   "function": "sqrt",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "6b65def92f9727cff9d17b00e76890aa627c13ecaaf089e1c0be4f3b1dbd95bd",
+    "linux-arm64": "6b65def92f9727cff9d17b00e76890aa627c13ecaaf089e1c0be4f3b1dbd95bd",
+    "linux-rv64": "6b65def92f9727cff9d17b00e76890aa627c13ecaaf089e1c0be4f3b1dbd95bd"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "6b65def92f9727cff9d17b00e76890aa627c13ecaaf089e1c0be4f3b1dbd95bd",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "d50dfaf334a34635561d7aa92c08117047df12e861bd8664eafdde7a68e27efe",
+    "linux-arm64": "802753860b1b148b9ae5f84b9dcacbc4135efcd4be5b2f3ed15f663a66387197",
+    "linux-rv64": "e803eee1f779283ae107a880a977d9c80a85c6955ba98639693d7473fc5c5f83"
+   }
+  },
+  "cbrt_f32": {
+   "function": "cbrt",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "e7092744ee23aa0ca4fa918068675bb3032ed04bab2b8d46ce6bc00dcf0bf073",
+    "linux-arm64": "e7092744ee23aa0ca4fa918068675bb3032ed04bab2b8d46ce6bc00dcf0bf073",
+    "linux-rv64": "e7092744ee23aa0ca4fa918068675bb3032ed04bab2b8d46ce6bc00dcf0bf073"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "e7092744ee23aa0ca4fa918068675bb3032ed04bab2b8d46ce6bc00dcf0bf073",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "f09e997814ab820e09228fa0d13db85a656ea8b4e421436ad508838371febde5",
+    "linux-arm64": "53f7f2cb0c9074749cc08dead9b2366e9814798a5b5a85eff1fdd8baf26ac01f",
+    "linux-rv64": "9fe27ed3c18c8e1371e7859a37db41bc87d2b2c567f80078b6189338465e664c"
+   }
+  },
+  "floor_f32": {
+   "function": "floor",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "dd626a9b59600446934c808384c8b6198341483aaad1f1375ed774e856ecfcf2",
+    "linux-arm64": "dd626a9b59600446934c808384c8b6198341483aaad1f1375ed774e856ecfcf2",
+    "linux-rv64": "dd626a9b59600446934c808384c8b6198341483aaad1f1375ed774e856ecfcf2"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "dd626a9b59600446934c808384c8b6198341483aaad1f1375ed774e856ecfcf2",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "fd74c04798e3fa0092f21e5578f614d38fcb0b8f66e0999928743d3287b5df48",
+    "linux-arm64": "edb133ea2edea708ad27f201ddd74681dc42f9a9113f878ad1844d8489b8c78e",
+    "linux-rv64": "8f7f3866676794885ad039efe4f72d2d18b1e230da8c60c41f6c68e081796e21"
+   }
+  },
+  "ceil_f32": {
+   "function": "ceil",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "1f410bba9ea73f4747c76586cd5ca9f919cac9b6218e5257ef996d1f55f5efcc",
+    "linux-arm64": "1f410bba9ea73f4747c76586cd5ca9f919cac9b6218e5257ef996d1f55f5efcc",
+    "linux-rv64": "1f410bba9ea73f4747c76586cd5ca9f919cac9b6218e5257ef996d1f55f5efcc"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "1f410bba9ea73f4747c76586cd5ca9f919cac9b6218e5257ef996d1f55f5efcc",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "c1c89c2c3951d9b09d0852e75c73d65fa2b8aa8442f010c087506539cfd354c2",
+    "linux-arm64": "6ade57abdb9661d432057c9b1abf62bc2bf990e848088a5848d4932747ca9234",
+    "linux-rv64": "ac7904fccc0a096003ffe543eae2f7de58f310aa8c70b5a816237eda16155673"
+   }
+  },
+  "trunc_f32": {
+   "function": "trunc",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "c7eb2c25f7396aaa6a975a50c930e935eeb247b47ef21606e64789e13a12ed6c",
+    "linux-arm64": "c7eb2c25f7396aaa6a975a50c930e935eeb247b47ef21606e64789e13a12ed6c",
+    "linux-rv64": "c7eb2c25f7396aaa6a975a50c930e935eeb247b47ef21606e64789e13a12ed6c"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "c7eb2c25f7396aaa6a975a50c930e935eeb247b47ef21606e64789e13a12ed6c",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "aad7283f7b71e678ff6db44e5feadac3fd32a185e46fe0c2a11695ca5a6644de",
+    "linux-arm64": "82a5837cef95afa2a864b0579e4983595137cb49fdb6ba8269b120e60d084d58",
+    "linux-rv64": "0c369a5a36297665f8bddf54bea8e3f230d5175acf01f98ec2c8dbdf9b8ca0fd"
+   }
+  },
+  "round_f32": {
+   "function": "round",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "c1f4ea0636751d3e3352583e87560c979eb08308167be52abbc6f33bd0be8ba8",
+    "linux-arm64": "c1f4ea0636751d3e3352583e87560c979eb08308167be52abbc6f33bd0be8ba8",
+    "linux-rv64": "c1f4ea0636751d3e3352583e87560c979eb08308167be52abbc6f33bd0be8ba8"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "c1f4ea0636751d3e3352583e87560c979eb08308167be52abbc6f33bd0be8ba8",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "d9ddfb517c0451ce7d262040368c63710616b922d3c3c41ea4f979f91e8df448",
+    "linux-arm64": "b13711077faba459f27db805b4304e52c9401a0b37fa47ae29d8c4753de2b65a",
+    "linux-rv64": "208a95f885c9844811890132a030444469aa7de58eef6723c64570a503019be4"
+   }
+  },
+  "round_even_f32": {
+   "function": "round_even",
+   "bound": 0,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 0,
+    "past_bound": 0,
+    "max_ulp": 0.0,
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "a9b462882265b2aa12bfd6fcd99d233e2304d4e043072b0b589dfeabc2d74390",
+    "linux-arm64": "a9b462882265b2aa12bfd6fcd99d233e2304d4e043072b0b589dfeabc2d74390",
+    "linux-rv64": "a9b462882265b2aa12bfd6fcd99d233e2304d4e043072b0b589dfeabc2d74390"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 0,
+     "past_bound": 0,
+     "max_ulp": 0.0
+    },
+    "outputs": "a9b462882265b2aa12bfd6fcd99d233e2304d4e043072b0b589dfeabc2d74390",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "efcc069b3573a8e80c483c562f24c131a0a8616118e145b75c58fea710c3e363",
+    "linux-arm64": "a96961929655be18618e87155474cb320278a83e9f2246eb59211ecf72f945a1",
+    "linux-rv64": "88e528d1d391cb9c775787b12d9fa4e8516c468d11d3eacda0ba8b562bae1c2b"
+   }
+  },
+  "exp_f32": {
+   "function": "exp",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 19194854,
+    "past_bound": 0,
+    "max_ulp": 0.9101,
+    "at": [
+     "-0x1.2e35b6p+5"
+    ],
+    "gives": "0x1.6a2544p-55",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "bc4e383822cfefa1d246bbd8407e3f822164427d56f731ef86fbe88f8e3b1ce4",
+    "linux-arm64": "bc4e383822cfefa1d246bbd8407e3f822164427d56f731ef86fbe88f8e3b1ce4",
+    "linux-rv64": "bc4e383822cfefa1d246bbd8407e3f822164427d56f731ef86fbe88f8e3b1ce4"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 19194854,
+     "past_bound": 0,
+     "max_ulp": 0.9101,
+     "at": [
+      "-0x1.2e35b6p+5"
+     ],
+     "gives": "0x1.6a2544p-55"
+    },
+    "outputs": "bc4e383822cfefa1d246bbd8407e3f822164427d56f731ef86fbe88f8e3b1ce4",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "fa277d82dcac7c7a56ef6ae0d8d7cfccc876deb1222b9772f21951591dc0f609",
+    "linux-arm64": "e9bc3976566076c61fd3143d8ecb62e9f5a3a90157583b24b2a6e92553dff726",
+    "linux-rv64": "7a36b503f76da2c8cc2929c41a8da766993c7b95458ba257edce22a806d7727b"
+   }
+  },
+  "exp2_f32": {
+   "function": "exp2",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 18126646,
+    "past_bound": 0,
+    "max_ulp": 0.8915,
+    "at": [
+     "0x1.00b4a2p-1"
+    ],
+    "gives": "0x1.6a6278p+0",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "c15e2e5867ddd3cc804859f21be74a46ab4a29251d0cf548685d039420181f33",
+    "linux-arm64": "c15e2e5867ddd3cc804859f21be74a46ab4a29251d0cf548685d039420181f33",
+    "linux-rv64": "c15e2e5867ddd3cc804859f21be74a46ab4a29251d0cf548685d039420181f33"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 18126646,
+     "past_bound": 0,
+     "max_ulp": 0.8915,
+     "at": [
+      "0x1.00b4a2p-1"
+     ],
+     "gives": "0x1.6a6278p+0"
+    },
+    "outputs": "c15e2e5867ddd3cc804859f21be74a46ab4a29251d0cf548685d039420181f33",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "3ea4980ef258074443169fb829896784aa20223049a418feb41f16530779e991",
+    "linux-arm64": "65b6d40c0175751f0a6fbaa596beabf2f42e1a62c4836d0f5d32d1a1ac84b1ca",
+    "linux-rv64": "8f9c228bc21cf5662af6baf8a700bd40e0d706f8a25b47e602fa13afe565d600"
+   }
+  },
+  "expm1_f32": {
+   "function": "expm1",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 12920593,
+    "past_bound": 0,
+    "max_ulp": 0.8128,
+    "at": [
+     "0x1.738e06p-2"
+    ],
+    "gives": "0x1.bfe9cp-2",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "71c0de53400c726671f416112958942785937a377669f931b1467002d36595c5",
+    "linux-arm64": "71c0de53400c726671f416112958942785937a377669f931b1467002d36595c5",
+    "linux-rv64": "71c0de53400c726671f416112958942785937a377669f931b1467002d36595c5"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 12920593,
+     "past_bound": 0,
+     "max_ulp": 0.8128,
+     "at": [
+      "0x1.738e06p-2"
+     ],
+     "gives": "0x1.bfe9cp-2"
+    },
+    "outputs": "71c0de53400c726671f416112958942785937a377669f931b1467002d36595c5",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "7a877415db16173dfd9ee84e36cb44aa8e98b64ce66ab83b36786a9476c67568",
+    "linux-arm64": "979903dd659d3e330b9468c3fa44f6ebf22515932bb43f83b6ecfc89b8909045",
+    "linux-rv64": "0cbde414978c3ddbb2eb374d3bad55ccee3184a6b80619177a57604cfe3ea6e3"
+   }
+  },
+  "log_f32": {
+   "function": "log",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 13361747,
+    "past_bound": 0,
+    "max_ulp": 0.8879,
+    "at": [
+     "0x1.472fdep+0"
+    ],
+    "gives": "0x1.f67c5cp-3",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "fc501c3ef6be99d99538bfe8925734d533726d5ba5d0accbb5f3504ea18ff33b",
+    "linux-arm64": "fc501c3ef6be99d99538bfe8925734d533726d5ba5d0accbb5f3504ea18ff33b",
+    "linux-rv64": "fc501c3ef6be99d99538bfe8925734d533726d5ba5d0accbb5f3504ea18ff33b"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 13361747,
+     "past_bound": 0,
+     "max_ulp": 0.8879,
+     "at": [
+      "0x1.472fdep+0"
+     ],
+     "gives": "0x1.f67c5cp-3"
+    },
+    "outputs": "fc501c3ef6be99d99538bfe8925734d533726d5ba5d0accbb5f3504ea18ff33b",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "c457b2d63d16cb6983f75a4b2bfed62a0dbe5ff3177dc0eadf5678be4d51d5b1",
+    "linux-arm64": "3feb26de75e94462051821eba567f232792d3fb443829d7e9e5b61f213199414",
+    "linux-rv64": "6c54eb51ad7883c5a5b34e234314271ffbf19306ff6b502d4ec672fd1d04981a"
+   }
+  },
+  "log2_f32": {
+   "function": "log2",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 11476491,
+    "past_bound": 0,
+    "max_ulp": 0.8642,
+    "at": [
+     "0x1.665628p-1"
+    ],
+    "gives": "-0x1.07979cp-1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "963e950b524dd94144c26d2997fcd2562fd63046fc9f4a0347668c4c9f7b96d4",
+    "linux-arm64": "963e950b524dd94144c26d2997fcd2562fd63046fc9f4a0347668c4c9f7b96d4",
+    "linux-rv64": "963e950b524dd94144c26d2997fcd2562fd63046fc9f4a0347668c4c9f7b96d4"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 11476491,
+     "past_bound": 0,
+     "max_ulp": 0.8642,
+     "at": [
+      "0x1.665628p-1"
+     ],
+     "gives": "-0x1.07979cp-1"
+    },
+    "outputs": "963e950b524dd94144c26d2997fcd2562fd63046fc9f4a0347668c4c9f7b96d4",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "3ef701a7ac6e1b927db9d8f510d32bea56de404afd30fba79a478914da49dcf5",
+    "linux-arm64": "89decc5608c583fdf9b974daadd8b22c8453c6d450a888bc7819628d551521b2",
+    "linux-rv64": "c5123052564ad414182de26435461fae158ef8104fe7733e6351e5d29d8c0281"
+   }
+  },
+  "log10_f32": {
+   "function": "log10",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 12305116,
+    "past_bound": 0,
+    "max_ulp": 0.8316,
+    "at": [
+     "0x1.503d56p-1"
+    ],
+    "gives": "-0x1.76021p-3",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "d318393971737cd120a678c87a60521cb83d37656fd3086213644fdaf1eeab56",
+    "linux-arm64": "d318393971737cd120a678c87a60521cb83d37656fd3086213644fdaf1eeab56",
+    "linux-rv64": "d318393971737cd120a678c87a60521cb83d37656fd3086213644fdaf1eeab56"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 12305116,
+     "past_bound": 0,
+     "max_ulp": 0.8316,
+     "at": [
+      "0x1.503d56p-1"
+     ],
+     "gives": "-0x1.76021p-3"
+    },
+    "outputs": "d318393971737cd120a678c87a60521cb83d37656fd3086213644fdaf1eeab56",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "ea4e267b6eef2c718a0de624545b566d5b4f0443b8c7cd293791dfa62d32f83f",
+    "linux-arm64": "0a5fb15c6956b573128a0a3ca1df0a23667e0fb173b8498954a581be1efa12fa",
+    "linux-rv64": "985b5746266a733582dd06bcd71ffb7dfc05b7bee5d23903145cab3ca02daa78"
+   }
+  },
+  "log1p_f32": {
+   "function": "log1p",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 11588705,
+    "past_bound": 0,
+    "max_ulp": 0.8388,
+    "at": [
+     "0x1.9f44c4p-2"
+    ],
+    "gives": "0x1.5c96bp-2",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "c43907d182deca769db64bf79854c20136c0b6356c7f0e9639917082a5f458dd",
+    "linux-arm64": "c43907d182deca769db64bf79854c20136c0b6356c7f0e9639917082a5f458dd",
+    "linux-rv64": "c43907d182deca769db64bf79854c20136c0b6356c7f0e9639917082a5f458dd"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 11588705,
+     "past_bound": 0,
+     "max_ulp": 0.8388,
+     "at": [
+      "0x1.9f44c4p-2"
+     ],
+     "gives": "0x1.5c96bp-2"
+    },
+    "outputs": "c43907d182deca769db64bf79854c20136c0b6356c7f0e9639917082a5f458dd",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "db9a704fb6aa43bb5122c098ac5ed83497d0a6c303a846cd83b7c8dc16f9d9e6",
+    "linux-arm64": "aefcf416abf7fe5eded157aed6158cd8621e0ae918969f336a8dc6556e103f76",
+    "linux-rv64": "11757016575a2a063e878d57d2a037b6815f156e2ca454d5076b0b3e27598f8c"
+   }
+  },
+  "sin_f32": {
+   "function": "sin",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 625106,
+    "past_bound": 0,
+    "max_ulp": 0.5009,
+    "at": [
+     "0x1.e1abe6p-1"
+    ],
+    "gives": "0x1.9db356p-1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "60f6fa4eb2b03f8d5fb2d23b41545b1a36f757521516b29f09e320d942797123",
+    "linux-arm64": "60f6fa4eb2b03f8d5fb2d23b41545b1a36f757521516b29f09e320d942797123",
+    "linux-rv64": "60f6fa4eb2b03f8d5fb2d23b41545b1a36f757521516b29f09e320d942797123"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 625106,
+     "past_bound": 0,
+     "max_ulp": 0.5009,
+     "at": [
+      "0x1.e1abe6p-1"
+     ],
+     "gives": "0x1.9db356p-1"
+    },
+    "outputs": "60f6fa4eb2b03f8d5fb2d23b41545b1a36f757521516b29f09e320d942797123",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "7c80dd7166dcf36bc4d6e140ece5782c382f691d087eadffd5ba2e1a47e7f92e",
+    "linux-arm64": "efff3ec6e7999616fd52471cb581e8fef018a61f5a0923fbbca88cec1a0ee9e0",
+    "linux-rv64": "aae648806ca49eb7ab616fa1e85b1be5d42beec6ec82be02594b29da851efab5"
+   }
+  },
+  "cos_f32": {
+   "function": "cos",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 647594,
+    "past_bound": 0,
+    "max_ulp": 0.5009,
+    "at": [
+     "0x1.7c5892p-3"
+    ],
+    "gives": "0x1.f73222p-1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "02e45dea35c5835663a548814819a78535dfdded9b939c9cc6a9e61256f3cf53",
+    "linux-arm64": "02e45dea35c5835663a548814819a78535dfdded9b939c9cc6a9e61256f3cf53",
+    "linux-rv64": "02e45dea35c5835663a548814819a78535dfdded9b939c9cc6a9e61256f3cf53"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 647594,
+     "past_bound": 0,
+     "max_ulp": 0.5009,
+     "at": [
+      "0x1.ba24bcp-3"
+     ],
+     "gives": "0x1.f41d4ep-1"
+    },
+    "outputs": "02e45dea35c5835663a548814819a78535dfdded9b939c9cc6a9e61256f3cf53",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "0dedf9069a4c6cd1d60ebfe0049bfce363178726e6976fd09d6410f2c6de3a5c",
+    "linux-arm64": "ae2f6251db05a95af1bf2cf30884469ed8aaf340ae4b0a862a9c94f64c62a47a",
+    "linux-rv64": "276b9c25b80e109df9a52bc42856e4f757966078bec41ccab998afdb366a0e35"
+   }
+  },
+  "tan_f32": {
+   "function": "tan",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 303818252,
+    "past_bound": 0,
+    "max_ulp": 0.7999,
+    "at": [
+     "0x1.e1d864p+35"
+    ],
+    "gives": "0x1.ffaa78p+2",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "c1cc8a8193d13a04e7218e8ec8337c27cddf2d43a80036b15d93eec2f6b3637f",
+    "linux-arm64": "c1cc8a8193d13a04e7218e8ec8337c27cddf2d43a80036b15d93eec2f6b3637f",
+    "linux-rv64": "c1cc8a8193d13a04e7218e8ec8337c27cddf2d43a80036b15d93eec2f6b3637f"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 303818252,
+     "past_bound": 0,
+     "max_ulp": 0.7999,
+     "at": [
+      "0x1.e1d864p+35"
+     ],
+     "gives": "0x1.ffaa78p+2"
+    },
+    "outputs": "c1cc8a8193d13a04e7218e8ec8337c27cddf2d43a80036b15d93eec2f6b3637f",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "84de63c778d2bebd8d5573b914e64be5961b720511a4b9f7e9fe4200c3f890bb",
+    "linux-arm64": "7fd23e9c9b323ead47f0e3d920e112f18c0df8a0f053fd7a427c09bec45c5c9d",
+    "linux-rv64": "af0be1ef54744f1d82cf254590ddc1a69f284577495373d706e9fde1af492cf4"
+   }
+  },
+  "asin_f32": {
+   "function": "asin",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 682540,
+    "past_bound": 0,
+    "max_ulp": 0.6717,
+    "at": [
+     "0x1.e4c5f4p-2"
+    ],
+    "gives": "0x1.f8fed8p-2",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "2335f80e5d0c797eac4760ef97d5eb20594e209ac19772dcdcb7d3cede7e090f",
+    "linux-arm64": "2335f80e5d0c797eac4760ef97d5eb20594e209ac19772dcdcb7d3cede7e090f",
+    "linux-rv64": "2335f80e5d0c797eac4760ef97d5eb20594e209ac19772dcdcb7d3cede7e090f"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 682540,
+     "past_bound": 0,
+     "max_ulp": 0.6717,
+     "at": [
+      "0x1.e4c5f4p-2"
+     ],
+     "gives": "0x1.f8fed8p-2"
+    },
+    "outputs": "2335f80e5d0c797eac4760ef97d5eb20594e209ac19772dcdcb7d3cede7e090f",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "3da2374ee442a945066f68d2323e3d81996136f63b90d2fcfbdf43fb4583605a",
+    "linux-arm64": "48e85fa4f0b1e1dfc838527895502311482a578db7793c21a2b16e84d402af0f",
+    "linux-rv64": "6817891eef336d97539d7379409c5e195ba33b3faa6be57554bcff3fc30e6e49"
+   }
+  },
+  "acos_f32": {
+   "function": "acos",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 5387138,
+    "past_bound": 0,
+    "max_ulp": 0.8945,
+    "at": [
+     "-0x1.039622p-1"
+    ],
+    "gives": "0x1.0d1edp+1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "fc53a0d8519d02b05d5a857334903684149266ebe1e0e17e2ad94346ceaf4a96",
+    "linux-arm64": "fc53a0d8519d02b05d5a857334903684149266ebe1e0e17e2ad94346ceaf4a96",
+    "linux-rv64": "fc53a0d8519d02b05d5a857334903684149266ebe1e0e17e2ad94346ceaf4a96"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 5387138,
+     "past_bound": 0,
+     "max_ulp": 0.8945,
+     "at": [
+      "-0x1.039622p-1"
+     ],
+     "gives": "0x1.0d1edp+1"
+    },
+    "outputs": "fc53a0d8519d02b05d5a857334903684149266ebe1e0e17e2ad94346ceaf4a96",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "e1ca1328575a8f2d266a5c2c6d5a468ed5bb0e57707eb400a9fa9a17d1d890fc",
+    "linux-arm64": "ed25f6b5ed9429321e1e540c1b94fc2a99f185784ce51f1721de28ec6b671a67",
+    "linux-rv64": "9df734a0281a783a495d31c3456f49e3da99f357fd04e4e1bf78ea5ede55b19b"
+   }
+  },
+  "atan_f32": {
+   "function": "atan",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 6483278,
+    "past_bound": 0,
+    "max_ulp": 0.8521,
+    "at": [
+     "0x1.626772p-1"
+    ],
+    "gives": "0x1.36p-1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "de3512c5022cc8947224b332785540cd6d15ea2e953f80b077814f3516561d64",
+    "linux-arm64": "de3512c5022cc8947224b332785540cd6d15ea2e953f80b077814f3516561d64",
+    "linux-rv64": "de3512c5022cc8947224b332785540cd6d15ea2e953f80b077814f3516561d64"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 6483278,
+     "past_bound": 0,
+     "max_ulp": 0.8521,
+     "at": [
+      "0x1.626772p-1"
+     ],
+     "gives": "0x1.36p-1"
+    },
+    "outputs": "de3512c5022cc8947224b332785540cd6d15ea2e953f80b077814f3516561d64",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "e45f1505e506073873a0f5215361dbda415566730c27cf818b53590c4f190041",
+    "linux-arm64": "52190d77ab90c0f398007721a262bd2fc24084d3c492863ce6dad5952fbde0bc",
+    "linux-rv64": "c8625b8df80540ba947fca064e0942df3f6dab069b875cfb4552856bb7d7a2ac"
+   }
+  },
+  "erf_f32": {
+   "function": "erf",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 126600060,
+    "past_bound": 0,
+    "max_ulp": 0.8899,
+    "at": [
+     "0x1.ac4ec6p-1"
+    ],
+    "gives": "0x1.86c33cp-1",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "63b12d99c1f91ba485e970449c86582adfea64d923d5b0da81740dfdc0d7c6dd",
+    "linux-arm64": "63b12d99c1f91ba485e970449c86582adfea64d923d5b0da81740dfdc0d7c6dd",
+    "linux-rv64": "63b12d99c1f91ba485e970449c86582adfea64d923d5b0da81740dfdc0d7c6dd"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 126600060,
+     "past_bound": 0,
+     "max_ulp": 0.8899,
+     "at": [
+      "0x1.ac4ec6p-1"
+     ],
+     "gives": "0x1.86c33cp-1"
+    },
+    "outputs": "63b12d99c1f91ba485e970449c86582adfea64d923d5b0da81740dfdc0d7c6dd",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "5f8ecb22412a51cd30c694e587e66ee22a55e80f336eef2c6443a293608e9d0b",
+    "linux-arm64": "f4709f1e43e59d99f9911eb430452c776b87002ab58dd974c854816089d6b195",
+    "linux-rv64": "b2e77f1ff2adbb4c6c9e24220ad4389beb5dd2de8048b79dce9a514547c5acbf"
+   }
+  },
+  "erfc_f32": {
+   "function": "erfc",
+   "bound": 4,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 24404149,
+    "past_bound": 0,
+    "max_ulp": 3.1748,
+    "at": [
+     "0x1.520e9cp+0"
+    ],
+    "gives": "0x1.fa811p-5",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "15292b83e992a5efbc7e1be35e4c7e092b0851bc913e6bdd72e5363015c697eb",
+    "linux-arm64": "15292b83e992a5efbc7e1be35e4c7e092b0851bc913e6bdd72e5363015c697eb",
+    "linux-rv64": "15292b83e992a5efbc7e1be35e4c7e092b0851bc913e6bdd72e5363015c697eb"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 24404149,
+     "past_bound": 5,
+     "max_ulp": 3.1748,
+     "at": [
+      "0x1.520e9cp+0"
+     ],
+     "gives": "0x1.fa811p-5"
+    },
+    "outputs": "15292b83e992a5efbc7e1be35e4c7e092b0851bc913e6bdd72e5363015c697eb",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "370b334c73757175e8d7c8cfd64ef45ed40db77412cce255ad97d9dca0400837",
+    "linux-arm64": "b3efe4fcf2cbd8eeb49b6cdb43e19b571bf6007cc8b626f2f3d5ece8624ca89a",
+    "linux-rv64": "7884e01eb0fa3837c2b57a960f9ff486818e684c58d1563eae31b2658514c19e"
+   }
+  },
+  "sinh_f32": {
+   "function": "sinh",
+   "bound": 3,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 72386682,
+    "past_bound": 0,
+    "max_ulp": 2.4382,
+    "at": [
+     "0x1.659b42p+6"
+    ],
+    "gives": "0x1.f8b24ap+127",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "ba30c98abadbffbb7f9f83600cefe2ad65cac8501fe3b503a1ca81202c69fcce",
+    "linux-arm64": "ba30c98abadbffbb7f9f83600cefe2ad65cac8501fe3b503a1ca81202c69fcce",
+    "linux-rv64": "ba30c98abadbffbb7f9f83600cefe2ad65cac8501fe3b503a1ca81202c69fcce"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 72386682,
+     "past_bound": 0,
+     "max_ulp": 2.4382,
+     "at": [
+      "0x1.659b42p+6"
+     ],
+     "gives": "0x1.f8b24ap+127"
+    },
+    "outputs": "ba30c98abadbffbb7f9f83600cefe2ad65cac8501fe3b503a1ca81202c69fcce",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "38b647ec7fa7294dc2a4ad8ecbde768d68e3fb2c021b453fba027e72a40986a2",
+    "linux-arm64": "15eab221c35925917087406469314af0c0b0fc88e02292554f900200f6d689d4",
+    "linux-rv64": "1d42151856d2747a19775d4c324542a5b3285001fcfde86fccb8fe5bcd86b60a"
+   }
+  },
+  "cosh_f32": {
+   "function": "cosh",
+   "bound": 3,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 23904734,
+    "past_bound": 0,
+    "max_ulp": 2.4382,
+    "at": [
+     "0x1.659b42p+6"
+    ],
+    "gives": "0x1.f8b24ap+127",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "1810b07c87a7c36d86b7ce362a76d9815deb3281f623d1f44bbe0ceccb9a1883",
+    "linux-arm64": "1810b07c87a7c36d86b7ce362a76d9815deb3281f623d1f44bbe0ceccb9a1883",
+    "linux-rv64": "1810b07c87a7c36d86b7ce362a76d9815deb3281f623d1f44bbe0ceccb9a1883"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 23904734,
+     "past_bound": 0,
+     "max_ulp": 2.4382,
+     "at": [
+      "0x1.659b42p+6"
+     ],
+     "gives": "0x1.f8b24ap+127"
+    },
+    "outputs": "1810b07c87a7c36d86b7ce362a76d9815deb3281f623d1f44bbe0ceccb9a1883",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "c7ade1474197e50891c05fcc7ad8b55597eb71bd320a247c9a9bc0c483c0aa27",
+    "linux-arm64": "46bc75cfb7cbcf4ed0fa9fa12fb8a05abdbd6cd2f20ad8c1d47b788910482ce1",
+    "linux-rv64": "0e41d384935f0dd037520663135bb2dc7c86a54242d6a85e6543a256b2c17fc4"
+   }
+  },
+  "tanh_f32": {
+   "function": "tanh",
+   "bound": 3,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 70733480,
+    "past_bound": 0,
+    "max_ulp": 2.1886,
+    "at": [
+     "0x1.ddca18p-3"
+    ],
+    "gives": "0x1.d54e4ap-3",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "de27bfd4e0c6433ab462a3db6a0685e7684d13bf39c7c0b53b5463aedf6d09ea",
+    "linux-arm64": "de27bfd4e0c6433ab462a3db6a0685e7684d13bf39c7c0b53b5463aedf6d09ea",
+    "linux-rv64": "de27bfd4e0c6433ab462a3db6a0685e7684d13bf39c7c0b53b5463aedf6d09ea"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 70733480,
+     "past_bound": 5726,
+     "max_ulp": 2.1886,
+     "at": [
+      "0x1.ddca18p-3"
+     ],
+     "gives": "0x1.d54e4ap-3"
+    },
+    "outputs": "de27bfd4e0c6433ab462a3db6a0685e7684d13bf39c7c0b53b5463aedf6d09ea",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "05d1534522610e175cca1b762d829945265a0ed692fc613ab14764549daab27e",
+    "linux-arm64": "a9d153e62423f83df493b232a06b740e9aff704eb7ecc6bdd15749fa48f38216",
+    "linux-rv64": "398106e46723d80b52401f3696e18d51ccb465a32fe20099308a9bf4dd1a6ada"
+   }
+  },
+  "asinh_f32": {
+   "function": "asinh",
+   "bound": 2,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 542176908,
+    "past_bound": 0,
+    "max_ulp": 1.7781,
+    "at": [
+     "0x1.0949p-1"
+    ],
+    "gives": "0x1.fd4f64p-2",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "65a7b518e63111a987c9308fad928b7ea151855ac1facd2a814dd742c1b8dd0b",
+    "linux-arm64": "65a7b518e63111a987c9308fad928b7ea151855ac1facd2a814dd742c1b8dd0b",
+    "linux-rv64": "65a7b518e63111a987c9308fad928b7ea151855ac1facd2a814dd742c1b8dd0b"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 542176908,
+     "past_bound": 0,
+     "max_ulp": 1.7781,
+     "at": [
+      "0x1.0949p-1"
+     ],
+     "gives": "0x1.fd4f64p-2"
+    },
+    "outputs": "65a7b518e63111a987c9308fad928b7ea151855ac1facd2a814dd742c1b8dd0b",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "7a8e31fdad03024103f8c9f2757fd2879dc09619595e1fa772a0f43112e6cb82",
+    "linux-arm64": "9111edb056621864d014100875b46623f3826a4f9c77b039dd3f78e2b743c881",
+    "linux-rv64": "b51b885646330a57fc084c676d31b93b019e0fe6e9c08f6bf5486978b868ec6a"
+   }
+  },
+  "acosh_f32": {
+   "function": "acosh",
+   "bound": 3,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 244658828,
+    "past_bound": 0,
+    "max_ulp": 2.0002,
+    "at": [
+     "0x1.01cb98p+0"
+    ],
+    "gives": "0x1.e4ce84p-4",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "0792c96bc3c0b8e077bac9f03bf99d4d032bdf67a33ae436881b7406fd7ccccf",
+    "linux-arm64": "0792c96bc3c0b8e077bac9f03bf99d4d032bdf67a33ae436881b7406fd7ccccf",
+    "linux-rv64": "0792c96bc3c0b8e077bac9f03bf99d4d032bdf67a33ae436881b7406fd7ccccf"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 244658828,
+     "past_bound": 1,
+     "max_ulp": 2.0002,
+     "at": [
+      "0x1.01cb98p+0"
+     ],
+     "gives": "0x1.e4ce84p-4"
+    },
+    "outputs": "0792c96bc3c0b8e077bac9f03bf99d4d032bdf67a33ae436881b7406fd7ccccf",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "1cce540aec40d78a514378f8e5cb2af90fca3ab0823545fab494a55e8a14438b",
+    "linux-arm64": "f8fc6c5b25fc038639ba749e5ca56618fd1cbd7793524e107b95d8704e5b4ec9",
+    "linux-rv64": "d4e95b9a5a5f5542d3ce02c81884bc48f947ee0a8954f7a4773afdf7a0be1a15"
+   }
+  },
+  "atanh_f32": {
+   "function": "atanh",
+   "bound": 2,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 52089660,
+    "past_bound": 0,
+    "max_ulp": 1.7223,
+    "at": [
+     "0x1.ec2dd8p-4"
+    ],
+    "gives": "0x1.ee9194p-4",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "bbaa39be42f951fb4a24dbdebb391b7435aac70d21ade199c88fd16068f40c3f",
+    "linux-arm64": "bbaa39be42f951fb4a24dbdebb391b7435aac70d21ade199c88fd16068f40c3f",
+    "linux-rv64": "bbaa39be42f951fb4a24dbdebb391b7435aac70d21ade199c88fd16068f40c3f"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 52089660,
+     "past_bound": 0,
+     "max_ulp": 1.7223,
+     "at": [
+      "0x1.ec2dd8p-4"
+     ],
+     "gives": "0x1.ee9194p-4"
+    },
+    "outputs": "bbaa39be42f951fb4a24dbdebb391b7435aac70d21ade199c88fd16068f40c3f",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "b2eb44e8d9dc7173cd0b827f0b435a704cf73ff4ef149855ccfb9adcf4896f15",
+    "linux-arm64": "e53dc4c22ff241b1644fee5dc94c53eeaad58950a9216e271bbfc12427906329",
+    "linux-rv64": "37c31ea1303d3287e9b5a264633670f512d59eca2b2dd1d20e5f628df1350905"
+   }
+  },
+  "log_gamma_f32": {
+   "function": "log_gamma",
+   "bound": 5,
+   "exhaustive": {
+    "records": 3221225472,
+    "not_correctly_rounded": 430311533,
+    "past_bound": 0,
+    "max_ulp": 4.1872,
+    "at": [
+     "-0x1.bb3778p+0"
+    ],
+    "gives": "0x1.f3ad5p-1",
+    "parts": "0:768"
+   },
+   "outputs": {
+    "linux-x86-64": "5e95d6584704fb3e85592ec0d33e0c608d43666f0276aeedd23ad2badd927866",
+    "linux-arm64": "5e95d6584704fb3e85592ec0d33e0c608d43666f0276aeedd23ad2badd927866",
+    "linux-rv64": "5e95d6584704fb3e85592ec0d33e0c608d43666f0276aeedd23ad2badd927866"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 3221225472,
+     "not_correctly_rounded": 430311533,
+     "past_bound": 6,
+     "max_ulp": 4.1872,
+     "at": [
+      "-0x1.bb3778p+0"
+     ],
+     "gives": "0x1.f3ad5p-1",
+     "parts": "0:768"
+    },
+    "outputs": "5e95d6584704fb3e85592ec0d33e0c608d43666f0276aeedd23ad2badd927866",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "f885111eca01e6c3a1a99a7d0f54f69d61e1489624dd37b8b88030b701e693a7",
+    "linux-arm64": "e6a329ae19c3a0aa46beb4255e4b3c2f8d1714bbd85db127530e085731bf2f0a",
+    "linux-rv64": "fbb05b12fd006ccc316c826176d8af9032b068ec38a032392936b338d7a8ef4f"
+   }
+  },
+  "gamma_f32": {
+   "function": "gamma",
+   "bound": 1,
+   "exhaustive": {
+    "records": 4294967296,
+    "not_correctly_rounded": 863748,
+    "past_bound": 0,
+    "max_ulp": 0.5006,
+    "at": [
+     "0x1.0a723p-128"
+    ],
+    "gives": "0x1.ebed4ep+127",
+    "parts": "0:1024"
+   },
+   "outputs": {
+    "linux-x86-64": "b6362edcc72b2a55a3016ef5d4409ca5b78f3d84554592606caedd040cc3056a",
+    "linux-arm64": "b6362edcc72b2a55a3016ef5d4409ca5b78f3d84554592606caedd040cc3056a",
+    "linux-rv64": "b6362edcc72b2a55a3016ef5d4409ca5b78f3d84554592606caedd040cc3056a"
+   },
+   "outputs_agree": true,
+   "earlier": {
+    "exhaustive": {
+     "records": 4294967296,
+     "not_correctly_rounded": 863748,
+     "past_bound": 0,
+     "max_ulp": 0.5006,
+     "at": [
+      "0x1.0a723p-128"
+     ],
+     "gives": "0x1.ebed4ep+127",
+     "parts": "0:1024"
+    },
+    "outputs": "b6362edcc72b2a55a3016ef5d4409ca5b78f3d84554592606caedd040cc3056a",
+    "outputs_same": true
+   },
+   "digests": {
+    "linux-x86-64": "4b2ed03cb38dea9a862b22fde900b05971971351c693dff44f023eb56411d0a3",
+    "linux-arm64": "a350e23fc8a76bdba62e54d1ba102e882fd9a84f636a5c3d77f7510338ca5fee",
+    "linux-rv64": "c43828e1f592d076238eec1eaffe992ae525625f92aa48c7daecd4a2e1b03602"
+   }
+  }
+ }
+}
