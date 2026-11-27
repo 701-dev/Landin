@@ -48,7 +48,7 @@ package body Landin.Testing.Census is
    --  or counts only roughly, each labelled with the paragraph defining it.
    type Construct is
      (Array_Operator, Array_Updating_Assignment, Self_Reading_Aggregate,
-      Labelled_Statement, Anonymous_Function, Selected_Import,
+      Labelled_Statement, Selected_Import,
       Uncounted_Repetition, Mixed_Repetition, Struct_Fill_Zeroed,
       Struct_Fill_Other, Inclusive_For, Inclusive_Slice,
       Hexadecimal_Float);
@@ -62,7 +62,6 @@ package body Landin.Testing.Census is
          when Self_Reading_Aggregate =>
            "[0520] aggregate assigned to a place it reads",
          when Labelled_Statement => "[1180] labelled loop or block",
-         when Anonymous_Function => "[1010] anonymous function",
          when Selected_Import => "[1440] import m (names)",
          when Uncounted_Repetition => "[0560] [of v]",
          when Mixed_Repetition => "[0560] [e1, ..., of v]",
@@ -354,8 +353,6 @@ package body Landin.Testing.Census is
                               Note (Inclusive_For, Node);
                            end if;
                         end if;
-                     when Syntax.Anonymous_Function =>
-                        Note (Anonymous_Function, Node);
                      when Syntax.Import_Declaration =>
                         if Syntax.Import_Selection_Count (Tree, Node) > 0 then
                            Note (Selected_Import, Node);

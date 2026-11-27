@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/bits's bit operations at u32 and u64 agree with Python's integers over 2048 drawn cases a width, each operation's results compared by a digest scripts/bits_oracle.py computed
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0150, 0290, 0320, 0330

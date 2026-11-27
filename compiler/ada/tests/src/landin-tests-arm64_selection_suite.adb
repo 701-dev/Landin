@@ -1123,6 +1123,8 @@ package body Landin.Tests.Arm64_Selection_Suite is
 
    --  D338: counting the elements a comparison holds for adds the flag
    --  cset takes from the comparison, and keeps the addition's check.
+   --  A `usize` count that never passes its `usize` loop's counter has
+   --  no check left (D2817), so it is cinc, as a wrapping count is.
    procedure Counted_Flag_Adds (Item : in out Landin.Testing.Context) is
       Source : constant String :=
         "public floats: (t: []f64, v: f64) -> (n: usize) = "
@@ -1149,17 +1151,20 @@ package body Landin.Tests.Arm64_Selection_Suite is
          begin
             Landin.Testing.Check
               (Item, Contains (Floats, HT & "fcmp d")
+                     and then Contains (Floats, HT & "cinc x")
                      and then Contains (Floats, ", ge" & LF)
-                     and then Contains (Floats, HT & "cset w")
+                     and then not Contains (Floats, "cset")
                      and then not Contains (Floats, "cbnz")
                      and then not Contains (Floats, "b.ge ")
                      and then not Contains (Floats, "b.lt "),
-               "a float count adds cset's flag" & Where);
+               "a float count proved below its counter is cinc" & Where);
             Landin.Testing.Check
               (Item, Contains (Signed, HT & "cset w")
                      and then Contains (Signed, ", lt" & LF)
+                     and then Contains (Signed, HT & "adds w")
                      and then not Contains (Signed, "cbnz"),
-               "a signed count adds cset's flag" & Where);
+               "a signed count adds cset's flag and keeps its check"
+               & Where);
             Landin.Testing.Check
               (Item, Contains (Wrapped, HT & "cinc x")
                      and then Contains (Wrapped, ", hi" & LF)

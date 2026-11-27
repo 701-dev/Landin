@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: every width from u8 to i64 and every radix from 2 to 36 parse edge magnitudes written bare, with the radix's prefix in either case or with 0x where none names it, signed where the width is, and with one more digit or a digit the radix lacks, to the outcomes Python's int and each width's range give, by their digest; firmware parses every seventh radix
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

@@ -86,6 +86,9 @@ def dependency_items(name, identities):
 
 
 ITEM_HEADING = re.compile(r"^### (R\d+\.[1-9]\d*) — (\S.*)$")
+#  The mark a retired item's title ends with, as check.py's
+#  ROADMAP_RETIRED_ITEM.
+RETIRED = " (retired)"
 ITEM_STATUS = re.compile(r"^Status: (planned|active|blocked|complete)$")
 
 
@@ -103,7 +106,10 @@ def roadmap_items(text):
     current = None
     for n, line in enumerate(text.splitlines(), 1):
         heading = ITEM_HEADING.match(line)
-        if heading:
+        if heading and heading.group(2).endswith(RETIRED):
+            #  A retired item is no work: it keeps only its identity.
+            current = None
+        elif heading:
             current = dict(key=heading.group(1), title=heading.group(2),
                            line=n, status=None, depends=[], blocked=None,
                            promotion=None)

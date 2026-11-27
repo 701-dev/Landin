@@ -1,0 +1,117 @@
+--  core/random's floats and its normal and exponential draws have the
+--  distributions they state, by a test stated here over a sample its seed
+--  pins, so every target draws the same sample and passes or fails alike.
+--  The chi-squared tests compare a statistic against the distribution's
+--  critical value at p = 0.001 for the test's degrees of freedom, from the
+--  standard tables; the means and the variance against bounds more than
+--  four standard errors wide.  Each check that fails returns its own code.
+import core/math
+import core/random
+
+--  The chi-squared statistic of `counts` when every bin should hold `total` divided by their number.
+chi_squared_even: (counts: []u32, total: u32) -> (statistic: f64) =
+    expected: f64 = f64(total) / f64(lenof counts)
+    statistic = 0.0
+    for count in counts do
+        difference: f64 = f64(count) - expected
+        statistic = statistic + difference * difference / expected
+    end for
+end chi_squared_even
+
+--  Critical values of chi-squared at p = 0.001 by degrees of freedom.
+critical_9: f64 = 27.877
+critical_15: f64 = 37.697
+
+--  How many draws each test makes: fewer than the integer tests', so that
+--  Cortex-M0's soft float at none/off finishes within its lane's limit.
+draws: u32 = 16000
+
+--  Each float width in sixteen equal bins of [0, 1), fifteen degrees of
+--  freedom, every draw a multiple of 2^-53 or 2^-24 below 1.
+units_even: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(102)
+    mut wide: [16]u32 = zeroed
+    mut narrow: [16]u32 = zeroed
+    for count in u32(0)..<draws do
+        _ = count
+        x: f64 = random.unit_f64(source)
+        scaled: f64 = x * 0x1.0p53
+        return when x < 0.0 or x >= 1.0 or scaled <> math.trunc(scaled)
+        inc wide[usize(x * 16.0)]
+        y: f32 = random.unit_f32(source)
+        stretched: f32 = y * 0x1.0p24
+        return when y < 0.0 or y >= 1.0 or stretched <> math.trunc(stretched)
+        inc narrow[usize(y * 16.0)]
+    end for
+    yes = chi_squared_even(wide[0..<16], draws) < critical_15
+          and chi_squared_even(narrow[0..<16], draws) < critical_15
+end units_even
+
+--  The standard normal's deciles, from the tables.
+normal_deciles: [9]f64 = [-1.2815515655446004, -0.8416212335729143,
+                          -0.5244005127080407, -0.2533471031357997, 0.0,
+                          0.2533471031357997, 0.5244005127080407,
+                          0.8416212335729143, 1.2815515655446004]
+
+--  The decile a value is in, of the nine boundaries in `deciles`.
+decile: (value: f64, deciles: []f64) -> (place: usize) =
+    place = 0
+    while place < 9 and value >= deciles[place] do
+        inc place
+    end while
+end decile
+
+--  `normal` in its ten deciles, nine degrees of freedom; its mean within
+--  0.04 of 0, which is 5.1 standard errors, and its variance within 0.05
+--  of 1, which is 4.5.
+normal_holds: () -> (yes: bool) =
+    mut source := random.new(107)
+    mut counts: [10]u32 = zeroed
+    mut sum: f64 = 0.0
+    mut squares: f64 = 0.0
+    for count in u32(0)..<draws do
+        _ = count
+        x: f64 = random.normal(source)
+        sum = sum + x
+        squares = squares + x * x
+        inc counts[decile(x, normal_deciles[0..<9])]
+    end for
+    mean: f64 = sum / f64(draws)
+    variance: f64 = squares / f64(draws) - mean * mean
+    yes = chi_squared_even(counts[0..<10], draws) < critical_9
+          and math.abs(mean) < 0.04 and math.abs(variance - 1.0) < 0.05
+end normal_holds
+
+--  `exponential` in its ten deciles, `-log(1 - p)` for p a tenth to nine
+--  tenths, nine degrees of freedom; its mean within 0.04 of 1, which is
+--  5.1 standard errors, and no draw below 0.
+exponential_holds: () -> (yes: bool) =
+    yes = false
+    mut deciles: [9]f64 = zeroed
+    for at in usize(0)..<9 do
+        deciles[at] = 0.0 - math.log(1.0 - f64(at + 1) / 10.0)
+    end for
+    mut source := random.new(108)
+    mut counts: [10]u32 = zeroed
+    mut sum: f64 = 0.0
+    for count in u32(0)..<draws do
+        _ = count
+        x: f64 = random.exponential(source)
+        return when x < 0.0
+        sum = sum + x
+        inc counts[decile(x, deciles[0..<9])]
+    end for
+    yes = chi_squared_even(counts[0..<10], draws) < critical_9
+          and math.abs(sum / f64(draws) - 1.0) < 0.04
+end exponential_holds
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not units_even()
+    code = 2
+    return when not normal_holds()
+    code = 3
+    return when not exponential_holds()
+    code = 42
+end main

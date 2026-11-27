@@ -1,0 +1,136 @@
+--  Every socket option of `net.network` set and read back, on a listener,
+--  a connection and a datagram socket of each family, through
+--  hosted/blocking and through hosted/events.  A buffer reads back at
+--  least what was set, since Linux doubles it; every other option reads
+--  back what was set.  Windows has no SO_REUSEPORT, which is
+--  `unsupported` there and nowhere else.
+import core/io
+import core/net
+import core/time
+import hosted/blocking
+import hosted/events
+
+--- An option read back other than it was set.
+wrong: atom
+
+fixed if compiler.os == windows then
+    has_reuse_port: bool = false
+else
+    has_reuse_port: bool = true
+end if
+
+--- Set the flag `which` on and off and read it back each time.
+flag_round: (provider: type is net.network, host: provider, socket: io.file,
+             which: net.flag_option) -> none ! ... =
+    try net.set_flag(host, socket, which, true)
+    fail wrong when not try net.flag(host, socket, which)
+    try net.set_flag(host, socket, which, false)
+    fail wrong when try net.flag(host, socket, which)
+end flag_round
+
+--- SO_REUSEPORT where the system has it, and `unsupported` where not.
+reuse_port: (provider: type is net.network, host: provider, socket: io.file)
+            -> none ! ... =
+    net.set_flag(host, socket, net.reuse_port, true) else (problem)
+        fail wrong when has_reuse_port or problem <> net.unsupported
+        return
+    end
+    fail wrong when not has_reuse_port
+    fail wrong when not try net.flag(host, socket, net.reuse_port)
+end reuse_port
+
+--- IPV6_V6ONLY: on from the start for an IPv6 socket, and `io_failed` for
+--- an IPv4 one.
+ipv6_only: (provider: type is net.network, host: provider, socket: io.file,
+            family: net.address_family) -> none ! ... =
+    if family == net.ipv4 then
+        net.set_flag(host, socket, net.ipv6_only, true) else (problem)
+            fail wrong when problem <> io.io_failed
+            return
+        end
+        fail wrong
+    end if
+    fail wrong when not try net.flag(host, socket, net.ipv6_only)
+end ipv6_only
+
+--- The numbers: buffers at least what was set, hops exactly.
+numbers: (provider: type is net.network, host: provider, socket: io.file,
+          datagram: bool) -> none ! ... =
+    try net.set_number(host, socket, net.receive_buffer, 65536)
+    fail wrong when try net.number(host, socket, net.receive_buffer) < 65536
+    try net.set_number(host, socket, net.send_buffer, 32768)
+    fail wrong when try net.number(host, socket, net.send_buffer) < 32768
+    try net.set_number(host, socket, net.unicast_hops, 17)
+    fail wrong when try net.number(host, socket, net.unicast_hops) <> 17
+    if datagram then
+        try net.set_number(host, socket, net.multicast_hops, 3)
+        fail wrong when try net.number(host, socket, net.multicast_hops) <> 3
+    end if
+end numbers
+
+--- Keep-alive's spans and linger, on a connection.
+connection_spans: (provider: type is net.network, host: provider,
+                   socket: io.file) -> none ! ... =
+    try net.set_span(host, socket, net.keep_alive_idle, time.seconds(120))
+    fail wrong when u64(try net.span(host, socket, net.keep_alive_idle))
+      <> u64(time.seconds(120))
+    try net.set_span(host, socket, net.keep_alive_interval,
+                     time.milliseconds(14500))
+    fail wrong when u64(try net.span(host, socket, net.keep_alive_interval))
+      <> u64(time.seconds(15))
+    try net.set_linger(host, socket, true, time.seconds(7))
+    (on: on, limit: limit) := try net.linger(host, socket)
+    fail wrong when not on or u64(limit) <> u64(time.seconds(7))
+    try net.set_linger(host, socket, false, time.seconds(0))
+    (on: still, limit: _) := try net.linger(host, socket)
+    fail wrong when still
+end connection_spans
+
+--- Every option of `family`'s sockets over `host`.
+options: (provider: type is net.network, host: provider,
+          family: net.address_family) -> none ! ... =
+    listener: io.file = try net.listen(host, net.loopback(family, 0))
+    defer net.close(host, listener) else none
+    try flag_round(host, listener, net.reuse_address)
+    try net.set_flag(host, listener, net.reuse_address, true)
+    try ipv6_only(host, listener, family)
+    try numbers(host, listener, false)
+    at: net.address = try net.local_address(host, listener)
+    connection: io.file = try net.connect(host, at)
+    defer net.close(host, connection) else none
+    try flag_round(host, connection, net.keep_alive)
+    try net.set_flag(host, connection, net.keep_alive, true)
+    try connection_spans(host, connection)
+    try numbers(host, connection, false)
+    socket: io.file = try net.open_datagram(host, net.unspecified(family, 0))
+    defer net.close(host, socket) else none
+    try flag_round(host, socket, net.broadcast)
+    try reuse_port(host, socket)
+    try ipv6_only(host, socket, family)
+    try numbers(host, socket, true)
+end options
+
+public main: () -> (code: i32) =
+    code = 1
+    blocked := blocking.new()
+    mut state: events.space = zeroed
+    mut entries: [3]usize = zeroed
+    evented := events.over(state, entries) else (problem)
+        _ = problem
+        return
+    end
+    families: [2]net.address_family = [net.ipv4, net.ipv6]
+    for family in families do
+        inc code
+        options(blocked, family) else (problem)
+            _ = problem
+            return
+        end
+        inc code
+        options(evented, family) else (problem)
+            _ = problem
+            return
+        end
+    end for
+    code = 42
+end main

@@ -117,6 +117,12 @@ package Landin.Testing.Fixtures is
    --  and this, wherever a lane put the fixture.
    function Trap_Report (Item : Fixture) return String;
 
+   --  D3014: whether the program's end is the system refusing a write to
+   --  read-only memory, which a hosted system's page protection gives and
+   --  a firmware image without a memory protection unit does not: the
+   --  firmware corpora read it as an oracle firmware cannot give.
+   function Protected_Write (Item : Fixture) return Boolean;
+
    --  The constructs this fixture is evidence about, in the order it named
    --  them: `[NNNN]` ids without their brackets.  The construct matrix indexes
    --  the corpus by construct, and a citation in a summary is prose -- a
@@ -363,6 +369,7 @@ private
       Status  : Integer := 0;
       Traps   : Boolean := False;
       Trap_Report : Ada.Strings.Unbounded.Unbounded_String;
+      Protected_Write : Boolean := False;
       Made_Of   : Ada.Strings.Unbounded.Unbounded_String;
       Beside    : Ada.Strings.Unbounded.Unbounded_String;
       Root      : Ada.Strings.Unbounded.Unbounded_String;

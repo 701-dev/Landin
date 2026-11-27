@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.utf8_append_joined, utf8_append_replaced, utf8_append_repeated and utf8_append_quoted write their whole results, the empty and the overlapping cases included, and into a buffer one byte short write nothing and fail mem.out_of_memory; the quoted form writes the literal escapes, a control and a bidirectional control as \u{...}, and every other scalar of each width as itself
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0270, 0570, 0600, 0610, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

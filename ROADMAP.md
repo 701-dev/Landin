@@ -46,7 +46,12 @@ summary.
 **Identities.** Phases run from R15, where the second roadmap's numbering
 left off, in identity order without a gap, and each ends in one gate. A
 phase retired before it started, as R15 was, keeps only its heading,
-marked `(retired)`, and a paragraph saying why: no item and no gate.
+marked `(retired)`, and a paragraph saying why: no item and no gate. An
+item that will not be done is retired the same way, as R22.25 was: its
+heading kept, its title marked `(retired)`, and a paragraph saying why,
+with no status, dependency or promotion line; it is in no lane, nothing
+depends on it, and `check.py` refuses an item heading `origin/main` holds
+that is gone without that form.
 Items are `R19.10`, `R19.20` and so on, spaced in tens; work found between
 two items takes a unit identity, the earlier item's number plus one, so 21
 after 20. Identities are never reused or renumbered, the earlier
@@ -89,7 +94,7 @@ place of main, after their push gate and without boards, which the
 window's one promotion dispatches on the integrated tree.
 
 ```text
-Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
+Execution order: R17, R16.10, R18, R19, R20, R21, R22.10, R22.11, R22.13, R22.20, R22.21, R22.22, R22.23, R22.24, R22.26, R22.27, R22.28, R22.29, R22.30, R22.31, R22.32, R22.33, R22.34, R22.35, R22.36, R22.37, R22.38, R22.39, R22.46, R22.40, R22.41, R22.42, R22.43, R22.44, R22.45, R22.50, R22.60, R22.61, R22.62, R22.63, R22.12, R22.14, R22.15, R22.16, R22.17, R22.18, R22.19, R22.70, R22.71, R22.72, R22.73, R22.74, R22.75, R22.76, R22.80, R23
 Continuous: R16.20 onward, R22.90 onward
 ```
 
@@ -102,6 +107,10 @@ complete when its exit evidence exists: the complete gate passed on the
 completing commit and, for a claim about a host the gate does not run, a
 named run recorded in the item. It then gets a short `Done:` paragraph; the
 reasoning goes in the commits and in `spec.md`'s register of decisions.
+A check too long for any gate is a record under `compiler/tests/records/`
+instead (D2874): a phase's gate whose items' evidence cites one is claimed
+only on a commit where `python3 scripts/records.py check --fail-stale`
+passes on it, R22's on R22.10's.
 
 **Authority.** An item's agent may push its candidate, promote it to main
 once its gate has passed, and remove its worktrees and branches, without
@@ -1452,13 +1461,13 @@ through the stack switch, and its
 
 ### R16.44 — An increment proved by the check before it
 
-Status: planned
+Status: complete
 Depends on: R16.10
 
-Two increments keep an overflow check that cannot fail. SR-1959's index,
+Two increments keep an overflow check that cannot fail. `SR-1959`'s index,
 checked below a constant bound by the bounds check just before it in the
 same block, then incremented: reverse-complement's `write_reversed`,
-4.0% of its x86-64 instructions at speed by a hand patch. SR-1918's
+4.0% of its x86-64 instructions at speed by a hand patch. `SR-1918`'s
 count, incremented at most once a step of a counted loop from zero:
 fasta's `select_symbol`, 5.0% on x86-64 and 5.4% on arm64 by its step
 count. The first needs only the fact the block's own check leaves; the
@@ -1467,6 +1476,29 @@ simplifier does not keep. Scheduled by the register sweep of 2026-11-26.
 Exit evidence: each check proved and removed on every target, the two
 programs' instructions measured against the item's base, and no other
 combination over its own.
+
+Done: an index a block's bounds check has passed is at most the
+length less one for the rest of that block, so `write_reversed`'s `inc
+width` after `line[width]` keeps no check (D2816); and of two slots
+counted up from one block, one is at most the other before its own step
+when it starts no higher, steps no further and cannot step again before
+the other has, so fasta's `inc index` inside its `for` keeps none either
+and on arm64 is one `cinc` (D2817). Both are proved in the target-neutral
+IR, and the checks are gone on x86-64, arm64, rv64, rv32, Cortex-M and
+Xtensa. Against the item's base under QEMU at speed fasta executes 5.0%
+fewer x86-64 instructions and 11.0% fewer arm64 ones, reverse-complement
+4.4% and 4.3%, the switch measurements about 0.5%, the others the same,
+every output the same. Counted in user cycles, fasta takes 6.4% fewer on
+an EPYC 7302 and 22.2% fewer on a big arm64 core, reverse-complement
+1.9% fewer on the EPYC and 1.6% more on the arm64 core, where the one
+instruction removed moved its loop's head (`SR-2042`). Sizes are 24 to
+152 bytes smaller a configuration on every hosted target; FreeBSD's
+relro padding grows only as far as its text shrank. `SR-1918` and
+`SR-1959` are completed and deleted; the flag-add tests that pinned the
+count's check now pin its absence. The candidate passed its
+[gate](https://github.com/701-dev/Landin/actions/runs/45953123499).
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R16.45 — A call's failure tested once
 
@@ -2268,7 +2300,7 @@ what an array length folds (D1663). [1795] and the tree-sitter grammar lost
 the inline body and the `->` lookahead it needed. `refine fix --allow all`
 migrated the corpus, and an L0696-only script the negative fixtures, whose
 own refusals a full `refine fix` would have mended (`SR-1558`); seventeen
-fixtures that pinned only a removed form left with it. SR-1568 is filed for
+fixtures that pinned only a removed form left with it. `SR-1568` is filed for
 the anonymous-function paths the stages after the parser still hold.
 
 ### R19.70 — Range subtypes become distinct types
@@ -2719,7 +2751,7 @@ first; check.py's derivable-negative refusal did not name its exemption
 list; L0301 called a concept or function value "something unknown"; and
 the gate's fuzz round met D1656's rewrite raising a parser defect at a
 declaration of several names whose `=` ends the source. Filed:
-SR-1693, a library module the program does not reach is still a plain
+`SR-1693`, a library module the program does not reach is still a plain
 misspelling.
 
 ### R20.62 — Tools that know a window
@@ -2903,7 +2935,7 @@ past its locals (D2288); ranges out of address order joined into one;
 and a Windows program WSL starts from a process group other than the
 terminal's stalls, which a debugger `refine dap` started in a group of its
 own did in about half of the gate's runs, so a Windows adapter now shares
-refine dap's group (D2292). Rows SR-1746 to `SR-1748` record the inline
+refine dap's group (D2292). Rows `SR-1746` to `SR-1748` record the inline
 sites CodeView lacks (D2290), the stack-switch session Windows lacks and
 two `--debug=full` builds that differ by their temporary object's name.
 
@@ -3533,8 +3565,8 @@ R22.13 fixed the same on main first, and the merge keeps its fix with
 vector instructions, and `SR-1979`, an `if` expression's or a literal
 range's type taken from a literal or an atom with no note of the written
 type that fixes it. It landed in R22.36's train: gate run 45920421418,
-passed on its second attempt after the first failed only in SR-1882's
-cancellation race and SR-1940's stack-switch step, and boards run
+passed on its second attempt after the first failed only in `SR-1882`'s
+cancellation race and `SR-1940`'s stack-switch step, and boards run
 45920432106.
 
 ### R22.16 — Linear systems and least squares
@@ -3678,13 +3710,13 @@ padding, so eight format fixtures' corpus rows record limits at
 `none/off` and RV32's 32 KiB maps, with their sizes, and
 `compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
 `negative/format-array-names-its-type` keeps D880's pin now that an
-`f64` is formattable. Met on the way: SR-1939's grammar defect again,
-in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
+`f64` is formattable. Met on the way: `SR-1939`'s grammar defect again,
+in `core/text/shortest.ldn`, and restated; filed: `SR-2012`, L0102's
 `else begin return end` that L0329 then refuses in an `if` arm.
 
 ### R22.21 — n-body and spectral-norm ported
 
-Status: planned
+Status: complete
 Depends on: R22.10, R22.20
 
 The Benchmarks Game's two numeric programs, ported beside its five
@@ -3696,9 +3728,28 @@ output (n-body within its `ndiff -abserr 1e-8`, held byte for byte), the
 digests pinned in `check.py`, both in `examples.md` and in
 `workloads.json`'s hosted set.
 
+Done: `runtime/benchmark-game-n-body` and `runtime/benchmark-game-spectral-norm`
+are the game's single-threaded programs over `math.sqrt` and `{:.9}`,
+n-body's five bodies an array of structs and spectral-norm's vectors
+`core/vec` lists of `f64`. Each prints the game's official file for its
+small input byte for byte, n-body's 1,000 steps with no use of the
+`ndiff` tolerance, and both print the game's figures at the performance
+inputs, 50,000,000 steps and order 5,500; the two digests are pinned in
+`check.py`, both are in `examples.md`, and `workloads.json` times them at
+1,000,000 steps and order 1,000, their size and RV64 instruction
+baselines recorded from the gate's first run. At `speed` on the EPYC host
+n-body 1,000,000 executes 1.53 G instructions and spectral-norm 1,000
+1.44 G, against 0.60 G and 0.56 G for the same algorithms in C at gcc 16.1
+`-O2` without vectorizing. Filed: `SR-2092`, `math.sqrt` a call around
+D2551's assembly block, about 16% of n-body's instructions, the
+measurement D2551 left its builtin open for; and `SR-2093`, x86-64
+storing an `f64` through the frame and a general register, about 8%.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.22 — k-nucleotide ported
 
-Status: planned
+Status: complete
 Depends on: R22.20
 
 Counted with `core/map`, as the game requires the library's table: the
@@ -3709,6 +3760,25 @@ three places by R22.20.
 Exit evidence: the game's output for its 1,000 input as a runtime
 fixture, pinned and published as R22.21's are; the time at 25,000,000
 recorded with the map's share measured.
+
+Done: `runtime/benchmark-game-k-nucleotide` reads FASTA's output, takes
+record THREE's bases as two-bit codes and counts every run of 1, 2, 3,
+4, 6, 12 and 18 of them in a `core/map` table, one a length, and prints
+the game's 1,000 file byte for byte, the shares through `{:.3}`; its
+input and output digests are pinned in `check.py`, it is in
+`examples.md`, and `workloads.json`'s hosted set times it over the
+game's file repeated 300 times, a later header left out of the sequence.
+The key is a distinct word of two bits a base whose hash is its own
+bits, which the map's finalizer spreads, and the map is the library's
+with a constant seed (D2934). At 25,000,000 the run took 61 s on the
+EPYC host, loaded by another item's job, its counts equal to Python's;
+with `cmp.hash_word` as the key's hash it took 96 s. The map's share is
+85 per cent: `locate`'s probing 60, the key's equality and hash, called
+rather than inlined, 17, and the storage's length and view 9; the calls
+are `R551-12`'s evidence entries D339 never copies, where the
+measurement is added.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.23 — pidigits ported
 
@@ -3787,6 +3857,11 @@ puts work that is no item in line (`SR-1849`). Met on the way and fixed:
 `register_next.py --delete` quoted a citation twice after a code span
 that wraps a line.
 
+### R22.25 — What Windows still lacks (retired)
+
+Never started. Q-285's answer moved its content into R21 as R21.70, so
+that R21's gate waits for it; the identity is not used again.
+
 ### R22.26 — What refine-build wanted from the library
 
 Status: complete
@@ -3832,39 +3907,68 @@ own repository: `env -C VIEW PROGRAM` is `io.spawn_in`; the search in
 `mem.allocate_copy`; the heap handed beside a region is a zone over the
 region's parent; and `time -f %M` is `heap.in_use` and
 `heap.peak_resident`. `SR-1408`, `SR-1409`, `SR-1412` and `SR-1414` are taken;
-SR-1881 records the misleading refusal a new Linux wrapper meets.
+`SR-1881` records the misleading refusal a new Linux wrapper meets.
 
 ### R22.27 — Process tools' remaining faults
 
-Status: planned
+Status: complete
 Depends on: none
 
 The faults of the process tools met since R22.24, scheduled by the
-register sweep of 2026-11-26. In `item.py`: SR-1905's older copy whose
-queue wait drops waiters that are no item; and SR-1919's `start`
+register sweep of 2026-11-26. In `item.py`: `SR-1905`'s older copy whose
+queue wait drops waiters that are no item; and `SR-1919`'s `start`
 refusing a continuous item whose text the branch adds without naming
-`--base`. In the other tools: SR-1906's `register_next.py --decision` that answers
-from a branch behind main's reservations; SR-1917's age rule that differs
-during an uncommitted merge; SR-1859's full `check.py` reading untracked
+`--base`. In the other tools: `SR-1906`'s `register_next.py --decision` that answers
+from a branch behind main's reservations; `SR-1917`'s age rule that differs
+during an uncommitted merge; `SR-1859`'s full `check.py` reading untracked
 notes; SR-1871's `timing.py`, which leaves the Pico 2's switch to Arm and
-back to its user; and SR-1991's item identity that no rule retires.
+back to its user; and `SR-1991`'s item identity that no rule retires.
 Placed here so that no phase gate waits for it; it depends on no other
 item.
 
 Exit evidence: each script's or check's tests pinning its change, and the
 documents that name a step saying the new one.
 
+Done: `register_next.py --decision` reads `spec.md` at the head of every
+branch of the clone, `origin/main`'s among them, and claims the numbers it
+gives outside a running item's block for fourteen days, so that neither a
+later call nor `item.py start`'s reservation gives them again: D2734 and
+D2814 had been taken on branches main did not yet hold (`SR-1906`). The
+promotion queue's file names the version of its rules, and an older
+`item.py` refuses to rewrite it, naming the newer copy (`SR-1905`). `start
+--adopt` starts an item from the branch head that adds its text, and the
+refusal names the commit and `--base` (`SR-1919`); `start NAME --work TEXT`
+gives work that is no item its own state, reservations, push, gate,
+boards and promotion. `check.py` reads a resolved merge not yet committed
+as the commit it will make when it ages rows (`SR-1917`), says of a refused
+untracked file that a note goes under `.scratch/` (`SR-1859`), takes a
+Cortex-X925 for no prototype finding, and refuses an item heading gone
+from `origin/main` that is not kept marked `(retired)` with a paragraph
+saying why, the form R22.25's heading now has (`SR-1991`). `resume_tests.py`
+runs the suites a cut-off complete run did not pass. `check.py` and
+`script_tests.py` say when the shell is another flake's, as after a merge
+that changed the flake; the failure this was asked for was not
+reproduced. Met on the way and fixed: `test_item.py` called
+`unittest.main()` in the middle of the file, so its last 44 cases, the
+train's refusals among them, had never run under `script_tests.py` or in
+the gate, and one of them failed; they run, and a control holds every
+module's to its end. `SR-1871` stays open with a `Kept:` line: switching
+the Pico 2's cores needs the rig and the port's boot image. Q-346 and
+Q-347 are answered.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.28 — What Windows still lacks after R21.70
 
-Status: planned
+Status: complete
 Depends on: none
 
 The Windows gaps R21.70 left or met, scheduled by the register sweep of
-2026-11-26: SR-1746's inlined copies, which CodeView does not describe;
-SR-1767's Microsoft lanes, which link with whatever Clang and Visual
-Studio the runner image carries; SR-1851's C symbol whose link name
-begins with `.L`, which COFF's assembler takes as private; SR-1852's
-eight ABI fixtures whose C peers are not Windows C; and SR-1940's arm64
+2026-11-26: `SR-1746`'s inlined copies, which CodeView does not describe;
+`SR-1767`'s Microsoft lanes, which link with whatever Clang and Visual
+Studio the runner image carries; `SR-1851`'s C symbol whose link name
+begins with `.L`, which COFF's assembler takes as private; `SR-1852`'s
+eight ABI fixtures whose C peers are not Windows C; and `SR-1940`'s arm64
 LLDB session that did not step through `landin.stack_switch` once.
 Placed here so that no phase gate waits for it; it depends on no other
 item.
@@ -3872,23 +3976,65 @@ item.
 Exit evidence: each row's completion on both Windows architectures, in
 the gate's Windows lanes.
 
+Done: a Windows program's CodeView describes each of D339's inlined
+copies as an inline site of the copied routine, holding its own
+parameters, locals and blocks, so LLDB shows a stop in a copy as that
+routine's frame with its locals (D2964, superseding D2290); a session of
+the Windows debugger lane holds it on both architectures. A COFF object
+names a `.L` link name through a substitute that `/alternatename` binds
+to it (D2954), so `abi/r440-native-link-namespace` names both Windows
+targets; the Darwin parity lane met that fixture's `-Wa,-L` at a link of
+objects, and now gives assembler options to the peers' compiles alone.
+Seven of the eight ABI fixtures whose peers were POSIX have Windows arms,
+a peer starting itself again where a POSIX one forks and the two
+conventions' own register and result rules (D2960-D2962);
+`r440-native-renamed-main` has no Windows form while Windows has no
+C-callable argument root (D2963, Q-411). The Microsoft lanes link with
+llvm-mingw's pinned Clang against the MSVC toolset and Windows SDK
+`environments/pins.sh` names, refusing an image that lacks them and
+recording what ran (D2969). The arm64 stack-switch session was LLDB
+losing a `thread step-inst` about one session in fifty, never the
+switch's code: the lane recognises a lost step exactly and runs the
+session again, three attempts at most (D2970). The friction items the
+Windows VM's build met were already settled by R21.70; SR-2113 records
+a probe branch's delete failing at the sr.ht mirror.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.29 — Release archives that say where they run
 
-Status: planned
+Status: complete
 Depends on: none
 
 What a user installing a release meets, scheduled by the register sweep
 of 2026-11-26, before the next release: SR-1850's macOS archive, which
-needs macOS 26 and says so nowhere, Q-347 asking which minimum it states;
-SR-1820's `install.sh`, which refuses the FreeBSD archive the release
-workflow now publishes; SR-1516's flake, which nothing builds on
-`aarch64-linux`; and SR-1894's locked Debian packages, which nothing
+needs macOS 26 and says so nowhere, which Q-347's answer makes the
+minimum it states;
+`SR-1820`'s `install.sh`, which refuses the FreeBSD archive the release
+workflow now publishes; `SR-1516`'s flake, which nothing builds on
+`aarch64-linux`; and `SR-1894`'s locked Debian packages, which nothing
 fetches until a candidate's gate does. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: the release workflow's checks and `install.sh`'s tests
 holding each change, the flake built for `aarch64-linux` in the gate,
 and the scheduled package fetch's first run.
+
+Done: the macOS archive states macOS 26 as its minimum, as Q-347's
+answer chose (D2974): `install.sh` holds it as `macos_minimum`, refuses
+an earlier macOS before downloading, and the release workflow requires
+every executable of the archive to have that `minos`; the README and the
+inventory say it. `install.sh` installs the FreeBSD x86-64 archive
+(D2975), and the FreeBSD host lane's packaging runs the install check in
+the guest against the archive it made, so the gate and the release
+workflow install the real archive with the script. The gate's flake
+matrix builds `.#refine` and the development shell on an arm64 runner
+(D2976). The scheduled package fetch was not built: the Cortex-M lock has
+held no Debian package since D2572, so `SR-1894` is retired by D2977 in
+its place. `SR-1820` and `SR-1516` are taken; SR-1850 keeps the
+formula's `depends_on macos: :tahoe`, which is the tap's.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.30 — Text and Unicode
 
@@ -3918,46 +4064,100 @@ holds the tables to the pin in the gate. On Cortex-M0 at `size/auto` a
 program links only the tables it reaches (D2617): 5,388 bytes for
 grapheme clusters, 12,420 for the general category, 19,817 for NFC and
 NFD, and 36,084 for all four forms, which do not fit the 32 KiB profile.
-Q-321 asks how Unicode's notice goes with a program; SR-1938 records the
+Q-321 asks how Unicode's notice goes with a program; `SR-1938` records the
 hosted backends' writable sections for immutable data, met laying out
 the tables.
 
 ### R22.31 — Refusals that say what to do
 
-Status: planned
+Status: complete
 Depends on: none
 
 Refusals met since R20.61 that do not say what to do, or say something
-misleading, scheduled by the register sweep of 2026-11-26: SR-1693's
-L0201 at a library module no import reaches, and SR-1881's at an
+misleading, scheduled by the register sweep of 2026-11-26: `SR-1693`'s
+L0201 at a library module no import reaches, and `SR-1881`'s at an
 undeclared `*_number` of `platform/linux`, both with [1860]'s note to
-check the spelling; SR-1896's L0011 at a hexadecimal float without its
-point; SR-1714's internal defect where a firmware assembly operand is
-linked; SR-1716's developer's linker script that puts a routine at
-address zero without a refusal; and SR-1214's misuse traps of the root,
+check the spelling; `SR-1896`'s L0011 at a hexadecimal float without its
+point; `SR-1714`'s internal defect where a firmware assembly operand is
+linked; `SR-1716`'s developer's linker script that puts a routine at
+address zero without a refusal; and `SR-1214`'s misuse traps of the root,
 which carry no words. Placed here so that no phase gate waits for it; it
 depends on no other item.
 
 Exit evidence: each refusal pinned by a negative fixture or a driver
 case, and `docs/diagnostics.md` saying the new notes.
 
+Done: L0201 names the import of a library module no import of the program
+reaches, from a listing of the library the driver hands the stages (D2994,
+`SR-1693`), and inside `platform/linux` says that an undeclared `*_number`
+is `wrapped.ldn`'s and to run its generator (D2999, `SR-1881`). A float that
+lacks only its point, `0x1p-20` or `1e10`, is L0321 with an exact fix
+writing `.0` before the exponent (D2995, `SR-1896`). A firmware target's
+assembly operand is L0002 saying how it links, no longer an internal
+defect (D2996, `SR-1714`). D546's fifth clause holds the startup routines,
+so a script that puts reset at address zero is L0519 (D2997, `SR-1716`).
+The root's other misuses say what was misused before they trap (D2998,
+`SR-1214`), and L0329's note in an `if` arm writes the leaving recovery in
+parentheses, which L0102's fix left out (D3000, `SR-2012`). Pinned by
+`negative/unreached-library-module-prefix-names-its-import`,
+`negative/hexadecimal-float-without-point-is-fixed`,
+`negative/leaving-recovery-in-an-if-arm-is-parenthesised`,
+`abi/r440-native-startup-invalid`, the `trap_report` of
+`abi/r440-native-startup-replaced`, the driver cases `an unwritten call
+number names its generator` and `an assembly operand links`, and
+`environments/cortex-m/descriptions.py`'s `reset.ld`. SR-1979, offered
+beside the item, stays open: its notes need the inferred type each
+inference path decides, not a note's words.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.32 — Defects the library work met
 
-Status: planned
+Status: complete
 Depends on: none
 
 Defects R19 to R22.30 met beside their own work, scheduled by the
-register sweep of 2026-11-26: SR-1938's immutable module arrays in a
-hosted image's writable section; SR-1939's Tree-sitter grammar, which
-misreads a sum of three operands followed by a statement; SR-1568's
-anonymous-function paths that nothing reaches since D1654; SR-1882's
+register sweep of 2026-11-26: `SR-1938`'s immutable module arrays in a
+hosted image's writable section; `SR-1939`'s Tree-sitter grammar, which
+misreads a sum of three operands followed by a statement; `SR-1568`'s
+anonymous-function paths that nothing reaches since D1654; `SR-1882`'s
 cancellation test, which signals `refine` before its handlers are
-installed on a loaded host; and SR-1740's runtime outcome that never
+installed on a loaded host; and `SR-1740`'s runtime outcome that never
 ends and holds the whole test program until the job's limit. Placed
 here so that no phase gate waits for it; it depends on no other item.
 
 Exit evidence: each row's completion with the fixture, corpus test or
 control it names.
+
+Done: an immutable module value is in its target's read-only section
+on every backend, `.rodata`, `__TEXT,__const` or `.rdata`, a wholly zero
+one written there and no longer reserved in RAM on RV32 and Xtensa, by one
+predicate the backends and the image measurement share (D3014);
+`runtime/immutable-module-value-write-faults` and its zero counterpart end
+by the fault on every hosted target, and a new metadata key,
+`protected: yes`, says the oracle is a refused write: the lanes that name
+a trap's signal expect SIGSEGV or SIGBUS for it, Windows
+`STATUS_ACCESS_VIOLATION`, and the firmware corpora read it as an oracle
+firmware without memory protection cannot give. A relocated immutable value on a hosted target stays writable,
+`SR-2147`. The Tree-sitter grammar reads a sum of any length before a
+statement: each operator level's tail is right-recursive at the level's
+own precedence, where `repeat1`'s helper had none, so a `-` that could
+begin the next statement no longer ended the sum; the measurement's
+operator is the words `lenof` and `offsetof`, `offsetof` as well since
+[1820] and the from-c fixtures have it, which the row's completion did
+not name; the three library lines are written plainly again, with
+`highlight/tree-sitter/test/corpus/sums.txt`. The anonymous-function node and every stage's
+path for it are gone, the parser returning an error expression over the
+refused span, about 400 lines. The cancellation test signals `refine`
+once the kernel shows its handler installed and, for a run, once it holds
+its directory, with a `-delayed` case starting it a second late. A
+runtime outcome has a limit of its own, two minutes: the runner's ten
+already stopped a QEMU program, but `events-network-limits` ran at six
+profiles in one piece, six hung ten-minute accepts past the job's hour.
+Filed from findings handed to the item or met on the way: `SR-2143` to
+`SR-2146`.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.33 — Boards reused on identical images
 
@@ -4012,7 +4212,7 @@ dispatch as boards.
 
 ### R22.34 — Figures recorded from the run that measured them
 
-Status: planned
+Status: complete
 Depends on: none
 
 The size, instruction-count and cycles figures an emission change moves,
@@ -4041,9 +4241,35 @@ emission-changing candidate landed on one gate, its recording commit
 reusing it, named runs; `docs/measurement.md` and process.md saying the
 steps.
 
+Done: `measure.py compare` and `timing.py compare` take `--report`, which
+the gate gives on every event but `main`'s; a figure no baseline records
+goes into the summary and a `moves.json` in the figures' artifact, and
+the aggregate's `gate_inputs.py moves` counts it in one `unrecorded
+figures` annotation. `gate_inputs.py`'s reuse holds a recording commit to
+the run's artifacts, an identical branch tree takes the moves with the
+pass, main's push refuses an unrecorded tree in `inputs`, and `item.py
+promote` refuses such a head (D2854). Controls: the `Figures`,
+`FiguresReuse` and `Workflow` cases of `test_gate_inputs.py`, the report
+cases of `test_measure.py` and `test_board_timing.py`, and
+`test_item.py`'s promotion case. Candidate gate 45953203349.
+Demonstration branch `r22-34-demo`, never promoted: one more search in
+`binary-search` passed gate 45953227632, which reported 36 Cortex-M
+instruction counts and 72 firmware sizes; the commit recording them
+with `record --from-run`, a4ee5ec53, reused that pass in gate
+45961142905. The first emission change to land on main this way is the
+next one after this item. The train fault R22.33 met was stale
+figures, not lost keys: R22.23 recorded pidigits' arm64 sizes before
+R16.43's arm64 code generation, and the clean merge kept them. A train's
+gate now reports those keys and passes, and the recording commit reuses
+it. Q-364 answered. Rows filed: SR-2062, the `link.exe` exit of gate
+45932328693, and SR-2063, `network-receive-timeout` on FreeBSD in gate
+45953203349 attempt 1.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.35 — Checks too long for a gate, by record
 
-Status: planned
+Status: complete
 Depends on: none
 
 The exhaustive and other checks too long for any regular gate, which the
@@ -4063,6 +4289,36 @@ Exit evidence: the script's tests, a record fresh after a change
 elsewhere and stale after a change to the code it checked; R22.10's
 record and its check in the `scripts` job; the release checklist in
 process.md naming stale records.
+
+Done: a check too long for any gate runs on a host and is a record under
+`compiler/tests/records/` (D2874): its commands, host, date, commit and
+results, and for each routine it checked the SHA-256 of its code on each
+target, the assembly refine emits from the routine's section through
+every section it reaches, local names renumbered and trap positions
+dropped. `scripts/records.py check` emits the records' programs again
+and says fresh or stale since the record's commit, naming the routines
+and targets that changed, in about twenty seconds; `stamp` renews one.
+The freshness check runs in the gate's `compiler-checks` job, which has a
+compiler; the `scripts` job, which has none, runs
+`scripts/tests/test_records.py`, the script on a stand-in refine and
+every record's form. A stale record fails no push, and blocks a release,
+by process.md's step 2, and a phase-gate claim, by the Gates paragraph
+above, that cite it. `test_records_native.py` edits a copy of `core/math`
+on refine's own output for Linux x86-64 and arm64: `sin_f32` stays fresh
+when `tan_f32` changes, a routine is added and every line moves, and goes
+stale when its kernel's coefficient changes; the record also stayed fresh
+over the merge of main's float text and diagnostics changes. R22.10's runs
+had covered several candidates and stream branches with an x86-64
+allocator fix landing among them, and recorded no code, so its commands
+were run again on this tree for the first record,
+`math-f32-exhaustive.json`: all 30 one-argument `f32` routines within
+their bounds, `log_gamma` on its parts above -2, the 2^32 results the
+same bits on Linux x86-64, arm64 and RV64, and the same bits R22.10's
+runs hashed. Filed: `SR-2072`, a detached run stopped when the host ended
+the agents' sessions. Activations read and not met: `SR-1118`, `SR-1859`,
+`SR-1917`, `SR-1919`, `SR-1991`, which match a changed file's path alone.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.36 — Failure causes recorded, and the selection in shadow
 
@@ -4093,8 +4349,8 @@ under four weeks old, costs under five job-minutes or checks the
 evidence itself, the build comparisons; and every other lane on one
 selected gate in four, drawn from the tree's hash. The maintainer
 accepted those values on 2026-11-26, and that shadow mode comes first.
-It runs for about 200 complete gates, the length Q-364 asks the
-maintainer to confirm. Placed here so that no phase gate
+It runs for 20 complete gates, the length the maintainer set
+answering Q-364. Placed here so that no phase gate
 waits for it; it depends on no other item.
 
 Exit evidence: a cause recorded for every failed job of the shadow
@@ -4119,7 +4375,7 @@ yet (SR-2032). The miss rate is read with `gate_history.py shadow` and in
 the table's `shadow` entry, which the weekly `table --write` keeps.
 Its own gate run 45902780283 and boards run 45902794687 passed; it landed
 with R22.15 as one train on gate run 45920421418, passed on its second
-attempt after two known flakes (SR-1882, SR-1940), and boards run
+attempt after two known flakes (`SR-1882`, `SR-1940`), and boards run
 45920432106. The shadow period, the causes it records and the measured
 miss rate remain for the item to close.
 
@@ -4190,6 +4446,43 @@ takes a declaration on a reused complete pass, and that a flake-hash
 commit reuses and runs the flake jobs; a rehearsal of the release
 workflow on such a tree; process.md's recipe saying the steps.
 
+### R22.39 — Tools that share a host's memory
+
+Status: planned
+Depends on: none
+
+A host shared by many agents ran out of memory when each of them built
+and ran complete suites at once, and the kill took the agents' service
+with every run under it. Three tool changes, which the maintainer
+accepted, make the tools hold the rules the agents were asked to keep.
+First, local selection follows the gate's: `dev-test.sh` takes a base,
+reads the change from it, and prints or runs the exact suites, cases
+and fixtures that stand for the lanes the change reaches, from the same
+table the `inputs` job reads, `.github/gate-lanes.json`, each lane there
+naming its local selectors; a change that reaches no local selector
+says so. The complete local suite stops being a step before a push.
+Second, a host-wide limit on heavy jobs: `dev-build.sh`, `dev-test.sh`,
+`run_logged.py` and the manifest and measurement scripts each take one
+of a small number of slots, held in a lock directory outside any
+worktree, so that every worktree and clone of the host counts against
+the same number; a job without a slot waits and says which jobs hold
+the slots, and the number is a host setting with a default. Third, a
+detached run starts in a systemd scope or transient unit of its own with
+a memory cap where the user's systemd is there, and as today where it is
+not, so it outlives a restart of the service that launched it and an
+overrun kills that run alone. Placed here so that no phase gate waits
+for it; it depends on no other item.
+
+Exit evidence: a script test that a diff's printed selectors are those
+the gate's table gives for the lanes it reaches, one per kind of lane;
+a control that every lane with local work names its selectors; a test
+that a second heavy job on a host with its slots taken waits, names the
+holders, and starts when one is freed, across two worktrees; a run
+detached on a host with user systemd that outlives a restart of its
+launching service, and one over its cap killed while a run beside it
+continues, named runs; `docs/process.md`'s local feedback recipe and
+AGENTS.md saying what the tools do.
+
 ### R22.40 — Character encodings
 
 Status: planned
@@ -4204,7 +4497,7 @@ admits.
 
 ### R22.41 — Bits and byte order
 
-Status: planned
+Status: complete
 Depends on: R20
 
 Counting and moving bits, and integers read and written in a stated byte
@@ -4235,34 +4528,69 @@ varints refused; `core/big` and `core/random` on the library's operations
 with their fixtures unchanged; an example program in `examples.md` that
 reads a binary format; image size on Cortex-M0 measured.
 
+Done: `core/bits` counts and moves bits generically over `bits.unsigned`,
+`u8` to `u64`, written once from shifts with `u64` on two halves (D3034);
+reads and writes every width in either order and LEB128 over the caller's
+bytes and an offset passed `inout`, so a taken view outlives later reads,
+failing `mem.out_of_bounds` and `mem.out_of_memory` without moving
+(D3035), padding accepted to ten bytes and anything longer
+`bits.invalid_varint` (D3036); and combines sets as library routines over
+the entry-less concept `bits.flags`, the item's first question answered
+without a language rule (D3037). `core/big`, `core/text` and
+`core/random` use it, `limbs.leading_zeros` and `limbs.trailing_zeros`
+leaving the unreleased limb layer, their fixtures' results unchanged
+(D3038). `runtime/bits-every-u8` checks every input and pair, and
+`runtime/bits-every-u16` and its two `-pairs` halves every input against
+byte tables, with three rotation counts and three second operands each,
+which fits the firmware emulators' twenty seconds where every count and
+pair did not; `runtime/bits-oracle` checks 2048 drawn cases a width at
+`u32` and `u64` against Python (`scripts/bits_oracle.py`). On Cortex-M0
+at `size/auto` the probe is 7,700 bytes of flash, the oracle 9,160, the
+byte-order fixture 11,072 and the varints, split from it to fit RV32's
+32 KiB unoptimized, 8,432. `examples.md` lists a WebAssembly module's
+sections. Found and fixed: a reader holding its slice locked itself for
+as long as a view `take` lent was used (L0315), which shaped D3035; and
+a parameter spelled as the module type it hides, `order: order`, was
+refused as naming no type, now as hiding it (D3039).
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
 ### R22.42 — Random draws programs use
 
-Status: planned
+Status: complete
 Depends on: R20
-
-What `core/random`'s generator lacks, set against Rust's `rand` and Go's
-`math/rand/v2`: a uniform `f32` or `f64` in [0, 1) from the generator's
-high bits; an unbiased value in a signed or inclusive integer range; an
-element picked from a slice, k drawn without replacement and a choice
-weighted by the caller's weights; bytes filled from the generator; normal
-and exponential draws by a method the item states; and xoshiro256**'s
-`jump`, so that threads or fibres take independent streams from one
-seed. The generator stays as it is, and nothing here is cryptographic: a
-key still comes from `io.fill_random`, which is Rust's `getrandom`. From
-R20: placement, and how a draw takes a range.
-
-Leaves out: other generators and distributions beyond the two, until a
-program needs one.
-
-Exit evidence: the same sequences on every target from one seed; each
-draw's distribution checked by a stated test over a pinned sample, the
-floats' bits and the ranges' bounds exhaustively at small widths; `jump`
-against the reference implementation's; the example program D1956 gave
-`core/random` drawing through them; image size on Cortex-M0 measured.
+Done: `core/random` draws floats in [0, 1) from the generator's upper 53
+or 24 bits, integers between two included ends of any `u64` or `i64`
+range, a pick, a sample without replacement by Knuth's selection
+sampling, a place by `u64` weights and bytes (D3054); the standard normal
+by Marsaglia's polar method and the rate-1 exponential by inversion, over
+`core/math` (D3056); and `jump`, the reference implementation's (D3057).
+The generator is unchanged. `compiler/tests/random/oracle.c` holds the
+authors' `next` and `jump` unchanged with C ports of the draws, and
+`runtime/random-draws` and `runtime/random-normal-draws` give its values
+on every target, the normal and exponential draws within two units in
+the last place of the C library's `log` and a digest of a thousand of
+them the same bits everywhere. `runtime/random-distributions` and
+`runtime/random-float-distributions` test each draw by chi-squared at
+p = 0.001 and by its moments over pinned samples, and every range at
+ends within four of zero and of the integer types' ends (D3055). The
+dice example draws through `between_i64`, `weighted`, `shuffle` and
+`pick`. On Cortex-M0 at size/auto the integer draws are a 12.8 KB image
+and the normal ones, with `log` and `sqrt`, 17.6 KB; the four fixtures
+fit the 32 KiB profile at every profile, the float tests at 16,000 draws
+so that none/off ends within the lane's limit; on the two RV32 lanes,
+without a float unit, the two that call `log` record capacity limits at
+none/off, and the float tests on the ESP32-C3 at size too (D698). `core/README.md`'s 8.8 KB
+for `runtime/random-sequence` was stale; it is 6.6 KB. `SR-2163`
+records `refine run`'s refusal of a program argument given without `--`,
+and `SR-2164` `item.py gate --watch` declining to follow a run again
+after its watch reached its limit.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.43 — Sockets by name, with their options
 
-Status: planned
+Status: complete
 Depends on: R20, R21.70
 
 What `core/net` lacks beside Rust's `socket2` and `mio` and Go's `net`.
@@ -4291,11 +4619,49 @@ server that does not answer, both the system's and the static Linux one;
 a multicast exchange and a Unix-domain exchange on one host; the fake
 network's tests for each; an example program in `examples.md` that
 connects by name; `docs/library.md`'s table of routes without the
-resolver's row, and its dates row pointing at no missing record, SR-2112.
+resolver's row, and its dates row pointing at no missing record, `SR-2112`.
+
+Done: `net.network` gains the options as entries by the kind of value an
+option holds, `set_flag`, `set_number`, `set_span`, `set_linger` and
+their readers, with group membership and the interface a group's
+datagram leaves by, which the exchange on one host needs to keep to the
+loopback; an option a system lacks is `unsupported`, as SO_REUSEPORT on
+Windows (D3074). `resolve` is the system resolver's where one is the
+authority, the C library's or Windows', and a static Linux program reads
+/etc/hosts and asks the servers /etc/resolv.conf names through
+`core/net`'s `hosts_lookup`, `name_service_of` and `ask`, over UDP and
+then TCP after a truncated answer, so an event provider's fibre waits for
+them (D3075); `connect_by_name` tries each address in turn (D3076). The
+five Unix-domain entries take a path, Windows making streams alone
+(D3077), and the fake keeps options, names given by `with_names`, paths
+and one group a socket (D3078). `runtime/network-options`,
+`network-local-stream`, `network-local-datagram`, `network-multicast`,
+`network-resolver` and, under `--link=libc`, `network-resolver-libc` run
+on the hosted targets, `network-fake-names` asks a name-server fibre that
+answers, denies a name and cuts an answer short, and the examples page
+connects by name. The resolver's system side is shown against `localhost`
+and a `.invalid` name; a server that never answers is shown through
+`ask`, since no system resolver can be pointed at one. The library page's
+routes table lost the resolver's row and its dates row points at the next
+roadmap's library, taking `SR-2112`. `failure.words` words the two new
+atoms. Met on the way: a binding named `any` is refused without saying
+it is a keyword, `SR-2173`; a type parameter passed to a generic call is
+refused with a count that reads as wrong, `SR-2174`; and a `refine`
+built in one checkout checks another worktree's program against its own
+library unless given `--library=.`, `SR-2175`. Met and fixed: in a
+routine with two or more results, an element stored below a struct
+result, `through.a[i] = v`, was lowered to a slot of its own and never
+reached the caller, which made Windows' multicast interface read back as
+none; the lowering now stores it through the result as it loads it,
+`runtime/multi-result-field-element-store` pinning each shape; and
+`scripts/static_check.py` compiles a `--link=libc` fixture whose program
+another fixture holds from its directory, as the harness does.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.44 — Command-line arguments parsed
 
-Status: planned
+Status: complete
 Depends on: R20
 
 A parser over the program's arguments, `io.argument`'s OS strings, with
@@ -4317,10 +4683,37 @@ and shell completions.
 Exit evidence: a fixture for each form and each refusal; the help text
 pinned byte for byte; the example programs that read their arguments by
 hand moved to it; image size on Cortex-M0 measured.
+Done: `core/args` (D3094) reads a command line against a table the
+program makes as values: flags, counted flags, options and positional
+arguments changed by `required`, `optional`, `repeated`, `typed` and
+`with_default`, and commands that nest, parsed from any `[][]u8` or the
+process's arguments into a record the caller makes, allocating only
+from the caller's allocator. An option's value is the next word even
+one that begins with `-`, `-h` and `--help` fail `parse` with
+`help_asked`, and a command's options come before the word that chooses
+the next (D3095). Each refusal is an atom of the module's own;
+`explain` names the argument and what was expected, `args.reply`
+answers as a hosted program does, exiting 2, and a table `parse` cannot
+follow says what is wrong with it. `runtime/args-forms` reads each form,
+`runtime/args-refusals` makes each refusal, `runtime/args-help` pins the
+help byte for byte and `runtime/args-commands` reads commands from the
+process's arguments. A value type is a reader, so an image links only
+the readers its table names (D3096). On Cortex-M0 at `size/auto` a
+counted flag, an option and a positional argument parse in a 21,840-byte
+image, `explain` and the usage line take it to 36,360, past the profile,
+and at `none/off` the parser is 35,708 bytes, so `core/args` is outsized
+as `core/regex` is (D3097). The examples page's line count, sum, dice,
+plugin loader, directory listing and tree copy read their arguments
+through it, and the Benchmark Game programs keep reading their number as
+the programs they are measured against do (D3098). A table cannot say
+that two arguments come together, which the tree copy checks by hand,
+`SR-2183`. Gate run 45993916766 and boards run 45993929218 passed on 1714f568b.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.45 — Text's everyday calls
 
-Status: planned
+Status: complete
 Depends on: R20, R22.30
 
 What `core/text` lacks beside Go's `strings` and `strconv`, Rust's `str`
@@ -4369,6 +4762,80 @@ the normalization test's pairs; the radix parses against an oracle at
 every width, prefix and radix; the quoted form read back as a literal by
 `refine`; the example programs that write these by hand moved to them;
 image size on Cortex-M0 measured for the Unicode and the ASCII forms.
+
+Done: `core/text` has `starts_with`, `ends_with`, `find_last`,
+`occurrences` and the byte searches over `[]u8` (D3114); trimming
+White_Space, 25 scalars the Unicode generator holds to the database, or
+a named scalar (D3115); `split`, `split_scalar`, `fields` and `lines`
+walks whose items are a `text.span` (D3116); `append_joined`,
+`append_replaced`, `append_repeated`, the narrow integer appends
+(D3117) and `append_quoted`, whose output reads back as its text
+(D3118); and the radix and `bool` parses (D3119). `core/unicode`
+compares without case by full folding with no buffer, equality, a prefix
+and a suffix, beside the canonical caseless match, and `core/text` has the
+ASCII forms (D3120); no caseless search was worth its cost beside
+`core/regex`'s `(?i)`. The oracles: every scalar's caseless comparisons
+against the database's folding, the canonical match among every
+NormalizationTest line's forms, the radix parses against Python's `int`
+at every width, prefix and radix, and the quoted form pasted back as a
+literal. `example-text-as-read` calls the canonical match where it
+folded and normalized by hand. On Cortex-M0 at `size/auto` equality, a
+prefix and a suffix without case take 5,662 bytes of tables and the
+canonical match 19,570, and the ASCII forms 724 bytes of code. Fixed on the
+way: `docs/library.md` named the scalar walk's `done` and `width`, renamed
+by D2030 and D2031, and a narrow integer had no append. `SR-1939`'s and
+`SR-2012`'s refusals were met again and recorded in their rows.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
+
+### R22.46 — The complete gate belongs to a batch
+
+Status: planned
+Depends on: none
+Promotion: maintainer
+
+An item's promotion still asks its own complete gate and boards, and
+with as many items as agents that queued about fifty complete gates in a
+day against the account's limit of 60 jobs at once; the maintainer's
+answer was that the complete gate belongs to a batch, a phase gate or
+the day, not to an item. An item is checked locally with the exact
+selectors for what it touches and committed complete on its branch, its
+closing commit included, and does not push or gate alone. A batch,
+which `item.py batch` forms, lists, adds a branch to and drops one from,
+names its integrator and its target, `main` or a phase's window branch,
+and merges its members' branches after the target, in order, as a train
+does but with no member gated first; the train's rule that each
+member's head have a passed push gate goes. One complete gate and one
+boards run on the batch's merged tree, and the target's own gate on it,
+are the exit evidence of every item in it, which Mechanics' completion
+rule and the `Done:` paragraphs name. A failure is routed to the member
+whose change reaches the failing lane's inputs, the one that joined last
+when none does, and fixed by its agent on the batch's branch; a member
+that cannot be fixed there is dropped and its branch left as it was. A
+change to the toolchain (`environments/pins.sh`, `flake.nix`,
+`flake.lock`), to CI (`.github/`) or to the rig (`environments/boards/`
+and the board harness) still gates alone, as a batch of one, and a
+batch with a `Promotion: maintainer` member is promoted by the
+maintainer. AGENTS.md's "The mechanical gate", process.md's gate
+reference with its promotion queue and train, Mechanics' Authority and
+Gates paragraphs, the landin-change skill and the brief `item.py start`
+writes say the same thing, and the host's interim rule that asks it by
+hand is retired. Until R22.37 applies the selection a batch's gate is
+the complete gate; R22.37 changes which gate a batch runs, not that a
+batch runs it, so this item waits for neither R22.36's shadow period
+nor R22.37. Placed here so that no phase gate waits for it; it depends
+on no other item.
+
+Exit evidence: `item.py` tests that `promote` refuses a lone item's
+push gate as its evidence where a batch is required, accepts a batch's
+gate and boards for every member, and takes a toolchain, CI or rig
+change as a batch of one; a script test that forms a batch of two
+ungated branches, routes a failure to the member whose change reaches
+the failing lane, drops a member, and promotes on one gate; `check.py`
+holding AGENTS.md, process.md, the skill and the brief to the batch
+wording and refusing the per-item gate wording; the first batch landed
+on one complete gate and one boards run, named runs, each member's
+`Done:` paragraph naming them.
 
 ### R22.50 — Locale formatting
 
@@ -4468,7 +4935,7 @@ artifact upload failed on DNS) and boards run 44535495255 on f968ab7f3.
 
 ### R22.62 — regex-redux ported
 
-Status: planned
+Status: complete
 Depends on: R22.60
 
 The Benchmarks Game's regex program over `core/regex`, its five
@@ -4476,6 +4943,23 @@ replacements by R22.60's replace-all.
 
 Exit evidence: the game's output for its 1,000 input as a runtime
 fixture, pinned and published as R22.21's are; 5,000,000 timed.
+
+Done: `runtime/benchmark-game-regex-redux` reads FASTA's output, takes
+out its headers and line breaks, counts the nine variants and applies
+the five replacements by `regex.replace_all`, and prints the game's
+output for 1,000 byte for byte, its input and output digests pinned in
+`check.py`; it is in `examples.md` and in `workloads.json`'s hosted set,
+timed over the 1,000 input repeated 200 times. 5,000,000, the output
+equal to Python's `re`, took 36.3 s on the EPYC host: every variant is
+a set of literals whose first bytes are half of DNA, so the prefilter
+stopped at every other byte. A search now watches its prefilter and,
+once it has stopped at nearly every byte, sets it aside and goes on with
+the lazy DFA from where it stopped (D2834, pinned by
+`runtime/regex-prefilter-watch`), and the run takes 10.6 s against 12.5
+s for Python's `re`; the rest is the DFA's own speed, which R22.80
+measures.
+Landed in batch-1, with every other item of it, on gate 46067889013
+and boards 46067909961, whose figures cb8ebf901 records.
 
 ### R22.63 — The ten programs measured
 

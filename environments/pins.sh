@@ -229,6 +229,16 @@ LANDIN_LLVM_MINGW_RELEASES=https://github.com/mstorsjo/llvm-mingw/releases/downl
 LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS=4d002e330a0f703625aa5ccbc37e96f8f824413e163bfc7336774aabd2c3a412
 LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS=c7f56de1d7aca15196c19083a799205390397b8b87a825aec3485e1e4f3c2cdd
 
+#  The Microsoft tools the gate's windows-microsoft and
+#  windows-arm64-microsoft jobs link with (D2969): llvm-mingw's Clang above,
+#  given Visual Studio's MSVC toolset and the Windows SDK by these versions,
+#  among those the runner image installs.  Neither is downloaded: Microsoft's
+#  licence keeps them on the image, so a job whose image no longer carries
+#  one refuses and names those it does.  The toolset is VS 2022's final one,
+#  which Visual Studio 2026 keeps side by side and does not update.
+LANDIN_MSVC_TOOLSET_VERSION=14.44.35207
+LANDIN_WINDOWS_SDK_VERSION=10.0.26100.0
+
 #  Ubuntu's arm64 base system, which the gate's windows-arm64-debugger job
 #  imports into WSL 1 to run the Linux arm64 refine dap there: setup-wsl
 #  installs WSL on the Windows arm64 runner, but its distribution is

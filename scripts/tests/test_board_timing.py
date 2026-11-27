@@ -4,6 +4,7 @@ calls one image, what it refuses before the rig, how a clock and a run are
 read, and how a run is held to its oracle.  No probe, rig or compiler."""
 import io
 import json
+import os
 from contextlib import redirect_stdout
 from pathlib import Path
 import struct
@@ -306,11 +307,28 @@ class Baselines(unittest.TestCase):
         path.write_text(json.dumps(dict(schema=1, kind='cycles', figures=found)))
         return path
 
-    def compare(self, found):
+    def compare(self, found, report=False):
         printed = io.StringIO()
-        with redirect_stdout(printed), mock.patch.object(sys, 'stderr', io.StringIO()):
-            code = timing.compare(SimpleNamespace(figures=self.figures(found), base='BASE'))
+        with redirect_stdout(printed), mock.patch.object(sys, 'stderr', io.StringIO()), \
+                mock.patch.dict(os.environ, {'GITHUB_STEP_SUMMARY': ''}):
+            code = timing.compare(SimpleNamespace(figures=self.figures(found), base='BASE',
+                                                  report=report))
         return code, printed.getvalue()
+
+    def test_a_branch_s_comparison_reports_a_move_and_passes(self):
+        # D2854: the cycles comparison on a branch's dispatch names what
+        # no baseline records, in moves.json beside the figures, and passes.
+        key = 'esp32/xtensa-esp32/size-auto/sieve'
+        new = 'esp32/xtensa-esp32/size-auto/search'
+        self.recorded_base({key: figure(10000)})
+        code, said = self.compare({key: figure(12000), new: figure(5)}, report=True)
+        self.assertEqual(code, 0, said)
+        self.assertIn('REPORTED, not failed: 2 cycles figures', said)
+        moves = json.loads((self.root / 'moves.json').read_text())
+        self.assertEqual(moves, dict({'class': 'cycles', 'undeclared': [key], 'unrecorded': [new]}))
+        code, _ = self.compare({key: figure(10000)}, report=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads((self.root / 'moves.json').read_text())['undeclared'], [])
 
     def record(self, found, **more):
         with redirect_stdout(io.StringIO()):

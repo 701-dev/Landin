@@ -2,10 +2,12 @@
 --  in it by name and call them, one with a function of the program's
 --  own, then ask for one it does not define.  When the loader refuses,
 --  say why in its own words.
+import core/args
 import core/failure
 import core/io
 import core/text
 import hosted/blocking
+import hosted/heap
 import platform/posix
 
 --  The C types of the functions the program looks for: nothing can check
@@ -48,12 +50,21 @@ end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else (problem)
-        _ = problem
-        io.write(host, io.err(host), "usage: plugin LIBRARY\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.positional("LIBRARY", "the shared object to load")
+    ]
+    program := args.command_of("plugin", "Call two functions of a library.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    code = 1
+    library := args.value_of(parsed, "LIBRARY")
+    path: text.os_string = library.bytes
     plugin := posix.open_library(path, posix.local_symbols) else (problem)
         if problem == posix.no_library then
             refused(host)

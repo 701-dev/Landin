@@ -1,0 +1,10 @@
+error[L0329]: this failing call is not recovered: the `else` after it divides the `if` around it
+  --> ../tests/fixtures/negative/leaving-recovery-in-an-if-arm-is-parenthesised/main.ldn:8:22
+  |
+8 |     if negative then append(negative) else begin return end end if
+  |                      ^^^^^^^^^^^^^^^^
+  --> ../tests/fixtures/negative/leaving-recovery-in-an-if-arm-is-parenthesised/main.ldn:8:39
+  |
+8 |     if negative then append(negative) else begin return end end if
+  |                                       ^^^^ this `else` divides the `if`
+  = note: [1820]: to recover from a failing call inside an `if` arm, wrap the call and its recovery in parentheses, `(call(...) else value)` or `(call(...) else begin return end)`, or bind the error with `else (problem) ... end`

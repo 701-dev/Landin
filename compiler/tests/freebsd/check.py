@@ -486,7 +486,12 @@ class Lane:
         status = int(Path(str(path) + '.status').read_text())
         expected_status = ((132 if self.args.arch == 'amd64' else 133) if meta.traps
                            else meta.status_at(result['level']))
-        require(status == expected_status, f'{label}: guest status {status}, expected {expected_status}')
+        if meta.traps and meta.get('protected') == 'yes':
+            #  D3014: a refused write, FreeBSD's SIGBUS 10 or SIGSEGV 11.
+            require(status in (138, 139),
+                    f'{label}: guest status {status}, expected the refused write\'s 138 or 139')
+        else:
+            require(status == expected_status, f'{label}: guest status {status}, expected {expected_status}')
         stdout = Path(str(path) + '.stdout').read_bytes()
         expected = expected_output(meta, Path(result['base']))
         if expected is not None:
@@ -857,6 +862,9 @@ def main():
                         help='size: no guest; link every measured workload with the lane\'s'
                              ' cross driver and compare its sections with the baselines'
                              ' (docs/measurement.md)')
+    parser.add_argument('--report', action='store_true',
+                        help='size: report what no baseline records and pass, as a branch\'s'
+                             ' gate does (measure.py compare --report)')
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
     import lane_refine  # the --refine every lane takes
     lane_refine.argument(parser, required=False)
@@ -908,7 +916,8 @@ def main():
                           '--target', lane.target, '--output', str(measured),
                           '--environment', 'freebsd ' + LOCK['release'] + ' sysroot',
                           '--toolchain', lane.target + '=' + str(lane.driver)],
-                         ['compare', str(measured / 'size.json')]):
+                         ['compare', str(measured / 'size.json')]
+                         + (['--report'] if args.report else [])):
                 done = subprocess.run([sys.executable, str(ROOT / 'scripts/measure.py'), *step])
                 require(done.returncode == 0, 'measure.py ' + step[0] + ' failed for ' + lane.target)
             summary['status'] = 'passed'

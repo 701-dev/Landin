@@ -5,7 +5,7 @@
   "new_weeks": 4,
   "cheap_minutes": 5,
   "one_in": 4,
-  "shadow_gates": 200,
+  "shadow_gates": 20,
   "study_misses_per_week": 1.7,
   "ignored_branches": [
    "r16-10-demo-slower",
@@ -380,10 +380,13 @@
     "@packages",
     "highlight/**",
     "scripts/tests/test_cli_native.py",
+    "scripts/records.py",
+    "scripts/lane_refine.py",
+    "scripts/tests/test_records_native.py",
     "README.md",
     "@workflow"
    ],
-   "note": "Emacs lsp, determinism closures, native report identity, publication/cancellation, server sessions and the mutation fuzzer with the debug compiler.",
+   "note": "Emacs lsp, determinism closures, native report identity, publication/cancellation, server sessions, the mutation fuzzer and the records of checks too long for a gate (D2874) with the debug compiler.",
    "first_seen": "2026-10-16",
    "minutes": 7.7,
    "alone": "2026-11-23",
@@ -591,6 +594,29 @@
    "note": "nix build .#refine and .#refine-bin, flake check over all systems, dev shell, README nix route. The flake source is the whole tree (version read from README.md); listed paths are what its build and checks read.",
    "first_seen": "2026-11-17",
    "minutes": 8.8,
+   "alone": null,
+   "defect_jobs": 0,
+   "outside_jobs": 0
+  },
+  "flake-compiler-arm64": {
+   "jobs": [
+    "flake-compiler-arm64"
+   ],
+   "needs": [],
+   "inputs": [
+    "@nix",
+    "@build",
+    "@build-scripts",
+    "@library",
+    "README.md",
+    "environments/pins.sh",
+    "environments/boards/ram-run/**",
+    "environments/cortex-m/tools.lock.json",
+    "@workflow"
+   ],
+   "note": "nix build .#refine and .#refine-bin and the dev shell on an arm64 runner, for aarch64-linux (D2976). Listed paths are what its build reads.",
+   "first_seen": "2026-11-27",
+   "minutes": null,
    "alone": null,
    "defect_jobs": 0,
    "outside_jobs": 0
@@ -1731,7 +1757,7 @@
  "shadow": {
   "since": null,
   "complete_gates": 0,
-  "target_gates": 200,
+  "target_gates": 20,
   "weeks": 0,
   "missed_runs": 0,
   "missed_defects": 0,

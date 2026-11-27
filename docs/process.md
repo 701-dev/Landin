@@ -128,16 +128,17 @@ puts the steps in order:
 
 | step | command | what it does |
 |---|---|---|
-| start | `item.py start ITEM` | refuses a complete item or one with an incomplete dependency; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
+| start | `item.py start ITEM [--adopt WORKTREE] [--base COMMIT]` | refuses a complete or retired item or one with an incomplete dependency; `--adopt` takes on an existing worktree, from its branch's head when that head adds the item's text; makes `../Landin-ITEM` and its branch from `origin/main`, or from the integration branch of the item's [breaking window](#a-breaking-window); reserves blocks of decision, row and question numbers no other running item of the clone holds, which `register_next.py` then gives out first; marks the item active, moves a pointer naming it, commits that as `Gate: explanatory`; writes the item's brief |
 | after a reopen | `item.py resume [ITEM]` | the worktree, every recorded run as running, finished or lost, the gate runs, the journal's last lines and the next step |
 | along the way | `item.py note ITEM TEXT`, `item.py run ITEM NAME --limit S [--cwd DIR] -- COMMAND` | a dated journal line; a detached `run_logged.py` run kept in the state, in the item's worktree or DIR |
 | push | `item.py push ITEM [--watch] [--boards] [--no-check]` | refuses a stale `citations.txt`, which names the compiler sources' digest and so goes stale over a merge, and says how to regenerate it; refuses a tree the register's age check refuses, or the whole `check.py` when the push changes the roadmap; runs the pre-push checks the paths changed since the last push select, in one `dev-test.sh` invocation where it can (an `.ldn` file: the formatting case; `compiler/` or the library: the `lowering` suite; a new library module: the debugger workloads' closures; the library: `script_tests.py test_library_docs`; a merge: the whole `check.py`), refusing with the failed command and its log, `--no-check` to push regardless; notes when the measured sizes may move; pushes the head to GitHub, then to [the mirror](#integration-publication-and-ci), whose refusal it reports with the command to retry and does not count as the push failing; records the head's gate runs as `gate` does; `--boards` dispatches its boards beside the gate |
 | gate | `item.py gate ITEM [--main] [--watch]` | records the pushed head's runs, or main's after promotion, naming each run's branch; follows a branch's run in two detached runs, `gate_watch.py`, which returns at the first failed job so the fix starts at once, and `gate_watch.py --all`, which names every failure at the end for the push that fixes them; follows main's with `--verdict`, to its aggregate `gate` job, where the token is released; a failed boards run is named a timing failure when only timing jobs failed |
 | boards | `item.py boards ITEM [--watch] [--unmerged] [--rerun-failed] [--again]` | dispatches `scope=boards` on the pushed head, records the run and with `--watch` follows it in a detached run; a queued, running or passed one is followed or named instead (`--again` dispatches anyway); refuses while `main` is not an ancestor of the head, since promotion would refuse that tree (`--unmerged` dispatches anyway, for early board feedback); `--rerun-failed` re-runs only the failed jobs of a boards run that [failed in timing alone](#a-timing-failure-is-not-a-boards-failure) |
 | merging main | `item.py merge-main ITEM [--branch BRANCH] [--no-queue] [--with OTHER ...] [--drop OTHER ...]` | takes the [promotion token](#the-promotion-queue) and merges `origin/main`, or a window's item its integration branch, or `--branch`'s, without the token; naming any number of the item's reserved blocks the merged branch took; when every commit it brings says `Gate: explanatory` and the merged tree has the candidate's gate key, the merge says it too, so the gate reuses the candidate's pass and its boards still count; otherwise it names the commits and paths that make the tree new; exits 1 on a row the merge aged too far. Conflicts stop it with the token held. `--no-queue` is for a merge mid-work. `--with`, `--with-branch` and `--drop` make [a train](#a-train) |
-| promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
+| promotion | `item.py promote ITEM [--dry-run] [--partial]` | pushes the head to main only as the [promotion rule](#physical-boards-and-promotion) allows: a passed push gate on it with its whole job listing and no figures it reported unrecorded, boards on its tree or before only explanatory commits, main its ancestor, the item complete, the promotion token its own or free; refuses an item that says `Promotion: maintainer`; a window's item lands on its integration branch instead, without boards |
 | finish | `item.py finish ITEM` | once main's gate on the promoted commit passed, its verdict or the whole run, a window's item once it landed, or an item whose head reached its landing branch or main by hand: removes the worktree and the local and remote branch, gives up the promotion token, keeps the state under `landin-items/done/`; run from the item's own worktree it works from the clone's main checkout |
 | watching items | `item.py status`, `item.py stalled`, `item.py queue [--wait NAME [--why TEXT] \| --release NAME \| --take NAME --why TEXT] [--target BRANCH]` | every running item, its gate runs as GitHub gives them now, and the tokens' holders and lines; those nothing has moved for an hour, exit 1; each token's holder and line, waiting until ITEM holds it (exit 124 at `--timeout`, 270 seconds by default), giving up a token or place, or taking a token for work that is no item, such as a register sweep, until it is released, in line when held |
+| work that is no item | `item.py start NAME --work TEXT [--adopt WORKTREE]` | a lower-case NAME, never an item's identity, with its own worktree and branch, reserved numbers, brief, and the push, gate, boards, promotion and finish of an item; no roadmap entry is read or marked, and `promote` needs no complete item |
 | report | `item.py report ITEM` | a draft of [the report](../.agents/skills/landin-change/report.md), ending with the open questions the item asked and their defaults |
 
 ### A breaking window
@@ -229,7 +230,11 @@ Before an item closes:
    regenerates `roadmap/register.md`. After any other register edit run
    `python3 check.py --register` for the generated page. Work outside an
    item takes decision numbers from `register_next.py --decision`, which
-   skips every running item's reserved block.
+   skips every running item's reserved block and every number `spec.md`
+   holds on any branch of the clone, and claims those it gives for
+   fourteen days, so that no item started meanwhile reserves them; work
+   long enough to need a block is started as one, `item.py start NAME
+   --work TEXT`.
 
    `python3 check.py` refuses a register over its cap of 60 open rows, so
    an item that would close over it first schedules, settles or puts to the
@@ -283,6 +288,11 @@ nix develop -c python3 scripts/run_logged.py \
     env LANDIN_TEST_JOBS=1 ./scripts/dev-test.sh \
         --suite=checking --suite=lowering
 ```
+
+A shell sourced before a merge changed `flake.nix`, `flake.lock` or
+`environments/pins.sh` is the old flake's, and a check that reads the
+tools can fail for that alone: `check.py` and `script_tests.py` say so
+first, and sourcing `agent_env.sh` again gives the new one.
 
 Choose the selectors for the change. `dev-test.sh` checks its own build;
 a preceding `dev-build.sh` is useful when compilation feedback is needed,
@@ -441,7 +451,11 @@ It returns at once and the run goes on in a session of its own, which
 `--wait` attaches to from the old session or a new one. Nothing ends such a
 run by accident, so the limit is required: past it the wrapper ends the
 command and `result.json` says `limit_reached`. `--stop DIRECTORY` ends it
-early. Either ends the run's whole process group: what is still in it
+early. A complete suite stopped by its limit is continued, not started
+again: `python3 scripts/resume_tests.py DIRECTORY` runs, in one
+invocation, every suite the cut-off run's log does not show passed, a
+`FILTERED` run that with the first covers the suite only on the same tree,
+which it says. Either ends the run's whole process group: what is still in it
 `--grace` seconds (10) after the SIGTERM, such as an emulator a test
 started, is killed, and `result.json`'s `group_killed` says whether that
 was needed. A build waiting for a lock no record names prints, on Linux,
@@ -577,6 +591,11 @@ another commit and the branch has no work yet, the child runs
 HEAD`. A child that cannot move its branch stops and reports the commit
 it started from, so that the integrator takes its diff against that
 commit and not against the named base.
+
+A stream's own notes, never committed, go under the worktree's
+`.scratch/`, which Git ignores and no check reads, or outside it; the full
+`check.py` reads every other Markdown file, an untracked one too, and
+says so of a file it refuses.
 
 Assign owned paths, branch, base commit and nonoverlapping decision,
 diagnostic and register ranges in the brief. Check the integration branch
@@ -1017,10 +1036,10 @@ program corpus; it is not a FreeBSD-hosted Ada compiler claim.
 | `build-modes` matrix | `ubuntu-24.04` | the debug and the release compiler of one tree emit the positive and runtime corpora, the firmware corpus and the Cortex-M counterparts at the four standard profiles and must agree byte for byte, and a request both refuse must be one the emission manifest's refusal list or the firmware inventory records as refused there, with status 1, over Linux x86-64, Linux arm64, Cortex-M, RV32 and both Xtensa configurations; the requests are dealt to `build-modes-1` to `build-modes-4` by their keys' digests, `emit_manifest.py modes --shard=I/4`, so each job is a quarter of the work whatever target grows (D1365, D1374) |
 | `bindings` | `ubuntu-24.04` | `refine bindings`, with the debug compiler `linux-debug-build` made, against its pinned Clang |
 | `editor-grammar` | `ubuntu-24.04` | the structural grammar's integration pass with the pinned tree-sitter CLI and the flake's Neovim and Emacs, their parser and tree-sitter smokes included, then the Neovim LSP preference smoke under the same Neovim |
-| `flake` matrix | `ubuntu-24.04` | on every run that does not reuse a pass, a full-scope dispatch included (D585), in three jobs: `flake-compiler` runs `nix build .#refine .#refine-bin`, evaluates every flake output of every system, enters the development shell and runs `scripts/nix_route.py` (D1707), `flake-ram-run` builds the native board RAM helper with its Rust controls and `flake-ram-run-rigpi` the Pi's |
+| `flake` matrix | `ubuntu-24.04`, `ubuntu-24.04-arm` | on every run that does not reuse a pass, a full-scope dispatch included (D585), in four jobs: `flake-compiler` runs `nix build .#refine .#refine-bin`, evaluates every flake output of every system, enters the development shell and runs `scripts/nix_route.py` (D1707), `flake-compiler-arm64` builds the same two packages and enters the shell on the arm64 runner for `aarch64-linux` (D2976), `flake-ram-run` builds the native board RAM helper with its Rust controls and `flake-ram-run-rigpi` the Pi's |
 | `cortex-m` matrix | `ubuntu-24.04` | every Cortex-M and RV32 lane on the locked QEMU and GDB, at `LANDIN_CORTEX_JOBS=4`, as `run.py`'s three parts, which together are every lane once: the probes, firmware, device programs and debug evidence in `cortex-m-programs`, which also builds all eight board ports in boot and RAM layouts without hardware and keeps their build/drift evidence, the stack-switch consumer's capacity report (D470) and prototype 5's firmware counterpart's traces (D1035), and every firmware workload's instructions counted on each M-profile machine at all nine profiles and compared with the base commit's baselines (`docs/measurement.md`); the whole corpus on the M0, the M33 and the M7 in `cortex-m-corpus`; and the RV32 controls and corpora on Espressif's QEMU in `cortex-m-rv32` |
 | `xtensa` matrix | `ubuntu-24.04` | three jobs a chip, `xtensa-esp32-1` to `-3` and `xtensa-esp32s3-1` to `-3`: the first of each runs bounded chip-machine window, scalar, floating, assembly and completion-oracle controls, independent vendor-C layout/carrier probes, strict configured-assembler and baseline compatibility controls, and each runs its `corpus.py --shard` third of the complete freestanding inventory, the three together every run once, on the pinned Espressif QEMU's `sim` machine with the exact selected CPU and explicitly virtual RAM; logs and per-fixture verdicts are retained |
-| `measure-size` | `ubuntu-24.04` | with the checked release compiler, inside the pinned environment: every measured workload at every level and all nine profiles for Linux x86-64, arm64 and RV64, Windows x86-64 and arm64 through the pinned llvm-mingw drivers, Cortex-M, RV32 and both Xtensa chips, each image's allocated sections compared with the base commit's baselines by `scripts/measure.py` (`docs/measurement.md`), then every hosted workload's instructions counted under the pinned `qemu-riscv64` at every RV64 level and profile and compared the same way; the figures kept 30 days as `measure-size-linux`, which `measure.py record --from-run` reads; Darwin's are measured in `darwin-host-release-2` and FreeBSD's in `freebsd-amd64-size` and `freebsd-arm64-size`, which link with the lane's cross driver and boot no guest |
+| `measure-size` | `ubuntu-24.04` | with the checked release compiler, inside the pinned environment: every measured workload at every level and all nine profiles for Linux x86-64, arm64 and RV64, Windows x86-64 and arm64 through the pinned llvm-mingw drivers, Cortex-M, RV32 and both Xtensa chips, each image's allocated sections compared with the base commit's baselines by `scripts/measure.py` (`docs/measurement.md`), a difference no baseline records reported and passed off `main` ([recorded from the run](#reusing-a-pass)), then every hosted workload's instructions counted under the pinned `qemu-riscv64` at every RV64 level and profile and compared the same way; the figures kept 30 days as `measure-size-linux`, which `measure.py record --from-run` reads; Darwin's are measured in `darwin-host-release-2` and FreeBSD's in `freebsd-amd64-size` and `freebsd-arm64-size`, which link with the lane's cross driver and boot no guest |
 | `measure-time` matrix | `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-26` | on the daily schedule and a dispatch alone, whatever its scope (`gate_inputs.py scope`'s `timing`): each builds the candidate's debug compiler and its base's, then `measure.py time` runs every timed configuration's two images interleaved, fresh copies each run, and judges the ratio against the class's noise study; left out of a dispatch whose key a passed dispatch on the branch already timed (D1649) |
 | `scaling` | `ubuntu-24.04` | `scripts/scaling.sh`, failing when frontend time, emission time or peak memory grows more than 2.5 times per doubling, or when a compact static image's assembly, object or assembler memory outgrows its bound |
 | `darwin-debug-build` | `macos-26` | build the debug executables once for the `darwin-host` job and the Darwin determinism manifest |
@@ -1046,11 +1065,11 @@ program corpus; it is not a FreeBSD-hosted Ada compiler claim.
 | `windows-emit` | `ubuntu-24.04` | emit every runtime fixture whose targets name `windows-x86-64`, at every profile, with the checked Linux release compiler, linking with Clang 19, LLD and Ubuntu's MinGW-w64 import libraries under llvm-mingw's driver name, and keep the bundle three days for `windows-runtime`; with the same compiler, the debugger sessions' images and PDBs, kept for `windows-debugger`, the corpus's assemblies and Microsoft link commands, kept for `windows-microsoft`, and the ABI fixtures' assemblies and C peers, kept for `windows-runtime` (`compiler/tests/windows/README.md`); first, `NativeWindowsLink`'s link checks (D2485, D2486) |
 | `windows-runtime` | `windows-2025` | from a checkout of the commit, execute that bundle natively on a GitHub-hosted Windows x86-64 runner and hold each outcome's status, output and trap line to its fixture; then compile each ABI fixture's C peer and link it with its assembly by the pinned llvm-mingw release's Windows Clang and C runtime, and hold those programs the same way (D2473); outputs, statuses, link transcripts and verdicts kept 14 days |
 | `windows-debugger` | `windows-2025` | llvm-mingw's LLDB for Windows, checked against its pinned sha256, over the debugger bundle: its batch sessions at the four profiles natively, the source session and the stack switch's (D2481), then the DAP session through the Linux release `refine dap` from WSL on the same runner, relaying `lldb-dap.exe` (D2292); transcripts and verdicts kept 14 days |
-| `windows-microsoft` | `windows-2025` | link the same corpus with Microsoft's toolchain (D2327): `windows-emit` keeps the link command refine chooses for a driver named `x86_64-pc-windows-msvc-clang` and each assembly, and the runner's Clang runs each command, which must reach Visual Studio's `link.exe` and the Windows SDK's import libraries, before the program is held to its fixture as in `windows-runtime`; link transcripts, outputs, statuses, verdicts and each failed outcome's image kept 14 days |
+| `windows-microsoft` | `windows-2025` | link the same corpus with Microsoft's toolchain (D2327): `windows-emit` keeps the link command refine chooses for a driver named `x86_64-pc-windows-msvc-clang` and each assembly, and llvm-mingw's pinned Clang runs each command, which must reach the `link.exe` of the MSVC toolset and the import libraries of the Windows SDK `environments/pins.sh` names, among those the image installs (D2969), before the program is held to its fixture as in `windows-runtime`; an image that lacks either version fails the job, naming those it carries; link transcripts, outputs, statuses, verdicts and each failed outcome's image kept 14 days |
 | `windows-arm64-emit` | `ubuntu-24.04` | as `windows-emit` for `windows-arm64`, with the pinned llvm-mingw arm64 release's import libraries (D2348), and the Microsoft link commands for a driver named `aarch64-pc-windows-msvc-clang` (D2387) |
 | `windows-arm64-runtime` | `windows-11-arm` | as `windows-runtime` |
-| `windows-arm64-microsoft` | `windows-11-arm` | as `windows-microsoft`, through Visual Studio's arm64 `link.exe` and the Windows SDK's arm64 import libraries (D2387) |
-| `windows-arm64-debugger` | `windows-11-arm` | as `windows-debugger`, with the arm64 LLDB and WSL 1 over Ubuntu's pinned arm64 base (D2348) |
+| `windows-arm64-microsoft` | `windows-11-arm` | as `windows-microsoft`, through the pinned toolset's arm64 `link.exe` and the pinned SDK's arm64 import libraries (D2387, D2969) |
+| `windows-arm64-debugger` | `windows-11-arm` | as `windows-debugger`, with the arm64 LLDB and WSL 1 over Ubuntu's pinned arm64 base (D2348); a switch session in which that LLDB lost a step runs again, up to three attempts, each lost transcript kept (D2970) |
 | `rv64-qemu` matrix | `ubuntu-24.04` | the release compiler's whole test program on the Linux RV64 lane in two `--shard` jobs, `rv64-qemu-1` and `rv64-qemu-2`, linked by Ubuntu's riscv64 cross driver and run under the flake's pinned `qemu-riscv64`, its CPU's every level confirmed, with that emulator registered as the riscv64 binfmt_misc handler so a program that starts itself again runs (D1037); the emulator's own failures listed in `compiler/tests/cross-lanes.json` are reported and not counted; the first shard also runs the RV64 GDB sessions, the stack switch's among them, and the DAP session through `refine dap`, under the same emulator's GDB stub |
 | `rv64-emit` matrix | `ubuntu-24.04` | suspended since 2026-10-13 and not required by `gate`; when running, cross-emit checked RV64 runtime, GDB, C ABI and ISA payloads for RISE; source/hash checks, invalid IR register regression and instruction inspection |
 | `rv64-runtime`, `rv64-debugger`, `rv64-abi`, `rv64-isa` | ubuntu-24.04-riscv | suspended since 2026-10-13 and not required by `gate`; when running, separate corpus, native GDB, nonempty independent C peers and hardware-confirmed baseline/extended ISA execution on physical RISE runners |
@@ -1225,6 +1244,23 @@ expired or mismatching evidence runs everything. Documents and script
 checks always run, and a reused run can never itself supply the full pass.
 The aggregate gate covers each build, test and determinism host separately.
 
+Figures recorded from the run that measured them (D2854): on every event
+but `main`'s, the size comparisons, the instruction counts and the boards'
+cycles comparison report a figure no baseline records in the run's summary
+and in a `moves.json` beside the figures in their artifact, and pass; the
+aggregate writes one `unrecorded figures` annotation counting them. A
+commit that records them, `scripts/measure.py record --from-run RUN` or
+`environments/boards/timing.py record` of the run's `measure-cycles`
+artifact, declared `Gate: explanatory` and changing nothing else, reuses
+that run's pass: `inputs` holds the size and instruction baselines it
+changed to the run's artifacts, every reported key recorded with exactly
+its figure and no other entry changed except to the run's figure. Such a
+pass is reused by no other commit but an identical tree on a branch, which
+reports its moves again, and `item.py promote` refuses a head whose gate
+or boards reported moves its tree does not record. Main's push refuses the
+tree at once, in `inputs`, when the pass or the boards it would take
+reported figures no baseline there records.
+
 For a successful reuse, the `inputs` log names the source commit and links
 the full run being reused. Target and build jobs, including `determinism`,
 appear as skipped; `inputs`, `documents`, `scripts` and the final `gate`
@@ -1259,13 +1295,28 @@ change, or `test_gate_history`'s `Lanes` fails.
   `.github/gate-causes.jsonl`.
 - **The miss rate** is read with `python3 scripts/gate_history.py
   shadow`, and in the table's `shadow` entry as of its last update. It
-  gives the complete gates since shadow mode began against the about
-  200 the maintainer is asked to confirm, and the defects only lanes the selection would have
+  gives the complete gates since shadow mode began against the 20 the
+  maintainer set, and the defects only lanes the selection would have
   skipped showed, a week, against the study's 1.7. The maintainer reads
   it before the selected gate is applied.
 - A new outside cause is a signature in the table: a pattern, its
   example, which `Lanes` matches against it, and whether a re-run can
   pass it.
+
+### Checks too long for a gate
+
+A check that takes hours, such as the run of every `f32` input of
+`core/math` against MPFR, runs on a host and never in a gate (D2874). It is
+recorded in a file under `compiler/tests/records/`, whose README gives the
+form: the commands, the host, the date, the commit, the results, and each
+checked routine's code digest on each target the record claims.
+`compiler-checks` runs `python3 scripts/records.py check`, which emits the
+records' programs again and says whether each is fresh or stale since its
+commit. A stale record fails no push: the job writes a warning and a
+summary line. It blocks a release and a phase-gate claim that cite it, which
+run `records.py check --fail-stale RECORD`; a stale record's commands are run
+again on a host, then `records.py stamp RECORD` writes the new digests and
+commit, or the claim it supports is withdrawn.
 
 ### The controls that hold the job inventory
 
@@ -1407,6 +1458,9 @@ in line and waits with `item.py queue --wait ITEM`, which returns once the
 token is its own; it keeps working meanwhile, but takes no final merge.
 An item takes it only once its head's push gate passed.
 Work that is no item waits for it with `queue --wait NAME --why TEXT`.
+Each worktree runs its own branch's `item.py` on the one file, so the
+file names the version of its rules, and a copy older than the file
+refuses to rewrite it and names the newer copy to run.
 A holder this clone no longer runs, or whose `main` gate has ended, holds
 nothing. A merge whose main side is all `Gate: explanatory` and leaves the
 gate key alone is declared so by `merge-main` and reuses the candidate's
@@ -1583,7 +1637,12 @@ comments of `.github/workflows/release.yml` and of `flake.nix` beside
    gate, a `scope=boards` dispatch on the same tree, promotion to `main`
    and `main`'s own push gate followed to its end. `scripts/release.py
    gated` refuses a tag on a commit that is not on `main` or whose own
-   push gate there did not pass.
+   push gate there did not pass. Every record under
+   `compiler/tests/records/` backs a claim the release ships, as
+   `math-f32-exhaustive.json` backs the accuracy `core/math` states, so a stale one blocks it: `python3
+   scripts/records.py check --fail-stale` must pass on the commit, or the
+   stale record's commands are run again and stamped first, or its claim
+   withdrawn ([checks too long for a gate](#checks-too-long-for-a-gate)).
 3. **Rehearse.** On that commit of `main`, run the release workflow with
    nothing to publish:
 
@@ -1792,5 +1851,8 @@ of them changes the formula first, in the tap:
 - `refine` finds `lib/landin` and `libexec/landin` from its own resolved
   executable, because Homebrew links the keg's `bin` and `lib` into its
   prefix but not its `libexec`;
+- the macOS archive runs on macOS 26 or later, `install.sh`'s
+  `macos_minimum` line, which the release workflow holds the archive's
+  `minos` to (D2974) and the formula's `depends_on macos: :tahoe` names;
 - the release is GitHub's latest one, which a draft or a prerelease is
   not, and the formula's test program still compiles and runs.

@@ -1,0 +1,67 @@
+--  Union, intersection, difference and emptiness over a set: [0730]'s
+--  packed struct of `bool`, one field per member at the bit its member
+--  names.  Membership is already a field read and a change a field
+--  write; these take two whole sets at once, so that flags outside a
+--  register need no masks.  They are library routines over the image's
+--  bytes, not a language rule: the tour gives a set no operator, and a
+--  packed image's bits are its own (D228).
+
+--- The sets these routines combine: a `layout(packed)` struct whose
+--- every field is a `bool` or an array of them.  The type says so with
+--- `is bits.flags ()`.  A packed struct with a number or a selection in
+--- it is not a set, since combining its bits combines numbers.
+public flags: type = concept (set: type)
+end flags
+
+--- The members in `left`, in `right` or in both.
+public union: (set: type is flags, left: set, right: set)
+              -> (result: set) =
+    result = left
+    into: ptr mut u8 = ptr(usize(addr result))
+    other: ptr u8 = ptr(usize(addr right))
+    for index in usize(0)..<sizeof set do
+        target: ptr mut u8 = ptr(usize(into) + index)
+        source: ptr u8 = ptr(usize(other) + index)
+        target.val = target.val | source.val
+    end for
+end union
+
+--- The members in both `left` and `right`.
+public intersection: (set: type is flags, left: set, right: set)
+                     -> (result: set) =
+    result = left
+    into: ptr mut u8 = ptr(usize(addr result))
+    other: ptr u8 = ptr(usize(addr right))
+    for index in usize(0)..<sizeof set do
+        target: ptr mut u8 = ptr(usize(into) + index)
+        source: ptr u8 = ptr(usize(other) + index)
+        target.val = target.val & source.val
+    end for
+end intersection
+
+--- The members in `left` that are not in `right`.
+public difference: (set: type is flags, left: set, right: set)
+                   -> (result: set) =
+    result = left
+    into: ptr mut u8 = ptr(usize(addr result))
+    other: ptr u8 = ptr(usize(addr right))
+    for index in usize(0)..<sizeof set do
+        target: ptr mut u8 = ptr(usize(into) + index)
+        source: ptr u8 = ptr(usize(other) + index)
+        target.val = target.val & ~source.val
+    end for
+end difference
+
+--- Whether `value` has no member.  Bits no field claims count too, so
+--- an image read from a device with a reserved bit set is not empty.
+public is_empty: (set: type is flags, value: set) -> (yes: bool) =
+    other: ptr u8 = ptr(usize(addr value))
+    yes = true
+    for index in usize(0)..<sizeof set do
+        source: ptr u8 = ptr(usize(other) + index)
+        if source.val <> 0 then
+            yes = false
+            return
+        end if
+    end for
+end is_empty

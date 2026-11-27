@@ -19,14 +19,14 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import lane_refine  # noqa: E402
 MODULES = tuple('core/'+name for name in
-                ('arena', 'atomic', 'big', 'cache', 'cmp', 'complex', 'dense', 'diag', 'failure', 'fault', 'fibre',
+                ('args', 'arena', 'atomic', 'big', 'bits', 'cache', 'cmp', 'complex', 'dense', 'diag', 'failure', 'fault', 'fibre',
                  'io', 'iter', 'line', 'map', 'math', 'mem', 'net', 'panic', 'pool', 'random',
                  'regex', 'region', 'sort', 'spill', 'text', 'time', 'tree', 'unicode',
                  'vec', 'zone')) + ('platform/cortex_m',)
 #  A core module whose smallest consumer is past the reference profile's
 #  32 KiB of flash: its library-shared fixture runs on the M7 corpus lane
-#  instead, whose map has room, as its corpus row records (D2680).
-OUTSIZED = {'core/regex'}
+#  instead, whose map has room, as its corpus row records (D2680, D3097).
+OUTSIZED = {'core/args', 'core/regex'}
 
 
 def imports(program):

@@ -157,7 +157,7 @@ class Causes(unittest.TestCase):
 
 def table(**lanes):
     return {"rules": {"alone_weeks": 8, "new_weeks": 4, "cheap_minutes": 5, "one_in": 4,
-                      "shadow_gates": 200, "study_misses_per_week": 1.7},
+                      "shadow_gates": 20, "study_misses_per_week": 1.7},
             "sets": {"compiler": ["compiler/ada/**"]}, "signatures": [],
             "lanes": {name: dict({"jobs": [name], "first_seen": "2026-09-01",
                                   "minutes": 20, "alone": None}, **row)

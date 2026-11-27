@@ -1,0 +1,157 @@
+--  Each form core/args reads, parsed from a list of words as a test or a
+--  console gives them, and what each argument was found to be: short and
+--  long options, `=` and a separate value, clustered and counted flags,
+--  `--` ending the options, each value type, a default, a repeated
+--  option and the trailing list of positional arguments.
+import core/arena
+import core/args
+import core/io
+import core/text
+import hosted/blocking
+
+arena_size: usize = 65536
+
+mut backing: [arena_size]u8 = zeroed
+
+--  Append every value `name` was given, in brackets, separated by commas.
+append_all: (inout out: text.builder, parsed: args.found, name: utf8)
+            -> none ! ... =
+    try text.append_byte(out, u8('['))
+    for index in usize(0)..<args.count(parsed, name) do
+        if index > 0 then
+            try text.append_byte(out, u8(','))
+        end if
+        each := try args.get_at(parsed, name, index)
+        try text.append_os_string(out, each.bytes)
+    end for
+    try text.append_byte(out, u8(']'))
+end append_all
+
+--  Parse `words` and write one line of what was found.
+show: (host: blocking.host, program: args.command, words: [][]u8)
+      -> none ! ... =
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    mut storage: [512]u8 = zeroed
+    mut out := text.over(storage)
+    for word, index in words do
+        if index > 0 then
+            try text.append_byte(out, u8(' '))
+        end if
+        try text.append(out, word)
+    end for
+    try text.append(out, "\n  ")
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse(memory, program, words, parsed) else (problem)
+        _ = problem
+        try text.append(out, "refused: ")
+        try args.explain(out, parsed)
+        try text.append_byte(out, u8('\n'))
+        try io.write(host, io.out(host), text.used(out))
+        return
+    end
+    try text.append(out, "verbose=")
+    try text.append_usize(out, args.count(parsed, "verbose"))
+    try text.append(out, " quiet=")
+    try text.append_usize(out, args.count(parsed, "quiet"))
+    try text.append(out, " output=")
+    try append_all(out, parsed, "output")
+    lines := try args.get(parsed, "lines")
+    try text.append(out, " lines=")
+    try text.append_u64(out, lines.unsigned)
+    if args.count(parsed, "lines") == 0 then
+        try text.append(out, "(default)")
+    end if
+    try text.append(out, " shift=")
+    if args.count(parsed, "shift") > 0 then
+        shift := try args.get(parsed, "shift")
+        try text.append_i64(out, shift.signed)
+    else
+        try text.append(out, "none")
+    end if
+    try text.append(out, " ratio=")
+    if args.count(parsed, "ratio") > 0 then
+        ratio := try args.get(parsed, "ratio")
+        try text.append_f64(out, ratio.float)
+    else
+        try text.append(out, "none")
+    end if
+    try text.append(out, " label=")
+    if args.count(parsed, "label") > 0 then
+        label := try args.get(parsed, "label")
+        try text.append_text(out, args.text_of(label))
+    else
+        try text.append(out, "none")
+    end if
+    try text.append(out, " include=")
+    try append_all(out, parsed, "include")
+    try text.append(out, " FILE=")
+    try append_all(out, parsed, "FILE")
+    try text.append(out, " MORE=")
+    try append_all(out, parsed, "MORE")
+    try text.append_byte(out, u8('\n'))
+    try io.write(host, io.out(host), text.used(out))
+end show
+
+--  Show each form in turn.
+forms: (host: blocking.host) -> none ! ... =
+    table: [10]args.argument = [
+        args.counted('v', "verbose", "say more each time"),
+        args.flag('q', "quiet", "say less"),
+        args.option('o', "output", "PATH", "where to write"),
+        args.with_default(args.typed(args.option('n', "lines", "N",
+                                                 "how many lines"),
+                                     args.as_unsigned), "10"),
+        args.typed(args.option('s', "shift", "BY", "move each line"),
+                   args.as_signed),
+        args.typed(args.option('r', "ratio", "R", "scale each line"),
+                   args.as_float),
+        args.typed(args.option('l', "label", "TEXT", "name the output"),
+                   args.as_text),
+        args.repeated(args.option('I', "include", "DIR", "look in DIR too")),
+        args.positional("FILE", "the file to read"),
+        args.optional(args.repeated(args.positional("MORE", "more files")))
+    ]
+    program := args.command_of("forms", "", table[0..<10])
+    alone: [1][]u8 = ["a"]
+    try show(host, program, alone[0..<1])
+    short_spaced: [3][]u8 = ["-o", "out.txt", "a"]
+    try show(host, program, short_spaced[0..<3])
+    short_joined: [2][]u8 = ["-oout.txt", "a"]
+    try show(host, program, short_joined[0..<2])
+    long_spaced: [3][]u8 = ["--output", "out.txt", "a"]
+    try show(host, program, long_spaced[0..<3])
+    long_equals: [2][]u8 = ["--output=out.txt", "a"]
+    try show(host, program, long_equals[0..<2])
+    long_empty: [2][]u8 = ["--output=", "a"]
+    try show(host, program, long_empty[0..<2])
+    clustered: [2][]u8 = ["-vqv", "a"]
+    try show(host, program, clustered[0..<2])
+    counted: [4][]u8 = ["-v", "--verbose", "a", "-vv"]
+    try show(host, program, counted[0..<4])
+    cluster_value: [2][]u8 = ["-vn5", "a"]
+    try show(host, program, cluster_value[0..<2])
+    cluster_next: [3][]u8 = ["-qn", "7", "a"]
+    try show(host, program, cluster_next[0..<3])
+    dash_value: [3][]u8 = ["-s", "-3", "a"]
+    try show(host, program, dash_value[0..<3])
+    typed: [7][]u8 = ["--shift=4", "--ratio", "0.25", "-l", "naïve",
+                      "--lines=0", "a"]
+    try show(host, program, typed[0..<7])
+    repeated: [5][]u8 = ["-I", "x", "--include=y", "-Iz", "a"]
+    try show(host, program, repeated[0..<5])
+    trailing: [4][]u8 = ["a", "b", "-v", "c"]
+    try show(host, program, trailing[0..<4])
+    ended: [5][]u8 = ["-v", "--", "-a", "--b", "--"]
+    try show(host, program, ended[0..<5])
+    single_dash: [2][]u8 = ["-", "-"]
+    try show(host, program, single_dash[0..<2])
+end forms
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    forms(host) else none
+    code = 0
+end main

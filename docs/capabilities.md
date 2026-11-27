@@ -293,12 +293,15 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   `lib/landin`, each attested by the release workflow; from the release
   after 0.2.11 also one for FreeBSD x86-64,
   `landin-VERSION-x86_64-freebsd.tar.gz`, built in a FreeBSD guest, whose
-  `refine` needs only the base system to start and which is unpacked by
-  hand, since `install.sh` does not serve FreeBSD yet. The host lane makes
+  `refine` needs only the base system to start. The macOS archive's
+  `refine` needs macOS 26 or later, the `minos` the runner's SDK gives it,
+  which the release workflow holds every executable in the archive to and
+  `install.sh` checks before it downloads (D2974). The host lane makes
   the FreeBSD arm64 one, `landin-VERSION-aarch64-freebsd.tar.gz`, in an
   arm64 guest, but no release publishes it yet. Homebrew's
-  `701-dev/tap/landin`, the flake's default package and the one-line
-  `install.sh` the site serves install a Linux or macOS one, the flake's
+  `701-dev/tap/landin` and the flake's default package install a Linux or
+  macOS one, the one-line `install.sh` the site serves also the FreeBSD
+  one (D2975), the flake's
   `nix run` runs it,
   and its `refine` package builds from source. From the release after
   0.2.11, a release publishes two archives for each Linux architecture
@@ -315,8 +318,9 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   `--variant dynamic` asks for the other, refuses one whose `.sha256`
   differs, a host no archive serves and, rather than refusing hosts by
   their loader, an archive whose `refine` does not start on the host
-  (D1789). The gate runs it on all three hosts against its own packaged
-  compiler served as a release would be, and runs the packaged static
+  (D1789). The gate runs it on all three hosts and in the FreeBSD guest
+  against its own packaged compiler served as a release would be, and
+  runs the packaged static
   compiler in an empty root and on Alpine (D1790). The
   [README's installing section](../README.md#installing) gives each route.
 - From the release after 0.2.11, a release also publishes two container
@@ -779,7 +783,14 @@ The README has [the commands in brief](../README.md#refine-in-brief);
   target holds a program's images to a budget, refused as L0505: written
   images to the code model's reach, 2 GiB on x86-64, Darwin and RV64 and
   4 GiB on arm64, or to a firmware profile's flash and RAM, and zero images
-  to the address space alone (D537).
+  to the address space alone (D537). Every backend writes an immutable
+  module-level value, a wholly zero one included, to the target's read-only
+  section, flash on a firmware target and the image's read-only pages on
+  Linux, macOS, FreeBSD and Windows, so a write through a pointer made from
+  its address faults rather than changing it; on a hosted target an
+  immutable value whose image holds an address of something else, a
+  function, a pointer or a slice of other data, stays in writable storage
+  for now (D3014).
 - **Generics and dispatch.** Generics take fixed parameters by compile-time
   substitution, an untyped literal argument takes its parameter's type, and
   a fixed array is lent to a generic slice parameter. A generic
@@ -936,11 +947,19 @@ injector as arguments, as providers.
 - **Text.** Byte-oriented and validated text. Positions over `utf8` step
   a whole scalar and keep its byte offset, and searches for text or a
   scalar return where the match begins, so the parts around it are
-  zero-copy `utf8` views of the source (D945, D946). A scalar encodes into
+  zero-copy `utf8` views of the source (D945, D946). Beside them are a
+  prefix and a suffix test, the last occurrence, a count of occurrences
+  without overlap and byte searches over `[]u8` (D3114); trimming Unicode's
+  White_Space, which `core/text` holds as 25 scalars the Unicode generator
+  checks, or a named scalar (D3115); and `for` walks over the parts
+  between a separator, the fields between spaces and the lines, each part
+  a span of the source (D3116). A scalar encodes into
   a caller's buffer whole or not at all (D947). A builder over a caller's
   buffer, or one an allocator grows, takes bytes, scalars, text, host
   strings, decimals of every integer width and hexadecimal, aligned in a
-  field, and a `utf8_builder` takes only text, scalars and numbers, so it
+  field, parts joined by a separator, a text with each occurrence
+  replaced or repeated, and a text quoted as a Landin literal spells it,
+  which reads back as the text (D3117, D3118), and a `utf8_builder` takes only text, scalars and numbers, so it
   always holds UTF-8 and lends it as one `utf8` view with no scan (D948).
   `compiler.utf8_unvalidated` makes such a view of bytes valid by
   construction, admitted only inside `unchecked` (D949).
@@ -957,7 +976,12 @@ injector as arguments, as providers.
   rounded once to places after the point or the first digit, byte for
   byte C's `printf` (D2756), and are parsed rounded once, an `f32` at its
   own width, every `f32` checked exhaustively (D2757). Every width parses
-  back from bytes, and no locale is consulted.
+  back from bytes, in decimal or in any radix from 2 to 36 with the
+  prefix that names 16, 8 or 2, checked against Python at every width,
+  prefix and radix, and a `bool` parses from `true` or `false` (D3119);
+  no locale is consulted. Comparing without case by A to Z alone, for an
+  image without `core/unicode`, is here too; text a person wrote is
+  compared by `core/unicode`'s full folding.
 - **Bytes.** Byte slices copy, with overlap allowed either way, fill,
   compare and search with their lengths checked.
 - **Failures and panics.** Bulk cleanup, panic dispatch, the
@@ -978,8 +1002,11 @@ injector as arguments, as providers.
   images only (D957-D964).
 - **Random numbers.** `core/random` is a deterministic generator,
   xoshiro256**, seeded from a fixed seed or from entropy, which draws the
-  same sequence on every target, Cortex-M0 included, with unbiased bounded
-  draws and shuffles.
+  same sequence on every target, Cortex-M0 included. It draws unbiased
+  integers below a bound or between two ends, floats in [0, 1), picks,
+  samples without replacement, weighted choices, bytes, shuffles, and
+  standard normal and exponential values, and `jump` gives threads or
+  fibres separate streams from one seed (D3054-D3057).
 - **Mathematics.** `core/math` has the functions of C's `<math.h>` that
   most programs use, each generic over `f32` and `f64`: roots, `hypot` and
   `fma`, exponentials, logarithms and powers, the trigonometric and
@@ -990,13 +1017,17 @@ injector as arguments, as providers.
   included; the square root and `fma` are the float unit's instructions
   where there is one (D2551, D2552). Each routine's error is stated and
   checked against MPFR on every target, and measured on every input of
-  each one-argument `f32` routine (D2553).
+  each one-argument `f32` routine, on a host and recorded against the
+  code it checked, whose freshness the gate reports (D2553, D2874).
 - **Unicode text.** `core/unicode` follows Unicode 18.0.0, its tables
   generated from a pinned copy of the Unicode Character Database: a
   scalar's general category, combining class and six binary properties;
   simple case mappings and the default full upper, lower, title and
   folded case of a text, with final sigma and without the Turkish,
-  Azerbaijani and Lithuanian tailorings, which need a locale; the NFC,
+  Azerbaijani and Lithuanian tailorings, which need a locale; equality, a
+  prefix and a suffix without case by full folding with no buffer, and
+  the canonical caseless match, checked against the database over every
+  scalar and against every NormalizationTest line (D3120); the NFC,
   NFD, NFKC and NFKD normalization forms; and UAX #29's default grapheme
   cluster, word and sentence boundaries, as positions or as walks a `for`
   loop takes. It is written in Landin and allocates nothing: a routine
@@ -1018,6 +1049,21 @@ injector as arguments, as providers.
   so firmware runs it on the Cortex-M7 corpus lane. It passes the 897
   cases of the `regex` crate's test suite that it can state; scripts and
   the other properties `core/unicode` lacks are not covered.
+- **Command-line arguments.** `core/args` reads a command line against
+  a table the program declares as values: short and long options with
+  `--name=value` and `--name value`, clustered and counted flags, `--`
+  ending the options, values read as unsigned, signed or float numbers or
+  checked text, or kept as the host string a path wants, required
+  arguments and defaults, positional arguments with one trailing list,
+  and commands that nest. It writes the usage line and the help, and
+  refuses an argument naming it and what was expected (D3094-D3096). It
+  parses any list of byte slices and allocates only from the caller's
+  allocator, so a test or a firmware console uses it too; on Cortex-M0 a
+  small table parses in a 21.9 KB image at `size/auto`, but the refusal's
+  words and the usage line do not fit beside it, nor does the parser at
+  `none/off` (D3097). The examples read their arguments through it.
+  Values from the environment or a configuration file, and shell
+  completions, are not covered.
 - **Complex numbers.** `core/complex` has `complex.number(f32)` and
   `complex.number(f64)`, a struct of a `real` and an `imaginary` part, and
   named routines generic over both: the arithmetic, the conjugate and the
@@ -1060,6 +1106,14 @@ injector as arguments, as providers.
   rounds once, to nearest with ties to even (D2598), and a rational is
   always in lowest terms (D2600). The `big-*` fixtures check every
   routine against Python's integers and fractions on every target.
+- **Bits and byte order.** `core/bits` has the bit operations of `u8`,
+  `u16`, `u32` and `u64`, written from shifts and masks so every target
+  gives the same answer; integers in either byte order and LEB128 read
+  from and written to the caller's bytes; and union, intersection,
+  difference and emptiness of a set of flags [0730]. The `u8` and `u16`
+  operations are checked on every input, and the `u32` and `u64` ones
+  against Python's integers on every target. `core/big` and `core/random`
+  use its operations instead of private copies.
 - **Atomic cells.** `core/atomic` holds a `u8`, `u16`, `u32` or `u64` in a
   cell whose operations carry their orderings in their names, with a
   relaxed family and the single writer's `sole_add`, a load and a store,
@@ -1087,7 +1141,7 @@ providers are `core/io/fake`'s, each named for what it fakes.
 | programs | starts a program by its path with the arguments and environment its parent builds, in the parent's working directory or another (D2534), each standard stream inherited, discarded or piped; reads its output and errors together while it runs, and waits for it to exit with a code or be ended by a signal; `find_program` finds a name on a `PATH` value as a shell does (D2535) | scripted programs, each in a directory |
 | clocks, in `core/time` | a monotonic clock with sleeping and a wall clock, with time in nanoseconds in a `u64` and no floating point; on Linux the clock is read through the vDSO the auxiliary vector names, falling back to the system call | `fake.clock`, a manual clock |
 | entropy | the system's entropy | `fake.entropy`, scripted entropy |
-| network, in `core/net` | TCP and UDP over IPv4 and IPv6 that listen, accept, connect, send and receive, blocking the thread over `hosted/blocking` and letting other fibres run over `hosted/events`; address values read from and written to their text, an IPv6 address's zone among it, `fe80::1%eth0`, which the hosted providers turn into the interface's number and back (D581); time limits whose passing is an atom, a connection's own among them (D580); a connection read and written as a file, a line reader and a buffered writer among them | `fake.network`, loopback addresses in the caller's buffers, whose calls take turns where they would wait when it is given a `fibre.turns`, beside a `fake.clock` whose sleepers it waits for (D483, D493) |
+| network, in `core/net` | TCP and UDP over IPv4 and IPv6 that listen, accept, connect, send and receive, blocking the thread over `hosted/blocking` and letting other fibres run over `hosted/events`; address values read from and written to their text, an IPv6 address's zone among it, `fe80::1%eth0`, which the hosted providers turn into the interface's number and back (D581); time limits whose passing is an atom, a connection's own among them (D580); a connection read and written as a file, a line reader and a buffered writer among them; a host name resolved to its addresses by the system's resolver, or from `/etc/hosts` and the name servers of `/etc/resolv.conf` by a static Linux program itself (D3075), and a connection by name that tries each address in turn (D3076); socket options set and read back, address and port reuse, keepalive and its spans, buffer sizes, broadcast, IPv6 only, hop limits and linger among them, with multicast groups joined and left (D3074); Unix-domain sockets at a path, streams on every hosted system and datagrams on all but Windows (D3077) | `fake.network`, loopback addresses in the caller's buffers, with names from a hosts file's text, options kept and read back, Unix-domain paths and multicast groups (D3078), whose calls take turns where they would wait when it is given a `fibre.turns`, beside a `fake.clock` whose sleepers it waits for (D483, D493) |
 | file system | opening with options, appending and exclusive creation among them, and a directory opened as a file refused as `io.is_a_directory`; renaming that replaces a taken name in one step; a status of size, kind, modification time, a read-only flag and whether a file is executable (D2535); read-only files, synchronizing, truncation, reading and writing at an offset; temporary files created exclusively under names drawn from entropy; the working directory's path | `fake.volume`, over the caller's nodes |
 | terminals | whether a stream is one, and its size | `fake.terminals` |
 | signals, in `core/io/signal` | the signals a server cares about, delivered as events: `signals` refines `fibre.turns`, so only a provider whose fibres take turns delivers them, and a fibre waits for the next one as for a receive (D477, D482) | `fake.signals`, those a test raises, on Cortex-M0 too |
@@ -1253,7 +1307,9 @@ process ignores SIGPIPE and gives its children the default back.
   bounds carry through a constant offset or multiple, so `w[t - 15]` and
   `4 * t + 3` in SHA-256's loops keep no check (D2207); an index counted
   down from a slice's length, as reverse-complement's, keeps none either
-  (D2491, D2492); one product
+  (D2491, D2492). An index incremented after its bounds check in the
+  same block, and a count stepped at most once a step of the loop that
+  counts it, as fasta's, keep no overflow check (D2816, D2817); one product
   written four times is made once (D2247, D2248). On x86-64 and arm64
   two shifts that rotate a value are one rotate instruction, and a proved
   product by a power of two is a shift (D1624, D2251). SHA-256's majority
@@ -1374,7 +1430,8 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [debugging from an editor](targets.md#debugging-from-an-editor).
 - Debug provenance stays independent of its formats: DWARF and CodeView
   are two serializations of the same source, IR and allocation facts. A
-  Windows image's CodeView describes no inlined copy yet (D2290).
+  Windows image's CodeView describes each inlined copy as an inline site,
+  a frame of its routine with its own variables, as DWARF does (D2964).
 
 ## Programs that run
 
@@ -1408,7 +1465,7 @@ Add `--target=darwin-arm64` for native macOS output, then open
   [`examples.md`](../examples.md)
   runs on every hosted target against its recorded output: everyday tools,
   the printing and failure lessons, the classic exercises from FizzBuzz to
-  merge sort, the sensor-polling program, and six Benchmark Game ports at
+  merge sort, the sensor-polling program, and ten Benchmark Game ports at
   correctness scale. Its firmware example builds for Cortex-M0 and is held
   to its serial output on the emulator.
 

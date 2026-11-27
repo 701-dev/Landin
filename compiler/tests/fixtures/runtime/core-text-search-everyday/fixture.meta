@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: text.starts_with and text.ends_with at the empty text, the whole text and one byte past it; text.find_last and text.find_last_scalar at either end, across scalars of every width and for overlapping matches; text.occurrences counting from the left without overlap, the empty text one more than the scalars; and the byte searches find_byte, find_bytes, their _from forms and their find_last forms over bytes that are not UTF-8
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0250, 0570, 0600, 0610, 0940, 1030
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

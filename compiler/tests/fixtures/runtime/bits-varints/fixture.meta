@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/bits's LEB128 varints read and write known encodings at both signs and ends of the range and every length from one byte to ten, accept padding, and refuse truncated, eleven-byte and overflowing encodings with mem.out_of_bounds and bits.invalid_varint without moving
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0150, 0570, 0940, 1030

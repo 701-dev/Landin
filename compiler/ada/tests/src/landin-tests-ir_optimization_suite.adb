@@ -2635,6 +2635,87 @@ package body Landin.Tests.IR_Optimization_Suite is
             & "end f",
             IR.Multiply, 0, "an index below a parameter times 4 may "
             & "overflow", Objective);
+         --  D2816: an index this block's bounds check passed is below the
+         --  length, so its increment cannot carry.  A loop's own step is
+         --  the other proved addition.
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut line: [61]u8 = zeroed "
+            & "mut w: usize = 0 for at in usize(0)..<lenof s do "
+            & "line[w] = s[at] inc w if w == 60 then w = 0 end if end for "
+            & "r = w end f",
+            IR.Add, 2, "an index incremented after its bounds check",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut line: [61]u8 = zeroed "
+            & "mut w: usize = 0 for at in usize(0)..<lenof s do "
+            & "inc w line[w] = s[at] if w == 60 then w = 0 end if end for "
+            & "r = w end f",
+            IR.Add, 1, "an index incremented before its bounds check",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut line: [61]u8 = zeroed "
+            & "mut w: usize = 0 for at in usize(0)..<lenof s do "
+            & "line[w] = s[at] if s[at] > 3 then inc w end if "
+            & "if w == 60 then w = 0 end if end for r = w end f",
+            IR.Add, 1, "a bounds check in another block proves nothing",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, v: usize) -> (r: usize) = "
+            & "mut line: [61]u8 = zeroed "
+            & "mut w: usize = 0 for at in usize(0)..<lenof s do "
+            & "line[v] = s[at] inc w if w == 60 then w = 0 end if end for "
+            & "r = w end f",
+            IR.Add, 1, "another index's bounds check proves nothing",
+            Objective);
+         --  D2817: a count stepped at most once a step of a loop that
+         --  counts from no lower never passes the loop's counter.
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut index: usize = 0 "
+            & "for at in usize(0)..<lenof s do "
+            & "if s[at] > 3 then inc index end if end for r = index end f",
+            IR.Add, 2, "a count of a condition in a counted loop",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut index: usize = 5 "
+            & "for at in usize(0)..<lenof s do "
+            & "if s[at] > 3 then inc index end if end for r = index end f",
+            IR.Add, 1, "a count started above the counter", Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut index: usize = 0 "
+            & "for at in usize(0)..<lenof s do "
+            & "if s[at] > 3 then index += 2 end if end for r = index end f",
+            IR.Add, 1, "a count stepped further than the counter",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut index: usize = 0 "
+            & "if lenof s > 3 then index = 0 end if "
+            & "for at in usize(0)..<lenof s do "
+            & "if s[at] > 3 then inc index end if end for r = index end f",
+            IR.Add, 1, "a count stored twice before the loop", Objective);
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: usize) = "
+            & "mut index: usize = 0 "
+            & "if n > 3 then r = 1 end if "
+            & "for k in usize(0)..<lenof s do "
+            & "if s[k] > 3 then inc index end if end for "
+            & "r = index end f",
+            IR.Add, 1, "a counter first stored in another block",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8) -> (r: usize) = mut index: usize = 0 "
+            & "for at in usize(0)..<lenof s do "
+            & "while s[at] > 3 do inc index end while end for "
+            & "r = index end f",
+            IR.Add, 1, "a count stepped again before the counter",
+            Objective);
+         Check_Proved
+           ("public f: (s: []u8, n: usize) -> (r: usize) = "
+            & "mut index: usize = 0 mut at: usize = 0 "
+            & "while at < n do if s[0] > 3 then inc index end if "
+            & "unchecked begin at = at + 2 end unchecked end while "
+            & "r = index end f",
+            IR.Add, 1, "a counter whose step may wrap bounds nothing",
+            Objective);
          --  D2367: a narrowing conversion of a value its bounds hold in
          --  the result's range.
          Check_Proved

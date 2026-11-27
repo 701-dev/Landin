@@ -1,0 +1,3 @@
+count: (value: text.builder) -> (n: usize) =
+    n = text.length(value)
+end count

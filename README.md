@@ -54,7 +54,8 @@ Use 0.2.9 or later: [the first program](#your-first-program) needs
 
 ### With the install script
 
-On Linux x86-64 or arm64, or on a Mac with Apple Silicon:
+On Linux x86-64 or arm64, on a Mac with Apple Silicon and macOS 26 or
+later, or, from the release after 0.2.11, on FreeBSD x86-64:
 
 ```sh
 curl -fsSL https://www.701.dev/install.sh | sh
@@ -85,14 +86,15 @@ or later:
 curl -fsSL https://www.701.dev/install.sh | sh -s -- --variant dynamic
 ```
 
-The option is for Linux only. On a Mac the script refuses it, because
-macOS has one archive. `--list` names the archives a release has, both
-Linux ones among them.
+The option is for Linux only. On a Mac or on FreeBSD the script refuses
+it, because each of them has one archive. `--list` names the archives a
+release has, both Linux ones among them.
 
 `--help` lists the options. The script is
 [`install.sh`](install.sh) in this repository, served unchanged; read it
 before you run it if you like. It refuses a host no archive serves,
-Intel Macs, FreeBSD, Windows and other CPU architectures among them. It
+Intel Macs, Macs older than macOS 26, FreeBSD on arm64, Windows and other
+CPU architectures among them. It
 also refuses an archive whose `refine` does not start on your host, after
 downloading and checking it. That is what the dynamic archive, and every
 archive of 0.2.11 and earlier, does on NixOS, on musl distributions and
@@ -107,8 +109,8 @@ delete `~/.landin`.
 
 ### With Homebrew
 
-Homebrew installs `refine` on a Mac with Apple Silicon, and on Linux
-x86-64 and arm64. An Intel Mac is not covered.
+Homebrew installs `refine` on a Mac with Apple Silicon and macOS 26 or
+later, and on Linux x86-64 and arm64. An Intel Mac is not covered.
 
 ```sh
 brew install 701-dev/tap/landin
@@ -143,7 +145,8 @@ under `lib/landin`, with no top-level directory. Unpack it into a directory of i
 
 From the release after 0.2.11, a release publishes two archives for each
 Linux architecture, x86-64 and arm64. macOS has one archive, as before,
-and FreeBSD x86-64 one, `landin-VERSION-x86_64-freebsd.tar.gz`, whose
+and its `refine` needs macOS 26 or later. FreeBSD x86-64 has one too,
+`landin-VERSION-x86_64-freebsd.tar.gz`, whose
 `refine` needs only the base system and links with its `cc` and binutils'
 `as` (`pkg install binutils`).
 
@@ -562,7 +565,8 @@ run records and what the gate checks for each target.
   time, networking, random numbers, atomic cells, the elementary
   mathematical functions, complex numbers, dense linear algebra's vectors
   and matrices, Unicode text, integers and rationals of any size, regular
-  expressions, and floats written and read as text, with a template's
+  expressions, command-line arguments parsed against a table with their
+  help, and floats written and read as text, with a template's
   placeholders taking Rust's format specification, each provider with a
   fake for testing, and
   `hosted` providers over POSIX, among them threads started as a group a
@@ -601,7 +605,7 @@ run records and what the gate checks for each target.
   manager, self-hosting, a browser target, dates and times in the library
   and every release decision stay outside it.
 
-**Next roadmap item: R22.21 — n-body and spectral-norm ported (planned).**
+**Current roadmap work: R22.36 — Failure causes recorded, and the selection in shadow.**
 
 ## Questions, bugs and ideas
 

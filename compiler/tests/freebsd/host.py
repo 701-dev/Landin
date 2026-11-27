@@ -41,8 +41,10 @@ CHECKOUT = HOME + '/Landin'
 #  What the build and the test program need beyond the base system:
 #  binutils' as assembles x86-64's GNU assembly (D475's -fno-integrated-as)
 #  and its ld is the one the built GNAT links with on either architecture,
-#  git gives the build its revision, bash runs the developer scripts.
-PACKAGES = ('python3', 'git', 'bash', 'binutils')
+#  git gives the build its revision, bash runs the developer scripts, and
+#  curl is what install.sh downloads with, which the packaged archive's
+#  install check runs.
+PACKAGES = ('python3', 'git', 'bash', 'binutils', 'curl')
 #  The data-size ceiling the corpus needs, 4 GiB (environments/freebsd/README.md).
 DATA_CEILING = 4294967296
 
@@ -129,7 +131,9 @@ def package(guest, options, environment, log):
     vm.require(status == 0, 'packaging failed; see ' + str(log))
     #  The archive must run where no GNAT is: the toolchain is moved away
     #  while the unpacked refine names its host, compiles and runs a
-    #  program, and says what it loads.
+    #  program, and says what it loads, and while install.sh installs the
+    #  x86-64 one, the archive it serves, as a FreeBSD user would and runs
+    #  the first program (D2975).
     guest.checked(f'mv {gnat.PREFIX} {gnat.PREFIX}.away')
     try:
         smoke = ' && '.join([
@@ -143,7 +147,8 @@ def package(guest, options, environment, log):
             '{ /tmp/landin-unpacked/bin/refine run'
             ' compiler/tests/fixtures/runtime/add-exits-with-its-sum/main.ldn;'
             ' test $? = 42; }',
-        ])
+        ] + ([f'python3 scripts/install_check.py --archive /tmp/landin-package/{asset}'
+               ' --work /tmp/landin-install-check'] if options.arch == 'amd64' else []))
         status = streamed(guest, as_user(smoke), log, 1800)
     finally:
         guest.checked(f'mv {gnat.PREFIX}.away {gnat.PREFIX}')

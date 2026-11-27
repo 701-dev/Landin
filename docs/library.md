@@ -38,7 +38,8 @@ several of the tasks together.
 | Get the handle every hosted call takes | `host := blocking.new()` | [hosted/blocking](../hosted/blocking) |
 | Print a formatted line | `io.write_format(host, io.out(host), "{} lines\n", [any(addr count)])` | [core/io](../core/io) |
 | Print many lines | `io.buffered_over(host, io.out(host), storage)` once, then `io.format(out, "{} lines\n", [any(addr count)])` for each line, and `io.flush(out)`, checked, before reporting success | [core/io](../core/io) |
-| Get a command-line argument | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
+| Read the command line's options and arguments | a table of `args.flag`, `args.option` and `args.positional` rows, `args.parse_process(memory, host, program, parsed)`, `args.reply(memory, host, parsed)` when it refuses, then `args.value_of(parsed, "name")` | [core/args](../core/args) |
+| Get a command-line argument as the system gave it | `io.argument(host, 0)`, and `io.arguments_length(host)` | [core/io](../core/io) |
 | Get the name the program was run by, `argv[0]` | `io.program_name(host)` | [core/io](../core/io) |
 | Find a program on the search path, as a shell does | `io.variable_named(host, text.os_string_over("PATH"))`, then `io.find_program(host, name, search, buffer)` | [core/io](../core/io) |
 | Run a program in another directory | `io.spawn_in(host, directory, path, arguments, variables, io.inheriting)`, then `io.wait(host, child)` | [core/io](../core/io) |
@@ -238,13 +239,18 @@ The library covers:
   the environment;
 - running programs, clocks, sleeping, the system's entropy and a
   deterministic generator;
+- bit operations, integers in a stated byte order and LEB128 over the
+  caller's bytes, and sets of flags, `core/bits`;
 - the elementary mathematical functions of `f32` and `f64`, `core/math`;
 - Unicode's properties, case mapping, normalization and the boundaries
   of characters, words and sentences, `core/unicode`;
 - regular expressions over `utf8`, matched in linear time,
   `core/regex`;
+- a command line parsed against the program's table of options and
+  arguments, with its usage and help, `core/args`;
 - complex numbers over `f32` and `f64`, `core/complex`;
-- blocking TCP and UDP sockets over IPv4 and IPv6;
+- blocking TCP and UDP sockets over IPv4 and IPv6, their options,
+  resolving a host name, connecting by name and Unix-domain sockets;
 - threads started as a group the function joins, `hosted/thread`;
 - the rest of the file system: opening with options, renaming, a file's
   status, read-only files, synchronizing, truncation, reading and writing
@@ -272,8 +278,7 @@ library's systems:
 
 | Need | Planned | Route until then |
 |---|---|---|
-| Calendars, time zones and formatting a date | the locale record in the register | `time.wall_now` gives the wall clock's seconds since 1970. Turning them into a date is the program's work. |
-| Resolving a host name to an address | the resolver record in the register | Under the C library, which means on Darwin, on FreeBSD and on Linux under `--link=libc`, declare `getaddrinfo` as `extern(c)`. A static Linux program has none. `net.parse_address` reads an address that is already written as one. |
+| Calendars, time zones and formatting a date | The next roadmap's library takes dates up. | `time.wall_now` gives the wall clock's seconds since 1970. Turning them into a date is the program's work. |
 | Changing the working directory | Not offered. The working directory is the whole process's, and beside threads a change would move every relative path at once. | Use a path built from `io.current_directory`, or a call relative to a directory open as `at` in `platform/posix`; `chdir` by its number through `linux.system_call` on Linux, or declared `extern(c)` on Darwin and FreeBSD, where a program must. |
 | Extended attributes, access control lists, file flags | not yet planned | On Linux, pass the call's number from `platform/linux/numbers` to `linux.system_call`. On Darwin and FreeBSD, declare the C function as `extern(c)`. |
 | Accounts kept outside /etc/passwd and /etc/group on Linux, those of a directory service or of the Name Service Switch (NSS) | `--link=libc` | A static Linux program reads the two files itself. In a program linked with `--link=libc`, `platform/posix` asks the C library, which asks NSS. |
@@ -570,20 +575,28 @@ comparison must be a strict weak ordering while it runs.
 
 ## core/text
 
-Byte cursors, validated UTF-8 views, positions and searches inside them, a scalar encoder, two text builders, formatting and parsing numbers.
+Byte cursors, validated UTF-8 views, positions and searches inside them, trimming and taking text apart, a scalar encoder, two text builders, formatting and parsing numbers.
 
 | Call | What it does |
 |---|---|
 | `text.from_bytes`, `text.valid` | Check that bytes are UTF-8, as a view or as a yes or no. |
 | `text.start`, `text.step`, `text.utf8_at_end`, `text.scalar_length` | Walk text a scalar at a time, keeping each scalar's byte position. |
 | `text.find`, `text.find_scalar` and their `_from` forms | Find where text or a scalar first occurs. |
+| `text.find_last`, `text.find_last_scalar` | Find where text or a scalar last occurs. |
+| `text.starts_with`, `text.ends_with`, `text.occurrences` | Test a prefix or a suffix, and count how many times text occurs. |
+| `text.trim` and its kin | Take White_Space, or a scalar you name, off either end. |
+| `text.split`, `text.split_scalar`, `text.fields`, `text.lines` | Walk the parts between separators, the fields between spaces, or the lines, in a `for` loop. |
+| `text.find_byte`, `text.find_bytes` and their kin | Search bytes that need not be text. |
+| `text.equal_ascii_caseless` and its kin | Compare with only A to Z folded, for an image that cannot carry `core/unicode`. |
 | `text.encode` | Write a scalar's UTF-8 bytes into your buffer. |
 | `text.utf8_over` | Make a builder that only ever holds UTF-8. |
 | `text.over`, `text.growing` | Make a builder over your buffer, or one that grows from an allocator. |
 | `text.append_text`, `text.append_u32` and the rest | Append a piece to a builder. |
+| `text.append_joined`, `text.append_replaced`, `text.append_repeated` | Append parts with a separator between them, a text with each occurrence replaced, or a text repeated. |
+| `text.append_quoted` | Append a text as a Landin literal spells it, escapes and quotes included. |
 | `text.format` | Append a template with each `{}` filled in. |
 | `text.format_onto` | Format a template through a buffer, handing the text to an `outlet` as the buffer fills. |
-| `text.parse_u32` and the rest | Read a number from bytes. |
+| `text.parse_u32` and the rest, `text.parse_radix_u32` and its kin, `text.parse_bool` | Read a number in decimal or another radix, or a `bool`, from bytes. |
 | `text.os_string_over`, `text.from_os_string` | Make an OS string, and check that one is UTF-8. |
 
 ### Views and cursors
@@ -616,12 +629,15 @@ whole scalar, so each position is where a scalar starts, or the end:
 | Call | What it does |
 |---|---|
 | `start(source)` | The first scalar's position, offset zero. |
-| `done(source, at)` | Whether `at` is at the end. |
-| `width(source, at)` | How many bytes, one to four, the scalar at `at` takes. |
+| `utf8_at_end(source, at)` | Whether `at` is at the end. |
+| `scalar_length(source, at)` | How many bytes, one to four, the scalar at `at` takes. |
 | `step(source, at)` | The position after the scalar at `at`. |
 | `find(source, sought)` | Where `sought` first begins, or `mem.not_found`. |
 | `find_from(source, sought, at)` | The same, searching from `at`. |
 | `find_scalar(source, scalar)`, `find_scalar_from` | Where a scalar first is, or `mem.not_found`. |
+| `find_last(source, sought)`, `find_last_scalar` | Where `sought` or a scalar last begins, or `mem.not_found`. |
+| `starts_with(source, prefix)`, `ends_with(source, suffix)` | Whether `source` begins or ends with the other text. |
+| `occurrences(source, sought)` | How many times `sought` occurs, counted from the left without overlapping. |
 
 Read the scalar at a position as `source[at]`. Walk the text by stepping
 until `utf8_at_end`. This function walks a key that way, and checks each scalar
@@ -669,13 +685,87 @@ end split
 [The splitter](../compiler/tests/fixtures/runtime/core-text-utf8-split/main.ldn)
 goes on to take each field between arrows with `find_from`.
 
-Three more facts about searches:
+Four more facts about searches:
 
 - Empty sought text is found where the search begins, as `contains` finds
-  it.
+  it, and `find_last` finds it at the end.
 - A surrogate is in no text, so `find_scalar` reports `mem.not_found` for one.
-- Searches are the Two-Way search that `contains` uses. It is linear in
-  the two lengths, with no table and no allocation.
+- `occurrences` counts as Go's `strings.Count` does: "aaaa" holds "aa"
+  twice, and the empty text occurs once more than the source has scalars.
+- The forward searches are the Two-Way search that `contains` uses. It is
+  linear in the two lengths, with no table and no allocation. `find_last`
+  compares each candidate from the right, which a periodic sought text
+  makes slower.
+
+### Trimming and taking text apart
+
+`trim(source)` gives `source` without the White_Space at either end;
+`trim_start` and `trim_end` take it off one end. `trim_scalar(source,
+scalar)` and its `_start` and `_end` forms take off a scalar you name
+instead, so trimming `'/'` from "//a/b//" gives "a/b". Each gives a view
+of `source`, with nothing copied.
+
+White_Space is Unicode's property: 25 scalars, U+00A0 no-break space and
+U+3000 ideographic space among them. `core/text` holds the list without a
+table, and a check holds it to the Unicode Character Database.
+
+Four walks give a text's parts to a `for` loop:
+
+| Walk | Gives |
+|---|---|
+| `split(source, separator)` | the parts between the occurrences of `separator`, found as `find_from` finds them: "a,b,,c" gives "a", "b", "" and "c" |
+| `split_scalar(source, scalar)` | the parts between a scalar |
+| `fields(source)` | the runs between runs of White_Space: " a  b\t" gives "a" and "b" |
+| `lines(source)` | the lines, each without its line feed or a carriage return before it |
+
+Each item is a `text.span`: two positions, as `regex.span` and
+`unicode.segment` are. `text.part(source, piece)` is its text:
+
+```landin
+--  Whether every field of a record such as "a, b, c" holds something
+--  once the spaces around it are trimmed.
+filled: (record: utf8) -> (yes: bool) =
+    yes = true
+    for piece in text.split(record, ",") do
+        field: utf8 = text.trim(text.part(record, piece))
+        if lenof field == 0 then
+            yes = false
+            return
+        end if
+    end for
+end filled
+```
+
+[The parts](../compiler/tests/fixtures/runtime/core-text-parts/main.ldn)
+walks each kind at its edges.
+
+The edges:
+
+- A separator at either end gives an empty part there, and an empty
+  `source` is one empty part.
+- An empty `separator` gives each scalar as a part, and an empty source
+  then has none.
+- `fields` gives no part for text that is empty or only White_Space.
+- `lines` begins no line after a final line feed, so "a\nb\n" is two
+  lines, and an empty text has none. It keeps a carriage return anywhere
+  but before a line feed.
+
+### Bytes that are not text
+
+`find_byte(source, value)` and `find_bytes(source, sought)` search a
+`[]u8`, which need not be UTF-8, as C's `memchr` and `memmem` do. Each has
+a `_from` form, and `find_last_byte` and `find_last_bytes` search from the
+end. A position over bytes is a byte offset, so every offset is a
+position.
+
+### Comparing without case over ASCII
+
+`equal_ascii_caseless`, `starts_with_ascii_caseless` and
+`ends_with_ascii_caseless` fold A to Z to a to z and nothing else, so
+"Content-Type" begins with "content-" but "Straße" does not equal
+"STRASSE". They are for an image that cannot carry `core/unicode`'s case
+tables, and for protocols whose names are ASCII. Compare text a person
+wrote with `unicode.equal_caseless`.
 
 ### Encoding a scalar
 
@@ -737,12 +827,29 @@ builder as it was:
 | `append_scalar` | a scalar's UTF-8 bytes, as `encode` writes them, or `invalid_scalar` |
 | `append_os_string` | an OS string's bytes |
 | `append_u32`, `append_u64`, `append_usize` | decimal |
-| `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
+| `append_u8`, `append_u16` | decimal |
+| `append_i8`, `append_i16`, `append_i32`, `append_i64`, `append_isize` | decimal, with a `-` before a negative value |
 | `append_hex_u32`, `append_hex_u64`, `append_hex_usize` | lower-case hexadecimal with no `0x` |
 
 Each append takes exactly its own type, and nothing widens at the call:
-passing a `u8` to `append_u32` is refused. Convert a narrower integer
-explicitly, `text.append_u32(line, u32(byte))`.
+passing a `u8` to `append_u32` is refused, and `append_u8` takes it.
+
+Four appends write a text made of others, each whole or not at all:
+
+| Append | Writes |
+|---|---|
+| `append_joined(into, parts, separator)` | each of the `[]utf8` `parts` with `separator` between each two |
+| `append_replaced(into, source, sought, replacement)` | `source` with each occurrence of `sought`, as `occurrences` counts them, replaced |
+| `append_repeated(into, source, times)` | `source` `times` times over |
+| `append_quoted(into, source)` | `source` between double quotes as a Landin literal spells it |
+
+`append_quoted` writes `\n`, `\r`, `\t`, `\e`, `\\` and `\"` for those
+scalars. It writes `\u{...}` for any other control, and for each scalar
+that is not seen but changes how the text around it reads: the
+bidirectional controls, U+2028, U+2029 and the byte order mark. It writes
+every other scalar as itself. What it writes reads back as the text, so a
+program can print a value a person must see exactly, as Go's
+`strconv.Quote` and Rust's `{:?}` do.
 
 Width and padding apply to whatever was written since an earlier
 `length`:
@@ -901,6 +1008,8 @@ not be UTF-8:
 | `parse_u8` to `parse_u64`, `parse_usize` | nonempty ASCII digits |
 | `parse_i8` to `parse_i64`, `parse_isize` | an optional `-` before them, never a `+`, since no append writes one |
 | `parse_hex_u32`, `parse_hex_u64`, `parse_hex_usize` | hexadecimal digits of either case, with no `0x` |
+| `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize`, `parse_radix_i8` to `parse_radix_isize`, each `(source, radix)` | digits in a radix from 2 to 36, with `a` to `z` in either case for ten and up; before them the `-` of a signed value, then an optional prefix in either case, `0x` in radix 16, `0o` in 8 or `0b` in 2; no other radix has a prefix, so "0b1" in radix 16 is 0xb1 |
+| `parse_bool` | `true` or `false`, exactly, or `invalid_bool` |
 | `parse_f64`, `parse_f32` | an optional `-`, digits with an optional point and a digit beside it, `2.` and `.25` too, and an optional exponent, `e` or `E` with an optional sign; or `inf`, `infinity` or `nan` in any case |
 | `to_u32` | `parse_u32` over a `utf8` view |
 
@@ -908,7 +1017,8 @@ A parse fails in two ways. The scan goes from the left and reports
 whichever it meets first:
 
 - Any input other than what the table allows, a space included, is
-  `invalid_number`.
+  `invalid_number`. So is every input to a radix parse whose radix is
+  outside 2 to 36.
 - A value outside the type, above its maximum or below a signed minimum,
   is `number_overflow`. A float's is a finite decimal whose nearest float
   is beyond the greatest; one too small for the least subnormal is zero.
@@ -987,29 +1097,28 @@ The four `append_` routines apply Unicode's default full mappings, which
 are right for every language except Turkish, Azerbaijani and Lithuanian.
 Those three need a locale, which a later item adds.
 
-To compare two texts ignoring case, fold each and compare the results
-with `text.equal`. Put them in NFC as well where an accent may be written
-either as part of its letter or as a mark of its own:
+Three calls compare two texts without case, by each scalar's full case
+folding, and keep no buffer:
 
-```landin
---  Whether two texts say the same words whatever their case and however
---  their accents are spelled: each folded, then put in NFC, compares
---  equal.
-same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
-    mut folded: [64]u8 = zeroed
-    mut left_storage: [64]u8 = zeroed
-    mut right_storage: [64]u8 = zeroed
-    mut scratch: text.utf8_builder = text.utf8_over(folded)
-    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
-    try unicode.append_folded(scratch, left)
-    try unicode.append_nfc(left_form, text.utf8_used(scratch))
-    text.utf8_clear(scratch)
-    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
-    try unicode.append_folded(scratch, right)
-    try unicode.append_nfc(right_form, text.utf8_used(scratch))
-    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
-end same_words
-```
+| Call | What it does |
+|---|---|
+| `equal_caseless(left, right)` | Whether the texts are equal without case: "Straße" equals "STRASSE", and "ΣΑΣ" equals "σας". |
+| `starts_with_caseless(source, prefix)`, `ends_with_caseless(source, suffix)` | Whether `source` begins or ends with the other text without case. The match must end where a scalar of `source` does, so "STRASSE" begins with "straß", but "ß" does not begin with "s". |
+| `equal_canonical_caseless(left, right)` | Unicode's canonical caseless match, which also equates the spellings of an accent: "Å" as U+00C5, as "A" and U+030A, and as U+212B, the angstrom sign, all equal "å". |
+
+`equal_caseless` compares no normalization form, so "é" as one scalar and
+as "e" with U+0301 differ there and are equal under
+`equal_canonical_caseless`. The folding is Unicode's default, as the
+`append_` routines' is. Each runs in time linear in the texts, except
+`equal_canonical_caseless` over a run of combining marks out of canonical
+order, which takes longer, as normalizing it does.
+`text.equal_ascii_caseless` and its kin fold only A to Z, for an image
+that cannot carry the case tables.
+
+`core/unicode` has no caseless search. `core/regex`'s `(?i)` searches
+without case by simple folding, a scalar for a scalar, so "ß" does not
+match "ss" there. To search by full folding, fold both texts with
+`append_folded` and search with `text.find`.
 
 ### Normalization
 
@@ -1105,9 +1214,13 @@ linked images:
 | Grapheme clusters | 5,388 | 2,636 |
 | Words | 7,100 | 3,480 |
 | Sentences | 7,964 | 2,816 |
+| Equality, a prefix and a suffix without case | 5,662 | 3,648 |
+| The canonical caseless match | 19,570 | 9,440 |
 
 NFKC and NFKD do not fit Cortex-M0's 32 KiB profile beside anything. Each
-of the others does.
+of the others does. The caseless rows were measured against an image that
+calls only `text.equal`; their ASCII variants in `core/text` take 724
+bytes of code and no table.
 
 [Executable example](../compiler/tests/fixtures/runtime/example-text-as-read/main.ldn)
 
@@ -1378,6 +1491,95 @@ The program runs over a hosted heap. It shows a pattern for each failure
 of `compile`, the forms of a replacement template and what a missing
 group gives, a walk's empty matches, a search from a position, an
 anchored walk, and Unicode classes and case.
+
+## core/args
+
+A program's command line read against a table the program declares, as
+Rust's `clap`, Go's `flag` and Swift's argument parser read one: short and
+long options, `--name=value` and `--name value`, clustered short flags,
+`--` ending the options, counted flags, values read as numbers or text or
+kept as the host string a path wants, required arguments and defaults,
+positional arguments with one trailing list, and commands that nest. It
+writes the usage line and the help, and says of a refused argument which
+it was and what was expected.
+
+| Call | What it does |
+|---|---|
+| `args.flag`, `args.counted`, `args.option`, `args.positional` | Make a row of a table: a flag given at most once, one given any number of times, an option that takes a value, a positional argument. |
+| `args.required`, `args.optional`, `args.repeated`, `args.typed`, `args.with_default` | Change a row: whether it must be given, whether it may be given again, what its value reads as, its value when it is not given. |
+| `args.as_host_string`, `args.as_text`, `args.as_unsigned`, `args.as_signed`, `args.as_float` | What a value reads as, for `typed`. |
+| `args.command_of`, `args.with_commands` | Make the program, or a command, from its name, a line about it and its table, and give it commands. |
+| `args.new`, `args.parse`, `args.parse_process`, `args.release` | Parse a list of words, or the process's arguments, into a record `new` makes, and give its storage back. |
+| `args.count`, `args.get`, `args.get_at`, `args.value_of`, `args.text_of`, `args.chosen` | Read what was found: how many times an argument was given, its value, its value each time, the command chosen at each depth. |
+| `args.reply` | Answer a refusal as a hosted program does: help on standard output, or the refusal and the usage line on standard error, and the status to exit with. |
+| `args.explain`, `args.usage`, `args.usage_for`, `args.help`, `args.help_for`, `args.words`, `args.problem` | Write a refusal, the usage line or the help into a builder, and put a failure in a phrase. |
+
+There is no compile-time execution, so a table is an array of rows the
+program makes when it runs, and the program names each argument by its
+long name or a positional argument's name when it reads it back:
+
+```text
+table: [3]args.argument = [
+    args.counted('v', "verbose", "say more"),
+    args.with_default(args.typed(args.option('n', "lines", "N",
+                                             "how many lines"),
+                                 args.as_unsigned), "10"),
+    args.positional("FILE", "the file to read")
+]
+program := args.command_of("head", "Print a file's first lines.",
+                           table[0..<3])
+mut parsed := args.new()
+defer args.release(parsed, memory)
+args.parse_process(memory, host, program, parsed) else begin
+    code = args.reply(memory, host, parsed)
+    return
+end
+lines := args.value_of(parsed, "lines")
+```
+
+`lines.unsigned` is then 10 or the number given, and `--lines=x` was
+refused as `option --lines expects an unsigned number, given "x"`.
+
+- An option's value is always the next word, even one that begins with
+  `-`, as `-n -5` gives `-5`. A positional argument that begins with `-`
+  follows `--`; a `-` alone is positional.
+- A flag or an option that is not `repeated` or `counted` given twice is
+  refused. `get` gives the last value, `get_at` each.
+- `-h` and `--help` ask for help, unless the table takes the letter or
+  the name for itself. `parse` then fails with `args.help_asked`, which is
+  no mistake: `reply` writes the help and gives 0, as Go's `flag.ErrHelp`
+  is answered.
+- A command that has commands takes options only: its first positional
+  word names the command below it, whose arguments follow, and the
+  options before that word are the parent's. A name is looked up from
+  the innermost command chosen outwards.
+- A table `parse` cannot follow, a row with no long name, two rows with
+  one name, a default its type does not read, is `args.invalid_table`, and
+  `explain` says what is wrong with it. A name the commands followed do
+  not declare, given to `count` or `get`, stops the program as a failed
+  check does: both are the program's defects, not its user's.
+- `parse` reads any list of byte slices, so a test, or a firmware console
+  that splits its line into words, uses it as a process does. What it
+  records is allocated from the caller's allocator and nothing else is.
+- A value type is a reader, so an image links only the readers its table
+  names: a table with no `as_float` links no float parsing.
+
+On Cortex-M0, parsing a counted flag, an option and a positional argument
+into an arena is a 21.9 KB image at `size/auto`. Putting a refusal in
+words with `explain` and writing the usage line take it to 36.4 KB, past
+the 32 KiB profile, so a firmware program says a refusal with
+`args.words(problem)`, which costs 328 bytes. At `none/off` the parser
+alone is 35.7 KB, so the freestanding lane runs the module's probe on the
+Cortex-M7's map (D3097).
+
+Values from environment variables or configuration files, and shell
+completions, are not covered.
+
+[Executable example](../compiler/tests/fixtures/runtime/args-forms/main.ldn)
+
+`runtime/args-refusals` shows each refusal, `runtime/args-help` the help
+pinned byte for byte, and `runtime/args-commands` commands read from the
+process's arguments.
 
 ## core/io
 
@@ -1997,6 +2199,12 @@ The network concept, whose connections are readers and writers, and internet add
 | `net.send`, `net.receive` | Send and receive on a connection. |
 | `net.open_datagram`, `net.send_to`, `net.receive_from` | A UDP socket and its datagrams. |
 | `net.parse_address`, `net.append_address` | Read and write `192.0.2.1:80`, `[2001:db8::1]:80` and `[fe80::1%eth0]:80`. |
+| `net.resolve`, `net.connect_by_name` | Give a host name's addresses, and connect to the first of them that answers. |
+| `net.hosts_lookup`, `net.name_service_of`, `net.ask` | Read a hosts file and a resolver's settings, and ask name servers. |
+| `net.set_flag`, `net.set_number`, `net.set_span`, `net.set_linger` | Set a socket's options; `flag`, `number`, `span` and `linger` read them back. |
+| `net.join_group`, `net.leave_group`, `net.set_multicast_interface` | Take what is sent to a multicast group, and choose the interface a socket sends to groups through. |
+| `net.connect_local`, `net.listen_local` | Unix-domain connections at a path. |
+| `net.open_local_datagram`, `net.send_to_local`, `net.receive_from_local` | Unix-domain datagrams. |
 | `net.close` | Close a socket. |
 
 ### Sockets
@@ -2068,7 +2276,151 @@ name, `eth0`, or its number in decimal, `2`.
 - The hosted provider looks a name up when the address is used. It names
   the interface again in an address it reads back, a peer's among them.
 
-Nothing here resolves a name.
+Nothing here asks a system for a name's address; [Names](#names) does.
+
+### Names
+
+`resolve` writes the addresses a host name has into the caller's slice,
+each with the port it was given, and returns how many: as many as the
+slice holds, in the resolver's order (D3075).
+
+- A name that is an address's own text, `127.0.0.1` or `::1`, is that
+  address. It is read as `parse_ip` reads one, and no one is asked.
+- A name no source knows is `unknown_name`. So is one that cannot be a
+  host's name: empty, longer than 253 bytes, or with an empty label or
+  one longer than 63.
+- It waits as a receive does while name servers are asked, which may take
+  seconds. Name servers that do not answer are `timed_out`.
+- A slice without room holds none, and the count is zero.
+
+Whose resolver answers depends on the system:
+
+| System | Who answers |
+|---|---|
+| Darwin, FreeBSD, and Linux under `--link=libc` | The C library's `getaddrinfo`. |
+| Windows | Windows' own resolver. |
+| Linux, linked statically | The provider itself. It reads `/etc/hosts` and, for a name the file lacks, asks the name servers `/etc/resolv.conf` names. |
+
+A static Linux program has no C library, so it asks DNS itself, over the
+provider's own network:
+
+- It reads at most three `nameserver` lines, and `timeout:` and
+  `attempts:` from an `options` line. Without a server it asks 127.0.0.1;
+  without options it waits five seconds and asks twice.
+- `search` and `domain` lines are ignored, so a name is asked for as it
+  is written.
+- It asks for IPv4 addresses and then IPv6 ones, over UDP, and again over
+  TCP after a truncated answer.
+
+Under `hosted/events` that program's fibre waits for the name servers as
+for any socket, and other fibres run. The C library's resolver and
+Windows' hold the thread until they answer: nothing lets the loop wait for
+them.
+
+`connect_by_name` connects to a host and port (D3076):
+
+- It resolves the name as `resolve` does, to at most sixteen addresses.
+- It tries each in the resolver's order until one connects. Each attempt
+  has the limit it was given, as `connect_within` limits one; zero is no
+  limit.
+- When none connects it fails as the last attempt did.
+
+So a listener on 127.0.0.1 alone is reached by `localhost` even where the
+resolver gives `::1` first.
+
+The parts a static Linux program resolves with are public, for a program
+that reads a hosts file of its own or asks a name server it chooses:
+
+| Call | Behaviour |
+|---|---|
+| `hosts_lookup` | Adds to a slice the address of each line of a hosts file's text that names a host, as many as fit, each once, in the file's order. Names match in either case, a `#` begins a comment, and a line whose address cannot be read is passed over. |
+| `name_service_of` | Reads a `name_service` from `resolv.conf`'s text: the servers at port 53, how long to wait for each answer, at most 30 seconds, and how many times to ask, at most 5. |
+| `is_host_name` | Says whether a name can be a host's name in DNS. |
+| `ask` | Asks the servers of a `name_service` for a name's addresses over any network. The caller gives the number of its questions, drawn from its entropy. A name a server says does not exist, or one with no address, is `unknown_name`; servers that never answer are `timed_out`. |
+
+[Executable example](../compiler/tests/fixtures/runtime/network-resolver/main.ldn)
+
+### Options
+
+A socket's options are entries by the kind of value an option holds, and
+each option is an atom (D3074). `set_flag`, `set_number` and `set_span`
+set one, and `flag`, `number` and `span` read it back.
+
+| Option | Set by | What it does |
+|---|---|---|
+| `reuse_address` | `set_flag` | Lets a socket bind an address and port that earlier connections still hold while they close. Set it before the socket is bound. Every listener of a hosted provider has it already. |
+| `reuse_port` | `set_flag` | Lets several sockets bind one address and port, the system sharing what arrives among them. Each sets it before it is bound. |
+| `keep_alive` | `set_flag` | Probes an idle connection now and then, and ends it once its peer stops answering. |
+| `broadcast` | `set_flag` | Lets a datagram socket send to a broadcast address. |
+| `ipv6_only` | `set_flag` | Lets an IPv6 socket take IPv6 alone, never IPv4 through mapped addresses. Every IPv6 socket of a hosted provider is made with it on. |
+| `receive_buffer`, `send_buffer` | `set_number` | How many bytes the system keeps for what arrives and for what is sent. |
+| `unicast_hops` | `set_number` | How many routers what a socket sends to one address may cross: 1 to 255. |
+| `multicast_hops` | `set_number` | How many routers a datagram sent to a group may cross: 0 to 255, and 1, this network alone, until it is set. |
+| `keep_alive_idle` | `set_span` | How long a connection with `keep_alive` is idle before its first probe. |
+| `keep_alive_interval` | `set_span` | How long such a connection waits between probes. |
+
+- A number is a `u32`. The two hop counts are IPv4's or IPv6's option by
+  the socket's family, so a program names one option for both.
+- A span is a `time.duration` kept in whole seconds. A part of a second
+  is rounded up, and zero is `io_failed`.
+- The system rounds a buffer's size, and Linux doubles it, so read it
+  back; it is at least what was set.
+- An option a system does not have is `unsupported`. Windows has no
+  `reuse_port`.
+- `ipv6_only` on an IPv4 socket is `io_failed`.
+
+`set_linger` says what a close does with what the socket has sent and the
+peer has not yet taken, and `linger` reads it back:
+
+- With `on`, the close waits up to its limit, kept in whole seconds, for
+  that to be delivered. A limit of zero resets the connection at the
+  close.
+- Without, the close returns at once and the system delivers what is left
+  on its own.
+
+A datagram socket takes what is sent to a multicast group once it has
+joined it:
+
+| Call | Behaviour |
+|---|---|
+| `join_group` | Joins a group through an interface: for IPv4 the interface's address, for IPv6 the interface its zone names. An unspecified address without a zone lets the system choose. An address that is no group is `address_unavailable`. |
+| `leave_group` | Stops taking what is sent to a group `join_group` joined. |
+| `set_multicast_interface` | Sends what the socket sends to groups out through the interface named, as `join_group` reads it. An unspecified address gives the choice back to the system; an interface the system does not have is `address_unavailable`. |
+| `multicast_interface` | Gives that interface back: unspecified for the system's choice, and an IPv6 one as the address `::` with its zone. |
+
+Two sockets on one host exchange a group's datagrams by sending through
+the loopback interface.
+
+`set_no_delay` and `set_timeouts` stay as [Sockets](#sockets) gives them.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-options/main.ldn)
+
+[Executable example](../compiler/tests/fixtures/runtime/network-multicast/main.ldn)
+
+### Unix-domain sockets
+
+A Unix-domain socket is named by a path, a `text.os_string`, where an
+internet socket is named by an address (D3077). Accepting, sending,
+receiving, shutting and closing are the calls every socket has.
+
+| Call | Behaviour |
+|---|---|
+| `listen_local` | Listens at a path, which the listener makes. A path that already exists is `address_in_use`. |
+| `connect_local` | Connects to the listener at a path. A path nothing listens at is `refused`, whether it is missing or the file of a socket that has closed. |
+| `open_local_datagram` | Opens a datagram socket bound to a path, as `listen_local` binds one. |
+| `send_to_local` | Sends a datagram whole to the socket at a path. A path no socket is bound to is `refused`. |
+| `receive_from_local` | Gives the next datagram and its sender's path, written into room the caller lends. The path is empty for a sender bound to none. |
+
+- A path that is empty, holds a NUL or is longer than the system takes is
+  `invalid_address`.
+- A listener's path stays after it closes, as the system leaves it. The
+  program removes it.
+- Windows makes Unix-domain streams and no datagram sockets, so
+  `open_local_datagram` is `unsupported` there.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-local-stream/main.ldn)
+
+[Executable example](../compiler/tests/fixtures/runtime/network-local-datagram/main.ldn)
 
 ### The fake network
 
@@ -2112,6 +2464,27 @@ fibres run first (D493).
 
 A test may take IPv6 away with `without_ipv6` and fail a call with
 `fail_at`.
+
+It has each addition of the concept, kept in its records (D3078):
+
+- `with_names` gives a network the text of a hosts file, read as
+  `hosts_lookup` reads one, and `resolve` answers from it without
+  waiting. A network made without names knows none, so every name is
+  `unknown_name` to it.
+- It keeps every option a socket is given and reads it back as it was
+  set, a span in whole seconds. None of them changes what the network
+  does.
+- A Unix-domain socket keeps its path in its record, so a path is shorter
+  than `fake.path_room`, 32 bytes. The network has no files, so a path is
+  in use while a socket bound to it is open.
+- A datagram socket joins one group at a time, through the unspecified
+  address or a loopback one. A datagram to a group goes to every socket
+  that joined it at the port.
+- A datagram from a socket bound to the unspecified address arrives from
+  the loopback address of its family, as a system fills in the address a
+  datagram leaves by. An answer to it therefore finds its way back.
+
+[Executable example](../compiler/tests/fixtures/runtime/network-fake-names/main.ldn)
 
 [Executable example](../compiler/tests/fixtures/runtime/network-fake-turns-exchange/main.ldn)
 
@@ -2317,7 +2690,7 @@ a `caller` parameter of that type too and passes it on,
 
 ## core/random
 
-A deterministic generator of pseudorandom numbers, the same sequence for a seed on every target.
+A deterministic generator of pseudorandom numbers. A seed gives the same sequence on every target.
 
 | Call | What it does |
 |---|---|
@@ -2325,26 +2698,98 @@ A deterministic generator of pseudorandom numbers, the same sequence for a seed 
 | `random.from_entropy` | Seed one from 32 bytes of any `io.entropy` provider, the hosted system's or a test's scripted bytes. |
 | `random.hash_seed` | Draw a map's `cmp.hash_seed` from 16 bytes of an `io.entropy` provider, with no generator involved. |
 | `random.next` | Draw 64 bits. |
-| `random.next_u32` | Draw the upper 32. |
+| `random.next_u32` | Draw 32 bits, the upper half of one draw. |
 | `random.below` | Draw a value under a bound, each equally likely. |
 | `random.shuffle` | Put a slice in a uniformly drawn order. |
+| `random.unit_f64`, `random.unit_f32` | Draw a float from 0 up to 1, 1 excluded, from the upper 53 or 24 bits of one draw. |
+| `random.between_u64`, `random.between_i64` | Draw an integer from `low` to `high`, both included, each equally likely. |
+| `random.pick` | Draw one element of a slice, each equally likely. |
+| `random.sample` | Fill a slice with distinct elements of another, in the source's order, every choice equally likely. |
+| `random.weighted` | Draw a position in a slice of `u64` weights. A position's chance is its weight's share of their sum. |
+| `random.fill` | Fill a byte slice from the generator. Never use it for a key. |
+| `random.normal` | Draw from the standard normal distribution. |
+| `random.exponential` | Draw from the exponential distribution of rate 1. |
+| `random.jump` | Advance the generator by 2^128 draws, so copies give separate streams. |
 
-`generator` is xoshiro256** 1.0, Blackman and Vigna's: 256 bits of state
-that each draw advances. It is a value the caller keeps and passes
-`inout`.
+`generator` is xoshiro256** 1.0, by Blackman and Vigna. It holds 256
+bits of state, and each draw advances it. It is a value the caller keeps
+and passes `inout`.
 
-`below` masks to the bound's width and draws again when the value is too
-large, so no division is made and no value is favoured. It traps for a
-bound of zero.
+`below` masks a draw to the bound's width and draws again when the value
+is too large, so it divides nothing and favours no value. A bound of
+zero traps. The ranges, picks, samples and weights draw through `below`,
+and trap the same way when there is nothing to draw: a `low` above
+`high`, an empty slice, weights that sum to zero, or a sample larger
+than its source.
 
-The generator uses shifts, exclusive ors and additions on `u64`, so a
-Cortex-M0 draws what a 64-bit host draws. Its sequences are the reference
-implementation's on every target.
+`sample` is Knuth's selection sampling. It draws at most once for each
+element and needs no storage of its own. The result keeps the source's
+order, so `shuffle` it when the order should be random too.
 
-It is not cryptographic: its outputs reveal its state. A key, a token or
-a password comes from `io.fill_random` directly.
+`normal` is Marsaglia's polar method and `exponential` is `-log(1 - u)`.
+Both are computed with `core/math`, which gives the same bits on every
+target. Scale them yourself: `mean + deviation * random.normal(source)`,
+or `random.exponential(source) / rate`.
 
-[Executable example](../compiler/tests/fixtures/runtime/random-sequence/main.ldn)
+To give threads or fibres their own streams from one seed, copy the
+generator and `jump` each copy once more than the one before. The
+streams then start 2^128 draws apart.
+
+The generator's step uses shifts, exclusive ors and additions on `u64`, so
+a Cortex-M0 draws what a 64-bit host draws. On every target its
+sequences are the reference implementation's.
+
+The generator is not cryptographic: its outputs reveal its state. Take a
+key, a token or a password from `io.fill_random` directly.
+
+[How the draws are checked](../compiler/tests/random/README.md) names
+the reference each one is compared with and the tests of their
+distributions.
+
+[Executable example](../compiler/tests/fixtures/runtime/random-draws/main.ldn)
+
+## core/bits
+
+The bit operations of the unsigned integers, integers read from and
+written to the caller's bytes in a stated byte order, and the operations
+of a set of flags. Nothing allocates.
+
+| Call | What it does |
+|---|---|
+| `bits.ones`, `bits.leading_zeros`, `bits.trailing_zeros`, `bits.bit_length` | How many bits are set, how many zero bits stand above the highest set bit or below the lowest, and how many bits the value needs. The zero counts are the width for zero, and `bit_length` is 0. |
+| `bits.rotate_left`, `bits.rotate_right` | The value rotated by a count of bits, which is taken modulo the width. |
+| `bits.reverse_bytes`, `bits.reverse_bits` | The bytes or the bits in the opposite order. |
+| `bits.multiply_wide` | The full product of two values as its `high` and `low` halves. |
+| `bits.add_carry`, `bits.subtract_borrow` | A sum with a carry in and out, and a difference with a borrow in and out, each a `bool`. |
+| `bits.read_u8`, `bits.read_i8` | The next byte, as it is or as two's complement. |
+| `bits.read_u16`, `bits.read_i16`, `bits.read_u32`, `bits.read_i32`, `bits.read_u64`, `bits.read_i64` | The next two, four or eight bytes as an integer in a `bits.byte_order`, which is `bits.little` or `bits.big`. |
+| `bits.write_u8`, `bits.write_i8`, `bits.write_u16`, `bits.write_i16`, `bits.write_u32`, `bits.write_i32`, `bits.write_u64`, `bits.write_i64` | The same integers written into a `[]mut u8`. |
+| `bits.skip`, `bits.take` | Pass over a count of bytes, or take them as a view of the bytes. |
+| `bits.read_uleb128`, `bits.read_sleb128`, `bits.write_uleb128`, `bits.write_sleb128` | An unsigned or signed LEB128 integer of up to 64 bits, as DWARF, WebAssembly and protocol buffers write them. A write uses the fewest bytes, from one to ten. |
+| `bits.union`, `bits.intersection`, `bits.difference`, `bits.is_empty` | Two whole sets combined, and whether a set has no member. |
+
+The bit operations are generic over the concept `bits.unsigned`, which
+`u8`, `u16`, `u32` and `u64` meet. A count is a `u32`. Each operation is
+written from shifts and masks, so it gives the same answer on every
+target, Cortex-M0 included.
+
+A read or a write takes the caller's bytes and `at`, the offset of the
+next byte, and moves `at` past what it read or wrote. Only `at` is passed
+`inout`, so a view from `bits.take` is of the bytes themselves and lasts
+while reading goes on.
+
+A read with too few bytes left fails `mem.out_of_bounds`, and a write
+with too little room left fails `mem.out_of_memory`. A LEB128 integer
+with an eleventh byte, or with bits past the 64th, fails
+`bits.invalid_varint`; padding up to ten bytes is accepted. A call that
+fails moves nothing, so a program may try another reading of the same
+bytes.
+
+A set is a packed struct of `bool` [0730], and its type says so with
+`is bits.flags ()`. `bits.is_empty` counts the bits no field claims too,
+so an image read from a device with a reserved bit set is not empty.
+
+[Executable example](../compiler/tests/fixtures/runtime/bits-byte-order/main.ldn)
 
 ## core/math
 
@@ -2555,7 +3000,6 @@ bits on every target, so a result is the same limbs everywhere.
 | `limbs.add`, `limbs.add_limb`, `limbs.subtract`, `limbs.subtract_limb` | The sum or difference with a number or one limb, returning the carry or the borrow; the left operand is at least as long as the right. |
 | `limbs.multiply_limb`, `limbs.add_multiply_limb`, `limbs.subtract_multiply_limb` | A number times one limb, written, added to or subtracted from the destination, returning the high limb; the last two are GMP's `addmul_1` and `submul_1`. |
 | `limbs.shift_left`, `limbs.shift_right` | A shift by a count below 32, returning the bits shifted out. |
-| `limbs.leading_zeros`, `limbs.trailing_zeros` | The zero bits above or below a limb's set ones. |
 | `limbs.divide_limb`, `limbs.remainder_limb` | Division by one limb, returning the remainder, with or without the quotient. |
 | `limbs.multiply`, `limbs.multiply_scratch` | The product, of `lenof left + lenof right` limbs: schoolbook below 48 limbs, Karatsuba below 150 and Toom-3 above. `multiply_scratch` is the scratch length it needs. |
 | `limbs.divide`, `limbs.divide_scratch` | The quotient and remainder by Knuth's Algorithm D, for a divisor whose top limb is not zero and which is no longer than the numerator. `divide_scratch` is the scratch length it needs. |

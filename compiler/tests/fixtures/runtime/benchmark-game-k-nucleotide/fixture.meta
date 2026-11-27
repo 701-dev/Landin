@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: the Benchmark Game k-nucleotide correctness workload reads FASTA from standard input, takes record THREE's bases as two-bit codes, counts every run of 1, 2, 3, 4, 6, 12 and 18 bases in a core/map table keyed by a distinct word whose hash is its own bits, and writes the one- and two-base shares to three places, most frequent first, and the counts of five given runs
+constructs: 0170, 0290, 0310, 0320, 0330, 0350, 0400, 0520, 0570, 0650, 0670, 0710, 0900, 1140, 1150, 1240, 1290, 1360
+program: main.ldn
+root: ../../../../..
+stdin: input.txt
+run_expect: output.txt
+status: 0
+stream: output
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

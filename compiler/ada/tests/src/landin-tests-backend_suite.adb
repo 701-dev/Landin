@@ -1954,8 +1954,9 @@ package body Landin.Tests.Backend_Suite is
    end C_Zeroed_Aggregates_Keep_Caller_Materialization;
 
    --  A datum's block describes a value and is not code [1940], so it
-   --  becomes an initialized object in `.data` at its own alignment rather
-   --  than instructions anything runs.
+   --  becomes an initialized object at its own alignment rather than
+   --  instructions anything runs: an immutable one in `.rodata` (D3014),
+   --  a mutable one in `.data`.
    procedure A_Module_Value_Becomes_Initialized_Data
      (Item : in out Landin.Testing.Context);
 
@@ -1966,23 +1967,34 @@ package body Landin.Tests.Backend_Suite is
         Landin.Stages.Create (Landin.Targets.Linux_X86_64);
       Ran  : Natural;
    begin
-      Lower (Work, "public answer: i32 = 42" & LF, Ran);
+      Lower (Work, "public answer: i32 = 42" & LF
+                   & "public mut count: i32 = 7" & LF, Ran);
 
       Landin.Testing.Check_Equal (Item, Ran, 5, "five stages ran");
 
       declare
          Text : constant String := Emitted (Work);
          Expected : constant String :=
-           HT & ".section .data.landin_datum_1,""aw"",@progbits" & LF
+           HT & ".section .rodata.landin_datum_1,""a"",@progbits" & LF
               & HT & ".type answer, @object" & LF
            & HT & ".align 4" & LF
            & "answer:" & LF
            & HT & ".long 42" & LF
            & HT & ".size answer, 4" & LF;
+         Written : constant String :=
+           HT & ".section .data.landin_datum_2,""aw"",@progbits" & LF
+              & HT & ".type count, @object" & LF
+           & HT & ".align 4" & LF
+           & "count:" & LF
+           & HT & ".long 7" & LF
+           & HT & ".size count, 4" & LF;
       begin
          Landin.Testing.Check
            (Item, Contains (Text, Expected),
-            "a module value is emitted as initialized data");
+            "an immutable module value is emitted as read-only data");
+         Landin.Testing.Check
+           (Item, Contains (Text, Written),
+            "a mutable module value is emitted as initialized data");
       end;
    end A_Module_Value_Becomes_Initialized_Data;
 
@@ -2197,10 +2209,11 @@ package body Landin.Tests.Backend_Suite is
                "the 32-bit image writes fields and zero layout gaps");
             Landin.Testing.Check
               (Item,
-               In_Section (Text, ".data", "blank")
+               In_Section (Text, ".rodata", "blank")
                and then not Contains
                  (Text, "blank:" & LF & HT & ".zero 16" & LF),
-               "an explicit all-zero literal remains written data");
+               "an explicit all-zero literal remains written, read-only"
+               & " data (D3014)");
             Landin.Testing.Check
               (Item,
                Contains
@@ -4756,7 +4769,7 @@ package body Landin.Tests.Backend_Suite is
          & "end counters" & LF
          & "public mut state: counters" & LF
          & "mut counter: u32" & LF
-         & "public answer: i32 = 42" & LF,
+         & "public mut answer: i32 = 42" & LF,
          Ran);
 
       Landin.Testing.Check_Equal (Item, Ran, 5, "five stages ran");
@@ -4804,6 +4817,74 @@ package body Landin.Tests.Backend_Suite is
       end;
    end Zero_Data_Is_Reserved_And_Not_Written;
 
+   --  D3014: an immutable module value is read-only on every hosted ELF
+   --  target, a wholly zero one written there with its zeros, while one
+   --  whose image names a routine, which the loader of a position-
+   --  independent image writes, stays in `.data`, as a mutable one does.
+   procedure An_Immutable_Module_Value_Is_Read_Only
+     (Item : in out Landin.Testing.Context);
+
+   procedure An_Immutable_Module_Value_Is_Read_Only
+     (Item : in out Landin.Testing.Context)
+   is
+      procedure Check_Target (Facts : Landin.Targets.Target_Facts;
+                              Name  : String);
+
+      procedure Check_Target (Facts : Landin.Targets.Target_Facts;
+                              Name  : String)
+      is
+         Work : Landin.Stages.Compilation := Landin.Stages.Create (Facts);
+         Ran  : Natural;
+         Assembly : Ada.Strings.Unbounded.Unbounded_String;
+         Report : Landin.Build_Reports.Report;
+      begin
+         Lower
+           (Work,
+            "seven: () -> (v: i32) =" & LF
+            & "    v = 7" & LF
+            & "end seven" & LF
+            & "chosen: () -> (v: i32) = seven" & LF
+            & "table: [2]u32 = [3, 5]" & LF
+            & "count: u32 = zeroed" & LF
+            & "mut total: u32 = 9" & LF,
+            Ran);
+         Landin.Testing.Check_Equal (Item, Ran, 5, Name & ": five stages ran");
+         if Ran /= 5 then
+            return;
+         end if;
+         Landin.Backend.Dispatch.Emit
+           (Landin.Stages.Code (Work).all,
+            Landin.Stages.Meanings (Work).all,
+            Landin.Stages.Identities (Work).all,
+            Facts, Landin.Targets.Levels.Default_Level (Facts),
+            Landin.Optimization.Reference_Options, Assembly, Report);
+         declare
+            Text : constant String :=
+              Ada.Strings.Unbounded.To_String (Assembly);
+         begin
+            Landin.Testing.Check
+              (Item,
+               In_Section (Text, ".rodata", "table")
+               and then In_Section (Text, ".rodata", "count"),
+               Name & ": immutable values, a zero one too, are read-only");
+            Landin.Testing.Check
+              (Item,
+               Contains (Text, "count:" & LF & HT & ".zero 4" & LF),
+               Name & ": the zero one is written as its zeros");
+            Landin.Testing.Check
+              (Item,
+               In_Section (Text, ".data", "chosen")
+               and then In_Section (Text, ".data", "total"),
+               Name & ": a relocated immutable value and a mutable one are"
+               & " written data");
+         end;
+      end Check_Target;
+   begin
+      Check_Target (Landin.Targets.Linux_X86_64, "linux-x86-64");
+      Check_Target (Landin.Targets.Linux_Arm64, "linux-arm64");
+      Check_Target (Landin.Targets.Linux_RV64, "linux-rv64");
+   end An_Immutable_Module_Value_Is_Read_Only;
+
    --  A scalar `zeroed` reaches the same absent loader-zero image as D10,
    --  including through a scalar alias: spelling `zeroed` must not move either
    --  datum to `.data`.
@@ -4820,8 +4901,8 @@ package body Landin.Tests.Backend_Suite is
       Lower
         (Work,
          "word: type = u64" & LF
-         & "number: word = zeroed" & LF
-         & "flag: bool = zeroed" & LF,
+         & "mut number: word = zeroed" & LF
+         & "mut flag: bool = zeroed" & LF,
          Ran);
 
       Landin.Testing.Check_Equal (Item, Ran, 5, "five stages ran");
@@ -4957,8 +5038,9 @@ package body Landin.Tests.Backend_Suite is
          Landin.Testing.Check
            (Item,
             In_Section (Text, ".data", "numbers")
-            and then In_Section (Text, ".data", "base"),
-            ".data sections hold the images");
+            and then In_Section (Text, ".rodata", "base"),
+            ".data sections hold the mutable image, .rodata the immutable"
+            & " one (D3014)");
          Landin.Testing.Check
            (Item,
             Contains
@@ -11919,6 +12001,9 @@ package body Landin.Tests.Backend_Suite is
       Landin.Testing.Register
         (Into, "backend", "a zeroed module scalar stays in bss",
          A_Zeroed_Module_Scalar_Stays_In_Bss'Access);
+      Landin.Testing.Register
+        (Into, "backend", "an immutable module value is read-only",
+         An_Immutable_Module_Value_Is_Read_Only'Access);
       Landin.Testing.Register
         (Into, "backend", "a module value becomes initialized data",
          A_Module_Value_Becomes_Initialized_Data'Access);

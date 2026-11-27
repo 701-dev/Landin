@@ -1,39 +1,32 @@
 --  Add up the numbers given as arguments, however many there are, and
 --  print the sum.  An argument that is no number is named on standard
---  error, and the program then returns 1.
-import core/failure
+--  error with what was expected, and the program then returns 2.
+import core/args
 import core/io
-import core/text
 import hosted/blocking
-
---- The sum of every argument, each read as decimal digits.  `at_fault` is
---- the index of the argument being read, which the caller names when the
---- sum fails.
-sum_arguments: (host: blocking.host, inout at_fault: usize)
-               -> (sum: u64) ! ... =
-    sum = 0
-    for at in usize(0)..<io.arguments_length(host) do
-        at_fault = at
-        argument: text.os_string = try io.argument(host, at)
-        sum += try text.parse_u64(text.os_string_bytes(argument))
-    end for
-end sum_arguments
+import hosted/heap
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    if io.arguments_length(host) == 0 then
-        io.write(host, io.err(host), "usage: sum NUMBER...\n") else none
-        return
-    end if
-    mut at_fault: usize = 0
-    sum := sum_arguments(host, at_fault) else (problem)
-        number: usize = at_fault + 1
-        words: []u8 = failure.words(problem)
-        io.write_format(host, io.err(host), "sum: argument {}: {}\n",
-                        [any(addr number), any(addr words)]) else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.repeated(args.typed(args.positional("NUMBER", "a number to add"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("sum", "Add up numbers.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    mut sum: u64 = 0
+    for at in usize(0)..<args.count(parsed, "NUMBER") do
+        number := args.get_at(parsed, "NUMBER", at) else begin
+            break
+        end
+        sum += number.unsigned
+    end for
     io.write_format(host, io.out(host), "{}\n", [any(addr sum)]) else none
     code = 0
 end main

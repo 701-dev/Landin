@@ -1,0 +1,7 @@
+error[L0201]: `text` is not declared in any scope this reaches
+  --> ../tests/fixtures/negative/unreached-library-module-prefix-names-its-import/main.ldn:2:9
+  |
+2 |     n = text.length(value)
+  |         ^^^^
+  = note: [1420]: `text` is the library module `core/text`, which this file does not import; add `import core/text`
+  = help: import `core/text`

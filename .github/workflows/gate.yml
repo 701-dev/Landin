@@ -88,6 +88,9 @@ jobs:
       contents: read
     outputs:
       reuse: ${{ steps.reuse.outputs.reuse }}
+      #  What an identical tree's pass taken here reported and no baseline
+      #  records, which the aggregate reports again (D2854).
+      moves: ${{ steps.reuse.outputs.moves }}
       #  The selected gate in shadow: what it would run, which no
       #  job's condition reads, and the passed run it compared with.
       shadow: ${{ steps.shadow.outputs.shadow }}
@@ -117,7 +120,8 @@ jobs:
           python3 scripts/gate_inputs.py reuse gate.yml \
             documents scripts linux-debug-build compiler-1 compiler-2 compiler-3 compiler-4 \
             compiler-checks linux-release-build \
-            release bindings editor-grammar flake-compiler flake-ram-run flake-ram-run-rigpi \
+            release bindings editor-grammar flake-compiler flake-compiler-arm64 \
+            flake-ram-run flake-ram-run-rigpi \
             cortex-m-programs cortex-m-corpus \
             cortex-m-rv32 xtensa-esp32-1 xtensa-esp32-2 xtensa-esp32-3 \
             xtensa-esp32s3-1 xtensa-esp32s3-2 xtensa-esp32s3-3 \
@@ -378,6 +382,19 @@ jobs:
           python3 compiler/tests/fuzz/fuzz.py --seed 500000 --rounds 1
           --refine "$PWD/compiler/ada/build/linux-amd64/debug/bin/refine"
           --out "$RUNNER_TEMP/fuzz"
+
+      #  Whether each record of a check too long for any gate still
+      #  covers the code it checked (D2874): the records' programs
+      #  emitted for each target they claim, in seconds.  A stale record
+      #  fails no push; it is a warning and a summary line here, and a
+      #  release or phase-gate claim citing it is refused.  Then the same
+      #  digest on refine's own assembly, edited elsewhere and in place.
+      - name: The records of checks too long for a gate
+        run: |
+          set -eu
+          refine="$PWD/compiler/ada/build/linux-amd64/debug/bin/refine"
+          python3 scripts/records.py --refine "$refine" check --github
+          LANDIN_REFINE="$refine" python3 -m unittest scripts.tests.test_records_native
 
   #  The Linux x86-64 release executables are built twice.  This job
   #  builds them over the object tree an earlier run left in the cache,
@@ -898,24 +915,29 @@ jobs:
 
   #  The flake (D585): `nix build .#refine` and `.#refine-bin`, every
   #  output of every system evaluated, the development shell entered, the
-  #  README's `nix profile install` and `nix run` checked (D1707),
+  #  README's `nix profile install` and `nix run` checked (D1707), the
+  #  same build and shell on an arm64 runner for aarch64-linux (D2976),
   #  on every run that does not reuse a pass, so a change anywhere in the
   #  source that breaks `nix build .#refine` fails the commit that makes it,
   #  and the board RAM helpers built, the native one with its tests.
-  #  Skipped under a reused pass like every lane.  The three parts run on
-  #  three runners: in one job the two helpers' Rust builds shared its
+  #  Skipped under a reused pass like every lane.  The parts run on
+  #  runners of their own: in one job the two helpers' Rust builds shared its
   #  four cores for twelve minutes after the compiler's six, and the job,
   #  20 to 28 minutes, was among the gate's last.
   flake:
     name: flake-${{ matrix.part }}
     needs: inputs
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        part: [compiler, ram-run, ram-run-rigpi]
+        include:
+          - {part: compiler, runner: ubuntu-24.04}
+          - {part: compiler-arm64, runner: ubuntu-24.04-arm}
+          - {part: ram-run, runner: ubuntu-24.04}
+          - {part: ram-run-rigpi, runner: ubuntu-24.04}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -941,6 +963,18 @@ jobs:
           set -eu
           nix build -L --no-link .#refine .#refine-bin
           nix flake check --no-build --all-systems
+          nix develop --command ./scripts/toolchain.sh
+
+      #  D2976: a dependency only one architecture's prebuilt toolchain
+      #  archive adds, as GPRbuild's arm64 one wanting libgmp did, shows
+      #  only where that system builds; `flake check --no-build` above
+      #  evaluates aarch64-linux without building it.
+      - name: Build the compiler and enter the shell on aarch64-linux
+        if: matrix.part == 'compiler-arm64'
+        run: |
+          set -eu
+          test "$(nix eval --impure --raw --expr builtins.currentSystem)" = aarch64-linux
+          nix build -L --no-link .#refine .#refine-bin
           nix develop --command ./scripts/toolchain.sh
 
       #  D1707: the README's nix commands fetch the release archive rather
@@ -998,6 +1032,10 @@ jobs:
           tar -xzf "$RUNNER_TEMP/linux-release/linux-release.tar.gz" \
             -C compiler/ada/build/linux-amd64/release
       - name: Measure every section and compare it with the base's baselines
+        #  A branch's comparison reports a figure no baseline records and
+        #  passes; main's fails (docs/measurement.md, D2854).
+        env:
+          REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
           set -eu
           nix develop --command python3 scripts/measure.py size \
@@ -1010,12 +1048,12 @@ jobs:
           #  Both classes are compared whatever the first says, so a run
           #  shows each class's verdict.
           status=0
-          nix develop --command python3 scripts/measure.py compare \
+          nix develop --command python3 scripts/measure.py compare ${REPORT:+--report} \
             "$RUNNER_TEMP/measure-size/size.json" || status=1
           nix develop --command python3 scripts/measure.py instructions \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --target linux-rv64 --output "$RUNNER_TEMP/measure-instructions"
-          nix develop --command python3 scripts/measure.py compare \
+          nix develop --command python3 scripts/measure.py compare ${REPORT:+--report} \
             "$RUNNER_TEMP/measure-instructions/instructions.json" || status=1
           exit "$status"
       - name: Keep the figures, which record --from-run reads
@@ -1025,7 +1063,9 @@ jobs:
           name: measure-size-linux
           path: |
             ${{ runner.temp }}/measure-size/size.json
+            ${{ runner.temp }}/measure-size/moves.json
             ${{ runner.temp }}/measure-instructions/instructions.json
+            ${{ runner.temp }}/measure-instructions/moves.json
           retention-days: 30
 
   #  The time the emitted code takes (docs/measurement.md), on the schedule
@@ -1140,20 +1180,26 @@ jobs:
       #  After a failed probe-supervisor control too, as Darwin's sizes.
       - name: Count every firmware workload's instructions and compare them with the base's baselines
         if: ${{ !cancelled() && matrix.part == 'programs' && steps.restore.outcome == 'success' && steps.tools.outcome == 'success' }}
+        #  A branch's comparison reports a figure no baseline records and
+        #  passes; main's fails (docs/measurement.md, D2854).
+        env:
+          REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
           set -eu
           python3 scripts/measure.py instructions \
             --refine "$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
             --target cortex-m0 --tools "$RUNNER_TEMP/cortex-m" \
             --output "$RUNNER_TEMP/measure-instructions"
-          python3 scripts/measure.py compare "$RUNNER_TEMP/measure-instructions/instructions.json"
+          python3 scripts/measure.py compare ${REPORT:+--report} "$RUNNER_TEMP/measure-instructions/instructions.json"
 
       - name: Keep the counts, which record --from-run reads
         if: always() && matrix.part == 'programs'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: measure-instructions-cortex-m0
-          path: ${{ runner.temp }}/measure-instructions/instructions.json
+          path: |
+            ${{ runner.temp }}/measure-instructions/instructions.json
+            ${{ runner.temp }}/measure-instructions/moves.json
           retention-days: 30
 
       - name: Fetch the pinned device inputs
@@ -1834,20 +1880,26 @@ jobs:
       #  second whole gate.
       - name: Measure Darwin's sections and compare them with the base's baselines
         if: ${{ !cancelled() && matrix.shard == 2 && steps.restore.outcome == 'success' }}
+        #  A branch's comparison reports a figure no baseline records and
+        #  passes; main's fails (docs/measurement.md, D2854).
+        env:
+          REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
           set -eu
           python3 scripts/measure.py size \
             --refine "$PWD/compiler/ada/build/darwin-arm64/$LANDIN_BUILD_MODE/bin/refine" \
             --target darwin-arm64 --host darwin-arm64 --environment macos-26 \
             --output "$RUNNER_TEMP/measure-size"
-          python3 scripts/measure.py compare "$RUNNER_TEMP/measure-size/size.json"
+          python3 scripts/measure.py compare ${REPORT:+--report} "$RUNNER_TEMP/measure-size/size.json"
 
       - name: Keep the measured sizes, which record --from-run reads
         if: always() && matrix.shard == 2
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: measure-size-darwin
-          path: ${{ runner.temp }}/measure-size/size.json
+          path: |
+            ${{ runner.temp }}/measure-size/size.json
+            ${{ runner.temp }}/measure-size/moves.json
           retention-days: 30
 
       # Representative process measurements; low-stack outcomes are recorded,
@@ -2445,7 +2497,8 @@ jobs:
             --arch=${{ matrix.arch }} --kind=${{ matrix.kind }} \
             ${{ matrix.shard && format('--shard={0}', matrix.shard) || '' }} \
             --refine="$PWD/compiler/ada/build/linux-amd64/release/bin/refine" \
-            --output="$RUNNER_TEMP/freebsd-evidence"
+            --output="$RUNNER_TEMP/freebsd-evidence" \
+            ${{ matrix.kind == 'size' && github.ref != 'refs/heads/main' && '--report' || '' }}
       - name: Keep guest identity, feature probes and verdict transcripts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -2463,7 +2516,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: measure-size-freebsd-${{ matrix.arch }}
-          path: ${{ runner.temp }}/freebsd-evidence/measure/size.json
+          path: |
+            ${{ runner.temp }}/freebsd-evidence/measure/size.json
+            ${{ runner.temp }}/freebsd-evidence/measure/moves.json
           retention-days: 30
 
   #  refine built on FreeBSD x86-64 and tested there.  GNAT-FSF-builds
@@ -2738,11 +2793,13 @@ jobs:
             ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
-  #  D2327: Microsoft's toolchain, the optional second one.  The runner's
-  #  Clang runs each link command refine chose in windows-emit, which hands
-  #  the link to Visual Studio's link.exe with the Windows SDK's import
+  #  D2327: Microsoft's toolchain, the optional second one.  llvm-mingw's
+  #  pinned Clang runs each link command refine chose in windows-emit, which
+  #  hands the link to Visual Studio's link.exe with the Windows SDK's import
   #  libraries, and the lane requires that linker before it runs and holds
-  #  each program as windows-runtime does.
+  #  each program as windows-runtime does.  D2969: the toolset and SDK are
+  #  the versions environments/pins.sh names, selected among those the image
+  #  installs; an image that lacks either fails the job, naming what it has.
   windows-microsoft:
     needs: [inputs, windows-emit]
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
@@ -2753,12 +2810,27 @@ jobs:
         with:
           name: windows-x86-64-microsoft-bundle
           path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Install llvm-mingw's Windows Clang
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-x86_64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_X86_64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
       - name: Link with Microsoft's linker and execute the corpus
-        run: >-
-          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
-          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
-          --driver=clang --expect-linker=link.exe
-          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          python "$RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py" \
+            --prepared="$RUNNER_TEMP/windows-microsoft-prepared" \
+            --driver="$RUNNER_TEMP/llvm-mingw/bin/clang.exe" --expect-linker=link.exe \
+            --msvc-toolset="$LANDIN_MSVC_TOOLSET_VERSION" \
+            --windows-sdk="$LANDIN_WINDOWS_SDK_VERSION" \
+            --output="$RUNNER_TEMP/windows-microsoft-evidence"
       - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -3006,9 +3078,10 @@ jobs:
             ${{ runner.temp }}/windows-abi-evidence/bundle/*.status
           retention-days: 14
 
-  #  D2387: windows-microsoft's link on the arm64 runner, whose Clang
-  #  hands each command windows-arm64-emit kept to Visual Studio's arm64
-  #  link.exe with the Windows SDK's arm64 import libraries.
+  #  D2387: windows-microsoft's link on the arm64 runner, where llvm-mingw's
+  #  arm64 Clang hands each command windows-arm64-emit kept to Visual
+  #  Studio's arm64 link.exe with the Windows SDK's arm64 import libraries,
+  #  the toolset and SDK D2969 names.
   windows-arm64-microsoft:
     needs: [inputs, windows-arm64-emit]
     if: needs.inputs.outputs.software == 'true' && needs.inputs.outputs.reuse != 'true'
@@ -3019,13 +3092,27 @@ jobs:
         with:
           name: windows-arm64-microsoft-bundle
           path: ${{ runner.temp }}/windows-microsoft-prepared
+      - name: Install llvm-mingw's Windows Clang
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          name="llvm-mingw-$LANDIN_LLVM_MINGW_VERSION-ucrt-aarch64"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$name.zip" \
+            "$LANDIN_LLVM_MINGW_RELEASES/$LANDIN_LLVM_MINGW_VERSION/$name.zip"
+          echo "$LANDIN_LLVM_MINGW_SHA256_UCRT_AARCH64_WINDOWS  $RUNNER_TEMP/$name.zip" |
+            sha256sum -c -
+          unzip -q "$RUNNER_TEMP/$name.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/$name" "$RUNNER_TEMP/llvm-mingw"
       - name: Link with Microsoft's arm64 linker and execute the corpus
-        run: >-
-          python "$env:RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py"
-          --target=windows-arm64
-          --prepared="$env:RUNNER_TEMP/windows-microsoft-prepared"
-          --driver=clang --expect-linker=link.exe
-          --output="$env:RUNNER_TEMP/windows-microsoft-evidence"
+        shell: bash
+        run: |
+          . "$RUNNER_TEMP/windows-microsoft-prepared/lane/environments/pins.sh"
+          python "$RUNNER_TEMP/windows-microsoft-prepared/lane/compiler/tests/windows/check.py" \
+            --target=windows-arm64 --prepared="$RUNNER_TEMP/windows-microsoft-prepared" \
+            --driver="$RUNNER_TEMP/llvm-mingw/bin/clang.exe" --expect-linker=link.exe \
+            --msvc-toolset="$LANDIN_MSVC_TOOLSET_VERSION" \
+            --windows-sdk="$LANDIN_WINDOWS_SDK_VERSION" \
+            --output="$RUNNER_TEMP/windows-microsoft-evidence"
       - name: Keep each link's transcript, each outcome's output and status, the verdicts and each failed image
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -3671,11 +3758,15 @@ jobs:
           always() && needs.inputs.outputs.timing == 'true'
           && needs.inputs.outputs.boards == 'true' && (needs.board.result == 'success'
           || needs.board-bundles.outputs.legs-reuse == 'true')
+        #  A branch's comparison reports a figure no baseline records and
+        #  passes; main's fails (docs/measurement.md, D2854).
+        env:
+          REPORT: ${{ github.ref != 'refs/heads/main' && 'yes' || '' }}
         run: |
           set -eu
           python3 environments/boards/timing.py figures --evidence "$RUNNER_TEMP/board-evidence" \
             --output "$RUNNER_TEMP/measure-cycles/figures.json"
-          python3 environments/boards/timing.py compare "$RUNNER_TEMP/measure-cycles/figures.json"
+          python3 environments/boards/timing.py compare ${REPORT:+--report} "$RUNNER_TEMP/measure-cycles/figures.json"
       #  What timing.py record takes to declare a change.
       - name: Keep the cycles figures
         if: >-
@@ -3685,9 +3776,37 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: measure-cycles
-          path: ${{ runner.temp }}/measure-cycles/figures.json
+          path: |
+            ${{ runner.temp }}/measure-cycles/figures.json
+            ${{ runner.temp }}/measure-cycles/moves.json
           if-no-files-found: warn
           retention-days: 90
+      #  What this run's comparisons reported and no baseline records, on
+      #  an event that is not main's (D2854), or what the identical
+      #  tree's pass it took did: one annotation on this job, which a
+      #  later run's reuse and item.py's promotion read.  Not
+      #  continue-on-error: a record that could not be made fails the run.
+      - name: This run's size figures
+        if: always() && needs.inputs.outputs.reuse != 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: measure-size-*
+          path: ${{ runner.temp }}/measure-figures
+      - name: This run's instruction counts
+        if: always() && needs.inputs.outputs.reuse != 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: measure-instructions-*
+          path: ${{ runner.temp }}/measure-figures
+      - name: The figures no baseline records, reported rather than failed
+        if: always()
+        env:
+          INHERITED: ${{ needs.inputs.outputs.moves }}
+        run: >-
+          python3 scripts/gate_inputs.py moves
+          "$RUNNER_TEMP/measure-figures" "$RUNNER_TEMP/measure-cycles"
       #  The selection in shadow, finished: the lanes the
       #  emission decides, settled from the x86-64 determinism manifests
       #  of this run and of the base run, then the selection and each

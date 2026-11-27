@@ -1,0 +1,9 @@
+class: negative
+summary: D3039 a parameter or a local spelled as the module type it hides is what a type position in its reach names, and the refusal says that the binding hides the type rather than that the type is none
+program: program.ldn
+codes: L0338, L0338
+constructs: 1450, 1795
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+args: ../tests/fixtures/negative/a-parameter-hides-the-type-it-names/program.ldn
+expect: expected.txt
+status: 1

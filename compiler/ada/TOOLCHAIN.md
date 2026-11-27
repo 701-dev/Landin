@@ -89,8 +89,10 @@ for Windows arm64, `llvm-mingw-20261117-ucrt-aarch64.zip`, sha256
 `c7f56de1d7aca15196c19083a799205390397b8b87a825aec3485e1e4f3c2cdd`, which
 `environments/pins.sh` names and the gate's Windows debugger jobs check
 before anything in them runs: `lldb.exe` and `lldb-dap.exe`, LLVM 23, which
-read a PDB with LLVM's own reader. It debugs and links nothing: the
-Windows link stays the Clang 19 and LLD the emission jobs use. A
+read a PDB with LLVM's own reader. The same archives' Clang, 23, compiles
+the ABI fixtures' C peers on the Windows runners and runs Microsoft's
+link there (below); the corpus's own Windows link stays the Clang 19 and
+LLD the emission jobs use. A
 windows-arm64 link takes the MinGW-w64 import libraries from the arm64
 archive's `aarch64-w64-mingw32` directory, which Ubuntu does not package
 and nixpkgs' cache does not hold; the emission job and the Linux nix shell
@@ -99,6 +101,17 @@ WSL 1, in Ubuntu's arm64 base system `24.04.5`,
 `ubuntu-base-24.04.5-base-arm64.tar.gz`, sha256
 `a91d5a93010193712d346d761372b7c9db6dfcf093893161c64ca107f05914f2`, which
 the job checks before importing it.
+
+Microsoft's link in the gate (D2969) is that Clang given Visual Studio's
+MSVC toolset `14.44.35207` and the Windows SDK `10.0.26100.0`, the
+versions `environments/pins.sh` names as `LANDIN_MSVC_TOOLSET_VERSION` and
+`LANDIN_WINDOWS_SDK_VERSION`. Microsoft's licence keeps both on the runner
+image rather than in an archive the gate fetches, so the lane selects them
+among what the image installs, refuses an image that lacks either
+and names the versions it carries, and holds every link to that
+toolset's `link.exe` and that SDK's import libraries. The toolset is
+Visual Studio 2022's last, which Visual Studio 2026 installs beside its
+own and does not update.
 
 ## The cross lane
 

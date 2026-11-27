@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: the Benchmark Game spectral-norm workload takes its order as an argument, the correctness input a hundred, and runs ten rounds of the power method over core/vec lists of f64 from hosted/heap, printing the square root of the Rayleigh quotient to nine places
+constructs: 0170, 0290, 0310, 0350, 0400, 0900, 1150
+program: main.ldn
+root: ../../../../..
+run_args: 100
+run_expect: output.txt
+status: 0
+stream: output
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

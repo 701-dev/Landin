@@ -1083,6 +1083,56 @@ fixed if compiler.os == linux then
     --- `ipproto_ipv6` option, an `i32`: an IPv6 socket takes IPv6 alone,
     --- never IPv4 through mapped addresses.
     public ipv6_v6only: i32 = 26
+    --- `setsockopt` level: IPv4.
+    public ipproto_ip: i32 = 0
+    --- `sol_socket` option, an `i32`: a datagram socket may send to a
+    --- broadcast address.
+    public so_broadcast: i32 = 6
+    --- `sol_socket` option, an `i32`: an idle connection is probed.
+    public so_keepalive: i32 = 9
+    --- `sol_socket` option, an `i32`: the bytes kept for what is sent.
+    public so_sndbuf: i32 = 7
+    --- `sol_socket` option, an `i32`: the bytes kept for what arrives.
+    public so_rcvbuf: i32 = 8
+    --- `sol_socket` option, an `i32`: several sockets may bind one address and
+    --- port.
+    public so_reuseport: i32 = 15
+    --- `sol_socket` option, a `linger_record`: how long a close waits, in
+    --- seconds; Darwin's SO_LINGER_SEC, SO_LINGER elsewhere.
+    public so_linger_seconds: i32 = 13
+    --- `ipproto_ip` option, an `i32`: the hops a unicast IPv4 packet may
+    --- cross.
+    public ip_ttl: i32 = 2
+    --- `ipproto_ip` option, an `i32`: the hops a multicast IPv4 datagram may
+    --- cross.
+    public ip_multicast_ttl: i32 = 33
+    --- `ipproto_ip` option, a `group_request`: join an IPv4 multicast group.
+    public ip_add_membership: i32 = 35
+    --- `ipproto_ip` option, a `group_request`: leave an IPv4 multicast group.
+    public ip_drop_membership: i32 = 36
+    --- `ipproto_ip` option, an `in_addr`: the interface multicast datagrams
+    --- leave by.
+    public ip_multicast_if: i32 = 32
+    --- `ipproto_ipv6` option, an `unsigned int`: the number of the interface
+    --- multicast datagrams leave by.
+    public ipv6_multicast_if: i32 = 17
+    --- `ipproto_ipv6` option, an `i32`: the hops a unicast IPv6 packet may
+    --- cross.
+    public ipv6_unicast_hops: i32 = 16
+    --- `ipproto_ipv6` option, an `i32`: the hops a multicast IPv6 datagram may
+    --- cross.
+    public ipv6_multicast_hops: i32 = 18
+    --- `ipproto_ipv6` option, a `group6_request`: join an IPv6 multicast
+    --- group.
+    public ipv6_join_group: i32 = 20
+    --- `ipproto_ipv6` option, a `group6_request`: leave an IPv6 multicast
+    --- group.
+    public ipv6_leave_group: i32 = 21
+    --- `ipproto_tcp` option, an `i32`: the seconds a connection is idle before
+    --- its first probe; Darwin's TCP_KEEPALIVE.
+    public tcp_keepidle: i32 = 4
+    --- `ipproto_tcp` option, an `i32`: the seconds between probes.
+    public tcp_keepintvl: i32 = 5
 
     --- `shutdown` side: no more receives.
     public shut_rd: i32 = 0

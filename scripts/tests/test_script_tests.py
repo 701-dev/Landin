@@ -233,5 +233,23 @@ class ScriptTests(unittest.TestCase):
         self.assertIn("stdin is /dev/null", result.stdout)
 
 
+class ModulesRunWhole(unittest.TestCase):
+    """A module's `unittest.main()` ends the run, so a class written after
+    it never ran: test_item.py's last 44 cases went so until 2026-11-27."""
+
+    def test_every_module_runs_its_tests_last(self):
+        import ast
+        late = []
+        for path in sorted((ROOT / "scripts" / "tests").glob("test_*.py")):
+            body = ast.parse(path.read_text(encoding="utf-8")).body
+            for index, node in enumerate(body):
+                if (isinstance(node, ast.If)
+                        and "__main__" in ast.unparse(node.test)
+                        and index != len(body) - 1):
+                    late.append("%s:%d" % (path.name, node.lineno))
+        self.assertEqual(late, [], "`if __name__ == \"__main__\":` is not"
+                         " the module's last statement")
+
+
 if __name__ == "__main__":
     unittest.main()

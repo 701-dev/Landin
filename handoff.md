@@ -264,7 +264,7 @@ names. The register is one file a row under `roadmap/register/`, and roadmap
 identities are cited in `ROADMAP.md` and the files under `roadmap/` and
 nowhere else.
 
-**Next roadmap item: R22.21 — n-body and spectral-norm ported (planned).**
+**Current roadmap work: R22.36 — Failure causes recorded, and the selection in shadow.**
 
 ## Versions
 

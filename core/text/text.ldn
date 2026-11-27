@@ -26,6 +26,8 @@ public number_overflow: atom
 --- The value is not a Unicode scalar: it is a surrogate, U+D800 to U+DFFF,
 --- or above U+10FFFF, and so has no UTF-8 encoding.
 public invalid_scalar: atom
+--- The bytes are not `true` or `false`, the two a `bool` is written as.
+public invalid_bool: atom
 
 byte_view: type = []u8
 

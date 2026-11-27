@@ -1,0 +1,1249 @@
+--  A program's command line parsed against a table the program declares:
+--  short and long options, `--name=value` and `--name value`, clustered
+--  short flags, `--` to end the options, flags given more than once and
+--  counted, values read as `core/text` reads numbers and text, a path
+--  kept as the host string the system gave, required arguments and
+--  defaults, positional arguments with one trailing list, and commands
+--  that nest.  It writes a program's usage line and its `--help` text, and
+--  says of every argument it refuses which it was and what was expected.
+--
+--  There is no compile-time execution, so the program declares its
+--  arguments as a table of values that `flag`, `option` and `positional`
+--  make and `required`, `repeated`, `typed` and `with_default` change, and
+--  `parse` reads any list of byte slices: a process's arguments, a test's,
+--  or a firmware console's line split into words.  What it records comes
+--  from the allocator the caller passes, and nothing else allocates.
+
+import core/io
+import core/mem
+import core/panic
+import core/text
+import core/vec
+
+--- The longest chain of commands `parse` follows: the program and seven
+--- commands nested below it.
+public deepest: usize = 8
+
+--- An argument that names no option the command declares: `--frob`, or
+--- `x` in `-vx`.
+public unknown_option: atom
+--- An option that takes a value was the last argument, so nothing gave it
+--- one.
+public missing_value: atom
+--- A flag was given a value, as `--verbose=yes` gives one.
+public unexpected_value: atom
+--- A value is not what its argument reads: not a number of its kind, or
+--- not UTF-8 where the argument is text.
+public invalid_value: atom
+--- A required option or positional argument was not given.
+public missing_argument: atom
+--- A positional argument is one more than the command declares.
+public extra_argument: atom
+--- A command that has commands of its own was given a word that names
+--- none of them.
+public unknown_command: atom
+--- A command that has commands of its own was given none.
+public missing_command: atom
+--- An option that is not `repeated` or `counted` was given twice.
+public repeated_option: atom
+--- `-h` or `--help` was given.  It is no mistake: the program writes the
+--- help `help_for` gives and succeeds, as Go's `flag.ErrHelp` asks.
+public help_asked: atom
+--- The table itself is one `parse` cannot follow, which is the program's
+--- defect rather than its user's: an option without a long name, two
+--- arguments with one name, a required positional after one that is not,
+--- a positional after the repeated one, a command with both positional
+--- arguments and commands, a default its type does not read, or commands
+--- nested deeper than `deepest`.
+public invalid_table: atom
+
+--- What `parse` can fail with.
+public failure: type = unknown_option | missing_value | unexpected_value
+    | invalid_value | missing_argument | extra_argument | unknown_command
+    | missing_command | repeated_option | help_asked | invalid_table
+    | mem.out_of_memory
+
+--- A short English phrase for a failure of `parse`, in lower case with no
+--- final stop, as `failure.words` gives one for the rest of the library.
+--- `explain` says more: which argument it was and what was expected.
+public words: (problem: failure) -> (phrase: []u8) =
+    phrase = match problem
+        unknown_option: "unknown option"
+        missing_value: "option needs a value"
+        unexpected_value: "option takes no value"
+        invalid_value: "invalid value"
+        missing_argument: "missing argument"
+        extra_argument: "unexpected argument"
+        unknown_command: "unknown command"
+        missing_command: "missing command"
+        repeated_option: "option given more than once"
+        help_asked: "help asked"
+        invalid_table: "invalid argument table"
+        mem.out_of_memory: "out of memory"
+    end match
+end words
+
+--  How a value type reads a value's bytes into the number fields of
+--  `read`, whose `bytes` are already set.
+reader: type = (bytes: []u8, inout read: value) -> none ! invalid_value
+
+value_type_value: type = struct
+    read: reader
+    expects: utf8
+end value_type_value
+
+--- What a value is read as: `as_host_string`, the bytes as the system
+--- gave them, which is what a path wants; `as_text`, checked UTF-8;
+--- `as_unsigned`, `as_signed` and `as_float`, numbers as
+--- `text.parse_u64`, `text.parse_i64` and `text.parse_f64` read them.
+--- Each is a reader and the phrase a refusal says it expects, so an image
+--- holds only the readers its table names: a firmware command line with
+--- no `as_float` links no float parsing.
+public value_type: type = value_type_value
+
+read_host: (bytes: []u8, inout read: value) -> none ! invalid_value =
+    _ = bytes
+    _ = read
+end read_host
+
+read_text: (bytes: []u8, inout read: value) -> none ! invalid_value =
+    _ = read
+    fail invalid_value when not text.valid(bytes)
+end read_text
+
+read_unsigned: (bytes: []u8, inout read: value) -> none ! invalid_value =
+    read.unsigned = text.parse_u64(bytes) else (problem)
+        _ = problem
+        fail invalid_value
+    end
+end read_unsigned
+
+read_signed: (bytes: []u8, inout read: value) -> none ! invalid_value =
+    read.signed = text.parse_i64(bytes) else (problem)
+        _ = problem
+        fail invalid_value
+    end
+end read_signed
+
+read_float: (bytes: []u8, inout read: value) -> none ! invalid_value =
+    read.float = text.parse_f64(bytes) else (problem)
+        _ = problem
+        fail invalid_value
+    end
+end read_float
+
+--- The value's bytes as the system gave them, unconverted.
+public as_host_string: value_type = (read: read_host, expects: "a value")
+--- The value checked as UTF-8, which `text_of` lends as `utf8`.
+public as_text: value_type = (read: read_text, expects: "UTF-8 text")
+--- The value read as a `u64` in decimal digits.
+public as_unsigned: value_type = (read: read_unsigned,
+                                  expects: "an unsigned number")
+--- The value read as an `i64`, a `-` allowed before its digits.
+public as_signed: value_type = (read: read_signed,
+                                expects: "a signed number")
+--- The value read as an `f64`.
+public as_float: value_type = (read: read_float, expects: "a number")
+
+shape: type = flag_shape | counted_shape | option_shape | positional_shape
+flag_shape: atom
+counted_shape: atom
+option_shape: atom
+positional_shape: atom
+
+argument_value: type = struct
+    shape: shape
+    short: u32
+    long: utf8
+    placeholder: utf8
+    help: utf8
+    reads: value_type
+    required: bool
+    repeats: bool
+    defaulted: bool
+    default: utf8
+end argument_value
+
+--- One row of a command's table: an option or a positional argument, made
+--- by `flag`, `counted`, `option` or `positional` and changed by
+--- `required`, `optional`, `repeated`, `typed` and `with_default`.  It
+--- lends the text it was made from.
+public argument: type = argument_value
+
+--- A flag: `-s` or `--long`, given at most once, with no value.  `short` is
+--- a character literal, `'v'`, or 0 for none; `long` names the flag on the
+--- command line and to `count`, and `help` is its line of help.
+public flag: (short: u32, long: utf8, help: utf8)
+             -> (result: argument from long, help) =
+    result = (shape: flag_shape, short: short, long: long, placeholder: "",
+              help: help, reads: as_host_string, required: false,
+              repeats: false, defaulted: false, default: "")
+end flag
+
+--- A flag that may be given any number of times, `-vvv` among them, which
+--- `count` counts.
+public counted: (short: u32, long: utf8, help: utf8)
+                -> (result: argument from long, help) =
+    result = flag(short, long, help)
+    result.shape = counted_shape
+    result.repeats = true
+end counted
+
+--- An option that takes a value: `-s VALUE`, `-sVALUE`, `--long VALUE` or
+--- `--long=VALUE`, given at most once and not required.  The value is
+--- always the next argument, even one that begins with `-`.
+--- `placeholder` names the value in help, as `PATH`; the value is read as
+--- a host string until `typed` says otherwise.
+public option: (short: u32, long: utf8, placeholder: utf8, help: utf8)
+               -> (result: argument from long, placeholder, help) =
+    result = (shape: option_shape, short: short, long: long,
+              placeholder: placeholder, help: help, reads: as_host_string,
+              required: false, repeats: false, defaulted: false, default: "")
+end option
+
+--- A positional argument, named `name` in help and to `get`, and required
+--- until `optional` says otherwise.  A word that begins with `-` is an
+--- option, so a positional argument such as `-5` follows `--`; a `-`
+--- alone is positional.
+public positional: (name: utf8, help: utf8)
+                   -> (result: argument from name, help) =
+    result = (shape: positional_shape, short: 0, long: name, placeholder: "",
+              help: help, reads: as_host_string, required: true,
+              repeats: false, defaulted: false, default: "")
+end positional
+
+--- The argument, which must be given.
+public required: (row: argument) -> (result: argument from row) =
+    result = row
+    result.required = true
+end required
+
+--- The argument, which need not be given.
+public optional: (row: argument) -> (result: argument from row) =
+    result = row
+    result.required = false
+end optional
+
+--- The argument, which may be given any number of times: an option each
+--- time with its value, or the last positional argument, which then takes
+--- every positional word that is left.  `get_at` reads each.
+public repeated: (row: argument) -> (result: argument from row) =
+    result = row
+    result.repeats = true
+end repeated
+
+--- The argument with its value read as `reads`.  A value that does not
+--- read so is refused as `invalid_value`.
+public typed: (row: argument, reads: value_type)
+              -> (result: argument from row, reads) =
+    result = row
+    result.reads = reads
+end typed
+
+--- The argument with `default` as its value when it is not given, read as
+--- its type reads a value.  Help shows it.
+public with_default: (row: argument, default: utf8)
+                     -> (result: argument from row, default) =
+    result = row
+    result.defaulted = true
+    result.default = default
+end with_default
+
+command_value: type = struct
+    name: utf8
+    about: utf8
+    table: []argument_value
+    commands: []command_value
+end command_value
+
+--- A program or one of its commands: its name, a line about it for help,
+--- its table, and the commands below it that `with_commands` gives it.
+--- The table of a command that has commands holds options only: the
+--- first positional word names the command, and the arguments after it
+--- are that command's.  Each command answers `-h` and `--help` unless its
+--- table declares the name itself.
+public command: type = command_value
+
+--- A command named `name`, which is the program's name in help when it is
+--- the program, with `about` as its line of help and `table` its
+--- arguments, which it lends.
+public command_of: (name: utf8, about: utf8, table: []argument)
+                   -> (result: command from name, about, table) =
+    none_below: []command_value = []
+    result = (name: name, about: about, table: table, commands: none_below)
+end command_of
+
+--- The command with `commands` below it.
+public with_commands: (parent: command, commands: []command)
+                      -> (result: command from parent, commands) =
+    result = parent
+    result.commands = commands
+end with_commands
+
+--- A value as `parse` read it.  `bytes` is what the command line gave, or
+--- the default; `unsigned`, `signed` or `float` holds the number its type
+--- reads, and the others are zero.  `text_of` lends an `as_text` value
+--- as `utf8`.  A flag's value is empty.
+public value: type = struct
+    bytes: text.os_string
+    unsigned: u64
+    signed: i64
+    float: f64
+end value
+
+--- An `as_text` value's bytes as `utf8`, which `parse` checked; for any
+--- other value, the bytes checked again, and a program stopped as
+--- `utf8(bytes)` stops it when they are not UTF-8.
+public text_of: (read: value) -> (result: utf8 from read) =
+    result = utf8(text.os_string_bytes(read.bytes))
+end text_of
+
+entry: type = struct
+    level: usize
+    row: usize
+    given: bool
+    read: value
+end entry
+
+--  What is wrong with a table `parse` refuses.
+fault: type = no_fault | nameless | name_twice | letter_twice
+    | required_after_optional | after_repeated | unread_default
+    | positionals_and_commands | too_deep
+no_fault: atom
+nameless: atom
+name_twice: atom
+letter_twice: atom
+required_after_optional: atom
+after_repeated: atom
+unread_default: atom
+positionals_and_commands: atom
+too_deep: atom
+
+refusal_value: type = struct
+    problem: failure
+    fault: fault
+    level: usize
+    row: argument_value
+    named: bool
+    short: u32
+    given: []u8
+end refusal_value
+
+found_value: type = struct
+    chain: [deepest]command_value
+    depth: usize
+    entries: vec.list(entry)
+    refused: refusal_value
+end found_value
+
+--- What `parse` found: the commands it followed and every argument's
+--- values, which `count`, `get`, `get_at` and `chosen` read, or why it
+--- refused, which `explain`, `usage_for` and `help_for` say.  `new` makes
+--- one; give its storage back with `release`.
+public found: type = found_value
+
+--- A record of nothing parsed yet, which `parse` fills: make it after the
+--- table, which it lends, and give what `parse` allocates back with
+--- `release`.  It allocates nothing itself.
+public new: () -> (result: found) =
+    none_below: []command_value = []
+    no_table: []argument_value = []
+    blank: command_value = (name: "", about: "", table: no_table,
+                            commands: none_below)
+    row: argument_value = positional("", "")
+    refused: refusal_value = (problem: invalid_table, fault: no_fault,
+                              level: 0, row: row,
+                              named: false, short: 0, given: "")
+    result = (chain: [blank, blank, blank, blank, blank, blank, blank, blank],
+              depth: 1, entries: vec.new(item: entry), refused: refused)
+end new
+
+--- The failure `parse` last reported, which `explain` puts in words.
+public problem: (parsed: found) -> (result: failure) =
+    result = parsed.refused.problem
+end problem
+
+--  Where `parse` reads its words: a list of them, or a process's
+--  arguments.
+word_source: type = concept (source: type)
+    length: (self: source) -> (count: usize)
+    word: (self: source, index: usize) -> (bytes: []u8 from self)
+end word_source
+
+listed: type = struct
+    words: [][]u8
+end listed
+
+listed_length: (self: listed) -> (count: usize) =
+    count = lenof self.words
+end listed_length
+
+listed_word: (self: listed, index: usize) -> (bytes: []u8 from self) =
+    bytes = self.words[index]
+end listed_word
+
+listed is word_source (length: listed_length, word: listed_word)
+
+arguments: type (process: type) = struct
+    host: process
+end arguments
+
+arguments_length: (process: type is io.process, self: arguments(process))
+                  -> (count: usize) =
+    count = io.arguments_length(self.host)
+end arguments_length
+
+arguments_word: (process: type is io.process, self: arguments(process),
+                 index: usize) -> (bytes: []u8 from self) =
+    value: text.os_string = io.argument(self.host, index) else (problem)
+        _ = problem
+        compiler.unreachable()
+    end
+    bytes = text.os_string_bytes(value)
+end arguments_word
+
+(process: type is io.process) arguments(process) is word_source
+    (length: arguments_length, word: arguments_word)
+
+--  Whether two byte views hold the same bytes.
+same: (left: []u8, right: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof left <> lenof right
+    for byte, index in left do
+        return when byte <> right[index]
+    end for
+    yes = true
+end same
+
+--  Whether `word` is an option word: `-` and something after it.
+optionlike: (word: []u8) -> (yes: bool) =
+    yes = lenof word >= 2 and word[0] == u8('-')
+end optionlike
+
+--  Where the first `=` is in `word`, or its length.
+equals_at: (word: []u8) -> (at: usize) =
+    at = 0
+    while at < lenof word do
+        return when word[at] == u8('=')
+        inc at
+    end while
+end equals_at
+
+--  The row of `table` that is an option or flag with this long name, or
+--  the table's length.
+long_row: (table: []argument_value, name: []u8) -> (at: usize) =
+    at = 0
+    while at < lenof table do
+        return when table[at].shape <> positional_shape
+          and same(text.bytes(table[at].long), name)
+        inc at
+    end while
+end long_row
+
+--  The row of `table` that is an option or flag with this short name, or
+--  the table's length.
+short_row: (table: []argument_value, letter: u32) -> (at: usize) =
+    at = 0
+    while at < lenof table do
+        return when table[at].shape <> positional_shape
+          and table[at].short == letter and letter <> 0
+        inc at
+    end while
+end short_row
+
+--  The command below `parent` named `word`, or its commands' length.
+command_row: (parent: command_value, word: []u8) -> (at: usize) =
+    at = 0
+    while at < lenof parent.commands do
+        return when same(text.bytes(parent.commands[at].name), word)
+        inc at
+    end while
+end command_row
+
+--  Whether the table declares its own `help` or `h`, which then is not
+--  the built-in help.
+declares_help_long: (table: []argument_value) -> (yes: bool) =
+    yes = long_row(table, text.bytes("help")) < lenof table
+end declares_help_long
+
+declares_help_short: (table: []argument_value) -> (yes: bool) =
+    yes = short_row(table, u32('h')) < lenof table
+end declares_help_short
+
+--  Record a refusal of row `at` of the current command.
+refuse_row: (inout result: found_value, problem: failure, level: usize,
+             escaping into result current: command_value, at: usize,
+             short: u32, escaping into result given: []u8) -> none =
+    result.refused.problem = problem
+    result.refused.level = level
+    result.refused.row = current.table[at]
+    result.refused.named = true
+    result.refused.short = short
+    result.refused.given = given
+end refuse_row
+
+--  Record a refusal that names no row.
+refuse_word: (inout result: found_value, problem: failure, level: usize,
+              short: u32, escaping into result given: []u8) -> none =
+    result.refused.problem = problem
+    result.refused.level = level
+    result.refused.named = false
+    result.refused.short = short
+    result.refused.given = given
+end refuse_word
+
+--  Check a command's table, recording the row it refuses.
+check_table: (escaping into result current: command_value,
+              level: usize, inout result: found_value)
+             -> none ! invalid_table =
+    table: []argument_value = current.table
+    mut optional_seen: bool = false
+    mut repeated_seen: bool = false
+    mut positionals: bool = false
+    for at in usize(0)..<lenof table do
+        positional: bool = table[at].shape == positional_shape
+        mut wrong: fault = no_fault
+        if lenof text.bytes(table[at].long) == 0 then
+            wrong = nameless
+        end if
+        if positional then
+            positionals = true
+            if repeated_seen then
+                wrong = after_repeated
+            elsif table[at].required and optional_seen then
+                wrong = required_after_optional
+            end if
+            optional_seen = optional_seen or not table[at].required
+            repeated_seen = table[at].repeats
+        end if
+        for other in usize(0)..<at do
+            if (table[other].shape == positional_shape) == positional
+              and same(text.bytes(table[other].long), text.bytes(table[at].long))
+            then
+                wrong = name_twice
+            elsif table[at].short <> 0 and table[other].short == table[at].short
+            then
+                wrong = letter_twice
+            end if
+        end for
+        if wrong <> no_fault then
+            refuse_row(result, invalid_table, level, current, at, 0, "")
+            result.refused.fault = wrong
+            fail invalid_table
+        end if
+    end for
+    if positionals and lenof current.commands > 0 then
+        refuse_word(result, invalid_table, level, 0, "")
+        result.refused.fault = positionals_and_commands
+        fail invalid_table
+    end if
+end check_table
+
+--  Read `bytes` as `row` reads a value.
+read_value: (row: argument_value, bytes: []u8)
+            -> (result: value from bytes) ! invalid_value =
+    result = (bytes: text.os_string_over(bytes), unsigned: 0, signed: 0,
+              float: 0.0)
+    read: reader = row.reads.read
+    try read(bytes, result)
+end read_value
+
+--  How many times row `row` of level `level` was given.
+given_count: (entries: []entry, level: usize, row: usize) -> (count: usize) =
+    count = 0
+    for each_at in usize(0)..<lenof entries do
+        if entries[each_at].level == level and entries[each_at].row == row and entries[each_at].given then
+            inc count
+        end if
+    end for
+end given_count
+
+--  Record one argument given to row `at` of the command at `level`,
+--  refusing a second of one that does not repeat and a value its type
+--  does not read.
+record: (provider: type is mem.allocator, memory: provider,
+         inout result: found_value, level: usize,
+         escaping into result current: command_value, at: usize, short: u32,
+         escaping into result bytes: []u8)
+        -> none ! failure =
+    if not current.table[at].repeats
+      and given_count(vec.used(result.entries), level, at) > 0 then
+        refuse_row(result, repeated_option, level, current, at, short, "")
+        fail repeated_option
+    end if
+    mut read: value = (bytes: text.os_string_over(bytes), unsigned: 0, signed: 0, float: 0.0)
+    shape: shape = current.table[at].shape
+    if shape == option_shape or shape == positional_shape then
+        read = read_value(current.table[at], bytes) else (problem)
+            _ = problem
+            refuse_row(result, invalid_value, level, current, at, short, bytes)
+            fail invalid_value
+        end
+    end if
+    added: entry = (level: level, row: at, given: true, read: read)
+    try vec.push(result.entries, memory, added)
+end record
+
+--  Refuse an option the command does not declare: `-h` and `--help`,
+--  when it does not declare them either, ask for help.
+refuse_unknown: (inout result: found_value, level: usize, letter: u32,
+                 escaping into result spelled: []u8) -> none ! failure =
+    mut problem: failure = unknown_option
+    if letter == u32('h') or same(spelled, text.bytes("--help")) then
+        problem = help_asked
+    end if
+    refuse_word(result, problem, level, letter, spelled)
+    fail problem
+end refuse_unknown
+
+--  Record row `at`, given as `letter`, or by its long name when that is
+--  0, with its value: `inline`, what was left of the word, when there was
+--  something left, and otherwise the next word, which `index` names.  A
+--  flag given by its long name with something left was given a value; one
+--  given by its letter was given the next letters, which are flags too.
+take: (provider: type is mem.allocator, memory: provider,
+       source: type is word_source, escaping into result words: source,
+       inout index: usize, inout result: found_value, level: usize,
+       escaping into result current: command_value, at: usize, letter: u32,
+       has_inline: bool, escaping into result inline: []u8)
+      -> none ! failure =
+    if current.table[at].shape == option_shape then
+        mut value: []u8 = inline
+        if not has_inline then
+            if index == source.length(words) then
+                refuse_row(result, missing_value, level, current, at, letter,
+                           "")
+                fail missing_value
+            end if
+            value = source.word(words, index)
+            inc index
+        end if
+        try record(memory, result, level, current, at, letter, value)
+    elsif has_inline and letter == 0 then
+        refuse_row(result, unexpected_value, level, current, at, 0, inline)
+        fail unexpected_value
+    else
+        try record(memory, result, level, current, at, letter, "")
+    end if
+end take
+
+--  Finish the command at `level`: refuse a required row not given, and
+--  record each default of a row not given.
+finish: (provider: type is mem.allocator, memory: provider,
+         inout result: found_value, level: usize,
+         escaping into result current: command_value)
+        -> none ! failure =
+    for at in usize(0)..<lenof current.table do
+        if given_count(vec.used(result.entries), level, at) == 0 then
+            if current.table[at].defaulted then
+                read := read_value(current.table[at], text.bytes(current.table[at].default))
+                    else (problem)
+                    _ = problem
+                    refuse_row(result, invalid_table, level, current, at, 0,
+                               text.bytes(current.table[at].default))
+                    result.refused.fault = unread_default
+                    fail invalid_table
+                end
+                added: entry = (level: level, row: at, given: false,
+                                read: read)
+                try vec.push(result.entries, memory, added)
+            elsif current.table[at].required then
+                refuse_row(result, missing_argument, level, current, at, 0, "")
+                fail missing_argument
+            end if
+        end if
+    end for
+end finish
+
+--  Follow the words, the options and positional arguments of each
+--  command in turn, into `result`.
+follow: (provider: type is mem.allocator, memory: provider,
+         source: type is word_source,
+         escaping into result program: command_value,
+         escaping into result words: source, inout result: found_value)
+        -> none ! failure =
+    mut current: command_value = program
+    mut level: usize = 0
+    mut positional_at: usize = 0
+    mut ended: bool = false
+    mut index: usize = 0
+    result.chain[0] = program
+    result.depth = 1
+    try check_table(current, level, result)
+    while index < source.length(words) do
+        word: []u8 = source.word(words, index)
+        inc index
+        if not ended and same(word, text.bytes("--")) then
+            ended = true
+        elsif not ended and optionlike(word) and word[1] == u8('-') then
+            ends: usize = equals_at(word)
+            at: usize = long_row(current.table, word[2..<ends])
+            if at == lenof current.table then
+                try refuse_unknown(result, level, 0, word[0..<ends])
+            end if
+            mut after: usize = ends
+            if ends < lenof word then
+                after = ends + 1
+            end if
+            try take(memory, words, index, result, level, current, at, 0,
+                     ends < lenof word, word[after..<lenof word])
+        elsif not ended and optionlike(word) then
+            mut letter_at: usize = 1
+            while letter_at < lenof word do
+                letter: u32 = u32(word[letter_at])
+                inc letter_at
+                at: usize = short_row(current.table, letter)
+                if at == lenof current.table then
+                    try refuse_unknown(result, level, letter, "")
+                end if
+                try take(memory, words, index, result, level, current, at,
+                         letter, letter_at < lenof word,
+                         word[letter_at..<lenof word])
+                if current.table[at].shape == option_shape then
+                    letter_at = lenof word
+                end if
+            end while
+        elsif lenof current.commands > 0 then
+            at: usize = command_row(current, word)
+            if at == lenof current.commands then
+                refuse_word(result, unknown_command, level, 0, word)
+                fail unknown_command
+            end if
+            if result.depth == deepest then
+                refuse_word(result, invalid_table, level, 0, word)
+                result.refused.fault = too_deep
+                fail invalid_table
+            end if
+            try finish(memory, result, level, current)
+            current = current.commands[at]
+            result.chain[result.depth] = current
+            inc result.depth
+            inc level
+            positional_at = 0
+            try check_table(current, level, result)
+        else
+            --  The next positional row, or the repeated one the words fill.
+            mut at: usize = lenof current.table
+            mut seen: usize = 0
+            for row_at in usize(0)..<lenof current.table do
+                if current.table[row_at].shape == positional_shape and at == lenof current.table
+                then
+                    if seen == positional_at then
+                        at = row_at
+                    end if
+                    inc seen
+                end if
+            end for
+            if at == lenof current.table then
+                refuse_word(result, extra_argument, level, 0, word)
+                fail extra_argument
+            end if
+            try record(memory, result, level, current, at, 0, word)
+            if not current.table[at].repeats then
+                inc positional_at
+            end if
+        end if
+    end while
+    if lenof current.commands > 0 then
+        refuse_word(result, missing_command, level, 0, "")
+        fail missing_command
+    end if
+    try finish(memory, result, level, current)
+end follow
+
+--- Parse `words`, the arguments after the program's name, against
+--- `program`'s table and the commands below it, into `parsed`, which
+--- `new` made after the table.  What it records is allocated from
+--- `memory`; give it back with `release`, after a refusal too.  A refused
+--- argument fails with its reason, and `explain`, `usage_for` and
+--- `help_for` then say which argument it was.  `help_asked` is the
+--- failure `-h` and `--help` give.
+public parse: (provider: type is mem.allocator, memory: provider,
+               escaping into parsed program: command,
+               escaping into parsed words: [][]u8, inout parsed: found)
+              -> none ! failure =
+    given: listed = (words: words)
+    follow(memory, program, given, parsed) else (problem)
+        parsed.refused.problem = problem
+        fail problem
+    end
+end parse
+
+--- Parse the process's arguments, as `io.argument` lends them, against
+--- `program`, as `parse` parses words.
+public parse_process: (provider: type is mem.allocator, memory: provider,
+                       process: type is io.process,
+                       escaping into parsed host: process,
+                       escaping into parsed program: command,
+                       inout parsed: found)
+                      -> none ! failure =
+    given: arguments(process) = (host: host)
+    follow(memory, program, given, parsed) else (problem)
+        parsed.refused.problem = problem
+        fail problem
+    end
+end parse_process
+
+--- Give back what `parse` allocated, through the allocator it was given.
+public release: (provider: type is mem.allocator, inout parsed: found,
+                 memory: provider) -> none =
+    vec.release(parsed.entries, memory)
+end release
+
+--  The level and row that `name` names, searching the innermost command
+--  first.  A name no command followed declares stops the program, as a
+--  failed check does: it is the program's mistake, not its user's.
+named_row: (parsed: found_value, name: utf8, caller where: panic.call_site)
+           -> (level: usize, row: usize) =
+    chain: []command_value = parsed.chain[0..<parsed.depth]
+    level = lenof chain
+    while level > 0 do
+        level -= 1
+        for at in usize(0)..<lenof chain[level].table do
+            if same(text.bytes(chain[level].table[at].long), text.bytes(name)) then
+                row = at
+                return
+            end if
+        end for
+    end while
+    row = 0
+    compiler.unreachable(where)
+end named_row
+
+--- How many times the argument `name` was given: a flag's or an option's
+--- long name, or a positional argument's name.  A default is not counted.
+--- A name that none of the commands `parse` followed declares stops the
+--- program.
+public count: (parsed: found, name: utf8, caller where: panic.call_site)
+              -> (times: usize) =
+    (level, row) := named_row(parsed, name, where: where)
+    times = given_count(vec.used(parsed.entries), level, row)
+end count
+
+--- The value of the argument `name`: the last one given, or its default
+--- when none was.  Reports `mem.not_found` when it was not given and has
+--- no default.
+public get: (parsed: found, name: utf8, caller where: panic.call_site)
+            -> (result: value from parsed) ! mem.not_found =
+    (level, row) := named_row(parsed, name, where: where)
+    result = (bytes: text.os_string_over(""), unsigned: 0, signed: 0,
+              float: 0.0)
+    mut seen: bool = false
+    eachs_view := vec.used(parsed.entries)
+    for each_at in usize(0)..<lenof eachs_view do
+        if eachs_view[each_at].level == level and eachs_view[each_at].row == row
+          and (eachs_view[each_at].given or not seen) then
+            result = eachs_view[each_at].read
+            seen = true
+        end if
+    end for
+    fail mem.not_found when not seen
+end get
+
+--- The value of an argument that always has one once `parse` succeeds:
+--- a required one, or one with a default.  It is `get`'s value, and the
+--- program stops, as a failed check does, when there is none.
+public value_of: (parsed: found, name: utf8, caller where: panic.call_site)
+                 -> (result: value from parsed) =
+    result = get(parsed, name, where: where) else (problem)
+        _ = problem
+        compiler.unreachable(where)
+    end
+end value_of
+
+--- The value the argument `name` was given the `index`th time, counting
+--- from 0, for an argument that is `repeated`: the default as the 0th
+--- when none was given.  Reports `mem.not_found` past the last.
+public get_at: (parsed: found, name: utf8, index: usize,
+                caller where: panic.call_site)
+               -> (result: value from parsed) ! mem.not_found =
+    (level, row) := named_row(parsed, name, where: where)
+    mut seen: usize = 0
+    eachs_view := vec.used(parsed.entries)
+    for each_at in usize(0)..<lenof eachs_view do
+        if eachs_view[each_at].level == level and eachs_view[each_at].row == row then
+            if seen == index then
+                result = eachs_view[each_at].read
+                return
+            end if
+            inc seen
+        end if
+    end for
+    fail mem.not_found
+end get_at
+
+--- The name of the command chosen at `depth`, 0 the one the program's
+--- first positional word named.  Reports `mem.not_found` below the last.
+public chosen: (parsed: found, depth: usize)
+               -> (name: utf8 from parsed) ! mem.not_found =
+    fail mem.not_found when depth + 1 >= parsed.depth
+    name = parsed.chain[depth + 1].name
+end chosen
+
+--  How a row is named: `-s`, `--long`, or a positional's name.
+append_name: (inout into: text.builder, row: argument_value, short: u32)
+             -> none ! mem.out_of_memory =
+    if row.shape == positional_shape then
+        try text.append_text(into, row.long)
+    elsif short <> 0 then
+        try text.append_byte(into, u8('-'))
+        text.append_scalar(into, short) else (problem)
+            _ = problem
+            fail mem.out_of_memory
+        end
+    else
+        try text.append(into, "--")
+        try text.append_text(into, row.long)
+    end if
+end append_name
+
+--  The names of a command's commands, separated by commas.
+append_commands: (inout into: text.builder, current: command_value)
+                 -> none ! mem.out_of_memory =
+    for at in usize(0)..<lenof current.commands do
+        if at > 0 then
+            try text.append(into, ", ")
+        end if
+        try text.append_text(into, current.commands[at].name)
+    end for
+end append_commands
+
+--  Append `before`, then the refused word in quotes, then `after`.
+append_quoted: (inout into: text.builder, before: []u8, given: []u8,
+                after: []u8) -> none ! mem.out_of_memory =
+    try text.append(into, before)
+    try text.append_byte(into, u8('"'))
+    try text.append(into, given)
+    try text.append_byte(into, u8('"'))
+    try text.append(into, after)
+end append_quoted
+
+--  Say what is wrong with the table `parse` refused.
+explain_table: (inout into: text.builder, parsed: found)
+               -> none ! mem.out_of_memory =
+    wrong: fault = parsed.refused.fault
+    try text.append(into, "invalid argument table: ")
+    if wrong == nameless then
+        try text.append(into, "an option has no long name")
+    elsif wrong == name_twice then
+        try text.append(into, "two arguments are named ")
+        try text.append_text(into, parsed.refused.row.long)
+    elsif wrong == letter_twice then
+        try text.append(into, "two options take ")
+        try append_name(into, parsed.refused.row, parsed.refused.row.short)
+    elsif wrong == required_after_optional then
+        try text.append_text(into, parsed.refused.row.long)
+        try text.append(into, " is required after an optional argument")
+    elsif wrong == after_repeated then
+        try text.append_text(into, parsed.refused.row.long)
+        try text.append(into, " follows the repeated argument")
+    elsif wrong == unread_default then
+        try text.append(into, "the default of ")
+        try append_name(into, parsed.refused.row, 0)
+        try append_quoted(into, ", ", parsed.refused.given, ", is not ")
+        try text.append_text(into, parsed.refused.row.reads.expects)
+    elsif wrong == positionals_and_commands then
+        try text.append_text(into, parsed.chain[parsed.refused.level].name)
+        try text.append(into, " has both positional arguments and commands")
+    else
+        try text.append(into, "commands nest deeper than ")
+        try text.append_usize(into, deepest)
+    end if
+end explain_table
+
+--- Append one line, without its line feed, saying which argument was
+--- refused and what was expected: `unknown option --frob`, `option -n
+--- expects an unsigned number, given "ten"`.  The program writes its own
+--- name before it.
+public explain: (inout into: text.builder, parsed: found)
+                -> none ! mem.out_of_memory =
+    problem: failure = parsed.refused.problem
+    if problem == unknown_option then
+        try text.append(into, "unknown option ")
+        if parsed.refused.short <> 0 then
+            try text.append_byte(into, u8('-'))
+            text.append_scalar(into, parsed.refused.short) else (problem)
+                _ = problem
+                fail mem.out_of_memory
+            end
+        else
+            try text.append(into, parsed.refused.given)
+        end if
+    elsif problem == extra_argument then
+        try append_quoted(into, "unexpected argument ", parsed.refused.given, "")
+    elsif problem == unknown_command or problem == missing_command then
+        if problem == unknown_command then
+            try append_quoted(into, "unknown command ", parsed.refused.given, ",")
+        else
+            try text.append(into, "missing command,")
+        end if
+        try text.append(into, " expected one of: ")
+        try append_commands(into, parsed.chain[parsed.refused.level])
+    elsif problem == help_asked or problem == mem.out_of_memory then
+        try text.append(into, words(problem))
+    elsif problem == invalid_table then
+        try explain_table(into, parsed)
+    else
+        if problem == missing_argument then
+            try text.append(into, "missing ")
+        end if
+        if parsed.refused.row.shape == positional_shape then
+            try text.append(into, "argument ")
+        else
+            try text.append(into, "option ")
+        end if
+        try append_name(into, parsed.refused.row, parsed.refused.short)
+        if problem == missing_value then
+            try text.append(into, " expects a value ")
+            try text.append_text(into, parsed.refused.row.placeholder)
+        elsif problem == unexpected_value then
+            try append_quoted(into, " takes no value, given ", parsed.refused.given,
+                              "")
+        elsif problem == invalid_value then
+            try text.append(into, " expects ")
+            try text.append_text(into, parsed.refused.row.reads.expects)
+            try append_quoted(into, ", given ", parsed.refused.given, "")
+        elsif problem == repeated_option then
+            try text.append(into, " given more than once")
+        elsif parsed.refused.row.shape == option_shape then
+            try text.append_byte(into, u8(' '))
+            try text.append_text(into, parsed.refused.row.placeholder)
+        end if
+    end if
+end explain
+
+--  The usage line of the last command of `chain`, the program first.
+append_usage: (inout into: text.builder, chain: []command_value)
+              -> none ! mem.out_of_memory =
+    current: command_value = chain[lenof chain - 1]
+    try text.append(into, "usage:")
+    for at in usize(0)..<lenof chain do
+        try text.append_byte(into, u8(' '))
+        try text.append_text(into, chain[at].name)
+    end for
+    try text.append(into, " [options]")
+    for row_at in usize(0)..<lenof current.table do
+        if current.table[row_at].shape == option_shape and current.table[row_at].required then
+            try text.append_byte(into, u8(' '))
+            try append_name(into, current.table[row_at], 0)
+            try text.append_byte(into, u8(' '))
+            try text.append_text(into, current.table[row_at].placeholder)
+        end if
+    end for
+    for row_at in usize(0)..<lenof current.table do
+        if current.table[row_at].shape == positional_shape then
+            try text.append_byte(into, u8(' '))
+            if not current.table[row_at].required then
+                try text.append_byte(into, u8('['))
+            end if
+            try text.append_text(into, current.table[row_at].long)
+            if current.table[row_at].repeats then
+                try text.append(into, "...")
+            end if
+            if not current.table[row_at].required then
+                try text.append_byte(into, u8(']'))
+            end if
+        end if
+    end for
+    if lenof current.commands > 0 then
+        try text.append(into, " COMMAND")
+    end if
+    try text.append_byte(into, u8('\n'))
+end append_usage
+
+--  The width of an option's left column, `-s, --long VALUE`.
+option_width: (row: argument_value) -> (width: usize) =
+    width = 6 + lenof text.bytes(row.long)
+    if row.shape == option_shape then
+        width += 1 + lenof text.bytes(row.placeholder)
+    end if
+end option_width
+
+--  The width of a positional's left column, `NAME...`.
+positional_width: (row: argument_value) -> (width: usize) =
+    width = lenof text.bytes(row.long)
+    if row.repeats then
+        width += 3
+    end if
+end positional_width
+
+--  The larger of two widths.
+widest: (left: usize, right: usize) -> (width: usize) =
+    width = left
+    if right > left then
+        width = right
+    end if
+end widest
+
+--  Pad from `written` to `column`, then two spaces.
+pad: (inout into: text.builder, written: usize, column: usize)
+     -> none ! mem.out_of_memory =
+    mut at: usize = written
+    while at < column + 2 do
+        try text.append_byte(into, u8(' '))
+        inc at
+    end while
+end pad
+
+--  A row's help, its default after it, and the line feed.
+append_row_help: (inout into: text.builder, row: argument_value)
+                 -> none ! mem.out_of_memory =
+    try text.append_text(into, row.help)
+    if row.defaulted then
+        try text.append(into, " (default: ")
+        try text.append_text(into, row.default)
+        try text.append_byte(into, u8(')'))
+    end if
+    try text.append_byte(into, u8('\n'))
+end append_row_help
+
+--  The help text of the last command of `chain`, the program first.
+append_help: (inout into: text.builder, chain: []command_value)
+             -> none ! mem.out_of_memory =
+    current: command_value = chain[lenof chain - 1]
+    try append_usage(into, chain)
+    if lenof text.bytes(current.about) > 0 then
+        try text.append_byte(into, u8('\n'))
+        try text.append_text(into, current.about)
+        try text.append_byte(into, u8('\n'))
+    end if
+    builtin_long: bool = not declares_help_long(current.table)
+    builtin_short: bool = not declares_help_short(current.table)
+    mut column: usize = 0
+    mut positionals: bool = false
+    for row_at in usize(0)..<lenof current.table do
+        if current.table[row_at].shape == positional_shape then
+            positionals = true
+            column = widest(column, positional_width(current.table[row_at]))
+        else
+            column = widest(column, option_width(current.table[row_at]))
+        end if
+    end for
+    if builtin_long then
+        column = widest(column, 10)
+    end if
+    for each_at in usize(0)..<lenof current.commands do
+        column = widest(column, lenof text.bytes(current.commands[each_at].name))
+    end for
+    if positionals then
+        try text.append(into, "\narguments:\n")
+        for row_at in usize(0)..<lenof current.table do
+            if current.table[row_at].shape == positional_shape then
+                try text.append(into, "  ")
+                try text.append_text(into, current.table[row_at].long)
+                if current.table[row_at].repeats then
+                    try text.append(into, "...")
+                end if
+                try pad(into, positional_width(current.table[row_at]), column)
+                try append_row_help(into, current.table[row_at])
+            end if
+        end for
+    end if
+    try text.append(into, "\noptions:\n")
+    for row_at in usize(0)..<lenof current.table do
+        if current.table[row_at].shape <> positional_shape then
+            try text.append(into, "  ")
+            if current.table[row_at].short <> 0 then
+                try text.append_byte(into, u8('-'))
+                text.append_scalar(into, current.table[row_at].short) else (problem)
+                    _ = problem
+                    fail mem.out_of_memory
+                end
+                try text.append(into, ", ")
+            else
+                try text.append(into, "    ")
+            end if
+            try text.append(into, "--")
+            try text.append_text(into, current.table[row_at].long)
+            if current.table[row_at].shape == option_shape then
+                try text.append_byte(into, u8(' '))
+                try text.append_text(into, current.table[row_at].placeholder)
+            end if
+            try pad(into, option_width(current.table[row_at]), column)
+            try append_row_help(into, current.table[row_at])
+        end if
+    end for
+    if builtin_long then
+        if builtin_short then
+            try text.append(into, "  -h, --help")
+        else
+            try text.append(into, "      --help")
+        end if
+        try pad(into, 10, column)
+        try text.append(into, "print this help\n")
+    end if
+    if lenof current.commands > 0 then
+        try text.append(into, "\ncommands:\n")
+        for each_at in usize(0)..<lenof current.commands do
+            try text.append(into, "  ")
+            try text.append_text(into, current.commands[each_at].name)
+            try pad(into, lenof text.bytes(current.commands[each_at].name), column)
+            try text.append_text(into, current.commands[each_at].about)
+            try text.append_byte(into, u8('\n'))
+        end for
+    end if
+end append_help
+
+--- Append the program's usage line, ending in a line feed: `usage: NAME
+--- [options]`, then its required options, its positional arguments, `[`
+--- `]` round those not required and `...` after the repeated one, and
+--- `COMMAND` when it has commands.
+public usage: (inout into: text.builder, program: command)
+              -> none ! mem.out_of_memory =
+    chain: [1]command_value = [program]
+    try append_usage(into, chain[0..<1])
+end usage
+
+--- Append the program's help: its usage line, its line about it, then its
+--- positional arguments, its options with `-h, --help` among them, and its
+--- commands, each with its line of help in one column and a default after
+--- it, every line ending in a line feed.
+public help: (inout into: text.builder, program: command)
+             -> none ! mem.out_of_memory =
+    chain: [1]command_value = [program]
+    try append_help(into, chain[0..<1])
+end help
+
+--- Append the usage line of the command `parse` refused at, as `usage`
+--- writes the program's, the commands chosen on the way to it after the
+--- program's name.
+public usage_for: (inout into: text.builder, parsed: found)
+                  -> none ! mem.out_of_memory =
+    try append_usage(into, parsed.chain[0..<parsed.refused.level + 1])
+end usage_for
+
+--- Append the help of the command `parse` refused at, as `help` writes the
+--- program's: what a program writes when `parse` fails with `help_asked`.
+public help_for: (inout into: text.builder, parsed: found)
+                 -> none ! mem.out_of_memory =
+    try append_help(into, parsed.chain[0..<parsed.refused.level + 1])
+end help_for
+
+--- Answer a refusal of `parse` or `parse_process` as a hosted program
+--- does, returning the status to exit with.  For `help_asked` it writes the
+--- help of the command it was asked of on standard output, `help_for`'s,
+--- and returns 0; for any other refusal a line on standard error naming the
+--- program and what was refused, `explain`'s, then the command's usage
+--- line, and returns 2, the status Go's `flag` and clap exit with.  The text
+--- is built in storage taken from `memory` and given back before it
+--- returns.  A write that fails is not reported: the status is the same.
+public reply: (provider: type is mem.allocator, memory: provider,
+               world: type is io.world, host: world, parsed: found)
+              -> (code: i32) =
+    allocator: provider = memory
+    mut out := text.growing(any(addr allocator))
+    defer text.release(out)
+    if parsed.refused.problem == help_asked then
+        code = 0
+        help_for(out, parsed) else none
+        io.write(host, io.out(host), text.used(out)) else none
+        return
+    end if
+    code = 2
+    text.append_text(out, parsed.chain[0].name) else none
+    text.append(out, ": ") else none
+    explain(out, parsed) else none
+    text.append_byte(out, u8('\n')) else none
+    usage_for(out, parsed) else none
+    io.write(host, io.err(host), text.used(out)) else none
+end reply

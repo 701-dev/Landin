@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: the published WebAssembly example reads the module its argument names and lists its version, each section's name and size, a custom section's name and the export section's exports, with core/bits's fixed-width reads, LEB128 varints and views taken from the bytes
+program: main.ldn
+root: ../../../../..
+run_files: module.wasm
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0570, 0960, 1030, 1150, 1650, 1660
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

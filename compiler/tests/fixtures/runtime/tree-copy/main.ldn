@@ -6,12 +6,14 @@
 --  entry in one step.  `copy_directory` is the copy; read it and the three
 --  routines after it first.  The code after the comment `Everything below`
 --  only builds a tree to copy, checks the copy and removes both.
+import core/args
 import core/cmp
 import core/io
 import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 import hosted/system
 import platform/posix
 
@@ -331,12 +333,14 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     end loop
 end outside_source
 
---- Copy the directory the first argument names to the path the second
---- names, and say what the copy did.
-copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    from_path: []u8 = text.os_string_bytes(try io.argument(host, 0))
-    to_path: []u8 = text.os_string_bytes(try io.argument(host, 1))
+--- Copy the directory the argument `FROM` names to the path `TO` names,
+--- and say what the copy did.
+copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    source := try args.get(parsed, "FROM")
+    target := try args.get(parsed, "TO")
+    from_path: []u8 = text.os_string_bytes(source.bytes)
+    to_path: []u8 = text.os_string_bytes(target.bytes)
     try outside_source(from_path, to_path)
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
@@ -856,12 +860,36 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [2]args.argument = [
+        args.optional(args.positional("FROM", "the directory to copy")),
+        args.optional(args.positional("TO", "where to copy it"))
+    ]
+    program := args.command_of("tree-copy", "Copy a directory tree.",
+                               table[0..<2])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
+    --  A table cannot say that two arguments come together, so one path
+    --  alone is refused here.
+    if args.count(parsed, "FROM") > args.count(parsed, "TO") then
+        mut refusal: [256]u8 = zeroed
+        mut line := text.over(refusal)
+        text.append(line, "tree-copy: missing argument TO\n") else none
+        args.usage(line, program) else none
+        io.write(host, io.err(host), text.used(line)) else none
+        code = 2
+        return
+    end if
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) == 2 then
-        copy_named(host, out) else (problem)
+    if args.count(parsed, "TO") > 0 then
+        copy_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end

@@ -237,9 +237,16 @@ prints the count. It is like `wc -l` for one file, except that a last line
 without its newline counts too. When something fails, the program says
 what in words on standard error and returns 1.
 
-- `io.argument(host, 0)` lends the first argument as a host string, the
-  bytes the system gave [1660]. With no argument it fails, and the program
-  prints how to use it.
+- `core/args` reads the command line against a table the program
+  declares, here one positional argument, `FILE`. `args.parse_process`
+  takes the process's arguments into `parsed`, allocating from the heap,
+  and `defer args.release` gives that back [1100].
+- When the arguments are not what the table says, `args.reply` writes what
+  was wrong and the usage line on standard error and gives the status to
+  exit with, 2; asked for `--help`, it writes the help and gives 0.
+- `args.value_of` gives `FILE`'s value, which a required argument always
+  has once parsing succeeded. Its `bytes` are the host string the system
+  gave, unconverted [1660].
 - `count_lines` declares its failures as `! ...`, which lets the compiler
   infer the set from every `fail` and `try` in the body. Only a function
   that is not `public` may leave its set to the compiler [0960].
@@ -259,11 +266,13 @@ Fixture source: `compiler/tests/fixtures/runtime/line-count/main.ldn`.
 --  Count the lines of the file named by the first argument, as `wc -l`
 --  does, and a last line without a newline too.  A failure is said in words on standard error, and the program
 --  then returns 1.
+import core/args
 import core/failure
 import core/io
 import core/mem
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many lines the file at `path` holds.  A last line without its
 --- newline counts, and so does a line too long for the buffer.
@@ -296,13 +305,20 @@ end complain
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else begin
-        io.write(host, io.err(host), "usage: count FILE\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [args.positional("FILE", "the file to count")]
+    program := args.command_of("count", "Count the lines of a file.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
-    lines := count_lines(host, path) else (problem)
-        complain(host, text.os_string_bytes(path), problem)
+    code = 1
+    file := args.value_of(parsed, "FILE")
+    lines := count_lines(host, file.bytes) else (problem)
+        complain(host, text.os_string_bytes(file.bytes), problem)
         return
     end
     io.write_format(host, io.out(host), "{} lines\n", [any(addr lines)])
@@ -322,23 +338,26 @@ refine compile main.ldn -o count
 ```
 
 it prints `4 lines`. Named a file that is not there, it prints
-`count: missing.log: not found` on standard error and returns 1.
+`count: missing.log: not found` on standard error and returns 1. Named
+two files, it prints `count: unexpected argument "b"` and its usage line,
+`usage: count [options] FILE`, and returns 2.
 
 ## Adding up the arguments
 
 The program adds up the numbers you give it as arguments, however many
 there are, and prints the sum. When an argument is not a number, the
-program names it on standard error and returns 1.
+program names it on standard error and returns 2.
 
-- `io.arguments_length(host)` is how many arguments the program was given,
-  not counting its own name [1650]. The loop asks the host for each one by
-  its index, `io.argument(host, at)`, from 0 up to the count [1150].
-- With no argument at all, `main` prints how to use the program.
-- `text.parse_u64` reads an argument's bytes as decimal digits. Anything
-  else is the failure `text.invalid_number`, and digits too large for a
-  `u64` are `text.number_overflow`; `try` passes either on [0960].
-- `sum_arguments` keeps the index it is working on in `at_fault`, an
-  `inout` parameter, so that `main` can say which argument failed [1030].
+- The table declares one positional argument, `NUMBER`, made `repeated`
+  so that it takes every word left, and `typed` as `args.as_unsigned`, so
+  that `core/args` reads each as `text.parse_u64` reads decimal digits.
+  It is required, so at least one must be given.
+- `args.parse_process` refuses a word that is no number, or digits too
+  large for a `u64`, before the program sees it; `args.reply` then says
+  which on standard error, with the usage line, and gives the status 2.
+- `args.count(parsed, "NUMBER")` is how many were given, and
+  `args.get_at` reads each by its index, its `unsigned` field the number
+  read [1150].
 - A sum too large for a `u64` traps, as overflow does [0300].
 
 Fixture source: `compiler/tests/fixtures/runtime/example-sum-arguments/main.ldn`.
@@ -346,40 +365,33 @@ Fixture source: `compiler/tests/fixtures/runtime/example-sum-arguments/main.ldn`
 ```landin
 --  Add up the numbers given as arguments, however many there are, and
 --  print the sum.  An argument that is no number is named on standard
---  error, and the program then returns 1.
-import core/failure
+--  error with what was expected, and the program then returns 2.
+import core/args
 import core/io
-import core/text
 import hosted/blocking
-
---- The sum of every argument, each read as decimal digits.  `at_fault` is
---- the index of the argument being read, which the caller names when the
---- sum fails.
-sum_arguments: (host: blocking.host, inout at_fault: usize)
-               -> (sum: u64) ! ... =
-    sum = 0
-    for at in usize(0)..<io.arguments_length(host) do
-        at_fault = at
-        argument: text.os_string = try io.argument(host, at)
-        sum += try text.parse_u64(text.os_string_bytes(argument))
-    end for
-end sum_arguments
+import hosted/heap
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    if io.arguments_length(host) == 0 then
-        io.write(host, io.err(host), "usage: sum NUMBER...\n") else none
-        return
-    end if
-    mut at_fault: usize = 0
-    sum := sum_arguments(host, at_fault) else (problem)
-        number: usize = at_fault + 1
-        words: []u8 = failure.words(problem)
-        io.write_format(host, io.err(host), "sum: argument {}: {}\n",
-                        [any(addr number), any(addr words)]) else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.repeated(args.typed(args.positional("NUMBER", "a number to add"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("sum", "Add up numbers.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    mut sum: u64 = 0
+    for at in usize(0)..<args.count(parsed, "NUMBER") do
+        number := args.get_at(parsed, "NUMBER", at) else begin
+            break
+        end
+        sum += number.unsigned
+    end for
     io.write_format(host, io.out(host), "{}\n", [any(addr sum)]) else none
     code = 0
 end main
@@ -393,7 +405,8 @@ refine compile main.ldn -o sum
 ```
 
 it prints `543`. Given `./sum 3 x 5`, it prints
-`sum: argument 2: not a number` on standard error and returns 1.
+`sum: argument NUMBER expects an unsigned number, given "x"` on standard
+error, then `usage: sum [options] NUMBER...`, and returns 2.
 
 ## FizzBuzz
 
@@ -692,8 +705,8 @@ accent written apart from its letter, or a flag, which is two regional
 indicators. `unicode.graphemes` walks the characters, `unicode.words` the
 pieces between word boundaries, and case mapping writes into a
 `text.utf8_builder` over the caller's buffer, so nothing is allocated.
-Two texts that differ in case, or in how an accent is written, compare
-equal once each is folded and put in NFC.
+Two texts that differ in case, or in how an accent is written, are equal
+under `unicode.equal_canonical_caseless`, which needs no buffer at all.
 
 Fixture source: `compiler/tests/fixtures/runtime/example-text-as-read/main.ldn`.
 
@@ -701,7 +714,6 @@ Fixture source: `compiler/tests/fixtures/runtime/example-text-as-read/main.ldn`.
 --  Text as a reader sees it: the characters a person counts, the words
 --  in a sentence, and case that a comparison ignores, by core/unicode.
 import core/io
-import core/mem
 import core/text
 import core/unicode
 import hosted/blocking
@@ -720,24 +732,6 @@ counts: (source: utf8) -> (scalars: usize, characters: usize) =
         inc characters
     end for
 end counts
-
---  Whether two texts say the same words whatever their case and however
---  their accents are spelled: each folded, then put in NFC, compares
---  equal.
-same_words: (left: utf8, right: utf8) -> (yes: bool) ! mem.out_of_memory =
-    mut folded: [64]u8 = zeroed
-    mut left_storage: [64]u8 = zeroed
-    mut right_storage: [64]u8 = zeroed
-    mut scratch: text.utf8_builder = text.utf8_over(folded)
-    mut left_form: text.utf8_builder = text.utf8_over(left_storage)
-    try unicode.append_folded(scratch, left)
-    try unicode.append_nfc(left_form, text.utf8_used(scratch))
-    text.utf8_clear(scratch)
-    mut right_form: text.utf8_builder = text.utf8_over(right_storage)
-    try unicode.append_folded(scratch, right)
-    try unicode.append_nfc(right_form, text.utf8_used(scratch))
-    yes = text.equal(text.utf8_used(left_form), text.utf8_used(right_form))
-end same_words
 
 public main: () -> (code: i32) =
     code = 1
@@ -798,7 +792,9 @@ public main: () -> (code: i32) =
     title: utf8 = text.utf8_used(into)
     io.format(out, "{}\n", [any(addr title)]) else none
 
-    same: bool = same_words("STRASSE", "Stra\u{df}e") else begin return end
+    --  The same text whatever its case and however its accents are
+    --  spelled: Unicode's canonical caseless match.
+    same: bool = unicode.equal_canonical_caseless("STRASSE", "Stra\u{df}e")
     io.format(out, "STRASSE and Straße say the same: {}\n", [any(addr same)])
         else none
     code = 0
@@ -1080,6 +1076,209 @@ input:   AAAABBBCCDAA
 encoded: 4A3B2C1D2A
 ```
 
+## Sections of a WebAssembly module
+
+The program reads the WebAssembly module its first argument names and
+prints its version and a line for each section, as `wasm-objdump -h` does.
+It adds a custom section's name and the exports of the export section. A
+module is a magic number, a version and a run of sections, each an
+identifier byte and a length before its contents. When something fails,
+the program says what in words on standard error and returns 1.
+
+- Every `core/bits` read takes the bytes and `at`, the offset of the next
+  byte, and moves `at` past what it read. Only `at` is `inout` [0900], so
+  the bytes stay readable while earlier views of them are in use.
+- `bits.take(bytes, at, 4)` lends the next four bytes as a view of
+  `bytes`, here the magic number, and copies nothing. A file shorter than
+  that fails, and the `else` block turns the failure into the program's
+  own `not_a_module` [1030].
+- `bits.read_u32(bytes, at, bits.little)` reads the version, four bytes
+  with the least significant first. The byte order is an argument of
+  every read wider than a byte.
+- `bits.read_uleb128` reads a length, a count or an index in LEB128, the
+  variable-length form WebAssembly writes them in. It fails
+  `bits.invalid_varint` for one longer than 64 bits allow.
+- A read with too few bytes left fails `mem.out_of_bounds` and does not
+  trap, and `try` passes the failure on [0960]. A truncated or corrupt
+  file therefore ends in a message.
+- `read_name` returns a view declared `from bytes`, so the name it lends
+  is known to come from the module's bytes [0790]. The program checks a
+  length against the bytes left before narrowing it to `usize`.
+- `list_exports` reads a section's contents with an offset of its own,
+  starting at 0, since `contents` is a slice like any other.
+- The file is read into a module-level buffer of 65536 bytes, and a
+  `defer` closes it on every way out of `read_file` [1100]. A larger file
+  is the failure `mem.out_of_memory`.
+- `complain` takes the library's failures and `not_a_module` in one
+  parameter, and `failure.words` gives the words for the library's.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-wasm-sections/main.ldn`.
+
+```landin
+--  List the sections of the WebAssembly module the first argument names,
+--  and the names its export section gives, as `wasm-objdump -h` and `-x`
+--  do.  A module is a magic number, a version and a run of sections, each
+--  an identifier byte and a length in LEB128 before its contents.  A
+--  failure is said in words on standard error, and the program then
+--  returns 1.
+import core/bits
+import core/failure
+import core/io
+import core/mem
+import core/text
+import hosted/blocking
+
+--- The most of a module the program reads.
+capacity: usize = 65536
+
+--- A file that does not begin as a WebAssembly module does.
+not_a_module: atom
+
+--- The name the specification gives section `id`.
+section_name: (id: u8) -> (name: []u8) =
+    name = if id == 0 then "custom" elsif id == 1 then "type"
+           elsif id == 2 then "import" elsif id == 3 then "function"
+           elsif id == 4 then "table" elsif id == 5 then "memory"
+           elsif id == 6 then "global" elsif id == 7 then "export"
+           elsif id == 8 then "start" elsif id == 9 then "element"
+           elsif id == 10 then "code" elsif id == 11 then "data"
+           elsif id == 12 then "data count" else "unknown" end if
+end section_name
+
+--- What an export's kind byte says it is.
+kind_name: (kind: u8) -> (name: []u8) =
+    name = if kind == 0 then "function" elsif kind == 1 then "table"
+           elsif kind == 2 then "memory" elsif kind == 3 then "global"
+           else "unknown" end if
+end kind_name
+
+--- A name at `at`: its length in LEB128, then its bytes, lent from
+--- `bytes`.
+read_name: (bytes: []u8, inout at: usize) -> (name: []u8 from bytes) ! ... =
+    length: u64 = try bits.read_uleb128(bytes, at)
+    fail mem.out_of_bounds when length > u64(lenof bytes - at)
+    name = try bits.take(bytes, at, usize(length))
+end read_name
+
+--- Print each export of an export section's `contents`: its kind, its
+--- index and its name.
+list_exports: (host: blocking.host, contents: []u8) -> none ! ... =
+    mut at: usize = 0
+    count: u64 = try bits.read_uleb128(contents, at)
+    for each in u64(0)..<count do
+        _ = each
+        name: []u8 = try read_name(contents, at)
+        kind: []u8 = kind_name(try bits.read_u8(contents, at))
+        index: u64 = try bits.read_uleb128(contents, at)
+        try io.write_format(host, io.out(host), "  export {} {} {}\n",
+                            [any(addr kind), any(addr index), any(addr name)])
+    end for
+end list_exports
+
+--- Print the version of the module in `bytes` and a line for each of its
+--- sections, with a custom section's name and an export section's
+--- exports.
+list_sections: (host: blocking.host, bytes: []u8) -> none ! ... =
+    mut at: usize = 0
+    magic: []u8 = bits.take(bytes, at, 4) else begin
+        fail not_a_module
+    end
+    fail not_a_module when magic[0] <> 0 or magic[1] <> 0x61
+      or magic[2] <> 0x73 or magic[3] <> 0x6d
+    version: u32 = try bits.read_u32(bytes, at, bits.little)
+    try io.write_format(host, io.out(host), "version {}\n",
+                        [any(addr version)])
+    while at < lenof bytes do
+        id: u8 = try bits.read_u8(bytes, at)
+        size: u64 = try bits.read_uleb128(bytes, at)
+        fail mem.out_of_bounds when size > u64(lenof bytes - at)
+        contents: []u8 = try bits.take(bytes, at, usize(size))
+        name: []u8 = section_name(id)
+        try io.write_format(host, io.out(host), "{} section, {} bytes",
+                            [any(addr name), any(addr size)])
+        if id == 0 then
+            mut inside: usize = 0
+            label: []u8 = try read_name(contents, inside)
+            try io.write_format(host, io.out(host), ": {}",
+                                [any(addr label)])
+        end if
+        try io.write(host, io.out(host), "\n")
+        if id == 7 then try list_exports(host, contents) end if
+    end while
+end list_sections
+
+--- Read up to `capacity` bytes of the file at `path` into `storage`, and
+--- say how many it held.
+read_file: (host: blocking.host, path: text.os_string, storage: []mut u8)
+           -> (count: usize) ! ... =
+    count = 0
+    file := try io.open_read(host, path)
+    defer io.close(host, file) else none
+    loop do
+        got: usize = try io.read(host, file, storage[count..<lenof storage])
+        break when got == 0
+        count = count + got
+        fail mem.out_of_memory when count == lenof storage
+    end loop
+end read_file
+
+--- Say on standard error what failed and why.
+complain: (host: blocking.host, subject: []u8,
+           problem: failure.reason | not_a_module) -> none =
+    words: []u8 = match problem
+        not_a_module: "not a WebAssembly module"
+        _ (library): failure.words(library)
+    end match
+    io.write_format(host, io.err(host), "sections: {}: {}\n",
+                    [any(addr subject), any(addr words)]) else none
+end complain
+
+mut storage: [capacity]u8 = zeroed
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    path := io.argument(host, 0) else begin
+        io.write(host, io.err(host), "usage: sections FILE\n") else none
+        return
+    end
+    subject: []u8 = text.os_string_bytes(path)
+    count := read_file(host, path, storage) else (problem)
+        complain(host, subject, problem)
+        return
+    end
+    list_sections(host, storage[0..<count]) else (problem)
+        complain(host, subject, problem)
+        return
+    end
+    code = 0
+end main
+```
+
+Named a module that exports two functions and its memory:
+
+```sh
+refine compile main.ldn -o sections
+./sections module.wasm
+```
+
+it prints the text below. Named a file that is not a module, it prints
+`sections: notes.log: not a WebAssembly module` on standard error and
+returns 1.
+
+```text
+version 1
+type section, 7 bytes
+function section, 3 bytes
+memory section, 3 bytes
+export section, 24 bytes
+  export function 0 add
+  export function 1 twice
+  export memory 0 memory
+code section, 17 bytes
+custom section, 29 bytes: producers
+```
+
 ## Merge sort
 
 Merge sort halves the range, sorts each half by calling itself, and merges
@@ -1157,56 +1356,67 @@ after: -12 -3 0 2 5 5 18 99
 ## Dice and a shuffled deck
 
 The program rolls two dice 600 times and prints how often each total came
-up, then shuffles a deck of cards and deals five. Its draws come from a
-`core/random` generator seeded with the number you give as the argument.
-With no argument the seed comes from the system's entropy.
+up. It then rolls a loaded die sixty times, shuffles a deck of cards,
+deals five and picks a trump suit. Every draw comes from a `core/random`
+generator seeded with the number you give as the argument. With no
+argument the seed comes from the system's entropy.
 
 - `random.new(seed)` makes a generator from a number. A seed gives the same
   sequence on every target, so `./dice 2026` prints the same report
   wherever it runs. The generator is not cryptographic: bytes for a key
   come from `io.fill_random`.
-- `seeded` reads the seed from the first argument [1650], and `try` passes
-  on a failure to read or parse it [0960]. `random.from_entropy(host)`
-  asks the host for a seed instead, since entropy is a capability like any
-  other [1660].
-- `random.below(source, 6)` draws a number from 0 to 5 without bias, each
-  as likely as the others. The generator is an `inout` parameter, because
-  every draw changes it.
+- The table declares one optional positional argument, `SEED`, read as
+  an unsigned number; `args.parse_process` refuses one that is not, and
+  `args.reply` says so on standard error and gives the status 2.
+- `seeded` takes `SEED` when `args.count` says it was given [1650].
+  Otherwise `random.from_entropy(host)` asks the host for a seed, since
+  entropy is a capability like any other [1660], and `try` passes on a
+  failure to read it [0960].
+- `random.between_i64(source, 1, 6)` draws a number from 1 to 6, both
+  ends included, each equally likely. The generator is an `inout`
+  parameter, because every draw changes it.
+- `random.weighted(source, loaded)` draws a face of the loaded die. A
+  face's chance is its weight's share of all the weights, so the six,
+  weighted 5, comes up five times as often as any other face.
 - `random.shuffle(deck, source)` puts the deck in a random order with the
   Fisher-Yates shuffle, every order equally likely.
+  `random.pick(source, suits)` then draws one of the four suits.
 - A template has no field widths, so `roll_dice` pads its columns by hand,
   writing a space before a short number. A `while` loop draws each bar
   [1140], and `for` walks the totals and the first five cards [1150].
-- When the seed cannot be read, `main` says why on standard error and
-  returns 1 [1030].
+- When the system's entropy cannot be read, `main` says why on standard
+  error and returns 1 [1030].
 
 Fixture source: `compiler/tests/fixtures/runtime/example-dice-and-cards/main.ldn`.
 
 ```landin
---  Roll two dice six hundred times and count each total, then shuffle a
---  deck of cards and deal a hand of five.  The draws come from a generator
+--  Roll two dice six hundred times and count each total, roll a loaded
+--  die, then shuffle a deck of cards, deal a hand of five and pick the
+--  trump suit.  The draws come from a generator
 --  seeded with the number given as the argument, so a seed prints the same
 --  report on every target; with no argument the seed comes from the
 --  system's entropy, and every run differs.
+import core/args
 import core/failure
 import core/io
 import core/random
-import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many times the two dice are rolled.
 rolls: u32 = 600
 
---- The generator the report draws from: seeded with the first argument
---- when there is one, so a run can be repeated, and from the system's
---- entropy when there is none.
-seeded: (host: blocking.host) -> (source: random.generator) ! ... =
-    if io.arguments_length(host) == 0 then
+--- The generator the report draws from: seeded with the argument `SEED`
+--- when it was given, so a run can be repeated, and from the system's
+--- entropy when it was not.
+seeded: (host: blocking.host, parsed: args.found)
+        -> (source: random.generator) ! ... =
+    if args.count(parsed, "SEED") == 0 then
         source = try random.from_entropy(host)
         return
     end if
-    argument: text.os_string = try io.argument(host, 0)
-    source = random.new(try text.parse_u64(text.os_string_bytes(argument)))
+    seed := try args.get(parsed, "SEED")
+    source = random.new(seed.unsigned)
 end seeded
 
 --- Roll two dice `rolls` times and print how often each total came up, with
@@ -1217,9 +1427,9 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     mut left: u32 = rolls
     while left > 0 do
         dec left
-        first: usize = usize(random.below(source, 6)) + 1
-        second: usize = usize(random.below(source, 6)) + 1
-        inc counts[first + second]
+        first: i64 = random.between_i64(source, 1, 6)
+        second: i64 = random.between_i64(source, 1, 6)
+        inc counts[usize(first + second)]
     end while
     for total in usize(2)..<13 do
         count: u32 = counts[total]
@@ -1238,9 +1448,25 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     end for
 end roll_dice
 
+--- A die loaded so that a six comes up five times as often as each other
+--- face: the weight of each face, one to six.
+loaded: [6]u64 = [1, 1, 1, 1, 1, 5]
+
+--- Roll the loaded die sixty times and print the faces it showed.
+roll_loaded: (host: blocking.host, inout source: random.generator)
+             -> none ! ... =
+    try io.write(host, io.out(host), "loaded:")
+    for roll in usize(0)..<60 do
+        _ = roll
+        face: usize = random.weighted(source, loaded[0..<6]) + 1
+        try io.write_format(host, io.out(host), " {}", [any(addr face)])
+    end for
+    try io.write(host, io.out(host), "\n")
+end roll_loaded
+
 --- Shuffle a deck of 52 cards, each a number from 0 to 51 whose rank is
 --- the number modulo 13 and whose suit is the number divided by 13, and
---- print the first five.
+--- print the first five, then a trump suit picked from the four.
 deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
     ranks: []u8 = "A23456789TJQK"
     suits: []u8 = "SHDC"
@@ -1254,20 +1480,39 @@ deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
         name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
         try io.write(host, io.out(host), name)
     end for
+    trump: [1]u8 = [random.pick(source, suits)]
+    try io.write(host, io.out(host), "\ntrumps: ")
+    try io.write(host, io.out(host), trump)
     try io.write(host, io.out(host), "\n")
 end deal
 
---- Seed a generator, roll the dice and deal a hand from it.
-report: (host: blocking.host) -> none ! ... =
-    mut source: random.generator = try seeded(host)
+--- Seed a generator, roll the dice and the loaded die and deal a hand
+--- from it.
+report: (host: blocking.host, parsed: args.found) -> none ! ... =
+    mut source: random.generator = try seeded(host, parsed)
     try roll_dice(host, source)
+    try roll_loaded(host, source)
     try deal(host, source)
 end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.typed(args.positional("SEED",
+                                                 "the number to draw from"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("dice", "Roll dice and deal a hand of cards.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     code = 1
-    report(host) else (problem)
+    report(host, parsed) else (problem)
         words: []u8 = failure.words(problem)
         io.write_format(host, io.err(host), "dice: {}\n",
                         [any(addr words)]) else none
@@ -1298,7 +1543,9 @@ it prints
 10  51 ##########
 11  37 #######
 12  16 ###
-hand: 2H KD 9H KH KC
+loaded: 1 5 2 6 6 6 6 6 6 6 6 5 5 5 2 4 4 6 3 6 1 3 3 3 2 4 3 6 6 6 2 6 4 6 6 6 3 6 6 1 3 6 6 6 3 6 6 6 1 2 4 5 6 6 6 6 2 3 6 2
+hand: 7D JC AC 7C QD
+trumps: C
 ```
 
 ## Sensors
@@ -1767,6 +2014,9 @@ C functions in it by name and calls them, handing one a function of its
 own to call back. Read `main`, which loads and looks up, and then
 `report`, which calls.
 
+- The library's path is the one positional argument, `LIBRARY`, which
+  `core/args` reads as [the line count](#counting-lines-in-a-named-file)
+  reads its file's, a host string the system gave.
 - `posix.open_library` loads with the system's own loader. A program has
   that loader only when C's runtime started it, so on Linux this program
   is compiled with `--link=libc`. Without the flag, `refine` refuses the
@@ -1790,10 +2040,12 @@ Fixture source: `compiler/tests/fixtures/runtime/plugin-loading/main.ldn`.
 --  in it by name and call them, one with a function of the program's
 --  own, then ask for one it does not define.  When the loader refuses,
 --  say why in its own words.
+import core/args
 import core/failure
 import core/io
 import core/text
 import hosted/blocking
+import hosted/heap
 import platform/posix
 
 --  The C types of the functions the program looks for: nothing can check
@@ -1836,12 +2088,21 @@ end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
-    code = 1
-    path := io.argument(host, 0) else (problem)
-        _ = problem
-        io.write(host, io.err(host), "usage: plugin LIBRARY\n") else none
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.positional("LIBRARY", "the shared object to load")
+    ]
+    program := args.command_of("plugin", "Call two functions of a library.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
         return
     end
+    code = 1
+    library := args.value_of(parsed, "LIBRARY")
+    path: text.os_string = library.bytes
     plugin := posix.open_library(path, posix.local_symbols) else (problem)
         if problem == posix.no_library then
             refused(host)
@@ -2352,6 +2613,90 @@ UDP over ::1: the server echoed 2 datagrams
 | hello, datagram
 ```
 
+## Connecting by name
+
+A client that reaches a server by its host's name instead of its address:
+the program listens on `127.0.0.1` and connects to `localhost`, which the
+system resolves. Read `exchange` first, then `serve`, the server's side of
+it.
+
+- `net.connect_by_name` resolves the name and tries each address it has in
+  turn, each within the limit given, here five seconds. It connects even
+  where the resolver gives `::1` first, which nothing here listens at.
+- The listener asks for port 0, and the client takes the port from
+  `net.local_address`, so the name supplies the address alone.
+- Had no address connected, the call would fail as its last attempt did,
+  and a name no one knows is `net.unknown_name`. Every failure is an atom
+  of its concept [0940].
+- The client sends before the server accepts, as in the echo above: one
+  thread does both, and the system completes the handshake.
+- The program reports a failure in words on standard error and returns 1.
+
+Fixture source: `compiler/tests/fixtures/runtime/example-connect-by-name/main.ldn`.
+
+```landin
+--  Connecting by name: a server on 127.0.0.1 and a client that reaches it
+--  by the name `localhost`, which the system resolves.  The client tries
+--  each address the name has in turn, so it connects even where the
+--  resolver gives ::1 first, which nothing here listens at.
+import core/failure
+import core/io
+import core/net
+import core/time
+import hosted/blocking
+
+--- The server's answer was not what it sent.
+wrong_answer: atom
+
+--- Serve one connection on `listener`: read a word and send it back.
+serve: (host: blocking.host, listener: io.file) -> none ! ... =
+    accepted: io.file = try net.accept(host, listener)
+    defer net.close(host, accepted) else none
+    mut buffer: [16]u8 = zeroed
+    got: usize = try net.receive(host, accepted, buffer[0..<16])
+    try net.send(host, accepted, buffer[0..<got])
+end serve
+
+--- Listen on 127.0.0.1, connect to `localhost` at its port, and have the
+--- word sent come back.
+exchange: (host: blocking.host, out: io.file) -> none ! ... =
+    listener: io.file = try net.listen(host, net.loopback(net.ipv4, 0))
+    defer net.close(host, listener) else none
+    at: net.address = try net.local_address(host, listener)
+    connection: io.file = try net.connect_by_name(host, "localhost", at.port,
+                                                  time.seconds(5))
+    defer net.close(host, connection) else none
+    try net.send(host, connection, "hello")
+    try serve(host, listener)
+    mut buffer: [16]u8 = zeroed
+    got: usize = try net.receive(host, connection, buffer[0..<16])
+    fail wrong_answer when got <> 5
+    try io.write(host, out, "connected to localhost and read back: ")
+    try io.write(host, out, buffer[0..<got])
+    try io.write(host, out, "\n")
+end exchange
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 0
+    exchange(host, io.out(host)) else (problem)
+        message: []u8 = match problem
+            wrong_answer: "the answer differed"
+            _ (rest): failure.words(rest)
+        end match
+        io.write(host, io.err(host), message) else none
+        io.write(host, io.err(host), "\n") else none
+        code = 1
+    end
+end main
+```
+
+It prints
+
+```text
+connected to localhost and read back: hello
+```
+
 ## Directory listing
 
 `ls -l` cut down to what every hosted system agrees on: each entry of a
@@ -2374,6 +2719,9 @@ cleanup failure with the directory to remove.
 
 In the code:
 
+- `DIRECTORY` is an optional positional argument, which `core/args` reads
+  as [the line count](#counting-lines-in-a-named-file) reads its file's;
+  `args.count` says whether it was given.
 - `io.read_entry` lends each name from the directory's buffer until the
   next read [0790] [0800], so the program copies each name it keeps with
   `mem.copy`.
@@ -2396,6 +2744,7 @@ Fixture source: `compiler/tests/fixtures/runtime/directory-listing/main.ldn`.
 --  validates each one, and a name that is not prints with its other bytes
 --  escaped.  The code after the comment `Everything below` only builds a
 --  directory to list and checks the result.
+import core/args
 import core/cmp
 import core/failure
 import core/io
@@ -2403,6 +2752,7 @@ import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 
 --- Read every entry of the directory at `path` into `into`, with each
 --- file's size; `count` is how many there are.
@@ -2523,10 +2873,11 @@ escaped: (name: []u8, inout into: text.builder) -> none ! mem.out_of_memory =
     end for
 end escaped
 
---- List the directory the first argument names, up to 256 entries.
-list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    path: []u8 = text.os_string_bytes(try io.argument(host, 0))
+--- List the directory the argument `DIRECTORY` names, up to 256 entries.
+list_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    directory := try args.get(parsed, "DIRECTORY")
+    path: []u8 = text.os_string_bytes(directory.bytes)
     blank: kept = (name: [255 of 0], length: 0, kind: io.special, size: 0)
     mut entries: [256]kept = [256 of blank]
     count: usize = try list(host, path, entries)
@@ -2667,12 +3018,23 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.positional("DIRECTORY", "the directory to list"))
+    ]
+    program := args.command_of("listing", "List a directory.", table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) > 0 then
-        list_named(host, out) else (problem)
+    if args.count(parsed, "DIRECTORY") > 0 then
+        list_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end
@@ -2720,7 +3082,11 @@ of the file, and then `copy_file`, `filled` and `copy_link`, which it calls.
 The program runs in two ways:
 
 - Given two paths, `./tree-copy FROM TO` copies the directory FROM to TO
-  and says how many files, links and directories it copied.
+  and says how many files, links and directories it copied. `FROM` and
+  `TO` are optional positional arguments, which `core/args` reads as
+  [the line count](#counting-lines-in-a-named-file) reads its file's; a
+  table cannot say that two come together, so `main` refuses `FROM`
+  alone itself.
 - With no arguments, so that it has something known to copy, the program
   builds a small tree where it runs, copies it twice, checks the copy,
   prints a listing of it and removes both. That code comes after the
@@ -2786,12 +3152,14 @@ Fixture source: `compiler/tests/fixtures/runtime/tree-copy/main.ldn`.
 --  entry in one step.  `copy_directory` is the copy; read it and the three
 --  routines after it first.  The code after the comment `Everything below`
 --  only builds a tree to copy, checks the copy and removes both.
+import core/args
 import core/cmp
 import core/io
 import core/mem
 import core/sort
 import core/text
 import hosted/blocking
+import hosted/heap
 import hosted/system
 import platform/posix
 
@@ -3111,12 +3479,14 @@ outside_source: (from_path: []u8, to_path: []u8) -> none ! ... =
     end loop
 end outside_source
 
---- Copy the directory the first argument names to the path the second
---- names, and say what the copy did.
-copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
-            -> none ! ... =
-    from_path: []u8 = text.os_string_bytes(try io.argument(host, 0))
-    to_path: []u8 = text.os_string_bytes(try io.argument(host, 1))
+--- Copy the directory the argument `FROM` names to the path `TO` names,
+--- and say what the copy did.
+copy_named: (host: blocking.host, inout out: io.buffered_writer(blocking.host),
+             parsed: args.found) -> none ! ... =
+    source := try args.get(parsed, "FROM")
+    target := try args.get(parsed, "TO")
+    from_path: []u8 = text.os_string_bytes(source.bytes)
+    to_path: []u8 = text.os_string_bytes(target.bytes)
     try outside_source(from_path, to_path)
     mut done: tally = (files: 0, links: 0, directories: 0, skipped: 0,
                        replaced: 0)
@@ -3636,12 +4006,36 @@ end demonstrate
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [2]args.argument = [
+        args.optional(args.positional("FROM", "the directory to copy")),
+        args.optional(args.positional("TO", "where to copy it"))
+    ]
+    program := args.command_of("tree-copy", "Copy a directory tree.",
+                               table[0..<2])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
+    --  A table cannot say that two arguments come together, so one path
+    --  alone is refused here.
+    if args.count(parsed, "FROM") > args.count(parsed, "TO") then
+        mut refusal: [256]u8 = zeroed
+        mut line := text.over(refusal)
+        text.append(line, "tree-copy: missing argument TO\n") else none
+        args.usage(line, program) else none
+        io.write(host, io.err(host), text.used(line)) else none
+        code = 2
+        return
+    end if
     mut storage: [512]u8 = zeroed
     mut out := io.buffered_over(host, io.out(host), storage)
     defer io.flush(out) else none
     code = 1
-    if io.arguments_length(host) == 2 then
-        copy_named(host, out) else (problem)
+    if args.count(parsed, "TO") > 0 then
+        copy_named(host, out, parsed) else (problem)
             complain(host, problem)
             return
         end
@@ -3792,7 +4186,7 @@ systems the others run on.
 
 ## Benchmark Game programs
 
-The last six programs are direct ports of
+The last ten programs are direct ports of
 [the Benchmark Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/)'s
 workloads, there to compare Landin with other languages.
 [docs/benchmarks.md](docs/benchmarks.md) has the measurements. The ports
@@ -4740,4 +5134,815 @@ end main
 3141592653	:10
 5897932384	:20
 6264338327	:30
+```
+
+## Benchmark Game regex-redux
+
+[regex-redux](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/regexredux.html)
+reads FASTA's output on its standard input into a `core/text` builder that
+grows on the hosted heap [1360], and removes the header lines and line
+breaks with the pattern `>.*\n|\n`. It counts the matches of nine variant
+patterns, each an eight-letter DNA string and its reverse complement, then
+applies five IUB-code replacements one after another. It prints each
+variant with its count, and then the lengths of the input, the cleaned
+sequence and the replaced one. The patterns are matched with `core/regex`,
+which compiles a pattern at run time and matches in linear time. The
+correctness input is FASTA's output for 1000, the file reverse-complement
+reads, and the performance input is FASTA's output for 5,000,000:
+
+```sh
+./fasta 5000000 | ./regex-redux
+```
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-regex-redux/main.ldn`.
+
+```landin
+--  A direct single-threaded implementation of the Benchmark Game workload
+--  over core/regex.  FASTA on standard input has its header lines and line
+--  breaks taken out by `>.*\n|\n`; each of the nine variants is then
+--  counted over what is left, and the five IUB replacements are applied to
+--  it in turn.  The program prints each variant and its count, then the
+--  lengths of the input, of the cleaned sequence and of the sequence after
+--  the replacements.
+import core/io
+import core/mem
+import core/regex
+import core/text
+import hosted/blocking
+import hosted/heap
+
+--- The nine variants of the eight-mer `agggtaaa`, each with its reverse
+--- complement.
+variants: [9]utf8 = [
+    "agggtaaa|tttaccct", "[cgt]gggtaaa|tttaccc[acg]",
+    "a[act]ggtaaa|tttacc[agt]t", "ag[act]gtaaa|tttac[agt]ct",
+    "agg[act]taaa|ttta[agt]cct", "aggg[acg]aaa|ttt[cgt]ccct",
+    "agggt[cgt]aa|tt[acg]accct", "agggta[cgt]a|t[acg]taccct",
+    "agggtaa[cgt]|[acg]ttaccct"
+]
+
+--- The IUB replacements, applied in this order, each to what the one
+--- before it left.
+patterns: [5]utf8 = ["tHa[Nt]", "aND|caN|Ha[DS]|WaS", "a[NSt]|BY", "<[^>]*>",
+                     "\\|[^|][^|]*\\|"]
+replacements: [5]utf8 = ["<4>", "<3>", "<2>", "|", "-"]
+
+--- Append all of standard input to `whole`, a read at a time.
+read_all: (host: blocking.host, inout whole: text.builder)
+          -> none ! io.io_failed | mem.out_of_memory =
+    input: io.file = io.input(host)
+    mut chunk: [65536]u8 = zeroed
+    loop do
+        got: usize = try io.read(host, input, chunk)
+        break when got == 0
+        try text.append(whole, chunk[0..<got])
+    end loop
+end read_all
+
+--- How many matches of `pattern` `haystack` has.
+count_of: (provider: type is mem.allocator, memory: provider, pattern: utf8,
+           haystack: utf8) -> (count: usize) ! regex.compile_failure =
+    count = 0
+    mut compiled := try regex.compile(memory, pattern)
+    defer regex.release(compiled, memory)
+    for found in regex.matches(addr compiled, haystack) do
+        _ = found
+        inc count
+    end for
+end count_of
+
+--- `source` with every match of `pattern` replaced by `template`, into
+--- `into`, cleared first.
+replaced: (provider: type is mem.allocator, memory: provider, pattern: utf8,
+           source: utf8, template: utf8, inout into: text.builder)
+          -> none ! regex.compile_failure | mem.out_of_memory =
+    mut compiled := try regex.compile(memory, pattern)
+    defer regex.release(compiled, memory)
+    text.clear(into)
+    _ = try regex.replace_all(compiled, source, template, into)
+end replaced
+
+--- The workload, its results written to `out`.
+redux: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
+       -> none ! regex.compile_failure | io.io_failed | text.invalid_text
+               | text.invalid_format =
+    memory := heap.new()
+    mut whole := text.growing(any(addr memory))
+    defer text.release(whole)
+    try read_all(host, whole)
+    mut one := text.growing(any(addr memory))
+    defer text.release(one)
+    mut other := text.growing(any(addr memory))
+    defer text.release(other)
+    input: utf8 = try text.from_bytes(text.used(whole))
+    try replaced(memory, ">.*\\n|\\n", input, "", one)
+    input_length: usize = text.length(whole)
+    clean_length: usize = text.length(one)
+    sequence: utf8 = try text.from_bytes(text.used(one))
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage)
+    for variant in variants do
+        count: usize = try count_of(memory, variant, sequence)
+        text.clear(line)
+        try text.format(line, "{} {}\n", [any(addr variant), any(addr count)])
+        try io.put(out, text.used(line))
+    end for
+    --  Each replacement reads the builder the one before it wrote, so the
+    --  last result, the fifth's, is in `other`.
+    for pattern, index in patterns do
+        if index % 2 == 0 then
+            source: utf8 = try text.from_bytes(text.used(one))
+            try replaced(memory, pattern, source, replacements[index], other)
+        else
+            source: utf8 = try text.from_bytes(text.used(other))
+            try replaced(memory, pattern, source, replacements[index], one)
+        end if
+    end for
+    final_length: usize = text.length(other)
+    text.clear(line)
+    try text.format(line, "\n{}\n{}\n{}\n",
+                    [any(addr input_length), any(addr clean_length),
+                     any(addr final_length)])
+    try io.put(out, text.used(line))
+end redux
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    mut storage: [4096]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    code = 1
+    redux(host, out) else (problem)
+        if problem == mem.out_of_memory then
+            io.write(host, io.err(host), "regex-redux: out of memory\n") else none
+        elsif problem == io.io_failed then
+            io.write(host, io.err(host), "regex-redux: standard input or output failed\n")
+                else none
+        elsif problem == text.invalid_text then
+            io.write(host, io.err(host), "regex-redux: the input is not UTF-8\n")
+                else none
+        else
+            io.write(host, io.err(host), "regex-redux: a pattern did not compile\n")
+                else none
+        end if
+        return
+    end
+    io.flush(out) else begin
+        io.write(host, io.err(host), "regex-redux: standard output could not be written\n")
+            else none
+        return
+    end
+    code = 0
+end main
+```
+
+`./fasta 1000 | ./regex-redux` prints
+
+```text
+agggtaaa|tttaccct 1
+[cgt]gggtaaa|tttaccc[acg] 0
+a[act]ggtaaa|tttacc[agt]t 0
+ag[act]gtaaa|tttac[agt]ct 0
+agg[act]taaa|ttta[agt]cct 1
+aggg[acg]aaa|ttt[cgt]ccct 0
+agggt[cgt]aa|tt[acg]accct 0
+agggta[cgt]a|t[acg]taccct 0
+agggtaa[cgt]|[acg]ttaccct 2
+
+10245
+10000
+5262
+```
+
+## Benchmark Game k-nucleotide
+
+[k-nucleotide](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/knucleotide.html)
+reads FASTA's output on its standard input and counts every run of 1, 2,
+3, 4, 6, 12 and 18 bases in the sequence named THREE, in the library's
+hash map, as the game requires. A run is a word of two bits a base, a
+distinct type whose hash is its own bits [0650] [1240]; the map spreads
+every hash before it picks a slot. The shares are written to three
+places with `{:.3}`. The performance input is FASTA's output for
+25000000:
+
+```sh
+./fasta 25000000 | ./k-nucleotide
+```
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-k-nucleotide/main.ldn`.
+
+```landin
+--  The Benchmark Game's k-nucleotide workload: read a FASTA file on
+--  standard input, take the sequence of the record named THREE, and count
+--  every run of k bases in it in a core/map table, for k of 1, 2, 3, 4, 6,
+--  12 and 18.  Each base and each pair is written with its share of all
+--  the runs of its length, as a percentage to three places, most frequent
+--  first; then the count of each of five given runs.
+--
+--  A run of up to 32 bases is a word of two bits a base, so the table's
+--  key is that word, and its hash is the word itself: the game lets a
+--  program give its key a hash of its own, and the map spreads every
+--  hash through MurmurHash3's finalizer before it picks a slot.  The map
+--  is the library's, seeded as every map is.
+import core/cmp
+import core/io
+import core/map
+import core/mem
+import core/sort
+import core/text
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- A run of bases, two bits each from A, C, G and T as 0 to 3, the first
+--- base the most significant.  Runs of one length are one table's keys,
+--- so the word alone tells them apart.
+frame: type = distinct u64
+
+same_frame: (left: frame, right: frame) -> (yes: bool) =
+    yes = u64(left) == u64(right)
+end same_frame
+
+--- The run's own bits, unkeyed: the map spreads them before it picks a
+--- slot, and these keys come from the input rather than from one who
+--- could choose them against the table.
+frame_hash: (value: frame, seed: cmp.hash_seed) -> (result: u64) =
+    _ = seed
+    result = u64(value)
+end frame_hash
+
+frame is cmp.equatable (equal: same_frame)
+frame is cmp.hashable (hash: frame_hash)
+
+counts: type = map.map(frame, u32)
+
+--- A run and how often it occurs, ordered most frequent first and, among
+--- equal counts, by its bases.
+tally: type = struct
+    run: frame
+    count: u32
+end tally
+
+before: (left: tally, right: tally) -> (yes: bool) =
+    yes = left.count > right.count
+          or (left.count == right.count and u64(left.run) < u64(right.run))
+end before
+
+tally is cmp.ordered (less: before)
+
+bases: []u8 = "ACGT"
+
+--- Each byte's base, 0 to 3, or 4 for a byte that is none.
+codes: () -> (table: [256]u8) =
+    table = zeroed
+    for at in usize(0)..<256 do
+        table[at] = 4
+    end for
+    for at in usize(0)..<4 do
+        table[usize(bases[at])] = u8(at)
+        table[usize(bases[at]) + 32] = u8(at)
+    end for
+end codes
+
+--- Append all of standard input to `whole`, a read at a time.
+read_all: (host: blocking.host, inout whole: text.builder)
+          -> none ! io.io_failed | mem.out_of_memory =
+    input: io.file = io.input(host)
+    mut chunk: [65536]u8 = zeroed
+    loop do
+        got: usize = try io.read(host, input, chunk)
+        break when got == 0
+        try text.append(whole, chunk[0..<got])
+    end loop
+end read_all
+
+--- Whether the line at `at` of `input` begins with `wanted`.
+begins: (input: []u8, at: usize, wanted: []u8) -> (yes: bool) =
+    yes = false
+    return when lenof input - at < lenof wanted
+    for offset in usize(0)..<lenof wanted do
+        return when input[at + offset] <> wanted[offset]
+    end for
+    yes = true
+end begins
+
+--- Append to `sequence` the bases of record THREE in `input`, each as its
+--- code, from the line after its header to the end of the input.  A
+--- later header line is left out, so a timing input that repeats the
+--- game's file is read as one long sequence.
+sequence_of: (input: []u8, inout sequence: text.builder)
+             -> none ! mem.out_of_memory =
+    table: [256]u8 = codes()
+    mut at: usize = 0
+    while at < lenof input and not begins(input, at, ">THREE") do
+        at += mem.find(input[at..<lenof input], u8('\n'))
+        if at < lenof input then inc at end if
+    end while
+    mut chunk: [4096]u8 = zeroed
+    mut used: usize = 0
+    mut header: bool = true
+    while at < lenof input do
+        byte: u8 = input[at]
+        inc at
+        if byte == 10 then
+            header = false
+        elsif byte == 62 then
+            header = true
+        elsif not header then
+            code: u8 = table[usize(byte)]
+            if code < 4 then
+                chunk[used] = code
+                inc used
+                if used == lenof chunk then
+                    try text.append(sequence, chunk)
+                    used = 0
+                end if
+            end if
+        end if
+    end while
+    try text.append(sequence, chunk[0..<used])
+end sequence_of
+
+--- Count every run of `length` bases in `sequence` into `table`.
+count_runs: (memory: memory_of, inout table: counts, sequence: []u8,
+             length: usize) -> none ! mem.out_of_memory =
+    return when lenof sequence < length
+    mask: u64 = (u64(1) << u64(2 * length)) - 1
+    mut word: u64 = 0
+    for at in usize(0)..<length - 1 do
+        word = (word << 2) | u64(sequence[at])
+    end for
+    for at in length - 1..<lenof sequence do
+        word = ((word << 2) | u64(sequence[at])) & mask
+        slot: ptr mut u32 = map.at(table, frame(word)) else (problem)
+            _ = problem
+            try map.insert(table, memory, frame(word), u32(1))
+            continue
+        end
+        slot.val = slot.val + 1
+    end for
+end count_runs
+
+--- Write the `length` bases of `run`.
+put_run: (inout out: io.buffered_writer(blocking.host), run: frame,
+          length: usize) -> none ! mem.out_of_memory | io.io_failed =
+    mut letters: [32]u8 = zeroed
+    mut word: u64 = u64(run)
+    mut at: usize = length
+    while at > 0 do
+        dec at
+        letters[at] = bases[usize(word & 3)]
+        word = word >> 2
+    end while
+    try io.put(out, letters[0..<length])
+end put_run
+
+--- Write every run of `length` bases with its share of them all, most
+--- frequent first, and then an empty line.
+frequencies: (inout out: io.buffered_writer(blocking.host), memory: memory_of,
+              sequence: []u8, length: usize, seed: cmp.hash_seed)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    mut table: counts = map.new(key: frame, item: u32, seed: seed)
+    defer map.release(table, memory)
+    try count_runs(memory, table, sequence, length)
+    mut ranked: [16]tally = zeroed
+    mut found: usize = 0
+    mut walk := map.entries()
+    while not map.at_end(table, walk) do
+        pair := map.next_entry(table, walk)
+        ranked[found] = (run: pair.key, count: pair.item)
+        inc found
+    end while
+    sort.sort(ranked[0..<found])
+    total: f64 = f64(lenof sequence - length + 1)
+    for at in usize(0)..<found do
+        try put_run(out, ranked[at].run, length)
+        share: f64 = 100.0 * f64(ranked[at].count) / total
+        try io.format(out, " {:.3}\n", [any(addr share)])
+    end for
+    try io.put(out, "\n")
+end frequencies
+
+--- Write how often `wanted` occurs in `sequence`, a tab and `wanted`.
+occurrences: (inout out: io.buffered_writer(blocking.host), memory: memory_of,
+              sequence: []u8, wanted: []u8, seed: cmp.hash_seed)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    table: [256]u8 = codes()
+    mut word: u64 = 0
+    for letter in wanted do
+        word = (word << 2) | u64(table[usize(letter)])
+    end for
+    mut runs: counts = map.new(key: frame, item: u32, seed: seed)
+    defer map.release(runs, memory)
+    try count_runs(memory, runs, sequence, lenof wanted)
+    count: u32 = map.get(runs, frame(word)) else (problem)
+        _ = problem
+        u32(0)
+    end
+    try io.format(out, "{}\t", [any(addr count)])
+    try io.put(out, wanted)
+    try io.put(out, "\n")
+end occurrences
+
+knucleotide: (host: blocking.host, memory: memory_of)
+             -> none ! mem.out_of_memory | io.io_failed | text.invalid_format =
+    mut storage: [65536]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    mut whole := text.growing(any(addr memory))
+    defer text.release(whole)
+    try read_all(host, whole)
+    mut sequence := text.growing(any(addr memory))
+    defer text.release(sequence)
+    try sequence_of(text.used(whole), sequence)
+    text.release(whole)
+    bases_of: []u8 = text.used(sequence)
+    --  A constant seed, so that every run takes the same probes.
+    seed := cmp.seed_from(0x6b6e75636c656f74, 0x6964652d72756e73)
+    try frequencies(out, memory, bases_of, 1, seed)
+    try frequencies(out, memory, bases_of, 2, seed)
+    wanted: [5][]u8 = ["GGT", "GGTA", "GGTATT", "GGTATTTTAATT",
+                       "GGTATTTTAATTTATAGT"]
+    for run in wanted do
+        try occurrences(out, memory, bases_of, run, seed)
+    end for
+    try io.flush(out)
+end knucleotide
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    knucleotide(host, memory) else (problem)
+        if problem == mem.out_of_memory then
+            io.write(host, io.err(host), "knucleotide: out of memory\n") else none
+        elsif problem == io.io_failed then
+            io.write(host, io.err(host), "knucleotide: input or output failed\n")
+                else none
+        end if
+        return
+    end
+    code = 0
+end main
+```
+
+`./fasta 1000 | ./k-nucleotide` prints
+
+```text
+T 31.520
+A 29.600
+C 19.480
+G 19.400
+
+AT 9.922
+TT 9.602
+TA 9.402
+AA 8.402
+GA 6.321
+TC 6.301
+TG 6.201
+GT 6.041
+CT 5.961
+AG 5.841
+CA 5.461
+AC 5.441
+CC 4.041
+CG 4.021
+GC 3.701
+GG 3.341
+
+54	GGT
+24	GGTA
+4	GGTATT
+0	GGTATTTTAATT
+0	GGTATTTTAATTTATAGT
+```
+
+## Benchmark Game n-body
+
+[n-body](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/nbody.html)
+follows the Sun and the four Jovian planets under Newton's gravity, a
+hundredth of a day at a time, and prints the system's energy before and
+after to nine places. Each step works out the pull between every pair of
+bodies with `core/math`'s `sqrt`, changes both bodies' velocities, then
+moves every body. The five bodies are an array of structs the program
+holds on its stack. The correctness input is 1,000 steps and the
+performance input 50,000,000.
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-n-body/main.ldn`.
+
+```landin
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  the Jovian planets orbiting the Sun under Newton's gravity, integrated
+--  by the symplectic Euler method in steps of a hundredth of a day.  The
+--  count of steps is the program's argument: a thousand for the
+--  correctness output and fifty million for the performance run.  It
+--  prints the system's energy before and after, to nine places.
+import core/io
+import core/math
+import core/mem
+import core/text
+import hosted/blocking
+
+days_per_year: f64 = 365.24
+solar_mass: f64 = 4.0 * math.pi * math.pi
+body_count: usize = 5
+
+--- A body's position in astronomical units, its velocity in astronomical
+--- units a year and its mass in solar masses times four pi squared.
+body: type = struct
+    x: f64
+    y: f64
+    z: f64
+    vx: f64
+    vy: f64
+    vz: f64
+    mass: f64
+end body
+
+planet: (x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64)
+        -> (result: body) =
+    result = (x: x, y: y, z: z, vx: vx * days_per_year,
+              vy: vy * days_per_year, vz: vz * days_per_year,
+              mass: mass * solar_mass)
+end planet
+
+--- The Sun, Jupiter, Saturn, Uranus and Neptune, at the game's epoch.
+solar_system: () -> (bodies: [5]body) =
+    bodies = [(x: 0.0, y: 0.0, z: 0.0, vx: 0.0, vy: 0.0, vz: 0.0,
+               mass: solar_mass),
+              planet(4.84143144246472090e+00, -1.16032004402742839e+00,
+                     -1.03622044471123109e-01, 1.66007664274403694e-03,
+                     7.69901118419740425e-03, -6.90460016972063023e-05,
+                     9.54791938424326609e-04),
+              planet(8.34336671824457987e+00, 4.12479856412430479e+00,
+                     -4.03523417114321381e-01, -2.76742510726862411e-03,
+                     4.99852801234917238e-03, 2.30417297573763929e-05,
+                     2.85885980666130812e-04),
+              planet(1.28943695621391310e+01, -1.51111514016986312e+01,
+                     -2.23307578892655734e-01, 2.96460137564761618e-03,
+                     2.37847173959480950e-03, -2.96589568540237556e-05,
+                     4.36624404335156298e-05),
+              planet(1.53796971148509165e+01, -2.59193146099879641e+01,
+                     1.79258772950371181e-01, 2.68067772490389322e-03,
+                     1.62824170038242295e-03, -9.51592254519715870e-05,
+                     5.15138902046611451e-05)]
+end solar_system
+
+--- Give the Sun the momentum that leaves the system's total at zero.
+offset_momentum: (inout bodies: [5]body) -> none =
+    mut px: f64 = 0.0
+    mut py: f64 = 0.0
+    mut pz: f64 = 0.0
+    for each in bodies do
+        px += each.vx * each.mass
+        py += each.vy * each.mass
+        pz += each.vz * each.mass
+    end for
+    bodies[0].vx = -px / solar_mass
+    bodies[0].vy = -py / solar_mass
+    bodies[0].vz = -pz / solar_mass
+end offset_momentum
+
+--- The kinetic energy of every body less the potential of every pair.
+energy: (bodies: [5]body) -> (total: f64) =
+    total = 0.0
+    first: usize = 0
+    for i in first..<body_count do
+        b := bodies[i]
+        total += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)
+        for j in i + 1..<body_count do
+            c := bodies[j]
+            dx := b.x - c.x
+            dy := b.y - c.y
+            dz := b.z - c.z
+            total -= b.mass * c.mass / math.sqrt(dx * dx + dy * dy + dz * dz)
+        end for
+    end for
+end energy
+
+--- Move the system on by `dt`: every pair's pull changes both bodies'
+--- velocities, then every body moves at its new velocity.
+advance: (inout bodies: [5]body, dt: f64) -> none =
+    first: usize = 0
+    for i in first..<body_count do
+        for j in i + 1..<body_count do
+            dx := bodies[i].x - bodies[j].x
+            dy := bodies[i].y - bodies[j].y
+            dz := bodies[i].z - bodies[j].z
+            distance_squared := dx * dx + dy * dy + dz * dz
+            magnitude := dt / (distance_squared * math.sqrt(distance_squared))
+            pull_on_i := bodies[j].mass * magnitude
+            bodies[i].vx -= dx * pull_on_i
+            bodies[i].vy -= dy * pull_on_i
+            bodies[i].vz -= dz * pull_on_i
+            pull_on_j := bodies[i].mass * magnitude
+            bodies[j].vx += dx * pull_on_j
+            bodies[j].vy += dy * pull_on_j
+            bodies[j].vz += dz * pull_on_j
+        end for
+    end for
+    for i in first..<body_count do
+        bodies[i].x += dt * bodies[i].vx
+        bodies[i].y += dt * bodies[i].vy
+        bodies[i].z += dt * bodies[i].vz
+    end for
+end advance
+
+--- The count of steps named by the first argument.
+step_count: (host: blocking.host)
+            -> (n: usize) ! mem.not_found | text.invalid_number
+                          | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end step_count
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    code = 1
+    n := step_count(host) else begin
+        io.write(host, io.err(host), "usage: n-body N\n") else none
+        return
+    end
+
+    mut storage: [64]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    mut bodies := solar_system()
+    offset_momentum(bodies)
+    before := energy(bodies)
+    io.format(out, "{:.9}\n", [any(addr before)]) else begin
+        return
+    end
+    first: usize = 0
+    for step in first..<n do
+        _ = step
+        advance(bodies, 0.01)
+    end for
+    after := energy(bodies)
+    io.format(out, "{:.9}\n", [any(addr after)]) else begin
+        return
+    end
+    io.flush(out) else begin
+        return
+    end
+    code = 0
+end main
+```
+
+`./n-body 1000` prints
+
+```text
+-0.169075164
+-0.169087605
+```
+
+## Benchmark Game spectral-norm
+
+[spectral-norm](https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/spectralnorm.html)
+estimates the largest singular value of an infinite matrix whose entries
+are a formula of their row and column, from its first N rows and
+columns. It multiplies a vector by the matrix and by its transpose ten
+times over, the power method, and prints the norm to nine places. The
+vectors are `core/vec` lists of `f64`, taken from the heap once and
+lent to each product as slices. The correctness input is 100 and the
+performance input 5,500.
+
+Fixture source: `compiler/tests/fixtures/runtime/benchmark-game-spectral-norm/main.ldn`.
+
+```landin
+--  A direct single-threaded implementation of the Benchmark Game workload,
+--  the spectral norm of the infinite matrix A whose entry at row i and
+--  column j is 1/((i + j)(i + j + 1)/2 + i + 1), counted from zero, by ten
+--  rounds of the power method on its first n rows and columns.  The order
+--  n is the program's argument: a hundred for the correctness output and
+--  5,500 for the performance run.  It prints the norm to nine places.
+import core/io
+import core/math
+import core/mem
+import core/text
+import core/vec
+import hosted/blocking
+import hosted/heap
+
+memory_of: type = heap.heap
+
+--- The matrix's entry at row `i` and column `j`.
+entry: (i: usize, j: usize) -> (value: f64) =
+    value = 1.0 / f64((i + j) * (i + j + 1) / 2 + i + 1)
+end entry
+
+--- Make `into` the product of A and `v`.
+times_a: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(i, j) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_a
+
+--- Make `into` the product of A's transpose and `v`.
+times_transpose: (v: []f64, into: []mut f64) -> none =
+    first: usize = 0
+    for i in first..<lenof into do
+        mut sum: f64 = 0.0
+        for j in first..<lenof v do
+            sum += entry(j, i) * v[j]
+        end for
+        into[i] = sum
+    end for
+end times_transpose
+
+--- Make `into` the product of A's transpose, A and `v`, through `scratch`.
+times_both: (v: []f64, scratch: []mut f64, into: []mut f64) -> none =
+    times_a(v, scratch)
+    times_transpose(scratch, into)
+end times_both
+
+--- A list of `n` items, each `value`.
+filled: (memory: memory_of, n: usize, value: f64)
+        -> (values: vec.list(f64)) ! mem.out_of_memory =
+    values = vec.new(item: f64)
+    vec.reserve(values, memory, n) else (problem)
+        vec.release(values, memory)
+        fail problem
+    end
+    first: usize = 0
+    for i in first..<n do
+        _ = i
+        try vec.push(values, memory, value)
+    end for
+end filled
+
+--- The spectral norm of A's first `n` rows and columns.
+spectral_norm: (memory: memory_of, n: usize)
+               -> (norm: f64) ! mem.out_of_memory =
+    mut u := try filled(memory, n, 1.0)
+    defer vec.release(u, memory)
+    mut v := try filled(memory, n, 0.0)
+    defer vec.release(v, memory)
+    mut scratch := try filled(memory, n, 0.0)
+    defer vec.release(scratch, memory)
+
+    for round in usize(0)..<10 do
+        _ = round
+        times_both(vec.used(u), vec.used(scratch), vec.used(v))
+        times_both(vec.used(v), vec.used(scratch), vec.used(u))
+    end for
+
+    us := vec.used(u)
+    vs := vec.used(v)
+    mut v_b_v: f64 = 0.0
+    mut v_v: f64 = 0.0
+    first: usize = 0
+    for i in first..<n do
+        v_b_v += us[i] * vs[i]
+        v_v += vs[i] * vs[i]
+    end for
+    norm = math.sqrt(v_b_v / v_v)
+end spectral_norm
+
+--- The order named by the first argument.
+order: (host: blocking.host)
+       -> (n: usize) ! mem.not_found | text.invalid_number
+                     | text.number_overflow =
+    first: usize = 0
+    argument := try io.argument(host, first)
+    n = try text.parse_usize(text.os_string_bytes(argument))
+end order
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    memory := heap.new()
+    code = 1
+    n := order(host) else begin
+        io.write(host, io.err(host), "usage: spectral-norm N\n") else none
+        return
+    end
+
+    norm := spectral_norm(memory, n) else begin
+        io.write(host, io.err(host), "spectral-norm: out of memory\n") else none
+        return
+    end
+    mut storage: [32]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    io.format(out, "{:.9}\n", [any(addr norm)]) else begin
+        return
+    end
+    io.flush(out) else begin
+        return
+    end
+    code = 0
+end main
+```
+
+`./spectral-norm 100` prints
+
+```text
+1.274219991
 ```

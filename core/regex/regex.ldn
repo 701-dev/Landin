@@ -309,7 +309,8 @@ end group_named
 
 --- Whether the pattern matches anywhere in `haystack`.
 public is_match: (inout expression: regex, haystack: utf8) -> (yes: bool) =
-    yes = search(expression, text.bytes(haystack), 0, 0, true)
+    mut watch: prefilter_watch = new_watch()
+    yes = search(expression, watch, text.bytes(haystack), 0, 0, true)
 end is_match
 
 --- The leftmost-first match in `haystack`, or `mem.not_found`.
@@ -324,8 +325,10 @@ end find
 public find_at: (inout expression: regex, haystack: utf8,
                  start_at: text.position) -> (found: span) ! mem.not_found =
     bytes: []u8 = text.bytes(haystack)
+    mut watch: prefilter_watch = new_watch()
     fail mem.not_found
-        when not search(expression, bytes, text.offset(start_at), 2, false)
+        when not search(expression, watch, bytes, text.offset(start_at), 2,
+                        false)
     found = found_span(expression, bytes)
 end find_at
 
@@ -335,8 +338,9 @@ end find_at
 public captures_at: (inout expression: regex, haystack: utf8,
                      start_at: text.position) -> (found: span) ! mem.not_found =
     bytes: []u8 = text.bytes(haystack)
+    mut watch: prefilter_watch = new_watch()
     fail mem.not_found
-        when not search(expression, bytes, text.offset(start_at),
+        when not search(expression, watch, bytes, text.offset(start_at),
                         expression.pike.slot_count, false)
     found = found_span(expression, bytes)
 end captures_at
@@ -353,8 +357,8 @@ end captures
 --  one.  The lazy DFA finds where the match ends, and searching backward
 --  from there where it begins; the Pike VM then finds its groups between
 --  the two, and answers whatever the DFA gives up on.
-search: (inout expression: regex, bytes: []u8, origin: usize,
-         wanted: usize, earliest: bool) -> (matched: bool) =
+search: (inout expression: regex, inout watch: prefilter_watch, bytes: []u8,
+         origin: usize, wanted: usize, earliest: bool) -> (matched: bool) =
     expression.captured = 0
     matched = false
     return when origin > lenof bytes
@@ -373,29 +377,39 @@ search: (inout expression: regex, bytes: []u8, origin: usize,
         if matched then expression.captured = width end if
         return
     end if
+    --  A pattern that is its literals is searched for them alone, the
+    --  first found being the match, until the watch finds them stopping
+    --  at nearly every byte; the DFA then searches from where they
+    --  stopped, unless the caller chose the prefilter.
     if expression.literals.usable and expression.literals.exact
-      and not expression.anchored and width <= 2 then
-        --  The pattern is its literals: the first found is the match.
-        (at: literal_at_position, length: length) := next_literal(
-            expression.literals, bytes, start)
-        stopped: usize = if literal_at_position > lenof bytes then lenof bytes
-                         else literal_at_position end if
-        expression.scanned += u64(stopped - start) + 1
+      and not expression.anchored and width <= 2 and not watch.inert then
+        may_stop: bool = expression.engine <> literal_prefilter
+                         and expression.forward_dfa.usable
+        (at: literal_at_position, length: length,
+         stopped: set_aside) := next_literal(expression.literals, watch,
+                                             bytes, start, may_stop)
+        ended: usize = if literal_at_position > lenof bytes then lenof bytes
+                       else literal_at_position end if
+        expression.scanned += u64(ended - start) + 1
         return when literal_at_position > lenof bytes
-        matched = true
-        if width > 0 then
-            found: []mut usize = vec.used(expression.pike.found)
-            found[0] = literal_at_position
-            found[1] = literal_at_position + length
-            expression.captured = 2
+        if set_aside then
+            start = literal_at_position
+        else
+            matched = true
+            if width > 0 then
+                found: []mut usize = vec.used(expression.pike.found)
+                found[0] = literal_at_position
+                found[1] = literal_at_position + length
+                expression.captured = 2
+            end if
+            return
         end if
-        return
     end if
     if expression.engine <> pike_vm then
         (outcome: ahead, ends: ends) := dfa_forward(expression.forward_dfa,
                                                     expression.forward,
                                                     expression.literals,
-                                                    bytes, start,
+                                                    watch, bytes, start,
                                                     expression.anchored,
                                                     earliest)
         return when ahead == dfa_none
@@ -451,11 +465,12 @@ cursor_value: type = struct
     next: usize
     last_end: usize
     done: bool
+    watch: prefilter_watch
 end cursor_value
 
 --- A cursor before a haystack's first match.
 public walk_start: () -> (at: cursor) =
-    at = (next: 0, last_end: unset, done: false)
+    at = (next: 0, last_end: unset, done: false, watch: new_watch())
 end walk_start
 
 --- The match after `at`'s in `haystack`, moving `at` past it, or
@@ -469,12 +484,14 @@ public next_match: (inout expression: regex, haystack: utf8,
     bytes: []u8 = text.bytes(haystack)
     fail mem.not_found when at.done
     wanted: usize = if groups then expression.pike.slot_count else 2 end if
-    mut matched: bool = search(expression, bytes, at.next, wanted, false)
+    mut matched: bool = search(expression, at.watch, bytes, at.next, wanted,
+                               false)
     if matched then
         slots: []usize = vec.used(expression.pike.found)
         if slots[0] == slots[1] and slots[1] == at.last_end then
             matched = at.next < lenof bytes
-                      and search(expression, bytes, at.next + 1, wanted, false)
+                      and search(expression, at.watch, bytes, at.next + 1,
+                                 wanted, false)
         end if
     end if
     if not matched then

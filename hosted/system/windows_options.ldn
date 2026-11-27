@@ -1,0 +1,380 @@
+--  A socket's options as `core/net` names them, set and read through
+--  Windows Sockets' `setsockopt` and `getsockopt`, for the hosted
+--  providers' networks on Windows, as options.ldn sets them through
+--  platform/posix's elsewhere.  Each call returns zero or the Windows
+--  Sockets code it failed with: `wsa_no_protocol_option` for an option
+--  Windows does not have, which the providers call `unsupported`, and
+--  `wsa_invalid` for a value or a socket the option cannot take.
+--
+--  `reuse_address` is not Windows' SO_REUSEADDR.  Windows' option lets a
+--  socket bind an address and port another socket is bound to, a listener
+--  included, and take over what arrives for it, which the concept's
+--  `reuse_address` never allows.  What POSIX's SO_REUSEADDR gives, binding
+--  a port that earlier connections still hold while they close, Windows
+--  gives every socket without an option, and SO_EXCLUSIVEADDRUSE takes it
+--  away, keeping every other socket off the port as well.  So
+--  `reuse_address` is SO_EXCLUSIVEADDRUSE's opposite: on until it is
+--  turned off, as on every hosted listener elsewhere.  SO_REUSEPORT has no
+--  Windows counterpart, and `reuse_port` is `wsa_no_protocol_option`.
+
+import core/io
+import core/net
+import core/time
+import platform/windows
+import platform/windows/sockets
+
+fixed if compiler.os == windows then
+    --  The family of the socket `socket`, from its own address, which
+    --  every socket of a hosted provider has: room for a Unix-domain one.
+    socket_family: (socket: windows.handle) -> (family: i32, code: u32) =
+        family = 0
+        code = 0
+        mut found: [128]u8 = zeroed
+        mut length: i32 = 128
+        if sockets.socket_name(socket, addr found[0], addr length) <> 0 then
+            code = sockets.socket_last_error()
+            return
+        end if
+        family = i32(u16(found[0]) | (u16(found[1]) << 8))
+    end socket_family
+
+    --  Set the 32-bit option `option` of `level`.
+    set_word: (socket: windows.handle, level: i32, option: i32, value: u32)
+              -> (code: u32) =
+        code = 0
+        held: u32 = value
+        if sockets.set_option(socket, level, option, ptr(usize(addr held)),
+                              4) <> 0 then
+            code = sockets.socket_last_error()
+        end if
+    end set_word
+
+    --  Read the option `option` of `level`, at most 32 bits; one Windows
+    --  gives in a byte, as some it keeps as a BOOLEAN, reads the same.
+    word: (socket: windows.handle, level: i32, option: i32)
+          -> (value: u32, code: u32) =
+        code = 0
+        mut held: u32 = 0
+        mut length: i32 = 4
+        if sockets.get_option(socket, level, option, ptr(usize(addr held)),
+                              addr length) <> 0 then
+            code = sockets.socket_last_error()
+        end if
+        value = held
+    end word
+
+    --  The level and option of a flag, and whether Windows' option is the
+    --  flag's opposite: `wsa_no_protocol_option` for `reuse_port`, and
+    --  `wsa_invalid` for `ipv6_only` on a socket that is not IPv6's.
+    flag_named: (socket: windows.handle, which: net.flag_option)
+                -> (level: i32, option: i32, inverted: bool, code: u32) =
+        level = sockets.sol_socket
+        option = 0
+        inverted = false
+        code = 0
+        if which == net.reuse_address then
+            option = sockets.so_exclusive_address_use
+            inverted = true
+        elsif which == net.reuse_port then
+            code = sockets.wsa_no_protocol_option
+        elsif which == net.keep_alive then
+            option = sockets.so_keep_alive
+        elsif which == net.broadcast then
+            option = sockets.so_broadcast
+        else
+            level = sockets.ipproto_ipv6
+            option = sockets.ipv6_only
+            (family, code: given) := socket_family(socket)
+            code = given
+            if code == 0 and family <> sockets.af_inet6 then
+                code = sockets.wsa_invalid
+            end if
+        end if
+    end flag_named
+
+    --- Turn the flag `which` of the socket `socket` on or off.
+    public set_socket_flag: (socket: io.file, which: net.flag_option, on: bool)
+                            -> (code: u32) =
+        made: windows.handle = handle_of(socket)
+        (level, option, inverted, code: given) := flag_named(made, which)
+        code = given
+        return when code <> 0
+        value: u32 = if on <> inverted then 1 else 0 end if
+        code = set_word(made, level, option, value)
+    end set_socket_flag
+
+    --- Whether the flag `which` of the socket `socket` is on.
+    public socket_flag: (socket: io.file, which: net.flag_option)
+                        -> (on: bool, code: u32) =
+        on = false
+        made: windows.handle = handle_of(socket)
+        (level, option, inverted, code: given) := flag_named(made, which)
+        code = given
+        return when code <> 0
+        (value, code: read) := word(made, level, option)
+        code = read
+        on = (value <> 0) <> inverted
+    end socket_flag
+
+    --  The level and option of a number, the hops by the socket's family:
+    --  `wsa_no_protocol_option` for hops on a Unix-domain socket.
+    number_named: (socket: windows.handle, which: net.number_option)
+                  -> (level: i32, option: i32, code: u32) =
+        level = sockets.sol_socket
+        code = 0
+        option = sockets.so_receive_buffer
+        return when which == net.receive_buffer
+        option = sockets.so_send_buffer
+        return when which == net.send_buffer
+        (family, code: given) := socket_family(socket)
+        code = given
+        return when code <> 0
+        unicast: bool = which == net.unicast_hops
+        if family == sockets.af_inet then
+            level = sockets.ipproto_ip
+            option = if unicast then sockets.ip_ttl
+                     else sockets.ip_multicast_ttl end if
+        elsif family == sockets.af_inet6 then
+            level = sockets.ipproto_ipv6
+            option = if unicast then sockets.ipv6_unicast_hops
+                     else sockets.ipv6_multicast_hops end if
+        else
+            code = sockets.wsa_no_protocol_option
+        end if
+    end number_named
+
+    --- Set the number `which` of the socket `socket` to `value`:
+    --- `wsa_invalid` for one past an `int`.
+    public set_socket_number: (socket: io.file, which: net.number_option,
+                               value: u32) -> (code: u32) =
+        code = sockets.wsa_invalid
+        return when value > 0x7FFFFFFF
+        made: windows.handle = handle_of(socket)
+        (level, option, code: given) := number_named(made, which)
+        code = given
+        return when code <> 0
+        code = set_word(made, level, option, value)
+    end set_socket_number
+
+    --- The number `which` of the socket `socket`.
+    public socket_number: (socket: io.file, which: net.number_option)
+                          -> (value: u32, code: u32) =
+        value = 0
+        made: windows.handle = handle_of(socket)
+        (level, option, code: given) := number_named(made, which)
+        code = given
+        return when code <> 0
+        (value: held, code: read) := word(made, level, option)
+        code = read
+        return when code <> 0
+        code = sockets.wsa_invalid
+        return when held > 0x7FFFFFFF
+        code = 0
+        value = held
+    end socket_number
+
+    --  A span in whole seconds, a part of one rounded up, and whether it is
+    --  no more than `most`.
+    seconds_in: (span: time.duration, most: u64) -> (seconds: u32, fits: bool) =
+        mut whole: u64 = u64(span) / 1000000000
+        if u64(span) - whole * 1000000000 > 0 then inc whole end if
+        fits = whole <= most
+        seconds = if fits then u32(whole) else 0 end if
+    end seconds_in
+
+    --- Set the keep-alive span `which` of the socket `socket`, in whole
+    --- seconds, TCP_KEEPIDLE or TCP_KEEPINTVL: `wsa_invalid` for zero or
+    --- one past an `int`.
+    public set_socket_span: (socket: io.file, which: net.span_option,
+                             value: time.duration) -> (code: u32) =
+        (seconds, fits) := seconds_in(value, 0x7FFFFFFF)
+        code = sockets.wsa_invalid
+        return when not fits or seconds == 0
+        option: i32 = if which == net.keep_alive_idle then sockets.tcp_keep_idle
+                      else sockets.tcp_keep_interval end if
+        code = set_word(handle_of(socket), sockets.ipproto_tcp, option, seconds)
+    end set_socket_span
+
+    --- The keep-alive span `which` of the socket `socket`.
+    public socket_span: (socket: io.file, which: net.span_option)
+                        -> (value: time.duration, code: u32) =
+        value = time.seconds(0)
+        option: i32 = if which == net.keep_alive_idle then sockets.tcp_keep_idle
+                      else sockets.tcp_keep_interval end if
+        (value: held, code: read) := word(handle_of(socket), sockets.ipproto_tcp,
+                                          option)
+        code = read
+        return when code <> 0
+        code = sockets.wsa_invalid
+        return when held > 0x7FFFFFFF
+        code = 0
+        value = time.seconds(u64(held))
+    end socket_span
+
+    --- Make a close of the socket `socket` linger up to `limit`, in whole
+    --- seconds, with `on`: `wsa_invalid` for a limit past a `u_short`'s
+    --- 65535 seconds, which `struct linger` holds.
+    public set_socket_linger: (socket: io.file, on: bool, limit: time.duration)
+                              -> (code: u32) =
+        mut given: sockets.linger_record = (on: 0, seconds: 0)
+        if on then
+            (seconds, fits) := seconds_in(limit, 0xFFFF)
+            code = sockets.wsa_invalid
+            return when not fits
+            given = (on: 1, seconds: u16(seconds))
+        end if
+        code = 0
+        if sockets.set_option(handle_of(socket), sockets.sol_socket,
+                              sockets.so_linger, ptr(usize(addr given)),
+                              4) <> 0 then
+            code = sockets.socket_last_error()
+        end if
+    end set_socket_linger
+
+    --- Whether a close of the socket `socket` lingers, and how long.
+    public socket_linger: (socket: io.file)
+                          -> (on: bool, limit: time.duration, code: u32) =
+        on = false
+        limit = time.seconds(0)
+        code = 0
+        mut found: sockets.linger_record = (on: 0, seconds: 0)
+        mut length: i32 = 4
+        if sockets.get_option(handle_of(socket), sockets.sol_socket,
+                              sockets.so_linger, ptr(usize(addr found)),
+                              addr length) <> 0 then
+            code = sockets.socket_last_error()
+            return
+        end if
+        on = found.on <> 0
+        limit = time.seconds(u64(found.seconds))
+    end socket_linger
+
+    --- Join, or with `joining` false leave, the multicast group `group` on
+    --- the socket `socket`, through the interface `through` names: its
+    --- address for IPv4, an `ip_mreq`, and its zone for IPv6, an
+    --- `ipv6_mreq`'s interface number.  A zone that names no interface is
+    --- `wsa_address_unavailable`, and a `through` of the other family that
+    --- is not unspecified `wsa_invalid`.
+    public socket_membership: (socket: io.file, group: net.address,
+                               through: net.address, joining: bool)
+                              -> (code: u32) =
+        code = sockets.wsa_invalid
+        return when group.family <> through.family
+          and not net.is_unspecified(through)
+        code = 0
+        made: windows.handle = handle_of(socket)
+        if group.family == net.ipv4 then
+            mut request: [8]u8 = zeroed
+            for index in usize(0)..<4 do
+                request[index] = group.octets[index]
+                if through.family == net.ipv4 then
+                    request[4 + index] = through.octets[index]
+                end if
+            end for
+            option: i32 = if joining then sockets.ip_add_membership
+                          else sockets.ip_drop_membership end if
+            if sockets.set_option(made, sockets.ipproto_ip, option,
+                                  addr request[0], 8) <> 0 then
+                code = sockets.socket_last_error()
+            end if
+            return
+        end if
+        mut scope: u32 = 0
+        if through.family == net.ipv6 then
+            scope = scope_of(through) else (problem)
+                _ = problem
+                code = sockets.wsa_address_unavailable
+                return
+            end
+        end if
+        mut request: [20]u8 = zeroed
+        for index in usize(0)..<16 do
+            request[index] = group.octets[index]
+        end for
+        for index in usize(0)..<4 do
+            request[16 + index] = u8((scope >> u32(8 * index)) & 0xFF)
+        end for
+        option: i32 = if joining then sockets.ipv6_add_membership
+                      else sockets.ipv6_drop_membership end if
+        if sockets.set_option(made, sockets.ipproto_ipv6, option,
+                              addr request[0], 20) <> 0 then
+            code = sockets.socket_last_error()
+        end if
+    end socket_membership
+
+    --- Send what the socket `socket` sends to a multicast group through the
+    --- interface `through` names, IP_MULTICAST_IF with its IPv4 address or
+    --- IPV6_MULTICAST_IF with its zone's interface number, by the socket's
+    --- family; an unspecified address, or one with no zone, lets the system
+    --- choose.  A zone that names no interface is
+    --- `wsa_address_unavailable`, and a `through` of the socket's other
+    --- family `wsa_invalid`.
+    public set_multicast_interface: (socket: io.file, through: net.address)
+                                    -> (code: u32) =
+        made: windows.handle = handle_of(socket)
+        (family, code: given) := socket_family(made)
+        code = given
+        return when code <> 0
+        if family == sockets.af_inet then
+            code = sockets.wsa_invalid
+            return when through.family <> net.ipv4
+            mut chosen: [4]u8 = zeroed
+            for index in usize(0)..<4 do
+                chosen[index] = through.octets[index]
+            end for
+            code = 0
+            if sockets.set_option(made, sockets.ipproto_ip,
+                                  sockets.ip_multicast_interface,
+                                  addr chosen[0], 4) <> 0 then
+                code = sockets.socket_last_error()
+            end if
+            return
+        end if
+        code = sockets.wsa_no_protocol_option
+        return when family <> sockets.af_inet6
+        code = sockets.wsa_invalid
+        return when through.family <> net.ipv6
+        scope: u32 = scope_of(through) else (problem)
+            _ = problem
+            code = sockets.wsa_address_unavailable
+            return
+        end
+        code = set_word(made, sockets.ipproto_ipv6,
+                        sockets.ipv6_multicast_interface, scope)
+    end set_multicast_interface
+
+    --- The interface the socket `socket` sends to multicast groups
+    --- through: an unspecified IPv4 address with the interface's octets,
+    --- or `::` with the zone of its interface number, none for the
+    --- system's choice.
+    public multicast_interface: (socket: io.file)
+                                -> (through: net.address, code: u32) =
+        through = net.unspecified(net.ipv4, 0)
+        made: windows.handle = handle_of(socket)
+        (family, code: given) := socket_family(made)
+        code = given
+        return when code <> 0
+        if family == sockets.af_inet then
+            mut chosen: [4]u8 = zeroed
+            mut length: i32 = 4
+            if sockets.get_option(made, sockets.ipproto_ip,
+                                  sockets.ip_multicast_interface,
+                                  addr chosen[0], addr length) <> 0 then
+                code = sockets.socket_last_error()
+                return
+            end if
+            for index in usize(0)..<4 do
+                through.octets[index] = chosen[index]
+            end for
+            return
+        end if
+        code = sockets.wsa_no_protocol_option
+        return when family <> sockets.af_inet6
+        (value: scope, code: read) := word(made, sockets.ipproto_ipv6,
+                                           sockets.ipv6_multicast_interface)
+        code = read
+        return when code <> 0
+        through = net.unspecified(net.ipv6, 0)
+        if scope <> 0 then through.zone = zone_named(scope) end if
+    end multicast_interface
+end if

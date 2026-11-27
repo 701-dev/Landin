@@ -1,0 +1,53 @@
+import core/arena
+import core/args
+import core/text
+
+--  A little of core/args: a console line's words parsed into an arena
+--  against a table of a counted flag, an option and a positional argument,
+--  and an unknown option refused.  Cortex-M0 holds it at size/off,
+--  size/auto and speed/auto, about 22 KB, and not at none/off, 35.7 KB,
+--  so the freestanding lane runs it on the M7's map (D3097).
+arena_size: usize = 4096
+
+mut backing: [arena_size]u8 = zeroed
+
+exercise: () -> (ok: bool) =
+    ok = false
+    table: [3]args.argument = [
+        args.counted('v', "verbose", "say more"),
+        args.option('o', "to", "NAME", "who sends it"),
+        args.positional("NAME", "what to greet")
+    ]
+    program := args.command_of("greet", "", table[0..<3])
+    mut space: arena.space = zeroed
+    memory := arena.over_unchecked(space, addr backing[0], lenof backing)
+    words: [4][]u8 = ["-vv", "--to=me", "world", "-x"]
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse(memory, program, words[0..<3], parsed) else begin
+        return
+    end
+    return when args.count(parsed, "verbose") <> 2
+    to := args.get(parsed, "to") else begin
+        return
+    end
+    return when not text.os_string_equal(to.bytes, "me")
+    name := args.get(parsed, "NAME") else begin
+        return
+    end
+    return when not text.os_string_equal(name.bytes, "world")
+    args.release(parsed, memory)
+    parsed = args.new()
+    args.parse(memory, program, words[0..<4], parsed) else (problem)
+        ok = problem == args.unknown_option
+             and args.problem(parsed) == args.unknown_option
+        return
+    end
+end exercise
+
+public main: () -> (code: i32) =
+    code = 1
+    if exercise() then
+        code = 42
+    end if
+end main

@@ -226,6 +226,61 @@ package body Landin.Driver.Loading is
       end loop;
    end Load_Files;
 
+   --  D2994: every module of the library this target admits, by
+   --  logical path, handed to the stages, which ask the host nothing, so
+   --  that a prefix naming a library module no import reaches is told its
+   --  import (D2174).  A module is a directory under `core`, `hosted` or
+   --  `platform` that holds a source.  The listing is no dependency of the
+   --  build: what it changes is only a refusal's note.
+   procedure List_Library_Modules
+     (Context : in out Landin.Stages.Compilation;
+      Host    : Landin.Platform.Filesystem'Class;
+      Library : String);
+
+   procedure List_Library_Modules
+     (Context : in out Landin.Stages.Compilation;
+      Host    : Landin.Platform.Filesystem'Class;
+      Library : String)
+   is
+      procedure Walk (Logical : String; Depth : Natural);
+
+      procedure Walk (Logical : String; Depth : Natural) is
+         Path : constant String := Joined_Path (Library, Logical);
+         Entries : Landin.Platform.Path_List;
+         Status  : Landin.Platform.List_Status;
+         Holds   : Boolean := False;
+      begin
+         Host.List_Directory (Path, Entries, Status);
+         if Status /= Landin.Platform.List_Ok then
+            return;
+         end if;
+         for Name of Entries loop
+            if Is_Source_Name (Name) then
+               Holds := True;
+            elsif Depth < 8
+              and then Name'Length > 0
+              and then Name (Name'First) /= '.'
+              and then Host.Is_Directory (Joined_Path (Path, Name))
+            then
+               Walk (Logical & "/" & Name, Depth + 1);
+            end if;
+         end loop;
+         if Holds
+           and then Landin.Modules.Availability.Permitted
+             (Logical, Landin.Stages.Target (Context))
+         then
+            Landin.Stages.Add_Library_Module (Context, Logical);
+         end if;
+      end Walk;
+   begin
+      if Library = "" then
+         return;
+      end if;
+      Walk ("core", 0);
+      Walk ("hosted", 0);
+      Walk ("platform", 0);
+   end List_Library_Modules;
+
    --  Both loads' discovery.  Named_Files is Load_Library_Imports': the
    --  entry module's sources are already read, it has no directory, and
    --  only an import of the library is looked for.
@@ -1550,6 +1605,7 @@ package body Landin.Driver.Loading is
       Observed : access procedure
         (Path : String; Identity : Landin.Platform.File_Identity) := null) is
    begin
+      List_Library_Modules (Context, Host, Library);
       Discover
         (Context, Host, Roots, Library, Entry_Directory, False,
          Missing_Directories, Previous, Watch_Syntax, Implicit, Cache,
@@ -1573,6 +1629,7 @@ package body Landin.Driver.Loading is
         (Path : String; Identity : Landin.Platform.File_Identity) := null)
    is
    begin
+      List_Library_Modules (Context, Host, Library);
       Discover
         (Context, Host, Landin.Platform.No_Arguments, Library, "", True,
          null, Previous, Watch_Syntax, Implicit, Cache,
@@ -1594,6 +1651,7 @@ package body Landin.Driver.Loading is
         (Path : String; Identity : Landin.Platform.File_Identity) := null)
    is
    begin
+      List_Library_Modules (Context, Host, Library);
       Discover
         (Context, Host, Roots, Library, "", True,
          null, null, null, Implicit, null, Dependency_Directories,

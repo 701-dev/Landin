@@ -1,0 +1,194 @@
+--  A socket's options as `core/net` names them, set and read through
+--  platform/posix's, for the hosted providers' networks, which tell their
+--  failures apart: each call fails with the system's errno, `enoprotoopt`
+--  for an option the system does not have (D3074).
+
+import core/io
+import core/net
+import core/time
+import platform/posix
+
+fixed if compiler.os <> windows then
+    --  The system's option for a flag.
+    flag_named: (which: net.flag_option) -> (option: posix.integer_option) =
+        option = match which
+            net.reuse_address: posix.reuse_address
+            net.reuse_port: posix.reuse_port
+            net.keep_alive: posix.keep_alive
+            net.broadcast: posix.broadcast
+            net.ipv6_only: posix.ipv6_only
+        end match
+    end flag_named
+
+    --  `einval` for `ipv6_only` on a socket that is not IPv6's, which Linux
+    --  would call an option it does not have.
+    flag_held: (socket: posix.descriptor, which: net.flag_option)
+               -> (option: posix.integer_option) ! posix.errno =
+        option = flag_named(which)
+        return when which <> net.ipv6_only
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(socket))
+        fail posix.einval when family <> posix.internet6
+    end flag_held
+
+    --- Turn the flag `which` of the socket `socket` on or off: `einval` for
+    --- `ipv6_only` on a socket that is not IPv6's.
+    public set_socket_flag:
+        (socket: io.file, which: net.flag_option, on: bool)
+        -> none ! posix.errno =
+        value: i32 = if on then 1 else 0 end if
+        made: posix.descriptor = descriptor_of(socket)
+        try posix.set_option(made, try flag_held(made, which), value)
+    end set_socket_flag
+
+    --- Whether the flag `which` of the socket `socket` is on.
+    public socket_flag:
+        (socket: io.file, which: net.flag_option) -> (on: bool) ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        value: i32 = try posix.option(made, try flag_held(made, which))
+        on = value <> 0
+    end socket_flag
+
+    --  The system's option for a number, the hops by the socket's family.
+    number_named: (socket: posix.descriptor, which: net.number_option)
+                  -> (option: posix.integer_option) ! posix.errno =
+        option = posix.receive_buffer
+        if which == net.receive_buffer then return end if
+        option = posix.send_buffer
+        if which == net.send_buffer then return end if
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(socket))
+        fail posix.enoprotoopt when family == posix.local
+        if which == net.unicast_hops then
+            option = if family == posix.internet then posix.unicast_hops
+                     else posix.unicast_hops6 end if
+        else
+            option = if family == posix.internet then posix.multicast_hops
+                     else posix.multicast_hops6 end if
+        end if
+    end number_named
+
+    --- Set the number `which` of the socket `socket` to `value`:
+    --- `einval` for one past an `int`.
+    public set_socket_number:
+        (socket: io.file, which: net.number_option, value: u32)
+        -> none ! posix.errno =
+        fail posix.einval when value > 2147483647
+        made: posix.descriptor = descriptor_of(socket)
+        try posix.set_option(made, try number_named(made, which), i32(value))
+    end set_socket_number
+
+    --- The number `which` of the socket `socket`.
+    public socket_number:
+        (socket: io.file, which: net.number_option)
+        -> (value: u32) ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        held: i32 = try posix.option(made, try number_named(made, which))
+        fail posix.einval when held < 0
+        value = u32(held)
+    end socket_number
+
+    --  A span in whole seconds, a part of one rounded up: `einval` for none
+    --  or one past an `int`.
+    seconds_in: (span: time.duration) -> (seconds: i32) ! posix.errno =
+        mut whole: u64 = u64(span) / 1000000000
+        if u64(span) - whole * 1000000000 > 0 then inc whole end if
+        fail posix.einval when whole > 2147483647
+        seconds = i32(whole)
+    end seconds_in
+
+    span_named: (which: net.span_option) -> (option: posix.integer_option) =
+        option = if which == net.keep_alive_idle then posix.keep_alive_idle
+                 else posix.keep_alive_interval end if
+    end span_named
+
+    --- Set the keep-alive span `which` of the socket `socket`, in whole
+    --- seconds: `einval` for zero.
+    public set_socket_span:
+        (socket: io.file, which: net.span_option, value: time.duration)
+        -> none ! posix.errno =
+        seconds: i32 = try seconds_in(value)
+        fail posix.einval when seconds == 0
+        try posix.set_option(descriptor_of(socket), span_named(which), seconds)
+    end set_socket_span
+
+    --- The keep-alive span `which` of the socket `socket`.
+    public socket_span:
+        (socket: io.file, which: net.span_option)
+        -> (value: time.duration) ! posix.errno =
+        held: i32 = try posix.option(descriptor_of(socket), span_named(which))
+        fail posix.einval when held < 0
+        value = time.seconds(u64(held))
+    end socket_span
+
+    --- Make a close of the socket `socket` linger up to `limit`, in whole
+    --- seconds, with `on`.
+    public set_socket_linger:
+        (socket: io.file, on: bool, limit: time.duration) -> none ! posix.errno =
+        seconds: i32 = if on then try seconds_in(limit) else 0 end if
+        try posix.set_linger(descriptor_of(socket), on, seconds)
+    end set_socket_linger
+
+    --- Whether a close of the socket `socket` lingers, and how long.
+    public socket_linger:
+        (socket: io.file) -> (on: bool, limit: time.duration) ! posix.errno =
+        (on: lingers, seconds: seconds) := try posix.linger_of(descriptor_of(socket))
+        fail posix.einval when seconds < 0
+        on = lingers
+        limit = time.seconds(u64(seconds))
+    end socket_linger
+
+    --- Send what the socket `socket` sends to groups out through the
+    --- interface `through` names: its address for IPv4, its zone for IPv6,
+    --- by the socket's family.
+    public set_socket_multicast_interface:
+        (socket: io.file, through: net.address) -> none ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(made))
+        mut by: posix.internet_endpoint =
+            (family: family, octets: through.octets, port: 0, scope: 0)
+        if family == posix.internet6 then
+            by.octets = zeroed
+            if through.family == net.ipv6 then by.scope = try scope_of(through) end if
+        else
+            fail posix.einval when through.family <> net.ipv4
+              and not net.is_unspecified(through)
+        end if
+        try posix.set_multicast_interface(made, by)
+    end set_socket_multicast_interface
+
+    --- The interface the socket `socket` sends to groups through.
+    public socket_multicast_interface:
+        (socket: io.file) -> (through: net.address) ! posix.errno =
+        made: posix.descriptor = descriptor_of(socket)
+        family: posix.socket_family =
+            try posix.family_of(try posix.socket_name(made))
+        through = endpoint_address(try posix.multicast_interface(made, family))
+    end socket_multicast_interface
+
+    --- Join, or with `joining` false leave, the multicast group `group` on
+    --- the socket `socket`, through the interface `through` names: its
+    --- address for IPv4, its zone for IPv6.  An IPv6 zone that names no
+    --- interface is `enodev`.
+    public socket_membership:
+        (socket: io.file, group: net.address, through: net.address,
+         joining: bool) -> none ! posix.errno =
+        mut wanted: posix.internet_endpoint =
+            (family: posix.internet, octets: group.octets, port: 0, scope: 0)
+        mut by: posix.internet_endpoint =
+            (family: posix.internet, octets: through.octets, port: 0, scope: 0)
+        if group.family == net.ipv6 then
+            wanted.family = posix.internet6
+            by.family = posix.internet6
+            if through.family == net.ipv6 then by.scope = try scope_of(through) end if
+        end if
+        fail posix.einval when group.family <> through.family
+          and not net.is_unspecified(through)
+        if joining then
+            try posix.join_group(descriptor_of(socket), wanted, by)
+        else
+            try posix.leave_group(descriptor_of(socket), wanted, by)
+        end if
+    end socket_membership
+end if

@@ -1,0 +1,27 @@
+--  The ASCII forms of comparing without case, which fold only A to Z and
+--  need no table: the variant for an image that cannot carry
+--  core/unicode's case tables.
+import core/text
+
+--  The ASCII forms.
+ascii: () -> (yes: bool) =
+    yes = text.equal_ascii_caseless("Hello", "hELLO")
+          and not text.equal_ascii_caseless("Straße", "STRASSE")
+          and not text.equal_ascii_caseless("é", "É")
+          and text.equal_ascii_caseless("é", "é")
+          and text.equal_ascii_caseless("", "")
+          and not text.equal_ascii_caseless("a", "ab")
+          and not text.equal_ascii_caseless("@", "`")
+          and not text.equal_ascii_caseless("[", "{")
+          and text.starts_with_ascii_caseless("Content-Type", "content-")
+          and not text.starts_with_ascii_caseless("Con", "content")
+          and text.ends_with_ascii_caseless("FILE.TXT", ".txt")
+          and not text.ends_with_ascii_caseless("txt", ".txt")
+          and text.starts_with_ascii_caseless("x", "")
+end ascii
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not ascii()
+    code = 42
+end main

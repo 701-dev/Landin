@@ -854,7 +854,7 @@ package Landin.Diagnostics.Catalogue is
         (Code => "L0321", Level => Error, State => Live,
          Source => True, Bytes => True,
          Least => 0, Most => 0, Notes => 1, Route => False,
-         Fixes => No_Fix, Shown_By => Negative_Fixture,
+         Fixes => May_Fix, Shown_By => Negative_Fixture,
          Rule => +("[0210] [0220] [0230] [1770]: a float has a complete"
                    & " fraction and exponent when required, and ends before"
                    & " a name")),

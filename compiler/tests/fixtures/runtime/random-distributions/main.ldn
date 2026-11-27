@@ -1,0 +1,220 @@
+--  Each of core/random's integer draws has the distribution it states,
+--  by a test stated here over a sample its seed pins, so every target
+--  draws the same sample and passes or fails alike.  The chi-squared tests
+--  compare a statistic against the distribution's critical value at
+--  p = 0.001 for the test's degrees of freedom, from the standard tables,
+--  in integers: the statistic times the count a bin should hold, against
+--  the critical value in thousandths times that count, so the image needs
+--  no float arithmetic and fits Cortex-M0 at every profile.  The ranges'
+--  bounds are checked exhaustively at small widths: every range whose
+--  ends are within four of zero, of the ends of the u64s and of the ends
+--  of the i64s.  The floats and the normal and exponential draws are
+--  runtime/random-float-distributions.  Each check that fails returns its
+--  own code.
+import core/random
+
+--  Whether the chi-squared statistic of `counts`, each bin of which
+--  should hold `expected`, is below `critical`, given in thousandths.
+even_below: (counts: []u32, expected: u64, critical: u64) -> (yes: bool) =
+    mut sum: u64 = 0
+    for count in counts do
+        difference: u64 = if u64(count) >= expected then u64(count) - expected
+                          else expected - u64(count) end if
+        sum = sum + difference * difference
+    end for
+    yes = sum * 1000 < critical * expected
+end even_below
+
+--  Critical values of chi-squared at p = 0.001 by degrees of freedom, in
+--  thousandths.
+critical_3: u64 = 16266
+critical_5: u64 = 20515
+critical_9: u64 = 27877
+critical_255: u64 = 330520
+
+--  How many draws each test makes.
+draws: u32 = 48000
+
+--  A die, `between_i64` from 1 to 6: five degrees of freedom.
+die_fair: () -> (yes: bool) =
+    mut source := random.new(101)
+    mut counts: [6]u32 = zeroed
+    for count in u32(0)..<draws do
+        _ = count
+        inc counts[usize(random.between_i64(source, 1, 6) - 1)]
+    end for
+    yes = even_below(counts[0..<6], 8000, critical_5)
+end die_fair
+
+--  `pick` of ten values: nine degrees of freedom.
+letters: []u8 = "abcdefghij"
+
+picks_even: () -> (yes: bool) =
+    mut source := random.new(103)
+    mut counts: [10]u32 = zeroed
+    for count in u32(0)..<draws do
+        _ = count
+        inc counts[usize(random.pick(source, letters) - u8('a'))]
+    end for
+    yes = even_below(counts[0..<10], 4800, critical_9)
+end picks_even
+
+--  `sample` of two from five: each of the ten pairs, nine degrees of
+--  freedom, every pair in order and of two different values.
+fives: [5]u8 = [0, 1, 2, 3, 4]
+
+samples_even: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(104)
+    mut counts: [25]u32 = zeroed
+    mut pair: [2]u8 = zeroed
+    for count in u32(0)..<draws do
+        _ = count
+        random.sample(pair[0..<2], source, fives[0..<5])
+        return when pair[0] >= pair[1]
+        inc counts[5 * usize(pair[0]) + usize(pair[1])]
+    end for
+    mut seen: [10]u32 = zeroed
+    mut at: usize = 0
+    for first in usize(0)..<5 do
+        for second in usize(first + 1)..<5 do
+            seen[at] = counts[5 * first + second]
+            inc at
+        end for
+    end for
+    yes = even_below(seen[0..<10], 4800, critical_9)
+end samples_even
+
+--  `weighted` by 1, 2, 3 and 4, and a zero weight never drawn: three
+--  degrees of freedom over the four that can be.  A weight w's bin should
+--  hold 4800 w, so the statistic times 4800 times 12 is the sum of each
+--  squared difference times 12 / w, which is whole.
+weights: [5]u64 = [1, 0, 2, 3, 4]
+twelfths: [5]u64 = [12, 0, 6, 4, 3]
+
+weights_hold: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(105)
+    mut counts: [5]u32 = zeroed
+    for count in u32(0)..<draws do
+        _ = count
+        inc counts[random.weighted(source, weights[0..<5])]
+    end for
+    return when counts[1] <> 0
+    mut sum: u64 = 0
+    for at in usize(0)..<5 do
+        expected: u64 = 4800 * weights[at]
+        observed: u64 = u64(counts[at])
+        difference: u64 = if observed >= expected then observed - expected
+                          else expected - observed end if
+        sum = sum + difference * difference * twelfths[at]
+    end for
+    yes = sum * 1000 < critical_3 * 4800 * 12
+end weights_hold
+
+--  `fill`'s bytes in 256 bins: 255 degrees of freedom, over 1,024 fills
+--  of a buffer of 47 bytes, so a last part shorter than eight is in each
+--  fill and every bin should hold 188.
+bytes_even: () -> (yes: bool) =
+    mut source := random.new(106)
+    mut counts: [256]u32 = zeroed
+    mut buffer: [47]u8 = zeroed
+    for round in usize(0)..<1024 do
+        _ = round
+        random.fill(buffer[0..<47], source)
+        for byte in buffer do
+            inc counts[usize(byte)]
+        end for
+    end for
+    yes = even_below(counts[0..<256], 188, critical_255)
+end bytes_even
+
+--  The ends the exhaustive checks take: within four of zero, of the u64s'
+--  largest and of the i64s' least and largest.
+unsigned_ends: [10]u64 = [0, 1, 2, 3, 4, 18446744073709551611,
+                          18446744073709551612, 18446744073709551613,
+                          18446744073709551614, 18446744073709551615]
+signed_ends: [19]i64 = [-9223372036854775807 - 1, -9223372036854775807,
+                        -9223372036854775806, -9223372036854775805,
+                        -9223372036854775804, -4, -3, -2, -1, 0, 1, 2, 3,
+                        4, 9223372036854775803, 9223372036854775804,
+                        9223372036854775805, 9223372036854775806,
+                        9223372036854775807]
+
+--  Every range between two of `unsigned_ends`, low at most high: 128 draws
+--  each, all inside it, and at widths of eight or less every value drawn.
+unsigned_bounds_hold: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(109)
+    for low in unsigned_ends do
+        for high in unsigned_ends do
+            if low <= high then
+                small: bool = high - low < 8
+                mut seen: u32 = 0
+                for count in usize(0)..<128 do
+                    _ = count
+                    x: u64 = random.between_u64(source, low, high)
+                    return when x < low or x > high
+                    if small then seen = seen | (u32(1) << u32(x - low)) end if
+                end for
+                return when small
+                  and seen <> (u32(1) << u32(high - low + 1)) - 1
+            end if
+        end for
+    end for
+    yes = true
+end unsigned_bounds_hold
+
+--  The same over every range between two of `signed_ends`, and every
+--  range with both ends from -8 to 8.
+signed_in: (inout source: random.generator, low: i64, high: i64)
+           -> (yes: bool) =
+    yes = false
+    --  The width is read only when it is small, so it never overflows:
+    --  `high - low` of non-negative ends, `low + 8` of a negative one.
+    small: bool = if low >= 0 then high - low < 8 else high < low + 8 end if
+    mut seen: u32 = 0
+    for count in usize(0)..<128 do
+        _ = count
+        x: i64 = random.between_i64(source, low, high)
+        return when x < low or x > high
+        if small then seen = seen | (u32(1) << u32(x - low)) end if
+    end for
+    yes = not small or seen == (u32(1) << u32(high - low + 1)) - 1
+end signed_in
+
+signed_bounds_hold: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(110)
+    for low in signed_ends do
+        for high in signed_ends do
+            if low <= high then
+                return when not signed_in(source, low, high)
+            end if
+        end for
+    end for
+    for low in i64(-8)..<9 do
+        for high in low..<9 do
+            return when not signed_in(source, low, high)
+        end for
+    end for
+    yes = true
+end signed_bounds_hold
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not die_fair()
+    code = 2
+    return when not picks_even()
+    code = 3
+    return when not samples_even()
+    code = 4
+    return when not weights_hold()
+    code = 5
+    return when not bytes_even()
+    code = 6
+    return when not unsigned_bounds_hold()
+    code = 7
+    return when not signed_bounds_hold()
+    code = 42
+end main

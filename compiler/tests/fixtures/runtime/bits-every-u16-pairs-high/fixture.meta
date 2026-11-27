@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: core/bits's multiply_wide, add_carry and subtract_borrow at u16 agree with arithmetic in the program for every first operand from 32768 against three second operands, each with an alternating carry in
+program: main.ldn
+root: ../../../../..
+status: 42
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, cortex-m0, windows-x86-64, windows-arm64
+constructs: 0150, 0290, 0320, 0330

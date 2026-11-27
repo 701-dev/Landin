@@ -460,7 +460,8 @@ end before_position
 --  Search forward from `origin` for where the leftmost-first match ends,
 --  or with `earliest` for where any match first ends.
 dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
-              bytes: []u8, origin: usize, anchored: bool, earliest: bool)
+              inout watch: prefilter_watch, bytes: []u8, origin: usize,
+              anchored: bool, earliest: bool)
              -> (outcome: u8, ends: usize) =
     outcome = dfa_gave_up
     ends = 0
@@ -476,7 +477,7 @@ dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
     return when state == quit_state
     mut found: bool = false
     mut at: usize = origin
-    skipping: bool = literals.usable and not anchored
+    mut skipping: bool = literals.usable and not anchored and not watch.inert
     mut skipped_at: usize = unset
     loop do
         mut pending: bool = false
@@ -516,10 +517,13 @@ dfa_forward: (inout cache: dfa_cache, code: program, literals: literal_set,
         end
         if skip then
             --  Nothing has begun: go to where a literal prefix next
-            --  occurs, and start there afresh.
-            (at: next_at, length: _) := next_literal(literals, bytes, at)
+            --  occurs, and start there afresh; or, once the watch sets
+            --  the literals aside, where their search stopped.
+            (at: next_at, length: _, stopped: set_aside) := next_literal(
+                literals, watch, bytes, at, true)
             cache.work += u64(if next_at > lenof bytes then lenof bytes - at
                               else next_at - at end if) + 1
+            if set_aside then skipping = false end if
             if next_at > lenof bytes then
                 at = lenof bytes
                 state = dead_state

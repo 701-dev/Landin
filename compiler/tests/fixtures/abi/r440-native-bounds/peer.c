@@ -2,8 +2,39 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#if defined(_WIN32)
+#include <windows.h>
+#else
 #include <sys/mman.h>
 #include <unistd.h>
+#endif
+
+/* Two pages, the second one no access, so a copy past the first page's end
+   faults. */
+static unsigned char *guarded_pages(size_t page) {
+#if defined(_WIN32)
+    unsigned char *pages = VirtualAlloc(NULL, page * 2, MEM_RESERVE | MEM_COMMIT,
+                                        PAGE_READWRITE);
+    DWORD before;
+    if (pages == NULL || !VirtualProtect(pages + page, page, PAGE_NOACCESS, &before))
+        return NULL;
+    return pages;
+#else
+    unsigned char *pages = mmap(NULL, page * 2, PROT_READ | PROT_WRITE,
+                                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (pages == MAP_FAILED || mprotect(pages + page, page, PROT_NONE)) return NULL;
+    return pages;
+#endif
+}
+
+static int released(unsigned char *pages, size_t page) {
+#if defined(_WIN32)
+    (void)page;
+    return VirtualFree(pages, 0, MEM_RELEASE) != 0;
+#else
+    return munmap(pages, page * 2) == 0;
+#endif
+}
 typedef struct { uint8_t values[3]; } bytes3;
 bytes3 c_bytes3(bytes3 value) {
     for (size_t i = 0; i < 3; ++i) value.values[i] += 1;
@@ -35,13 +66,18 @@ bytes24 c_bytes24(bytes24 value) {
 }
 extern void l_bytes24(const bytes24 *, bytes24 *);
 int main(void) {
+#if defined(_WIN32)
+    SYSTEM_INFO system;
+    GetSystemInfo(&system);
+    long page_value = (long)system.dwPageSize;
+#else
     long page_value = sysconf(_SC_PAGESIZE);
+#endif
     if (page_value <= 0) return 1;
     size_t page = (size_t)page_value;
-    unsigned char *source = mmap(NULL, page * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    unsigned char *target = mmap(NULL, page * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (source == MAP_FAILED || target == MAP_FAILED) return 2;
-    if (mprotect(source + page, page, PROT_NONE) || mprotect(target + page, page, PROT_NONE)) return 3;
+    unsigned char *source = guarded_pages(page);
+    unsigned char *target = guarded_pages(page);
+    if (source == NULL || target == NULL) return 2;
     {
         bytes3 *input = (bytes3 *)(source + page - sizeof(bytes3));
         bytes3 *output = (bytes3 *)(target + page - sizeof(bytes3));
@@ -127,7 +163,7 @@ int main(void) {
         for (size_t i = 0; i < sizeof guarded.after; ++i)
             if (guarded.after[i] != 0xA5) return 43;
     }
-    if (munmap(source, page * 2) || munmap(target, page * 2)) return 44;
+    if (!released(source, page) || !released(target, page)) return 44;
     puts("native bounds ok");
     return 42;
 }

@@ -3,4 +3,4 @@ error[L0110]: this is the `if`'s other branch, because the `else` before it divi
    |
 11 |         first := checked(1) else 7
    |                                  ^
-  = note: [1820]: in an `if` arm, recover a call with parentheses, `(call(...) else value)`, or bind the error, `else (problem) ... end`
+  = note: [1820]: in an `if` arm, put the call and its recovery in parentheses, `(call(...) else value)` or `(call(...) else begin return end)`, or bind the error with `else (problem) ... end`

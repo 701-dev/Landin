@@ -1600,6 +1600,17 @@ package body Landin.IR.Simplification is
             Down_Term_Owner : constant Terms.Owner :=
               Terms.Create (Slot_Total);
             Down_Term : Terms.Elements renames Down_Term_Owner.Data.all;
+            --  D2817: a counted slot B that some other counted slot A
+            --  bounds, B <= A, wherever a load of B precedes B's step in
+            --  the step's block.  Both are first stored in one block F,
+            --  B's first value is a constant at most A's, A steps by at
+            --  least B's step, and every way from B's step back to it
+            --  passes F or A's step: `index` counted by a condition inside
+            --  `for at in 0..<n` never passes `at`.  The bound rests on A's
+            --  step not wrapping, which the walk learns at that step.
+            Partner_Owner : constant Slot_Lists.Owner :=
+              Slot_Lists.Create (Slot_Total);
+            Partner : Slot_Lists.Elements renames Partner_Owner.Data.all;
             --  The counted slot whose least the current question rested on,
             --  and whether it rested on two.
             Consulted : Slot_Id := No_Slot;
@@ -1773,6 +1784,20 @@ package body Landin.IR.Simplification is
                          then Limit - 1 else Limit));
                   end;
                end if;
+               --  D2816: an index this block's bounds check has passed is
+               --  below the length it was checked against, and so is every
+               --  value of its class, the same index loaded again: `line
+               --  [width] = c` then `inc width` cannot carry.
+               if Unsigned (Value) then
+                  declare
+                     Checked : constant Integer_Value :=
+                       Checked_Below (Positive (Class (Positive (Value))));
+                  begin
+                     if Checked > 0 then
+                        Result := Integer_Value'Min (Result, Checked - 1);
+                     end if;
+                  end;
+               end if;
                return Integer_Value'Max (Type_Low (Value), Result);
             end Upper_Of;
 
@@ -1909,6 +1934,56 @@ package body Landin.IR.Simplification is
                end;
                return Upper_Of (Left) < Lower_Of (Right);
             end Below;
+
+            --  D2817: the most Value can be by its partner's content, when
+            --  it is a load of a slot B that Partner bounds and precedes
+            --  B's step in that step's block, which is Block; otherwise
+            --  its type's greatest.  The answer rests on the partner.
+            function Partner_High (Value : Value_Id; Block : Positive)
+              return Integer_Value;
+            function Partner_High (Value : Value_Id; Block : Positive)
+              return Integer_Value
+            is
+               Code : constant Instruction := Code_At (Value);
+               B : Positive;
+               A : Slot_Id;
+            begin
+               if Code.Op /= Load or else Code.Slot = No_Slot
+                 or else Code.Result not in Landin.Types.Integer_Name
+               then
+                  return Type_High (Value);
+               end if;
+               B := Positive (Code.Slot);
+               A := Partner (B);
+               if A = No_Slot or else Code.In_Block /= Block_Id (Block)
+                 or else Code_At (Step_Store (B)).In_Block /= Code.In_Block
+                 or else Value > Step_Store (B)
+                 or else Stored_Here (Positive (A))
+               then
+                  return Type_High (Value);
+               end if;
+               if Consulted = No_Slot then
+                  Consulted := A;
+               elsif Consulted /= A then
+                  Consulted_Two := True;
+               end if;
+               declare
+                  Fact : constant Bound := Upper_Fact (Positive (A));
+                  Limit : constant Integer_Value :=
+                    (if Fact.Present and then Fact.Limit.Kind = Constant_Term
+                     then Fact.Limit.Number else Type_High (Value));
+               begin
+                  if not Fact.Present then
+                     return Type_High (Value);
+                  end if;
+                  return Integer_Value'Max
+                    (Type_Low (Value),
+                     Integer_Value'Min
+                       (Type_High (Value),
+                        (if Fact.Strict and then Limit > Type_Low (Value)
+                         then Limit - 1 else Limit)));
+               end;
+            end Partner_High;
 
             --  [0520]'s static length of the array an element operation
             --  indexes, or zero when it reaches through a field, a path or
@@ -2372,6 +2447,10 @@ package body Landin.IR.Simplification is
                        (if Moved >= 0
                         then Upper_Of (Varying) <= Type_High (V) - Moved
                         else Lower_Of (Varying) >= Type_Low (V) - Moved);
+                     if not Proved and then Moved >= 0 then
+                        Proved := Partner_High (Varying, Block)
+                          <= Type_High (V) - Moved;
+                     end if;
                   end;
                elsif Code.Op = Multiply and then Varying /= No_Value then
                   --  D2207: x * k, with k a constant: x's bounds times k.
@@ -2584,6 +2663,138 @@ package body Landin.IR.Simplification is
                   Counted (S) := False;
                end if;
             end loop;
+            --  D2817: each upward counted slot's partner.  A search from
+            --  B's step for a way back to it that avoids F and A's step
+            --  stays below F, which dominates the whole way: one that left
+            --  F's subtree would reach B's step without passing F.  The
+            --  searches share one budget of visits, a small multiple of
+            --  the routine's blocks, so the pairing stays linear.
+            declare
+               Seen_Owner : constant Flags.Owner :=
+                 Flags.Create (Block_Total);
+               Seen : Flags.Elements renames Seen_Owner.Data.all;
+               Work_Owner : constant Counts.Owner :=
+                 Counts.Create (Block_Total);
+               Work : Counts.Elements renames Work_Owner.Data.all;
+               Seen_List_Owner : constant Counts.Owner :=
+                 Counts.Create (Block_Total);
+               Seen_List : Counts.Elements renames Seen_List_Owner.Data.all;
+               Ups_Owner : constant Counts.Owner := Counts.Create (Slot_Total);
+               Ups : Counts.Elements renames Ups_Owner.Data.all;
+               Up_Count : Natural := 0;
+               Budget : Natural := 4 * (Block_Total + Slot_Total);
+
+               function Step_Of (S : Positive) return Instruction
+                 is (Code_At (Operand (Code_At (Step_Store (S)), 1)));
+
+               function Step_Amount (S : Positive) return Integer_Value
+                 is (if Integer_Constant (Operand (Step_Of (S), 2))
+                     and then Code_At (Operand (Step_Of (S), 1)).Op = Load
+                     then Numeric (Operand (Step_Of (S), 2))
+                     else Numeric (Operand (Step_Of (S), 1)));
+
+               function First_Value (S : Positive) return Value_Id
+                 is (Operand (Code_At (First_Store (S)), 1));
+
+               --  Whether some way from Step's block back to it avoids
+               --  First and Other, or the budget ran out finding none.
+               function Returns (Step, First, Other : Block_Id)
+                 return Boolean;
+               function Returns (Step, First, Other : Block_Id)
+                 return Boolean
+               is
+                  Low : constant Natural := Dominance.Position (Tree, First);
+                  High : constant Natural :=
+                    Dominance.Last_Below (Tree, First);
+                  Top : Natural := 0;
+                  Marked : Natural := 0;
+                  Found : Boolean := False;
+
+                  procedure Reach (From : Block_Id);
+                  procedure Reach (From : Block_Id) is
+                     Target : Block_Id;
+                     Place : Natural;
+                  begin
+                     for Next in 1 .. 2 loop
+                        Target := Control_Flow.Successor (Graph, From, Next);
+                        if Target = Step then
+                           Found := True;
+                        elsif Target /= No_Block and then Target /= First
+                          and then Target /= Other
+                          and then not Seen (Positive (Target))
+                        then
+                           Place := Dominance.Position (Tree, Target);
+                           if Place in Low .. High and then Place /= 0 then
+                              Seen (Positive (Target)) := True;
+                              Marked := Marked + 1;
+                              Seen_List (Marked) := Positive (Target);
+                              Top := Top + 1;
+                              Work (Top) := Positive (Target);
+                           end if;
+                        end if;
+                     end loop;
+                  end Reach;
+               begin
+                  Reach (Step);
+                  while Top > 0 and then not Found loop
+                     if Budget = 0 then
+                        Found := True;
+                     else
+                        Budget := Budget - 1;
+                        Top := Top - 1;
+                        Reach (Block_Id (Work (Top + 1)));
+                     end if;
+                  end loop;
+                  for Index_At in 1 .. Marked loop
+                     Seen (Seen_List (Index_At)) := False;
+                  end loop;
+                  return Found;
+               end Returns;
+            begin
+               for S in 1 .. Slot_Total loop
+                  if Counted (S) and then not Down (S) then
+                     Up_Count := Up_Count + 1;
+                     Ups (Up_Count) := S;
+                  end if;
+               end loop;
+               for B of Ups (1 .. Up_Count) loop
+                  exit when Budget = 0;
+                  if Integer_Constant (First_Value (B)) then
+                     for A of Ups (1 .. Up_Count) loop
+                        exit when Budget = 0;
+                        Budget := Budget - 1;
+                        declare
+                           Base : constant Integer_Value :=
+                             Numeric (First_Value (B));
+                           Kind : constant Landin.Types.Type_Kind :=
+                             Step_Of (B).Result;
+                           F : constant Block_Id :=
+                             Code_At (First_Store (B)).In_Block;
+                        begin
+                           if A /= B and then Step_Of (A).Result = Kind
+                             and then Code_At (First_Store (A)).In_Block = F
+                             and then Step_Amount (A) >= Step_Amount (B)
+                             and then
+                               (Base <= Lowest
+                                  (Landin.Types.Integer_Name (Kind), Facts)
+                                or else
+                                  (Integer_Constant (First_Value (A))
+                                   and then Base
+                                     <= Numeric (First_Value (A))))
+                             and then Code_At (Step_Store (A)).In_Block
+                               /= Code_At (Step_Store (B)).In_Block
+                             and then not Returns
+                               (Code_At (Step_Store (B)).In_Block, F,
+                                Code_At (Step_Store (A)).In_Block)
+                           then
+                              Partner (B) := Slot_Id (A);
+                              exit;
+                           end if;
+                        end;
+                     end loop;
+                  end if;
+               end loop;
+            end;
             --  Each store's reach, as preorder positions grouped by slot
             --  and sorted within it.
             declare

@@ -1,0 +1,82 @@
+--  Host names resolved through the C library, `getaddrinfo`, which asks
+--  every source the system names: its hosts file, DNS and whatever else
+--  it is set up to ask.  It is there wherever a C runtime started the
+--  program, on Darwin and FreeBSD always and on Linux under --link=libc;
+--  a static Linux program has none, and its hosted providers read the
+--  hosts file and ask name servers through core/net instead.
+
+import platform/libc
+
+fixed if compiler.os <> windows then
+    --- No address answers to the name: `getaddrinfo`'s EAI_NONAME, or
+    --- EAI_NODATA for a name that has none.
+    public no_such_name: atom
+    --- The name servers could not be reached or did not answer in time:
+    --- `getaddrinfo`'s EAI_AGAIN.
+    public no_answer: atom
+
+    fixed if compiler.c_runtime then
+        --- Write into `into` the internet endpoints the host name `name`
+        --- has, port zero, in the order `getaddrinfo` gives them with one
+        --- for each address, and return how many, as many as `into` holds.
+        --- A name holding a NUL, or longer than 253 bytes, is
+        --- `no_such_name`; servers that do not answer are `no_answer`; and
+        --- the C library's other failures its errno, `eio` when it names
+        --- none.
+        public resolve_name:
+            (name: []u8, into: []mut internet_endpoint)
+            -> (count: usize) ! errno | no_such_name | no_answer =
+            count = 0
+            fail no_such_name when lenof name == 0 or lenof name > 253
+            mut room: [256]u8 = zeroed
+            for at in usize(0)..<lenof name do
+                fail no_such_name when name[at] == 0
+                room[at] = name[at]
+            end for
+            mut hints: [48]u8 = zeroed
+            hints[libc.addrinfo_kind] = u8(libc.sock_stream)
+            mut list: usize = 0
+            code: i32 = libc.getaddrinfo(addr room[0], libc.no_address,
+                                         addr hints[0], addr list)
+            if code <> 0 then
+                fail no_such_name when code == libc.eai_noname
+                  or code == libc.eai_nodata
+                fail no_answer when code == libc.eai_again
+                if code == libc.eai_system then
+                    cell: ptr mut i32 = libc.errno_cell()
+                    fail errno_of(cell.val)
+                end if
+                fail eio
+            end if
+            mut record: usize = list
+            while record <> 0 and count < lenof into do
+                next: ptr usize = ptr(record + libc.addrinfo_next)
+                current: usize = record
+                record = next.val
+                --  A record this module cannot read is passed over.
+                into[count] = endpoint_in(current) else (problem)
+                    _ = problem
+                    continue
+                end
+                into[count].port = 0
+                inc count
+            end while
+            libc.freeaddrinfo(list)
+        end resolve_name
+
+        --  The internet endpoint of the `struct addrinfo` at `record`.
+        endpoint_in: (record: usize) -> (found: internet_endpoint) ! errno =
+            family: ptr i32 = ptr(record + libc.addrinfo_family)
+            length: ptr u32 = ptr(record + libc.addrinfo_length)
+            where: ptr usize = ptr(record + libc.addrinfo_address)
+            fail eafnosupport when where.val == 0 or length.val > 128
+              or (family.val <> libc.af_inet and family.val <> libc.af_inet6)
+            mut held: socket_address = (bytes: zeroed, length: length.val)
+            for at in usize(0)..<usize(length.val) do
+                byte: ptr u8 = ptr(where.val + at)
+                held.bytes[at] = byte.val
+            end for
+            found = try endpoint_of(held)
+        end endpoint_in
+    end if
+end if

@@ -225,6 +225,11 @@ def main(argv):
     except ValueError as refusal:
         parser.error(str(refusal))
     work = plan(paths, args.jobs)
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import environment_key
+    stale = None if args.gate_environment else environment_key.note(ROOT)
+    if stale:
+        print(stale)
     started = time.monotonic()
     environment = None
     with contextlib.ExitStack() as stack:
@@ -247,6 +252,8 @@ def main(argv):
         print("== in the gate environment: a failure that passes without"
               " --gate-environment leans on a tool or variable only the"
               " development shell has")
+    if status and stale:
+        print(stale)
     return 1 if status else 0
 
 

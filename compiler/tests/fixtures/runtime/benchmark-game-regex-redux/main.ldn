@@ -1,0 +1,137 @@
+--  A direct single-threaded implementation of the Benchmark Game workload
+--  over core/regex.  FASTA on standard input has its header lines and line
+--  breaks taken out by `>.*\n|\n`; each of the nine variants is then
+--  counted over what is left, and the five IUB replacements are applied to
+--  it in turn.  The program prints each variant and its count, then the
+--  lengths of the input, of the cleaned sequence and of the sequence after
+--  the replacements.
+import core/io
+import core/mem
+import core/regex
+import core/text
+import hosted/blocking
+import hosted/heap
+
+--- The nine variants of the eight-mer `agggtaaa`, each with its reverse
+--- complement.
+variants: [9]utf8 = [
+    "agggtaaa|tttaccct", "[cgt]gggtaaa|tttaccc[acg]",
+    "a[act]ggtaaa|tttacc[agt]t", "ag[act]gtaaa|tttac[agt]ct",
+    "agg[act]taaa|ttta[agt]cct", "aggg[acg]aaa|ttt[cgt]ccct",
+    "agggt[cgt]aa|tt[acg]accct", "agggta[cgt]a|t[acg]taccct",
+    "agggtaa[cgt]|[acg]ttaccct"
+]
+
+--- The IUB replacements, applied in this order, each to what the one
+--- before it left.
+patterns: [5]utf8 = ["tHa[Nt]", "aND|caN|Ha[DS]|WaS", "a[NSt]|BY", "<[^>]*>",
+                     "\\|[^|][^|]*\\|"]
+replacements: [5]utf8 = ["<4>", "<3>", "<2>", "|", "-"]
+
+--- Append all of standard input to `whole`, a read at a time.
+read_all: (host: blocking.host, inout whole: text.builder)
+          -> none ! io.io_failed | mem.out_of_memory =
+    input: io.file = io.input(host)
+    mut chunk: [65536]u8 = zeroed
+    loop do
+        got: usize = try io.read(host, input, chunk)
+        break when got == 0
+        try text.append(whole, chunk[0..<got])
+    end loop
+end read_all
+
+--- How many matches of `pattern` `haystack` has.
+count_of: (provider: type is mem.allocator, memory: provider, pattern: utf8,
+           haystack: utf8) -> (count: usize) ! regex.compile_failure =
+    count = 0
+    mut compiled := try regex.compile(memory, pattern)
+    defer regex.release(compiled, memory)
+    for found in regex.matches(addr compiled, haystack) do
+        _ = found
+        inc count
+    end for
+end count_of
+
+--- `source` with every match of `pattern` replaced by `template`, into
+--- `into`, cleared first.
+replaced: (provider: type is mem.allocator, memory: provider, pattern: utf8,
+           source: utf8, template: utf8, inout into: text.builder)
+          -> none ! regex.compile_failure | mem.out_of_memory =
+    mut compiled := try regex.compile(memory, pattern)
+    defer regex.release(compiled, memory)
+    text.clear(into)
+    _ = try regex.replace_all(compiled, source, template, into)
+end replaced
+
+--- The workload, its results written to `out`.
+redux: (host: blocking.host, inout out: io.buffered_writer(blocking.host))
+       -> none ! regex.compile_failure | io.io_failed | text.invalid_text
+               | text.invalid_format =
+    memory := heap.new()
+    mut whole := text.growing(any(addr memory))
+    defer text.release(whole)
+    try read_all(host, whole)
+    mut one := text.growing(any(addr memory))
+    defer text.release(one)
+    mut other := text.growing(any(addr memory))
+    defer text.release(other)
+    input: utf8 = try text.from_bytes(text.used(whole))
+    try replaced(memory, ">.*\\n|\\n", input, "", one)
+    input_length: usize = text.length(whole)
+    clean_length: usize = text.length(one)
+    sequence: utf8 = try text.from_bytes(text.used(one))
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage)
+    for variant in variants do
+        count: usize = try count_of(memory, variant, sequence)
+        text.clear(line)
+        try text.format(line, "{} {}\n", [any(addr variant), any(addr count)])
+        try io.put(out, text.used(line))
+    end for
+    --  Each replacement reads the builder the one before it wrote, so the
+    --  last result, the fifth's, is in `other`.
+    for pattern, index in patterns do
+        if index % 2 == 0 then
+            source: utf8 = try text.from_bytes(text.used(one))
+            try replaced(memory, pattern, source, replacements[index], other)
+        else
+            source: utf8 = try text.from_bytes(text.used(other))
+            try replaced(memory, pattern, source, replacements[index], one)
+        end if
+    end for
+    final_length: usize = text.length(other)
+    text.clear(line)
+    try text.format(line, "\n{}\n{}\n{}\n",
+                    [any(addr input_length), any(addr clean_length),
+                     any(addr final_length)])
+    try io.put(out, text.used(line))
+end redux
+
+public main: () -> (code: i32) =
+    host := blocking.new()
+    mut storage: [4096]u8 = zeroed
+    mut out := io.buffered_over(host, io.out(host), storage)
+    defer io.flush(out) else none
+    code = 1
+    redux(host, out) else (problem)
+        if problem == mem.out_of_memory then
+            io.write(host, io.err(host), "regex-redux: out of memory\n") else none
+        elsif problem == io.io_failed then
+            io.write(host, io.err(host), "regex-redux: standard input or output failed\n")
+                else none
+        elsif problem == text.invalid_text then
+            io.write(host, io.err(host), "regex-redux: the input is not UTF-8\n")
+                else none
+        else
+            io.write(host, io.err(host), "regex-redux: a pattern did not compile\n")
+                else none
+        end if
+        return
+    end
+    io.flush(out) else begin
+        io.write(host, io.err(host), "regex-redux: standard output could not be written\n")
+            else none
+        return
+    end
+    code = 0
+end main

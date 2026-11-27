@@ -54,6 +54,38 @@
    }
   },
   {
+   "name": "regex-redux",
+   "fixture": "runtime/benchmark-game-regex-redux",
+   "timing": {
+    "stdin_repeat": 200
+   }
+  },
+  {
+   "name": "k-nucleotide",
+   "fixture": "runtime/benchmark-game-k-nucleotide",
+   "timing": {
+    "stdin_repeat": 300
+   }
+  },
+  {
+   "name": "n-body",
+   "fixture": "runtime/benchmark-game-n-body",
+   "timing": {
+    "args": [
+     "1000000"
+    ]
+   }
+  },
+  {
+   "name": "spectral-norm",
+   "fixture": "runtime/benchmark-game-spectral-norm",
+   "timing": {
+    "args": [
+     "1000"
+    ]
+   }
+  },
+  {
    "name": "fibre",
    "fixture": "runtime/measure-fibre-switches",
    "timing": {

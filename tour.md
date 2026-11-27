@@ -2895,9 +2895,13 @@ that does not exist, and the report points at the private declaration.
 ### [1460] Module-level values are known at compile time
 
 A value at module level must be known when the compiler reads it, because
-nothing runs before the entry point. So it cannot call a function. Immutable
-values can stay in flash; mutable ones cost RAM, and the `mut` makes them
-conspicuous.
+nothing runs before the entry point. So it cannot call a function. An
+immutable module value is placed in read-only memory: flash on a
+microcontroller, read-only pages of the program on a hosted system. A write
+through a pointer made from its address ([0470]) therefore faults instead of
+silently changing the value; on a hosted system, one that holds the address
+of something else is still the exception. Mutable ones cost RAM, and the
+`mut` makes them conspicuous.
 
 ```landin
 table: [4]u32 = [1, 2, 4, 8]
@@ -5363,6 +5367,9 @@ bit its member's encoding names.
 - Building one is an ordinary struct literal with `of` ([0720]).
 
 There is no set literal or set operator, because a struct needs none.
+To combine two whole sets at once, `core/bits` has union, intersection,
+difference and an emptiness test, for a set type that declares
+`is bits.flags ()`.
 Inside a larger image the same fields sit at the image's bits, offset by
 where the set begins.
 

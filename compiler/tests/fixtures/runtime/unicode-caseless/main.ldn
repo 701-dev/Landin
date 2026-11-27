@@ -1,0 +1,41 @@
+--  Comparing without case by full folding, a scalar at a time: equality,
+--  a prefix and a suffix, each ending only where a scalar does.
+import core/unicode
+
+--  Equality without case, and its prefix and suffix forms.
+caseless: () -> (yes: bool) =
+    yes = unicode.equal_caseless("Straße", "STRASSE")
+          and unicode.equal_caseless("STRASSE", "straße")
+          and unicode.equal_caseless("", "")
+          and not unicode.equal_caseless("", "a")
+          and not unicode.equal_caseless("ß", "s")
+          and unicode.equal_caseless("ΣΑΣ", "σας")
+          and unicode.equal_caseless("ﬃ", "FFI")
+          and unicode.equal_caseless("Ǆ", "ǅ")
+          and unicode.equal_caseless("😀aÉ€", "😀Aé€")
+          and not unicode.equal_caseless("é", "e\u{301}")
+          and not unicode.equal_caseless("abc", "abd")
+          and unicode.equal_caseless("\u{10400}", "\u{10428}")
+          and unicode.starts_with_caseless("STRASSE", "straß")
+          and unicode.starts_with_caseless("Straße", "STRA")
+          and unicode.starts_with_caseless("Straße", "strasse")
+          and not unicode.starts_with_caseless("ß", "s")
+          and unicode.starts_with_caseless("abc", "")
+          and not unicode.starts_with_caseless("", "a")
+          and not unicode.starts_with_caseless("ab", "abc")
+          and unicode.ends_with_caseless("Straße", "SSE")
+          and unicode.ends_with_caseless("Straße", "ASSE")
+          and not unicode.ends_with_caseless("ß", "s")
+          and unicode.ends_with_caseless("xﬃ", "FFI")
+          and not unicode.ends_with_caseless("xﬃ", "fi")
+          and not unicode.ends_with_caseless("ﬃ", "i")
+          and unicode.ends_with_caseless("abc", "")
+          and unicode.ends_with_caseless("ÉTÉ", "té")
+          and not unicode.ends_with_caseless("", "a")
+end caseless
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not caseless()
+    code = 42
+end main

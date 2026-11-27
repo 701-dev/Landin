@@ -1,0 +1,304 @@
+--  Taking text apart: trimming White_Space or a scalar from its ends, and
+--  walks over the parts between separators, over fields and over lines.
+--  A walk's item is a `span`, two positions of the text walked, since a
+--  `for` item is a value of its own and not a view of its source ([1320],
+--  D2618); `part` gives its text.
+
+import core/iter
+
+--- A piece of a text, from the position `begins` to the position `ends`:
+--- `part(source, piece)` is its text.  The walks below give one per part.
+public span: type = struct
+    begins: position
+    ends: position
+end span
+
+--- The text `piece` spans in `source`, a view of it with nothing copied.
+--- A span of another text traps where its range would.
+public part: (source: utf8, piece: span) -> (result: utf8 from source) =
+    result = source[piece.begins.offset..<piece.ends.offset]
+end part
+
+--  Unicode's White_Space, the 25 scalars the database gives the property;
+--  scripts/unicode_tables.py's check holds this list to it, so no table
+--  is needed.
+white_space: (scalar: u32) -> (yes: bool) =
+    yes = if scalar < 0x80 then
+        (scalar >= 0x09 and scalar <= 0x0d) or scalar == 0x20
+          elsif scalar < 0x1680 then
+              scalar == 0x85 or scalar == 0xa0
+          else
+              scalar == 0x1680 or (scalar >= 0x2000 and scalar <= 0x200a)
+              or scalar == 0x2028 or scalar == 0x2029 or scalar == 0x202f
+              or scalar == 0x205f or scalar == 0x3000
+          end if
+end white_space
+
+--  The scalar of `source` that begins at byte `at`, and the byte after it.
+scalar_at: (source: utf8, at: usize) -> (scalar: u32, after: usize) =
+    place: position = (offset: at)
+    scalar = source[place]
+    after = at + scalar_length(source, place)
+end scalar_at
+
+--  The byte where the scalar that ends at byte `ends` begins.
+scalar_before: (source: utf8, ends: usize) -> (begins: usize) =
+    held: []u8 = bytes(source)
+    begins = ends - 1
+    while held[begins] >= 128 and held[begins] < 192 do
+        dec begins
+    end while
+end scalar_before
+
+--  The byte after the leading scalars of `source` that are White_Space, or
+--  equal to `scalar` when `spaces` is false.
+leading: (source: utf8, spaces: bool, scalar: u32) -> (at: usize) =
+    at = 0
+    while at < lenof source do
+        found := scalar_at(source, at)
+        return when (spaces and not white_space(found.scalar))
+          or (not spaces and found.scalar <> scalar)
+        at = found.after
+    end while
+end leading
+
+--  The byte where the trailing scalars of `source` from `floor` that are
+--  White_Space, or equal to `scalar` when `spaces` is false, begin.
+trailing: (source: utf8, floor: usize, spaces: bool, scalar: u32)
+          -> (ends: usize) =
+    ends = lenof source
+    while ends > floor do
+        begins: usize = scalar_before(source, ends)
+        found := scalar_at(source, begins)
+        return when (spaces and not white_space(found.scalar))
+          or (not spaces and found.scalar <> scalar)
+        ends = begins
+    end while
+end trailing
+
+--- `source` without the White_Space at either end: spaces, tabs, line
+--- ends and the other scalars Unicode gives the property, U+00A0 and
+--- U+3000 among them.  A view of `source`.
+public trim: (source: utf8) -> (result: utf8 from source) =
+    begins: usize = leading(source, true, 0)
+    result = source[begins..<trailing(source, begins, true, 0)]
+end trim
+
+--- `source` without the White_Space at its start.
+public trim_start: (source: utf8) -> (result: utf8 from source) =
+    result = source[leading(source, true, 0)..<lenof source]
+end trim_start
+
+--- `source` without the White_Space at its end.
+public trim_end: (source: utf8) -> (result: utf8 from source) =
+    result = source[0..<trailing(source, 0, true, 0)]
+end trim_end
+
+--- `source` without the scalars equal to `scalar` at either end, so
+--- trimming '/' from "//a/b//" gives "a/b".
+public trim_scalar: (source: utf8, scalar: u32)
+                    -> (result: utf8 from source) =
+    begins: usize = leading(source, false, scalar)
+    result = source[begins..<trailing(source, begins, false, scalar)]
+end trim_scalar
+
+--- `source` without the scalars equal to `scalar` at its start.
+public trim_scalar_start: (source: utf8, scalar: u32)
+                          -> (result: utf8 from source) =
+    result = source[leading(source, false, scalar)..<lenof source]
+end trim_scalar_start
+
+--- `source` without the scalars equal to `scalar` at its end.
+public trim_scalar_end: (source: utf8, scalar: u32)
+                        -> (result: utf8 from source) =
+    result = source[0..<trailing(source, 0, false, scalar)]
+end trim_scalar_end
+
+--  What a walk splits at: a text, held as `separator` or, for a scalar,
+--  as the `count` bytes of `encoded`; the runs of White_Space; line ends;
+--  or nothing, for a value that is no scalar and so in no text.
+by_text: u8 = 0
+by_fields: u8 = 1
+by_lines: u8 = 2
+by_whole: u8 = 3
+
+split_walk: type = struct
+    source: utf8
+    separator: utf8
+    encoded: [4]u8
+    count: usize
+    kind: u8
+end split_walk
+
+--- A walk over the parts of a text, for `for` to walk: what `split`,
+--- `split_scalar`, `fields` and `lines` give.  Each item is a `span`, in
+--- order.
+public parts: type = split_walk
+
+--- The parts of `source` between the occurrences of `separator`, found
+--- from the left without overlapping, as `find_from` finds them: "a,b,,c"
+--- split at "," gives "a", "b", "" and "c", and a separator at either end
+--- gives an empty part there.  An empty `source` is one empty part.  An
+--- empty `separator` gives each scalar of `source` as a part of its own,
+--- and an empty `source` then has none.
+public split: (source: utf8, separator: utf8)
+              -> (result: parts from source, separator) =
+    result = (source: source, separator: separator, encoded: zeroed,
+              count: 0, kind: by_text)
+end split
+
+--- The parts of `source` between the scalars equal to `scalar`, as
+--- `split` gives them for that scalar's text.  A surrogate or a value
+--- above U+10FFFF is in no text, so `source` is then one part.
+public split_scalar: (source: utf8, scalar: u32)
+                     -> (result: parts from source) =
+    mut encoded: [4]u8 = zeroed
+    count: usize = encoded_width(scalar)
+    if count == 0 then
+        result = (source: source, separator: "", encoded: encoded,
+                  count: 0, kind: by_whole)
+        return
+    end if
+    stored(scalar, count, encoded[0..<count])
+    result = (source: source, separator: "", encoded: encoded,
+              count: count, kind: by_text)
+end split_scalar
+
+--- The fields of `source`: the runs of scalars between runs of
+--- White_Space, as Go's `strings.Fields` gives them, so " a  b\t" gives
+--- "a" and "b".  Text that is empty or only White_Space has none.
+public fields: (source: utf8) -> (result: parts from source) =
+    result = (source: source, separator: "", encoded: zeroed, count: 0,
+              kind: by_fields)
+end fields
+
+--- The lines of `source`: the parts between line feeds, each without its
+--- line feed or a carriage return before it, as Rust's `lines` gives them.
+--- A line feed that ends the text ends its last line and begins none, so
+--- "a\nb\n" gives "a" and "b", "a\r\n\nb" gives "a", "" and "b", and an
+--- empty text has no lines.  A carriage return elsewhere is kept.
+public lines: (source: utf8) -> (result: parts from source) =
+    result = (source: source, separator: "", encoded: zeroed, count: 0,
+              kind: by_lines)
+end lines
+
+--  A walk's cursor: the part it is at, and where the part after it
+--  begins, or past the text's end when it is the last.
+parts_cursor: type = struct
+    piece: span
+    resume: usize
+end parts_cursor
+
+--  The cursor for the part of `walk`'s text that begins at byte `at`, or
+--  one past the end when no part does.
+part_from: (walk: ptr split_walk, at: usize) -> (cursor: parts_cursor) =
+    source: utf8 = walk.val.source
+    held: []u8 = bytes(source)
+    ending: usize = lenof held
+    done: parts_cursor = (piece: (begins: (offset: ending + 1),
+                                  ends: (offset: ending + 1)),
+                          resume: ending + 1)
+    if walk.val.kind == by_fields then
+        mut begins: usize = at
+        while begins < ending do
+            found := scalar_at(source, begins)
+            break when not white_space(found.scalar)
+            begins = found.after
+        end while
+        if begins >= ending then
+            cursor = done
+            return
+        end if
+        mut ends: usize = begins
+        while ends < ending do
+            found := scalar_at(source, ends)
+            break when white_space(found.scalar)
+            ends = found.after
+        end while
+        cursor = (piece: (begins: (offset: begins), ends: (offset: ends)),
+                  resume: ends)
+        return
+    end if
+    if walk.val.kind == by_lines then
+        if at >= ending then
+            cursor = done
+            return
+        end if
+        mut ends: usize = at
+        while ends < ending and held[ends] <> 0x0a do
+            inc ends
+        end while
+        resume: usize = if ends < ending then ends + 1 else ending end if
+        mut kept: usize = ends
+        if ends < ending and kept > at and held[kept - 1] == 0x0d then
+            dec kept
+        end if
+        cursor = (piece: (begins: (offset: at), ends: (offset: kept)),
+                  resume: resume)
+        return
+    end if
+    if at > ending then
+        cursor = done
+        return
+    end if
+    whole: parts_cursor = (piece: (begins: (offset: at),
+                                   ends: (offset: ending)),
+                           resume: ending + 1)
+    if walk.val.kind == by_whole then
+        cursor = whole
+        return
+    end if
+    mut sought: []u8 = bytes(walk.val.separator)
+    if walk.val.count > 0 then
+        sought = walk.val.encoded[0..<walk.val.count]
+    end if
+    if lenof sought == 0 then
+        --  An empty separator: each scalar is a part.
+        if at >= ending then
+            cursor = done
+            return
+        end if
+        found := scalar_at(source, at)
+        after: usize = found.after
+        cursor = (piece: (begins: (offset: at), ends: (offset: after)),
+                  resume: after)
+        return
+    end if
+    rest: []u8 = held[at..<ending]
+    if lenof sought > lenof rest then
+        cursor = whole
+        return
+    end if
+    index: usize = first_match(rest, sought)
+    if index == lenof rest then
+        cursor = whole
+        return
+    end if
+    cursor = (piece: (begins: (offset: at), ends: (offset: at + index)),
+              resume: at + index + lenof sought)
+end part_from
+
+parts_first: (walk: ptr split_walk) -> (cursor: parts_cursor) =
+    cursor = part_from(walk, 0)
+end parts_first
+
+parts_at_end: (walk: ptr split_walk, cursor: parts_cursor)
+              -> (yes: bool) =
+    yes = cursor.piece.begins.offset > lenof walk.val.source
+end parts_at_end
+
+parts_item: (walk: ptr split_walk, cursor: parts_cursor)
+            -> (value: span) =
+    _ = walk
+    value = (begins: (offset: cursor.piece.begins.offset),
+             ends: (offset: cursor.piece.ends.offset))
+end parts_item
+
+parts_next: (walk: ptr split_walk, cursor: parts_cursor)
+            -> (next: parts_cursor) =
+    next = part_from(walk, cursor.resume)
+end parts_next
+
+split_walk is iter.iterable (cur: parts_cursor, item_type: span,
+                             first: parts_first, at_end: parts_at_end,
+                             item: parts_item, next: parts_next)

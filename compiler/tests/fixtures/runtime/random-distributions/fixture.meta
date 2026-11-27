@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D3055 each of core/random's integer draws passes a stated test over a sample pinned by its seed, on every target, Cortex-M0 included at every profile: a chi-squared test at p = 0.001, in integers, of the die, picks, two-of-five samples, weights with a zero among them and filled bytes, and every range whose ends are within four of zero, of the u64 ends and of the i64 ends drawn inside its ends and, at widths of eight or less, reaching every value
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0150, 0300, 0320, 0330, 0570, 0900, 1290, 1680
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

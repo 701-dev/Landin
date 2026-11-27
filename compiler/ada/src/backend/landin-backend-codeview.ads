@@ -45,11 +45,29 @@ package Landin.Backend.Codeview is
    --  The function identity `.cv_loc` names inside Item.
    function Function_Id (Item : Landin.IR.Item_Id) return String;
 
-   --  The line Site begins, inside Item, or "" when Site is unknown.
+   --  D339's copies: the identity of Item's inlined copy Copy, called
+   --  from where its call stood inside Item's, which the backend writes
+   --  for each copy after Function_Id and before any line of a copy.
+   function Inline_Site_Id
+     (Info : Landin.Debugging.Information;
+      Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Copy : Positive) return String;
+
+   --  The identity of Item's copy Copy, which Source_Line names for the
+   --  copy's code; distinct from every item's own and every other copy's.
+   function Copy_Identity
+     (Of_Unit : Landin.IR.Unit;
+      Item : Landin.IR.Item_Id;
+      Copy : Positive) return Positive;
+
+   --  The line Site begins, inside Item, or "" when Site is unknown; in
+   --  the code of the copy whose identity Copy is, when it is not zero.
    function Source_Line
      (Info : Landin.Debugging.Information;
       Item : Landin.IR.Item_Id;
-      Site : Landin.Provenance.Origin) return String;
+      Site : Landin.Provenance.Origin;
+      Copy : Natural := 0) return String;
 
    generic
       type Placement (<>) is private;

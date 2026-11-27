@@ -1,0 +1,11 @@
+class: runtime
+profiles: standard
+summary: the Benchmark Game regex-redux correctness workload reads FASTA from standard input into a text builder growing on hosted/heap, takes out its header lines and line breaks with core/regex, counts the nine variants and applies the five IUB replacements in turn, printing each variant's count and the three lengths
+program: main.ldn
+root: ../../../../..
+stdin: input.txt
+run_expect: output.txt
+stream: output
+status: 0
+constructs: 0260, 0290, 0310, 0350, 0400, 0520, 0540, 0900, 1150, 1360, 1370
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64

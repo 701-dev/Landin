@@ -1,27 +1,30 @@
---  Roll two dice six hundred times and count each total, then shuffle a
---  deck of cards and deal a hand of five.  The draws come from a generator
+--  Roll two dice six hundred times and count each total, roll a loaded
+--  die, then shuffle a deck of cards, deal a hand of five and pick the
+--  trump suit.  The draws come from a generator
 --  seeded with the number given as the argument, so a seed prints the same
 --  report on every target; with no argument the seed comes from the
 --  system's entropy, and every run differs.
+import core/args
 import core/failure
 import core/io
 import core/random
-import core/text
 import hosted/blocking
+import hosted/heap
 
 --- How many times the two dice are rolled.
 rolls: u32 = 600
 
---- The generator the report draws from: seeded with the first argument
---- when there is one, so a run can be repeated, and from the system's
---- entropy when there is none.
-seeded: (host: blocking.host) -> (source: random.generator) ! ... =
-    if io.arguments_length(host) == 0 then
+--- The generator the report draws from: seeded with the argument `SEED`
+--- when it was given, so a run can be repeated, and from the system's
+--- entropy when it was not.
+seeded: (host: blocking.host, parsed: args.found)
+        -> (source: random.generator) ! ... =
+    if args.count(parsed, "SEED") == 0 then
         source = try random.from_entropy(host)
         return
     end if
-    argument: text.os_string = try io.argument(host, 0)
-    source = random.new(try text.parse_u64(text.os_string_bytes(argument)))
+    seed := try args.get(parsed, "SEED")
+    source = random.new(seed.unsigned)
 end seeded
 
 --- Roll two dice `rolls` times and print how often each total came up, with
@@ -32,9 +35,9 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     mut left: u32 = rolls
     while left > 0 do
         dec left
-        first: usize = usize(random.below(source, 6)) + 1
-        second: usize = usize(random.below(source, 6)) + 1
-        inc counts[first + second]
+        first: i64 = random.between_i64(source, 1, 6)
+        second: i64 = random.between_i64(source, 1, 6)
+        inc counts[usize(first + second)]
     end while
     for total in usize(2)..<13 do
         count: u32 = counts[total]
@@ -53,9 +56,25 @@ roll_dice: (host: blocking.host, inout source: random.generator)
     end for
 end roll_dice
 
+--- A die loaded so that a six comes up five times as often as each other
+--- face: the weight of each face, one to six.
+loaded: [6]u64 = [1, 1, 1, 1, 1, 5]
+
+--- Roll the loaded die sixty times and print the faces it showed.
+roll_loaded: (host: blocking.host, inout source: random.generator)
+             -> none ! ... =
+    try io.write(host, io.out(host), "loaded:")
+    for roll in usize(0)..<60 do
+        _ = roll
+        face: usize = random.weighted(source, loaded[0..<6]) + 1
+        try io.write_format(host, io.out(host), " {}", [any(addr face)])
+    end for
+    try io.write(host, io.out(host), "\n")
+end roll_loaded
+
 --- Shuffle a deck of 52 cards, each a number from 0 to 51 whose rank is
 --- the number modulo 13 and whose suit is the number divided by 13, and
---- print the first five.
+--- print the first five, then a trump suit picked from the four.
 deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
     ranks: []u8 = "A23456789TJQK"
     suits: []u8 = "SHDC"
@@ -69,20 +88,39 @@ deal: (host: blocking.host, inout source: random.generator) -> none ! ... =
         name: [3]u8 = [u8(' '), ranks[usize(card) % 13], suits[usize(card) / 13]]
         try io.write(host, io.out(host), name)
     end for
+    trump: [1]u8 = [random.pick(source, suits)]
+    try io.write(host, io.out(host), "\ntrumps: ")
+    try io.write(host, io.out(host), trump)
     try io.write(host, io.out(host), "\n")
 end deal
 
---- Seed a generator, roll the dice and deal a hand from it.
-report: (host: blocking.host) -> none ! ... =
-    mut source: random.generator = try seeded(host)
+--- Seed a generator, roll the dice and the loaded die and deal a hand
+--- from it.
+report: (host: blocking.host, parsed: args.found) -> none ! ... =
+    mut source: random.generator = try seeded(host, parsed)
     try roll_dice(host, source)
+    try roll_loaded(host, source)
     try deal(host, source)
 end report
 
 public main: () -> (code: i32) =
     host := blocking.new()
+    memory := heap.new()
+    table: [1]args.argument = [
+        args.optional(args.typed(args.positional("SEED",
+                                                 "the number to draw from"),
+                                 args.as_unsigned))
+    ]
+    program := args.command_of("dice", "Roll dice and deal a hand of cards.",
+                               table[0..<1])
+    mut parsed := args.new()
+    defer args.release(parsed, memory)
+    args.parse_process(memory, host, program, parsed) else begin
+        code = args.reply(memory, host, parsed)
+        return
+    end
     code = 1
-    report(host) else (problem)
+    report(host, parsed) else (problem)
         words: []u8 = failure.words(problem)
         io.write_format(host, io.err(host), "dice: {}\n",
                         [any(addr words)]) else none

@@ -338,23 +338,8 @@ package body Landin.Stages.Lowering is
          return Total;
       end Total_Syntax_Nodes;
 
-      type Anonymous_Entry is record
-         Source : Landin.Source.Source_Id := Landin.Source.No_Source;
-         Node   : Syn.Node_Id             := Syn.No_Node;
-         Item   : IR.Item_Id              := IR.No_Item;
-      end record;
-
       Syntax_Nodes : constant Positive :=
         Positive'Max (1, Total_Syntax_Nodes);
-
-      type Anonymous_Entries is
-        array (Positive range <>) of Anonymous_Entry;
-      package Anonymous_Tables is new Program_Tables
-        (Positive, Anonymous_Entry, Anonymous_Entries, (others => <>));
-      Held_Anonymous : Anonymous_Tables.Table (Syntax_Nodes);
-      Anonymous_Routines : Anonymous_Entries renames
-        Held_Anonymous.Data.all;
-      Anonymous_Count : Natural := 0;
 
       --  Where each source's nodes start in one run over every tree, so a
       --  node's place in Live is its source's offset plus its own index.
@@ -399,24 +384,6 @@ package body Landin.Stages.Lowering is
 
       function Is_Live (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return Boolean
       is (Keep_Everything or else Live (Live_Position (Of_Tree, Node)));
-
-      function Anonymous_Item
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return IR.Item_Id;
-
-      function Anonymous_Item
-        (Of_Tree : Syn.Tree; Node : Syn.Node_Id) return IR.Item_Id
-      is
-      begin
-         for Index in 1 .. Anonymous_Count loop
-            if Anonymous_Routines (Index).Source = Syn.Source_Of (Of_Tree)
-              and then Anonymous_Routines (Index).Node = Node
-            then
-               return Anonymous_Routines (Index).Item;
-            end if;
-         end loop;
-         raise Landin.Compiler_Defect with
-           "an anonymous function has no deterministic routine item";
-      end Anonymous_Item;
 
       subtype Source_Atom_Set is Positive range
         1 .. Positive'Max
@@ -4034,7 +4001,7 @@ package body Landin.Stages.Lowering is
          begin
             for Node in Declared_At .. Syn.Last_Node (Their_Tree.all) loop
                case Syn.Kind (Their_Tree.all, Node) is
-                  when Syn.Function_Declaration | Syn.Anonymous_Function =>
+                  when Syn.Function_Declaration =>
                      exit when Landin.Source.Contains
                        (Syn.Where (Their_Tree.all, Node), Declared_Span);
                   when Syn.Address_Of =>
@@ -10392,10 +10359,6 @@ package body Landin.Stages.Lowering is
                   end case;
                end;
 
-            when Syn.Anonymous_Function =>
-               return IR.Emit_Function_Address
-                 (Unit.all, Filling, Anonymous_Item (Of_Tree, Node), Site);
-
             when Syn.Name_Reference =>
                declare
                   Means : constant Res.Declaration_Id :=
@@ -11404,7 +11367,7 @@ package body Landin.Stages.Lowering is
          --  D187: [1120]'s region is this same block, carrying a flag.
          --  The mode is entered around the body only, so an edge emitted
          --  outside it -- a later statement, or a separately filled item
-         --  such as [1010]'s anonymous function body -- stays checked.
+         --  -- stays checked.
          Region : constant Boolean := Syn.Is_Unchecked (Of_Tree, Node);
          --  [1180]: a labelled block is a `break` target.  Its exit is
          --  created only once some edge reaches it, as a loop's is.  Its
@@ -14073,12 +14036,20 @@ package body Landin.Stages.Lowering is
                   --  D120: an alias for an ordinary-struct payload is not
                   --  a payload leaf; a field of it is written the way a
                   --  field of any other storage is, through the run that
-                  --  reaches it.
+                  --  reaches it.  An element below it is that run's
+                  --  element: an alias names a part of storage somewhere
+                  --  else and has no slot of its own, so an element below a
+                  --  struct alias -- a named result kept in its routine's
+                  --  result aggregate, an `inout` struct payload -- is
+                  --  stored through the alias with the selections below it
+                  --  as the nested run, the way it is read.
                   if Aliases (Declared (Means)).Active
-                    and then Syn.Kind (Of_Tree, Place)
-                      /= Syn.Member_Selection
-                    and then not Roots_At_An_Aggregate_Alias
-                      (Of_Tree, Selected)
+                    and then
+                      (Syn.Kind (Of_Tree, Place) = Syn.Element_Index
+                       or else
+                         (Syn.Kind (Of_Tree, Place) /= Syn.Member_Selection
+                          and then not Roots_At_An_Aggregate_Alias
+                            (Of_Tree, Selected)))
                   then
                      declare
                         Alias : Payload_Alias renames
@@ -14105,12 +14076,14 @@ package body Landin.Stages.Lowering is
                                     IR.Emit_Store_Element
                                       (Unit.all, Filling,
                                        Alias.Source.Datum, Index, Value, Site,
-                                       Field => Alias.Field);
+                                       Field  => Alias.Field,
+                                       Nested => Element_Path);
                                  when IR.Frame_Slot =>
                                     IR.Emit_Store_Slot_Element
                                       (Unit.all, Filling,
                                        Alias.Source.Slot, Index, Value, Site,
-                                       Field => Alias.Field);
+                                       Field  => Alias.Field,
+                                       Nested => Element_Path);
                                  when IR.Runtime_Address =>
                                     declare
                                        Address : constant IR.Value_Id :=
@@ -16101,9 +16074,7 @@ package body Landin.Stages.Lowering is
          Source_Signature : constant Landin.Checking.Signature_Id :=
            Landin.Checking.Signature_Of (Types.all, Of_Tree, Node);
          Result : IR.Slot_Id := IR.No_Slot;
-         Owner : constant Res.Declaration_Id :=
-           (if Syn.Kind (Of_Tree, Node) = Syn.Function_Declaration
-            then Declaration_At (Src, Node) else Res.No_Declaration);
+         Owner : constant Res.Declaration_Id := Declaration_At (Src, Node);
       begin
          Filling :=
            (if Bound_Item /= IR.No_Item then Bound_Item
@@ -16114,8 +16085,6 @@ package body Landin.Stages.Lowering is
                Landin.Checking.Routine_Identities.Position
                  (Types.all,
                   Landin.Checking.Current_Routine_View (Types.all)))
-            elsif Owner = Res.No_Declaration
-            then Anonymous_Item (Of_Tree, Node)
             else IR.Item_For (Unit.all, Owner));
          --  D415: `public` alone exposes nothing.  The declaration's own
          --  item was marked where it was made when it is an export, and a
@@ -17921,34 +17890,30 @@ package body Landin.Stages.Lowering is
 
          --  Every node under NODE is live and examined: its slots, and an
          --  application's [1030] recovery clause, which is carried beside
-         --  them.  An anonymous function is code wherever it is written, so
-         --  its own nodes name providers too.
+         --  them.
          procedure Visit
            (Of_Tree : Syn.Tree; Node : Syn.Node_Id; Providers : Boolean);
 
          procedure Visit
            (Of_Tree : Syn.Tree; Node : Syn.Node_Id; Providers : Boolean)
          is
-            Inner : constant Boolean :=
-              Providers
-              or else Syn.Kind (Of_Tree, Node) = Syn.Anonymous_Function;
          begin
             Live (Live_Position (Of_Tree, Node)) := True;
-            Examine (Of_Tree, Node, Inner);
+            Examine (Of_Tree, Node, Providers);
             for Index in 1 .. Syn.Slot_Count (Of_Tree, Node) loop
                declare
                   Child : constant Syn.Node_Id :=
                     Syn.Slot (Of_Tree, Node, Index);
                begin
                   if Child /= Syn.No_Node then
-                     Visit (Of_Tree, Child, Inner);
+                     Visit (Of_Tree, Child, Providers);
                   end if;
                end;
             end loop;
             if Syn.Kind (Of_Tree, Node) in Syn.Call | Syn.Labeled_Application
               and then Syn.Recovery_Of (Of_Tree, Node) /= Syn.No_Node
             then
-               Visit (Of_Tree, Syn.Recovery_Of (Of_Tree, Node), Inner);
+               Visit (Of_Tree, Syn.Recovery_Of (Of_Tree, Node), Providers);
             end if;
          end Visit;
 
@@ -18699,78 +18664,6 @@ package body Landin.Stages.Lowering is
          end;
       end loop;
 
-      --  Anonymous routines follow every declaration item, in source order
-      --  and then syntax post-order.  That order is independent of traversal
-      --  recursion and gives each no-capture function one deterministic item
-      --  before any address can name it.
-      for Index in 1 .. Source_Count (Context) loop
-         declare
-            Of_Tree : constant not null access constant Syn.Tree :=
-              Tree_For (Nth_Source (Context, Index));
-            Src : constant Landin.Source.Source_Id :=
-              Syn.Source_Of (Of_Tree.all);
-         begin
-            for Node in Syn.Node_Id'(1) .. Syn.Last_Node (Of_Tree.all) loop
-               if Syn.Kind (Of_Tree.all, Node) = Syn.Anonymous_Function
-                 and then Is_Live (Of_Tree.all, Node)
-                 and then Landin.Configuration.Is_Active
-                   (Activity.all, Syn.Source_Of (Of_Tree.all), Node)
-               then
-                  declare
-                     Count : constant Natural :=
-                       Syn.Return_Count (Of_Tree.all, Node);
-                     Gives : constant Syn.Node_Id :=
-                       (if Count = 1
-                        then Syn.Nth_Return (Of_Tree.all, Node, 1)
-                        else Syn.No_Node);
-                     Held : constant Ty.Type_Kind :=
-                       (if Count = 0 then Ty.No_Value
-                        elsif Count > 1 then Ty.Aggregate
-                        else Landin.Checking.Type_Of
-                          (Types.all, Declaration_At (Src, Gives)));
-                     Made : constant IR.Item_Id :=
-                       IR.Add_Item
-                         (Unit.all, IR.Routine, Res.No_Declaration,
-                          (if Held in Ty.Function_Value | Ty.Pointer_Value
-                           then Ty.Usize
-                           elsif Held = Ty.Atom_Value then Ty.U32
-                           elsif Held in Ty.Slice_Value | Ty.Any_Value
-                           then Ty.Fixed_Array
-                           else Held),
-                          Site_Of (Of_Tree.all, Node),
-                          Nominal =>
-                            (if Held = Ty.Aggregate and then Count = 1
-                             then Nominal_For
-                               (Landin.Checking.Nominal_Of
-                                  (Types.all, Declaration_At (Src, Gives)))
-                             else IR.No_Nominal_Type));
-                  begin
-                     if Held = Ty.Atom_Value then
-                        IR.Set_Atom_Set
-                          (Unit.all, Made,
-                           Atom_Set_For
-                             (Landin.Checking.Atom_Set_Of
-                                (Types.all, Declaration_At (Src, Gives))));
-                     elsif Held in Ty.Slice_Value | Ty.Any_Value then
-                        IR.Set_Array (Unit.all, Made, Ty.Usize, 2,
-                           Slice_Element_For
-                             (Landin.Checking.Reference_Of
-                                (Types.all, Declaration_At (Src, Gives))));
-                     end if;
-                     IR.Set_Signature
-                       (Unit.all, Made,
-                        Signature_For
-                          (Landin.Checking.Signature_Of
-                             (Types.all, Of_Tree.all, Node)));
-                     Anonymous_Count := Anonymous_Count + 1;
-                     Anonymous_Routines (Anonymous_Count) :=
-                       (Source => Src, Node => Node, Item => Made);
-                  end;
-               end if;
-            end loop;
-         end;
-      end loop;
-
       --  D144's direct generic table and D145's flattened runtime table
       --  are separate physical objects over the same conformance evidence.
       --  The latter keeps `any C` two words while parent conformances remain
@@ -19156,7 +19049,7 @@ package body Landin.Stages.Lowering is
       --  starts filling declaration items, then completed after those
       --  earlier items: every item's values occupy one contiguous IR run.
       --  The base view covers
-      --  ordinary declarations and anonymous functions; each ready generic
+      --  ordinary declarations; each ready generic
       --  view covers contextual literals whose referent was substituted.
       declare
          procedure Register_Text (Of_Tree : Syn.Tree; Node : Syn.Node_Id);
@@ -19358,9 +19251,7 @@ package body Landin.Stages.Lowering is
             then
                return Selected_Image (Of_Tree, Value).Image.Target;
             end if;
-            if Syn.Kind (Of_Tree, Value) = Syn.Anonymous_Function then
-               return Anonymous_Item (Of_Tree, Value);
-            elsif Names_Module (Of_Tree, Value)
+            if Names_Module (Of_Tree, Value)
               and then Res.Verdict_Of (Meanings.all, Of_Tree, Value)
                 = Res.Bound
             then
@@ -22324,17 +22215,6 @@ package body Landin.Stages.Lowering is
                      raise;
                end;
             end if;
-         end;
-      end loop;
-
-      for Index in 1 .. Anonymous_Count loop
-         declare
-            Routine_Entry : Anonymous_Entry renames
-              Anonymous_Routines (Index);
-            Of_Tree : constant not null access constant Syn.Tree :=
-              Tree_For (Routine_Entry.Source);
-         begin
-            Lower_Routine (Of_Tree.all, Routine_Entry.Node);
          end;
       end loop;
 

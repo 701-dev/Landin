@@ -3,6 +3,9 @@ profiles: standard
 summary: Foreign link names cannot capture native routines, their module-qualified candidates or module data
 program: main.ldn
 c-sources: companion.c
+c-args: -Wa,-L
 constructs: 1610, 1650, 1975
 status: 42
-targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64
+targets: linux-x86-64, linux-arm64, darwin-arm64, freebsd-x86-64, freebsd-arm64, linux-rv64, windows-x86-64, windows-arm64
+# -Wa,-L keeps the companion's `.L` names in its symbol table: LLVM's COFF
+# assembler otherwise takes them as its own labels and leaves them out.

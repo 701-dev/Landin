@@ -1,0 +1,10 @@
+version 1
+type section, 7 bytes
+function section, 3 bytes
+memory section, 3 bytes
+export section, 24 bytes
+  export function 0 add
+  export function 1 twice
+  export memory 0 memory
+code section, 17 bytes
+custom section, 29 bytes: producers

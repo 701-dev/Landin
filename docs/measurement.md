@@ -23,7 +23,7 @@ failed measurement, never a figure.
 
 | set | workloads | runs on |
 |---|---|---|
-| hosted | the five Benchmark Game ports of [`docs/benchmarks.md`](benchmarks.md) and the pidigits port of [`examples.md`](../examples.md); `measure-fibre-switches` and `measure-thread-switches`, two fibres taking turns through a chain of calls, on the main stack and on a started thread's, which pay the prologue's stack check on every call | every hosted target |
+| hosted | the five Benchmark Game ports of [`docs/benchmarks.md`](benchmarks.md) and the pidigits, regex-redux, k-nucleotide, n-body and spectral-norm ports of [`examples.md`](../examples.md); `measure-fibre-switches` and `measure-thread-switches`, two fibres taking turns through a chain of calls, on the main stack and on a started thread's, which pay the prologue's stack check on every call | every hosted target |
 | firmware | `sieve-of-eratosthenes`, `merge-sort`, `binary-search` and `cmp-siphash-vectors`, which the firmware lanes already execute; and firmware forms of fannkuch-redux and mandelbrot, new fixtures, each fitting the constrained 32 KiB reference | every firmware target and level |
 | counterpart | prototype 5's firmware counterpart, which fits the constrained reference's 32 KiB at `size` and `speed` since D1567 | `cortex-m0`, on the 256 KiB description its lane uses (D1036) |
 
@@ -81,6 +81,29 @@ the first parent for a commit on `main`.
 measured, read from its artifacts, into the candidate's files, so a change
 seen on Darwin or FreeBSD is recorded from a Linux checkout. `--key` limits
 it to named keys.
+
+On a branch the comparison reports rather than fails (D2854). Every
+event but `main`'s gives `compare --report`: an undeclared or unrecorded
+key is listed in the run's summary and in `moves.json` beside the figures,
+kept in the same artifact, and the lane passes; the aggregate counts them
+in one `unrecorded figures` annotation. So an emission change costs one
+gate, not one to fail and one to record. The steps:
+
+1. Push the change; its gate passes and its summary names the moved keys.
+2. `scripts/measure.py record --from-run RUN` in the candidate, and for the
+   boards' cycles `environments/boards/timing.py record` of the run's
+   `measure-cycles` artifact; commit the files alone, the message saying
+   why the figures moved and `Gate: explanatory`.
+3. Push it. Its `inputs` job reads the run's artifacts and reuses the
+   run's pass when every reported key is recorded with exactly its figure
+   and no other entry changed, except to the run's figure or by leaving a
+   key no workload measures any more; anything else runs every lane.
+
+A pass that reported a move is reused by that commit alone; `item.py
+promote` refuses a head whose gate or boards reported one, and main's push
+refuses the tree in `inputs` when the pass or boards it would take
+reported a figure no baseline there records. On `main`, the schedule and a
+dispatch from it, the comparison fails as before.
 
 Configurations whose images are byte-identical are measured once, for size
 and for time; the others cite it by the image's digest. A wall pair whose

@@ -1,0 +1,292 @@
+--  Integers read from and written to a caller's bytes in a stated byte
+--  order, and LEB128's variable-length integers, for a program that
+--  reads a file format or a wire protocol.  Each routine takes the bytes
+--  and `at`, the offset of the next byte, which it moves past what it
+--  read or wrote; it allocates nothing and copies nothing but the bytes
+--  of the value.  Only `at` is passed `inout`, so a view `take` lends is
+--  of the bytes themselves and lasts while reading goes on.  A read with
+--  too few bytes left fails `mem.out_of_bounds`, as Go's encoding/binary
+--  and Rust's byteorder fail rather than trap, and a write with too
+--  little room left fails `mem.out_of_memory` (D2028, D2029).  A failed
+--  read or write moves nothing, so a program may try another reading of
+--  the same bytes.
+
+import core/mem
+
+--- Least significant byte first: x86, Arm and RISC-V as they run,
+--- and most file formats made on them.
+public little: atom
+--- Most significant byte first: network byte order, as IP, TCP and
+--- most wire protocols send their numbers.
+public big: atom
+--- Which byte of an integer comes first.
+public byte_order: type = little | big
+
+--- A LEB128 integer that has more bytes than its 64 bits need, or bits
+--- past them: a corrupt or hostile input.
+public invalid_varint: atom
+
+--  How many bytes are left after `at`, none when `at` is past the end.
+left_after: (bytes: []u8, at: usize) -> (count: usize) =
+    count = if at >= lenof bytes then 0 else lenof bytes - at end if
+end left_after
+
+--- Pass over the `count` bytes at `at`, or fail `mem.out_of_bounds`
+--- when fewer are left.
+public skip: (bytes: []u8, inout at: usize, count: usize)
+             -> none ! mem.out_of_bounds =
+    fail mem.out_of_bounds when count > left_after(bytes, at)
+    at = at + count
+end skip
+
+--- The `count` bytes at `at` as a view of `bytes`, a magic number or a
+--- name, or `mem.out_of_bounds` when fewer are left.
+public take: (bytes: []u8, inout at: usize, count: usize)
+             -> (taken: []u8 from bytes) ! mem.out_of_bounds =
+    fail mem.out_of_bounds when count > left_after(bytes, at)
+    taken = bytes[at..<at + count]
+    at = at + count
+end take
+
+--  The next `count` bytes, at most eight, as an unsigned value.
+read_raw: (bytes: []u8, inout at: usize, count: usize, order: byte_order)
+          -> (value: u64) ! mem.out_of_bounds =
+    fail mem.out_of_bounds when count > left_after(bytes, at)
+    value = 0
+    for index in usize(0)..<count do
+        byte: u64 = u64(bytes[at + index])
+        place: usize = if order == little then index
+                       else count - 1 - index end if
+        value = value | (byte << u64(8 * place))
+    end for
+    at = at + count
+end read_raw
+
+--  The two's complement reading of the low `width` bits of `value`.
+signed_of: (value: u64, width: u64) -> (result: i64) =
+    if width == 64 then
+        result = if value < 0x8000000000000000 then i64(value)
+                 else 0 - i64(~value) - 1 end if
+        return
+    end if
+    half: u64 = u64(1) << (width - 1)
+    result = if value < half then i64(value)
+             else i64(value) - i64(half) - i64(half) end if
+end signed_of
+
+--- The next byte.
+public read_u8: (bytes: []u8, inout at: usize)
+                -> (value: u8) ! mem.out_of_bounds =
+    value = u8(try read_raw(bytes, at, 1, little))
+end read_u8
+
+--- The next byte, read as two's complement.
+public read_i8: (bytes: []u8, inout at: usize)
+                -> (value: i8) ! mem.out_of_bounds =
+    value = i8(signed_of(try read_raw(bytes, at, 1, little), 8))
+end read_i8
+
+--- The next two bytes as a u16 in `order`.
+public read_u16: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: u16) ! mem.out_of_bounds =
+    value = u16(try read_raw(bytes, at, 2, order))
+end read_u16
+
+--- The next two bytes as an i16 in `order`.
+public read_i16: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: i16) ! mem.out_of_bounds =
+    value = i16(signed_of(try read_raw(bytes, at, 2, order), 16))
+end read_i16
+
+--- The next four bytes as a u32 in `order`.
+public read_u32: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: u32) ! mem.out_of_bounds =
+    value = u32(try read_raw(bytes, at, 4, order))
+end read_u32
+
+--- The next four bytes as an i32 in `order`.
+public read_i32: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: i32) ! mem.out_of_bounds =
+    value = i32(signed_of(try read_raw(bytes, at, 4, order), 32))
+end read_i32
+
+--- The next eight bytes as a u64 in `order`.
+public read_u64: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: u64) ! mem.out_of_bounds =
+    value = try read_raw(bytes, at, 8, order)
+end read_u64
+
+--- The next eight bytes as an i64 in `order`.
+public read_i64: (bytes: []u8, inout at: usize, order: byte_order)
+                 -> (value: i64) ! mem.out_of_bounds =
+    value = signed_of(try read_raw(bytes, at, 8, order), 64)
+end read_i64
+
+--- The next unsigned LEB128 integer, as DWARF, WebAssembly and protocol
+--- buffers write them: seven bits a byte, least significant first, the
+--- high bit set on every byte but the last.  Padding bytes of zero bits
+--- are accepted, as linkers write them, up to the ten bytes 64 bits
+--- take.  An eleventh byte or a bit past the 64th is
+--- `invalid_varint`; input that ends before the last byte is
+--- `mem.out_of_bounds`.
+public read_uleb128: (bytes: []u8, inout at: usize)
+                     -> (value: u64) ! mem.out_of_bounds | invalid_varint =
+    mut next: usize = at
+    mut shift: u64 = 0
+    value = 0
+    loop do
+        fail mem.out_of_bounds when next >= lenof bytes
+        byte: u8 = bytes[next]
+        inc next
+        part: u64 = u64(byte & 0x7f)
+        if shift == 63 then
+            fail invalid_varint when part > 1 or byte >= 0x80
+        end if
+        value = value | (part << shift)
+        break when byte < 0x80
+        shift = shift + 7
+    end loop
+    at = next
+end read_uleb128
+
+--- The next signed LEB128 integer: as `read_uleb128`, in two's
+--- complement, the last byte's bit 6 its sign.  Its tenth byte may only
+--- repeat the sign.
+public read_sleb128: (bytes: []u8, inout at: usize)
+                     -> (value: i64) ! mem.out_of_bounds | invalid_varint =
+    mut next: usize = at
+    mut shift: u64 = 0
+    mut bits: u64 = 0
+    loop do
+        fail mem.out_of_bounds when next >= lenof bytes
+        byte: u8 = bytes[next]
+        inc next
+        part: u64 = u64(byte & 0x7f)
+        if shift == 63 then
+            fail invalid_varint when (part <> 0 and part <> 0x7f)
+              or byte >= 0x80
+        end if
+        bits = bits | (part << shift)
+        shift = shift + 7
+        if byte < 0x80 then
+            if shift < 64 and byte & 0x40 <> 0 then
+                bits = bits | (~u64(0) << shift)
+            end if
+            break
+        end if
+    end loop
+    value = signed_of(bits, 64)
+    at = next
+end read_sleb128
+
+--  The low `count` bytes of `value` in `order`.
+write_raw: (buffer: []mut u8, inout at: usize, value: u64, count: usize,
+            order: byte_order) -> none ! mem.out_of_memory =
+    fail mem.out_of_memory when count > left_after(buffer, at)
+    for index in usize(0)..<count do
+        place: usize = if order == little then index
+                       else count - 1 - index end if
+        buffer[at + index] = u8((value >> u64(8 * place)) & 0xff)
+    end for
+    at = at + count
+end write_raw
+
+--  `value`'s two's complement as a u64.
+unsigned_of: (value: i64) -> (result: u64) =
+    result = if value >= 0 then u64(value)
+             else ~u64(0 - (value + 1)) end if
+end unsigned_of
+
+--- Write one byte.
+public write_u8: (buffer: []mut u8, inout at: usize, value: u8)
+                 -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, u64(value), 1, little)
+end write_u8
+
+--- Write one byte in two's complement.
+public write_i8: (buffer: []mut u8, inout at: usize, value: i8)
+                 -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, unsigned_of(i64(value)), 1, little)
+end write_i8
+
+--- Write `value` as two bytes in `order`.
+public write_u16: (buffer: []mut u8, inout at: usize, value: u16,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, u64(value), 2, order)
+end write_u16
+
+--- Write `value` as two bytes of two's complement in `order`.
+public write_i16: (buffer: []mut u8, inout at: usize, value: i16,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, unsigned_of(i64(value)), 2, order)
+end write_i16
+
+--- Write `value` as four bytes in `order`.
+public write_u32: (buffer: []mut u8, inout at: usize, value: u32,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, u64(value), 4, order)
+end write_u32
+
+--- Write `value` as four bytes of two's complement in `order`.
+public write_i32: (buffer: []mut u8, inout at: usize, value: i32,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, unsigned_of(i64(value)), 4, order)
+end write_i32
+
+--- Write `value` as eight bytes in `order`.
+public write_u64: (buffer: []mut u8, inout at: usize, value: u64,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, value, 8, order)
+end write_u64
+
+--- Write `value` as eight bytes of two's complement in `order`.
+public write_i64: (buffer: []mut u8, inout at: usize, value: i64,
+                   order: byte_order) -> none ! mem.out_of_memory =
+    try write_raw(buffer, at, unsigned_of(value), 8, order)
+end write_i64
+
+--- Write `value` as unsigned LEB128 in the fewest bytes, from one to
+--- ten.
+public write_uleb128: (buffer: []mut u8, inout at: usize, value: u64)
+                      -> none ! mem.out_of_memory =
+    mut count: usize = 1
+    mut rest: u64 = value >> 7
+    while rest <> 0 do
+        inc count
+        rest = rest >> 7
+    end while
+    fail mem.out_of_memory when count > left_after(buffer, at)
+    rest = value
+    for index in usize(0)..<count do
+        part: u8 = u8(rest & 0x7f)
+        rest = rest >> 7
+        buffer[at + index] =
+            if index + 1 < count then part | 0x80 else part end if
+    end for
+    at = at + count
+end write_uleb128
+
+--- Write `value` as signed LEB128 in the fewest bytes, from one to ten.
+public write_sleb128: (buffer: []mut u8, inout at: usize, value: i64)
+                      -> none ! mem.out_of_memory =
+    --  The bytes stop once what is left is the sign alone and the last
+    --  byte's bit 6 already says it.
+    mut count: usize = 0
+    mut rest: i64 = value
+    loop do
+        part: i64 = rest & 0x7f
+        rest = rest >> 7
+        inc count
+        break when (rest == 0 and part & 0x40 == 0)
+          or (rest == -1 and part & 0x40 <> 0)
+    end loop
+    fail mem.out_of_memory when count > left_after(buffer, at)
+    rest = value
+    for index in usize(0)..<count do
+        part: u8 = u8(rest & 0x7f)
+        rest = rest >> 7
+        buffer[at + index] =
+            if index + 1 < count then part | 0x80 else part end if
+    end for
+    at = at + count
+end write_sleb128

@@ -841,6 +841,13 @@
       ],
       "reason": "The hosted startup's argument root exists only in a hosted process."
     },
+    "abi/r440-native-startup-invalid": {
+      "mode": "refuse",
+      "codes": [
+        "L0015"
+      ],
+      "reason": "The hosted startup's argument root exists only in a hosted process."
+    },
     "abi/r440-native-startup-replaced": {
       "mode": "refuse",
       "codes": [
@@ -1485,6 +1492,30 @@
     "runtime/arena-is-an-ordinary-name": {
       "mode": "execute"
     },
+    "runtime/args-commands": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-forms": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-help": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/args-refusals": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/array-arguments-cross-calls": {
       "mode": "execute"
     },
@@ -1680,7 +1711,19 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-k-nucleotide": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-mandelbrot": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/benchmark-game-n-body": {
       "codes": [
         "L0015"
       ],
@@ -1692,7 +1735,19 @@
       ],
       "mode": "refuse"
     },
+    "runtime/benchmark-game-regex-redux": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/benchmark-game-reverse-complement": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/benchmark-game-spectral-norm": {
       "codes": [
         "L0015"
       ],
@@ -1800,6 +1855,30 @@
       "reason": "core/big's rationals' text, over the greatest common divisor, multiplication, division and core/text's builder, take the image to 47,212 bytes of flash at size/auto, over the 32 KiB profile by 14,444, and to 90,908 at none/off. Each profile still attempts execution and none fits; the mps2-an500 lane's 4 MiB executes the whole fixture at every profile, its results checked. This image limit is not runtime evidence."
     },
     "runtime/binary-search": {
+      "mode": "execute"
+    },
+    "runtime/bits-byte-order": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16-pairs": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u16-pairs-high": {
+      "mode": "execute"
+    },
+    "runtime/bits-every-u8": {
+      "mode": "execute"
+    },
+    "runtime/bits-oracle": {
+      "mode": "execute"
+    },
+    "runtime/bits-sets": {
+      "mode": "execute"
+    },
+    "runtime/bits-varints": {
       "mode": "execute"
     },
     "runtime/bitwise-identities": {
@@ -2381,6 +2460,9 @@
         }
       }
     },
+    "runtime/core-text-ascii-caseless": {
+      "mode": "execute"
+    },
     "runtime/core-text-builder": {
       "mode": "execute",
       "profile_limit": "selected-image",
@@ -2447,13 +2529,38 @@
       "profile_limit": "selected-image",
       "reason": "Every part of a placeholder's specification over integers, floats, text and a program's own types, with both float writers, takes the image to 46,788 bytes of flash at size/off, over the 32 KiB profile by 14,020, and 85,196 at none/off. Each profile still attempts execution; the mps2-an500 lane and the Xtensa lanes execute it; this image limit is not runtime evidence."
     },
+    "runtime/core-text-parse-radix": {
+      "mode": "execute"
+    },
+    "runtime/core-text-parse-radix-oracle": {
+      "mode": "execute"
+    },
     "runtime/core-text-parse-signed": {
+      "mode": "execute"
+    },
+    "runtime/core-text-parts": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44,372 of this lane's 32 KiB, over by 11,604."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 44,628 of this lane's 32 KiB, over by 11,860."
+        }
+      }
+    },
+    "runtime/core-text-quoted": {
       "mode": "execute"
     },
     "runtime/core-text-runtime-helpers": {
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "Selected Cortex-M0 profile: 32 KiB flash, 16 KiB RAM with 4 KiB stack. Every profile is attempted; only actual flash/RAM overflow or a measured minimum frame/static extent outside this map is a retained limit. Larger profiles and general large-image placement remain open work."
+    },
+    "runtime/core-text-search-everyday": {
+      "mode": "execute"
     },
     "runtime/core-text-step-at-end-traps": {
       "mode": "execute"
@@ -2479,6 +2586,32 @@
     },
     "runtime/core-text-utf8-split": {
       "mode": "execute"
+    },
+    "runtime/core-text-writers": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37,668 of this lane's 32 KiB, over by 4,900."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 37,924 of this lane's 32 KiB, over by 5,156."
+        }
+      }
+    },
+    "runtime/core-text-writers-bytes": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 35,932 of this lane's 32 KiB, over by 3,164."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's needs FLASH 36,188 of this lane's 32 KiB, over by 3,420."
+        }
+      }
     },
     "runtime/core-tree-count-overflow": {
       "codes": [
@@ -3003,6 +3136,12 @@
       "mode": "refuse",
       "reason": "Firmware has no standard output to print to. runtime/binary-search executes the same algorithm here."
     },
+    "runtime/example-connect-by-name": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/example-dice-and-cards": {
       "codes": [
         "L0015"
@@ -3097,6 +3236,12 @@
       "mode": "refuse"
     },
     "runtime/example-text-as-read": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/example-wasm-sections": {
       "codes": [
         "L0015"
       ],
@@ -3520,6 +3665,16 @@
     "runtime/hosted-text-views": {
       "mode": "execute"
     },
+    "runtime/immutable-module-value-write-faults": {
+      "mode": "restriction",
+      "stops": "oracle",
+      "reason": "Its oracle is the hosted system's page protection refusing the write (D3014); firmware has no memory protection here, so the write is not refused, and what D3014 gives firmware is the value's place in flash."
+    },
+    "runtime/immutable-zero-module-value-write-faults": {
+      "mode": "restriction",
+      "stops": "oracle",
+      "reason": "Its oracle is the hosted system's page protection refusing the write (D3014); firmware has no memory protection here, so the write is not refused, and what D3014 gives firmware is the value's place in flash."
+    },
     "runtime/import-alias-selected-identities": {
       "mode": "execute"
     },
@@ -3724,10 +3879,18 @@
     "runtime/library-shared-arena": {
       "mode": "execute"
     },
+    "runtime/library-shared-args": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off core/args's parser takes the image to 35,708 bytes of flash, over the 32 KiB profile by 2,940: the Cortex-M0 backend at none gives every IR slot a frame home of its own. Each profile still attempts execution, and size/off, size/auto and speed/auto fit, about 21.9 KB, and execute the whole fixture, its results checked; the freestanding lane runs it on the M7's map (D3097); this image limit is not runtime evidence."
+    },
     "runtime/library-shared-atomic": {
       "mode": "execute"
     },
     "runtime/library-shared-big": {
+      "mode": "execute"
+    },
+    "runtime/library-shared-bits": {
       "mode": "execute"
     },
     "runtime/library-shared-cache": {
@@ -4354,6 +4517,9 @@
     "runtime/module-variant-images": {
       "mode": "execute"
     },
+    "runtime/multi-result-field-element-store": {
+      "mode": "execute"
+    },
     "runtime/multiple-named-returns": {
       "mode": "execute"
     },
@@ -4487,6 +4653,11 @@
       "profile_limit": "selected-image",
       "reason": "The network consumer's routines over core/io's memory network beside a memory world, with its line reader, buffered writer, format and every oracle of the memory network, need 193,760 bytes of flash at size/auto, overflowing the 32 KiB profile by 160,992, 65,508 of them the bytes of the longest datagram the memory network carries, which its oracle sends. A table keeps only the entries something projects (D374), so what remains is the program's and the oracles' own direct calls into the network, most of it the Cortex-M0 backend's frame homes and copies between them, as runtime/run-shell-memory's limit records. Each profile still attempts execution; runtime/network-addresses-firmware runs the network's address code within the image and requires execution; this image limit is not runtime evidence."
     },
+    "runtime/network-fake-names": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "The name-server fibre and its client each hold a question, an answer and a fibre stack's frames, about 15 KB, which is the test's and not the network's; runtime/network-datagram-memory-firmware exercises the memory network on Cortex-M0."
+    },
     "runtime/network-fake-reopened-slot": {
       "mode": "execute",
       "profile_limit": "selected-image",
@@ -4521,6 +4692,30 @@
       "mode": "refuse",
       "reason": "The routine runs over the hosted provider as well as core/io's memory network, which runtime/network-echo-memory exercises on Cortex-M0."
     },
+    "runtime/network-local-datagram": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-local-stream": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-multicast": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-options": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
     "runtime/network-receive-timeout": {
       "codes": [
         "L0015"
@@ -4534,6 +4729,18 @@
       ],
       "mode": "refuse",
       "reason": "Firmware has no network stack here. runtime/network-echo-memory refuses, finds in use, disconnects and times out over core/io's memory network instead."
+    },
+    "runtime/network-resolver": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
+    },
+    "runtime/network-resolver-libc": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/null-pointer-dynamic-traps": {
       "mode": "execute"
@@ -5538,6 +5745,38 @@
       "mode": "refuse",
       "reason": "Its panic handler ends the process through posix.exit; runtime/random-sequence draws through core/random on Cortex-M0."
     },
+    "runtime/random-distributions": {
+      "mode": "execute"
+    },
+    "runtime/random-draws": {
+      "mode": "execute"
+    },
+    "runtime/random-float-distributions": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 45688 of this lane's 32 KiB, over by 12920."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 49096 of this lane's 32 KiB at none/off, over by 16328, 33832 at size/off, over by 1064, and 33800 at size/auto, over by 1032; speed/auto fits and executes the whole fixture."
+        }
+      }
+    },
+    "runtime/random-normal-draws": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 35704 of this lane's 32 KiB, over by 2936."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 38568 of this lane's 32 KiB, over by 5800."
+        }
+      }
+    },
     "runtime/random-sequence": {
       "mode": "execute"
     },
@@ -5593,6 +5832,12 @@
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "Each search compiles its pattern with regex.lean(), linking core/regex's parser, compiler and four engines: 149,532 bytes of flash at size/auto, overflowing the 32 KiB profile by 116,764, beside a 64 KiB arena and a 4 KiB text (D2680). Each profile still attempts execution, and the M7 corpus lane, whose description has 4 MiB of code memory, executes the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/regex-prefilter-watch": {
+      "codes": [
+        "L0015"
+      ],
+      "mode": "refuse"
     },
     "runtime/regex-redux-patterns": {
       "codes": [
@@ -6190,6 +6435,24 @@
       "mode": "execute",
       "profile_limit": "selected-image",
       "reason": "At none/off the image is 42,504 bytes, over Cortex-M0's 32 KiB of flash by 9,736: title case reads the word boundary tables and routines beside the case tables, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 30,396 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless": {
+      "mode": "execute"
+    },
+    "runtime/unicode-caseless-canonical": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 39,371 bytes, over Cortex-M0's 32 KiB of flash by 6,603: the canonical caseless match reads the canonical decompositions beside the case tables, with two readers' code unoptimized. size/off, size/auto and speed/auto fit, 30,555 bytes at size/auto, and execute the whole fixture; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless-scalars": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "At none/off the image is 34,800 bytes, over Cortex-M0's 32 KiB of flash by 2,032: the walk reads the case tables for its upper, lower and folded mappings beside the caseless comparisons, and at none every IR slot has a frame home of its own. size/off, size/auto and speed/auto fit, 23,656 bytes at size/auto, and execute the whole fixture, its digest checked; this image limit is not runtime evidence."
+    },
+    "runtime/unicode-caseless-sequences": {
+      "mode": "execute",
+      "profile_limit": "selected-image",
+      "reason": "It holds the source column of 3,017 lines of NormalizationTest.txt and reads all four forms' tables beside the case tables: the image is 110,168 bytes at size/auto, over Cortex-M0's 32 KiB of flash by 77,400, so no profile executes it there. unicode-caseless-canonical executes the canonical caseless match on Cortex-M0; this image limit is not runtime evidence."
     },
     "runtime/unicode-category": {
       "mode": "execute"

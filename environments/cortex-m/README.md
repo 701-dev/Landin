@@ -739,7 +739,7 @@ first stage that fails, in this order:
 | `c-headers` | a C source includes a header no freestanding C has, the C library's: every header `-M -MG` lists that no include directory holds |
 | `c-source` | a C source does not compile for the target, an `#error` or another architecture's assembly; its first error |
 | `link` | the harness link names a routine or datum nothing defines, a C library's or one the fixture defines for other targets only; the symbols |
-| `oracle` | it builds and links, and its oracle needs what firmware cannot give: `stdin:`, `run_args:`, `run_files:` or `run_expect:` |
+| `oracle` | it builds and links, and its oracle needs what firmware cannot give: `stdin:`, `run_args:`, `run_files:`, `run_expect:` or `protected:` |
 
 The stage reached must be the row's `stops`, and the failure says which
 one it reached and what to write. One that refine refuses is no
@@ -754,8 +754,9 @@ rows held it until refine's Cortex-M emission could make a C function
 value from an address, and they execute.
 
 Firmware gives a program no standard input, arguments, files beside it or
-output, so a fixture whose metadata names `stdin:`, `run_args:`,
-`run_files:` or `run_expect:` cannot be `execute`. The inventory refuses
+output, and no memory protection that refuses a write to its read-only
+data, so a fixture whose metadata names `stdin:`, `run_args:`,
+`run_files:`, `run_expect:` or `protected:` cannot be `execute`. The inventory refuses
 every such row while it is read, before anything builds, naming what each
 fixture asks for and the two ways out: give the fixture a status oracle,
 or write a `refuse` or `restriction` row. A counterpart cannot help, since

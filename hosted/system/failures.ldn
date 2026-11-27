@@ -4,6 +4,7 @@
 --  the system layer, which imports nothing above it (D1951).
 
 import core/big
+import core/bits
 import core/cache
 import core/failure
 import core/io
@@ -50,17 +51,21 @@ fixed if compiler.os <> windows then
             net.address_unavailable: failure.words(net.address_unavailable)
             net.timed_out: failure.words(net.timed_out)
             net.disconnected: failure.words(net.disconnected)
+            net.unknown_name: failure.words(net.unknown_name)
+            net.unsupported: failure.words(net.unsupported)
             text.invalid_text: failure.words(text.invalid_text)
             text.invalid_number: failure.words(text.invalid_number)
             text.number_overflow: failure.words(text.number_overflow)
             text.invalid_format: failure.words(text.invalid_format)
             text.invalid_scalar: failure.words(text.invalid_scalar)
+            text.invalid_bool: failure.words(text.invalid_bool)
             cache.misaligned: failure.words(cache.misaligned)
             cache.bad_line: failure.words(cache.bad_line)
             line.unsupported_rate: failure.words(line.unsupported_rate)
             line.unsupported_format: failure.words(line.unsupported_format)
             big.not_invertible: failure.words(big.not_invertible)
             big.not_finite: failure.words(big.not_finite)
+            bits.invalid_varint: failure.words(bits.invalid_varint)
             _ (rest): posix.words(rest)
         end match
     end words

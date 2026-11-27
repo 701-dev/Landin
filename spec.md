@@ -3467,6 +3467,27 @@ declined.
 `negative/malformed-hex-float-exponent`, the lexer cases, and the `float.ieee`
 and `source.lexical` guarantee rows.
 
+
+### D2995 — A float that lacks only its point is told where it goes
+
+**The discrepancy:** C's hexadecimal float without a point, `0x1p-20`, was
+L0011, "this is not an integer any base spells", whose note spoke of digits
+and underscores; nothing said that [0220]'s hexadecimal float has a point,
+`0x1.0p-20`. `1e10` was L0321 with the general note.
+
+**Chosen:** a digit run, decimal or after `0x`, followed directly by its
+exponent, `e` or `p` with an optional sign and a digit, is L0321 over the
+whole literal. When the run before the exponent is well formed the note
+says that a float literal needs a point with digits on both sides even when
+it has an exponent, and an exact fix inserts `.0` before the exponent, which keeps the
+value; `refine fix` applies it.
+
+**The alternatives:** accepting C's form, a second spelling of one value;
+and keeping `0x1p-20` an integer error, whose words point at the wrong rule.
+
+**Pinned by** `negative/hexadecimal-float-without-point-is-fixed`, whose
+fixed program compiles with no report.
+
 ### D167 — IEEE special values are inherent type-qualified constants
 
 **The tour said** that [0240] writes infinity and NaN as members of a float
@@ -15672,7 +15693,7 @@ classified failure boundary before the repository gate can pass.
 | `functions.caller` | static | 0670, 0790, 1000, 1040, 1800, 1920 | caller positions have immutable three-u32 struct values (file_id, line, column) and structural signature identity, are compiler-filled without source strings, and accept an explicit argument only as a named forwarding of another caller parameter; L0339 rejects an invalid site type, L0301 a different signature, L0327 an extra positional argument or invalid forwarding source and L0303 rejects mutation, and `caller` decided on two tokens leaves the spelling an ordinary name | `negative/caller-parameter-extra-field`, `negative/caller-parameter-field-order`, `negative/caller-parameter-field-width`, `negative/caller-parameter-read-only`, `negative/caller-parameter-forward-copy`, `negative/caller-parameter-forward-needs-caller`, `negative/caller-parameter-needs-site`, `negative/caller-parameter-positional`, `negative/caller-parameter-signature-mismatch`, `runtime/caller-parameters`, `runtime/caller-is-an-ordinary-name` |
 | `extern.c-boundary` | static | 0430, 0570, 0750, 0920, 1000, 1570, 1580, 1600, 1975 | C convention and variadicness remain recursively distinct from the Landin convention; fixed positions at the selected boundary admit integers, bool, pointers, f32/f64, fixed C callbacks and compatible nonempty `layout(c)` structs, while L0346 refuses an ordinary Landin struct, a slice, a Landin error channel or a native-convention callback even when its machine shape matches | `positive/external-scalar-c-boundary`, `positive/r440-external-float`, `positive/r440-c-signatures`, `negative/external-aggregate-boundary`, `negative/r440-c-slice-parameter`, `negative/r440-c-error-channel`, `negative/r440-c-native-callback` |
 | `functions.linkage` | static | 1000, 1570, 1580, 1600, 1610, 1615, 1800, 1975, 1996 | `link(symbol: text)` changes only the linker spelling: standalone use retains the native convention and body requirement, C imports may have compatible repeated declarations, L0347 refuses an assembly expression, incompatible declarations or multiple definitions, and L0301 refuses treating a native linked function as a C callback; `link(thread)` gives a module `mut` binding a zeroed instance in every thread, and L0347 refuses it with a value, without `mut`, on a routine or beside a symbol or section, L0328 for a type with no zero image | `positive/r440-c-signatures`, `positive/r440-compatible-link-declarations`, `negative/r440-link-assembly-expression`, `negative/r440-link-does-not-change-convention`, `negative/r440-link-duplicate-definitions`, `negative/r440-link-incompatible-declarations`, `positive/thread-storage-declarations`, `runtime/thread-storage-holds-its-instance`, `abi/thread-storage-per-thread`, `negative/thread-storage-takes-no-value`, `negative/thread-storage-needs-a-zero-image` |
-| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced` |
+| `host.arguments-startup` | trap | 1580, 1600, 1650, 1660, 1960, 1975 | the no-argument Landin entry calls `hosted/system`'s initializer, when the program defines it, to establish the actual argument root before its body; C-owned startup must initialize it explicitly before `system.new()` or `blocking.new()`; use before initialization, a negative `argc`, null `argv`, or replacement of either established root carrier traps, while an identical repeated initialization is a no-op and file, stream and heap work needs no root | `abi/r440-native-startup-initialized`, `abi/r440-native-startup-empty`, `abi/r440-native-startup-uninitialized`, `abi/r440-native-startup-replaced`, `abi/r440-native-startup-invalid` |
 | `host.io` | outside | 0430, 1580, 1650, 1660, 1680, 1975 | non-guarantee: files, descriptors, arguments and streams reflect mutable host state | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/derived-parser` |
 | `capabilities.host-root-exclusion` | outside | 1660, 1680, 1975 | non-guarantee: an ordinary hosted routine without an I/O or allocator parameter may call a public host constructor and use that authority; passing a replacement provider does not exclude this path | `runtime/derived-hosted-memory` |
 | `host.io-failure` | static | 0940, 0960, 1030, 1975 | `hosted/system` and `hosted/blocking` report foreseeable host failure as declared atoms which callers handle or declare | `runtime/hosted-io-reads-parser-input`, `runtime/core-io-erased-system`, `runtime/diagnostic-loggers-dispatch`, `runtime/derived-parser` |
@@ -19288,10 +19309,99 @@ type argument and a failure set, and
 `negative/library-module-concept-prefix-names-its-import`, a prefix the
 resolver reads; each fixed program compiles with no report.
 
+### D3014 — An immutable module value is read-only on every target
+
+**The discrepancy:** [1460] says an immutable value can stay in flash, and
+D161 puts a text literal in `.rodata` so that a write through a reference
+the checker should have refused faults. Only the firmware backends put an
+immutable module value there; Linux x86-64, arm64 and RV64, and with them
+FreeBSD, Darwin and Windows, emitted it in a writable `.data`, and a wholly
+zero one in `.bss`, so a write through a pointer made from its address
+changed it silently for every reader. RV32 and Xtensa reserved a wholly
+zero immutable value beside the mutable ones, in RAM.
+
+**Chosen:** every backend places an immutable module value in its
+target's read-only section, `.rodata`, Mach-O's `__TEXT,__const` or PE's
+`.rdata`, unless it is in thread storage or, on a hosted target, its image
+names another symbol: a function, an address, a slice's source or a
+field's target. A wholly zero one is written there, its zeros with it. One
+predicate, `Landin.Backend.In_Read_Only_Section`, decides for every
+backend and for the image measurement, whose writable count it also
+corrects. A firmware image is linked where it runs and has no loader, so
+its relocated constants stay in flash as before.
+
+**The alternatives:** a relocated immutable value in `.data.rel.ro` or
+`__DATA_CONST`, which a loader makes read-only after writing it; whether
+each hosted link mode has a loader that does so was not established here,
+so a relocated value keeps its writable section until an item that
+changes how hosted images are relocated settles it. A wholly zero
+immutable value reserved in a read-only `NOBITS` section, which costs no
+file bytes but leaves its placement to each linker's rules for an
+allocated section without contents. Both were declined.
+
+**Pinned by** `runtime/immutable-module-value-write-faults` and
+`runtime/immutable-zero-module-value-write-faults` on every hosted target,
+whose write through a pointer made from the value's address ends the
+program by SIGSEGV or SIGBUS, and on Windows by `STATUS_ACCESS_VIOLATION`.
+Their metadata says `protected: yes`, so that the lanes which name a
+trap's signal expect the refused write's instead, and the firmware
+corpora, whose targets have no memory protection to refuse it, read the
+oracle as one firmware cannot give.
+
+
 ## DECISIONS: THE TOOLCHAIN, C AND THE MACHINE
 
 The C boundary, the machine directives, the entry point, and the
 contract an optimization has to keep.
+
+
+### D2994 — A prefix naming a library module no import reaches is told its import
+
+**The discrepancy:** D2174 named the import for a prefix whose library
+module the program reached, and left one it did not reach to [1860]'s
+spelling note, because the stages ask the host nothing and the module table
+held only what imports reached. `text.bytes(value)` in a program that
+imports `core/text` nowhere, a newcomer's first use of a module, was told
+to check its spelling.
+
+**Chosen:** the driver lists the library's modules when it loads a program
+with a library: every directory under `core`, `hosted` and `platform` that
+holds a source and whose namespace this target admits (D267), by logical
+path, handed to the compilation. When no module the program reaches has the
+prefix as its last segment and exactly one listed module has, L0201's note
+and its exact fix name that module as D2174's do. The listing is no
+dependency of the build, since it changes only a refusal's note, and a
+request with no library lists nothing.
+
+**The alternatives:** the loader resolving the prefix as an import on a
+refusal and checking again, which would load a module the program does not
+name to word one report; and reading the directories from a stage, which
+D2174 declined.
+
+**Pinned by** `negative/unreached-library-module-prefix-names-its-import`,
+whose program imports nothing and whose fixed program compiles with no
+report.
+
+### D2999 — An undeclared call number of `platform/linux` names its generator
+
+**The discrepancy:** a wrapper added to `platform/linux` for a call the
+library did not make before is L0201 on its `*_number`, with [1860]'s
+spelling note and near guesses; only `wrapped.ldn`'s header said that
+`scripts/linux_syscalls.py` writes those numbers from the names the
+module's other files use.
+
+**Chosen:** a name ending in `_number` that resolves to nothing in a file of
+`platform/linux` is L0201 whose note says the numbers are `wrapped.ldn`'s
+and to run `python3 scripts/linux_syscalls.py` after adding a wrapper, and
+offers no near spelling. Every other module keeps [1860]'s note.
+
+**The alternatives:** `check.py` refusing a stale `wrapped.ldn`, which the
+script controls already hold and which a developer meets only after the
+compiler refused; and a generic note for any `_number`, which would
+misdirect a program's own names.
+
+**Pinned by** the driver case `an unwritten call number names its
+generator`, on a fake library.
 
 ### D267 — Library source namespaces declare target availability
 
@@ -23630,6 +23740,28 @@ statement on a line of its own.
 **Pinned by** `negative/recovery-exit-is-held-in-a-block`, whose fix the
 `fixes` suite compiles clean.
 
+
+### D3000 — In an `if` arm, L0329 writes the leaving recovery in parentheses
+
+**The discrepancy:** L0102's fix for `f() else return` writes `else begin
+return end`, and the same call written that way as an `if` arm's statement
+is L0329, because the bare `else` divides the `if` [1820]; L0329's note
+offered `(call(...) else value)` and the bound block, so a recovery that
+returns was left only the binding of an error it does not read.
+
+**Chosen:** the grammar is unchanged. L0329's note in an `if` arm, and the
+notes beside it, say to wrap the call and its recovery in parentheses,
+`(call(...) else value)` or `(call(...) else begin return end)`, or to bind
+the error, and `docs/diagnostics.md`'s L0102 says the parenthesised form is
+the one an `if` arm takes.
+
+**The alternatives:** reading `else begin` after a call in an `if` arm as
+the call's recovery, which makes `if c then f() else begin ... end end if`
+mean two things; and an exact fix wrapping the call, which needs the arm's
+extent the checker does not keep.
+
+**Pinned by** `negative/leaving-recovery-in-an-if-arm-is-parenthesised`.
+
 ### D871 — A failing call that ends a body with returns is refused for its failure alone
 
 **The discrepancy:** a failing call written as the last line of a routine
@@ -26922,9 +27054,10 @@ needs, `flake` among them.
 
 ### D586 — An explanatory edit may take its base from any branch's full run
 
-**Amended by D1648 and D1650:** the key leaves out more than the four
+**Amended by D1648, D1650 and D2854:** the key leaves out more than the four
 documents' content: the guides and the tree D1648 names, and the boards'
-cycles baselines.
+cycles baselines; and a commit recording a run's figures reuses that run
+(D2854).
 
 **The tour said** nothing. The explanatory exception took its base only
 from a full run of a push to main, so a documents-only commit that closed
@@ -27190,6 +27323,47 @@ which was not asked for; and keeping the files in the key.
 `test_cycles_baselines_do_not_count_and_other_baselines_do` and its
 `DocumentReaders` case.
 
+### D2854 — A branch reports the figures it moved, and the recording commit reuses the run
+
+**The tour said** nothing. A size, instruction or cycles figure that moved
+without a baseline recording it failed its lane on every event, so an
+emission change cost a gate that failed only to measure it and a second
+for the commit recording what the first had measured: 48 of the 254
+defects the gate-time study of 2026-11-26 classified. The maintainer
+accepted the change that day.
+
+**Chosen:** on every event but `main`'s, `measure.py compare` and
+`timing.py compare` take `--report`: what no baseline records goes into
+the run's summary and a `moves.json` kept with the figures, and the lane
+passes; the aggregate writes one `unrecorded figures` annotation counting
+it. A commit declared `Gate: explanatory` that differs from such a run's
+tree only in the explanatory files and the size and instruction
+baselines reuses the run when `gate_inputs.py` finds, from the run's
+artifacts, every reported key recorded with exactly its figure and every
+other changed entry either the run's figure or a key no workload
+measures; a cycles recording, outside the key already (D1650), is held
+the same way when main takes the boards. A pass that reported a move is
+reused by no other commit but an identical tree on a branch, which
+reports the moves again; `item.py promote` refuses a head whose gate or
+boards reported one its tree does not record, and main's push refuses
+such a tree in `inputs`.
+
+**The reason:** the failed run had measured everything the recording
+needs, and its artifact is the record; holding the files to it, rather
+than trusting the declaration, keeps the recording commit from carrying
+any other figure.
+
+**The alternatives:** failing as before on a branch, which keeps the
+second gate; reporting on every event, main's included, which lets a
+move reach main unrecorded; and reusing the run for any later commit
+until main, which lets an unrecorded move ride an explanatory edit to
+the promotion.
+
+**Pinned by** `scripts/tests/test_gate_inputs.py`'s `Figures`,
+`FiguresReuse` and `Workflow` cases, `test_measure.py`'s and
+`test_board_timing.py`'s report cases, and `test_item.py`'s
+`test_a_gate_that_reported_unrecorded_figures_is_no_promotion`.
+
 ### D2794 — The gate records why a job failed, by rule and by outside signature
 
 **The tour said** nothing. Why a gate job failed was recorded nowhere: the
@@ -27332,8 +27506,8 @@ gates, its weeks, the missed runs and defects and their rate a week, and
 sets them against the study's. `table --write` keeps the same figures
 in the lane table's `shadow` entry, so each weekly update of the table
 carries them. The maintainer reads them there before the selection is applied,
-after about 200 complete gates, the length the maintainer is asked to
-confirm.
+after 20 complete gates, the length the maintainer set on
+2026-11-27.
 
 **The reason:** under the selected gate such a tree would have passed;
 when a kept lane failed too, the selected gate would have failed it as
@@ -28773,6 +28947,71 @@ change the order a debugger shows.
 
 **Pinned by** the IR optimization suite's `proved checks`, with five
 controls, at size and speed, and x86-64's `counted-down slices`.
+
+### D2816 — An index that passed its bounds check is below the length
+
+**The tour said** nothing. A fixed array's bounds check that passed in a
+block already let a later check of the same index against a length at
+least as long go, but the fact said nothing about the index's value, so
+the arithmetic after it kept its own check. reverse-complement's
+`write_reversed` stores `line[width]`, `line` being `[61]u8`, then `inc
+width`, and tested the carry of that addition every byte: 4.0% of its
+x86-64 instructions at speed by a hand patch.
+
+**Chosen:** past a fixed array's bounds check in a block, the unsigned
+index it checked, and every value of its class, the same slot loaded
+again with no store between, is at most the length less one for the rest
+of that block. That is the bound any proof there reads, so `inc width`
+after `line[width]` cannot carry. A check in an `unchecked` region
+proves nothing, as before, and the fact ends with the block, as the
+fact that lets later checks go already does.
+
+**The alternatives:** carrying the fact into the blocks the check's
+block dominates, which needs the stores between to be followed as
+comparison facts are, and which neither program asks for.
+
+**Pinned by** the IR optimization suite's `proved checks`: the index
+incremented after its check, and three controls, incremented before it,
+checked in another block, and another index checked.
+
+### D2817 — A count stepped once a loop step never passes the loop's counter
+
+**The tour said** nothing. fasta's `select_symbol` counts the
+cumulative probabilities a random number has passed, `inc index` under
+an `if` inside `for at in first..<lenof cumulative - 1`, and tested the
+carry of every addition: 5.0% of fasta's x86-64 instructions at speed
+and 5.4% of its arm64 ones, by the loop's step count. Nothing bounds
+`index` but its relation to `at`, and the simplifier kept no relation
+between two slots.
+
+**Chosen:** of two slots D2207 counts upward, B is at most A wherever a
+load of B comes before B's step in that step's block, when both are first
+stored in one block F, B's first value is a constant that is its
+type's least or no greater than A's constant first value, both have one
+type, A steps by at least B's step,
+the two steps are in different blocks, and every way from B's step back
+to it passes F or A's step. F stores both again and A's step only raises
+A, so on the way to B's step B has stepped at most as often as A since
+F. A load of B there is then at most what the facts in that block say of
+A, and `at < lenof cumulative - 1` leaves `at`, and so `index`, below
+`usize`'s greatest: `inc index` cannot carry. As with D2207, the walk
+learns that A's step cannot wrap only when it reaches the step, so the
+proof is applied after the walk, and only if it cannot. The search for a
+way back stays inside F's subtree of the dominator tree, which every
+such way lies in, and all the routine's searches share a budget of four
+visits per block and slot, so the pairing stays linear; a search that
+runs out proves nothing.
+
+**The alternatives:** a general relational analysis, differences
+between slots kept through every block, which is the range analysis
+D2207 declined; and rewriting such a count in lowering, which would
+leave the same loop written another way unproved.
+
+**Pinned by** the IR optimization suite's `proved checks`: a count of
+a condition in a counted loop, and six controls, started above the
+counter, stepped further than it, stored twice, its counter first stored
+in another block, stepped again in an inner loop, and a counter whose
+step may wrap.
 
 ### D2447 — An identity may make the instruction it needs
 
@@ -30743,6 +30982,62 @@ leaves a degraded board unseen for days now that dispatches take legs.
 
 **Pinned by** `scripts/tests/test_gate_inputs.py`'s `Unmoved` cases and
 `BoardVerdict`'s `test_an_unmoved_schedule_takes_its_boards_and_timing_together`.
+
+### D2874 — A check too long for any gate runs on a host and is recorded against the code it checked
+
+**The tour said** nothing. D2553's check of every `f32` input of
+`core/math`'s one-argument routines against MPFR takes about an hour of a
+32-core host per routine, and the bit-for-bit comparison of those results
+on Linux arm64 and RV64 under QEMU longer. On 2026-11-26 the maintainer
+excluded such checks from the regular gates in general, since that time is
+not sustainable there.
+
+**Chosen:** such a check runs on a host, never in a gate, and is recorded
+in a file under `compiler/tests/records/`: the commands, the host, the
+date, the commit, the results, the program it compiled with its options,
+and for each routine it checked the SHA-256 of that routine's code on each
+target the record claims. A routine's code is the assembly refine emits
+for the record's program, from the section defining the routine's label
+through every section reached from it by naming a label another section
+defines, in the order first reached; the assembler's local names are
+renumbered in that order, the numbers refine gives its sections dropped,
+and a trap message's line and column dropped with the length the trap's
+instructions pass for it. `scripts/records.py check` compiles each
+record's program for each of its targets and says whether it is fresh,
+every routine's digest the record's, or stale since the record's commit,
+naming each routine and target that changed. The gate's
+`compiler-checks` job runs it with the debug compiler. A stale record
+fails no push: the job writes a warning and a summary line. It blocks a
+release, and a phase-gate claim, that cites it: both run `check
+--fail-stale` on the record, and a stale one has its commands run again
+and `records.py stamp` written, or the claim it supports withdrawn.
+
+**The reason:** the check's verdict is a function of the instructions and
+constants it executed, so a digest of exactly those says whether the
+verdict still holds, wherever else the tree moved; a source digest would
+miss a compiler change and a whole-program one would go stale on every
+library edit. The renumbering and the dropped positions remove what
+refine's emission order and the file's layout give a routine, which
+changes no value it computes; the length is masked only in the
+instructions after a trap message's name. A code change the check
+never executed but the routine reaches, inlining included, makes the
+record stale, which errs on the side of running it again.
+
+**The alternatives:** the check in the gate, which the maintainer refused;
+once at a release, which ties the release to hours of one host; a source
+digest of the routine's files, blind to the compiler; object code, which
+needs each target's assembler on the runner and carries the same
+positions; and running the freshness check in the `scripts` job, which has
+no compiler: that job runs `scripts/tests/test_records.py`, the
+script's logic on a stand-in refine and every record's form, and
+`compiler-checks`, which has one, runs the check itself.
+
+**Pinned by** `scripts/tests/test_records.py`, and
+`scripts/tests/test_records_native.py`'s
+`test_fresh_after_a_change_elsewhere_and_stale_after_its_own`, which
+edits a copy of `core/math` on refine's own output for Linux x86-64 and
+arm64; D2553's runs are the first record,
+`compiler/tests/records/math-f32-exhaustive.json`.
 
 ### D905 — A board run reports one outcome, stops cleanly when cancelled, and shares one rig state
 
@@ -33003,6 +33298,25 @@ and `environments/cortex-m/descriptions.py`'s contract case, which links
 RP2040 constants into its stack and an STM32H753 ITCM datum at zero and
 refuses each.
 
+
+### D2997 — A startup routine at address zero breaks D546's fifth clause
+
+**The discrepancy:** the fifth clause skipped every `_landin_firmware_*`
+symbol, so a developer's script that moved the STM32H753's RAM-layout text
+into the ITCM without the derived script's eight bytes linked with
+`_landin_firmware_reset` at address zero and refine exited 0.
+
+**Chosen:** the fifth clause holds the startup routines and data too; only
+`_landin_firmware_vectors` and `_landin_firmware_entry`, which begin their
+region by D546's first clause and D662, may be at zero. The derived scripts
+keep the clause, so their images are unchanged.
+
+**The alternatives:** refusing any allocated section that begins below 8,
+which would refuse the vector table at zero on every Cortex-M flash.
+
+**Pinned by** `environments/cortex-m/descriptions.py`'s contract case,
+whose `reset.ld` is the derived RAM script with `.text` in the ITCM.
+
 ### D900 — A RAM firmware layout is derived from the same device description
 
 **The tour said** at [1650] that compiler startup initializes RAM; D545
@@ -34637,9 +34951,11 @@ where they are on PATH, and the publication native control
 
 ### D2327 — Microsoft's link is chosen by a driver named for Clang's MSVC target
 
-**Amended by D2387 and D2388.** The policy covers windows-arm64 too, under
+**Amended by D2387, D2388 and D2969.** The policy covers windows-arm64 too, under
 `aarch64-pc-windows-msvc`, and refine names `link.exe` with
-`-fuse-ld=link` rather than leaving the linker to Clang's default.
+`-fuse-ld=link` rather than leaving the linker to Clang's default; the
+gate's Microsoft link is llvm-mingw's pinned Clang with the MSVC toolset
+and Windows SDK `environments/pins.sh` names.
 
 **From** [1550], D2189.
 
@@ -34764,6 +35080,70 @@ whose link commands end in `-fuse-ld=link`, and the gate's
 `windows-microsoft` and `windows-arm64-microsoft` jobs, which require
 `link.exe`; probe run 45399587160 on the `windows-11-arm` runner showed
 the default reaching `lld-link`.
+
+### D2969 — The gate's Microsoft link names its Clang, MSVC toolset and Windows SDK
+
+**From** D2327, D2387 and D2388.
+
+**The discrepancy:** D2327 had the gate's `windows-microsoft` job run each
+link with the runner's Clang, which found the Visual Studio and Windows
+SDK the image carries, so nothing said which tools a verdict was about:
+GitHub's image update could change the Clang, the toolset whose `link.exe`
+ran and the SDK between two runs of one tree. The `windows-2025` image of
+2026-11-16 carried Clang 20.1.8 and the `windows-11-arm` image of
+2026-11-15 Clang 22.1.8, each with Visual Studio 18.12 and its toolsets
+14.29.30133, 14.44.35207 and 14.52.37025 side by side, the last the
+default, and the Windows SDK 10.0.26100.0, the arm64 image also
+10.0.22621.0.
+
+**Chosen:** the job's Clang is the one in llvm-mingw's release
+`environments/pins.sh` already pins by checksum for the debugger and the C
+peers, LLVM 23, for both architectures. The MSVC toolset and the Windows
+SDK cannot be fetched by checksum, since Microsoft's licence keeps them on
+the image, so `pins.sh` names them by version, `14.44.35207` and
+`10.0.26100.0`, and the lane selects them among what the image installs:
+the toolset among the Visual Studio installations `vswhere` lists, holding
+a `link.exe` for the target's machine, and the SDK by its `um` import
+libraries for that machine. It passes them to Clang as
+`-Xmicrosoft-visualc-tools-root` and `-Xmicrosoft-windows-sdk-root` and
+`-version`, which llvm-mingw's Clang needs, as it has no way to ask Visual
+Studio's setup interface where Visual Studio is. Every link must then run that
+toolset's `link.exe` and read that SDK's import libraries, since Clang
+takes another SDK silently when the named one is missing.
+`summary.json` records the Clang's version, the Visual Studio
+installation, the toolset, the SDK and the linker's own version.
+
+The toolset is 14.44.35207, Visual Studio 2022's last, which Visual Studio
+2026 installs as a separate component and does not update, where its own
+default toolset, 14.52, moves with Visual Studio's updates. When an image
+no longer carries a pinned version the job refuses before it links,
+naming the toolsets or SDKs the image does carry and the two files that
+name the pin; moving it is a change of `pins.sh` and
+`compiler/ada/TOOLCHAIN.md`, which `check.py` holds to agree, gated like
+any other tool's. A frozen toolset makes such a refusal rare, and when it
+comes it stops the Microsoft jobs of every item's gate until the pin moves:
+the price of a verdict that names its tools.
+
+**The alternatives:** the image's tools as they are, which was the gap;
+the image's default toolset pinned by version, which an update to
+Visual Studio 2026 replaces in place, stopping every gate each time; a
+fallback to whatever the image carries when the pin is gone, which is the
+unpinned verdict again on exactly the runs where the tools changed; LLVM's
+own Windows release pinned by checksum beside llvm-mingw's, a second Clang
+download where one already serves both targets; and Visual Studio's newest
+toolset left as the evidence, the one a user installing Visual Studio
+today gets, which would surface a change in `link.exe` sooner, but at a
+moment no change to Landin caused and in a gate run that names no tool
+the change was in. A newer toolset reaches the gate as a deliberate pin
+change.
+
+**Pinned by** `scripts/tests/test_windows_lane.py`'s `MicrosoftTools`,
+`check.py`'s pinned-toolchain check, and the gate's `windows-microsoft` and
+`windows-arm64-microsoft` jobs; probe run 45964811589 linked and ran the whole
+corpus with these tools on both runners, 4,144 and 4,136 outcomes, and
+refused a toolset the images do not carry. Between it and probe run
+45963302773 the images had moved Visual Studio from 18.12.12405.243 to
+18.12.12412.261, toolsets unchanged.
 
 ### D2427 — A FreeBSD x86-64 compiler builds for its own host and links with the base system's `cc`
 
@@ -35226,6 +35606,117 @@ path before it runs and changes the user's settings.
 
 **Pinned by** `compiler/tests/windows/check.py`'s `windows_error_mode`.
 
+### D2960 — A Windows peer starts itself again where a POSIX peer forks
+
+**From** D2473 and D2474.
+
+**The discrepancy:** D2473 left off the Windows targets every ABI fixture
+whose peer includes a POSIX header. Four of them hold what no other
+Windows fixture holds: copies bounded by a page Windows refuses to read,
+every raw image of an encoding with its holes trapping, a reserved
+pattern trapping before the store that would change shared memory, and a
+`noreturn` path ending the process or trapping at a C callee that returns.
+Three fork a child for each case that traps or ends, and read its signal or
+status from `waitpid`; Windows has no `fork`.
+
+**Chosen:** under `_WIN32` a peer starts its own image again with
+`CreateProcess`, naming the case on the command line, waits for it and
+reads its exit code: a trap is `STATUS_ILLEGAL_INSTRUCTION`, `ud2`'s on
+x86-64 and `brk`'s on arm64, and an ending is the code the program gave.
+The copy inherits the lane's error mode and job (D2474), so a trap reaches
+no error report. Memory both see is a page of an anonymous file mapping
+whose handle the copy inherits and is named on its command line. The
+guard pages are `VirtualAlloc`'s, the second made `PAGE_NOACCESS` by
+`VirtualProtect`. Each fixture keeps one peer, its POSIX arm unchanged,
+and names both Windows targets.
+
+**The alternatives:** a Windows twin of each fixture, which would let the
+two copies of one oracle drift apart; threads with a vectored exception
+handler in place of a second process, which observes a trap the program
+handles rather than one that ends it, as the POSIX children's do; and
+leaving the fixtures off Windows, with these observations met by no
+Windows C code.
+
+**Pinned by** `abi/r440-native-bounds`, `abi/r640-exhaustive-encodings`,
+`abi/r640-reserved-trap` and `abi/r670-noreturn` on both Windows targets.
+
+### D2961 — On Windows the variadic probe holds a float in both banks
+
+**From** D2473 and [1580].
+
+**The discrepancy:** `abi/r440-native-varargs` observes, besides the
+variadic values C reads by `va_arg`, the count of vector registers a SysV
+caller leaves in `al`, through a probe in assembly. Neither Windows
+convention has that count: Win64 puts a variadic float in the first four
+slots in both its integer register and its XMM register, and arm64
+Windows passes every variadic in the integer registers and the stack.
+
+**Chosen:** on Windows the probe answers what `al`'s would, the floats'
+count with eight at most, from the floats C reads by `va_arg`; on x86-64
+an assembly entry first compares each float in the register slots with
+its copy in the slot's XMM register and answers -1 when they differ,
+which a callee that reads either bank needs. The fixture names both
+Windows targets.
+
+**The alternatives:** leaving the fixture off Windows, since
+`windows-variadic-floats` holds the values past the register slots, which
+leaves the second bank unobserved; and a probe answering the floats'
+count alone, which observes nothing the C oracle does not.
+
+**Pinned by** `abi/r440-native-varargs` on both Windows targets.
+
+### D2962 — Win64's hidden result address comes back in rax; arm64 has none to return
+
+**From** D2473 and [1600].
+
+**The discrepancy:** `abi/r440-sret-pointer-observation` holds a callee
+to returning the hidden result address in `rax`, which SysV requires, and
+`abi/r450-x86-callee-probes` holds SysV's and AAPCS64's callee saves
+across a Landin routine C enters, through assembly in each peer that
+carries ELF's `.type` and `.size`.
+
+**Chosen:** Win64 requires the hidden address back in `rax` too, so the
+sret peer has a Win64 arm: the address arrives in `rcx`, the explicit
+arguments move one slot along, and each probe takes the 32-byte shadow
+area. The fixture names windows-x86-64 alone: arm64 Windows, as AAPCS64
+does, passes the address in `x8` and asks nothing of what comes back, as
+Darwin's and Linux arm64's lanes already record. The callee probe's Win64
+arm sets and checks every register Win64 makes a callee save but the XMM
+ones, which `windows-c-entry-saves` holds: `rbx`, `rbp`, `rdi`, `rsi` and
+`r12` to `r15`. Its arm64 assembly is arm64 Windows' as it is, with `x18`,
+which Windows keeps, untouched, and the fixture names both Windows
+targets.
+
+**The alternatives:** a returned-address probe for arm64 Windows, which
+would hold refine to a rule the convention does not make.
+
+**Pinned by** `abi/r440-sret-pointer-observation` on windows-x86-64 and
+`abi/r450-x86-callee-probes` on both Windows targets.
+
+### D2963 — A renamed `main` called from C has no Windows form yet
+
+**From** D2269 and D2473.
+
+**The discrepancy:** `abi/r440-native-renamed-main` holds that a C
+callback a Landin program names `main` neither establishes nor replaces
+the argument root, which its C peer establishes through
+`_landin_host_initialize_arguments`, and that a foreign symbol spelled
+`.Llandin_host_argv` stays the foreign one.
+
+**Chosen:** the fixture names no Windows target. Windows has no C-callable
+initializer: `_landin_start` keeps the root itself (D2269), so a C program
+on Windows has no root to establish and the fixture's observation no form
+there. Its foreign `.L` name, which COFF's assembler takes as private, a
+Windows image now binds as D2954 says; the initializer is what is left.
+
+**The alternatives:** a Windows twin that drops the root and the `.L`
+name, which would hold only that a renamed callback is callable, as
+every Windows ABI fixture's callbacks already are; and a C-callable
+initializer in `hosted/system` for Windows, which changes what D2269 chose
+and is a decision of its own.
+
+**Pinned by** the fixture's `targets:`, which name no Windows target.
+
 ### D2487 — A Windows image carries no time of its link
 
 **From** D2189, D2327 and D2486.
@@ -35258,7 +35749,38 @@ cases `test_two_builds_are_the_same_bytes` and
 `test_two_debug_builds_are_the_same_bytes`, which link twice more than a
 second apart without `SOURCE_DATE_EPOCH`.
 
+### D2954 — A COFF object names a `.L` link name through a substitute
+
+**The tour said** nothing; [1610]'s `link(symbol: text)` takes any
+spelling, and D417 keeps a foreign name from capturing a native one.
+
+**Chosen:** on Windows an import or export whose link name begins with
+`.L` is spelled in the assembly as `__landin_dot` followed by the name,
+and the object's `.drectve` section binds the two with
+`/alternatename`: an import's substitute, which the object leaves
+undefined, resolves to the name, and an export's name, wherever another
+object leaves it undefined, resolves to the substitute the object
+defines. LLVM's COFF assembler takes every `.L` name as its own label,
+so it refuses one undefined ("can not be undefined") and leaves one
+defined out of the symbol table; `/alternatename` is read by LLD and by
+Microsoft's linker alike. Every other name, and every native local
+label, is spelled as before. A C object holds such a name only where its
+assembler was told to keep its labels, Clang's `-Wa,-L`, since Clang's
+own C code generation meets the same assembler.
+
+**The alternatives:** assembling refine's objects with `-Wa,-L`, which
+puts every one of its own `.L` labels in the symbol table, where a
+debugger then names code by label; renaming the symbol after assembly,
+a step of its own in every link; and leaving such names to ELF and
+Mach-O, which is what the targets did before.
+
+**Pinned by** `abi/r440-native-link-namespace`, which binds `.L1_1` and
+`.L_1_1` to C functions of a companion compiled with `-Wa,-L`, on both
+Windows targets in the gate's ABI lanes.
+
 ### D2290 — CodeView describes no inlined copy yet
+
+**Superseded by D2964.** A Windows routine's CodeView describes each inlined copy as an inline site with its own variables; what follows is history.
 
 **The tour said** nothing; D339 describes each inlined copy to DWARF.
 
@@ -35267,6 +35789,16 @@ second apart without `SOURCE_DATE_EPOCH`.
 **The alternatives:** writing `S_INLINESITE` records now, whose line directives the backend would name by copy, for a Windows session that does not yet stop in a copy.
 
 **Pinned by** the sessions of `compiler/tests/windows/debug.py`, which call through function values so that no stop is in a copy.
+
+### D2964 — CodeView describes each inlined copy as an inline site
+
+**The tour said** nothing; D339 describes each inlined copy to DWARF, and D2290 left CodeView's copies undescribed.
+
+**Chosen:** with `--debug=full` each of D339's copies in a Windows routine is an `S_INLINESITE`, closed by `S_INLINESITE_END`, inside the lexical block its call stood in. It names the copied routine's `LF_FUNC_ID`, the one that routine's own procedure names, and holds the copy's parameters, locals, source aliases and lexical blocks, each described as the routine's own are, from the same availability. The copy's code has a function identity of its own, numbered after every item's, which `.cv_inline_site_id` declares inlined at the call's line inside the routine's, and its lines are `.cv_loc` directives under that identity, its traps' among them; the assembler's `.cv_inline_linetable` writes them as the site's annotations, and in the routine's own line table they become the call's line. A `DEBUG_S_INLINEELINES` subsection names where each copied routine begins, which LLDB reads a site's routine from. A lexical block covers the copies called inside it. A copy whose call has no known site, or none of whose code is left, has no inline site.
+
+**The alternatives:** describing a copy's variables as the routine's own in a lexical block, which LLDB shows in the caller's frame, under the caller's name; and keeping D2290, under which a stop in a copy showed the caller's frame and none of the copy's variables.
+
+**Pinned by** `compiler/tests/windows/debug.py`'s copy session over `compiler/tests/debugging/registers.ldn` at `speed`, which stops inside `inline_leaf`'s copy in `inline_outer` and requires the frames `inline_leaf`, `inline_outer` and `main` and the copy's own values, run by the gate's `windows-debugger` and `windows-arm64-debugger` jobs.
 
 ### D2291 — A Windows image carries its build's digest in a `.landin` section
 
@@ -35492,6 +36024,55 @@ to kernel32's own handler, and traps there; and `stack report/a switch
 costs its frame`. Before the change the fixture ended with 1 on both
 architectures' Windows hosts, on x86-64 with its two checks of the bounds
 on the prepared stack failing.
+
+### D2970 — The Windows arm64 switch session runs again when LLDB loses a step
+
+**From** D469, D2348 and D2481.
+
+**The discrepancy:** the `windows-arm64-debugger` job's switch sessions
+failed now and then, in four gate runs of trees whose arm64 code did not
+differ from passing ones, with "the session did not step from
+landin.stack_switch's first instruction through its return". Each
+transcript shows one `thread step-inst` from an ordinary load or store of
+the routine, at +60, +120, +132 or +160, after which the thread ran on to
+the next switch's breakpoint. Run on fresh `windows-11-arm` runners, the
+four sessions failed 14 of 800 times the same way, the lost step at
+offsets from +56 to +160, in either switch, sometimes running on to the
+program's exit; with LLDB's `windows` log on, which slows it, 0 of 400
+failed. The loss is in LLDB's timing on that runner, as the arm64 KVM
+guest's LLDB loses steps far more often, and not in the routine or its
+unwind data: every stop LLDB did make held the record.
+
+**Chosen:** a lost step is recognised exactly and the session runs again.
+Every step a switch session makes stays in the routine or returns from it,
+where no breakpoint is, so a `thread step-inst` that ends at a breakpoint
+or at the program's exit is one LLDB did not make. On a target
+`switch_frames.LOST_STEP_ATTEMPTS` names, windows-arm64 with three
+attempts, the Windows lane runs such a session again, keeps each lost
+attempt's transcript and names its lost step in `switch-frames.json`, and
+holds the last attempt's stops to the record as before; any other
+mismatch fails at once. At the measured rate, 26 lost of 1,212 attempts
+or about one in fifty, a session fails only when all three attempts lose
+a step, about once in 100,000. The entry goes when a runner's sessions
+lose no step.
+
+**The alternatives:** a breakpoint on each of the routine's instructions,
+so that a lost step stops at the next one anyway, which on Windows LLDB
+reports a step onto a breakpoint as a second stop at the same instruction,
+doubling every stop (probe run 45984035570 failed all 400 such sessions);
+holding the stops a session made and skipping those after a lost step,
+which leaves a switch's instructions unheld in exactly the run where they
+were not seen; and a change to LLDB's Windows process plugin, in whose
+handling of the step no cause was found and which this repository does
+not build.
+
+**Pinned by** `compiler/tests/debugging/test_check.py`'s
+`test_a_lost_step_is_told_from_a_step`, which also told all 18 lost
+sessions met in the gate and the probes from their transcripts, and the
+`windows-arm64-debugger` job; probe runs 45963663891 and 45984035570
+measured the loss, and probe run 45987118367 ran the lane's sessions 100
+times on four fresh runners with the retry: 400 switch sessions passed, 12
+of them after an attempt that lost a step.
 
 ### D2480 — Windows' switch and start routines carry unwind tables an unwinder walks
 
@@ -37778,6 +38359,16 @@ another; `runtime/map-seeded-from-entropy`, a hosted map seeded by
 `random.hash_seed`; `runtime/map-firmware-seed`, a map given its seed on
 the firmware corpus lanes; and `runtime/library-builtin-evidence`.
 
+### D2934 — k-nucleotide's key is a word of two-bit bases whose hash is its own bits
+
+**The tour said** that a conformance is declared once [1280], and D1360 that a hash should depend on the seed, which the hashes `core/cmp` ships do through SipHash-1-3; the Benchmark Game's k-nucleotide requires the library's hash table and lets a program give its key a hash function of its own.
+
+**Chosen:** `runtime/benchmark-game-k-nucleotide` counts runs of up to 18 bases as a distinct `u64` of two bits a base, the first base highest, one map for each length, so the word alone tells the keys apart, and the key's `hashable` returns the word without the seed: `core/map` puts every hash through MurmurHash3's finalizer before it chooses a slot, which D1360 kept for a program's own hash that is a key's value. The map is the library's, unchanged, made with a constant seed; `core/cmp`'s seed stays opaque and the library gains no unkeyed hash. Over FASTA's output for 25,000,000 the run took 61 s on the EPYC host with this hash and 96 s with `cmp.hash_word`, and the map's lookups, with the key's equality and hash, which the backend does not inline, were 85 per cent of it.
+
+**The alternatives:** `cmp.hash_word` of the word, D1360's keyed hash, measured above; a cheap keyed mixer, the word added to a seed word and multiplied, which needs the seed's words and so a public accessor D1360 declined for keeping the key's form the module's own; and the bases' text as a `[]u8` key, which hashes and compares bytes where a word does in one step, and which the game's fastest programs replace with a packed word too.
+
+**Pinned by** `runtime/benchmark-game-k-nucleotide`, the game's output for its 1,000 input byte for byte, its digest in `check.py`.
+
 ### D1032 — A handle that borrows nothing is `new`, and a second way to make one keeps `over`
 
 **The tour said** nothing of names; D269 has a module's principal type
@@ -38293,6 +38884,30 @@ does after emission.
 `an assembly operand links`, `end-to-end/link-static-dry-run` and its
 siblings' `remove` line, and `compiler/tests/test_native_report_identity.py`,
 which finds no assembly after a failed link.
+
+
+### D2996 — A firmware target's assembly operand is refused saying how it links
+
+**The discrepancy:** `refine compile p.s --target=cortex-m0
+--firmware-layout=ram -o p.elf` ended in an internal compiler defect, a
+failed precondition deriving the linker script from a profile no source
+gave, where the help said "a .s operand is linked as a compiled program
+is"; with `--root` or `--firmware-entry` it was L0002 for another
+reason.
+
+**Chosen:** an assembly operand is linked only for a hosted target. With a
+firmware target it is L0002 before anything runs, saying that a firmware
+image is laid out by its description, which assembly does not carry, and
+that its source is compiled with `--root` and `--firmware-entry`, or the
+kept assembly assembled and linked with the toolchain and the `OUT.ld`
+written beside the image. The help says a hosted target's operand.
+
+**The alternatives:** linking with a description named by `--root`, which
+needs the description checked without the program it describes; and
+linking with `--linker-script` alone, which leaves D546's clauses, read
+against the profile, nothing to read.
+
+**Pinned by** the driver case `an assembly operand links`.
 
 ### D364 — Linux links through the GCC a distribution installs
 
@@ -41119,6 +41734,55 @@ method, with two 64-bit divisions.
 implementation's outputs on every target, Cortex-M0 included, and
 `runtime/library-shared-random`.
 
+### D3054 — `core/random`'s draws: floats from the high bits, ranges with both ends, picks, samples, weights and bytes
+
+**The tour said** nothing of random numbers; D318 gave the generator `next`, `next_u32`, `below` and `shuffle`, and programs ask for what Rust's `rand` and Go's `math/rand/v2` draw beyond them.
+
+**Chosen:** every draw is a routine over `random.generator` passed `inout`, with no state of its own, so a seed gives one sequence on every target.
+
+- `unit_f64` and `unit_f32` are the next draw's upper 53 or 24 bits times 2^-53 or 2^-24: every value in [0, 1) that is a multiple of that power, each equally likely, every one exact and 1 never drawn. These are the values Go's `Float64` and Rust's `Standard` give.
+- `between_u64(source, low, high)` and `between_i64` take both ends, included, and draw `low` plus `below` of the width, or a whole draw when the range is every `u64`. A signed range is placed among the `u64`s by adding 2^63, which keeps its order, so every `i64` range is reached without a 128-bit width. A half-open range is `high - 1`. A `low` above `high` traps with `overflow`, as `below` of zero does (D342). The width's bits are named in the routine because the library has no generic integer concept: `next_u32` and `text.parse_u64` already name theirs.
+- `pick(source, values)` is `values[below(length)]`; an empty slice traps as `below` of zero.
+- `sample(into, source, values)` fills `into` with distinct places of `values` by Knuth's selection sampling, Algorithm S: each of `values` in turn is taken when a draw below those left is under the number still wanted. It makes at most one draw for each of `values`, needs no storage, and keeps the order `values` has; `shuffle` draws an order afterwards. An `into` longer than `values` traps with `overflow`.
+- `weighted(source, weights)` returns the place of a `u64` weight drawn with the chance its weight is of their sum: a draw `below` the sum and the first running total past it. A zero weight is never drawn; a zero or overflowing sum traps with `overflow`.
+- `fill(bytes, source)` writes each draw least significant byte first, and a part shorter than eight takes one more draw's low bytes, as `rand_xoshiro`'s `fill_bytes` does.
+
+The parameters follow D1954: the generator stands where a capability stands, so it comes before an input (`pick`, `weighted`) and after the subject a routine changes (`sample`'s `into`, `fill`'s `bytes`, as `shuffle`'s `values`).
+
+**The alternatives:** a generic `between` over an integer concept, which the library lacks and which this item does not need to add; Lemire's widening multiplication for ranges, which D318 declined for its 128-bit product; a float drawn from every representable value below 1, as Downey's method does, which no program has asked for; a weighted draw over `f64` weights, which rounds differently from integer weights; and `sample` by a partial shuffle of a copy, which needs storage the caller has not given.
+
+**Pinned by** `runtime/random-draws`, which holds what `compiler/tests/random/oracle.c`'s ports of these routines give over the reference implementation, on every target, Cortex-M0 included; `runtime/random-distributions` (D3055); and `runtime/example-dice-and-cards`, the published example D1956 gave, drawing through `between_i64`, `weighted`, `shuffle` and `pick`.
+
+### D3055 — The draws' distributions are tested over samples their seeds pin
+
+**The tour said** nothing of how a draw's distribution is shown; the evidence asked for is a stated test over a pinned sample for each draw, and the floats' bits and the ranges' bounds checked exhaustively at small widths.
+
+**Chosen:** each test draws from a fixed seed, 48,000 values for the integer draws and 16,000 for the floats, whose soft float on Cortex-M0 at none/off must finish within its lane's limit, so every target tests the same sample and passes or fails alike. Each passes a chi-squared test at p = 0.001 for its degrees of freedom, against the standard tables' critical values: a die, picks of ten, the ten pairs a two-of-five `sample` makes, weights 1 to 4 with a zero among them, and `fill`'s bytes in 256 bins in `runtime/random-distributions`, whose statistic is computed in integers, times the count a bin should hold, so its image needs no float arithmetic; and in `runtime/random-float-distributions`, each float width in sixteen bins and the normal and exponential draws in their deciles. There the normal draws' mean is within 0.04 of 0 and their variance within 0.05 of 1, and the exponential draws' mean within 0.04 of 1, each bound more than four standard errors; every float drawn is a multiple of 2^-53 or 2^-24 below 1. Every range between two ends within four of 0, of the largest `u64` and of both ends of the `i64`s, and every range with ends from -8 to 8, gets 128 draws inside its ends, and each one eight wide or less reaches every value.
+
+**The alternatives:** a Kolmogorov–Smirnov test of the continuous draws, which sorts the sample and needs storage that the Cortex-M0 image cannot hold; and a statistical suite such as TestU01 or PractRand over the generator, which its authors ran and the draws over it would not exercise.
+
+**Pinned by** `runtime/random-distributions` and `runtime/random-float-distributions` on every target, Cortex-M0 included.
+
+### D3056 — `normal` is Marsaglia's polar method and `exponential` the inverse of the distribution
+
+**The tour said** nothing of continuous distributions; a normal and an exponential draw each need a stated method.
+
+**Chosen:** `random.normal(source)` is the standard normal distribution by Marsaglia's polar method: a point drawn by `unit_f64` in the square from -1 to 1 is drawn again until it is inside the unit circle and not its centre, and its first coordinate times `sqrt(-2 log s / s)` is returned, `s` its squared distance. The method makes two values; the second is discarded, so the generator remains its 256 bits of state. `random.exponential(source)` is the rate-1 exponential distribution as `-log(1 - u)` for `u` from `unit_f64`, which is below 1, so the logarithm's argument is above 0. A mean and deviation or a rate is applied by the caller's arithmetic. Both call `core/math`'s `log` and `sqrt`, which are the same bits on every target, so the draws are too; the parameterized distributions belong to the statistics library the roadmap plans.
+
+**The alternatives:** the ziggurat, which Go and Rust use and which is several times faster, but carries tables of 128 or 256 entries per distribution into every image that draws one; Box and Muller's transform, which needs `cos` as well; and keeping the polar method's second value in the generator, which changes the generator's size and makes a copied generator's next draw depend on whether it was drawn normally before.
+
+**Pinned by** `runtime/random-normal-draws`, within two units in the last place of the oracle's C library and by a digest of a thousand draws that is the same on every target, and `runtime/random-float-distributions`' tests of both.
+
+### D3057 — `random.jump` is the reference implementation's
+
+**The tour said** nothing of streams; threads or fibres drawing from one seed need xoshiro256**'s `jump` to keep their sequences apart.
+
+**Chosen:** `random.jump(source)` advances the generator as 2^128 draws would, by the reference implementation's polynomial and loop, copied in its four words. A program gives each of its threads or fibres a copy of a generator jumped once more than the last. `long_jump`, for 2^64 starting points each with 2^64 jumps of its own, waits for a program that needs it.
+
+**The alternatives:** seeding each stream from another splitmix64 output, which gives no guarantee that streams do not overlap; and a generator per stream from entropy, which loses the seed's repeatability.
+
+**Pinned by** `runtime/random-draws`, which holds seed 0's state after one jump and after two as the reference `jump` leaves it, on every target.
+
 ### D319 — A network is a concept of its own whose connections are readers and writers
 
 **The tour said** at [1660] that authority is passed, and nothing could talk
@@ -41445,6 +42109,26 @@ omits the call and whose output must hold that line before it traps.
 Darwin's and FreeBSD's arm was written by reading and is run by their
 lanes.
 
+
+### D2998 — Each misuse of the argument root says what was misused
+
+**The discrepancy:** D1281 gave words to one trap of the root, a read
+before it exists, and left a second triple and a negative count or null
+table as bare traps.
+
+**Chosen:** before each of those traps `platform/posix` writes one line to
+standard error: `landin: _landin_host_initialize_arguments was called a second time with
+a different argc, argv or envp; a repeated call must pass the same values
+as the first`, and `landin: _landin_host_initialize_arguments was called
+with a negative argc or a null argv`. As in D1281 the writes ask nothing of the root and the trap
+follows unchanged.
+
+**The alternatives:** a failure the call returns, which a C `main` has no
+way to read; and one line for every misuse, which would not say which.
+
+**Pinned by** `abi/r440-native-startup-replaced` and
+`abi/r440-native-startup-invalid`, whose `trap_report` holds each line.
+
 ### D323 — `platform/posix` gives sockets in the system's own records
 
 **The tour said** nothing of sockets beneath the portable concept.
@@ -41584,6 +42268,56 @@ D2008 supersedes this decision in part: `posix.internet_address` and its
 reading back are `system.internet_address` and `system.address_of` in
 `hosted/system`, over `platform/posix`'s `internet_record` and
 `endpoint_of`, which speak numbers rather than a `net.address`.
+
+### D3074 — A socket's options are entries named by atom sets, and `unsupported` is a system's absence
+
+**The tour said** nothing, and the library lane asks for the options `socket2` sets: reuse of an address and a port, keepalive and its interval, buffer sizes, broadcast, multicast membership and hops, IPv6 only, the unicast hop limit and linger, each set and read back on every hosted target.
+
+**Chosen:** `net.network` gains entries by the kind of value an option holds, each option an atom of a set: `set_flag` and `flag` for `net.flag_option`, `reuse_address`, `reuse_port`, `keep_alive`, `broadcast` and `ipv6_only`; `set_number` and `number` for `net.number_option`, `receive_buffer`, `send_buffer`, `unicast_hops` and `multicast_hops`, a `u32`; `set_span` and `span` for `net.span_option`, `keep_alive_idle` and `keep_alive_interval`, a `time.duration` kept in whole seconds, a part of one rounded up and zero refused; `set_linger` and `linger`, whether a close lingers and how long; `join_group` and `leave_group`; and `set_multicast_interface` and `multicast_interface`, which the multicast exchange on one host needs to send over the loopback interface. They are entries, not free routines over existing ones, because only the provider can answer them (D1948), and the fake keeps them as it keeps `no_delay`. The hops are IP_TTL or IPV6_UNICAST_HOPS and IP_MULTICAST_TTL or IPV6_MULTICAST_HOPS by the socket's family, which the provider reads, so a program names one option for both. An interface is an `address`, as `join_group`'s `through` is: an IPv4 interface's address, an IPv6 one's zone, the unspecified address the system's choice. An option a system does not have is the new atom `net.unsupported`, ENOPROTOOPT on POSIX: Windows has no SO_REUSEPORT. `ipv6_only` on an IPv4 socket is `io_failed`, the provider checking the family, since Linux calls it an option it does not have. `set_no_delay` and `set_timeouts` stay as they were. `platform/posix` gains `set_option` and `option` over `posix.integer_option`, `set_linger`, `join_group`, `leave_group` and the multicast interface, and each system's numbers; Darwin's linger is SO_LINGER_SEC, which keeps seconds as the others' SO_LINGER does.
+
+**The alternatives:** an entry for each option, `socket2`'s thirty setters and as many getters, which the providers and every conformance would repeat; one entry taking a variant of every option's value, which no other concept of the library takes; and a raw `setsockopt`, a level, a name and bytes, which `platform/posix` already gives a program that needs one and no fake or Windows provider can answer alike.
+
+**Pinned by** `runtime/network-options`, every option on a listener, a connection and a datagram socket of each family through `hosted/blocking` and `hosted/events` on every hosted target, a buffer reading back at least what was set since Linux doubles it; `runtime/network-multicast`; and `runtime/network-fake-names`.
+
+### D3075 — Names are the system's resolver's, and a static Linux program reads the files and asks DNS itself
+
+**The tour said** nothing; the register's resolver record was retired on 2026-11-21 for want of a consumer, and a connection by name is that consumer.
+
+**Chosen:** `net.network` gains `resolve(name, port, into)`, the addresses a host name has in the system resolver's order, each with `port`, as many as `into` holds; `net.resolve` reads an address's own text first, as `parse_ip` does, and asks no one for it. A name no source knows, or that cannot be a DNS name, longer than 253 bytes or with an empty label or one over 63, is the new atom `net.unknown_name`; name servers that do not answer are `timed_out`. Where the system's resolver is the authority, it answers: the C library's `getaddrinfo`, `posix.resolve_name`, on Darwin, FreeBSD and Linux under `--link=libc`, and Windows' own. A static Linux program has no C library, so it reads `/etc/hosts` and, for a name the file lacks, asks the name servers `/etc/resolv.conf` names, over the provider's own network, so that the event provider's fibre waits for them as for any socket: `core/net`'s `hosts_lookup` reads the hosts text, `name_service_of` the settings, at most three `nameserver` lines, `timeout:` and `attempts:`, 127.0.0.1 without a server, and `ask` puts an A and then an AAAA question to each server in turn as many times as the settings say, over UDP and again over TCP after a truncated answer, numbered from the system's random bytes, an answer from another address or to another question passed over. The first question's addresses stand when the second fails. `search` and `domain` lines are passed over, so a name is asked for as it is written. Under the event provider the C library's resolver holds the thread, which nothing lets it wait for.
+
+**The alternatives:** a resolver of Landin's own on every system, which would disagree with the system's configuration, NSS and mDNS among it, wherever one exists; the C library's on static Linux too, which would need it linked; a separate `resolver` concept, which a routine needing both it and the network would take as a second capability for one system; the search list, which glibc applies for names with fewer dots than `ndots` and which no exit evidence asks for; and EDNS, whose larger answers TCP already brings.
+
+**Pinned by** `runtime/network-resolver` on every hosted target, static on Linux, and `runtime/network-resolver-libc`: `localhost` gives 127.0.0.1, a `.invalid` name is `unknown_name`, or `timed_out` where no server can be reached, and `ask` of a socket that never answers is `timed_out`; and `runtime/network-fake-names`, whose server fibre answers, says a name does not exist and cuts an answer short.
+
+### D3076 — A connection by name tries each address in turn and fails as the last did
+
+**The tour said** nothing; the library lane asks for a connection to a host and port that tries each address the name gives, as Go's `Dial` does.
+
+**Chosen:** `net.connect_by_name(name, port, limit)` resolves the name, as `net.resolve` does, to at most sixteen addresses, and connects to each in the resolver's order, each attempt within `limit` as `connect_within` limits one, zero for none, until one connects; when none does it fails as the last attempt did. It is a free routine over `resolve` and `connect_within`, which every provider already answers.
+
+**The alternatives:** Go's `Dial`, which divides one deadline among the addresses and, with Happy Eyeballs, races IPv6 against IPv4; and the first failure rather than the last, which says less about the address tried last.
+
+**Pinned by** `runtime/network-resolver`, whose listener on 127.0.0.1 alone is reached by `localhost` whichever address the resolver gives first, and `runtime/network-fake-names`, refused at ::1 and connected at 127.0.0.1.
+
+### D3077 — Unix-domain sockets are five entries over a path, and Windows makes streams alone
+
+**The tour said** nothing; `platform/posix` alone gave Unix-domain sockets.
+
+**Chosen:** `net.network` gains `connect_local`, `listen_local`, `open_local_datagram`, `send_to_local` and `receive_from_local`, each naming a path as a `text.os_string`; accepting, sending, receiving, shutting and closing are the entries every socket has. `receive_from_local` puts the sender's path into the caller's room, empty for a sender bound to none, so a datagram can be answered. A path that is empty, holds a NUL or does not fit the system's record is `invalid_address`; a path nothing listens at, missing or a socket's file whose socket has closed, is `refused`; a path that exists at a listen is `address_in_use`. A listener's path stays after it closes, as the system leaves it, for the program to remove. Windows makes Unix-domain streams and no datagram sockets, so `open_local_datagram` is `unsupported` there.
+
+**The alternatives:** a path inside `net.address`, which would make every address on every target, firmware's included, a hundred bytes longer; and `receive` alone for a datagram, which cannot say who to answer.
+
+**Pinned by** `runtime/network-local-stream` on every hosted target, `runtime/network-local-datagram` on the systems that have such sockets, and `runtime/network-fake-names`.
+
+### D3078 — The fake network keeps options, names, paths and one group a socket
+
+**The tour said** nothing; the library lane has the fake network gain each addition.
+
+**Chosen:** the fake keeps every option a socket is given and reads it back as it was set, a span in whole seconds up to 65535, and none of them changes what it does; a Unix-domain socket's path is kept in its unused internet address and a group in a datagram socket's unused peer, so that a record grew by about two dozen bytes for all of this and five of them still fit a firmware test's 4 KB stack. `fake.with_names(host, names)` gives a network the text of a hosts file, read as `net.hosts_lookup` reads one, from which `resolve` answers without waiting; a network made without names knows none. A Unix-domain socket keeps its path in its record, which holds fewer than `fake.path_room`, 32 bytes, so that the records a firmware test keeps on its stack stay within Cortex-M's 4 KB, and a path is in use while a socket bound to it is open, the fake having no files. A datagram socket joins one group at a time; a datagram to a group goes to every socket that joined it at the port. A datagram from a socket bound to the unspecified address arrives from the loopback address of its family, as a system fills in the address it leaves by, so a name server's answer finds its way back.
+
+**The alternatives:** names in `network_space`, which a test declares `zeroed` and which can hold no slice; and modelling an option's effect, buffer sizes on what a send takes, which no test asks for; and a hosted system's hundred-byte path, which made `runtime/any-generic-provider-network`'s three records overrun Cortex-M33's stack.
+
+**Pinned by** `runtime/network-fake-names`.
 
 ### D325 — The rest of the file system is a concept of its own
 
@@ -45984,6 +46718,113 @@ names, both archives of each Linux platform, to `release.yml`'s;
 `scripts/tests/test_static_archive.py` holds `env.sh`'s choice and its
 refusals; `scripts/tests/test_build_inventory.py` the manifest's link row.
 
+### D2974 — The macOS archive states macOS 26 as its minimum, and the release workflow holds it there
+
+**The discrepancy:** the release builds `refine` on GitHub's `macos-26`
+runner with no deployment target, so the SDK gave it a `minos` of 26.0
+and it stopped in dyld on macOS 15 at
+`posix_spawn_file_actions_addfchdir`, while the README,
+`docs/capabilities.md` and the Homebrew formula said only "a Mac with
+Apple Silicon".
+
+**Chosen:** macOS 26 is the stated minimum, as the maintainer decided,
+and the build is unchanged. `install.sh` holds it as one line,
+`macos_minimum=26`. On a Mac it reads `sw_vers -productVersion` and
+refuses an earlier macOS before it downloads, naming the minimum, the
+running version, nix and the source build. The release workflow's
+packaging step unpacks the macOS archive and requires `vtool
+-show-build` to give every executable in it, `bin/refine` and each
+`libexec/landin/refine-*`, a `minos` of that line's version, so a runner
+whose newer SDK would raise the minimum fails the release before it
+publishes rather than after. The README's installing routes and the
+inventory say macOS 26 or later. The formula's `depends_on macos:` is
+the tap's, outside this repository.
+
+**The alternatives:** a deployment target of macOS 14 with
+`posix_spawn_file_actions_addchdir_np` where the newer call is missing,
+the question's recommendation, which the maintainer did not take; an
+explicit `MACOSX_DEPLOYMENT_TARGET=26.0`, which states the same minimum
+through GNAT's driver, an untested path, where the check already
+catches a change; and leaving the refusal to dyld's message after the
+download, which names a symbol rather than a version.
+
+**Pinned by** `scripts/install_check.py`'s case `a Mac older than the
+macOS archive needs`, run by the gate on each host and by
+`scripts/tests/test_install_script.py`, which also holds the release
+workflow's check to `install.sh`'s line and the README's and the
+inventory's statement to it.
+
+### D2975 — The install script serves the FreeBSD x86-64 archive
+
+**The discrepancy:** the release workflow publishes
+`landin-VERSION-x86_64-freebsd.tar.gz` from the release after 0.2.11, and
+`install.sh` refused FreeBSD and sent its users to a source build.
+
+**Chosen:** `install.sh` names `x86_64-freebsd` among its platforms,
+detects it from `uname -s` `FreeBSD` and `uname -m` `amd64`, lists it,
+refuses `--variant` there as on macOS, checks the digest with the base
+system's `sha256 -q` where neither `sha256sum` nor `shasum` is found,
+says after an install that linking needs the base system's `cc` and
+binutils' `as`, and on a failed download asks whether the version is a
+release with a FreeBSD archive. FreeBSD on arm64 stays refused, since no
+release publishes its archive. The FreeBSD host lane's `--package`, which
+makes the archive in the gate's `freebsd-host-release` job and in the
+release workflow, runs `scripts/install_check.py` in the guest against
+the archive it packaged, with GNAT moved away, so the script installs
+the real archive and runs the first program on FreeBSD before any
+release holds it; the lane installs `curl` for it.
+
+**The alternatives:** waiting for a release with the archive, which
+leaves the script refusing an archive that release would publish; and
+serving the arm64 archive as well, which no release publishes.
+
+**Pinned by** `scripts/install_check.py`'s cases in the FreeBSD guest,
+and `scripts/tests/test_install_script.py`, which holds the script's
+names to the release workflow's FreeBSD job and its refusal of
+`--variant` there.
+
+### D2976 — The gate builds the flake for aarch64-linux on an arm64 runner
+
+**The discrepancy:** the gate's flake job built `.#refine` on x86-64
+only and evaluated the other systems with `nix flake check --no-build`,
+so a dependency only the arm64 prebuilt toolchain archives add, as
+GPRbuild's `libgmp.so.10` was, went unseen until someone built there.
+
+**Chosen:** a fourth part of the flake matrix, `flake-compiler-arm64`,
+on GitHub's `ubuntu-24.04-arm` runner, checks that Nix's system is
+`aarch64-linux`, builds `.#refine` and `.#refine-bin` and enters the
+development shell, running `scripts/toolchain.sh` in it, as the x86-64
+part does. It is a lane of its own in `.github/gate-lanes.json`, with the
+x86-64 part's inputs less the README route's scripts, which it does not
+run.
+
+**The alternatives:** building `aarch64-linux` on the x86-64 runner
+through binfmt emulation, which the row allowed if it cost less wall
+time; it runs every compile of the build under QEMU, where the arm64
+runner costs one more job of about the x86-64 part's length, in
+parallel with it; and the README's `nix profile install` route on arm64,
+which takes the prebuilt archive and so would not have shown the defect.
+
+**Pinned by** the gate's `flake-compiler-arm64` job.
+
+### D2977 — No scheduled fetch of the Cortex-M lock's packages
+
+**The discrepancy:** the register asked for a weekly run fetching every
+Debian package of `environments/cortex-m/tools.lock.json`, after the pool
+moved one in the middle of a candidate's gate. Since D2572 the lock holds
+no Debian package: its three archives are 701-dev/nix-packages' exports
+in the project's own bucket, which nothing outside the project moves,
+and D2734 took the gate's other Linux tools from that cache.
+
+**Chosen:** no scheduled fetch, and the register's row retired for this
+reason. A lock entry from an outside pool would bring the question back.
+
+**The alternatives:** the weekly job as the row described, fetching
+archives whose only provider is the project.
+
+**Pinned by** `environments/cortex-m/test.py`'s
+`test_the_lock_is_nix_packages_archives_only`.
+
 ### D571 — A round's yield calls nothing beneath it but its sweep, its idler and its switch
 
 **The tour said** nothing. `core/fibre/stacks`' round of turns is the one
@@ -46388,7 +47229,7 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **The alternatives:** a table of outputs recorded from one target and compared bit for bit elsewhere, which would show agreement and not accuracy; and MPFR in the gate, which would need it in every lane's environment and hours of time per run.
 
-**Pinned by** every `runtime/math-*` fixture, on every target its metadata names.
+**Pinned by** every `runtime/math-*` fixture, on every target its metadata names, and the exhaustive and bit-for-bit runs by the record `compiler/tests/records/math-f32-exhaustive.json` (D2874).
 
 ### D2554 — `core/math` ports only msun code under Sun's notice
 
@@ -46569,6 +47410,76 @@ forgets a join, or a second library value is as unsafe to forget.
 
 **Pinned by** `runtime/unicode-normalization-sequences`, `runtime/unicode-normalization-canonical`, `runtime/unicode-normalization-compatible` and the long run of marks in `runtime/unicode-text-contracts`.
 
+### D3114 — Text's everyday searches stand beside `find`, over encoded bytes, with byte forms over `[]u8`
+
+**The tour said** at [0600] that text is UTF-8 and that `core/text` compares encoded bytes; D2028 makes absence `mem.not_found`, and D2031 names a count of what a value does not hold for what it counts.
+
+**Chosen:** `text.starts_with(source, prefix)` and `text.ends_with(source, suffix)` answer a `bool`, every text beginning and ending with the empty one. `text.find_last` and `text.find_last_scalar` give the position where the last match begins, the empty text at the end, or fail `mem.not_found`. `text.occurrences(source, sought)` counts from the left without overlapping, as Go's `strings.Count` does, so "aaaa" holds "aa" twice and the empty text occurs once more than the source has scalars; it is named for what it counts, as D2031 asks. Each works on encoded bytes, which valid UTF-8 makes the same as working on scalars, since a match of whole scalars can begin only where a scalar does. The byte searches `find_byte`, `find_bytes`, their `_from` forms and `find_last_byte` and `find_last_bytes` take a `[]u8` that need not be text and give a byte `position`, as C's `memchr`, `memrchr` and `memmem` do, since `find` takes only `utf8`; the forward ones share `find`'s Two-Way search.
+
+**The alternatives:** a count named `count`, which D2031 declined; overlapping occurrences, which Go and Rust both decline and which `find_from` already walks; and byte searches over `utf8` too, which `find` already is.
+
+**Pinned by** `runtime/core-text-search-everyday`.
+
+### D3115 — Trimming reads White_Space from 25 scalars `core/text` writes, which the Unicode generator holds to the database
+
+**The tour said** nothing; D2615 keeps Unicode's tables out of `core/text`, so that a program that only builds and searches text checks none of them.
+
+**Chosen:** `text.trim`, `trim_start` and `trim_end` take Unicode's White_Space off the ends of a text and give a view of it. White_Space is a property of 25 scalars, which `core/text` writes as comparisons in one routine, `white_space`, rather than reading `core/unicode`'s table, which it cannot import; `scripts/unicode_tables.py` reads the routine's scalars out of `core/text/parts.ldn` and refuses to write the tables unless they are the pinned database's property, so a change of either side fails its check. `trim_scalar(source, scalar)` and its `_start` and `_end` forms take a scalar the caller names off instead.
+
+**The alternatives:** ASCII spaces alone, which leave U+00A0 and U+3000 in a trimmed field; importing `core/unicode`, which D2615 declined; and a set of scalars to trim, Go's cutset, which a program that needs one writes with `trim_scalar` or a loop over `for`.
+
+**Pinned by** `runtime/core-text-parts` and `scripts/tests/test_unicode_tables.py`, whose case for `white_space_problems` refuses a list that names too many scalars or too few.
+
+### D3116 — A text's parts are walked as spans, and the edges are Go's for a separator and Rust's for lines
+
+**The tour said** at [1320] that a `for` item is a value of its own; D2618 makes a segment two positions for that reason.
+
+**Chosen:** `text.split(source, separator)`, `text.split_scalar(source, scalar)`, `text.fields(source)` and `text.lines(source)` give one walk type, `text.parts`, that conforms to `iter.iterable` with a `text.span` as its item, two positions as `regex.span` and `unicode.segment` are, and `text.part(source, piece)` gives its text. `split` finds the separators as `find_from` does; a separator at either end gives an empty part there, an empty source is one empty part, and an empty separator gives each scalar as a part, none for an empty source, as Go's `strings.Split` has it. `split_scalar` of a value that is no scalar gives the source whole. `fields` gives the runs between runs of White_Space, none for text that is empty or only spaces, as Go's `strings.Fields`. `lines` splits at line feeds, drops a carriage return before one and keeps any other, and begins no line after a final line feed, as Rust's `str::lines`, so a file's last line is one line whether or not a line feed ends it. `split`'s walk borrows from both texts, `from source, separator`.
+
+**The alternatives:** an item that is the part's text, which [1320] does not allow; a walk type per kind, which multiplies the conformance by four; Rust's `split` with an empty separator, which gives an empty part at either end; and lines that keep their line ends, which every caller would trim.
+
+**Pinned by** `runtime/core-text-parts`.
+
+### D3117 — Joining, replacing, repeating and quoting append to the caller's builder, whole or not at all
+
+**The tour said** nothing; D2616 makes a routine that writes text append to a builder, whole or not at all, and the item leaves out a replacement that allocates a new string.
+
+**Chosen:** `append_joined(into, parts, separator)` writes a `[]utf8`'s parts with the separator between each two; `append_replaced(into, source, sought, replacement)` writes `source` with each occurrence `occurrences` counts replaced, an empty `sought` occurring before each scalar and at the end, as Go's `strings.ReplaceAll`; `append_repeated(into, source, times)` writes it `times` over. Each, and `append_u8`, `append_u16`, `append_i8` and `append_i16`, is a byte builder's call with a `utf8_` partner for the UTF-8 builder, as the module's other appends are, and on `mem.out_of_memory` leaves the builder as it was by an `undo` that truncates it.
+
+**The alternatives:** results returned as new storage from an allocator, which the item leaves out because the builder is the caller's; and a count of replacements returned, which `occurrences` already gives.
+
+**Pinned by** `runtime/core-text-writers`, which writes each into a buffer one byte short and requires the builder unchanged.
+
+### D3118 — The quoted form escapes what a reader cannot see, and reads back as its text
+
+**The tour said** at [0270] which escapes a text literal has.
+
+**Chosen:** `append_quoted(into, source)` writes `source` between double quotes as a Landin literal spells it: `\n`, `\r`, `\t`, `\e`, `\\` and `\"` for those scalars, `\u{...}` in lower-case hexadecimal for the other C0 and C1 controls and DEL, and for each scalar that changes how the text around it reads without being seen, the bidirectional controls U+061C, U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069, the separators U+2028 and U+2029 and the byte order mark; every other scalar is written as itself, so text a person reads stays readable. The quote is not escaped, since only double quotes delimit the form. What it writes reads back as the text it was given.
+
+**The alternatives:** escaping every scalar outside ASCII, which makes "é" unreadable; Rust's escape of every grapheme extender and unprintable scalar, which needs `core/unicode`'s tables in `core/text`; and Go's `\x` escapes, which a text literal does not have.
+
+**Pinned by** `runtime/core-text-quoted`, which `scripts/text_fixtures.py` writes with each quoted form pasted in as a literal that `refine` must read back as the text, and `runtime/core-text-writers`.
+
+### D3119 — A radix parse reads the prefix that names its radix and no other, and a `bool` is `true` or `false`
+
+**The tour said** nothing; D355 makes `core/text`'s parses the library's one parser, the mirror of its appends.
+
+**Chosen:** `parse_radix_u8` to `parse_radix_u64`, `parse_radix_usize` and `parse_radix_i8` to `parse_radix_isize` take `(source, radix)` and read digits `0` to `9` and then `a` to `z` in either case below the radix, after an optional `0x` when the radix is 16, `0o` when it is 8 and `0b` when it is 2, in either case and after a signed value's `-`; no other radix reads a prefix, so "0b1" in radix 16 is 0xb1 and "0x1" in radix 36 is its digits. A radix outside 2 to 36 refuses every source with `invalid_number`, the scan's other refusals are the decimal parses' own, the first the scan meets kept, and each width checks its bound before it multiplies, so a 32-bit target parses a `u32` with 32-bit division. `parse_bool` reads `true` and `false` exactly, as `format` writes a `bool`, and refuses anything else with a new atom, `text.invalid_bool`, since a `bool` is not a number.
+
+**The alternatives:** Go's radix zero, which infers the radix from the prefix and would make zero mean something no radix is; a trap for a radix out of range, which leaves a radix read from input to the caller to check first; and Go's `1`, `t` and `True` for a `bool`, which nothing in the library writes.
+
+**Pinned by** `runtime/core-text-parse-radix` and `runtime/core-text-parse-radix-oracle`, which `scripts/text_fixtures.py` writes from Python's `int` at every width, prefix and radix.
+
+### D3120 — Comparing without case is `core/unicode`'s, by full folding a scalar at a time, and an ASCII form stands beside it
+
+**The tour said** nothing; D2619 makes case Unicode's default mappings, and the maintainer's answer of 2026-11-27 leaves their tailoring for Turkish, Azerbaijani and Lithuanian to the item that brings the locale value.
+
+**Chosen:** `unicode.equal_caseless`, `starts_with_caseless` and `ends_with_caseless` compare each side's full case folding, read a scalar at a time from the source with no buffer, so "Straße" equals "STRASSE": Unicode's caseless match, its D144. A prefix or suffix must end where a scalar of the source does, so "STRASSE" begins with "straß" and "ß" does not begin with "s"; the source can then be sliced there. `equal_canonical_caseless` is Unicode's canonical caseless match, D145, the NFD of the folding of each text's NFD, so "Å" as U+00C5, as "A" with U+030A and as U+212B all equal "å"; the normalizer's reader yields the inner NFD, and a second reader of the same algorithm, whose places hold the first's state, puts what folding and decomposing give in canonical order again, which U+0345, a mark that folds to U+03B9, a starter, requires. No caseless search is given beside these: `core/regex`'s `(?i)` searches by simple folding, and a search by full folding folds both texts and searches with `text.find`. `text.equal_ascii_caseless`, `starts_with_ascii_caseless` and `ends_with_ascii_caseless` fold A to Z alone, named as the ASCII variant, for an image that cannot carry the case tables and for protocols whose names are ASCII.
+
+**The alternatives:** comparing `append_folded`'s results, which needs a buffer as long as each folding; simple folding, which leaves "ß" apart from "ss"; a caseless `find`, which full folding makes a search over a text that is not the source's bytes, and which no measured caller needs beside `(?i)`; and the ASCII form as the only one, which Jan declined on 2026-11-27, since Landin's text is Unicode.
+
+**Pinned by** `runtime/unicode-caseless`, `runtime/unicode-caseless-scalars`, which holds every scalar's comparisons with its mappings and its neighbour to the database's folding by digest, and `runtime/unicode-caseless-sequences`, which holds the canonical match among every NormalizationTest line's forms to D145 over the database.
+
 ### D2634 — `core/complex` is one generic struct and one routine per function over `math.floating`
 
 **The tour said** nothing about complex numbers; the roadmap asks for them over `f32` and `f64` with C's Annex G treatment of infinities.
@@ -46708,6 +47619,16 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** `core/failure` importing `core/regex`, which costs every hosted program those 2.2 seconds; the atoms in `core/text`, which `core/failure` already imports, under names that would say `text` for a regular expression's failure; and a submodule holding the atoms alone, which a program would import to name them. All were declined.
 
 **Pinned by** `scripts/tests/test_check_controls.py`'s `FailureWords`, which holds a module's own words to its atoms, and `runtime/regex-api`.
+
+### D2834 — A search sets its literal prefilter aside once it stops at nearly every byte
+
+**The tour said** nothing; D2678 has a search skip to the next of a pattern's literals, and search for them alone when they are the whole pattern.
+
+**Chosen:** a search, and a walk over its haystack's matches through the walk's cursor, keeps a watch over its prefilter: the positions it tried, those whose byte begins a literal, and how far it moved. Once it has tried 40, a prefilter that has moved less than twice its longest literal a position tried is set aside for the rest of the search or walk, and the search goes on from the position the prefilter reached, which no literal before it begins at, with the lazy DFA alone; this is the rule the aho-corasick crate's prefilter state keeps. A pattern compiled with `with_engine(literal_prefilter)`, or whose DFA cannot be built, keeps its prefilter. regex-redux's variants are each a set of literals whose first bytes are two or three of DNA's four, so the prefilter tried every other byte: FASTA's output for 5,000,000 took 36.3 s, the DFA alone a third of that, and takes 10.6 s with the watch, on the host of `compiler/tests/big/README.md`, against 12.5 s for Python's `re`; the output is the same.
+
+**The alternatives:** choosing the prefilter at compile time by how many first bytes its literals have, which cannot know the haystack, since two first bytes are rare in English and half of DNA; a table of how often each byte occurs, the crate's `memchr` ranking, which is a guess about the haystack that DNA breaks; and a faster scalar scan alone, which still stops at every other byte. All were declined.
+
+**Pinned by** `runtime/benchmark-game-regex-redux`, whose output the watch leaves the same, and `runtime/regex-engines-agree` and `runtime/regex-linear-time`, which hold every engine to the Pike VM and each search to linear work.
 
 ### D2694 — `core/dense` is a vector and a matrix view over the caller's storage, generic over `math.floating`
 
@@ -46868,3 +47789,113 @@ forgets a join, or a second library value is as unsafe to forget.
 **The alternatives:** a second entry taking the spec, which every existing conformance would have to add; a concept of its own for values that read a spec, which an `any formattable` cannot be asked for; and refusing a part a value does not read, which needs the value's type when the template is checked, before any value is looked at.
 
 **Pinned by** `runtime/core-text-format-spec`'s program types, one reading `x` through `text.placeholder` and one formatting a pair inside its own conformance, padded by the outer placeholder.
+
+### D3034 — `core/bits` counts and moves bits at each unsigned width, written once from shifts
+
+**The tour said** nothing about counting or moving bits, and `core/big` and `core/random` each kept a private copy of what they needed: a limb's leading and trailing zeros, a rotation and a little-endian read. The roadmap asks for Go's `math/bits` and Rust's integer methods at each unsigned width.
+
+**Chosen:** `core/bits` declares the concept `bits.unsigned`, which `u8`, `u16`, `u32` and `u64` meet, and the routines over it, as `core/math` does over `math.floating`: `ones`, `leading_zeros`, `trailing_zeros`, `bit_length`, `rotate_left`, `rotate_right`, `reverse_bytes`, `reverse_bits`, `multiply_wide`, `add_carry` and `subtract_borrow`. A count is a `u32`, as Rust's are; a rotation takes any count, modulo the width; a carry or a borrow is a `bool` in and out. Each is written in Landin from shifts, masks and additions: the narrow widths widen to the `u32` routine and a `u64` works on its two halves, so a 32-bit target does it in its own registers and every target gives the same answer. Selecting `popcnt`, `lzcnt` or `rbit` for them stays the optimization lane's. `bit_length`, not Go's `Len`, because `length` is how many items a value holds (D2031).
+
+**The alternatives:** one routine per width, `ones_u32` and the like, which is four names for each idea (D1953); and the instructions in assembly per target, which Cortex-M0 and RV32 lack and which is R16's to choose.
+
+**Pinned by** `runtime/bits-every-u8`, which checks every input of each one-operand routine at every rotation count to twice the width, and every pair of operands, against references written bit by bit in the program; `runtime/bits-every-u16`, which checks every input of each one-operand routine against byte tables the program builds bit by bit and against arithmetic, with three rotation counts each so that every count meets almost two thousand inputs, and `runtime/bits-every-u16-pairs` and `runtime/bits-every-u16-pairs-high`, each half of the inputs against three second operands that meet every carry and borrow at its edge, each with an alternating carry in, split so that each fits the twenty seconds an emulator gives a firmware run; `runtime/bits-oracle`, whose digests of 2048 drawn cases a width at `u32` and `u64` `scripts/bits_oracle.py` computes with Python's integers; each runs on every target, the firmware lanes included; and `runtime/library-shared-bits`.
+
+### D3035 — Bytes are read and written at an offset the caller passes `inout`, and a failed call moves nothing
+
+**The tour said** nothing; the roadmap asks for a reader and a writer over a caller's byte slice, in little or big order, failing rather than trapping on a short read, as Go's `encoding/binary` and Rust's `byteorder` do.
+
+**Chosen:** each routine takes the bytes and `at`, the offset of the next byte, and moves `at` past what it read or wrote: `bits.read_u8` to `bits.read_i64`, their `write_*` counterparts into a `[]mut u8`, `bits.skip` and `bits.take`, with the order an atom, `bits.little` or `bits.big`. Only `at` is passed `inout`, so a view `take` lends is `from` the bytes, not from a reader, and lives while reading goes on; a reader holding the slice was tried, and `take` from it locked the reader for as long as a name it lent was used, which L0315 refused in the first parser written over it. A short read fails `mem.out_of_bounds`, the atom for a read past a source (D2028), and a write with too little room `mem.out_of_memory` (D2029). A failed call leaves `at` where it was, so a program may try another reading of the same bytes.
+
+**The alternatives:** a reader and a writer type holding the slice, declined for the lock above; one routine generic over the eight widths, which needs a concept over the signed widths and a type argument at every call; and a trap on a short read, which the roadmap rules out.
+
+**Pinned by** `runtime/bits-byte-order`, which round-trips every width in both orders, checks the bytes each order lays down, uses a taken view after later reads, and refuses every short read and a full buffer at each length without moving `at`, and the published example `runtime/example-wasm-sections`.
+
+### D3036 — A LEB128 integer takes at most the ten bytes 64 bits need, padding included
+
+**The tour said** nothing. DWARF, WebAssembly and protocol buffers write LEB128, and linkers pad an encoding with bytes of zero bits so a relocation can rewrite it in place.
+
+**Chosen:** `bits.read_uleb128` and `bits.read_sleb128` read a `u64` and an `i64`. An encoding longer than its value needs is accepted up to ten bytes, as WebAssembly's limit of the width's bytes accepts it; an eleventh byte, or a tenth byte with bits past the 64th, other than a signed encoding's repeated sign, fails the new atom `bits.invalid_varint`, which `failure.reason` and `failure.words` carry. Input that ends inside an encoding fails `mem.out_of_bounds`. `bits.write_uleb128` and `bits.write_sleb128` write the fewest bytes.
+
+**The alternatives:** refusing a non-minimal encoding, which would refuse what linkers write; and Go's `Uvarint`, which reports an overflow as a negative count rather than a failure.
+
+**Pinned by** `runtime/bits-varints`: known encodings at both signs and both ends of the range, every length from one byte to ten in both encodings, padding accepted, and truncated, eleven-byte and overflowing ones refused with their atoms.
+
+### D3037 — A set's union, intersection, difference and emptiness are library routines, not a language rule
+
+**The tour said** at [0730] that a set is a packed struct of `bool` and has no set operator, because a struct needs none. The roadmap asks whether combining two sets needs a language rule or library functions, so that flags outside a register need no masks.
+
+**Chosen:** library routines. `bits.union`, `bits.intersection`, `bits.difference` and `bits.is_empty` are generic over a type that meets `bits.flags`, a concept with no entries, which a set's type states with `is bits.flags ()`; they combine the images' bytes, which D228 makes the whole of a packed image. The conformance is the program's statement that every field is a `bool` or an array of them: a packed struct with a number or a selection in it is not a set, and nothing checks that, as nothing checks a conformance's meaning elsewhere. `is_empty` counts a bit no field claims, so an image read from a device with a reserved bit set is not empty. [0730] keeps its sentence, and gains one pointing here.
+
+**The alternatives:** `|`, `&` and a complement on packed structs of `bool`, a language rule [0730] declined and which a library routine gives without; a compiler-owned concept met by exactly those structs, a second beside `zeroable` (D1958) for four routines; and routines with no bound at all, which would combine any struct's bytes without the program saying it meant a set.
+
+**Pinned by** `runtime/bits-sets`, over a named set with a gap in a `u32` carrier, an eight-bit set over every pair of its values and sixteen pins as an array field, with a reserved bit making an image nonempty.
+
+### D3038 — `core/big` and `core/random` use `core/bits`, and `core/big/limbs` gives up its zero counts
+
+**The tour said** nothing. The roadmap asks that the library's private copies give way to the new operations, with the fixtures of the modules that held them unchanged.
+
+**Chosen:** `limbs.leading_zeros` and `limbs.trailing_zeros` leave `core/big/limbs`, whose callers in `core/big` and `core/text` call `bits.leading_zeros`; `core/big` came after the last release, so no removed-name entry is owed. `core/random` rotates with `bits.rotate_left` and reads its entropy's words with `bits.read_u64`. Three routines in `core/text` and `core/big` whose result was named `bits` hid the import, which L0301 said in those words, and their result is now `pattern`. `core/cmp`'s SipHash keeps its own rotations, since `core/cmp` imports nothing.
+
+**The alternatives:** keeping the limb layer's names as forwards to `core/bits`, two names for one idea (D1953).
+
+**Pinned by** `runtime/big-limbs`, whose table and results are unchanged and which now calls `bits.leading_zeros` and `bits.trailing_zeros`, the other `big-*` fixtures and `runtime/library-shared-random`, each unchanged.
+
+### D3039 — A binding spelled as the module type it hides is named as that in the refusal
+
+**The tour said** at [1450] that a parameter or a local may shadow a module's declaration. A parameter written `order: order`, beside a module type `order`, reaches itself in its own signature, and the type position was refused with L0338's "`order` names something that is not a type", which reads as though the type were missing; `core/bits`'s first signatures met it.
+
+**Chosen:** where the binding a type position reaches hides a module declaration, L0338 says so: "`order` here is the parameter `order`, which hides the type `order`, and a parameter or local is not a type", with the binding as the related place and [1450]'s note to rename it. The code and the rule are unchanged; D1260's case, a binding spelled as a predeclared scalar, keeps its own note.
+
+**The alternatives:** letting a type position look past a binding to the type it hides, which would make one spelling mean two things in one signature.
+
+**Pinned by** `negative/a-parameter-hides-the-type-it-names`, a parameter and a local each spelled as the module type they hide.
+
+### D3094 — A command line is read by `core/args`, against a table the program makes as values
+
+**The tour said** at [1650] and [1660] that a program's arguments are host strings `io.argument` lends, and nothing about options; R20 left where a parser lives and what its failures are called to this item, and RP3 rules out deriving a parser from a declaration at compile time.
+
+**Chosen:** a module of its own, `core/args`, freestanding, beside `core/io`. A program makes its table when it runs, an array of `args.argument` rows that `flag`, `counted`, `option` and `positional` make and `required`, `optional`, `repeated`, `typed` and `with_default` change, and a command from a name, a line of help and the table, `command_of`, with `with_commands` for the commands below it. A row is named by its long name, or a positional argument's name, which is also what the program reads it back by, `count`, `get`, `get_at` and `value_of`; an option has to have one. `parse` reads any `[][]u8` and `parse_process` a process's arguments through `io.process`, into an `args.found` that `new` makes and the caller holds: the table and the words escape into it (`escaping into`), and nothing is returned `from` them, since a writable result that holds the caller's allocation and lends the table is the independent storage D222 refuses. The refusal is kept in the same record, so `explain`, `usage_for` and `help_for` take the record, and an allocator's failure is recorded there too. The failures are atoms of the module's own, one per refusal (D2028's naming): `unknown_option`, `missing_value`, `unexpected_value`, `invalid_value`, `missing_argument`, `extra_argument`, `unknown_command`, `missing_command`, `repeated_option`, `help_asked`, `invalid_table` and `mem.out_of_memory`, with `args.words` their phrases, as `core/regex` keeps its own (D2683).
+
+**The alternatives:** a parse returning its record `from` the table and the words, which D222 refuses once the record holds allocated storage; a refusal the caller passes beside the record, which made every internal routine retain into two parameters, which `escaping into` cannot name; a builder of options by chained calls on a parser value, which is the table with more calls; and the parser in `core/io`, which would make every program that reads a file check it. All were declined.
+
+**Pinned by** `runtime/args-forms`, `runtime/args-refusals`, `runtime/args-help` and `runtime/args-commands`.
+
+### D3095 — An option's value is the next word, `-h` and `--help` ask for help, and a command's options come before its command's word
+
+**The tour said** nothing.
+
+**Chosen:** an option's value is what follows its letter or its `=` in the same word, `-n5` and `--lines=5`, or else the next word whatever it begins with, so `-n -5` gives `-5`, as getopt and Go's `flag` take it; a positional argument that begins with `-` follows `--`, and a `-` alone is positional. A flag in a cluster leaves the letters after it to be read as flags, and an option in a cluster takes the rest of the word. A flag or option given twice is refused unless the row is `counted` or `repeated`, as clap refuses one; `get` gives the last value given or the default. Required positional arguments come before optional ones and the repeated one is last, which a table that breaks it is refused for as `invalid_table`, and so is a row with no name, two rows with one name or letter, a default its type does not read, a command with both positional arguments and commands, and commands nested deeper than `args.deepest`. A command that has commands takes options only: its first positional word names the command below, and the options of each command are given before the word that chooses the next; a name read back is looked up from the innermost command chosen outwards. `-h` and `--help` are answered unless the table takes the letter or the name, and fail `parse` with `help_asked`, which `args.reply` answers with the help on standard output and the status 0, as Go's `flag.ErrHelp` is answered; any other refusal is written on standard error with the usage line, and the status is 2, as both Go's `flag` and clap exit. A name read back that no command followed declares stops the program as a failed check does, and so does `value_of` for an argument with no value: both are the program's defects.
+
+**The alternatives:** refusing a value that begins with `-`, as clap does by default, which makes every negative number need `=`; allowing an option after its command's word, global options, which a table of its own per command expresses; abbreviations of long names, which change meaning when an option is added; and `help` as an ordinary flag the program tests, which every program would write the same way. All were declined.
+
+**Pinned by** `runtime/args-forms`'s `-s -3`, `-vn5`, `-qn 7` and `-- -a`, and `runtime/args-refusals`' second `--verbose` and its tables.
+
+### D3096 — A value type is a reader and the phrase a refusal says it expects, so an image links only the readers its table names
+
+**The tour said** nothing; [1000] makes a function a value a field may hold, and D2617 chose the same for `core/unicode`'s walks.
+
+**Chosen:** `args.value_type` is a record of a reader, a function that reads a value's bytes into the number fields of an `args.value`, and the phrase `explain` says it expected; `as_host_string`, `as_text`, `as_unsigned`, `as_signed` and `as_float` are module values of it. A row holds the one `typed` gave it, and `parse` calls it through the field, so a program links a reader only where its table names one. On Cortex-M0 the probe's image was 61 KB at `size/auto` while the type was an atom the parser matched on, which linked `text.parse_f64` and the soft float into every image, and 39 KB once it was a reader. A text value keeps its bytes, checked as UTF-8 when it was read, and `text_of` lends them as `utf8`.
+
+**The alternatives:** an atom per type matched in the parser, which links every reader into every program; a reader the program writes for itself as a function value, which is the same record with no phrase for the refusal; and a field of `utf8` in every value, which a program that reads paths carries for nothing. All were declined.
+
+**Pinned by** `runtime/args-forms`, which reads each type, and `runtime/library-shared-args`, whose table reads no number.
+
+### D3097 — On Cortex-M0 the parser fits at the optimised profiles, and its probe runs on the M7's map
+
+**The tour said** nothing; D2680 sent `core/regex`'s probe to the Cortex-M7 lane for the same reason.
+
+**Chosen:** `runtime/library-shared-args` parses a counted flag, an option and a positional argument into an arena and refuses an unknown option: 21,840 bytes of flash at `size/auto`, 21,852 at `size/off` and 21,868 at `speed/auto`, which execute on Cortex-M0, and 35,708 at `none/off`, which gives every IR slot a frame home of its own and is past the 32 KiB profile by 2,940. Its corpus row records that limit and the fixture names no `cortex-m0`; `core/args` is among the freestanding lane's outsized modules, which run their probe on the M7's map. Putting the refusal in words with `explain` and writing the usage line take the `size/auto` image to 36,360 bytes, so a firmware program says a refusal with `args.words`. The cuts that took the image from 39 KB to 21.9 KB are kept: the chain of commands is a fixed array of `args.deepest` rather than a second list, a long and a short option take their value through one routine, and each loop reads a row's fields where they are rather than copying the row.
+
+**The alternatives:** a smaller parser for firmware, a second module with a second table form; and the probe trimmed until `none/off` fits, which at 34.7 KB with one parse and one value read still did not. Both were declined.
+
+**Pinned by** `runtime/library-shared-args`' corpus row and `environments/cortex-m/freestanding.py`'s `OUTSIZED`.
+
+### D3098 — The examples read their arguments through `core/args`, and the Benchmark Game programs keep reading their one number by hand
+
+**The tour said** at [1650] how a program reads its arguments, which its own line counter still teaches with `io.argument`.
+
+**Chosen:** the examples page's line count, sum, dice, plugin loader, directory listing and tree copy declare their arguments to `core/args` and read them back from it, and a refused argument is answered by `args.reply`, with the status 2. The five Benchmark Game programs keep reading their one number with `io.argument`, as the reference programs they are measured against read `argv[1]`, so that what `docs/benchmarks.md` compares stays what the other languages' programs do. The tree copy takes two paths or none; a table cannot say that two arguments come together, so its `main` refuses one path alone itself.
+
+**The alternatives:** moving the Benchmark Game programs too, which adds the parser to images measured against programs that have none; and leaving the examples as they were, which the item's exit evidence declines.
+
+**Pinned by** `runtime/line-count`, `runtime/example-sum-arguments`, `runtime/example-dice-and-cards`, `runtime/plugin-loading`, `runtime/directory-listing` and `runtime/tree-copy`.

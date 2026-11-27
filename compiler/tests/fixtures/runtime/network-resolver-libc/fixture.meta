@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: the network-resolver program linked with --link=libc, so that Linux resolves through the C library's getaddrinfo
+program: ../network-resolver/main.ldn
+link: libc
+status: 42
+constructs: 0680, 0940, 1030, 1660
+targets: linux-x86-64, linux-arm64, linux-rv64
