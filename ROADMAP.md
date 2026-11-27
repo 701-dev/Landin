@@ -4365,8 +4365,8 @@ and folding. This item adds comparing two texts without case, equality, a
 prefix and a suffix, by full case folding scalar by scalar with no
 buffer, so "Straße" equals "STRASSE", and the canonical caseless match,
 with normalization, beside it; case conversion stays `append_upper` and
-`append_lower`. The default folding is wrong for Turkish, Azerbaijani and
-Lithuanian, and Q-410 asks which item tailors it. Where a 32 KiB image
+`append_lower`. The calls are locale-free, and the default folding is
+wrong for Turkish, Azerbaijani and Lithuanian; R22.50 tailors it (Q-410). Where a 32 KiB image
 cannot carry the case tables, an ASCII variant beside each, named as
 one, folds only A to Z. Which caseless searches beyond the prefix and
 suffix are worth their cost, given `core/regex`'s case-insensitive
@@ -4397,7 +4397,7 @@ image size on Cortex-M0 measured for the Unicode and the ASCII forms.
 ### R22.50 — Locale formatting
 
 Status: planned
-Depends on: R22.20, R22.30
+Depends on: R22.20, R22.30, R22.45
 
 Numbers and text formatted for a locale, an explicit value from a BCP 47
 identifier and never global state, from generated CLDR data a program
@@ -4405,8 +4405,12 @@ uses in part: SR-98's locale half, with R22.20's template width and
 precision applied to a locale's digits and separators. From R20: a
 locale is an explicit value (D1955), and the host's preferred one is read
 through `hosted/system`; how formatting evidence takes one is this item's.
-Exit evidence: CLDR's own test data pass for the locales generated; a
-program that uses one locale carries only its data.
+With the same locale value it tailors case mapping, folding and
+caseless comparison for Turkish, Azerbaijani and Lithuanian, which
+`core/unicode` and R22.45 leave at Unicode's defaults (Q-410).
+Exit evidence: CLDR's own test data pass for the locales generated; the
+tailored cases pass the Unicode database's special casing for the three
+languages; a program that uses one locale carries only its data.
 
 ### R22.60 — Regular expressions
 
