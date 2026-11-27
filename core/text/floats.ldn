@@ -1,0 +1,527 @@
+--  Floats written as text: the shortest decimal that reads back as the
+--  same float, laid out as a Landin float literal is written, and the
+--  exact value rounded once to a number of places, after the point or
+--  after the first digit.  The exact value of a finite float is a whole
+--  number of decimal digits, its significand times a power of two, which
+--  big/limbs multiplies out; no float arithmetic is used, so every target
+--  writes the same text.
+
+import core/big/limbs
+import core/mem
+
+--  The parts of a float's bits: its sign, whether it is finite, a NaN or
+--  zero, the stored fields the shortest writer takes, and its value as a
+--  whole significand times 2^`power`.
+parts_value: type = struct
+    negative: bool
+    finite: bool
+    not_a_number: bool
+    zero: bool
+    stored: u64
+    exponent: u32
+    mantissa_bits: u32
+    bias: i32
+    significand: u64
+    power: i32
+end parts_value
+
+--  How a float is laid out: the shortest digits as a literal, or in the
+--  exponent form, or rounded to places after the point or after the
+--  first digit.
+literal_form: atom
+exponent_form: atom
+fixed_form: atom
+places_form: atom
+float_form: type = literal_form | exponent_form | fixed_form | places_form
+
+--  The parts of a float of `mantissa_bits` stored bits and an exponent
+--  field of `exponent_bits`, from its bits.
+parts_of: (bits: u64, mantissa_bits: u32, exponent_bits: u32) -> (result: parts_value) =
+    mb: u64 = u64(mantissa_bits)
+    field: u64 = (u64(1) << u64(exponent_bits)) - 1
+    stored: u64 = bits & ((u64(1) << mb) - 1)
+    exponent: u64 = (bits >> mb) & field
+    bias: i32 = i32((u64(1) << u64(exponent_bits - 1)) - 1)
+    negative: bool = (bits >> (mb + u64(exponent_bits))) & 1 == 1
+    mut significand: u64 = stored
+    mut power: i32 = 1 - bias - i32(mantissa_bits)
+    if exponent <> 0 then
+        significand = stored | (u64(1) << mb)
+        power = i32(exponent) - bias - i32(mantissa_bits)
+    end if
+    result = (negative: negative, finite: exponent <> field,
+              not_a_number: exponent == field and stored <> 0,
+              zero: exponent == 0 and stored == 0, stored: stored,
+              exponent: u32(exponent), mantissa_bits: mantissa_bits,
+              bias: bias, significand: significand, power: power)
+end parts_of
+
+parts_64: (value: f64) -> (result: parts_value) =
+    view: ptr u64 = ptr(usize(addr value))
+    result = parts_of(view.val, 52, 11)
+end parts_64
+
+parts_32: (value: f32) -> (result: parts_value) =
+    view: ptr u32 = ptr(usize(addr value))
+    result = parts_of(u64(view.val), 23, 8)
+end parts_32
+
+zero_run: []u8 = "00000000000000000000000000000000"
+
+--  Append `count` zeros, a run at a time.
+zeros: (inout into: builder, count: usize) -> none ! mem.out_of_memory =
+    mut left: usize = count
+    while left > 0 do
+        piece: usize = if left < lenof zero_run then left else lenof zero_run end if
+        try append(into, zero_run[0..<piece])
+        left -= piece
+    end while
+end zeros
+
+--  The decimal digits of `value` into the start of `into`, as many as it
+--  has, and how many: `0` for zero.
+digits_of: (into: []mut u8, value: u64) -> (count: usize) =
+    mut scan: u64 = value
+    count = 1
+    while scan >= 10 do
+        scan /= 10
+        inc count
+    end while
+    mut rest: u64 = value
+    mut at: usize = count
+    while at > 0 do
+        dec at
+        into[at] = u8(rest % 10) + u8('0')
+        rest /= 10
+    end while
+end digits_of
+
+--  Append the decimal digits of the signed `value`.
+exponent_digits: (inout into: builder, value: i32) -> none ! mem.out_of_memory =
+    if value < 0 then
+        try append_byte(into, u8('-'))
+        try decimal_u32(into, u32(0 - value))
+    else
+        try decimal_u32(into, u32(value))
+    end if
+end exponent_digits
+
+--  The sign a float's text begins with: `-` for a negative, `+` for any
+--  other when `plus` asks for one, else nothing.
+signed: (inout into: builder, negative: bool, plus: bool) -> none ! mem.out_of_memory =
+    if negative then
+        try append_byte(into, u8('-'))
+    elsif plus then
+        try append_byte(into, u8('+'))
+    end if
+end signed
+
+--  Write `piece` into `line` at `at` and give the offset after it.
+put: (line: []mut u8, at: usize, piece: []u8) -> (after: usize) =
+    for byte, offset in piece do
+        line[at + offset] = byte
+    end for
+    after = at + lenof piece
+end put
+
+--  Write `count` zeros into `line` at `at` and give the offset after them.
+put_zeros: (line: []mut u8, at: usize, count: usize) -> (after: usize) =
+    for offset in usize(0)..<count do
+        line[at + offset] = u8('0')
+    end for
+    after = at + count
+end put_zeros
+
+--  Write the signed decimal `value` into `line` at `at` and give the
+--  offset after it.
+put_exponent: (line: []mut u8, at: usize, value: i32) -> (after: usize) =
+    mut next: usize = at
+    if value < 0 then
+        line[next] = u8('-')
+        inc next
+    end if
+    mut digits: [12]u8 = zeroed
+    count: usize = digits_of(digits[0..<12], u64(if value < 0 then 0 - value
+                                                 else value end if))
+    after = put(line, next, digits[0..<count])
+end put_exponent
+
+--  The sign of a float's text into `line`: `-` for a negative, `+` for
+--  any other when `plus` asks for one, else nothing.
+put_sign: (line: []mut u8, negative: bool, plus: bool) -> (after: usize) =
+    after = 0
+    if negative or plus then
+        line[0] = if negative then u8('-') else u8('+') end if
+        after = 1
+    end if
+end put_sign
+
+--  Append an infinity or a NaN: `NaN` without a sign, and `inf` after it.
+nonfinite_text: (inout into: builder, parts: parts_value, plus: bool)
+                -> none ! mem.out_of_memory =
+    mut line: [8]u8 = zeroed
+    mut at: usize = 0
+    if parts.not_a_number then
+        at = put(line[0..<8], 0, "NaN")
+    else
+        at = put(line[0..<8], put_sign(line[0..<8], parts.negative, plus), "inf")
+    end if
+    try append(into, line[0..<at])
+end nonfinite_text
+
+--  Append the shortest text of a float from its parts, as a literal or in
+--  the exponent form with `letter` before the exponent.  The text is
+--  laid out in a buffer and appended whole: a sign, seventeen digits, a
+--  point, four zeros or an exponent fit 32 bytes.
+shortest_text: (inout into: builder, parts: parts_value, plus: bool,
+                form: float_form, letter: u8) -> none ! mem.out_of_memory =
+    if parts.not_a_number or not parts.finite then
+        try nonfinite_text(into, parts, plus)
+        return
+    end if
+    mut line: [32]u8 = zeroed
+    mut at: usize = put_sign(line[0..<32], parts.negative, plus)
+    mut digits: [20]u8 = zeroed
+    mut count: usize = 1
+    mut point: i32 = 1
+    digits[0] = u8('0')
+    if not parts.zero then
+        found: decimal_value = shortest(parts.stored, parts.exponent,
+                                        parts.mantissa_bits, parts.bias)
+        count = digits_of(digits[0..<20], found.digits)
+        point = found.exponent + i32(count)
+    end if
+    shown: []u8 = digits[0..<count]
+    scientific: i32 = point - 1
+    if form == literal_form and scientific >= -4 and scientific < 16 then
+        if point <= 0 then
+            at = put(line[0..<32], at, "0.")
+            at = put_zeros(line[0..<32], at, usize(0 - point))
+            at = put(line[0..<32], at, shown)
+        elsif usize(point) >= count then
+            at = put(line[0..<32], at, shown)
+            at = put_zeros(line[0..<32], at, usize(point) - count)
+            at = put(line[0..<32], at, ".0")
+        else
+            at = put(line[0..<32], at, shown[0..<usize(point)])
+            at = put(line[0..<32], at, ".")
+            at = put(line[0..<32], at, shown[usize(point)..<count])
+        end if
+    else
+        at = put(line[0..<32], at, shown[0..<1])
+        at = put(line[0..<32], at, ".")
+        at = put(line[0..<32], at, if count == 1 then "0" else shown[1..<count] end if)
+        line[at] = letter
+        at = put_exponent(line[0..<32], at + 1,
+                          if parts.zero then 0 else scientific end if)
+    end if
+    try append(into, line[0..<at])
+end shortest_text
+
+--  A float's exact decimal digits: `count` of them, the first not zero,
+--  at the start of the caller's bytes, with `point` of them before the
+--  decimal point.
+exact_value: type = struct
+    count: usize
+    point: i32
+end exact_value
+
+--  The exact digits of the finite, nonzero `significand` times
+--  2^`power` into `digits`, through `number`, limbs enough for the whole
+--  number, which the digits are divided out of.
+exact_digits: (significand: u64, power: i32, number: []mut u32,
+               digits: []mut u8) -> (result: exact_value) =
+    limbs.clear(number)
+    number[0] = u32(significand & 0xffffffff)
+    number[1] = u32(significand >> 32)
+    mut length: usize = 2
+    mut fraction: i32 = 0
+    if power >= 0 then
+        --  A whole number: the significand moved up by whole limbs, then
+        --  by the bits left.
+        whole: usize = usize(power) / 32
+        bits: u32 = u32(power) % 32
+        if whole > 0 then
+            mut at: usize = length
+            while at > 0 do
+                dec at
+                number[at + whole] = number[at]
+                number[at] = 0
+            end while
+            length += whole
+        end if
+        out: u32 = limbs.shift_left(number[0..<length], number[0..<length], bits)
+        number[length] = out
+        inc length
+    else
+        --  significand / 2^n is significand times 5^n over 10^n.
+        fraction = 0 - power
+        mut left: i32 = fraction
+        while left > 0 do
+            step: i32 = if left >= 13 then 13 else left end if
+            factor: u32 = u32(five_factors[usize(step)])
+            high: u32 = limbs.multiply_limb(number[0..<length], number[0..<length],
+                                            factor)
+            if high <> 0 then
+                number[length] = high
+                inc length
+            end if
+            left -= step
+        end while
+    end if
+    --  Nine digits at a time from the last, divided out of the number in
+    --  place, then moved to the front.
+    mut left: usize = limbs.significant(number[0..<length])
+    mut end_at: usize = lenof digits
+    while left > 0 do
+        mut chunk: u32 = limbs.divide_limb(number[0..<left], number[0..<left],
+                                           1000000000)
+        left = limbs.significant(number[0..<left])
+        mut place: usize = 0
+        while place < 9 and (left > 0 or chunk > 0) do
+            dec end_at
+            digits[end_at] = u8('0') + u8(chunk % 10)
+            chunk /= 10
+            inc place
+        end while
+    end while
+    count: usize = lenof digits - end_at
+    for at in usize(0)..<count do
+        digits[at] = digits[end_at + at]
+    end for
+    result = (count: count, point: i32(count) - fraction)
+end exact_digits
+
+--  Round the `count` exact digits in `digits` to their first `keep`, to
+--  nearest with ties to even, and say how many digits are left and
+--  whether a carry out of the first added one before them, in which case
+--  `digits` begins `1` and the rest are zeros.
+rounding_value: type = struct
+    count: usize
+    carried: bool
+end rounding_value
+
+rounded_to: (digits: []mut u8, count: usize, keep: i32) -> (result: rounding_value) =
+    result = (count: count, carried: false)
+    if keep < 0 then
+        --  Below half of the last place kept: nothing is left.
+        result = (count: 0, carried: false)
+        return
+    end if
+    kept: usize = usize(keep)
+    return when kept >= count
+    first: u8 = digits[kept]
+    mut up: bool = first > u8('5')
+    if first == u8('5') then
+        mut beyond: bool = false
+        for at in kept + 1..<count do
+            if digits[at] <> u8('0') then
+                beyond = true
+            end if
+        end for
+        previous: u8 = if kept == 0 then u8('0') else digits[kept - 1] end if
+        up = beyond or (previous - u8('0')) % 2 == 1
+    end if
+    result = (count: kept, carried: false)
+    return when not up
+    mut at: usize = kept
+    while at > 0 do
+        dec at
+        if digits[at] == u8('9') then
+            digits[at] = u8('0')
+        else
+            digits[at] = digits[at] + 1
+            return
+        end if
+    end while
+    --  Every kept digit was a nine, or none was kept: the carry makes a
+    --  new first digit, and the digits after it are zeros.
+    digits[0] = u8('1')
+    if kept > 0 then
+        digits[kept] = u8('0')
+    end if
+    result = (count: kept + 1, carried: true)
+end rounded_to
+
+--  The digit at place `at` of the `count` digits in `digits`, zero
+--  outside them.
+digit_at: (digits: []u8, count: usize, at: i32) -> (digit: u8) =
+    digit = u8('0')
+    if at >= 0 and usize(at) < count then
+        digit = digits[usize(at)]
+    end if
+end digit_at
+
+--  Append digits `first` up to `last` of the `count` in `digits`, with zeros
+--  outside them.
+run_of: (inout into: builder, digits: []u8, count: usize, first: i32, last: i32)
+        -> none ! mem.out_of_memory =
+    mut at: i32 = first
+    if at < 0 then
+        lead: i32 = if last < 0 then last else 0 end if
+        try zeros(into, usize(lead - at))
+        at = lead
+    end if
+    return when at >= last
+    available: i32 = if i32(count) < last then i32(count) else last end if
+    if at < available then
+        try append(into, digits[usize(at)..<usize(available)])
+        at = available
+    end if
+    try zeros(into, usize(last - at))
+end run_of
+
+--  Append a finite float's exact value rounded to `places`: after the
+--  point for `fixed_form`, after the first digit for `places_form`.
+exact_text: (inout into: builder, parts: parts_value, plus: bool,
+             form: float_form, places: usize, letter: u8,
+             number: []mut u32, digits: []mut u8)
+            -> none ! mem.out_of_memory =
+    if parts.not_a_number or not parts.finite then
+        try nonfinite_text(into, parts, plus)
+        return
+    end if
+    try signed(into, parts.negative, plus)
+    mut count: usize = 0
+    mut point: i32 = 1
+    if not parts.zero then
+        exact: exact_value = exact_digits(parts.significand, parts.power,
+                                          number, digits)
+        count = exact.count
+        point = exact.point
+    end if
+    if form == fixed_form then
+        done: rounding_value = rounded_to(digits, count,
+                                          point + i32(places))
+        if done.carried then inc point end if
+        count = done.count
+        if point <= 0 then
+            try append_byte(into, u8('0'))
+        else
+            try run_of(into, digits, count, 0, point)
+        end if
+        return when places == 0
+        try append_byte(into, u8('.'))
+        try run_of(into, digits, count, point, point + i32(places))
+        return
+    end if
+    mut scientific: i32 = point - 1
+    if parts.zero then
+        scientific = 0
+    else
+        done: rounding_value = rounded_to(digits, count, i32(places) + 1)
+        if done.carried then inc scientific end if
+        count = done.count
+    end if
+    try run_of(into, digits, count, 0, 1)
+    if places > 0 then
+        try append_byte(into, u8('.'))
+        try run_of(into, digits, count, 1, 1 + i32(places))
+    end if
+    try append_byte(into, letter)
+    try exponent_digits(into, scientific)
+end exact_text
+
+--  Append a float's exact value rounded in `form` to `places`, putting
+--  the builder back as it was on a failure.  The limbs and bytes are the
+--  caller's, enough for the width's exact value.
+rounded_text: (inout into: builder, parts: parts_value, plus: bool,
+               form: float_form, places: usize, letter: u8,
+               number: []mut u32, digits: []mut u8)
+              -> none ! mem.out_of_memory =
+    start: usize = length(into)
+    exact_text(into, parts, plus, form, places, letter, number, digits)
+        else (problem)
+        truncate(into, start)
+        fail problem
+    end
+end rounded_text
+
+--  An `f64`'s exact value takes 80 limbs at most, a 53-bit significand
+--  times 5^1074, with one to spare for each multiplication, and 767
+--  digits; an `f32`'s 12 limbs, 24 bits times 5^149, and 112 digits.
+
+--  An `f64` rounded, its exact value worked in the frame: 1,108 bytes,
+--  and 172 for an `f32`.
+rounded_64: (inout into: builder, value: f64, plus: bool, form: float_form,
+             places: usize, letter: u8) -> none ! mem.out_of_memory =
+    mut number: [82]u32 = zeroed
+    mut digits: [780]u8 = zeroed
+    try rounded_text(into, parts_64(value), plus, form, places, letter,
+                     number[0..<82], digits[0..<780])
+end rounded_64
+
+rounded_32: (inout into: builder, value: f32, plus: bool, form: float_form,
+             places: usize, letter: u8) -> none ! mem.out_of_memory =
+    mut number: [13]u32 = zeroed
+    mut digits: [120]u8 = zeroed
+    try rounded_text(into, parts_32(value), plus, form, places, letter,
+                     number[0..<13], digits[0..<120])
+end rounded_32
+
+--  A float in any form, as a placeholder asks.
+f64_text: (inout into: builder, value: f64, plus: bool, form: float_form,
+           places: usize, letter: u8) -> none ! mem.out_of_memory =
+    if form == literal_form or form == exponent_form then
+        try shortest_text(into, parts_64(value), plus, form, letter)
+    else
+        try rounded_64(into, value, plus, form, places, letter)
+    end if
+end f64_text
+
+f32_text: (inout into: builder, value: f32, plus: bool, form: float_form,
+           places: usize, letter: u8) -> none ! mem.out_of_memory =
+    if form == literal_form or form == exponent_form then
+        try shortest_text(into, parts_32(value), plus, form, letter)
+    else
+        try rounded_32(into, value, plus, form, places, letter)
+    end if
+end f32_text
+
+--- Append an `f64` as the shortest text that reads back as the same
+--- value, laid out as a Landin float literal: digits on both sides of a
+--- point, `1.0`, `0.001`, `123.456`, and an exponent below 0.0001 and
+--- from 10^16 up, `1.0e16`, `2.5e-7`.  A negative value, negative zero
+--- included, begins with `-`; the infinities are `inf` and `-inf`, and
+--- every NaN is `NaN`.  Of the shortest decimals that read back, the one
+--- nearest the value is written, ties to even.
+public append_f64: (inout into: builder, value: f64) -> none ! mem.out_of_memory =
+    try shortest_text(into, parts_64(value), false, literal_form, u8('e'))
+end append_f64
+
+--- Append an `f32` as `append_f64` does, with the shortest text that
+--- reads back as the same `f32`: `0.1` for the `f32` nearest a tenth.
+public append_f32: (inout into: builder, value: f32) -> none ! mem.out_of_memory =
+    try shortest_text(into, parts_32(value), false, literal_form, u8('e'))
+end append_f32
+
+--- Append an `f64` with `places` digits after the point, its exact value
+--- rounded once to nearest with ties to even, as C's `printf("%.*f")`
+--- writes it: `3.142` for pi to three places, `0` and no point for none,
+--- `-0.00` for a small negative.  The infinities are `inf` and `-inf`,
+--- and NaN is `NaN`.
+public append_f64_fixed: (inout into: builder, value: f64, places: usize)
+                         -> none ! mem.out_of_memory =
+    try rounded_64(into, value, false, fixed_form, places, u8('e'))
+end append_f64_fixed
+
+--- Append an `f32` with `places` digits after the point, as
+--- `append_f64_fixed` does, from the `f32`'s own exact value.
+public append_f32_fixed: (inout into: builder, value: f32, places: usize)
+                         -> none ! mem.out_of_memory =
+    try rounded_32(into, value, false, fixed_form, places, u8('e'))
+end append_f32_fixed
+
+--- Append an `f64` with one digit before the point and `places` after
+--- it, then `e` and the power of ten, rounded once as
+--- `append_f64_fixed` rounds: `6.022e23`, and `1e-3` for none.
+public append_f64_exponent: (inout into: builder, value: f64, places: usize)
+                            -> none ! mem.out_of_memory =
+    try rounded_64(into, value, false, places_form, places, u8('e'))
+end append_f64_exponent
+
+--- Append an `f32` in the exponent form, as `append_f64_exponent` does.
+public append_f32_exponent: (inout into: builder, value: f32, places: usize)
+                            -> none ! mem.out_of_memory =
+    try rounded_32(into, value, false, places_form, places, u8('e'))
+end append_f32_exponent

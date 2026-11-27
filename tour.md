@@ -4333,8 +4333,10 @@ end print_born
     print_born(host, "Ada", 1815) -- Ada was born in 1815.
 ```
 
-Integers, `bool`, `utf8` and byte strings are formattable, floats not yet,
-and a type of your own becomes formattable by conforming ([1240]).
+Integers, floats, `bool`, `utf8` and byte strings are formattable, and a
+type of your own becomes formattable by conforming ([1240]). A placeholder
+may say how: `{:8}` pads to eight columns, `{:.2}` writes a float to two
+places and `{:x}` an integer in hexadecimal.
 
 The text is made in a small buffer on the stack and written as it fills,
 so printing allocates nothing. A template whose `{}` and values differ in

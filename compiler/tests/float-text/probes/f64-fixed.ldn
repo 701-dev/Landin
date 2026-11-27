@@ -1,0 +1,13 @@
+--  A Cortex-M0 size probe, compiler/tests/float-text/README.md: f64-fixed.
+import core/cmp
+import core/text
+
+public main: () -> (code: i32) =
+    code = 1
+    mut storage: [64]u8 = zeroed
+    mut line := text.over(storage[0..<64])
+    value: f64 = 0.1
+    text.append_f64_fixed(line, value, 3) else begin return end
+    return when cmp.compare(text.used(line), "0.100") <> cmp.equal
+    code = 42
+end main

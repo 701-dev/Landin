@@ -1516,8 +1516,8 @@ every live row into its file. R17.10 reviews each moved row against
 those its authority covers and puts the rest it would retire to the
 maintainer as questions. It provides the SR allocation script and files the
 rows-to-be in `roadmap/inputs/rows-to-be.md`. The rows that describe R22's
-additions (`SR-96` math, SR-97 float text, SR-98 locale and Unicode, `SR-100`
-regular expressions, SR-285 format width and radix) become `scheduled` on
+additions (`SR-96` math, `SR-97` float text, SR-98 locale and Unicode, `SR-100`
+regular expressions, `SR-285` format width and radix) become `scheduled` on
 the R22 items that take them.
 Exit evidence: every row typed and under the cap; the allocation script and
 its control; the cap and age rule refused in a control.
@@ -3629,13 +3629,13 @@ times recorded.
 
 ### R22.20 — Float text
 
-Status: planned
+Status: complete
 Depends on: R22.13
 
 Shortest round-trip writing, correctly rounded fixed-precision writing
-and correctly rounded parsing of `f32` and `f64` in `core/text`, SR-97,
+and correctly rounded parsing of `f32` and `f64` in `core/text`, `SR-97`,
 with floats made `formattable`; the parser's slow path uses R22.13's
-lower layer. With them SR-285: width, padding, alignment, radix and a
+lower layer. With them `SR-285`: width, padding, alignment, radix and a
 float's precision inside a template's `{}`, Rust's format specification
 the reference and the spelling decided here. It uses hexadecimal float
 literals as R19.10 left them (SC-29). From R20: the byte-sink shape
@@ -3645,6 +3645,45 @@ Exit evidence: every `f32` round-tripped exhaustively and `f64` against
 an oracle; fixed-precision output byte-equal to C's `printf` over an
 oracle set; `docs/from-c.md`'s `printf` entry written with the template;
 image size on Cortex-M0 measured.
+
+Done: `core/text` writes a float as the shortest text that reads back,
+spelled as a Landin float literal, `1.0`, `0.1`, `1.0e16` (D2754), by
+Ryu's method written from the paper, its 668 powers of five computed from
+28 bases and two-bit corrections, 620 bytes where the table would be
+10.7 KB (D2755); rounded once to places after the point or after the
+first digit, byte for byte C's `printf` (D2756); and reads decimal text
+rounded once, by Clinger's fast path or exactly over a power of five in
+`core/big/limbs` (D2757), an `f32` at its own width throughout. `f32` and
+`f64` are `formattable`, and a placeholder takes Rust's format
+specification, fill, alignment, `+`, `#`, `0`, a width in scalars,
+precision and the kinds `x`, `X`, `o`, `b`, `e` and `E`, without named,
+positional or counted arguments (D2758); a conformance reads it from the
+builder through `text.placeholder`, so `formattable` and every
+conformance written against it are unchanged, and the template pads
+what a conformance wrote (D2759). The byte sink stays R20's builder with
+`mem.out_of_memory`, and no hexadecimal float literal was needed: the
+powers of ten an `f64` holds exactly are decimal literals. `scripts/float_text.py`
+writes the powers and the four `float-text-*` fixtures from Python's
+`repr`, its exact fractions and C's `snprintf`; with
+`runtime/core-text-format-spec` they pass on every hosted target and
+the firmware lanes that hold them. Every one of the 4,278,190,080 finite
+`f32`s reads back from its shortest text, which is the nearest decimal of
+its length or that decimal's neighbour inside the interval, and no
+decimal a digit shorter reads back, checked against the exact digits,
+and a million drawn `f64`s agree with Python's `repr`, `printf` and
+Python's exact parse (compiler/tests/float-text/README.md). `docs/from-c.md`'s
+`printf` entry is the template, and two examples print with `{:.1}`.
+On Cortex-M0 at `size/auto`, over a program that appends one integer,
+`append_f64` is 12.5 KiB, `append_f64_fixed` 11.8, `parse_f64` 21.7 with
+soft double's arithmetic, and a float's `format` 28.4; formatting an
+integer went from 2.6 KiB to 8.2 with the specification's parsing and
+padding, so eight format fixtures' corpus rows record limits at
+`none/off` and RV32's 32 KiB maps, with their sizes, and
+`compiler/tests/float-text/README.md` holds the figures. Settled: `SR-97`, `SR-285`. The renamed
+`negative/format-array-names-its-type` keeps D880's pin now that an
+`f64` is formattable. Met on the way: SR-1939's grammar defect again,
+in `core/text/shortest.ldn`, and restated; filed: SR-2012, L0102's
+`else begin return end` that L0329 then refuses in an `if` arm.
 
 ### R22.21 — n-body and spectral-norm ported
 

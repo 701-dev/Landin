@@ -19,6 +19,9 @@ holding: type = not_allocated | allocated
 --  since, of `kept_extent` bytes, or zero when none has: the block every
 --  view the call was given may read, which the call frees when it ends
 --  (D1122).  It is an address, not a view, so that it borrows nothing.
+--  `filling` is what the placeholder being filled asked for, which
+--  `placeholder` gives a conformance, and `numeric` is set by a library
+--  number's conformance, so that the width puts a number to the right.
 builder_value: type = struct
     buffer: []mut u8
     used: usize
@@ -27,6 +30,8 @@ builder_value: type = struct
     keeping: bool
     kept: usize
     kept_extent: usize
+    filling: format_spec
+    numeric: bool
     policy: any grower
     growth: variant
         bounded |
@@ -99,8 +104,8 @@ public over: (buffer: []mut u8) -> (result: builder from buffer) =
     --  A read-only view of module storage, which no store reaches (D375).
     policy: any grower = any(addr refusing)
     result = (buffer: buffer, used: 0, handed: 0, held: not_allocated,
-              keeping: false, kept: 0, kept_extent: 0, policy: policy,
-              growth: bounded)
+              keeping: false, kept: 0, kept_extent: 0, filling: plain,
+              numeric: false, policy: policy, growth: bounded)
 end over
 
 --- An empty builder that takes its storage from `memory` as it needs it,
@@ -116,8 +121,8 @@ public growing: (memory: any mem.allocator) -> (result: builder from memory) =
     --  which outlives `memory` (D375).
     policy: any grower = any(addr doubling)
     result = (buffer: nothing, used: 0, handed: 0, held: not_allocated,
-              keeping: false, kept: 0, kept_extent: 0, policy: policy,
-              growth: grows(memory: memory))
+              keeping: false, kept: 0, kept_extent: 0, filling: plain,
+              numeric: false, policy: policy, growth: grows(memory: memory))
 end growing
 
 --- The bytes written so far, lent from the builder until it is next
@@ -604,21 +609,8 @@ public align_right: (inout into: builder, start: usize, width: usize,
                      fill: u8) -> none ! mem.out_of_memory =
     piece: usize = length(into) - start
     return when piece >= width
-    fail mem.out_of_memory when start < into.handed
-    padding: usize = width - piece
-    try room(into, padding)
-    --  A draining builder made the room by handing the piece on.
-    fail mem.out_of_memory when start < into.handed
-    begins: usize = start - into.handed
-    ends: usize = into.used + padding
-    moved: usize = begins + padding
-    mem.copy(into.buffer[moved..<ends], into.buffer[begins..<into.used])
-        else (problem)
-        _ = problem
-        fail mem.out_of_memory
-    end
-    mem.fill(into.buffer[begins..<moved], fill)
-    into.used = ends
+    pattern: [1]u8 = [fill]
+    try inserted(into, start, pattern[0..<1], width - piece)
 end align_right
 
 --- Left-align the piece written since `start` in a field `width` bytes
@@ -629,11 +621,8 @@ public align_left: (inout into: builder, start: usize, width: usize,
                     fill: u8) -> none ! mem.out_of_memory =
     piece: usize = length(into) - start
     return when piece >= width
-    padding: usize = width - piece
-    try room(into, padding)
-    ends: usize = into.used + padding
-    mem.fill(into.buffer[into.used..<ends], fill)
-    into.used = ends
+    pattern: [1]u8 = [fill]
+    try inserted(into, length(into), pattern[0..<1], width - piece)
 end align_left
 
 --  A `utf8_builder` is a byte builder that holds only whole scalars: its

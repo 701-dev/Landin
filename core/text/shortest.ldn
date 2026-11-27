@@ -1,0 +1,261 @@
+--  The shortest decimal that reads back as a float: Ryu's method (Ulf
+--  Adams, "Ryū: fast float-to-string conversion", PLDI 2018), written for
+--  both widths at once.  The float's rounding interval, the decimals
+--  that read back as it, is scaled by a power of ten through a 125-bit
+--  power of five, and digits are taken off its ends while they differ, so
+--  what is left is the shortest decimal inside it; of the decimals of
+--  that length the one nearest the float is kept, ties to even.  An `f32`
+--  takes the same path as an `f64`: its significand is shorter and its
+--  exponent's range a part of the `f64`'s, so the scaled values are as
+--  exact.  The powers are computed from the bases in powers.ldn, about
+--  six hundred bytes where the whole table would be ten thousand.
+
+--  A float's shortest decimal: `digits` times ten to the `exponent`.
+decimal_value: type = struct
+    digits: u64
+    exponent: i32
+end decimal_value
+
+--  An unsigned 128-bit number, as its two halves.
+wide_value: type = struct
+    low: u64
+    high: u64
+end wide_value
+
+--  The 128-bit product of two `u64`s, from their 32-bit halves.
+product: (left: u64, right: u64) -> (result: wide_value) =
+    left_low: u64 = left & 0xffffffff
+    left_high: u64 = left >> 32
+    right_low: u64 = right & 0xffffffff
+    right_high: u64 = right >> 32
+    low_low: u64 = left_low * right_low
+    low_high: u64 = left_low * right_high
+    high_low: u64 = left_high * right_low
+    high_high: u64 = left_high * right_high
+    --  Three numbers below 2^32 sum below 2^34.
+    middle: u64 = (low_low >> 32) + (low_high & 0xffffffff)
+                  + (high_low & 0xffffffff)
+    result = (low: (low_low & 0xffffffff) | (middle << 32),
+              high: high_high + (low_high >> 32) + (high_low >> 32)
+                    + (middle >> 32))
+end product
+
+--  The low 64 bits of `value` times `factor`, a 192-bit product, shifted
+--  right by `shift`, below 192.
+shifted_product: (value: wide_value, factor: u64, shift: u32) -> (result: u64) =
+    lower: wide_value = product(value.low, factor)
+    upper: wide_value = product(value.high, factor)
+    first: u64 = lower.low
+    second: u64 = lower.high +% upper.low
+    carry: u64 = if second < lower.high then 1 else 0 end if
+    --  The product is below 2^192, so its top word takes the carry.
+    third: u64 = upper.high + carry
+    s: u64 = u64(shift)
+    if shift >= 128 then
+        result = third >> (s - 128)
+    elsif shift >= 64 then
+        result = (second >> (s - 64)) | (third << (128 - s))
+    else
+        result = (first >> s) | (second << (64 - s))
+    end if
+end shifted_product
+
+--  The same product shifted right by `shift`, below 64, kept to 128 bits.
+shifted_wide: (value: wide_value, factor: u64, shift: u32) -> (result: wide_value) =
+    lower: wide_value = product(value.low, factor)
+    upper: wide_value = product(value.high, factor)
+    second: u64 = lower.high +% upper.low
+    carry: u64 = if second < lower.high then 1 else 0 end if
+    third: u64 = upper.high + carry
+    s: u64 = u64(shift)
+    result = (low: (lower.low >> s) | (second << (64 - s)),
+              high: (second >> s) | (third << (64 - s)))
+end shifted_wide
+
+--  `value` plus the small `amount`, which may be negative.
+corrected: (value: wide_value, amount: i32) -> (result: wide_value) =
+    if amount >= 0 then
+        low: u64 = value.low +% u64(amount)
+        carry: u64 = if low < value.low then 1 else 0 end if
+        result = (low: low, high: value.high + carry)
+    else
+        taken: u64 = u64(0 - amount)
+        low: u64 = value.low -% taken
+        borrow: u64 = if low > value.low then 1 else 0 end if
+        result = (low: low, high: value.high - borrow)
+    end if
+end corrected
+
+--  The bits 5^`exponent` takes, one for 5^0.
+power_bits: (exponent: i32) -> (count: i32) =
+    count = i32((i64(exponent) * 1217359) >> 19) + 1
+end power_bits
+
+--  floor(log10(2^`exponent`)), for an exponent up to 1650.
+log10_of_two: (exponent: i32) -> (result: i32) =
+    result = i32((i64(exponent) * 78913) >> 18)
+end log10_of_two
+
+--  floor(log10(5^`exponent`)), for an exponent up to 2620.
+log10_of_five: (exponent: i32) -> (result: i32) =
+    result = i32((i64(exponent) * 732923) >> 20)
+end log10_of_five
+
+--  The two-bit correction at `index` of a packed table.
+correction: (table: []u32, index: u32) -> (amount: i32) =
+    word: u32 = table[usize(index / 16)]
+    amount = i32((word >> (2 * (index % 16))) & 3)
+end correction
+
+--  5^`index` to its top 125 bits, for an index below 326.
+power_of_five: (index: u32) -> (result: wide_value) =
+    at: u32 = index / 26
+    offset: u32 = index % 26
+    base: wide_value = (low: five_bases[usize(2 * at)],
+                        high: five_bases[usize(2 * at + 1)])
+    if offset == 0 then
+        result = base
+        return
+    end if
+    shift: i32 = power_bits(i32(index)) - power_bits(i32(26 * at))
+    scaled: wide_value = shifted_wide(base, five_factors[usize(offset)],
+                                      u32(shift))
+    result = corrected(scaled, correction(five_corrections, index))
+end power_of_five
+
+--  2^(bits of 5^`index` - 1 + 125) / 5^`index`, rounded down, plus one,
+--  for an index below 342.
+inverse_of_five: (index: u32) -> (result: wide_value) =
+    at: u32 = (index + 25) / 26
+    offset: u32 = 26 * at - index
+    base: wide_value = (low: inverse_bases[usize(2 * at)],
+                        high: inverse_bases[usize(2 * at + 1)])
+    if offset == 0 then
+        result = base
+        return
+    end if
+    shift: i32 = power_bits(i32(26 * at)) - power_bits(i32(index))
+    scaled: wide_value = shifted_wide(base, five_factors[usize(offset)],
+                                      u32(shift))
+    result = corrected(scaled, correction(inverse_corrections, index) - 1)
+end inverse_of_five
+
+--  Whether 5^`power` divides `value`, which is not zero.
+multiple_of_five: (value: u64, power: i32) -> (yes: bool) =
+    mut rest: u64 = value
+    mut count: i32 = 0
+    while rest % 5 == 0 do
+        rest /= 5
+        inc count
+    end while
+    yes = count >= power
+end multiple_of_five
+
+--  Whether 2^`power`, below 64, divides `value`.
+multiple_of_two: (value: u64, power: i32) -> (yes: bool) =
+    yes = value & ((u64(1) << u64(power)) - 1) == 0
+end multiple_of_two
+
+--  The shortest decimal of the finite, nonzero float whose stored
+--  significand is `mantissa`, of `mantissa_bits` bits, and whose stored
+--  exponent is `exponent`, with `bias`; the sign is the caller's.
+shortest: (mantissa: u64, exponent: u32, mantissa_bits: u32, bias: i32)
+          -> (result: decimal_value) =
+    --  The float is m2 times 2^e2 with two more bits below, so that the
+    --  interval's ends are whole numbers too.
+    mut e2: i32 = 0
+    mut m2: u64 = 0
+    if exponent == 0 then
+        e2 = 1 - (bias + i32(mantissa_bits) + 2)
+        m2 = mantissa
+    else
+        e2 = i32(exponent) - (bias + i32(mantissa_bits) + 2)
+        m2 = (u64(1) << u64(mantissa_bits)) | mantissa
+    end if
+    even: bool = m2 & 1 == 0
+    mv: u64 = 4 * m2
+    --  The interval is half as wide below a power of two, but for the
+    --  least normal exponent.
+    mm_shift: u64 = if mantissa <> 0 or exponent <= 1 then 1 else 0 end if
+    mut vr: u64 = 0
+    mut vp: u64 = 0
+    mut vm: u64 = 0
+    mut e10: i32 = 0
+    mut vm_trailing: bool = false
+    mut vr_trailing: bool = false
+    if e2 >= 0 then
+        q: i32 = log10_of_two(e2) - (if e2 > 3 then 1 else 0 end if)
+        e10 = q
+        k: i32 = 125 + power_bits(q) - 1
+        i: i32 = q + k - e2
+        multiplier: wide_value = inverse_of_five(u32(q))
+        vr = shifted_product(multiplier, 4 * m2, u32(i))
+        vp = shifted_product(multiplier, 4 * m2 + 2, u32(i))
+        vm = shifted_product(multiplier, 4 * m2 - 1 - mm_shift, u32(i))
+        if q <= 21 then
+            --  Only one of mv, mp and mm can be a multiple of five.
+            if mv % 5 == 0 then
+                vr_trailing = multiple_of_five(mv, q)
+            elsif even then
+                vm_trailing = multiple_of_five(mv - 1 - mm_shift, q)
+            elsif multiple_of_five(mv + 2, q) then
+                dec vp
+            end if
+        end if
+    else
+        q: i32 = log10_of_five(0 - e2) - (if 0 - e2 > 1 then 1 else 0 end if)
+        e10 = q + e2
+        i: i32 = 0 - e2 - q
+        k: i32 = power_bits(i) - 125
+        j: i32 = q - k
+        multiplier: wide_value = power_of_five(u32(i))
+        vr = shifted_product(multiplier, 4 * m2, u32(j))
+        vp = shifted_product(multiplier, 4 * m2 + 2, u32(j))
+        vm = shifted_product(multiplier, 4 * m2 - 1 - mm_shift, u32(j))
+        if q <= 1 then
+            --  mv has at least two trailing zero bits, so vr is exact.
+            vr_trailing = true
+            if even then
+                vm_trailing = mm_shift == 1
+            else
+                dec vp
+            end if
+        elsif q < 63 then
+            --  vr is mv times a power of five over 2^q: exact when 2^q
+            --  divides mv.
+            vr_trailing = multiple_of_two(mv, q)
+        end if
+    end if
+    --  Take digits off while the interval's ends differ in what remains.
+    mut removed: i32 = 0
+    mut last: u64 = 0
+    while vp / 10 > vm / 10 do
+        vm_trailing = vm_trailing and vm % 10 == 0
+        vr_trailing = vr_trailing and last == 0
+        last = vr % 10
+        vr /= 10
+        vp /= 10
+        vm /= 10
+        inc removed
+    end while
+    if vm_trailing then
+        --  The lower end is exact and inside: zeros come off it too.
+        while vm % 10 == 0 do
+            vr_trailing = vr_trailing and last == 0
+            last = vr % 10
+            vr /= 10
+            vp /= 10
+            vm /= 10
+            inc removed
+        end while
+    end if
+    if vr_trailing and last == 5 and vr % 2 == 0 then
+        --  The float is exactly halfway: round to even.
+        last = 4
+    end if
+    mut output: u64 = vr
+    if (vr == vm and (not even or not vm_trailing)) or last >= 5 then
+        inc output
+    end if
+    result = (digits: output, exponent: e10 + removed)
+end shortest
