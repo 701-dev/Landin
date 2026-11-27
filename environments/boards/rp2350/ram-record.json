@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "467c06de75dfb5ecbfb938bbf3f8f21967db12bbd523fa95491ca38f5433b655",
+  "image_sha256": "50828b4d88e820f53c32117b12e8922dc0e8a7cf4f68d2f970f874253192a2c5",
   "image_name": "board.elf",
   "verdicts": {
     "boot": {
@@ -27,7 +27,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 1602,
+      "timer_events": 1637,
       "echoed": 11202,
       "sent": 11572
     },
@@ -42,7 +42,7 @@
     "usb_events": 1,
     "trans_count": 1094
   },
-  "uart_sha256": "0979db9ae0011883dce8d4b60a920a7610b3fd36847256bf6730820054cbc6fa",
+  "uart_sha256": "41cc387d9e5c54bd952d0a6e02bc8d462113076ea825481ed5ea87f22996d951",
   "mode": "ram",
   "warm_load": {
     "board": "rp2350",
@@ -52,7 +52,7 @@
       "peripheral_sources_stopped": true,
       "rom_reset": false
     },
-    "elf_sha256": "467c06de75dfb5ecbfb938bbf3f8f21967db12bbd523fa95491ca38f5433b655",
+    "elf_sha256": "50828b4d88e820f53c32117b12e8922dc0e8a7cf4f68d2f970f874253192a2c5",
     "entry": 536871185,
     "flash_written": false,
     "format_version": 1,
@@ -70,84 +70,11 @@
     "status": "passed",
     "vector": 536870912
   },
-  "seconds": 321.428,
+  "seconds": 5.311,
   "kernel_usb": {
-    "since": 1795702063.5378883,
-    "until": 1795702384.945389,
-    "lines": [
-      {
-        "time": 1795702339.216695,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 122"
-      },
-      {
-        "time": 1795702340.843645,
-        "text": "rigpi kernel: usb 1-1.2.4.3: USB disconnect, device number 120"
-      },
-      {
-        "time": 1795702344.124679,
-        "text": "rigpi kernel: usb 1-1.2.4.3: new full-speed USB device number 11 using xhci_hcd"
-      },
-      {
-        "time": 1795702344.234698,
-        "text": "rigpi kernel: usb 1-1.2.4.3: ch341-uart converter now attached to ttyUSB3"
-      },
-      {
-        "time": 1795702345.980675,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 12 using xhci_hcd"
-      },
-      {
-        "time": 1795702346.096229,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795702352.948732,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 12"
-      },
-      {
-        "time": 1795702353.225658,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 13 using xhci_hcd"
-      },
-      {
-        "time": 1795702353.344674,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795702369.116724,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 13"
-      },
-      {
-        "time": 1795702370.738943,
-        "text": "rigpi kernel: usb 1-1.2.4.3: USB disconnect, device number 11"
-      },
-      {
-        "time": 1795702373.964673,
-        "text": "rigpi kernel: usb 1-1.2.4.3: new full-speed USB device number 14 using xhci_hcd"
-      },
-      {
-        "time": 1795702374.072692,
-        "text": "rigpi kernel: usb 1-1.2.4.3: ch341-uart converter now attached to ttyUSB3"
-      },
-      {
-        "time": 1795702375.736678,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 15 using xhci_hcd"
-      },
-      {
-        "time": 1795702375.836818,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      },
-      {
-        "time": 1795702379.576741,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: USB disconnect, device number 15"
-      },
-      {
-        "time": 1795702379.784686,
-        "text": "rigpi kernel: usb 1-1.2.3.4.3: new full-speed USB device number 16 using xhci_hcd"
-      },
-      {
-        "time": 1795702379.912953,
-        "text": "rigpi kernel: cdc_acm 1-1.2.3.4.3:1.0: ttyACM5: USB ACM device"
-      }
-    ],
+    "since": 1795813515.0305889,
+    "until": 1795813520.3221107,
+    "lines": [],
     "status": "captured"
   },
   "sent_sha256": "42d30ba70ef5520bca6b4ea8f3fa35323f4099963fccd9c112148a17b4b25365",
@@ -163,7 +90,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "00000642",
+      "m": "00000665",
       "u": "00000001",
       "p": "0000001e",
       "n": "00000446",

@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "image_sha256": "d3d4b4a6d24e98d5d66ed55cd8957b980f24718bdb476b63bb652162ff7e2a2e",
+  "image_sha256": "ab3b9f24a2f7afc02ed5c4554f66416883ea9b8e6f92e5e34b0b459c7ca37d1e",
   "image_name": "board.elf",
   "flash_readback": "matches",
   "verdicts": {
@@ -28,7 +28,7 @@
       "held_by_fifo": 32,
       "restarts": 3,
       "dma_completions": 2,
-      "timer_events": 1593,
+      "timer_events": 1636,
       "echoed": 11202,
       "sent": 11572
     },
@@ -43,7 +43,7 @@
     "usb_events": 1,
     "trans_count": 1094
   },
-  "uart_sha256": "04deac7b23e05e88501a322822ffc7cda1e72e1647a29f96092584e86a722ff1",
+  "uart_sha256": "2266d9567729089c0715aec3d4890be975ed6add8184f7cbcd746f2782dac75e",
   "mode": "boot",
   "fixed_restore": {
     "status": "passed",
@@ -55,36 +55,11 @@
       "elf_sha256": "498a9c6ce9a469eb8536f6b4b0413cbc8da1ee5b437d9a0b1fd4d14fe2a78998"
     }
   },
-  "seconds": 100.885,
+  "seconds": 42.126,
   "kernel_usb": {
-    "since": 1795701954.1294858,
-    "until": 1795702054.9976857,
-    "lines": [
-      {
-        "time": 1795701990.975371,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 114"
-      },
-      {
-        "time": 1795701993.576698,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 9 using xhci_hcd"
-      },
-      {
-        "time": 1795701993.680766,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
-      },
-      {
-        "time": 1795702008.871081,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: USB disconnect, device number 9"
-      },
-      {
-        "time": 1795702011.452677,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: new full-speed USB device number 10 using xhci_hcd"
-      },
-      {
-        "time": 1795702011.554311,
-        "text": "rigpi kernel: usb 1-1.2.3.4.4: ch341-uart converter now attached to ttyUSB4"
-      }
-    ],
+    "since": 1795813463.8795624,
+    "until": 1795813505.989131,
+    "lines": [],
     "status": "captured"
   },
   "sent_sha256": "42d30ba70ef5520bca6b4ea8f3fa35323f4099963fccd9c112148a17b4b25365",
@@ -100,7 +75,7 @@
       "h": "00002bc2",
       "c": "00000003",
       "d": "00000002",
-      "m": "00000639",
+      "m": "00000664",
       "u": "00000001",
       "p": "0000001e",
       "n": "00000446",
