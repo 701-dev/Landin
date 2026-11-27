@@ -1,6 +1,6 @@
 class: runtime
 profiles: standard
-summary: D1956 the published dice example seeds a core/random generator with random.new from its optional SEED argument, which it declares to core/args as an unsigned number, or with random.from_entropy when it has none, rolls two dice six hundred times with random.below and prints how often each total came up, then deals five cards of a deck put in order by random.shuffle; a seed prints the same report on every target
+summary: D1956 the published dice example seeds a core/random generator with random.new from its optional SEED argument, which it declares to core/args as an unsigned number, or with random.from_entropy when it has none, rolls two dice six hundred times with random.between_i64 and prints how often each total came up, rolls a die loaded by random.weighted sixty times, then deals five cards of a deck put in order by random.shuffle and names a trump suit drawn by random.pick (D3054); a seed prints the same report on every target
 program: main.ldn
 root: ../../../../..
 run_args: 2026

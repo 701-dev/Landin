@@ -1,0 +1,176 @@
+--  core/random's integer and float draws give, from one seed, what their
+--  ports to C give over xoshiro256**'s reference implementation, on every
+--  target: the expected values were printed by
+--  compiler/tests/random/oracle.c, which holds the authors' `next` and
+--  `jump` unchanged.  The floats are compared bit for bit.  The normal and
+--  exponential draws, which need `core/math`'s `log`, are
+--  runtime/random-normal-draws, so this image fits Cortex-M0 at every
+--  profile.  Each check that fails returns its own code.
+import core/random
+
+--  A float's bits, read through its address, as docs/from-c.md shows.
+bits_64: (x: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits = view.val
+end bits_64
+
+bits_32: (x: f32) -> (bits: u32) =
+    view: ptr u32 = ptr(usize(addr x))
+    bits = view.val
+end bits_32
+
+--  Seed 42's first eight of each float, as their bits.
+unit_f64_bits: [8]u64 = [0x3fb5780b2e0c2ec0, 0x3fd84136619b444e,
+                         0x3fe5c2ea66473c93, 0x3fed9715a8e0766c,
+                         0x3fefbcdb8ffc5d8b, 0x3fe8a1b4a6202f2a,
+                         0x3fe7042a90ab4cbb, 0x3feb3344e87d7cc0]
+unit_f32_bits: [8]u32 = [0x3dabc058, 0x3ec209b2, 0x3f2e1753, 0x3f6cb8ad,
+                         0x3f7de6dc, 0x3f450da5, 0x3f382154, 0x3f599a27]
+
+units_match: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(42)
+    for bits in unit_f64_bits do
+        drawn: f64 = random.unit_f64(source)
+        return when bits_64(drawn) <> bits or drawn >= 1.0
+    end for
+    source = random.new(42)
+    for bits in unit_f32_bits do
+        drawn: f32 = random.unit_f32(source)
+        return when bits_32(drawn) <> bits or drawn >= 1.0
+    end for
+    yes = true
+end units_match
+
+--  Four draws in each of four ranges, one after the other from seed
+--  0x0123456789abcdef: a die, every u64, the two largest and a width just
+--  past 2^63, which rejects nearly half its draws.
+unsigned_lows: [4]u64 = [1, 0, 18446744073709551614, 10]
+unsigned_highs: [4]u64 = [6, 18446744073709551615, 18446744073709551615,
+                          9223372036854775818]
+unsigned_draws: [16]u64 = [6, 1, 2, 3,
+                           0xf609a9d5b1a9b93c, 0x8cc9636b9188002e,
+                           0xf5eb31c838d22963, 0xf88dd57849668d67,
+                           18446744073709551614, 18446744073709551614,
+                           18446744073709551615, 18446744073709551615,
+                           0x5dc5578deb2ec0b2, 0x1aef22e41b340898,
+                           0x3a369dbb87db7ac9, 0x731b7faf82d255fc]
+
+--  The same from the same seed over signed ranges: a small one about
+--  zero, every i64, the two least and a thousand either side of zero.
+signed_lows: [4]i64 = [-3, -9223372036854775807 - 1,
+                       -9223372036854775807 - 1, -1000]
+signed_highs: [4]i64 = [3, 9223372036854775807, -9223372036854775807, 1000]
+signed_draws: [16]i64 = [2, 3, 3, -3,
+                         3863404780343974529, 20036268231953450,
+                         8505516106539710780, 921376912428236846,
+                         -9223372036854775807, -9223372036854775807,
+                         -9223372036854775807 - 1, -9223372036854775807 - 1,
+                         -403, 73, -832, -858]
+
+ranges_match: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(0x0123456789abcdef)
+    mut at: usize = 0
+    for range in usize(0)..<4 do
+        for count in usize(0)..<4 do
+            _ = count
+            drawn: u64 = random.between_u64(source, unsigned_lows[range],
+                                            unsigned_highs[range])
+            return when drawn <> unsigned_draws[at]
+            inc at
+        end for
+    end for
+    source = random.new(0x0123456789abcdef)
+    at = 0
+    for range in usize(0)..<4 do
+        for count in usize(0)..<4 do
+            _ = count
+            drawn: i64 = random.between_i64(source, signed_lows[range],
+                                            signed_highs[range])
+            return when drawn <> signed_draws[at]
+            inc at
+        end for
+    end for
+    yes = true
+end ranges_match
+
+--  Eight picks of ten from seed 7, three samples of four from seed 9 and
+--  twelve weighted places from seed 11, the second weight zero.
+digits: [10]u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+picks: [8]u8 = [2, 6, 0, 8, 9, 4, 0, 3]
+samples: [12]u8 = [0, 4, 7, 9, 0, 3, 6, 9, 3, 7, 8, 9]
+weights: [4]u64 = [1, 0, 3, 6]
+places: [12]usize = [2, 3, 3, 3, 3, 3, 2, 2, 3, 0, 3, 3]
+
+choices_match: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(7)
+    for expected in picks do
+        return when random.pick(source, digits[0..<10]) <> expected
+    end for
+    source = random.new(9)
+    mut hand: [4]u8 = zeroed
+    for round in usize(0)..<3 do
+        random.sample(hand[0..<4], source, digits[0..<10])
+        for at in usize(0)..<4 do
+            return when hand[at] <> samples[4 * round + at]
+        end for
+    end for
+    source = random.new(11)
+    for expected in places do
+        return when random.weighted(source, weights[0..<4]) <> expected
+    end for
+    yes = true
+end choices_match
+
+--  Twenty-one bytes from seed 5: two whole draws and five bytes of a third.
+filled: [21]u8 = [105, 207, 84, 202, 120, 81, 213, 73, 220, 36, 38, 77, 90,
+                  17, 34, 154, 174, 187, 187, 240, 204]
+
+fill_matches: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(5)
+    mut bytes: [21]u8 = zeroed
+    random.fill(bytes[0..<21], source)
+    for at in usize(0)..<21 do
+        return when bytes[at] <> filled[at]
+    end for
+    yes = true
+end fill_matches
+
+--  Seed 0 jumped once and its next four draws, then jumped twice.
+jumped_draws: [8]u64 = [0x376215edc846d62c, 0x57c0611de8350ca7,
+                        0xbc46a3515afee385, 0x06c27b341aca7b26,
+                        0xa72791f60c825a41, 0x92367e7e4edaa982,
+                        0x144d4f8d4c4400d4, 0x37c9c66827a56ba1]
+
+jumps_match: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(0)
+    random.jump(source)
+    for at in usize(0)..<4 do
+        return when random.next(source) <> jumped_draws[at]
+    end for
+    source = random.new(0)
+    random.jump(source)
+    random.jump(source)
+    for at in usize(4)..<8 do
+        return when random.next(source) <> jumped_draws[at]
+    end for
+    yes = true
+end jumps_match
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not units_match()
+    code = 2
+    return when not ranges_match()
+    code = 3
+    return when not choices_match()
+    code = 4
+    return when not fill_matches()
+    code = 5
+    return when not jumps_match()
+    code = 42
+end main

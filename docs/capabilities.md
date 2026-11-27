@@ -995,8 +995,11 @@ injector as arguments, as providers.
   images only (D957-D964).
 - **Random numbers.** `core/random` is a deterministic generator,
   xoshiro256**, seeded from a fixed seed or from entropy, which draws the
-  same sequence on every target, Cortex-M0 included, with unbiased bounded
-  draws and shuffles.
+  same sequence on every target, Cortex-M0 included. It draws unbiased
+  integers below a bound or between two ends, floats in [0, 1), picks,
+  samples without replacement, weighted choices, bytes, shuffles, and
+  standard normal and exponential values, and `jump` gives threads or
+  fibres separate streams from one seed (D3054-D3057).
 - **Mathematics.** `core/math` has the functions of C's `<math.h>` that
   most programs use, each generic over `f32` and `f64`: roots, `hypot` and
   `fma`, exponentials, logarithms and powers, the trigonometric and

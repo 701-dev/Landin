@@ -4367,28 +4367,34 @@ reads a binary format; image size on Cortex-M0 measured.
 
 ### R22.42 — Random draws programs use
 
-Status: planned
+Status: complete
 Depends on: R20
-
-What `core/random`'s generator lacks, set against Rust's `rand` and Go's
-`math/rand/v2`: a uniform `f32` or `f64` in [0, 1) from the generator's
-high bits; an unbiased value in a signed or inclusive integer range; an
-element picked from a slice, k drawn without replacement and a choice
-weighted by the caller's weights; bytes filled from the generator; normal
-and exponential draws by a method the item states; and xoshiro256**'s
-`jump`, so that threads or fibres take independent streams from one
-seed. The generator stays as it is, and nothing here is cryptographic: a
-key still comes from `io.fill_random`, which is Rust's `getrandom`. From
-R20: placement, and how a draw takes a range.
-
-Leaves out: other generators and distributions beyond the two, until a
-program needs one.
-
-Exit evidence: the same sequences on every target from one seed; each
-draw's distribution checked by a stated test over a pinned sample, the
-floats' bits and the ranges' bounds exhaustively at small widths; `jump`
-against the reference implementation's; the example program D1956 gave
-`core/random` drawing through them; image size on Cortex-M0 measured.
+Done: `core/random` draws floats in [0, 1) from the generator's upper 53
+or 24 bits, integers between two included ends of any `u64` or `i64`
+range, a pick, a sample without replacement by Knuth's selection
+sampling, a place by `u64` weights and bytes (D3054); the standard normal
+by Marsaglia's polar method and the rate-1 exponential by inversion, over
+`core/math` (D3056); and `jump`, the reference implementation's (D3057).
+The generator is unchanged. `compiler/tests/random/oracle.c` holds the
+authors' `next` and `jump` unchanged with C ports of the draws, and
+`runtime/random-draws` and `runtime/random-normal-draws` give its values
+on every target, the normal and exponential draws within two units in
+the last place of the C library's `log` and a digest of a thousand of
+them the same bits everywhere. `runtime/random-distributions` and
+`runtime/random-float-distributions` test each draw by chi-squared at
+p = 0.001 and by its moments over pinned samples, and every range at
+ends within four of zero and of the integer types' ends (D3055). The
+dice example draws through `between_i64`, `weighted`, `shuffle` and
+`pick`. On Cortex-M0 at size/auto the integer draws are a 12.8 KB image
+and the normal ones, with `log` and `sqrt`, 17.6 KB; the four fixtures
+fit the 32 KiB profile at every profile, the float tests at 16,000 draws
+so that none/off ends within the lane's limit; on the two RV32 lanes,
+without a float unit, the two that call `log` record capacity limits at
+none/off, and the float tests on the ESP32-C3 at size too (D698). `core/README.md`'s 8.8 KB
+for `runtime/random-sequence` was stale; it is 6.6 KB. `SR-2163`
+records `refine run`'s refusal of a program argument given without `--`,
+and `SR-2164` `item.py gate --watch` declining to follow a run again
+after its watch reached its limit.
 
 ### R22.43 — Sockets by name, with their options
 

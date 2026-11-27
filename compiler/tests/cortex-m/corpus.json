@@ -5680,6 +5680,38 @@
       "mode": "refuse",
       "reason": "Its panic handler ends the process through posix.exit; runtime/random-sequence draws through core/random on Cortex-M0."
     },
+    "runtime/random-distributions": {
+      "mode": "execute"
+    },
+    "runtime/random-draws": {
+      "mode": "execute"
+    },
+    "runtime/random-float-distributions": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 45688 of this lane's 32 KiB, over by 12920."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 49096 of this lane's 32 KiB at none/off, over by 16328, 33832 at size/off, over by 1064, and 33800 at size/auto, over by 1032; speed/auto fits and executes the whole fixture."
+        }
+      }
+    },
+    "runtime/random-normal-draws": {
+      "mode": "execute",
+      "lanes": {
+        "sifive-e": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 35704 of this lane's 32 KiB, over by 2936."
+        },
+        "esp32c3": {
+          "mode": "limit",
+          "reason": "D698: the Cortex-M0 image fits the reference's 32 KiB at every profile; at none/off RV32's, with core/math's log and sqrt and the soft float's arithmetic, needs FLASH 38568 of this lane's 32 KiB, over by 5800."
+        }
+      }
+    },
     "runtime/random-sequence": {
       "mode": "execute"
     },

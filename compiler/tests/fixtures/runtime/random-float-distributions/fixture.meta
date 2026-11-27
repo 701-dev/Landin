@@ -1,0 +1,8 @@
+class: runtime
+profiles: standard
+summary: D3055 core/random's floats and its normal and exponential draws pass stated tests over samples pinned by their seeds, on every target: a chi-squared test at p = 0.001 of each float width in sixteen bins and of the normal and exponential deciles, every float a multiple of 2^-53 or 2^-24 below 1, the normal's mean and variance and the exponential's mean within stated bounds
+program: main.ldn
+root: ../../../../..
+status: 42
+constructs: 0150, 0300, 0320, 0330, 0570, 0900, 1290, 1680
+targets: linux-x86-64, linux-arm64, linux-rv64, darwin-arm64, freebsd-x86-64, freebsd-arm64, cortex-m0, windows-x86-64, windows-arm64

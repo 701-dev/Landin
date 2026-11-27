@@ -1,0 +1,78 @@
+--  core/random's normal and exponential draws give, from one seed, what
+--  their ports to C give over xoshiro256**'s reference implementation,
+--  printed by compiler/tests/random/oracle.c.  They pass through
+--  `core/math`'s `log` here and the C library's in the oracle, which can
+--  differ in the last place, so they are compared within two units in the
+--  last place; that they are the same bits on every target is the digest
+--  at the end.  Each check that fails returns its own code.
+import core/random
+
+--  A float's bits, read through its address, as docs/from-c.md shows.
+bits_64: (x: f64) -> (bits: u64) =
+    view: ptr u64 = ptr(usize(addr x))
+    bits = view.val
+end bits_64
+
+--  Seed 3's first eight normal and exponential draws, as the oracle's C
+--  library computes them.
+normal_bits: [8]u64 = [0x3ff642dac869b08a, 0xbff7e90da7788456,
+                       0xbff69255cb683f02, 0xbfed48214588e45d,
+                       0x3fe102e530abde0c, 0x3fe7288c13df0088,
+                       0x3fd51bfa21583991, 0x3fe29fb414e5186b]
+exponential_bits: [8]u64 = [0x3ff2c59ba08a23f4, 0x3ff05f4ca67fe420,
+                            0x3fcf84aa34b8560e, 0x3fe86e7cebf43ada,
+                            0x3fe1af92a493efa4, 0x3fe051f81ea5ee25,
+                            0x3fce331a69084afe, 0x3ff41dd663e98bdc]
+
+--  Whether `drawn` is within two units in the last place of the value
+--  whose bits are `expected`, both finite and of one sign.
+close: (drawn: f64, expected: u64) -> (yes: bool) =
+    bits: u64 = bits_64(drawn)
+    yes = bits >> 63 == expected >> 63
+          and (if bits >= expected then bits - expected
+               else expected - bits end if) <= 2
+end close
+
+distributions_match: () -> (yes: bool) =
+    yes = false
+    mut source := random.new(3)
+    for bits in normal_bits do
+        return when not close(random.normal(source), bits)
+    end for
+    source = random.new(3)
+    for bits in exponential_bits do
+        return when not close(random.exponential(source), bits)
+    end for
+    yes = true
+end distributions_match
+
+--  A 64-bit FNV-1a digest of the bits of a thousand normal draws each
+--  exclusive-ored with an exponential one, from seed 1, as Linux x86-64
+--  printed it: one value, the same on every target, which shows
+--  `core/math` makes these draws the same bits everywhere.  The oracle's
+--  C library gives another, since its `log` differs in the last place.
+expected_digest: u64 = 0xfc83c50831ad7d5f
+
+digest_matches: () -> (yes: bool) =
+    mut source := random.new(1)
+    mut hash: u64 = 0xcbf29ce484222325
+    for count in usize(0)..<1000 do
+        _ = count
+        mut bits: u64 = bits_64(random.normal(source))
+                        ^ bits_64(random.exponential(source))
+        for byte in usize(0)..<8 do
+            _ = byte
+            hash = (hash ^ (bits & 0xff)) *% 0x100000001b3
+            bits = bits >> 8
+        end for
+    end for
+    yes = hash == expected_digest
+end digest_matches
+
+public main: () -> (code: i32) =
+    code = 1
+    return when not distributions_match()
+    code = 2
+    return when not digest_matches()
+    code = 42
+end main
