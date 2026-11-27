@@ -144,11 +144,14 @@ fixed if compiler.os == linux and not compiler.c_runtime then
         if count == 2 then id = (u16(drawn[0]) << 8) | u16(drawn[1]) end if
     end question_id
 
+    --  Those /etc/hosts gives it, in its order, or when it gives none, the
+    --  IPv4 and then the IPv6 ones the name servers /etc/resolv.conf names
+    --  answer with, asked over `host`'s own network as `net.ask` asks.
     --- Write into `into` the addresses the host name `name` has, each with
-    --- `port`: those /etc/hosts gives it, in its order, or when it gives
-    --- none, the IPv4 and then the IPv6 ones the name servers
-    --- /etc/resolv.conf names answer with, asked over `host`'s own network
-    --- as `net.ask` asks.  It returns how many, as many as `into` holds.
+    --- `port`, in the order the system's resolver gives them, and return
+    --- how many, as many as `into` holds: `unknown_name` for a name no
+    --- source knows and `timed_out` when the name servers do not answer
+    --- (D3075).
     public resolve_over: (provider: type is net.network, host: provider,
                           name: []u8, port: u16, into: []mut net.address)
                          -> (count: usize)
@@ -162,12 +165,15 @@ fixed if compiler.os == linux and not compiler.c_runtime then
         count = try net.ask(host, service(), name, port, into, question_id())
     end resolve_over
 elsif compiler.os <> windows then
+    --  As the C library's `getaddrinfo` gives them, through every source
+    --  the system is set up to ask, sixteen at most.  The call holds the
+    --  thread while the C library asks, under an event provider too, which
+    --  has no way to wait for it.
     --- Write into `into` the addresses the host name `name` has, each with
-    --- `port`, as the C library's `getaddrinfo` gives them, through every
-    --- source the system is set up to ask, and return how many: as many as
-    --- `into` holds, sixteen at most.  The call holds the thread while the
-    --- C library asks, under an event provider too, which has no way to
-    --- wait for it.
+    --- `port`, in the order the system's resolver gives them, and return
+    --- how many, as many as `into` holds: `unknown_name` for a name no
+    --- source knows and `timed_out` when the name servers do not answer
+    --- (D3075).
     public resolve_over: (provider: type is net.network, host: provider,
                           name: []u8, port: u16, into: []mut net.address)
                          -> (count: usize)
